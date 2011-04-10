@@ -11,8 +11,6 @@ using Attribute = ICSharpCode.NRefactory.CSharp.Attribute;
 
 namespace JSIL.Internal {
     public class JavascriptOutputVisitor : OutputVisitor {
-        public readonly Stack<TypeDeclaration> TypeStack = new Stack<TypeDeclaration>();
-
         public JavascriptOutputVisitor (IOutputFormatter formatter)
             : base (formatter, new CSharpFormattingPolicy {
                 ConstructorBraceStyle = BraceStyle.EndOfLine,
@@ -311,6 +309,22 @@ namespace JSIL.Internal {
             VisitVariableInitializer(variableInitializer);
 
             return EndNode(variableInitializer);
+        }
+
+        public override object VisitLabelStatement (LabelStatement labelStatement, object data) {
+            throw new NotImplementedException("Goto and labels are not implemented");
+        }
+
+        public override object VisitGotoStatement (GotoStatement gotoStatement, object data) {
+            throw new NotImplementedException("Goto and labels are not implemented");
+        }
+
+        public override object VisitGotoCaseStatement (GotoCaseStatement gotoCaseStatement, object data) {
+            throw new NotImplementedException("Goto and labels are not implemented");
+        }
+
+        public override object VisitGotoDefaultStatement (GotoDefaultStatement gotoDefaultStatement, object data) {
+            throw new NotImplementedException("Goto and labels are not implemented");
         }
 
         public override object VisitBlockStatement (BlockStatement blockStatement, object data) {
