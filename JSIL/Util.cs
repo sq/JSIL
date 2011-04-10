@@ -18,7 +18,7 @@ namespace JSIL.Internal {
 
         public static Regex ValidIdentifier = new Regex("$[A-Za-z_$]([A-Za-z_$0-9]*)^", RegexOptions.Compiled);
 
-        public static string EscapeIdentifier (string identifier, bool escapePeriods = true, string declaringType = null) {
+        public static string EscapeIdentifier (string identifier, bool escapePeriods = true) {
             bool isReservedWord = ReservedWords.Contains(identifier);
 
             if (ValidIdentifier.IsMatch(identifier) && !isReservedWord)
@@ -26,18 +26,6 @@ namespace JSIL.Internal {
 
             if (isReservedWord)
                 return "cs$" + identifier;
-
-            if (declaringType == null)
-                declaringType = "";
-            else
-                declaringType = "_" + declaringType;
-
-            switch (identifier) {
-                case ".ctor":
-                    return String.Format("{0}_ctor_", declaringType);
-                case ".cctor":
-                    return String.Format("{0}_static_ctor_", declaringType);
-            }
 
             var result = new StringBuilder();
             for (int i = 0, l = identifier.Length; i < l; i++) {
