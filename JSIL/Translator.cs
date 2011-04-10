@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using Cecil.Decompiler.Languages;
+using ICSharpCode.Decompiler.Ast;
+using ICSharpCode.NRefactory.CSharp;
 using JSIL.Internal;
-using JSIL.Languages;
 using Mono.Cecil;
+using ICSharpCode.Decompiler;
 
 namespace JSIL {
     public class AssemblyTranslator {
@@ -17,12 +18,23 @@ namespace JSIL {
                     ReadingMode = ReadingMode.Deferred
                 }
             );
+
             Translate(assembly);
         }
 
         internal void Translate (AssemblyDefinition assembly) {
-            foreach (var module in assembly.Modules)
-                TranslateModule(assembly, module);
+            var decompiler = new AstBuilder(new DecompilerContext());
+            decompiler.AddAssembly(assembly);
+
+            decompiler.RunTransformations();
+
+            var astCompileUnit = decompiler.CompilationUnit;
+            var output = new PlainTextOutput(Console.Out);
+            var outputFormatter = new TextOutputFormatter(output);
+            var outputVisitor = new JavascriptOutputVisitor(outputFormatter);
+
+            astCompileUnit.AcceptVisitor(new InsertParenthesesVisitor { InsertParenthesesForReadability = true }, null);
+            astCompileUnit.AcceptVisitor(outputVisitor, null);
         }
 
         internal void TranslateModule (AssemblyDefinition assembly, ModuleDefinition module) {
@@ -31,6 +43,7 @@ namespace JSIL {
         }
 
         internal void TranslateType (AssemblyDefinition assembly, ModuleDefinition module, TypeDefinition type) {
+            /*
             using (var sw = new StringWriter()) {
                 var language = new JavaScript();
                 var languageWriter = new JavaScriptWriter(
@@ -46,6 +59,7 @@ namespace JSIL {
 
                 Console.Write(sw.ToString());
             }
+             */
         }
     }
 }

@@ -1,6 +1,3 @@
-[submodule "Upstream/Cecil"]
-	path = Upstream/Cecil
-	url = https://github.com/kevingadd/MonoCecil.git
-[submodule "Upstream/Decompiler"]
-	path = Upstream/Decompiler
-	url = https://github.com/kevingadd/MonoCecilDecompiler.git
+[submodule "Upstream/ILSpy"]
+	path = Upstream/ILSpy
+	url = https://github.com/kevingadd/ILSpy.git
