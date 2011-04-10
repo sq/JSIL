@@ -46,6 +46,10 @@ namespace JSIL.Internal {
             base.WriteIdentifier(Util.EscapeIdentifier(method.Name));
         }
 
+        protected void WriteIdentifier (MemberReferenceExpression member) {
+            base.WriteIdentifier(Util.EscapeIdentifier(member.MemberName));
+        }
+
         protected void WriteIdentifier (NamespaceDeclaration ns) {
             base.WriteIdentifier(Util.EscapeIdentifier(
                 ns.FullName,
@@ -121,6 +125,14 @@ namespace JSIL.Internal {
             NewLine();
 
             return EndNode(typeDeclaration);
+        }
+
+        public override object VisitMemberReferenceExpression (MemberReferenceExpression memberReferenceExpression, object data) {
+            StartNode(memberReferenceExpression);
+            memberReferenceExpression.Target.AcceptVisitor(this, data);
+            WriteToken(".", MemberReferenceExpression.Roles.Dot);
+            WriteIdentifier(memberReferenceExpression);
+            return EndNode(memberReferenceExpression);
         }
 
         public override object VisitParameterDeclaration (ParameterDeclaration parameterDeclaration, object data) {

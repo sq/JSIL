@@ -9,8 +9,6 @@ namespace JSIL.Compiler {
             var translator = new AssemblyTranslator();
             foreach (var filename in args)
                 translator.Translate(filename);
-
-            Console.ReadLine();
         }
     }
 }

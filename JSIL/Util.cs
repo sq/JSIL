@@ -16,41 +16,51 @@ namespace JSIL.Internal {
             "in", "try"
         };
 
+        public static readonly Dictionary<string, string> IdentifierMappings = new Dictionary<string, string> {
+            { "ToString", "toString" },
+            { "Length", "length" }
+        };
+
         public static Regex ValidIdentifier = new Regex("$[A-Za-z_$]([A-Za-z_$0-9]*)^", RegexOptions.Compiled);
 
         public static string EscapeIdentifier (string identifier, bool escapePeriods = true) {
             bool isReservedWord = ReservedWords.Contains(identifier);
+            string result = identifier;
 
-            if (ValidIdentifier.IsMatch(identifier) && !isReservedWord)
-                return identifier;
+            if (!ValidIdentifier.IsMatch(identifier)) {
+                var sb = new StringBuilder();
+                for (int i = 0, l = identifier.Length; i < l; i++) {
+                    var ch = identifier[i];
 
-            if (isReservedWord)
-                return "cs$" + identifier;
-
-            var result = new StringBuilder();
-            for (int i = 0, l = identifier.Length; i < l; i++) {
-                var ch = identifier[i];
-
-                switch (ch) {
-                    case '.':
+                    switch (ch) {
+                        case '.':
                         if (escapePeriods)
-                            result.Append("_");
+                            sb.Append("_");
                         else
-                            result.Append(".");
+                            sb.Append(".");
                         break;
-                    case '_':
-                        result.Append("$_");
+                        case '_':
+                        sb.Append("$_");
                         break;
-                    default:
+                        default:
                         if ((ch <= 32) || (ch >= 127))
-                            result.AppendFormat("${0:x}", ch);
+                            sb.AppendFormat("${0:x}", ch);
                         else
-                            result.Append(ch);
+                            sb.Append(ch);
                         break;
+                    }
                 }
+
+                result = sb.ToString();
+            } else if (isReservedWord) {
+                result = "cs$" + result;
             }
 
-            return result.ToString();
+            string mapped;
+            if (IdentifierMappings.TryGetValue(result, out mapped))
+                result = mapped;
+
+            return result;
         }
     }
 }
