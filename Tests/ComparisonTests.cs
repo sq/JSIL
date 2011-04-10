@@ -41,19 +41,22 @@ namespace JSIL.Tests {
             TestMethod = Assembly.GetType("Program").GetMethod("Main");
         }
 
-        public string RunCSharp (string[] args) {
+        public string RunCSharp (string[] args, out long elapsed) {
             var oldStdout = Console.Out;
             using (var sw = new StringWriter())
             try {
                 Console.SetOut(sw);
+                long startedCs = DateTime.UtcNow.Ticks;
                 TestMethod.Invoke(null, new object[] { args });
+                long endedCs = DateTime.UtcNow.Ticks;
+                elapsed = endedCs - startedCs;
                 return sw.ToString();
             } finally {
                 Console.SetOut(oldStdout);
             }
         }
 
-        public string RunJavascript (string[] args, out string generatedJavascript) {
+        public string RunJavascript (string[] args, out string generatedJavascript, out long elapsed) {
             var tempFilename = Path.GetTempFileName();
             var translator = new JSIL.AssemblyTranslator();
             var translatedJs = translator.Translate(GetPathOfAssembly(Assembly));
@@ -84,6 +87,7 @@ namespace JSIL.Tests {
 
                 var output = new string[2];
 
+                long startedJs = DateTime.UtcNow.Ticks;
                 using (var process = Process.Start(psi)) {
                     ThreadPool.QueueUserWorkItem((_) => {
                         output[0] = process.StandardOutput.ReadToEnd();
@@ -100,6 +104,9 @@ namespace JSIL.Tests {
                         throw new Exception("Javascript shell exited with error code " + process.ExitCode.ToString());
                 }
 
+                long endedJs = DateTime.UtcNow.Ticks;
+                elapsed = endedJs - startedJs;
+
                 return output[0] ?? "";
             } finally {
                 File.Delete(tempFilename);
@@ -108,10 +115,11 @@ namespace JSIL.Tests {
 
         public void Run (params string[] args) {
             string generatedJs = null;
+            long elapsedCs, elapsedJs;
 
-            var csOutput = RunCSharp(args);
+            var csOutput = RunCSharp(args, out elapsedCs);
             try {
-                var jsOutput = RunJavascript(args, out generatedJs);
+                var jsOutput = RunJavascript(args, out generatedJs, out elapsedJs);
 
                 try {
                     Assert.AreEqual(csOutput, jsOutput);
@@ -130,6 +138,12 @@ namespace JSIL.Tests {
                 }
                 throw;
             }
+
+            Console.WriteLine(
+                "Elapsed times: C# = {0:00.0000} sec(s), JS = {1:00.0000} sec(s).", 
+                TimeSpan.FromTicks(elapsedCs).TotalSeconds,
+                TimeSpan.FromTicks(elapsedJs).TotalSeconds
+            );
         }
     }
 
@@ -155,7 +169,7 @@ namespace JSIL.Tests {
         public void NBody () {
             var test = new ComparisonTest("NBody.cs");
 
-            test.Run("100");
+            test.Run();
         }
     }
 }

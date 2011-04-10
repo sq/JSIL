@@ -190,7 +190,7 @@ namespace JSIL.Internal {
                 case ParameterModifier.Ref:
                 case ParameterModifier.Params:
                 case ParameterModifier.This:
-                    throw new NotImplementedException();
+                    throw new NotImplementedException("Parameter modifiers not supported");
                 break;
             }
 
@@ -238,7 +238,7 @@ namespace JSIL.Internal {
                     else if (fakeInitializer is PrimitiveExpression)
                         WritePrimitiveValue(((PrimitiveExpression)fakeInitializer).Value);
                     else
-                        throw new NotImplementedException();
+                        throw new NotImplementedException("Unable to emit default value for field");
                 } else {
                     variableInitializer.Initializer.AcceptVisitor(this, null);
                 }
@@ -278,9 +278,6 @@ namespace JSIL.Internal {
         }
 
         public override object VisitFieldDeclaration (FieldDeclaration fieldDeclaration, object data) {
-            if (fieldDeclaration.Modifiers.HasFlag(Modifiers.Static))
-                throw new NotImplementedException();
-
             StartNode(fieldDeclaration);
 
             int i = 0;
@@ -322,7 +319,7 @@ namespace JSIL.Internal {
         }
 
         public override object VisitConstructorDeclaration (ConstructorDeclaration constructorDeclaration, object data) {
-            throw new NotImplementedException();
+            throw new InvalidOperationException("Constructors should have been processed by the type definition explicitly");
         }
 
         protected void WriteThisReference (TypeDefinition declaringType, FieldReference field) {
