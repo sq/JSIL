@@ -150,5 +150,12 @@ namespace JSIL.Tests {
             test.Run();
             test.Run("6");
         }
+
+        [Test]
+        public void NBody () {
+            var test = new ComparisonTest("NBody.cs");
+
+            test.Run("100");
+        }
     }
 }

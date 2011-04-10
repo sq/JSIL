@@ -117,12 +117,6 @@ namespace JSIL.Internal {
 
             OpenBrace(BraceStyle.EndOfLine);
 
-            if (constructor != null) {
-                StartNode(constructor);
-                constructor.Body.AcceptVisitor(this, "nobraces");
-                EndNode(constructor);
-            }
-
             foreach (var member in typeDeclaration.Members) {
                 if (member is ConstructorDeclaration)
                     continue;
@@ -130,6 +124,12 @@ namespace JSIL.Internal {
                     continue;
 
                 member.AcceptVisitor(this, data);
+            }
+
+            if (constructor != null) {
+                StartNode(constructor);
+                constructor.Body.AcceptVisitor(this, "nobraces");
+                EndNode(constructor);
             }
 
             CloseBrace(BraceStyle.NextLine);
@@ -146,6 +146,22 @@ namespace JSIL.Internal {
             }
 
             return EndNode(typeDeclaration);
+        }
+
+        public override object VisitArrayCreateExpression (ArrayCreateExpression arrayCreateExpression, object data) {
+            StartNode(arrayCreateExpression);
+            WriteKeyword("new");
+            Space();
+            WriteKeyword("Array");
+            LPar();
+
+            if (arrayCreateExpression.Arguments.Count > 1)
+                throw new NotImplementedException("Multidimensional arrays are not supported");
+            else if (arrayCreateExpression.Arguments.Count > 0)
+                WriteCommaSeparatedList(arrayCreateExpression.Arguments);
+
+            RPar();
+            return EndNode(arrayCreateExpression);
         }
 
         public override object VisitPrimitiveType (PrimitiveType primitiveType, object data) {
@@ -194,8 +210,18 @@ namespace JSIL.Internal {
         protected bool VisitVariableInitializer (VariableInitializer variableInitializer) {
             bool result = false;
             bool isField = variableInitializer.Parent is FieldDeclaration;
+            bool isNull = variableInitializer.Initializer.IsNull;
+            Expression fakeInitializer = null;
 
-            if (!variableInitializer.Initializer.IsNull) {
+            if (isNull && isField) {
+                var fieldRef = ToFieldReference(variableInitializer.Parent);
+                if (fieldRef.FieldType.IsPrimitive) {
+                    isNull = false;
+                    fakeInitializer = AstMethodBodyBuilder.MakeDefaultValue(fieldRef.FieldType);
+                }
+            }
+
+            if (!isNull) {
                 if (isField) {
                     var fieldRef = ToFieldReference(variableInitializer.Parent);
                     WriteThisReference(fieldRef.DeclaringType.Resolve(), fieldRef);
@@ -206,7 +232,16 @@ namespace JSIL.Internal {
                 Space();
                 WriteToken("=", VariableInitializer.Roles.Assign);
                 Space();
-                variableInitializer.Initializer.AcceptVisitor(this, null);
+                if (fakeInitializer != null) {
+                    if (fakeInitializer is NullReferenceExpression)
+                        WriteKeyword("null");
+                    else if (fakeInitializer is PrimitiveExpression)
+                        WritePrimitiveValue(((PrimitiveExpression)fakeInitializer).Value);
+                    else
+                        throw new NotImplementedException();
+                } else {
+                    variableInitializer.Initializer.AcceptVisitor(this, null);
+                }
                 result = true;
             } else if (!isField) {
                 WriteIdentifier(variableInitializer.Name);
