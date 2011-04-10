@@ -1,0 +1,6 @@
+[submodule "Upstream/Cecil"]
+	path = Upstream/Cecil
+	url = https://github.com/kevingadd/cecil.git
+[submodule "Upstream/Decompiler"]
+	path = Upstream/Decompiler
+	url = https://github.com/jcdickinson/cecil.git
