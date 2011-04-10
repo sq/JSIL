@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using ICSharpCode.Decompiler.Ast;
 using ICSharpCode.NRefactory.CSharp;
 using ICSharpCode.NRefactory.CSharp.PatternMatching;
 using Mono.Cecil;
@@ -145,6 +146,17 @@ namespace JSIL.Internal {
             }
 
             return EndNode(typeDeclaration);
+        }
+
+        public override object VisitPrimitiveType (PrimitiveType primitiveType, object data) {
+            Type type;
+            if (AstType.PrimitiveTypeToType.TryGetValue(primitiveType.Keyword, out type)) {
+                StartNode(primitiveType);
+                WriteIdentifier(Util.EscapeIdentifier(type.FullName, false));
+                return EndNode(primitiveType);
+            } else {
+                return base.VisitPrimitiveType(primitiveType, data);
+            }
         }
 
         public override object VisitMemberReferenceExpression (MemberReferenceExpression memberReferenceExpression, object data) {

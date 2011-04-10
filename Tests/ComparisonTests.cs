@@ -148,6 +148,7 @@ namespace JSIL.Tests {
             var test = new ComparisonTest("BinaryTrees.cs");
 
             test.Run();
+            test.Run("6");
         }
     }
 }

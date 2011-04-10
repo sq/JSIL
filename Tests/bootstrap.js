@@ -13,3 +13,8 @@ System.Console.WriteLine = function (format) {
 
 System.Math = {};
 System.Math.Max = Math.max;
+
+System.Int32 = {};
+System.Int32.Parse = function (text) {
+    return parseInt(text);
+};
