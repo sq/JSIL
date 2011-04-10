@@ -8,8 +8,8 @@ using Cecil.Decompiler.Steps;
 using JSIL.Internal;
 
 namespace JSIL.Languages {
-    // We have to derive from CSharp because a ton of Cecil.Decompiler's types are internal. >:|
-    public class JavaScript : CSharp {
+    // We have to derive from CSharpV1 because a ton of Cecil.Decompiler's types are internal. >:|
+    public class JavaScript : CSharpV1 {
         public override DecompilationPipeline CreatePipeline () {
             var result = base.CreatePipeline();
 

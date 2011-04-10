@@ -16,9 +16,9 @@ namespace JSIL.Internal {
             "in", "try"
         };
 
-        public static Regex ValidIdentifier = new Regex("$[A-Za-z_$]([A-Za-z_$0-9]*)^");
+        public static Regex ValidIdentifier = new Regex("$[A-Za-z_$]([A-Za-z_$0-9]*)^", RegexOptions.Compiled);
 
-        public static string EscapeIdentifier (string identifier, string declaringType = null) {
+        public static string EscapeIdentifier (string identifier, bool escapePeriods = true, string declaringType = null) {
             bool isReservedWord = ReservedWords.Contains(identifier);
 
             if (ValidIdentifier.IsMatch(identifier) && !isReservedWord)
@@ -45,7 +45,10 @@ namespace JSIL.Internal {
 
                 switch (ch) {
                     case '.':
-                        result.Append("_");
+                        if (escapePeriods)
+                            result.Append("_");
+                        else
+                            result.Append(".");
                         break;
                     case '_':
                         result.Append("$_");

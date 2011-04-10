@@ -14,8 +14,7 @@ namespace JSIL {
             var assembly = AssemblyDefinition.ReadAssembly(
                 assemblyPath,
                 new ReaderParameters {
-                    ReadingMode = ReadingMode.Deferred,
-                    ReadSymbols = true
+                    ReadingMode = ReadingMode.Deferred
                 }
             );
             Translate(assembly);

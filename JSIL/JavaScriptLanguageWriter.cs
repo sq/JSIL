@@ -29,13 +29,23 @@ namespace JSIL.Internal {
             TypeStack.Pop();
         }
 
-        new protected void WriteIdentifier (string name, object identifier) {
-            base.WriteIdentifier(Util.EscapeIdentifier(name), identifier);
+        protected void WriteIdentifier (string name, object identifier) {
+            Formatter.WriteRaw(Util.EscapeIdentifier(name));
+        }
+
+        protected void WriteIdentifier (TypeReference type) {
+            Formatter.WriteRaw(Util.EscapeIdentifier(
+                type.FullName,
+                escapePeriods: false
+            ));
         }
 
         protected void WriteIdentifier (MethodReference method) {
-            base.WriteIdentifier(
-                Util.EscapeIdentifier(method.Name, Util.EscapeIdentifier(method.DeclaringType.FullName)), 
+            WriteIdentifier(
+                Util.EscapeIdentifier(
+                    method.Name, 
+                    declaringType: Util.EscapeIdentifier(method.DeclaringType.FullName)
+                ), 
                 method
             );
         }
@@ -45,13 +55,14 @@ namespace JSIL.Internal {
             if (String.IsNullOrEmpty(variableName))
                 variableName = String.Format("$v{0}", variable.Index);
 
-            base.WriteIdentifier(
+            WriteIdentifier(
                 variableName, variable
             );
         }
 
         protected void WriteComment (string text) {
-            base.WriteLiteral("/* " + text + " */");
+            Formatter.WriteComment(String.Format("/* {0} */", text.Replace("*/", "")));
+            Formatter.WriteSpace();
         }
 
         protected void WriteParameters (MethodDefinition method) {
@@ -59,20 +70,19 @@ namespace JSIL.Internal {
                 var parameter = method.Parameters[i];
 
                 if (i != 0) {
-                    base.WriteToken(",");
-                    base.WriteSpace();
+                    Formatter.WriteOperator(",");
+                    Formatter.WriteSpace();
                 }
 
-                WriteComment(parameter.ParameterType.Name);
-                WriteSpace();
+                WriteComment(parameter.ParameterType.FullName);
 
-                WriteReference(parameter.Name, parameter);
+                Formatter.WriteRaw(parameter.Name);
             }
         }
 
         public override void VisitVariableDeclarationExpression (VariableDeclarationExpression node) {
-            WriteKeyword("var");
-            WriteSpace();
+            Formatter.WriteRaw("var");
+            Formatter.WriteSpace();
             WriteIdentifier(node.Variable);
         }
 
@@ -82,35 +92,35 @@ namespace JSIL.Internal {
 
         public override void VisitMethodReferenceExpression (MethodReferenceExpression node) {
             var target = node.Target;
-            var methodName = node.Method.Name;
-
-            if (node.Method.DeclaringType != MethodStack.Peek().DeclaringType) {
-            } else {
-            }
 
             if (target != null) {
                 Visit(target);
-                WriteToken(".");
+                Formatter.WriteOperator(".");
             } else if (!node.Method.HasThis) {
-                WriteReference(node.Method.DeclaringType.ToString(), node.Method.DeclaringType);
-                WriteToken(".");
+                WriteIdentifier(node.Method.DeclaringType);
+                Formatter.WriteOperator(".");
             }
 
             WriteIdentifier(node.Method);
         }
 
+        public override void VisitCastExpression (CastExpression node) {
+            WriteComment(String.Format("({0})", node.TargetType.FullName));
+            Visit(node.Expression);
+        }
+
         public override void Write (MethodDefinition method) {
             MethodStack.Push(method);
 
-            WriteKeyword("function");
-            WriteSpace();
+            Formatter.WriteRaw("function");
+            Formatter.WriteSpace();
             WriteIdentifier(method);
-            WriteToken("(");
+            Formatter.WriteOperator("(");
             WriteParameters(method);
-            WriteToken(")");
-            WriteLine();
+            Formatter.WriteOperator(")");
+            Formatter.WriteLine();
 
-            Write(method.Body.Decompile(base.language));
+            Write(method.Body.Decompile(Language));
 
             MethodStack.Pop();
         }
