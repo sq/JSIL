@@ -228,6 +228,22 @@ namespace JSIL.Internal {
             }
         }
 
+        public override object VisitComposedType (ComposedType composedType, object data) {
+            return base.VisitComposedType(composedType, data);
+        }
+
+        public override object VisitMemberType (MemberType memberType, object data) {
+            StartNode(memberType);
+            memberType.Target.AcceptVisitor(this, data);
+            WriteToken(".", MemberType.Roles.Dot);
+            WriteIdentifier(Util.EscapeIdentifier(memberType.MemberName));
+            return EndNode(memberType);
+        }
+
+        public override object VisitTypeOfExpression (TypeOfExpression typeOfExpression, object data) {
+            return base.VisitTypeOfExpression(typeOfExpression, data);
+        }
+
         public override object VisitMemberReferenceExpression (MemberReferenceExpression memberReferenceExpression, object data) {
             StartNode(memberReferenceExpression);
             memberReferenceExpression.Target.AcceptVisitor(this, data);

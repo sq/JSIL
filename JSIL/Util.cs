@@ -48,6 +48,15 @@ namespace JSIL.Internal {
                         case '_':
                             sb.Append("$_");
                         break;
+                        case '<':
+                            sb.Append("$lt");
+                        break;
+                        case '>':
+                            sb.Append("$gt");
+                        break;
+                        case '`':
+                            sb.Append("$bt");
+                        break;
                         default:
                             if ((ch <= 32) || (ch >= 127))
                                 sb.AppendFormat("${0:x}", ch);

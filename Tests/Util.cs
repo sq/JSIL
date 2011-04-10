@@ -13,7 +13,7 @@ namespace JSIL.Tests {
                 { "CompilerVersion", "v4.0" } 
             })) {
                 var parameters = new CompilerParameters(new[] {
-                    "mscorlib.dll", "System.Core.dll",
+                    "mscorlib.dll", "System.Core.dll", "Microsoft.CSharp.dll",
                     typeof(JSIL.Meta.JSIgnore).Assembly.Location
                 }) {
                     GenerateExecutable = true,

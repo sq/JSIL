@@ -15,6 +15,7 @@ namespace JSIL.Tests {
         public static readonly string JSShellPath;
         public static readonly string BootstrapJS;
 
+        public readonly string Filename;
         public readonly Assembly Assembly;
         public readonly MethodInfo TestMethod;
 
@@ -35,7 +36,9 @@ namespace JSIL.Tests {
         }
 
         public ComparisonTest (string filename) {
-            var sourceCode = File.ReadAllText(Path.Combine(TestSourceFolder, filename));
+            Filename = Path.Combine(TestSourceFolder, filename);
+
+            var sourceCode = File.ReadAllText(Filename);
             Assembly = CSharpUtil.Compile(sourceCode);
 
             TestMethod = Assembly.GetType("Program").GetMethod("Main");
@@ -109,6 +112,11 @@ namespace JSIL.Tests {
 
                 return output[0] ?? "";
             } finally {
+                var jsFile = Filename.Replace(".cs", ".js");
+                if (File.Exists(jsFile))
+                    File.Delete(jsFile);
+                File.Copy(tempFilename, jsFile);
+
                 File.Delete(tempFilename);
             }
         }
