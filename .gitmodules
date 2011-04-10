@@ -1,6 +1,0 @@
-[submodule "Upstream/Cecil"]
-	path = Upstream/Cecil
-	url = https://github.com/jbevain/cecil.git
-[submodule "Upstream/MonoCecil"]
-	path = Upstream/MonoCecil
-	url = https://github.com/mono/cecil.git
