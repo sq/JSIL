@@ -51,7 +51,10 @@ namespace JSIL.Internal {
                         result.Append("$_");
                         break;
                     default:
-                        result.Append(ch);
+                        if ((ch <= 32) || (ch >= 127))
+                            result.AppendFormat("${0:x}", ch);
+                        else
+                            result.Append(ch);
                         break;
                 }
             }

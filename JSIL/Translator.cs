@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Cecil.Decompiler.Languages;
+using JSIL.Internal;
 using JSIL.Languages;
 using Mono.Cecil;
 
@@ -33,10 +34,16 @@ namespace JSIL {
         internal void TranslateType (AssemblyDefinition assembly, ModuleDefinition module, TypeDefinition type) {
             using (var sw = new StringWriter()) {
                 var language = new JavaScript();
-                var languageWriter = language.GetWriter(new PlainTextFormatter(sw));
+                var languageWriter = new JavaScriptWriter(
+                    language, new PlainTextFormatter(sw)
+                );
+
+                languageWriter.PushType(type);
 
                 foreach (var method in type.Methods)
                     languageWriter.Write(method);
+
+                languageWriter.PopType(type);
 
                 Console.Write(sw.ToString());
             }
