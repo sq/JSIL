@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using ICSharpCode.Decompiler.Ast;
 using ICSharpCode.NRefactory.CSharp;
@@ -11,7 +12,7 @@ using ICSharpCode.Decompiler;
 
 namespace JSIL {
     public class AssemblyTranslator {
-        public void Translate (string assemblyPath) {
+        public string Translate (string assemblyPath) {
             var assembly = AssemblyDefinition.ReadAssembly(
                 assemblyPath,
                 new ReaderParameters {
@@ -19,17 +20,21 @@ namespace JSIL {
                 }
             );
 
-            Translate(assembly);
+            using (var outputStream = new StringWriter()) {
+                Translate(assembly, outputStream);
+
+                return outputStream.ToString();
+            }
         }
 
-        internal void Translate (AssemblyDefinition assembly) {
+        internal void Translate (AssemblyDefinition assembly, TextWriter outputStream) {
             var decompiler = new AstBuilder(new DecompilerContext());
             decompiler.AddAssembly(assembly);
 
             decompiler.RunTransformations();
 
             var astCompileUnit = decompiler.CompilationUnit;
-            var output = new PlainTextOutput(Console.Out);
+            var output = new PlainTextOutput(outputStream);
             var outputFormatter = new TextOutputFormatter(output);
             var outputVisitor = new JavascriptOutputVisitor(outputFormatter);
 

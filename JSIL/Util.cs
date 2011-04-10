@@ -34,19 +34,25 @@ namespace JSIL.Internal {
 
                     switch (ch) {
                         case '.':
-                        if (escapePeriods)
-                            sb.Append("_");
-                        else
-                            sb.Append(".");
+                            if (escapePeriods)
+                                sb.Append("_");
+                            else
+                                sb.Append(".");
+                        break;
+                        case '/':
+                            if (escapePeriods)
+                                sb.Append("_");
+                            else
+                                sb.Append(".");
                         break;
                         case '_':
-                        sb.Append("$_");
+                            sb.Append("$_");
                         break;
                         default:
-                        if ((ch <= 32) || (ch >= 127))
-                            sb.AppendFormat("${0:x}", ch);
-                        else
-                            sb.Append(ch);
+                            if ((ch <= 32) || (ch >= 127))
+                                sb.AppendFormat("${0:x}", ch);
+                            else
+                                sb.Append(ch);
                         break;
                     }
                 }

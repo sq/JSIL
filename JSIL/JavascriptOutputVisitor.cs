@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using ICSharpCode.NRefactory.CSharp;
 using ICSharpCode.NRefactory.CSharp.PatternMatching;
@@ -7,6 +8,8 @@ using Attribute = ICSharpCode.NRefactory.CSharp.Attribute;
 
 namespace JSIL.Internal {
     public class JavascriptOutputVisitor : OutputVisitor {
+        public readonly Stack<TypeDeclaration> TypeStack = new Stack<TypeDeclaration>();
+
         public JavascriptOutputVisitor (IOutputFormatter formatter)
             : base (formatter, new CSharpFormattingPolicy {
                 ConstructorBraceStyle = BraceStyle.EndOfLine,
@@ -22,24 +25,19 @@ namespace JSIL.Internal {
             return (TypeReference)declaration.Annotations.First();
         }
 
+        protected MethodDefinition ToMethodDefinition (MethodDeclaration declaration) {
+            return (MethodDefinition)declaration.Annotations.First();
+        }
+
+        protected FieldReference ToFieldReference (AstNode declaration) {
+            return (FieldReference)declaration.Annotations.First();
+        }
+
         protected void WriteIdentifier (TypeReference type) {
             base.WriteIdentifier(Util.EscapeIdentifier(
                 type.FullName,
                 escapePeriods: false
             ));
-        }
-
-        protected void WriteIdentifier (ConstructorDeclaration constructor) {
-            var declaringType = constructor.Parent as TypeDeclaration;
-
-            var declaringTypeName = Util.EscapeIdentifier(
-                ToTypeReference(declaringType).FullName,
-                escapePeriods: false
-            );
-            var methodName = declaringTypeName + 
-                (constructor.Modifiers.HasFlag(Modifiers.Static) ? ".cctor" : ".ctor");
-
-            base.WriteIdentifier(Util.EscapeIdentifier(methodName));
         }
 
         protected void WriteIdentifier (MethodDeclaration method) {
@@ -84,6 +82,17 @@ namespace JSIL.Internal {
             return null;
         }
 
+        protected bool IsStatic (AttributedNode node) {
+            if (node is TypeDeclaration)
+                return true;
+            else if (node.Modifiers.HasFlag(Modifiers.Static))
+                return true;
+            else if (node is FieldDeclaration && ToFieldReference(node).Resolve().Attributes.HasFlag(FieldAttributes.Static))
+                return true;
+
+            return false;
+        }
+
         public override object VisitTypeDeclaration (TypeDeclaration typeDeclaration, object data) {
             StartNode(typeDeclaration);
             WriteIdentifier(ToTypeReference(typeDeclaration));
@@ -114,7 +123,9 @@ namespace JSIL.Internal {
             }
 
             foreach (var member in typeDeclaration.Members) {
-                if (member == constructor)
+                if (member is ConstructorDeclaration)
+                    continue;
+                else if (IsStatic(member))
                     continue;
 
                 member.AcceptVisitor(this, data);
@@ -123,6 +134,15 @@ namespace JSIL.Internal {
             CloseBrace(BraceStyle.NextLine);
             Semicolon();
             NewLine();
+
+            foreach (var member in typeDeclaration.Members) {
+                if (member is ConstructorDeclaration)
+                    continue;
+                else if (!IsStatic(member))
+                    continue;
+
+                member.AcceptVisitor(this, data);
+            }
 
             return EndNode(typeDeclaration);
         }
@@ -137,7 +157,6 @@ namespace JSIL.Internal {
 
         public override object VisitParameterDeclaration (ParameterDeclaration parameterDeclaration, object data) {
             StartNode(parameterDeclaration);
-            // WriteAttributes(parameterDeclaration.Attributes);
             switch (parameterDeclaration.ParameterModifier) {
                 case ParameterModifier.Out:
                 case ParameterModifier.Ref:
@@ -146,8 +165,6 @@ namespace JSIL.Internal {
                     throw new NotImplementedException();
                 break;
             }
-            // parameterDeclaration.Type.AcceptVisitor(this, data);
-            // Space();
 
             if (!string.IsNullOrEmpty(parameterDeclaration.Name))
                 WriteIdentifier(parameterDeclaration.Name);
@@ -164,10 +181,12 @@ namespace JSIL.Internal {
 
         protected bool VisitVariableInitializer (VariableInitializer variableInitializer) {
             bool result = false;
+            bool isField = variableInitializer.Parent is FieldDeclaration;
 
             if (!variableInitializer.Initializer.IsNull) {
-                if (variableInitializer.Parent is FieldDeclaration) {
-                    WriteKeyword("this");
+                if (isField) {
+                    var fieldRef = ToFieldReference(variableInitializer.Parent);
+                    WriteThisReference(fieldRef.DeclaringType.Resolve(), fieldRef);
                     WriteToken(".", null);
                 }
 
@@ -177,6 +196,8 @@ namespace JSIL.Internal {
                 Space();
                 variableInitializer.Initializer.AcceptVisitor(this, null);
                 result = true;
+            } else if (!isField) {
+                WriteIdentifier(variableInitializer.Name);
             }
 
             return result;
@@ -257,10 +278,25 @@ namespace JSIL.Internal {
             throw new NotImplementedException();
         }
 
+        protected void WriteThisReference (TypeDefinition declaringType, FieldReference field) {
+            if (field.Resolve().Attributes.HasFlag(FieldAttributes.Static))
+                WriteIdentifier(declaringType);
+            else
+                WriteKeyword("this");
+        }
+
+        protected void WriteThisReference (TypeDefinition declaringType, AttributedNode node) {
+            if (node.Modifiers.HasFlag(Modifiers.Static))
+                WriteIdentifier(declaringType);
+            else
+                WriteKeyword("this");
+        }
+
         public override object VisitMethodDeclaration (MethodDeclaration methodDeclaration, object data) {
             StartNode(methodDeclaration);
 
-            WriteKeyword("this");
+            WriteThisReference(ToMethodDefinition(methodDeclaration).DeclaringType, methodDeclaration);
+
             WriteToken(".", null);
             WriteIdentifier(methodDeclaration);
             Space();
