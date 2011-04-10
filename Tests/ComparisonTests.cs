@@ -114,6 +114,7 @@ namespace JSIL.Tests {
         }
 
         public void Run (params string[] args) {
+            bool failedInner = false;
             string generatedJs = null;
             long elapsedCs, elapsedJs;
 
@@ -124,6 +125,8 @@ namespace JSIL.Tests {
                 try {
                     Assert.AreEqual(csOutput, jsOutput);
                 } catch {
+                    failedInner = true;
+                    Console.WriteLine("failed");
                     Console.WriteLine("// C# output begins //");
                     Console.WriteLine(csOutput);
                     Console.WriteLine("// JavaScript output begins //");
@@ -131,6 +134,9 @@ namespace JSIL.Tests {
                     throw;
                 }
             } catch {
+                if (!failedInner)
+                    Console.WriteLine("failed");
+
                 if (generatedJs != null) {
                     Console.WriteLine("// Generated javascript begins here //");
                     Console.WriteLine(generatedJs);
@@ -140,7 +146,7 @@ namespace JSIL.Tests {
             }
 
             Console.WriteLine(
-                "Elapsed times: C# = {0:00.0000} sec(s), JS = {1:00.0000} sec(s).", 
+                "passed: C# in {0:00.0000}s, JS in {1:00.0000}s", 
                 TimeSpan.FromTicks(elapsedCs).TotalSeconds,
                 TimeSpan.FromTicks(elapsedJs).TotalSeconds
             );
@@ -170,6 +176,35 @@ namespace JSIL.Tests {
             var test = new ComparisonTest("NBody.cs");
 
             test.Run();
+        }
+
+        [Test]
+        // Fails because we emit a goto.
+        public void FannkuchRedux () {
+            var test = new ComparisonTest("FannkuchRedux.cs");
+
+            test.Run();
+        }
+
+        [Test]
+        public void AllSimpleTests () {
+            var simpleTests = Directory.GetFiles(
+                Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, @"..\SimpleTestCases")), 
+                "*.cs"
+            );
+            int failureCount = 0;
+
+            foreach (var filename in simpleTests) {
+                Console.Write("// {0} ... ", Path.GetFileName(filename));
+
+                try {
+                    var test = new ComparisonTest(filename);
+                    test.Run();
+                } catch (Exception ex) {
+                    Console.Error.WriteLine(ex);
+                    failureCount += 1;
+                }
+            }
         }
     }
 }

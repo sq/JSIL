@@ -1,6 +1,11 @@
 ﻿System = {};
 System.Console = {};
-System.Console.WriteLine = function (format) {
+System.Console.WriteLine = function () {
+    print(System.String.Format.apply(null, arguments));
+}
+
+System.String = {};
+System.String.Format = function (format) {
     format = format.toString();
 
     var regex = new RegExp("{([0-9]*)(?::([^}]*))?}", "g");
@@ -26,9 +31,7 @@ System.Console.WriteLine = function (format) {
         }
     };
 
-    var formatted = format.replace(regex, matcher);
-
-    print(formatted);
+    return format.replace(regex, matcher);
 };
 
 System.Math = {};
