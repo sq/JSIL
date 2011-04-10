@@ -178,8 +178,8 @@ namespace JSIL.Tests {
             test.Run();
         }
 
-        [Test]
         // Fails because we emit a goto.
+        [Test]
         public void FannkuchRedux () {
             var test = new ComparisonTest("FannkuchRedux.cs");
 
@@ -205,6 +205,8 @@ namespace JSIL.Tests {
                     failureCount += 1;
                 }
             }
+
+            Assert.AreEqual(0, failureCount, "One or more tests failed");
         }
     }
 }

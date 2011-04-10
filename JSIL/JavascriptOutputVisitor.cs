@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using ICSharpCode.Decompiler.Ast;
 using ICSharpCode.NRefactory.CSharp;
 using ICSharpCode.NRefactory.CSharp.PatternMatching;
@@ -26,8 +28,16 @@ namespace JSIL.Internal {
             return (TypeReference)declaration.Annotations.First();
         }
 
+        protected TypeDefinition ToTypeDefinition (AstNode node) {
+            return (TypeDefinition)node.Annotations.First();
+        }
+
         protected MethodDefinition ToMethodDefinition (MethodDeclaration declaration) {
             return (MethodDefinition)declaration.Annotations.First();
+        }
+
+        protected PropertyDefinition ToPropertyDefinition (AstNode declaration) {
+            return (PropertyDefinition)declaration.Annotations.First();
         }
 
         protected FieldReference ToFieldReference (AstNode declaration) {
@@ -90,6 +100,10 @@ namespace JSIL.Internal {
                 return true;
             else if (node is FieldDeclaration && ToFieldReference(node).Resolve().Attributes.HasFlag(FieldAttributes.Static))
                 return true;
+            else if (node is PropertyDeclaration) {
+                var def = ToPropertyDefinition(node).Resolve();
+                return def.GetMethod.IsStatic || def.SetMethod.IsStatic;
+            }
 
             return false;
         }
@@ -102,16 +116,23 @@ namespace JSIL.Internal {
             Space();
             WriteKeyword("function");
 
-            var constructor = (ConstructorDeclaration)typeDeclaration.Members.FirstOrDefault(
-                (member) => member is ConstructorDeclaration
-            );
+            int numStaticMembers = 0;
+            var constructors = (from member in typeDeclaration.Members
+                               where member is ConstructorDeclaration
+                               select (ConstructorDeclaration)member).ToArray();
+            var instanceConstructor = (from constructor in constructors
+                                      where !constructor.Modifiers.HasFlag(Modifiers.Static)
+                                      select constructor).FirstOrDefault();
+            var staticConstructor = (from constructor in constructors
+                                       where constructor.Modifiers.HasFlag(Modifiers.Static)
+                                       select constructor).FirstOrDefault();
 
             Space();
             LPar();
-            if (constructor != null) {
-                StartNode(constructor);
-                WriteCommaSeparatedList(constructor.Parameters);
-                EndNode(constructor);
+            if (instanceConstructor != null) {
+                StartNode(instanceConstructor);
+                WriteCommaSeparatedList(instanceConstructor.Parameters);
+                EndNode(instanceConstructor);
             }
             RPar();
 
@@ -120,29 +141,63 @@ namespace JSIL.Internal {
             foreach (var member in typeDeclaration.Members) {
                 if (member is ConstructorDeclaration)
                     continue;
-                else if (IsStatic(member))
+                else if (IsStatic(member)) {
+                    numStaticMembers += 1;
                     continue;
+                }
 
                 member.AcceptVisitor(this, data);
             }
 
-            if (constructor != null) {
-                StartNode(constructor);
-                constructor.Body.AcceptVisitor(this, "nobraces");
-                EndNode(constructor);
+            if (instanceConstructor != null) {
+                StartNode(instanceConstructor);
+                instanceConstructor.Body.AcceptVisitor(this, "nobraces");
+                EndNode(instanceConstructor);
             }
 
             CloseBrace(BraceStyle.NextLine);
             Semicolon();
             NewLine();
 
-            foreach (var member in typeDeclaration.Members) {
-                if (member is ConstructorDeclaration)
-                    continue;
-                else if (!IsStatic(member))
-                    continue;
+            if ((staticConstructor != null) || (numStaticMembers > 0)) {
+                LPar();
 
-                member.AcceptVisitor(this, data);
+                Space();
+                WriteKeyword("function");
+                // I'd emit a function name here for debuggability, but for some
+                //  reason that breaks tests :(
+                Space();
+
+                LPar();
+                RPar();
+
+                OpenBrace(BraceStyle.EndOfLine);
+
+                foreach (var member in typeDeclaration.Members) {
+                    if (member is ConstructorDeclaration)
+                        continue;
+                    else if (!IsStatic(member))
+                        continue;
+
+                    member.AcceptVisitor(this, data);
+                }
+
+                if (staticConstructor != null) {
+                    StartNode(staticConstructor);
+                    staticConstructor.Body.AcceptVisitor(this, "nobraces");
+                    EndNode(staticConstructor);
+                }
+
+                CloseBrace(BraceStyle.NextLine);
+
+                RPar();
+                Space();
+
+                LPar();
+                RPar();
+
+                Semicolon();
+                NewLine();
             }
 
             return EndNode(typeDeclaration);
@@ -301,6 +356,145 @@ namespace JSIL.Internal {
                 Semicolon();
 
             return EndNode(fieldDeclaration);
+        }
+
+        public override object VisitPropertyDeclaration (PropertyDeclaration propertyDeclaration, object data) {
+            StartNode(propertyDeclaration);
+
+            var propertyDefinition = ToPropertyDefinition(propertyDeclaration);
+            var declaringType = propertyDefinition.DeclaringType;
+            bool isStatic = propertyDefinition.GetMethod.IsStatic || propertyDefinition.SetMethod.IsStatic;
+            bool isAutoProperty = propertyDefinition.GetMethod.CustomAttributes.Concat(
+                    propertyDefinition.SetMethod.CustomAttributes
+                ).Where((ca) => ca.AttributeType.Name == "CompilerGeneratedAttribute")
+                .Count() > 0;
+
+            WriteIdentifier("Object");
+            WriteToken(".", null);
+            WriteIdentifier("defineProperty");
+            LPar();
+
+            if (isStatic)
+                WriteIdentifier(declaringType);
+            else
+                WriteKeyword("this");
+            WriteToken(",", null);
+            Space();
+
+            WritePrimitiveValue(Util.EscapeIdentifier(propertyDeclaration.Name));
+            WriteToken(",", null);
+
+            OpenBrace(BraceStyle.EndOfLine);
+
+            bool first = true;
+            foreach (AstNode node in propertyDeclaration.Children) {
+                if (node.Role == IndexerDeclaration.GetterRole || node.Role == IndexerDeclaration.SetterRole) {
+                    if (!first) {
+                        WriteToken(",", null);
+                        Space();
+                    }
+                    first = false;
+
+                    node.AcceptVisitor(this, data);
+                }
+            }
+
+            CloseBrace(BraceStyle.NextLine);
+
+            RPar();
+            Semicolon();
+
+            // If the property is of a primitive type, we must assign it a default value so it's not undefined
+            if (propertyDefinition.PropertyType.IsPrimitive && isAutoProperty) {
+                if (isStatic)
+                    WriteIdentifier(declaringType);
+                else
+                    WriteKeyword("this");
+
+                WriteToken(".", null);
+                WriteIdentifier(Util.EscapeIdentifier(propertyDeclaration.Name));
+
+                Space();
+                WriteToken("=", null);
+                Space();
+
+                WritePrimitiveValue(AstMethodBodyBuilder.MakeDefaultValue(propertyDefinition.PropertyType));
+                Semicolon();
+            }
+
+            return EndNode(propertyDeclaration);
+        }
+
+        public override object VisitAccessor (Accessor accessor, object data) {
+            StartNode(accessor);
+            string suffix;
+
+            if (accessor.Role == PropertyDeclaration.GetterRole) {
+                suffix = "get";
+            } else if (accessor.Role == PropertyDeclaration.SetterRole) {
+                suffix = "set";
+            } else {
+                throw new NotImplementedException();
+            }
+
+            var propertyDefinition = ToPropertyDefinition(accessor.Parent);
+            var declaringType = propertyDefinition.DeclaringType;
+            var storageName = Util.EscapeIdentifier(
+                String.Format("{0}.value", propertyDefinition.Name)
+            );
+
+            bool isStatic = propertyDefinition.GetMethod.IsStatic || propertyDefinition.SetMethod.IsStatic;
+
+            WriteIdentifier(suffix);
+
+            Space();
+            WriteToken(":", null);
+            Space();
+
+            WriteKeyword("function");
+            Space();
+            LPar();
+            if (accessor.Role != PropertyDeclaration.GetterRole)
+                WriteKeyword("value");
+            RPar();
+
+            if (accessor.Body.IsNull) {
+                OpenBrace(BraceStyle.EndOfLine);
+                if (accessor.Role == PropertyDeclaration.GetterRole) {
+                    WriteKeyword("return");
+
+                    if (isStatic)
+                        WriteIdentifier(declaringType);
+                    else
+                        WriteKeyword("this");
+
+                    WriteToken(".", null);
+                    WriteIdentifier(storageName);
+
+                    Semicolon();
+                } else if (accessor.Role == PropertyDeclaration.SetterRole) {
+                    if (isStatic)
+                        WriteIdentifier(declaringType);
+                    else
+                        WriteKeyword("this");
+
+                    WriteToken(".", null);
+                    WriteIdentifier(storageName);
+
+                    Space();
+                    WriteToken("=", null);
+                    Space();
+                    WriteIdentifier("value");
+
+                    Semicolon();
+                }
+
+                CloseBrace(BraceStyle.NextLine);
+            } else {
+                WriteMethodBody(accessor.Body);
+            }
+
+            return EndNode(accessor);
         }
 
         public override object VisitSimpleType (SimpleType simpleType, object data) {

@@ -27,7 +27,7 @@ System.String.Format = function (format) {
                     throw new Error("Unsupported format string: " + valueFormat);
             }
         } else {
-            return value.toString();
+            return String(value);
         }
     };
 
