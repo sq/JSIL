@@ -68,5 +68,18 @@ namespace JSIL.Tests {
             Assert.AreEqual("1", csOutput.Trim());
             Assert.AreEqual("undefined", jsOutput.Trim());
         }
+
+        [Test]
+        public void JSReplacementReplacesMethods () {
+            long elapsed;
+            string generatedJs;
+            var test = new ComparisonTest(@"SpecialTestCases\ReplaceMethod.cs");
+
+            var csOutput = test.RunCSharp(new string[0], out elapsed);
+            var jsOutput = test.RunJavascript(new string[0], out generatedJs, out elapsed);
+
+            Assert.AreEqual("none", csOutput.Trim());
+            Assert.AreEqual("185", jsOutput.Trim());
+        }
     }
 }
