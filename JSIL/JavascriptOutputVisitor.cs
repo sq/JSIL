@@ -108,7 +108,23 @@ namespace JSIL.Internal {
             return false;
         }
 
+        protected bool IsIgnored (AstNodeCollection<AttributeSection> attributes) {
+            foreach (var section in attributes)
+            foreach (var attribute in section.Attributes) {
+                switch (attribute.Type.ToString()) {
+                    case "JSIgnore":
+                    return true;
+                    break;
+                }
+            }
+
+            return false;
+        }
+
         public override object VisitTypeDeclaration (TypeDeclaration typeDeclaration, object data) {
+            if (IsIgnored(typeDeclaration.Attributes))
+                return null;
+
             StartNode(typeDeclaration);
             WriteIdentifier(ToTypeReference(typeDeclaration));
             Space();
@@ -395,6 +411,9 @@ namespace JSIL.Internal {
         }
 
         public override object VisitPropertyDeclaration (PropertyDeclaration propertyDeclaration, object data) {
+            if (IsIgnored(propertyDeclaration.Attributes))
+                return null;
+
             StartNode(propertyDeclaration);
 
             var propertyDefinition = ToPropertyDefinition(propertyDeclaration);
@@ -567,6 +586,9 @@ namespace JSIL.Internal {
         }
 
         public override object VisitMethodDeclaration (MethodDeclaration methodDeclaration, object data) {
+            if (IsIgnored(methodDeclaration.Attributes))
+                return null;
+
             StartNode(methodDeclaration);
     
             WriteThisReference(ToMethodDefinition(methodDeclaration).DeclaringType, methodDeclaration);

@@ -6,7 +6,7 @@ System.Console.WriteLine = function () {
 
 System.String = {};
 System.String.Format = function (format) {
-    format = format.toString();
+    format = String(format);
 
     var regex = new RegExp("{([0-9]*)(?::([^}]*))?}", "g");
     var match = null;

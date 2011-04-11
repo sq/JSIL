@@ -1,7 +1,7 @@
 ﻿using System;
 
 namespace JSIL.Meta {
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method | AttributeTargets.Property)]
     public class JSIgnore : Attribute {
     }
 
