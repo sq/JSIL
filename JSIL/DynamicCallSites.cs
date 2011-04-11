@@ -1,17 +1,11 @@
-﻿// Copyright (c) AlphaSierraPapa for the SharpDevelop Team (for details please see \doc\copyright.txt)
-// This code is distributed under MIT X11 license (for details please see \doc\license.txt)
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using ICSharpCode.Decompiler;
-using ICSharpCode.Decompiler.ILAst;
 using ICSharpCode.NRefactory.CSharp;
 using ICSharpCode.NRefactory.CSharp.PatternMatching;
 using JSIL.Expressions;
-using Mono.Cecil;
 using ICSharpCode.Decompiler.Ast.Transforms;
 
 namespace JSIL.Transforms {
@@ -19,7 +13,8 @@ namespace JSIL.Transforms {
         InvokeMember,
         GetMember,
         SetMember,
-        Convert
+        Convert,
+        BinaryOperator
     };
 
     /// <summary>
@@ -213,6 +208,10 @@ namespace JSIL.Transforms {
                     case "Convert":
                         callSiteType = CallSiteType.Convert;
                         break;
+                    case "BinaryOperation":
+                        callSiteType = CallSiteType.BinaryOperator;
+                        memberName = match.Get<MemberReferenceExpression>("name").First().MemberName;
+                        break;
                     default:
                         throw new NotImplementedException("Dynamic invocations of type " + invocationType + " are not implemented.");
                 }
@@ -275,7 +274,6 @@ namespace JSIL.Transforms {
                 if (!CallSites.TryGetValue(callSiteName, out info)) {
                     Debug.WriteLine("Unknown call site: " + callSiteName);
                     return base.VisitInvocationExpression(invocationExpression, data);
-                    throw new KeyNotFoundException("No information found for call site " + callSiteName);
                 }
 
                 var dce = new DynamicExpression {

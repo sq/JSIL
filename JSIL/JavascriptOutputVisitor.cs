@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using ICSharpCode.Decompiler.Ast;
 using ICSharpCode.NRefactory.CSharp;
@@ -10,6 +11,9 @@ using JSIL.Transforms;
 using Mono.Cecil;
 using Attribute = ICSharpCode.NRefactory.CSharp.Attribute;
 using JSIL.Expressions;
+using DynamicExpression = JSIL.Expressions.DynamicExpression;
+using Expression = ICSharpCode.NRefactory.CSharp.Expression;
+using InvocationExpression = ICSharpCode.NRefactory.CSharp.InvocationExpression;
 
 namespace JSIL.Internal {
     public class JavascriptOutputVisitor : OutputVisitor, IDynamicExpressionVisitor<object, object> {
@@ -18,30 +22,6 @@ namespace JSIL.Internal {
                 ConstructorBraceStyle = BraceStyle.EndOfLine,
                 MethodBraceStyle = BraceStyle.EndOfLine,
             }) {
-        }
-
-        protected TypeReference ToTypeReference (AstType type) {
-            return (TypeReference)type.Annotations.First();
-        }
-
-        protected TypeReference ToTypeReference (TypeDeclaration declaration) {
-            return (TypeReference)declaration.Annotations.First();
-        }
-
-        protected TypeDefinition ToTypeDefinition (AstNode node) {
-            return (TypeDefinition)node.Annotations.First();
-        }
-
-        protected MethodDefinition ToMethodDefinition (MethodDeclaration declaration) {
-            return (MethodDefinition)declaration.Annotations.First();
-        }
-
-        protected PropertyDefinition ToPropertyDefinition (AstNode declaration) {
-            return (PropertyDefinition)declaration.Annotations.First();
-        }
-
-        protected FieldReference ToFieldReference (AstNode declaration) {
-            return (FieldReference)declaration.Annotations.First();
         }
 
         protected void WriteIdentifier (TypeReference type) {
@@ -98,11 +78,18 @@ namespace JSIL.Internal {
                 return true;
             else if (node.Modifiers.HasFlag(Modifiers.Static))
                 return true;
-            else if (node is FieldDeclaration && ToFieldReference(node).Resolve().Attributes.HasFlag(FieldAttributes.Static))
+            else if (
+                node is FieldDeclaration && 
+                node.Annotation<FieldReference>().Resolve()
+                    .Attributes.HasFlag(FieldAttributes.Static)
+            ) {
                 return true;
-            else if (node is PropertyDeclaration) {
-                var def = ToPropertyDefinition(node).Resolve();
-                return def.GetMethod.IsStatic || def.SetMethod.IsStatic;
+            } else if (node is PropertyDeclaration) {
+                var def = node.Annotation<PropertyReference>();
+                if (def != null) {
+                    return def.Resolve().GetMethod.IsStatic || def.Resolve().SetMethod.IsStatic;
+                } else if (node.Annotation<PrimitiveExpression>() != null)
+                    return true;
             }
 
             return false;
@@ -125,9 +112,9 @@ namespace JSIL.Internal {
             var mre = invocationExpression.Target as MemberReferenceExpression;
             TypeReferenceExpression tre;
             if ((mre != null) && (tre = mre.Target as TypeReferenceExpression) != null) {
-                var type = ToTypeReference(tre.Type);
+                var type = tre.Type.Annotation<TypeReference>();
 
-                if (type.FullName == "JSIL.Verbatim") {
+                if ((type != null) && (type.FullName == "JSIL.Verbatim")) {
                     switch (mre.MemberName) {
                         case "Eval": {
                             StartNode(invocationExpression);
@@ -141,7 +128,6 @@ namespace JSIL.Internal {
                                 throw new InvalidOperationException("Verbatim.Eval's only argument must be a string");
 
                             WriteToken(rawText.Trim(), null);
-                            NewLine();
 
                             return EndNode(invocationExpression);
                         }
@@ -159,7 +145,7 @@ namespace JSIL.Internal {
                 return null;
 
             StartNode(typeDeclaration);
-            WriteIdentifier(ToTypeReference(typeDeclaration));
+            WriteIdentifier(typeDeclaration.Annotation<TypeReference>());
             Space();
             WriteToken("=", null);
             Space();
@@ -338,7 +324,7 @@ namespace JSIL.Internal {
             Expression fakeInitializer = null;
 
             if (isNull && isField) {
-                var fieldRef = ToFieldReference(variableInitializer.Parent);
+                var fieldRef = variableInitializer.Parent.Annotation<FieldReference>();
                 if (fieldRef.FieldType.IsPrimitive) {
                     isNull = false;
                     fakeInitializer = AstMethodBodyBuilder.MakeDefaultValue(fieldRef.FieldType);
@@ -347,7 +333,7 @@ namespace JSIL.Internal {
 
             if (!isNull) {
                 if (isField) {
-                    var fieldRef = ToFieldReference(variableInitializer.Parent);
+                    var fieldRef = variableInitializer.Parent.Annotation<FieldReference>();
                     WriteThisReference(fieldRef.DeclaringType.Resolve(), fieldRef);
                     WriteToken(".", null);
                 }
@@ -452,7 +438,26 @@ namespace JSIL.Internal {
 
             StartNode(propertyDeclaration);
 
-            var propertyDefinition = ToPropertyDefinition(propertyDeclaration);
+            var rawValue = propertyDeclaration.Annotation<PrimitiveExpression>();
+            if (rawValue != null) {
+                // If the property is annotative with a primitive expression, it was replaced with JSReplacement
+                var originalMethod = propertyDeclaration.Annotation<MethodDeclaration>();
+                WriteIdentifier(originalMethod.Annotation<MethodDefinition>().DeclaringType);
+
+                WriteToken(".", null);
+                WriteIdentifier(Util.EscapeIdentifier(propertyDeclaration.Name));
+
+                Space();
+                WriteToken("=", null);
+                Space();
+
+                WriteIdentifier(rawValue.Value as string, null);
+                Semicolon();
+
+                return EndNode(propertyDeclaration);
+            }
+
+            var propertyDefinition = propertyDeclaration.Annotation<PropertyDefinition>();
             var declaringType = propertyDefinition.DeclaringType;
             bool isStatic = propertyDefinition.GetMethod.IsStatic || propertyDefinition.SetMethod.IsStatic;
             bool isAutoProperty = propertyDefinition.GetMethod.CustomAttributes.Concat(
@@ -528,7 +533,7 @@ namespace JSIL.Internal {
                 throw new NotImplementedException();
             }
 
-            var propertyDefinition = ToPropertyDefinition(accessor.Parent);
+            var propertyDefinition = accessor.Parent.Annotation<PropertyDefinition>();
             var declaringType = propertyDefinition.DeclaringType;
             var storageName = Util.EscapeIdentifier(
                 String.Format("{0}.value", propertyDefinition.Name)
@@ -590,7 +595,7 @@ namespace JSIL.Internal {
 
         public override object VisitSimpleType (SimpleType simpleType, object data) {
             StartNode(simpleType);
-            WriteIdentifier(ToTypeReference(simpleType));
+            WriteIdentifier(simpleType.Annotation<TypeReference>());
             return EndNode(simpleType);
         }
 
@@ -627,7 +632,10 @@ namespace JSIL.Internal {
 
             StartNode(methodDeclaration);
     
-            WriteThisReference(ToMethodDefinition(methodDeclaration).DeclaringType, methodDeclaration);
+            WriteThisReference(
+                methodDeclaration.Annotation<MethodDefinition>().DeclaringType, 
+                methodDeclaration
+            );
 
             WriteToken(".", null);
             WriteIdentifier(methodDeclaration);
@@ -644,6 +652,78 @@ namespace JSIL.Internal {
             Semicolon();
 
             return EndNode(methodDeclaration);
+        }
+
+        public static string GetLINQOperatorByName (string name) {
+            var enumType = typeof(ExpressionType);
+            var value = (ExpressionType)Enum.Parse(enumType, name, true);
+
+            switch (value) {
+                case ExpressionType.Add:
+                case ExpressionType.AddChecked:
+                    return "+";
+                case ExpressionType.And:
+                    return "&";
+                case ExpressionType.Divide:
+                    return "/";
+                case ExpressionType.Equal:
+                    return "==";
+                case ExpressionType.ExclusiveOr:
+                    return "^";
+                case ExpressionType.GreaterThan:
+                    return ">";
+                case ExpressionType.GreaterThanOrEqual:
+                    return ">=";
+                case ExpressionType.LeftShift:
+                    return "<<";
+                case ExpressionType.LessThan:
+                    return "<";
+                case ExpressionType.LessThanOrEqual:
+                    return "<=";
+                case ExpressionType.Modulo:
+                    return "%";
+                case ExpressionType.Multiply:
+                case ExpressionType.MultiplyChecked:
+                    return "*";
+                case ExpressionType.NotEqual:
+                    return "!=";
+                case ExpressionType.Or:
+                    return "|";
+                case ExpressionType.RightShift:
+                    return ">>";
+                case ExpressionType.Subtract:
+                case ExpressionType.SubtractChecked:
+                    return "-";
+                case ExpressionType.Assign:
+                    return "=";
+                case ExpressionType.AddAssign:
+                case ExpressionType.AddAssignChecked:
+                    return "+=";
+                case ExpressionType.AndAssign:
+                    return "&=";
+                case ExpressionType.DivideAssign:
+                    return "/=";
+                case ExpressionType.ExclusiveOrAssign:
+                    return "^=";
+                case ExpressionType.LeftShiftAssign:
+                    return "<<=";
+                case ExpressionType.ModuloAssign:
+                    return "%=";
+                case ExpressionType.MultiplyAssignChecked:
+                case ExpressionType.MultiplyAssign:
+                    return "*=";
+                case ExpressionType.OrAssign:
+                    return "|=";
+                case ExpressionType.PowerAssign:
+                    return "**=";
+                case ExpressionType.RightShiftAssign:
+                    return ">>=";
+                case ExpressionType.SubtractAssign:
+                case ExpressionType.SubtractAssignChecked:
+                    return "-=";
+            }
+
+            throw new NotImplementedException("Operator " + name + " not implemented.");
         }
 
         public object VisitDynamicExpression (DynamicExpression dynamicExpression, object data) {
@@ -680,6 +760,13 @@ namespace JSIL.Internal {
                     Space();
                     dynamicExpression.TargetType.AcceptVisitor(this, null);
                     RPar();
+                    break;
+                case CallSiteType.BinaryOperator:
+                    dynamicExpression.Target.AcceptVisitor(this, null);
+                    Space();
+                    WriteToken(GetLINQOperatorByName(dynamicExpression.MemberName), null);
+                    Space();
+                    dynamicExpression.Arguments.First().AcceptVisitor(this, null);
                     break;
                 default:
                     throw new NotImplementedException();

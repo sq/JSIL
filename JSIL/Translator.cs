@@ -32,6 +32,9 @@ namespace JSIL {
             var context = new DecompilerContext(assembly.MainModule);
             context.Transforms.Add(new DynamicCallSites(context));
 
+            var replacements = new ReplacementFinder(context);
+            context.Transforms.Add(replacements);
+
             var decompiler = new AstBuilder(context);
             decompiler.AddAssembly(assembly);
 
