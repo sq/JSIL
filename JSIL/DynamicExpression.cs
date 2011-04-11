@@ -48,20 +48,12 @@ namespace JSIL.Expressions {
             }
         }
 
-        public CSharpTokenNode LChevronToken {
-            get { return GetChildByRole(Roles.LChevron); }
-        }
-
         public AstNodeCollection<Expression> Arguments {
             get { return GetChildrenByRole(Roles.Argument); }
         }
 
         public AstNodeCollection<AstType> TypeArguments {
             get { return GetChildrenByRole(Roles.TypeArgument); }
-        }
-
-        public CSharpTokenNode RChevronToken {
-            get { return GetChildByRole(Roles.RChevron); }
         }
 
         public override S AcceptVisitor<T, S> (IAstVisitor<T, S> visitor, T data) {

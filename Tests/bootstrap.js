@@ -44,6 +44,11 @@ System.Int32.Parse = function (text) {
 };
 
 JSIL = {}
+JSIL.Array = {}
+JSIL.Array.New = function (type, size) {
+    return new Array(size);
+}
+
 JSIL.Dynamic = {};
 JSIL.Dynamic.Cast = function (value, expectedType) {
     return value;

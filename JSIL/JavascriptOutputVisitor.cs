@@ -144,32 +144,37 @@ namespace JSIL.Internal {
             if (IsIgnored(typeDeclaration.Attributes))
                 return null;
 
+            int numStaticMembers = 0;
+            bool isStatic = typeDeclaration.Modifiers.HasFlag(Modifiers.Static);
+            var constructors = (from member in typeDeclaration.Members
+                                where member is ConstructorDeclaration
+                                select (ConstructorDeclaration)member).ToArray();
+            var instanceConstructor = (from constructor in constructors
+                                       where !constructor.Modifiers.HasFlag(Modifiers.Static)
+                                       select constructor).FirstOrDefault();
+            var staticConstructor = (from constructor in constructors
+                                     where constructor.Modifiers.HasFlag(Modifiers.Static)
+                                     select constructor).FirstOrDefault();
+
             StartNode(typeDeclaration);
             WriteIdentifier(typeDeclaration.Annotation<TypeReference>());
             Space();
             WriteToken("=", null);
             Space();
-            WriteKeyword("function");
 
-            int numStaticMembers = 0;
-            var constructors = (from member in typeDeclaration.Members
-                               where member is ConstructorDeclaration
-                               select (ConstructorDeclaration)member).ToArray();
-            var instanceConstructor = (from constructor in constructors
-                                      where !constructor.Modifiers.HasFlag(Modifiers.Static)
-                                      select constructor).FirstOrDefault();
-            var staticConstructor = (from constructor in constructors
-                                       where constructor.Modifiers.HasFlag(Modifiers.Static)
-                                       select constructor).FirstOrDefault();
+            if (isStatic) {
+            } else {
+                WriteKeyword("function");
 
-            Space();
-            LPar();
-            if (instanceConstructor != null) {
-                StartNode(instanceConstructor);
-                WriteCommaSeparatedList(instanceConstructor.Parameters);
-                EndNode(instanceConstructor);
+                Space();
+                LPar();
+                if (instanceConstructor != null) {
+                    StartNode(instanceConstructor);
+                    WriteCommaSeparatedList(instanceConstructor.Parameters);
+                    EndNode(instanceConstructor);
+                }
+                RPar();
             }
-            RPar();
 
             OpenBrace(BraceStyle.EndOfLine);
 
@@ -240,10 +245,12 @@ namespace JSIL.Internal {
 
         public override object VisitArrayCreateExpression (ArrayCreateExpression arrayCreateExpression, object data) {
             StartNode(arrayCreateExpression);
-            WriteKeyword("new");
-            Space();
-            WriteKeyword("Array");
+            WriteIdentifier("JSIL.Array.New");
             LPar();
+
+            arrayCreateExpression.Type.AcceptVisitor(this, null);
+            WriteToken(",", null);
+            Space();
 
             if (arrayCreateExpression.Arguments.Count > 1)
                 throw new NotImplementedException("Multidimensional arrays are not supported");
