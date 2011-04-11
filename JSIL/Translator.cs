@@ -7,6 +7,7 @@ using System.Text;
 using ICSharpCode.Decompiler.Ast;
 using ICSharpCode.NRefactory.CSharp;
 using JSIL.Internal;
+using JSIL.Transforms;
 using Mono.Cecil;
 using ICSharpCode.Decompiler;
 
@@ -28,7 +29,10 @@ namespace JSIL {
         }
 
         internal void Translate (AssemblyDefinition assembly, TextWriter outputStream) {
-            var decompiler = new AstBuilder(new DecompilerContext());
+            var context = new DecompilerContext();
+            context.Transforms.Add(new DynamicCallSites(context));
+
+            var decompiler = new AstBuilder(context);
             decompiler.AddAssembly(assembly);
 
             decompiler.RunTransformations();

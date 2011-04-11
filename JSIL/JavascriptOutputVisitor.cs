@@ -241,7 +241,11 @@ namespace JSIL.Internal {
         }
 
         public override object VisitTypeOfExpression (TypeOfExpression typeOfExpression, object data) {
-            return base.VisitTypeOfExpression(typeOfExpression, data);
+            StartNode(typeOfExpression);
+
+            typeOfExpression.Type.AcceptVisitor(this, data);
+
+            return EndNode(typeOfExpression);
         }
 
         public override object VisitMemberReferenceExpression (MemberReferenceExpression memberReferenceExpression, object data) {
