@@ -20,7 +20,7 @@ namespace JSIL.Internal {
             }) {
         }
 
-        protected TypeReference ToTypeReference (SimpleType type) {
+        protected TypeReference ToTypeReference (AstType type) {
             return (TypeReference)type.Annotations.First();
         }
 
@@ -119,6 +119,39 @@ namespace JSIL.Internal {
             }
 
             return false;
+        }
+
+        public override object VisitInvocationExpression (InvocationExpression invocationExpression, object data) {
+            var mre = invocationExpression.Target as MemberReferenceExpression;
+            TypeReferenceExpression tre;
+            if ((mre != null) && (tre = mre.Target as TypeReferenceExpression) != null) {
+                var type = ToTypeReference(tre.Type);
+
+                if (type.FullName == "JSIL.Verbatim") {
+                    switch (mre.MemberName) {
+                        case "Eval": {
+                            StartNode(invocationExpression);
+
+                            var firstArgument = invocationExpression.Arguments.FirstOrDefault() as PrimitiveExpression;
+                            if (firstArgument == null)
+                                throw new InvalidOperationException("Verbatim.Eval's only argument must be a string");
+
+                            var rawText = firstArgument.Value as string;
+                            if (rawText == null)
+                                throw new InvalidOperationException("Verbatim.Eval's only argument must be a string");
+
+                            WriteToken(rawText.Trim(), null);
+                            NewLine();
+
+                            return EndNode(invocationExpression);
+                        }
+                        default:
+                            throw new NotImplementedException();
+                    }
+                }
+            }
+
+            return base.VisitInvocationExpression(invocationExpression, data);
         }
 
         public override object VisitTypeDeclaration (TypeDeclaration typeDeclaration, object data) {

@@ -127,17 +127,24 @@ namespace JSIL.Tests {
                     WindowStyle = ProcessWindowStyle.Hidden
                 };
 
+                ManualResetEventSlim stdoutSignal, stderrSignal;
+                stdoutSignal = new ManualResetEventSlim(false);
+                stderrSignal = new ManualResetEventSlim(false);
                 var output = new string[2];
 
                 long startedJs = DateTime.UtcNow.Ticks;
                 using (var process = Process.Start(psi)) {
                     ThreadPool.QueueUserWorkItem((_) => {
                         output[0] = process.StandardOutput.ReadToEnd();
+                        stdoutSignal.Set();
                     });
                     ThreadPool.QueueUserWorkItem((_) => {
                         output[1] = process.StandardError.ReadToEnd();
+                        stderrSignal.Set();
                     });
 
+                    stdoutSignal.Wait();
+                    stderrSignal.Wait();
                     process.WaitForExit();
 
                     if (process.ExitCode != 0)
