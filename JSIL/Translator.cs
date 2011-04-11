@@ -29,7 +29,7 @@ namespace JSIL {
         }
 
         internal void Translate (AssemblyDefinition assembly, TextWriter outputStream) {
-            var context = new DecompilerContext();
+            var context = new DecompilerContext(assembly.MainModule);
             context.Transforms.Add(new DynamicCallSites(context));
 
             var decompiler = new AstBuilder(context);
