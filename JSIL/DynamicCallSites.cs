@@ -18,13 +18,30 @@ namespace JSIL.Transforms {
     public enum CallSiteType {
         InvokeMember,
         GetMember,
-        SetMember
+        SetMember,
+        Convert
     };
 
     /// <summary>
     /// Converts uses of System.Runtime.CompilerServices.CallSite back into equivalent 'dynamic' syntax.
     /// </summary>
     public class DynamicCallSites : ContextTrackingVisitor<object> {
+        public struct TemporaryValue {
+            public readonly string Name;
+            public readonly AstType Type;
+            public readonly Expression Value;
+
+            public TemporaryValue (string name, AstType type, Expression value) {
+                Name = name;
+                Type = type;
+                Value = value;
+            }
+
+            public TemporaryValue Replace (Expression newValue) {
+                return new TemporaryValue(Name, Type, newValue);
+            }
+        }
+
         public struct CallSiteInfo {
             public readonly CallSiteType Type;
             public readonly MemberReferenceExpression CallSite;
@@ -39,6 +56,7 @@ namespace JSIL.Transforms {
             }
         }
 
+        public readonly Dictionary<string, TemporaryValue> TemporaryValues = new Dictionary<string, TemporaryValue>();
         public readonly Dictionary<string, CallSiteInfo> CallSites = new Dictionary<string, CallSiteInfo>();
 
         public DynamicCallSites (DecompilerContext context)
@@ -74,7 +92,7 @@ namespace JSIL.Transforms {
                         }),
                         Arguments = {
                             new AnyNode("binderFlags"),
-                            new AnyNode("name"),
+                            new OptionalNode(new AnyNode("name")),
                             new OptionalNode(new AnyNode("typeArguments")),
                             new AnyNode("targetType"),
                             new AnyNode("argumentInfo")
@@ -97,6 +115,15 @@ namespace JSIL.Transforms {
             Target = new AnyNode("siteContainer")
         };
 
+        static readonly VariableDeclarationStatement temporaryValuePattern = new VariableDeclarationStatement {
+            Type = new AnyNode("type"),
+            Variables = {
+                new Repeat(new NamedNode("initializer", new VariableInitializer(
+                    "", new AnyNode("value")
+                )))
+            }
+        };
+
         // Remove site container type declarations
         public override object VisitTypeDeclaration (TypeDeclaration typeDeclaration, object data) {
             var typeText = typeDeclaration.Name;
@@ -104,6 +131,51 @@ namespace JSIL.Transforms {
                 typeDeclaration.Remove();
 
             return base.VisitTypeDeclaration(typeDeclaration, data);
+        }
+
+        public override object VisitIdentifierExpression (IdentifierExpression identifierExpression, object data) {
+            TemporaryValue tv;
+            if (TemporaryValues.TryGetValue(identifierExpression.Identifier, out tv)) {
+                bool[] a = data as bool[];
+                a[0] = true;
+                identifierExpression.ReplaceWith(tv.Value);
+                return null;
+            }
+
+            return base.VisitIdentifierExpression(identifierExpression, data);
+        }
+
+        public override object VisitVariableDeclarationStatement (VariableDeclarationStatement variableDeclarationStatement, object data) {
+            var match = temporaryValuePattern.Match(variableDeclarationStatement);
+            if (match != null) {
+                foreach (var initializer in match.Get<VariableInitializer>("initializer")) {
+                    var name = initializer.Name;
+                    var type = variableDeclarationStatement.Type;
+                    var value = initializer.Initializer;
+
+                    if (!value.ToString().Contains("__SiteContainer"))
+                        continue;
+
+                    if (!type.ToString().Contains("CallSite")) {
+                        continue;
+                    }
+
+                    TemporaryValue tv;
+                    if (TemporaryValues.TryGetValue(name, out tv))
+                        TemporaryValues[name] = tv.Replace(value.Clone());
+                    else
+                        TemporaryValues[name] = new TemporaryValue(name, type, value.Clone());
+
+                    initializer.Remove();
+                }
+
+                if (variableDeclarationStatement.Variables.Count == 0) {
+                    variableDeclarationStatement.Remove();
+                    return null;
+                }
+            }
+
+            return base.VisitVariableDeclarationStatement(variableDeclarationStatement, data);
         }
 
         public override object VisitAssignmentExpression (AssignmentExpression assignmentExpression, object data) {
@@ -115,7 +187,12 @@ namespace JSIL.Transforms {
 
                 var callSite = (MemberReferenceExpression)match.Get<MemberReferenceExpression>("callSite").First().Clone();
                 var targetType = match.Get<Expression>("targetType").First().Clone();
-                var memberName = match.Get<PrimitiveExpression>("name").First().Value as string;
+                string memberName = null;
+                {
+                    var temp = match.Get("name").FirstOrDefault() as PrimitiveExpression;
+                    if (temp != null)
+                        memberName = temp.Value as string;
+                }
 
                 var callSiteName = callSite.ToString();
                 if (!callSiteName.Contains("__SiteContainer"))
@@ -133,6 +210,9 @@ namespace JSIL.Transforms {
                     case "SetMember":
                         callSiteType = CallSiteType.SetMember;
                         break;
+                    case "Convert":
+                        callSiteType = CallSiteType.Convert;
+                        break;
                     default:
                         throw new NotImplementedException("Dynamic invocations of type " + invocationType + " are not implemented.");
                 }
@@ -149,7 +229,9 @@ namespace JSIL.Transforms {
         }
 
         public override object VisitBlockStatement (BlockStatement blockStatement, object data) {
-            base.VisitBlockStatement(blockStatement, data);
+            bool[] needSecondPass = new bool[] { false };
+
+            base.VisitBlockStatement(blockStatement, needSecondPass);
 
             Match statementMatch;
             // Eliminate the initialization checks for the call sites now that we've found them;
@@ -171,6 +253,12 @@ namespace JSIL.Transforms {
                 }
             }
 
+            // Do a second pass because we may have replaced variables
+            if (needSecondPass[0]) {
+                foreach (var statement in blockStatement.Statements)
+                    statement.AcceptVisitor(this, data);
+            }
+
             return null;
         }
 
@@ -181,12 +269,12 @@ namespace JSIL.Transforms {
 
                 var callSiteName = callSite.ToString();
                 if (!callSiteName.Contains("__SiteContainer"))
-                    return null;
+                    return base.VisitInvocationExpression(invocationExpression, data);
 
                 CallSiteInfo info;
                 if (!CallSites.TryGetValue(callSiteName, out info)) {
                     Debug.WriteLine("Unknown call site: " + callSiteName);
-                    return null;
+                    return base.VisitInvocationExpression(invocationExpression, data);
                     throw new KeyNotFoundException("No information found for call site " + callSiteName);
                 }
 
@@ -203,9 +291,10 @@ namespace JSIL.Transforms {
                 );
 
                 invocationExpression.ReplaceWith(dce);
+                return null;
             }
-
-            return null;
+            
+            return base.VisitInvocationExpression(invocationExpression, data);
         }
     }
 }

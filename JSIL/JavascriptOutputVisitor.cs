@@ -568,7 +568,7 @@ namespace JSIL.Internal {
 
         public override object VisitMethodDeclaration (MethodDeclaration methodDeclaration, object data) {
             StartNode(methodDeclaration);
-
+    
             WriteThisReference(ToMethodDefinition(methodDeclaration).DeclaringType, methodDeclaration);
 
             WriteToken(".", null);
@@ -591,24 +591,40 @@ namespace JSIL.Internal {
         public object VisitDynamicExpression (DynamicExpression dynamicExpression, object data) {
             StartNode(dynamicExpression);
 
-            dynamicExpression.Target.AcceptVisitor(this, null);
-            WriteToken(".", null);
-            WriteIdentifier(Util.EscapeIdentifier(dynamicExpression.MemberName));
-
             switch (dynamicExpression.CallSiteType) {
                 case CallSiteType.GetMember:
+                    dynamicExpression.Target.AcceptVisitor(this, null);
+                    WriteToken(".", null);
+                    WriteIdentifier(Util.EscapeIdentifier(dynamicExpression.MemberName));
                     break;
                 case CallSiteType.SetMember:
+                    dynamicExpression.Target.AcceptVisitor(this, null);
+                    WriteToken(".", null);
+                    WriteIdentifier(Util.EscapeIdentifier(dynamicExpression.MemberName));
                     Space();
                     WriteToken("=", null);
                     Space();
                     WriteCommaSeparatedList(dynamicExpression.Arguments);
                     break;
                 case CallSiteType.InvokeMember:
+                    dynamicExpression.Target.AcceptVisitor(this, null);
+                    WriteToken(".", null);
+                    WriteIdentifier(Util.EscapeIdentifier(dynamicExpression.MemberName));
                     LPar();
                     WriteCommaSeparatedList(dynamicExpression.Arguments);
                     RPar();
                     break;
+                case CallSiteType.Convert:
+                    WriteIdentifier("JSIL.Dynamic.Cast");                    
+                    LPar();
+                    dynamicExpression.Target.AcceptVisitor(this, null);
+                    WriteToken(",", null);
+                    Space();
+                    dynamicExpression.TargetType.AcceptVisitor(this, null);
+                    RPar();
+                    break;
+                default:
+                    throw new NotImplementedException();
             }
 
             return EndNode(dynamicExpression);

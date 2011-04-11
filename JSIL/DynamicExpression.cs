@@ -37,10 +37,14 @@ namespace JSIL.Expressions {
 
         public string MemberName {
             get {
-                return GetChildByRole(Roles.Identifier).Name;
+                var child = GetChildByRole(Roles.Identifier);
+                return child.Name;
             }
             set {
-                SetChildByRole(Roles.Identifier, new Identifier(value, AstLocation.Empty));
+                if (value != null)
+                    SetChildByRole(Roles.Identifier, new Identifier(value, AstLocation.Empty));
+                else
+                    SetChildByRole(Roles.Identifier, Identifier.Null);
             }
         }
 
