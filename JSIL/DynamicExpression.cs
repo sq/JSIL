@@ -7,14 +7,14 @@ using ICSharpCode.NRefactory.CSharp;
 using JSIL.Transforms;
 
 namespace JSIL.Expressions {
-    public interface IDynamicCallVisitor<T, S> {
-        S VisitDynamicCallExpression (DynamicCallExpression dynamicCallExpression, T data);
+    public interface IDynamicExpressionVisitor<T, S> {
+        S VisitDynamicExpression (DynamicExpression dynamicExpression, T data);
     }
 
     /// <summary>
-    /// dynamic target; target.MemberName(...);
+    /// dynamic target: target.MemberName(...) / target.MemberName
     /// </summary>
-    public class DynamicCallExpression : Expression {
+    public class DynamicExpression : Expression {
         public static readonly Role<Expression> CallSiteRole = new Role<Expression>("CallSite", Null);
         public static readonly Role<Expression> TargetTypeRole = new Role<Expression>("TargetType", Null);
 
@@ -61,15 +61,15 @@ namespace JSIL.Expressions {
         }
 
         public override S AcceptVisitor<T, S> (IAstVisitor<T, S> visitor, T data) {
-            var dcv = visitor as IDynamicCallVisitor<T, S>;
+            var dcv = visitor as IDynamicExpressionVisitor<T, S>;
             if (dcv != null)
-                return dcv.VisitDynamicCallExpression(this, data);
+                return dcv.VisitDynamicExpression(this, data);
             else
                 return default(S);
         }
 
         public override bool DoMatch (AstNode other, ICSharpCode.NRefactory.CSharp.PatternMatching.Match match) {
-            DynamicCallExpression o = other as DynamicCallExpression;
+            DynamicExpression o = other as DynamicExpression;
             return o != null && 
                 this.Target.DoMatch(o.Target, match) && 
                 MatchString(this.MemberName, o.MemberName) && 

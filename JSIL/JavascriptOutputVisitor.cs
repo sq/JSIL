@@ -12,7 +12,7 @@ using Attribute = ICSharpCode.NRefactory.CSharp.Attribute;
 using JSIL.Expressions;
 
 namespace JSIL.Internal {
-    public class JavascriptOutputVisitor : OutputVisitor, IDynamicCallVisitor<object, object> {
+    public class JavascriptOutputVisitor : OutputVisitor, IDynamicExpressionVisitor<object, object> {
         public JavascriptOutputVisitor (IOutputFormatter formatter)
             : base (formatter, new CSharpFormattingPolicy {
                 ConstructorBraceStyle = BraceStyle.EndOfLine,
@@ -588,24 +588,30 @@ namespace JSIL.Internal {
             return EndNode(methodDeclaration);
         }
 
-        public object VisitDynamicCallExpression (DynamicCallExpression dynamicCallExpression, object data) {
-            StartNode(dynamicCallExpression);
+        public object VisitDynamicExpression (DynamicExpression dynamicExpression, object data) {
+            StartNode(dynamicExpression);
 
-            dynamicCallExpression.Target.AcceptVisitor(this, null);
+            dynamicExpression.Target.AcceptVisitor(this, null);
             WriteToken(".", null);
-            WriteIdentifier(Util.EscapeIdentifier(dynamicCallExpression.MemberName));
+            WriteIdentifier(Util.EscapeIdentifier(dynamicExpression.MemberName));
 
-            switch (dynamicCallExpression.CallSiteType) {
+            switch (dynamicExpression.CallSiteType) {
                 case CallSiteType.GetMember:
+                    break;
+                case CallSiteType.SetMember:
+                    Space();
+                    WriteToken("=", null);
+                    Space();
+                    WriteCommaSeparatedList(dynamicExpression.Arguments);
                     break;
                 case CallSiteType.InvokeMember:
                     LPar();
-                    WriteCommaSeparatedList(dynamicCallExpression.Arguments);
+                    WriteCommaSeparatedList(dynamicExpression.Arguments);
                     RPar();
                     break;
             }
 
-            return EndNode(dynamicCallExpression);
+            return EndNode(dynamicExpression);
         }
     }
 }

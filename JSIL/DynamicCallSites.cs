@@ -17,7 +17,8 @@ using ICSharpCode.Decompiler.Ast.Transforms;
 namespace JSIL.Transforms {
     public enum CallSiteType {
         InvokeMember,
-        GetMember
+        GetMember,
+        SetMember
     };
 
     /// <summary>
@@ -129,6 +130,9 @@ namespace JSIL.Transforms {
                     case "GetMember":
                         callSiteType = CallSiteType.GetMember;
                         break;
+                    case "SetMember":
+                        callSiteType = CallSiteType.SetMember;
+                        break;
                     default:
                         throw new NotImplementedException("Dynamic invocations of type " + invocationType + " are not implemented.");
                 }
@@ -186,7 +190,7 @@ namespace JSIL.Transforms {
                     throw new KeyNotFoundException("No information found for call site " + callSiteName);
                 }
 
-                var dce = new DynamicCallExpression {
+                var dce = new DynamicExpression {
                     CallSite = callSite.Clone(),
                     CallSiteType = info.Type,
                     MemberName = info.MemberName,

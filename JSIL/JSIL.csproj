@@ -61,7 +61,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DynamicCallExpression.cs" />
+    <Compile Include="DynamicExpression.cs" />
     <Compile Include="DynamicCallSites.cs" />
     <Compile Include="JavascriptOutputVisitor.cs" />
     <Compile Include="Translator.cs" />
