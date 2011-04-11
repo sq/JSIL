@@ -1,11 +1,11 @@
 ﻿using System;
 
 namespace JSIL.Meta {
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method | AttributeTargets.Property)]
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method | AttributeTargets.Property | AttributeTargets.Field)]
     public class JSIgnore : Attribute {
     }
 
-    [AttributeUsage(AttributeTargets.Method)]
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Method)]
     public class JSReplacement : Attribute {
         public readonly string Identifier;
         public readonly bool Qualified;

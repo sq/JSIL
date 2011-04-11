@@ -385,6 +385,9 @@ namespace JSIL.Internal {
         }
 
         public override object VisitFieldDeclaration (FieldDeclaration fieldDeclaration, object data) {
+            if (IsIgnored(fieldDeclaration.Attributes))
+                return null;
+
             StartNode(fieldDeclaration);
 
             int i = 0;

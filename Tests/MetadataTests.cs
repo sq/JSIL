@@ -55,5 +55,18 @@ namespace JSIL.Tests {
             Assert.AreEqual("0", csOutput.Trim());
             Assert.AreEqual("undefined", jsOutput.Trim());
         }
+
+        [Test]
+        public void JSIgnorePreventsTranslationOfField () {
+            long elapsed;
+            string generatedJs;
+            var test = new ComparisonTest(@"SpecialTestCases\IgnoreField.cs");
+
+            var csOutput = test.RunCSharp(new string[0], out elapsed);
+            var jsOutput = test.RunJavascript(new string[0], out generatedJs, out elapsed);
+
+            Assert.AreEqual("1", csOutput.Trim());
+            Assert.AreEqual("undefined", jsOutput.Trim());
+        }
     }
 }
