@@ -38,8 +38,12 @@ namespace JSIL.Transforms {
         }
 
         static readonly IfElseStatement siteCheckPattern = new IfElseStatement {
-            Condition = new AnyNode("condition"),
-            TrueStatement = new AnyNode("true"),
+            Condition = new BinaryOperatorExpression {
+                Operator = BinaryOperatorType.Equality,
+                Left = new AnyNode("left"),
+                Right = new AnyNode("right")
+            },
+            TrueStatement = new AnyNode("body"),
             FalseStatement = Statement.Null
         };
 
@@ -67,6 +71,21 @@ namespace JSIL.Transforms {
             }
         };
 
+        static readonly ExpressionStatement siteInvocationPattern = new ExpressionStatement {
+            Expression = new InvocationExpression {
+                Arguments = {
+                    new NamedNode("callSite", 
+                        new MemberReferenceExpression {
+                            Target = new AnyNode()
+                        }
+                    ),
+                    new AnyNode("instance"),
+                    new Repeat(new AnyNode("arguments"))
+                },
+                Target = new AnyNode("siteContainer")
+            }
+        };
+
         // Remove site container type declarations
         public override object VisitTypeDeclaration (TypeDeclaration typeDeclaration, object data) {
             var typeText = typeDeclaration.Name;
@@ -83,10 +102,6 @@ namespace JSIL.Transforms {
 
             // Locate site declarations and store the information on each site
             foreach (ExpressionStatement stmt in blockStatement.Statements.OfType<ExpressionStatement>().ToArray()) {
-                var stmtText = stmt.ToString();
-                if (!stmtText.Contains("__SiteContainer"))
-                    continue;
-
                 statementMatch = siteConstructorPattern.Match(stmt);
                 if (statementMatch != null) {
                     var typeArguments = statementMatch.Get<Expression>("typeArguments");
@@ -98,6 +113,8 @@ namespace JSIL.Transforms {
                     var memberName = statementMatch.Get<PrimitiveExpression>("name").First().Value as string;
 
                     var callSiteName = callSite.ToString();
+                    if (!callSiteName.Contains("__SiteContainer"))
+                        continue;
 
                     CallSites.Add(callSiteName, new CallSiteInfo(
                         callSite, targetType, memberName
@@ -108,15 +125,40 @@ namespace JSIL.Transforms {
             // Eliminate the initialization checks for the call sites now that we've found them;
             //  this will also remove the site declarations since they're inside the body of the checks
             foreach (IfElseStatement stmt in blockStatement.Statements.OfType<IfElseStatement>().ToArray()) {
-                var stmtText = stmt.ToString();
-                if (!stmtText.Contains("__SiteContainer"))
-                    continue;
-
                 statementMatch = siteCheckPattern.Match(stmt);
                 if (statementMatch != null) {
-                    var condition = statementMatch.Get<Expression>("condition");
+                    var stmtText = statementMatch.Get("left").First().ToString();
+                    if (!stmtText.Contains("__SiteContainer"))
+                        continue;
 
                     stmt.Remove();
+                }
+            }
+
+            // Map usages of call sites into dynamic call expressions
+            foreach (ExpressionStatement stmt in blockStatement.Statements.OfType<ExpressionStatement>().ToArray()) {
+                statementMatch = siteInvocationPattern.Match(stmt);
+                if (statementMatch != null) {
+                    var callSite = (MemberReferenceExpression)statementMatch.Get<MemberReferenceExpression>("callSite").First().Clone();
+
+                    var callSiteName = callSite.ToString();
+                    if (!callSiteName.Contains("__SiteContainer"))
+                        continue;
+
+                    var info = CallSites[callSiteName];
+
+                    var dce = new DynamicCallExpression {
+                        CallSite = callSite,
+                        MemberName = info.MemberName,
+                        TargetType = info.TargetType,
+                        Target = statementMatch.Get<Expression>("instance").First().Clone()
+                    };
+                    dce.Arguments.AddRange(
+                        from arg in statementMatch.Get<Expression>("arguments") 
+                        select arg.Clone()
+                    );
+
+                    stmt.ReplaceWith(new ExpressionStatement(dce));
                 }
             }
 

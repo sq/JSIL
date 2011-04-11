@@ -6,15 +6,25 @@ using ICSharpCode.Decompiler.ILAst;
 using ICSharpCode.NRefactory.CSharp;
 
 namespace JSIL.Expressions {
+    public interface IDynamicCallVisitor<T, S> {
+        S VisitDynamicCallExpression (DynamicCallExpression dynamicCallExpression, T data);
+    }
+
     /// <summary>
-    /// Target.MemberName
+    /// dynamic target; target.MemberName(...);
     /// </summary>
     public class DynamicCallExpression : Expression {
         public static readonly Role<Expression> CallSiteRole = new Role<Expression>("CallSite", Null);
+        public static readonly Role<Expression> TargetTypeRole = new Role<Expression>("TargetType", Null);
 
         public Expression CallSite {
             get { return GetChildByRole(CallSiteRole); }
             set { SetChildByRole(CallSiteRole, value); }
+        }
+
+        public Expression TargetType {
+            get { return GetChildByRole(TargetTypeRole); }
+            set { SetChildByRole(TargetTypeRole, value); }
         }
 
         public Expression Target {
@@ -35,6 +45,10 @@ namespace JSIL.Expressions {
             get { return GetChildByRole(Roles.LChevron); }
         }
 
+        public AstNodeCollection<Expression> Arguments {
+            get { return GetChildrenByRole(Roles.Argument); }
+        }
+
         public AstNodeCollection<AstType> TypeArguments {
             get { return GetChildrenByRole(Roles.TypeArgument); }
         }
@@ -44,8 +58,11 @@ namespace JSIL.Expressions {
         }
 
         public override S AcceptVisitor<T, S> (IAstVisitor<T, S> visitor, T data) {
-            // return visitor.VisitMemberReferenceExpression(this, data);
-            return default(S);
+            var dcv = visitor as IDynamicCallVisitor<T, S>;
+            if (dcv != null)
+                return dcv.VisitDynamicCallExpression(this, data);
+            else
+                return default(S);
         }
 
         public override bool DoMatch (AstNode other, ICSharpCode.NRefactory.CSharp.PatternMatching.Match match) {

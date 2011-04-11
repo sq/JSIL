@@ -4,7 +4,7 @@ public static class Program {
     public static void Main (string[] args) {
         dynamic instance = new CustomType();
         instance.A();
-        instance.B();
+        instance.B(5);
     }
 }
 
@@ -13,7 +13,7 @@ public class CustomType {
         Console.WriteLine("a");
     }
     
-    public void B () {
-        Console.WriteLine("b");
+    public void B (int i) {
+        Console.WriteLine("b {0}", i + 1);
     }
 }

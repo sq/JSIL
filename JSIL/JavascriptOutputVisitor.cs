@@ -8,9 +8,10 @@ using ICSharpCode.NRefactory.CSharp;
 using ICSharpCode.NRefactory.CSharp.PatternMatching;
 using Mono.Cecil;
 using Attribute = ICSharpCode.NRefactory.CSharp.Attribute;
+using JSIL.Expressions;
 
 namespace JSIL.Internal {
-    public class JavascriptOutputVisitor : OutputVisitor {
+    public class JavascriptOutputVisitor : OutputVisitor, IDynamicCallVisitor<object, object> {
         public JavascriptOutputVisitor (IOutputFormatter formatter)
             : base (formatter, new CSharpFormattingPolicy {
                 ConstructorBraceStyle = BraceStyle.EndOfLine,
@@ -584,6 +585,20 @@ namespace JSIL.Internal {
             Semicolon();
 
             return EndNode(methodDeclaration);
+        }
+
+        public object VisitDynamicCallExpression (DynamicCallExpression dynamicCallExpression, object data) {
+            StartNode(dynamicCallExpression);
+
+            dynamicCallExpression.Target.AcceptVisitor(this, null);
+            WriteToken(".", null);
+            WriteIdentifier(Util.EscapeIdentifier(dynamicCallExpression.MemberName));
+
+            LPar();
+            WriteCommaSeparatedList(dynamicCallExpression.Arguments);
+            RPar();
+
+            return EndNode(dynamicCallExpression);
         }
     }
 }
