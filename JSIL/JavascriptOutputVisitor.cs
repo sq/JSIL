@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using ICSharpCode.Decompiler.Ast;
 using ICSharpCode.NRefactory.CSharp;
 using ICSharpCode.NRefactory.CSharp.PatternMatching;
+using JSIL.Transforms;
 using Mono.Cecil;
 using Attribute = ICSharpCode.NRefactory.CSharp.Attribute;
 using JSIL.Expressions;
@@ -594,9 +595,15 @@ namespace JSIL.Internal {
             WriteToken(".", null);
             WriteIdentifier(Util.EscapeIdentifier(dynamicCallExpression.MemberName));
 
-            LPar();
-            WriteCommaSeparatedList(dynamicCallExpression.Arguments);
-            RPar();
+            switch (dynamicCallExpression.CallSiteType) {
+                case CallSiteType.GetMember:
+                    break;
+                case CallSiteType.InvokeMember:
+                    LPar();
+                    WriteCommaSeparatedList(dynamicCallExpression.Arguments);
+                    RPar();
+                    break;
+            }
 
             return EndNode(dynamicCallExpression);
         }

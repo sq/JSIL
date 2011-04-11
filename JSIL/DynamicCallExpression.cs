@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using ICSharpCode.Decompiler.ILAst;
 using ICSharpCode.NRefactory.CSharp;
+using JSIL.Transforms;
 
 namespace JSIL.Expressions {
     public interface IDynamicCallVisitor<T, S> {
@@ -16,6 +17,8 @@ namespace JSIL.Expressions {
     public class DynamicCallExpression : Expression {
         public static readonly Role<Expression> CallSiteRole = new Role<Expression>("CallSite", Null);
         public static readonly Role<Expression> TargetTypeRole = new Role<Expression>("TargetType", Null);
+
+        public CallSiteType CallSiteType;
 
         public Expression CallSite {
             get { return GetChildByRole(CallSiteRole); }
