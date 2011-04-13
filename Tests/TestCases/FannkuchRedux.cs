@@ -78,6 +78,6 @@ public static class Program {
     public static void Main (string[] args) {
         int n = (args.Length > 0) ? Int32.Parse(args[0]) : 7;
         var pf = fannkuch(n);
-        Console.Write("{0}\nPfannkuchen({1}) = {2}\n", pf[0], n, pf[1]);
+        Console.WriteLine("{0}\nPfannkuchen({1}) = {2}\n", pf[0], n, pf[1]);
     }
 }
