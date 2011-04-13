@@ -65,5 +65,19 @@ namespace JSIL.Tests {
 
             Assert.AreEqual(0, failureCount, "One or more tests failed");
         }
+
+        [Test]
+        public void Goto () {
+            var test = new ComparisonTest(@"TestCases\Goto.cs");
+
+            test.Run();
+        }
+
+        [Test]
+        public void Switch () {
+            var test = new ComparisonTest(@"TestCases\Switch.cs");
+
+            test.Run();
+        }
     }
 }

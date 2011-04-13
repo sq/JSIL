@@ -10,6 +10,12 @@ using ICSharpCode.NRefactory.CSharp;
 
 namespace JSIL {
     public class GotoConverter : ContextTrackingVisitor<object> {
+        public struct EnumStatementItem {
+            public AstNode Parent;
+            public Statement Statement;
+            public int Depth;
+        }
+
         public class BlockInfo {
             public readonly int Depth;
             public readonly BlockStatement Block;
@@ -42,6 +48,24 @@ namespace JSIL {
                         foreach (var g in block.AllGotos)
                             yield return g;
                 }
+            }
+
+            protected static IEnumerable<EnumStatementItem> EnumStatements (AstNode parent, int depth = 0) {
+		        AstNode next;
+		        for (var child = parent.FirstChild; child != null; child = next) {
+			        next = child.NextSibling;
+
+                    var stmt = child as Statement;
+                    if (stmt != null)
+                        yield return new EnumStatementItem {
+                            Statement = stmt,
+                            Parent = parent,
+                            Depth = depth
+                        };
+                    
+                    foreach (var inner in EnumStatements(child, depth + 1))
+                        yield return inner;
+		        }
             }
 
             protected static string Indent (string text) {
@@ -78,45 +102,21 @@ namespace JSIL {
             }
 
             public Statement TransformLabels () {
+                foreach (var block in ChildBlocks)
+                    block.TransformLabels();
+
+                if (Labels.Count == 0)
+                    return this.Block;
+
+                var labelVariableName = String.Format("_label{0}_", Depth);
                 var labelVariable = new VariableDeclarationStatement(
-                    AstType.Create(typeof(string)),
-                    "__label__", 
+                    AstType.Create(typeof(string)), labelVariableName, 
                     new PrimitiveExpression("::enter")
                 );
-                var labelIdentifier = new IdentifierExpression("__label__");
+                var labelIdentifier = new IdentifierExpression(labelVariableName);
 
                 var switchStatement = new SwitchStatement {
                     Expression = labelIdentifier,
-                    SwitchSections = {
-                        new SwitchSection {
-                            CaseLabels = {
-                                new CaseLabel {
-                                    Expression = new PrimitiveExpression("::enter")
-                                }
-                            },
-                            Statements = {
-                                new BlockStatement {
-                                    new ExpressionStatement(new AssignmentExpression(
-                                        labelIdentifier.Clone(), 
-                                        new PrimitiveExpression("::exit")
-                                    )),
-                                    new TargetedContinueStatement("__step__")
-                                }
-                            }
-                        },
-                        new SwitchSection {
-                            CaseLabels = {
-                                new CaseLabel {
-                                    Expression = new PrimitiveExpression("::exit")
-                                }
-                            },
-                            Statements = {
-                                new BlockStatement {
-                                    new TargetedBreakStatement("__step__")
-                                }
-                            }
-                        }
-                    }
                 };
                 var whileStatement = new WhileStatement {
                     Condition = new PrimitiveExpression(true),
@@ -125,18 +125,95 @@ namespace JSIL {
                     }
                 };
 
+                var loopName = String.Format("_step{0}_", Depth);
+                var nextStepStatement = new TargetedContinueStatement(loopName);
+
                 var result = new BlockStatement {
                     labelVariable,
                     new LabelStatement {
-                        Label = "__step__"
+                        Label = loopName
                     },
                     whileStatement
                 };
 
-                foreach (var block in ChildBlocks)
-                    block.TransformLabels();
+                Block.ReplaceWith(result);
 
-                this.Block.ReplaceWith(result);
+                Func<string, BlockStatement> makeNewSection = (name) => {
+                    var ss = new SwitchSection {
+                        CaseLabels = {
+                            new CaseLabel {
+                                Expression = new PrimitiveExpression(name)
+                            }
+                        }
+                    };
+
+                    var bs = new BlockStatement();
+                    ss.Statements.Add(bs);
+
+                    switchStatement.SwitchSections.Add(ss);
+
+                    return bs;
+                };
+
+                Func<string, BlockStatement> buildGoto = (label) => {
+                    return new BlockStatement {
+                        new ExpressionStatement(new AssignmentExpression {
+                            Left = labelIdentifier.Clone(),
+                            Right = new PrimitiveExpression(label)
+                        }),
+                        nextStepStatement.Clone()
+                    };
+                };
+
+                var currentSection = makeNewSection("::enter");
+                var traversalQueue = new LinkedList<AstNode>();
+
+                var blockClone = Block.Clone();
+                currentSection.Add(blockClone);
+
+                traversalQueue.AddLast(blockClone.FirstChild);
+
+                while (traversalQueue.Count > 0) {
+                    var first = traversalQueue.First;
+                    var current = first.Value;
+                    traversalQueue.RemoveFirst();
+
+                    var next = current.NextSibling;
+                    if (next != null)
+                        traversalQueue.AddLast(next);
+
+                    var s = current as Statement;
+                    var l = current as LabelStatement;
+                    var g = current as GotoStatement;
+
+                    if (l != null) {
+                        var gotoNext = buildGoto(l.Label);
+                        current.ReplaceWith(gotoNext);
+                        var newSection = makeNewSection(l.Label);
+
+                        var transplant = next;
+                        while (transplant != null) {
+                            var nextTransplant = transplant.NextSibling;
+
+                            transplant.Remove();
+                            newSection.Add((Statement)transplant);
+
+                            transplant = nextTransplant;
+                        }
+
+                        currentSection = newSection;
+                    } else if (g != null) {
+                        current.ReplaceWith(buildGoto(g.Label));
+                    } else {
+                        var child = current.FirstChild;
+                        if (child != null)
+                            traversalQueue.AddFirst(child);
+                    }
+                }
+
+                currentSection.Add(
+                    new TargetedBreakStatement(loopName)
+                );
 
                 return result;
             }

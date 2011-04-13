@@ -119,6 +119,8 @@ namespace JSIL.Tests {
             File.WriteAllText(tempFilename, translatedJs);
 
             try {
+                // throw new Exception();
+
                 var psi = new ProcessStartInfo(JSShellPath, String.Format("-f {0}", tempFilename)) {
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
