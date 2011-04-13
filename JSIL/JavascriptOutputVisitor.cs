@@ -16,7 +16,11 @@ using Expression = ICSharpCode.NRefactory.CSharp.Expression;
 using InvocationExpression = ICSharpCode.NRefactory.CSharp.InvocationExpression;
 
 namespace JSIL.Internal {
-    public class JavascriptOutputVisitor : OutputVisitor, IDynamicExpressionVisitor<object, object> {
+    public class JavascriptOutputVisitor 
+        : OutputVisitor, 
+          IDynamicExpressionVisitor<object, object>,
+          ITargetedControlFlowVisitor<object, object>
+    {
         public JavascriptOutputVisitor (IOutputFormatter formatter)
             : base (formatter, new CSharpFormattingPolicy {
                 ConstructorBraceStyle = BraceStyle.EndOfLine,
@@ -375,6 +379,7 @@ namespace JSIL.Internal {
             return EndNode(variableInitializer);
         }
 
+        /*
         public override object VisitLabelStatement (LabelStatement labelStatement, object data) {
             throw new NotImplementedException("Goto and labels are not implemented");
         }
@@ -390,6 +395,7 @@ namespace JSIL.Internal {
         public override object VisitGotoDefaultStatement (GotoDefaultStatement gotoDefaultStatement, object data) {
             throw new NotImplementedException("Goto and labels are not implemented");
         }
+         */
 
         public override object VisitBlockStatement (BlockStatement blockStatement, object data) {
             StartNode(blockStatement);
@@ -780,6 +786,24 @@ namespace JSIL.Internal {
             }
 
             return EndNode(dynamicExpression);
+        }
+
+        public object VisitTargetedBreakStatement (TargetedBreakStatement targetedBreakStatement, object data) {
+            StartNode(targetedBreakStatement);
+            WriteKeyword("break");
+            Space();
+            WriteIdentifier(targetedBreakStatement.LabelName);
+            Semicolon();
+            return EndNode(targetedBreakStatement);
+        }
+
+        public object VisitTargetedContinueStatement (TargetedContinueStatement targetedContinueStatement, object data) {
+            StartNode(targetedContinueStatement);
+            WriteKeyword("continue");
+            Space();
+            WriteIdentifier(targetedContinueStatement.LabelName);
+            Semicolon();
+            return EndNode(targetedContinueStatement);
         }
     }
 }

@@ -42,7 +42,8 @@ namespace JSIL {
 				new ConvertConstructorCallIntoInitializer(), // must run after DeclareVariables
 				new IntroduceUsingDeclarations(context),
                 new DynamicCallSites(context),
-                new ReplacementFinder(context)
+                new ReplacementFinder(context),
+                new GotoConverter(context)
             };
 
             var decompiler = new AstBuilder(context);

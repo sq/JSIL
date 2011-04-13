@@ -63,6 +63,7 @@
   <ItemGroup>
     <Compile Include="DynamicExpression.cs" />
     <Compile Include="DynamicCallSites.cs" />
+    <Compile Include="GotoConverter.cs" />
     <Compile Include="JavascriptOutputVisitor.cs" />
     <Compile Include="ReplacementFinder.cs" />
     <Compile Include="Translator.cs" />
