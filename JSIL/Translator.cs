@@ -43,6 +43,7 @@ namespace JSIL {
 				new IntroduceUsingDeclarations(context),
                 new DynamicCallSites(context),
                 new ReplacementFinder(context),
+                new JumpTargeter(context),
                 new GotoConverter(context)
             };
 

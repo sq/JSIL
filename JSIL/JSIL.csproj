@@ -65,6 +65,7 @@
     <Compile Include="DynamicCallSites.cs" />
     <Compile Include="GotoConverter.cs" />
     <Compile Include="JavascriptOutputVisitor.cs" />
+    <Compile Include="JumpTargeter.cs" />
     <Compile Include="ReplacementFinder.cs" />
     <Compile Include="Translator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

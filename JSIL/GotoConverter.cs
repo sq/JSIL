@@ -186,7 +186,7 @@ namespace JSIL {
                     var l = current as LabelStatement;
                     var g = current as GotoStatement;
 
-                    if (l != null) {
+                    if (l != null && !l.Label.StartsWith("_block")) {
                         var gotoNext = buildGoto(l.Label);
                         current.ReplaceWith(gotoNext);
                         var newSection = makeNewSection(l.Label);
@@ -252,6 +252,9 @@ namespace JSIL {
         }
 
         public override object VisitLabelStatement (LabelStatement labelStatement, object data) {
+            if (labelStatement.Label.StartsWith("_block"))
+                return base.VisitLabelStatement(labelStatement, data);
+
             var block = Blocks.Peek();
             var info = new LabelInfo(block, labelStatement, labelStatement.Label);
             block.Labels[info.Name] = info;
@@ -289,7 +292,7 @@ namespace JSIL {
             }
 
             if (selfContained && (c > 0)) {
-                Console.WriteLine("Transforming block into goto emulator: {0}", info);
+                // Console.WriteLine("Transforming block into goto emulator: {0}", info);
                 info.TransformLabels();
             } else if (parentBlock != null) {
                 parentBlock.ChildBlocks.Add(info);
