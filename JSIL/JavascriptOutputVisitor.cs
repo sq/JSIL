@@ -150,15 +150,22 @@ namespace JSIL.Internal {
 
             int numStaticMembers = 0;
             bool isStatic = typeDeclaration.Modifiers.HasFlag(Modifiers.Static);
+
             var constructors = (from member in typeDeclaration.Members
                                 where member is ConstructorDeclaration
                                 select (ConstructorDeclaration)member).ToArray();
-            var instanceConstructor = (from constructor in constructors
+
+            var instanceConstructors = (from constructor in constructors
                                        where !constructor.Modifiers.HasFlag(Modifiers.Static)
-                                       select constructor).FirstOrDefault();
+                                       select constructor);
+            var instanceConstructor = instanceConstructors.FirstOrDefault();
+
             var staticConstructor = (from constructor in constructors
-                                     where constructor.Modifiers.HasFlag(Modifiers.Static)
-                                     select constructor).FirstOrDefault();
+                                      where constructor.Modifiers.HasFlag(Modifiers.Static)
+                                      select constructor).FirstOrDefault();
+
+            if (instanceConstructors.Count() > 1)
+                throw new NotImplementedException("Overloaded constructors are not supported");
 
             StartNode(typeDeclaration);
             WriteIdentifier(typeDeclaration.Annotation<TypeReference>());

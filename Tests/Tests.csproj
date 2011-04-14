@@ -46,6 +46,7 @@
   <ItemGroup>
     <Compile Include="ComparisonTests.cs" />
     <None Include="FailingTestCases\MemberRefParameters.cs" />
+    <None Include="FailingTestCases\OverloadedConstructors.cs" />
     <Compile Include="FailingTests.cs" />
     <Compile Include="MetadataTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
