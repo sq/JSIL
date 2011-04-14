@@ -45,8 +45,33 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ComparisonTests.cs" />
+    <None Include="FailingTestCases\MemberRefParameters.cs" />
+    <Compile Include="FailingTests.cs" />
     <Compile Include="MetadataTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <None Include="TestCases\BinaryTrees.cs" />
+    <None Include="TestCases\FannkuchRedux.cs" />
+    <None Include="TestCases\Goto.cs" />
+    <None Include="TestCases\HelloWorld.cs" />
+    <None Include="TestCases\NBody.cs" />
+    <None Include="TestCases\Switch.cs" />
+    <None Include="SpecialTestCases\Eval.cs" />
+    <None Include="SpecialTestCases\IgnoreField.cs" />
+    <None Include="SpecialTestCases\IgnoreMethod.cs" />
+    <None Include="SpecialTestCases\IgnoreProperty.cs" />
+    <None Include="SpecialTestCases\IgnoreType.cs" />
+    <None Include="SpecialTestCases\ReplaceMethod.cs" />
+    <None Include="SimpleTestCases\AutoProperties.cs" />
+    <None Include="SimpleTestCases\Constructors.cs" />
+    <None Include="SimpleTestCases\CustomProperties.cs" />
+    <None Include="SimpleTestCases\DynamicBinaryOperators.cs" />
+    <None Include="SimpleTestCases\DynamicConversion.cs" />
+    <None Include="SimpleTestCases\DynamicMethods.cs" />
+    <None Include="SimpleTestCases\DynamicPropertyGet.cs" />
+    <None Include="SimpleTestCases\DynamicPropertyGetAndCall.cs" />
+    <None Include="SimpleTestCases\DynamicPropertySet.cs" />
+    <None Include="SimpleTestCases\Fields.cs" />
+    <None Include="SimpleTestCases\RefParameters.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

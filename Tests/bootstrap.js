@@ -44,6 +44,9 @@ System.Int32.Parse = function (text) {
 };
 
 JSIL = {}
+JSIL.Ref = function (value) {
+    this.value = value;
+}
 JSIL.Array = {}
 JSIL.Array.New = function (type, size) {
     return new Array(size);

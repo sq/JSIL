@@ -43,8 +43,9 @@ namespace JSIL {
 				new IntroduceUsingDeclarations(context),
                 new DynamicCallSites(context),
                 new ReplacementFinder(context),
+                new ParameterModifierTransformer(context),
                 new JumpTargeter(context),
-                new GotoConverter(context)
+                new GotoConverter(context),
             };
 
             var decompiler = new AstBuilder(context);

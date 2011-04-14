@@ -308,6 +308,20 @@ namespace JSIL.Internal {
             return EndNode(typeOfExpression);
         }
 
+        public override object VisitIdentifierExpression (IdentifierExpression identifierExpression, object data) {
+            StartNode(identifierExpression);
+            var mi = identifierExpression as ModifiedIdentifierExpression;
+
+            if (mi != null) {
+                WriteIdentifier(mi.Identifier);
+                WriteToken(".", null);
+                WriteIdentifier("value");
+            } else
+                WriteIdentifier(identifierExpression.Identifier);
+
+            return EndNode(identifierExpression);
+        }
+
         public override object VisitMemberReferenceExpression (MemberReferenceExpression memberReferenceExpression, object data) {
             StartNode(memberReferenceExpression);
             memberReferenceExpression.Target.AcceptVisitor(this, data);
@@ -316,14 +330,25 @@ namespace JSIL.Internal {
             return EndNode(memberReferenceExpression);
         }
 
+        public override object VisitDirectionExpression (DirectionExpression directionExpression, object data) {
+            StartNode(directionExpression);
+
+            directionExpression.Expression.AcceptVisitor(this, data);
+
+            return EndNode(directionExpression);
+        }
+
         public override object VisitParameterDeclaration (ParameterDeclaration parameterDeclaration, object data) {
             StartNode(parameterDeclaration);
             switch (parameterDeclaration.ParameterModifier) {
-                case ParameterModifier.Out:
                 case ParameterModifier.Ref:
+                break;
+                case ParameterModifier.Out:
                 case ParameterModifier.Params:
                 case ParameterModifier.This:
-                    throw new NotImplementedException("Parameter modifiers not supported");
+                    throw new NotImplementedException(
+                        "Parameter modifier not supported: " + parameterDeclaration.ParameterModifier.ToString()
+                    );
                 break;
             }
 
@@ -331,10 +356,9 @@ namespace JSIL.Internal {
                 WriteIdentifier(parameterDeclaration.Name);
 
             if (!parameterDeclaration.DefaultExpression.IsNull) {
-                Space();
-                WriteToken("=", ParameterDeclaration.Roles.Assign);
-                Space();
-                parameterDeclaration.DefaultExpression.AcceptVisitor(this, data);
+                throw new NotImplementedException(
+                    "Default argument values not supported"
+                );
             }
 
             return EndNode(parameterDeclaration);
@@ -354,6 +378,8 @@ namespace JSIL.Internal {
                 }
             }
 
+            var mvi = variableInitializer as ModifiedVariableInitializer;
+
             if (!isNull) {
                 if (isField) {
                     var fieldRef = variableInitializer.Parent.Annotation<FieldReference>();
@@ -365,6 +391,14 @@ namespace JSIL.Internal {
                 Space();
                 WriteToken("=", VariableInitializer.Roles.Assign);
                 Space();
+
+                if (mvi != null) {
+                    WriteKeyword("new");
+                    Space();
+                    WriteIdentifier("JSIL.Ref");
+                    LPar();
+                }
+
                 if (fakeInitializer != null) {
                     if (fakeInitializer is NullReferenceExpression)
                         WriteKeyword("null");
@@ -375,6 +409,10 @@ namespace JSIL.Internal {
                 } else {
                     variableInitializer.Initializer.AcceptVisitor(this, null);
                 }
+
+                if (mvi != null)
+                    RPar();
+                
                 result = true;
             } else if (!isField) {
                 WriteIdentifier(variableInitializer.Name);
