@@ -1,4 +1,12 @@
 ﻿System = {};
+
+System.Object = function () {
+};
+System.Object.prototype.__TypeName__ = "System.Object";
+System.Object.prototype.toString = function () {
+    return this.__TypeName__;
+}
+
 System.Console = {};
 System.Console.WriteLine = function () {
     print(System.String.Format.apply(null, arguments));
@@ -44,9 +52,17 @@ System.Int32.Parse = function (text) {
 };
 
 JSIL = {}
+
 JSIL.Variable = function (value) {
     this.value = value;
 }
+
+JSIL.CloneObject = function (obj) {
+    function ClonedObject () { }
+    ClonedObject.prototype = obj;
+    return new ClonedObject();
+}
+
 JSIL.Array = {}
 JSIL.Array.New = function (type, size) {
     return new Array(size);

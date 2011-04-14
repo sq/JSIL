@@ -192,10 +192,10 @@ namespace JSIL.Internal {
             foreach (var member in typeDeclaration.Members) {
                 if (member is ConstructorDeclaration)
                     continue;
-                else if (IsStatic(member)) {
-                    numStaticMembers += 1;
+                else if (member is MethodDeclaration)
                     continue;
-                }
+                else if (IsStatic(member))
+                    continue;
 
                 member.AcceptVisitor(this, data);
             }
@@ -210,7 +210,7 @@ namespace JSIL.Internal {
             Semicolon();
             NewLine();
 
-            if ((staticConstructor != null) || (numStaticMembers > 0)) {
+            if (true) {
                 LPar();
 
                 Space();
@@ -224,8 +224,45 @@ namespace JSIL.Internal {
 
                 OpenBrace(BraceStyle.EndOfLine);
 
+                if (typeDeclaration.BaseTypes.Count > 1) {
+                    throw new NotImplementedException("Inheritance from multiple bases not implemented");
+                } else {
+                    string baseClass = "System.Object";
+                    if (typeDeclaration.BaseTypes.Count == 1)
+                        baseClass = typeDeclaration.BaseTypes.FirstOrDefault().ToString();
+
+                    WriteIdentifier(typeDeclaration.Annotation<TypeReference>());
+                    WriteToken(".", null);
+                    WriteKeyword("prototype");
+                    Space();
+                    WriteToken("=", null);
+                    Space();
+                    WriteIdentifier("JSIL.CloneObject");
+                    LPar();
+                    WriteIdentifier(baseClass);
+                    WriteToken(".", null);
+                    WriteKeyword("prototype");
+                    RPar();
+                    Semicolon();
+                }
+
+                {
+                    WriteIdentifier(typeDeclaration.Annotation<TypeReference>());
+                    WriteToken(".", null);
+                    WriteIdentifier("prototype");
+                    WriteToken(".", null);
+                    WriteIdentifier("__TypeName__");
+                    Space();
+                    WriteToken("=", null);
+                    Space();
+                    WritePrimitiveValue(typeDeclaration.Annotation<TypeReference>().ToString());
+                    Semicolon();
+                }
+
                 foreach (var member in typeDeclaration.Members) {
-                    if (member is ConstructorDeclaration)
+                    if (member is MethodDeclaration)
+                        ;
+                    else if (member is ConstructorDeclaration)
                         continue;
                     else if (!IsStatic(member))
                         continue;
@@ -697,11 +734,18 @@ namespace JSIL.Internal {
                 return null;
 
             StartNode(methodDeclaration);
-    
-            WriteThisReference(
-                methodDeclaration.Annotation<MethodDefinition>().DeclaringType, 
-                methodDeclaration
-            );
+
+            var declaringType = methodDeclaration.Annotation<MethodDefinition>().DeclaringType;
+
+            if (!IsStatic(methodDeclaration)) {
+                WriteIdentifier(declaringType);
+                WriteToken(".", null);
+                WriteIdentifier("prototype");
+            } else {
+                WriteThisReference(
+                    declaringType, methodDeclaration
+                );
+            }
 
             WriteToken(".", null);
             WriteIdentifier(methodDeclaration);
@@ -713,7 +757,12 @@ namespace JSIL.Internal {
 
             WriteCommaSeparatedListInParenthesis(methodDeclaration.Parameters, true);
 
-            VisitBlockStatement(methodDeclaration.Body, "method");
+            if (!methodDeclaration.Body.IsNull) {
+                VisitBlockStatement(methodDeclaration.Body, "method");
+            } else {
+                OpenBrace(BraceStyle.EndOfLine);
+                CloseBrace(BraceStyle.NextLine);
+            }
 
             Semicolon();
 

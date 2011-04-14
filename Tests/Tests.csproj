@@ -74,6 +74,9 @@
     <None Include="SimpleTestCases\Fields.cs" />
     <None Include="SimpleTestCases\RefParameters.cs" />
     <None Include="SimpleTestCases\OutParameters.cs" />
+    <None Include="SimpleTestCases\AbstractMethods.cs" />
+    <None Include="SimpleTestCases\InheritedMethods.cs" />
+    <None Include="SimpleTestCases\DefaultToString.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
