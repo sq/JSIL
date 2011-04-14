@@ -224,7 +224,8 @@ namespace JSIL.Internal {
 
                 OpenBrace(BraceStyle.EndOfLine);
 
-                if (typeDeclaration.BaseTypes.Count > 1) {
+                if (isStatic) {
+                } else if (typeDeclaration.BaseTypes.Count > 1) {
                     throw new NotImplementedException("Inheritance from multiple bases not implemented");
                 } else {
                     string baseClass = "System.Object";
@@ -246,7 +247,7 @@ namespace JSIL.Internal {
                     Semicolon();
                 }
 
-                {
+                if (!isStatic) {
                     WriteIdentifier(typeDeclaration.Annotation<TypeReference>());
                     WriteToken(".", null);
                     WriteIdentifier("prototype");
@@ -839,6 +840,20 @@ namespace JSIL.Internal {
             }
 
             throw new NotImplementedException("Operator " + name + " not implemented.");
+        }
+
+        public override object VisitCastExpression (CastExpression castExpression, object data) {
+            StartNode(castExpression);
+
+            WriteIdentifier("JSIL.Cast");
+            LPar();
+            castExpression.Expression.AcceptVisitor(this, null);
+            WriteToken(",", null);
+            Space();
+            castExpression.Type.AcceptVisitor(this, null);
+            RPar();
+
+            return EndNode(castExpression);
         }
 
         public object VisitDynamicExpression (DynamicExpression dynamicExpression, object data) {
