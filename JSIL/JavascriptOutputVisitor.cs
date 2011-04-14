@@ -391,6 +391,14 @@ namespace JSIL.Internal {
                     throw new NotImplementedException(
                         "Parameter modifier not supported: " + parameterDeclaration.ParameterModifier.ToString()
                     );
+                case ParameterModifier.None:
+                    break;
+                default:
+                    WriteToken("/* ", null);
+                    WriteIdentifier(parameterDeclaration.ParameterModifier.ToString());
+                    WriteToken(" */", null);
+                    Space();
+                    break;
             }
 
             if (!string.IsNullOrEmpty(parameterDeclaration.Name))
