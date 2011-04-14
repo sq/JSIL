@@ -79,6 +79,7 @@
     <None Include="SimpleTestCases\DefaultToString.cs" />
     <None Include="SimpleTestCases\TypeCasts.cs" />
     <None Include="SimpleTestCases\TryCatch.cs" />
+    <None Include="SimpleTestCases\CustomExceptions.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

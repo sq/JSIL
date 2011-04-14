@@ -144,6 +144,12 @@ namespace JSIL.Internal {
             return base.VisitInvocationExpression(invocationExpression, data);
         }
 
+        protected IEnumerable<ConstructorDeclaration> GetConstructors (TypeDeclaration typeDeclaration) {
+            return (from member in typeDeclaration.Members
+                    where member is ConstructorDeclaration
+                    select (ConstructorDeclaration)member);
+        }
+
         public override object VisitTypeDeclaration (TypeDeclaration typeDeclaration, object data) {
             if (IsIgnored(typeDeclaration.Attributes))
                 return null;
@@ -151,9 +157,7 @@ namespace JSIL.Internal {
             int numStaticMembers = 0;
             bool isStatic = typeDeclaration.Modifiers.HasFlag(Modifiers.Static);
 
-            var constructors = (from member in typeDeclaration.Members
-                                where member is ConstructorDeclaration
-                                select (ConstructorDeclaration)member).ToArray();
+            var constructors = GetConstructors(typeDeclaration).ToArray();
 
             var instanceConstructors = (from constructor in constructors
                                        where !constructor.Modifiers.HasFlag(Modifiers.Static)
@@ -229,8 +233,10 @@ namespace JSIL.Internal {
                     throw new NotImplementedException("Inheritance from multiple bases not implemented");
                 } else {
                     string baseClass = "System.Object";
-                    if (typeDeclaration.BaseTypes.Count == 1)
-                        baseClass = typeDeclaration.BaseTypes.FirstOrDefault().ToString();
+                    if (typeDeclaration.BaseTypes.Count == 1) {
+                        var baseReference = typeDeclaration.BaseTypes.FirstOrDefault().Annotation<TypeReference>();
+                        baseClass = baseReference.FullName;
+                    }
 
                     WriteIdentifier(typeDeclaration.Annotation<TypeReference>());
                     WriteToken(".", null);

@@ -34,7 +34,10 @@ System.Object.prototype.toString = function () {
 };
 
 System.Exception = function (message) {
-    this.Message = message;
+    if (typeof(message) == "undefined")
+        this.Message = System.String.Format.apply("Exception of type '{0}' was thrown.", this.__TypeName__);
+    else
+        this.Message = message;
 };
 System.Exception.prototype = JSIL.CloneObject(Error.prototype);
 System.Exception.prototype.__TypeName__ = "System.Exception";
