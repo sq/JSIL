@@ -28,6 +28,7 @@ namespace JSIL.Tests {
                     test.Run();
                     passCount += 1;
                 } catch (Exception ex) {
+                    Console.WriteLine("{0}: {1}", ex.GetType().Name, ex.Message);
                 }
             }
 

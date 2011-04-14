@@ -78,7 +78,7 @@ namespace JSIL {
         }
 
         public override object VisitIdentifierExpression (IdentifierExpression identifierExpression, object data) {
-            var id = identifierExpression.ToString();
+            var id = identifierExpression.Identifier;
 
             ParameterModifier modifier;
             if (Modifiers.Peek().TryGetValue(id, out modifier)) {
@@ -100,7 +100,11 @@ namespace JSIL {
         }
 
         public override object VisitDirectionExpression (DirectionExpression directionExpression, object data) {
-            var id = directionExpression.Expression.ToString();
+            var idE = directionExpression.Expression as IdentifierExpression;
+            if ((idE == null) && (directionExpression.FieldDirection != FieldDirection.None))
+                throw new NotImplementedException("Members of object instances cannot be passed as ref or out");
+
+            var id = idE.Identifier;
 
             switch (directionExpression.FieldDirection) {
                 case FieldDirection.Out:

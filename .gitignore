@@ -2,6 +2,7 @@
 *.user
 *.suo
 _ReSharper.*
+*.ReSharper
 Compiler/obj
 JSIL/obj
 JSIL/bin
@@ -9,8 +10,8 @@ Meta/obj
 Meta/bin
 Tests/obj
 Tests/bin
+Examples/simpleray
 Examples/bin
-Examples/HelloWorld/obj
 /bin
 UpgradeLog.XML
 _UpgradeReport_Files

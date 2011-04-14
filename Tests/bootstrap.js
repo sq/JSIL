@@ -44,7 +44,7 @@ System.Int32.Parse = function (text) {
 };
 
 JSIL = {}
-JSIL.Ref = function (value) {
+JSIL.Variable = function (value) {
     this.value = value;
 }
 JSIL.Array = {}

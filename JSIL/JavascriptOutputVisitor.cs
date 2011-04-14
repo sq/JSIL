@@ -341,15 +341,11 @@ namespace JSIL.Internal {
         public override object VisitParameterDeclaration (ParameterDeclaration parameterDeclaration, object data) {
             StartNode(parameterDeclaration);
             switch (parameterDeclaration.ParameterModifier) {
-                case ParameterModifier.Ref:
-                break;
-                case ParameterModifier.Out:
                 case ParameterModifier.Params:
                 case ParameterModifier.This:
                     throw new NotImplementedException(
                         "Parameter modifier not supported: " + parameterDeclaration.ParameterModifier.ToString()
                     );
-                break;
             }
 
             if (!string.IsNullOrEmpty(parameterDeclaration.Name))
@@ -395,7 +391,7 @@ namespace JSIL.Internal {
                 if (mvi != null) {
                     WriteKeyword("new");
                     Space();
-                    WriteIdentifier("JSIL.Ref");
+                    WriteIdentifier("JSIL.Variable");
                     LPar();
                 }
 

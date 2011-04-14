@@ -72,6 +72,7 @@
     <None Include="SimpleTestCases\DynamicPropertySet.cs" />
     <None Include="SimpleTestCases\Fields.cs" />
     <None Include="SimpleTestCases\RefParameters.cs" />
+    <None Include="SimpleTestCases\OutParameters.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
