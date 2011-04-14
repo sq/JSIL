@@ -922,5 +922,19 @@ namespace JSIL.Internal {
             Semicolon();
             return EndNode(targetedContinueStatement);
         }
+
+        public override object VisitCatchClause (CatchClause catchClause, object data) {
+            StartNode(catchClause);
+            Space();
+            WriteKeyword("catch");
+            Space();
+            LPar();
+            if (!string.IsNullOrEmpty(catchClause.VariableName)) {
+                WriteIdentifier(catchClause.VariableName);
+            }
+            RPar();
+            catchClause.Body.AcceptVisitor(this, data);
+            return EndNode(catchClause);
+        }
     }
 }

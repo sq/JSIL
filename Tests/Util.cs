@@ -172,9 +172,9 @@ namespace JSIL.Tests {
             string generatedJs = null;
             long elapsedCs, elapsedJs;
 
-            var csOutput = RunCSharp(args, out elapsedCs).Replace(Environment.NewLine, "\n");
+            var csOutput = RunCSharp(args, out elapsedCs).Replace("\r", "");
             try {
-                var jsOutput = RunJavascript(args, out generatedJs, out elapsedJs).Replace(Environment.NewLine, "\n");
+                var jsOutput = RunJavascript(args, out generatedJs, out elapsedJs).Replace("\r", "");
 
                 try {
                     Assert.AreEqual(csOutput, jsOutput);

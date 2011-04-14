@@ -1,16 +1,58 @@
 ﻿System = {};
 
+JSIL = {};
+
+JSIL.Variable = function (value) {
+    this.value = value;
+};
+
+JSIL.CloneObject = function (obj) {
+    function ClonedObject() { }
+    ClonedObject.prototype = obj;
+    return new ClonedObject();
+};
+
+JSIL.Array = {};
+JSIL.Array.New = function (type, size) {
+    return new Array(size);
+};
+
+JSIL.Cast = function (value, expectedType) {
+    return value;
+};
+
+JSIL.Dynamic = {};
+JSIL.Dynamic.Cast = function (value, expectedType) {
+    return value;
+};
+
 System.Object = function () {
 };
 System.Object.prototype.__TypeName__ = "System.Object";
 System.Object.prototype.toString = function () {
     return this.__TypeName__;
-}
+};
+
+System.Exception = function (message) {
+    this.Message = message;
+};
+System.Exception.prototype = JSIL.CloneObject(Error.prototype);
+System.Exception.prototype.__TypeName__ = "System.Exception";
+System.Exception.prototype.toString = function () {
+    return System.String.Format("{0}: {1}", this.__TypeName__, this.Message);
+};
 
 System.Console = {};
 System.Console.WriteLine = function () {
     print(System.String.Format.apply(null, arguments));
-}
+};
+
+String.prototype.Split = function (separators) {
+    if (separators.length != 1)
+        throw new Error("Split cannot handle more than one separator");
+
+    return this.split(separators[0]);
+};
 
 System.String = {};
 System.String.Format = function (format) {
@@ -49,30 +91,4 @@ System.Math.Sqrt = Math.sqrt;
 System.Int32 = {};
 System.Int32.Parse = function (text) {
     return parseInt(text);
-};
-
-JSIL = {}
-
-JSIL.Variable = function (value) {
-    this.value = value;
-}
-
-JSIL.CloneObject = function (obj) {
-    function ClonedObject () { }
-    ClonedObject.prototype = obj;
-    return new ClonedObject();
-}
-
-JSIL.Array = {}
-JSIL.Array.New = function (type, size) {
-    return new Array(size);
-}
-
-JSIL.Cast = function (value, expectedType) {
-    return value;
-}
-
-JSIL.Dynamic = {};
-JSIL.Dynamic.Cast = function (value, expectedType) {
-    return value;
 };
