@@ -3,7 +3,7 @@ using JSIL;
 
 public static class Program {
     public static int Foo () {
-      Verbatim.Eval(@"return 2");
+      Verbatim.Eval("return 2");
       
       return 1;
     }

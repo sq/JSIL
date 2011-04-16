@@ -21,6 +21,8 @@ namespace JSIL.Internal {
           IDynamicExpressionVisitor<object, object>,
           ITargetedControlFlowVisitor<object, object>
     {
+        public readonly Stack<string> BaseTypeStack = new Stack<string>();
+
         public JavascriptOutputVisitor (IOutputFormatter formatter)
             : base (formatter, new CSharpFormattingPolicy {
                 ConstructorBraceStyle = BraceStyle.EndOfLine,
@@ -115,29 +117,46 @@ namespace JSIL.Internal {
         public override object VisitInvocationExpression (InvocationExpression invocationExpression, object data) {
             var mre = invocationExpression.Target as MemberReferenceExpression;
             TypeReferenceExpression tre;
-            if ((mre != null) && (tre = mre.Target as TypeReferenceExpression) != null) {
-                var type = tre.Type.Annotation<TypeReference>();
 
-                if ((type != null) && (type.FullName == "JSIL.Verbatim")) {
-                    switch (mre.MemberName) {
-                        case "Eval": {
-                            StartNode(invocationExpression);
+            if (mre != null) {
+                if ((tre = mre.Target as TypeReferenceExpression) != null) {
+                    var type = tre.Type.Annotation<TypeReference>();
 
-                            var firstArgument = invocationExpression.Arguments.FirstOrDefault() as PrimitiveExpression;
-                            if (firstArgument == null)
-                                throw new InvalidOperationException("Verbatim.Eval's only argument must be a string");
+                    if ((type != null) && (type.FullName == "JSIL.Verbatim")) {
+                        switch (mre.MemberName) {
+                            case "Eval": {
+                                StartNode(invocationExpression);
 
-                            var rawText = firstArgument.Value as string;
-                            if (rawText == null)
-                                throw new InvalidOperationException("Verbatim.Eval's only argument must be a string");
+                                var firstArgument = invocationExpression.Arguments.FirstOrDefault() as PrimitiveExpression;
+                                if (firstArgument == null)
+                                    throw new InvalidOperationException("Verbatim.Eval's only argument must be a string");
 
-                            WriteToken(rawText.Trim(), null);
+                                var rawText = firstArgument.Value as string;
+                                if (rawText == null)
+                                    throw new InvalidOperationException("Verbatim.Eval's only argument must be a string");
 
-                            return EndNode(invocationExpression);
-                        }
-                        default:
+                                WriteToken(rawText.Trim(), null);
+
+                                return EndNode(invocationExpression);
+                            }
+                            default:
                             throw new NotImplementedException();
+                        }
                     }
+                } else if (mre.Target is BaseReferenceExpression) {
+                    StartNode(invocationExpression);
+                    invocationExpression.Target.AcceptVisitor(this, data);
+                    WriteToken(".", null);
+                    WriteIdentifier("call");
+                    LPar();
+                    WriteKeyword("this");
+                    if (invocationExpression.Arguments.Count > 0) {
+                        WriteToken(",", null);
+                        Space();
+                        WriteCommaSeparatedList(invocationExpression.Arguments);
+                    }
+                    RPar();
+                    return EndNode(invocationExpression);
                 }
             }
 
@@ -235,6 +254,7 @@ namespace JSIL.Internal {
                     if (typeDeclaration.BaseTypes.Count == 1) {
                         var baseReference = typeDeclaration.BaseTypes.FirstOrDefault().Annotation<TypeReference>();
                         baseClass = baseReference.FullName;
+                        BaseTypeStack.Push(baseClass);
                     }
 
                     WriteIdentifier(typeDeclaration.Annotation<TypeReference>());
@@ -350,6 +370,9 @@ namespace JSIL.Internal {
                 Semicolon();
                 NewLine();
             }
+
+            if (typeDeclaration.BaseTypes.Count == 1)
+                BaseTypeStack.Pop();
 
             return EndNode(typeDeclaration);
         }
@@ -540,23 +563,14 @@ namespace JSIL.Internal {
             return EndNode(variableInitializer);
         }
 
-        /*
-        public override object VisitLabelStatement (LabelStatement labelStatement, object data) {
-            throw new NotImplementedException("Goto and labels are not implemented");
+        public override object VisitBaseReferenceExpression (BaseReferenceExpression baseReferenceExpression, object data) {
+            StartNode(baseReferenceExpression);
+            var baseTypeName = BaseTypeStack.Peek();
+            WriteIdentifier(Util.EscapeIdentifier(baseTypeName, false));
+            WriteToken(".", null);
+            WriteIdentifier("prototype");
+            return EndNode(baseReferenceExpression);
         }
-
-        public override object VisitGotoStatement (GotoStatement gotoStatement, object data) {
-            throw new NotImplementedException("Goto and labels are not implemented");
-        }
-
-        public override object VisitGotoCaseStatement (GotoCaseStatement gotoCaseStatement, object data) {
-            throw new NotImplementedException("Goto and labels are not implemented");
-        }
-
-        public override object VisitGotoDefaultStatement (GotoDefaultStatement gotoDefaultStatement, object data) {
-            throw new NotImplementedException("Goto and labels are not implemented");
-        }
-         */
 
         public override object VisitBlockStatement (BlockStatement blockStatement, object data) {
             StartNode(blockStatement);
