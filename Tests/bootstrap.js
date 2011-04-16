@@ -34,15 +34,18 @@ System.Object.prototype.toString = function () {
 };
 
 System.Exception = function (message) {
-    if (typeof(message) == "undefined")
-        this.Message = System.String.Format.apply("Exception of type '{0}' was thrown.", this.__TypeName__);
-    else
-        this.Message = message;
+    this.__ctor(message);
 };
 System.Exception.prototype = JSIL.CloneObject(Error.prototype);
 System.Exception.prototype.__TypeName__ = "System.Exception";
+System.Exception.prototype.__ctor = function (message) {
+    this.Message = message;
+}
 System.Exception.prototype.toString = function () {
-    return System.String.Format("{0}: {1}", this.__TypeName__, this.Message);
+    if (typeof (this.Message) == "undefined")
+        return System.String.Format("{0}: Exception of type '{0}' was thrown.", this.__TypeName__);
+    else
+        return System.String.Format("{0}: {1}", this.__TypeName__, this.Message);
 };
 
 System.Console = {};

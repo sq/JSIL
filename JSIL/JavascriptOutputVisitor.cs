@@ -193,21 +193,20 @@ namespace JSIL.Internal {
 
             OpenBrace(BraceStyle.EndOfLine);
 
-            foreach (var member in typeDeclaration.Members) {
-                if (member is ConstructorDeclaration)
-                    continue;
-                else if (member is MethodDeclaration)
-                    continue;
-                else if (IsStatic(member))
-                    continue;
+            if (!isStatic) {
+                WriteKeyword("this");
+                WriteToken(".", null);
+                WriteKeyword("__ctor");
+                LPar();
 
-                member.AcceptVisitor(this, data);
-            }
+                if (instanceConstructor != null) {
+                    StartNode(instanceConstructor);
+                    WriteCommaSeparatedList(instanceConstructor.Parameters);
+                    EndNode(instanceConstructor);
+                }
 
-            if (instanceConstructor != null) {
-                StartNode(instanceConstructor);
-                instanceConstructor.Body.AcceptVisitor(this, "nobraces");
-                EndNode(instanceConstructor);
+                RPar();
+                Semicolon();
             }
 
             CloseBrace(BraceStyle.NextLine);
@@ -263,6 +262,63 @@ namespace JSIL.Internal {
                     WriteToken("=", null);
                     Space();
                     WritePrimitiveValue(typeDeclaration.Annotation<TypeReference>().ToString());
+                    Semicolon();
+                }
+
+                if (!isStatic) {
+                    WriteIdentifier(typeDeclaration.Annotation<TypeReference>());
+                    WriteToken(".", null);
+                    WriteIdentifier("prototype");
+                    WriteToken(".", null);
+                    WriteIdentifier("__ctor");
+                    Space();
+                    WriteToken("=", null);
+                    Space();
+                    WriteKeyword("function", null);
+                    LPar();
+
+                    if (instanceConstructor != null) {
+                        StartNode(instanceConstructor);
+                        WriteCommaSeparatedList(instanceConstructor.Parameters);
+                        EndNode(instanceConstructor);
+                    }
+
+                    RPar();
+                    OpenBrace(BraceStyle.EndOfLine);
+
+                    if (typeDeclaration.BaseTypes.Count == 1) {
+                        var baseReference = typeDeclaration.BaseTypes.FirstOrDefault().Annotation<TypeReference>();
+                        WriteIdentifier(baseReference);
+                        WriteToken(".", null);
+                        WriteIdentifier("prototype");
+                        WriteToken(".", null);
+                        WriteIdentifier("__ctor");
+                        WriteToken(".", null);
+                        WriteIdentifier("call");
+                        LPar();
+                        WriteKeyword("this");
+                        RPar();
+                        Semicolon();
+                    }
+
+                    foreach (var member in typeDeclaration.Members) {
+                        if (member is ConstructorDeclaration)
+                            continue;
+                        else if (member is MethodDeclaration)
+                            continue;
+                        else if (IsStatic(member))
+                            continue;
+
+                        member.AcceptVisitor(this, data);
+                    }
+
+                    if (instanceConstructor != null) {
+                        StartNode(instanceConstructor);
+                        instanceConstructor.Body.AcceptVisitor(this, "nobraces");
+                        EndNode(instanceConstructor);
+                    }
+
+                    CloseBrace(BraceStyle.NextLine);
                     Semicolon();
                 }
 
