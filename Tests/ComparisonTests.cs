@@ -25,7 +25,7 @@ namespace JSIL.Tests {
             var test = new ComparisonTest(@"TestCases\BinaryTrees.cs");
 
             test.Run();
-            test.Run("6");
+            test.Run("8");
         }
 
         [Test]
@@ -33,6 +33,7 @@ namespace JSIL.Tests {
             var test = new ComparisonTest(@"TestCases\NBody.cs");
 
             test.Run();
+            test.Run("50000");
         }
 
         // Fails because we emit a goto.
@@ -41,6 +42,7 @@ namespace JSIL.Tests {
             var test = new ComparisonTest(@"TestCases\FannkuchRedux.cs");
 
             test.Run();
+            test.Run("11");
         }
 
         [Test]

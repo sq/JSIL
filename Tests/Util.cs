@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.CSharp;
 using System.CodeDom.Compiler;
 using System.IO;
@@ -50,6 +51,12 @@ namespace JSIL.Tests {
     }
 
     public class ComparisonTest {
+        public const float JavascriptExecutionTimeout = 30.0f;
+
+        public static readonly Regex ElapsedRegex = new Regex(
+            @"// Elapsed time: (?'elapsed'[0-9]*(\.[0-9]*)?) ms", RegexOptions.Compiled | RegexOptions.ExplicitCapture
+        );
+
         public static readonly string TestSourceFolder;
         public static readonly string JSShellPath;
         public static readonly string BootstrapJS;
@@ -111,7 +118,18 @@ namespace JSIL.Tests {
                 argsJson = Encoding.UTF8.GetString(ms.GetBuffer(), 0, (int)ms.Length);
             }
 
-            var invocationJs = String.Format("{0}.Main({1});", declaringType, argsJson);
+            var invocationJs = String.Format(
+                @"
+timeout({0});
+var startedAt = dateNow();
+
+{1}.Main({2});
+
+var endedAt = dateNow();
+System.Console.WriteLine('// Elapsed time: {0} ms', endedAt - startedAt);
+                ", 
+                JavascriptExecutionTimeout, declaringType, argsJson
+            );
 
             generatedJavascript = translatedJs;
             translatedJs = BootstrapJS + Environment.NewLine + translatedJs + Environment.NewLine + invocationJs;
@@ -121,7 +139,7 @@ namespace JSIL.Tests {
             try {
                 // throw new Exception();
 
-                var psi = new ProcessStartInfo(JSShellPath, String.Format("-f {0}", tempFilename)) {
+                var psi = new ProcessStartInfo(JSShellPath, String.Format("-j -m -f {0}", tempFilename)) {
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,
@@ -156,6 +174,16 @@ namespace JSIL.Tests {
                 long endedJs = DateTime.UtcNow.Ticks;
                 elapsed = endedJs - startedJs;
 
+                if (output[0] != null) {
+                    var m = ElapsedRegex.Match(output[0]);
+                    if (m.Success) {
+                        elapsed = TimeSpan.FromMilliseconds(
+                            double.Parse(m.Groups["elapsed"].Value)
+                        ).Ticks;
+                        output[0] = output[0].Replace(m.Value, "");
+                    }
+                }
+
                 return output[0] ?? "";
             } finally {
                 var jsFile = Filename.Replace(".cs", ".js");
@@ -169,41 +197,67 @@ namespace JSIL.Tests {
 
         public void Run (params string[] args) {
             bool failedInner = false;
-            string generatedJs = null;
-            long elapsedCs, elapsedJs;
 
-            var csOutput = RunCSharp(args, out elapsedCs).Replace("\r", "");
-            try {
-                var jsOutput = RunJavascript(args, out generatedJs, out elapsedJs).Replace("\r", "");
+            var signals = new[] {
+                new ManualResetEventSlim(false), new ManualResetEventSlim(false)
+            };
+            var generatedJs = new string[1];
+            var errors = new Exception[2];
+            var outputs = new string[2];
+            var elapsed = new long[2];
 
+            ThreadPool.QueueUserWorkItem((_) => {
                 try {
-                    Assert.AreEqual(csOutput, jsOutput);
-                } catch {
-                    failedInner = true;
-                    Console.WriteLine("failed");
-                    Console.WriteLine("// C# output begins //");
-                    Console.WriteLine(csOutput);
-                    Console.WriteLine("// JavaScript output begins //");
-                    Console.WriteLine(jsOutput);
-                    throw;
+                    outputs[0] = RunCSharp(args, out elapsed[0]).Replace("\r", "").Trim();
+                } catch (Exception ex) {
+                    errors[0] = ex;
                 }
-            } catch {
-                if (!failedInner)
-                    Console.WriteLine("failed");
+                signals[0].Set();
+            });
 
-                if (generatedJs != null) {
+            ThreadPool.QueueUserWorkItem((_) => {
+                try {
+                    outputs[1] = RunJavascript(args, out generatedJs[0], out elapsed[1]).Replace("\r", "").Trim();
+                } catch (Exception ex) {
+                    errors[1] = ex;
+                }
+                signals[1].Set();
+            });
+
+            signals[0].Wait();
+            signals[1].Wait();
+
+            try {
+                if (errors[0] != null)
+                    throw new Exception("C# test failed", errors[0]);
+                else if (errors[1] != null)
+                    throw new Exception("JS test failed", errors[1]);
+                else
+                    Assert.AreEqual(outputs[0], outputs[1]);
+
+                Console.WriteLine(
+                    "passed: C# in {0:00.0000}s, JS in {1:00.0000}s",
+                    TimeSpan.FromTicks(elapsed[0]).TotalSeconds,
+                    TimeSpan.FromTicks(elapsed[1]).TotalSeconds
+                );
+            } catch {
+                Console.WriteLine("failed");
+                if (outputs[0] != null) {
+                    Console.WriteLine("// C# output begins //");
+                    Console.WriteLine(outputs[0]);
+                }
+                if (outputs[1] != null) {
+                    Console.WriteLine("// JavaScript output begins //");
+                    Console.WriteLine(outputs[1]);
+                }
+                if (generatedJs[0] != null) {
                     Console.WriteLine("// Generated javascript begins here //");
-                    Console.WriteLine(generatedJs);
+                    Console.WriteLine(generatedJs[0]);
                     Console.WriteLine("// Generated javascript ends here //");
                 }
+
                 throw;
             }
-
-            Console.WriteLine(
-                "passed: C# in {0:00.0000}s, JS in {1:00.0000}s",
-                TimeSpan.FromTicks(elapsedCs).TotalSeconds,
-                TimeSpan.FromTicks(elapsedJs).TotalSeconds
-            );
         }
     }
 }
