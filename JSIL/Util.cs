@@ -57,6 +57,9 @@ namespace JSIL.Internal {
                         case '`':
                             sb.Append("$bt");
                         break;
+                        case '@':
+                            sb.Append("$at");
+                        break;
                         default:
                             if ((ch <= 32) || (ch >= 127))
                                 sb.AppendFormat("${0:x}", ch);

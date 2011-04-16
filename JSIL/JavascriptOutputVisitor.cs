@@ -30,23 +30,35 @@ namespace JSIL.Internal {
             }) {
         }
 
+        protected override void WriteIdentifier (string identifier, Role<Identifier> identifierRole = null) {
+            WriteSpecialsUpToRole(
+                identifierRole ?? AstNode.Roles.Identifier
+            );
+
+            if (lastWritten == LastWritten.KeywordOrIdentifier)
+                formatter.Space(); // this space is strictly required, so we directly call the formatter
+
+            formatter.WriteIdentifier(identifier);
+            lastWritten = LastWritten.KeywordOrIdentifier;
+        }
+
         protected void WriteIdentifier (TypeReference type) {
-            base.WriteIdentifier(Util.EscapeIdentifier(
+            WriteIdentifier(Util.EscapeIdentifier(
                 type.FullName,
                 escapePeriods: false
             ));
         }
 
         protected void WriteIdentifier (MethodDeclaration method) {
-            base.WriteIdentifier(Util.EscapeIdentifier(method.Name));
+            WriteIdentifier(Util.EscapeIdentifier(method.Name));
         }
 
         protected void WriteIdentifier (MemberReferenceExpression member) {
-            base.WriteIdentifier(Util.EscapeIdentifier(member.MemberName));
+            WriteIdentifier(Util.EscapeIdentifier(member.MemberName));
         }
 
         protected void WriteIdentifier (NamespaceDeclaration ns) {
-            base.WriteIdentifier(Util.EscapeIdentifier(
+            WriteIdentifier(Util.EscapeIdentifier(
                 ns.FullName,
                 escapePeriods: false
             ));
@@ -384,6 +396,62 @@ namespace JSIL.Internal {
                 BaseTypeStack.Pop();
 
             return EndNode(typeDeclaration);
+        }
+
+        protected bool TypeDerivesFrom (TypeReference haystack, string needleFullName) {
+            while (haystack != null) {
+                if (haystack.FullName == needleFullName)
+                    return true;
+
+                haystack = haystack.Resolve().BaseType;
+            }
+
+            return false;
+        }
+
+        public override object VisitObjectCreateExpression (ObjectCreateExpression objectCreateExpression, object data) {
+            StartNode(objectCreateExpression);
+
+            var objectType = objectCreateExpression.Type;
+            var typeReference = objectType.Annotation<TypeReference>();
+
+            if (TypeDerivesFrom(typeReference, "System.Delegate")) {
+                WriteIdentifier("JSIL.Delegate.New");
+                LPar();
+
+                var target = objectCreateExpression.Arguments
+                    .FirstOrDefault() as MemberReferenceExpression;
+                if (target == null)
+                    throw new NotImplementedException("This type of delegate construction is not implemented: " + objectCreateExpression.ToString());
+
+                WritePrimitiveValue(typeReference.FullName);
+                WriteToken(",", null);
+                Space();
+
+                StartNode(target);
+                target.Target.AcceptVisitor(this, data);
+                EndNode(target);
+
+                WriteToken(",", null);
+                Space();
+
+                target.AcceptVisitor(this, data);
+
+                RPar();
+                return EndNode(objectCreateExpression);
+            }
+
+            WriteKeyword("new");
+            objectCreateExpression.Type.AcceptVisitor(this, data);
+            LPar();
+
+            WriteCommaSeparatedList(objectCreateExpression.Arguments);
+
+            RPar();
+
+            objectCreateExpression.Initializer.AcceptVisitor(this, data);
+
+            return EndNode(objectCreateExpression);
         }
 
         public override object VisitArrayCreateExpression (ArrayCreateExpression arrayCreateExpression, object data) {
@@ -884,6 +952,22 @@ namespace JSIL.Internal {
                 WriteIdentifier(declaringType);
             else
                 WriteKeyword("this");
+        }
+
+        public override object VisitAnonymousMethodExpression (AnonymousMethodExpression anonymousMethodExpression, object data) {
+            StartNode(anonymousMethodExpression);
+            WriteKeyword("function");
+            Space();
+            LPar();
+
+            if (anonymousMethodExpression.HasParameterList)
+                WriteCommaSeparatedList(anonymousMethodExpression.Parameters);
+
+            RPar();
+
+            anonymousMethodExpression.Body.AcceptVisitor(this, data);
+
+            return EndNode(anonymousMethodExpression);
         }
 
         public override object VisitMethodDeclaration (MethodDeclaration methodDeclaration, object data) {

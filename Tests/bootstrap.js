@@ -26,6 +26,24 @@ JSIL.Dynamic.Cast = function (value, expectedType) {
     return value;
 };
 
+JSIL.Delegate = {};
+JSIL.Delegate.Prototype = JSIL.CloneObject(
+    (function () { }).prototype
+);
+JSIL.Delegate.Prototype.toString = function () {
+    return this.__TypeName__;
+}
+JSIL.Delegate.New = function (typeName, object, method) {
+    var result = function () {
+        method.apply(object, arguments);
+    };
+
+    result.prototype = JSIL.Delegate.Prototype;
+    result.__TypeName__ = typeName;
+
+    return result;
+}
+
 System.Object = function () {
 };
 System.Object.prototype.__TypeName__ = "System.Object";
