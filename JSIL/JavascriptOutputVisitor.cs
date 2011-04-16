@@ -57,6 +57,10 @@ namespace JSIL.Internal {
             WriteIdentifier(Util.EscapeIdentifier(member.MemberName));
         }
 
+        protected void WriteIdentifier (OperatorDeclaration op) {
+            WriteIdentifier(PickOperatorName(op));
+        }
+
         protected void WriteIdentifier (NamespaceDeclaration ns) {
             WriteIdentifier(Util.EscapeIdentifier(
                 ns.FullName,
@@ -89,6 +93,49 @@ namespace JSIL.Internal {
 
         public override object VisitAttribute (Attribute attribute, object data) {
             return null;
+        }
+
+        public override object VisitUnaryOperatorExpression (UnaryOperatorExpression unaryOperatorExpression, object data) {
+            var method = unaryOperatorExpression.Annotation<MethodDefinition>();
+
+            if (method != null) {
+                StartNode(unaryOperatorExpression);
+
+                WriteIdentifier(method.DeclaringType);
+                WriteToken(".", null);
+                WriteIdentifier(Util.EscapeIdentifier(method.Name));
+
+                LPar();
+                unaryOperatorExpression.Expression.AcceptVisitor(this, data);
+                RPar();
+
+                return EndNode(unaryOperatorExpression);
+            } else {
+                return base.VisitUnaryOperatorExpression(unaryOperatorExpression, data);
+            }
+        }
+
+        public override object VisitBinaryOperatorExpression (BinaryOperatorExpression binaryOperatorExpression, object data) {
+            var method = binaryOperatorExpression.Annotation<MethodDefinition>();
+
+            if (method != null) {
+                StartNode(binaryOperatorExpression);
+
+                WriteIdentifier(method.DeclaringType);
+                WriteToken(".", null);
+                WriteIdentifier(Util.EscapeIdentifier(method.Name));
+
+                LPar();
+                binaryOperatorExpression.Left.AcceptVisitor(this, data);
+                WriteToken(",", null);
+                Space();
+                binaryOperatorExpression.Right.AcceptVisitor(this, data);
+                RPar();
+
+                return EndNode(binaryOperatorExpression);
+            } else {
+                return base.VisitBinaryOperatorExpression(binaryOperatorExpression, data);
+            }
         }
 
         protected bool IsStatic (AttributedNode node) {
@@ -968,6 +1015,50 @@ namespace JSIL.Internal {
             anonymousMethodExpression.Body.AcceptVisitor(this, data);
 
             return EndNode(anonymousMethodExpression);
+        }
+
+        protected string PickOperatorName (OperatorDeclaration op) {
+            return String.Format("op$_{0}", op.OperatorType);
+        }
+
+        public override object VisitOperatorDeclaration (OperatorDeclaration operatorDeclaration, object data) {
+            if (IsIgnored(operatorDeclaration.Attributes))
+                return null;
+
+            StartNode(operatorDeclaration);
+
+            var declaringType = operatorDeclaration.Annotation<MethodDefinition>().DeclaringType;
+
+            if (!IsStatic(operatorDeclaration)) {
+                WriteIdentifier(declaringType);
+                WriteToken(".", null);
+                WriteIdentifier("prototype");
+            } else {
+                WriteThisReference(
+                    declaringType, true
+                );
+            }
+
+            WriteToken(".", null);
+            WriteIdentifier(operatorDeclaration);
+            Space();
+            WriteToken("=", null);
+            Space();
+            WriteKeyword("function");
+            Space();
+
+            WriteCommaSeparatedListInParenthesis(operatorDeclaration.Parameters, true);
+
+            if (!operatorDeclaration.Body.IsNull) {
+                VisitBlockStatement(operatorDeclaration.Body, "method");
+            } else {
+                OpenBrace(BraceStyle.EndOfLine);
+                CloseBrace(BraceStyle.NextLine);
+            }
+
+            Semicolon();
+
+            return EndNode(operatorDeclaration);
         }
 
         public override object VisitMethodDeclaration (MethodDeclaration methodDeclaration, object data) {

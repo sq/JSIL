@@ -86,6 +86,7 @@
     <None Include="SimpleTestCases\BaseProperties.cs" />
     <None Include="SimpleTestCases\Delegates.cs" />
     <None Include="SimpleTestCases\MethodReferences.cs" />
+    <None Include="SimpleTestCases\CustomOperators.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
