@@ -91,11 +91,7 @@ namespace JSIL.Internal {
             ) {
                 return true;
             } else if (node is PropertyDeclaration) {
-                var def = node.Annotation<PropertyReference>();
-                if (def != null) {
-                    return def.Resolve().GetMethod.IsStatic || def.Resolve().SetMethod.IsStatic;
-                } else if (node.Annotation<PrimitiveExpression>() != null)
-                    return true;
+                return true;
             }
 
             return false;
@@ -283,9 +279,7 @@ namespace JSIL.Internal {
                     Space();
                     WritePrimitiveValue(typeDeclaration.Annotation<TypeReference>().ToString());
                     Semicolon();
-                }
 
-                if (!isStatic) {
                     WriteIdentifier(typeDeclaration.Annotation<TypeReference>());
                     WriteToken(".", null);
                     WriteIdentifier("prototype");
@@ -326,7 +320,12 @@ namespace JSIL.Internal {
                             continue;
                         else if (member is MethodDeclaration)
                             continue;
-                        else if (IsStatic(member))
+                        else if (member is PropertyDeclaration) {
+                            EmitPropertyDefault(
+                                member, (member as PropertyDeclaration).Annotation<PropertyDefinition>()
+                            );
+                            continue;
+                        } else if (IsStatic(member))
                             continue;
 
                         member.AcceptVisitor(this, data);
@@ -347,10 +346,20 @@ namespace JSIL.Internal {
                         ;
                     else if (member is ConstructorDeclaration)
                         continue;
+                    else if (member is PropertyDeclaration)
+                        ;
                     else if (!IsStatic(member))
                         continue;
 
                     member.AcceptVisitor(this, data);
+
+                    if (isStatic && (member is PropertyDeclaration)) {
+                        var propertyDefinition = (member as PropertyDeclaration).Annotation<PropertyDefinition>();
+                        if (propertyDefinition != null)
+                            EmitPropertyDefault(
+                                member, propertyDefinition
+                            );
+                    }
                 }
 
                 if (staticConstructor != null) {
@@ -443,11 +452,11 @@ namespace JSIL.Internal {
             var mi = identifierExpression as ModifiedIdentifierExpression;
 
             if (mi != null) {
-                WriteIdentifier(mi.Identifier);
+                WriteIdentifier(Util.EscapeIdentifier(mi.Identifier));
                 WriteToken(".", null);
                 WriteIdentifier("value");
             } else
-                WriteIdentifier(identifierExpression.Identifier);
+                WriteIdentifier(Util.EscapeIdentifier(identifierExpression.Identifier));
 
             return EndNode(identifierExpression);
         }
@@ -521,7 +530,7 @@ namespace JSIL.Internal {
                     WriteToken(".", null);
                 }
 
-                WriteIdentifier(variableInitializer.Name);
+                WriteIdentifier(Util.EscapeIdentifier(variableInitializer.Name));
                 Space();
                 WriteToken("=", VariableInitializer.Roles.Assign);
                 Space();
@@ -549,7 +558,7 @@ namespace JSIL.Internal {
                 
                 result = true;
             } else if (!isField) {
-                WriteIdentifier(variableInitializer.Name);
+                WriteIdentifier(Util.EscapeIdentifier(variableInitializer.Name));
             }
 
             return result;
@@ -653,15 +662,28 @@ namespace JSIL.Internal {
                 ).Where((ca) => ca.AttributeType.Name == "CompilerGeneratedAttribute")
                 .Count() > 0;
 
+            // Generate the accessor methods
+            foreach (AstNode node in propertyDeclaration.Children) {
+                if (node.Role == IndexerDeclaration.GetterRole || node.Role == IndexerDeclaration.SetterRole) {
+                    node.AcceptVisitor(this, data);
+                    Semicolon();
+                }
+            }
+
+            // Now generate the property definition
             WriteIdentifier("Object");
             WriteToken(".", null);
             WriteIdentifier("defineProperty");
             LPar();
 
-            if (isStatic)
+            if (isStatic) {
                 WriteIdentifier(declaringType);
-            else
-                WriteKeyword("this");
+            } else {
+                WriteIdentifier(declaringType);
+                WriteToken(".", null);
+                WriteIdentifier("prototype");
+            }
+
             WriteToken(",", null);
             Space();
 
@@ -675,11 +697,34 @@ namespace JSIL.Internal {
                 if (node.Role == IndexerDeclaration.GetterRole || node.Role == IndexerDeclaration.SetterRole) {
                     if (!first) {
                         WriteToken(",", null);
-                        Space();
+                        NewLine();
                     }
                     first = false;
 
-                    node.AcceptVisitor(this, data);
+                    var accessor = node as Accessor;
+                    string prefix;
+                    if (node.Role == IndexerDeclaration.GetterRole)
+                        prefix = "get";
+                    else if (node.Role == IndexerDeclaration.SetterRole)
+                        prefix = "set";
+                    else
+                        throw new InvalidOperationException();
+
+                    WriteIdentifier(prefix);
+                    WriteToken(":", null);
+                    Space();
+
+                    if (isStatic) {
+                        WriteIdentifier(declaringType);
+                    } else {
+                        WriteIdentifier(declaringType);
+                        WriteToken(".", null);
+                        WriteIdentifier("prototype");
+                    }
+                    WriteToken(".", null);
+                    WriteIdentifier(String.Format(
+                        "{0}_{1}", prefix, propertyDeclaration.Name
+                    ));
                 }
             }
 
@@ -687,6 +732,22 @@ namespace JSIL.Internal {
 
             RPar();
             Semicolon();
+
+            return EndNode(propertyDeclaration);
+        }
+
+        protected object EmitPropertyDefault (AttributedNode node, PropertyDefinition propertyDefinition) {
+            if (IsIgnored(node.Attributes))
+                return null;
+
+            StartNode(node);
+
+            var declaringType = propertyDefinition.DeclaringType;
+            bool isStatic = propertyDefinition.GetMethod.IsStatic || propertyDefinition.SetMethod.IsStatic;
+            bool isAutoProperty = propertyDefinition.GetMethod.CustomAttributes.Concat(
+                    propertyDefinition.SetMethod.CustomAttributes
+                ).Where((ca) => ca.AttributeType.Name == "CompilerGeneratedAttribute")
+                .Count() > 0;
 
             // If the property is of a primitive type, we must assign it a default value so it's not undefined
             if (propertyDefinition.PropertyType.IsPrimitive && isAutoProperty) {
@@ -696,7 +757,7 @@ namespace JSIL.Internal {
                     WriteKeyword("this");
 
                 WriteToken(".", null);
-                WriteIdentifier(Util.EscapeIdentifier(propertyDeclaration.Name));
+                WriteIdentifier(Util.EscapeIdentifier(propertyDefinition.Name));
 
                 Space();
                 WriteToken("=", null);
@@ -706,33 +767,44 @@ namespace JSIL.Internal {
                 Semicolon();
             }
 
-            return EndNode(propertyDeclaration);
+            return EndNode(node);
         }
 
         public override object VisitAccessor (Accessor accessor, object data) {
             StartNode(accessor);
-            string suffix;
+            string prefix;
 
             if (accessor.Role == PropertyDeclaration.GetterRole) {
-                suffix = "get";
+                prefix = "get";
             } else if (accessor.Role == PropertyDeclaration.SetterRole) {
-                suffix = "set";
+                prefix = "set";
             } else {
                 throw new NotImplementedException();
             }
 
             var propertyDefinition = accessor.Parent.Annotation<PropertyDefinition>();
+            var methodName = String.Format("{0}_{1}", prefix, propertyDefinition.Name);
             var declaringType = propertyDefinition.DeclaringType;
             var storageName = Util.EscapeIdentifier(
                 String.Format("{0}.value", propertyDefinition.Name)
             );
-
             bool isStatic = propertyDefinition.GetMethod.IsStatic || propertyDefinition.SetMethod.IsStatic;
 
-            WriteIdentifier(suffix);
+            if (!isStatic) {
+                WriteIdentifier(declaringType);
+                WriteToken(".", null);
+                WriteIdentifier("prototype");
+            } else {
+                WriteThisReference(
+                    declaringType, isStatic
+                );
+            }
+
+            WriteToken(".", null);
+            WriteIdentifier(methodName);
 
             Space();
-            WriteToken(":", null);
+            WriteToken("=", null);
             Space();
 
             WriteKeyword("function");
@@ -801,14 +873,14 @@ namespace JSIL.Internal {
         }
 
         protected void WriteThisReference (TypeDefinition declaringType, FieldReference field) {
-            if (field.Resolve().Attributes.HasFlag(FieldAttributes.Static))
-                WriteIdentifier(declaringType);
-            else
-                WriteKeyword("this");
+            WriteThisReference(
+                declaringType,
+                field.Resolve().Attributes.HasFlag(FieldAttributes.Static)
+            );
         }
 
-        protected void WriteThisReference (TypeDefinition declaringType, AttributedNode node) {
-            if (node.Modifiers.HasFlag(Modifiers.Static))
+        protected void WriteThisReference (TypeDefinition declaringType, bool isStatic) {
+            if (isStatic)
                 WriteIdentifier(declaringType);
             else
                 WriteKeyword("this");
@@ -828,7 +900,7 @@ namespace JSIL.Internal {
                 WriteIdentifier("prototype");
             } else {
                 WriteThisReference(
-                    declaringType, methodDeclaration
+                    declaringType, true
                 );
             }
 
@@ -1012,11 +1084,13 @@ namespace JSIL.Internal {
             Space();
             WriteKeyword("catch");
             Space();
-            LPar();
+
             if (!string.IsNullOrEmpty(catchClause.VariableName)) {
-                WriteIdentifier(catchClause.VariableName);
+                LPar();
+                WriteIdentifier(Util.EscapeIdentifier(catchClause.VariableName));
+                RPar();
             }
-            RPar();
+
             catchClause.Body.AcceptVisitor(this, data);
             return EndNode(catchClause);
         }

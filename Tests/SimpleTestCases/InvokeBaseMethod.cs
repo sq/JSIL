@@ -1,6 +1,6 @@
 using System;
 
-public abstract class CustomTypeBase {
+public class CustomTypeBase {
     public virtual void Method () {
         Console.WriteLine("CustomTypeBase.Method");
     }

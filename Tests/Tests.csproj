@@ -81,6 +81,7 @@
     <None Include="SimpleTestCases\TryCatch.cs" />
     <None Include="SimpleTestCases\CustomExceptions.cs" />
     <None Include="SimpleTestCases\InvokeBaseMethod.cs" />
+    <None Include="SimpleTestCases\BaseProperties.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
