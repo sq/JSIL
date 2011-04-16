@@ -42,7 +42,7 @@ namespace JSIL.Tests {
             var test = new ComparisonTest(@"TestCases\FannkuchRedux.cs");
 
             test.Run();
-            test.Run("11");
+            test.Run("10");
         }
 
         [Test]

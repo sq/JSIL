@@ -126,7 +126,7 @@ var startedAt = dateNow();
 {1}.Main({2});
 
 var endedAt = dateNow();
-System.Console.WriteLine('// Elapsed time: {0} ms', endedAt - startedAt);
+System.Console.WriteLine('// Elapsed time: {{0}} ms', endedAt - startedAt);
                 ", 
                 JavascriptExecutionTimeout, declaringType, argsJson
             );
