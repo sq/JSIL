@@ -156,6 +156,7 @@ Object.defineProperty(
 
 System.Collections = {}
 System.Collections.Generic = {};
+  
 System.Collections.Generic.List$bt1 = function (sizeOrInitializer) {
     var size = Number(sizeOrInitializer);
 
@@ -183,11 +184,27 @@ System.Collections.Generic.List$bt1.prototype.GetEnumerator = function () {
 };
 
 System.Drawing = {};
-System.Drawing.Bitmap = function () {
+  
+System.Drawing.Bitmap = function (width, height) {
+  this.Width = width;
+  this.Height = height;
+  this.Pixels = new Array(width * height);
 };
+System.Drawing.Bitmap.prototype = JSIL.CloneObject(System.Object.prototype);
+System.Drawing.Bitmap.prototype.__TypeName__ = "System.Drawing.Bitmap";
+System.Drawing.Bitmap.prototype.SetPixel = function (x, y, color) {
+  if ((x < 0) || (y < 0) || (x >= this.Width) || (y >= this.Height))
+    throw new Error("Coordinates out of bounds");
+  
+  this.Pixels[(y * this.Width) + x] = color;
+}
+
 System.Drawing.Color = function () {
 };
+System.Drawing.Color.prototype = JSIL.CloneObject(System.Object.prototype);
+System.Drawing.Color.prototype.__TypeName__ = "System.Drawing.Color";
 System.Drawing.Color.FromArgb = function () {
+  return new System.Drawing.Color(arguments);
 };
 
 System.Random = function () {
@@ -208,6 +225,7 @@ System.Random.prototype.NextDouble = function () {
 System.Math = {};
 System.Math.Max = Math.max;
 System.Math.Sqrt = Math.sqrt;
+System.Math.Pow = Math.pow;
 
 System.Char = __MakeTypeStub("System.Char");
 

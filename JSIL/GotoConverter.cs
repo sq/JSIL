@@ -18,14 +18,16 @@ namespace JSIL {
 
         public class BlockInfo {
             public readonly int Depth;
+            public readonly BlockStatement RootBlock;
             public readonly BlockStatement Block;
             public readonly Dictionary<string, LabelInfo> Labels = new Dictionary<string, LabelInfo>();
             public readonly List<GotoInfo> Gotos = new List<GotoInfo>();
             public readonly List<BlockInfo> ChildBlocks = new List<BlockInfo>();
 
-            public BlockInfo (int depth, BlockStatement block) {
+            public BlockInfo (int depth, BlockStatement block, BlockStatement root = null) {
                 Block = block;
                 Depth = depth;
+                RootBlock = root;
             }
 
             public bool ContainsLabel (string name) {
@@ -136,9 +138,9 @@ namespace JSIL {
                     whileStatement
                 };
 
-                var hoister = new DeclarationHoister(context, result);
-
                 Block.ReplaceWith(result);
+
+                var hoister = new DeclarationHoister(context, RootBlock);
 
                 Func<string, BlockStatement> makeNewSection = (name) => {
                     var ss = new SwitchSection {
@@ -278,11 +280,15 @@ namespace JSIL {
             int depth = 0;
             if (Blocks.Count != 0)
                 depth = Blocks.Peek().Depth + 1;
-                
-            var info = new BlockInfo(depth, blockStatement);
+
             BlockInfo parentBlock = null;
-            if (Blocks.Count != 0)
+            BlockStatement rootBlock = blockStatement;
+            if (Blocks.Count != 0) {
                 parentBlock = Blocks.Peek();
+                rootBlock = parentBlock.RootBlock;
+            }
+                
+            var info = new BlockInfo(depth, blockStatement, rootBlock);
 
             Blocks.Push(info);
             var result = base.VisitBlockStatement(blockStatement, data);
