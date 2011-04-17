@@ -680,10 +680,8 @@ namespace JSIL.Internal {
 
             if (isNull && isField) {
                 var fieldRef = variableInitializer.Parent.Annotation<FieldReference>();
-                if (fieldRef.FieldType.IsPrimitive || fieldRef.FieldType.IsValueType) {
-                    isNull = false;
-                    fakeInitializer = AstMethodBodyBuilder.MakeDefaultValue(fieldRef.FieldType);
-                }
+                isNull = false;
+                fakeInitializer = AstMethodBodyBuilder.MakeDefaultValue(fieldRef.FieldType);
             }
 
             var mvi = variableInitializer as ModifiedVariableInitializer;
