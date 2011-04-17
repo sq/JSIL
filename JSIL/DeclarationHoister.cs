@@ -8,6 +8,7 @@ namespace JSIL {
     public class DeclarationHoister : ContextTrackingVisitor<object> {
         public readonly BlockStatement Output;
         public VariableDeclarationStatement Statement = null;
+        public readonly HashSet<string> HoistedNames = new HashSet<string>();
 
         public DeclarationHoister (DecompilerContext context, BlockStatement output)
             : base(context) {
@@ -21,10 +22,14 @@ namespace JSIL {
                 Output.Add(Statement);
             }
 
-            foreach (var variable in variableDeclarationStatement.Variables)
-                Statement.Variables.Add(new VariableInitializer(
-                    variable.Name
-                ));
+            foreach (var variable in variableDeclarationStatement.Variables) {
+                if (!HoistedNames.Contains(variable.Name)) {
+                    Statement.Variables.Add(new VariableInitializer(
+                        variable.Name
+                    ));
+                    HoistedNames.Add(variable.Name);
+                }
+            }
 
             var replacement = new BlockStatement();
             foreach (var variable in variableDeclarationStatement.Variables) {
