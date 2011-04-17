@@ -1,4 +1,4 @@
-﻿function __MakeTypeStub (name) {
+function __MakeTypeStub (name) {
     var result = {};
     result.__TypeName__ = name;
     return result;
@@ -92,6 +92,9 @@ System.Console = {};
 System.Console.WriteLine = function () {
     print(System.String.Format.apply(null, arguments));
 };
+System.Console.Write = function () {
+    putstr(System.String.Format.apply(null, arguments));
+};
 
 String.prototype.Split = function (separators) {
     if (separators.length > 1)
@@ -159,15 +162,48 @@ System.Collections.Generic.List$bt1 = function (sizeOrInitializer) {
     if (isNaN(size)) {
         this.Items = new Array();
         this.Items.push.apply(this.Items, sizeOrInitializer);
+        this.Count = 0;
     } else {
         this.Items = new Array(size);
+        this.Count = size;
     }
 };
 System.Collections.Generic.List$bt1.prototype = JSIL.CloneObject(System.Object.prototype);
 System.Collections.Generic.List$bt1.prototype.__TypeName__ = "System.Collections.Generic.List`1";
+System.Collections.Generic.List$bt1.prototype.Add = function (item) {
+    if (this.Count >= this.Items.length) {
+      this.Items.push(item);
+    } else {    
+      this.Items[this.Count] = item;
+    }
+    this.Count += 1;
+};
 System.Collections.Generic.List$bt1.prototype.GetEnumerator = function () {
     return new JSIL.ArrayEnumerator(this.Items);
 };
+
+System.Drawing = {};
+System.Drawing.Bitmap = function () {
+};
+System.Drawing.Color = function () {
+};
+System.Drawing.Color.FromArgb = function () {
+};
+
+System.Random = function () {
+};
+System.Random.prototype = JSIL.CloneObject(System.Object.prototype);
+System.Random.prototype.__TypeName__ = "System.Random";
+System.Random.prototype.Next = function (min, max) {
+    if (typeof (min) == "undefined")
+        min = 0;
+    if (typeof (max) == "undefined")
+        max = System.Int32.MaxValue;
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+System.Random.prototype.NextDouble = function () {
+    return Math.random();
+}
 
 System.Math = {};
 System.Math.Max = Math.max;
@@ -176,6 +212,7 @@ System.Math.Sqrt = Math.sqrt;
 System.Char = __MakeTypeStub("System.Char");
 
 System.Int32 = __MakeTypeStub("System.Int32");
+System.Int32.MaxValue = 2147483647;
 System.Int32.Parse = function (text) {
     return parseInt(text, 10);
 };
