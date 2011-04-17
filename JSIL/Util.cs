@@ -45,9 +45,6 @@ namespace JSIL.Internal {
                             else
                                 sb.Append(".");
                         break;
-                        case '_':
-                            sb.Append("$_");
-                        break;
                         case '<':
                             sb.Append("$lt");
                         break;

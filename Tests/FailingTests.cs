@@ -24,8 +24,9 @@ namespace JSIL.Tests {
                 Console.Write("// {0} ... ", Path.GetFileName(filename));
 
                 try {
-                    var test = new ComparisonTest(filename);
-                    test.Run();
+                    using (var test = new ComparisonTest(filename))
+                        test.Run();
+
                     passCount += 1;
                 } catch (Exception ex) {
                     Console.WriteLine("{0}: {1}", ex.GetType().Name, ex.Message);

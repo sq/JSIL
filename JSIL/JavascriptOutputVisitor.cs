@@ -1018,7 +1018,7 @@ namespace JSIL.Internal {
         }
 
         protected string PickOperatorName (OperatorDeclaration op) {
-            return String.Format("op$_{0}", op.OperatorType);
+            return String.Format("op_{0}", op.OperatorType);
         }
 
         public override object VisitOperatorDeclaration (OperatorDeclaration operatorDeclaration, object data) {

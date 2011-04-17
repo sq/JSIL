@@ -11,21 +11,38 @@ using JSIL.Internal;
 using JSIL.Transforms;
 using Mono.Cecil;
 using ICSharpCode.Decompiler;
+using Mono.Cecil.Pdb;
 
 namespace JSIL {
     public class AssemblyTranslator {
         public string Translate (string assemblyPath) {
-            var assembly = AssemblyDefinition.ReadAssembly(
-                assemblyPath,
-                new ReaderParameters {
-                    ReadingMode = ReadingMode.Deferred
-                }
+            var readerParameters = new ReaderParameters {
+                ReadingMode = ReadingMode.Deferred
+            };
+
+            var pdbPath = Path.Combine(
+                Path.GetDirectoryName(assemblyPath), Path.GetFileNameWithoutExtension(assemblyPath) + ".pdb"
             );
+            if (File.Exists(pdbPath)) {
+                readerParameters.ReadSymbols = true;
+                readerParameters.SymbolReaderProvider = new PdbReaderProvider();
+                readerParameters.SymbolStream = File.OpenRead(pdbPath);
+            } else {
+            }
 
-            using (var outputStream = new StringWriter()) {
-                Translate(assembly, outputStream);
+            try {
+                var assembly = AssemblyDefinition.ReadAssembly(
+                    assemblyPath, readerParameters
+                );
 
-                return outputStream.ToString();
+                using (var outputStream = new StringWriter()) {
+                    Translate(assembly, outputStream);
+
+                    return outputStream.ToString();
+                }
+            } finally {
+                if (readerParameters.SymbolStream != null)
+                    readerParameters.SymbolStream.Dispose();
             }
         }
 

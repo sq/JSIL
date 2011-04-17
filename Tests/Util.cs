@@ -24,17 +24,36 @@ namespace JSIL.Tests {
     }
 
     public static class CSharpUtil {
-        public static Assembly Compile (string sourceCode) {
+        public static string TempPath;
+
+        // Attempt to clean up stray assembly files from previous test runs
+        //  since the assemblies would have remained locked and undeletable 
+        //  due to being loaded
+        static CSharpUtil () {
+            TempPath = Path.Combine(Path.GetTempPath(), "JSILTests");
+            if (!Directory.Exists(TempPath))
+                Directory.CreateDirectory(TempPath);
+
+            foreach (var filename in Directory.GetFiles(TempPath))
+                try {
+                    File.Delete(filename);
+                } catch {
+                }
+        }
+
+        public static Assembly Compile (string sourceCode, out TempFileCollection temporaryFiles) {
             using (var csc = new CSharpCodeProvider(new Dictionary<string, string>() { 
                 { "CompilerVersion", "v4.0" } 
             })) {
+
                 var parameters = new CompilerParameters(new[] {
                     "mscorlib.dll", "System.Core.dll", "Microsoft.CSharp.dll",
                     typeof(JSIL.Meta.JSIgnore).Assembly.Location
                 }) {
                     GenerateExecutable = true,
                     GenerateInMemory = false,
-                    IncludeDebugInformation = true
+                    IncludeDebugInformation = true,
+                    TempFiles = new TempFileCollection(TempPath, true)
                 };
 
                 var results = csc.CompileAssemblyFromSource(parameters, sourceCode);
@@ -45,17 +64,20 @@ namespace JSIL.Tests {
                     );
                 }
 
+                temporaryFiles = results.TempFiles;
                 return results.CompiledAssembly;
             }
         }
     }
 
-    public class ComparisonTest {
+    public class ComparisonTest : IDisposable {
         public const float JavascriptExecutionTimeout = 30.0f;
 
         public static readonly Regex ElapsedRegex = new Regex(
             @"// Elapsed time: (?'elapsed'[0-9]*(\.[0-9]*)?) ms", RegexOptions.Compiled | RegexOptions.ExplicitCapture
         );
+
+        protected TempFileCollection TemporaryFiles;
 
         public static readonly string TestSourceFolder;
         public static readonly string JSShellPath;
@@ -85,9 +107,17 @@ namespace JSIL.Tests {
             Filename = Path.Combine(TestSourceFolder, filename);
 
             var sourceCode = File.ReadAllText(Filename);
-            Assembly = CSharpUtil.Compile(sourceCode);
+            Assembly = CSharpUtil.Compile(sourceCode, out TemporaryFiles);
 
             TestMethod = Assembly.GetType("Program").GetMethod("Main");
+        }
+
+        public void Dispose () {
+            foreach (string filename in TemporaryFiles)
+                try {
+                    File.Delete(filename);
+                } catch {
+                }
         }
 
         public string RunCSharp (string[] args, out long elapsed) {

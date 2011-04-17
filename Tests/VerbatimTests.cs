@@ -11,12 +11,12 @@ namespace JSIL.Tests {
         public void EvalIsEmittedIntoBodyOfMethod () {
             long elapsed;
             string generatedJs;
-            var test = new ComparisonTest(@"SpecialTestCases\Eval.cs");
-
-            var csOutput = test.RunCSharp(new string[0], out elapsed);
-            Assert.AreEqual("1", csOutput.Trim());
-            var jsOutput = test.RunJavascript(new string[0], out generatedJs, out elapsed);
-            Assert.AreEqual("2", jsOutput.Trim());
+            using (var test = new ComparisonTest(@"SpecialTestCases\Eval.cs")) {
+                var csOutput = test.RunCSharp(new string[0], out elapsed);
+                Assert.AreEqual("1", csOutput.Trim());
+                var jsOutput = test.RunJavascript(new string[0], out generatedJs, out elapsed);
+                Assert.AreEqual("2", jsOutput.Trim());
+            }
         }
     }
 }

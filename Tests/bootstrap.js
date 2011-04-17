@@ -114,5 +114,5 @@ System.Math.Sqrt = Math.sqrt;
 
 System.Int32 = {};
 System.Int32.Parse = function (text) {
-    return parseInt(text);
+    return parseInt(text, 10);
 };

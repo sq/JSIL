@@ -14,35 +14,34 @@ namespace JSIL.Tests {
     public class ComparisonTests {
         [Test]
         public void HelloWorld () {
-            var test = new ComparisonTest(@"TestCases\HelloWorld.cs");
-
-            test.Run();
-            test.Run("hello", "world");
+            using (var test = new ComparisonTest(@"TestCases\HelloWorld.cs")) {
+                test.Run();
+                test.Run("hello", "world");
+            }
         }
 
         [Test]
         public void BinaryTrees () {
-            var test = new ComparisonTest(@"TestCases\BinaryTrees.cs");
-
-            test.Run();
-            test.Run("8");
+            using (var test = new ComparisonTest(@"TestCases\BinaryTrees.cs")) {
+                test.Run();
+                test.Run("8");
+            }
         }
 
         [Test]
         public void NBody () {
-            var test = new ComparisonTest(@"TestCases\NBody.cs");
-
-            test.Run();
-            test.Run("50000");
+            using (var test = new ComparisonTest(@"TestCases\NBody.cs")) {
+                test.Run();
+                test.Run("50000");
+            }
         }
 
-        // Fails because we emit a goto.
         [Test]
         public void FannkuchRedux () {
-            var test = new ComparisonTest(@"TestCases\FannkuchRedux.cs");
-
-            test.Run();
-            test.Run("10");
+            using (var test = new ComparisonTest(@"TestCases\FannkuchRedux.cs")) {
+                test.Run();
+                test.Run("10");
+            }
         }
 
         [Test]
@@ -57,8 +56,8 @@ namespace JSIL.Tests {
                 Console.Write("// {0} ... ", Path.GetFileName(filename));
 
                 try {
-                    var test = new ComparisonTest(filename);
-                    test.Run();
+                    using (var test = new ComparisonTest(filename))
+                        test.Run();
                 } catch (Exception ex) {
                     Console.Error.WriteLine(ex);
                     failureCount += 1;
@@ -70,16 +69,14 @@ namespace JSIL.Tests {
 
         [Test]
         public void Goto () {
-            var test = new ComparisonTest(@"TestCases\Goto.cs");
-
-            test.Run();
+            using (var test = new ComparisonTest(@"TestCases\Goto.cs"))
+                test.Run();
         }
 
         [Test]
         public void Switch () {
-            var test = new ComparisonTest(@"TestCases\Switch.cs");
-
-            test.Run();
+            using (var test = new ComparisonTest(@"TestCases\Switch.cs"))
+                test.Run();
         }
     }
 }
