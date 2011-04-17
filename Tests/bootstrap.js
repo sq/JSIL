@@ -243,6 +243,8 @@ System.Drawing.Color.FromArgb = function () {
   }
 };
 
+System.Drawing.Color.Black = new System.Drawing.Color(0xFF, 0x0, 0x0, 0x0, "Black");
+System.Drawing.Color.OldLace = new System.Drawing.Color(0xFF, 0xFD, 0xF5, 0xE6, "OldLace");
 System.Drawing.Color.BlueViolet = new System.Drawing.Color(0xFF, 0x8A, 0x2B, 0xE2, "BlueViolet");
 System.Drawing.Color.Aquamarine = new System.Drawing.Color(0xFF, 0x7F, 0xFF, 0xD4, "Aquamarine");
 
@@ -264,10 +266,19 @@ System.Random.prototype.NextDouble = function () {
   return Math.random();
 }
 
-System.Math = {};
-System.Math.Max = Math.max;
-System.Math.Sqrt = Math.sqrt;
-System.Math.Pow = Math.pow;
+System.Math = {
+  Max: Math.max,
+  Sqrt: Math.sqrt,
+  Pow: Math.pow,
+  Abs: Math.abs,
+  Cos: Math.cos,
+  Sin: Math.sin
+};
+
+System.Boolean = function (b) {
+  return b;
+}
+System.Boolean.prototype = JSIL.MakeProto(Boolean, "System.Boolean");
 
 System.Char = function (ch) {
   return ch;
