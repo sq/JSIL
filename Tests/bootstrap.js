@@ -278,20 +278,11 @@ System.Drawing.Bitmap.prototype.SetPixel = function (x, y, color) {
 System.Drawing.Bitmap.prototype.Save = function (filename) {
 }
 
-function _toByte(value) {
-  if (value < 0)
-    return 0;
-  else if (value > 255)
-    return 255;
-  else
-    return Math.floor(value);
-}
-
 System.Drawing.Color = function (a, r, g, b, name) {
-  this.A = _toByte(a);
-  this.R = _toByte(r);
-  this.G = _toByte(g);
-  this.B = _toByte(b);
+  this.A = a;
+  this.R = r;
+  this.G = g;
+  this.B = b;
   this.Name = name;
 };
 System.Drawing.Color.prototype = JSIL.MakeProto(System.Object, "System.Drawing.Color");
