@@ -253,16 +253,16 @@ namespace simpleray {
             canvas.Save("output.png");
         }
         
-        static void RenderRow (System.Drawing.Bitmap canvas, int dotPeriod, int y) {
+        static void RenderRow (System.Drawing.Bitmap canvas, int dotPeriod, int y) {            
+            if (y >= CANVAS_HEIGHT)
+              return;
+            
             if ((y % dotPeriod) == 0) System.Console.Write("*");
           
             for (int x = 0; x < CANVAS_WIDTH; x++) {
                 Color c = RenderPixel(x, y);
                 canvas.SetPixel(x, y, c);
             }
-            
-            if (y >= CANVAS_HEIGHT)
-              return;
             
             SetTimeout(0, () => 
               RenderRow(canvas, dotPeriod, y + 1)

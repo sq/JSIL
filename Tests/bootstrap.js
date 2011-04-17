@@ -18,9 +18,63 @@ JSIL.MakeProto = function (baseType, typeName) {
   prototype.__BaseType__ = baseType;
   prototype.__TypeName__ = typeName;
   return prototype;
-}
+};
+
+JSIL.CheckType = function (expectedType, value) {
+  var ct = expectedType.CheckType;
+  if (typeof (ct) != "undefined")
+    return ct(value);
+
+  var expectedProto = expectedType.prototype;
+  if ((typeof (expectedProto) == "undefined") ||
+      (typeof (expectedProto) == "null"))
+    throw new Error("Attempting to check type against static type");
+
+  var proto = Object.getPrototypeOf(value);
+  while (proto != null) {
+    if (proto === expectedProto)
+      return true;
+
+    proto = Object.getPrototypeOf(proto);
+  }
+
+  return false;
+};
+
+JSIL.OverloadedMethod = function (type, name, overloads) {
+  type[name] = function OverloadDispatcher() {
+    var l = arguments.length;
+
+    find_overload:
+    for (var i = 0; i < overloads.length; i++) {
+      var overloadArgs = overloads[i][1];
+      if (overloadArgs.length != l)
+        continue;
+
+      for (var j = 0; j < l; j++) {
+        var expectedType = overloadArgs[j];
+        var arg = arguments[j];
+
+        if (!JSIL.CheckType(expectedType, arg))
+          continue find_overload;
+      }
+
+      var overloadName = overloads[i][0];
+      var overloadMethod = type[overloadName];
+      if (typeof (overloadMethod) == "undefined")
+        throw new Error("No method named '" + overloadName + "' could be found.");
+
+      return overloadMethod.apply(this, arguments);
+    }
+
+    throw new Error("No overload found that could accept the argument list '" + arguments.toString() + "'");
+  };
+};
 
 System.Object = function () { };
+System.Object.CheckType = function (value) {
+  return true;
+}
 System.Object.prototype = JSIL.MakeProto(Object, "System.Object");
 System.Object.prototype.toString = function ToString() {
   return this.__TypeName__;
@@ -105,6 +159,9 @@ String.prototype.Split = function (separators) {
 System.String = function (text) {
   return text;
 };
+System.String.CheckType = function (value) {
+  return (typeof (value) == "string");
+}
 System.String.prototype = JSIL.MakeProto(String, "System.String");
 System.String.Format = function (format) {
   format = String(format);
@@ -278,16 +335,25 @@ System.Math = {
 System.Boolean = function (b) {
   return b;
 }
+System.Boolean.CheckType = function (value) {
+  return (value === false) || (value === true);
+}
 System.Boolean.prototype = JSIL.MakeProto(Boolean, "System.Boolean");
 
 System.Char = function (ch) {
   return ch;
 };
+System.Char.CheckType = function (value) {
+  return (typeof (value) == "string") && (value.length == 1);
+}
 System.Char.prototype = JSIL.MakeProto(String, "System.Char");
 
 System.Int32 = function (value) {
   return value;
 };
+System.Int32.CheckType = function (value) {
+  return (typeof (value) == "number");
+}
 System.Int32.prototype = JSIL.MakeProto(Number, "System.Int32");
 System.Int32.MaxValue = 2147483647;
 System.Int32.Parse = function (text) {

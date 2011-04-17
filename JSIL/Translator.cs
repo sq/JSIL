@@ -14,17 +14,53 @@ using ICSharpCode.Decompiler;
 using Mono.Cecil.Pdb;
 
 namespace JSIL {
+    public class AssemblyResolver : BaseAssemblyResolver {
+        public readonly Dictionary<string, AssemblyDefinition> Cache = new Dictionary<string, AssemblyDefinition>();
+
+        public AssemblyResolver (IEnumerable<string> dirs) {
+            foreach (var dir in dirs)
+                AddSearchDirectory(dir);
+        }
+
+        public override AssemblyDefinition Resolve (AssemblyNameReference name) {
+            if (name == null)
+                throw new ArgumentNullException("name");
+
+            AssemblyDefinition assembly;
+            if (Cache.TryGetValue(name.FullName, out assembly))
+                return assembly;
+
+            assembly = base.Resolve(name);
+            Cache[name.FullName] = assembly;
+
+            return assembly;
+        }
+
+        protected void RegisterAssembly (AssemblyDefinition assembly) {
+            if (assembly == null)
+                throw new ArgumentNullException("assembly");
+
+            var name = assembly.Name.FullName;
+            if (Cache.ContainsKey(name))
+                return;
+
+            Cache[name] = assembly;
+        }
+    }
+
     public class AssemblyTranslator {
         public string Translate (string assemblyPath) {
             var readerParameters = new ReaderParameters {
                 ReadingMode = ReadingMode.Deferred
             };
 
-            var pdbPath = Path.Combine(
-                Path.GetDirectoryName(assemblyPath), Path.GetFileNameWithoutExtension(assemblyPath) + ".pdb"
-            );
+            var assemblyDir = Path.GetDirectoryName(assemblyPath);
+            var pdbPath = Path.Combine(assemblyDir, Path.GetFileNameWithoutExtension(assemblyPath) + ".pdb");
             if (File.Exists(pdbPath)) {
                 readerParameters.ReadSymbols = true;
+                readerParameters.AssemblyResolver = new AssemblyResolver(new string [] {
+                    assemblyDir
+                });
                 readerParameters.SymbolReaderProvider = new PdbReaderProvider();
                 readerParameters.SymbolStream = File.OpenRead(pdbPath);
             } else {
@@ -58,6 +94,7 @@ namespace JSIL {
 				new DeclareVariables(context), // should run after most transforms that modify statements
 				new ConvertConstructorCallIntoInitializer(), // must run after DeclareVariables
 				new IntroduceUsingDeclarations(context),
+                new OverloadRenamer(context),
                 new DynamicCallSites(context),
                 new ReplacementFinder(context),
                 new ParameterModifierTransformer(context),

@@ -93,6 +93,7 @@
     <None Include="SimpleTestCases\StructDefaults.cs" />
     <None Include="SimpleTestCases\NamespacedTypes.cs" />
     <None Include="SimpleTestCases\InitFieldsInMain.cs" />
+    <None Include="SimpleTestCases\OverloadedMethods.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

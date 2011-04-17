@@ -197,12 +197,12 @@ namespace simpleray {
     }
     
     class Renderer {
-        const int CANVAS_WIDTH = 400;                                           // output image dimensions
-        const int CANVAS_HEIGHT = 300;
+        const int CANVAS_WIDTH = 320;                                           // output image dimensions
+        const int CANVAS_HEIGHT = 240;
         
         const float TINY = 0.0001f;                                             // a very short distance in world space coords
-        const int MAX_DEPTH = 3;                                                // max recursion for reflections
-        const int RAYS_PER_PIXEL = 128;                                         // how many rays to shoot per pixel?
+        const int MAX_DEPTH = 4;                                                // max recursion for reflections
+        const int RAYS_PER_PIXEL = 512;                                         // how many rays to shoot per pixel?
 
         static Vector3f eyePos = new Vector3f(0, 2.0f, -5.0f);                  // eye pos in world space coords
         static Vector3f screenTopLeftPos = new Vector3f(-4.0f, 5.5f, 0);        // top-left corner of screen in world coords - note aspect ratio should match image
@@ -258,16 +258,16 @@ namespace simpleray {
             canvas.Save("output.png");
         }
         
-        static void RenderRow (System.Drawing.Bitmap canvas, int dotPeriod, int y) {
+        static void RenderRow (System.Drawing.Bitmap canvas, int dotPeriod, int y) {            
+            if (y >= CANVAS_HEIGHT)
+              return;
+            
             if ((y % dotPeriod) == 0) System.Console.Write("*");
           
             for (int x = 0; x < CANVAS_WIDTH; x++) {
                 Color c = RenderPixel(x, y);
                 canvas.SetPixel(x, y, c);
             }
-            
-            if (y >= CANVAS_HEIGHT)
-              return;
             
             SetTimeout(0, () => 
               RenderRow(canvas, dotPeriod, y + 1)

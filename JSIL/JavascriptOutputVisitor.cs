@@ -5,7 +5,9 @@ using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
+using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.Ast;
+using ICSharpCode.Decompiler.Ast.Transforms;
 using ICSharpCode.NRefactory.CSharp;
 using JSIL.Transforms;
 using Mono.Cecil;
@@ -52,8 +54,19 @@ namespace JSIL.Internal {
             ));
         }
 
+        protected string GenerateName (MethodDeclaration method) {
+            var omd = method as OverloadedMethodDeclaration;
+
+            var escaped = Util.EscapeIdentifier(method.Name);
+
+            if (omd != null)
+                return String.Format("{0}${1}", escaped, omd.OverloadIndex);
+            else
+                return escaped;
+        }
+
         protected void WriteIdentifier (MethodDeclaration method) {
-            WriteIdentifier(Util.EscapeIdentifier(method.Name));
+            WriteIdentifier(GenerateName(method));
         }
 
         protected void WriteIdentifier (MemberReferenceExpression member) {
@@ -73,21 +86,6 @@ namespace JSIL.Internal {
 
         public override object VisitUsingDeclaration (UsingDeclaration usingDeclaration, object data) {
             return null;
-        }
-
-        public override object VisitNamespaceDeclaration (NamespaceDeclaration namespaceDeclaration, object data) {
-            StartNode(namespaceDeclaration);
-
-            WriteIdentifier(namespaceDeclaration);
-            Space();
-            WriteToken("= {}", null);
-            Semicolon();
-            NewLine();
-
-            foreach (var member in namespaceDeclaration.Members)
-                member.AcceptVisitor(this, data);
-
-            return EndNode(namespaceDeclaration);
         }
 
         public override object VisitAttributeSection (AttributeSection attributeSection, object data) {
@@ -227,29 +225,18 @@ namespace JSIL.Internal {
                     select (ConstructorDeclaration)member);
         }
 
-        public override object VisitTypeDeclaration (TypeDeclaration typeDeclaration, object data) {
-            if (IsIgnored(typeDeclaration.Attributes))
-                return null;
+        protected void EmitInitialTypeDeclaration (TypeDeclaration typeDeclaration) {
+            StartNode(typeDeclaration);
 
             bool isStatic = typeDeclaration.Modifiers.HasFlag(Modifiers.Static);
+            var typeReference = typeDeclaration.Annotation<TypeReference>();
 
             var constructors = GetConstructors(typeDeclaration).ToArray();
 
             var instanceConstructors = (from constructor in constructors
-                                       where !constructor.Modifiers.HasFlag(Modifiers.Static)
-                                       select constructor);
+                                        where !constructor.Modifiers.HasFlag(Modifiers.Static)
+                                        select constructor);
             var instanceConstructor = instanceConstructors.FirstOrDefault();
-
-            var staticConstructor = (from constructor in constructors
-                                      where constructor.Modifiers.HasFlag(Modifiers.Static)
-                                      select constructor).FirstOrDefault();
-
-            if (instanceConstructors.Count() > 1)
-                throw new NotImplementedException("Overloaded constructors are not supported");
-
-            StartNode(typeDeclaration);
-
-            var typeReference = typeDeclaration.Annotation<TypeReference>();
 
             if (!(typeDeclaration.Parent is TypeDeclaration) && (!typeReference.FullName.Contains("."))) {
                 WriteKeyword("var");
@@ -296,6 +283,88 @@ namespace JSIL.Internal {
             CloseBrace(BraceStyle.NextLine);
             Semicolon();
             NewLine();
+
+            EndNode(typeDeclaration);
+        }
+
+        class InitialTypeDeclarer : DepthFirstAstVisitor<object, object> {
+            public readonly JavascriptOutputVisitor Parent;
+
+            public InitialTypeDeclarer (JavascriptOutputVisitor parent) {
+                Parent = parent;
+            }
+
+            public override object VisitNamespaceDeclaration (NamespaceDeclaration namespaceDeclaration, object data) {
+                Parent.StartNode(namespaceDeclaration);
+
+                var name = Util.EscapeIdentifier(namespaceDeclaration.FullName);
+
+                if (!name.Contains(".")) {
+                    Parent.formatter.WriteKeyword("var");
+                    Parent.formatter.Space();
+                }
+
+                Parent.formatter.WriteIdentifier(name);
+                Parent.formatter.Space();
+                Parent.formatter.WriteToken("=");
+                Parent.formatter.Space();
+                Parent.formatter.WriteToken("{};");
+                Parent.formatter.NewLine();
+
+                base.VisitNamespaceDeclaration(namespaceDeclaration, data);
+
+                return Parent.EndNode(namespaceDeclaration);
+            }
+
+            public override object VisitTypeDeclaration (TypeDeclaration typeDeclaration, object data) {
+                if (Parent.IsIgnored(typeDeclaration.Attributes))
+                    return null;
+
+                Parent.EmitInitialTypeDeclaration(typeDeclaration);
+
+                return base.VisitTypeDeclaration(typeDeclaration, data);
+            }
+        }
+
+        public override object VisitCompilationUnit (CompilationUnit compilationUnit, object data) {
+            var declarer = new InitialTypeDeclarer(this);
+            compilationUnit.AcceptVisitor(declarer, null);
+
+            return base.VisitCompilationUnit(compilationUnit, data);
+        }
+
+        public override object VisitNamespaceDeclaration (NamespaceDeclaration namespaceDeclaration, object data) {
+            StartNode(namespaceDeclaration);
+
+            foreach (var member in namespaceDeclaration.Members)
+                member.AcceptVisitor(this, data);
+
+            return EndNode(namespaceDeclaration);
+        }
+
+        public override object VisitTypeDeclaration (TypeDeclaration typeDeclaration, object data) {
+            if (IsIgnored(typeDeclaration.Attributes))
+                return null;
+
+            bool isStatic = typeDeclaration.Modifiers.HasFlag(Modifiers.Static);
+
+            var constructors = GetConstructors(typeDeclaration).ToArray();
+
+            var instanceConstructors = (from constructor in constructors
+                                       where !constructor.Modifiers.HasFlag(Modifiers.Static)
+                                       select constructor);
+            var instanceConstructor = instanceConstructors.FirstOrDefault();
+
+            var staticConstructor = (from constructor in constructors
+                                      where constructor.Modifiers.HasFlag(Modifiers.Static)
+                                      select constructor).FirstOrDefault();
+
+            if (instanceConstructors.Count() > 1)
+                throw new NotImplementedException("Overloaded constructors are not supported");
+
+            StartNode(typeDeclaration);
+
+            var typeReference = typeDeclaration.Annotation<TypeReference>();
 
             if (true) {
                 if (isStatic) {
@@ -937,6 +1006,68 @@ namespace JSIL.Internal {
             return EndNode(node);
         }
 
+        protected void EmitOverloadDispatcher (TypeReference declaringType, OverloadDispatcherMethodDeclaration methodDeclaration) {
+            var overloads = methodDeclaration.Overloads.OrderBy((md) => md.Parameters.Count);
+            WriteIdentifier("JSIL.OverloadedMethod");
+            LPar();
+
+            WriteIdentifier(declaringType);
+            if (!IsStatic(methodDeclaration)) {
+                WriteToken(".", null);
+                WriteIdentifier("prototype");
+            }
+
+            WriteToken(",", null);
+            Space();
+            WritePrimitiveValue(methodDeclaration.Name);
+            WriteToken(",", null);
+            Space();
+            WriteToken("[", null);
+
+            formatter.Indent();
+
+            var temporaryRole = new Role<AstType>("temporary");
+            bool isFirst = true, isFirst2;
+            foreach (var overload in overloads) {
+                if (!isFirst) {
+                    WriteToken(",", null);
+                    Space();
+                }
+
+                NewLine();
+
+                WriteToken("[", null);
+                WritePrimitiveValue(GenerateName(overload));
+                WriteToken(",", null);
+                Space();
+
+                WriteToken("[", null);
+                isFirst2 = true;
+
+                foreach (var parameter in overload.Parameters) {
+                    if (!isFirst2) {
+                        WriteToken(",", null);
+                        Space();
+                    }
+
+                    var type = (AstType)parameter.Type.Clone();
+                    methodDeclaration.AddChild(type, temporaryRole);
+                    type.AcceptVisitor(this, null);
+                }
+
+                WriteToken("]", null);
+                WriteToken("]", null);
+                isFirst = false;
+            }
+
+            formatter.Unindent();
+
+            NewLine();
+            WriteToken("]", null);
+            RPar();
+            Semicolon();
+        }
+
         public override object VisitAccessor (Accessor accessor, object data) {
             StartNode(accessor);
             string prefix;
@@ -1121,7 +1252,15 @@ namespace JSIL.Internal {
 
             StartNode(methodDeclaration);
 
-            var declaringType = methodDeclaration.Annotation<MethodDefinition>().DeclaringType;
+            var methodDefinition = methodDeclaration.Annotation<MethodDefinition>();
+            var declaringType = methodDefinition.DeclaringType;
+
+            var odmd = methodDeclaration as OverloadDispatcherMethodDeclaration;
+            if (odmd != null) {
+                EmitOverloadDispatcher(declaringType, odmd);
+
+                return EndNode(methodDeclaration);
+            }
 
             if (!IsStatic(methodDeclaration)) {
                 WriteIdentifier(declaringType);
@@ -1138,6 +1277,7 @@ namespace JSIL.Internal {
             Space();
             WriteToken("=", null);
             Space();
+
             WriteKeyword("function");
             Space();
 

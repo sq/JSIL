@@ -68,6 +68,7 @@
     <Compile Include="GotoConverter.cs" />
     <Compile Include="JavascriptOutputVisitor.cs" />
     <Compile Include="JumpTargeter.cs" />
+    <Compile Include="OverloadRenamer.cs" />
     <Compile Include="ParameterModifier.cs" />
     <Compile Include="ReplacementFinder.cs" />
     <Compile Include="Translator.cs" />
