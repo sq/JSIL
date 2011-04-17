@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using ICSharpCode.Decompiler;
@@ -28,124 +29,220 @@ namespace JSIL {
     }
 
     public class ParameterModifierTransformer : ContextTrackingVisitor<object> {
-        readonly Stack<Dictionary<string, ParameterModifier>> Modifiers = new Stack<Dictionary<string, ParameterModifier>>();
-        readonly Stack<Dictionary<string, VariableInitializer>> Initializers = new Stack<Dictionary<string, VariableInitializer>>();
-        readonly Stack<Dictionary<string, List<IdentifierExpression>>> SeenIdentifiers = new Stack<Dictionary<string, List<IdentifierExpression>>>();
+        public class Scope {
+            public readonly Scope Parent;
+            public readonly Dictionary<string, AstNode> Initializers = new Dictionary<string, AstNode>();
+            public readonly Dictionary<string, ParameterModifier> Modifiers = new Dictionary<string, ParameterModifier>();
+            public readonly Dictionary<string, List<IdentifierExpression>> IdentifierReferences = new Dictionary<string, List<IdentifierExpression>>();
+
+            public Scope (Scope parent = null) {
+                Parent = parent;
+            }
+
+            public Scope NewChild () {
+                var result = new Scope(this);
+
+                foreach (var kvp in Initializers)
+                    result.Initializers.Add(kvp.Key, kvp.Value);
+
+                foreach (var kvp in Modifiers)
+                    result.Modifiers.Add(kvp.Key, kvp.Value);
+
+                return result;
+            }
+
+            public ParameterModifier GetModifier (string key) {
+                ParameterModifier modifier;
+                if (!Modifiers.TryGetValue(key, out modifier))
+                    modifier = ParameterModifier.None;
+
+                return modifier;
+            }
+
+            public void InitializerReplaced (string key, AstNode newInitializer) {
+                Initializers[key] = newInitializer;
+
+                if (Parent != null)
+                    Parent.InitializerReplaced(key, newInitializer);
+            }
+
+            public void ModifierChanged (string key, ParameterModifier newModifier) {
+                Modifiers[key] = newModifier;
+
+                if (Parent != null)
+                    Parent.ModifierChanged(key, newModifier);
+            }
+        }
+
+        public readonly Stack<Scope> Scopes = new Stack<Scope>();
 
         public ParameterModifierTransformer (DecompilerContext context)
             : base(context) {
 
-            Modifiers.Push(new Dictionary<string, ParameterModifier>());
-            Initializers.Push(new Dictionary<string, VariableInitializer>());
-            SeenIdentifiers.Push(new Dictionary<string, List<IdentifierExpression>>());
+            Scopes.Push(new Scope());
+        }
+
+        protected Scope CurrentScope {
+            get {
+                return Scopes.Peek();
+            }
         }
 
         protected override object VisitChildren (AstNode node, object data) {
-            {
-                var currentDict = Modifiers.Peek();
-                var newDict = new Dictionary<string, ParameterModifier>(currentDict);
-                Modifiers.Push(currentDict);
-            }
+            bool isDeclaration = (node is MethodDeclaration) || (node is PropertyDeclaration) || (node is TypeDeclaration);
 
-            {
-                var currentDict = Initializers.Peek();
-                var newDict = new Dictionary<string, VariableInitializer>(currentDict);
-                Initializers.Push(currentDict);
-            }
-
-            {
-                var currentDict = SeenIdentifiers.Peek();
-                var newDict = new Dictionary<string, List<IdentifierExpression>>();
-                foreach (var kvp in currentDict)
-                    newDict.Add(kvp.Key, new List<IdentifierExpression>(kvp.Value));
-
-                SeenIdentifiers.Push(currentDict);
+            if (isDeclaration) {
+                var currentScope = Scopes.Peek();
+                var newScope = currentScope.NewChild();
+                Scopes.Push(newScope);
             }
 
             var result = base.VisitChildren(node, data);
 
-            Modifiers.Pop();
-            Initializers.Pop();
-            SeenIdentifiers.Pop();
+            if (isDeclaration) {
+                var scope = CurrentScope;
+                Scopes.Pop();
+
+                foreach (var kvp in scope.IdentifierReferences) {
+                    var list = kvp.Value;
+
+                    foreach (var iref in list) {
+                        var currentModifier = scope.GetModifier(iref.Identifier);
+                        var refModifier = GetModifier(iref);
+
+                        if (currentModifier != ParameterModifier.None)
+                            continue;
+
+                        if (refModifier != ParameterModifier.None) {
+                            var initializer = scope.Initializers[iref.Identifier];
+                            var pd = initializer as ParameterDeclaration;
+                            var vi = initializer as VariableInitializer;
+
+                            if (pd != null) {
+                                var md = pd.Parent as MethodDeclaration;
+                                if (md == null)
+                                    throw new NotImplementedException("ref/out parameters not implemented for this body type");
+
+                                var newName = "_" + pd.Name;
+                                var newStatement = new VariableDeclarationStatement {
+                                    Type = new PrimitiveType("object"),
+                                    Variables = {
+                                        new ModifiedVariableInitializer(new VariableInitializer(
+                                            pd.Name, new IdentifierExpression(newName)
+                                        ), refModifier)
+                                    }
+                                };
+
+                                pd.Name = newName;
+
+                                md.Body.InsertChildBefore(
+                                    md.Body.FirstChild, newStatement, (Role<Statement>)md.Body.FirstChild.Role
+                                );
+
+                                scope.InitializerReplaced(iref.Identifier, newStatement.Variables.First());
+                                scope.ModifierChanged(iref.Identifier, refModifier);
+                            } else if (vi != null) {
+                                var newInitializer = new ModifiedVariableInitializer(
+                                    (VariableInitializer)vi.Clone(), refModifier
+                                );
+
+                                vi.ReplaceWith(newInitializer);
+
+                                scope.InitializerReplaced(iref.Identifier, newInitializer);
+                                scope.ModifierChanged(iref.Identifier, refModifier);
+                            } else {
+                                throw new InvalidOperationException();
+                            }
+                        }
+                    }
+
+                    foreach (var iref in list) {
+                        var currentModifier = scope.GetModifier(iref.Identifier);
+                        var refModifier = GetModifier(iref);
+
+                        if (
+                            (currentModifier == ParameterModifier.None) ==
+                            (refModifier == ParameterModifier.None)
+                        )
+                            continue;
+
+                        var replacement = new MemberReferenceExpression {
+                            Target = iref.Clone(),
+                            MemberName = "value"
+                        };
+                        iref.ReplaceWith(replacement);
+                    }
+                }
+            }
 
             return result;
         }
 
         public override object VisitVariableInitializer (VariableInitializer variableInitializer, object data) {
-            Initializers.Peek()[variableInitializer.Name] = variableInitializer;
+            CurrentScope.Initializers[variableInitializer.Name] = variableInitializer;
+            CurrentScope.Modifiers[variableInitializer.Name] = ParameterModifier.None;
 
             return base.VisitVariableInitializer(variableInitializer, data);
         }
 
         public override object VisitIdentifierExpression (IdentifierExpression identifierExpression, object data) {
-            var id = identifierExpression.Identifier;
+            var id = identifierExpression.Identifier;            
 
-            ParameterModifier modifier;
-            if (Modifiers.Peek().TryGetValue(id, out modifier)) {
-                identifierExpression.ReplaceWith(new MemberReferenceExpression {
-                    Target = identifierExpression.Clone(),
-                    MemberName = "value"
-                });
-            }else {
-                List<IdentifierExpression> seen;
-                if (!SeenIdentifiers.Peek().TryGetValue(id, out seen)) {
-                    seen = new List<IdentifierExpression>();
-                    SeenIdentifiers.Peek().Add(id, seen);
-                }
-
-                seen.Add(identifierExpression);
+            List<IdentifierExpression> seen;
+            if (!CurrentScope.IdentifierReferences.TryGetValue(id, out seen)) {
+                seen = new List<IdentifierExpression>();
+                CurrentScope.IdentifierReferences.Add(id, seen);
             }
+
+            seen.Add(identifierExpression);
 
             return base.VisitIdentifierExpression(identifierExpression, data);
         }
 
+        protected ParameterModifier GetModifier (AstNode node) {
+            var de = node.Parent as DirectionExpression;
+            var pd = (node as ParameterDeclaration) ?? (node.Parent as ParameterDeclaration);
+
+            if (de != null) {
+                switch (de.FieldDirection) {
+                    case FieldDirection.Out:
+                        return ParameterModifier.Out;
+                    break;
+                    case FieldDirection.Ref:
+                        return ParameterModifier.Ref;
+                    break;
+                }
+
+            } else if (pd != null) {
+                switch (pd.ParameterModifier) {
+                    case ParameterModifier.Params:
+                    case ParameterModifier.This:
+                        throw new NotImplementedException("Only out and ref parameter modifiers are implemented");
+                    default:
+                        return pd.ParameterModifier;
+                }
+            }
+
+            return ParameterModifier.None;
+        }
+
         public override object VisitDirectionExpression (DirectionExpression directionExpression, object data) {
+            var result = base.VisitDirectionExpression(directionExpression, data);
+
             var idE = directionExpression.Expression as IdentifierExpression;
             if ((idE == null) && (directionExpression.FieldDirection != FieldDirection.None))
                 throw new NotImplementedException("Members of object instances cannot be passed as ref or out");
 
-            var id = idE.Identifier;
-
-            switch (directionExpression.FieldDirection) {
-                case FieldDirection.Out:
-                    Modifiers.Peek()[id] = ParameterModifier.Out;
-                break;
-                case FieldDirection.Ref:
-                    Modifiers.Peek()[id] = ParameterModifier.Ref;
-                break;
-                default:
-                    return base.VisitDirectionExpression(directionExpression, data);
-            }
-
-            List<IdentifierExpression> seen;
-            if (SeenIdentifiers.Peek().TryGetValue(id, out seen)) {
-                while (seen.Count > 0) {
-                    var i = seen.Count - 1;
-                    seen[i].ReplaceWith(new MemberReferenceExpression {
-                        Target = seen[i].Clone(),
-                        MemberName = "value"
-                    }); 
-                    seen.RemoveAt(i);
-                }
-            }
-
-            VariableInitializer initializer;
-            if (Initializers.Peek().TryGetValue(id, out initializer)) {
-                initializer.ReplaceWith(
-                    new ModifiedVariableInitializer(initializer, Modifiers.Peek()[id])
-                );
-            }
-
-            return null;
+            return result;
         }
 
         public override object VisitParameterDeclaration (ParameterDeclaration parameterDeclaration, object data) {
-            var modifier = parameterDeclaration.ParameterModifier;
+            var id = parameterDeclaration.Name;
 
-            if (modifier == ParameterModifier.Ref || modifier == ParameterModifier.Out)
-                Modifiers.Peek()[parameterDeclaration.Name] = modifier;
+            CurrentScope.Initializers[id] = parameterDeclaration;
+            CurrentScope.Modifiers[id] = parameterDeclaration.ParameterModifier;
 
-            return base.VisitParameterDeclaration(parameterDeclaration, data);
+            return null;
         }
     }
 }
