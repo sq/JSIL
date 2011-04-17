@@ -23,6 +23,7 @@ namespace JSIL.Internal {
           IDynamicExpressionVisitor<object, object>,
           ITargetedControlFlowVisitor<object, object>
     {
+        public readonly Dictionary<string, List<OverloadedMethodDeclaration>> KnownOverloads = new Dictionary<string, List<OverloadedMethodDeclaration>>();
         public readonly Stack<string> BaseTypeStack = new Stack<string>();
 
         public JavascriptOutputVisitor (IOutputFormatter formatter)
@@ -57,16 +58,14 @@ namespace JSIL.Internal {
         protected string GenerateName (MethodDeclaration method) {
             var omd = method as OverloadedMethodDeclaration;
 
-            var escaped = Util.EscapeIdentifier(method.Name);
-
             if (omd != null)
-                return String.Format("{0}${1}", escaped, omd.OverloadIndex);
+                return String.Format("{0}_{1}", omd.Name, omd.OverloadIndex);
             else
-                return escaped;
+                return method.Name;
         }
 
         protected void WriteIdentifier (MethodDeclaration method) {
-            WriteIdentifier(GenerateName(method));
+            WriteIdentifier(Util.EscapeIdentifier(GenerateName(method)));
         }
 
         protected void WriteIdentifier (MemberReferenceExpression member) {
@@ -171,6 +170,7 @@ namespace JSIL.Internal {
         }
 
         public override object VisitInvocationExpression (InvocationExpression invocationExpression, object data) {
+            var mr = invocationExpression.Annotation<MethodReference>();
             var mre = invocationExpression.Target as MemberReferenceExpression;
             TypeReferenceExpression tre;
 
@@ -213,6 +213,20 @@ namespace JSIL.Internal {
                     }
                     RPar();
                     return EndNode(invocationExpression);
+                }
+
+                if (mr != null) {
+                    List<OverloadedMethodDeclaration> overloads;
+                    if (KnownOverloads.TryGetValue(mre.MemberName, out overloads)) {
+                        foreach (var omd in overloads) {
+                            var omr = omd.Annotation<MethodReference>();
+
+                            if (omr == mr) {
+                                mre.MemberName = GenerateName(omd);
+                                break;
+                            }
+                        }
+                    }
                 }
             }
 
@@ -323,6 +337,21 @@ namespace JSIL.Internal {
                 Parent.EmitInitialTypeDeclaration(typeDeclaration);
 
                 return base.VisitTypeDeclaration(typeDeclaration, data);
+            }
+
+            public override object VisitMethodDeclaration (MethodDeclaration methodDeclaration, object data) {
+                var odmd = methodDeclaration as OverloadDispatcherMethodDeclaration;
+                if (odmd != null) {
+                    List<OverloadedMethodDeclaration> overloads;
+                    if (!Parent.KnownOverloads.TryGetValue(methodDeclaration.Name, out overloads)) {
+                        overloads = new List<OverloadedMethodDeclaration>();
+                        Parent.KnownOverloads[methodDeclaration.Name] = overloads;
+                    }
+
+                    overloads.AddRange(odmd.Overloads);
+                }
+
+                return base.VisitMethodDeclaration(methodDeclaration, data);
             }
         }
 

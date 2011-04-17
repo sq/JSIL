@@ -52,6 +52,7 @@ namespace JSIL {
                 var last = omds.Last();
                 dispatcher.AddAnnotation(last.Annotation<MethodDefinition>());
                 last.Parent.InsertChildAfter(last, dispatcher, (Role<AttributedNode>)last.Role);
+                typeDeclaration.AddAnnotation(omds);
             }
 
             return result;
