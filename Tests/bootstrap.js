@@ -198,12 +198,23 @@ System.Drawing.Bitmap.prototype.SetPixel = function (x, y, color) {
   
   this.Pixels[(y * this.Width) + x] = color;
 }
+System.Drawing.Bitmap.prototype.Save = function (filename) {
+}
 
-System.Drawing.Color = function (a, r, g, b, name) {
-  this.A = a;
-  this.R = r;
-  this.G = g;
-  this.B = b;
+function _toByte (value) {
+  if (value < 0)
+    return 0;
+  else if (value > 255)
+    return 255;
+  else
+    return Math.floor(value);
+}
+
+System.Drawing.Color = function (a, r, g, b, name) {  
+  this.A = _toByte(a);
+  this.R = _toByte(r);
+  this.G = _toByte(g);
+  this.B = _toByte(b);
   this.Name = name;
 };
 System.Drawing.Color.prototype = JSIL.CloneObject(System.Object.prototype);
@@ -224,16 +235,21 @@ System.Drawing.Color.FromArgb = function () {
   }
 };
 System.Drawing.Color.BlueViolet = new System.Drawing.Color(0xFF, 0x8A, 0x2B, 0xE2, "BlueViolet");
+System.Drawing.Color.Aquamarine = new System.Drawing.Color(0xFF, 0x7F, 0xFF, 0xD4, "Aquamarine");
 
 System.Random = function () {
 };
 System.Random.prototype = JSIL.CloneObject(System.Object.prototype);
 System.Random.prototype.__TypeName__ = "System.Random";
-System.Random.prototype.Next = function (min, max) {
-    if (typeof (min) == "undefined")
+System.Random.prototype.Next = function (min, max) {    
+    if (typeof (min) == "undefined") {
         min = 0;
-    if (typeof (max) == "undefined")
-        max = System.Int32.MaxValue;
+        max = Int32.MaxValue;
+    } else if (typeof (max) == "undefined") {
+        max = min;
+        min = 0;
+    }
+    
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 System.Random.prototype.NextDouble = function () {

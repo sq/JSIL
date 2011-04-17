@@ -191,8 +191,8 @@ namespace simpleray {
         const float PI_X_2 =    6.2831853072f;
         const float PI_OVER_2 = 1.5707963268f;
 
-        const int CANVAS_WIDTH = 800;                                          // output image dimensions
-        const int CANVAS_HEIGHT = 600;
+        const int CANVAS_WIDTH = 400;                                          // output image dimensions
+        const int CANVAS_HEIGHT = 300;
         
         const float TINY = 0.0001f;                                             // a very short distance in world space coords
         const int MAX_DEPTH = 3;                                                // max recursion for reflections
@@ -246,16 +246,36 @@ namespace simpleray {
             int dotPeriod = CANVAS_HEIGHT / 10;
             System.Console.WriteLine("Rendering...\n");
             System.Console.WriteLine("|0%---100%|");
-            for (int y = 0; y < CANVAS_HEIGHT; y++) {               // step through every pixel
-                if ((y % dotPeriod) == 0) System.Console.Write("*");
-                for (int x = 0; x < CANVAS_WIDTH; x++) {
-                    Color c = RenderPixel(x, y);
-                    canvas.SetPixel(x, y, c);
-                }
-            }
+
+            RenderRow(canvas, dotPeriod, 0);
 
             // save the pretties
             canvas.Save("output.png");
+        }
+        
+        static void RenderRow (System.Drawing.Bitmap canvas, int dotPeriod, int y) {
+            if ((y % dotPeriod) == 0) System.Console.Write("*");
+          
+            for (int x = 0; x < CANVAS_WIDTH; x++) {
+                Color c = RenderPixel(x, y);
+                canvas.SetPixel(x, y, c);
+            }
+            
+            if (y >= CANVAS_HEIGHT)
+              return;
+            
+            SetTimeout(1, () => 
+              RenderRow(canvas, dotPeriod, y + 1)
+            );
+        }
+        
+        static void SetTimeout (int timeoutMs, Action action) {
+          JSIL.Verbatim.Eval(@"
+            setTimeout(action, timeoutMs);
+            return
+          ");
+          
+          action();
         }
 
         // Given a ray with origin and direction set, fill in the intersection info

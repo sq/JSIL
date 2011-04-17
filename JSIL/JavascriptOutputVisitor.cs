@@ -1036,7 +1036,7 @@ namespace JSIL.Internal {
         public override object VisitVariableDeclarationStatement (VariableDeclarationStatement variableDeclarationStatement, object data) {
             StartNode(variableDeclarationStatement);
 
-            WriteKeyword("let");
+            WriteKeyword("var");
 
             Space();
             WriteCommaSeparatedList(variableDeclarationStatement.Variables);
