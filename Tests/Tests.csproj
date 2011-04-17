@@ -90,6 +90,7 @@
     <None Include="SimpleTestCases\CustomOperators.cs" />
     <None Include="SimpleTestCases\BasicLoops.cs" />
     <None Include="SimpleTestCases\ForEach.cs" />
+    <None Include="SimpleTestCases\StructDefaults.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

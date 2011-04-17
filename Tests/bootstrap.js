@@ -199,13 +199,31 @@ System.Drawing.Bitmap.prototype.SetPixel = function (x, y, color) {
   this.Pixels[(y * this.Width) + x] = color;
 }
 
-System.Drawing.Color = function () {
+System.Drawing.Color = function (a, r, g, b, name) {
+  this.A = a;
+  this.R = r;
+  this.G = g;
+  this.B = b;
+  this.Name = name;
 };
 System.Drawing.Color.prototype = JSIL.CloneObject(System.Object.prototype);
 System.Drawing.Color.prototype.__TypeName__ = "System.Drawing.Color";
+System.Drawing.Color.prototype.toString = function () {
+  if (typeof(this.Name) != "undefined")
+    return this.Name;
+  else
+    return System.String.Format("Color({0}, {1}, {2}, {3})", this.A, this.R, this.G, this.B);
+}
 System.Drawing.Color.FromArgb = function () {
-  return new System.Drawing.Color(arguments);
+  if (arguments.length == 3) {
+    return new System.Drawing.Color(255, arguments[0], arguments[1], arguments[2]);
+  } else if (arguments.length == 4) {
+    return new System.Drawing.Color(arguments[0], arguments[1], arguments[2], arguments[3]);
+  } else {
+    throw new Error("Expected (r, g, b) or (a, r, g, b)");
+  }
 };
+System.Drawing.Color.BlueViolet = new System.Drawing.Color(0xFF, 0x8A, 0x2B, 0xE2, "BlueViolet");
 
 System.Random = function () {
 };

@@ -228,7 +228,6 @@ namespace JSIL.Internal {
             if (IsIgnored(typeDeclaration.Attributes))
                 return null;
 
-            int numStaticMembers = 0;
             bool isStatic = typeDeclaration.Modifiers.HasFlag(Modifiers.Static);
 
             var constructors = GetConstructors(typeDeclaration).ToArray();
@@ -401,12 +400,10 @@ namespace JSIL.Internal {
                 }
 
                 foreach (var member in typeDeclaration.Members) {
-                    if (member is MethodDeclaration)
+                    if (member is MethodDeclaration || member is PropertyDeclaration)
                         ;
                     else if (member is ConstructorDeclaration)
                         continue;
-                    else if (member is PropertyDeclaration)
-                        ;
                     else if (!IsStatic(member))
                         continue;
 
@@ -507,47 +504,52 @@ namespace JSIL.Internal {
             return false;
         }
 
-        public override object VisitObjectCreateExpression (ObjectCreateExpression objectCreateExpression, object data) {
-            StartNode(objectCreateExpression);
-
-            var objectType = objectCreateExpression.Type;
+        protected void EmitNewExpression (AstType objectType, IEnumerable<Expression> arguments = null, Expression initializer = null) {
             var typeReference = objectType.Annotation<TypeReference>();
 
-            if (TypeDerivesFrom(typeReference, "System.Delegate")) {
+            if (TypeDerivesFrom(typeReference, "System.Delegate") && (arguments != null)) {
                 WriteIdentifier("JSIL.Delegate.New");
                 LPar();
 
-                var target = objectCreateExpression.Arguments
+                var target = arguments
                     .FirstOrDefault() as MemberReferenceExpression;
                 if (target == null)
-                    throw new NotImplementedException("This type of delegate construction is not implemented: " + objectCreateExpression.ToString());
+                    throw new NotImplementedException("This type of delegate construction is not implemented: " + typeReference.ToString());
 
                 WritePrimitiveValue(typeReference.FullName);
                 WriteToken(",", null);
                 Space();
 
                 StartNode(target);
-                target.Target.AcceptVisitor(this, data);
+                target.Target.AcceptVisitor(this, null);
                 EndNode(target);
 
                 WriteToken(",", null);
                 Space();
 
-                target.AcceptVisitor(this, data);
+                target.AcceptVisitor(this, null);
 
                 RPar();
-                return EndNode(objectCreateExpression);
+                return;
             }
 
             WriteKeyword("new");
-            objectCreateExpression.Type.AcceptVisitor(this, data);
+            objectType.AcceptVisitor(this, null);
             LPar();
 
-            WriteCommaSeparatedList(objectCreateExpression.Arguments);
+            if (arguments != null)
+                WriteCommaSeparatedList(arguments);
 
             RPar();
 
-            objectCreateExpression.Initializer.AcceptVisitor(this, data);
+            if (initializer != null)
+                initializer.AcceptVisitor(this, null);
+        }
+
+        public override object VisitObjectCreateExpression (ObjectCreateExpression objectCreateExpression, object data) {
+            StartNode(objectCreateExpression);
+
+            EmitNewExpression(objectCreateExpression.Type, objectCreateExpression.Arguments, objectCreateExpression.Initializer);
 
             return EndNode(objectCreateExpression);
         }
@@ -591,10 +593,6 @@ namespace JSIL.Internal {
             }
         }
 
-        public override object VisitComposedType (ComposedType composedType, object data) {
-            return base.VisitComposedType(composedType, data);
-        }
-
         public override object VisitMemberType (MemberType memberType, object data) {
             StartNode(memberType);
             memberType.Target.AcceptVisitor(this, data);
@@ -631,6 +629,14 @@ namespace JSIL.Internal {
             WriteToken(".", MemberReferenceExpression.Roles.Dot);
             WriteIdentifier(memberReferenceExpression);
             return EndNode(memberReferenceExpression);
+        }
+
+        public override object VisitDefaultValueExpression (DefaultValueExpression defaultValueExpression, object data) {
+            StartNode(defaultValueExpression);
+
+            EmitNewExpression(defaultValueExpression.Type);
+
+            return EndNode(defaultValueExpression);
         }
 
         public override object VisitDirectionExpression (DirectionExpression directionExpression, object data) {
@@ -679,7 +685,7 @@ namespace JSIL.Internal {
 
             if (isNull && isField) {
                 var fieldRef = variableInitializer.Parent.Annotation<FieldReference>();
-                if (fieldRef.FieldType.IsPrimitive) {
+                if (fieldRef.FieldType.IsPrimitive || fieldRef.FieldType.IsValueType) {
                     isNull = false;
                     fakeInitializer = AstMethodBodyBuilder.MakeDefaultValue(fieldRef.FieldType);
                 }
@@ -707,12 +713,8 @@ namespace JSIL.Internal {
                 }
 
                 if (fakeInitializer != null) {
-                    if (fakeInitializer is NullReferenceExpression)
-                        WriteKeyword("null");
-                    else if (fakeInitializer is PrimitiveExpression)
-                        WritePrimitiveValue(((PrimitiveExpression)fakeInitializer).Value);
-                    else
-                        throw new NotImplementedException("Unable to emit default value for field");
+                    variableInitializer.AddChild(fakeInitializer, new Role<Expression>("temporary"));
+                    fakeInitializer.AcceptVisitor(this, null);
                 } else {
                     variableInitializer.Initializer.AcceptVisitor(this, null);
                 }
@@ -915,8 +917,11 @@ namespace JSIL.Internal {
                 ).Where((ca) => ca.AttributeType.Name == "CompilerGeneratedAttribute")
                 .Count() > 0;
 
+            bool isValueType = (propertyDefinition.PropertyType.IsPrimitive) || 
+                (propertyDefinition.PropertyType.IsValueType);
+
             // If the property is of a primitive type, we must assign it a default value so it's not undefined
-            if (propertyDefinition.PropertyType.IsPrimitive && isAutoProperty) {
+            if (isValueType && isAutoProperty) {
                 if (isStatic)
                     WriteIdentifier(declaringType);
                 else
@@ -929,7 +934,10 @@ namespace JSIL.Internal {
                 WriteToken("=", null);
                 Space();
 
-                WritePrimitiveValue(AstMethodBodyBuilder.MakeDefaultValue(propertyDefinition.PropertyType));
+                var defaultValue = AstMethodBodyBuilder.MakeDefaultValue(propertyDefinition.PropertyType);
+                node.AddChild(defaultValue, new Role<Expression>("temporary"));
+                defaultValue.AcceptVisitor(this, null);
+
                 Semicolon();
             }
 

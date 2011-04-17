@@ -218,8 +218,6 @@ namespace JSIL.Tests {
         }
 
         public void Run (params string[] args) {
-            bool failedInner = false;
-
             var signals = new[] {
                 new ManualResetEventSlim(false), new ManualResetEventSlim(false)
             };
