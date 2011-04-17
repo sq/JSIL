@@ -43,6 +43,9 @@ namespace JSIL.Internal {
         }
 
         protected void WriteIdentifier (TypeReference type) {
+            if (type == null)
+                throw new ArgumentNullException("type", "Type Reference must not be null");
+
             WriteIdentifier(Util.EscapeIdentifier(
                 type.FullName,
                 escapePeriods: false
@@ -246,12 +249,14 @@ namespace JSIL.Internal {
 
             StartNode(typeDeclaration);
 
-            if (!(typeDeclaration.Parent is TypeDeclaration)) {
+            var typeReference = typeDeclaration.Annotation<TypeReference>();
+
+            if (!(typeDeclaration.Parent is TypeDeclaration) && (!typeReference.FullName.Contains("."))) {
                 WriteKeyword("var");
                 Space();
             }
 
-            WriteIdentifier(typeDeclaration.Annotation<TypeReference>());
+            WriteIdentifier(typeReference);
             Space();
             WriteToken("=", null);
             Space();
@@ -304,7 +309,7 @@ namespace JSIL.Internal {
                         BaseTypeStack.Push(baseClass);
                     }
 
-                    WriteIdentifier(typeDeclaration.Annotation<TypeReference>());
+                    WriteIdentifier(typeReference);
                     WriteToken(".", null);
                     WriteKeyword("prototype");
                     Space();
@@ -315,13 +320,13 @@ namespace JSIL.Internal {
                     WriteIdentifier(baseClass);
                     WriteToken(",", null);
                     Space();
-                    WritePrimitiveValue(typeDeclaration.Annotation<TypeReference>().ToString());
+                    WritePrimitiveValue(typeReference.ToString());
                     RPar();
                     Semicolon();
                 }
 
                 if (!isStatic) {
-                    WriteIdentifier(typeDeclaration.Annotation<TypeReference>());
+                    WriteIdentifier(typeReference);
                     WriteToken(".", null);
                     WriteIdentifier("prototype");
                     WriteToken(".", null);
@@ -415,14 +420,14 @@ namespace JSIL.Internal {
 
             WriteIdentifier("Object.seal");
             LPar();
-            WriteIdentifier(typeDeclaration.Annotation<TypeReference>());
+            WriteIdentifier(typeReference);
             RPar();
             Semicolon();
 
             if (!isStatic) {
                 WriteIdentifier("Object.seal");
                 LPar();
-                WriteIdentifier(typeDeclaration.Annotation<TypeReference>());
+                WriteIdentifier(typeReference);
                 WriteToken(".", null);
                 WriteIdentifier("prototype");
                 RPar();
@@ -587,9 +592,7 @@ namespace JSIL.Internal {
 
         public override object VisitMemberType (MemberType memberType, object data) {
             StartNode(memberType);
-            memberType.Target.AcceptVisitor(this, data);
-            WriteToken(".", MemberType.Roles.Dot);
-            WriteIdentifier(Util.EscapeIdentifier(memberType.MemberName));
+            WriteIdentifier(memberType.Annotation<TypeReference>());
             return EndNode(memberType);
         }
 

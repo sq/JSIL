@@ -191,8 +191,8 @@ namespace simpleray {
         const float PI_X_2 =    6.2831853072f;
         const float PI_OVER_2 = 1.5707963268f;
 
-        const int CANVAS_WIDTH = 400;                                          // output image dimensions
-        const int CANVAS_HEIGHT = 300;
+        const int CANVAS_WIDTH = 640;                                          // output image dimensions
+        const int CANVAS_HEIGHT = 480;
         
         const float TINY = 0.0001f;                                             // a very short distance in world space coords
         const int MAX_DEPTH = 3;                                                // max recursion for reflections
@@ -264,7 +264,7 @@ namespace simpleray {
             if (y >= CANVAS_HEIGHT)
               return;
             
-            SetTimeout(1, () => 
+            SetTimeout(0, () => 
               RenderRow(canvas, dotPeriod, y + 1)
             );
         }
