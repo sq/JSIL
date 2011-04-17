@@ -281,15 +281,14 @@ namespace JSIL.Internal {
             if (!isStatic) {
                 WriteKeyword("this");
                 WriteToken(".", null);
-                WriteKeyword("__ctor");
+                WriteIdentifier("__ctor");
+                WriteToken(".", null);
+                WriteIdentifier("apply");
                 LPar();
-
-                if (instanceConstructor != null) {
-                    StartNode(instanceConstructor);
-                    WriteCommaSeparatedList(instanceConstructor.Parameters);
-                    EndNode(instanceConstructor);
-                }
-
+                WriteKeyword("this");
+                WriteToken(",", null);
+                Space();
+                WriteKeyword("arguments");
                 RPar();
                 Semicolon();
             }
@@ -381,15 +380,12 @@ namespace JSIL.Internal {
 
             var instanceConstructors = (from constructor in constructors
                                        where !constructor.Modifiers.HasFlag(Modifiers.Static)
-                                       select constructor);
+                                       select constructor).ToArray();
             var instanceConstructor = instanceConstructors.FirstOrDefault();
 
             var staticConstructor = (from constructor in constructors
                                       where constructor.Modifiers.HasFlag(Modifiers.Static)
                                       select constructor).FirstOrDefault();
-
-            if (instanceConstructors.Count() > 1)
-                throw new NotImplementedException("Overloaded constructors are not supported");
 
             StartNode(typeDeclaration);
 
@@ -433,9 +429,10 @@ namespace JSIL.Internal {
                     WriteToken("=", null);
                     Space();
                     WriteKeyword("function", null);
+                    Space();
                     LPar();
 
-                    if (instanceConstructor != null) {
+                    if (instanceConstructors.Length == 1) {
                         StartNode(instanceConstructor);
                         WriteCommaSeparatedList(instanceConstructor.Parameters);
                         EndNode(instanceConstructor);
@@ -475,7 +472,91 @@ namespace JSIL.Internal {
                         member.AcceptVisitor(this, data);
                     }
 
-                    if (instanceConstructor != null) {
+                    var temporaryRole = new Role<AstType>("temporary");
+                    if (instanceConstructors.Length > 1) {
+                        WriteKeyword("var", null);
+                        Space();
+                        WriteIdentifier("__ctors");
+                        Space();
+                        WriteToken("=", null);
+                        Space();
+                        WriteToken("[", null);
+                        formatter.Indent();
+                        NewLine();
+
+                        for (int i = 0; i < instanceConstructors.Length; i++) {
+                            var ic = instanceConstructors[i];
+                            if (i != 0) {
+                                WriteToken(",", null);
+                                NewLine();
+                            }
+
+                            WriteToken("[", null);
+                            WriteKeyword("function");
+                            Space();
+
+                            StartNode(ic);
+
+                            LPar();
+                            WriteCommaSeparatedList(ic.Parameters);
+                            RPar();
+
+                            OpenBrace(BraceStyle.EndOfLine);
+
+                            ic.Body.AcceptVisitor(this, "nobraces");
+
+                            CloseBrace(BraceStyle.EndOfLine);
+                            WriteToken(",", null);
+                            Space();
+
+                            WriteToken("[", null);
+
+                            bool isFirst = true;
+                            foreach (var parameter in ic.Parameters) {
+                                if (!isFirst) {
+                                    WriteToken(",", null);
+                                    Space();
+                                }
+
+                                var type = (AstType)parameter.Type.Clone();
+                                ic.AddChild(type, temporaryRole);
+                                type.AcceptVisitor(this, null);
+                                isFirst = false;
+                            }
+
+                            WriteToken("]", null);
+
+                            EndNode(ic);
+
+                            WriteToken("]", null);
+                        }
+
+                        formatter.Unindent();
+                        NewLine();
+                        WriteToken("]", null);
+                        Semicolon();
+
+                        WriteKeyword("return");
+                        Space();
+                        WriteIdentifier("JSIL.DispatchOverload.call");
+                        LPar();
+
+                        WriteKeyword("this");
+                        WriteToken(",", null);
+                        Space();
+
+                        WriteIdentifier("Array.prototype.slice.call");
+                        LPar();
+                        WriteKeyword("arguments");
+                        RPar();
+
+                        WriteToken(",", null);
+                        Space();
+
+                        WriteIdentifier("__ctors");
+                        RPar();
+                        Semicolon();
+                    } else if (instanceConstructors.Length == 1) {
                         StartNode(instanceConstructor);
                         instanceConstructor.Body.AcceptVisitor(this, "nobraces");
                         EndNode(instanceConstructor);
@@ -1082,6 +1163,7 @@ namespace JSIL.Internal {
                     var type = (AstType)parameter.Type.Clone();
                     methodDeclaration.AddChild(type, temporaryRole);
                     type.AcceptVisitor(this, null);
+                    isFirst2 = false;
                 }
 
                 WriteToken("]", null);

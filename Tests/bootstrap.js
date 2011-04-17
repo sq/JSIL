@@ -41,33 +41,44 @@ JSIL.CheckType = function (expectedType, value) {
   return false;
 };
 
-JSIL.OverloadedMethod = function (type, name, overloads) {
-  type[name] = function OverloadDispatcher() {
-    var l = arguments.length;
+JSIL.DispatchOverload = function (args, overloads) {
+  var l = args.length;
 
-    find_overload:
-    for (var i = 0; i < overloads.length; i++) {
-      var overloadArgs = overloads[i][1];
-      if (overloadArgs.length != l)
-        continue;
+  find_overload:
+  for (var i = 0; i < overloads.length; i++) {
+    var overloadArgs = overloads[i][1];
+    if (overloadArgs.length != l)
+      continue find_overload;
 
-      for (var j = 0; j < l; j++) {
-        var expectedType = overloadArgs[j];
-        var arg = arguments[j];
+    for (var j = 0; j < l; j++) {
+      var expectedType = overloadArgs[j];
+      var arg = args[j];
 
-        if (!JSIL.CheckType(expectedType, arg))
-          continue find_overload;
-      }
-
-      var overloadName = overloads[i][0];
-      var overloadMethod = type[overloadName];
-      if (typeof (overloadMethod) == "undefined")
-        throw new Error("No method named '" + overloadName + "' could be found.");
-
-      return overloadMethod.apply(this, arguments);
+      if (!JSIL.CheckType(expectedType, arg))
+        continue find_overload;
     }
 
-    throw new Error("No overload found that could accept the argument list '" + arguments.toString() + "'");
+    var overloadName = overloads[i][0];
+    var overloadMethod;
+
+    if (typeof (overloadName) == "function") {
+      overloadMethod = overloadName;
+    } else {
+      overloadMethod = this[overloadName];
+      if (typeof (overloadMethod) == "undefined")
+        throw new Error("No method named '" + overloadName + "' could be found.");
+    }
+
+    return overloadMethod.apply(this, args);
+  }
+
+  throw new Error("No overload found that could accept the argument list '" + arguments.toString() + "'");
+};
+
+JSIL.OverloadedMethod = function (type, name, overloads) {
+  type[name] = function () {
+    var args = Array.prototype.slice.call(arguments);
+    return JSIL.DispatchOverload.call(this, args, overloads);
   };
 };
 
