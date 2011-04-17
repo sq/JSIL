@@ -555,6 +555,13 @@ namespace JSIL.Internal {
         public override object VisitArrayCreateExpression (ArrayCreateExpression arrayCreateExpression, object data) {
             StartNode(arrayCreateExpression);
 
+            WriteIdentifier("JSIL.Array.New");
+            LPar();
+
+            arrayCreateExpression.Type.AcceptVisitor(this, null);
+            WriteToken(",", null);
+            Space();
+
             if (!arrayCreateExpression.Initializer.IsNull) {
                 WriteToken("[", null);
 
@@ -563,21 +570,12 @@ namespace JSIL.Internal {
                 EndNode(arrayCreateExpression.Initializer);
 
                 WriteToken("]", null);
-            } else {
-                WriteIdentifier("JSIL.Array.New");
-                LPar();
+            } else if (arrayCreateExpression.Arguments.Count > 1)
+                throw new NotImplementedException("Multidimensional arrays are not supported");
+            else if (arrayCreateExpression.Arguments.Count > 0)
+                WriteCommaSeparatedList(arrayCreateExpression.Arguments);
 
-                arrayCreateExpression.Type.AcceptVisitor(this, null);
-                WriteToken(",", null);
-                Space();
-
-                if (arrayCreateExpression.Arguments.Count > 1)
-                    throw new NotImplementedException("Multidimensional arrays are not supported");
-                else if (arrayCreateExpression.Arguments.Count > 0)
-                    WriteCommaSeparatedList(arrayCreateExpression.Arguments);
-
-                RPar();
-            }
+            RPar();
 
             return EndNode(arrayCreateExpression);
         }

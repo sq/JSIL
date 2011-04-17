@@ -1,6 +1,11 @@
-﻿System = {};
+﻿function __MakeTypeStub (name) {
+    var result = {};
+    result.__TypeName__ = name;
+    return result;
+};
 
-JSIL = {};
+System = __MakeTypeStub("System");
+JSIL = __MakeTypeStub("JSIL");
 
 JSIL.Variable = function (value) {
     this.value = value;
@@ -12,9 +17,32 @@ JSIL.CloneObject = function (obj) {
     return new ClonedObject();
 };
 
+System.Object = function () {};
+System.Object.prototype = JSIL.CloneObject(Object.prototype);
+System.Object.prototype.__TypeName__ = "System.Object";
+System.Object.prototype.toString = function ToString () {
+    return this.__TypeName__;
+};
+
 JSIL.Array = {};
-JSIL.Array.New = function (type, size) {
-    return new Array(size);
+JSIL.Array.New = function (type, sizeOrInitializer) {
+    var size = Number(sizeOrInitializer);
+    if (isNaN(size)) {
+        // If non-numeric, assume array initializer
+        var result = new Array(sizeOrInitializer.length);
+        for (var i = 0; i < sizeOrInitializer.length; i++)
+            result[i] = sizeOrInitializer[i];
+    } else {
+        var result = new Array(size);
+    }
+
+    /* Even worse, doing this deoptimizes all uses of the array in TraceMonkey. AUGH
+      // Can't do this the right way, because .prototype for arrays in JS is insanely busted
+      result.__TypeName__ = type.__TypeName__ + "[]";
+      result.toString = System.Object.prototype.toString;
+    */
+
+    return result;
 };
 
 JSIL.Cast = function (value, expectedType) {
@@ -44,13 +72,6 @@ JSIL.Delegate.New = function (typeName, object, method) {
     return result;
 }
 
-System.Object = function () {
-};
-System.Object.prototype.__TypeName__ = "System.Object";
-System.Object.prototype.toString = function () {
-    return this.__TypeName__;
-};
-
 System.Exception = function (message) {
     this.__ctor(message);
 };
@@ -72,13 +93,13 @@ System.Console.WriteLine = function () {
 };
 
 String.prototype.Split = function (separators) {
-    if (separators.length != 1)
+    if (separators.length > 1)
         throw new Error("Split cannot handle more than one separator");
 
     return this.split(separators[0]);
 };
 
-System.String = {};
+System.String = __MakeTypeStub("System.String");
 System.String.Format = function (format) {
     format = String(format);
 
@@ -112,7 +133,9 @@ System.Math = {};
 System.Math.Max = Math.max;
 System.Math.Sqrt = Math.sqrt;
 
-System.Int32 = {};
+System.Char = __MakeTypeStub("System.Char");
+
+System.Int32 = __MakeTypeStub("System.Int32");
 System.Int32.Parse = function (text) {
     return parseInt(text, 10);
 };

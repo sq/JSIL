@@ -49,6 +49,7 @@
     <None Include="FailingTestCases\OverloadedConstructors.cs" />
     <None Include="FailingTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />
+    <Compile Include="FailingTestCases\Arrays.cs" />
     <Compile Include="FailingTests.cs" />
     <Compile Include="MetadataTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
