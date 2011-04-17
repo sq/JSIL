@@ -439,6 +439,22 @@ namespace JSIL.Internal {
             if (typeDeclaration.BaseTypes.Count == 1)
                 BaseTypeStack.Pop();
 
+            WriteIdentifier("Object.seal");
+            LPar();
+            WriteIdentifier(typeDeclaration.Annotation<TypeReference>());
+            RPar();
+            Semicolon();
+
+            if (!isStatic) {
+                WriteIdentifier("Object.seal");
+                LPar();
+                WriteIdentifier(typeDeclaration.Annotation<TypeReference>());
+                WriteToken(".", null);
+                WriteIdentifier("prototype");
+                RPar();
+                Semicolon();
+            }
+
             return EndNode(typeDeclaration);
         }
 
