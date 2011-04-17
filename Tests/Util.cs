@@ -81,7 +81,7 @@ namespace JSIL.Tests {
 
         public static readonly string TestSourceFolder;
         public static readonly string JSShellPath;
-        public static readonly string BootstrapJS;
+        public static readonly string BootstrapJSPath;
 
         public readonly string Filename;
         public readonly Assembly Assembly;
@@ -97,10 +97,7 @@ namespace JSIL.Tests {
 
             TestSourceFolder = Path.GetFullPath(Path.Combine(assemblyPath, @"..\"));
             JSShellPath = Path.GetFullPath(Path.Combine(assemblyPath, @"..\..\Upstream\SpiderMonkey\js.exe"));
-
-            using (var resourceStream = testAssembly.GetManifestResourceStream("JSIL.Tests.bootstrap.js"))
-            using (var sr = new StreamReader(resourceStream))
-                BootstrapJS = sr.ReadToEnd();
+            BootstrapJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, "bootstrap.js"));
         }
 
         public ComparisonTest (string filename) {
@@ -154,14 +151,13 @@ namespace JSIL.Tests {
             );
 
             generatedJavascript = translatedJs;
-            translatedJs = BootstrapJS + Environment.NewLine + translatedJs + Environment.NewLine + invocationJs;
 
-            File.WriteAllText(tempFilename, translatedJs);
+            File.WriteAllText(tempFilename, translatedJs + Environment.NewLine + invocationJs);
 
             try {
                 // throw new Exception();
 
-                var psi = new ProcessStartInfo(JSShellPath, String.Format("-j -m -f {0}", tempFilename)) {
+                var psi = new ProcessStartInfo(JSShellPath, String.Format("-j -m -f {0} -f {1}", BootstrapJSPath, tempFilename)) {
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,

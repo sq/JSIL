@@ -293,19 +293,6 @@ namespace JSIL.Internal {
             NewLine();
 
             if (true) {
-                LPar();
-
-                Space();
-                WriteKeyword("function");
-                // I'd emit a function name here for debuggability, but for some
-                //  reason that breaks tests :(
-                Space();
-
-                LPar();
-                RPar();
-
-                OpenBrace(BraceStyle.EndOfLine);
-
                 if (isStatic) {
                 } else if (typeDeclaration.BaseTypes.Count > 1) {
                     throw new NotImplementedException("Inheritance from multiple bases not implemented");
@@ -323,27 +310,17 @@ namespace JSIL.Internal {
                     Space();
                     WriteToken("=", null);
                     Space();
-                    WriteIdentifier("JSIL.CloneObject");
+                    WriteIdentifier("JSIL.MakeProto");
                     LPar();
                     WriteIdentifier(baseClass);
-                    WriteToken(".", null);
-                    WriteKeyword("prototype");
+                    WriteToken(",", null);
+                    Space();
+                    WritePrimitiveValue(typeDeclaration.Annotation<TypeReference>().ToString());
                     RPar();
                     Semicolon();
                 }
 
                 if (!isStatic) {
-                    WriteIdentifier(typeDeclaration.Annotation<TypeReference>());
-                    WriteToken(".", null);
-                    WriteIdentifier("prototype");
-                    WriteToken(".", null);
-                    WriteIdentifier("__TypeName__");
-                    Space();
-                    WriteToken("=", null);
-                    Space();
-                    WritePrimitiveValue(typeDeclaration.Annotation<TypeReference>().ToString());
-                    Semicolon();
-
                     WriteIdentifier(typeDeclaration.Annotation<TypeReference>());
                     WriteToken(".", null);
                     WriteIdentifier("prototype");
@@ -430,15 +407,6 @@ namespace JSIL.Internal {
                     EndNode(staticConstructor);
                 }
 
-                CloseBrace(BraceStyle.NextLine);
-
-                LPar();
-                RPar();
-
-                Space();
-                RPar();
-
-                Semicolon();
                 NewLine();
             }
 
@@ -460,6 +428,8 @@ namespace JSIL.Internal {
                 RPar();
                 Semicolon();
             }
+
+            NewLine();
              
             return EndNode(typeDeclaration);
         }
@@ -530,7 +500,7 @@ namespace JSIL.Internal {
             var typeReference = objectType.Annotation<TypeReference>();
 
             if (TypeDerivesFrom(typeReference, "System.Delegate") && (arguments != null)) {
-                WriteIdentifier("JSIL.Delegate.New");
+                WriteIdentifier("System.Delegate.New");
                 LPar();
 
                 var target = arguments
