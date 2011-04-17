@@ -1,6 +1,6 @@
 ﻿using System;
 
-public static class Program { 
+public static class Program {
     public static void Main (string[] args) {
         OverloadedMethod();
         OverloadedMethod(1);
