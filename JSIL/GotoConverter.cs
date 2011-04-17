@@ -18,16 +18,16 @@ namespace JSIL {
 
         public class BlockInfo {
             public readonly int Depth;
-            public readonly BlockStatement RootBlock;
+            public readonly BlockStatement HoistBlock;
             public readonly BlockStatement Block;
             public readonly Dictionary<string, LabelInfo> Labels = new Dictionary<string, LabelInfo>();
             public readonly List<GotoInfo> Gotos = new List<GotoInfo>();
             public readonly List<BlockInfo> ChildBlocks = new List<BlockInfo>();
 
-            public BlockInfo (int depth, BlockStatement block, BlockStatement root = null) {
+            public BlockInfo (int depth, BlockStatement block, BlockStatement hoist) {
                 Block = block;
                 Depth = depth;
-                RootBlock = root;
+                HoistBlock = hoist;
             }
 
             public bool ContainsLabel (string name) {
@@ -103,7 +103,7 @@ namespace JSIL {
                 return sb.ToString();
             }
 
-            public Statement TransformLabels (DecompilerContext context) {
+            public BlockStatement TransformLabels (DecompilerContext context) {
                 foreach (var block in ChildBlocks)
                     block.TransformLabels(context);
 
@@ -140,7 +140,7 @@ namespace JSIL {
 
                 Block.ReplaceWith(result);
 
-                var hoister = new DeclarationHoister(context, RootBlock);
+                var hoister = new DeclarationHoister(context, HoistBlock);
 
                 Func<string, BlockStatement> makeNewSection = (name) => {
                     var ss = new SwitchSection {
@@ -281,14 +281,20 @@ namespace JSIL {
             if (Blocks.Count != 0)
                 depth = Blocks.Peek().Depth + 1;
 
+            bool hoistBlockIsNew = false;
             BlockInfo parentBlock = null;
-            BlockStatement rootBlock = blockStatement;
+            BlockStatement hoistBlock = null;
             if (Blocks.Count != 0) {
                 parentBlock = Blocks.Peek();
-                rootBlock = parentBlock.RootBlock;
+                hoistBlock = parentBlock.HoistBlock;
+            }
+
+            if (hoistBlock == null) {
+                hoistBlock = new BlockStatement();
+                hoistBlockIsNew = true;
             }
                 
-            var info = new BlockInfo(depth, blockStatement, rootBlock);
+            var info = new BlockInfo(depth, blockStatement, hoistBlock);
 
             Blocks.Push(info);
             var result = base.VisitBlockStatement(blockStatement, data);
@@ -303,7 +309,10 @@ namespace JSIL {
             }
 
             if (selfContained && (c > 0)) {
-                info.TransformLabels(context);
+                var newBlock = info.TransformLabels(context);
+
+                if (hoistBlockIsNew)
+                    newBlock.InsertChildBefore(newBlock.FirstChild, hoistBlock, (Role<Statement>)newBlock.FirstChild.Role);
             } else if (parentBlock != null) {
                 parentBlock.ChildBlocks.Add(info);
             } else if (c > 0) {

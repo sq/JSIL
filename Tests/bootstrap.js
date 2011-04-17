@@ -1,11 +1,13 @@
+"use strict";
+
 function __MakeTypeStub (name) {
     var result = {};
     result.__TypeName__ = name;
     return result;
 };
 
-System = __MakeTypeStub("System");
-JSIL = __MakeTypeStub("JSIL");
+var System = __MakeTypeStub("System");
+var JSIL = __MakeTypeStub("JSIL");
 
 JSIL.Variable = function (value) {
     this.value = value;

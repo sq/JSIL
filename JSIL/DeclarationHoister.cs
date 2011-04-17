@@ -18,7 +18,7 @@ namespace JSIL {
         public override object VisitVariableDeclarationStatement (VariableDeclarationStatement variableDeclarationStatement, object data) {
             if (Statement == null) {
                 Statement = new VariableDeclarationStatement();
-                Output.InsertChildAfter(Output.FirstChild, Statement, (Role<Statement>)Output.FirstChild.Role);
+                Output.Add(Statement);
             }
 
             foreach (var variable in variableDeclarationStatement.Variables)

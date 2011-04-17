@@ -245,6 +245,12 @@ namespace JSIL.Internal {
                 throw new NotImplementedException("Overloaded constructors are not supported");
 
             StartNode(typeDeclaration);
+
+            if (!(typeDeclaration.Parent is TypeDeclaration)) {
+                WriteKeyword("var");
+                Space();
+            }
+
             WriteIdentifier(typeDeclaration.Annotation<TypeReference>());
             Space();
             WriteToken("=", null);
@@ -454,7 +460,7 @@ namespace JSIL.Internal {
                 RPar();
                 Semicolon();
             }
-
+             
             return EndNode(typeDeclaration);
         }
 

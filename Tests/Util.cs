@@ -161,7 +161,7 @@ namespace JSIL.Tests {
             try {
                 // throw new Exception();
 
-                var psi = new ProcessStartInfo(JSShellPath, String.Format("-j -m -b -f {0}", tempFilename)) {
+                var psi = new ProcessStartInfo(JSShellPath, String.Format("-j -m -f {0}", tempFilename)) {
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,
