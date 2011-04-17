@@ -311,8 +311,12 @@ namespace JSIL {
             if (selfContained && (c > 0)) {
                 var newBlock = info.TransformLabels(context);
 
-                if (hoistBlockIsNew)
-                    newBlock.InsertChildBefore(newBlock.FirstChild, hoistBlock, (Role<Statement>)newBlock.FirstChild.Role);
+                if (hoistBlockIsNew) {
+                    foreach (var statement in hoistBlock.Statements) {
+                        statement.Remove();
+                        newBlock.InsertChildBefore(newBlock.FirstChild, statement, (Role<Statement>)newBlock.FirstChild.Role);
+                    }
+                }
             } else if (parentBlock != null) {
                 parentBlock.ChildBlocks.Add(info);
             } else if (c > 0) {
