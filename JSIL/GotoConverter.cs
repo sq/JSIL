@@ -101,9 +101,9 @@ namespace JSIL {
                 return sb.ToString();
             }
 
-            public Statement TransformLabels () {
+            public Statement TransformLabels (DecompilerContext context) {
                 foreach (var block in ChildBlocks)
-                    block.TransformLabels();
+                    block.TransformLabels(context);
 
                 if (Labels.Count == 0)
                     return this.Block;
@@ -135,6 +135,8 @@ namespace JSIL {
                     },
                     whileStatement
                 };
+
+                var hoister = new DeclarationHoister(context, result);
 
                 Block.ReplaceWith(result);
 
@@ -170,6 +172,7 @@ namespace JSIL {
 
                 var blockClone = Block.Clone();
                 currentSection.Add(blockClone);
+                blockClone.AcceptVisitor(hoister, null);
 
                 traversalQueue.AddLast(blockClone.FirstChild);
 
@@ -195,8 +198,10 @@ namespace JSIL {
                         while (transplant != null) {
                             var nextTransplant = transplant.NextSibling;
 
-                            transplant.Remove();
-                            newSection.Add((Statement)transplant);
+                            var tstmt = (Statement)transplant;
+
+                            tstmt.Remove();
+                            newSection.Add(tstmt);
 
                             transplant = nextTransplant;
                         }
@@ -292,8 +297,7 @@ namespace JSIL {
             }
 
             if (selfContained && (c > 0)) {
-                // Console.WriteLine("Transforming block into goto emulator: {0}", info);
-                info.TransformLabels();
+                info.TransformLabels(context);
             } else if (parentBlock != null) {
                 parentBlock.ChildBlocks.Add(info);
             } else if (c > 0) {

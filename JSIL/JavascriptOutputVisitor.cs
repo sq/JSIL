@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Runtime.CompilerServices;
+using System.Text;
 using ICSharpCode.Decompiler.Ast;
 using ICSharpCode.NRefactory.CSharp;
-using ICSharpCode.NRefactory.CSharp.PatternMatching;
 using JSIL.Transforms;
 using Mono.Cecil;
 using Attribute = ICSharpCode.NRefactory.CSharp.Attribute;
@@ -429,10 +429,10 @@ namespace JSIL.Internal {
 
                 CloseBrace(BraceStyle.NextLine);
 
-                RPar();
-                Space();
-
                 LPar();
+                RPar();
+
+                Space();
                 RPar();
 
                 Semicolon();
@@ -443,6 +443,57 @@ namespace JSIL.Internal {
                 BaseTypeStack.Pop();
 
             return EndNode(typeDeclaration);
+        }
+
+        protected override void WritePrimitiveValue (object val) {
+            if (val == null) {
+                WriteKeyword("null");
+                return;
+            }
+
+            if (val is bool) {
+                if ((bool)val) {
+                    WriteKeyword("true");
+                } else {
+                    WriteKeyword("false");
+                }
+                return;
+            }
+
+            if (val is string) {
+                formatter.WriteToken("\"" + ConvertString(val.ToString()) + "\"");
+                lastWritten = LastWritten.Other;
+            } else if (val is char) {
+                formatter.WriteToken("\"" + ConvertChar((char)val) + "\"");
+                lastWritten = LastWritten.Other;
+            } else {
+                if ((val is double) || (val is float) || (val is decimal)) {
+                    double f = Convert.ToDouble(val);
+                    if (double.IsPositiveInfinity(f)) {
+                        WriteIdentifier("Number.POSITIVE_INFINITY");
+                        return;
+                    } else if (double.IsNegativeInfinity(f)) {
+                        WriteIdentifier("Number.NEGATIVE_INFINITY");
+                        return;
+                    } else if (double.IsNaN(f)) {
+                        WriteIdentifier("Number.NaN");
+                        return;
+                    } else {
+                        // Use numeric round-trip format to preserve accuracy
+                        formatter.WriteToken(f.ToString("R"));
+                        lastWritten = LastWritten.Other;
+                        return;
+                    }
+                } else if (val is IFormattable) {
+                    StringBuilder b = new StringBuilder();
+                    b.Append(((IFormattable)val).ToString(null, NumberFormatInfo.InvariantInfo));
+                    formatter.WriteToken(b.ToString());
+                } else {
+                    formatter.WriteToken(val.ToString());
+                }
+
+                lastWritten = LastWritten.Other;
+            }
         }
 
         protected bool TypeDerivesFrom (TypeReference haystack, string needleFullName) {
@@ -976,7 +1027,9 @@ namespace JSIL.Internal {
 
         public override object VisitVariableDeclarationStatement (VariableDeclarationStatement variableDeclarationStatement, object data) {
             StartNode(variableDeclarationStatement);
-            WriteKeyword("var");
+
+            WriteKeyword("let");
+
             Space();
             WriteCommaSeparatedList(variableDeclarationStatement.Variables);
             Semicolon();
@@ -1268,6 +1321,35 @@ namespace JSIL.Internal {
 
             catchClause.Body.AcceptVisitor(this, data);
             return EndNode(catchClause);
+        }
+
+        public override object VisitForeachStatement (ForeachStatement foreachStatement, object data) {
+            StartNode(foreachStatement);
+
+            var fieldReference = foreachStatement.InExpression.Annotation<FieldReference>();
+            var propertyReference = foreachStatement.InExpression.Annotation<PropertyReference>();
+
+            TypeReference sequenceType = null;
+            if (fieldReference != null)
+                sequenceType = fieldReference.FieldType;
+            else if (propertyReference != null)
+                sequenceType = propertyReference.PropertyType;
+
+            if (sequenceType.IsArray) {
+                Debugger.Break();
+            }
+
+            WriteKeyword("foreach");
+            Space();
+            LPar();
+            WriteIdentifier(foreachStatement.VariableName);
+            WriteKeyword("in", ForeachStatement.Roles.InKeyword);
+            Space();
+            foreachStatement.InExpression.AcceptVisitor(this, data);
+            RPar();
+            foreachStatement.EmbeddedStatement.AcceptVisitor(this, data);
+            Semicolon();
+            return EndNode(foreachStatement);
         }
     }
 }
