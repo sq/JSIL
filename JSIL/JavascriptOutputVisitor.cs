@@ -751,8 +751,10 @@ namespace JSIL.Internal {
             if (data as string != "nobraces")
                 OpenBrace(BraceStyle.EndOfLine);
 
+            // Important not to pass on the value of 'data', since if we got 'nobraces' or 'method'
+            //  that shouldn't recurse
             foreach (var node in blockStatement.Statements)
-                node.AcceptVisitor(this, data);
+                node.AcceptVisitor(this, null);
 
             if (data as string != "nobraces") {
                 CloseBrace(BraceStyle.NextLine);
@@ -1333,11 +1335,7 @@ namespace JSIL.Internal {
             else if (propertyReference != null)
                 sequenceType = propertyReference.PropertyType;
 
-            if (sequenceType.IsArray) {
-                Debugger.Break();
-            }
-
-            WriteKeyword("foreach");
+            WriteKeyword("");
             Space();
             LPar();
             WriteIdentifier(foreachStatement.VariableName);

@@ -27,6 +27,7 @@ System.Object.prototype.toString = function ToString () {
 JSIL.Array = {};
 JSIL.Array.New = function (type, sizeOrInitializer) {
     var size = Number(sizeOrInitializer);
+
     if (isNaN(size)) {
         // If non-numeric, assume array initializer
         var result = new Array(sizeOrInitializer.length);
@@ -37,9 +38,9 @@ JSIL.Array.New = function (type, sizeOrInitializer) {
     }
 
     /* Even worse, doing this deoptimizes all uses of the array in TraceMonkey. AUGH
-      // Can't do this the right way, because .prototype for arrays in JS is insanely busted
-      result.__TypeName__ = type.__TypeName__ + "[]";
-      result.toString = System.Object.prototype.toString;
+    // Can't do this the right way, because .prototype for arrays in JS is insanely busted
+    result.__TypeName__ = type.__TypeName__ + "[]";
+    result.toString = System.Object.prototype.toString;
     */
 
     return result;
@@ -127,6 +128,45 @@ System.String.Format = function (format) {
     };
 
     return format.replace(regex, matcher);
+};
+
+JSIL.ArrayEnumerator = function (array) {
+    this._array = array;
+    this._length = array.length;
+    this._index = -1;
+};
+JSIL.ArrayEnumerator.prototype = JSIL.CloneObject(System.Object.prototype);
+JSIL.ArrayEnumerator.prototype.MoveNext = function () {
+    if (this._index >= this._length)
+        return false;
+
+    this._index += 1;
+    return (this._index < this._length);
+};
+JSIL.ArrayEnumerator.prototype.get_Current = function () {
+    return this._array[this._index];
+};
+Object.defineProperty(
+    JSIL.ArrayEnumerator.prototype, "Current",
+    { get: JSIL.ArrayEnumerator.prototype.get_Current }
+);
+
+System.Collections = {}
+System.Collections.Generic = {};
+System.Collections.Generic.List$bt1 = function (sizeOrInitializer) {
+    var size = Number(sizeOrInitializer);
+
+    if (isNaN(size)) {
+        this.Items = new Array();
+        this.Items.push.apply(this.Items, sizeOrInitializer);
+    } else {
+        this.Items = new Array(size);
+    }
+};
+System.Collections.Generic.List$bt1.prototype = JSIL.CloneObject(System.Object.prototype);
+System.Collections.Generic.List$bt1.prototype.__TypeName__ = "System.Collections.Generic.List`1";
+System.Collections.Generic.List$bt1.prototype.GetEnumerator = function () {
+    return new JSIL.ArrayEnumerator(this.Items);
 };
 
 System.Math = {};

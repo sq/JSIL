@@ -61,6 +61,7 @@ namespace JSIL {
                 new DynamicCallSites(context),
                 new ReplacementFinder(context),
                 new ParameterModifierTransformer(context),
+                new ForeachTranslator(context),
                 new JumpTargeter(context),
                 new GotoConverter(context),
             };

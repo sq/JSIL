@@ -61,6 +61,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ForeachTranslator.cs" />
     <Compile Include="DeclarationHoister.cs" />
     <Compile Include="DynamicExpression.cs" />
     <Compile Include="DynamicCallSites.cs" />

@@ -74,7 +74,7 @@ namespace JSIL.Tests {
         public const float JavascriptExecutionTimeout = 30.0f;
 
         public static readonly Regex ElapsedRegex = new Regex(
-            @"// Elapsed time: (?'elapsed'[0-9]*(\.[0-9]*)?) ms", RegexOptions.Compiled | RegexOptions.ExplicitCapture
+            @"runtime = (?'elapsed'[0-9]*(\.[0-9]*)?) ms", RegexOptions.Compiled | RegexOptions.ExplicitCapture
         );
 
         protected TempFileCollection TemporaryFiles;
@@ -149,15 +149,7 @@ namespace JSIL.Tests {
             }
 
             var invocationJs = String.Format(
-                @"
-timeout({0});
-var startedAt = dateNow();
-
-{1}.Main({2});
-
-var endedAt = dateNow();
-System.Console.WriteLine('// Elapsed time: {{0}} ms', endedAt - startedAt);
-                ", 
+                @"timeout({0}); {1}.Main({2});", 
                 JavascriptExecutionTimeout, declaringType, argsJson
             );
 
@@ -169,7 +161,7 @@ System.Console.WriteLine('// Elapsed time: {{0}} ms', endedAt - startedAt);
             try {
                 // throw new Exception();
 
-                var psi = new ProcessStartInfo(JSShellPath, String.Format("-j -m -f {0}", tempFilename)) {
+                var psi = new ProcessStartInfo(JSShellPath, String.Format("-j -m -b -f {0}", tempFilename)) {
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,
