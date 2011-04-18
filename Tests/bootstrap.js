@@ -111,6 +111,37 @@ JSIL.Array.New = function (type, sizeOrInitializer) {
   return result;
 };
 
+JSIL.JaggedArray = {};
+JSIL.JaggedArray.New = function (type) {
+  var numDimensions = arguments.length - 1;
+  if (numDimensions < 1)
+    throw new Error("Must provide at least one dimension");
+  else if (numDimensions == 1)
+    return JSIL.Array.New(type, arguments[1]);
+
+  var dimensions = Array.prototype.slice.call(arguments, 1);
+  var dimension = Number(dimensions[0]);
+
+  var result = new Array(dimension);
+  result.GetLength = function (i) {
+    return dimensions[i];
+  };
+  result.GetLowerBound = function (i) {
+    return 0;
+  };
+  result.GetUpperBound = function (i) {
+    return dimensions[i] - 1;
+  };
+
+  for (var i = 0; i < dimension; i++) {
+    result[i] = JSIL.JaggedArray.New(
+      type, Array.prototype.slice.call(dimensions, 1)
+    );
+  }
+
+  return result;
+};
+
 JSIL.Cast = function (value, expectedType) {
   return value;
 };

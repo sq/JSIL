@@ -804,6 +804,20 @@ namespace JSIL.Internal {
             return EndNode(arrayCreateExpression);
         }
 
+        public override object VisitIndexerExpression (IndexerExpression indexerExpression, object data) {
+            StartNode(indexerExpression);
+
+            indexerExpression.Target.AcceptVisitor(this, data);
+
+            foreach (var arg in indexerExpression.Arguments) {
+                WriteToken("[", null);
+                arg.AcceptVisitor(this, data);
+                WriteToken("]", null);
+            }
+
+            return EndNode(indexerExpression);
+        }
+
         public override object VisitPrimitiveType (PrimitiveType primitiveType, object data) {
             Type type;
             if (AstType.PrimitiveTypeToType.TryGetValue(primitiveType.Keyword, out type)) {
