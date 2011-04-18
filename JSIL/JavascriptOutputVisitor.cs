@@ -408,6 +408,35 @@ namespace JSIL.Internal {
             return EndNode(namespaceDeclaration);
         }
 
+        protected void WriteTypeList (AstNode parent, IEnumerable<ParameterDeclaration> parameters) {
+            var temporaryRole = new Role<AstType>("temporary");
+            bool isFirst = true;
+            foreach (var parameter in parameters) {
+                if (!isFirst) {
+                    WriteToken(",", null);
+                    Space();
+                }
+
+                var type = (AstType)parameter.Type.Clone();
+                var ct = type as ComposedType;
+
+                parent.AddChild(type, temporaryRole);
+
+                if ((ct != null) && ct.ArraySpecifiers.Count > 0) {
+                    WriteIdentifier("System.Array.Of");
+                    LPar();
+                    StartNode(ct);
+                    ct.BaseType.AcceptVisitor(this, null);
+                    EndNode(ct);
+                    RPar();
+                } else {
+                    type.AcceptVisitor(this, null);
+                }
+
+                isFirst = false;
+            }
+        }
+
         public override object VisitTypeDeclaration (TypeDeclaration typeDeclaration, object data) {
             if (IsIgnored(typeDeclaration))
                 return null;
@@ -512,7 +541,6 @@ namespace JSIL.Internal {
                         member.AcceptVisitor(this, data);
                     }
 
-                    var temporaryRole = new Role<AstType>("temporary");
                     if (instanceConstructors.Length > 1) {
                         WriteKeyword("var", null);
                         Space();
@@ -550,20 +578,7 @@ namespace JSIL.Internal {
                             Space();
 
                             WriteToken("[", null);
-
-                            bool isFirst = true;
-                            foreach (var parameter in ic.Parameters) {
-                                if (!isFirst) {
-                                    WriteToken(",", null);
-                                    Space();
-                                }
-
-                                var type = (AstType)parameter.Type.Clone();
-                                ic.AddChild(type, temporaryRole);
-                                type.AcceptVisitor(this, null);
-                                isFirst = false;
-                            }
-
+                            WriteTypeList(ic, ic.Parameters);
                             WriteToken("]", null);
 
                             EndNode(ic);
@@ -779,7 +794,7 @@ namespace JSIL.Internal {
             StartNode(arrayCreateExpression);
 
             WriteIdentifier(
-                (arrayCreateExpression.Arguments.Count > 1) ? "JSIL.JaggedArray.New" : "JSIL.Array.New"
+                (arrayCreateExpression.Arguments.Count > 1) ? "JSIL.JaggedArray.New" : "System.Array.New"
             );
             LPar();
 
@@ -1350,21 +1365,9 @@ namespace JSIL.Internal {
                 Space();
 
                 WriteToken("[", null);
-                isFirst2 = true;
-
-                foreach (var parameter in overload.Parameters) {
-                    if (!isFirst2) {
-                        WriteToken(",", null);
-                        Space();
-                    }
-
-                    var type = (AstType)parameter.Type.Clone();
-                    methodDeclaration.AddChild(type, temporaryRole);
-                    type.AcceptVisitor(this, null);
-                    isFirst2 = false;
-                }
-
+                WriteTypeList(methodDeclaration, overload.Parameters);
                 WriteToken("]", null);
+
                 WriteToken("]", null);
                 isFirst = false;
             }

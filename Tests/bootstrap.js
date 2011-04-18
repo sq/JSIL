@@ -91,8 +91,20 @@ System.Object.prototype.toString = function ToString() {
   return this.__TypeName__;
 };
 
-JSIL.Array = {};
-JSIL.Array.New = function (type, sizeOrInitializer) {
+System.Array = {};
+System.Array.prototype = JSIL.MakeProto(System.Object, "System.Array");
+System.Array.Types = {};
+System.Array.Of = function (type) {
+  var compositeType = System.Array.Types[type];
+  if (typeof (compositeType) == "undefined") {
+    var typeName = type.__TypeName__ + "[]";
+    compositeType = JSIL.MakeProto(System.Array, typeName);
+    System.Array.Types[type] = compositeType;
+  }
+
+  return compositeType;
+};
+System.Array.New = function (type, sizeOrInitializer) {
   if (Array.isArray(sizeOrInitializer)) {
     // If non-numeric, assume array initializer
     var result = new Array(sizeOrInitializer.length);
@@ -117,7 +129,7 @@ JSIL.JaggedArray.New = function (type) {
   if (numDimensions < 1)
     throw new Error("Must provide at least one dimension");
   else if (numDimensions == 1)
-    return JSIL.Array.New(type, arguments[1]);
+    return System.Array.New(type, arguments[1]);
 
   var dimensions = Array.prototype.slice.call(arguments, 1);
   var dimension = Number(dimensions[0]);
