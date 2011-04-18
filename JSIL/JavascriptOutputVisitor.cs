@@ -3,19 +3,14 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Text;
-using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.Ast;
-using ICSharpCode.Decompiler.Ast.Transforms;
 using ICSharpCode.NRefactory.CSharp;
 using JSIL.Transforms;
 using Mono.Cecil;
-using Attribute = ICSharpCode.NRefactory.CSharp.Attribute;
 using JSIL.Expressions;
-using DynamicExpression = JSIL.Expressions.DynamicExpression;
-using Expression = ICSharpCode.NRefactory.CSharp.Expression;
-using InvocationExpression = ICSharpCode.NRefactory.CSharp.InvocationExpression;
+
+using ExpressionType = System.Linq.Expressions.ExpressionType;
 
 namespace JSIL.Internal {
     public class JavascriptOutputVisitor 
@@ -55,6 +50,10 @@ namespace JSIL.Internal {
             ));
         }
 
+        protected string GenerateName (EventDeclaration evt) {
+            return "_" + evt.Annotation<EventDefinition>().Name;
+        }
+
         protected string GenerateName (MethodDeclaration method) {
             var omd = method as OverloadedMethodDeclaration;
 
@@ -91,7 +90,7 @@ namespace JSIL.Internal {
             return null;
         }
 
-        public override object VisitAttribute (Attribute attribute, object data) {
+        public override object VisitAttribute (ICSharpCode.NRefactory.CSharp.Attribute attribute, object data) {
             return null;
         }
 
@@ -138,7 +137,39 @@ namespace JSIL.Internal {
             }
         }
 
+        protected bool IsStatic (PropertyDefinition property) {
+            if ((property.GetMethod != null) && (property.GetMethod.IsStatic))
+                return true;
+            if ((property.SetMethod != null) && (property.SetMethod.IsStatic))
+                return true;
+
+            return false;
+        }
+
+        protected bool IsStatic (EventDefinition property) {
+            if ((property.AddMethod != null) && (property.AddMethod.IsStatic))
+                return true;
+            if ((property.RemoveMethod != null) && (property.RemoveMethod.IsStatic))
+                return true;
+
+            return false;
+        }
+
         protected bool IsStatic (AttributedNode node) {
+            if (node.Modifiers.HasFlag(Modifiers.Static)) {
+                return true;
+            } else if (
+                 node is FieldDeclaration &&
+                 node.Annotation<FieldReference>().Resolve()
+                     .Attributes.HasFlag(FieldAttributes.Static)
+             ) {
+                return true;
+            }
+
+            return false;
+        }
+
+        protected bool EmitInSecondPass (AttributedNode node) {
             if (node is TypeDeclaration)
                 return true;
             else if (node.Modifiers.HasFlag(Modifiers.Static))
@@ -151,6 +182,8 @@ namespace JSIL.Internal {
                 return true;
             } else if (node is PropertyDeclaration) {
                 return true;
+            } else if (node is EventDeclaration) {
+                return false;
             }
 
             return false;
@@ -240,8 +273,6 @@ namespace JSIL.Internal {
         }
 
         protected void EmitInitialTypeDeclaration (TypeDeclaration typeDeclaration) {
-            StartNode(typeDeclaration);
-
             bool isStatic = typeDeclaration.Modifiers.HasFlag(Modifiers.Static);
             var typeReference = typeDeclaration.Annotation<TypeReference>();
 
@@ -296,8 +327,6 @@ namespace JSIL.Internal {
             CloseBrace(BraceStyle.NextLine);
             Semicolon();
             NewLine();
-
-            EndNode(typeDeclaration);
         }
 
         class InitialTypeDeclarer : DepthFirstAstVisitor<object, object> {
@@ -333,9 +362,13 @@ namespace JSIL.Internal {
                 if (Parent.IsIgnored(typeDeclaration.Attributes))
                     return null;
 
+                Parent.StartNode(typeDeclaration);
+
                 Parent.EmitInitialTypeDeclaration(typeDeclaration);
 
-                return base.VisitTypeDeclaration(typeDeclaration, data);
+                base.VisitTypeDeclaration(typeDeclaration, data);
+
+                return Parent.EndNode(typeDeclaration);
             }
 
             public override object VisitMethodDeclaration (MethodDeclaration methodDeclaration, object data) {
@@ -466,7 +499,7 @@ namespace JSIL.Internal {
                                 member, (member as PropertyDeclaration).Annotation<PropertyDefinition>()
                             );
                             continue;
-                        } else if (IsStatic(member))
+                        } else if (EmitInSecondPass(member))
                             continue;
 
                         member.AcceptVisitor(this, data);
@@ -571,7 +604,12 @@ namespace JSIL.Internal {
                         ;
                     else if (member is ConstructorDeclaration)
                         continue;
-                    else if (!IsStatic(member))
+                    else if (member is EventDeclaration) {
+                        EmitEventMethods(
+                            member, (member as EventDeclaration).Annotation<EventDefinition>()
+                        );
+                        continue;
+                    } else if (!EmitInSecondPass(member))
                         continue;
 
                     member.AcceptVisitor(this, data);
@@ -733,7 +771,9 @@ namespace JSIL.Internal {
         public override object VisitArrayCreateExpression (ArrayCreateExpression arrayCreateExpression, object data) {
             StartNode(arrayCreateExpression);
 
-            WriteIdentifier("JSIL.Array.New");
+            WriteIdentifier(
+                (arrayCreateExpression.Arguments.Count > 1) ? "JSIL.JaggedArray.New" : "JSIL.Array.New"
+            );
             LPar();
 
             arrayCreateExpression.Type.AcceptVisitor(this, null);
@@ -748,10 +788,9 @@ namespace JSIL.Internal {
                 EndNode(arrayCreateExpression.Initializer);
 
                 WriteToken("]", null);
-            } else if (arrayCreateExpression.Arguments.Count > 1)
-                throw new NotImplementedException("Multidimensional arrays are not supported");
-            else if (arrayCreateExpression.Arguments.Count > 0)
+            } else {
                 WriteCommaSeparatedList(arrayCreateExpression.Arguments);
+            }
 
             RPar();
 
@@ -805,7 +844,7 @@ namespace JSIL.Internal {
             return EndNode(memberReferenceExpression);
         }
 
-        public override object VisitDefaultValueExpression (DefaultValueExpression defaultValueExpression, object data) {
+        public override object VisitDefaultValueExpression (ICSharpCode.NRefactory.CSharp.DefaultValueExpression defaultValueExpression, object data) {
             StartNode(defaultValueExpression);
 
             EmitNewExpression(defaultValueExpression.Type);
@@ -856,11 +895,20 @@ namespace JSIL.Internal {
             bool isField = variableInitializer.Parent is FieldDeclaration;
             bool isNull = variableInitializer.Initializer.IsNull;
             Expression fakeInitializer = null;
+            TypeReference variableType = null;
 
-            if (isNull && isField) {
+            if (isField) {
                 var fieldRef = variableInitializer.Parent.Annotation<FieldReference>();
-                isNull = false;
-                fakeInitializer = AstMethodBodyBuilder.MakeDefaultValue(fieldRef.FieldType);
+                variableType = fieldRef.FieldType;
+                if (isNull) {
+                    isNull = false;
+                    fakeInitializer = AstMethodBodyBuilder.MakeDefaultValue(fieldRef.FieldType);
+                }
+            } else if (variableInitializer.Parent is VariableDeclarationStatement) {
+                var vds = (VariableDeclarationStatement)variableInitializer.Parent;
+                variableType = vds.Type.Annotation<TypeReference>();
+            } else {
+                Debugger.Break();
             }
 
             var mvi = variableInitializer as ModifiedVariableInitializer;
@@ -888,7 +936,19 @@ namespace JSIL.Internal {
                     variableInitializer.AddChild(fakeInitializer, new Role<Expression>("temporary"));
                     fakeInitializer.AcceptVisitor(this, null);
                 } else {
-                    variableInitializer.Initializer.AcceptVisitor(this, null);
+                    if (TypeIsDelegate(variableType) && 
+                        (variableInitializer.Initializer is AnonymousMethodExpression)
+                    ) {
+                        WriteIdentifier("System.Delegate.New");
+                        LPar();
+                        WritePrimitiveValue(variableType.FullName);
+                        WriteToken(",", null);
+                        Space();
+                        variableInitializer.Initializer.AcceptVisitor(this, null);
+                        RPar();
+                    } else {
+                        variableInitializer.Initializer.AcceptVisitor(this, null);
+                    }
                 }
 
                 if (mvi != null)
@@ -969,6 +1029,31 @@ namespace JSIL.Internal {
             return EndNode(fieldDeclaration);
         }
 
+        public override object VisitEventDeclaration (EventDeclaration eventDeclaration, object data) {
+            if (IsIgnored(eventDeclaration.Attributes))
+                return null;
+
+            StartNode(eventDeclaration);
+
+            var eventDefinition = eventDeclaration.Annotation<EventDefinition>();
+            var eventField = eventDeclaration.Annotation<FieldDefinition>();
+            var declaringType = eventDefinition.DeclaringType;
+            bool isStatic = IsStatic(eventDefinition);
+
+            WriteThisReference(declaringType, isStatic);
+
+            WriteToken(".", null);
+            WriteIdentifier(Util.EscapeIdentifier(eventDefinition.Name));
+            Space();
+            WriteToken("=", null);
+            Space();
+
+            WriteKeyword("null");
+            Semicolon();
+
+            return EndNode(eventDeclaration);
+        }
+
         public override object VisitPropertyDeclaration (PropertyDeclaration propertyDeclaration, object data) {
             if (IsIgnored(propertyDeclaration.Attributes))
                 return null;
@@ -977,7 +1062,7 @@ namespace JSIL.Internal {
 
             var rawValue = propertyDeclaration.Annotation<PrimitiveExpression>();
             if (rawValue != null) {
-                // If the property is annotative with a primitive expression, it was replaced with JSReplacement
+                // If the property is annotated with a primitive expression, it was replaced with JSReplacement
                 var originalMethod = propertyDeclaration.Annotation<MethodDeclaration>();
                 WriteIdentifier(originalMethod.Annotation<MethodDefinition>().DeclaringType);
 
@@ -996,11 +1081,14 @@ namespace JSIL.Internal {
 
             var propertyDefinition = propertyDeclaration.Annotation<PropertyDefinition>();
             var declaringType = propertyDefinition.DeclaringType;
-            bool isStatic = propertyDefinition.GetMethod.IsStatic || propertyDefinition.SetMethod.IsStatic;
-            bool isAutoProperty = propertyDefinition.GetMethod.CustomAttributes.Concat(
-                    propertyDefinition.SetMethod.CustomAttributes
-                ).Where((ca) => ca.AttributeType.Name == "CompilerGeneratedAttribute")
-                .Count() > 0;
+            bool isStatic = IsStatic(propertyDefinition);
+
+            IEnumerable<CustomAttribute> cas = new CustomAttribute[0];
+            if (propertyDefinition.GetMethod != null)
+                cas = cas.Concat(propertyDefinition.GetMethod.CustomAttributes);
+            if (propertyDefinition.SetMethod != null)
+                cas = cas.Concat(propertyDefinition.SetMethod.CustomAttributes);
+            bool isAutoProperty = cas.Where((ca) => ca.AttributeType.Name == "CompilerGeneratedAttribute").Count() > 0;
 
             // Generate the accessor methods
             foreach (AstNode node in propertyDeclaration.Children) {
@@ -1083,11 +1171,14 @@ namespace JSIL.Internal {
             StartNode(node);
 
             var declaringType = propertyDefinition.DeclaringType;
-            bool isStatic = propertyDefinition.GetMethod.IsStatic || propertyDefinition.SetMethod.IsStatic;
-            bool isAutoProperty = propertyDefinition.GetMethod.CustomAttributes.Concat(
-                    propertyDefinition.SetMethod.CustomAttributes
-                ).Where((ca) => ca.AttributeType.Name == "CompilerGeneratedAttribute")
-                .Count() > 0;
+            bool isStatic = IsStatic(propertyDefinition);
+
+            IEnumerable<CustomAttribute> cas = new CustomAttribute[0];
+            if (propertyDefinition.GetMethod != null)
+                cas = cas.Concat(propertyDefinition.GetMethod.CustomAttributes);
+            if (propertyDefinition.SetMethod != null)
+                cas = cas.Concat(propertyDefinition.SetMethod.CustomAttributes);
+            bool isAutoProperty = cas.Where((ca) => ca.AttributeType.Name == "CompilerGeneratedAttribute").Count() > 0;
 
             bool isValueType = (propertyDefinition.PropertyType.IsPrimitive) || 
                 (propertyDefinition.PropertyType.IsValueType);
@@ -1114,6 +1205,92 @@ namespace JSIL.Internal {
             }
 
             return EndNode(node);
+        }
+
+        protected bool EmitEventMethods (AttributedNode node, EventDefinition eventDefinition) {
+            if (IsIgnored(node.Attributes))
+                return false;
+
+            StartNode(node);
+
+            var temporaryRole = new Role<BlockStatement>("temporary");
+            var declaringType = eventDefinition.DeclaringType;
+            bool isStatic = IsStatic(eventDefinition);
+
+            Action<string, Action> emitBody = (prefix, f) => {
+                WriteIdentifier(declaringType);
+                if (!IsStatic(eventDefinition)) {
+                    WriteToken(".", null);
+                    WriteIdentifier("prototype");
+                }
+
+                WriteToken(".", null);
+                WriteIdentifier(Util.EscapeIdentifier(String.Format("{0}_{1}", prefix, eventDefinition.Name)));
+
+                Space();
+                WriteToken("=", null);
+                Space();
+
+                WriteKeyword("function");
+                Space();
+                LPar();
+                WriteIdentifier("value");
+                RPar();
+                OpenBrace(BraceStyle.EndOfLine);
+
+                f();
+
+                CloseBrace(BraceStyle.NextLine);
+                Semicolon();
+            };
+
+            Action emitStorageRef = () => {
+                WriteKeyword("this");
+                WriteToken(".", null);
+                WriteIdentifier(Util.EscapeIdentifier(eventDefinition.Name));
+            };
+
+            emitBody("add", () => {
+                emitStorageRef();
+
+                Space();
+                WriteToken("=", null);
+                Space();
+
+                WriteIdentifier("System.Delegate.Combine");
+                LPar();
+
+                emitStorageRef();
+                WriteToken(",", null);
+                Space();
+
+                WriteIdentifier("value");
+                RPar();
+                Semicolon();
+            });
+
+            emitBody("remove", () => {
+                emitStorageRef();
+
+                Space();
+                WriteToken("=", null);
+                Space();
+
+                WriteIdentifier("System.Delegate.Remove");
+                LPar();
+
+                emitStorageRef();
+                WriteToken(",", null);
+                Space();
+
+                WriteIdentifier("value");
+                RPar();
+                Semicolon();
+            });
+
+            EndNode(node);
+
+            return false;
         }
 
         protected void EmitOverloadDispatcher (TypeReference declaringType, OverloadDispatcherMethodDeclaration methodDeclaration) {
@@ -1182,31 +1359,50 @@ namespace JSIL.Internal {
         public override object VisitAccessor (Accessor accessor, object data) {
             StartNode(accessor);
             string prefix;
+            bool isStatic;
+
+            var propertyDefinition = accessor.Parent.Annotation<PropertyDefinition>();
+            var eventDefinition = accessor.Parent.Annotation<EventDefinition>();
+            var memberName = ((MemberReference)propertyDefinition ?? (MemberReference)eventDefinition).Name;
 
             if (accessor.Role == PropertyDeclaration.GetterRole) {
                 prefix = "get";
+                isStatic = IsStatic(propertyDefinition);
             } else if (accessor.Role == PropertyDeclaration.SetterRole) {
                 prefix = "set";
+                isStatic = IsStatic(propertyDefinition);
+            } else if (accessor.Role == CustomEventDeclaration.AddAccessorRole) {
+                prefix = "add";
+                isStatic = IsStatic(eventDefinition);
+            } else if (accessor.Role == CustomEventDeclaration.RemoveAccessorRole) {
+                prefix = "remove";
+                isStatic = IsStatic(eventDefinition);
             } else {
                 throw new NotImplementedException();
             }
 
-            var propertyDefinition = accessor.Parent.Annotation<PropertyDefinition>();
-            var methodName = String.Format("{0}_{1}", prefix, propertyDefinition.Name);
-            var declaringType = propertyDefinition.DeclaringType;
-            var storageName = Util.EscapeIdentifier(
-                String.Format("{0}.value", propertyDefinition.Name)
+            var methodName = String.Format(
+                "{0}_{1}", prefix, memberName
             );
-            bool isStatic = propertyDefinition.GetMethod.IsStatic || propertyDefinition.SetMethod.IsStatic;
+            TypeDefinition declaringType;
+
+            if (propertyDefinition != null)
+                declaringType = propertyDefinition.DeclaringType;
+            else if (eventDefinition != null)
+                declaringType = eventDefinition.DeclaringType;
+            else
+                throw new NotImplementedException();
+
+            var storageName = Util.EscapeIdentifier(
+                String.Format("{0}.value", memberName)
+            );
 
             if (!isStatic) {
                 WriteIdentifier(declaringType);
                 WriteToken(".", null);
                 WriteIdentifier("prototype");
             } else {
-                WriteThisReference(
-                    declaringType, isStatic
-                );
+                WriteThisReference(declaringType, isStatic);
             }
 
             WriteToken(".", null);
@@ -1252,6 +1448,8 @@ namespace JSIL.Internal {
                     WriteIdentifier("value");
 
                     Semicolon();
+                } else {
+                    throw new NotImplementedException();
                 }
 
                 CloseBrace(BraceStyle.NextLine);
@@ -1297,7 +1495,7 @@ namespace JSIL.Internal {
                 WriteKeyword("this");
         }
 
-        public override object VisitAnonymousMethodExpression (AnonymousMethodExpression anonymousMethodExpression, object data) {
+        public override object VisitAnonymousMethodExpression (ICSharpCode.NRefactory.CSharp.AnonymousMethodExpression anonymousMethodExpression, object data) {
             StartNode(anonymousMethodExpression);
             WriteKeyword("function");
             Space();
@@ -1478,8 +1676,26 @@ namespace JSIL.Internal {
             throw new NotImplementedException("Operator " + name + " not implemented.");
         }
 
+        protected bool TypeIsDelegate (TypeReference typeReference) {
+            if (typeReference == null)
+                return false;
+
+            var td = typeReference.Resolve();
+            if ((td.BaseType.FullName == "System.Delegate") || (td.BaseType.FullName == "System.MulticastDelegate"))
+                return true;
+
+            return false;
+        }
+
         public override object VisitCastExpression (CastExpression castExpression, object data) {
             StartNode(castExpression);
+
+            var tr = castExpression.Type.Annotation<TypeReference>();
+            if (TypeIsDelegate(tr)) {
+                castExpression.Expression.AcceptVisitor(this, null);
+
+                return EndNode(castExpression);
+            }
 
             WriteIdentifier("JSIL.Cast");
             LPar();
@@ -1492,7 +1708,7 @@ namespace JSIL.Internal {
             return EndNode(castExpression);
         }
 
-        public object VisitDynamicExpression (DynamicExpression dynamicExpression, object data) {
+        public object VisitDynamicExpression (JSIL.Expressions.DynamicExpression dynamicExpression, object data) {
             StartNode(dynamicExpression);
 
             switch (dynamicExpression.CallSiteType) {

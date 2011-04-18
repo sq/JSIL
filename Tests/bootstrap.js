@@ -123,6 +123,50 @@ JSIL.Dynamic.Cast = function (value, expectedType) {
 System.Delegate = {};
 System.Delegate.prototype = JSIL.MakeProto(Function, "System.Delegate");
 System.Delegate.prototype.toString = System.Object.prototype.toString;
+System.Delegate.prototype.GetInvocationList = function () {
+  return [ this ];
+};
+System.Delegate.Combine = function (lhs, rhs) {
+  if (rhs === null) {
+    return lhs;
+  } else if (lhs === null) {
+    return rhs;
+  }
+
+  var newList = Array.prototype.slice.call(lhs.GetInvocationList());
+  newList.push.apply(newList, rhs.GetInvocationList());
+  var result = System.MulticastDelegate.New(newList);
+  return result;
+};
+System.Delegate.Remove = function (lhs, rhs) {
+  if (rhs === null)
+    return lhs;
+
+  var newList = Array.prototype.slice.call(lhs.GetInvocationList());
+  var rhsList = rhs.GetInvocationList();
+
+  for (var i = 0; i < rhsList.length; i++) {
+    var needle = rhsList[i];
+
+    __inner:
+    for (var j = 0; j < newList.length; j++) {
+      var haystack = newList[j];
+      if ((haystack.__method__ === needle.__method__) &&
+          (haystack.__object__ === needle.__object__)
+      ) {
+        newList.splice(j, 1);
+        break __inner;
+      }
+    }
+  }
+
+  if (newList.length == 0)
+    return null;
+  else if (newList.length == 1)
+    return newList[0];
+  else
+    return System.MulticastDelegate.New(newList);
+};
 System.Delegate.Types = {};
 System.Delegate.New = function (typeName, object, method) {
   var proto = System.Delegate.Types[typeName];
@@ -132,11 +176,48 @@ System.Delegate.New = function (typeName, object, method) {
     System.Delegate.Types[typeName] = proto;
   }
 
+  if ((typeof (method) == "undefined") &&
+      (typeof (object) == "function")
+  ) {
+    method = object;
+    object = null;
+
+    if (method.__TypeName__ == typeName)
+      return method;
+  }
+
   var result = method.bind(object);
+
   result.__proto__ = proto;
+  result.__object__ = object;
+  result.__method__ = method;
+
   Object.seal(result);
   return result;
 }
+
+System.MulticastDelegate = {}
+System.MulticastDelegate.prototype = JSIL.MakeProto(System.Delegate, "System.MulticastDelegate");
+System.MulticastDelegate.prototype.GetInvocationList = function () {
+  return this.delegates;
+};
+System.MulticastDelegate.Combine = System.Delegate.Combine;
+System.MulticastDelegate.Remove = System.Delegate.Remove;
+System.MulticastDelegate.Invoke = function () {
+  var result;
+  for (var i = 0; i < this.length; i++) {
+    var d = this[i];
+    result = d.apply(null, arguments);
+  }
+  return result;
+};
+System.MulticastDelegate.New = function (delegates) {
+  var result = System.MulticastDelegate.Invoke.bind(delegates);
+  result.delegates = delegates;
+  result.__proto__ = System.MulticastDelegate.prototype;
+  Object.seal(result);
+  return result;
+};
 
 System.Exception = function (message) {
   this.__ctor(message);

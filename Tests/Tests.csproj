@@ -96,6 +96,8 @@
     <None Include="SimpleTestCases\OverloadedMethods.cs" />
     <None Include="SimpleTestCases\DynamicOverloadedMethods.cs" />
     <None Include="SimpleTestCases\OverloadedConstructors.cs" />
+    <None Include="SimpleTestCases\Events.cs" />
+    <None Include="SimpleTestCases\MulticastDelegates.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

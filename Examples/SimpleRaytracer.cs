@@ -255,7 +255,7 @@ namespace simpleray {
         
         static void RenderRow (System.Drawing.Bitmap canvas, int dotPeriod, int y) {            
             if (y >= CANVAS_HEIGHT)
-              return;
+                return;
             
             if ((y % dotPeriod) == 0) System.Console.Write("*");
           
@@ -265,14 +265,14 @@ namespace simpleray {
             }
             
             SetTimeout(0, () => 
-              RenderRow(canvas, dotPeriod, y + 1)
+                RenderRow(canvas, dotPeriod, y + 1)
             );
         }
         
         static void SetTimeout (int timeoutMs, Action action) {
           JSIL.Verbatim.Eval(@"
-            setTimeout(action, timeoutMs);
-            return
+              setTimeout(action, timeoutMs);
+              return
           ");
           
           action();

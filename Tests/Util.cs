@@ -16,10 +16,10 @@ namespace JSIL.Tests {
     public class JavaScriptException : Exception {
         public readonly string ErrorText;
 
-        public JavaScriptException (int exitCode, string errorText)
-            : base(String.Format("JavaScript interpreter exited with code {0}\r\n{1}", exitCode, errorText)) 
+        public JavaScriptException (int exitCode, string stdout, string stderr)
+            : base(String.Format("JavaScript interpreter exited with code {0}\r\n{1}\r\n{2}", exitCode, stdout, stderr)) 
         {
-            ErrorText = errorText;
+            ErrorText = stderr;
         }
     }
 
@@ -186,7 +186,11 @@ namespace JSIL.Tests {
                     process.WaitForExit();
 
                     if (process.ExitCode != 0)
-                        throw new JavaScriptException(process.ExitCode, (output[1] ?? "").Trim());
+                        throw new JavaScriptException(
+                            process.ExitCode,
+                            (output[0] ?? "").Trim(),
+                            (output[1] ?? "").Trim()
+                        );
                 }
 
                 long endedJs = DateTime.UtcNow.Ticks;
