@@ -81,5 +81,18 @@ namespace JSIL.Tests {
                 Assert.AreEqual("185", jsOutput.Trim());
             }
         }
+
+        [Test]
+        public void MethodsContainingActualUnsafeCodeIgnored () {
+            long elapsed;
+            string generatedJs;
+            using (var test = new ComparisonTest(@"SpecialTestCases\IgnoreUnsafeCode.cs")) {
+                var csOutput = test.RunCSharp(new string[0], out elapsed);
+                var jsOutput = test.RunJavascript(new string[0], out generatedJs, out elapsed);
+
+                Assert.AreEqual("Foo\r\nBar\r\nBaz", csOutput.Trim());
+                Assert.AreEqual("Foo\r\nBar", jsOutput.Trim());
+            }
+        }
     }
 }

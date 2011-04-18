@@ -98,6 +98,7 @@
     <None Include="SimpleTestCases\OverloadedConstructors.cs" />
     <None Include="SimpleTestCases\Events.cs" />
     <None Include="SimpleTestCases\MulticastDelegates.cs" />
+    <None Include="SpecialTestCases\IgnoreUnsafeCode.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

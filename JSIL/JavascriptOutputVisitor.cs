@@ -18,6 +18,8 @@ namespace JSIL.Internal {
           IDynamicExpressionVisitor<object, object>,
           ITargetedControlFlowVisitor<object, object>
     {
+        protected int ExceptionCount = 0;
+
         public readonly Dictionary<string, List<OverloadedMethodDeclaration>> KnownOverloads = new Dictionary<string, List<OverloadedMethodDeclaration>>();
         public readonly Stack<string> BaseTypeStack = new Stack<string>();
 
@@ -189,8 +191,8 @@ namespace JSIL.Internal {
             return false;
         }
 
-        protected bool IsIgnored (AstNodeCollection<AttributeSection> attributes) {
-            foreach (var section in attributes)
+        protected bool IsIgnored (AttributedNode node) {
+            foreach (var section in node.Attributes)
             foreach (var attribute in section.Attributes) {
                 switch (attribute.Type.ToString()) {
                     case "JSIgnore":
@@ -198,6 +200,9 @@ namespace JSIL.Internal {
                     break;
                 }
             }
+
+            if (node.Modifiers.HasFlag(Modifiers.Unsafe))
+                return true;
 
             return false;
         }
@@ -359,7 +364,7 @@ namespace JSIL.Internal {
             }
 
             public override object VisitTypeDeclaration (TypeDeclaration typeDeclaration, object data) {
-                if (Parent.IsIgnored(typeDeclaration.Attributes))
+                if (Parent.IsIgnored(typeDeclaration))
                     return null;
 
                 Parent.StartNode(typeDeclaration);
@@ -404,12 +409,16 @@ namespace JSIL.Internal {
         }
 
         public override object VisitTypeDeclaration (TypeDeclaration typeDeclaration, object data) {
-            if (IsIgnored(typeDeclaration.Attributes))
+            if (IsIgnored(typeDeclaration))
                 return null;
 
             bool isStatic = typeDeclaration.Modifiers.HasFlag(Modifiers.Static);
 
             var constructors = GetConstructors(typeDeclaration).ToArray();
+            var interfaces = from bt in typeDeclaration.BaseTypes
+                             where bt.Annotation<TypeReference>().Resolve().IsInterface
+                             select bt;
+            var baseClass = (from bt in typeDeclaration.BaseTypes.Except(interfaces) select bt).FirstOrDefault();
 
             var instanceConstructors = (from constructor in constructors
                                        where !constructor.Modifiers.HasFlag(Modifiers.Static)
@@ -426,14 +435,12 @@ namespace JSIL.Internal {
 
             if (true) {
                 if (isStatic) {
-                } else if (typeDeclaration.BaseTypes.Count > 1) {
-                    throw new NotImplementedException("Inheritance from multiple bases not implemented");
                 } else {
-                    string baseClass = "System.Object";
-                    if (typeDeclaration.BaseTypes.Count == 1) {
-                        var baseReference = typeDeclaration.BaseTypes.FirstOrDefault().Annotation<TypeReference>();
-                        baseClass = baseReference.FullName;
-                        BaseTypeStack.Push(baseClass);
+                    string baseClassName = "System.Object";
+                    if (baseClass != null) {
+                        var baseReference = baseClass.Annotation<TypeReference>();
+                        baseClassName = baseReference.FullName;
+                        BaseTypeStack.Push(baseClassName);
                     }
 
                     WriteIdentifier(typeReference);
@@ -444,7 +451,7 @@ namespace JSIL.Internal {
                     Space();
                     WriteIdentifier("JSIL.MakeProto");
                     LPar();
-                    WriteIdentifier(baseClass);
+                    WriteIdentifier(baseClassName);
                     WriteToken(",", null);
                     Space();
                     WritePrimitiveValue(typeReference.ToString());
@@ -474,8 +481,8 @@ namespace JSIL.Internal {
                     RPar();
                     OpenBrace(BraceStyle.EndOfLine);
 
-                    if (typeDeclaration.BaseTypes.Count == 1) {
-                        var baseReference = typeDeclaration.BaseTypes.FirstOrDefault().Annotation<TypeReference>();
+                    if (baseClass != null) {
+                        var baseReference = baseClass.Annotation<TypeReference>();
                         WriteIdentifier(baseReference);
                         WriteToken(".", null);
                         WriteIdentifier("prototype");
@@ -632,7 +639,7 @@ namespace JSIL.Internal {
                 NewLine();
             }
 
-            if (typeDeclaration.BaseTypes.Count == 1)
+            if (baseClass != null)
                 BaseTypeStack.Pop();
 
             WriteIdentifier("Object.seal");
@@ -1001,7 +1008,7 @@ namespace JSIL.Internal {
         }
 
         public override object VisitFieldDeclaration (FieldDeclaration fieldDeclaration, object data) {
-            if (IsIgnored(fieldDeclaration.Attributes))
+            if (IsIgnored(fieldDeclaration))
                 return null;
 
             StartNode(fieldDeclaration);
@@ -1030,7 +1037,7 @@ namespace JSIL.Internal {
         }
 
         public override object VisitEventDeclaration (EventDeclaration eventDeclaration, object data) {
-            if (IsIgnored(eventDeclaration.Attributes))
+            if (IsIgnored(eventDeclaration))
                 return null;
 
             StartNode(eventDeclaration);
@@ -1055,7 +1062,7 @@ namespace JSIL.Internal {
         }
 
         public override object VisitPropertyDeclaration (PropertyDeclaration propertyDeclaration, object data) {
-            if (IsIgnored(propertyDeclaration.Attributes))
+            if (IsIgnored(propertyDeclaration))
                 return null;
 
             StartNode(propertyDeclaration);
@@ -1165,7 +1172,7 @@ namespace JSIL.Internal {
         }
 
         protected object EmitPropertyDefault (AttributedNode node, PropertyDefinition propertyDefinition) {
-            if (IsIgnored(node.Attributes))
+            if (IsIgnored(node))
                 return null;
 
             StartNode(node);
@@ -1208,7 +1215,7 @@ namespace JSIL.Internal {
         }
 
         protected bool EmitEventMethods (AttributedNode node, EventDefinition eventDefinition) {
-            if (IsIgnored(node.Attributes))
+            if (IsIgnored(node))
                 return false;
 
             StartNode(node);
@@ -1516,7 +1523,7 @@ namespace JSIL.Internal {
         }
 
         public override object VisitOperatorDeclaration (OperatorDeclaration operatorDeclaration, object data) {
-            if (IsIgnored(operatorDeclaration.Attributes))
+            if (IsIgnored(operatorDeclaration))
                 return null;
 
             StartNode(operatorDeclaration);
@@ -1556,7 +1563,7 @@ namespace JSIL.Internal {
         }
 
         public override object VisitMethodDeclaration (MethodDeclaration methodDeclaration, object data) {
-            if (IsIgnored(methodDeclaration.Attributes))
+            if (IsIgnored(methodDeclaration))
                 return null;
 
             StartNode(methodDeclaration);
@@ -1681,6 +1688,8 @@ namespace JSIL.Internal {
                 return false;
 
             var td = typeReference.Resolve();
+            if (td.BaseType == null)
+                return false;
             if ((td.BaseType.FullName == "System.Delegate") || (td.BaseType.FullName == "System.MulticastDelegate"))
                 return true;
 
@@ -1784,6 +1793,10 @@ namespace JSIL.Internal {
             if (!string.IsNullOrEmpty(catchClause.VariableName)) {
                 LPar();
                 WriteIdentifier(Util.EscapeIdentifier(catchClause.VariableName));
+                RPar();
+            } else {
+                LPar();
+                WriteIdentifier(String.Format("exc{0}", ExceptionCount++));
                 RPar();
             }
 

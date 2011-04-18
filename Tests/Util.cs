@@ -50,6 +50,7 @@ namespace JSIL.Tests {
                     "mscorlib.dll", "System.Core.dll", "Microsoft.CSharp.dll",
                     typeof(JSIL.Meta.JSIgnore).Assembly.Location
                 }) {
+                    CompilerOptions = "/unsafe",
                     GenerateExecutable = true,
                     GenerateInMemory = false,
                     IncludeDebugInformation = true,
