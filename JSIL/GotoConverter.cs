@@ -159,14 +159,11 @@ namespace JSIL {
                     return bs;
                 };
 
-                Func<string, BlockStatement> buildGoto = (label) => {
-                    return new BlockStatement {
-                        new ExpressionStatement(new AssignmentExpression {
-                            Left = labelIdentifier.Clone(),
-                            Right = new PrimitiveExpression(label)
-                        }),
-                        nextStepStatement.Clone()
-                    };
+                Func<string, ExpressionStatement> buildGoto = (label) => {
+                    return new ExpressionStatement(new AssignmentExpression {
+                        Left = labelIdentifier.Clone(),
+                        Right = new PrimitiveExpression(label)
+                    });
                 };
 
                 var currentSection = makeNewSection("::enter");
@@ -194,6 +191,7 @@ namespace JSIL {
                     if (l != null && !l.Label.StartsWith("_block")) {
                         var gotoNext = buildGoto(l.Label);
                         current.ReplaceWith(gotoNext);
+                        gotoNext.Parent.InsertChildAfter(gotoNext, nextStepStatement.Clone(), (Role<Statement>)gotoNext.Role);
                         var newSection = makeNewSection(l.Label);
 
                         var transplant = next;
@@ -210,7 +208,9 @@ namespace JSIL {
 
                         currentSection = newSection;
                     } else if (g != null) {
-                        current.ReplaceWith(buildGoto(g.Label));
+                        var gotoNext = buildGoto(g.Label);
+                        current.ReplaceWith(gotoNext);
+                        gotoNext.Parent.InsertChildAfter(gotoNext, nextStepStatement.Clone(), (Role<Statement>)gotoNext.Role);
                     } else {
                         var child = current.FirstChild;
                         if (child != null)

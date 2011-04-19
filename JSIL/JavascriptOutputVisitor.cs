@@ -247,7 +247,7 @@ namespace JSIL.Internal {
                     if (invocationExpression.Arguments.Count > 0) {
                         WriteToken(",", null);
                         Space();
-                        WriteCommaSeparatedList(invocationExpression.Arguments);
+                        WriteArgumentList(invocationExpression.Arguments, invocationExpression.Annotation<MethodDefinition>());
                     }
                     RPar();
                     return EndNode(invocationExpression);
@@ -268,7 +268,12 @@ namespace JSIL.Internal {
                 }
             }
 
-            return base.VisitInvocationExpression(invocationExpression, data);
+            StartNode(invocationExpression);
+            invocationExpression.Target.AcceptVisitor(this, data);
+            LPar();
+            WriteArgumentList(invocationExpression.Arguments, invocationExpression.Annotation<MethodDefinition>());
+            RPar();
+            return EndNode(invocationExpression);
         }
 
         protected IEnumerable<ConstructorDeclaration> GetConstructors (TypeDeclaration typeDeclaration) {
@@ -406,6 +411,58 @@ namespace JSIL.Internal {
                 member.AcceptVisitor(this, data);
 
             return EndNode(namespaceDeclaration);
+        }
+
+        protected void WriteArgumentList (IEnumerable<Expression> arguments, MethodDefinition method = null) {
+            bool isFirst = true, isVarArg = false;
+            var i = 0;
+            IEnumerator<ParameterDefinition> eParameters = null;
+            ParameterDefinition parameterDef;
+
+            if (method != null)
+                eParameters = method.Parameters.GetEnumerator();
+
+            try {
+                foreach (var argument in arguments) {
+                    if ((eParameters != null) && (eParameters.MoveNext())) {
+                        parameterDef = eParameters.Current;
+                        if (parameterDef.HasCustomAttributes)
+                            isVarArg = (from ca in parameterDef.CustomAttributes 
+                                        where ca.AttributeType.FullName == "System.ParamArrayAttribute" select ca).Count() > 0;
+                        else
+                            isVarArg = false;
+                    } else {
+                        parameterDef = null;
+                        isVarArg = false;
+                    }
+
+                    if (!isFirst) {
+                        WriteToken(",", null);
+                        Space();
+                    }
+
+                    if (isVarArg) {
+                        var ace = argument as ArrayCreateExpression;
+                        if (ace != null) {
+                            StartNode(ace);
+                            StartNode(ace.Initializer);
+                            WriteArgumentList(ace.Initializer.Children.Cast<Expression>());
+                            EndNode(ace.Initializer);
+                            EndNode(ace);
+                        } else {
+                            argument.AcceptVisitor(this, null);
+                        }
+                    } else {
+                        argument.AcceptVisitor(this, null);
+                    }
+
+                    isFirst = false;
+                    i++;
+                }
+            } finally {
+                if (eParameters != null)
+                    eParameters.Dispose();
+            }
         }
 
         protected void WriteTypeList (AstNode parent, IEnumerable<ParameterDeclaration> parameters) {
@@ -806,12 +863,12 @@ namespace JSIL.Internal {
                 WriteToken("[", null);
 
                 StartNode(arrayCreateExpression.Initializer);
-                WriteCommaSeparatedList(arrayCreateExpression.Initializer.Elements);
+                WriteArgumentList(arrayCreateExpression.Initializer.Elements);
                 EndNode(arrayCreateExpression.Initializer);
 
                 WriteToken("]", null);
             } else {
-                WriteCommaSeparatedList(arrayCreateExpression.Arguments);
+                WriteArgumentList(arrayCreateExpression.Arguments);
             }
 
             RPar();
@@ -861,13 +918,17 @@ namespace JSIL.Internal {
         public override object VisitIdentifierExpression (IdentifierExpression identifierExpression, object data) {
             StartNode(identifierExpression);
             var mi = identifierExpression as ModifiedIdentifierExpression;
+            var li = identifierExpression as LiteralIdentifierExpression;
 
             if (mi != null) {
                 WriteIdentifier(Util.EscapeIdentifier(mi.Identifier));
                 WriteToken(".", null);
                 WriteIdentifier("value");
-            } else
+            } else if (li != null) {
+                WriteIdentifier(li.Identifier);
+            } else {
                 WriteIdentifier(Util.EscapeIdentifier(identifierExpression.Identifier));
+            }
 
             return EndNode(identifierExpression);
         }
@@ -896,10 +957,18 @@ namespace JSIL.Internal {
             return EndNode(directionExpression);
         }
 
+        public override object VisitLabelStatement (LabelStatement labelStatement, object data) {
+            StartNode(labelStatement);
+            NewLine();
+            WriteIdentifier(labelStatement.Label);
+            WriteToken(":", LabelStatement.Roles.Colon);
+            NewLine();
+            return EndNode(labelStatement);
+        }
+
         public override object VisitParameterDeclaration (ParameterDeclaration parameterDeclaration, object data) {
             StartNode(parameterDeclaration);
             switch (parameterDeclaration.ParameterModifier) {
-                case ParameterModifier.Params:
                 case ParameterModifier.This:
                     throw new NotImplementedException(
                         "Parameter modifier not supported: " + parameterDeclaration.ParameterModifier.ToString()
@@ -1750,14 +1819,14 @@ namespace JSIL.Internal {
                     Space();
                     WriteToken("=", null);
                     Space();
-                    WriteCommaSeparatedList(dynamicExpression.Arguments);
+                    WriteArgumentList(dynamicExpression.Arguments);
                     break;
                 case CallSiteType.InvokeMember:
                     dynamicExpression.Target.AcceptVisitor(this, null);
                     WriteToken(".", null);
                     WriteIdentifier(Util.EscapeIdentifier(dynamicExpression.MemberName));
                     LPar();
-                    WriteCommaSeparatedList(dynamicExpression.Arguments);
+                    WriteArgumentList(dynamicExpression.Arguments);
                     RPar();
                     break;
                 case CallSiteType.Convert:

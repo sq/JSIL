@@ -1,13 +1,31 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.Ast.Transforms;
 using ICSharpCode.NRefactory.CSharp;
+using Mono.Cecil;
 
 namespace JSIL {
+    public class VarargsParameterDeclaration : ParameterDeclaration {
+        public VarargsParameterDeclaration (ParameterDeclaration inner) {
+            ParameterModifier = inner.ParameterModifier;
+            Name = inner.Name;
+
+            foreach (var a in inner.Annotations) {
+                var ic = a as ICloneable;
+
+                if (ic != null)
+                    AddAnnotation(ic.Clone());
+                else
+                    AddAnnotation(a);
+            }
+
+            foreach (var child in inner.Children)
+                AddChildUnsafe(child.Clone(), child.Role);
+        }
+    }
+
     public class ModifiedVariableInitializer : VariableInitializer {
         public readonly ParameterModifier Modifier;
 
@@ -18,13 +36,18 @@ namespace JSIL {
         }
     }
 
+    public class LiteralIdentifierExpression : IdentifierExpression {
+        public LiteralIdentifierExpression (string identifier)
+            : base (identifier) {
+        }
+    }
+
     public class ModifiedIdentifierExpression : IdentifierExpression {
         public readonly ParameterModifier Modifier;
 
         public ModifiedIdentifierExpression (IdentifierExpression inner, ParameterModifier modifier) {
             Modifier = modifier;
             Identifier = inner.Identifier;
-            TypeArguments.AddRange(inner.TypeArguments);
         }
     }
 
@@ -239,8 +262,38 @@ namespace JSIL {
         public override object VisitParameterDeclaration (ParameterDeclaration parameterDeclaration, object data) {
             var id = parameterDeclaration.Name;
 
-            CurrentScope.Initializers[id] = parameterDeclaration;
-            CurrentScope.Modifiers[id] = parameterDeclaration.ParameterModifier;
+            if (parameterDeclaration.ParameterModifier == ParameterModifier.Params) {
+                var index = parameterDeclaration.Annotation<ParameterReference>().Index;
+                ConstructorDeclaration cd;
+                MethodDeclaration md;
+
+                var initialization = new VariableDeclarationStatement(
+                    (AstType)parameterDeclaration.Type.Clone(), 
+                    parameterDeclaration.Name,
+                    new InvocationExpression {
+                        Target = new LiteralIdentifierExpression("Array.prototype.slice.call"),
+                        Arguments = {
+                            new LiteralIdentifierExpression("arguments"),
+                            new PrimitiveExpression(index)
+                        }
+                    }
+                );
+
+                if ((cd = parameterDeclaration.Parent as ConstructorDeclaration) != null) {
+                    var body = cd.Body;
+                    body.InsertChildBefore(body.FirstChild, initialization, BlockStatement.StatementRole);
+                } else if ((md = parameterDeclaration.Parent as MethodDeclaration) != null) {
+                    var body = md.Body;
+                    body.InsertChildBefore(body.FirstChild, initialization, BlockStatement.StatementRole);
+                } else {
+                    throw new NotImplementedException("Params arguments not supported for this member type");
+                }
+
+                parameterDeclaration.Remove();
+            } else {
+                CurrentScope.Initializers[id] = parameterDeclaration;
+                CurrentScope.Modifiers[id] = parameterDeclaration.ParameterModifier;
+            }
 
             return null;
         }
