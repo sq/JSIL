@@ -6,10 +6,12 @@ public static class Program {
     }
 
     public static void Main (string[] args) {
-        int a = 0;
+        int a = 0, b;
 
         Console.WriteLine("a = {0}", a);
         Assign(out a, 1);
         Console.WriteLine("a = {0}", a);
+        Assign(out b, 2);
+        Console.WriteLine("a = {0}, b = {1}", a, b);
     }
 }

@@ -32,7 +32,11 @@ namespace JSIL {
         public ModifiedVariableInitializer (VariableInitializer inner, ParameterModifier modifier) {
             Modifier = modifier;
             Name = inner.Name;
-            Initializer = inner.Initializer.Clone();
+
+            if ((inner.Initializer == null) || inner.Initializer.IsNull)
+                Initializer = new LiteralIdentifierExpression("undefined");
+            else
+                Initializer = inner.Initializer.Clone();
         }
     }
 
