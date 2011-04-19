@@ -49,6 +49,7 @@
     <None Include="FailingTestCases\OverloadedConstructors.cs" />
     <None Include="FailingTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />
+    <Compile Include="FormattingTests.cs" />
     <Compile Include="FailingTestCases\Arrays.cs" />
     <Compile Include="FailingTests.cs" />
     <Compile Include="MetadataTests.cs" />
@@ -105,6 +106,7 @@
     <None Include="SimpleTestCases\VarArgs.cs" />
     <None Include="SimpleTestCases\Enums.cs" />
     <None Include="SimpleTestCases\ExtensionMethods.cs" />
+    <None Include="SpecialTestCases\ChainedElseIf.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

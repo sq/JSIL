@@ -238,6 +238,13 @@ namespace JSIL.Internal {
                         }
                     }
                 } else if (mre.Target is BaseReferenceExpression) {
+                    if (BaseTypeStack.Count == 0) {
+                        if (mre.MemberName == ".ctor")
+                            return null;
+                        else
+                            throw new InvalidOperationException("Attempting to access a member of a base type when no base type was specified");
+                    }
+
                     StartNode(invocationExpression);
                     invocationExpression.Target.AcceptVisitor(this, data);
                     WriteToken(".", null);
@@ -446,7 +453,7 @@ namespace JSIL.Internal {
 
                     if (isVarArg) {
                         var ace = argument as ArrayCreateExpression;
-                        if (ace != null) {
+                        if ((ace != null) && (ace.Initializer != null) && (!ace.Initializer.IsNull)) {
                             StartNode(ace);
                             StartNode(ace.Initializer);
                             WriteArgumentList(ace.Initializer.Children.Cast<Expression>());
@@ -1971,6 +1978,42 @@ namespace JSIL.Internal {
             foreachStatement.EmbeddedStatement.AcceptVisitor(this, data);
             Semicolon();
             return EndNode(foreachStatement);
+        }
+
+        public override object VisitIfElseStatement (IfElseStatement ifElseStatement, object data) {
+            StartNode(ifElseStatement);
+            WriteKeyword("if", IfElseStatement.IfKeywordRole);
+            Space();
+            LPar();
+            ifElseStatement.Condition.AcceptVisitor(this, data);
+            RPar();
+
+            if (!(ifElseStatement.TrueStatement.IsNull)) {
+                BlockStatement block = ifElseStatement.TrueStatement as BlockStatement;
+                if (block != null)
+                    VisitBlockStatement(block, null);
+                else
+                    ifElseStatement.TrueStatement.AcceptVisitor(this, null);
+            }
+
+            if (!(ifElseStatement.FalseStatement.IsNull)) {
+                BlockStatement block = ifElseStatement.FalseStatement as BlockStatement;
+                WriteKeyword("else");
+
+                if (block != null) {
+                    if ((block.Statements.Count == 1) && (block.Statements.First() is IfElseStatement)) {
+                        StartNode(block);
+                        block.Statements.First().AcceptVisitor(this, null);
+                        EndNode(block);
+                    } else {
+                        VisitBlockStatement(block, null);
+                    }
+                } else {
+                    ifElseStatement.FalseStatement.AcceptVisitor(this, null);
+                }
+            }
+
+            return EndNode(ifElseStatement);
         }
     }
 }
