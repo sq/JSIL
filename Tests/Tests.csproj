@@ -103,6 +103,7 @@
     <None Include="SimpleTestCases\MultiDimArrays.cs" />
     <None Include="SimpleTestCases\ArrayOverload.cs" />
     <None Include="SimpleTestCases\VarArgs.cs" />
+    <None Include="SimpleTestCases\Enums.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

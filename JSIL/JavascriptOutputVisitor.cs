@@ -283,11 +283,14 @@ namespace JSIL.Internal {
         }
 
         protected void EmitInitialTypeDeclaration (TypeDeclaration typeDeclaration) {
+            bool isEnum = typeDeclaration.ClassType == ICSharpCode.NRefactory.TypeSystem.ClassType.Enum;
+            if (isEnum)
+                return;
+
             bool isStatic = typeDeclaration.Modifiers.HasFlag(Modifiers.Static);
             var typeReference = typeDeclaration.Annotation<TypeReference>();
 
             var constructors = GetConstructors(typeDeclaration).ToArray();
-
             var instanceConstructors = (from constructor in constructors
                                         where !constructor.Modifiers.HasFlag(Modifiers.Static)
                                         select constructor);
@@ -494,9 +497,62 @@ namespace JSIL.Internal {
             }
         }
 
+        protected object VisitEnumDeclaration (TypeDeclaration enumDeclaration) {
+            StartNode(enumDeclaration);
+
+            var typeReference = enumDeclaration.Annotation<TypeReference>();
+
+            if (!(enumDeclaration.Parent is TypeDeclaration) && (!typeReference.FullName.Contains("."))) {
+                WriteKeyword("var");
+                Space();
+            }
+
+            WriteIdentifier(typeReference);
+            Space();
+            WriteToken("=", null);
+            Space();
+
+            WriteIdentifier("JSIL.MakeEnum");
+            LPar();
+            WritePrimitiveValue(typeReference.FullName);
+            WriteToken(",", null);
+            OpenBrace(BraceStyle.EndOfLine);
+
+            long currentValue = 0;
+
+            foreach (var member in enumDeclaration.Members.OfType<EnumMemberDeclaration>()) {
+                WriteIdentifier(member.Name);
+                WriteToken(":", null);
+                Space();
+
+                var pe = member.Initializer as PrimitiveExpression;
+                if (pe != null) {
+                    WritePrimitiveValue(pe.Value);
+                    currentValue = Convert.ToInt64(pe.Value) + 1;
+                } else {
+                    WritePrimitiveValue(currentValue);
+                    currentValue += 1;
+                }
+
+                WriteToken(",", null);
+                NewLine();
+            }
+
+            CloseBrace(BraceStyle.NextLine);
+            RPar();
+
+            Semicolon();
+            NewLine();
+
+            return EndNode(enumDeclaration);
+        }
+
         public override object VisitTypeDeclaration (TypeDeclaration typeDeclaration, object data) {
             if (IsIgnored(typeDeclaration))
                 return null;
+
+            if (typeDeclaration.ClassType == ICSharpCode.NRefactory.TypeSystem.ClassType.Enum)
+                return VisitEnumDeclaration(typeDeclaration);
 
             bool isStatic = typeDeclaration.Modifiers.HasFlag(Modifiers.Static);
 

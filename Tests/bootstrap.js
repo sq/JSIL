@@ -20,6 +20,35 @@ JSIL.MakeProto = function (baseType, typeName) {
   return prototype;
 };
 
+JSIL.MakeEnum = function (typeName, members) {
+  var prototype = JSIL.CloneObject(System.Enum.prototype);
+  prototype.__BaseType__ = System.Enum;
+  prototype.__TypeName__ = typeName;
+
+  var result = {
+    prototype: prototype,
+    __ValueToName__: {}
+  };
+
+  for (var key in members) {
+    if (!members.hasOwnProperty(key))
+      continue;
+
+    result.__ValueToName__[members[key]] = key;
+
+    var obj = Object.create(prototype);
+    obj.value = members[key];
+    obj.name = key;
+
+    result[key] = obj;
+  }
+
+  Object.freeze(prototype);
+  Object.freeze(result);
+
+  return result;
+}
+
 JSIL.CheckType = function (expectedType, value) {
   var ct = expectedType.CheckType;
   if (typeof (ct) != "undefined")
@@ -89,6 +118,30 @@ System.Object.CheckType = function (value) {
 System.Object.prototype = JSIL.MakeProto(Object, "System.Object");
 System.Object.prototype.toString = function ToString() {
   return this.__TypeName__;
+};
+
+System.Enum = {};
+System.Enum.Parse = function (type, value) {
+  var num = Number(value);
+
+  if (isNaN(num)) {
+    return type[value];
+  } else {
+    var name = type.__ValueToName__[value];
+
+    if (typeof (name) == "undefined")
+      return value;
+    else
+      return type[name];
+  }
+};
+System.Enum.prototype = JSIL.MakeProto(System.Object, "System.Enum");
+System.Enum.prototype.toString = function ToString() {
+  if (typeof (this.name) == "undefined") {
+    return this.value.toString();
+  } else {
+    return this.name;
+  }
 };
 
 System.Array = {};
