@@ -1025,10 +1025,6 @@ namespace JSIL.Internal {
         public override object VisitParameterDeclaration (ParameterDeclaration parameterDeclaration, object data) {
             StartNode(parameterDeclaration);
             switch (parameterDeclaration.ParameterModifier) {
-                case ParameterModifier.This:
-                    throw new NotImplementedException(
-                        "Parameter modifier not supported: " + parameterDeclaration.ParameterModifier.ToString()
-                    );
                 case ParameterModifier.None:
                     break;
                 default:
@@ -1611,7 +1607,13 @@ namespace JSIL.Internal {
 
         public override object VisitSimpleType (SimpleType simpleType, object data) {
             StartNode(simpleType);
-            WriteIdentifier(simpleType.Annotation<TypeReference>());
+
+            var tr = simpleType.Annotation<TypeReference>();
+            if (tr != null)
+                WriteIdentifier(tr);
+            else
+                WriteIdentifier(simpleType.Identifier);
+
             return EndNode(simpleType);
         }
 

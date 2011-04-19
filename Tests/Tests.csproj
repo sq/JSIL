@@ -104,6 +104,7 @@
     <None Include="SimpleTestCases\ArrayOverload.cs" />
     <None Include="SimpleTestCases\VarArgs.cs" />
     <None Include="SimpleTestCases\Enums.cs" />
+    <None Include="SimpleTestCases\ExtensionMethods.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
