@@ -350,28 +350,44 @@ namespace JSIL.Internal {
         }
 
         class InitialTypeDeclarer : DepthFirstAstVisitor<object, object> {
+            protected readonly HashSet<string> SeenNamespaces = new HashSet<string>();
             public readonly JavascriptOutputVisitor Parent;
 
             public InitialTypeDeclarer (JavascriptOutputVisitor parent) {
                 Parent = parent;
             }
 
-            public override object VisitNamespaceDeclaration (NamespaceDeclaration namespaceDeclaration, object data) {
-                Parent.StartNode(namespaceDeclaration);
-
-                var name = Util.EscapeIdentifier(namespaceDeclaration.FullName);
-
-                if (!name.Contains(".")) {
+            protected void EmitNamespace (string fullName) {
+                if (!fullName.Contains(".")) {
                     Parent.formatter.WriteKeyword("var");
                     Parent.formatter.Space();
                 }
 
-                Parent.formatter.WriteIdentifier(name);
+                Parent.formatter.WriteIdentifier(fullName);
                 Parent.formatter.Space();
                 Parent.formatter.WriteToken("=");
                 Parent.formatter.Space();
                 Parent.formatter.WriteToken("{};");
                 Parent.formatter.NewLine();
+
+                SeenNamespaces.Add(fullName);
+            }
+
+            public override object VisitNamespaceDeclaration (NamespaceDeclaration namespaceDeclaration, object data) {
+                Parent.StartNode(namespaceDeclaration);
+
+                var name = Util.EscapeIdentifier(namespaceDeclaration.FullName, false);
+
+                var subnames = name.Split(new [] { '.' }, StringSplitOptions.RemoveEmptyEntries);
+
+                for (int i = 0; i < subnames.Length - 1; i++) {
+                    var checkName = String.Join(".", subnames, 0, i + 1);
+
+                    if (!SeenNamespaces.Contains(checkName))
+                        EmitNamespace(checkName);
+                }
+
+                EmitNamespace(name);
 
                 base.VisitNamespaceDeclaration(namespaceDeclaration, data);
 

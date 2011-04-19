@@ -63,5 +63,17 @@ namespace JSIL {
             continueStatement.ReplaceWith(result);
             return null;
         }
+
+        public override object VisitMethodDeclaration (MethodDeclaration methodDeclaration, object data) {
+            NextIndex = 0;
+
+            return base.VisitMethodDeclaration(methodDeclaration, data);
+        }
+
+        public override object VisitTypeDeclaration (TypeDeclaration typeDeclaration, object data) {
+            NextIndex = 0;
+
+            return base.VisitTypeDeclaration(typeDeclaration, data);
+        }
     }
 }
