@@ -21,6 +21,12 @@ JSIL.MakeProto = function (baseType, typeName, isReferenceType) {
   return prototype;
 };
 
+JSIL.MakeNumericProto = function (baseType, typeName, isIntegral) {
+  var prototype = JSIL.MakeProto(baseType, typeName, false);
+  prototype.__IsIntegral__ = isIntegral;
+  return prototype;
+}
+
 JSIL.MakeInterface = function (typeName, members) {
   var prototype = JSIL.CloneObject(JSIL.Interface.prototype);
   prototype.__BaseType__ = System.Object;
@@ -35,7 +41,7 @@ JSIL.MakeInterface = function (typeName, members) {
   Object.freeze(result);
 
   return result;
-}
+};
 
 JSIL.MakeEnum = function (typeName, members) {
   var prototype = JSIL.CloneObject(System.Enum.prototype);
@@ -64,12 +70,25 @@ JSIL.MakeEnum = function (typeName, members) {
   Object.freeze(result);
 
   return result;
-}
+};
+
+JSIL.CheckDerivation = function (haystack, needle) {
+  var proto = haystack;
+
+  while (proto != null) {
+    if (proto === needle)
+      return true;
+
+    proto = Object.getPrototypeOf(proto);
+  }
+
+  return false;
+};
 
 JSIL.CheckType = function (value, expectedType) {
   if (typeof (value) == "undefined")
     return false;
-  else if (typeof (value) == "null")
+  else if (value === null)
     return Boolean(expectedType.__IsReferenceType__);
 
   var interfaces = value.__Interfaces__;
@@ -89,15 +108,16 @@ JSIL.CheckType = function (value, expectedType) {
       (typeof (expectedProto) == "null"))
     return false;
 
-  var proto = Object.getPrototypeOf(value);
-  while (proto != null) {
-    if (proto === expectedProto)
-      return true;
-
-    proto = Object.getPrototypeOf(proto);
-  }
+  if (JSIL.CheckDerivation(Object.getPrototypeOf(value), expectedProto))
+    return true;
 
   return false;
+};
+
+JSIL.IsArray = function (value) {
+  return (typeof (value) != "undefined") &&
+         (typeof (value.length) == "number") &&
+         (typeof (value) != "string");
 };
 
 JSIL.GetTypeName = function (value) {
@@ -116,11 +136,18 @@ JSIL.GetTypeName = function (value) {
     return "System.String";
   else if (result == "number")
     return "System.Double";
+  else if (JSIL.IsArray(value))
+    return "System.Array";
+  else if (result == "object")
+    return "System.Object";
 
   return result;
 }
 
 JSIL.TryCast = function (value, expectedType) {
+  if (expectedType.__IsReferenceType__ === false)
+    throw new System.InvalidCastException("Cannot TryCast a value type");
+
   if (JSIL.CheckType(value, expectedType))
     return value;
   else
@@ -128,9 +155,14 @@ JSIL.TryCast = function (value, expectedType) {
 };
 
 JSIL.Cast = function (value, expectedType) {
-  if (JSIL.CheckType(value, expectedType))
+  if (JSIL.CheckType(value, expectedType)) {
+    // If the user is casting to an integral type like Int32, we need to floor the value since JS stores all numbers as double
+    if (JSIL.CheckDerivation(expectedType.prototype, Number.prototype) && (expectedType.prototype.__IsIntegral__)) {
+      return Math.floor(value);
+    }
+
     return value;
-  else
+  } else
     throw new System.InvalidCastException("Unable to cast object of type '" + JSIL.GetTypeName(value) + "' to type '" + JSIL.GetTypeName(expectedType) + "'.");
 };
 
@@ -425,11 +457,15 @@ System.String.Format = function (format) {
   var regex = new RegExp("{([0-9]*)(?::([^}]*))?}", "g");
   var match = null;
 
-  var args = arguments;
+  var values = Array.prototype.slice.call(arguments, 1);
+
+  if ((values.length == 1) && JSIL.IsArray(values[0]))
+    values = values[0];
+
   var matcher = function (match, index, valueFormat, offset, str) {
     index = parseInt(index);
 
-    var value = args[index + 1];
+    var value = values[index];
 
     if (valueFormat) {
       switch (valueFormat[0]) {
@@ -601,8 +637,24 @@ System.Int32 = function (value) {
 System.Int32.CheckType = function (value) {
   return (typeof (value) == "number");
 }
-System.Int32.prototype = JSIL.MakeProto(Number, "System.Int32", false);
+System.Int32.prototype = JSIL.MakeNumericProto(Number, "System.Int32", true);
 System.Int32.MaxValue = 2147483647;
 System.Int32.Parse = function (text) {
   return parseInt(text, 10);
 };
+
+System.Single = function (value) {
+  return value;
+}
+System.Single.CheckType = function (value) {
+  return (typeof (value) == "number");
+}
+System.Single.prototype = JSIL.MakeNumericProto(Number, "System.Single", false);
+
+System.Double = function (value) {
+  return value;
+}
+System.Double.CheckType = function (value) {
+  return (typeof (value) == "number");
+}
+System.Double.prototype = JSIL.MakeNumericProto(Number, "System.Double", false);
