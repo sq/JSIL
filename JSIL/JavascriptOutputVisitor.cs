@@ -190,6 +190,8 @@ namespace JSIL.Internal {
                 return true;
             } else if (node is EventDeclaration) {
                 return false;
+            } else if (node is IndexerDeclaration) {
+                return true;
             }
 
             return false;
@@ -1033,6 +1035,18 @@ namespace JSIL.Internal {
             return EndNode(directionExpression);
         }
 
+        public override object VisitIndexerDeclaration (IndexerDeclaration indexerDeclaration, object data) {
+            StartNode(indexerDeclaration);
+            // output get/set in their original order
+            foreach (AstNode node in indexerDeclaration.Children) {
+                if (node.Role == IndexerDeclaration.GetterRole || node.Role == IndexerDeclaration.SetterRole) {
+                    node.AcceptVisitor(this, data);
+                }
+            }
+            NewLine();
+            return EndNode(indexerDeclaration);
+        }
+
         public override object VisitLabelStatement (LabelStatement labelStatement, object data) {
             StartNode(labelStatement);
             NewLine();
@@ -1538,6 +1552,7 @@ namespace JSIL.Internal {
 
             var propertyDefinition = accessor.Parent.Annotation<PropertyDefinition>();
             var eventDefinition = accessor.Parent.Annotation<EventDefinition>();
+            var indexer = accessor.Parent as IndexerDeclaration;
             var memberName = ((MemberReference)propertyDefinition ?? (MemberReference)eventDefinition).Name;
 
             if (accessor.Role == PropertyDeclaration.GetterRole) {
@@ -1588,8 +1603,31 @@ namespace JSIL.Internal {
             WriteKeyword("function");
             Space();
             LPar();
-            if (accessor.Role != PropertyDeclaration.GetterRole)
-                WriteKeyword("value");
+
+            string valueParameter = "value";
+            if (indexer != null) {
+                bool isFirst = true;
+
+                foreach (var parameter in indexer.Parameters) {
+                    if (!isFirst) {
+                        WriteToken(",", null);
+                        Space();
+                    }
+
+                    WriteIdentifier(Util.EscapeIdentifier(parameter.Name), null);
+                    isFirst = false;
+                }
+
+                if (accessor.Role != PropertyDeclaration.GetterRole) {
+                    WriteToken(",", null);
+                    Space();
+                    WriteKeyword(valueParameter);
+                }
+            } else {
+                if (accessor.Role != PropertyDeclaration.GetterRole)
+                    WriteKeyword(valueParameter);
+            }
+
             RPar();
 
             if (accessor.Body.IsNull) {
@@ -1618,7 +1656,7 @@ namespace JSIL.Internal {
                     Space();
                     WriteToken("=", null);
                     Space();
-                    WriteIdentifier("value");
+                    WriteIdentifier(valueParameter);
 
                     Semicolon();
                 } else {

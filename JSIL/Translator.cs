@@ -98,7 +98,7 @@ namespace JSIL {
                 new DynamicCallSites(context),
                 new ReplacementFinder(context),
                 new EventOperatorConverter(context),
-                new BasePropertyConverter(context),
+                new PropertyAccessConverter(context),
                 new ParameterModifierTransformer(context),
                 new ForeachTranslator(context),
                 new JumpTargeter(context),
