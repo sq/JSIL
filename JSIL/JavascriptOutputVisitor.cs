@@ -297,7 +297,9 @@ namespace JSIL.Internal {
 
         protected void EmitInitialTypeDeclaration (TypeDeclaration typeDeclaration) {
             bool isEnum = typeDeclaration.ClassType == ICSharpCode.NRefactory.TypeSystem.ClassType.Enum;
-            if (isEnum)
+            bool isInterface = typeDeclaration.ClassType == ICSharpCode.NRefactory.TypeSystem.ClassType.Interface;
+
+            if (isEnum || isInterface)
                 return;
 
             bool isStatic = typeDeclaration.Modifiers.HasFlag(Modifiers.Static);
@@ -576,19 +578,67 @@ namespace JSIL.Internal {
             return EndNode(enumDeclaration);
         }
 
+        protected object VisitInterfaceDeclaration (TypeDeclaration interfaceDeclaration) {
+            StartNode(interfaceDeclaration);
+
+            var typeReference = interfaceDeclaration.Annotation<TypeReference>();
+
+            if (!(interfaceDeclaration.Parent is TypeDeclaration) && (!typeReference.FullName.Contains("."))) {
+                WriteKeyword("var");
+                Space();
+            }
+
+            WriteIdentifier(typeReference);
+            Space();
+            WriteToken("=", null);
+            Space();
+
+            WriteIdentifier("JSIL.MakeInterface");
+            LPar();
+            WritePrimitiveValue(typeReference.FullName);
+            WriteToken(",", null);
+            OpenBrace(BraceStyle.EndOfLine);
+
+            foreach (var member in interfaceDeclaration.Members) {
+                var md = member as MethodDeclaration;
+
+                if (md != null) {
+                    WriteIdentifier(Util.EscapeIdentifier(md.Name));
+                    WriteToken(":", null);
+                    Space();
+                    WriteKeyword("Function");
+                    WriteToken(",", null);
+                    NewLine();
+                } else {
+                }
+            }
+
+            CloseBrace(BraceStyle.NextLine);
+            RPar();
+
+            Semicolon();
+            NewLine();
+
+            return EndNode(interfaceDeclaration);
+        }
+
         public override object VisitTypeDeclaration (TypeDeclaration typeDeclaration, object data) {
             if (IsIgnored(typeDeclaration))
                 return null;
 
             if (typeDeclaration.ClassType == ICSharpCode.NRefactory.TypeSystem.ClassType.Enum)
                 return VisitEnumDeclaration(typeDeclaration);
+            else if (typeDeclaration.ClassType == ICSharpCode.NRefactory.TypeSystem.ClassType.Interface)
+                return VisitInterfaceDeclaration(typeDeclaration);
+
+            bool isStruct = typeDeclaration.ClassType == ICSharpCode.NRefactory.TypeSystem.ClassType.Struct;
 
             bool isStatic = typeDeclaration.Modifiers.HasFlag(Modifiers.Static);
 
             var constructors = GetConstructors(typeDeclaration).ToArray();
-            var interfaces = from bt in typeDeclaration.BaseTypes
+            var interfaces = (from bt in typeDeclaration.BaseTypes
                              where bt.Annotation<TypeReference>().Resolve().IsInterface
-                             select bt;
+                             select bt).ToArray();
             var baseClass = (from bt in typeDeclaration.BaseTypes.Except(interfaces) select bt).FirstOrDefault();
 
             var instanceConstructors = (from constructor in constructors
@@ -626,6 +676,9 @@ namespace JSIL.Internal {
                     WriteToken(",", null);
                     Space();
                     WritePrimitiveValue(typeReference.ToString());
+                    WriteToken(",", null);
+                    Space();
+                    WritePrimitiveValue(!isStruct);
                     RPar();
                     Semicolon();
                 }
@@ -757,6 +810,31 @@ namespace JSIL.Internal {
                     }
 
                     CloseBrace(BraceStyle.NextLine);
+                    Semicolon();
+                }
+
+                if (interfaces.Length > 0) {
+                    WriteIdentifier(typeReference);
+                    WriteToken(".", null);
+                    WriteIdentifier("prototype");
+                    WriteToken(".", null);
+                    WriteIdentifier("__Interfaces__");
+                    Space();
+                    WriteToken("=", null);
+                    Space();
+                    WriteToken("[", null);
+
+                    foreach (var iface in interfaces) {
+                        var td = iface.Annotation<TypeDefinition>();
+
+                        if (td != null)
+                            WriteIdentifier(Util.EscapeIdentifier(td.FullName, false));
+
+                        WriteToken(",", null);
+                        Space();
+                    }
+
+                    WriteToken("]", null);
                     Semicolon();
                 }
 
@@ -1904,6 +1982,27 @@ namespace JSIL.Internal {
                 return true;
 
             return false;
+        }
+
+        public override object VisitAsExpression (AsExpression asExpression, object data) {
+            StartNode(asExpression);
+
+            var tr = asExpression.Type.Annotation<TypeReference>();
+            if (TypeIsDelegate(tr)) {
+                asExpression.Expression.AcceptVisitor(this, null);
+
+                return EndNode(asExpression);
+            }
+
+            WriteIdentifier("JSIL.TryCast");
+            LPar();
+            asExpression.Expression.AcceptVisitor(this, null);
+            WriteToken(",", null);
+            Space();
+            asExpression.Type.AcceptVisitor(this, null);
+            RPar();
+
+            return EndNode(asExpression);
         }
 
         public override object VisitCastExpression (CastExpression castExpression, object data) {

@@ -110,6 +110,8 @@
     <None Include="SimpleTestCases\NestedNamespaces.cs" />
     <None Include="SimpleTestCases\BasePropertyInvocation.cs" />
     <None Include="SimpleTestCases\Indexers.cs" />
+    <None Include="SimpleTestCases\Interfaces.cs" />
+    <None Include="SimpleTestCases\InterfaceInheritance.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

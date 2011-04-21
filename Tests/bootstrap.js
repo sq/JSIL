@@ -13,12 +13,29 @@ JSIL.CloneObject = function (obj) {
   return new ClonedObject();
 };
 
-JSIL.MakeProto = function (baseType, typeName) {
+JSIL.MakeProto = function (baseType, typeName, isReferenceType) {
   var prototype = JSIL.CloneObject(baseType.prototype);
   prototype.__BaseType__ = baseType;
   prototype.__TypeName__ = typeName;
+  prototype.__IsReferenceType__ = Boolean(isReferenceType);
   return prototype;
 };
+
+JSIL.MakeInterface = function (typeName, members) {
+  var prototype = JSIL.CloneObject(JSIL.Interface.prototype);
+  prototype.__BaseType__ = System.Object;
+  prototype.__Members__ = members;
+  prototype.__TypeName__ = typeName;
+
+  var ctor = function () { };
+  ctor.prototype = prototype;
+  var result = new ctor();
+
+  Object.freeze(prototype);
+  Object.freeze(result);
+
+  return result;
+}
 
 JSIL.MakeEnum = function (typeName, members) {
   var prototype = JSIL.CloneObject(System.Enum.prototype);
@@ -49,7 +66,20 @@ JSIL.MakeEnum = function (typeName, members) {
   return result;
 }
 
-JSIL.CheckType = function (expectedType, value) {
+JSIL.CheckType = function (value, expectedType) {
+  if (typeof (value) == "undefined")
+    return false;
+  else if (typeof (value) == "null")
+    return Boolean(expectedType.__IsReferenceType__);
+
+  var interfaces = value.__Interfaces__;
+  if (typeof (interfaces) != "undefined") {
+    for (var i = 0; i < interfaces.length; i++) {
+      if (interfaces[i] === expectedType)
+        return true;
+    }
+  }
+
   var ct = expectedType.CheckType;
   if (typeof (ct) != "undefined")
     return ct(value);
@@ -57,7 +87,7 @@ JSIL.CheckType = function (expectedType, value) {
   var expectedProto = expectedType.prototype;
   if ((typeof (expectedProto) == "undefined") ||
       (typeof (expectedProto) == "null"))
-    throw new Error("Attempting to check type against static type");
+    return false;
 
   var proto = Object.getPrototypeOf(value);
   while (proto != null) {
@@ -68,6 +98,45 @@ JSIL.CheckType = function (expectedType, value) {
   }
 
   return false;
+};
+
+JSIL.GetTypeName = function (value) {
+  var result;
+  var proto = value.prototype;
+  if (typeof (proto) == "undefined")
+    proto = value.__proto__;
+
+  if (typeof (proto) != "undefined")
+    result = proto.__TypeName__;
+
+  if (typeof (result) == "undefined")
+    result = typeof (value);
+
+  if (result == "string")
+    return "System.String";
+  else if (result == "number")
+    return "System.Double";
+
+  return result;
+}
+
+JSIL.TryCast = function (value, expectedType) {
+  if (JSIL.CheckType(value, expectedType))
+    return value;
+  else
+    return null;
+};
+
+JSIL.Cast = function (value, expectedType) {
+  if (JSIL.CheckType(value, expectedType))
+    return value;
+  else
+    throw new System.InvalidCastException("Unable to cast object of type '" + JSIL.GetTypeName(value) + "' to type '" + JSIL.GetTypeName(expectedType) + "'.");
+};
+
+JSIL.Dynamic = {};
+JSIL.Dynamic.Cast = function (value, expectedType) {
+  return value;
 };
 
 JSIL.DispatchOverload = function (args, overloads) {
@@ -83,7 +152,7 @@ JSIL.DispatchOverload = function (args, overloads) {
       var expectedType = overloadArgs[j];
       var arg = args[j];
 
-      if (!JSIL.CheckType(expectedType, arg))
+      if (!JSIL.CheckType(arg, expectedType))
         continue find_overload;
     }
 
@@ -115,10 +184,13 @@ System.Object = function () { };
 System.Object.CheckType = function (value) {
   return true;
 }
-System.Object.prototype = JSIL.MakeProto(Object, "System.Object");
+System.Object.prototype = JSIL.MakeProto(Object, "System.Object", true);
 System.Object.prototype.toString = function ToString() {
   return this.__TypeName__;
 };
+
+JSIL.Interface = function () { };
+JSIL.Interface.prototype = JSIL.MakeProto(Object, "JSIL.Interface", true);
 
 System.Enum = {};
 System.Enum.Parse = function (type, value) {
@@ -135,7 +207,7 @@ System.Enum.Parse = function (type, value) {
       return type[name];
   }
 };
-System.Enum.prototype = JSIL.MakeProto(System.Object, "System.Enum");
+System.Enum.prototype = JSIL.MakeProto(System.Object, "System.Enum", false);
 System.Enum.prototype.toString = function ToString() {
   if (typeof (this.name) == "undefined") {
     return this.value.toString();
@@ -145,13 +217,13 @@ System.Enum.prototype.toString = function ToString() {
 };
 
 System.Array = {};
-System.Array.prototype = JSIL.MakeProto(System.Object, "System.Array");
+System.Array.prototype = JSIL.MakeProto(System.Object, "System.Array", true);
 System.Array.Types = {};
 System.Array.Of = function (type) {
   var compositeType = System.Array.Types[type];
   if (typeof (compositeType) == "undefined") {
     var typeName = type.__TypeName__ + "[]";
-    compositeType = JSIL.MakeProto(System.Array, typeName);
+    compositeType = JSIL.MakeProto(System.Array, typeName, true);
     System.Array.Types[type] = compositeType;
   }
 
@@ -207,17 +279,8 @@ JSIL.JaggedArray.New = function (type) {
   return result;
 };
 
-JSIL.Cast = function (value, expectedType) {
-  return value;
-};
-
-JSIL.Dynamic = {};
-JSIL.Dynamic.Cast = function (value, expectedType) {
-  return value;
-};
-
 System.Delegate = {};
-System.Delegate.prototype = JSIL.MakeProto(Function, "System.Delegate");
+System.Delegate.prototype = JSIL.MakeProto(Function, "System.Delegate", true);
 System.Delegate.prototype.toString = System.Object.prototype.toString;
 System.Delegate.prototype.GetInvocationList = function () {
   return [ this ];
@@ -268,7 +331,7 @@ System.Delegate.New = function (typeName, object, method) {
   var proto = System.Delegate.Types[typeName];
 
   if (typeof (proto) == "undefined") {
-    proto = JSIL.MakeProto(System.Delegate, typeName);
+    proto = JSIL.MakeProto(System.Delegate, typeName, true);
     System.Delegate.Types[typeName] = proto;
   }
 
@@ -293,7 +356,7 @@ System.Delegate.New = function (typeName, object, method) {
 }
 
 System.MulticastDelegate = {}
-System.MulticastDelegate.prototype = JSIL.MakeProto(System.Delegate, "System.MulticastDelegate");
+System.MulticastDelegate.prototype = JSIL.MakeProto(System.Delegate, "System.MulticastDelegate", true);
 System.MulticastDelegate.prototype.GetInvocationList = function () {
   return this.delegates;
 };
@@ -318,7 +381,7 @@ System.MulticastDelegate.New = function (delegates) {
 System.Exception = function (message) {
   this.__ctor(message);
 };
-System.Exception.prototype = JSIL.MakeProto(Error, "System.Exception");
+System.Exception.prototype = JSIL.MakeProto(Error, "System.Exception", true);
 System.Exception.prototype.__ctor = function (message) {
   this.Message = message;
 }
@@ -328,6 +391,11 @@ System.Exception.prototype.toString = function () {
   else
     return System.String.Format("{0}: {1}", this.__TypeName__, this.Message);
 };
+
+System.InvalidCastException = function (message) {
+  this.__ctor(message);
+};
+System.InvalidCastException.prototype = JSIL.MakeProto(System.Exception, "System.InvalidCastException", true);
 
 System.Console = {};
 System.Console.WriteLine = function () {
@@ -350,7 +418,7 @@ System.String = function (text) {
 System.String.CheckType = function (value) {
   return (typeof (value) == "string");
 }
-System.String.prototype = JSIL.MakeProto(String, "System.String");
+System.String.prototype = JSIL.MakeProto(String, "System.String", true);
 System.String.Format = function (format) {
   format = String(format);
 
@@ -383,7 +451,7 @@ System.String.Format = function (format) {
 JSIL.ArrayEnumerator = function (array) {
   this.__ctor(array);
 };
-JSIL.ArrayEnumerator.prototype = JSIL.MakeProto(System.Object, "JSIL.ArrayEnumerator");
+JSIL.ArrayEnumerator.prototype = JSIL.MakeProto(System.Object, "JSIL.ArrayEnumerator", false);
 JSIL.ArrayEnumerator.prototype.__ctor = function (array) {
   this._array = array;
   this._length = array.length;
@@ -410,7 +478,7 @@ System.Collections.Generic = {};
 System.Collections.Generic.List$bt1 = function (sizeOrInitializer) {
   this.__ctor(sizeOrInitializer);
 };
-System.Collections.Generic.List$bt1.prototype = JSIL.MakeProto(System.Object, "System.Collections.Generic.List`1");
+System.Collections.Generic.List$bt1.prototype = JSIL.MakeProto(System.Object, "System.Collections.Generic.List`1", true);
 System.Collections.Generic.List$bt1.prototype.__ctor = function (sizeOrInitializer) {
   var size = Number(sizeOrInitializer);
 
@@ -440,7 +508,7 @@ System.Drawing = {};
 System.Drawing.Bitmap = function (width, height) {
   this.__ctor(width, height);
 };
-System.Drawing.Bitmap.prototype = JSIL.MakeProto(System.Object, "System.Drawing.Bitmap");
+System.Drawing.Bitmap.prototype = JSIL.MakeProto(System.Object, "System.Drawing.Bitmap", true);
 System.Drawing.Bitmap.prototype.__ctor = function (width, height) {
   this.Width = width;
   this.Height = height;
@@ -462,7 +530,7 @@ System.Drawing.Color = function (a, r, g, b, name) {
   this.B = b;
   this.Name = name;
 };
-System.Drawing.Color.prototype = JSIL.MakeProto(System.Object, "System.Drawing.Color");
+System.Drawing.Color.prototype = JSIL.MakeProto(System.Object, "System.Drawing.Color", false);
 System.Drawing.Color.prototype.toString = function () {
   if (typeof (this.Name) != "undefined")
     return this.Name;
@@ -486,7 +554,7 @@ System.Drawing.Color.Aquamarine = new System.Drawing.Color(0xFF, 0x7F, 0xFF, 0xD
 
 System.Random = function () {
 };
-System.Random.prototype = JSIL.MakeProto(System.Object, "System.Random");
+System.Random.prototype = JSIL.MakeProto(System.Object, "System.Random", true);
 System.Random.prototype.Next = function (min, max) {
   if (typeof (min) == "undefined") {
     min = 0;
@@ -517,7 +585,7 @@ System.Boolean = function (b) {
 System.Boolean.CheckType = function (value) {
   return (value === false) || (value === true);
 }
-System.Boolean.prototype = JSIL.MakeProto(Boolean, "System.Boolean");
+System.Boolean.prototype = JSIL.MakeProto(Boolean, "System.Boolean", false);
 
 System.Char = function (ch) {
   return ch;
@@ -525,7 +593,7 @@ System.Char = function (ch) {
 System.Char.CheckType = function (value) {
   return (typeof (value) == "string") && (value.length == 1);
 }
-System.Char.prototype = JSIL.MakeProto(String, "System.Char");
+System.Char.prototype = JSIL.MakeProto(String, "System.Char", false);
 
 System.Int32 = function (value) {
   return value;
@@ -533,7 +601,7 @@ System.Int32 = function (value) {
 System.Int32.CheckType = function (value) {
   return (typeof (value) == "number");
 }
-System.Int32.prototype = JSIL.MakeProto(Number, "System.Int32");
+System.Int32.prototype = JSIL.MakeProto(Number, "System.Int32", false);
 System.Int32.MaxValue = 2147483647;
 System.Int32.Parse = function (text) {
   return parseInt(text, 10);
