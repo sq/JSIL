@@ -52,6 +52,10 @@ namespace JSIL.Internal {
             ));
         }
 
+        protected string GetStorageVariableName (PropertyDefinition pd) {
+            return String.Format("{0}_value", pd.Name);
+        }
+
         protected string GenerateName (EventDeclaration evt) {
             return "_" + evt.Annotation<EventDefinition>().Name;
         }
@@ -666,12 +670,9 @@ namespace JSIL.Internal {
                             continue;
                         else if (member is MethodDeclaration)
                             continue;
-                        else if (member is PropertyDeclaration) {
-                            EmitPropertyDefault(
-                                member, (member as PropertyDeclaration).Annotation<PropertyDefinition>()
-                            );
+                        else if (member is PropertyDeclaration)
                             continue;
-                        } else if (EmitInSecondPass(member))
+                        else if (EmitInSecondPass(member))
                             continue;
 
                         member.AcceptVisitor(this, data);
@@ -758,9 +759,13 @@ namespace JSIL.Internal {
                 }
 
                 foreach (var member in typeDeclaration.Members) {
-                    if (member is MethodDeclaration || member is PropertyDeclaration)
+                    if (member is MethodDeclaration)
                         ;
-                    else if (member is ConstructorDeclaration)
+                    else if (member is PropertyDeclaration) {
+                        EmitPropertyDefault(
+                            member, (member as PropertyDeclaration).Annotation<PropertyDefinition>()
+                        );
+                    } else if (member is ConstructorDeclaration)
                         continue;
                     else if (member is EventDeclaration) {
                         EmitEventMethods(
@@ -771,14 +776,6 @@ namespace JSIL.Internal {
                         continue;
 
                     member.AcceptVisitor(this, data);
-
-                    if (isStatic && (member is PropertyDeclaration)) {
-                        var propertyDefinition = (member as PropertyDeclaration).Annotation<PropertyDefinition>();
-                        if (propertyDefinition != null)
-                            EmitPropertyDefault(
-                                member, propertyDefinition
-                            );
-                    }
                 }
 
                 if (staticConstructor != null) {
@@ -1099,7 +1096,7 @@ namespace JSIL.Internal {
                     WriteThisReference(fieldRef.DeclaringType.Resolve(), fieldRef);
                     WriteToken(".", null);
                 }
-
+    
                 WriteIdentifier(Util.EscapeIdentifier(variableInitializer.Name));
                 Space();
                 WriteToken("=", VariableInitializer.Roles.Assign);
@@ -1153,9 +1150,13 @@ namespace JSIL.Internal {
         public override object VisitBaseReferenceExpression (BaseReferenceExpression baseReferenceExpression, object data) {
             StartNode(baseReferenceExpression);
             var baseTypeName = BaseTypeStack.Peek();
-            WriteIdentifier(Util.EscapeIdentifier(baseTypeName, false));
-            WriteToken(".", null);
-            WriteIdentifier("prototype");
+            if (data as string == "propertyref") {
+                WriteKeyword("this");
+            } else {
+                WriteIdentifier(Util.EscapeIdentifier(baseTypeName, false));
+                WriteToken(".", null);
+                WriteIdentifier("prototype");
+            }
             return EndNode(baseReferenceExpression);
         }
 
@@ -1348,6 +1349,9 @@ namespace JSIL.Internal {
             if (IsIgnored(node))
                 return null;
 
+            if (propertyDefinition == null)
+                return null;
+
             StartNode(node);
 
             var declaringType = propertyDefinition.DeclaringType;
@@ -1365,13 +1369,16 @@ namespace JSIL.Internal {
 
             // If the property is of a primitive type, we must assign it a default value so it's not undefined
             if (isValueType && isAutoProperty) {
-                if (isStatic)
-                    WriteIdentifier(declaringType);
-                else
-                    WriteKeyword("this");
+                WriteIdentifier(declaringType);
+                if (!isStatic) {
+                    WriteToken(".", null);
+                    WriteIdentifier("prototype");
+                }
 
                 WriteToken(".", null);
-                WriteIdentifier(Util.EscapeIdentifier(propertyDefinition.Name));
+                WriteIdentifier(Util.EscapeIdentifier(GetStorageVariableName(
+                    propertyDefinition
+                )));
 
                 Space();
                 WriteToken("=", null);
@@ -1561,9 +1568,7 @@ namespace JSIL.Internal {
             else
                 throw new NotImplementedException();
 
-            var storageName = Util.EscapeIdentifier(
-                String.Format("{0}.value", memberName)
-            );
+            var storageName = Util.EscapeIdentifier(GetStorageVariableName(propertyDefinition));
 
             if (!isStatic) {
                 WriteIdentifier(declaringType);

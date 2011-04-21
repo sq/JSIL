@@ -108,6 +108,7 @@
     <None Include="SimpleTestCases\ExtensionMethods.cs" />
     <None Include="SpecialTestCases\ChainedElseIf.cs" />
     <None Include="SimpleTestCases\NestedNamespaces.cs" />
+    <None Include="SimpleTestCases\BasePropertyInvocation.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
