@@ -180,11 +180,7 @@ namespace JSIL.Internal {
                 return true;
             else if (node.Modifiers.HasFlag(Modifiers.Static))
                 return true;
-            else if (
-                node is FieldDeclaration && 
-                node.Annotation<FieldReference>().Resolve()
-                    .Attributes.HasFlag(FieldAttributes.Static)
-            ) {
+            else if (node is FieldDeclaration) {
                 return true;
             } else if (node is PropertyDeclaration) {
                 return true;
@@ -1163,11 +1159,13 @@ namespace JSIL.Internal {
             bool result = false;
             bool isField = variableInitializer.Parent is FieldDeclaration;
             bool isNull = variableInitializer.Initializer.IsNull;
+            bool isStatic = false;
             Expression fakeInitializer = null;
             TypeReference variableType = null;
 
             if (isField) {
                 var fieldRef = variableInitializer.Parent.Annotation<FieldReference>();
+                isStatic = IsStatic(variableInitializer.Parent as AttributedNode);
                 variableType = fieldRef.FieldType;
                 if (isNull) {
                     isNull = false;
@@ -1176,8 +1174,6 @@ namespace JSIL.Internal {
             } else if (variableInitializer.Parent is VariableDeclarationStatement) {
                 var vds = (VariableDeclarationStatement)variableInitializer.Parent;
                 variableType = vds.Type.Annotation<TypeReference>();
-            } else {
-                Debugger.Break();
             }
 
             var mvi = variableInitializer as ModifiedVariableInitializer;
@@ -1185,8 +1181,12 @@ namespace JSIL.Internal {
             if (!isNull) {
                 if (isField) {
                     var fieldRef = variableInitializer.Parent.Annotation<FieldReference>();
-                    WriteThisReference(fieldRef.DeclaringType.Resolve(), fieldRef);
+                    WriteIdentifier(fieldRef.DeclaringType.Resolve());
                     WriteToken(".", null);
+                    if (!isStatic) {
+                        WriteKeyword("prototype");
+                        WriteToken(".", null);
+                    }
                 }
     
                 WriteIdentifier(Util.EscapeIdentifier(variableInitializer.Name));
