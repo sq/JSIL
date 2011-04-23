@@ -656,8 +656,21 @@ System.Char.CheckType = function (value) {
 }
 System.Char.prototype = JSIL.MakeProto(String, "System.Char", false);
 
+System.Byte = function (value) {
+  if (value < 0)
+    value = 0;
+  else if (value > 255)
+    value = 255;
+  else
+    return Math.floor(value);
+};
+System.Byte.CheckType = function (value) {
+  return (typeof (value) == "number") && (value >= 0) && (value <= 255);
+}
+System.Byte.prototype = JSIL.MakeNumericProto(Number, "System.Byte", true);
+
 System.Int32 = function (value) {
-  return value;
+  return Math.floor(value);
 };
 System.Int32.CheckType = function (value) {
   return (typeof (value) == "number");

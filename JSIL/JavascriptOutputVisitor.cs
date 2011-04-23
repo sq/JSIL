@@ -498,6 +498,7 @@ namespace JSIL.Internal {
         protected void WriteTypeList (AstNode parent, IEnumerable<ParameterDeclaration> parameters) {
             var temporaryRole = new Role<AstType>("temporary");
             bool isFirst = true;
+
             foreach (var parameter in parameters) {
                 if (!isFirst) {
                     WriteToken(",", null);
@@ -1780,6 +1781,27 @@ namespace JSIL.Internal {
                 WriteIdentifier(Util.EscapeIdentifier(simpleType.Identifier, false));
 
             return EndNode(simpleType);
+        }
+
+        public override object VisitComposedType (ComposedType composedType, object data) {
+            StartNode(composedType);
+
+            if (composedType.HasNullableSpecifier)
+                throw new NotImplementedException("Nullable types not implemented");
+            if (composedType.PointerRank > 0)
+                throw new NotImplementedException("Pointer types not implemented");
+
+            if (composedType.ArraySpecifiers.Count > 0) {
+                WriteIdentifier("System.Array.Of");
+                LPar();
+            }
+
+            composedType.BaseType.AcceptVisitor(this, data);
+
+            if (composedType.ArraySpecifiers.Count > 0)
+                RPar();
+
+            return EndNode(composedType);
         }
 
         public override object VisitVariableDeclarationStatement (VariableDeclarationStatement variableDeclarationStatement, object data) {
