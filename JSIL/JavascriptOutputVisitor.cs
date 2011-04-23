@@ -548,7 +548,7 @@ namespace JSIL.Internal {
             long currentValue = 0;
 
             foreach (var member in enumDeclaration.Members.OfType<EnumMemberDeclaration>()) {
-                WriteIdentifier(member.Name);
+                WriteIdentifier(Util.EscapeIdentifier(member.Name));
                 WriteToken(":", null);
                 Space();
 
@@ -668,7 +668,7 @@ namespace JSIL.Internal {
                     Space();
                     WriteIdentifier("JSIL.MakeProto");
                     LPar();
-                    WriteIdentifier(baseClassName);
+                    WriteIdentifier(Util.EscapeIdentifier(baseClassName, false));
                     WriteToken(",", null);
                     Space();
                     WritePrimitiveValue(typeReference.ToString());
@@ -1002,7 +1002,7 @@ namespace JSIL.Internal {
 
         public override object VisitNamedArgumentExpression (NamedArgumentExpression namedArgumentExpression, object data) {
             StartNode(namedArgumentExpression);
-            WriteIdentifier(namedArgumentExpression.Identifier);
+            WriteIdentifier(Util.EscapeIdentifier(namedArgumentExpression.Identifier));
             WriteToken(":", NamedArgumentExpression.Roles.Colon);
             Space();
             namedArgumentExpression.Expression.AcceptVisitor(this, data);
@@ -1141,8 +1141,9 @@ namespace JSIL.Internal {
 
         public override object VisitLabelStatement (LabelStatement labelStatement, object data) {
             StartNode(labelStatement);
-            NewLine();
-            WriteIdentifier(labelStatement.Label);
+            EmitSmartNewline(labelStatement);
+
+            WriteIdentifier(Util.EscapeIdentifier(labelStatement.Label));
             WriteToken(":", LabelStatement.Roles.Colon);
             NewLine();
             return EndNode(labelStatement);
@@ -1162,7 +1163,7 @@ namespace JSIL.Internal {
             }
 
             if (!string.IsNullOrEmpty(parameterDeclaration.Name))
-                WriteIdentifier(parameterDeclaration.Name);
+                WriteIdentifier(Util.EscapeIdentifier(parameterDeclaration.Name));
 
             if (!parameterDeclaration.DefaultExpression.IsNull) {
                 throw new NotImplementedException(
@@ -1441,9 +1442,9 @@ namespace JSIL.Internal {
                         WriteIdentifier("prototype");
                     }
                     WriteToken(".", null);
-                    WriteIdentifier(String.Format(
+                    WriteIdentifier(Util.EscapeIdentifier(String.Format(
                         "{0}_{1}", prefix, propertyDeclaration.Name
-                    ));
+                    )));
                 }
             }
 
@@ -1522,7 +1523,9 @@ namespace JSIL.Internal {
                 }
 
                 WriteToken(".", null);
-                WriteIdentifier(Util.EscapeIdentifier(String.Format("{0}_{1}", prefix, eventDefinition.Name)));
+                WriteIdentifier(Util.EscapeIdentifier(
+                    String.Format("{0}_{1}", prefix, eventDefinition.Name)
+                ));
 
                 Space();
                 WriteToken("=", null);
@@ -1679,7 +1682,7 @@ namespace JSIL.Internal {
             else
                 throw new NotImplementedException();
 
-            var storageName = Util.EscapeIdentifier(GetStorageVariableName(propertyDefinition));
+            var escapedStorageName = Util.EscapeIdentifier(GetStorageVariableName(propertyDefinition));
 
             if (!isStatic) {
                 WriteIdentifier(declaringType);
@@ -1690,7 +1693,7 @@ namespace JSIL.Internal {
             }
 
             WriteToken(".", null);
-            WriteIdentifier(methodName);
+            WriteIdentifier(Util.EscapeIdentifier(methodName));
 
             Space();
             WriteToken("=", null);
@@ -1737,7 +1740,7 @@ namespace JSIL.Internal {
                         WriteKeyword("this");
 
                     WriteToken(".", null);
-                    WriteIdentifier(storageName);
+                    WriteIdentifier(escapedStorageName);
 
                     Semicolon();
                 } else if (accessor.Role == PropertyDeclaration.SetterRole) {
@@ -1747,7 +1750,7 @@ namespace JSIL.Internal {
                         WriteKeyword("this");
 
                     WriteToken(".", null);
-                    WriteIdentifier(storageName);
+                    WriteIdentifier(escapedStorageName);
 
                     Space();
                     WriteToken("=", null);
@@ -1774,7 +1777,7 @@ namespace JSIL.Internal {
             if (tr != null)
                 WriteIdentifier(tr);
             else
-                WriteIdentifier(simpleType.Identifier);
+                WriteIdentifier(Util.EscapeIdentifier(simpleType.Identifier, false));
 
             return EndNode(simpleType);
         }
@@ -2111,11 +2114,27 @@ namespace JSIL.Internal {
             return EndNode(dynamicExpression);
         }
 
+        protected void EmitSmartNewline (AstNode node) {
+            var previous = node.PrevSibling;
+
+            if (previous == null)
+                return;
+
+            var parent = node.Parent;
+            if (parent.FirstChild == node)
+                return;
+
+            if ((previous is LabelStatement) || (previous is VariableDeclarationStatement))
+                return;
+
+            NewLine();
+        }
+
         public object VisitTargetedBreakStatement (TargetedBreakStatement targetedBreakStatement, object data) {
             StartNode(targetedBreakStatement);
             WriteKeyword("break");
             Space();
-            WriteIdentifier(targetedBreakStatement.LabelName);
+            WriteIdentifier(Util.EscapeIdentifier(targetedBreakStatement.LabelName));
             Semicolon();
             return EndNode(targetedBreakStatement);
         }
@@ -2124,7 +2143,7 @@ namespace JSIL.Internal {
             StartNode(targetedContinueStatement);
             WriteKeyword("continue");
             Space();
-            WriteIdentifier(targetedContinueStatement.LabelName);
+            WriteIdentifier(Util.EscapeIdentifier(targetedContinueStatement.LabelName));
             Semicolon();
             return EndNode(targetedContinueStatement);
         }
@@ -2149,33 +2168,29 @@ namespace JSIL.Internal {
             return EndNode(catchClause);
         }
 
-        public override object VisitForeachStatement (ForeachStatement foreachStatement, object data) {
-            StartNode(foreachStatement);
+        public override object VisitForStatement (ForStatement forStatement, object data) {
+            EmitSmartNewline(forStatement);
 
-            var fieldReference = foreachStatement.InExpression.Annotation<FieldReference>();
-            var propertyReference = foreachStatement.InExpression.Annotation<PropertyReference>();
+            return base.VisitForStatement(forStatement, data);
+        }
 
-            TypeReference sequenceType = null;
-            if (fieldReference != null)
-                sequenceType = fieldReference.FieldType;
-            else if (propertyReference != null)
-                sequenceType = propertyReference.PropertyType;
+        public override object VisitWhileStatement (WhileStatement whileStatement, object data) {
+            EmitSmartNewline(whileStatement);
 
-            WriteKeyword("");
-            Space();
-            LPar();
-            WriteIdentifier(foreachStatement.VariableName);
-            WriteKeyword("in", ForeachStatement.Roles.InKeyword);
-            Space();
-            foreachStatement.InExpression.AcceptVisitor(this, data);
-            RPar();
-            foreachStatement.EmbeddedStatement.AcceptVisitor(this, data);
-            Semicolon();
-            return EndNode(foreachStatement);
+            return base.VisitWhileStatement(whileStatement, data);
+        }
+
+        public override object VisitTryCatchStatement (TryCatchStatement tryCatchStatement, object data) {
+            EmitSmartNewline(tryCatchStatement);
+
+            return base.VisitTryCatchStatement(tryCatchStatement, data);
         }
 
         public override object VisitIfElseStatement (IfElseStatement ifElseStatement, object data) {
             StartNode(ifElseStatement);
+
+            EmitSmartNewline(ifElseStatement);
+
             WriteKeyword("if", IfElseStatement.IfKeywordRole);
             Space();
             LPar();

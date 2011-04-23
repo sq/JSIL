@@ -90,7 +90,7 @@
     <None Include="SimpleTestCases\MethodReferences.cs" />
     <None Include="SimpleTestCases\CustomOperators.cs" />
     <None Include="SimpleTestCases\BasicLoops.cs" />
-    <None Include="SimpleTestCases\ForEach.cs" />
+    <None Include="SimpleTestCases\UsingBlocks.cs" />
     <None Include="SimpleTestCases\StructDefaults.cs" />
     <None Include="SimpleTestCases\NamespacedTypes.cs" />
     <None Include="SimpleTestCases\InitFieldsInMain.cs" />
@@ -114,6 +114,8 @@
     <None Include="SimpleTestCases\InterfaceInheritance.cs" />
     <None Include="SimpleTestCases\IntAndFloatCast.cs" />
     <None Include="SimpleTestCases\Lambdas.cs" />
+    <None Include="SimpleTestCases\ForEach.cs" />
+    <None Include="SimpleTestCases\CustomEnumerator.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

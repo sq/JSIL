@@ -510,6 +510,11 @@ JSIL.ArrayEnumerator.prototype.MoveNext = function () {
   this._index += 1;
   return (this._index < this._length);
 };
+JSIL.ArrayEnumerator.prototype.Dispose = function () {
+  this._array = null;
+  this._index = 0;
+  this._length = -1;
+}
 JSIL.ArrayEnumerator.prototype.get_Current = function () {
   return this._array[this._index];
 };

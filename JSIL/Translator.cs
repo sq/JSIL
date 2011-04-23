@@ -100,7 +100,7 @@ namespace JSIL {
                 new EventOperatorConverter(context),
                 new PropertyAccessConverter(context),
                 new ParameterModifierTransformer(context),
-                new ForeachTranslator(context),
+                new BlockTranslator(context),
                 new JumpTargeter(context),
                 new GotoConverter(context),
             };

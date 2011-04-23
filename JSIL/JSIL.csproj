@@ -63,7 +63,7 @@
   <ItemGroup>
     <Compile Include="PropertyAccessConverter.cs" />
     <Compile Include="EventOperatorConverter.cs" />
-    <Compile Include="ForeachTranslator.cs" />
+    <Compile Include="BlockTranslator.cs" />
     <Compile Include="DeclarationHoister.cs" />
     <Compile Include="DynamicExpression.cs" />
     <Compile Include="DynamicCallSites.cs" />
