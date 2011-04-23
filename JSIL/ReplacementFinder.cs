@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Linq;
 using ICSharpCode.Decompiler;
 using ICSharpCode.NRefactory.CSharp;
-using ICSharpCode.NRefactory.CSharp.PatternMatching;
 using JSIL.Expressions;
 using ICSharpCode.Decompiler.Ast.Transforms;
 using Mono.Cecil;

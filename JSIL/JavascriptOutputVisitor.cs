@@ -24,7 +24,7 @@ namespace JSIL.Internal {
         public readonly Stack<string> BaseTypeStack = new Stack<string>();
 
         public JavascriptOutputVisitor (IOutputFormatter formatter)
-            : base (formatter, new CSharpFormattingPolicy {
+            : base (formatter, new CSharpFormattingOptions {
                 ConstructorBraceStyle = BraceStyle.EndOfLine,
                 MethodBraceStyle = BraceStyle.EndOfLine,
             }) {
@@ -978,6 +978,9 @@ namespace JSIL.Internal {
                 return;
             }
 
+            if ((initializer != null) && !initializer.IsNull)
+                LPar();
+
             WriteKeyword("new");
             objectType.AcceptVisitor(this, null);
             LPar();
@@ -987,8 +990,23 @@ namespace JSIL.Internal {
 
             RPar();
 
-            if (initializer != null)
+            if ((initializer != null) && !initializer.IsNull) {
+                RPar();
+                WriteToken(".", null);
+                WriteIdentifier("Initialize");
+                LPar();
                 initializer.AcceptVisitor(this, null);
+                RPar();
+            }
+        }
+
+        public override object VisitNamedArgumentExpression (NamedArgumentExpression namedArgumentExpression, object data) {
+            StartNode(namedArgumentExpression);
+            WriteIdentifier(namedArgumentExpression.Identifier);
+            WriteToken(":", NamedArgumentExpression.Roles.Colon);
+            Space();
+            namedArgumentExpression.Expression.AcceptVisitor(this, data);
+            return EndNode(namedArgumentExpression);
         }
 
         public override object VisitObjectCreateExpression (ObjectCreateExpression objectCreateExpression, object data) {

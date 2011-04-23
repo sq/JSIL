@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using ICSharpCode.Decompiler.ILAst;
 using ICSharpCode.NRefactory.CSharp;
+using ICSharpCode.NRefactory.PatternMatching;
 using JSIL.Transforms;
 
 namespace JSIL.Expressions {
@@ -64,7 +65,7 @@ namespace JSIL.Expressions {
                 return default(S);
         }
 
-        public override bool DoMatch (AstNode other, ICSharpCode.NRefactory.CSharp.PatternMatching.Match match) {
+        public override bool DoMatch (AstNode other, Match match) {
             DynamicExpression o = other as DynamicExpression;
             return o != null && 
                 this.Target.DoMatch(o.Target, match) && 

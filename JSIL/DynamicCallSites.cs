@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using ICSharpCode.Decompiler;
 using ICSharpCode.NRefactory.CSharp;
-using ICSharpCode.NRefactory.CSharp.PatternMatching;
+using ICSharpCode.NRefactory.PatternMatching;
 using JSIL.Expressions;
 using ICSharpCode.Decompiler.Ast.Transforms;
 
@@ -142,7 +142,7 @@ namespace JSIL.Transforms {
 
         public override object VisitVariableDeclarationStatement (VariableDeclarationStatement variableDeclarationStatement, object data) {
             var match = temporaryValuePattern.Match(variableDeclarationStatement);
-            if (match != null) {
+            if (match.Success) {
                 foreach (var initializer in match.Get<VariableInitializer>("initializer")) {
                     var name = initializer.Name;
                     var type = variableDeclarationStatement.Type;
@@ -175,7 +175,7 @@ namespace JSIL.Transforms {
 
         public override object VisitAssignmentExpression (AssignmentExpression assignmentExpression, object data) {
             var match = siteConstructorPattern.Match(assignmentExpression);
-            if (match != null) {
+            if (match.Success) {
                 var typeArguments = match.Get<Expression>("typeArguments");
                 if ((typeArguments.Count() > 0) && (typeArguments.First().Descendants.Count() > 0))
                     throw new InvalidOperationException("Type arguments to dynamic invocations not implemented");
@@ -237,7 +237,7 @@ namespace JSIL.Transforms {
             //  this will also remove the site declarations since they're inside the body of the checks
             foreach (IfElseStatement stmt in blockStatement.Statements.OfType<IfElseStatement>().ToArray()) {
                 statementMatch = siteCheckPattern.Match(stmt);
-                if (statementMatch != null) {
+                if (statementMatch.Success) {
                     var callSite = statementMatch.Get<MemberReferenceExpression>("callSite").First();
                     var callSiteName = callSite.ToString();
 
@@ -263,7 +263,7 @@ namespace JSIL.Transforms {
 
         public override object VisitInvocationExpression (InvocationExpression invocationExpression, object data) {
             var match = siteInvocationPattern.Match(invocationExpression);
-            if (match != null) {
+            if (match.Success) {
                 var callSite = match.Get<MemberReferenceExpression>("callSite").First();
 
                 var callSiteName = callSite.ToString();

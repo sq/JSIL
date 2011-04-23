@@ -217,6 +217,16 @@ System.Object.CheckType = function (value) {
   return true;
 }
 System.Object.prototype = JSIL.MakeProto(Object, "System.Object", true);
+System.Object.prototype.Initialize = function (dict) {
+  for (var key in dict) {
+    if (!dict.hasOwnProperty(key))
+      continue;
+
+    this[key] = dict[key];
+  }
+
+  return this;
+};
 System.Object.prototype.toString = function ToString() {
   return this.__TypeName__;
 };
