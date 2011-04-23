@@ -117,6 +117,7 @@
     <None Include="SimpleTestCases\ForEach.cs" />
     <None Include="SimpleTestCases\CustomEnumerator.cs" />
     <None Include="SimpleTestCases\OverloadWithRefArray.cs" />
+    <None Include="SimpleTestCases\YieldReturn.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

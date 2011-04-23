@@ -217,7 +217,26 @@ System.Object.CheckType = function (value) {
   return true;
 }
 System.Object.prototype = JSIL.MakeProto(Object, "System.Object", true);
-System.Object.prototype.Initialize = function (dict) {
+System.Object.prototype.__ImplementInterface__ = function (iface) {
+  var interfaces = this.__Interfaces__;
+  if (typeof (interfaces) == "undefined") {
+    this.__Interfaces__ = interfaces = [];
+  }
+
+  var members = iface.__Members__;
+  for (var key in members) {
+    var fullName = iface.__TypeName__ + "_" + key;
+
+    if (!members.hasOwnProperty(key))
+      continue;
+
+    if (!this.hasOwnProperty(fullName))
+      this[fullName] = this[key];
+  }
+
+  interfaces.push(iface);
+}
+System.Object.prototype.__Initialize__ = function (dict) {
   for (var key in dict) {
     if (!dict.hasOwnProperty(key))
       continue;

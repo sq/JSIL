@@ -62,11 +62,12 @@ namespace JSIL.Internal {
 
         protected string GenerateName (MethodDeclaration method) {
             var omd = method as OverloadedMethodDeclaration;
+            var name = method.GetFullName();
 
             if (omd != null)
-                return String.Format("{0}_{1}", omd.Name, omd.OverloadIndex);
+                return String.Format("{0}_{1}", name, omd.OverloadIndex);
             else
-                return method.Name;
+                return name;
         }
 
         protected void WriteIdentifier (MethodDeclaration method) {
@@ -263,8 +264,14 @@ namespace JSIL.Internal {
                 }
 
                 if (mr != null) {
+                    var dt = mr.DeclaringType.Resolve();
+                    var name = mre.MemberName;
+
+                    if ((dt != null) && (dt.IsInterface))
+                        name = String.Format("{0}.{1}", dt.FullName, mre.MemberName);
+
                     List<OverloadedMethodDeclaration> overloads;
-                    if (KnownOverloads.TryGetValue(mre.MemberName, out overloads)) {
+                    if (KnownOverloads.TryGetValue(name, out overloads)) {
                         foreach (var omd in overloads) {
                             var omr = omd.Annotation<MethodReference>();
 
@@ -273,6 +280,9 @@ namespace JSIL.Internal {
                                 break;
                             }
                         }
+                    } else {
+                        if (name != mre.MemberName)
+                            mre.MemberName = name;
                     }
                 }
             }
@@ -651,218 +661,210 @@ namespace JSIL.Internal {
 
             var typeReference = typeDeclaration.Annotation<TypeReference>();
 
-            if (true) {
-                if (isStatic) {
-                } else {
-                    string baseClassName = "System.Object";
-                    if (baseClass != null) {
-                        var baseReference = baseClass.Annotation<TypeReference>();
-                        baseClassName = baseReference.FullName;
-                        BaseTypeStack.Push(baseClassName);
-                    }
-
-                    WriteIdentifier(typeReference);
-                    WriteToken(".", null);
-                    WriteKeyword("prototype");
-                    Space();
-                    WriteToken("=", null);
-                    Space();
-                    WriteIdentifier("JSIL.MakeProto");
-                    LPar();
-                    WriteIdentifier(Util.EscapeIdentifier(baseClassName, false));
-                    WriteToken(",", null);
-                    Space();
-                    WritePrimitiveValue(typeReference.ToString());
-                    WriteToken(",", null);
-                    Space();
-                    WritePrimitiveValue(!isStruct);
-                    RPar();
-                    Semicolon();
+            if (isStatic) {
+            } else {
+                string baseClassName = "System.Object";
+                if (baseClass != null) {
+                    var baseReference = baseClass.Annotation<TypeReference>();
+                    baseClassName = baseReference.FullName;
+                    BaseTypeStack.Push(baseClassName);
                 }
 
-                if (!isStatic) {
-                    WriteIdentifier(typeReference);
+                WriteIdentifier(typeReference);
+                WriteToken(".", null);
+                WriteKeyword("prototype");
+                Space();
+                WriteToken("=", null);
+                Space();
+                WriteIdentifier("JSIL.MakeProto");
+                LPar();
+                WriteIdentifier(Util.EscapeIdentifier(baseClassName, false));
+                WriteToken(",", null);
+                Space();
+                WritePrimitiveValue(typeReference.ToString());
+                WriteToken(",", null);
+                Space();
+                WritePrimitiveValue(!isStruct);
+                RPar();
+                Semicolon();
+            }
+
+            if (!isStatic) {
+                WriteIdentifier(typeReference);
+                WriteToken(".", null);
+                WriteIdentifier("prototype");
+                WriteToken(".", null);
+                WriteIdentifier("__ctor");
+                Space();
+                WriteToken("=", null);
+                Space();
+                WriteKeyword("function", null);
+                Space();
+                LPar();
+
+                if (instanceConstructors.Length == 1) {
+                    StartNode(instanceConstructor);
+                    WriteCommaSeparatedList(instanceConstructor.Parameters);
+                    EndNode(instanceConstructor);
+                }
+
+                RPar();
+                OpenBrace(BraceStyle.EndOfLine);
+
+                if (baseClass != null) {
+                    var baseReference = baseClass.Annotation<TypeReference>();
+                    WriteIdentifier(baseReference);
                     WriteToken(".", null);
                     WriteIdentifier("prototype");
                     WriteToken(".", null);
                     WriteIdentifier("__ctor");
-                    Space();
-                    WriteToken("=", null);
-                    Space();
-                    WriteKeyword("function", null);
-                    Space();
+                    WriteToken(".", null);
+                    WriteIdentifier("call");
                     LPar();
-
-                    if (instanceConstructors.Length == 1) {
-                        StartNode(instanceConstructor);
-                        WriteCommaSeparatedList(instanceConstructor.Parameters);
-                        EndNode(instanceConstructor);
-                    }
-
+                    WriteKeyword("this");
                     RPar();
-                    OpenBrace(BraceStyle.EndOfLine);
-
-                    if (baseClass != null) {
-                        var baseReference = baseClass.Annotation<TypeReference>();
-                        WriteIdentifier(baseReference);
-                        WriteToken(".", null);
-                        WriteIdentifier("prototype");
-                        WriteToken(".", null);
-                        WriteIdentifier("__ctor");
-                        WriteToken(".", null);
-                        WriteIdentifier("call");
-                        LPar();
-                        WriteKeyword("this");
-                        RPar();
-                        Semicolon();
-                    }
-
-                    foreach (var member in typeDeclaration.Members) {
-                        if (member is ConstructorDeclaration)
-                            continue;
-                        else if (member is MethodDeclaration)
-                            continue;
-                        else if (member is PropertyDeclaration)
-                            continue;
-                        else if (EmitInSecondPass(member))
-                            continue;
-
-                        member.AcceptVisitor(this, data);
-                    }
-
-                    if (instanceConstructors.Length > 1) {
-                        WriteKeyword("var", null);
-                        Space();
-                        WriteIdentifier("__ctors");
-                        Space();
-                        WriteToken("=", null);
-                        Space();
-                        WriteToken("[", null);
-                        formatter.Indent();
-                        NewLine();
-
-                        for (int i = 0; i < instanceConstructors.Length; i++) {
-                            var ic = instanceConstructors[i];
-                            if (i != 0) {
-                                WriteToken(",", null);
-                                NewLine();
-                            }
-
-                            WriteToken("[", null);
-                            WriteKeyword("function");
-                            Space();
-
-                            StartNode(ic);
-
-                            LPar();
-                            WriteCommaSeparatedList(ic.Parameters);
-                            RPar();
-
-                            OpenBrace(BraceStyle.EndOfLine);
-
-                            ic.Body.AcceptVisitor(this, "nobraces");
-
-                            CloseBrace(BraceStyle.EndOfLine);
-                            WriteToken(",", null);
-                            Space();
-
-                            WriteToken("[", null);
-                            WriteTypeList(ic, ic.Parameters);
-                            WriteToken("]", null);
-
-                            EndNode(ic);
-
-                            WriteToken("]", null);
-                        }
-
-                        formatter.Unindent();
-                        NewLine();
-                        WriteToken("]", null);
-                        Semicolon();
-
-                        WriteKeyword("return");
-                        Space();
-                        WriteIdentifier("JSIL.DispatchOverload.call");
-                        LPar();
-
-                        WriteKeyword("this");
-                        WriteToken(",", null);
-                        Space();
-
-                        WriteIdentifier("Array.prototype.slice.call");
-                        LPar();
-                        WriteKeyword("arguments");
-                        RPar();
-
-                        WriteToken(",", null);
-                        Space();
-
-                        WriteIdentifier("__ctors");
-                        RPar();
-                        Semicolon();
-                    } else if (instanceConstructors.Length == 1) {
-                        StartNode(instanceConstructor);
-                        instanceConstructor.Body.AcceptVisitor(this, "nobraces");
-                        EndNode(instanceConstructor);
-                    }
-
-                    CloseBrace(BraceStyle.NextLine);
-                    Semicolon();
-                }
-
-                if (interfaces.Length > 0) {
-                    WriteIdentifier(typeReference);
-                    WriteToken(".", null);
-                    WriteIdentifier("prototype");
-                    WriteToken(".", null);
-                    WriteIdentifier("__Interfaces__");
-                    Space();
-                    WriteToken("=", null);
-                    Space();
-                    WriteToken("[", null);
-
-                    foreach (var iface in interfaces) {
-                        var td = iface.Annotation<TypeDefinition>();
-
-                        if (td != null)
-                            WriteIdentifier(Util.EscapeIdentifier(td.FullName, false));
-
-                        WriteToken(",", null);
-                        Space();
-                    }
-
-                    WriteToken("]", null);
                     Semicolon();
                 }
 
                 foreach (var member in typeDeclaration.Members) {
-                    if (member is MethodDeclaration)
-                        ;
-                    else if (member is PropertyDeclaration) {
-                        EmitPropertyDefault(
-                            member, (member as PropertyDeclaration).Annotation<PropertyDefinition>()
-                        );
-                    } else if (member is ConstructorDeclaration)
+                    if (member is ConstructorDeclaration)
                         continue;
-                    else if (member is EventDeclaration) {
-                        EmitEventMethods(
-                            member, (member as EventDeclaration).Annotation<EventDefinition>()
-                        );
+                    else if (member is MethodDeclaration)
                         continue;
-                    } else if (!EmitInSecondPass(member))
+                    else if (member is PropertyDeclaration)
+                        continue;
+                    else if (EmitInSecondPass(member))
                         continue;
 
                     member.AcceptVisitor(this, data);
                 }
 
-                if (staticConstructor != null) {
-                    StartNode(staticConstructor);
-                    staticConstructor.Body.AcceptVisitor(this, "nobraces");
-                    EndNode(staticConstructor);
+                if (instanceConstructors.Length > 1) {
+                    WriteKeyword("var", null);
+                    Space();
+                    WriteIdentifier("__ctors");
+                    Space();
+                    WriteToken("=", null);
+                    Space();
+                    WriteToken("[", null);
+                    formatter.Indent();
+                    NewLine();
+
+                    for (int i = 0; i < instanceConstructors.Length; i++) {
+                        var ic = instanceConstructors[i];
+                        if (i != 0) {
+                            WriteToken(",", null);
+                            NewLine();
+                        }
+
+                        WriteToken("[", null);
+                        WriteKeyword("function");
+                        Space();
+
+                        StartNode(ic);
+
+                        LPar();
+                        WriteCommaSeparatedList(ic.Parameters);
+                        RPar();
+
+                        OpenBrace(BraceStyle.EndOfLine);
+
+                        ic.Body.AcceptVisitor(this, "nobraces");
+
+                        CloseBrace(BraceStyle.EndOfLine);
+                        WriteToken(",", null);
+                        Space();
+
+                        WriteToken("[", null);
+                        WriteTypeList(ic, ic.Parameters);
+                        WriteToken("]", null);
+
+                        EndNode(ic);
+
+                        WriteToken("]", null);
+                    }
+
+                    formatter.Unindent();
+                    NewLine();
+                    WriteToken("]", null);
+                    Semicolon();
+
+                    WriteKeyword("return");
+                    Space();
+                    WriteIdentifier("JSIL.DispatchOverload.call");
+                    LPar();
+
+                    WriteKeyword("this");
+                    WriteToken(",", null);
+                    Space();
+
+                    WriteIdentifier("Array.prototype.slice.call");
+                    LPar();
+                    WriteKeyword("arguments");
+                    RPar();
+
+                    WriteToken(",", null);
+                    Space();
+
+                    WriteIdentifier("__ctors");
+                    RPar();
+                    Semicolon();
+                } else if (instanceConstructors.Length == 1) {
+                    StartNode(instanceConstructor);
+                    instanceConstructor.Body.AcceptVisitor(this, "nobraces");
+                    EndNode(instanceConstructor);
                 }
 
-                NewLine();
+                CloseBrace(BraceStyle.NextLine);
+                Semicolon();
             }
+
+            foreach (var member in typeDeclaration.Members) {
+                if (member is MethodDeclaration)
+                    ;
+                else if (member is PropertyDeclaration) {
+                    EmitPropertyDefault(
+                        member, (member as PropertyDeclaration).Annotation<PropertyDefinition>()
+                    );
+                } else if (member is ConstructorDeclaration)
+                    continue;
+                else if (member is EventDeclaration) {
+                    EmitEventMethods(
+                        member, (member as EventDeclaration).Annotation<EventDefinition>()
+                    );
+                    continue;
+                } else if (!EmitInSecondPass(member))
+                    continue;
+
+                member.AcceptVisitor(this, data);
+            }
+
+            if (staticConstructor != null) {
+                StartNode(staticConstructor);
+                staticConstructor.Body.AcceptVisitor(this, "nobraces");
+                EndNode(staticConstructor);
+            }
+
+            if (interfaces.Length > 0) {
+                foreach (var iface in interfaces) {
+                    var td = iface.Annotation<TypeDefinition>();
+
+                    if (td != null) {
+                        WriteIdentifier(typeReference);
+                        WriteToken(".", null);
+                        WriteIdentifier("prototype");
+                        WriteToken(".", null);
+                        WriteIdentifier("__ImplementInterface__");
+                        LPar();
+                        WriteIdentifier(Util.EscapeIdentifier(td.FullName, false));
+                        RPar();
+                    }
+
+                    Semicolon();
+                }
+            }
+
+            NewLine();
 
             if (baseClass != null)
                 BaseTypeStack.Pop();
@@ -994,7 +996,7 @@ namespace JSIL.Internal {
             if ((initializer != null) && !initializer.IsNull) {
                 RPar();
                 WriteToken(".", null);
-                WriteIdentifier("Initialize");
+                WriteIdentifier("__Initialize__");
                 LPar();
                 initializer.AcceptVisitor(this, null);
                 RPar();
@@ -1118,6 +1120,12 @@ namespace JSIL.Internal {
             EmitNewExpression(defaultValueExpression.Type);
 
             return EndNode(defaultValueExpression);
+        }
+
+        public override object VisitGotoStatement (GotoStatement gotoStatement, object data) {
+            Debugger.Break();
+
+            return base.VisitGotoStatement(gotoStatement, data);
         }
 
         public override object VisitDirectionExpression (DirectionExpression directionExpression, object data) {

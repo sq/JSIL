@@ -7,6 +7,7 @@ using System.Text;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.Ast.Transforms;
 using ICSharpCode.NRefactory.CSharp;
+using JSIL.Internal;
 using Mono.Cecil;
 
 namespace JSIL {
@@ -60,10 +61,12 @@ namespace JSIL {
 
         public override object VisitMethodDeclaration (MethodDeclaration methodDeclaration, object data) {
             List<MethodDeclaration> list;
-            if (!CurrentScope.Overloads.TryGetValue(methodDeclaration.Name, out list)) {
+            var fullName = methodDeclaration.GetFullName();
+
+            if (!CurrentScope.Overloads.TryGetValue(fullName, out list)) {
                 list = new List<MethodDeclaration>();
 
-                CurrentScope.Overloads[methodDeclaration.Name] = list;
+                CurrentScope.Overloads[fullName] = list;
             }
 
             list.Add(methodDeclaration);

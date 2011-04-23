@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using ICSharpCode.NRefactory.CSharp;
+using Mono.Cecil;
 
 namespace JSIL.Internal {
     public static class Util {
@@ -76,6 +78,15 @@ namespace JSIL.Internal {
                 result = mapped;
 
             return result;
+        }
+
+        public static string GetFullName (this MethodDeclaration methodDeclaration) {
+            var pdt = methodDeclaration.PrivateImplementationType.Annotation<TypeReference>();
+
+            if (pdt == null)
+                return methodDeclaration.Name;
+            else
+                return String.Format("{0}.{1}", pdt.FullName, methodDeclaration.Name);
         }
     }
 }
