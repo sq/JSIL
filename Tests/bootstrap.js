@@ -478,16 +478,26 @@ System.String.Format = function (format) {
     var value = values[index];
 
     if (valueFormat) {
+
       switch (valueFormat[0]) {
         case 'f':
         case 'F':
           var digits = parseInt(valueFormat.substr(1));
           return parseFloat(value).toFixed(digits);
+
         default:
           throw new Error("Unsupported format string: " + valueFormat);
       }
     } else {
-      return String(value);
+
+      if (typeof (value) == "boolean") {
+        if (value)
+          return "True";
+        else
+          return "False";
+      } else {
+        return String(value);
+      }
     }
   };
 

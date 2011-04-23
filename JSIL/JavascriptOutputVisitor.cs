@@ -2023,6 +2023,27 @@ namespace JSIL.Internal {
             return false;
         }
 
+        public override object VisitIsExpression (IsExpression isExpression, object data) {
+            StartNode(isExpression);
+
+            var tr = isExpression.Type.Annotation<TypeReference>();
+            if (TypeIsDelegate(tr)) {
+                isExpression.Expression.AcceptVisitor(this, null);
+
+                return EndNode(isExpression);
+            }
+
+            WriteIdentifier("JSIL.CheckType");
+            LPar();
+            isExpression.Expression.AcceptVisitor(this, null);
+            WriteToken(",", null);
+            Space();
+            isExpression.Type.AcceptVisitor(this, null);
+            RPar();
+
+            return EndNode(isExpression);
+        }
+
         public override object VisitAsExpression (AsExpression asExpression, object data) {
             StartNode(asExpression);
 

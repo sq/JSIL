@@ -42,5 +42,7 @@ public static class Program {
             var text = ex.ToString().Split('\n')[0];
             Console.WriteLine("Cast failed: {0}", text);
         }
+
+        Console.WriteLine("Is IInterface: {0}", instances[0] is IInterface);
     }
 }
