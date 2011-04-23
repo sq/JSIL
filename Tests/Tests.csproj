@@ -113,6 +113,7 @@
     <None Include="SimpleTestCases\Interfaces.cs" />
     <None Include="SimpleTestCases\InterfaceInheritance.cs" />
     <None Include="SimpleTestCases\IntAndFloatCast.cs" />
+    <None Include="SimpleTestCases\Lambdas.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

@@ -1824,6 +1824,24 @@ namespace JSIL.Internal {
             return EndNode(anonymousMethodExpression);
         }
 
+        public override object VisitLambdaExpression (LambdaExpression lambdaExpression, object data) {
+            StartNode(lambdaExpression);
+            WriteKeyword("function");
+            Space();
+            LPar();
+            WriteCommaSeparatedList(lambdaExpression.Parameters);
+            RPar();
+
+            OpenBrace(BraceStyle.EndOfLine);
+            WriteKeyword("return");
+            Space();
+            lambdaExpression.Body.AcceptVisitor(this, data);
+            Semicolon();
+            CloseBrace(BraceStyle.EndOfLine);
+
+            return EndNode(lambdaExpression);
+        }
+
         protected string PickOperatorName (OperatorDeclaration op) {
             return String.Format("op_{0}", op.OperatorType);
         }
