@@ -196,6 +196,17 @@ namespace JSIL.Internal {
         public override object VisitBinaryOperatorExpression (BinaryOperatorExpression binaryOperatorExpression, object data) {
             StartNode(binaryOperatorExpression);
 
+            if (binaryOperatorExpression.Operator == BinaryOperatorType.NullCoalescing) {
+                WriteIdentifier("JSIL.Coalesce");
+                LPar();
+                binaryOperatorExpression.Left.AcceptVisitor(this, data);
+                WriteToken(",", null);
+                Space();
+                binaryOperatorExpression.Right.AcceptVisitor(this, data);
+                RPar();
+                return EndNode(binaryOperatorExpression);
+            }
+
             var method = binaryOperatorExpression.Annotation<MethodDefinition>();
             var leftIsIntegral = IsIntegral(GetTypeOfExpression(binaryOperatorExpression.Left));
             var rightIsIntegral = IsIntegral(GetTypeOfExpression(binaryOperatorExpression.Right));

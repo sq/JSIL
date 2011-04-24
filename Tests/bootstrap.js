@@ -166,6 +166,13 @@ JSIL.Cast = function (value, expectedType) {
     throw new System.InvalidCastException("Unable to cast object of type '" + JSIL.GetTypeName(value) + "' to type '" + JSIL.GetTypeName(expectedType) + "'.");
 };
 
+JSIL.Coalesce = function (lhs, rhs) {
+  if (lhs == null)
+    return rhs;
+  else
+    return lhs;
+};
+
 JSIL.Dynamic = {};
 JSIL.Dynamic.Cast = function (value, expectedType) {
   return value;
