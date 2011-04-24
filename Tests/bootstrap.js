@@ -254,7 +254,16 @@ System.Object.prototype.__Initialize__ = function (dict) {
     if (!dict.hasOwnProperty(key))
       continue;
 
-    this[key] = dict[key];
+    var value = dict[key];
+
+    if (value.__TypeName__ == "JSIL.CollectionInitializer") {
+      var values = value.values;
+      for (var i = 0, l = values.length; i < l; i++)
+        this[key].Add(values[i]);
+
+    } else {
+      this[key] = value;
+    }
   }
 
   return this;
@@ -262,6 +271,11 @@ System.Object.prototype.__Initialize__ = function (dict) {
 System.Object.prototype.toString = function ToString() {
   return this.__TypeName__;
 };
+
+JSIL.CollectionInitializer = function () {
+  this.values = Array.prototype.slice.call(arguments);
+};
+JSIL.CollectionInitializer.prototype = JSIL.MakeProto(System.Object, "JSIL.CollectionInitializer", true);
 
 System.ValueType = function () { };
 System.ValueType.prototype = JSIL.MakeProto(System.Object, "System.ValueType", false);

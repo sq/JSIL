@@ -277,16 +277,18 @@ namespace JSIL {
                 ConstructorDeclaration cd;
                 MethodDeclaration md;
 
+                var invocation = new InvocationExpression {
+                    Target = new LiteralIdentifierExpression("Array.prototype.slice.call"),
+                    Arguments = {
+                        new LiteralIdentifierExpression("arguments"),
+                        new PrimitiveExpression(index)
+                    }
+                };
+                invocation.AddAnnotation(parameterDeclaration.Annotation<ParameterReference>().ParameterType);
+
                 var initialization = new VariableDeclarationStatement(
                     (AstType)parameterDeclaration.Type.Clone(), 
-                    parameterDeclaration.Name,
-                    new InvocationExpression {
-                        Target = new LiteralIdentifierExpression("Array.prototype.slice.call"),
-                        Arguments = {
-                            new LiteralIdentifierExpression("arguments"),
-                            new PrimitiveExpression(index)
-                        }
-                    }
+                    parameterDeclaration.Name, invocation
                 );
 
                 if ((cd = parameterDeclaration.Parent as ConstructorDeclaration) != null) {

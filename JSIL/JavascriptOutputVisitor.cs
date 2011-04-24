@@ -1153,6 +1153,50 @@ namespace JSIL.Internal {
             return EndNode(arrayCreateExpression);
         }
 
+        public override object VisitArrayInitializerExpression (ArrayInitializerExpression arrayInitializerExpression, object data) {
+            StartNode(arrayInitializerExpression);
+
+            bool isArray = true;
+            foreach (var node in arrayInitializerExpression.Elements) {
+                if (node is NamedArgumentExpression) {
+                    isArray = false;
+                    break;
+                }
+            }
+
+            if (isArray) {
+                WriteKeyword("new");
+                Space();
+                WriteIdentifier("JSIL.CollectionInitializer");
+                LPar();
+                formatter.Indent();
+                NewLine();
+            } else
+                OpenBrace(BraceStyle.EndOfLine);
+
+            bool isFirst = true;
+            foreach (AstNode node in arrayInitializerExpression.Elements) {
+                if (isFirst) {
+                    isFirst = false;
+                } else {
+                    Comma(node);
+                    NewLine();
+                }
+                node.AcceptVisitor(this, null);
+            }
+
+            if (isArray) {
+                formatter.Unindent();
+                NewLine();
+                RPar();
+            } else {
+                NewLine();
+                CloseBrace(BraceStyle.NextLine);
+            }
+
+            return EndNode(arrayInitializerExpression);
+        }
+
         public override object VisitIndexerExpression (IndexerExpression indexerExpression, object data) {
             StartNode(indexerExpression);
 
@@ -2379,6 +2423,10 @@ namespace JSIL.Internal {
                 return tr;
 
             switch (type.ToString()) {
+                case "char":
+                    return TypeSystem.Char;
+                case "bool":
+                    return TypeSystem.Boolean;
                 case "short":
                     return TypeSystem.Int16;
                 case "int":
@@ -2457,12 +2505,14 @@ namespace JSIL.Internal {
             if (idxe != null) {
                 var targetRef = GetTypeOfExpression(idxe.Target);
 
-                if (targetRef.IsArray)
-                    return targetRef.Resolve();
-                else {
-                    var targetDef = ResolveTypeReference(targetRef);
+                if (targetRef != null) {
+                    if (targetRef.IsArray)
+                        return targetRef.Resolve();
+                    else {
+                        var targetDef = ResolveTypeReference(targetRef);
 
-                    return GetTypeOfMember(targetDef, "Item");
+                        return GetTypeOfMember(targetDef, "Item");
+                    }
                 }
             }
 
@@ -2481,7 +2531,11 @@ namespace JSIL.Internal {
                     }
                 }
 
-                return methodType;
+                if (methodType == null) {
+                    return ie.Annotation<TypeReference>();
+                } else {
+                    return methodType;
+                }
             }
 
             var uoe = expression as UnaryOperatorExpression;
@@ -2494,15 +2548,33 @@ namespace JSIL.Internal {
                 return BinaryOperatorTypePromotion(boe, out left, out right);
             }
 
+            var ae = expression as AssignmentExpression;
+            if (ae != null) {
+                var leftType = GetTypeOfExpression(ae.Left);
+                var rightType = GetTypeOfExpression(ae.Right);
+
+                if (rightType == null)
+                    return leftType;
+                else
+                    return rightType;
+            }
+
             var ce = expression as CastExpression;
             if (ce != null)
                 return GetReferenceToAstType(ce.Type);
+
+            var tre = expression as TypeReferenceExpression;
+            if (tre != null)
+                return GetReferenceToAstType(tre.Type);
 
             if (expression is ThisReferenceExpression)
                 return TypeStack.Peek();
 
             if (expression is BaseReferenceExpression)
                 return TypeStack.Peek().Resolve().BaseType;
+
+            if (expression is IsExpression)
+                return TypeSystem.Boolean;
 
             if (expression is LambdaExpression)
                 return null;
@@ -2567,7 +2639,6 @@ namespace JSIL.Internal {
 
         protected bool CastIsMeaningless (TypeReference left, TypeReference right, out bool castIsFloor) {
             if (left == null || right == null) {
-                Debugger.Break();
                 castIsFloor = false;
                 return false;
             }
