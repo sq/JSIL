@@ -33,6 +33,11 @@ namespace JSIL {
 
             var replacement = new BlockStatement();
             foreach (var variable in variableDeclarationStatement.Variables) {
+                if (variable.IsNull)
+                    continue;
+                if (variable.Initializer.IsNull)
+                    continue;
+
                 replacement.Add(new ExpressionStatement(new AssignmentExpression {
                     Left = new IdentifierExpression(variable.Name),
                     Right = variable.Initializer.Clone()
@@ -45,6 +50,8 @@ namespace JSIL {
                 variableDeclarationStatement.ReplaceWith(firstChild);
             } else if (replacement.Statements.Count > 1) {
                 variableDeclarationStatement.ReplaceWith(replacement);
+            } else {
+                variableDeclarationStatement.Remove();
             }
 
             return null;
