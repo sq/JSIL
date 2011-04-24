@@ -1068,6 +1068,7 @@ namespace JSIL.Internal {
 
         public override object VisitPrimitiveType (PrimitiveType primitiveType, object data) {
             Type type;
+
             if (AstType.PrimitiveTypeToType.TryGetValue(primitiveType.Keyword, out type)) {
                 StartNode(primitiveType);
                 WriteIdentifier(Util.EscapeIdentifier(type.FullName, false));
@@ -1141,12 +1142,13 @@ namespace JSIL.Internal {
 
         public override object VisitIndexerDeclaration (IndexerDeclaration indexerDeclaration, object data) {
             StartNode(indexerDeclaration);
-            // output get/set in their original order
+
             foreach (AstNode node in indexerDeclaration.Children) {
                 if (node.Role == IndexerDeclaration.GetterRole || node.Role == IndexerDeclaration.SetterRole) {
                     node.AcceptVisitor(this, data);
                 }
             }
+
             NewLine();
             return EndNode(indexerDeclaration);
         }

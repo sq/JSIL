@@ -120,6 +120,7 @@
     <None Include="TestCases\YieldReturn.cs" />
     <None Include="SimpleTestCases\StructAssignment.cs" />
     <None Include="SimpleTestCases\ReturnStruct.cs" />
+    <None Include="SimpleTestCases\RefStruct.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
