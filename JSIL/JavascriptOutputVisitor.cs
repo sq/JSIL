@@ -584,6 +584,13 @@ namespace JSIL.Internal {
                         }
                     } else {
                         argument.AcceptVisitor(this, null);
+
+                        if (NeedsStructCopy(argument)) {
+                            WriteToken(".", null);
+                            WriteIdentifier("MemberwiseClone");
+                            LPar();
+                            RPar();
+                        }
                     }
 
                     isFirst = false;
@@ -2232,6 +2239,8 @@ namespace JSIL.Internal {
                     return TypeSystem.Single;
                 case "System.Double":
                     return TypeSystem.Double;
+                case "System.Char":
+                    return TypeSystem.Char;
                 case "System.Decimal":
                     return new TypeReference(
                         "System", "Decimal",
@@ -2507,13 +2516,6 @@ namespace JSIL.Internal {
             if (!returnStatement.Expression.IsNull) {
                 Space();
                 returnStatement.Expression.AcceptVisitor(this, data);
-
-                if (NeedsStructCopy(returnStatement.Expression)) {
-                    WriteToken(".", null);
-                    WriteIdentifier("MemberwiseClone");
-                    LPar();
-                    RPar();
-                }
             }
 
             Semicolon();
