@@ -119,6 +119,7 @@
     <None Include="SimpleTestCases\OverloadWithRefArray.cs" />
     <None Include="TestCases\YieldReturn.cs" />
     <None Include="SimpleTestCases\StructAssignment.cs" />
+    <None Include="SimpleTestCases\ReturnStruct.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

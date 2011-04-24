@@ -1209,8 +1209,6 @@ namespace JSIL.Internal {
 
             var mvi = variableInitializer as ModifiedVariableInitializer;
 
-            var initVariable = variableInitializer.Initializer.Annotation<ILVariable>();
-
             if (!isNull) {
                 if (isField) {
                     var fieldRef = variableInitializer.Parent.Annotation<FieldReference>();
@@ -1253,7 +1251,7 @@ namespace JSIL.Internal {
                     }
                 }
 
-                if (NeedsStructCopy(initVariable)) {
+                if (NeedsStructCopy(variableInitializer.Initializer)) {
                     WriteToken(".", null);
                     WriteIdentifier("MemberwiseClone");
                     LPar();
@@ -1853,6 +1851,19 @@ namespace JSIL.Internal {
                 WriteKeyword("this");
         }
 
+        protected bool NeedsStructCopy (Expression expression) {
+            var typeRef = GetTypeOfExpression(expression);
+            if (typeRef == null)
+                return false;
+
+            bool result = NeedsStructCopy(typeRef.Resolve());
+
+            if ((expression is InvocationExpression) || (expression is ObjectCreateExpression))
+                return false;
+
+            return result;
+        }
+
         protected bool NeedsStructCopy (TypeDefinition type) {
             if ((type != null) && 
                 (!type.IsPrimitive) &&
@@ -1865,16 +1876,7 @@ namespace JSIL.Internal {
             return false;
         }
 
-        protected bool NeedsStructCopy (ILVariable variable) {
-            if (variable != null)
-                return NeedsStructCopy(variable.Type.Resolve());
-
-            return false;
-        }
-
         public override object VisitAssignmentExpression (AssignmentExpression assignmentExpression, object data) {
-            var rightVar = assignmentExpression.Right.Annotation<ILVariable>();
-
             StartNode(assignmentExpression);
             assignmentExpression.Left.AcceptVisitor(this, data);
             Space();
@@ -1882,7 +1884,7 @@ namespace JSIL.Internal {
             Space();
             assignmentExpression.Right.AcceptVisitor(this, data);
 
-            if (NeedsStructCopy(rightVar)) {
+            if (NeedsStructCopy(assignmentExpression.Right)) {
                 WriteToken(".", null);
                 WriteIdentifier("MemberwiseClone");
                 LPar();
@@ -2102,6 +2104,44 @@ namespace JSIL.Internal {
                 return true;
 
             return false;
+        }
+
+        protected TypeReference GetTypeOfExpression (Expression expression) {
+            var variable = expression.Annotation<ILVariable>();
+            if (variable != null)
+                return variable.Type;
+
+            var method = expression.Annotation<MethodReference>();
+            if (method != null) {
+                if (expression is ObjectCreateExpression) {
+                    // New delegate
+                    return null;
+                } else {
+                    return method.ReturnType;
+                }
+            }
+
+            return null;
+        }
+
+        public override object VisitReturnStatement (ReturnStatement returnStatement, object data) {
+            StartNode(returnStatement);
+            WriteKeyword("return");
+
+            if (!returnStatement.Expression.IsNull) {
+                Space();
+                returnStatement.Expression.AcceptVisitor(this, data);
+
+                if (NeedsStructCopy(returnStatement.Expression)) {
+                    WriteToken(".", null);
+                    WriteIdentifier("MemberwiseClone");
+                    LPar();
+                    RPar();
+                }
+            }
+
+            Semicolon();
+            return EndNode(returnStatement);
         }
 
         public override object VisitIsExpression (IsExpression isExpression, object data) {
