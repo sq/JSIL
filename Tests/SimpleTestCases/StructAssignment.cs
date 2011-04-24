@@ -3,13 +3,13 @@
 public static class Program { 
     public static void Main (string[] args) {
         var a = new CustomType(1);
-        CustomType bstruct = a;
+        CustomType b = a;
         a.Value = 2;
-        Console.WriteLine("a={0}, b={1}", a, bstruct);
-        bstruct = a;
-        Console.WriteLine("a={0}, b={1}", a, bstruct);
+        Console.WriteLine("a={0}, b={1}", a, b);
+        b = a;
+        Console.WriteLine("a={0}, b={1}", a, b);
         a.Value = 3;
-        Console.WriteLine("a={0}, b={1}", a, bstruct);
+        Console.WriteLine("a={0}, b={1}", a, b);
     }
 }
 

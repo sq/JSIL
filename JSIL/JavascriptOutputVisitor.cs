@@ -1873,7 +1873,7 @@ namespace JSIL.Internal {
         }
 
         public override object VisitAssignmentExpression (AssignmentExpression assignmentExpression, object data) {
-            var leftVar = assignmentExpression.Left.Annotation<ILVariable>();
+            var rightVar = assignmentExpression.Right.Annotation<ILVariable>();
 
             StartNode(assignmentExpression);
             assignmentExpression.Left.AcceptVisitor(this, data);
@@ -1882,7 +1882,7 @@ namespace JSIL.Internal {
             Space();
             assignmentExpression.Right.AcceptVisitor(this, data);
 
-            if (NeedsStructCopy(leftVar)) {
+            if (NeedsStructCopy(rightVar)) {
                 WriteToken(".", null);
                 WriteIdentifier("MemberwiseClone");
                 LPar();
