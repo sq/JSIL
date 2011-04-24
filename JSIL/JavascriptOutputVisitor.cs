@@ -140,6 +140,20 @@ namespace JSIL.Internal {
             }
         }
 
+        protected static bool IsNumeric (TypeReference type) {
+            if (type == null)
+                return false;
+
+            switch (type.FullName) {
+                case "System.Single":
+                case "System.Double":
+                case "System.Decimal":
+                    return true;
+            }
+
+            return IsIntegral(type);
+        }
+
         protected static bool IsIntegral (TypeReference type) {
             if (type == null)
                 return false;
@@ -2348,7 +2362,54 @@ namespace JSIL.Internal {
             }
         }
 
+        protected TypeReference GetReferenceToAstType (AstType type) {
+            var tr = type.Annotation<TypeReference>();
+            
+            if (tr != null)
+                return tr;
+
+            switch (type.ToString()) {
+                case "short":
+                    return TypeSystem.Int16;
+                case "int":
+                    return TypeSystem.Int32;
+                case "long":
+                    return TypeSystem.Int64;
+                case "ushort":
+                    return TypeSystem.UInt16;
+                case "uint":
+                    return TypeSystem.UInt32;
+                case "ulong":
+                    return TypeSystem.UInt64;
+                case "string":
+                    return TypeSystem.String;
+                case "sbyte":
+                    return TypeSystem.SByte;
+                case "byte":
+                    return TypeSystem.Byte;
+                case "float":
+                    return TypeSystem.Single;
+                case "double":
+                    return TypeSystem.Double;
+                case "decimal":
+                    return new TypeReference(
+                        "System", "Decimal",
+                        TypeSystem.Int32.Module, TypeSystem.Int32.Scope,
+                        true
+                    );
+            }
+
+            return null;
+        }
+
         protected TypeReference GetTypeOfExpression (Expression expression) {
+            if (expression.IsNull)
+                return null;
+
+            var pe = expression as ParenthesizedExpression;
+            if (pe != null)
+                return GetTypeOfExpression(pe.Expression);
+
             var variable = expression.Annotation<ILVariable>();
             if (variable != null)
                 return variable.Type;
@@ -2370,7 +2431,7 @@ namespace JSIL.Internal {
 
             var ace = expression as ArrayCreateExpression;
             if (ace != null) {
-                return ace.Type.Annotation<TypeReference>();
+                return GetReferenceToAstType(ace.Type);
             }
 
             var mre = expression as MemberReferenceExpression;
@@ -2425,7 +2486,7 @@ namespace JSIL.Internal {
 
             var ce = expression as CastExpression;
             if (ce != null)
-                return ce.Type.Annotation<TypeReference>();
+                return GetReferenceToAstType(ce.Type);
 
             if (expression is ThisReferenceExpression)
                 return TypeStack.Peek();
@@ -2501,11 +2562,39 @@ namespace JSIL.Internal {
             return EndNode(asExpression);
         }
 
+        protected bool CastIsMeaningless (TypeReference left, TypeReference right) {
+            if (left == null)
+                throw new InvalidOperationException();
+            else if (right == null)
+                throw new InvalidOperationException();
+
+            bool leftIsNumeric = IsNumeric(left);
+            bool rightIsNumeric = IsNumeric(right);
+            bool leftIsIntegral = IsIntegral(left);
+            bool rightIsIntegral = IsIntegral(right);
+
+            if (leftIsNumeric && rightIsNumeric) {
+                if (leftIsIntegral == rightIsIntegral)
+                    return true;
+                else if (!leftIsIntegral)
+                    return true;
+                else
+                    return false;
+            }
+
+            return false;
+        }
+
         public override object VisitCastExpression (CastExpression castExpression, object data) {
             StartNode(castExpression);
 
-            var tr = castExpression.Type.Annotation<TypeReference>();
-            if (TypeIsDelegate(tr)) {
+            var insideType = GetTypeOfExpression(castExpression.Expression);
+            var targetType = GetReferenceToAstType(castExpression.Type);
+
+            bool castIsUnnecessary = TypeIsDelegate(targetType) || 
+                CastIsMeaningless(targetType, insideType);
+
+            if (castIsUnnecessary) {
                 castExpression.Expression.AcceptVisitor(this, null);
 
                 return EndNode(castExpression);
