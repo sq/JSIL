@@ -17,16 +17,17 @@ namespace JSIL {
         }
 
         public class BlockInfo {
-            public readonly int Depth;
+            public readonly int Index;
             public readonly BlockStatement HoistBlock;
             public readonly BlockStatement Block;
             public readonly Dictionary<string, LabelInfo> Labels = new Dictionary<string, LabelInfo>();
             public readonly List<GotoInfo> Gotos = new List<GotoInfo>();
+            public readonly HashSet<string> LabelReferences = new HashSet<string>();
             public readonly List<BlockInfo> ChildBlocks = new List<BlockInfo>();
 
-            public BlockInfo (int depth, BlockStatement block, BlockStatement hoist) {
+            public BlockInfo (int index, BlockStatement block, BlockStatement hoist) {
                 Block = block;
-                Depth = depth;
+                Index = index;
                 HoistBlock = hoist;
             }
 
@@ -49,6 +50,17 @@ namespace JSIL {
                     foreach (var block in ChildBlocks)
                         foreach (var g in block.AllGotos)
                             yield return g;
+                }
+            }
+
+            public IEnumerable<string> AllReferences {
+                get {
+                    foreach (var l in LabelReferences)
+                        yield return l;
+
+                    foreach (var block in ChildBlocks)
+                        foreach (var l in block.AllReferences)
+                            yield return l;
                 }
             }
 
@@ -103,6 +115,24 @@ namespace JSIL {
                 return sb.ToString();
             }
 
+            public void PruneLabels (HashSet<string> referencedLabels = null, HashSet<string> gotos = null) {
+                if (referencedLabels == null)
+                    referencedLabels = new HashSet<string>(AllReferences);
+                if (gotos == null)
+                    gotos = new HashSet<string>(from g in AllGotos select g.LabelName);
+
+                foreach (var label in this.Labels.ToArray()) {
+                    if (!gotos.Contains(label.Key))
+                        Labels.Remove(label.Key);
+                       
+                    if (!referencedLabels.Contains(label.Key))
+                        label.Value.Label.Remove();
+                }
+
+                foreach (var block in ChildBlocks)
+                    block.PruneLabels(referencedLabels);
+            }
+
             public BlockStatement TransformLabels (DecompilerContext context) {
                 foreach (var block in ChildBlocks)
                     block.TransformLabels(context);
@@ -110,7 +140,7 @@ namespace JSIL {
                 if (Labels.Count == 0)
                     return this.Block;
 
-                var labelVariableName = String.Format("_label{0}_", Depth);
+                var labelVariableName = String.Format("_label{0}_", Index);
                 var labelVariable = new VariableDeclarationStatement(
                     AstType.Create(typeof(string)), labelVariableName, 
                     new PrimitiveExpression("::enter")
@@ -127,7 +157,7 @@ namespace JSIL {
                     }
                 };
 
-                var loopName = String.Format("_step{0}_", Depth);
+                var loopName = String.Format("_step{0}_", Index);
                 var nextStepStatement = new TargetedContinueStatement(loopName);
 
                 var result = new BlockStatement {
@@ -188,7 +218,7 @@ namespace JSIL {
                     var l = current as LabelStatement;
                     var g = current as GotoStatement;
 
-                    if (l != null && !l.Label.StartsWith("_block")) {
+                    if (l != null && !IsSpecialLabel(l.Label)) {
                         var gotoNext = buildGoto(l.Label);
                         current.ReplaceWith(gotoNext);
                         gotoNext.Parent.InsertChildAfter(gotoNext, nextStepStatement.Clone(), (Role<Statement>)gotoNext.Role);
@@ -250,6 +280,8 @@ namespace JSIL {
             }
         }
 
+        protected int NextIndex = 0;
+
         protected readonly Queue<BlockInfo> PendingBlocks = new Queue<BlockInfo>();
         protected readonly Stack<BlockInfo> Blocks = new Stack<BlockInfo>();
         protected readonly Dictionary<string, LabelInfo> Labels = new Dictionary<string, LabelInfo>();
@@ -258,10 +290,14 @@ namespace JSIL {
             : base(context) {
         }
 
-        public override object VisitLabelStatement (LabelStatement labelStatement, object data) {
-            if (labelStatement.Label.StartsWith("_block"))
-                return base.VisitLabelStatement(labelStatement, data);
+        public static bool IsSpecialLabel (string label) {
+            if (label.StartsWith("_block") || label.StartsWith("_step"))
+                return true;
 
+            return false;
+        }
+
+        public override object VisitLabelStatement (LabelStatement labelStatement, object data) {
             var block = Blocks.Peek();
             var info = new LabelInfo(block, labelStatement, labelStatement.Label);
             block.Labels[info.Name] = info;
@@ -271,15 +307,35 @@ namespace JSIL {
 
         public override object VisitGotoStatement (GotoStatement gotoStatement, object data) {
             var block = Blocks.Peek();
+
             var info = new GotoInfo(block, gotoStatement, gotoStatement.Label);
             block.Gotos.Add(info);
+            block.LabelReferences.Add(gotoStatement.Label);
+
             return base.VisitGotoStatement(gotoStatement, data);
         }
 
+        public override object VisitBreakStatement (BreakStatement breakStatement, object data) {
+            var tbs = breakStatement as TargetedBreakStatement;
+
+            if (tbs != null)
+                Blocks.Peek().LabelReferences.Add(tbs.LabelName);
+
+            return base.VisitBreakStatement(breakStatement, data);
+        }
+
+        public override object VisitContinueStatement (ContinueStatement continueStatement, object data) {
+            var tcs = continueStatement as TargetedContinueStatement;
+
+            if (tcs != null)
+                Blocks.Peek().LabelReferences.Add(tcs.LabelName);
+
+            return base.VisitContinueStatement(continueStatement, data);
+        }
+
         public override object VisitBlockStatement (BlockStatement blockStatement, object data) {
-            int depth = 0;
-            if (Blocks.Count != 0)
-                depth = Blocks.Peek().Depth + 1;
+            if (Blocks.Count == 0)
+                NextIndex = 0;
 
             bool hoistBlockIsNew = false;
             BlockInfo parentBlock = null;
@@ -294,7 +350,7 @@ namespace JSIL {
                 hoistBlockIsNew = true;
             }
                 
-            var info = new BlockInfo(depth, blockStatement, hoistBlock);
+            var info = new BlockInfo(NextIndex++, blockStatement, hoistBlock);
 
             Blocks.Push(info);
             var result = base.VisitBlockStatement(blockStatement, data);
@@ -305,33 +361,31 @@ namespace JSIL {
             foreach (var g in info.AllGotos) {
                 c += 1;
 
-                if (g.LabelName.Contains("_block"))
-                    continue;
-
                 if (!info.ContainsLabel(g.LabelName))
                     selfContained = false;
             }
 
-            if (selfContained && (c > 0)) {
-                var newBlock = info.TransformLabels(context);
+            BlockStatement newBlock = blockStatement;
 
-                if (hoistBlockIsNew) {
-                    foreach (var statement in hoistBlock.Statements) {
-                        statement.Remove();
-                        if (newBlock.FirstChild != null)
-                            newBlock.InsertChildBefore(newBlock.FirstChild, statement, newBlock.FirstChild.Role as Role<Statement>);
-                        else
-                            newBlock.Add(statement);
-                    }
-                }
+            if (selfContained && (c > 0)) {
+                info.PruneLabels();
+
+                newBlock = info.TransformLabels(context);
             } else if (parentBlock != null) {
                 parentBlock.ChildBlocks.Add(info);
             } else if (c > 0) {
                 throw new InvalidDataException("Goto found pointing outside of block graph");
             }
 
-            if (hoistBlockIsNew && hoistBlock.Statements.Count == 0)
-                hoistBlock.Remove();
+            if (hoistBlockIsNew && selfContained) {
+                foreach (var statement in hoistBlock.Statements) {
+                    statement.Remove();
+                    if (newBlock.FirstChild != null)
+                        newBlock.InsertChildBefore(newBlock.FirstChild, statement, newBlock.FirstChild.Role as Role<Statement>);
+                    else
+                        newBlock.Add(statement);
+                }
+            }
 
             return result;
         }
