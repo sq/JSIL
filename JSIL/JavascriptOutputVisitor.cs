@@ -20,8 +20,10 @@ namespace JSIL.Internal {
           ITargetedControlFlowVisitor<object, object>
     {
         protected int ExceptionCount = 0;
+        protected TypeSystem TypeSystem = null;
 
         public readonly Dictionary<string, List<OverloadedMethodDeclaration>> KnownOverloads = new Dictionary<string, List<OverloadedMethodDeclaration>>();
+        public readonly Stack<TypeReference> TypeStack = new Stack<TypeReference>();
         public readonly Stack<string> BaseTypeStack = new Stack<string>();
 
         public JavascriptOutputVisitor (IOutputFormatter formatter)
@@ -102,6 +104,22 @@ namespace JSIL.Internal {
             return null;
         }
 
+        public override object VisitYieldBreakStatement (YieldBreakStatement yieldBreakStatement, object data) {
+            StartNode(yieldBreakStatement);
+            WriteKeyword("return");
+            Semicolon();
+            return EndNode(yieldBreakStatement);
+        }
+
+        public override object VisitYieldStatement (YieldStatement yieldStatement, object data) {
+            StartNode(yieldStatement);
+            WriteKeyword("yield");
+            Space();
+            yieldStatement.Expression.AcceptVisitor(this, data);
+            Semicolon();
+            return EndNode(yieldStatement);
+        }
+
         public override object VisitUnaryOperatorExpression (UnaryOperatorExpression unaryOperatorExpression, object data) {
             var method = unaryOperatorExpression.Annotation<MethodDefinition>();
 
@@ -122,12 +140,62 @@ namespace JSIL.Internal {
             }
         }
 
+        protected static bool IsIntegral (TypeReference type) {
+            if (type == null)
+                return false;
+
+            switch (type.FullName) {
+                case "System.Int64":
+                case "System.Int32":
+                case "System.Int16":
+                case "System.UInt64":
+                case "System.UInt32":
+                case "System.UInt16":
+                case "System.SByte":
+                case "System.Byte":
+                    return true;
+            }
+
+            return false;
+        }
+
+        protected static bool? IsSigned (TypeReference type) {
+            if (type == null)
+                return null;
+
+            switch (type.FullName) {
+                case "System.Int64":
+                case "System.Int32":
+                case "System.Int16":
+                case "System.SByte":
+                    return true;
+                case "System.UInt64":
+                case "System.UInt32":
+                case "System.UInt16":
+                case "System.Byte":
+                    return false;
+            }
+
+            return null;
+        }
+
         public override object VisitBinaryOperatorExpression (BinaryOperatorExpression binaryOperatorExpression, object data) {
+            StartNode(binaryOperatorExpression);
+
             var method = binaryOperatorExpression.Annotation<MethodDefinition>();
+            var leftIsIntegral = IsIntegral(GetTypeOfExpression(binaryOperatorExpression.Left));
+            var rightIsIntegral = IsIntegral(GetTypeOfExpression(binaryOperatorExpression.Right));
+
+            bool needsTruncation = false;
+            if (binaryOperatorExpression.Operator == BinaryOperatorType.Divide)
+                needsTruncation = rightIsIntegral;
+
+            if (needsTruncation) {
+                WriteIdentifier("Math.floor");
+                LPar();
+            }
 
             if (method != null) {
-                StartNode(binaryOperatorExpression);
-
                 WriteIdentifier(method.DeclaringType);
                 WriteToken(".", null);
                 WriteIdentifier(Util.EscapeIdentifier(method.Name));
@@ -138,11 +206,18 @@ namespace JSIL.Internal {
                 Space();
                 binaryOperatorExpression.Right.AcceptVisitor(this, data);
                 RPar();
-
-                return EndNode(binaryOperatorExpression);
             } else {
-                return base.VisitBinaryOperatorExpression(binaryOperatorExpression, data);
+                binaryOperatorExpression.Left.AcceptVisitor(this, data);
+                Space();
+                WriteToken(BinaryOperatorExpression.GetOperatorSymbol(binaryOperatorExpression.Operator), BinaryOperatorExpression.OperatorRole);
+                Space();
+                binaryOperatorExpression.Right.AcceptVisitor(this, data);
             }
+
+            if (needsTruncation)
+                RPar();
+
+            return EndNode(binaryOperatorExpression);
         }
 
         protected bool IsStatic (PropertyDefinition property) {
@@ -662,6 +737,11 @@ namespace JSIL.Internal {
 
             var typeReference = typeDeclaration.Annotation<TypeReference>();
 
+            TypeStack.Push(typeReference);
+
+            if (TypeSystem == null)
+                TypeSystem = typeReference.Module.TypeSystem;
+
             if (isStatic) {
             } else {
                 string baseClassName = "System.Object";
@@ -869,6 +949,7 @@ namespace JSIL.Internal {
 
             NewLine();
 
+            TypeStack.Pop();
             if (baseClass != null)
                 BaseTypeStack.Pop();
 
@@ -1282,6 +1363,7 @@ namespace JSIL.Internal {
         public override object VisitBaseReferenceExpression (BaseReferenceExpression baseReferenceExpression, object data) {
             StartNode(baseReferenceExpression);
             var baseTypeName = BaseTypeStack.Peek();
+
             if (data as string == "propertyref") {
                 WriteKeyword("this");
             } else {
@@ -1869,6 +1951,7 @@ namespace JSIL.Internal {
         protected bool NeedsStructCopy (TypeDefinition type) {
             if ((type != null) && 
                 (!type.IsPrimitive) &&
+                (type.FullName != "System.Decimal") && 
                 (type.BaseType != null) && 
                 (type.BaseType.FullName == "System.ValueType")
             ) {
@@ -1982,6 +2065,9 @@ namespace JSIL.Internal {
 
             var methodDefinition = methodDeclaration.Annotation<MethodDefinition>();
             var declaringType = methodDefinition.DeclaringType;
+
+            if (TypeSystem == null)
+                TypeSystem = methodDefinition.Module.TypeSystem;
 
             var odmd = methodDeclaration as OverloadDispatcherMethodDeclaration;
             if (odmd != null) {
@@ -2108,6 +2194,160 @@ namespace JSIL.Internal {
             return false;
         }
 
+        protected TypeReference GetReferenceToPrimitiveType (System.Type type) {
+            switch (type.FullName) {
+                case "System.Int16":
+                    return TypeSystem.Int16;
+                case "System.Int32":
+                    return TypeSystem.Int32;
+                case "System.Int64":
+                    return TypeSystem.Int64;
+                case "System.UInt16":
+                    return TypeSystem.UInt16;
+                case "System.UInt32":
+                    return TypeSystem.UInt32;
+                case "System.UInt64":
+                    return TypeSystem.UInt64;
+                case "System.String":
+                    return TypeSystem.String;
+                case "System.SByte":
+                    return TypeSystem.SByte;
+                case "System.Byte":
+                    return TypeSystem.Byte;
+                case "System.Single":
+                    return TypeSystem.Single;
+                case "System.Double":
+                    return TypeSystem.Double;
+                case "System.Decimal":
+                    return new TypeReference(
+                        "System", "Decimal",
+                        TypeSystem.Int32.Module, TypeSystem.Int32.Scope,
+                        true
+                    );
+            }
+
+            throw new NotImplementedException();
+        }
+
+        protected TypeDefinition ResolveTypeReference (TypeReference typeRef) {
+            if (typeRef == null)
+                return null;
+
+            // Resolving a TypeReference to an array yields the type of the array elements instead of an array type,
+            //  so we manually resolve to System.Array instead to get the right members.
+            if (typeRef.IsArray)
+                return new TypeReference("System", "Array", TypeSystem.Int32.Module, TypeSystem.Int32.Scope, false).Resolve();
+            else
+                return typeRef.Resolve();
+        }
+
+        protected TypeReference GetTypeOfMember (TypeDefinition type, string name) {
+            string fullName = null;
+            if (name.StartsWith("get_")) {
+                fullName = name;
+                name = name.Replace("get_", "");
+            } else if (name.StartsWith("set_")) {
+                fullName = name;
+                name = name.Replace("set_", "");
+            }
+
+            var property = (from prop in type.Properties
+                            where (prop.Name == name) || (prop.Name == fullName)
+                            select prop).FirstOrDefault();
+            if (property != null)
+                return property.PropertyType;
+
+            var field = (from fld in type.Fields
+                         where (fld.Name == name) || (fld.Name == fullName)
+                         select fld).FirstOrDefault();
+            if (field != null)
+                return field.FieldType;
+
+            var method = (from mth in type.Methods
+                          where (mth.Name == name) || (mth.Name == fullName)
+                          select mth).FirstOrDefault();
+            if (method != null)
+                return method.ReturnType;
+
+            if (type.BaseType != null)
+                return GetTypeOfMember(type.BaseType.Resolve(), name);
+            else
+                return null;
+        }
+
+        // Implements C# binary operator type promotion rules.
+        // See http://msdn.microsoft.com/en-us/library/aa691330%28v=vs.71%29.aspx
+        protected TypeReference BinaryOperatorTypePromotion (BinaryOperatorExpression expression, out TypeReference leftType, out TypeReference rightType) {
+            leftType = GetTypeOfExpression(expression.Left);
+            rightType = GetTypeOfExpression(expression.Right);
+            if ((leftType == null) || (rightType == null))
+                return null;
+
+            var leftName = leftType.FullName;
+            var rightName = rightType.FullName;
+
+            if (leftName == "System.Decimal")
+                return rightType = leftType;
+            else if (rightName == "System.Decimal")
+                return leftType = rightType;
+
+            if (leftName == "System.Double" || rightName == "System.Double") {
+                return leftType = rightType = TypeSystem.Double;
+            } else if (leftName == "System.Single" || rightName == "System.Single") {
+                return leftType = rightType = TypeSystem.Single;
+            }
+
+            if (leftName == "System.UInt64") {
+                if (IsSigned(rightType).GetValueOrDefault(true))
+                    throw new InvalidOperationException("Invalid binary promotion");
+                else
+                    return rightType = TypeSystem.UInt64;
+            } else if (rightName == "System.UInt64") {
+                if (IsSigned(leftType).GetValueOrDefault(true))
+                    throw new InvalidOperationException("Invalid binary promotion");
+                else
+                    return leftType = TypeSystem.UInt64;
+            } 
+
+            if (leftName == "System.Int64" || rightName == "System.Int64")
+                return leftType = rightType = TypeSystem.Int64;
+
+            if (leftName == "System.UInt32") {
+                if (IsSigned(rightType).GetValueOrDefault(true))
+                    return leftType = rightType = TypeSystem.Int64;
+                else
+                    return leftType = rightType = TypeSystem.UInt32;
+            } else if (rightName == "System.UInt32") {
+                if (IsSigned(leftType).GetValueOrDefault(true))
+                    return leftType = rightType = TypeSystem.Int64;
+                else
+                    return leftType = rightType = TypeSystem.UInt32;
+            }
+
+            return leftType = rightType = TypeSystem.Int32;
+        }
+
+        protected TypeReference GetReturnTypeOfDelegate (TypeReference delegateType) {
+            var typeDef = delegateType.Resolve();
+            var invokeMethod = (from method in typeDef.Methods
+                                where method.Name == "Invoke"
+                                select method).FirstOrDefault();
+
+            if (invokeMethod == null)
+                throw new InvalidOperationException();
+
+            if (invokeMethod.ReturnType.IsGenericParameter) {
+                var instanceType = (GenericInstanceType)delegateType;
+                var genericParameterIndex = typeDef.GenericParameters.IndexOf((from param in typeDef.GenericParameters
+                                        where param.Name == invokeMethod.ReturnType.Name
+                                        select param).FirstOrDefault());
+
+                return instanceType.GenericArguments[genericParameterIndex];
+            } else {
+                return invokeMethod.ReturnType;
+            }
+        }
+
         protected TypeReference GetTypeOfExpression (Expression expression) {
             var variable = expression.Annotation<ILVariable>();
             if (variable != null)
@@ -2122,6 +2362,79 @@ namespace JSIL.Internal {
                     return method.ReturnType;
                 }
             }
+
+            var prim = expression as PrimitiveExpression;
+            if ((prim != null) && (prim.Value != null)) {
+                return GetReferenceToPrimitiveType(prim.Value.GetType());
+            }
+
+            var ace = expression as ArrayCreateExpression;
+            if (ace != null) {
+                return ace.Type.Annotation<TypeReference>();
+            }
+
+            var mre = expression as MemberReferenceExpression;
+            if (mre != null) {
+                var targetRef = GetTypeOfExpression(mre.Target);
+                var targetDef = ResolveTypeReference(targetRef);
+
+                if (targetDef != null)
+                    return GetTypeOfMember(targetDef, mre.MemberName);
+            }
+
+            var idxe = expression as IndexerExpression;
+            if (idxe != null) {
+                var targetRef = GetTypeOfExpression(idxe.Target);
+
+                if (targetRef.IsArray)
+                    return targetRef.Resolve();
+                else {
+                    var targetDef = ResolveTypeReference(targetRef);
+
+                    return GetTypeOfMember(targetDef, "Item");
+                }
+            }
+
+            var ie = expression as InvocationExpression;
+            if (ie != null) {
+                var methodType = GetTypeOfExpression(ie.Target);
+                var methodTypeDef = ResolveTypeReference(methodType);
+
+                if (methodTypeDef != null) {
+                    var baseType = methodTypeDef.BaseType;
+                    if ((baseType != null) &&
+                        (baseType.FullName == "System.Delegate" ||
+                         baseType.FullName == "System.MulticastDelegate")
+                    ) {
+                        return GetReturnTypeOfDelegate(methodType);
+                    }
+                }
+
+                return methodType;
+            }
+
+            var uoe = expression as UnaryOperatorExpression;
+            if (uoe != null)
+                return GetTypeOfExpression(uoe.Expression);
+
+            var boe = expression as BinaryOperatorExpression;
+            if (boe != null) {
+                TypeReference left, right;
+                return BinaryOperatorTypePromotion(boe, out left, out right);
+            }
+
+            var ce = expression as CastExpression;
+            if (ce != null)
+                return ce.Type.Annotation<TypeReference>();
+
+            if (expression is ThisReferenceExpression)
+                return TypeStack.Peek();
+
+            if (expression is BaseReferenceExpression)
+                return TypeStack.Peek().Resolve().BaseType;
+
+            if (expression is LambdaExpression)
+                return null;
 
             return null;
         }

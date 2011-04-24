@@ -84,5 +84,11 @@ namespace JSIL.Tests {
             using (var test = new ComparisonTest(@"TestCases\Switch.cs"))
                 test.Run();
         }
+
+        [Test]
+        public void IntegerArithmetic () {
+            using (var test = new ComparisonTest(@"TestCases\IntegerArithmetic.cs"))
+                test.Run();
+        }
     }
 }

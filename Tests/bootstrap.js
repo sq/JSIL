@@ -731,3 +731,11 @@ System.Double.CheckType = function (value) {
   return (typeof (value) == "number");
 }
 System.Double.prototype = JSIL.MakeNumericProto(Number, "System.Double", false);
+
+System.Decimal = function (value) {
+  return value;
+}
+System.Decimal.CheckType = function (value) {
+  return (typeof (value) == "number");
+}
+System.Decimal.prototype = JSIL.MakeNumericProto(Number, "System.Decimal", false);

@@ -18,11 +18,14 @@ namespace JSIL {
             var propertyDefinition = indexerExpression.Annotation<PropertyDefinition>();
 
             if (propertyDefinition != null) {
+                var target = new MemberReferenceExpression {
+                    Target = indexerExpression.Target.Clone(),
+                    MemberName = String.Format("get_{0}", propertyDefinition.Name)
+                };
+                target.AddAnnotation(propertyDefinition);
+
                 var replacement = new InvocationExpression {
-                    Target = new MemberReferenceExpression {
-                        Target = indexerExpression.Target.Clone(),
-                        MemberName = String.Format("get_{0}", propertyDefinition.Name)
-                    },
+                    Target = target
                 };
 
                 foreach (var arg in indexerExpression.Arguments)
@@ -44,11 +47,14 @@ namespace JSIL {
                 var pd = mre.Annotation<PropertyDefinition>();
 
                 if (pd != null) {
+                    var target = new MemberReferenceExpression {
+                        Target = mre.Target.Clone(),
+                        MemberName = String.Format("set_{0}", pd.Name)
+                    };
+                    target.AddAnnotation(pd);
+
                     assignmentExpression.ReplaceWith(new InvocationExpression {
-                        Target = new MemberReferenceExpression {
-                            Target = mre.Target.Clone(),
-                            MemberName = String.Format("set_{0}", pd.Name)
-                        },
+                        Target = target,
                         Arguments = {
                             assignmentExpression.Right.Clone()
                         }
@@ -60,11 +66,14 @@ namespace JSIL {
                 var pd = ie.Annotation<PropertyDefinition>();
 
                 if (pd != null) {
+                    var target = new MemberReferenceExpression {
+                        Target = ie.Target.Clone(),
+                        MemberName = String.Format("set_{0}", pd.Name)
+                    };
+                    target.AddAnnotation(pd);
+
                     var replacement = new InvocationExpression {
-                        Target = new MemberReferenceExpression {
-                            Target = ie.Target.Clone(),
-                            MemberName = String.Format("set_{0}", pd.Name)
-                        },
+                        Target = target
                     };
 
                     foreach (var arg in ie.Arguments)
@@ -86,11 +95,14 @@ namespace JSIL {
                 var pd = memberReferenceExpression.Annotation<PropertyDefinition>();
 
                 if (pd != null) {
+                    var target = new MemberReferenceExpression {
+                        Target = memberReferenceExpression.Target.Clone(),
+                        MemberName = String.Format("get_{0}", pd.Name)
+                    };
+                    target.AddAnnotation(pd);
+
                     memberReferenceExpression.ReplaceWith(new InvocationExpression {
-                        Target = new MemberReferenceExpression {
-                            Target = memberReferenceExpression.Target.Clone(),
-                            MemberName = String.Format("get_{0}", pd.Name)
-                        },
+                        Target = target
                     });
 
                     return null;
