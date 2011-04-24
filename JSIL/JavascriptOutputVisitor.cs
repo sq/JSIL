@@ -1422,6 +1422,8 @@ namespace JSIL.Internal {
                 result = true;
             } else if (!isField) {
                 WriteIdentifier(Util.EscapeIdentifier(variableInitializer.Name));
+            } else {
+                Debugger.Break();
             }
 
             return result;

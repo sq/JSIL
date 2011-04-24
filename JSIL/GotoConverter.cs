@@ -304,6 +304,10 @@ namespace JSIL {
             int c = 0;
             foreach (var g in info.AllGotos) {
                 c += 1;
+
+                if (g.LabelName.Contains("_block"))
+                    continue;
+
                 if (!info.ContainsLabel(g.LabelName))
                     selfContained = false;
             }
@@ -314,7 +318,10 @@ namespace JSIL {
                 if (hoistBlockIsNew) {
                     foreach (var statement in hoistBlock.Statements) {
                         statement.Remove();
-                        newBlock.InsertChildBefore(newBlock.FirstChild, statement, (Role<Statement>)newBlock.FirstChild.Role);
+                        if (newBlock.FirstChild != null)
+                            newBlock.InsertChildBefore(newBlock.FirstChild, statement, newBlock.FirstChild.Role as Role<Statement>);
+                        else
+                            newBlock.Add(statement);
                     }
                 }
             } else if (parentBlock != null) {
@@ -322,6 +329,9 @@ namespace JSIL {
             } else if (c > 0) {
                 throw new InvalidDataException("Goto found pointing outside of block graph");
             }
+
+            if (hoistBlockIsNew && hoistBlock.Statements.Count == 0)
+                hoistBlock.Remove();
 
             return result;
         }

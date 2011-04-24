@@ -7,7 +7,6 @@ using ICSharpCode.NRefactory.CSharp;
 namespace JSIL {
     public class DeclarationHoister : ContextTrackingVisitor<object> {
         public readonly BlockStatement Output;
-        public VariableDeclarationStatement Statement = null;
         public readonly HashSet<string> HoistedNames = new HashSet<string>();
 
         public DeclarationHoister (DecompilerContext context, BlockStatement output)
@@ -17,14 +16,13 @@ namespace JSIL {
         }
 
         public override object VisitVariableDeclarationStatement (VariableDeclarationStatement variableDeclarationStatement, object data) {
-            if (Statement == null) {
-                Statement = new VariableDeclarationStatement();
-                Output.Add(Statement);
-            }
+            var statement = new VariableDeclarationStatement {
+                Type = variableDeclarationStatement.Type.Clone()
+            };
 
             foreach (var variable in variableDeclarationStatement.Variables) {
                 if (!HoistedNames.Contains(variable.Name)) {
-                    Statement.Variables.Add(new VariableInitializer(
+                    statement.Variables.Add(new VariableInitializer(
                         variable.Name
                     ));
                     HoistedNames.Add(variable.Name);
@@ -38,10 +36,12 @@ namespace JSIL {
                 if (variable.Initializer.IsNull)
                     continue;
 
-                replacement.Add(new ExpressionStatement(new AssignmentExpression {
+                var newStmt = new ExpressionStatement(new AssignmentExpression {
                     Left = new IdentifierExpression(variable.Name),
                     Right = variable.Initializer.Clone()
-                }));
+                });
+
+                replacement.Add(newStmt);
             }
 
             if (replacement.Statements.Count == 1) {
@@ -53,6 +53,9 @@ namespace JSIL {
             } else {
                 variableDeclarationStatement.Remove();
             }
+
+            if (statement.Variables.Count > 0)
+                Output.Add(statement);
 
             return null;
         }
