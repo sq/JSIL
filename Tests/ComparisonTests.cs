@@ -74,6 +74,12 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void YieldReturn () {
+            using (var test = new ComparisonTest(@"TestCases\YieldReturn.cs"))
+                test.Run();
+        }
+
+        [Test]
         public void Switch () {
             using (var test = new ComparisonTest(@"TestCases\Switch.cs"))
                 test.Run();

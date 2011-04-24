@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using ICSharpCode.Decompiler.Ast;
+using ICSharpCode.Decompiler.ILAst;
 using ICSharpCode.NRefactory.CSharp;
 using JSIL.Transforms;
 using Mono.Cecil;
@@ -668,6 +669,8 @@ namespace JSIL.Internal {
                     var baseReference = baseClass.Annotation<TypeReference>();
                     baseClassName = baseReference.FullName;
                     BaseTypeStack.Push(baseClassName);
+                } else if (isStruct) {
+                    baseClassName = "System.ValueType";
                 }
 
                 WriteIdentifier(typeReference);
@@ -1206,6 +1209,8 @@ namespace JSIL.Internal {
 
             var mvi = variableInitializer as ModifiedVariableInitializer;
 
+            var initVariable = variableInitializer.Initializer.Annotation<ILVariable>();
+
             if (!isNull) {
                 if (isField) {
                     var fieldRef = variableInitializer.Parent.Annotation<FieldReference>();
@@ -1246,6 +1251,13 @@ namespace JSIL.Internal {
                     } else {
                         variableInitializer.Initializer.AcceptVisitor(this, null);
                     }
+                }
+
+                if (NeedsStructCopy(initVariable)) {
+                    WriteToken(".", null);
+                    WriteIdentifier("MemberwiseClone");
+                    LPar();
+                    RPar();
                 }
 
                 if (mvi != null)
@@ -1839,6 +1851,45 @@ namespace JSIL.Internal {
                 WriteIdentifier(declaringType);
             else
                 WriteKeyword("this");
+        }
+
+        protected bool NeedsStructCopy (TypeDefinition type) {
+            if ((type != null) && 
+                (!type.IsPrimitive) &&
+                (type.BaseType != null) && 
+                (type.BaseType.FullName == "System.ValueType")
+            ) {
+                return true;
+            }
+
+            return false;
+        }
+
+        protected bool NeedsStructCopy (ILVariable variable) {
+            if (variable != null)
+                return NeedsStructCopy(variable.Type.Resolve());
+
+            return false;
+        }
+
+        public override object VisitAssignmentExpression (AssignmentExpression assignmentExpression, object data) {
+            var leftVar = assignmentExpression.Left.Annotation<ILVariable>();
+
+            StartNode(assignmentExpression);
+            assignmentExpression.Left.AcceptVisitor(this, data);
+            Space();
+            WriteToken(AssignmentExpression.GetOperatorSymbol(assignmentExpression.Operator), AssignmentExpression.OperatorRole);
+            Space();
+            assignmentExpression.Right.AcceptVisitor(this, data);
+
+            if (NeedsStructCopy(leftVar)) {
+                WriteToken(".", null);
+                WriteIdentifier("MemberwiseClone");
+                LPar();
+                RPar();
+            }
+
+            return EndNode(assignmentExpression);
         }
 
         public override object VisitAnonymousMethodExpression (ICSharpCode.NRefactory.CSharp.AnonymousMethodExpression anonymousMethodExpression, object data) {

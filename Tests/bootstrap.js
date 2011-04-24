@@ -236,6 +236,19 @@ System.Object.prototype.__ImplementInterface__ = function (iface) {
 
   interfaces.push(iface);
 }
+System.Object.prototype.MemberwiseClone = function () {
+  var result = {};
+  result.__proto__ = this.__proto__;
+
+  for (var key in this) {
+    if (!this.hasOwnProperty(key))
+      continue;
+
+    result[key] = this[key];
+  }
+
+  return result;
+};
 System.Object.prototype.__Initialize__ = function (dict) {
   for (var key in dict) {
     if (!dict.hasOwnProperty(key))
@@ -249,6 +262,9 @@ System.Object.prototype.__Initialize__ = function (dict) {
 System.Object.prototype.toString = function ToString() {
   return this.__TypeName__;
 };
+
+System.ValueType = function () { };
+System.ValueType.prototype = JSIL.MakeProto(System.Object, "System.ValueType", false);
 
 JSIL.Interface = function () { };
 JSIL.Interface.prototype = JSIL.MakeProto(Object, "JSIL.Interface", true);

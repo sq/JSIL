@@ -84,10 +84,12 @@ namespace JSIL {
 
         internal void Translate (AssemblyDefinition assembly, TextWriter outputStream) {
             var context = new DecompilerContext(assembly.MainModule);
-            context.Settings.YieldReturn = false;
+            /*
+            context.Settings.YieldReturn = true;
             context.Settings.FullyQualifyAmbiguousTypeNames = true;
             context.Settings.AutomaticProperties = false;
             context.Settings.AutomaticEvents = true;
+             */
 
             context.Transforms = new IAstTransform[] {
 				new PushNegation(),
