@@ -290,7 +290,6 @@ namespace JSIL.Internal {
                 switch (attribute.Type.ToString()) {
                     case "JSIgnore":
                     return true;
-                    break;
                 }
             }
 
@@ -1738,7 +1737,7 @@ namespace JSIL.Internal {
             formatter.Indent();
 
             var temporaryRole = new Role<AstType>("temporary");
-            bool isFirst = true, isFirst2;
+            bool isFirst = true;
             foreach (var overload in overloads) {
                 if (!isFirst) {
                     WriteToken(",", null);
@@ -2217,6 +2216,8 @@ namespace JSIL.Internal {
 
         protected TypeReference GetReferenceToPrimitiveType (System.Type type) {
             switch (type.FullName) {
+                case "System.Boolean":
+                    return TypeSystem.Boolean;
                 case "System.Int16":
                     return TypeSystem.Int16;
                 case "System.Int32":
@@ -2564,24 +2565,29 @@ namespace JSIL.Internal {
             return EndNode(asExpression);
         }
 
-        protected bool CastIsMeaningless (TypeReference left, TypeReference right) {
-            if (left == null)
-                throw new InvalidOperationException();
-            else if (right == null)
-                throw new InvalidOperationException();
+        protected bool CastIsMeaningless (TypeReference left, TypeReference right, out bool castIsFloor) {
+            if (left == null || right == null) {
+                Debugger.Break();
+                castIsFloor = false;
+                return false;
+            }
 
             bool leftIsNumeric = IsNumeric(left);
             bool rightIsNumeric = IsNumeric(right);
             bool leftIsIntegral = IsIntegral(left);
             bool rightIsIntegral = IsIntegral(right);
 
+            castIsFloor = false;
+
             if (leftIsNumeric && rightIsNumeric) {
                 if (leftIsIntegral == rightIsIntegral)
                     return true;
                 else if (!leftIsIntegral)
                     return true;
-                else
+                else if (leftIsIntegral) {
+                    castIsFloor = true;
                     return false;
+                }
             }
 
             return false;
@@ -2593,8 +2599,9 @@ namespace JSIL.Internal {
             var insideType = GetTypeOfExpression(castExpression.Expression);
             var targetType = GetReferenceToAstType(castExpression.Type);
 
+            bool castIsFloor = false;
             bool castIsUnnecessary = TypeIsDelegate(targetType) || 
-                CastIsMeaningless(targetType, insideType);
+                CastIsMeaningless(targetType, insideType, out castIsFloor);
 
             if (castIsUnnecessary) {
                 castExpression.Expression.AcceptVisitor(this, null);
@@ -2602,12 +2609,20 @@ namespace JSIL.Internal {
                 return EndNode(castExpression);
             }
 
-            WriteIdentifier("JSIL.Cast");
+            if (castIsFloor)
+                WriteIdentifier("Math.floor");
+            else
+                WriteIdentifier("JSIL.Cast");
+
             LPar();
             castExpression.Expression.AcceptVisitor(this, null);
-            WriteToken(",", null);
-            Space();
-            castExpression.Type.AcceptVisitor(this, null);
+
+            if (!castIsFloor) {
+                WriteToken(",", null);
+                Space();
+                castExpression.Type.AcceptVisitor(this, null);
+            }
+
             RPar();
 
             return EndNode(castExpression);

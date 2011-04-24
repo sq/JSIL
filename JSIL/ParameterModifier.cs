@@ -52,6 +52,15 @@ namespace JSIL {
         public ModifiedIdentifierExpression (IdentifierExpression inner, ParameterModifier modifier) {
             Modifier = modifier;
             Identifier = inner.Identifier;
+
+            foreach (var a in inner.Annotations) {
+                var ic = a as ICloneable;
+
+                if (ic != null)
+                    AddAnnotation(ic.Clone());
+                else
+                    AddAnnotation(a);
+            }
         }
     }
 
@@ -193,10 +202,9 @@ namespace JSIL {
                         )
                             continue;
 
-                        var replacement = new MemberReferenceExpression {
-                            Target = iref.Clone(),
-                            MemberName = "value"
-                        };
+                        var replacement = new ModifiedIdentifierExpression(
+                            iref, refModifier
+                        );
                         iref.ReplaceWith(replacement);
                     }
                 }
@@ -234,10 +242,8 @@ namespace JSIL {
                 switch (de.FieldDirection) {
                     case FieldDirection.Out:
                         return ParameterModifier.Out;
-                    break;
                     case FieldDirection.Ref:
                         return ParameterModifier.Ref;
-                    break;
                 }
 
             } else if (pd != null) {
