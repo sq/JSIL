@@ -115,9 +115,9 @@ JSIL.CheckType = function (value, expectedType) {
 };
 
 JSIL.IsArray = function (value) {
-  return (typeof (value) != "undefined") &&
+  return (typeof (value) == "object") &&
          (typeof (value.length) == "number") &&
-         (typeof (value) != "string");
+         (value.__proto__ == Array.prototype);
 };
 
 JSIL.GetTypeName = function (value) {

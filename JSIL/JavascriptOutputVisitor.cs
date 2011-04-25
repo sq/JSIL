@@ -55,6 +55,10 @@ namespace JSIL.Internal {
             ));
         }
 
+        protected string GetStorageVariableName (EventDefinition ed) {
+            return String.Format("{0}_listeners", ed.Name);
+        }
+
         protected string GetStorageVariableName (PropertyDefinition pd) {
             return String.Format("{0}_value", pd.Name);
         }
@@ -286,6 +290,8 @@ namespace JSIL.Internal {
                 return true;
             } else if (node is PropertyDeclaration) {
                 return true;
+            } else if (node is CustomEventDeclaration) {
+                return true;
             } else if (node is EventDeclaration) {
                 return false;
             } else if (node is IndexerDeclaration) {
@@ -368,7 +374,7 @@ namespace JSIL.Internal {
                     var name = mre.MemberName;
 
                     if ((dt != null) && (dt.IsInterface))
-                        name = String.Format("{0}.{1}", dt.FullName, mre.MemberName);
+                        name = String.Format("{0}.{1}", GetNameOfType(dt), mre.MemberName);
 
                     List<OverloadedMethodDeclaration> overloads;
                     if (KnownOverloads.TryGetValue(name, out overloads)) {
@@ -659,7 +665,7 @@ namespace JSIL.Internal {
 
             WriteIdentifier("JSIL.MakeEnum");
             LPar();
-            WritePrimitiveValue(typeReference.FullName);
+            WritePrimitiveValue(GetNameOfType(typeReference));
             WriteToken(",", null);
             OpenBrace(BraceStyle.EndOfLine);
 
@@ -709,7 +715,7 @@ namespace JSIL.Internal {
 
             WriteIdentifier("JSIL.MakeInterface");
             LPar();
-            WritePrimitiveValue(typeReference.FullName);
+            WritePrimitiveValue(GetNameOfType(typeReference));
             WriteToken(",", null);
             OpenBrace(BraceStyle.EndOfLine);
 
@@ -1067,8 +1073,27 @@ namespace JSIL.Internal {
             return false;
         }
 
+        protected string GetNameOfType (TypeReference type, TypeReference[] genericParameters = null) {
+            var result = type.FullName;
+
+            var git = type as GenericInstanceType;
+            if (git != null)
+                genericParameters = git.GenericParameters.Cast<TypeReference>().ToArray();
+
+            if (genericParameters != null) {
+                result = String.Format(
+                    "{0}[{1}]", result, String.Join(", ", 
+                        (from gp in genericParameters select GetNameOfType(gp)).ToArray()
+                    )
+                );
+            }
+
+            return result;
+        }
+
         protected void EmitNewExpression (AstType objectType, IEnumerable<Expression> arguments = null, Expression initializer = null) {
-            var typeReference = objectType.Annotation<TypeReference>();
+            TypeReference[] genericArguments;
+            var typeReference = GetReferenceToAstType(objectType, out genericArguments);
 
             if (TypeDerivesFrom(typeReference, "System.Delegate") && (arguments != null)) {
                 WriteIdentifier("System.Delegate.New");
@@ -1079,7 +1104,7 @@ namespace JSIL.Internal {
                 if (target == null)
                     throw new NotImplementedException("This type of delegate construction is not implemented: " + typeReference.ToString());
 
-                WritePrimitiveValue(typeReference.FullName);
+                WritePrimitiveValue(GetNameOfType(typeReference, genericArguments));
                 WriteToken(",", null);
                 Space();
 
@@ -1130,7 +1155,11 @@ namespace JSIL.Internal {
         public override object VisitObjectCreateExpression (ObjectCreateExpression objectCreateExpression, object data) {
             StartNode(objectCreateExpression);
 
-            EmitNewExpression(objectCreateExpression.Type, objectCreateExpression.Arguments, objectCreateExpression.Initializer);
+            EmitNewExpression(
+                objectCreateExpression.Type, 
+                objectCreateExpression.Arguments, 
+                objectCreateExpression.Initializer
+            );
 
             return EndNode(objectCreateExpression);
         }
@@ -1274,6 +1303,10 @@ namespace JSIL.Internal {
             return EndNode(memberReferenceExpression);
         }
 
+        public override object VisitDelegateDeclaration (DelegateDeclaration delegateDeclaration, object data) {
+            return null;
+        }
+
         public override object VisitDefaultValueExpression (ICSharpCode.NRefactory.CSharp.DefaultValueExpression defaultValueExpression, object data) {
             StartNode(defaultValueExpression);
 
@@ -1399,7 +1432,7 @@ namespace JSIL.Internal {
                     ) {
                         WriteIdentifier("System.Delegate.New");
                         LPar();
-                        WritePrimitiveValue(variableType.FullName);
+                        WritePrimitiveValue(GetNameOfType(variableType));
                         WriteToken(",", null);
                         Space();
                         variableInitializer.Initializer.AcceptVisitor(this, null);
@@ -1499,6 +1532,21 @@ namespace JSIL.Internal {
                 Semicolon();
 
             return EndNode(fieldDeclaration);
+        }
+
+        public override object VisitCustomEventDeclaration (CustomEventDeclaration customEventDeclaration, object data) {
+            StartNode(customEventDeclaration);
+            // output add/remove in their original order
+            foreach (AstNode node in customEventDeclaration.Children) {
+                if (node.Role == CustomEventDeclaration.AddAccessorRole || node.Role == CustomEventDeclaration.RemoveAccessorRole) {
+                    node.AcceptVisitor(this, data);
+                }
+            }
+            return EndNode(customEventDeclaration);
+        }
+
+        public override object VisitDestructorDeclaration (DestructorDeclaration destructorDeclaration, object data) {
+            return null;
         }
 
         public override object VisitEventDeclaration (EventDeclaration eventDeclaration, object data) {
@@ -1862,7 +1910,11 @@ namespace JSIL.Internal {
             else
                 throw new NotImplementedException();
 
-            var escapedStorageName = Util.EscapeIdentifier(GetStorageVariableName(propertyDefinition));
+            string escapedStorageName = null;
+            if (propertyDefinition != null)
+                escapedStorageName = Util.EscapeIdentifier(GetStorageVariableName(propertyDefinition));
+            else if (eventDefinition != null)
+                escapedStorageName = Util.EscapeIdentifier(GetStorageVariableName(eventDefinition));
 
             if (!isStatic) {
                 WriteIdentifier(declaringType);
@@ -2430,8 +2482,18 @@ namespace JSIL.Internal {
         }
 
         protected TypeReference GetReferenceToAstType (AstType type) {
+            TypeReference[] genericArguments;
+            return GetReferenceToAstType(type, out genericArguments);
+        }
+
+        protected TypeReference GetReferenceToAstType (AstType type, out TypeReference[] genericArguments) {
+            genericArguments = null;
             var tr = type.Annotation<TypeReference>();
-            
+
+            var st = type as SimpleType;
+            if (st != null)
+                genericArguments = (from astType in st.TypeArguments select GetReferenceToAstType(astType)).ToArray();
+
             if (tr != null)
                 return tr;
 

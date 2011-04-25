@@ -125,6 +125,7 @@
     <None Include="TestCases\IntegerArithmetic.cs" />
     <None Include="SimpleTestCases\Initializers.cs" />
     <None Include="SimpleTestCases\NullCoalescing.cs" />
+    <None Include="SimpleTestCases\CustomEvents.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
