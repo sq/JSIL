@@ -785,10 +785,10 @@ namespace JSIL.Internal {
                 if (baseClass != null) {
                     var baseReference = baseClass.Annotation<TypeReference>();
                     baseClassName = baseReference.FullName;
-                    BaseTypeStack.Push(baseClassName);
                 } else if (isStruct) {
                     baseClassName = "System.ValueType";
                 }
+                BaseTypeStack.Push(baseClassName);
 
                 WriteIdentifier(typeReference);
                 WriteToken(".", null);
@@ -987,7 +987,7 @@ namespace JSIL.Internal {
             NewLine();
 
             TypeStack.Pop();
-            if (baseClass != null)
+            if (!isStatic)
                 BaseTypeStack.Pop();
 
             WriteIdentifier("Object.seal");
@@ -2386,6 +2386,11 @@ namespace JSIL.Internal {
             if (typeRef == null)
                 return null;
 
+            if (typeRef.IsByReference) {
+                var brt = typeRef as ByReferenceType;
+                return ResolveTypeReference(brt.ElementType);
+            }
+
             // Resolving a TypeReference to an array yields the type of the array elements instead of an array type,
             //  so we manually resolve to System.Array instead to get the right members.
             if (typeRef.IsArray)
@@ -2422,10 +2427,22 @@ namespace JSIL.Internal {
             if (method != null)
                 return method.ReturnType;
 
-            if (type.BaseType != null)
-                return GetTypeOfMember(type.BaseType.Resolve(), name);
-            else
-                return null;
+            TypeReference result = null;
+            if (!(type.IsInterface) && (type.BaseType != null))
+                result = GetTypeOfMember(type.BaseType.Resolve(), name);
+
+            if (result == null) {
+                foreach (var iface in type.Interfaces) {
+                    result = GetTypeOfMember(iface.Resolve(), name);
+                    if (result != null)
+                        break;
+                }
+            }
+
+            if (result == null)
+                Debugger.Break();
+
+            return result;
         }
 
         // Implements C# binary operator type promotion rules.
@@ -2601,11 +2618,11 @@ namespace JSIL.Internal {
                 var targetRef = GetTypeOfExpression(idxe.Target);
 
                 if (targetRef != null) {
-                    if (targetRef.IsArray)
-                        return targetRef.Resolve();
-                    else {
+                    if (targetRef.IsArray) {
+                        var at = targetRef as ArrayType;
+                        return at.ElementType;
+                    } else {
                         var targetDef = ResolveTypeReference(targetRef);
-
                         return GetTypeOfMember(targetDef, "Item");
                     }
                 }

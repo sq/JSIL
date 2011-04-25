@@ -64,11 +64,17 @@ namespace JSIL {
         public bool IncludeDependencies = true;
         public bool UseSymbols = true;
 
-        protected static ReaderParameters GetReaderParameters (bool useSymbols) {
+        protected static ReaderParameters GetReaderParameters (bool useSymbols, string mainAssemblyPath = null) {
             var readerParameters = new ReaderParameters {
                 ReadingMode = ReadingMode.Deferred,
                 ReadSymbols = useSymbols
             };
+
+            if (mainAssemblyPath != null) {
+                readerParameters.AssemblyResolver = new AssemblyResolver(new string[] { 
+                    Path.GetDirectoryName(mainAssemblyPath) 
+                });
+            }
 
             if (useSymbols)
                 readerParameters.SymbolReaderProvider = new PdbReaderProvider();
@@ -77,7 +83,7 @@ namespace JSIL {
         }
 
         public AssemblyDefinition[] LoadAssembly (string path) {
-            var readerParameters = GetReaderParameters(UseSymbols);
+            var readerParameters = GetReaderParameters(UseSymbols, path);
 
             if (StartedLoadingAssembly != null)
                 StartedLoadingAssembly(path);
@@ -124,7 +130,7 @@ namespace JSIL {
                                     CouldNotLoadSymbols(reference.FullName, ex);
 
                                 try {
-                                    result.Add(module.AssemblyResolver.Resolve(reference, GetReaderParameters(false)));
+                                    result.Add(module.AssemblyResolver.Resolve(reference, GetReaderParameters(false, path)));
                                 } catch (Exception ex2) {
                                     if (CouldNotResolveAssembly != null)
                                         CouldNotResolveAssembly(reference.FullName, ex2);
