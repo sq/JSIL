@@ -38,6 +38,13 @@ namespace JSIL {
             return result;
         }
 
+        public override object VisitDoWhileStatement (DoWhileStatement doWhileStatement, object data) {
+            PrependNewLabel(doWhileStatement);
+            var result = base.VisitDoWhileStatement(doWhileStatement, data);
+            BlockLabelStack.Pop();
+            return result;
+        }
+
         public override object VisitWhileStatement (WhileStatement whileStatement, object data) {
             PrependNewLabel(whileStatement);
             var result = base.VisitWhileStatement(whileStatement, data);
@@ -53,12 +60,18 @@ namespace JSIL {
         }
 
         public override object VisitBreakStatement (BreakStatement breakStatement, object data) {
+            if (BlockLabelStack.Count == 0)
+                return base.VisitBreakStatement(breakStatement, data);
+
             var result = new TargetedBreakStatement(BlockLabelStack.Peek());
             breakStatement.ReplaceWith(result);
             return null;
         }
 
         public override object VisitContinueStatement (ContinueStatement continueStatement, object data) {
+            if (BlockLabelStack.Count == 0)
+                return base.VisitContinueStatement(continueStatement, data);
+
             var result = new TargetedContinueStatement(BlockLabelStack.Peek());
             continueStatement.ReplaceWith(result);
             return null;

@@ -155,8 +155,16 @@ namespace JSIL {
                             var vi = initializer as VariableInitializer;
 
                             if (pd != null) {
+                                BlockStatement body = null;
                                 var md = pd.Parent as MethodDeclaration;
-                                if (md == null)
+                                var cd = pd.Parent as ConstructorDeclaration;
+
+                                if (md != null)
+                                    body = md.Body;
+                                else if (cd != null)
+                                    body = cd.Body;
+
+                                if (body == null)
                                     throw new NotImplementedException("ref/out parameters not implemented for this body type");
 
                                 var newName = "_" + pd.Name;
@@ -171,8 +179,8 @@ namespace JSIL {
 
                                 pd.Name = newName;
 
-                                md.Body.InsertChildBefore(
-                                    md.Body.FirstChild, newStatement, (Role<Statement>)md.Body.FirstChild.Role
+                                body.InsertChildBefore(
+                                    body.FirstChild, newStatement, (Role<Statement>)body.FirstChild.Role
                                 );
 
                                 scope.InitializerReplaced(iref.Identifier, newStatement.Variables.First());

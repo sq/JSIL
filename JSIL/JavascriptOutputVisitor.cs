@@ -742,6 +742,82 @@ namespace JSIL.Internal {
             return EndNode(interfaceDeclaration);
         }
 
+        protected void EmitInstanceConstructors (ConstructorDeclaration[] instanceConstructors) {
+            WriteKeyword("var", null);
+            Space();
+            WriteIdentifier("__ctors");
+            Space();
+            WriteToken("=", null);
+            Space();
+            WriteToken("[", null);
+            formatter.Indent();
+            NewLine();
+
+            for (int i = 0, j = 0; i < instanceConstructors.Length; i++) {
+                var ic = instanceConstructors[i];
+                if (IsIgnored(ic))
+                    continue;
+
+                if (j != 0) {
+                    WriteToken(",", null);
+                    NewLine();
+                }
+                j += 1;
+
+                WriteToken("[", null);
+                WriteKeyword("function");
+                Space();
+
+                StartNode(ic);
+
+                LPar();
+                WriteCommaSeparatedList(ic.Parameters);
+                RPar();
+
+                OpenBrace(BraceStyle.EndOfLine);
+
+                ic.Body.AcceptVisitor(this, "nobraces");
+
+                CloseBrace(BraceStyle.EndOfLine);
+                WriteToken(",", null);
+                Space();
+
+                WriteToken("[", null);
+                WriteTypeList(ic, ic.Parameters);
+                WriteToken("]", null);
+
+                EndNode(ic);
+
+                WriteToken("]", null);
+            }
+
+            formatter.Unindent();
+            NewLine();
+            WriteToken("]", null);
+            Semicolon();
+
+            WriteKeyword("return");
+            Space();
+            WriteIdentifier("JSIL.DispatchOverload.call");
+            LPar();
+
+            WriteKeyword("this");
+            WriteToken(",", null);
+            Space();
+
+            WriteIdentifier("Array.prototype.slice.call");
+            LPar();
+            WriteKeyword("arguments");
+            RPar();
+
+            WriteToken(",", null);
+            Space();
+
+            WriteIdentifier("__ctors");
+            RPar();
+            Semicolon();
+        }
+
         public override object VisitTypeDeclaration (TypeDeclaration typeDeclaration, object data) {
             if (IsIgnored(typeDeclaration))
                 return null;
@@ -860,79 +936,13 @@ namespace JSIL.Internal {
                 }
 
                 if (instanceConstructors.Length > 1) {
-                    WriteKeyword("var", null);
-                    Space();
-                    WriteIdentifier("__ctors");
-                    Space();
-                    WriteToken("=", null);
-                    Space();
-                    WriteToken("[", null);
-                    formatter.Indent();
-                    NewLine();
-
-                    for (int i = 0; i < instanceConstructors.Length; i++) {
-                        var ic = instanceConstructors[i];
-                        if (i != 0) {
-                            WriteToken(",", null);
-                            NewLine();
-                        }
-
-                        WriteToken("[", null);
-                        WriteKeyword("function");
-                        Space();
-
-                        StartNode(ic);
-
-                        LPar();
-                        WriteCommaSeparatedList(ic.Parameters);
-                        RPar();
-
-                        OpenBrace(BraceStyle.EndOfLine);
-
-                        ic.Body.AcceptVisitor(this, "nobraces");
-
-                        CloseBrace(BraceStyle.EndOfLine);
-                        WriteToken(",", null);
-                        Space();
-
-                        WriteToken("[", null);
-                        WriteTypeList(ic, ic.Parameters);
-                        WriteToken("]", null);
-
-                        EndNode(ic);
-
-                        WriteToken("]", null);
-                    }
-
-                    formatter.Unindent();
-                    NewLine();
-                    WriteToken("]", null);
-                    Semicolon();
-
-                    WriteKeyword("return");
-                    Space();
-                    WriteIdentifier("JSIL.DispatchOverload.call");
-                    LPar();
-
-                    WriteKeyword("this");
-                    WriteToken(",", null);
-                    Space();
-
-                    WriteIdentifier("Array.prototype.slice.call");
-                    LPar();
-                    WriteKeyword("arguments");
-                    RPar();
-
-                    WriteToken(",", null);
-                    Space();
-
-                    WriteIdentifier("__ctors");
-                    RPar();
-                    Semicolon();
+                    EmitInstanceConstructors(instanceConstructors);
                 } else if (instanceConstructors.Length == 1) {
-                    StartNode(instanceConstructor);
-                    instanceConstructor.Body.AcceptVisitor(this, "nobraces");
-                    EndNode(instanceConstructor);
+                    if (!IsIgnored(instanceConstructor)) {
+                        StartNode(instanceConstructor);
+                        instanceConstructor.Body.AcceptVisitor(this, "nobraces");
+                        EndNode(instanceConstructor);
+                    }
                 }
 
                 CloseBrace(BraceStyle.NextLine);
@@ -2929,7 +2939,95 @@ namespace JSIL.Internal {
         public override object VisitTryCatchStatement (TryCatchStatement tryCatchStatement, object data) {
             EmitSmartNewline(tryCatchStatement);
 
-            return base.VisitTryCatchStatement(tryCatchStatement, data);
+            StartNode(tryCatchStatement);
+            WriteKeyword("try", TryCatchStatement.TryKeywordRole);
+            tryCatchStatement.TryBlock.AcceptVisitor(this, data);
+
+            if (tryCatchStatement.CatchClauses.Count > 1) {
+                WriteKeyword("catch");
+                Space();
+                LPar();
+                WriteIdentifier("_exc_");
+                RPar();
+                OpenBrace(BraceStyle.EndOfLine);
+
+                bool emittedElse = false;
+                bool isFirst = true;
+
+                foreach (var clause in tryCatchStatement.CatchClauses) {
+                    StartNode(clause);
+
+                    if (clause.Type.IsNull) {
+                        emittedElse = true;
+                        WriteKeyword(" else");
+                        OpenBrace(BraceStyle.EndOfLine);
+
+                        clause.Body.AcceptVisitor(this, "nobraces");
+
+                        CloseBrace(BraceStyle.NextLine);
+                    } else {
+                        if (isFirst)
+                            WriteKeyword("if");
+                        else
+                            WriteKeyword(" else if");
+
+                        Space();
+                        LPar();
+
+                        WriteIdentifier("JSIL.CheckType");
+                        LPar();
+
+                        WriteIdentifier("_exc_");
+                        WriteToken(",", null);
+                        Space();
+                        WriteIdentifier(GetReferenceToAstType(clause.Type));
+
+                        RPar();
+                        RPar();
+
+                        OpenBrace(BraceStyle.EndOfLine);
+
+                        WriteKeyword("var");
+                        Space();
+                        WriteIdentifier(clause.VariableName);
+                        Space();
+                        WriteToken("=", null);
+                        Space();
+                        WriteIdentifier("_exc_");
+                        Semicolon();
+
+                        clause.Body.AcceptVisitor(this, "nobraces");
+
+                        CloseBrace(BraceStyle.NextLine);
+                    }
+
+                    isFirst = false;
+                    EndNode(clause);
+                }
+
+                if (!emittedElse) {
+                    WriteKeyword(" else");
+                    OpenBrace(BraceStyle.EndOfLine);
+                    WriteKeyword("throw");
+                    Space();
+                    WriteIdentifier("_exc_");
+                    Semicolon();
+                    CloseBrace(BraceStyle.NextLine);
+                }
+
+                NewLine();
+                CloseBrace(BraceStyle.NextLine);
+            } else if (tryCatchStatement.CatchClauses.Count == 1) {
+                tryCatchStatement.CatchClauses.First().AcceptVisitor(this, data);
+            }
+
+            if (!tryCatchStatement.FinallyBlock.IsNull) {
+                WriteKeyword("finally", TryCatchStatement.FinallyKeywordRole);
+                tryCatchStatement.FinallyBlock.AcceptVisitor(this, data);
+            }
+
+            NewLine();
+            return EndNode(tryCatchStatement);
         }
 
         public override object VisitIfElseStatement (IfElseStatement ifElseStatement, object data) {

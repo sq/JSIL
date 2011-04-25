@@ -46,19 +46,23 @@ namespace JSIL {
                 }
             );
 
-            var body = foreachStatement.EmbeddedStatement;
+            var body = foreachStatement.EmbeddedStatement as BlockStatement;
             body.Remove();
 
-            body.InsertChildBefore(
-                body.FirstChild, new VariableDeclarationStatement(
-                    (AstType)(foreachStatement.VariableType.Clone()), 
-                    foreachStatement.VariableName,
-                    new MemberReferenceExpression {
-                        Target = new IdentifierExpression(enumeratorName),
-                        MemberName = "Current"
-                    }
-                ), (Role<Statement>)body.FirstChild.Role
+            var newStmt = new VariableDeclarationStatement(
+                foreachStatement.VariableType.Clone(), 
+                foreachStatement.VariableName,
+                new MemberReferenceExpression {
+                    Target = new IdentifierExpression(enumeratorName),
+                    MemberName = "Current"
+                }
             );
+            if (body.FirstChild != null)
+                body.InsertChildBefore(
+                    body.FirstChild, newStmt, (Role<Statement>)body.FirstChild.Role
+                );
+            else
+                body.Add(newStmt);
 
             var result = new TryCatchStatement {
                 TryBlock = new BlockStatement {
