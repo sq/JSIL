@@ -2582,6 +2582,22 @@ namespace JSIL.Internal {
             return null;
         }
 
+        protected bool IsBooleanOperator (BinaryOperatorType op) {
+            switch (op) {
+        		case BinaryOperatorType.ConditionalAnd:
+                case BinaryOperatorType.ConditionalOr:
+                case BinaryOperatorType.GreaterThan:
+                case BinaryOperatorType.GreaterThanOrEqual:
+                case BinaryOperatorType.Equality:
+                case BinaryOperatorType.InEquality:
+                case BinaryOperatorType.LessThan:
+                case BinaryOperatorType.LessThanOrEqual:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         protected TypeReference GetTypeOfExpression (Expression expression) {
             if (expression.IsNull)
                 return null;
@@ -2667,7 +2683,10 @@ namespace JSIL.Internal {
             var boe = expression as BinaryOperatorExpression;
             if (boe != null) {
                 TypeReference left, right;
-                return BinaryOperatorTypePromotion(boe, out left, out right);
+                if (IsBooleanOperator(boe.Operator))
+                    return TypeSystem.Boolean;
+                else
+                    return BinaryOperatorTypePromotion(boe, out left, out right);
             }
 
             var ae = expression as AssignmentExpression;

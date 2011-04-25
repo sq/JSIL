@@ -126,11 +126,10 @@ namespace JSIL {
                             result.Add(module.AssemblyResolver.Resolve(reference, readerParameters));
                         } catch (Exception ex) {
                             if (UseSymbols) {
-                                if (CouldNotLoadSymbols != null)
-                                    CouldNotLoadSymbols(reference.FullName, ex);
-
                                 try {
                                     result.Add(module.AssemblyResolver.Resolve(reference, GetReaderParameters(false, path)));
+                                    if (CouldNotLoadSymbols != null)
+                                        CouldNotLoadSymbols(reference.FullName, ex);
                                 } catch (Exception ex2) {
                                     if (CouldNotResolveAssembly != null)
                                         CouldNotResolveAssembly(reference.FullName, ex2);

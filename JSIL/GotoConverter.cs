@@ -374,7 +374,14 @@ namespace JSIL {
             } else if (parentBlock != null) {
                 parentBlock.ChildBlocks.Add(info);
             } else if (c > 0) {
-                throw new InvalidDataException("Goto found pointing outside of block graph");
+                blockStatement.ReplaceWith(new BlockStatement {
+                    Statements = {
+                        new ThrowStatement(new ObjectCreateExpression(
+                            AstType.Create(typeof(NotImplementedException)),
+                            new PrimitiveExpression("This function uses goto in a way that cannot be translated to javascript")
+                        ))
+                    }
+                });
             }
 
             if (hoistBlockIsNew && selfContained) {
