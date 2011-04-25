@@ -7,6 +7,21 @@ JSIL.Variable = function (value) {
   this.value = value;
 };
 
+JSIL.MemberReference = function (object, memberName) {
+  this.object = object;
+  this.memberName = memberName;
+};
+JSIL.MemberReference.prototype.get_value = function () {
+  return this.object[this.memberName];
+};
+JSIL.MemberReference.prototype.set_value = function (value) {
+  this.object[this.memberName] = value;
+}
+Object.defineProperty(JSIL.MemberReference.prototype, "value", {
+  get: JSIL.MemberReference.prototype.get_value,
+  set: JSIL.MemberReference.prototype.set_value
+});
+
 JSIL.CloneObject = function (obj) {
   function ClonedObject() { }
   ClonedObject.prototype = obj;

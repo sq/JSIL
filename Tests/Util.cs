@@ -47,7 +47,7 @@ namespace JSIL.Tests {
             })) {
 
                 var parameters = new CompilerParameters(new[] {
-                    "mscorlib.dll", "System.Core.dll", "Microsoft.CSharp.dll",
+                    "mscorlib.dll", "System.dll", "System.Core.dll", "Microsoft.CSharp.dll",
                     typeof(JSIL.Meta.JSIgnore).Assembly.Location
                 }) {
                     CompilerOptions = "/unsafe",
@@ -135,15 +135,23 @@ namespace JSIL.Tests {
 
         public string RunJavascript (string[] args, out string generatedJavascript, out long elapsed) {
             var tempFilename = Path.GetTempFileName();
-            var translator = new JSIL.AssemblyTranslator();
-            var translatedJs = translator.Translate(GetPathOfAssembly(Assembly));
+            var translator = new JSIL.AssemblyTranslator {
+                IncludeDependencies = false
+            };
+
+            string translatedJs;
+            using (var ms = new MemoryStream()) {
+                translator.Translate(GetPathOfAssembly(Assembly), ms);
+                translatedJs = Encoding.ASCII.GetString(ms.GetBuffer(), 0, (int)ms.Length);
+            }
+
             var declaringType = JSIL.Internal.Util.EscapeIdentifier(TestMethod.DeclaringType.FullName, false);
 
             string argsJson;
             var jsonSerializer = new DataContractJsonSerializer(typeof(string[]));
-            using (var ms = new MemoryStream()) {
-                jsonSerializer.WriteObject(ms, args);
-                argsJson = Encoding.UTF8.GetString(ms.GetBuffer(), 0, (int)ms.Length);
+            using (var ms2 = new MemoryStream()) {
+                jsonSerializer.WriteObject(ms2, args);
+                argsJson = Encoding.UTF8.GetString(ms2.GetBuffer(), 0, (int)ms2.Length);
             }
 
             var invocationJs = String.Format(

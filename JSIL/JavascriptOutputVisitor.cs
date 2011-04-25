@@ -1324,7 +1324,26 @@ namespace JSIL.Internal {
         public override object VisitDirectionExpression (DirectionExpression directionExpression, object data) {
             StartNode(directionExpression);
 
-            directionExpression.Expression.AcceptVisitor(this, data);
+            var mre = directionExpression.Expression as MemberReferenceExpression;
+            if (mre != null) {
+                WriteKeyword("new");
+                Space();
+                WriteIdentifier("JSIL.MemberReference");
+                LPar();
+
+                StartNode(mre);
+                mre.Target.AcceptVisitor(this, data);
+                EndNode(mre);
+
+                WriteToken(",", null);
+                Space();
+
+                WritePrimitiveValue(mre.MemberName);
+
+                RPar();
+            } else {
+                directionExpression.Expression.AcceptVisitor(this, data);
+            }
 
             return EndNode(directionExpression);
         }
@@ -1676,6 +1695,7 @@ namespace JSIL.Internal {
                 }
             }
 
+            NewLine();
             CloseBrace(BraceStyle.NextLine);
 
             RPar();

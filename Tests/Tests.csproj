@@ -49,6 +49,7 @@
     <None Include="FailingTestCases\OverloadedConstructors.cs" />
     <None Include="FailingTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />
+    <Compile Include="DependencyTests.cs" />
     <Compile Include="FormattingTests.cs" />
     <Compile Include="FailingTestCases\Arrays.cs" />
     <Compile Include="FailingTests.cs" />
@@ -126,6 +127,7 @@
     <None Include="SimpleTestCases\Initializers.cs" />
     <None Include="SimpleTestCases\NullCoalescing.cs" />
     <None Include="SimpleTestCases\CustomEvents.cs" />
+    <None Include="SimpleTestCases\MemberReferences.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
@@ -137,6 +139,10 @@
     <ProjectReference Include="..\Meta\Meta.csproj">
       <Project>{37C67C73-1F58-49B8-A39E-768AC88C2447}</Project>
       <Name>Meta</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Upstream\ILSpy\Mono.Cecil\Mono.Cecil.csproj">
+      <Project>{D68133BD-1E63-496E-9EDE-4FBDBF77B486}</Project>
+      <Name>Mono.Cecil</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

@@ -259,16 +259,6 @@ namespace JSIL {
             return ParameterModifier.None;
         }
 
-        public override object VisitDirectionExpression (DirectionExpression directionExpression, object data) {
-            var result = base.VisitDirectionExpression(directionExpression, data);
-
-            var idE = directionExpression.Expression as IdentifierExpression;
-            if ((idE == null) && (directionExpression.FieldDirection != FieldDirection.None))
-                throw new NotImplementedException("Members of object instances cannot be passed as ref or out");
-
-            return result;
-        }
-
         public override object VisitParameterDeclaration (ParameterDeclaration parameterDeclaration, object data) {
             var id = parameterDeclaration.Name;
 
