@@ -42,7 +42,24 @@ JSIL.MakeNumericProto = function (baseType, typeName, isIntegral) {
   return prototype;
 }
 
-JSIL.MakeInterface = function (typeName, members) {
+JSIL.MakeType = function (baseType, namespace, typeName, isReferenceType) {
+  var ctor = function () {
+    this._ctor.apply(this, arguments);
+  };
+  ctor.prototype = JSIL.MakeProto(baseType, typeName, false);
+
+  namespace[typeName] = ctor;
+};
+
+JSIL.MakeClass = function (baseType, namespace, typeName) {
+  JSIL.MakeType(baseType, namespace, typeName, true);
+};
+
+JSIL.MakeStruct = function (namespace, typeName) {
+  JSIL.MakeType(System.ValueType, namespace, typeName, false);
+};
+
+JSIL.MakeInterface = function (namespace, typeName, members) {
   var prototype = JSIL.CloneObject(JSIL.Interface.prototype);
   prototype.__BaseType__ = System.Object;
   prototype.__Members__ = members;
@@ -55,7 +72,7 @@ JSIL.MakeInterface = function (typeName, members) {
   Object.freeze(prototype);
   Object.freeze(result);
 
-  return result;
+  namespace[typeName] = result;
 };
 
 JSIL.MakeEnum = function (typeName, members) {

@@ -53,11 +53,26 @@ namespace JSIL.Internal {
                         case '>':
                             sb.Append("$gt");
                         break;
+                        case '{':
+                            sb.Append("$lc");
+                        break;
+                        case '}':
+                            sb.Append("$rc");
+                        break;
+                        case '[':
+                            sb.Append("$lb");
+                        break;
+                        case ']':
+                            sb.Append("$rb");
+                        break;
                         case '`':
                             sb.Append("$bt");
                         break;
                         case '@':
                             sb.Append("$at");
+                        break;
+                        case '-':
+                            sb.Append("_");
                         break;
                         default:
                             if ((ch <= 32) || (ch >= 127))
@@ -78,6 +93,44 @@ namespace JSIL.Internal {
                 result = mapped;
 
             return result;
+        }
+
+        public static string EscapeCharacter (char character) {
+            switch (character) {
+                case '\'':
+                    return @"\'";
+                case '"':
+                    return "\\\"";
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        public static string EscapeString (string text, char? quoteCharacter = null) {
+            bool containsSingle = text.Contains('\'');
+            bool containsDouble = text.Contains('"');
+
+            if (quoteCharacter == null) {
+                if (containsDouble && !containsSingle)
+                    quoteCharacter = '\'';
+                else
+                    quoteCharacter = '"';
+            }
+
+            var sb = new StringBuilder();
+
+            sb.Append(quoteCharacter.Value);
+
+            foreach (var ch in text) {
+                if (ch == quoteCharacter.Value)
+                    sb.Append(EscapeCharacter(ch));
+                else
+                    sb.Append(ch);
+            }
+
+            sb.Append(quoteCharacter.Value);
+
+            return sb.ToString();
         }
 
         public static string GetFullName (this MethodDeclaration methodDeclaration) {

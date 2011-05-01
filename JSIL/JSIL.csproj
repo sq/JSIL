@@ -61,6 +61,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="JavascriptFormatter.cs" />
+    <Compile Include="ILBlockTranslator.cs" />
     <Compile Include="PropertyAccessConverter.cs" />
     <Compile Include="EventOperatorConverter.cs" />
     <Compile Include="BlockTranslator.cs" />

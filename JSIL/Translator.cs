@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using ICSharpCode.Decompiler.Ast;
 using ICSharpCode.Decompiler.Ast.Transforms;
+using ICSharpCode.Decompiler.ILAst;
 using ICSharpCode.NRefactory.CSharp;
 using JSIL.Internal;
 using JSIL.Transforms;
@@ -160,6 +161,10 @@ namespace JSIL {
                 foreach (var assembly in assemblies) {
                     var outputPath = Path.Combine(OutputDirectory, assembly.Name + ".js");
 
+                    if (File.Exists(outputPath))
+                        File.Delete(outputPath);
+
+
                     using (outputStream = File.OpenWrite(outputPath))
                         Translate(assembly, outputStream);
                 }
@@ -176,47 +181,261 @@ namespace JSIL {
         internal void Translate (AssemblyDefinition assembly, Stream outputStream) {
             var context = new DecompilerContext(assembly.MainModule);
 
-            context.Transforms = new IAstTransform[] {
-				new PushNegation(),
-				new DelegateConstruction(context),
-				new PatternStatementTransform(context),
-				new ReplaceMethodCallsWithOperators(),
-				new IntroduceUnsafeModifier(),
-				new AddCheckedBlocks(),
-				new DeclareVariables(context), // should run after most transforms that modify statements
-				new ConvertConstructorCallIntoInitializer(), // must run after DeclareVariables
-				new IntroduceUsingDeclarations(context),
-                new OverloadRenamer(context),
-                new DynamicCallSites(context),
-                new ReplacementFinder(context),
-                new EventOperatorConverter(context),
-                new PropertyAccessConverter(context),
-                new ParameterModifierTransformer(context),
-                new BlockTranslator(context),
-                new JumpTargeter(context),
-                new GotoConverter(context),
-            };
-
             if (StartedDecompilingAssembly != null)
                 StartedDecompilingAssembly(assembly.MainModule.FullyQualifiedName);
 
-            var decompiler = new AstBuilder(context);
-            decompiler.AddAssembly(assembly);
-
-            decompiler.RunTransformations();
-
-            if (StartedTranslatingAssembly != null)
-                StartedTranslatingAssembly(assembly.MainModule.FullyQualifiedName);
-
             var tw = new StreamWriter(outputStream, Encoding.ASCII);
-            var astCompileUnit = decompiler.CompilationUnit;
-            var output = new PlainTextOutput(tw);
-            var outputFormatter = new TextOutputFormatter(output);
-            var outputVisitor = new JavascriptOutputVisitor(outputFormatter);
+            var formatter = new JavascriptFormatter(tw);
 
-            astCompileUnit.AcceptVisitor(new InsertParenthesesVisitor { InsertParenthesesForReadability = true }, null);
-            astCompileUnit.AcceptVisitor(outputVisitor, null);
+            if (false) {
+                context.Transforms = new IAstTransform[] {
+				    new PushNegation(),
+				    new DelegateConstruction(context),
+				    new PatternStatementTransform(context),
+				    new ReplaceMethodCallsWithOperators(),
+				    new IntroduceUnsafeModifier(),
+				    new AddCheckedBlocks(),
+				    new DeclareVariables(context), // should run after most transforms that modify statements
+				    new ConvertConstructorCallIntoInitializer(), // must run after DeclareVariables
+				    new IntroduceUsingDeclarations(context),
+                    new OverloadRenamer(context),
+                    new DynamicCallSites(context),
+                    new ReplacementFinder(context),
+                    new EventOperatorConverter(context),
+                    new PropertyAccessConverter(context),
+                    new ParameterModifierTransformer(context),
+                    new BlockTranslator(context),
+                    new JumpTargeter(context),
+                    new GotoConverter(context),
+                };
+
+                var decompiler = new AstBuilder(context);
+
+                decompiler.RunTransformations();
+
+                if (StartedTranslatingAssembly != null)
+                    StartedTranslatingAssembly(assembly.MainModule.FullyQualifiedName);
+
+                var astCompileUnit = decompiler.CompilationUnit;
+                var outputVisitor = new JavascriptOutputVisitor(formatter.PlainTextFormatter);
+
+                astCompileUnit.AcceptVisitor(new InsertParenthesesVisitor { InsertParenthesesForReadability = true }, null);
+                astCompileUnit.AcceptVisitor(outputVisitor, null);
+            } else {
+                foreach (var module in assembly.Modules)
+                    TranslateModule(context, formatter, module);
+            }
+
             tw.Flush();
+        }
+
+        protected bool IsIgnored (Mono.Cecil.ICustomAttributeProvider attributedNode) {
+            foreach (var attribute in attributedNode.CustomAttributes) {
+                var attributeName = attribute.AttributeType.FullName;
+
+                switch (attributeName) {
+                    case "JSIL.Meta.JSIgnore":
+                        return true;
+                }
+            }
+
+            var ms = attributedNode as IMetadataScope;
+            var md = attributedNode as IMemberDefinition;
+            string fullName;
+            string name;
+
+            if (md != null) {
+                fullName = md.FullName;
+                name = md.Name;
+            } else if (ms != null) {
+                fullName = name = ms.Name;
+            } else {
+                return false;
+            }
+
+            if (name.StartsWith("CS$<"))
+                return true;
+            else if (name.StartsWith("<"))
+                return true;
+
+            return false;
+        }
+
+        protected void TranslateModule (DecompilerContext context, JavascriptFormatter output, ModuleDefinition module) {
+            if (IsIgnored(module))
+                return;
+
+            context.CurrentModule = module;
+
+            foreach (var typedef in module.Types)
+                TranslateTypeDefinition(context, output, typedef);
+        }
+
+        protected string GetParent (TypeReference type) {
+            var fullname = Util.EscapeIdentifier(type.FullName, false);
+            var index = fullname.LastIndexOf('.');
+            if (index < 0)
+                return "this";
+            else
+                return fullname.Substring(0, index);
+        }
+
+        protected void TranslateInterface (DecompilerContext context, JavascriptFormatter output, TypeDefinition iface) {
+            output.Identifier("JSIL.MakeInterface", true);
+            output.LPar();
+            output.Identifier(GetParent(iface), true);
+            output.Comma();
+            output.Value(iface.Name);
+            output.RPar();
+            output.Semicolon();
+            output.NewLine();
+        }
+
+        protected void TranslateTypeDefinition (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef) {
+            if (IsIgnored(typedef))
+                return;
+
+            context.CurrentType = typedef;
+
+            if (typedef.IsInterface) {
+                TranslateInterface(context, output, typedef);
+                return;
+            }
+
+            var baseClass = typedef.Module.TypeSystem.Object;
+            if (typedef.BaseType != null)
+                baseClass = typedef.BaseType;
+
+            bool isStatic = typedef.IsAbstract && typedef.IsSealed;
+
+            if (isStatic) {
+                output.Identifier(typedef);
+                output.Token(" = {}");
+            } else {
+                if (typedef.IsValueType)
+                    output.Identifier("JSIL.MakeStruct", true);
+                else
+                    output.Identifier("JSIL.MakeClass", true);
+
+                output.LPar();
+                if (!typedef.IsValueType) {
+                    output.Identifier(baseClass);
+                    output.Comma();
+                }
+                output.Identifier(GetParent(typedef), true);
+                output.Comma();
+                output.Value(typedef.Name);
+                output.RPar();
+            }
+            output.Semicolon();
+
+            foreach (var methodGroup in (
+                from m in typedef.Methods
+                group m by m.Name into mg
+                select mg
+            )) {
+                if (methodGroup.Count() == 1)
+                    TranslateMethod(context, output, methodGroup.First());
+                else
+                    TranslateMethodGroup(context, output, methodGroup);
+            }
+
+            output.NewLine();
+
+            foreach (var nestedTypedef in typedef.NestedTypes)
+                TranslateTypeDefinition(context, output, nestedTypedef);
+        }
+
+        protected void TranslateMethodGroup (DecompilerContext context, JavascriptFormatter output, IGrouping<string, MethodDefinition> methodGroup) {
+            int i = 0;
+            foreach (var method in methodGroup)
+                TranslateMethod(context, output, method, String.Format("_{0}", i++));
+
+            output.Identifier("JSIL.OverloadedMethod", true);
+            output.LPar();
+
+            var firstMethod = methodGroup.First();
+
+            output.Identifier(firstMethod.DeclaringType);
+            if (!firstMethod.IsStatic) {
+                output.Dot();
+                output.Keyword("prototype");
+            }
+
+            output.Comma();
+            output.Value(firstMethod.Name);
+            output.Comma();
+            output.OpenBracket(true);
+
+            bool isFirst = true;
+            i = 0;
+            foreach (var method in methodGroup) {
+                string name = String.Format("{0}_{1}", method.Name, i++);
+
+                if (IsIgnored(method))
+                    continue;
+
+                if (!isFirst) {
+                    output.Comma();
+                    output.NewLine();
+                }
+
+                output.OpenBracket();
+                output.Value(name);
+                output.Comma();
+
+                output.OpenBracket();
+                output.CommaSeparatedList(
+                    from p in method.Parameters select p.ParameterType
+                );
+                output.CloseBracket();
+
+                output.CloseBracket();
+                isFirst = false;
+            }
+
+            output.CloseBracket(true);
+            output.RPar();
+            output.Semicolon();
+        }
+
+        protected void TranslateMethod (DecompilerContext context, JavascriptFormatter output, MethodDefinition method, string nameSuffix = null) {
+            if (IsIgnored(method))
+                return;
+            if (!method.HasBody)
+                return;
+
+            context.CurrentMethod = method;
+
+            var decompiler = new ILAstBuilder();
+            var ilb = new ILBlock(decompiler.Build(method, true));
+
+            var optimizer = new ILAstOptimizer();
+            optimizer.Optimize(context, ilb);
+
+            var allVariables = ilb.GetSelfAndChildrenRecursive<ILExpression>().Select(e => e.Operand as ILVariable)
+				.Where(v => v != null && !v.IsParameter).Distinct();
+
+            NameVariables.AssignNamesToVariables(context, decompiler.Parameters, allVariables, ilb);
+
+            output.Identifier(method.DeclaringType);
+            if (!method.IsStatic) {
+                output.Dot();
+                output.Keyword("prototype");
+            }
+            output.Dot();
+            output.Identifier(method.Name);
+            if (nameSuffix != null)
+                output.Identifier(nameSuffix);
+
+            output.Token(" = ");
+
+            output.OpenFunction(from p in method.Parameters select p.Name);
+
+            var translator = new ILBlockTranslator(context, method, ilb, output);
+            translator.Translate();
+
+            output.CloseBrace(true);
         }
     }
 }
