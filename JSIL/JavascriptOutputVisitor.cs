@@ -1874,6 +1874,9 @@ namespace JSIL.Internal {
             var temporaryRole = new Role<AstType>("temporary");
             bool isFirst = true;
             foreach (var overload in overloads) {
+                if (IsIgnored(overload))
+                    continue;
+
                 if (!isFirst) {
                     WriteToken(",", null);
                     Space();
