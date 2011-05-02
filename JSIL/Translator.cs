@@ -268,7 +268,9 @@ namespace JSIL {
                 return false;
             }
 
-            if (name.StartsWith("CS$<"))
+            if (name.EndsWith("__BackingField"))
+                return false;
+            else if (name.StartsWith("CS$<"))
                 return true;
             else if (name.StartsWith("<"))
                 return true;
@@ -342,6 +344,8 @@ namespace JSIL {
 
             context.CurrentType = typedef;
 
+            var info = GetTypeInformation(typedef);
+
             if (typedef.IsInterface) {
                 TranslateInterface(context, output, typedef);
                 return;
@@ -384,16 +388,11 @@ namespace JSIL {
                 EmitFieldDefault(context, output, field);
             }
 
-            foreach (var methodGroup in (
-                from m in typedef.Methods
-                group m by m.Name into mg
-                select mg
-            )) {
-                if (methodGroup.Count() == 1)
-                    TranslateMethod(context, output, methodGroup.First());
-                else
-                    TranslateMethodGroup(context, output, methodGroup);
-            }
+            foreach (var method in typedef.Methods)
+                TranslateMethod(context, output, method);
+
+            foreach (var methodGroup in info.MethodGroups.Values)
+                TranslateMethodGroup(context, output, methodGroup);
 
             var cctor = (from m in typedef.Methods where m.Name == ".cctor" select m).FirstOrDefault();
             if (cctor != null) {
@@ -425,33 +424,27 @@ namespace JSIL {
             output.Semicolon();
         }
 
-        protected void TranslateMethodGroup (DecompilerContext context, JavascriptFormatter output, IGrouping<string, MethodDefinition> methodGroup) {
+        protected void TranslateMethodGroup (DecompilerContext context, JavascriptFormatter output, MethodGroupInfo methodGroup) {
             int i = 0;
-            foreach (var method in methodGroup)
-                TranslateMethod(context, output, method, String.Format("_{0}", i++));
 
             output.Identifier("JSIL.OverloadedMethod", true);
             output.LPar();
 
-            var firstMethod = methodGroup.First();
-
-            output.Identifier(firstMethod.DeclaringType);
-            if (!firstMethod.IsStatic) {
+            output.Identifier(methodGroup.DeclaringType);
+            if (!methodGroup.IsStatic) {
                 output.Dot();
                 output.Keyword("prototype");
             }
 
             output.Comma();
-            output.Value(firstMethod.Name);
+            output.Value(methodGroup.Name);
             output.Comma();
             output.OpenBracket(true);
 
             bool isFirst = true;
             i = 0;
-            foreach (var method in methodGroup) {
-                string name = String.Format("{0}_{1}", method.Name, i++);
-
-                if (IsIgnored(method))
+            foreach (var method in methodGroup.Items) {
+                if (IsIgnored(method.Method))
                     continue;
 
                 if (!isFirst) {
@@ -460,12 +453,12 @@ namespace JSIL {
                 }
 
                 output.OpenBracket();
-                output.Value(name);
+                output.Value(method.MangledName);
                 output.Comma();
 
                 output.OpenBracket();
                 output.CommaSeparatedList(
-                    from p in method.Parameters select p.ParameterType
+                    from p in method.Method.Parameters select p.ParameterType
                 );
                 output.CloseBracket();
 
@@ -478,7 +471,7 @@ namespace JSIL {
             output.Semicolon();
         }
 
-        protected void TranslateMethod (DecompilerContext context, JavascriptFormatter output, MethodDefinition method, string nameSuffix = null) {
+        protected void TranslateMethod (DecompilerContext context, JavascriptFormatter output, MethodDefinition method) {
             if (IsIgnored(method))
                 return;
             if (!method.HasBody)
@@ -503,9 +496,12 @@ namespace JSIL {
                 output.Keyword("prototype");
             }
             output.Dot();
-            output.Identifier(method.Name);
-            if (nameSuffix != null)
-                output.Identifier(nameSuffix);
+
+            MethodGroupItem mgi;
+            if (GetTypeInformation(method.DeclaringType).MethodToMethodGroupItem.TryGetValue(method, out mgi))
+                output.Identifier(mgi.MangledName);
+            else
+                output.Identifier(method.Name);
 
             output.Token(" = ");
 
