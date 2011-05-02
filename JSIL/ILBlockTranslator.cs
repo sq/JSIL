@@ -514,7 +514,7 @@ namespace JSIL {
             ) {
                 Output.Identifier("System.Delegate.New", true);
                 Output.LPar();
-                Output.Value(typedef.FullName);
+                Output.Value(constructor.DeclaringType);
                 Output.Comma();
             } else {
                 Output.Keyword("new");

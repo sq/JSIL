@@ -255,6 +255,26 @@ namespace JSIL.Internal {
             PlainTextOutput.Write(value.ToString("R"));
         }
 
+        public void Value (TypeReference type) {
+            Value(GetNameOfType(type as dynamic));
+        }
+
+        protected static string GetNameOfType (TypeReference type) {
+            return type.FullName;
+        }
+
+        protected static string GetNameOfType (ArrayType type) {
+            return GetNameOfType(type.ElementType as dynamic) + "[]";
+        }
+
+        protected static string GetNameOfType (GenericInstanceType type) {
+            return String.Format("{0}[{1}]",
+                GetNameOfType(type.ElementType as dynamic),
+                String.Join(", ", (from ga in type.GenericArguments
+                                   select GetNameOfType(ga as dynamic)).ToArray())
+            );
+        }
+
         public void Comment (string commentFormat, params object[] values) {
             var commentText = String.Format(commentFormat, values);
             PlainTextFormatter.WriteComment(
