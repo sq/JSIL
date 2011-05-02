@@ -430,7 +430,7 @@ JSIL.JaggedArray.New = function (type) {
 System.Delegate = {};
 System.Delegate.prototype = JSIL.MakeProto(Function, "System.Delegate", true);
 System.Delegate.prototype.Invoke = function () {
-  this.apply(this.__object__, arguments);
+  return this.__method__.apply(this.__object__, arguments);
 };
 System.Delegate.prototype.toString = System.Object.prototype.toString;
 System.Delegate.prototype.GetInvocationList = function () {
@@ -511,18 +511,21 @@ System.MulticastDelegate.prototype = JSIL.MakeProto(System.Delegate, "System.Mul
 System.MulticastDelegate.prototype.GetInvocationList = function () {
   return this.delegates;
 };
+System.MulticastDelegate.prototype.Invoke = function () {
+  return this.apply(null, arguments);
+};
 System.MulticastDelegate.Combine = System.Delegate.Combine;
 System.MulticastDelegate.Remove = System.Delegate.Remove;
-System.MulticastDelegate.Invoke = function () {
-  var result;
-  for (var i = 0; i < this.length; i++) {
-    var d = this[i];
-    result = d.apply(null, arguments);
-  }
-  return result;
-};
 System.MulticastDelegate.New = function (delegates) {
-  var result = System.MulticastDelegate.Invoke.bind(delegates);
+  var invoker = function () {
+    var result;
+    for (var i = 0; i < this.length; i++) {
+      var d = this[i];
+      result = d.Invoke.apply(d, arguments);
+    }
+    return result;
+  };
+  var result = invoker.bind(delegates);
   result.delegates = delegates;
   result.__proto__ = System.MulticastDelegate.prototype;
   Object.seal(result);

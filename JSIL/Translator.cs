@@ -415,10 +415,7 @@ namespace JSIL {
                 output.Identifier("__Interfaces__");
                 output.Token(" = ");
                 output.OpenBracket();
-                output.CommaSeparatedList(
-                    from iface in typedef.Interfaces select Util.EscapeIdentifier(iface.FullName, false),
-                    ListValueType.Raw
-                );
+                output.CommaSeparatedList(typedef.Interfaces);
                 output.CloseBracket();
                 output.Semicolon();
             }
