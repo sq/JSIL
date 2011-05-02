@@ -86,7 +86,7 @@ JSIL.MakeInterface = function (namespace, typeName, members) {
   namespace[typeName] = result;
 };
 
-JSIL.MakeEnum = function (typeName, members) {
+JSIL.MakeEnum = function (namespace, typeName, members) {
   var prototype = JSIL.CloneObject(System.Enum.prototype);
   prototype.__BaseType__ = System.Enum;
   prototype.__TypeName__ = typeName;
@@ -112,7 +112,7 @@ JSIL.MakeEnum = function (typeName, members) {
   Object.freeze(prototype);
   Object.freeze(result);
 
-  return result;
+  namespace[typeName] = result;
 };
 
 JSIL.CheckDerivation = function (haystack, needle) {

@@ -234,7 +234,7 @@ namespace JSIL.Internal {
         public void Comment (string commentFormat, params object[] values) {
             var commentText = String.Format(commentFormat, values);
             PlainTextFormatter.WriteComment(
-                commentText.Contains('\n') ? CommentType.MultiLine : CommentType.SingleLine, commentText
+                CommentType.MultiLine, commentText
             );
         }
 

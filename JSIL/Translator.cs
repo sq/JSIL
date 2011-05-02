@@ -291,6 +291,46 @@ namespace JSIL {
             output.NewLine();
         }
 
+        protected void TranslateEnum (DecompilerContext context, JavascriptFormatter output, TypeDefinition enm) {
+            output.Identifier("JSIL.MakeEnum", true);
+            output.LPar();
+            output.Identifier(GetParent(enm), true);
+            output.Comma();
+            output.Value(enm.Name);
+            output.Comma();
+            output.OpenBrace();
+
+            long enumValue = 0;
+            bool isFirst = true;
+
+            foreach (var field in enm.Fields) {
+                // Skip 'value__'
+                if (field.IsRuntimeSpecialName)
+                    continue;
+
+                if (!isFirst) {
+                    output.Comma();
+                    output.NewLine();
+                }
+
+                output.Identifier(field.Name);
+                output.Token(": ");
+
+                if (field.HasConstant)
+                    enumValue = Convert.ToInt64(field.Constant);
+
+                output.Value(enumValue);
+
+                enumValue += 1;
+                isFirst = false;
+            }
+
+            output.CloseBrace();
+            output.RPar();
+            output.Semicolon();
+            output.NewLine();
+        }
+
         protected void TranslateTypeDefinition (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef) {
             if (IsIgnored(typedef))
                 return;
@@ -299,6 +339,9 @@ namespace JSIL {
 
             if (typedef.IsInterface) {
                 TranslateInterface(context, output, typedef);
+                return;
+            } else if (typedef.IsEnum) {
+                TranslateEnum(context, output, typedef);
                 return;
             }
 
@@ -329,8 +372,12 @@ namespace JSIL {
             }
             output.Semicolon();
 
-            foreach (var field in typedef.Fields)
+            foreach (var field in typedef.Fields) {
+                if (IsIgnored(field))
+                    continue;
+
                 EmitFieldDefault(context, output, field);
+            }
 
             foreach (var methodGroup in (
                 from m in typedef.Methods

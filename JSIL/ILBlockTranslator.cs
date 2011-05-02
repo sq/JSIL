@@ -359,8 +359,25 @@ namespace JSIL {
             Output.Identifier(method, true);
         }
 
-        protected void Translate_Ldc_I4 (ILExpression node, Int32 value) {
+        protected void Translate_Ldc (ILExpression node, long value) {
+            if (!node.ExpectedType.IsPrimitive) {
+                Output.Comment(node.ExpectedType.FullName);
+                Output.Value(value);
+            } else {
+                Output.Value(value);
+            }
+        }
+
+        protected void Translate_Ldc (ILExpression node, ulong value) {
             Output.Value(value);
+        }
+
+        protected void Translate_Ldc (ILExpression node, double value) {
+            Output.Value(value);
+        }
+
+        protected void Translate_Ldc (ILExpression node, decimal value) {
+            Output.Value((double)value);
         }
 
         protected void Translate_Ldlen (ILExpression node) {
