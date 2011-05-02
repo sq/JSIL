@@ -101,8 +101,14 @@ namespace JSIL.Internal {
                     return @"\'";
                 case '"':
                     return "\\\"";
+                case '\t':
+                    return @"\t";
+                case '\r':
+                    return @"\r";
+                case '\n':
+                    return @"\n";
                 default:
-                    throw new NotImplementedException();
+                    return String.Format(@"\x{0:x}", (int)character);
             }
         }
 
@@ -123,6 +129,8 @@ namespace JSIL.Internal {
 
             foreach (var ch in text) {
                 if (ch == quoteCharacter.Value)
+                    sb.Append(EscapeCharacter(ch));
+                else if ((ch < ' ') || (ch > 127))
                     sb.Append(EscapeCharacter(ch));
                 else
                     sb.Append(ch);

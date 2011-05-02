@@ -506,6 +506,15 @@ namespace JSIL {
             Output.RPar();
         }
 
+        protected void Translate_Isinst (ILExpression node, TypeReference targetType) {
+            Output.Identifier("JSIL.TryCast", true);
+            Output.LPar();
+            TranslateNode(node.Arguments[0]);
+            Output.Comma();
+            Output.Identifier(targetType);
+            Output.RPar();
+        }
+
         protected void Translate_Unbox_Any (ILExpression node, TypeReference targetType) {
             Translate_Castclass(node, targetType);
         }

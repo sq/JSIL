@@ -353,6 +353,14 @@ namespace JSIL {
 
             context.CurrentType = typedef;
 
+            if (typedef.IsInterface) {
+                TranslateInterface(context, output, typedef);
+                return;
+            } else if (typedef.IsEnum) {
+                TranslateEnum(context, output, typedef);
+                return;
+            }
+
             var baseClass = typedef.Module.TypeSystem.Object;
             if (typedef.BaseType != null)
                 baseClass = typedef.BaseType;
@@ -392,14 +400,27 @@ namespace JSIL {
 
             context.CurrentType = typedef;
 
+            if (typedef.IsInterface)
+                return;
+            else if (typedef.IsEnum)
+                return;
+
             var info = GetTypeInformation(typedef);
 
-            if (typedef.IsInterface) {
-                TranslateInterface(context, output, typedef);
-                return;
-            } else if (typedef.IsEnum) {
-                TranslateEnum(context, output, typedef);
-                return;
+            if (typedef.HasInterfaces) {
+                output.Identifier(typedef);
+                output.Dot();
+                output.Identifier("prototype");
+                output.Dot();
+                output.Identifier("__Interfaces__");
+                output.Token(" = ");
+                output.OpenBracket();
+                output.CommaSeparatedList(
+                    from iface in typedef.Interfaces select Util.EscapeIdentifier(iface.FullName, false),
+                    ListValueType.Raw
+                );
+                output.CloseBracket();
+                output.Semicolon();
             }
 
             foreach (var field in typedef.Fields) {
