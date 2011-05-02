@@ -291,6 +291,9 @@ namespace JSIL {
             context.CurrentModule = module;
 
             foreach (var typedef in module.Types)
+                ForwardDeclareType(context, output, typedef);
+
+            foreach (var typedef in module.Types)
                 TranslateTypeDefinition(context, output, typedef);
         }
 
@@ -344,21 +347,11 @@ namespace JSIL {
             output.NewLine();
         }
 
-        protected void TranslateTypeDefinition (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef) {
+        protected void ForwardDeclareType (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef) {
             if (IsIgnored(typedef))
                 return;
 
             context.CurrentType = typedef;
-
-            var info = GetTypeInformation(typedef);
-
-            if (typedef.IsInterface) {
-                TranslateInterface(context, output, typedef);
-                return;
-            } else if (typedef.IsEnum) {
-                TranslateEnum(context, output, typedef);
-                return;
-            }
 
             var baseClass = typedef.Module.TypeSystem.Object;
             if (typedef.BaseType != null)
@@ -386,6 +379,28 @@ namespace JSIL {
                 output.RPar();
             }
             output.Semicolon();
+
+            output.NewLine();
+
+            foreach (var nestedTypedef in typedef.NestedTypes)
+                ForwardDeclareType(context, output, nestedTypedef);
+        }
+
+        protected void TranslateTypeDefinition (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef) {
+            if (IsIgnored(typedef))
+                return;
+
+            context.CurrentType = typedef;
+
+            var info = GetTypeInformation(typedef);
+
+            if (typedef.IsInterface) {
+                TranslateInterface(context, output, typedef);
+                return;
+            } else if (typedef.IsEnum) {
+                TranslateEnum(context, output, typedef);
+                return;
+            }
 
             foreach (var field in typedef.Fields) {
                 if (IsIgnored(field))
