@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -140,15 +141,28 @@ namespace JSIL.Internal {
         }
 
         public void Identifier (TypeReference type) {
+            TypeIdentifier(type as dynamic);
+        }
+
+        protected void TypeIdentifier (TypeReference type) {
             PlainTextOutput.Write(Util.EscapeIdentifier(
                 type.FullName, false
             ));
         }
 
-        public void Identifier (ArrayType type) {
+        protected void TypeIdentifier (ArrayType type) {
             Identifier("System.Array.Of", true);
             LPar();
-            Identifier(type.ElementType as dynamic);
+            Identifier(type.ElementType);
+            RPar();
+        }
+
+        protected void TypeIdentifier (GenericInstanceType type) {
+            Identifier(type.ElementType);
+            Dot();
+            Identifier("Of");
+            LPar();
+            CommaSeparatedList(type.GenericArguments);
             RPar();
         }
 

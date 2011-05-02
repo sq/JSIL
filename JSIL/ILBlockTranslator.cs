@@ -46,7 +46,14 @@ namespace JSIL {
             }
         }
 
-        protected void Translate_BinOp (ILExpression node, string op) {
+        protected void Translate_UnaryOp (ILExpression node, string op) {
+            Output.LPar();
+            Output.Token(op);
+            TranslateNode(node.Arguments[0]);
+            Output.RPar();
+        }
+
+        protected void Translate_BinaryOp (ILExpression node, string op) {
             Output.LPar();
             TranslateNode(node.Arguments[0]);
             Output.Space();
@@ -163,15 +170,35 @@ namespace JSIL {
         //
 
         protected void Translate_Clt (ILExpression node) {
-            Translate_BinOp(node, "<");
+            Translate_BinaryOp(node, "<");
+        }
+
+        protected void Translate_Ceq (ILExpression node) {
+            Translate_BinaryOp(node, "===");
         }
 
         protected void Translate_Mul (ILExpression node) {
-            Translate_BinOp(node, "*");
+            Translate_BinaryOp(node, "*");
         }
 
         protected void Translate_Add (ILExpression node) {
-            Translate_BinOp(node, "+");
+            Translate_BinaryOp(node, "+");
+        }
+
+        protected void Translate_LogicNot (ILExpression node) {
+            if (node.Arguments[0].Code == ILCode.Ceq) {
+                Translate_BinaryOp(node.Arguments[0], "!==");
+            } else {
+                Translate_UnaryOp(node, "!");
+            }
+        }
+
+        protected void Translate_Neg (ILExpression node) {
+            Translate_UnaryOp(node, "-");
+        }
+
+        protected void Translate_Endfinally (ILExpression node) {
+            Output.Comment("Endfinally");
         }
 
         protected void Translate_Ret (ILExpression node) {
@@ -228,6 +255,10 @@ namespace JSIL {
 
         protected void Translate_Ldstr (ILExpression node, string text) {
             Output.Value(text);
+        }
+
+        protected void Translate_Ldnull (ILExpression node) {
+            Output.Keyword("null");
         }
 
         protected void Translate_Ldc_I4 (ILExpression node, Int32 value) {
