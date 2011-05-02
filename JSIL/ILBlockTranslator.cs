@@ -624,16 +624,30 @@ namespace JSIL {
             IEnumerable<ILExpression> arguments = node.Arguments;
 
             if (method.HasThis) {
-                // If the call is of the form this.Method(), we don't need to specify the this parameter explicitly
-                if ((arguments.First().Code == ILCode.Ldloc) &&
-                    (arguments.First().Operand is ILVariable) &&
-                    (method.DeclaringType == ThisMethod.DeclaringType)
+                var firstArg = arguments.First();
+                var ilv = firstArg.Operand as ILVariable;
+                
+                // Methods sometimes get 'this' passed as a ref, primarily when they are struct methods.
+                // Use a cheap hack to make them look like the same type.
+                var firstArgType = firstArg.ExpectedType.FullName;
+                if (firstArgType.EndsWith("&"))
+                    firstArgType = firstArgType.Substring(0, firstArgType.Length - 1);
+
+                // If the call is of the form x.Method(...), we don't need to specify the this parameter
+                //  explicitly using the form type.Method.call(x, ...).
+                // Make sure that 'this' references only pass this check when they don't refer to 
+                //  members of base types/interfaces.
+                if (
+                    (method.DeclaringType.FullName == firstArgType) &&
+                    (
+                        (ilv == null) || (ilv.Name != "this") ||
+                        (firstArg.ExpectedType.FullName == ThisMethod.DeclaringType.FullName)
+                    )
                 ) {
+                    TranslateNode(firstArg);
                     arguments = arguments.Skip(1);
-                    Output.Keyword("this");
                     Output.Dot();
                     Output.Identifier(method, false);
-
                 } else {
                     Output.Identifier(method, true);
                     Output.Dot();
