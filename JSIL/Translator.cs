@@ -329,6 +329,9 @@ namespace JSIL {
             }
             output.Semicolon();
 
+            foreach (var field in typedef.Fields)
+                EmitFieldDefault(context, output, field);
+
             foreach (var methodGroup in (
                 from m in typedef.Methods
                 group m by m.Name into mg
@@ -340,10 +343,34 @@ namespace JSIL {
                     TranslateMethodGroup(context, output, methodGroup);
             }
 
+            var cctor = (from m in typedef.Methods where m.Name == ".cctor" select m).FirstOrDefault();
+            if (cctor != null) {
+                output.Identifier(cctor, true);
+                output.LPar();
+                output.RPar();
+                output.Semicolon();
+            }
+
             output.NewLine();
 
             foreach (var nestedTypedef in typedef.NestedTypes)
                 TranslateTypeDefinition(context, output, nestedTypedef);
+        }
+
+        protected void EmitFieldDefault (DecompilerContext context, JavascriptFormatter output, FieldDefinition field) {
+            output.Identifier(field.DeclaringType);
+            output.Dot();
+
+            if (!field.IsStatic) {
+                output.Identifier("prototype");
+                output.Dot();
+            }
+
+            output.Identifier(field.Name);
+            output.Token(" = ");
+
+            output.DefaultValue(field.FieldType);
+            output.Semicolon();
         }
 
         protected void TranslateMethodGroup (DecompilerContext context, JavascriptFormatter output, IGrouping<string, MethodDefinition> methodGroup) {

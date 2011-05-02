@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.Ast;
+using ICSharpCode.Decompiler.ILAst;
 using ICSharpCode.NRefactory.CSharp;
 using JSIL.Internal;
 using Mono.Cecil;
@@ -207,6 +208,34 @@ namespace JSIL.Internal {
             PlainTextFormatter.WriteComment(
                 commentText.Contains('\n') ? CommentType.MultiLine : CommentType.SingleLine, commentText
             );
+        }
+
+        public void DefaultValue (TypeReference typeReference) {
+            string fullName = typeReference.FullName;
+
+            if (TypeAnalysis.IsIntegerOrEnum(typeReference)) {
+                Value(0);
+				return;
+            } else if (!typeReference.IsValueType) {
+				Keyword("null");
+                return;
+            }
+
+            switch (fullName) {
+				case "System.Nullable`1":
+                    Keyword("null");
+                    return;
+				case "System.Single":
+                case "System.Double":
+                case "System.Decimal":
+                    Value(0.0);
+                    return;
+			}
+
+            Identifier("JSIL.DefaultValue", true);
+            LPar();
+            Identifier(typeReference);
+            RPar();
         }
     }
 }

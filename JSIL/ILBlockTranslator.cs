@@ -257,8 +257,6 @@ namespace JSIL {
         protected void Translate_Call (ILExpression node, MethodReference method) {
             IEnumerable<ILExpression> arguments = node.Arguments;
 
-            Output.Identifier(method, true);
-
             if (method.HasThis) {
                 // If the call is of the form this.Method(), we don't need to specify the this parameter explicitly
                 if ((arguments.First().Code == ILCode.Ldloc) &&
@@ -266,11 +264,17 @@ namespace JSIL {
                     (method.DeclaringType == ThisMethod.DeclaringType)
                 ) {
                     arguments = arguments.Skip(1);
+                    Output.Keyword("this");
+                    Output.Dot();
+                    Output.Identifier(method, false);
 
                 } else {
+                    Output.Identifier(method, true);
                     Output.Dot();
                     Output.Identifier("call");
                 }
+            } else {
+                Output.Identifier(method, true);
             }
 
             Output.LPar();
@@ -295,6 +299,14 @@ namespace JSIL {
 
         protected void Translate_CallSetter (ILExpression node, MethodReference setter) {
             Translate_Call(node, setter);
+        }
+
+        protected void Translate_CallvirtGetter (ILExpression node, MethodReference getter) {
+            Translate_Callvirt(node, getter);
+        }
+
+        protected void Translate_CallvirtSetter (ILExpression node, MethodReference setter) {
+            Translate_Callvirt(node, setter);
         }
     }
 }
