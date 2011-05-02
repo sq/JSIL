@@ -295,6 +295,10 @@ namespace JSIL {
             Translate_BinaryOp(node, "<");
         }
 
+        protected void Translate_Cgt (ILExpression node) {
+            Translate_BinaryOp(node, ">");
+        }
+
         protected void Translate_Ceq (ILExpression node) {
             Translate_BinaryOp(node, "===");
         }
@@ -309,6 +313,22 @@ namespace JSIL {
 
         protected void Translate_Add (ILExpression node) {
             Translate_BinaryOp(node, "+");
+        }
+
+        protected void Translate_Sub (ILExpression node) {
+            Translate_BinaryOp(node, "-");
+        }
+
+        protected void Translate_Shl (ILExpression node) {
+            Translate_BinaryOp(node, "<<");
+        }
+
+        protected void Translate_Shr (ILExpression node) {
+            Translate_BinaryOp(node, ">>");
+        }
+
+        protected void Translate_And (ILExpression node) {
+            Translate_BinaryOp(node, "&");
         }
 
         protected void Translate_LogicNot (ILExpression node) {
