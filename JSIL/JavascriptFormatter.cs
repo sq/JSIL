@@ -274,9 +274,10 @@ namespace JSIL.Internal {
                     return;
 			}
 
-            Identifier("JSIL.DefaultValue", true);
-            LPar();
+            Keyword("new");
+            Space();
             Identifier(typeReference);
+            LPar();
             RPar();
         }
     }

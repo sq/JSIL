@@ -231,8 +231,6 @@ namespace JSIL {
                     Output.Identifier("$exception");
                     Output.Semicolon();
                 }
-
-                Output.CloseBrace();
             }
 
             if (tcb.FinallyBlock != null) {
@@ -436,6 +434,19 @@ namespace JSIL {
             Output.LPar();
             CommaSeparatedList(node.Arguments);
             Output.RPar();
+        }
+
+        protected void Translate_Castclass (ILExpression node, TypeReference targetType) {
+            Output.Identifier("JSIL.Cast", true);
+            Output.LPar();
+            TranslateNode(node.Arguments[0]);
+            Output.Comma();
+            Output.Identifier(targetType);
+            Output.RPar();
+        }
+
+        protected void Translate_Unbox_Any (ILExpression node, TypeReference targetType) {
+            Translate_Castclass(node, targetType);
         }
 
         protected void Translate_Conv (ILExpression node, string typeName) {
