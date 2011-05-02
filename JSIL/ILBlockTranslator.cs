@@ -74,6 +74,21 @@ namespace JSIL {
             Output.CloseBrace();
         }
 
+        protected static bool IsDelegateType (TypeReference type) {
+            var typedef = type.Resolve();
+            if (
+                (typedef != null) && (typedef.BaseType != null) &&
+                (
+                    (typedef.BaseType.FullName == "System.Delegate") ||
+                    (typedef.BaseType.FullName == "System.MulticastDelegate")
+                )
+            ) {
+                return true;
+            }
+
+            return false;
+        }
+
 
         //
         // IL Node Types
@@ -318,6 +333,10 @@ namespace JSIL {
             Output.Comment("Endfinally");
         }
 
+        protected void Translate_LoopOrSwitchBreak (ILExpression node) {
+            Output.Keyword("break");
+        }
+
         protected void Translate_Ret (ILExpression node) {
             Output.Keyword("return");
 
@@ -366,7 +385,16 @@ namespace JSIL {
         }
 
         protected void Translate_Ldflda (ILExpression node, FieldReference field) {
-            Translate_Ldfld(node, field);
+            Output.Keyword("new");
+            Output.Space();
+            Output.Identifier("JSIL.MemberReference", true);
+            Output.LPar();
+
+            TranslateNode(node.Arguments[0]);
+            Output.Comma();
+            Output.Value(Util.EscapeIdentifier(field.Name));
+
+            Output.RPar();
         }
 
         protected void Translate_Ldobj (ILExpression node, TypeReference type) {
@@ -464,6 +492,12 @@ namespace JSIL {
         }
 
         protected void Translate_Castclass (ILExpression node, TypeReference targetType) {
+            if (IsDelegateType(targetType) && IsDelegateType(node.ExpectedType)) {
+                // TODO: We treat all delegate types as equivalent, so we can skip these casts for now
+                TranslateNode(node.Arguments[0]);
+                return;
+            }
+
             Output.Identifier("JSIL.Cast", true);
             Output.LPar();
             TranslateNode(node.Arguments[0]);
@@ -504,14 +538,7 @@ namespace JSIL {
         }
 
         protected void Translate_Newobj (ILExpression node, MethodReference constructor) {
-            var typedef = constructor.DeclaringType.Resolve();
-            if (
-                (typedef != null) && (typedef.BaseType != null) && 
-                (
-                    (typedef.BaseType.FullName == "System.Delegate") ||
-                    (typedef.BaseType.FullName == "System.MulticastDelegate")
-                )
-            ) {
+            if (IsDelegateType(constructor.DeclaringType)) {
                 Output.Identifier("System.Delegate.New", true);
                 Output.LPar();
                 Output.Value(constructor.DeclaringType);

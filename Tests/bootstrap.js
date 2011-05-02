@@ -722,6 +722,18 @@ System.Drawing.Color.OldLace = new System.Drawing.Color(0xFF, 0xFD, 0xF5, 0xE6, 
 System.Drawing.Color.BlueViolet = new System.Drawing.Color(0xFF, 0x8A, 0x2B, 0xE2, "BlueViolet");
 System.Drawing.Color.Aquamarine = new System.Drawing.Color(0xFF, 0x7F, 0xFF, 0xD4, "Aquamarine");
 
+System.Threading = {};
+System.Threading.Interlocked = {};
+System.Threading.Interlocked.CompareExchange = function (targetRef, value, comparand) {
+  var currentValue = targetRef.value;
+  if (currentValue === comparand) {
+    targetRef.value = value;
+    return comparand;
+  } else {
+    return currentValue;
+  }
+};
+
 System.Random = function () {
 };
 System.Random.prototype = JSIL.MakeProto(System.Object, "System.Random", true);
