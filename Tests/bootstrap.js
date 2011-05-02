@@ -527,10 +527,10 @@ System.MulticastDelegate.New = function (delegates) {
 };
 
 System.Exception = function (message) {
-  this.__ctor(message);
+  this._ctor(message);
 };
 System.Exception.prototype = JSIL.MakeProto(Error, "System.Exception", true);
-System.Exception.prototype.__ctor = function (message) {
+System.Exception.prototype._ctor = function (message) {
   this.Message = message;
 }
 System.Exception.prototype.toString = function () {
@@ -541,7 +541,7 @@ System.Exception.prototype.toString = function () {
 };
 
 System.InvalidCastException = function (message) {
-  this.__ctor(message);
+  this._ctor(message);
 };
 System.InvalidCastException.prototype = JSIL.MakeProto(System.Exception, "System.InvalidCastException", true);
 
@@ -611,10 +611,10 @@ System.String.Format = function (format) {
 };
 
 JSIL.ArrayEnumerator = function (array) {
-  this.__ctor(array);
+  this._ctor(array);
 };
 JSIL.ArrayEnumerator.prototype = JSIL.MakeProto(System.Object, "JSIL.ArrayEnumerator", false);
-JSIL.ArrayEnumerator.prototype.__ctor = function (array) {
+JSIL.ArrayEnumerator.prototype._ctor = function (array) {
   this._array = array;
   this._length = array.length;
   this._index = -1;
@@ -643,10 +643,10 @@ System.Collections = {}
 System.Collections.Generic = {};
 
 System.Collections.Generic.List$bt1 = function (sizeOrInitializer) {
-  this.__ctor(sizeOrInitializer);
+  this._ctor(sizeOrInitializer);
 };
 System.Collections.Generic.List$bt1.prototype = JSIL.MakeProto(System.Object, "System.Collections.Generic.List`1", true);
-System.Collections.Generic.List$bt1.prototype.__ctor = function (sizeOrInitializer) {
+System.Collections.Generic.List$bt1.prototype._ctor = function (sizeOrInitializer) {
   var size = Number(sizeOrInitializer);
 
   if (isNaN(size)) {
@@ -673,10 +673,10 @@ System.Collections.Generic.List$bt1.prototype.GetEnumerator = function () {
 System.Drawing = {};
 
 System.Drawing.Bitmap = function (width, height) {
-  this.__ctor(width, height);
+  this._ctor(width, height);
 };
 System.Drawing.Bitmap.prototype = JSIL.MakeProto(System.Object, "System.Drawing.Bitmap", true);
-System.Drawing.Bitmap.prototype.__ctor = function (width, height) {
+System.Drawing.Bitmap.prototype._ctor = function (width, height) {
   this.Width = width;
   this.Height = height;
   this.Pixels = new Array(width * height);

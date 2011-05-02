@@ -69,8 +69,8 @@ namespace JSIL {
         // IL Node Types
         //
 
-        public void TranslateNode (ILBlock block) {
-            foreach (var node in block.GetChildren()) {
+        protected void TranslateBlock (IEnumerable<ILNode> children) {
+            foreach (var node in children) {
                 TranslateNode(node as dynamic);
 
                 if (node is ILExpression)
@@ -78,8 +78,16 @@ namespace JSIL {
             }
         }
 
+        public void TranslateNode (ILBlock block) {
+            TranslateBlock(block.GetChildren());
+        }
+
         public void TranslateNode (ILExpression expression) {
             var methodName = String.Format("Translate_{0}", expression.Code);
+            var bindingFlags = System.Reflection.BindingFlags.Instance |
+                        System.Reflection.BindingFlags.InvokeMethod |
+                        System.Reflection.BindingFlags.NonPublic;
+
             try {
                 object[] arguments;
                 if (expression.Operand != null)
@@ -87,10 +95,16 @@ namespace JSIL {
                 else
                     arguments = new object[] { expression };
 
+                var t = GetType();
+
+                if (t.GetMember(methodName, bindingFlags).Length == 0) {
+                    var newMethodName = methodName.Substring(0, methodName.LastIndexOf("_"));
+                    if (t.GetMember(newMethodName, bindingFlags).Length != 0)
+                        methodName = newMethodName;
+                }
+
                 GetType().InvokeMember(
-                    methodName, System.Reflection.BindingFlags.Instance |
-                        System.Reflection.BindingFlags.InvokeMethod |
-                        System.Reflection.BindingFlags.NonPublic,
+                    methodName, bindingFlags,
                     null, this, arguments
                 );
             } catch (MissingMethodException) {
@@ -141,7 +155,76 @@ namespace JSIL {
             }
 
             if (tcb.CatchBlocks.Count > 0) {
-                throw new NotImplementedException();
+                Output.CloseAndReopenBrace(String.Format("catch (_exc_)"));
+
+                bool isFirst = true, foundUniversalCatch = false;
+                foreach (var cb in tcb.CatchBlocks) {
+                    if (cb.ExceptionType.FullName == "System.Exception") {
+                        foundUniversalCatch = true;
+
+                        if (!isFirst)
+                            Output.CloseAndReopenBrace("else");
+
+                    } else {
+                        if (foundUniversalCatch)
+                            throw new NotImplementedException("Catch-all clause must be last");
+
+                        if (isFirst) {
+                            Output.Keyword("if");
+                            Output.Space();
+                            Output.LPar();
+
+                            Output.Identifier("JSIL.CheckType", true);
+                            Output.LPar();
+                            Output.Identifier("_exc_");
+                            Output.Comma();
+                            Output.Identifier(cb.ExceptionType);
+                            Output.RPar();
+
+                            Output.RPar();
+                            Output.Space();
+                            Output.OpenBrace();
+                        } else {
+                            var excType = cb.ExceptionType;
+
+                            Output.CloseAndReopenBrace(
+                                (o) => {
+                                    o.Keyword("else if");
+                                    o.Space();
+                                    o.LPar();
+
+                                    o.Identifier("JSIL.CheckType", true);
+                                    o.LPar();
+                                    o.Identifier("_exc_");
+                                    o.Comma();
+                                    o.Identifier(excType);
+                                    o.RPar();
+
+                                    o.RPar();
+                                }
+                            );
+                        }
+                    }
+
+                    Output.Identifier(cb.ExceptionVariable.Name);
+                    Output.Token(" = ");
+                    Output.Identifier("_exc_");
+                    Output.Semicolon();
+
+                    TranslateBlock(cb.Body);
+
+                    isFirst = false;
+                }
+
+                if (!foundUniversalCatch) {
+                    Output.CloseAndReopenBrace("else");
+                    Output.Keyword("throw");
+                    Output.Space();
+                    Output.Identifier("_exc_");
+                    Output.Semicolon();
+                }
+
+                Output.CloseBrace();
             }
 
             if (tcb.FinallyBlock != null) {
@@ -202,6 +285,12 @@ namespace JSIL {
             Translate_UnaryOp(node, "-");
         }
 
+        protected void Translate_Throw (ILExpression node) {
+            Output.Keyword("throw");
+            Output.Space();
+            TranslateNode(node.Arguments[0]);
+        }
+
         protected void Translate_Endfinally (ILExpression node) {
             Output.Comment("Endfinally");
         }
@@ -211,7 +300,7 @@ namespace JSIL {
 
             if (node.Arguments.Count == 1) {
                 Output.Space();
-                TranslateNode(node.Arguments.First());
+                TranslateNode(node.Arguments[0]);
             }
         }
 
@@ -227,7 +316,7 @@ namespace JSIL {
         protected void Translate_Stloc (ILExpression node, ILVariable variable) {
             Output.Identifier(variable.Name);
             Output.Token(" = ");
-            TranslateNode(node.Arguments.First());
+            TranslateNode(node.Arguments[0]);
         }
 
         protected void Translate_Ldsfld (ILExpression node, FieldReference field) {
@@ -241,17 +330,17 @@ namespace JSIL {
             Output.Dot();
             Output.Identifier(field.Name);
             Output.Token(" = ");
-            TranslateNode(node.Arguments.First());
+            TranslateNode(node.Arguments[0]);
         }
 
         protected void Translate_Ldfld (ILExpression node, FieldReference field) {
-            TranslateNode(node.Arguments.First());
+            TranslateNode(node.Arguments[0]);
             Output.Dot();
             Output.Identifier(field.Name);
         }
 
         protected void Translate_Stfld (ILExpression node, FieldReference field) {
-            TranslateNode(node.Arguments.First());
+            TranslateNode(node.Arguments[0]);
             Output.Dot();
             Output.Identifier(field.Name);
             Output.Token(" = ");
@@ -266,6 +355,10 @@ namespace JSIL {
             Output.Keyword("null");
         }
 
+        protected void Translate_Ldftn (ILExpression node, MethodReference method) {
+            Output.Identifier(method, true);
+        }
+
         protected void Translate_Ldc_I4 (ILExpression node, Int32 value) {
             Output.Value(value);
         }
@@ -276,14 +369,14 @@ namespace JSIL {
             Output.Identifier("length");
         }
 
-        protected void Translate_Ldelem_I4 (ILExpression node) {
+        protected void Translate_Ldelem (ILExpression node) {
             TranslateNode(node.Arguments[0]);
             Output.OpenBracket();
             TranslateNode(node.Arguments[1]);
             Output.CloseBracket();
         }
 
-        protected void Translate_Stelem_I4 (ILExpression node) {
+        protected void Translate_Stelem (ILExpression node) {
             TranslateNode(node.Arguments[0]);
             Output.OpenBracket();
             TranslateNode(node.Arguments[1]);
@@ -312,11 +405,11 @@ namespace JSIL {
             Output.Space();
             Output.Identifier(node.Operand as dynamic);
             Output.LPar();
-            TranslateNode(node.Arguments.First());
+            TranslateNode(node.Arguments[0]);
             Output.RPar();
              */
 
-            TranslateNode(node.Arguments.First());
+            TranslateNode(node.Arguments[0]);
         }
 
         protected void Translate_Newobj (ILExpression node, MethodReference constructor) {
@@ -348,9 +441,9 @@ namespace JSIL {
             Output.Identifier(elementType);
             Output.Comma();
 
-            Output.OpenBracket(true);
+            Output.OpenBracket();
             CommaSeparatedList(node.Arguments);
-            Output.CloseBracket(true);
+            Output.CloseBracket();
 
             Output.RPar();
         }
@@ -420,7 +513,7 @@ namespace JSIL {
             if (arg != 1)
                 throw new NotImplementedException("No idea what this means...");
 
-            TranslateNode(node.Arguments.First());
+            TranslateNode(node.Arguments[0]);
             Output.Token("++");
         }
     }

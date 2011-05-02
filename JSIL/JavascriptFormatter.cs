@@ -109,6 +109,14 @@ namespace JSIL.Internal {
                 PlainTextOutput.WriteLine("}");
         }
 
+        public void CloseAndReopenBrace (Action<JavascriptFormatter> midtext) {
+            PlainTextOutput.Unindent();
+            PlainTextOutput.Write("} ");
+            midtext(this);
+            PlainTextOutput.WriteLine(" }");
+            PlainTextOutput.Indent();
+        }
+
         public void CloseAndReopenBrace (string midtext) {
             PlainTextOutput.Unindent();
             PlainTextOutput.WriteLine(String.Format("}} {0} {{", midtext));
