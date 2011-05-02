@@ -64,7 +64,9 @@ namespace JSIL {
         public void TranslateNode (ILBlock block) {
             foreach (var node in block.GetChildren()) {
                 TranslateNode(node as dynamic);
-                Output.Semicolon();
+
+                if (node is ILExpression)
+                    Output.Semicolon();
             }
         }
 
@@ -106,18 +108,40 @@ namespace JSIL {
             Output.LPar();
             TranslateNode(condition.Condition);
             Output.RPar();
+            Output.Space();
 
             Output.OpenBrace();
             TranslateNode(condition.TrueBlock);
-            Output.CloseBrace();
 
             if ((condition.FalseBlock != null) && (condition.FalseBlock.Body.Count > 0)) {
-                Output.Space();
-                Output.Keyword("else");
-                Output.OpenBrace();
+                Output.CloseAndReopenBrace("else");
                 TranslateNode(condition.FalseBlock);
-                Output.CloseBrace();
             }
+
+            Output.CloseBrace();
+        }
+
+        public void TranslateNode (ILTryCatchBlock tcb) {
+            Output.Keyword("try");
+            Output.Space();
+
+            Output.OpenBrace();
+            TranslateNode(tcb.TryBlock);
+
+            if (tcb.FaultBlock != null) {
+                throw new NotImplementedException();
+            }
+
+            if (tcb.CatchBlocks.Count > 0) {
+                throw new NotImplementedException();
+            }
+
+            if (tcb.FinallyBlock != null) {
+                Output.CloseAndReopenBrace("finally");
+                TranslateNode(tcb.FinallyBlock);
+            }
+
+            Output.CloseBrace();
         }
 
         public void TranslateNode (ILWhileLoop loop) {
@@ -126,6 +150,7 @@ namespace JSIL {
             Output.LPar();
             TranslateNode(loop.Condition);
             Output.RPar();
+            Output.Space();
 
             Output.OpenBrace();
             TranslateNode(loop.BodyBlock);
@@ -160,6 +185,11 @@ namespace JSIL {
 
         protected void Translate_Ldloc (ILExpression node, ILVariable variable) {
             Output.Identifier(variable.Name);
+        }
+
+        protected void Translate_Ldloca (ILExpression node, ILVariable variable) {
+            // TODO: Is this correct?
+            Translate_Ldloc(node, variable);
         }
 
         protected void Translate_Stloc (ILExpression node, ILVariable variable) {
@@ -204,8 +234,43 @@ namespace JSIL {
             Output.Value(value);
         }
 
+        protected void Translate_Ldlen (ILExpression node) {
+            TranslateNode(node.Arguments[0]);
+            Output.Dot();
+            Output.Identifier("length");
+        }
+
+        protected void Translate_Ldelem_I4 (ILExpression node) {
+            TranslateNode(node.Arguments[0]);
+            Output.OpenBracket();
+            TranslateNode(node.Arguments[1]);
+            Output.CloseBracket();
+        }
+
+        protected void Translate_Stelem_I4 (ILExpression node) {
+            TranslateNode(node.Arguments[0]);
+            Output.OpenBracket();
+            TranslateNode(node.Arguments[1]);
+            Output.CloseBracket();
+            Output.Token(" = ");
+            TranslateNode(node.Arguments[2]);
+        }
+
+        protected void Translate_Conv (ILExpression node, string typeName) {
+            Output.Identifier("JSIL.Cast", true);
+            Output.LPar();
+            TranslateNode(node.Arguments[0]);
+            Output.Comma();
+            Output.Identifier(typeName, true);
+            Output.RPar();
+        }
+
+        protected void Translate_Conv_I4 (ILExpression node) {
+            Translate_Conv(node, "System.Int32");
+        }
+
         protected void Translate_Box (ILExpression node, TypeReference valueType) {
-            // We could do boxing the strict way, but in practice, I don't think it's necessary...
+            // TODO: We could do boxing the strict way, but in practice, I don't think it's necessary...
             /*
             Output.Keyword("new");
             Output.Space();
@@ -307,6 +372,14 @@ namespace JSIL {
 
         protected void Translate_CallvirtSetter (ILExpression node, MethodReference setter) {
             Translate_Callvirt(node, setter);
+        }
+
+        protected void Translate_PostIncrement (ILExpression node, int arg) {
+            if (arg != 1)
+                throw new NotImplementedException("No idea what this means...");
+
+            TranslateNode(node.Arguments.First());
+            Output.Token("++");
         }
     }
 }

@@ -108,6 +108,12 @@ namespace JSIL.Internal {
                 PlainTextOutput.WriteLine("}");
         }
 
+        public void CloseAndReopenBrace (string midtext) {
+            PlainTextOutput.Unindent();
+            PlainTextOutput.WriteLine(String.Format("}} {0} {{", midtext));
+            PlainTextOutput.Indent();
+        }
+
         public void OpenFunction (IEnumerable<string> parameterNames) {
             PlainTextOutput.Write("function");
             Space();
