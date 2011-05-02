@@ -15,7 +15,7 @@ namespace JSIL.Internal {
         public readonly List<MethodDefinition> Constructors = new List<MethodDefinition>();
 
         // Method overloading information
-        public readonly Dictionary<string, MethodGroupInfo> MethodGroups = new Dictionary<string, MethodGroupInfo>();
+        public readonly List<MethodGroupInfo> MethodGroups = new List<MethodGroupInfo>();
         public readonly Dictionary<MethodDefinition, MethodGroupItem> MethodToMethodGroupItem = new Dictionary<MethodDefinition, MethodGroupItem>();
 
         // Enum information
@@ -39,7 +39,7 @@ namespace JSIL.Internal {
                         (m, i) => new MethodGroupItem(info, m, i)
                     ));
 
-                    MethodGroups.Add(mg.Key.Name, info);
+                    MethodGroups.Add(info);
 
                     foreach (var m in info.Items)
                         MethodToMethodGroupItem[m.Method] = m;

@@ -157,11 +157,15 @@ namespace JSIL {
             }
 
             if (tcb.CatchBlocks.Count > 0) {
-                Output.CloseAndReopenBrace(String.Format("catch (_exc_)"));
+                Output.CloseAndReopenBrace(String.Format("catch ($exception)"));
 
                 bool isFirst = true, foundUniversalCatch = false;
                 foreach (var cb in tcb.CatchBlocks) {
-                    if (cb.ExceptionType.FullName == "System.Exception") {
+                    if (cb.ExceptionType.FullName == "System.Object") {
+                        Console.Error.WriteLine("Ignoring impossible catch clause");
+                        Output.Comment("Impossible catch clause ignored");
+                        continue;
+                    } else if (cb.ExceptionType.FullName == "System.Exception") {
                         foundUniversalCatch = true;
 
                         if (!isFirst)
@@ -178,7 +182,7 @@ namespace JSIL {
 
                             Output.Identifier("JSIL.CheckType", true);
                             Output.LPar();
-                            Output.Identifier("_exc_");
+                            Output.Identifier("$exception");
                             Output.Comma();
                             Output.Identifier(cb.ExceptionType);
                             Output.RPar();
@@ -197,7 +201,7 @@ namespace JSIL {
 
                                     o.Identifier("JSIL.CheckType", true);
                                     o.LPar();
-                                    o.Identifier("_exc_");
+                                    o.Identifier("$exception");
                                     o.Comma();
                                     o.Identifier(excType);
                                     o.RPar();
@@ -208,10 +212,12 @@ namespace JSIL {
                         }
                     }
 
-                    Output.Identifier(cb.ExceptionVariable.Name);
-                    Output.Token(" = ");
-                    Output.Identifier("_exc_");
-                    Output.Semicolon();
+                    if (cb.ExceptionVariable != null) {
+                        Output.Identifier(cb.ExceptionVariable.Name);
+                        Output.Token(" = ");
+                        Output.Identifier("$exception");
+                        Output.Semicolon();
+                    }
 
                     TranslateBlock(cb.Body);
 
@@ -222,7 +228,7 @@ namespace JSIL {
                     Output.CloseAndReopenBrace("else");
                     Output.Keyword("throw");
                     Output.Space();
-                    Output.Identifier("_exc_");
+                    Output.Identifier("$exception");
                     Output.Semicolon();
                 }
 
@@ -241,7 +247,12 @@ namespace JSIL {
             Output.Keyword("while");
             Output.Space();
             Output.LPar();
-            TranslateNode(loop.Condition);
+
+            if (loop.Condition != null)
+                TranslateNode(loop.Condition);
+            else
+                Output.Keyword("true");
+
             Output.RPar();
             Output.Space();
 
@@ -362,8 +373,11 @@ namespace JSIL {
         }
 
         protected void Translate_Ldc (ILExpression node, long value) {
-            var typeInfo = TypeInfo.Get(node.ExpectedType);
-            if (typeInfo.EnumMembers.Count > 0) {
+            TypeInfo typeInfo = null;
+            if (node.ExpectedType != null)
+                typeInfo = TypeInfo.Get(node.ExpectedType);
+
+            if ((typeInfo != null) && (typeInfo.EnumMembers.Count > 0)) {
                 EnumMemberInfo em;
 
                 if (typeInfo.ValueToEnumMember.TryGetValue(value, out em))
@@ -475,8 +489,13 @@ namespace JSIL {
         protected void Translate_Call (ILExpression node, MethodReference method) {
             // This translates the MSIL equivalent of 'typeof(T)' into a direct reference to the specified type
             if (method.FullName == "System.Type System.Type::GetTypeFromHandle(System.RuntimeTypeHandle)") {
-                Output.Identifier((TypeReference)node.Arguments[0].Operand);
-                return;
+                var tr = node.Arguments[0].Operand as TypeReference;
+                if (tr != null) {
+                    Output.Identifier((TypeReference)node.Arguments[0].Operand);
+                    return;
+                } else {
+                    Console.Error.WriteLine("Unrecognized typeof expression");
+                }
             }
 
             IEnumerable<ILExpression> arguments = node.Arguments;
@@ -534,11 +553,14 @@ namespace JSIL {
         }
 
         protected void Translate_PostIncrement (ILExpression node, int arg) {
-            if (arg != 1)
+            if (Math.Abs(arg) != 1)
                 throw new NotImplementedException("No idea what this means...");
 
             TranslateNode(node.Arguments[0]);
-            Output.Token("++");
+            if (arg == 1)
+                Output.Token("++");
+            else
+                Output.Token("--");
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -186,7 +187,7 @@ namespace JSIL {
                 StartedDecompilingAssembly(assembly.MainModule.FullyQualifiedName);
 
             var tw = new StreamWriter(outputStream, Encoding.ASCII);
-            var formatter = new JavascriptFormatter(tw);
+            var formatter = new JavascriptFormatter(tw, this);
 
             if (false) {
                 context.Transforms = new IAstTransform[] {
@@ -231,6 +232,11 @@ namespace JSIL {
         }
 
         public TypeInfo GetTypeInformation (TypeReference type) {
+            if (type == null) {
+                Debugger.Break();
+                throw new ArgumentNullException("type");
+            }
+
             var fullName = type.FullName;
 
             TypeInfo result;
@@ -391,7 +397,7 @@ namespace JSIL {
             foreach (var method in typedef.Methods)
                 TranslateMethod(context, output, method);
 
-            foreach (var methodGroup in info.MethodGroups.Values)
+            foreach (var methodGroup in info.MethodGroups)
                 TranslateMethodGroup(context, output, methodGroup);
 
             var cctor = (from m in typedef.Methods where m.Name == ".cctor" select m).FirstOrDefault();

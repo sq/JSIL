@@ -22,11 +22,13 @@ namespace JSIL.Internal {
         public readonly TextWriter Output;
         public readonly PlainTextOutput PlainTextOutput;
         public readonly TextOutputFormatter PlainTextFormatter;
+        public readonly ITypeInfoSource TypeInfo;
 
-        public JavascriptFormatter (TextWriter output) {
+        public JavascriptFormatter (TextWriter output, ITypeInfoSource typeInfo) {
             Output = output;
             PlainTextOutput = new PlainTextOutput(Output);
             PlainTextFormatter = new TextOutputFormatter(PlainTextOutput);
+            TypeInfo = typeInfo;
         }
 
         public void LPar () {
@@ -175,6 +177,15 @@ namespace JSIL.Internal {
         }
 
         public void Identifier (MethodReference method, bool fullyQualified = true) {
+            string methodName = method.Name;
+
+            var mdef = method.Resolve();
+            if (mdef != null) {
+                MethodGroupItem mgi;
+                if (TypeInfo.Get(method.DeclaringType).MethodToMethodGroupItem.TryGetValue(mdef, out mgi))
+                    methodName = mgi.MangledName;
+            }
+
             if (fullyQualified) {
                 Identifier(method.DeclaringType);
                 Dot();
@@ -185,7 +196,7 @@ namespace JSIL.Internal {
                 }
             }
 
-            Identifier(method.Name);
+            Identifier(methodName);
         }
 
         public void Keyword (string keyword) {
