@@ -50,7 +50,8 @@ namespace JSIL {
         }
     }
 
-    public class AssemblyTranslator {
+    public class AssemblyTranslator : ITypeInfoSource {
+        public readonly Dictionary<string, TypeInfo> TypeInformation = new Dictionary<string, TypeInfo>();
         public readonly HashSet<string> GeneratedFiles = new HashSet<string>();
         public readonly List<Regex> IgnoredAssemblies = new List<Regex>();
 
@@ -229,6 +230,20 @@ namespace JSIL {
             tw.Flush();
         }
 
+        public TypeInfo GetTypeInformation (TypeReference type) {
+            var fullName = type.FullName;
+
+            TypeInfo result;
+            if (!TypeInformation.TryGetValue(fullName, out result))
+                TypeInformation[fullName] = result = new TypeInfo(type.ResolveOrThrow());
+
+            return result;
+        }
+
+        TypeInfo ITypeInfoSource.Get (TypeReference type) {
+            return GetTypeInformation(type);
+        }
+
         protected bool IsIgnored (Mono.Cecil.ICustomAttributeProvider attributedNode) {
             foreach (var attribute in attributedNode.CustomAttributes) {
                 var attributeName = attribute.AttributeType.FullName;
@@ -300,28 +315,18 @@ namespace JSIL {
             output.Comma();
             output.OpenBrace();
 
-            long enumValue = 0;
             bool isFirst = true;
 
-            foreach (var field in enm.Fields) {
-                // Skip 'value__'
-                if (field.IsRuntimeSpecialName)
-                    continue;
-
+            foreach (var em in GetTypeInformation(enm).EnumMembers.Values) {
                 if (!isFirst) {
                     output.Comma();
                     output.NewLine();
                 }
 
-                output.Identifier(field.Name);
+                output.Identifier(em.Name);
                 output.Token(": ");
+                output.Value(em.Value);
 
-                if (field.HasConstant)
-                    enumValue = Convert.ToInt64(field.Constant);
-
-                output.Value(enumValue);
-
-                enumValue += 1;
                 isFirst = false;
             }
 
@@ -506,7 +511,7 @@ namespace JSIL {
 
             output.OpenFunction(from p in method.Parameters select p.Name);
 
-            var translator = new ILBlockTranslator(context, method, ilb, output);
+            var translator = new ILBlockTranslator(context, method, ilb, output, this);
             translator.Translate();
 
             output.CloseBrace(true);

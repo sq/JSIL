@@ -15,12 +15,14 @@ namespace JSIL {
         public readonly MethodDefinition ThisMethod;
         public readonly ILBlock Block;
         public readonly JavascriptFormatter Output;
+        public readonly ITypeInfoSource TypeInfo;
 
-        public ILBlockTranslator (ICSharpCode.Decompiler.DecompilerContext context, Mono.Cecil.MethodDefinition method, ICSharpCode.Decompiler.ILAst.ILBlock ilb, JavascriptFormatter output) {
+        public ILBlockTranslator (DecompilerContext context, MethodDefinition method, ILBlock ilb, JavascriptFormatter output, ITypeInfoSource typeInfo) {
             Context = context;
             ThisMethod = method;
             Block = ilb;
             Output = output;
+            TypeInfo = typeInfo;
         }
 
         public void Translate () {
@@ -360,9 +362,14 @@ namespace JSIL {
         }
 
         protected void Translate_Ldc (ILExpression node, long value) {
-            if (!node.ExpectedType.IsPrimitive) {
-                Output.Comment(node.ExpectedType.FullName);
-                Output.Value(value);
+            var typeInfo = TypeInfo.Get(node.ExpectedType);
+            if (typeInfo.EnumMembers.Count > 0) {
+                EnumMemberInfo em;
+
+                if (typeInfo.ValueToEnumMember.TryGetValue(value, out em))
+                    Output.Identifier(Util.EscapeIdentifier(em.FullName, false), true);
+                else
+                    Output.Value(value);
             } else {
                 Output.Value(value);
             }
