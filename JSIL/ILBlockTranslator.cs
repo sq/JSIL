@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using ICSharpCode.Decompiler;
@@ -181,6 +182,10 @@ namespace JSIL {
             Translate_BinaryOp(node, "*");
         }
 
+        protected void Translate_Div (ILExpression node) {
+            Translate_BinaryOp(node, "/");
+        }
+
         protected void Translate_Add (ILExpression node) {
             Translate_BinaryOp(node, "+");
         }
@@ -225,13 +230,13 @@ namespace JSIL {
             TranslateNode(node.Arguments.First());
         }
 
-        protected void Translate_Ldsfld (ILExpression node, FieldDefinition field) {
+        protected void Translate_Ldsfld (ILExpression node, FieldReference field) {
             Output.Identifier(field.DeclaringType);
             Output.Dot();
             Output.Identifier(field.Name);
         }
 
-        protected void Translate_Stsfld (ILExpression node, FieldDefinition field) {
+        protected void Translate_Stsfld (ILExpression node, FieldReference field) {
             Output.Identifier(field.DeclaringType);
             Output.Dot();
             Output.Identifier(field.Name);
@@ -239,13 +244,13 @@ namespace JSIL {
             TranslateNode(node.Arguments.First());
         }
 
-        protected void Translate_Ldfld (ILExpression node, FieldDefinition field) {
+        protected void Translate_Ldfld (ILExpression node, FieldReference field) {
             TranslateNode(node.Arguments.First());
             Output.Dot();
             Output.Identifier(field.Name);
         }
 
-        protected void Translate_Stfld (ILExpression node, FieldDefinition field) {
+        protected void Translate_Stfld (ILExpression node, FieldReference field) {
             TranslateNode(node.Arguments.First());
             Output.Dot();
             Output.Identifier(field.Name);
@@ -351,6 +356,12 @@ namespace JSIL {
         }
 
         protected void Translate_Call (ILExpression node, MethodReference method) {
+            // This translates the MSIL equivalent of 'typeof(T)' into a direct reference to the specified type
+            if (method.FullName == "System.Type System.Type::GetTypeFromHandle(System.RuntimeTypeHandle)") {
+                Output.Identifier((TypeReference)node.Arguments[0].Operand);
+                return;
+            }
+
             IEnumerable<ILExpression> arguments = node.Arguments;
 
             if (method.HasThis) {
