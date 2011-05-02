@@ -616,7 +616,7 @@ System.String.Format = function (format) {
 JSIL.ArrayEnumerator = function (array) {
   this._ctor(array);
 };
-JSIL.ArrayEnumerator.prototype = JSIL.MakeProto(System.Object, "JSIL.ArrayEnumerator", false);
+JSIL.ArrayEnumerator.prototype = JSIL.MakeProto(System.Object, "JSIL.ArrayEnumerator", true);
 JSIL.ArrayEnumerator.prototype._ctor = function (array) {
   this._array = array;
   this._length = array.length;
@@ -648,6 +648,9 @@ System.Collections.Generic = {};
 System.Collections.Generic.List$bt1 = function (sizeOrInitializer) {
   this._ctor(sizeOrInitializer);
 };
+System.Collections.Generic.List$bt1.Of = function (T) {
+  return System.Collections.Generic.List$bt1;
+};
 System.Collections.Generic.List$bt1.prototype = JSIL.MakeProto(System.Object, "System.Collections.Generic.List`1", true);
 System.Collections.Generic.List$bt1.prototype._ctor = function (sizeOrInitializer) {
   var size = Number(sizeOrInitializer);
@@ -655,7 +658,7 @@ System.Collections.Generic.List$bt1.prototype._ctor = function (sizeOrInitialize
   if (isNaN(size)) {
     this.Items = new Array();
     this.Items.push.apply(this.Items, sizeOrInitializer);
-    this.Count = 0;
+    this.Count = this.Items.length;
   } else {
     this.Items = new Array(size);
     this.Count = size;
@@ -670,8 +673,21 @@ System.Collections.Generic.List$bt1.prototype.Add = function (item) {
   this.Count += 1;
 };
 System.Collections.Generic.List$bt1.prototype.GetEnumerator = function () {
-  return new JSIL.ArrayEnumerator(this.Items);
+  return new System.Collections.Generic.List$bt1.Enumerator(this);
 };
+
+System.Collections.Generic.List$bt1.Enumerator = function (list) {
+  this._ctor(list);
+};
+System.Collections.Generic.List$bt1.Enumerator.Of = function (T) {
+  return System.Collections.Generic.List$bt1.Enumerator;
+};
+System.Collections.Generic.List$bt1.Enumerator.prototype = JSIL.MakeProto(JSIL.ArrayEnumerator, "System.Collections.Generic.List`1.Enumerator", true);
+System.Collections.Generic.List$bt1.Enumerator.prototype._ctor = function (list) {
+  this._array = list.Items;
+  this._length = list.Count;
+  this._index = -1;
+}
 
 System.Drawing = {};
 
