@@ -124,7 +124,7 @@ JSIL.CheckType = function (value, expectedType) {
     return Boolean(expectedType.__IsReferenceType__);
 
   var interfaces = value.__Interfaces__;
-  if (typeof (interfaces) != "undefined") {
+  if (JSIL.IsArray(interfaces)) {
     for (var i = 0; i < interfaces.length; i++) {
       if (interfaces[i] === expectedType)
         return true;
@@ -210,7 +210,7 @@ JSIL.Dynamic.Cast = function (value, expectedType) {
   return value;
 };
 
-JSIL.DispatchOverload = function (args, overloads) {
+JSIL.DispatchOverload = function (name, args, overloads) {
   var l = args.length;
 
   find_overload:
@@ -241,13 +241,13 @@ JSIL.DispatchOverload = function (args, overloads) {
     return overloadMethod.apply(this, args);
   }
 
-  throw new Error("No overload found that could accept the argument list '" + arguments.toString() + "'");
+  throw new Error("No overload of '" + name + "' found that could accept the argument list '" + Array.prototype.slice.apply(args).toString() + "'");
 };
 
 JSIL.OverloadedMethod = function (type, name, overloads) {
   type[name] = function () {
     var args = Array.prototype.slice.call(arguments);
-    return JSIL.DispatchOverload.call(this, args, overloads);
+    return JSIL.DispatchOverload.call(this, name, args, overloads);
   };
 };
 
@@ -307,6 +307,8 @@ System.Object.prototype.__Initialize__ = function (dict) {
 
   return this;
 };
+System.Object.prototype._ctor = function () {
+};
 System.Object.prototype.toString = function ToString() {
   return this.__TypeName__;
 };
@@ -351,9 +353,11 @@ System.Array.prototype = JSIL.MakeProto(System.Object, "System.Array", true);
 System.Array.Types = {};
 System.Array.Of = function (type) {
   var compositeType = System.Array.Types[type];
+
   if (typeof (compositeType) == "undefined") {
-    var typeName = type.__TypeName__ + "[]";
-    compositeType = JSIL.MakeProto(System.Array, typeName, true);
+    var typeName = type.prototype.__TypeName__ + "[]";
+    compositeType = JSIL.CloneObject(System.Array);
+    compositeType.prototype = JSIL.MakeProto(System.Array, typeName, true);
     System.Array.Types[type] = compositeType;
   }
 
@@ -377,6 +381,9 @@ System.Array.New = function (type, sizeOrInitializer) {
 
   return result;
 };
+System.Array.CheckType = function (value) {
+  return JSIL.IsArray(value);
+}
 
 JSIL.JaggedArray = {};
 JSIL.JaggedArray.New = function (type) {

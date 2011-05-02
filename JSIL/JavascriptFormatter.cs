@@ -9,7 +9,13 @@ using ICSharpCode.NRefactory.CSharp;
 using JSIL.Internal;
 using Mono.Cecil;
 
-namespace JSIL {
+namespace JSIL.Internal {
+    public enum ListValueType {
+        Primitive,
+        Identifier,
+        Raw
+    }
+
     public class JavascriptFormatter {
         public readonly TextWriter Output;
         public readonly PlainTextOutput PlainTextOutput;
@@ -23,9 +29,11 @@ namespace JSIL {
 
         public void LPar () {
             PlainTextOutput.Write("(");
+            PlainTextOutput.Indent();
         }
 
         public void RPar () {
+            PlainTextOutput.Unindent();
             PlainTextOutput.Write(")");
         }
 
@@ -37,16 +45,18 @@ namespace JSIL {
             PlainTextOutput.Write(", ");
         }
 
-        public void CommaSeparatedList (IEnumerable<string> values, bool escape) {
+        public void CommaSeparatedList (IEnumerable<object> values, ListValueType valueType = ListValueType.Primitive) {
             bool isFirst = true;
             foreach (var value in values) {
                 if (!isFirst)
                     Comma();
 
-                if (escape)
-                    PlainTextOutput.Write(Util.EscapeIdentifier(value));
+                if (valueType == ListValueType.Primitive)
+                    Value(value as dynamic);
+                else if (valueType == ListValueType.Identifier)
+                    Identifier(value as dynamic);
                 else
-                    PlainTextOutput.Write(value);
+                    PlainTextOutput.Write(value.ToString());
 
                 isFirst = false;
             }
@@ -65,16 +75,20 @@ namespace JSIL {
         }
 
         public void OpenBracket (bool indent = false) {
-            if (indent)
-                PlainTextOutput.Indent();
             PlainTextOutput.Write("[");
-            if (indent)
+
+            if (indent) {
+                PlainTextOutput.Indent();
                 PlainTextOutput.WriteLine();
+            }
         }
 
         public void CloseBracket (bool indent = false) {
-            if (indent)
+            if (indent) {
                 PlainTextOutput.Unindent();
+                PlainTextOutput.WriteLine();
+            }
+
             PlainTextOutput.Write("]");
             if (indent)
                 PlainTextOutput.WriteLine();
@@ -98,7 +112,7 @@ namespace JSIL {
             Space();
 
             LPar();
-            CommaSeparatedList(parameterNames, true);
+            CommaSeparatedList(parameterNames, ListValueType.Identifier);
             RPar();
 
             Space();
@@ -131,11 +145,8 @@ namespace JSIL {
             RPar();
         }
 
-        public void Identifier (MethodReference method, TypeReference currentType = null) {
-            if (method.HasThis && (method.DeclaringType == currentType)) {
-                Identifier("this");
-                Dot();
-            } else {
+        public void Identifier (MethodReference method, bool fullyQualified = true) {
+            if (fullyQualified) {
                 Identifier(method.DeclaringType);
                 Dot();
 
