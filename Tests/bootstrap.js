@@ -334,6 +334,9 @@ System.ValueType.prototype = JSIL.MakeProto(System.Object, "System.ValueType", f
 
 JSIL.Interface = function () { };
 JSIL.Interface.prototype = JSIL.MakeProto(Object, "JSIL.Interface", true);
+JSIL.Interface.prototype.Of = function (T) {
+  return this;
+};
 
 System.Enum = {};
 System.Enum.Parse = function (type, value) {
@@ -645,8 +648,25 @@ Object.defineProperty(
     { get: JSIL.ArrayEnumerator.prototype.get_Current }
 );
 
+JSIL.MakeInterface(System, "IDisposable", [
+  "Dispose"
+]);
+
 System.Collections = {}
+JSIL.MakeInterface(System.Collections, "IEnumerator", [
+  "MoveNext", "get_Current", "Reset", "Dispose"
+]);
+JSIL.MakeInterface(System.Collections, "IEnumerable", [
+  "GetEnumerator"
+]);
+
 System.Collections.Generic = {};
+JSIL.MakeInterface(System.Collections.Generic, "IEnumerator$bt1", [
+  "MoveNext", "get_Current", "Reset", "Dispose"
+]);
+JSIL.MakeInterface(System.Collections.Generic, "IEnumerable$bt1", [
+  "GetEnumerator"
+]);
 
 System.Collections.Generic.List$bt1 = function (sizeOrInitializer) {
   this._ctor(sizeOrInitializer);
