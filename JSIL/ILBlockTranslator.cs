@@ -28,6 +28,11 @@ namespace JSIL {
 
         public void TranslateNode (ILNode node) {
             Console.Error.WriteLine("Node        NYI: {0}", node.GetType().Name);
+
+            Output.Token("JSIL.UntranslatableNode");
+            Output.LPar();
+            Output.Value(node.GetType().Name);
+            Output.RPar();
         }
 
         protected void CommaSeparatedList (IEnumerable<ILExpression> values) {
@@ -84,6 +89,14 @@ namespace JSIL {
                     operandType = expression.Operand.GetType().FullName;
 
                 Console.Error.WriteLine("Instruction NYI: {0} {1}", expression.Code, operandType);
+                Output.Token("JSIL.UntranslatableInstruction");
+                Output.LPar();
+                Output.Value(expression.Code.ToString());
+                if (operandType.Length > 0) {
+                    Output.Comma();
+                    Output.Value(operandType);
+                }
+                Output.RPar();
             }
         }
 
@@ -93,7 +106,29 @@ namespace JSIL {
             Output.LPar();
             TranslateNode(condition.Condition);
             Output.RPar();
+
             Output.OpenBrace();
+            TranslateNode(condition.TrueBlock);
+            Output.CloseBrace();
+
+            if ((condition.FalseBlock != null) && (condition.FalseBlock.Body.Count > 0)) {
+                Output.Space();
+                Output.Keyword("else");
+                Output.OpenBrace();
+                TranslateNode(condition.FalseBlock);
+                Output.CloseBrace();
+            }
+        }
+
+        public void TranslateNode (ILWhileLoop loop) {
+            Output.Keyword("while");
+            Output.Space();
+            Output.LPar();
+            TranslateNode(loop.Condition);
+            Output.RPar();
+
+            Output.OpenBrace();
+            TranslateNode(loop.BodyBlock);
             Output.CloseBrace();
         }
 
@@ -108,6 +143,10 @@ namespace JSIL {
 
         protected void Translate_Mul (ILExpression node) {
             Translate_BinOp(node, "*");
+        }
+
+        protected void Translate_Add (ILExpression node) {
+            Translate_BinOp(node, "+");
         }
 
         protected void Translate_Ret (ILExpression node) {
@@ -189,20 +228,30 @@ namespace JSIL {
             Output.RPar();
         }
 
+        protected void Translate_Newarr (ILExpression node, TypeReference elementType) {
+            Output.Identifier("System.Array.New", true);
+            Output.LPar();
+
+            Output.Identifier(elementType);
+            Output.Comma();
+
+            CommaSeparatedList(node.Arguments);
+
+            Output.RPar();
+        }
+
         protected void Translate_InitArray (ILExpression node, TypeReference elementType) {
             Output.Identifier("System.Array.New", true);
             Output.LPar();
 
             Output.Identifier(elementType);
             Output.Comma();
-            Output.NewLine();
 
             Output.OpenBracket(true);
             CommaSeparatedList(node.Arguments);
             Output.CloseBracket(true);
 
             Output.RPar();
-            Output.NewLine();
         }
 
         protected void Translate_Call (ILExpression node, MethodReference method) {
