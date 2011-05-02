@@ -352,6 +352,14 @@ namespace JSIL {
             Output.Identifier(field.Name);
         }
 
+        protected void Translate_Ldflda (ILExpression node, FieldReference field) {
+            Translate_Ldfld(node, field);
+        }
+
+        protected void Translate_Stobj (ILExpression node, TypeReference type) {
+            CommaSeparatedList(node.Arguments);
+        }
+
         protected void Translate_Stfld (ILExpression node, FieldReference field) {
             TranslateNode(node.Arguments[0]);
             Output.Dot();
@@ -421,6 +429,13 @@ namespace JSIL {
             Output.CloseBracket();
             Output.Token(" = ");
             TranslateNode(node.Arguments[2]);
+        }
+
+        protected void Translate_NullCoalescing (ILExpression node) {
+            Output.Identifier("JSIL.Coalesce", true);
+            Output.LPar();
+            CommaSeparatedList(node.Arguments);
+            Output.RPar();
         }
 
         protected void Translate_Conv (ILExpression node, string typeName) {
