@@ -477,24 +477,34 @@ namespace JSIL {
             output.Semicolon();
         }
 
+        public static void TranslateMethodBody (DecompilerContext context, JavascriptFormatter output, MethodDefinition method, ITypeInfoSource typeInfo) {
+            var oldMethod = context.CurrentMethod;
+            try {
+                context.CurrentMethod = method;
+
+                var decompiler = new ILAstBuilder();
+                var ilb = new ILBlock(decompiler.Build(method, true));
+
+                var optimizer = new ILAstOptimizer();
+                optimizer.Optimize(context, ilb);
+
+                var allVariables = ilb.GetSelfAndChildrenRecursive<ILExpression>().Select(e => e.Operand as ILVariable)
+                    .Where(v => v != null && !v.IsParameter).Distinct();
+
+                NameVariables.AssignNamesToVariables(context, decompiler.Parameters, allVariables, ilb);
+
+                var translator = new ILBlockTranslator(context, method, ilb, output, typeInfo);
+                translator.Translate();
+            } finally {
+                context.CurrentMethod = oldMethod;
+            }
+        }
+
         protected void TranslateMethod (DecompilerContext context, JavascriptFormatter output, MethodDefinition method) {
             if (IsIgnored(method))
                 return;
             if (!method.HasBody)
                 return;
-
-            context.CurrentMethod = method;
-
-            var decompiler = new ILAstBuilder();
-            var ilb = new ILBlock(decompiler.Build(method, true));
-
-            var optimizer = new ILAstOptimizer();
-            optimizer.Optimize(context, ilb);
-
-            var allVariables = ilb.GetSelfAndChildrenRecursive<ILExpression>().Select(e => e.Operand as ILVariable)
-				.Where(v => v != null && !v.IsParameter).Distinct();
-
-            NameVariables.AssignNamesToVariables(context, decompiler.Parameters, allVariables, ilb);
 
             output.Identifier(method.DeclaringType);
             if (!method.IsStatic) {
@@ -513,8 +523,7 @@ namespace JSIL {
 
             output.OpenFunction(from p in method.Parameters select p.Name);
 
-            var translator = new ILBlockTranslator(context, method, ilb, output, this);
-            translator.Translate();
+            TranslateMethodBody(context, output, method, this);
 
             output.CloseBrace(true);
         }

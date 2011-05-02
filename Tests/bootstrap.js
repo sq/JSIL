@@ -429,6 +429,9 @@ JSIL.JaggedArray.New = function (type) {
 
 System.Delegate = {};
 System.Delegate.prototype = JSIL.MakeProto(Function, "System.Delegate", true);
+System.Delegate.prototype.Invoke = function () {
+  this.apply(this.__object__, arguments);
+};
 System.Delegate.prototype.toString = System.Object.prototype.toString;
 System.Delegate.prototype.GetInvocationList = function () {
   return [ this ];

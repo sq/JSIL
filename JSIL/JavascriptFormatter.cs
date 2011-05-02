@@ -150,6 +150,16 @@ namespace JSIL.Internal {
                 ));
         }
 
+        public void Identifier (ILVariable variable) {
+            if (variable.Type.IsByReference) {
+                Identifier(variable.Name);
+                Dot();
+                Identifier("value");
+            } else {
+                Identifier(variable.Name);
+            }
+        }
+
         public void Identifier (TypeReference type) {
             TypeIdentifier(type as dynamic);
         }

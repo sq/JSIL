@@ -66,6 +66,14 @@ namespace JSIL {
             Output.RPar();
         }
 
+        protected void EmitLambda (MethodDefinition method) {
+            Output.OpenFunction(from p in method.Parameters select p.Name);
+
+            AssemblyTranslator.TranslateMethodBody(Context, Output, method, TypeInfo);
+
+            Output.CloseBrace();
+        }
+
 
         //
         // IL Node Types
@@ -159,7 +167,7 @@ namespace JSIL {
             if (tcb.CatchBlocks.Count > 0) {
                 Output.CloseAndReopenBrace(String.Format("catch ($exception)"));
 
-                bool isFirst = true, foundUniversalCatch = false;
+                bool isFirst = true, foundUniversalCatch = false, openBrace = false;
                 foreach (var cb in tcb.CatchBlocks) {
                     if (cb.ExceptionType.FullName == "System.Object") {
                         Console.Error.WriteLine("Ignoring impossible catch clause");
@@ -189,6 +197,7 @@ namespace JSIL {
 
                             Output.RPar();
                             Output.Space();
+                            openBrace = true;
                             Output.OpenBrace();
                         } else {
                             var excType = cb.ExceptionType;
@@ -231,6 +240,9 @@ namespace JSIL {
                     Output.Identifier("$exception");
                     Output.Semicolon();
                 }
+
+                if (openBrace)
+                    Output.CloseBrace();
             }
 
             if (tcb.FinallyBlock != null) {
@@ -316,16 +328,15 @@ namespace JSIL {
         }
 
         protected void Translate_Ldloc (ILExpression node, ILVariable variable) {
-            Output.Identifier(variable.Name);
+            Output.Identifier(variable);
         }
 
         protected void Translate_Ldloca (ILExpression node, ILVariable variable) {
-            // TODO: Is this correct?
             Translate_Ldloc(node, variable);
         }
 
         protected void Translate_Stloc (ILExpression node, ILVariable variable) {
-            Output.Identifier(variable.Name);
+            Output.Identifier(variable);
             Output.Token(" = ");
             TranslateNode(node.Arguments[0]);
         }
@@ -334,6 +345,10 @@ namespace JSIL {
             Output.Identifier(field.DeclaringType);
             Output.Dot();
             Output.Identifier(field.Name);
+        }
+
+        protected void Translate_Ldsflda (ILExpression node, FieldReference field) {
+            Translate_Ldsfld(node, field);
         }
 
         protected void Translate_Stsfld (ILExpression node, FieldReference field) {
@@ -354,8 +369,14 @@ namespace JSIL {
             Translate_Ldfld(node, field);
         }
 
+        protected void Translate_Ldobj (ILExpression node, TypeReference type) {
+            TranslateNode(node.Arguments[0]);
+        }
+
         protected void Translate_Stobj (ILExpression node, TypeReference type) {
-            CommaSeparatedList(node.Arguments);
+            TranslateNode(node.Arguments[0]);
+            Output.Token(" = ");
+            TranslateNode(node.Arguments[1]);
         }
 
         protected void Translate_Stfld (ILExpression node, FieldReference field) {
@@ -375,7 +396,13 @@ namespace JSIL {
         }
 
         protected void Translate_Ldftn (ILExpression node, MethodReference method) {
-            Output.Identifier(method, true);
+            var mdef = method.Resolve();
+
+            if ((mdef != null) && mdef.IsCompilerGenerated()) {
+                EmitLambda(mdef);
+            } else {
+                Output.Identifier(method, true);
+            }
         }
 
         protected void Translate_Ldc (ILExpression node, long value) {
@@ -477,11 +504,25 @@ namespace JSIL {
         }
 
         protected void Translate_Newobj (ILExpression node, MethodReference constructor) {
-            Output.Keyword("new");
-            Output.Space();
-            Output.Identifier(constructor.DeclaringType);
+            var typedef = constructor.DeclaringType.Resolve();
+            if (
+                (typedef != null) && (typedef.BaseType != null) && 
+                (
+                    (typedef.BaseType.FullName == "System.Delegate") ||
+                    (typedef.BaseType.FullName == "System.MulticastDelegate")
+                )
+            ) {
+                Output.Identifier("System.Delegate.New", true);
+                Output.LPar();
+                Output.Value(typedef.FullName);
+                Output.Comma();
+            } else {
+                Output.Keyword("new");
+                Output.Space();
+                Output.Identifier(constructor.DeclaringType);
+                Output.LPar();
+            }
 
-            Output.LPar();
             CommaSeparatedList(node.Arguments);
             Output.RPar();
         }
