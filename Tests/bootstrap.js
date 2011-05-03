@@ -426,7 +426,7 @@ System.Array.CheckType = function (value) {
   return JSIL.IsArray(value);
 }
 
-JSIL.JaggedArray = function (dimensions) {
+JSIL.MultidimensionalArray = function (dimensions) {
   var totalSize = dimensions[0];
   for (var i = 1; i < dimensions.length; i++)
     totalSize *= i;
@@ -434,19 +434,19 @@ JSIL.JaggedArray = function (dimensions) {
   this._dimensions = dimensions;
   this._items = new Array(totalSize);
 };
-JSIL.JaggedArray.prototype = JSIL.CloneObject(System.Array.prototype);
-JSIL.JaggedArray.prototype.GetLength = function (i) {
+JSIL.MultidimensionalArray.prototype = JSIL.CloneObject(System.Array.prototype);
+JSIL.MultidimensionalArray.prototype.GetLength = function (i) {
   return this._dimensions[i];
 };
-JSIL.JaggedArray.prototype.GetLowerBound = function (i) {
+JSIL.MultidimensionalArray.prototype.GetLowerBound = function (i) {
   return 0;
 };
-JSIL.JaggedArray.prototype.GetUpperBound = function (i) {
+JSIL.MultidimensionalArray.prototype.GetUpperBound = function (i) {
   return this._dimensions[i] - 1;
 };
 // This gets a little hairy: In C#, multidimensional array dimensions are presented in reverse order,
 //  like so: var arr = new int[depth, height, width]; arr[z, y, x] = ...;
-JSIL.JaggedArray.prototype._ComputeIndex = function () {
+JSIL.MultidimensionalArray.prototype._ComputeIndex = function () {
   if (arguments.length != this._dimensions.length)
     throw new Error("You must specify an index for each dimension of the array.");
 
@@ -465,17 +465,17 @@ JSIL.JaggedArray.prototype._ComputeIndex = function () {
 
   return result;
 };
-JSIL.JaggedArray.prototype.Get = function () {
+JSIL.MultidimensionalArray.prototype.Get = function () {
   var indices = Array.prototype.slice.call(arguments, 0, arguments.length);
   var index = this._ComputeIndex.apply(this, indices);
   return this._items[index];
 };
-JSIL.JaggedArray.prototype.Set = function () {
+JSIL.MultidimensionalArray.prototype.Set = function () {
   var indices = Array.prototype.slice.call(arguments, 0, arguments.length - 1);
   var index = this._ComputeIndex.apply(this, indices);
   this._items[index] = arguments[arguments.length - 1];
 };
-JSIL.JaggedArray.New = function (type) {
+JSIL.MultidimensionalArray.New = function (type) {
   var numDimensions = arguments.length - 1;
   if (numDimensions < 1)
     throw new Error("Must provide at least one dimension");
@@ -484,7 +484,7 @@ JSIL.JaggedArray.New = function (type) {
 
   var dimensions = Array.prototype.slice.call(arguments, 1);
 
-  return new JSIL.JaggedArray(dimensions);
+  return new JSIL.MultidimensionalArray(dimensions);
 };
 
 System.Delegate = {};

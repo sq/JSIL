@@ -155,9 +155,14 @@ namespace JSIL.Internal {
             PlainTextOutput.Indent();
         }
 
-        public void OpenFunction (IEnumerable<string> parameterNames) {
+        public void OpenFunction (string functionName, IEnumerable<string> parameterNames) {
             PlainTextOutput.Write("function");
             Space();
+
+            if (functionName != null) {
+                PlainTextOutput.Write(Util.EscapeIdentifier(functionName));
+                Space();
+            }
 
             LPar();
             CommaSeparatedList(parameterNames, ListValueType.Identifier);
@@ -167,8 +172,12 @@ namespace JSIL.Internal {
             OpenBrace();
         }
 
+        public void OpenFunction (IEnumerable<string> parameterNames) {
+            OpenFunction(null, parameterNames);
+        }
+
         public void OpenFunction (params string[] parameterNames) {
-            OpenFunction((IEnumerable<string>)parameterNames);
+            OpenFunction(null, parameterNames);
         }
 
         public void Identifier (string name, bool escaped = false) {

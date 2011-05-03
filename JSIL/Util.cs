@@ -210,11 +210,11 @@ namespace JSIL.Internal {
             }
 
             public IEnumerator<T> GetEnumerator () {
-                return List.Skip(Offset).GetEnumerator();
+                return (List as IEnumerable<T>).Skip(Offset).GetEnumerator();
             }
 
             System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator () {
-                return List.Skip(Offset).GetEnumerator();
+                return (List as IEnumerable<T>).Skip(Offset).GetEnumerator();
             }
         }
 

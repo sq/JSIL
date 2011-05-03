@@ -10,6 +10,7 @@ using ICSharpCode.Decompiler.Ast;
 using ICSharpCode.Decompiler.Ast.Transforms;
 using ICSharpCode.Decompiler.ILAst;
 using ICSharpCode.NRefactory.CSharp;
+using JSIL.Ast;
 using JSIL.Internal;
 using Mono.Cecil;
 using ICSharpCode.Decompiler;
@@ -485,7 +486,7 @@ namespace JSIL {
             output.Semicolon();
         }
 
-        public static void TranslateMethodBody (DecompilerContext context, JavascriptFormatter output, MethodDefinition method, ITypeInfoSource typeInfo) {
+        public static JSStatement TranslateMethodBody (DecompilerContext context, JavascriptFormatter output, MethodDefinition method, ITypeInfoSource typeInfo) {
             var oldMethod = context.CurrentMethod;
             try {
                 context.CurrentMethod = method;
@@ -502,7 +503,7 @@ namespace JSIL {
                 NameVariables.AssignNamesToVariables(context, decompiler.Parameters, allVariables, ilb);
 
                 var translator = new ILBlockTranslator(context, method, ilb, output, typeInfo);
-                translator.Translate();
+                return translator.Translate();
             } finally {
                 context.CurrentMethod = oldMethod;
             }
@@ -529,11 +530,12 @@ namespace JSIL {
 
             output.Token(" = ");
 
-            output.OpenFunction(from p in method.Parameters select p.Name);
-
-            TranslateMethodBody(context, output, method, this);
-
-            output.CloseBrace(true);
+            var body = TranslateMethodBody(context, output, method, this);
+            var function = new JSFunctionExpression(
+                method.Name, (from p in method.Parameters select new JSVariable(p.Name, p.ParameterType)).ToArray(), body
+            );
+            var emitter = new JavascriptAstEmitter(output);
+            emitter.Visit(function);
         }
     }
 }

@@ -3,9 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using JSIL.Internal;
+using Mono.Cecil;
 
-namespace JSIL.AST {
+namespace JSIL.Ast {
     public abstract class JSNode {
+        /// <summary>
+        /// Enumerates the children of this node.
+        /// </summary>
         public virtual IEnumerable<JSNode> Children {
             get {
                 yield break;
@@ -24,6 +28,85 @@ namespace JSIL.AST {
         }
     }
 
+    public abstract class JSStatement : JSNode {
+    }
+
+    public class JSBlockStatement : JSStatement {
+        public readonly IList<JSStatement> Statements;
+
+        public JSBlockStatement (params JSStatement[] statements) {
+            Statements = statements;
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                return Statements;
+            }
+        }
+    }
+
+    public class JSExpressionStatement : JSStatement {
+        public readonly JSExpression Expression;
+
+        public JSExpressionStatement (JSExpression expression) {
+            Expression = expression;
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                yield return Expression;
+            }
+        }
+    }
+
+    public class JSFunctionExpression : JSExpression {
+        public readonly JSIdentifier FunctionName;
+        public readonly IList<JSVariable> Parameters;
+        public readonly JSStatement Body;
+
+        public JSFunctionExpression (JSIdentifier functionName, IList<JSVariable> parameters, JSStatement body)
+            : this (parameters, body) {
+            FunctionName = functionName;
+        }
+
+        public JSFunctionExpression (IList<JSVariable> parameters, JSStatement body) {
+            FunctionName = null;
+            Parameters = parameters;
+            Body = body;
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                yield return FunctionName;
+
+                foreach (var parameter in Parameters)
+                    yield return parameter;
+
+                yield return Body;
+            }
+        }
+    }
+
+    public class JSIfStatement : JSStatement {
+        public readonly JSExpression Condition;
+        public readonly JSStatement TrueClause;
+        public readonly JSStatement FalseClause;
+
+        public JSIfStatement (JSExpression condition, JSStatement trueClause, JSStatement falseClause = null) {
+            Condition = condition;
+            TrueClause = trueClause;
+            FalseClause = falseClause;
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                yield return Condition;
+                yield return TrueClause;
+                yield return FalseClause;
+            }
+        }
+    }
+
     public abstract class JSExpression : JSNode {
         public readonly IList<JSExpression> Values;
 
@@ -31,14 +114,94 @@ namespace JSIL.AST {
             Values = values;
         }
 
-        protected JSExpression (IList<JSExpression> values) {
-            Values = values;
-        }
-
         public override IEnumerable<JSNode> Children {
             get {
                 return Values;
             }
+        }
+
+        public override string ToString () {
+            return String.Format(
+                "{0}[{1}]", GetType().Name,
+                String.Join(", ", (from v in Values select v.ToString()).ToArray())
+            );
+        }
+
+        public virtual TypeReference ExpectedType {
+            get {
+                return null;
+            }
+        }
+    }
+
+    public static class JSLiteral {
+        public static JSStringLiteral New (string value) {
+            return new JSStringLiteral(value);
+        }
+
+        public static JSBooleanLiteral New (bool value) {
+            return new JSBooleanLiteral(value);
+        }
+
+        public static JSIntegerLiteral New (long value) {
+            return new JSIntegerLiteral(value);
+        }
+
+        public static JSIntegerLiteral New (ulong value) {
+            return new JSIntegerLiteral((long)value);
+        }
+
+        public static JSNumberLiteral New (double value) {
+            return new JSNumberLiteral(value);
+        }
+
+        public static JSNumberLiteral New (decimal value) {
+            return new JSNumberLiteral((double)value);
+        }
+
+        public static JSNullLiteral<T> Null<T> ()
+            where T : class {
+            return new JSNullLiteral<T>();
+        }
+    }
+
+    public abstract class JSLiteral<T> : JSExpression {
+        public readonly T Value;
+
+        protected JSLiteral (T value) {
+            Value = value;
+        }
+    }
+
+    public class JSNullLiteral<T> : JSLiteral<T>
+        where T : class {
+
+        public JSNullLiteral ()
+            : base(null) {
+        }
+    }
+
+    public class JSBooleanLiteral : JSLiteral<bool> {
+        public JSBooleanLiteral (bool value)
+            : base(value) {
+        }
+    }
+
+    public class JSStringLiteral : JSLiteral<string> {
+        public JSStringLiteral (string value)
+            : base(value) {
+        }
+    }
+
+    public class JSIntegerLiteral : JSLiteral<long> {
+        public JSIntegerLiteral (long value)
+            : base(value) {
+        }
+    }
+
+    public class JSNumberLiteral : JSLiteral<double> {
+        public JSNumberLiteral (double value)
+            : base(value) {
         }
     }
 
@@ -69,9 +232,36 @@ namespace JSIL.AST {
         public override int GetHashCode () {
             return Identifier.GetHashCode();
         }
+    }
 
-        public override string ToString () {
-            return Identifier;
+    public class JSNamespace : JSIdentifier {
+        public JSNamespace (string name)
+            : base(name) {
+        }
+    }
+
+    public class JSType : JSIdentifier {
+        public readonly TypeReference Type;
+
+        public JSType (TypeReference type)
+            : base(type.FullName) {
+            Type = type;
+        }
+    }
+
+    public class JSVariable : JSIdentifier {
+        public readonly TypeReference Type;
+
+        public JSVariable (string name, TypeReference type)
+            : base(name) {
+
+            Type = type;
+        }
+
+        public override TypeReference ExpectedType {
+            get {
+                return Type;
+            }
         }
     }
 
@@ -102,16 +292,32 @@ namespace JSIL.AST {
                 return (JSIdentifier)Values[1];
             }
         }
+    }
 
-        public override string ToString () {
-            return String.Format("{0}.{1}", Target, Member);
+    public class JSNewExpression : JSExpression {
+        public JSNewExpression (TypeReference type, params JSExpression[] arguments)
+            : base (
+                (new [] { new JSType(type) }).Concat(arguments).ToArray()
+            ) {
+        }
+
+        public JSType Type {
+            get {
+                return (JSType)Values[0];
+            }
+        }
+
+        public IList<JSExpression> Arguments {
+            get {
+                return Values.Skip(1);
+            }
         }
     }
 
     public class JSInvocationExpression : JSExpression {
-        public JSInvocationExpression (JSExpression target, IList<JSExpression> arguments)
+        public JSInvocationExpression (JSExpression target, params JSExpression[] arguments)
             : base ( 
-                (new [] { target }).Concat(arguments).ToList() 
+                (new [] { target }).Concat(arguments).ToArray() 
             ) {
         }
 
@@ -152,7 +358,7 @@ namespace JSIL.AST {
 
         public JSExpression Right {
             get {
-                return Values[0];
+                return Values[1];
             }
         }
     }

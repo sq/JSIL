@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.ILAst;
+using JSIL.Ast;
 using JSIL.Internal;
 using Microsoft.CSharp.RuntimeBinder;
 using Mono.Cecil;
@@ -25,17 +26,19 @@ namespace JSIL {
             TypeInfo = typeInfo;
         }
 
-        public void Translate () {
-            TranslateNode(Block);
+        public JSBlockStatement Translate () {
+            return TranslateNode(Block);
         }
 
-        public void TranslateNode (ILNode node) {
+        public JSNode TranslateNode (ILNode node) {
             Console.Error.WriteLine("Node        NYI: {0}", node.GetType().Name);
 
             Output.Token("JSIL.UntranslatableNode");
             Output.LPar();
             Output.Value(node.GetType().Name);
             Output.RPar();
+
+            return null;
         }
 
         protected void CommaSeparatedList (IEnumerable<ILExpression> values) {
@@ -66,6 +69,14 @@ namespace JSIL {
             Output.RPar();
         }
 
+        protected JSBinaryOperatorExpression Translate_BinaryOp (ILExpression node, JSBinaryOperator op) {
+            return new JSBinaryOperatorExpression(
+                op,
+                TranslateNode(node.Arguments[0]),
+                TranslateNode(node.Arguments[1])
+            );
+        }
+
         protected void Translate_EqualityComparison (ILExpression node, bool checkEqual) {
             if (
                 (node.Arguments[0].ExpectedType.FullName == "System.Boolean") &&
@@ -86,12 +97,12 @@ namespace JSIL {
             }
         }
 
-        protected void EmitLambda (MethodDefinition method) {
-            Output.OpenFunction(from p in method.Parameters select p.Name);
-
-            AssemblyTranslator.TranslateMethodBody(Context, Output, method, TypeInfo);
-
-            Output.CloseBrace();
+        protected JSFunctionExpression EmitLambda (MethodDefinition method) {
+            var body = AssemblyTranslator.TranslateMethodBody(Context, Output, method, TypeInfo);
+            return new JSFunctionExpression(
+                (from p in method.Parameters select new JSVariable(p.Name, p.ParameterType)).ToArray(),
+                body
+            );
         }
 
         protected static bool IsDelegateType (TypeReference type) {
@@ -114,20 +125,42 @@ namespace JSIL {
         // IL Node Types
         //
 
-        protected void TranslateBlock (IEnumerable<ILNode> children) {
+        protected JSBlockStatement TranslateBlock (IEnumerable<ILNode> children) {
+            var nodes = new List<JSStatement>();
+
             foreach (var node in children) {
-                TranslateNode(node as dynamic);
+                var translated = TranslateStatement(node);
 
-                if (node is ILExpression)
-                    Output.Semicolon();
+                if (translated != null)
+                    nodes.Add(translated);
             }
+
+            return new JSBlockStatement(nodes.ToArray());
         }
 
-        public void TranslateNode (ILBlock block) {
-            TranslateBlock(block.GetChildren());
+        protected JSStatement TranslateStatement (ILNode node) {
+            var translated = TranslateNode(node as dynamic);
+
+            var statement = translated as JSStatement;
+            if (statement == null) {
+                var expression = (JSExpression)translated;
+
+                if (expression != null)
+                    statement = new JSExpressionStatement(expression);
+                else
+                    Debug.WriteLine("Warning: Null statement");
+            }
+
+            return statement;
         }
 
-        public void TranslateNode (ILExpression expression) {
+        public JSBlockStatement TranslateNode (ILBlock block) {
+            return TranslateBlock(block.GetChildren());
+        }
+
+        public JSExpression TranslateNode (ILExpression expression) {
+            JSExpression result = null;
+
             var methodName = String.Format("Translate_{0}", expression.Code);
             var bindingFlags = System.Reflection.BindingFlags.Instance |
                         System.Reflection.BindingFlags.InvokeMethod |
@@ -148,28 +181,32 @@ namespace JSIL {
                         methodName = newMethodName;
                 }
 
-                GetType().InvokeMember(
+                var invokeResult = GetType().InvokeMember(
                     methodName, bindingFlags,
                     null, this, arguments
                 );
+                result = invokeResult as JSExpression;
+
+                if (result == null)
+                    Debug.WriteLine(String.Format("Instruction {0} did not produce a JS AST node", expression.Code));
             } catch (MissingMethodException) {
                 string operandType = "";
                 if (expression.Operand != null)
                     operandType = expression.Operand.GetType().FullName;
 
                 Console.Error.WriteLine("Instruction NYI: {0} {1}", expression.Code, operandType);
-                Output.Token("JSIL.UntranslatableInstruction");
-                Output.LPar();
-                Output.Value(expression.Code.ToString());
-                if (operandType.Length > 0) {
-                    Output.Comma();
-                    Output.Value(operandType);
-                }
+                return new JSInvocationExpression(
+                    JSDotExpression.New(new JSIdentifier("JSIL"), "UntranslatableInstruction"),
+                    new JSStringLiteral(expression.Code.ToString()), 
+                    new JSStringLiteral(operandType)
+                );
                 Output.RPar();
             }
+
+            return result;
         }
 
-        public void TranslateNode (ILCondition condition) {
+        public JSIfStatement TranslateNode (ILCondition condition) {
             Output.Keyword("if");
             Output.Space();
             Output.LPar();
@@ -186,9 +223,11 @@ namespace JSIL {
             }
 
             Output.CloseBrace();
+
+            return null;
         }
 
-        public void TranslateNode (ILTryCatchBlock tcb) {
+        public JSStatement TranslateNode (ILTryCatchBlock tcb) {
             Output.Keyword("try");
             Output.Space();
 
@@ -286,9 +325,11 @@ namespace JSIL {
             }
 
             Output.CloseBrace();
+
+            return null;
         }
 
-        public void TranslateNode (ILWhileLoop loop) {
+        public JSStatement TranslateNode (ILWhileLoop loop) {
             Output.Keyword("while");
             Output.Space();
             Output.LPar();
@@ -304,6 +345,8 @@ namespace JSIL {
             Output.OpenBrace();
             TranslateNode(loop.BodyBlock);
             Output.CloseBrace();
+
+            return null;
         }
 
 
@@ -416,18 +459,20 @@ namespace JSIL {
             }
         }
 
-        protected void Translate_Ldloc (ILExpression node, ILVariable variable) {
-            Output.Identifier(variable);
+        protected JSIdentifier Translate_Ldloc (ILExpression node, ILVariable variable) {
+            return new JSVariable(variable.Name, variable.Type);
         }
 
-        protected void Translate_Ldloca (ILExpression node, ILVariable variable) {
-            Translate_Ldloc(node, variable);
+        protected JSIdentifier Translate_Ldloca (ILExpression node, ILVariable variable) {
+            return Translate_Ldloc(node, variable);
         }
 
-        protected void Translate_Stloc (ILExpression node, ILVariable variable) {
-            Output.Identifier(variable);
-            Output.Token(" = ");
-            TranslateNode(node.Arguments[0]);
+        protected JSBinaryOperatorExpression Translate_Stloc (ILExpression node, ILVariable variable) {
+            return new JSBinaryOperatorExpression(
+                JSOperator.Assignment,
+                new JSVariable(variable.Name, variable.Type),
+                TranslateNode(node.Arguments[0])
+            );
         }
 
         protected void Translate_Ldsfld (ILExpression node, FieldReference field) {
@@ -476,14 +521,14 @@ namespace JSIL {
             Output.RPar();
         }
 
-        protected void Translate_Ldobj (ILExpression node, TypeReference type) {
-            TranslateNode(node.Arguments[0]);
+        protected JSExpression Translate_Ldobj (ILExpression node, TypeReference type) {
+            return TranslateNode(node.Arguments[0]);
         }
 
-        protected void Translate_Stobj (ILExpression node, TypeReference type) {
-            TranslateNode(node.Arguments[0]);
-            Output.Token(" = ");
-            TranslateNode(node.Arguments[1]);
+        protected JSExpression Translate_Stobj (ILExpression node, TypeReference type) {
+            return Translate_BinaryOp(
+                node, JSOperator.Assignment
+            );
         }
 
         protected void Translate_Stfld (ILExpression node, FieldReference field) {
@@ -494,25 +539,25 @@ namespace JSIL {
             TranslateNode(node.Arguments[1]);
         }
 
-        protected void Translate_Ldstr (ILExpression node, string text) {
-            Output.Value(text);
+        protected JSStringLiteral Translate_Ldstr (ILExpression node, string text) {
+            return JSLiteral.New(text);
         }
 
-        protected void Translate_Ldnull (ILExpression node) {
-            Output.Keyword("null");
+        protected JSExpression Translate_Ldnull (ILExpression node) {
+            return JSLiteral.Null<object>();
         }
 
-        protected void Translate_Ldftn (ILExpression node, MethodReference method) {
+        protected JSExpression Translate_Ldftn (ILExpression node, MethodReference method) {
             var mdef = method.Resolve();
 
             if ((mdef != null) && mdef.IsCompilerGenerated()) {
-                EmitLambda(mdef);
+                return EmitLambda(mdef);
             } else {
-                Output.Identifier(method, true);
+                return new JSIdentifier(method.FullName);
             }
         }
 
-        protected void Translate_Ldc (ILExpression node, long value) {
+        protected JSExpression Translate_Ldc (ILExpression node, long value) {
             TypeInfo typeInfo = null;
             if (node.ExpectedType != null)
                 typeInfo = TypeInfo.Get(node.ExpectedType);
@@ -521,26 +566,26 @@ namespace JSIL {
                 EnumMemberInfo em;
 
                 if (typeInfo.ValueToEnumMember.TryGetValue(value, out em))
-                    Output.Identifier(Util.EscapeIdentifier(em.FullName, false), true);
+                    return new JSIdentifier(Util.EscapeIdentifier(em.FullName, false));
                 else
-                    Output.Value(value);
+                    return JSLiteral.New(value);
             } else if (node.ExpectedType.FullName == "System.Boolean") {
-                Output.Value(value != 0);
+                return JSLiteral.New(value != 0);
             } else {
-                Output.Value(value);
+                return JSLiteral.New(value);
             }
         }
 
-        protected void Translate_Ldc (ILExpression node, ulong value) {
-            Output.Value(value);
+        protected JSExpression Translate_Ldc (ILExpression node, ulong value) {
+            return JSLiteral.New(value);
         }
 
-        protected void Translate_Ldc (ILExpression node, double value) {
-            Output.Value(value);
+        protected JSExpression Translate_Ldc (ILExpression node, double value) {
+            return JSLiteral.New(value);
         }
 
-        protected void Translate_Ldc (ILExpression node, decimal value) {
-            Output.Value((double)value);
+        protected JSExpression Translate_Ldc (ILExpression node, decimal value) {
+            return JSLiteral.New(value);
         }
 
         protected void Translate_Ldlen (ILExpression node) {
@@ -627,26 +672,23 @@ namespace JSIL {
             TranslateNode(node.Arguments[0]);
         }
 
-        protected void Translate_Newobj (ILExpression node, MethodReference constructor) {
+        protected JSExpression Translate_Newobj (ILExpression node, MethodReference constructor) {
             if (IsDelegateType(constructor.DeclaringType)) {
-                Output.Identifier("System.Delegate.New", true);
-                Output.LPar();
-                Output.Value(constructor.DeclaringType);
-                Output.Comma();
+                return new JSInvocationExpression(
+                    JSDotExpression.New(new JSIdentifier("System"), "Delegate", "New"),
+                    new JSType(constructor.DeclaringType)
+                );
             } else if (constructor.DeclaringType.IsArray) {
-                Output.Identifier("JSIL.JaggedArray.New", true);
-                Output.LPar();
-                Output.Identifier(constructor.DeclaringType.GetElementType());
-                Output.Comma();
-            } else {
-                Output.Keyword("new");
-                Output.Space();
-                Output.Identifier(constructor.DeclaringType);
-                Output.LPar();
+                return new JSInvocationExpression(
+                    JSDotExpression.New(new JSIdentifier("JSIL"), "MultidimensionalArray", "New"),
+                    new JSType(constructor.DeclaringType.GetElementType())
+                );
             }
 
-            CommaSeparatedList(node.Arguments);
-            Output.RPar();
+            return new JSNewExpression(
+                constructor.DeclaringType,
+                (from a in node.Arguments select TranslateNode(a)).ToArray()
+            );
         }
 
         protected void Translate_Newarr (ILExpression node, TypeReference elementType) {
@@ -675,19 +717,22 @@ namespace JSIL {
             Output.RPar();
         }
 
-        protected void Translate_Call (ILExpression node, MethodReference method) {
+        protected JSExpression Translate_Call (ILExpression node, MethodReference method) {
             // This translates the MSIL equivalent of 'typeof(T)' into a direct reference to the specified type
             if (method.FullName == "System.Type System.Type::GetTypeFromHandle(System.RuntimeTypeHandle)") {
                 var tr = node.Arguments[0].Operand as TypeReference;
                 if (tr != null) {
-                    Output.Identifier((TypeReference)node.Arguments[0].Operand);
-                    return;
+                    return new JSType(
+                        (TypeReference)node.Arguments[0].Operand
+                    );
                 } else {
                     Console.Error.WriteLine("Unrecognized typeof expression");
                 }
             }
 
             IEnumerable<ILExpression> arguments = node.Arguments;
+            JSExpression thisExpression;
+            JSIdentifier methodName;
 
             if (method.HasThis) {
                 var firstArg = arguments.First();
@@ -710,49 +755,52 @@ namespace JSIL {
                         (firstArg.ExpectedType.FullName == ThisMethod.DeclaringType.FullName)
                     )
                 ) {
-                    TranslateNode(firstArg);
+                    thisExpression = TranslateNode(firstArg);
+                    methodName = new JSIdentifier(method.Name);
                     arguments = arguments.Skip(1);
-                    Output.Dot();
-                    Output.Identifier(method, false);
                 } else {
-                    Output.Identifier(method, true);
-                    Output.Dot();
-                    Output.Identifier("call");
+                    thisExpression = new JSDotExpression(
+                        new JSType(method.DeclaringType),
+                        "prototype"
+                    );
+                    methodName = new JSIdentifier(method.Name);
+                    // Output.Identifier("call");
                 }
             } else {
-                Output.Identifier(method, true);
+                thisExpression = new JSType(method.DeclaringType);
+                methodName = new JSIdentifier(method.Name);
             }
 
-            Output.LPar();
-            CommaSeparatedList(arguments);
-            Output.RPar();
+            return new JSInvocationExpression(
+                new JSDotExpression(thisExpression, methodName), 
+                (from a in arguments select TranslateNode(a)).ToArray()
+            );
         }
 
-        protected void Translate_Callvirt (ILExpression node, MethodReference method) {
-            TranslateNode(node.Arguments[0]);
-            Output.Dot();
-
-            Output.Identifier(method, false);
-
-            Output.LPar();
-            CommaSeparatedList(node.Arguments.Skip(1));
-            Output.RPar();
+        protected JSExpression Translate_Callvirt (ILExpression node, MethodReference method) {
+            return new JSInvocationExpression(
+                new JSDotExpression(
+                    TranslateNode(node.Arguments[0]),
+                    method.Name
+                ),
+                (from a in node.Arguments.Skip(1) select TranslateNode(a)).ToArray()
+            );
         }
 
-        protected void Translate_CallGetter (ILExpression node, MethodReference getter) {
-            Translate_Call(node, getter);
+        protected JSExpression Translate_CallGetter (ILExpression node, MethodReference getter) {
+            return Translate_Call(node, getter);
         }
 
-        protected void Translate_CallSetter (ILExpression node, MethodReference setter) {
-            Translate_Call(node, setter);
+        protected JSExpression Translate_CallSetter (ILExpression node, MethodReference setter) {
+            return Translate_Call(node, setter);
         }
 
-        protected void Translate_CallvirtGetter (ILExpression node, MethodReference getter) {
-            Translate_Callvirt(node, getter);
+        protected JSExpression Translate_CallvirtGetter (ILExpression node, MethodReference getter) {
+            return Translate_Callvirt(node, getter);
         }
 
-        protected void Translate_CallvirtSetter (ILExpression node, MethodReference setter) {
-            Translate_Callvirt(node, setter);
+        protected JSExpression Translate_CallvirtSetter (ILExpression node, MethodReference setter) {
+            return Translate_Callvirt(node, setter);
         }
 
         protected void Translate_PostIncrement (ILExpression node, int arg) {
