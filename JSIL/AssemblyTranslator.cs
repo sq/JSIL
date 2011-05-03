@@ -11,7 +11,6 @@ using ICSharpCode.Decompiler.Ast.Transforms;
 using ICSharpCode.Decompiler.ILAst;
 using ICSharpCode.NRefactory.CSharp;
 using JSIL.Internal;
-using JSIL.Transforms;
 using Mono.Cecil;
 using ICSharpCode.Decompiler;
 using Mono.Cecil.Pdb;
@@ -189,44 +188,8 @@ namespace JSIL {
             var tw = new StreamWriter(outputStream, Encoding.ASCII);
             var formatter = new JavascriptFormatter(tw, this);
 
-            if (false) {
-                context.Transforms = new IAstTransform[] {
-				    new PushNegation(),
-				    new DelegateConstruction(context),
-				    new PatternStatementTransform(context),
-				    new ReplaceMethodCallsWithOperators(),
-				    new IntroduceUnsafeModifier(),
-				    new AddCheckedBlocks(),
-				    new DeclareVariables(context), // should run after most transforms that modify statements
-				    new ConvertConstructorCallIntoInitializer(), // must run after DeclareVariables
-				    new IntroduceUsingDeclarations(context),
-                    new OverloadRenamer(context),
-                    new DynamicCallSites(context),
-                    new ReplacementFinder(context),
-                    new EventOperatorConverter(context),
-                    new PropertyAccessConverter(context),
-                    new ParameterModifierTransformer(context),
-                    new BlockTranslator(context),
-                    new JumpTargeter(context),
-                    new GotoConverter(context),
-                };
-
-                var decompiler = new AstBuilder(context);
-
-                decompiler.RunTransformations();
-
-                if (StartedTranslatingAssembly != null)
-                    StartedTranslatingAssembly(assembly.MainModule.FullyQualifiedName);
-
-                var astCompileUnit = decompiler.CompilationUnit;
-                var outputVisitor = new JavascriptOutputVisitor(formatter.PlainTextFormatter);
-
-                astCompileUnit.AcceptVisitor(new InsertParenthesesVisitor { InsertParenthesesForReadability = true }, null);
-                astCompileUnit.AcceptVisitor(outputVisitor, null);
-            } else {
-                foreach (var module in assembly.Modules)
-                    TranslateModule(context, formatter, module);
-            }
+            foreach (var module in assembly.Modules)
+                TranslateModule(context, formatter, module);
 
             tw.Flush();
         }

@@ -61,21 +61,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AST\JSOperators.cs" />
+    <Compile Include="AST\JSNodeTypes.cs" />
     <Compile Include="JavascriptFormatter.cs" />
     <Compile Include="ILBlockTranslator.cs" />
-    <Compile Include="PropertyAccessConverter.cs" />
-    <Compile Include="EventOperatorConverter.cs" />
-    <Compile Include="BlockTranslator.cs" />
-    <Compile Include="DeclarationHoister.cs" />
-    <Compile Include="DynamicExpression.cs" />
-    <Compile Include="DynamicCallSites.cs" />
-    <Compile Include="GotoConverter.cs" />
-    <Compile Include="JavascriptOutputVisitor.cs" />
-    <Compile Include="JumpTargeter.cs" />
-    <Compile Include="OverloadRenamer.cs" />
-    <Compile Include="ParameterModifier.cs" />
-    <Compile Include="ReplacementFinder.cs" />
-    <Compile Include="Translator.cs" />
+    <Compile Include="AssemblyTranslator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TypeInformation.cs" />
     <Compile Include="Util.cs" />
@@ -102,6 +92,7 @@
       <Name>ICSharpCode.NRefactory</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

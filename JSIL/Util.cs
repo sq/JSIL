@@ -149,5 +149,77 @@ namespace JSIL.Internal {
             else
                 return String.Format("{0}.{1}", pdt.FullName, methodDeclaration.Name);
         }
+
+        public sealed class ListSkipAdapter<T> : IList<T> {
+            public readonly IList<T> List;
+            public readonly int Offset;
+
+            public ListSkipAdapter (IList<T> list, int offset) {
+                List = list;
+                Offset = offset;
+            }
+
+            public int IndexOf (T item) {
+                throw new NotImplementedException();
+            }
+
+            public void Insert (int index, T item) {
+                List.Insert(index + Offset, item);
+            }
+
+            public void RemoveAt (int index) {
+                List.RemoveAt(index + Offset);
+            }
+
+            public T this[int index] {
+                get {
+                    return List[index + Offset];
+                }
+                set {
+                    List[index + Offset] = value;
+                }
+            }
+
+            public void Add (T item) {
+                List.Add(item);
+            }
+
+            public void Clear () {
+                throw new NotImplementedException();
+            }
+
+            public bool Contains (T item) {
+                throw new NotImplementedException();
+            }
+
+            public void CopyTo (T[] array, int arrayIndex) {
+                for (int i = 0, c = Count; i < c; i++)
+                    array[i + arrayIndex] = List[i + Offset];
+            }
+
+            public int Count {
+                get { return List.Count - Offset; }
+            }
+
+            public bool IsReadOnly {
+                get { return List.IsReadOnly; }
+            }
+
+            public bool Remove (T item) {
+                throw new NotImplementedException();
+            }
+
+            public IEnumerator<T> GetEnumerator () {
+                return List.Skip(Offset).GetEnumerator();
+            }
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator () {
+                return List.Skip(Offset).GetEnumerator();
+            }
+        }
+
+        public static IList<T> Skip<T> (this IList<T> list, int offset) {
+            return new ListSkipAdapter<T>(list, offset);
+        }
     }
 }
