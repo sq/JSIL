@@ -348,8 +348,10 @@ namespace JSIL {
         }
 
         protected void Translate_LogicNot (ILExpression node) {
-            if (node.Arguments[0].Code == ILCode.Ceq) {
-                Translate_BinaryOp(node.Arguments[0], "!==");
+            var arg = node.Arguments[0];
+
+            if (arg.Code == ILCode.Ceq) {
+                Translate_BinaryOp(arg, "!==");
             } else {
                 Translate_UnaryOp(node, "!");
             }
@@ -481,6 +483,8 @@ namespace JSIL {
                     Output.Identifier(Util.EscapeIdentifier(em.FullName, false), true);
                 else
                     Output.Value(value);
+            } else if (node.ExpectedType.FullName == "System.Boolean") {
+                Output.Value(value != 0);
             } else {
                 Output.Value(value);
             }
@@ -587,6 +591,11 @@ namespace JSIL {
                 Output.Identifier("System.Delegate.New", true);
                 Output.LPar();
                 Output.Value(constructor.DeclaringType);
+                Output.Comma();
+            } else if (constructor.DeclaringType.IsArray) {
+                Output.Identifier("JSIL.JaggedArray.New", true);
+                Output.LPar();
+                Output.Identifier(constructor.DeclaringType.GetElementType());
                 Output.Comma();
             } else {
                 Output.Keyword("new");

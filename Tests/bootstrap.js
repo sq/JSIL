@@ -426,7 +426,55 @@ System.Array.CheckType = function (value) {
   return JSIL.IsArray(value);
 }
 
-JSIL.JaggedArray = {};
+JSIL.JaggedArray = function (dimensions) {
+  var totalSize = dimensions[0];
+  for (var i = 1; i < dimensions.length; i++)
+    totalSize *= i;
+
+  this._dimensions = dimensions;
+  this._items = new Array(totalSize);
+};
+JSIL.JaggedArray.prototype = JSIL.CloneObject(System.Array.prototype);
+JSIL.JaggedArray.prototype.GetLength = function (i) {
+  return this._dimensions[i];
+};
+JSIL.JaggedArray.prototype.GetLowerBound = function (i) {
+  return 0;
+};
+JSIL.JaggedArray.prototype.GetUpperBound = function (i) {
+  return this._dimensions[i] - 1;
+};
+// This gets a little hairy: In C#, multidimensional array dimensions are presented in reverse order,
+//  like so: var arr = new int[depth, height, width]; arr[z, y, x] = ...;
+JSIL.JaggedArray.prototype._ComputeIndex = function () {
+  if (arguments.length != this._dimensions.length)
+    throw new Error("You must specify an index for each dimension of the array.");
+
+  var result = 0;
+  for (var i = 0; i < arguments.length; i++) {
+
+    // Compute the stride for this dimension. For the last dimension, the stride is always one.
+    var stride = 1;
+    for (var j = i + 1; j < arguments.length; j++) {
+      stride *= this._dimensions[j];
+    }
+
+    // arr[z, y, x] == arr[(z * width * height) + (y * width) + (x)]
+    result += (stride * arguments[i]);
+  }
+
+  return result;
+};
+JSIL.JaggedArray.prototype.Get = function () {
+  var indices = Array.prototype.slice.call(arguments, 0, arguments.length);
+  var index = this._ComputeIndex.apply(this, indices);
+  return this._items[index];
+};
+JSIL.JaggedArray.prototype.Set = function () {
+  var indices = Array.prototype.slice.call(arguments, 0, arguments.length - 1);
+  var index = this._ComputeIndex.apply(this, indices);
+  this._items[index] = arguments[arguments.length - 1];
+};
 JSIL.JaggedArray.New = function (type) {
   var numDimensions = arguments.length - 1;
   if (numDimensions < 1)
@@ -435,26 +483,8 @@ JSIL.JaggedArray.New = function (type) {
     return System.Array.New(type, arguments[1]);
 
   var dimensions = Array.prototype.slice.call(arguments, 1);
-  var dimension = Number(dimensions[0]);
 
-  var result = new Array(dimension);
-  result.GetLength = function (i) {
-    return dimensions[i];
-  };
-  result.GetLowerBound = function (i) {
-    return 0;
-  };
-  result.GetUpperBound = function (i) {
-    return dimensions[i] - 1;
-  };
-
-  for (var i = 0; i < dimension; i++) {
-    result[i] = JSIL.JaggedArray.New(
-      type, Array.prototype.slice.call(dimensions, 1)
-    );
-  }
-
-  return result;
+  return new JSIL.JaggedArray(dimensions);
 };
 
 System.Delegate = {};
