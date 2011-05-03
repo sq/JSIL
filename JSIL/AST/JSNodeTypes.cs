@@ -87,6 +87,21 @@ namespace JSIL.Ast {
         }
     }
 
+    // Technically, this should be a statement. But in IL, it's an expression...
+    public class JSReturnExpression : JSExpression {
+        public readonly JSExpression Value;
+
+        public JSReturnExpression (JSExpression value = null) {
+            Value = value;
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                yield return Value;
+            }
+        }
+    }
+
     public class JSIfStatement : JSStatement {
         public readonly JSExpression Condition;
         public readonly JSStatement TrueClause;
@@ -405,8 +420,12 @@ namespace JSIL.Ast {
     }
 
     public class JSUnaryOperatorExpression : JSOperatorExpression<JSUnaryOperator> {
-        public JSUnaryOperatorExpression (JSUnaryOperator op, JSExpression expression)
+        public readonly bool Postfix;
+
+        public JSUnaryOperatorExpression (JSUnaryOperator op, JSExpression expression, bool postfix = false)
             : base(op, expression) {
+
+            Postfix = postfix;
         }
 
         public JSExpression Expression {

@@ -431,12 +431,15 @@ namespace JSIL {
             Output.Keyword("break");
         }
 
-        protected void Translate_Ret (ILExpression node) {
-            Output.Keyword("return");
-
-            if (node.Arguments.Count == 1) {
-                Output.Space();
-                TranslateNode(node.Arguments[0]);
+        protected JSReturnExpression Translate_Ret (ILExpression node) {
+            if (node.Arguments.FirstOrDefault() != null) {
+                return new JSReturnExpression(
+                    TranslateNode(node.Arguments[0])
+                );
+            } else if (node.Arguments.Count == 0) {
+                return new JSReturnExpression();
+            } else {
+                throw new NotImplementedException();
             }
         }
 
@@ -456,10 +459,8 @@ namespace JSIL {
             );
         }
 
-        protected void Translate_Ldsfld (ILExpression node, FieldReference field) {
-            Output.Identifier(field.DeclaringType);
-            Output.Dot();
-            Output.Identifier(field.Name);
+        protected JSDotExpression Translate_Ldsfld (ILExpression node, FieldReference field) {
+            return new JSDotExpression(new JSType(field.DeclaringType), field.Name);
         }
 
         protected void Translate_Ldsflda (ILExpression node, FieldReference field) {
@@ -475,18 +476,27 @@ namespace JSIL {
             Output.RPar();
         }
 
-        protected void Translate_Stsfld (ILExpression node, FieldReference field) {
-            Output.Identifier(field.DeclaringType);
-            Output.Dot();
-            Output.Identifier(field.Name);
-            Output.Token(" = ");
-            TranslateNode(node.Arguments[0]);
+        protected JSBinaryOperatorExpression Translate_Stsfld (ILExpression node, FieldReference field) {
+            return new JSBinaryOperatorExpression(
+                JSOperator.Assignment,
+                new JSDotExpression(new JSType(field.DeclaringType), field.Name),
+                TranslateNode(node.Arguments[0])
+            );
         }
 
-        protected void Translate_Ldfld (ILExpression node, FieldReference field) {
-            TranslateNode(node.Arguments[0]);
-            Output.Dot();
-            Output.Identifier(field.Name);
+        protected JSDotExpression Translate_Ldfld (ILExpression node, FieldReference field) {
+            return new JSDotExpression(
+                TranslateNode(node.Arguments[0]), 
+                field.Name
+            );
+        }
+
+        protected JSBinaryOperatorExpression Translate_Stfld (ILExpression node, FieldReference field) {
+            return new JSBinaryOperatorExpression(
+                JSOperator.Assignment,
+                new JSDotExpression(TranslateNode(node.Arguments[0]), field.Name),
+                TranslateNode(node.Arguments[1])
+            );
         }
 
         protected void Translate_Ldflda (ILExpression node, FieldReference field) {
@@ -510,14 +520,6 @@ namespace JSIL {
             return Translate_BinaryOp(
                 node, JSOperator.Assignment
             );
-        }
-
-        protected void Translate_Stfld (ILExpression node, FieldReference field) {
-            TranslateNode(node.Arguments[0]);
-            Output.Dot();
-            Output.Identifier(field.Name);
-            Output.Token(" = ");
-            TranslateNode(node.Arguments[1]);
         }
 
         protected JSStringLiteral Translate_Ldstr (ILExpression node, string text) {
@@ -641,7 +643,7 @@ namespace JSIL {
             return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32);
         }
 
-        protected void Translate_Box (ILExpression node, TypeReference valueType) {
+        protected JSExpression Translate_Box (ILExpression node, TypeReference valueType) {
             // TODO: We could do boxing the strict way, but in practice, I don't think it's necessary...
             /*
             Output.Keyword("new");
@@ -652,7 +654,7 @@ namespace JSIL {
             Output.RPar();
              */
 
-            TranslateNode(node.Arguments[0]);
+            return TranslateNode(node.Arguments[0]);
         }
 
         protected JSExpression Translate_Newobj (ILExpression node, MethodReference constructor) {

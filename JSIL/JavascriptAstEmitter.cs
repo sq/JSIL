@@ -126,6 +126,24 @@ namespace JSIL {
             Output.CloseBrace();
         }
 
+        public void VisitNode (JSReturnExpression ret) {
+            Output.Keyword("return");
+            Output.Space();
+
+            if (ret.Value != null)
+                Visit(ret.Value);
+        }
+
+        public void VisitNode (JSUnaryOperatorExpression bop) {
+            if (!bop.Postfix)
+                Output.Token(bop.Operator.Token);
+
+            Visit(bop.Expression);
+
+            if (bop.Postfix)
+                Output.Token(bop.Operator.Token);
+        }
+
         public void VisitNode (JSBinaryOperatorExpression bop) {
             bool parens = (bop.Operator != JSOperator.Assignment);
 
