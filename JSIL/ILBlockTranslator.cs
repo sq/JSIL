@@ -437,7 +437,16 @@ namespace JSIL {
         }
 
         protected void Translate_Ldsflda (ILExpression node, FieldReference field) {
-            Translate_Ldsfld(node, field);
+            Output.Keyword("new");
+            Output.Space();
+            Output.Identifier("JSIL.MemberReference", true);
+            Output.LPar();
+
+            Output.Identifier(field.DeclaringType);
+            Output.Comma();
+            Output.Value(Util.EscapeIdentifier(field.Name));
+
+            Output.RPar();
         }
 
         protected void Translate_Stsfld (ILExpression node, FieldReference field) {
