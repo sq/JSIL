@@ -182,7 +182,7 @@ namespace JSIL {
                 result = invokeResult as JSExpression;
 
                 if (result == null)
-                    Debug.WriteLine(String.Format("Instruction {0} did not produce a JS AST node", expression.Code));
+                    Debug.WriteLine(String.Format("Instruction {0} did not produce a JS AST expression", expression.Code));
             } catch (MissingMethodException) {
                 string operandType = "";
                 if (expression.Operand != null)
@@ -380,8 +380,8 @@ namespace JSIL {
             return new JSThrowExpression(TranslateNode(node.Arguments[0]));
         }
 
-        protected JSNode Translate_Endfinally (ILExpression node) {
-            return null;
+        protected JSExpression Translate_Endfinally (ILExpression node) {
+            return JSExpression.Null;
         }
 
         protected void Translate_LoopOrSwitchBreak (ILExpression node) {
@@ -512,7 +512,7 @@ namespace JSIL {
                 EnumMemberInfo em;
 
                 if (typeInfo.ValueToEnumMember.TryGetValue(value, out em))
-                    return new JSIdentifier(Util.EscapeIdentifier(em.FullName, false));
+                    return new JSEnumLiteral(em);
                 else
                     return JSLiteral.New(value);
             } else if (node.ExpectedType.FullName == "System.Boolean") {
@@ -602,8 +602,28 @@ namespace JSIL {
             );
         }
 
+        protected JSInvocationExpression Translate_Conv_U4 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt32);
+        }
+
+        protected JSInvocationExpression Translate_Conv_U8 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt64);
+        }
+
         protected JSInvocationExpression Translate_Conv_I4 (ILExpression node) {
             return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32);
+        }
+
+        protected JSInvocationExpression Translate_Conv_I8 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int64);
+        }
+
+        protected JSInvocationExpression Translate_Conv_R4 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Single);
+        }
+
+        protected JSInvocationExpression Translate_Conv_R8 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Double);
         }
 
         protected JSExpression Translate_Box (ILExpression node, TypeReference valueType) {

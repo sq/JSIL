@@ -26,9 +26,28 @@ namespace JSIL.Ast {
                 }
             }
         }
+
+        public virtual bool IsNull {
+            get {
+                return false;
+            }
+        }
     }
 
     public abstract class JSStatement : JSNode {
+        public static readonly JSNullStatement Null = new JSNullStatement();
+    }
+
+    public sealed class JSNullStatement : JSStatement {
+        public override bool IsNull {
+            get {
+                return true;
+            }
+        }
+
+        public override string ToString () {
+            return "<Null>";
+        }
     }
 
     public class JSBlockStatement : JSStatement {
@@ -208,6 +227,8 @@ namespace JSIL.Ast {
     }
 
     public abstract class JSExpression : JSNode {
+        public static readonly JSNullExpression Null = new JSNullExpression();
+
         public readonly IList<JSExpression> Values;
 
         protected JSExpression (params JSExpression[] values) {
@@ -231,6 +252,18 @@ namespace JSIL.Ast {
             get {
                 return null;
             }
+        }
+    }
+
+    public sealed class JSNullExpression : JSExpression {
+        public override bool IsNull {
+            get {
+                return true;
+            }
+        }
+
+        public override string ToString () {
+            return "<Null>";
         }
     }
 
@@ -297,6 +330,18 @@ namespace JSIL.Ast {
     public class JSIntegerLiteral : JSLiteral<long> {
         public JSIntegerLiteral (long value)
             : base(value) {
+        }
+    }
+
+    public class JSEnumLiteral : JSLiteral<long> {
+        public readonly TypeReference EnumType;
+        public readonly string Name;
+
+        public JSEnumLiteral (EnumMemberInfo member)
+            : base(member.Value) {
+
+            EnumType = member.DeclaringType;
+            Name = member.Name;
         }
     }
 

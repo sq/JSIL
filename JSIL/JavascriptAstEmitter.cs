@@ -81,6 +81,16 @@ namespace JSIL {
             Output.Value(integer.Value);
         }
 
+        public void VisitNode (JSNumberLiteral number) {
+            Output.Value(number.Value);
+        }
+
+        public void VisitNode (JSEnumLiteral enm) {
+            Output.Identifier(enm.EnumType);
+            Output.Dot();
+            Output.Identifier(enm.Name);
+        }
+
         public void VisitNode (JSNullLiteral nll) {
             Output.Keyword("null");
         }

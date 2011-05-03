@@ -14,6 +14,9 @@ namespace JSIL.Ast {
         /// </summary>
         /// <param name="node">The node to visit.</param>
         public void Visit (JSNode node) {
+            if (node.IsNull)
+                return;
+
             Stack.Push(node);
             try {
                 if (node != null)
