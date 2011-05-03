@@ -145,7 +145,7 @@ namespace JSIL.Internal {
             PlainTextOutput.Unindent();
             PlainTextOutput.Write("} ");
             midtext(this);
-            PlainTextOutput.WriteLine(" }");
+            PlainTextOutput.WriteLine(" {");
             PlainTextOutput.Indent();
         }
 

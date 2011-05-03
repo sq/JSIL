@@ -191,8 +191,14 @@ namespace JSIL {
                 Console.Error.WriteLine("Instruction NYI: {0} {1}", expression.Code, operandType);
                 return new JSInvocationExpression(
                     JSDotExpression.New(new JSIdentifier("JSIL"), "UntranslatableInstruction"),
-                    new JSStringLiteral(expression.Code.ToString()), 
-                    new JSStringLiteral(operandType)
+                    String.IsNullOrWhiteSpace(operandType) ?
+                        new JSExpression[] { 
+                            new JSStringLiteral(expression.Code.ToString())
+                        } :
+                        new JSExpression[] { 
+                            new JSStringLiteral(expression.Code.ToString()), 
+                            new JSStringLiteral(operandType)
+                        }
                 );
                 Output.RPar();
             }
@@ -201,126 +207,79 @@ namespace JSIL {
         }
 
         public JSIfStatement TranslateNode (ILCondition condition) {
-            Output.Keyword("if");
-            Output.Space();
-            Output.LPar();
-            TranslateNode(condition.Condition);
-            Output.RPar();
-            Output.Space();
+            JSStatement falseBlock = null;
+            if ((condition.FalseBlock != null) && (condition.FalseBlock.Body.Count > 0))
+                falseBlock = TranslateNode(condition.FalseBlock);
 
-            Output.OpenBrace();
-            TranslateNode(condition.TrueBlock);
-
-            if ((condition.FalseBlock != null) && (condition.FalseBlock.Body.Count > 0)) {
-                Output.CloseAndReopenBrace("else");
-                TranslateNode(condition.FalseBlock);
-            }
-
-            Output.CloseBrace();
-
-            return null;
+            return new JSIfStatement(
+                TranslateNode(condition.Condition),
+                TranslateNode(condition.TrueBlock),
+                falseBlock
+            );
         }
 
         public JSStatement TranslateNode (ILTryCatchBlock tcb) {
-            Output.Keyword("try");
-            Output.Space();
+            var body = TranslateNode(tcb.TryBlock);
+            JSVariable catchVariable = null;
+            JSBlockStatement catchBlock = null;
+            JSBlockStatement finallyBlock = null;
 
-            Output.OpenBrace();
-            TranslateNode(tcb.TryBlock);
-
-            if (tcb.FaultBlock != null) {
+            if (tcb.FaultBlock != null)
                 throw new NotImplementedException();
-            }
 
             if (tcb.CatchBlocks.Count > 0) {
-                Output.CloseAndReopenBrace(String.Format("catch ($exception)"));
+                var pairs = new List<KeyValuePair<JSExpression, JSStatement>>();
+                catchVariable = new JSVariable("$exception", Context.CurrentModule.TypeSystem.Object);
 
                 bool isFirst = true, foundUniversalCatch = false, openBrace = false;
                 foreach (var cb in tcb.CatchBlocks) {
+                    JSExpression pairCondition = null;
+
                     if (cb.ExceptionType.FullName == "System.Object") {
                         Console.Error.WriteLine("Ignoring impossible catch clause");
-                        Output.Comment("Impossible catch clause ignored");
                         continue;
                     } else if (cb.ExceptionType.FullName == "System.Exception") {
                         foundUniversalCatch = true;
-
-                        if (!isFirst)
-                            Output.CloseAndReopenBrace("else");
-
                     } else {
                         if (foundUniversalCatch)
                             throw new NotImplementedException("Catch-all clause must be last");
 
-                        if (isFirst) {
-                            Output.Keyword("if");
-                            Output.Space();
-                            Output.LPar();
-
-                            Output.Identifier("JSIL.CheckType", true);
-                            Output.LPar();
-                            Output.Identifier("$exception");
-                            Output.Comma();
-                            Output.Identifier(cb.ExceptionType);
-                            Output.RPar();
-
-                            Output.RPar();
-                            Output.Space();
-                            openBrace = true;
-                            Output.OpenBrace();
-                        } else {
-                            var excType = cb.ExceptionType;
-
-                            Output.CloseAndReopenBrace(
-                                (o) => {
-                                    o.Keyword("else if");
-                                    o.Space();
-                                    o.LPar();
-
-                                    o.Identifier("JSIL.CheckType", true);
-                                    o.LPar();
-                                    o.Identifier("$exception");
-                                    o.Comma();
-                                    o.Identifier(excType);
-                                    o.RPar();
-
-                                    o.RPar();
-                                }
-                            );
-                        }
+                        pairCondition = new JSInvocationExpression(
+                            new JSDotExpression(new JSIdentifier("JSIL"), "CheckType"),
+                            catchVariable, new JSType(cb.ExceptionType)
+                        );
                     }
 
-                    if (cb.ExceptionVariable != null) {
-                        Output.Identifier(cb.ExceptionVariable.Name);
-                        Output.Token(" = ");
-                        Output.Identifier("$exception");
-                        Output.Semicolon();
-                    }
+                    var pairBody = TranslateBlock(cb.Body);
 
-                    TranslateBlock(cb.Body);
+                    if (cb.ExceptionVariable != null)
+                        pairBody.Statements.Insert(
+                            0, new JSExpressionStatement(new JSBinaryOperatorExpression(
+                                JSOperator.Assignment, new JSVariable(cb.ExceptionVariable.Name, cb.ExceptionVariable.Type), catchVariable
+                            ))
+                        );
 
-                    isFirst = false;
+                    pairs.Add(new KeyValuePair<JSExpression, JSStatement>(
+                        pairCondition, pairBody
+                    ));
                 }
 
-                if (!foundUniversalCatch) {
-                    Output.CloseAndReopenBrace("else");
-                    Output.Keyword("throw");
-                    Output.Space();
-                    Output.Identifier("$exception");
-                    Output.Semicolon();
-                }
+                if (!foundUniversalCatch)
+                    pairs.Add(new KeyValuePair<JSExpression,JSStatement>(
+                        null, new JSExpressionStatement(new JSThrowExpression(catchVariable))
+                    ));
 
-                if (openBrace)
-                    Output.CloseBrace();
+                catchBlock = new JSBlockStatement(
+                    JSIfStatement.New(pairs.ToArray())
+                );
             }
 
-            if (tcb.FinallyBlock != null) {
-                Output.CloseAndReopenBrace("finally");
-                TranslateNode(tcb.FinallyBlock);
-            }
+            if (tcb.FinallyBlock != null)
+                finallyBlock = TranslateNode(tcb.FinallyBlock);
 
-            Output.CloseBrace();
-
-            return null;
+            return new JSTryCatchBlock(
+                body, catchVariable, catchBlock, finallyBlock
+            );
         }
 
         public JSWhileLoop TranslateNode (ILWhileLoop loop) {
@@ -364,8 +323,8 @@ namespace JSIL {
             }
         }
 
-        protected void Translate_Ceq (ILExpression node) {
-            Translate_EqualityComparison(node, true);
+        protected JSExpression Translate_Ceq (ILExpression node) {
+            return Translate_EqualityComparison(node, true);
         }
 
         protected JSBinaryOperatorExpression Translate_Mul (ILExpression node) {
@@ -413,18 +372,16 @@ namespace JSIL {
             return Translate_UnaryOp(node, JSOperator.LogicalNot);
         }
 
-        protected void Translate_Neg (ILExpression node) {
-            Translate_UnaryOp(node, "-");
+        protected JSUnaryOperatorExpression Translate_Neg (ILExpression node) {
+            return Translate_UnaryOp(node, "-");
         }
 
-        protected void Translate_Throw (ILExpression node) {
-            Output.Keyword("throw");
-            Output.Space();
-            TranslateNode(node.Arguments[0]);
+        protected JSThrowExpression Translate_Throw (ILExpression node) {
+            return new JSThrowExpression(TranslateNode(node.Arguments[0]));
         }
 
-        protected void Translate_Endfinally (ILExpression node) {
-            Output.Comment("Endfinally");
+        protected JSNode Translate_Endfinally (ILExpression node) {
+            return null;
         }
 
         protected void Translate_LoopOrSwitchBreak (ILExpression node) {

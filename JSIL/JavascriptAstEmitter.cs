@@ -124,6 +124,37 @@ namespace JSIL {
             Output.CloseBrace();
         }
 
+        public void VisitNode (JSTryCatchBlock tcb) {
+            Output.Keyword("try");
+            Output.Space();
+            Output.OpenBrace();
+
+            Visit(tcb.Body);
+
+            if (tcb.Catch != null) {
+                Output.CloseAndReopenBrace((o) => {
+                    if (o != Output)
+                        throw new InvalidOperationException();
+
+                    o.Keyword("catch");
+                    o.Space();
+                    o.LPar();
+                    Visit(tcb.CatchVariable);
+                    o.RPar();
+                });
+
+                Visit(tcb.Catch);
+            }
+
+            if (tcb.Finally != null) {
+                Output.CloseAndReopenBrace("finally");
+
+                Visit(tcb.Finally);
+            }
+
+            Output.CloseBrace();
+        }
+
         public void VisitNode (JSWhileLoop loop) {
             Output.Keyword("while");
             Output.Space();
@@ -144,6 +175,12 @@ namespace JSIL {
 
             if (ret.Value != null)
                 Visit(ret.Value);
+        }
+
+        public void VisitNode (JSThrowExpression ret) {
+            Output.Keyword("throw");
+            Output.Space();
+            Visit(ret.Exception);
         }
 
         public void VisitNode (JSUnaryOperatorExpression bop) {

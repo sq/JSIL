@@ -32,10 +32,10 @@ namespace JSIL.Ast {
     }
 
     public class JSBlockStatement : JSStatement {
-        public readonly IList<JSStatement> Statements;
+        public readonly List<JSStatement> Statements;
 
         public JSBlockStatement (params JSStatement[] statements) {
-            Statements = statements;
+            Statements = new List<JSStatement>(statements);
         }
 
         public override IEnumerable<JSNode> Children {
@@ -87,7 +87,7 @@ namespace JSIL.Ast {
         }
     }
 
-    // Technically, this should be a statement. But in IL, it's an expression...
+    // Technically, this should be a statement. But in ILAst, it's an expression...
     public class JSReturnExpression : JSExpression {
         public readonly JSExpression Value;
 
@@ -97,7 +97,23 @@ namespace JSIL.Ast {
 
         public override IEnumerable<JSNode> Children {
             get {
-                yield return Value;
+                if (Value != null)
+                    yield return Value;
+            }
+        }
+    }
+
+    // Same as above.
+    public class JSThrowExpression : JSExpression {
+        public readonly JSExpression Exception;
+
+        public JSThrowExpression (JSExpression exception = null) {
+            Exception = exception;
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                yield return Exception;
             }
         }
     }
@@ -105,7 +121,7 @@ namespace JSIL.Ast {
     public class JSIfStatement : JSStatement {
         public readonly JSExpression Condition;
         public readonly JSStatement TrueClause;
-        public readonly JSStatement FalseClause;
+        public JSStatement FalseClause;
 
         public JSIfStatement (JSExpression condition, JSStatement trueClause, JSStatement falseClause = null) {
             Condition = condition;
@@ -113,11 +129,36 @@ namespace JSIL.Ast {
             FalseClause = falseClause;
         }
 
+        public static JSIfStatement New (params KeyValuePair<JSExpression, JSStatement>[] conditions) {
+            if ((conditions == null) || (conditions.Length == 0))
+                throw new ArgumentException("conditions");
+
+            JSIfStatement result = new JSIfStatement(
+                conditions[0].Key, conditions[0].Value
+            );
+            JSIfStatement next = null, current = result;
+
+            for (int i = 1; i < conditions.Length; i++) {
+                var cond = conditions[i].Key;
+
+                if (cond != null) {
+                    next = new JSIfStatement(cond, conditions[i].Value);
+                    current.FalseClause = next;
+                    current = next;
+                } else
+                    current.FalseClause = conditions[i].Value;
+            }
+
+            return result;
+        }
+
         public override IEnumerable<JSNode> Children {
             get {
                 yield return Condition;
                 yield return TrueClause;
-                yield return FalseClause;
+
+                if (FalseClause != null)
+                    yield return FalseClause;
             }
         }
     }
@@ -135,6 +176,33 @@ namespace JSIL.Ast {
             get {
                 yield return Condition;
                 yield return Body;
+            }
+        }
+    }
+
+    public class JSTryCatchBlock : JSStatement {
+        public readonly JSStatement Body;
+        public JSVariable CatchVariable;
+        public JSStatement Catch;
+        public JSStatement Finally;
+
+        public JSTryCatchBlock (JSStatement body, JSVariable catchVariable = null, JSStatement @catch = null, JSStatement @finally = null) {
+            Body = body;
+            CatchVariable = catchVariable;
+            Catch = @catch;
+            Finally = @finally;
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                yield return Body;
+
+                if (CatchVariable != null)
+                    yield return CatchVariable;
+                if (Catch != null)
+                    yield return Catch;
+                if (Finally != null)
+                    yield return Finally;
             }
         }
     }
