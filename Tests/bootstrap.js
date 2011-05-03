@@ -341,6 +341,30 @@ JSIL.Interface.prototype.Of = function (T) {
   return this;
 };
 
+JSIL.MakeInterface(System, "IDisposable", {
+  "Dispose": Function
+});
+
+System.Collections = {}
+JSIL.MakeInterface(System.Collections, "IEnumerator", {
+  "MoveNext": Function,
+  "get_Current": Function,
+  "Reset": Function,
+});
+JSIL.MakeInterface(System.Collections, "IEnumerable", {
+  "GetEnumerator": Function
+});
+
+System.Collections.Generic = {};
+JSIL.MakeInterface(System.Collections.Generic, "IEnumerator$bt1", {
+  "MoveNext": Function,
+  "get_Current": Function,
+  "Reset": Function, 
+});
+JSIL.MakeInterface(System.Collections.Generic, "IEnumerable$bt1", {
+  "GetEnumerator": Function
+});
+
 System.Enum = {};
 System.Enum.Parse = function (type, value) {
   var num = Number(value);
@@ -650,30 +674,9 @@ Object.defineProperty(
     JSIL.ArrayEnumerator.prototype, "Current",
     { get: JSIL.ArrayEnumerator.prototype.get_Current }
 );
-
-JSIL.MakeInterface(System, "IDisposable", {
-  "Dispose": Function
-});
-
-System.Collections = {}
-JSIL.MakeInterface(System.Collections, "IEnumerator", {
-  "MoveNext": Function,
-  "get_Current": Function,
-  "Reset": Function,
-});
-JSIL.MakeInterface(System.Collections, "IEnumerable", {
-  "GetEnumerator": Function
-});
-
-System.Collections.Generic = {};
-JSIL.MakeInterface(System.Collections.Generic, "IEnumerator$bt1", {
-  "MoveNext": Function,
-  "get_Current": Function,
-  "Reset": Function, 
-});
-JSIL.MakeInterface(System.Collections.Generic, "IEnumerable$bt1", {
-  "GetEnumerator": Function
-});
+JSIL.ArrayEnumerator.prototype.__ImplementInterface__(System.IDisposable);
+JSIL.ArrayEnumerator.prototype.__ImplementInterface__(System.Collections.IEnumerator);
+JSIL.ArrayEnumerator.prototype.__ImplementInterface__(System.Collections.Generic.IEnumerator$bt1);
 
 System.Collections.Generic.List$bt1 = function (sizeOrInitializer) {
   this._ctor(sizeOrInitializer);
@@ -705,6 +708,8 @@ System.Collections.Generic.List$bt1.prototype.Add = function (item) {
 System.Collections.Generic.List$bt1.prototype.GetEnumerator = function () {
   return new System.Collections.Generic.List$bt1.Enumerator(this);
 };
+System.Collections.Generic.List$bt1.prototype.__ImplementInterface__(System.Collections.IEnumerable);
+System.Collections.Generic.List$bt1.prototype.__ImplementInterface__(System.Collections.Generic.IEnumerable$bt1);
 
 System.Collections.Generic.List$bt1.Enumerator = function (list) {
   this._ctor(list);
