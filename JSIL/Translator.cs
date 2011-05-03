@@ -312,6 +312,19 @@ namespace JSIL {
             output.Identifier(GetParent(iface), true);
             output.Comma();
             output.Value(iface.Name);
+            output.Comma();
+
+            output.OpenBrace();
+
+            output.CommaSeparatedList(
+                from m in iface.Methods select new KeyValuePair<string, string>(
+                    Util.EscapeIdentifier(m.Name), "Function"
+                ),
+                ListValueType.Primitive, ListValueType.Identifier
+            );
+
+            output.CloseBrace();
+
             output.RPar();
             output.Semicolon();
             output.NewLine();
@@ -407,19 +420,6 @@ namespace JSIL {
 
             var info = GetTypeInformation(typedef);
 
-            if (typedef.HasInterfaces) {
-                output.Identifier(typedef);
-                output.Dot();
-                output.Identifier("prototype");
-                output.Dot();
-                output.Identifier("__Interfaces__");
-                output.Token(" = ");
-                output.OpenBracket();
-                output.CommaSeparatedList(typedef.Interfaces);
-                output.CloseBracket();
-                output.Semicolon();
-            }
-
             foreach (var field in typedef.Fields) {
                 if (IsIgnored(field))
                     continue;
@@ -437,6 +437,18 @@ namespace JSIL {
             if (cctor != null) {
                 output.Identifier(cctor, true);
                 output.LPar();
+                output.RPar();
+                output.Semicolon();
+            }
+
+            foreach (var iface in typedef.Interfaces) {
+                output.Identifier(typedef);
+                output.Dot();
+                output.Identifier("prototype");
+                output.Dot();
+                output.Identifier("__ImplementInterface__");
+                output.LPar();
+                output.Identifier(iface);
                 output.RPar();
                 output.Semicolon();
             }

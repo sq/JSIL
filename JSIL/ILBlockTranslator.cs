@@ -296,7 +296,23 @@ namespace JSIL {
         }
 
         protected void Translate_Cgt (ILExpression node) {
-            Translate_BinaryOp(node, ">");
+            if (
+                (!node.Arguments[0].ExpectedType.IsValueType) &&
+                (!node.Arguments[1].ExpectedType.IsValueType) &&
+                (node.Arguments[0].ExpectedType == node.Arguments[1].ExpectedType) &&
+                (node.Arguments[0].Code == ILCode.Isinst)
+            ) {
+                // The C# expression 'x is y' translates into roughly '(x is y) > null' in IL, 
+                //  because there's no IL opcode for != and the IL isinst opcode returns object, not bool
+                Output.Identifier("JSIL.CheckType", true);
+                Output.LPar();
+                TranslateNode(node.Arguments[1]);
+                Output.Comma();
+                Output.Identifier((TypeReference) node.Arguments[0].Operand);
+                Output.RPar();
+            } else {
+                Translate_BinaryOp(node, ">");
+            }
         }
 
         protected void Translate_Ceq (ILExpression node) {

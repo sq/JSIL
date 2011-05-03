@@ -273,6 +273,9 @@ System.Object.prototype.__ImplementInterface__ = function (iface) {
     this.__Interfaces__ = interfaces = [];
   }
 
+  // In cases where an interface method (IInterface_MethodName) is implemented by a regular method
+  //  (MethodName), we make a copy of the regular method with the name of the interface method, so
+  //  that attempts to directly invoke the interface method will still work.
   var members = iface.__Members__;
   for (var key in members) {
     var fullName = iface.__TypeName__ + "_" + key;
@@ -648,25 +651,29 @@ Object.defineProperty(
     { get: JSIL.ArrayEnumerator.prototype.get_Current }
 );
 
-JSIL.MakeInterface(System, "IDisposable", [
-  "Dispose"
-]);
+JSIL.MakeInterface(System, "IDisposable", {
+  "Dispose": Function
+});
 
 System.Collections = {}
-JSIL.MakeInterface(System.Collections, "IEnumerator", [
-  "MoveNext", "get_Current", "Reset", "Dispose"
-]);
-JSIL.MakeInterface(System.Collections, "IEnumerable", [
-  "GetEnumerator"
-]);
+JSIL.MakeInterface(System.Collections, "IEnumerator", {
+  "MoveNext": Function,
+  "get_Current": Function,
+  "Reset": Function,
+});
+JSIL.MakeInterface(System.Collections, "IEnumerable", {
+  "GetEnumerator": Function
+});
 
 System.Collections.Generic = {};
-JSIL.MakeInterface(System.Collections.Generic, "IEnumerator$bt1", [
-  "MoveNext", "get_Current", "Reset", "Dispose"
-]);
-JSIL.MakeInterface(System.Collections.Generic, "IEnumerable$bt1", [
-  "GetEnumerator"
-]);
+JSIL.MakeInterface(System.Collections.Generic, "IEnumerator$bt1", {
+  "MoveNext": Function,
+  "get_Current": Function,
+  "Reset": Function, 
+});
+JSIL.MakeInterface(System.Collections.Generic, "IEnumerable$bt1", {
+  "GetEnumerator": Function
+});
 
 System.Collections.Generic.List$bt1 = function (sizeOrInitializer) {
   this._ctor(sizeOrInitializer);

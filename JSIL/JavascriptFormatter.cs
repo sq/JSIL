@@ -66,6 +66,36 @@ namespace JSIL.Internal {
             }
         }
 
+        public void CommaSeparatedList<T, U> (
+            IEnumerable<KeyValuePair<T, U>> pairs, 
+            ListValueType keyType = ListValueType.Primitive,
+            ListValueType valueType = ListValueType.Primitive
+        ) {
+            bool isFirst = true;
+            foreach (var kvp in pairs) {
+                if (!isFirst)
+                    Comma();
+
+                if (keyType == ListValueType.Primitive)
+                    Value(kvp.Key as dynamic);
+                else if (keyType == ListValueType.Identifier)
+                    Identifier(kvp.Key as dynamic);
+                else
+                    PlainTextOutput.Write(kvp.Key.ToString());
+
+                Token(": ");
+
+                if (valueType == ListValueType.Primitive)
+                    Value(kvp.Value as dynamic);
+                else if (valueType == ListValueType.Identifier)
+                    Identifier(kvp.Value as dynamic);
+                else
+                    PlainTextOutput.Write(kvp.Value.ToString());
+
+                isFirst = false;
+            }
+        }
+
         public void CommaSeparatedList (IEnumerable<TypeReference> types) {
             bool isFirst = true;
             foreach (var type in types) {
@@ -212,6 +242,10 @@ namespace JSIL.Internal {
                     Dot();
                 }
             }
+
+            var tdef = method.DeclaringType.Resolve();
+            if ((tdef != null) && (tdef.IsInterface))
+                methodName = String.Format("{0}.{1}", tdef.Name, methodName);
 
             Identifier(methodName);
         }
