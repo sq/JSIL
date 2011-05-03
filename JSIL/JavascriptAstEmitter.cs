@@ -58,6 +58,13 @@ namespace JSIL {
             Visit(dot.Member);
         }
 
+        public void VisitNode (JSIndexerExpression idx) {
+            Visit(idx.Target);
+            Output.OpenBracket();
+            Visit(idx.Index);
+            Output.CloseBracket();
+        }
+
         public void VisitNode (JSIdentifier identifier) {
             Output.Identifier(identifier.Identifier);
         }
@@ -85,6 +92,40 @@ namespace JSIL {
             Output.CloseBrace();
         }
 
+        public void VisitNode (JSIfStatement ifs) {
+            Output.Keyword("if");
+            Output.Space();
+
+            Output.LPar();
+            Visit(ifs.Condition);
+            Output.RPar();
+            Output.Space();
+
+            Output.OpenBrace();
+            Visit(ifs.TrueClause);
+
+            if (ifs.FalseClause != null) {
+                Output.CloseAndReopenBrace("else");
+                Visit(ifs.FalseClause);
+            }
+
+            Output.CloseBrace();
+        }
+
+        public void VisitNode (JSWhileLoop loop) {
+            Output.Keyword("while");
+            Output.Space();
+
+            Output.LPar();
+            Visit(loop.Condition);
+            Output.RPar();
+            Output.Space();
+
+            Output.OpenBrace();
+            Visit(loop.Body);
+            Output.CloseBrace();
+        }
+
         public void VisitNode (JSBinaryOperatorExpression bop) {
             bool parens = (bop.Operator != JSOperator.Assignment);
 
@@ -108,6 +149,12 @@ namespace JSIL {
             Output.LPar();
             CommaSeparatedList(newexp.Arguments);
             Output.RPar();
+        }
+
+        public void VisitNode (JSArrayExpression invocation) {
+            Output.OpenBracket();
+            CommaSeparatedList(invocation.Values);
+            Output.CloseBracket();
         }
 
         public void VisitNode (JSInvocationExpression invocation) {

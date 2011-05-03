@@ -15,14 +15,13 @@ namespace JSIL {
         public readonly DecompilerContext Context;
         public readonly MethodDefinition ThisMethod;
         public readonly ILBlock Block;
-        public readonly JavascriptFormatter Output;
+        public readonly JavascriptFormatter Output = null;
         public readonly ITypeInfoSource TypeInfo;
 
-        public ILBlockTranslator (DecompilerContext context, MethodDefinition method, ILBlock ilb, JavascriptFormatter output, ITypeInfoSource typeInfo) {
+        public ILBlockTranslator (DecompilerContext context, MethodDefinition method, ILBlock ilb, ITypeInfoSource typeInfo) {
             Context = context;
             ThisMethod = method;
             Block = ilb;
-            Output = output;
             TypeInfo = typeInfo;
         }
 
@@ -41,6 +40,10 @@ namespace JSIL {
             return null;
         }
 
+        protected JSExpression[] Translate (IEnumerable<ILExpression> values) {
+            return (from v in values select TranslateNode(v)).ToArray();
+        }
+
         protected void CommaSeparatedList (IEnumerable<ILExpression> values) {
             bool isFirst = true;
             foreach (var value in values) {
@@ -52,21 +55,11 @@ namespace JSIL {
             }
         }
 
-        protected void Translate_UnaryOp (ILExpression node, string op) {
-            Output.LPar();
-            Output.Token(op);
-            TranslateNode(node.Arguments[0]);
-            Output.RPar();
-        }
-
-        protected void Translate_BinaryOp (ILExpression node, string op) {
-            Output.LPar();
-            TranslateNode(node.Arguments[0]);
-            Output.Space();
-            Output.Token(op);
-            Output.Space();
-            TranslateNode(node.Arguments[1]);
-            Output.RPar();
+        protected JSUnaryOperatorExpression Translate_UnaryOp (ILExpression node, JSUnaryOperator op) {
+            return new JSUnaryOperatorExpression(
+                op,
+                TranslateNode(node.Arguments[0])
+            );
         }
 
         protected JSBinaryOperatorExpression Translate_BinaryOp (ILExpression node, JSBinaryOperator op) {
@@ -77,7 +70,7 @@ namespace JSIL {
             );
         }
 
-        protected void Translate_EqualityComparison (ILExpression node, bool checkEqual) {
+        protected JSExpression Translate_EqualityComparison (ILExpression node, bool checkEqual) {
             if (
                 (node.Arguments[0].ExpectedType.FullName == "System.Boolean") &&
                 (node.Arguments[1].ExpectedType.FullName == "System.Boolean") &&
@@ -89,16 +82,17 @@ namespace JSIL {
                 // TODO: This produces '!(x > y)' when 'x <= y' would be preferable.
                 //  This should be easy to fix once javascript output is done via AST construction.
                 if (comparand != checkEqual)
-                    Output.Token("!");
+                    return Translate_UnaryOp(node.Arguments[0], JSOperator.LogicalNot);
+                else
+                    return TranslateNode(node.Arguments[0]);
 
-                TranslateNode(node.Arguments[0]);
             } else {
-                Translate_BinaryOp(node, checkEqual ? "===" : "!==");
+                return Translate_BinaryOp(node, checkEqual ? JSOperator.Equal : JSOperator.NotEqual);
             }
         }
 
         protected JSFunctionExpression EmitLambda (MethodDefinition method) {
-            var body = AssemblyTranslator.TranslateMethodBody(Context, Output, method, TypeInfo);
+            var body = AssemblyTranslator.TranslateMethodBody(Context, method, TypeInfo);
             return new JSFunctionExpression(
                 (from p in method.Parameters select new JSVariable(p.Name, p.ParameterType)).ToArray(),
                 body
@@ -329,24 +323,17 @@ namespace JSIL {
             return null;
         }
 
-        public JSStatement TranslateNode (ILWhileLoop loop) {
-            Output.Keyword("while");
-            Output.Space();
-            Output.LPar();
-
+        public JSWhileLoop TranslateNode (ILWhileLoop loop) {
+            JSExpression condition;
             if (loop.Condition != null)
-                TranslateNode(loop.Condition);
+                condition = TranslateNode(loop.Condition);
             else
-                Output.Keyword("true");
+                condition = JSLiteral.New(true);
 
-            Output.RPar();
-            Output.Space();
-
-            Output.OpenBrace();
-            TranslateNode(loop.BodyBlock);
-            Output.CloseBrace();
-
-            return null;
+            return new JSWhileLoop(
+                condition,
+                TranslateNode(loop.BodyBlock)
+            );
         }
 
 
@@ -354,11 +341,11 @@ namespace JSIL {
         // MSIL Instructions
         //
 
-        protected void Translate_Clt (ILExpression node) {
-            Translate_BinaryOp(node, "<");
+        protected JSBinaryOperatorExpression Translate_Clt (ILExpression node) {
+            return Translate_BinaryOp(node, JSOperator.LessThan);
         }
 
-        protected void Translate_Cgt (ILExpression node) {
+        protected JSExpression Translate_Cgt (ILExpression node) {
             if (
                 (!node.Arguments[0].ExpectedType.IsValueType) &&
                 (!node.Arguments[1].ExpectedType.IsValueType) &&
@@ -367,14 +354,13 @@ namespace JSIL {
             ) {
                 // The C# expression 'x is y' translates into roughly '(x is y) > null' in IL, 
                 //  because there's no IL opcode for != and the IL isinst opcode returns object, not bool
-                Output.Identifier("JSIL.CheckType", true);
-                Output.LPar();
-                TranslateNode(node.Arguments[1]);
-                Output.Comma();
-                Output.Identifier((TypeReference) node.Arguments[0].Operand);
-                Output.RPar();
+                return new JSInvocationExpression(
+                    new JSDotExpression(new JSIdentifier("JSIL"), "CheckType"),
+                    TranslateNode(node.Arguments[1]),
+                    new JSType((TypeReference)node.Arguments[0].Operand)
+                );
             } else {
-                Translate_BinaryOp(node, ">");
+                return Translate_BinaryOp(node, JSOperator.GreaterThan);
             }
         }
 
@@ -382,54 +368,49 @@ namespace JSIL {
             Translate_EqualityComparison(node, true);
         }
 
-        protected void Translate_Mul (ILExpression node) {
-            Translate_BinaryOp(node, "*");
+        protected JSBinaryOperatorExpression Translate_Mul (ILExpression node) {
+            return Translate_BinaryOp(node, JSOperator.Multiply);
         }
 
-        protected void Translate_Div (ILExpression node) {
-            Translate_BinaryOp(node, "/");
+        protected JSBinaryOperatorExpression Translate_Div (ILExpression node) {
+            return Translate_BinaryOp(node, JSOperator.Divide);
         }
 
-        protected void Translate_Add (ILExpression node) {
-            Translate_BinaryOp(node, "+");
+        protected JSBinaryOperatorExpression Translate_Add (ILExpression node) {
+            return Translate_BinaryOp(node, JSOperator.Add);
         }
 
-        protected void Translate_Sub (ILExpression node) {
-            Translate_BinaryOp(node, "-");
+        protected JSBinaryOperatorExpression Translate_Sub (ILExpression node) {
+            return Translate_BinaryOp(node, JSOperator.Subtract);
         }
 
-        protected void Translate_Shl (ILExpression node) {
-            Translate_BinaryOp(node, "<<");
+        protected JSBinaryOperatorExpression Translate_Shl (ILExpression node) {
+            return Translate_BinaryOp(node, JSOperator.ShiftLeft);
         }
 
-        protected void Translate_Shr (ILExpression node) {
-            Translate_BinaryOp(node, ">>");
+        protected JSBinaryOperatorExpression Translate_Shr (ILExpression node) {
+            return Translate_BinaryOp(node, JSOperator.ShiftRight);
         }
 
-        protected void Translate_And (ILExpression node) {
-            Translate_BinaryOp(node, "&");
+        protected JSBinaryOperatorExpression Translate_And (ILExpression node) {
+            return Translate_BinaryOp(node, JSOperator.BitwiseAnd);
         }
 
-        protected void Translate_LogicNot (ILExpression node) {
+        protected JSExpression Translate_LogicNot (ILExpression node) {
             var arg = node.Arguments[0];
 
             switch (arg.Code) {
                 case ILCode.Ceq:
-                    Translate_EqualityComparison(arg, false);
-                    return;
+                    return Translate_EqualityComparison(arg, false);
                 case ILCode.Clt:
                 case ILCode.Clt_Un:
-                    Translate_BinaryOp(arg, ">=");
-                    return;
+                    return Translate_BinaryOp(arg, JSOperator.GreaterThanOrEqual);
                 case ILCode.Cgt:
                 case ILCode.Cgt_Un:
-                    Translate_BinaryOp(arg, "<=");
-                    return;
-                default:
-                    break;
+                    return Translate_BinaryOp(arg, JSOperator.LessThanOrEqual);
             }
 
-            Translate_UnaryOp(node, "!");
+            return Translate_UnaryOp(node, JSOperator.LogicalNot);
         }
 
         protected void Translate_Neg (ILExpression node) {
@@ -588,33 +569,36 @@ namespace JSIL {
             return JSLiteral.New(value);
         }
 
-        protected void Translate_Ldlen (ILExpression node) {
-            TranslateNode(node.Arguments[0]);
-            Output.Dot();
-            Output.Identifier("length");
+        protected JSDotExpression Translate_Ldlen (ILExpression node) {
+            return new JSDotExpression(
+                TranslateNode(node.Arguments[0]),
+                "Length"
+            );
         }
 
-        protected void Translate_Ldelem (ILExpression node) {
-            TranslateNode(node.Arguments[0]);
-            Output.OpenBracket();
-            TranslateNode(node.Arguments[1]);
-            Output.CloseBracket();
+        protected JSIndexerExpression Translate_Ldelem (ILExpression node) {
+            return new JSIndexerExpression(
+                TranslateNode(node.Arguments[0]),
+                TranslateNode(node.Arguments[1])
+            );
         }
 
-        protected void Translate_Stelem (ILExpression node) {
-            TranslateNode(node.Arguments[0]);
-            Output.OpenBracket();
-            TranslateNode(node.Arguments[1]);
-            Output.CloseBracket();
-            Output.Token(" = ");
-            TranslateNode(node.Arguments[2]);
+        protected JSBinaryOperatorExpression Translate_Stelem (ILExpression node) {
+            return new JSBinaryOperatorExpression(
+                JSOperator.Assignment,
+                new JSIndexerExpression(
+                    TranslateNode(node.Arguments[0]),
+                    TranslateNode(node.Arguments[1])
+                ),
+                TranslateNode(node.Arguments[2])
+            );
         }
 
-        protected void Translate_NullCoalescing (ILExpression node) {
-            Output.Identifier("JSIL.Coalesce", true);
-            Output.LPar();
-            CommaSeparatedList(node.Arguments);
-            Output.RPar();
+        protected JSInvocationExpression Translate_NullCoalescing (ILExpression node) {
+            return new JSInvocationExpression(
+                JSDotExpression.New(new JSIdentifier("JSIL"), "Coalesce"),
+                Translate(node.Arguments)
+            );
         }
 
         protected void Translate_Castclass (ILExpression node, TypeReference targetType) {
@@ -645,17 +629,16 @@ namespace JSIL {
             Translate_Castclass(node, targetType);
         }
 
-        protected void Translate_Conv (ILExpression node, string typeName) {
-            Output.Identifier("JSIL.Cast", true);
-            Output.LPar();
-            TranslateNode(node.Arguments[0]);
-            Output.Comma();
-            Output.Identifier(typeName, true);
-            Output.RPar();
+        protected JSInvocationExpression Translate_Conv (ILExpression node, TypeReference targetType) {
+            return new JSInvocationExpression(
+                new JSDotExpression(new JSIdentifier("JSIL"), "Cast"),
+                TranslateNode(node.Arguments[0]),
+                new JSType(targetType)
+            );
         }
 
-        protected void Translate_Conv_I4 (ILExpression node) {
-            Translate_Conv(node, "System.Int32");
+        protected JSInvocationExpression Translate_Conv_I4 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32);
         }
 
         protected void Translate_Box (ILExpression node, TypeReference valueType) {
@@ -687,34 +670,24 @@ namespace JSIL {
 
             return new JSNewExpression(
                 constructor.DeclaringType,
-                (from a in node.Arguments select TranslateNode(a)).ToArray()
+                Translate(node.Arguments)
             );
         }
 
-        protected void Translate_Newarr (ILExpression node, TypeReference elementType) {
-            Output.Identifier("System.Array.New", true);
-            Output.LPar();
-
-            Output.Identifier(elementType);
-            Output.Comma();
-
-            CommaSeparatedList(node.Arguments);
-
-            Output.RPar();
+        protected JSInvocationExpression Translate_Newarr (ILExpression node, TypeReference elementType) {
+            return new JSInvocationExpression(
+                JSDotExpression.New(new JSIdentifier("System"), "Array", "New"),
+                new JSType(elementType),
+                TranslateNode(node.Arguments[0])
+            );
         }
 
-        protected void Translate_InitArray (ILExpression node, TypeReference elementType) {
-            Output.Identifier("System.Array.New", true);
-            Output.LPar();
-
-            Output.Identifier(elementType);
-            Output.Comma();
-
-            Output.OpenBracket();
-            CommaSeparatedList(node.Arguments);
-            Output.CloseBracket();
-
-            Output.RPar();
+        protected JSInvocationExpression Translate_InitArray (ILExpression node, TypeReference elementType) {
+            return new JSInvocationExpression(
+                JSDotExpression.New(new JSIdentifier("System"), "Array", "New"),
+                new JSType(elementType),
+                new JSArrayExpression(Translate(node.Arguments))
+            );
         }
 
         protected JSExpression Translate_Call (ILExpression node, MethodReference method) {
@@ -772,8 +745,8 @@ namespace JSIL {
             }
 
             return new JSInvocationExpression(
-                new JSDotExpression(thisExpression, methodName), 
-                (from a in arguments select TranslateNode(a)).ToArray()
+                new JSDotExpression(thisExpression, methodName),
+                Translate(arguments)
             );
         }
 
@@ -783,7 +756,7 @@ namespace JSIL {
                     TranslateNode(node.Arguments[0]),
                     method.Name
                 ),
-                (from a in node.Arguments.Skip(1) select TranslateNode(a)).ToArray()
+                Translate(node.Arguments.Skip(1))
             );
         }
 

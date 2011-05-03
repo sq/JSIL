@@ -107,6 +107,23 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSWhileLoop : JSStatement {
+        public readonly JSExpression Condition;
+        public readonly JSStatement Body;
+
+        public JSWhileLoop (JSExpression condition, JSStatement body) {
+            Condition = condition;
+            Body = body;
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                yield return Condition;
+                yield return Body;
+            }
+        }
+    }
+
     public abstract class JSExpression : JSNode {
         public readonly IList<JSExpression> Values;
 
@@ -294,6 +311,24 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSIndexerExpression : JSExpression {
+        public JSIndexerExpression (JSExpression target, JSExpression index)
+            : base (target, index) {
+        }
+
+        public JSExpression Target {
+            get {
+                return Values[0];
+            }
+        }
+
+        public JSExpression Index {
+            get {
+                return Values[1];
+            }
+        }
+    }
+
     public class JSNewExpression : JSExpression {
         public JSNewExpression (TypeReference type, params JSExpression[] arguments)
             : base (
@@ -331,6 +366,12 @@ namespace JSIL.Ast {
             get {
                 return Values.Skip(1);
             }
+        }
+    }
+
+    public class JSArrayExpression : JSExpression {
+        public JSArrayExpression (params JSExpression[] values)
+            : base (values) {
         }
     }
 
