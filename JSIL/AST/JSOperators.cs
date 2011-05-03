@@ -52,7 +52,9 @@ namespace JSIL.Ast {
 
         public static readonly JSBinaryOperator LogicalAnd = "&&";
         public static readonly JSBinaryOperator LogicalOr = "||";
-        
+
+        public static readonly JSUnaryOperator Increment = "++";
+        public static readonly JSUnaryOperator Decrement = "--";
         public static readonly JSUnaryOperator LogicalNot = "!";
         public static readonly JSUnaryOperator Negation = "-";
     }

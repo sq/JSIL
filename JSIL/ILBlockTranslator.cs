@@ -527,7 +527,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldnull (ILExpression node) {
-            return JSLiteral.Null<object>();
+            return JSLiteral.Null();
         }
 
         protected JSExpression Translate_Ldftn (ILExpression node, MethodReference method) {
@@ -536,7 +536,13 @@ namespace JSIL {
             if ((mdef != null) && mdef.IsCompilerGenerated()) {
                 return EmitLambda(mdef);
             } else {
-                return new JSIdentifier(method.FullName);
+                if (method.HasThis)
+                    throw new NotImplementedException();
+                else
+                    return new JSDotExpression(
+                        new JSType(method.DeclaringType),
+                        method.Name
+                    );
             }
         }
 
@@ -661,12 +667,21 @@ namespace JSIL {
             if (IsDelegateType(constructor.DeclaringType)) {
                 return new JSInvocationExpression(
                     JSDotExpression.New(new JSIdentifier("System"), "Delegate", "New"),
-                    new JSType(constructor.DeclaringType)
+                    (new JSExpression[] { 
+                        JSLiteral.New(constructor.DeclaringType) 
+                    }).Concat(
+                        Translate(node.Arguments)
+                    ).ToArray()
                 );
             } else if (constructor.DeclaringType.IsArray) {
+                
                 return new JSInvocationExpression(
                     JSDotExpression.New(new JSIdentifier("JSIL"), "MultidimensionalArray", "New"),
-                    new JSType(constructor.DeclaringType.GetElementType())
+                    (new JSExpression[] { 
+                        new JSType(constructor.DeclaringType.GetElementType())
+                    }).Concat(
+                        Translate(node.Arguments)
+                    ).ToArray()
                 );
             }
 
@@ -778,15 +793,18 @@ namespace JSIL {
             return Translate_Callvirt(node, setter);
         }
 
-        protected void Translate_PostIncrement (ILExpression node, int arg) {
+        protected JSUnaryOperatorExpression Translate_PostIncrement (ILExpression node, int arg) {
             if (Math.Abs(arg) != 1)
                 throw new NotImplementedException("No idea what this means...");
 
-            TranslateNode(node.Arguments[0]);
             if (arg == 1)
-                Output.Token("++");
+                return new JSUnaryOperatorExpression(
+                    JSOperator.Increment, TranslateNode(node.Arguments[0]), true
+                );
             else
-                Output.Token("--");
+                return new JSUnaryOperatorExpression(
+                    JSOperator.Decrement, TranslateNode(node.Arguments[0]), true
+                );
         }
     }
 }

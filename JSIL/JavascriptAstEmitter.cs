@@ -73,8 +73,16 @@ namespace JSIL {
             Output.Value(str.Value);
         }
 
+        public void VisitNode (JSTypeNameLiteral type) {
+            Output.Value(type.Value);
+        }
+
         public void VisitNode (JSIntegerLiteral integer) {
             Output.Value(integer.Value);
+        }
+
+        public void VisitNode (JSNullLiteral nll) {
+            Output.Keyword("null");
         }
 
         public void VisitNode (JSType type) {
@@ -82,8 +90,12 @@ namespace JSIL {
         }
 
         public void VisitNode (JSFunctionExpression function) {
+            string functionName = null;
+            if (function.FunctionName != null)
+                functionName = function.FunctionName.Identifier;
+
             Output.OpenFunction(
-                function.FunctionName.Identifier,
+                functionName,
                 from p in function.Parameters select p.Identifier
             );
 

@@ -167,6 +167,10 @@ namespace JSIL.Ast {
     }
 
     public static class JSLiteral {
+        public static JSTypeNameLiteral New (TypeReference value) {
+            return new JSTypeNameLiteral(value);
+        }
+
         public static JSStringLiteral New (string value) {
             return new JSStringLiteral(value);
         }
@@ -191,9 +195,8 @@ namespace JSIL.Ast {
             return new JSNumberLiteral((double)value);
         }
 
-        public static JSNullLiteral<T> Null<T> ()
-            where T : class {
-            return new JSNullLiteral<T>();
+        public static JSNullLiteral Null () {
+            return new JSNullLiteral();
         }
     }
 
@@ -205,9 +208,7 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSNullLiteral<T> : JSLiteral<T>
-        where T : class {
-
+    public class JSNullLiteral : JSLiteral<object> {
         public JSNullLiteral ()
             : base(null) {
         }
@@ -233,6 +234,12 @@ namespace JSIL.Ast {
 
     public class JSNumberLiteral : JSLiteral<double> {
         public JSNumberLiteral (double value)
+            : base(value) {
+        }
+    }
+
+    public class JSTypeNameLiteral : JSLiteral<TypeReference> {
+        public JSTypeNameLiteral (TypeReference value)
             : base(value) {
         }
     }
