@@ -66,6 +66,26 @@ namespace JSIL {
             Output.RPar();
         }
 
+        protected void Translate_EqualityComparison (ILExpression node, bool checkEqual) {
+            if (
+                (node.Arguments[0].ExpectedType.FullName == "System.Boolean") &&
+                (node.Arguments[1].ExpectedType.FullName == "System.Boolean") &&
+                (node.Arguments[1].Code.ToString().Contains("Ldc_"))
+            ) {
+                // Comparison against boolean constant
+                bool comparand = Convert.ToInt64(node.Arguments[1].Operand) != 0;
+
+                // TODO: This produces '!(x > y)' when 'x <= y' would be preferable.
+                //  This should be easy to fix once javascript output is done via AST construction.
+                if (comparand != checkEqual)
+                    Output.Token("!");
+
+                TranslateNode(node.Arguments[0]);
+            } else {
+                Translate_BinaryOp(node, checkEqual ? "===" : "!==");
+            }
+        }
+
         protected void EmitLambda (MethodDefinition method) {
             Output.OpenFunction(from p in method.Parameters select p.Name);
 
@@ -316,7 +336,7 @@ namespace JSIL {
         }
 
         protected void Translate_Ceq (ILExpression node) {
-            Translate_BinaryOp(node, "===");
+            Translate_EqualityComparison(node, true);
         }
 
         protected void Translate_Mul (ILExpression node) {
@@ -350,11 +370,23 @@ namespace JSIL {
         protected void Translate_LogicNot (ILExpression node) {
             var arg = node.Arguments[0];
 
-            if (arg.Code == ILCode.Ceq) {
-                Translate_BinaryOp(arg, "!==");
-            } else {
-                Translate_UnaryOp(node, "!");
+            switch (arg.Code) {
+                case ILCode.Ceq:
+                    Translate_EqualityComparison(arg, false);
+                    return;
+                case ILCode.Clt:
+                case ILCode.Clt_Un:
+                    Translate_BinaryOp(arg, ">=");
+                    return;
+                case ILCode.Cgt:
+                case ILCode.Cgt_Un:
+                    Translate_BinaryOp(arg, "<=");
+                    return;
+                default:
+                    break;
             }
+
+            Translate_UnaryOp(node, "!");
         }
 
         protected void Translate_Neg (ILExpression node) {
