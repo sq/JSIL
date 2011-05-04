@@ -114,7 +114,9 @@ namespace JSIL {
                 // TODO: This produces '!(x > y)' when 'x <= y' would be preferable.
                 //  This should be easy to fix once javascript output is done via AST construction.
                 if (comparand != checkEqual)
-                    return Translate_UnaryOp(node.Arguments[0], JSOperator.LogicalNot);
+                    return new JSUnaryOperatorExpression(
+                        JSOperator.LogicalNot, TranslateNode(node.Arguments[0])
+                    );
                 else
                     return TranslateNode(node.Arguments[0]);
 
