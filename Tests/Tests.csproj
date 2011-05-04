@@ -132,6 +132,7 @@
     <None Include="SimpleTestCases\MemberRefParameters.cs" />
     <None Include="SimpleTestCases\StaticMemberRefParameters.cs" />
     <None Include="SimpleTestCases\Operators.cs" />
+    <None Include="SimpleTestCases\DefaultValue.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

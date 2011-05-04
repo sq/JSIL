@@ -527,6 +527,10 @@ namespace JSIL {
             return Translate_Ldobj(node, null);
         }
 
+        protected JSExpression Translate_AddressOf (ILExpression node) {
+            return JSReferenceExpression.New(TranslateNode(node.Arguments[0]));
+        }
+
         protected JSExpression Translate_Stobj (ILExpression node, TypeReference type) {
             return Translate_BinaryOp(
                 node, JSOperator.Assignment
@@ -542,23 +546,17 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldftn (ILExpression node, MethodReference method) {
-            var mdef = method.Resolve();
-
-            if ((mdef != null) && mdef.IsCompilerGenerated()) {
-                return EmitLambda(mdef);
-            } else {
-                if (method.HasThis)
-                    return JSDotExpression.New(
-                        new JSType(method.DeclaringType),
-                        "prototype",
-                        new JSMethod(method)
-                    );
-                else
-                    return new JSDotExpression(
-                        new JSType(method.DeclaringType),
-                        new JSMethod(method)
-                    );
-            }
+            if (method.HasThis)
+                return JSDotExpression.New(
+                    new JSType(method.DeclaringType),
+                    "prototype",
+                    new JSMethod(method)
+                );
+            else
+                return new JSDotExpression(
+                    new JSType(method.DeclaringType),
+                    new JSMethod(method)
+                );
         }
 
         protected JSExpression Translate_Ldc (ILExpression node, long value) {
@@ -721,6 +719,10 @@ namespace JSIL {
                 constructor.DeclaringType,
                 Translate(node.Arguments)
             );
+        }
+
+        protected JSExpression Translate_DefaultValue (ILExpression node, TypeReference type) {
+            return JSLiteral.DefaultValue(type);
         }
 
         protected JSInvocationExpression Translate_Newarr (ILExpression node, TypeReference elementType) {

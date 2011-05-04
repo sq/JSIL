@@ -150,6 +150,7 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
 
 JSIL.IsArray = function (value) {
   return (typeof (value) == "object") &&
+         (value !== null) &&
          (typeof (value.length) == "number") &&
          (value.__proto__ == Array.prototype);
 };
@@ -281,8 +282,7 @@ System.Object.prototype.__ImplementInterface__ = function (iface) {
   interfaces.push(iface);
 }
 System.Object.prototype.MemberwiseClone = function () {
-  var result = {};
-  result.__proto__ = this.__proto__;
+  var result = Object.create(Object.getPrototypeOf(this));
 
   for (var key in this) {
     if (!this.hasOwnProperty(key))
