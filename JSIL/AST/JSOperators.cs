@@ -44,17 +44,20 @@ namespace JSIL.Ast {
         public static readonly JSBinaryOperator Subtract = "-";
         public static readonly JSBinaryOperator Multiply = "*";
         public static readonly JSBinaryOperator Divide = "/";
+        public static readonly JSBinaryOperator Remainder = "%";
         public static readonly JSBinaryOperator ShiftLeft = "<<";
         public static readonly JSBinaryOperator ShiftRight = ">>";
 
         public static readonly JSBinaryOperator BitwiseAnd = "&";
         public static readonly JSBinaryOperator BitwiseOr = "|";
+        public static readonly JSBinaryOperator BitwiseXor = "^";
 
         public static readonly JSBinaryOperator LogicalAnd = "&&";
         public static readonly JSBinaryOperator LogicalOr = "||";
 
         public static readonly JSUnaryOperator Increment = "++";
         public static readonly JSUnaryOperator Decrement = "--";
+        public static readonly JSUnaryOperator BitwiseNot = "~";
         public static readonly JSUnaryOperator LogicalNot = "!";
         public static readonly JSUnaryOperator Negation = "-";
     }

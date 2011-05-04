@@ -131,6 +131,7 @@
     <None Include="SimpleTestCases\If.cs" />
     <None Include="SimpleTestCases\MemberRefParameters.cs" />
     <None Include="SimpleTestCases\StaticMemberRefParameters.cs" />
+    <None Include="SimpleTestCases\Operators.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

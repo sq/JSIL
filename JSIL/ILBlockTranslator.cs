@@ -368,6 +368,10 @@ namespace JSIL {
             return Translate_BinaryOp(node, JSOperator.Divide);
         }
 
+        protected JSBinaryOperatorExpression Translate_Rem (ILExpression node) {
+            return Translate_BinaryOp(node, JSOperator.Remainder);
+        }
+
         protected JSBinaryOperatorExpression Translate_Add (ILExpression node) {
             return Translate_BinaryOp(node, JSOperator.Add);
         }
@@ -392,8 +396,20 @@ namespace JSIL {
             return Translate_BinaryOp(node, JSOperator.BitwiseOr);
         }
 
+        protected JSBinaryOperatorExpression Translate_Xor (ILExpression node) {
+            return Translate_BinaryOp(node, JSOperator.BitwiseXor);
+        }
+
+        protected JSUnaryOperatorExpression Translate_Not (ILExpression node) {
+            return Translate_UnaryOp(node, JSOperator.BitwiseNot);
+        }
+
         protected JSBinaryOperatorExpression Translate_LogicOr (ILExpression node) {
             return Translate_BinaryOp(node, JSOperator.LogicalOr);
+        }
+
+        protected JSBinaryOperatorExpression Translate_LogicAnd (ILExpression node) {
+            return Translate_BinaryOp(node, JSOperator.LogicalAnd);
         }
 
         protected JSExpression Translate_LogicNot (ILExpression node) {
