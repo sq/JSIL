@@ -14,25 +14,6 @@ JSIL.UntranslatableInstruction = function (instruction, operand) {
     throw new Error("A MSIL instruction of type " + instruction + " could not be translated.");
 };
 
-JSIL.Variable = function (value) {
-  this.value = value;
-};
-
-JSIL.MemberReference = function (object, memberName) {
-  this.object = object;
-  this.memberName = memberName;
-};
-JSIL.MemberReference.prototype.get_value = function () {
-  return this.object[this.memberName];
-};
-JSIL.MemberReference.prototype.set_value = function (value) {
-  this.object[this.memberName] = value;
-}
-Object.defineProperty(JSIL.MemberReference.prototype, "value", {
-  get: JSIL.MemberReference.prototype.get_value,
-  set: JSIL.MemberReference.prototype.set_value
-});
-
 JSIL.CloneObject = function (obj) {
   function ClonedObject() { }
   ClonedObject.prototype = obj;
@@ -57,7 +38,13 @@ JSIL.MakeType = function (baseType, namespace, typeName, isReferenceType) {
   var ctor = function () {
     this._ctor.apply(this, arguments);
   };
+  ctor.toString = function () {
+    return "<Type " + this.prototype.__TypeName__ + ">";
+  };
   ctor.prototype = JSIL.MakeProto(baseType, typeName, false);
+  ctor.Of = function (T) {
+    return ctor;
+  };
 
   namespace[typeName] = ctor;
 };
@@ -128,7 +115,7 @@ JSIL.CheckDerivation = function (haystack, needle) {
   return false;
 };
 
-JSIL.CheckType = function (value, expectedType) {
+JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
   if (typeof (value) == "undefined")
     return false;
   else if (value === null)
@@ -143,7 +130,7 @@ JSIL.CheckType = function (value, expectedType) {
   }
 
   var ct = expectedType.CheckType;
-  if (typeof (ct) != "undefined")
+  if (typeof (ct) != "undefined" && !Boolean(bypassCustomCheckMethod))
     return ct(value);
 
   var expectedProto = expectedType.prototype;
@@ -326,6 +313,51 @@ System.Object.prototype._ctor = function () {
 System.Object.prototype.toString = function ToString() {
   return this.__TypeName__;
 };
+
+JSIL.MakeClass(System.Object, JSIL, "Reference");
+JSIL.MakeClass(JSIL.Reference, JSIL, "Variable");
+JSIL.MakeClass(JSIL.Reference, JSIL, "MemberReference");
+
+JSIL.Reference.__ExpectedType__ = System.Object;
+JSIL.Reference.Types = {};
+
+JSIL.Reference.Of = function (type) {
+  var compositeType = JSIL.Reference.Types[type];
+
+  if (typeof (compositeType) == "undefined") {
+    var typeName = "ref " + type.prototype.__TypeName__;
+    compositeType = JSIL.CloneObject(JSIL.Reference);
+    compositeType.CheckType = function (value) {
+      var isReference = JSIL.CheckType(value, JSIL.Reference, true);
+      var isRightType = JSIL.CheckType(value.value, type, false);
+      return isReference && isRightType;
+    };
+    compositeType.prototype = JSIL.MakeProto(JSIL.Reference, typeName, true);
+    JSIL.Reference.Types[type] = compositeType;
+  }
+
+  return compositeType;
+};
+
+JSIL.Variable.prototype._ctor = function (value) {
+  this.value = value;
+};
+
+JSIL.MemberReference.prototype._ctor = function (object, memberName) {
+  this.object = object;
+  this.memberName = memberName;
+};
+JSIL.MemberReference.prototype.get_value = function () {
+  return this.object[this.memberName];
+};
+JSIL.MemberReference.prototype.set_value = function (value) {
+  this.object[this.memberName] = value;
+}
+Object.defineProperty(JSIL.MemberReference.prototype, "value", {
+  get: JSIL.MemberReference.prototype.get_value,
+  set: JSIL.MemberReference.prototype.set_value
+});
+
 
 JSIL.CollectionInitializer = function () {
   this.values = Array.prototype.slice.call(arguments);
@@ -596,11 +628,13 @@ System.Exception = function (message) {
   this._ctor(message);
 };
 System.Exception.prototype = JSIL.MakeProto(Error, "System.Exception", true);
+System.Exception.prototype.Message = undefined;
 System.Exception.prototype._ctor = function (message) {
-  this.Message = message;
+  if (typeof (message) != "undefined")
+    this.Message = String(message);
 }
 System.Exception.prototype.toString = function () {
-  if (typeof (this.Message) == "undefined")
+  if (typeof (this.Message) != "undefined")
     return System.String.Format("{0}: Exception of type '{0}' was thrown.", this.__TypeName__);
   else
     return System.String.Format("{0}: {1}", this.__TypeName__, this.Message);

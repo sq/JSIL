@@ -50,7 +50,7 @@ namespace JSIL.Tests {
                 Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "SimpleTestCases")), 
                 "*.cs"
             );
-            int failureCount = 0;
+            var failureList = new List<string>();
 
             foreach (var filename in simpleTests) {
                 Console.Write("// {0} ... ", Path.GetFileName(filename));
@@ -60,11 +60,13 @@ namespace JSIL.Tests {
                         test.Run();
                 } catch (Exception ex) {
                     Console.Error.WriteLine(ex);
-                    failureCount += 1;
+                    failureList.Add(Path.GetFileNameWithoutExtension(filename));
                 }
             }
 
-            Assert.AreEqual(0, failureCount, "One or more tests failed");
+            Assert.AreEqual(0, failureList.Count, 
+                String.Format("{0} test(s) failed:\r\n{1}", failureList.Count, String.Join("\r\n", failureList.ToArray()))
+            );
         }
 
         [Test]
