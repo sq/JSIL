@@ -255,6 +255,24 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSReferenceExpression : JSExpression {
+        public JSReferenceExpression (JSExpression referent)
+            : base (referent) {            
+        }
+
+        public JSExpression Referent {
+            get {
+                return Values[0];
+            }
+        }
+
+        public override TypeReference ExpectedType {
+            get {
+                return Referent.ExpectedType;
+            }
+        }
+    }
+
     public sealed class JSNullExpression : JSExpression {
         public override bool IsNull {
             get {
@@ -403,9 +421,17 @@ namespace JSIL.Ast {
 
     public class JSVariable : JSIdentifier {
         public readonly TypeReference Type;
+        public readonly bool IsReference;
 
         public JSVariable (string name, TypeReference type)
             : base(name) {
+
+            if (type is ByReferenceType || type.IsByReference) {
+                type = type.GetElementType();
+                IsReference = true;
+            } else {
+                IsReference = false;
+            }
 
             Type = type;
         }
@@ -414,6 +440,13 @@ namespace JSIL.Ast {
             get {
                 return Type;
             }
+        }
+
+        public override string ToString () {
+            if (IsReference)
+                return String.Format("ref {0} {1}", Type, Identifier);
+            else
+                return String.Format("{0} {1}", Type, Identifier);
         }
     }
 

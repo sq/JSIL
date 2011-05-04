@@ -40,8 +40,14 @@ namespace JSIL {
             return null;
         }
 
-        protected JSExpression[] Translate (IEnumerable<ILExpression> values) {
+        public JSExpression[] Translate (IEnumerable<ILExpression> values) {
             return (from v in values select TranslateNode(v)).ToArray();
+        }
+
+        public JSVariable[] Translate (IEnumerable<ParameterDefinition> parameters) {
+            return (
+                from p in parameters select new JSVariable(p.Name, p.ParameterType)
+            ).ToArray();
         }
 
         protected void CommaSeparatedList (IEnumerable<ILExpression> values) {
@@ -92,11 +98,7 @@ namespace JSIL {
         }
 
         protected JSFunctionExpression EmitLambda (MethodDefinition method) {
-            var body = AssemblyTranslator.TranslateMethodBody(Context, method, TypeInfo);
-            return new JSFunctionExpression(
-                (from p in method.Parameters select new JSVariable(p.Name, p.ParameterType)).ToArray(),
-                body
-            );
+            return AssemblyTranslator.TranslateMethod(Context, method, TypeInfo);
         }
 
         protected static bool IsDelegateType (TypeReference type) {
@@ -404,8 +406,8 @@ namespace JSIL {
             return new JSVariable(variable.Name, variable.Type);
         }
 
-        protected JSIdentifier Translate_Ldloca (ILExpression node, ILVariable variable) {
-            return Translate_Ldloc(node, variable);
+        protected JSReferenceExpression Translate_Ldloca (ILExpression node, ILVariable variable) {
+            return new JSReferenceExpression(Translate_Ldloc(node, variable));
         }
 
         protected JSBinaryOperatorExpression Translate_Stloc (ILExpression node, ILVariable variable) {
@@ -420,17 +422,8 @@ namespace JSIL {
             return new JSDotExpression(new JSType(field.DeclaringType), field.Name);
         }
 
-        protected void Translate_Ldsflda (ILExpression node, FieldReference field) {
-            Output.Keyword("new");
-            Output.Space();
-            Output.Identifier("JSIL.MemberReference", true);
-            Output.LPar();
-
-            Output.Identifier(field.DeclaringType);
-            Output.Comma();
-            Output.Value(Util.EscapeIdentifier(field.Name));
-
-            Output.RPar();
+        protected JSReferenceExpression Translate_Ldsflda (ILExpression node, FieldReference field) {
+            return new JSReferenceExpression(Translate_Ldsfld(node, field));
         }
 
         protected JSBinaryOperatorExpression Translate_Stsfld (ILExpression node, FieldReference field) {
@@ -456,17 +449,8 @@ namespace JSIL {
             );
         }
 
-        protected void Translate_Ldflda (ILExpression node, FieldReference field) {
-            Output.Keyword("new");
-            Output.Space();
-            Output.Identifier("JSIL.MemberReference", true);
-            Output.LPar();
-
-            TranslateNode(node.Arguments[0]);
-            Output.Comma();
-            Output.Value(Util.EscapeIdentifier(field.Name));
-
-            Output.RPar();
+        protected JSReferenceExpression Translate_Ldflda (ILExpression node, FieldReference field) {
+            return new JSReferenceExpression(Translate_Ldfld(node, field));
         }
 
         protected JSExpression Translate_Ldobj (ILExpression node, TypeReference type) {

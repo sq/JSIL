@@ -25,6 +25,10 @@ namespace JSIL {
             }
         }
 
+        protected bool NeedDereference () {
+            return false;
+        }
+
         public override void VisitNode (JSNode node) {
             if (node != null) {
                 Console.Error.WriteLine("Cannot emit {0}", node.GetType().Name);
@@ -85,6 +89,10 @@ namespace JSIL {
             Output.Value(number.Value);
         }
 
+        public void VisitNode (JSBooleanLiteral b) {
+            Output.Value(b.Value);
+        }
+
         public void VisitNode (JSEnumLiteral enm) {
             Output.Identifier(enm.EnumType);
             Output.Dot();
@@ -97,6 +105,24 @@ namespace JSIL {
 
         public void VisitNode (JSType type) {
             Output.Identifier(type.Type);
+        }
+
+        public void VisitNode (JSVariable variable) {
+            Output.Identifier(variable.Identifier);
+
+            if (variable.IsReference) {
+                Output.Dot();
+                Output.Identifier("value");
+            }
+        }
+
+        public void VisitNode (JSReferenceExpression reference) {
+            Visit(reference.Referent);
+
+            if (NeedDereference()) {
+                Output.Dot();
+                Output.Identifier("value");
+            }
         }
 
         public void VisitNode (JSFunctionExpression function) {
