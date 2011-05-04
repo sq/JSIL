@@ -634,7 +634,7 @@ System.Exception.prototype._ctor = function (message) {
     this.Message = String(message);
 }
 System.Exception.prototype.toString = function () {
-  if (typeof (this.Message) != "undefined")
+  if (typeof (this.Message) == "undefined")
     return System.String.Format("{0}: Exception of type '{0}' was thrown.", this.__TypeName__);
   else
     return System.String.Format("{0}: {1}", this.__TypeName__, this.Message);

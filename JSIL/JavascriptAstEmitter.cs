@@ -118,6 +118,7 @@ namespace JSIL {
 
         public void VisitNode (JSReferenceExpression reference) {
             var dot = reference.Referent as JSDotExpression;
+            var variable = reference.Referent as JSVariable;
 
             if (dot != null) {
                 Output.Keyword("new");
@@ -130,6 +131,9 @@ namespace JSIL {
                 Output.Value(dot.Member.Identifier);
 
                 Output.RPar();
+            } else if ((variable != null) && (variable.IsReference)) {
+                Output.Comment("ref to ref");
+                Visit(reference.Referent);
             } else {
                 Output.Comment("ref");
                 Visit(reference.Referent);

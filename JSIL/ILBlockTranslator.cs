@@ -271,9 +271,14 @@ namespace JSIL {
                         null, new JSExpressionStatement(new JSThrowExpression(catchVariable))
                     ));
 
-                catchBlock = new JSBlockStatement(
-                    JSIfStatement.New(pairs.ToArray())
-                );
+                if ((pairs.Count == 1) && (pairs[0].Key == null))
+                    catchBlock = new JSBlockStatement(
+                        pairs[0].Value
+                    );
+                else
+                    catchBlock = new JSBlockStatement(
+                        JSIfStatement.New(pairs.ToArray())
+                    );
             }
 
             if (tcb.FinallyBlock != null)
