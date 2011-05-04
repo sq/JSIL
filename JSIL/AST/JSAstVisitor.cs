@@ -14,14 +14,14 @@ namespace JSIL.Ast {
         /// </summary>
         /// <param name="node">The node to visit.</param>
         public void Visit (JSNode node) {
-            if (node.IsNull)
-                return;
-
             Stack.Push(node);
             try {
-                if (node != null)
+                if (node != null) {
+                    if (node.IsNull)
+                        return;
+
                     (this as dynamic).VisitNode(node as dynamic);
-                else
+                } else
                     VisitNode(null);
             } catch (RuntimeBinderException) {
                 Debug.WriteLine("Warning: Failed to dynamically dispatch node of type {0}", node.GetType());

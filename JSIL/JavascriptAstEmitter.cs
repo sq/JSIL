@@ -117,11 +117,22 @@ namespace JSIL {
         }
 
         public void VisitNode (JSReferenceExpression reference) {
-            Visit(reference.Referent);
+            var dot = reference.Referent as JSDotExpression;
 
-            if (NeedDereference()) {
-                Output.Dot();
-                Output.Identifier("value");
+            if (dot != null) {
+                Output.Keyword("new");
+                Output.Space();
+                Output.Identifier("JSIL.MemberReference", true);
+                Output.LPar();
+
+                Visit(dot.Target);
+                Output.Comma();
+                Output.Value(dot.Member.Identifier);
+
+                Output.RPar();
+            } else {
+                Output.Comment("ref");
+                Visit(reference.Referent);
             }
         }
 

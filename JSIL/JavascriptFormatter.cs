@@ -209,6 +209,15 @@ namespace JSIL.Internal {
             ));
         }
 
+        protected void TypeIdentifier (ByReferenceType type) {
+            LPar();
+            Identifier("JSIL.Reference.Of", true);
+            LPar();
+            Identifier(type.ElementType);
+            RPar();
+            RPar();
+        }
+
         protected void TypeIdentifier (ArrayType type) {
             LPar();
             Identifier("System.Array.Of", true);
