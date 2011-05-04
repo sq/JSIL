@@ -65,6 +65,20 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSVariableDeclarationStatement : JSStatement {
+        public readonly List<JSBinaryOperatorExpression> Declarations = new List<JSBinaryOperatorExpression>();
+
+        public JSVariableDeclarationStatement (params JSBinaryOperatorExpression[] declarations) {
+            Declarations.AddRange(declarations);
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                return Declarations;
+            }
+        }
+    }
+
     public class JSExpressionStatement : JSStatement {
         public readonly JSExpression Expression;
 
@@ -82,14 +96,14 @@ namespace JSIL.Ast {
     public class JSFunctionExpression : JSExpression {
         public readonly JSIdentifier FunctionName;
         public readonly IList<JSVariable> Parameters;
-        public readonly JSStatement Body;
+        public readonly JSBlockStatement Body;
 
-        public JSFunctionExpression (JSIdentifier functionName, IList<JSVariable> parameters, JSStatement body)
+        public JSFunctionExpression (JSIdentifier functionName, IList<JSVariable> parameters, JSBlockStatement body)
             : this (parameters, body) {
             FunctionName = functionName;
         }
 
-        public JSFunctionExpression (IList<JSVariable> parameters, JSStatement body) {
+        public JSFunctionExpression (IList<JSVariable> parameters, JSBlockStatement body) {
             FunctionName = null;
             Parameters = parameters;
             Body = body;
@@ -413,6 +427,10 @@ namespace JSIL.Ast {
             return new JSNumberLiteral((double)value);
         }
 
+        public static JSDefaultValueLiteral DefaultValue (TypeReference type) {
+            return new JSDefaultValueLiteral(type);
+        }
+
         public static JSNullLiteral Null () {
             return new JSNullLiteral();
         }
@@ -429,6 +447,12 @@ namespace JSIL.Ast {
             get {
                 return this.Value;
             }
+        }
+    }
+
+    public class JSDefaultValueLiteral : JSLiteralBase<TypeReference> {
+        public JSDefaultValueLiteral (TypeReference type)
+            : base(type) {
         }
     }
 

@@ -8,9 +8,9 @@ public static class Program {
     public static void Main (string[] args) {
         var a = new SimpleType(0);
 
-        Console.WriteLine("b = {0}", a.Value);
+        Console.WriteLine("a = {0}", a.Value);
         Increment(ref a.Value);
-        Console.WriteLine("b = {0}", a.Value);
+        Console.WriteLine("a = {0}", a.Value);
     }
 }
 

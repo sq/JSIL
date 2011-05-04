@@ -69,6 +69,7 @@
     <Compile Include="ILBlockTranslator.cs" />
     <Compile Include="AssemblyTranslator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Transforms\IntroduceVariableDeclarations.cs" />
     <Compile Include="TypeInformation.cs" />
     <Compile Include="Util.cs" />
   </ItemGroup>

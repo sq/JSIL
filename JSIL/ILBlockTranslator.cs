@@ -408,7 +408,7 @@ namespace JSIL {
         }
 
         protected JSUnaryOperatorExpression Translate_Neg (ILExpression node) {
-            return Translate_UnaryOp(node, "-");
+            return Translate_UnaryOp(node, JSOperator.Negation);
         }
 
         protected JSThrowExpression Translate_Throw (ILExpression node) {
@@ -492,7 +492,17 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldobj (ILExpression node, TypeReference type) {
-            return TranslateNode(node.Arguments[0]);
+            var reference = TranslateNode(node.Arguments[0]);
+            JSExpression referent;
+
+            if (!JSReferenceExpression.TryDereference(reference, out referent))
+                throw new NotImplementedException();
+
+            return reference;
+        }
+
+        protected JSExpression Translate_Ldind (ILExpression node) {
+            return Translate_Ldobj(node, null);
         }
 
         protected JSExpression Translate_Stobj (ILExpression node, TypeReference type) {

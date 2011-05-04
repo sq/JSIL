@@ -3,15 +3,21 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using ICSharpCode.Decompiler.Ast;
+using ICSharpCode.Decompiler.ILAst;
 using JSIL.Ast;
 using JSIL.Internal;
+using Mono.Cecil;
 
 namespace JSIL {
     public class JavascriptAstEmitter : JSAstVisitor {
         public readonly JavascriptFormatter Output;
 
+        protected readonly Stack<bool> IncludeTypeParens = new Stack<bool>();
+
         public JavascriptAstEmitter (JavascriptFormatter output) {
             Output = output;
+            IncludeTypeParens.Push(false);
         }
 
         protected void CommaSeparatedList (IEnumerable<JSExpression> values) {
@@ -47,9 +53,20 @@ namespace JSIL {
                 Output.CloseBrace();
         }
 
+        public void VisitNode (JSVariableDeclarationStatement vars) {
+            Output.Keyword("var");
+            Output.Space();
+
+            CommaSeparatedList(vars.Declarations);
+
+            Output.Semicolon();
+        }
+
         public void VisitNode (JSExpressionStatement statement) {
             Visit(statement.Expression);
-            Output.Semicolon();
+
+            if (!statement.IsNull && !statement.Expression.IsNull)
+                Output.Semicolon();
         }
 
         public void VisitNode (JSDotExpression dot) {
@@ -95,12 +112,34 @@ namespace JSIL {
             Output.Identifier(enm.Name);
         }
 
-        public void VisitNode (JSNullLiteral nll) {
+        public void VisitNode (JSNullLiteral nil) {
             Output.Keyword("null");
         }
 
+        public void VisitNode (JSDefaultValueLiteral defaultValue) {
+            if (TypeAnalysis.IsIntegerOrEnum(defaultValue.Value)) {
+                Output.Value(0);
+            } else if (!defaultValue.Value.IsValueType) {
+                Output.Keyword("null");
+            } else {
+                switch (defaultValue.Value.FullName) {
+                    case "System.Nullable`1":
+                        Output.Keyword("null");
+                        break;
+                    case "System.Single":
+                    case "System.Double":
+                    case "System.Decimal":
+                        Output.Value(0.0);
+                        break;
+                    default:
+                        VisitNode(new JSNewExpression(new JSType(defaultValue.Value)));
+                        break;
+                }
+            }
+        }
+
         public void VisitNode (JSType type) {
-            Output.Identifier(type.Type);
+            Output.Identifier(type.Type, IncludeTypeParens.Peek());
         }
 
         public void VisitNode (JSVariable variable) {
@@ -259,9 +298,12 @@ namespace JSIL {
             Output.Keyword("new");
             Output.Space();
 
-            Output.LPar();
-            Visit(newexp.Type);
-            Output.RPar();
+            IncludeTypeParens.Push(true);
+            try {
+                Visit(newexp.Type);
+            } finally {
+                IncludeTypeParens.Pop();
+            }
 
             Output.Space();
             Output.LPar();

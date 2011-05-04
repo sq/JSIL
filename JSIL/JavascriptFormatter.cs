@@ -199,37 +199,55 @@ namespace JSIL.Internal {
             }
         }
 
-        public void Identifier (TypeReference type) {
-            TypeIdentifier(type as dynamic);
+        public void Identifier (TypeReference type, bool includeParens = false) {
+            TypeIdentifier(type as dynamic, includeParens);
         }
 
-        protected void TypeIdentifier (TypeReference type) {
+        protected void TypeIdentifier (TypeReference type, bool includeParens) {
             PlainTextOutput.Write(Util.EscapeIdentifier(
                 type.FullName, false
             ));
         }
 
-        protected void TypeIdentifier (ByReferenceType type) {
+        protected void TypeIdentifier (ByReferenceType type, bool includeParens) {
+            if (includeParens)
+                LPar();
+
             Identifier("JSIL.Reference.Of", true);
             LPar();
             Identifier(type.ElementType);
             RPar();
+
+            if (includeParens)
+                RPar();
         }
 
-        protected void TypeIdentifier (ArrayType type) {
+        protected void TypeIdentifier (ArrayType type, bool includeParens) {
+            if (includeParens)
+                LPar();
+
             Identifier("System.Array.Of", true);
             LPar();
             Identifier(type.ElementType);
             RPar();
+
+            if (includeParens)
+                RPar();
         }
 
-        protected void TypeIdentifier (GenericInstanceType type) {
+        protected void TypeIdentifier (GenericInstanceType type, bool includeParens) {
+            if (includeParens)
+                LPar();
+
             Identifier(type.ElementType);
             Dot();
             Identifier("Of");
             LPar();
             CommaSeparatedList(type.GenericArguments);
             RPar();
+
+            if (includeParens)
+                RPar();
         }
 
         public void Identifier (MethodReference method, bool fullyQualified = true) {

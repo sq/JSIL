@@ -785,11 +785,15 @@ System.Collections.Generic.List$bt1.Enumerator = function (list) {
 System.Collections.Generic.List$bt1.Enumerator.Of = function (T) {
   return System.Collections.Generic.List$bt1.Enumerator;
 };
-System.Collections.Generic.List$bt1.Enumerator.prototype = JSIL.MakeProto(JSIL.ArrayEnumerator, "System.Collections.Generic.List`1.Enumerator", true);
+System.Collections.Generic.List$bt1.Enumerator.prototype = JSIL.MakeProto(JSIL.ArrayEnumerator, "System.Collections.Generic.List`1.Enumerator", false);
+System.Collections.Generic.List$bt1.Enumerator.prototype._array = null;
+System.Collections.Generic.List$bt1.Enumerator.prototype._length = 0;
+System.Collections.Generic.List$bt1.Enumerator.prototype._index = -1;
 System.Collections.Generic.List$bt1.Enumerator.prototype._ctor = function (list) {
-  this._array = list.Items;
-  this._length = list.Count;
-  this._index = -1;
+  if (typeof (list) != "undefined") {
+    this._array = list.Items;
+    this._length = list.Count;
+  }
 }
 
 System.Drawing = {};

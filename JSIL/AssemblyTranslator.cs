@@ -12,6 +12,7 @@ using ICSharpCode.Decompiler.ILAst;
 using ICSharpCode.NRefactory.CSharp;
 using JSIL.Ast;
 using JSIL.Internal;
+using JSIL.Transforms;
 using Mono.Cecil;
 using ICSharpCode.Decompiler;
 using Mono.Cecil.Pdb;
@@ -498,16 +499,20 @@ namespace JSIL {
                 optimizer.Optimize(context, ilb);
 
                 var allVariables = ilb.GetSelfAndChildrenRecursive<ILExpression>().Select(e => e.Operand as ILVariable)
-                    .Where(v => v != null && !v.IsParameter).Distinct();
+                    .Where(v => v != null && !v.IsParameter).Distinct().ToList();
 
                 NameVariables.AssignNamesToVariables(context, decompiler.Parameters, allVariables, ilb);
 
                 var translator = new ILBlockTranslator(context, method, ilb, typeInfo);
                 var body = translator.Translate();
 
-                return new JSFunctionExpression(
+                var function = new JSFunctionExpression(
                     method.Name, translator.Translate(method.Parameters), body
                 );
+
+                new IntroduceVariableDeclarations(allVariables).Visit(function);
+
+                return function;
             } finally {
                 context.CurrentMethod = oldMethod;
             }
