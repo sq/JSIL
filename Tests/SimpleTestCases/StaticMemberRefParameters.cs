@@ -1,7 +1,7 @@
 ﻿using System;
 
 public static class Program {
-    public static int a;
+    public static int A;
 
     public static void Increment (ref int x) {
         x += 1;
@@ -18,11 +18,11 @@ public static class Program {
     }
 
     public static void Main (string[] args) {
-        a = 0;
-        Console.WriteLine("a = {0}", a);
-        Increment(ref a);
-        Console.WriteLine("a = {0}, a + 1 = {1}", a, Incremented(a));
-        IncrementTwice(ref a);
-        Console.WriteLine("a = {0}", a);
+        A = 0;
+        Console.WriteLine("a = {0}", A);
+        Increment(ref A);
+        Console.WriteLine("a = {0}, a + 1 = {1}", A, Incremented(A));
+        IncrementTwice(ref A);
+        Console.WriteLine("a = {0}", A);
     }
 }

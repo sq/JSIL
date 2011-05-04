@@ -116,28 +116,21 @@ namespace JSIL {
             }
         }
 
-        public void VisitNode (JSReferenceExpression reference) {
-            var dot = reference.Referent as JSDotExpression;
-            var variable = reference.Referent as JSVariable;
-
-            if (dot != null) {
-                Output.Keyword("new");
-                Output.Space();
-                Output.Identifier("JSIL.MemberReference", true);
-                Output.LPar();
-
-                Visit(dot.Target);
-                Output.Comma();
-                Output.Value(dot.Member.Identifier);
-
-                Output.RPar();
-            } else if ((variable != null) && (variable.IsReference)) {
-                Output.Comment("ref to ref");
-                Visit(reference.Referent);
-            } else {
+        public void VisitNode (JSPassByReferenceExpression byref) {
+            JSExpression referent;
+            if (JSReferenceExpression.TryDereference(byref.Referent, out referent)) {
                 Output.Comment("ref");
-                Visit(reference.Referent);
+                Visit(referent);
+            } else {
+                Output.Comment("ref (not implemented)");
+                Visit(byref.Referent);
             }
+        }
+
+        public void VisitNode (JSReferenceExpression reference) {
+            Visit(reference.Referent);
+            Output.Dot();
+            Output.Identifier("value");
         }
 
         public void VisitNode (JSFunctionExpression function) {
@@ -263,7 +256,10 @@ namespace JSIL {
         public void VisitNode (JSNewExpression newexp) {
             Output.Keyword("new");
             Output.Space();
+            Output.LPar();
             Visit(newexp.Type);
+            Output.RPar();
+            Output.Space();
             Output.LPar();
             CommaSeparatedList(newexp.Arguments);
             Output.RPar();

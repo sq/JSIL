@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using JSIL.Internal;
@@ -255,9 +256,61 @@ namespace JSIL.Ast {
         }
     }
 
+    // Indicates that the contained expression is a constructed reference to a JS value.
     public class JSReferenceExpression : JSExpression {
-        public JSReferenceExpression (JSExpression referent)
-            : base (referent) {            
+        protected JSReferenceExpression (JSExpression referent)
+            : base (referent) {
+
+            if (referent is JSReferenceExpression)
+                throw new InvalidOperationException("Nested references are not allowed");
+        }
+
+        public static bool TryDereference (JSExpression reference, out JSExpression referent) {
+            var variable = reference as JSVariable;
+            var refe = reference as JSReferenceExpression;
+
+            if ((variable != null) && (variable.IsReference)) {
+                referent = variable;
+                return true;
+            } else if (refe != null) {
+                referent = refe.Referent;
+                return true;
+            }
+
+            referent = null;
+            return false;
+        }
+
+        public static JSExpression New (JSExpression referent) {
+            var variable = referent as JSVariable;
+
+            if ((variable != null) && (variable.IsReference)) {
+                return variable;
+            } else {
+                return new JSReferenceExpression(referent);
+            }
+        }
+
+        public JSExpression Referent {
+            get {
+                return Values[0];
+            }
+        }
+
+        public override TypeReference ExpectedType {
+            get {
+                return Referent.ExpectedType;
+            }
+        }
+    }
+
+    // Indicates that the contained expression needs to be passed by reference.
+    public class JSPassByReferenceExpression : JSExpression {
+        public JSPassByReferenceExpression (JSExpression referent)
+            : base(referent) {
+
+            if (referent is JSPassByReferenceExpression)
+                throw new InvalidOperationException("Nested references are not allowed");
         }
 
         public JSExpression Referent {
@@ -285,7 +338,11 @@ namespace JSIL.Ast {
         }
     }
 
-    public static class JSLiteral {
+    public abstract class JSLiteral : JSExpression {
+        public abstract object Literal {
+            get;
+        }
+
         public static JSTypeNameLiteral New (TypeReference value) {
             return new JSTypeNameLiteral(value);
         }
@@ -319,39 +376,45 @@ namespace JSIL.Ast {
         }
     }
 
-    public abstract class JSLiteral<T> : JSExpression {
+    public abstract class JSLiteralBase<T> : JSLiteral {
         public readonly T Value;
 
-        protected JSLiteral (T value) {
+        protected JSLiteralBase (T value) {
             Value = value;
+        }
+
+        public override object Literal {
+            get {
+                return this.Value;
+            }
         }
     }
 
-    public class JSNullLiteral : JSLiteral<object> {
+    public class JSNullLiteral : JSLiteralBase<object> {
         public JSNullLiteral ()
             : base(null) {
         }
     }
 
-    public class JSBooleanLiteral : JSLiteral<bool> {
+    public class JSBooleanLiteral : JSLiteralBase<bool> {
         public JSBooleanLiteral (bool value)
             : base(value) {
         }
     }
 
-    public class JSStringLiteral : JSLiteral<string> {
+    public class JSStringLiteral : JSLiteralBase<string> {
         public JSStringLiteral (string value)
             : base(value) {
         }
     }
 
-    public class JSIntegerLiteral : JSLiteral<long> {
+    public class JSIntegerLiteral : JSLiteralBase<long> {
         public JSIntegerLiteral (long value)
             : base(value) {
         }
     }
 
-    public class JSEnumLiteral : JSLiteral<long> {
+    public class JSEnumLiteral : JSLiteralBase<long> {
         public readonly TypeReference EnumType;
         public readonly string Name;
 
@@ -363,13 +426,13 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSNumberLiteral : JSLiteral<double> {
+    public class JSNumberLiteral : JSLiteralBase<double> {
         public JSNumberLiteral (double value)
             : base(value) {
         }
     }
 
-    public class JSTypeNameLiteral : JSLiteral<TypeReference> {
+    public class JSTypeNameLiteral : JSLiteralBase<TypeReference> {
         public JSTypeNameLiteral (TypeReference value)
             : base(value) {
         }
@@ -402,6 +465,14 @@ namespace JSIL.Ast {
         public override int GetHashCode () {
             return Identifier.GetHashCode();
         }
+
+        public override string ToString () {
+            return String.Format("<{0} '{1}'>", GetType().Name, Identifier);
+        }
+
+        public virtual JSLiteral ToLiteral () {
+            return JSLiteral.New(Identifier);
+        }
     }
 
     public class JSNamespace : JSIdentifier {
@@ -417,6 +488,37 @@ namespace JSIL.Ast {
             : base(type.FullName) {
             Type = type;
         }
+
+        public override JSLiteral ToLiteral () {
+            return JSLiteral.New(Type);
+        }
+    }
+
+    public class JSField : JSIdentifier {
+        public readonly FieldReference Field;
+
+        public JSField (FieldReference field)
+            : base(field.Name) {
+            Field = field;
+        }
+    }
+
+    public class JSMethod : JSIdentifier {
+        public readonly MethodReference Method;
+
+        public JSMethod (MethodReference method)
+            : base(GetMethodName(method)) {
+            Method = method;
+        }
+
+        protected static string GetMethodName (MethodReference method) {
+            var declType = method.DeclaringType.Resolve();
+
+            if ((declType != null) && (declType.IsInterface))
+                return String.Format("{0}.{1}", declType.Name, method.Name);
+            else
+                return method.Name;
+        }
     }
 
     public class JSVariable : JSIdentifier {
@@ -426,7 +528,7 @@ namespace JSIL.Ast {
         public JSVariable (string name, TypeReference type)
             : base(name) {
 
-            if (type is ByReferenceType || type.IsByReference) {
+            if (type is ByReferenceType) {
                 type = type.GetElementType();
                 IsReference = true;
             } else {
@@ -499,14 +601,17 @@ namespace JSIL.Ast {
 
     public class JSNewExpression : JSExpression {
         public JSNewExpression (TypeReference type, params JSExpression[] arguments)
-            : base (
-                (new [] { new JSType(type) }).Concat(arguments).ToArray()
-            ) {
+            : this (new JSType(type), arguments) {
         }
 
-        public JSType Type {
+        public JSNewExpression (JSExpression type, params JSExpression[] arguments) : base(
+            (new [] { type }).Concat(arguments).ToArray()
+        ) {
+        }
+
+        public JSExpression Type {
             get {
-                return (JSType)Values[0];
+                return Values[0];
             }
         }
 

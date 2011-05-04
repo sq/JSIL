@@ -129,6 +129,8 @@
     <None Include="SimpleTestCases\CustomEvents.cs" />
     <None Include="SimpleTestCases\MultipleCatchClauses.cs" />
     <None Include="SimpleTestCases\If.cs" />
+    <None Include="SimpleTestCases\MemberRefParameters.cs" />
+    <None Include="SimpleTestCases\StaticMemberRefParameters.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

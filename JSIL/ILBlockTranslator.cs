@@ -40,8 +40,34 @@ namespace JSIL {
             return null;
         }
 
+        public JSExpression[] Translate (IList<ILExpression> values, IList<ParameterDefinition> parameters) {
+            var result = new List<JSExpression>();
+            ParameterDefinition parameter;
+
+            for (int i = 0, c = values.Count; i < c; i++) {
+                var value = values[i];
+
+                var parameterIndex = i + Math.Max(0, (values.Count - parameters.Count));
+                if (parameterIndex < parameters.Count)
+                    parameter = parameters[parameterIndex];
+                else
+                    parameter = null;
+
+                var translated = TranslateNode(value);
+
+                if ((parameter != null) && (parameter.ParameterType is ByReferenceType)) {
+                    result.Add(new JSPassByReferenceExpression(translated));
+                } else
+                    result.Add(translated);
+            }
+
+            return result.ToArray();
+        }
+
         public JSExpression[] Translate (IEnumerable<ILExpression> values) {
-            return (from v in values select TranslateNode(v)).ToArray();
+            return (
+                from value in values select TranslateNode(value)
+            ).ToArray();
         }
 
         public JSVariable[] Translate (IEnumerable<ParameterDefinition> parameters) {
@@ -95,6 +121,13 @@ namespace JSIL {
             } else {
                 return Translate_BinaryOp(node, checkEqual ? JSOperator.Equal : JSOperator.NotEqual);
             }
+        }
+
+        protected JSExpression MakeMemberReference (JSExpression target, JSIdentifier member) {
+            return JSReferenceExpression.New(new JSNewExpression(
+                JSDotExpression.New(new JSIdentifier("JSIL"), "MemberReference"),
+                target, member.ToLiteral()
+            ));
         }
 
         protected JSFunctionExpression EmitLambda (MethodDefinition method) {
@@ -411,8 +444,8 @@ namespace JSIL {
             return new JSVariable(variable.Name, variable.Type);
         }
 
-        protected JSReferenceExpression Translate_Ldloca (ILExpression node, ILVariable variable) {
-            return new JSReferenceExpression(Translate_Ldloc(node, variable));
+        protected JSExpression Translate_Ldloca (ILExpression node, ILVariable variable) {
+            return JSReferenceExpression.New(Translate_Ldloc(node, variable));
         }
 
         protected JSBinaryOperatorExpression Translate_Stloc (ILExpression node, ILVariable variable) {
@@ -424,17 +457,17 @@ namespace JSIL {
         }
 
         protected JSDotExpression Translate_Ldsfld (ILExpression node, FieldReference field) {
-            return new JSDotExpression(new JSType(field.DeclaringType), field.Name);
+            return new JSDotExpression(new JSType(field.DeclaringType), new JSField(field));
         }
 
-        protected JSReferenceExpression Translate_Ldsflda (ILExpression node, FieldReference field) {
-            return new JSReferenceExpression(Translate_Ldsfld(node, field));
+        protected JSExpression Translate_Ldsflda (ILExpression node, FieldReference field) {
+            return MakeMemberReference(new JSType(field.DeclaringType), new JSField(field));
         }
 
         protected JSBinaryOperatorExpression Translate_Stsfld (ILExpression node, FieldReference field) {
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
-                new JSDotExpression(new JSType(field.DeclaringType), field.Name),
+                new JSDotExpression(new JSType(field.DeclaringType), new JSField(field)),
                 TranslateNode(node.Arguments[0])
             );
         }
@@ -442,20 +475,20 @@ namespace JSIL {
         protected JSDotExpression Translate_Ldfld (ILExpression node, FieldReference field) {
             return new JSDotExpression(
                 TranslateNode(node.Arguments[0]), 
-                field.Name
+                new JSField(field)
             );
         }
 
         protected JSBinaryOperatorExpression Translate_Stfld (ILExpression node, FieldReference field) {
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
-                new JSDotExpression(TranslateNode(node.Arguments[0]), field.Name),
+                new JSDotExpression(TranslateNode(node.Arguments[0]), new JSField(field)),
                 TranslateNode(node.Arguments[1])
             );
         }
 
-        protected JSReferenceExpression Translate_Ldflda (ILExpression node, FieldReference field) {
-            return new JSReferenceExpression(Translate_Ldfld(node, field));
+        protected JSExpression Translate_Ldflda (ILExpression node, FieldReference field) {
+            return MakeMemberReference(TranslateNode(node.Arguments[0]), new JSField(field));
         }
 
         protected JSExpression Translate_Ldobj (ILExpression node, TypeReference type) {
@@ -487,7 +520,7 @@ namespace JSIL {
                 else
                     return new JSDotExpression(
                         new JSType(method.DeclaringType),
-                        method.Name
+                        new JSMethod(method)
                     );
             }
         }
@@ -683,6 +716,9 @@ namespace JSIL {
                 }
             }
 
+            var thisType = ThisMethod.DeclaringType.GetElementType();
+            var declaringType = method.DeclaringType.GetElementType();
+
             IEnumerable<ILExpression> arguments = node.Arguments;
             JSExpression thisExpression;
             JSIdentifier methodName;
@@ -690,52 +726,65 @@ namespace JSIL {
             if (method.HasThis) {
                 var firstArg = arguments.First();
                 var ilv = firstArg.Operand as ILVariable;
-                
-                // Methods sometimes get 'this' passed as a ref, primarily when they are struct methods.
-                // Use a cheap hack to make them look like the same type.
-                var firstArgType = firstArg.ExpectedType.FullName;
-                if (firstArgType.EndsWith("&"))
-                    firstArgType = firstArgType.Substring(0, firstArgType.Length - 1);
+
+                var firstArgType = firstArg.ExpectedType.GetElementType();
+                var translated = TranslateNode(firstArg);
+
+                if (firstArgType.IsValueType) {
+                    if (!JSReferenceExpression.TryDereference(translated, out thisExpression))
+                        throw new InvalidOperationException("this-expression for method invocation on value type must be a reference");
+                } else {
+                    thisExpression = translated;
+                }
 
                 // If the call is of the form x.Method(...), we don't need to specify the this parameter
                 //  explicitly using the form type.Method.call(x, ...).
                 // Make sure that 'this' references only pass this check when they don't refer to 
                 //  members of base types/interfaces.
                 if (
-                    (method.DeclaringType.FullName == firstArgType) &&
+                    (declaringType.Equals(firstArgType)) &&
                     (
                         (ilv == null) || (ilv.Name != "this") ||
-                        (firstArg.ExpectedType.FullName == ThisMethod.DeclaringType.FullName)
+                        (thisType.Equals(firstArgType))
                     )
                 ) {
-                    thisExpression = TranslateNode(firstArg);
-                    methodName = new JSIdentifier(method.Name);
+                    methodName = new JSMethod(method);
                     arguments = arguments.Skip(1);
                 } else {
                     thisExpression = JSDotExpression.New(
                         new JSType(method.DeclaringType),
-                        "prototype", method.Name
+                        "prototype", new JSMethod(method)
                     );
-                    methodName = "call";
+                    methodName = new JSIdentifier("call");
                 }
             } else {
                 thisExpression = new JSType(method.DeclaringType);
-                methodName = new JSIdentifier(method.Name);
+                methodName = new JSMethod(method);
             }
 
             return new JSInvocationExpression(
                 new JSDotExpression(thisExpression, methodName),
-                Translate(arguments)
+                Translate(arguments.ToArray(), method.Parameters)
             );
         }
 
         protected JSExpression Translate_Callvirt (ILExpression node, MethodReference method) {
+            var firstArg = node.Arguments[0];
+            var translated = TranslateNode(firstArg);
+            JSExpression thisExpression;
+
+            if (firstArg.ExpectedType.GetElementType().IsValueType) {
+                if (!JSReferenceExpression.TryDereference(translated, out thisExpression))
+                    throw new InvalidOperationException("this-expression for method invocation on value type must be a reference");
+            } else {
+                thisExpression = translated;
+            }
+
             return new JSInvocationExpression(
                 new JSDotExpression(
-                    TranslateNode(node.Arguments[0]),
-                    method.Name
+                    thisExpression, new JSMethod(method)
                 ),
-                Translate(node.Arguments.Skip(1))
+                Translate(node.Arguments.Skip(1), method.Parameters)
             );
         }
 
@@ -759,13 +808,19 @@ namespace JSIL {
             if (Math.Abs(arg) != 1)
                 throw new NotImplementedException("No idea what this means...");
 
+            JSExpression target;
+            if (!JSReferenceExpression.TryDereference(
+                TranslateNode(node.Arguments[0]), out target
+            ))
+                throw new InvalidOperationException("Postfix increment/decrement require a reference to operate on");
+
             if (arg == 1)
                 return new JSUnaryOperatorExpression(
-                    JSOperator.Increment, TranslateNode(node.Arguments[0]), true
+                    JSOperator.Increment, target, true
                 );
             else
                 return new JSUnaryOperatorExpression(
-                    JSOperator.Decrement, TranslateNode(node.Arguments[0]), true
+                    JSOperator.Decrement, target, true
                 );
         }
     }
