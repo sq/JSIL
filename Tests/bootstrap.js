@@ -628,13 +628,13 @@ System.Exception = function (message) {
   this._ctor(message);
 };
 System.Exception.prototype = JSIL.MakeProto(Error, "System.Exception", true);
-System.Exception.prototype.Message = undefined;
+System.Exception.prototype.Message = null;
 System.Exception.prototype._ctor = function (message) {
   if (typeof (message) != "undefined")
     this.Message = String(message);
 }
 System.Exception.prototype.toString = function () {
-  if (typeof (this.Message) == "undefined")
+  if (this.Message === null)
     return System.String.Format("{0}: Exception of type '{0}' was thrown.", this.__TypeName__);
   else
     return System.String.Format("{0}: {1}", this.__TypeName__, this.Message);

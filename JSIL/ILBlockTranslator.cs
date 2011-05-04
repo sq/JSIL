@@ -712,12 +712,11 @@ namespace JSIL {
                     methodName = new JSIdentifier(method.Name);
                     arguments = arguments.Skip(1);
                 } else {
-                    thisExpression = new JSDotExpression(
+                    thisExpression = JSDotExpression.New(
                         new JSType(method.DeclaringType),
-                        "prototype"
+                        "prototype", method.Name
                     );
-                    methodName = new JSIdentifier(method.Name);
-                    // Output.Identifier("call");
+                    methodName = "call";
                 }
             } else {
                 thisExpression = new JSType(method.DeclaringType);
