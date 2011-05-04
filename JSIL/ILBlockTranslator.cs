@@ -32,12 +32,10 @@ namespace JSIL {
         public JSNode TranslateNode (ILNode node) {
             Console.Error.WriteLine("Node        NYI: {0}", node.GetType().Name);
 
-            Output.Token("JSIL.UntranslatableNode");
-            Output.LPar();
-            Output.Value(node.GetType().Name);
-            Output.RPar();
-
-            return null;
+            return new JSInvocationExpression(
+                JSDotExpression.New(new JSIdentifier("JSIL"), "UntranslatableNode"),
+                new JSStringLiteral(node.GetType().Name)
+            );
         }
 
         public JSExpression[] Translate (IList<ILExpression> values, IList<ParameterDefinition> parameters) {
@@ -388,6 +386,14 @@ namespace JSIL {
 
         protected JSBinaryOperatorExpression Translate_And (ILExpression node) {
             return Translate_BinaryOp(node, JSOperator.BitwiseAnd);
+        }
+
+        protected JSBinaryOperatorExpression Translate_Or (ILExpression node) {
+            return Translate_BinaryOp(node, JSOperator.BitwiseOr);
+        }
+
+        protected JSBinaryOperatorExpression Translate_LogicOr (ILExpression node) {
+            return Translate_BinaryOp(node, JSOperator.LogicalOr);
         }
 
         protected JSExpression Translate_LogicNot (ILExpression node) {

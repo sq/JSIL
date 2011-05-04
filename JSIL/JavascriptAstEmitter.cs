@@ -20,11 +20,15 @@ namespace JSIL {
             IncludeTypeParens.Push(false);
         }
 
-        protected void CommaSeparatedList (IEnumerable<JSExpression> values) {
+        protected void CommaSeparatedList (IEnumerable<JSExpression> values, bool withNewlines = false) {
             bool isFirst = true;
             foreach (var value in values) {
-                if (!isFirst)
+                if (!isFirst) {
                     Output.Comma();
+
+                    if (withNewlines)
+                        Output.NewLine();
+                }
 
                 Visit(value);
                 isFirst = false;
@@ -325,7 +329,7 @@ namespace JSIL {
 
         public void VisitNode (JSObjectExpression obj) {
             Output.OpenBrace();
-            CommaSeparatedList(obj.Values);
+            CommaSeparatedList(obj.Values, true);
             Output.CloseBrace();
         }
 

@@ -184,6 +184,12 @@ namespace JSIL {
         internal void Translate (AssemblyDefinition assembly, Stream outputStream) {
             var context = new DecompilerContext(assembly.MainModule);
 
+            context.Settings.YieldReturn = false;
+            context.Settings.QueryExpressions = false;
+            context.Settings.LockStatement = false;
+            context.Settings.FullyQualifyAmbiguousTypeNames = true;
+            context.Settings.ForEachStatement = false;
+
             if (StartedDecompilingAssembly != null)
                 StartedDecompilingAssembly(assembly.MainModule.FullyQualifiedName);
 
@@ -241,9 +247,13 @@ namespace JSIL {
 
             if (name.EndsWith("__BackingField"))
                 return false;
+            else if (name == "<Module>")
+                return true;
+            else if (name.StartsWith("<") && name.Contains("__SiteContainer"))
+                return true;
             else if (name.StartsWith("CS$<"))
                 return true;
-            else if (name.StartsWith("<"))
+            else if (name.Contains("<PrivateImplementationDetails>"))
                 return true;
 
             return false;
@@ -361,7 +371,7 @@ namespace JSIL {
                 }
                 output.Identifier(GetParent(typedef), true);
                 output.Comma();
-                output.Value(typedef.Name);
+                output.Value(Util.EscapeIdentifier(typedef.Name, true));
                 output.RPar();
             }
             output.Semicolon();
