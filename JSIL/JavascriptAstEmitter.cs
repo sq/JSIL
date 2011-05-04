@@ -25,10 +25,6 @@ namespace JSIL {
             }
         }
 
-        protected bool NeedDereference () {
-            return false;
-        }
-
         public override void VisitNode (JSNode node) {
             if (node != null) {
                 Console.Error.WriteLine("Cannot emit {0}", node.GetType().Name);
@@ -118,12 +114,14 @@ namespace JSIL {
 
         public void VisitNode (JSPassByReferenceExpression byref) {
             JSExpression referent;
-            if (JSReferenceExpression.TryDereference(byref.Referent, out referent)) {
+
+            if (JSReferenceExpression.TryMaterialize(byref.Referent, out referent)) {
                 Output.Comment("ref");
                 Visit(referent);
             } else {
-                Output.Comment("ref (not implemented)");
-                Visit(byref.Referent);
+                Output.Identifier("JSIL.UnmaterializedReference", true);
+                Output.LPar();
+                Output.RPar();
             }
         }
 
@@ -227,6 +225,10 @@ namespace JSIL {
             Visit(ret.Exception);
         }
 
+        public void VisitNode (JSBreakExpression brk) {
+            Output.Keyword("break");
+        }
+
         public void VisitNode (JSUnaryOperatorExpression bop) {
             if (!bop.Postfix)
                 Output.Token(bop.Operator.Token);
@@ -256,19 +258,33 @@ namespace JSIL {
         public void VisitNode (JSNewExpression newexp) {
             Output.Keyword("new");
             Output.Space();
+
             Output.LPar();
             Visit(newexp.Type);
             Output.RPar();
+
             Output.Space();
             Output.LPar();
             CommaSeparatedList(newexp.Arguments);
             Output.RPar();
         }
 
-        public void VisitNode (JSArrayExpression invocation) {
+        public void VisitNode (JSPairExpression pair) {
+            Visit(pair.Key);
+            Output.Token(": ");
+            Visit(pair.Value);
+        }
+
+        public void VisitNode (JSArrayExpression array) {
             Output.OpenBracket();
-            CommaSeparatedList(invocation.Values);
+            CommaSeparatedList(array.Values);
             Output.CloseBracket();
+        }
+
+        public void VisitNode (JSObjectExpression obj) {
+            Output.OpenBrace();
+            CommaSeparatedList(obj.Values);
+            Output.CloseBrace();
         }
 
         public void VisitNode (JSInvocationExpression invocation) {

@@ -14,6 +14,10 @@ JSIL.UntranslatableInstruction = function (instruction, operand) {
     throw new Error("A MSIL instruction of type " + instruction + " could not be translated.");
 };
 
+JSIL.UnmaterializedReference = function () {
+  throw new Error("A variable reference could not be materialized.");
+};
+
 JSIL.CloneObject = function (obj) {
   function ClonedObject() { }
   ClonedObject.prototype = obj;

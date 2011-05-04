@@ -123,13 +123,6 @@ namespace JSIL {
             }
         }
 
-        protected JSExpression MakeMemberReference (JSExpression target, JSIdentifier member) {
-            return JSReferenceExpression.New(new JSNewExpression(
-                JSDotExpression.New(new JSIdentifier("JSIL"), "MemberReference"),
-                target, member.ToLiteral()
-            ));
-        }
-
         protected JSFunctionExpression EmitLambda (MethodDefinition method) {
             return AssemblyTranslator.TranslateMethod(Context, method, TypeInfo);
         }
@@ -424,8 +417,8 @@ namespace JSIL {
             return JSExpression.Null;
         }
 
-        protected void Translate_LoopOrSwitchBreak (ILExpression node) {
-            Output.Keyword("break");
+        protected JSBreakExpression Translate_LoopOrSwitchBreak (ILExpression node) {
+            return new JSBreakExpression();
         }
 
         protected JSReturnExpression Translate_Ret (ILExpression node) {
@@ -441,7 +434,12 @@ namespace JSIL {
         }
 
         protected JSIdentifier Translate_Ldloc (ILExpression node, ILVariable variable) {
-            return new JSVariable(variable.Name, variable.Type);
+            // Methods of structs have a 'this' pointer which is a reference, and we want to treat it as if it
+            //  were a object instead
+            if ((variable.Name == "this") && (variable.OriginalParameter.Index == -1))
+                return new JSVariable(variable.Name, variable.Type.GetElementType());
+            else
+                return new JSVariable(variable.Name, variable.Type);
         }
 
         protected JSExpression Translate_Ldloca (ILExpression node, ILVariable variable) {
@@ -461,7 +459,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldsflda (ILExpression node, FieldReference field) {
-            return MakeMemberReference(new JSType(field.DeclaringType), new JSField(field));
+            return new JSMemberReferenceExpression(Translate_Ldsfld(node, field));
         }
 
         protected JSBinaryOperatorExpression Translate_Stsfld (ILExpression node, FieldReference field) {
@@ -488,7 +486,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldflda (ILExpression node, FieldReference field) {
-            return MakeMemberReference(TranslateNode(node.Arguments[0]), new JSField(field));
+            return new JSMemberReferenceExpression(Translate_Ldfld(node, field));
         }
 
         protected JSExpression Translate_Ldobj (ILExpression node, TypeReference type) {
@@ -516,7 +514,11 @@ namespace JSIL {
                 return EmitLambda(mdef);
             } else {
                 if (method.HasThis)
-                    throw new NotImplementedException();
+                    return JSDotExpression.New(
+                        new JSType(method.DeclaringType),
+                        "prototype",
+                        new JSMethod(method)
+                    );
                 else
                     return new JSDotExpression(
                         new JSType(method.DeclaringType),
@@ -703,7 +705,55 @@ namespace JSIL {
             );
         }
 
+        protected JSExpression Translate_InitializedObject (ILExpression node) {
+            return JSExpression.Null;
+        }
+
+        protected JSExpression Translate_InitCollection (ILExpression node) {
+            var values = new List<JSExpression>();
+
+            for (var i = 1; i < node.Arguments.Count; i++) {
+                var invocation = (JSInvocationExpression)TranslateNode(node.Arguments[i]);
+
+                values.Add(invocation.Arguments[0]);
+            }
+
+            return new JSBinaryOperatorExpression(
+                JSOperator.Assignment,
+                TranslateNode(node.Arguments[0]),
+                new JSArrayExpression(values.ToArray())
+            );
+        }
+
+        protected JSInvocationExpression Translate_InitObject (ILExpression node) {
+            var initializers = new List<JSPairExpression>();
+
+            for (var i = 1; i < node.Arguments.Count; i++) {
+                var translated = TranslateNode(node.Arguments[i]);
+
+                var boe = translated as JSBinaryOperatorExpression;
+                if (boe != null) {
+                    var key = ((JSDotExpression)boe.Left).Member;
+                    var value = boe.Right;
+
+                    initializers.Add(new JSPairExpression(key, value));
+                } else {
+                    Debug.WriteLine(String.Format("Warning: Object initializer element not implemented: {0}", translated));
+                }
+            }
+
+            return new JSInvocationExpression(
+                new JSDotExpression(
+                    TranslateNode(node.Arguments[0]), "__Initialize__"
+                ),
+                new JSObjectExpression(initializers.ToArray())
+            );
+        }
+
         protected JSExpression Translate_Call (ILExpression node, MethodReference method) {
+            if (method.Name.Contains("Concat"))
+                Debugger.Break();
+
             // This translates the MSIL equivalent of 'typeof(T)' into a direct reference to the specified type
             if (method.FullName == "System.Type System.Type::GetTypeFromHandle(System.RuntimeTypeHandle)") {
                 var tr = node.Arguments[0].Operand as TypeReference;
@@ -730,7 +780,7 @@ namespace JSIL {
                 var firstArgType = firstArg.ExpectedType.GetElementType();
                 var translated = TranslateNode(firstArg);
 
-                if (firstArgType.IsValueType) {
+                if (firstArg.InferredType.GetElementType().IsValueType) {
                     if (!JSReferenceExpression.TryDereference(translated, out thisExpression))
                         throw new InvalidOperationException("this-expression for method invocation on value type must be a reference");
                 } else {
@@ -769,11 +819,14 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Callvirt (ILExpression node, MethodReference method) {
+            if (method.Name.Contains("Concat"))
+                Debugger.Break();
+
             var firstArg = node.Arguments[0];
             var translated = TranslateNode(firstArg);
             JSExpression thisExpression;
 
-            if (firstArg.ExpectedType.GetElementType().IsValueType) {
+            if (firstArg.InferredType.GetElementType().IsValueType) {
                 if (!JSReferenceExpression.TryDereference(translated, out thisExpression))
                     throw new InvalidOperationException("this-expression for method invocation on value type must be a reference");
             } else {

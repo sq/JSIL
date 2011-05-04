@@ -107,7 +107,7 @@ namespace JSIL.Ast {
         }
     }
 
-    // Technically, this should be a statement. But in ILAst, it's an expression...
+    // Technically, the following expressions should be statements. But in ILAst, they're expressions...
     public class JSReturnExpression : JSExpression {
         public readonly JSExpression Value;
 
@@ -123,7 +123,6 @@ namespace JSIL.Ast {
         }
     }
 
-    // Same as above.
     public class JSThrowExpression : JSExpression {
         public readonly JSExpression Exception;
 
@@ -136,6 +135,9 @@ namespace JSIL.Ast {
                 yield return Exception;
             }
         }
+    }
+
+    public class JSBreakExpression : JSExpression {
     }
 
     public class JSIfStatement : JSStatement {
@@ -230,7 +232,7 @@ namespace JSIL.Ast {
     public abstract class JSExpression : JSNode {
         public static readonly JSNullExpression Null = new JSNullExpression();
 
-        public readonly IList<JSExpression> Values;
+        protected readonly IList<JSExpression> Values;
 
         protected JSExpression (params JSExpression[] values) {
             Values = values;
@@ -265,19 +267,53 @@ namespace JSIL.Ast {
                 throw new InvalidOperationException("Nested references are not allowed");
         }
 
+        /// <summary>
+        /// Converts a constructed reference into the expression it refers to, turning it back into a regular expression.
+        /// </summary>
         public static bool TryDereference (JSExpression reference, out JSExpression referent) {
             var variable = reference as JSVariable;
             var refe = reference as JSReferenceExpression;
 
             if ((variable != null) && (variable.IsReference)) {
-                referent = variable;
+                referent = new JSVariable(variable.Identifier, variable.Type.GetElementType());
                 return true;
-            } else if (refe != null) {
-                referent = refe.Referent;
+            } else if (refe == null) {
+                referent = null;
+                return false;
+            }
+
+            referent = refe.Referent;
+            return true;
+        }
+
+        /// <summary>
+        /// Converts a constructed reference into an actual reference to the expression it refers to, allowing it to be passed to functions.
+        /// </summary>
+        public static bool TryMaterialize (JSExpression reference, out JSExpression materialized) {
+            var mref = reference as JSMemberReferenceExpression;
+
+            if (mref != null) {
+                var dot = (JSDotExpression)mref.Referent;
+                materialized = new JSNewExpression(
+                    JSDotExpression.New(
+                        new JSIdentifier("JSIL"), "MemberReference"
+                    ),
+                    dot.Target, dot.Member.ToLiteral()
+                );
                 return true;
             }
 
-            referent = null;
+            var variable = reference as JSVariable;
+            var refe = reference as JSReferenceExpression;
+            if (refe != null)
+                variable = refe.Referent as JSVariable;
+
+            if ((variable != null) && (variable.IsReference)) {
+                materialized = new JSVariable(variable.Identifier, variable.Type.GetElementType());
+                return true;
+            }
+
+            materialized = null;
             return false;
         }
 
@@ -301,6 +337,12 @@ namespace JSIL.Ast {
             get {
                 return Referent.ExpectedType;
             }
+        }
+    }
+
+    public class JSMemberReferenceExpression : JSReferenceExpression {
+        public JSMemberReferenceExpression (JSExpression referent)
+            : base(referent) {
         }
     }
 
@@ -645,6 +687,43 @@ namespace JSIL.Ast {
     public class JSArrayExpression : JSExpression {
         public JSArrayExpression (params JSExpression[] values)
             : base (values) {
+        }
+
+        new public IEnumerable<JSExpression> Values {
+            get {
+                return base.Values;
+            }
+        }
+    }
+
+    public class JSPairExpression : JSExpression {
+        public JSPairExpression (JSExpression key, JSExpression value)
+            : base (key, value) {
+        }
+
+        public JSExpression Key {
+            get {
+                return Values[0];
+            }
+        }
+
+        public JSExpression Value {
+            get {
+                return Values[1];
+            }
+        }
+    }
+
+    public class JSObjectExpression : JSExpression {
+        public JSObjectExpression (params JSPairExpression[] pairs) : base(
+            pairs
+        ) {
+        }
+
+        new public IEnumerable<JSPairExpression> Values {
+            get {
+                return from v in base.Values select (JSPairExpression)v;
+            }
         }
     }
 
