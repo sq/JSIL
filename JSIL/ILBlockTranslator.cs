@@ -184,7 +184,7 @@ namespace JSIL {
                 result = invokeResult as JSExpression;
 
                 if (result == null)
-                    Debug.WriteLine(String.Format("Instruction {0} did not produce a JS AST expression", expression.Code));
+                    Debug.WriteLine(String.Format("Instruction {0} did not produce a JS AST expression", expression));
             } catch (MissingMethodException) {
                 string operandType = "";
                 if (expression.Operand != null)
@@ -550,32 +550,29 @@ namespace JSIL {
             );
         }
 
-        protected void Translate_Castclass (ILExpression node, TypeReference targetType) {
+        protected JSExpression Translate_Castclass (ILExpression node, TypeReference targetType) {
             if (IsDelegateType(targetType) && IsDelegateType(node.ExpectedType)) {
                 // TODO: We treat all delegate types as equivalent, so we can skip these casts for now
-                TranslateNode(node.Arguments[0]);
-                return;
+                return TranslateNode(node.Arguments[0]);
             }
 
-            Output.Identifier("JSIL.Cast", true);
-            Output.LPar();
-            TranslateNode(node.Arguments[0]);
-            Output.Comma();
-            Output.Identifier(targetType);
-            Output.RPar();
+            return new JSInvocationExpression(
+                new JSDotExpression(new JSIdentifier("JSIL"), "Cast"),
+                TranslateNode(node.Arguments[0]),
+                new JSType(targetType)
+            );
         }
 
-        protected void Translate_Isinst (ILExpression node, TypeReference targetType) {
-            Output.Identifier("JSIL.TryCast", true);
-            Output.LPar();
-            TranslateNode(node.Arguments[0]);
-            Output.Comma();
-            Output.Identifier(targetType);
-            Output.RPar();
+        protected JSInvocationExpression Translate_Isinst (ILExpression node, TypeReference targetType) {
+            return new JSInvocationExpression(
+                new JSDotExpression(new JSIdentifier("JSIL"), "TryCast"),
+                TranslateNode(node.Arguments[0]),
+                new JSType(targetType)
+            );
         }
 
-        protected void Translate_Unbox_Any (ILExpression node, TypeReference targetType) {
-            Translate_Castclass(node, targetType);
+        protected JSExpression Translate_Unbox_Any (ILExpression node, TypeReference targetType) {
+            return Translate_Castclass(node, targetType);
         }
 
         protected JSInvocationExpression Translate_Conv (ILExpression node, TypeReference targetType) {

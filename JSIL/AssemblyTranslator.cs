@@ -452,7 +452,7 @@ namespace JSIL {
             }
 
             output.Comma();
-            output.Value(methodGroup.Name);
+            output.Value(Util.EscapeIdentifier(methodGroup.Name));
             output.Comma();
             output.OpenBracket(true);
 
