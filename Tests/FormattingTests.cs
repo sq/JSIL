@@ -8,7 +8,7 @@ namespace JSIL.Tests {
     [TestFixture]
     public class FormattingTests {
         [Test]
-        public void EvalIsEmittedIntoBodyOfMethod () {
+        public void ChainedElseIfs () {
             long elapsed;
             string generatedJs;
             using (var test = new ComparisonTest(@"SpecialTestCases\ChainedElseIf.cs")) {
