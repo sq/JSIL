@@ -47,6 +47,7 @@ namespace JSIL {
                 Output.LPar();
                 Output.Value(node.GetType().Name);
                 Output.RPar();
+                Output.Semicolon();
             }
 
             base.VisitNode(node);
@@ -206,7 +207,44 @@ namespace JSIL {
             Output.CloseBrace();
         }
 
+        public void VisitNode (JSSwitchStatement swtch) {
+            Output.Keyword("switch");
+            Output.Space();
+
+            Output.LPar();
+            Visit(swtch.Condition);
+            Output.RPar();
+            Output.Space();
+
+            Output.OpenBrace();
+
+            foreach (var c in swtch.Cases) {
+                if (c.Values != null) {
+                    foreach (var value in c.Values) {
+                        Output.Token("case ");
+                        Visit(value);
+                        Output.Token(": ");
+                        Output.NewLine();
+                    }
+                } else {
+                    Output.Token("default: ");
+                    Output.NewLine();
+                }
+
+                Visit(c.Body);
+            }
+
+            Output.CloseBrace();
+        }
+
+        public void VisitNode (JSLabelStatement label) {
+            Output.Identifier(label.LabelName);
+            Output.Token(": ");
+            Output.NewLine();
+        }
+
         public void VisitNode (JSIfStatement ifs) {
+            Output.NewLine();
             Output.Keyword("if");
             Output.Space();
 
@@ -282,6 +320,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSWhileLoop loop) {
+            Output.NewLine();
             Output.Keyword("while");
             Output.Space();
 
@@ -311,6 +350,10 @@ namespace JSIL {
 
         public void VisitNode (JSBreakExpression brk) {
             Output.Keyword("break");
+        }
+
+        public void VisitNode (JSContinueExpression cont) {
+            Output.Keyword("continue");
         }
 
         public void VisitNode (JSUnaryOperatorExpression bop) {

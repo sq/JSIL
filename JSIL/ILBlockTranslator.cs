@@ -403,7 +403,30 @@ namespace JSIL {
             );
         }
 
-        public JSStatement TranslateNode (ILTryCatchBlock tcb) {
+        public JSLabelStatement TranslateNode (ILLabel label) {
+            return new JSLabelStatement(label.Name);
+        }
+
+        public JSSwitchCase TranslateNode (ILSwitch.CaseBlock block) {
+            JSExpression[] values = null;
+
+            if (block.Values != null)
+                values = (from v in block.Values select JSLiteral.New(v)).ToArray();
+
+            return new JSSwitchCase(
+                values,
+                TranslateNode(new ILBlock(block.Body))
+            );
+        }
+
+        public JSSwitchStatement TranslateNode (ILSwitch swtch) {
+            return new JSSwitchStatement(
+                TranslateNode(swtch.Condition),
+                (from cb in swtch.CaseBlocks select TranslateNode(cb)).ToArray()
+            );
+        }
+
+        public JSTryCatchBlock TranslateNode (ILTryCatchBlock tcb) {
             var body = TranslateNode(tcb.TryBlock);
             JSVariable catchVariable = null;
             JSBlockStatement catchBlock = null;
@@ -666,6 +689,10 @@ namespace JSIL {
 
         protected JSBreakExpression Translate_LoopOrSwitchBreak (ILExpression node) {
             return new JSBreakExpression();
+        }
+
+        protected JSContinueExpression Translate_LoopContinue (ILExpression node) {
+            return new JSContinueExpression();
         }
 
         protected JSReturnExpression Translate_Ret (ILExpression node) {

@@ -81,6 +81,14 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSLabelStatement : JSStatement {
+        public readonly string LabelName;
+
+        public JSLabelStatement (string name) {
+            LabelName = name;
+        }
+    }
+
     public class JSExpressionStatement : JSStatement {
         public readonly JSExpression Expression;
 
@@ -156,6 +164,49 @@ namespace JSIL.Ast {
     }
 
     public class JSBreakExpression : JSExpression {
+    }
+
+    public class JSContinueExpression : JSExpression {
+    }
+
+    public class JSSwitchCase : JSStatement {
+        public readonly JSExpression[] Values;
+        public readonly JSBlockStatement Body;
+
+        public JSSwitchCase (JSExpression[] values, JSBlockStatement body) {
+            Values = values;
+            Body = body;
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                if (Values != null) {
+                    foreach (var value in Values)
+                        yield return value;
+                }
+
+                yield return Body;
+            }
+        }
+    }
+
+    public class JSSwitchStatement : JSStatement {
+        public readonly JSExpression Condition;
+        public readonly List<JSSwitchCase> Cases = new List<JSSwitchCase>();
+
+        public JSSwitchStatement (JSExpression condition, params JSSwitchCase[] cases) {
+            Condition = condition;
+            Cases.AddRange(cases);
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                yield return Condition;
+
+                foreach (var c in Cases)
+                    yield return c;
+            }
+        }
     }
 
     public class JSIfStatement : JSStatement {
