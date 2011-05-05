@@ -222,6 +222,9 @@ namespace JSIL {
         }
 
         public static bool IsIgnored (Mono.Cecil.ICustomAttributeProvider attributedNode) {
+            if (attributedNode == null)
+                return false;
+
             foreach (var attribute in attributedNode.CustomAttributes) {
                 var attributeName = attribute.AttributeType.FullName;
 
@@ -431,6 +434,9 @@ namespace JSIL {
             foreach (var methodGroup in info.MethodGroups)
                 TranslateMethodGroup(context, output, methodGroup);
 
+            foreach (var property in typedef.Properties)
+                TranslateProperty(context, output, property);
+
             var cctor = (from m in typedef.Methods where m.Name == ".cctor" select m).FirstOrDefault();
             if (cctor != null) {
                 output.Identifier(cctor, true);
@@ -596,6 +602,69 @@ namespace JSIL {
             output.Token(" = ");
 
             TranslateMethod(context, method, this, output);
+        }
+
+        protected void TranslateProperty (DecompilerContext context, JavascriptFormatter output, PropertyDefinition property) {
+            if (IsIgnored(property))
+                return;
+
+            output.Identifier("Object.defineProperty", true);
+            output.LPar();
+
+            var isStatic = !(property.SetMethod ?? property.GetMethod).IsStatic;
+
+            output.Identifier(property.DeclaringType);
+            if (isStatic) {
+                output.Dot();
+                output.Keyword("prototype");
+            }
+            output.Comma();
+
+            output.Value(property.Name);
+            output.Comma();
+            output.NewLine();
+
+            output.OpenBrace();
+
+            bool needLeadingComma = false;
+            if (property.GetMethod != null) {
+                output.Keyword("get: ");
+
+                output.Identifier(property.DeclaringType);
+                if (isStatic) {
+                    output.Dot();
+                    output.Keyword("prototype");
+                }
+                output.Dot();
+                output.Identifier(property.GetMethod.Name);
+
+                needLeadingComma = true;
+            }
+
+            if (property.SetMethod != null) {
+                if (needLeadingComma) {
+                    output.Comma();
+                    output.NewLine();
+                }
+                output.Keyword("set: ");
+
+                output.Identifier(property.DeclaringType);
+                if (isStatic) {
+                    output.Dot();
+                    output.Keyword("prototype");
+                }
+                output.Dot();
+                output.Identifier(property.SetMethod.Name);
+
+                needLeadingComma = true;
+            }
+
+            if (needLeadingComma)
+                output.NewLine();
+            output.CloseBrace();
+
+            output.RPar();
+            output.Semicolon();
         }
     }
 }

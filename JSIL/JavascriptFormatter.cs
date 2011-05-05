@@ -131,8 +131,8 @@ namespace JSIL.Internal {
         }
 
         public void OpenBrace () {
-            PlainTextOutput.Indent();
             PlainTextOutput.WriteLine("{");
+            PlainTextOutput.Indent();
         }
 
         public void CloseBrace (bool semicolon = false) {

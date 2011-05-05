@@ -144,6 +144,52 @@ namespace JSIL {
             );
         }
 
+        protected bool Translate_PropertyCall (JSExpression thisExpression, MethodDefinition method, JSExpression[] arguments, out JSExpression result) {
+            result = null;
+
+            var typeInfo = TypeInfo.Get(method.DeclaringType);
+            if (typeInfo == null)
+                return false;
+
+            PropertyDefinition property;
+            if (!typeInfo.MethodToProperty.TryGetValue(method, out property))
+                return false;
+
+            if (AssemblyTranslator.IsIgnored(property)) {
+                result = new JSInvocationExpression(
+                    JSIL.IgnoredMember, JSLiteral.New(property.Name)
+                );
+                return true;
+            }
+
+            // JS provides no way to override [], so keep it as a regular method call
+            if (property.IsIndexer())
+                return false;
+
+            // Accesses to a base property should go through a regular method invocation, since
+            //  javascript properties do not have a mechanism for base access
+            if (!property.DeclaringType.Equals(thisExpression.GetExpectedType(TypeSystem)))
+                return false;
+
+            if (method == property.GetMethod) {
+                result = new JSDotExpression(
+                    thisExpression,
+                    new JSIdentifier(property.Name, property.PropertyType)
+                );
+            } else {
+                result = new JSBinaryOperatorExpression(
+                    JSOperator.Assignment,
+                    new JSDotExpression(
+                        thisExpression,
+                        new JSIdentifier(property.Name, property.PropertyType)
+                    ),
+                    arguments[0], property.PropertyType
+                );
+            }
+
+            return true;
+        }
+
         protected JSExpression Translate_EqualityComparison (ILExpression node, bool checkEqual) {
             if (
                 (node.Arguments[0].ExpectedType.FullName == "System.Boolean") &&
@@ -925,7 +971,8 @@ namespace JSIL {
                 }
             }
 
-            if (AssemblyTranslator.IsIgnored(method.Resolve()))
+            var methodDef = method.Resolve();
+            if (AssemblyTranslator.IsIgnored(methodDef))
                 return new JSInvocationExpression(
                     JSIL.IgnoredMember, JSLiteral.New(method.Name)
                 );
@@ -976,9 +1023,17 @@ namespace JSIL {
                 methodName = new JSMethod(method);
             }
 
+            var translatedArguments = Translate(arguments.ToArray(), method.Parameters);
+
+            if (methodDef != null) {
+                JSExpression propertyResult;
+                if (Translate_PropertyCall(thisExpression, methodDef, translatedArguments, out propertyResult))
+                    return propertyResult;
+            }
+
             return new JSInvocationExpression(
                 new JSDotExpression(thisExpression, methodName),
-                Translate(arguments.ToArray(), method.Parameters)
+                translatedArguments
             );
         }
 
@@ -987,7 +1042,8 @@ namespace JSIL {
             var translated = TranslateNode(firstArg);
             JSExpression thisExpression;
 
-            if (AssemblyTranslator.IsIgnored(method.Resolve()))
+            var methodDef = method.Resolve();
+            if (AssemblyTranslator.IsIgnored(methodDef))
                 return new JSInvocationExpression(
                     JSIL.IgnoredMember, JSLiteral.New(method.Name)
                 );
@@ -999,11 +1055,19 @@ namespace JSIL {
                 thisExpression = translated;
             }
 
+            var translatedArguments = Translate(node.Arguments.Skip(1), method.Parameters);
+
+            if (methodDef != null) {
+                JSExpression propertyResult;
+                if (Translate_PropertyCall(thisExpression, methodDef, translatedArguments, out propertyResult))
+                    return propertyResult;
+            }
+
             return new JSInvocationExpression(
                 new JSDotExpression(
                     thisExpression, new JSMethod(method)
                 ),
-                Translate(node.Arguments.Skip(1), method.Parameters)
+                translatedArguments
             );
         }
 

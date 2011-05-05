@@ -18,12 +18,23 @@ namespace JSIL.Internal {
         public readonly List<MethodGroupInfo> MethodGroups = new List<MethodGroupInfo>();
         public readonly Dictionary<MethodDefinition, MethodGroupItem> MethodToMethodGroupItem = new Dictionary<MethodDefinition, MethodGroupItem>();
 
+        // Property information
+        public readonly Dictionary<MethodDefinition, PropertyDefinition> MethodToProperty = new Dictionary<MethodDefinition, PropertyDefinition>();
+
         // Enum information
         public readonly bool IsFlagsEnum;
         public readonly Dictionary<long, EnumMemberInfo> ValueToEnumMember = new Dictionary<long, EnumMemberInfo>();
         public readonly Dictionary<string, EnumMemberInfo> EnumMembers = new Dictionary<string, EnumMemberInfo>();
 
         public TypeInfo (TypeDefinition type) {
+            foreach (var property in type.Properties) {
+                if (property.GetMethod != null)
+                    MethodToProperty[property.GetMethod] = property;
+
+                if (property.SetMethod != null)
+                    MethodToProperty[property.SetMethod] = property;
+            }
+
             var methodGroups = from m in type.Methods 
                           group m by new { 
                               Name = m.Name, IsStatic = m.IsStatic
