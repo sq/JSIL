@@ -677,6 +677,14 @@ System.String.CheckType = function (value) {
   return (typeof (value) == "string");
 }
 System.String.prototype = JSIL.MakeProto(String, "System.String", true);
+System.String.Concat = function (firstValue) {
+  var result = String(firstValue);
+
+  for (var i = 1, l = arguments.length; i < l; i++)
+    result += String(arguments[i]);
+
+  return result;
+}
 System.String.Format = function (format) {
   format = String(format);
 

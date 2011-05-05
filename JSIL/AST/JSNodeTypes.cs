@@ -851,8 +851,19 @@ namespace JSIL.Ast {
     }
 
     public class JSArrayExpression : JSExpression {
-        public JSArrayExpression (params JSExpression[] values)
+        public readonly TypeReference ElementType;
+
+        public JSArrayExpression (TypeReference elementType, params JSExpression[] values)
             : base (values) {
+
+            ElementType = elementType;
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            if (ElementType != null)
+                return ElementType;
+            else
+                return base.GetExpectedType(typeSystem);
         }
 
         new public IEnumerable<JSExpression> Values {

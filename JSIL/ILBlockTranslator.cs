@@ -756,7 +756,7 @@ namespace JSIL {
         protected JSInvocationExpression Translate_InitArray (ILExpression node, TypeReference elementType) {
             return JSIL.NewArray(
                 elementType,
-                new JSArrayExpression(Translate(node.Arguments))
+                new JSArrayExpression(elementType, Translate(node.Arguments))
             );
         }
 
@@ -765,10 +765,18 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_InitCollection (ILExpression node) {
+            TypeReference inferredType = null;
             var values = new List<JSExpression>();
 
             for (var i = 1; i < node.Arguments.Count; i++) {
                 var invocation = (JSInvocationExpression)TranslateNode(node.Arguments[i]);
+
+                var valueType = invocation.Arguments[0].GetExpectedType(TypeSystem);
+
+                if (inferredType == null)
+                    inferredType = valueType;
+                else if (inferredType.FullName != valueType.FullName)
+                    throw new NotImplementedException("Mixed-type collection initializers not supported");
 
                 values.Add(invocation.Arguments[0]);
             }
@@ -776,7 +784,9 @@ namespace JSIL {
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
                 TranslateNode(node.Arguments[0]),
-                new JSArrayExpression(values.ToArray()),
+                JSIL.NewCollectionInitializer(
+                    new JSArrayExpression(inferredType, values.ToArray())
+                ),
                 TypeSystem
             );
         }
@@ -809,9 +819,6 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Call (ILExpression node, MethodReference method) {
-            if (method.Name.Contains("Concat"))
-                Debugger.Break();
-
             // This translates the MSIL equivalent of 'typeof(T)' into a direct reference to the specified type
             if (method.FullName == "System.Type System.Type::GetTypeFromHandle(System.RuntimeTypeHandle)") {
                 var tr = node.Arguments[0].Operand as TypeReference;
@@ -877,9 +884,6 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Callvirt (ILExpression node, MethodReference method) {
-            if (method.Name.Contains("Concat"))
-                Debugger.Break();
-
             var firstArg = node.Arguments[0];
             var translated = TranslateNode(firstArg);
             JSExpression thisExpression;

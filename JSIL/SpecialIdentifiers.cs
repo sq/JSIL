@@ -126,6 +126,13 @@ namespace JSIL {
             );
         }
 
+        public JSNewExpression NewCollectionInitializer (JSArrayExpression values) {
+            return new JSNewExpression(
+                Dot("CollectionInitializer", TypeSystem.Object),
+                values.Values.ToArray()
+            );
+        }
+
         public JSInvocationExpression Coalesce (JSExpression left, JSExpression right) {
             var tLeft = left.GetExpectedType(TypeSystem);
             var tRight = right.GetExpectedType(TypeSystem);
