@@ -199,7 +199,23 @@ namespace JSIL {
 
             Output.OpenFunction(
                 functionName,
-                from p in function.Parameters select p.Identifier
+                (o) => {
+                    if (o != Output)
+                        throw new InvalidOperationException();
+
+                    bool isFirst = true;
+                    foreach (var p in function.Parameters) {
+                        if (!isFirst)
+                            o.Comma();
+
+                        if (p.IsReference)
+                            o.Comment("ref");
+
+                        o.Identifier(p.Identifier);
+
+                        isFirst = false;
+                    }
+                }
             );
 
             Visit(function.Body);

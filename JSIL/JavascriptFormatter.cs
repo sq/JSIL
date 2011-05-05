@@ -157,7 +157,7 @@ namespace JSIL.Internal {
             PlainTextOutput.Indent();
         }
 
-        public void OpenFunction (string functionName, IEnumerable<string> parameterNames) {
+        public void OpenFunction (string functionName, Action<JavascriptFormatter> emitParameters) {
             PlainTextOutput.Write("function");
             Space();
 
@@ -167,19 +167,11 @@ namespace JSIL.Internal {
             }
 
             LPar();
-            CommaSeparatedList(parameterNames, ListValueType.Identifier);
+            emitParameters(this);
             RPar();
 
             Space();
             OpenBrace();
-        }
-
-        public void OpenFunction (IEnumerable<string> parameterNames) {
-            OpenFunction(null, parameterNames);
-        }
-
-        public void OpenFunction (params string[] parameterNames) {
-            OpenFunction(null, parameterNames);
         }
 
         public void Identifier (string name, bool escaped = false) {

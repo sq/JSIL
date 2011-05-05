@@ -168,7 +168,7 @@ namespace JSIL {
 
             // Accesses to a base property should go through a regular method invocation, since
             //  javascript properties do not have a mechanism for base access
-            if (!property.DeclaringType.Equals(thisExpression.GetExpectedType(TypeSystem)))
+            if (method.HasThis && !property.DeclaringType.Equals(thisExpression.GetExpectedType(TypeSystem)))
                 return false;
 
             if (method == property.GetMethod) {
