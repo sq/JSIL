@@ -35,7 +35,7 @@ namespace JSIL.Transforms {
             if (!JSReferenceExpression.TryMaterialize(JSIL, pbr.Referent, out referent)) {
                 // If the reference can be dereferenced, but cannot be materialized, it is
                 //  a constructed reference.
-                if (JSReferenceExpression.TryDereference(pbr.Referent, out referent)) {
+                if (JSReferenceExpression.TryDereference(JSIL, pbr.Referent, out referent)) {
                     referentVariable = referent as JSVariable;
 
                     // Ignore variables we previously transformed.

@@ -26,7 +26,7 @@ namespace JSIL {
         public readonly JSSpecialIdentifiers JS;
         public readonly CLRSpecialIdentifiers CLR;
 
-        public ILBlockTranslator (DecompilerContext context, MethodDefinition method, ILBlock ilb, ITypeInfoSource typeInfo, IEnumerable<ILVariable> allVariables) {
+        public ILBlockTranslator (DecompilerContext context, MethodDefinition method, ILBlock ilb, ITypeInfoSource typeInfo, IEnumerable<ILVariable> parameters, IEnumerable<ILVariable> allVariables) {
             Context = context;
             ThisMethod = method;
             Block = ilb;
@@ -39,9 +39,12 @@ namespace JSIL {
             if (method.HasThis)
                 Variables.Add("this", JSThisParameter.New(method.DeclaringType));
 
-            foreach (var parameter in method.Parameters) {
+            foreach (var parameter in parameters) {
+                if ((parameter.Name == "this") && (parameter.OriginalParameter.Index == -1))
+                    continue;
+
                 ParameterNames.Add(parameter.Name);
-                Variables.Add(parameter.Name, JSVariable.New(parameter));
+                Variables.Add(parameter.Name, new JSParameter(parameter.Name, parameter.Type));
             }
 
             foreach (var variable in allVariables)
@@ -221,8 +224,12 @@ namespace JSIL {
             var brt = type as ByReferenceType;
             if (brt != null)
                 return brt.ElementType;
-            else
-                return type;
+
+            var pt = type as PointerType;
+            if (pt != null)
+                return pt.ElementType;
+
+            return type;
         }
 
         public static bool IsNumeric (TypeReference type) {
@@ -702,6 +709,10 @@ namespace JSIL {
             return Translate_UnaryOp(node, JSOperator.Negation);
         }
 
+        protected JSThrowExpression Translate_Rethrow (ILExpression node) {
+            return new JSThrowExpression(new JSIdentifier("$exception", TypeSystem.Object));
+        }
+
         protected JSThrowExpression Translate_Throw (ILExpression node) {
             return new JSThrowExpression(TranslateNode(node.Arguments[0]));
         }
@@ -793,7 +804,7 @@ namespace JSIL {
 
             JSExpression thisExpression;
             if (DereferenceType(firstArg.InferredType).IsValueType) {
-                if (!JSReferenceExpression.TryDereference(translated, out thisExpression))
+                if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression))
                     throw new InvalidOperationException("this-expression for field access on value type must be a reference");
             } else {
                 thisExpression = translated;
@@ -829,11 +840,8 @@ namespace JSIL {
             var reference = TranslateNode(node.Arguments[0]);
             JSExpression referent;
 
-            if (reference.GetExpectedType(TypeSystem).IsPointer)
-                return new JSInvocationExpression(JSIL.UntranslatablePointer, reference);
-
-            if (!JSReferenceExpression.TryDereference(reference, out referent))
-                throw new NotImplementedException();
+            if (!JSReferenceExpression.TryDereference(JSIL, reference, out referent))
+                Debug.WriteLine(String.Format("Warning: unsupported reference type for ldobj: {0}", node.Arguments[0]));
 
             return reference;
         }
@@ -942,7 +950,7 @@ namespace JSIL {
             return new JSIndexerExpression(
                 TranslateNode(node.Arguments[0]),
                 TranslateNode(node.Arguments[1]),
-                elementType
+                elementType ?? node.ExpectedType
             );
         }
 
@@ -950,15 +958,24 @@ namespace JSIL {
             return Translate_Ldelem(node, null);
         }
 
+        protected JSExpression Translate_Ldelema (ILExpression node, TypeReference elementType) {
+            return JSReferenceExpression.New(Translate_Ldelem(node, elementType));
+        }
+
         protected JSBinaryOperatorExpression Translate_Stelem (ILExpression node) {
+            return Translate_Stelem(node, null);
+        }
+
+        protected JSBinaryOperatorExpression Translate_Stelem (ILExpression node, TypeReference elementType) {
+            var rhs = TranslateNode(node.Arguments[2]);
+
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
                 new JSIndexerExpression(
                     TranslateNode(node.Arguments[0]),
                     TranslateNode(node.Arguments[1])
                 ),
-                TranslateNode(node.Arguments[2]),
-                TypeSystem
+                rhs, elementType ?? rhs.GetExpectedType(TypeSystem)
             );
         }
 
@@ -989,7 +1006,17 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Unbox_Any (ILExpression node, TypeReference targetType) {
-            return Translate_Castclass(node, targetType);
+            var value = TranslateNode(node.Arguments[0]);
+
+            JSExpression referent;
+            if (JSReferenceExpression.TryDereference(JSIL, value, out referent)) {
+                Debugger.Break();
+                return referent;
+            } else {
+                return JSIL.Cast(
+                    value, targetType
+                );
+            }
         }
 
         protected JSExpression Translate_Conv (ILExpression node, TypeReference targetType) {
@@ -1058,17 +1085,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Box (ILExpression node, TypeReference valueType) {
-            // TODO: We could do boxing the strict way, but in practice, I don't think it's necessary...
-            /*
-            Output.Keyword("new");
-            Output.Space();
-            Output.Identifier(node.Operand as dynamic);
-            Output.LPar();
-            TranslateNode(node.Arguments[0]);
-            Output.RPar();
-             */
-
-            return TranslateNode(node.Arguments[0]);
+            return JSReferenceExpression.New(TranslateNode(node.Arguments[0]));
         }
 
         protected JSExpression Translate_Newobj (ILExpression node, MethodReference constructor) {
@@ -1204,7 +1221,7 @@ namespace JSIL {
                 var translated = TranslateNode(firstArg);
 
                 if (DereferenceType(firstArg.InferredType).IsValueType) {
-                    if (!JSReferenceExpression.TryDereference(translated, out thisExpression))
+                    if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression))
                         throw new InvalidOperationException("this-expression for method invocation on value type must be a reference");
                 } else {
                     thisExpression = translated;
@@ -1261,7 +1278,7 @@ namespace JSIL {
                 );
 
             if (DereferenceType(firstArg.InferredType).IsValueType) {
-                if (!JSReferenceExpression.TryDereference(translated, out thisExpression))
+                if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression))
                     throw new InvalidOperationException("this-expression for method invocation on value type must be a reference");
             } else {
                 thisExpression = translated;
@@ -1369,7 +1386,7 @@ namespace JSIL {
 
             JSExpression target;
             if (!JSReferenceExpression.TryDereference(
-                TranslateNode(node.Arguments[0]), out target
+                JSIL, TranslateNode(node.Arguments[0]), out target
             ))
                 throw new InvalidOperationException("Postfix increment/decrement require a reference to operate on");
 

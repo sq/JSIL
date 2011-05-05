@@ -188,8 +188,6 @@ namespace JSIL {
 
         public void VisitNode (JSReferenceExpression reference) {
             Visit(reference.Referent);
-            Output.Dot();
-            Output.Identifier("value");
         }
 
         public void VisitNode (JSFunctionExpression function) {

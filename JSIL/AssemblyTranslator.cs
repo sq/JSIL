@@ -565,7 +565,7 @@ namespace JSIL {
 
                 NameVariables.AssignNamesToVariables(context, decompiler.Parameters, allVariables, ilb);
 
-                var translator = new ILBlockTranslator(context, method, ilb, typeInfo, allVariables);
+                var translator = new ILBlockTranslator(context, method, ilb, typeInfo, decompiler.Parameters, allVariables);
                 var body = translator.Translate();
 
                 var function = new JSFunctionExpression(

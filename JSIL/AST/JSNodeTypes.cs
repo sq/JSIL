@@ -362,14 +362,25 @@ namespace JSIL.Ast {
         /// <summary>
         /// Converts a constructed reference into the expression it refers to, turning it back into a regular expression.
         /// </summary>
-        public static bool TryDereference (JSExpression reference, out JSExpression referent) {
+        public static bool TryDereference (JSILIdentifier jsil, JSExpression reference, out JSExpression referent) {
             var variable = reference as JSVariable;
             var refe = reference as JSReferenceExpression;
 
-            if ((variable != null) && (variable.IsReference)) {
-                referent = variable.Dereference();
-                return true;
-            } else if (refe == null) {
+            if (variable != null) {
+                if (variable.IsReference) {
+                    referent = variable.Dereference();
+                    return true;
+                }
+
+                if (variable.Type.IsPointer) {
+                    referent = new JSInvocationExpression(
+                        jsil.UntranslatablePointer, variable
+                    );
+                    return true;
+                }
+            }
+            
+            if (refe == null) {
                 referent = null;
                 return false;
             }
