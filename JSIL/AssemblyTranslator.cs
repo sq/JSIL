@@ -464,21 +464,39 @@ namespace JSIL {
         }
 
         protected void EmitFieldDefault (DecompilerContext context, JavascriptFormatter output, FieldDefinition field) {
-            output.Identifier(field.DeclaringType);
-            output.Dot();
-
-            if (!field.IsStatic) {
-                output.Identifier("prototype");
-                output.Dot();
+            if (field.HasConstant) {
+                output.Identifier("Object.defineProperty", true);
+                output.LPar();
             }
 
-            output.Identifier(field.Name);
-            output.Token(" = ");
+            output.Identifier(field.DeclaringType);
+
+            if (!field.IsStatic) {
+                output.Dot();
+                output.Identifier("prototype");
+            }
+
+            if (field.HasConstant) {
+                output.Comma();
+                output.Value(Util.EscapeIdentifier(field.Name));
+                output.Comma();
+
+                output.Token("{ enumerable: true, value: ");
+            } else {
+                output.Dot();
+                output.Identifier(field.Name);
+                output.Token(" = ");
+            }
 
             if (field.HasConstant) {
                 output.Value(field.Constant as dynamic);
             } else {
                 output.DefaultValue(field.FieldType);
+            }
+
+            if (field.HasConstant) {
+                output.Token(" }");
+                output.RPar();
             }
 
             output.Semicolon();
@@ -626,9 +644,12 @@ namespace JSIL {
 
             output.OpenBrace();
 
-            bool needLeadingComma = false;
+            output.Token("enumerable: true");
+
             if (property.GetMethod != null) {
-                output.Keyword("get: ");
+                output.Comma();
+                output.NewLine();
+                output.Token("get: ");
 
                 output.Identifier(property.DeclaringType);
                 if (isStatic) {
@@ -637,16 +658,12 @@ namespace JSIL {
                 }
                 output.Dot();
                 output.Identifier(property.GetMethod.Name);
-
-                needLeadingComma = true;
             }
 
             if (property.SetMethod != null) {
-                if (needLeadingComma) {
-                    output.Comma();
-                    output.NewLine();
-                }
-                output.Keyword("set: ");
+                output.Comma();
+                output.NewLine();
+                output.Token("set: ");
 
                 output.Identifier(property.DeclaringType);
                 if (isStatic) {
@@ -655,12 +672,8 @@ namespace JSIL {
                 }
                 output.Dot();
                 output.Identifier(property.SetMethod.Name);
-
-                needLeadingComma = true;
             }
 
-            if (needLeadingComma)
-                output.NewLine();
             output.CloseBrace();
 
             output.RPar();

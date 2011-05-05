@@ -77,6 +77,9 @@ namespace JSIL.Internal {
                         case '=':
                             sb.Append("$eq");
                         break;
+                        case ' ':
+                            sb.Append("$sp");
+                        break;
                         default:
                             if ((ch <= 32) || (ch >= 127))
                                 sb.AppendFormat("${0:x}", ch);
