@@ -24,6 +24,8 @@ namespace JSIL.Internal {
         public readonly TextOutputFormatter PlainTextFormatter;
         public readonly ITypeInfoSource TypeInfo;
 
+        protected readonly HashSet<string> DeclaredNamespaces = new HashSet<string>();
+
         public JavascriptFormatter (TextWriter output, ITypeInfoSource typeInfo) {
             Output = output;
             PlainTextOutput = new PlainTextOutput(Output);
@@ -377,6 +379,35 @@ namespace JSIL.Internal {
             Identifier(typeReference);
             LPar();
             RPar();
+        }
+
+        public void DeclareNamespace (string ns) {
+            if (String.IsNullOrEmpty(ns))
+                return;
+
+            if (DeclaredNamespaces.Contains(ns))
+                return;
+
+            DeclaredNamespaces.Add(ns);
+
+            var lastDot = ns.LastIndexOf(".");
+            string parent;
+            if (lastDot > 0) {
+                parent = ns.Substring(0, lastDot);
+                ns = ns.Substring(lastDot + 1);
+
+                DeclareNamespace(parent);
+            } else {
+                parent = "this";
+            }
+
+            Identifier("JSIL.DeclareNamespace", true);
+            LPar();
+            Identifier(parent, true);
+            Comma();
+            Value(ns);
+            RPar();
+            Semicolon();
         }
     }
 }

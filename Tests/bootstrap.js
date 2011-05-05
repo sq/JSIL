@@ -1,7 +1,29 @@
 "use strict";
 
-var System = {};
-var JSIL = {};
+if (typeof (JSIL) === "undefined")
+  var JSIL = {};
+
+JSIL.DeclareNamespace = function (parent, name) {
+  if (typeof (parent[name]) === "undefined")
+    parent[name] = {};
+}
+
+JSIL.DeclareNamespace(this, "System");
+JSIL.DeclareNamespace(System, "Collections");
+JSIL.DeclareNamespace(System.Collections, "Generic");
+JSIL.DeclareNamespace(System, "Array");
+JSIL.DeclareNamespace(System, "Delegate");
+JSIL.DeclareNamespace(System, "Enum");
+JSIL.DeclareNamespace(System, "MulticastDelegate");
+JSIL.DeclareNamespace(System, "Console");
+JSIL.DeclareNamespace(System, "Drawing");
+JSIL.DeclareNamespace(System, "Threading");
+JSIL.DeclareNamespace(System.Threading, "Interlocked");
+
+JSIL.DeclareNamespace(JSIL, "Array");
+JSIL.DeclareNamespace(JSIL, "Delegate");
+JSIL.DeclareNamespace(JSIL, "Dynamic");
+JSIL.DeclareNamespace(JSIL, "MulticastDelegate");
 
 JSIL.UntranslatableNode = function (nodeType) {
   throw new Error("An ILAst node of type " + nodeType + " could not be translated.");
@@ -27,6 +49,7 @@ JSIL.CloneObject = function (obj) {
 JSIL.MakeProto = function (baseType, typeName, isReferenceType) {
   var prototype = JSIL.CloneObject(baseType.prototype);
   prototype.__BaseType__ = baseType;
+  prototype.__ShortName__ = typeName;
   prototype.__TypeName__ = typeName;
   prototype.__IsReferenceType__ = Boolean(isReferenceType);
   return prototype;
@@ -38,34 +61,42 @@ JSIL.MakeNumericProto = function (baseType, typeName, isIntegral) {
   return prototype;
 }
 
-JSIL.MakeType = function (baseType, namespace, typeName, isReferenceType) {
+JSIL.MakeType = function (baseType, namespace, localName, fullName, isReferenceType) {
+  if (typeof (namespace[localName]) != "undefined")
+    throw new Error("Duplicate definition of type " + fullName);
+
   var ctor = function () {
     this._ctor.apply(this, arguments);
   };
   ctor.toString = function () {
     return "<Type " + this.prototype.__TypeName__ + ">";
   };
-  ctor.prototype = JSIL.MakeProto(baseType, typeName, false);
   ctor.Of = function (T) {
     return ctor;
   };
+  ctor.prototype = JSIL.MakeProto(baseType, fullName, false);
+  ctor.prototype.__ShortName__ = localName;
 
-  namespace[typeName] = ctor;
+  namespace[localName] = ctor;
 };
 
-JSIL.MakeClass = function (baseType, namespace, typeName) {
-  JSIL.MakeType(baseType, namespace, typeName, true);
+JSIL.MakeClass = function (baseType, namespace, localName, fullName) {
+  JSIL.MakeType(baseType, namespace, localName, fullName, true);
 };
 
-JSIL.MakeStruct = function (namespace, typeName) {
-  JSIL.MakeType(System.ValueType, namespace, typeName, false);
+JSIL.MakeStruct = function (namespace, localName, fullName) {
+  JSIL.MakeType(System.ValueType, namespace, localName, fullName, false);
 };
 
-JSIL.MakeInterface = function (namespace, typeName, members) {
+JSIL.MakeInterface = function (namespace, localName, fullName, members) {
+  if (typeof (namespace[localName]) != "undefined")
+    throw new Error("Duplicate definition of interface " + fullName);
+
   var prototype = JSIL.CloneObject(JSIL.Interface.prototype);
   prototype.__BaseType__ = System.Object;
   prototype.__Members__ = members;
-  prototype.__TypeName__ = typeName;
+  prototype.__ShortName__ = localName;
+  prototype.__TypeName__ = fullName;
 
   var ctor = function () { };
   ctor.prototype = prototype;
@@ -74,13 +105,17 @@ JSIL.MakeInterface = function (namespace, typeName, members) {
   Object.freeze(prototype);
   Object.freeze(result);
 
-  namespace[typeName] = result;
+  namespace[localName] = result;
 };
 
-JSIL.MakeEnum = function (namespace, typeName, members) {
+JSIL.MakeEnum = function (namespace, localName, fullName, members) {
+  if (typeof (namespace[localName]) != "undefined")
+    throw new Error("Duplicate definition of enum " + fullName);
+
   var prototype = JSIL.CloneObject(System.Enum.prototype);
   prototype.__BaseType__ = System.Enum;
-  prototype.__TypeName__ = typeName;
+  prototype.__ShortName__ = localName;
+  prototype.__TypeName__ = fullName;
 
   var result = {
     prototype: prototype,
@@ -103,7 +138,7 @@ JSIL.MakeEnum = function (namespace, typeName, members) {
   Object.freeze(prototype);
   Object.freeze(result);
 
-  namespace[typeName] = result;
+  namespace[localName] = result;
 };
 
 JSIL.CheckDerivation = function (haystack, needle) {
@@ -208,7 +243,6 @@ JSIL.Coalesce = function (lhs, rhs) {
     return lhs;
 };
 
-JSIL.Dynamic = {};
 JSIL.Dynamic.Cast = function (value, expectedType) {
   return value;
 };
@@ -265,18 +299,24 @@ System.Object.prototype.__ImplementInterface__ = function (iface) {
     this.__Interfaces__ = interfaces = [];
   }
 
+  if (typeof (iface) == "undefined")
+    throw new Error("Implementing undefined interface");
+
   // In cases where an interface method (IInterface_MethodName) is implemented by a regular method
   //  (MethodName), we make a copy of the regular method with the name of the interface method, so
   //  that attempts to directly invoke the interface method will still work.
   var members = iface.__Members__;
   for (var key in members) {
-    var fullName = iface.__TypeName__ + "_" + key;
-
     if (!members.hasOwnProperty(key))
       continue;
 
-    if (!this.hasOwnProperty(fullName))
-      this[fullName] = this[key];
+    var shortName = iface.__ShortName__ + "_" + key;
+
+    if (!this.hasOwnProperty(key) && !this.hasOwnProperty(shortName))
+      throw new Error("Missing implementation of interface member " + shortName);
+
+    if (!this.hasOwnProperty(shortName))
+      this[shortName] = this[key];
   }
 
   interfaces.push(iface);
@@ -318,9 +358,9 @@ System.Object.prototype.toString = function ToString() {
   return this.__TypeName__;
 };
 
-JSIL.MakeClass(System.Object, JSIL, "Reference");
-JSIL.MakeClass(JSIL.Reference, JSIL, "Variable");
-JSIL.MakeClass(JSIL.Reference, JSIL, "MemberReference");
+JSIL.MakeClass(System.Object, JSIL, "Reference", "JSIL.Reference");
+JSIL.MakeClass(JSIL.Reference, JSIL, "Variable", "JSIL.Variable");
+JSIL.MakeClass(JSIL.Reference, JSIL, "MemberReference", "JSIL.MemberReference");
 
 JSIL.Reference.__ExpectedType__ = System.Object;
 JSIL.Reference.Types = {};
@@ -377,31 +417,28 @@ JSIL.Interface.prototype.Of = function (T) {
   return this;
 };
 
-JSIL.MakeInterface(System, "IDisposable", {
+JSIL.MakeInterface(System, "IDisposable", "System.IDisposable", {
   "Dispose": Function
 });
 
-System.Collections = {}
-JSIL.MakeInterface(System.Collections, "IEnumerator", {
+JSIL.MakeInterface(System.Collections, "IEnumerator", "System.Collections.IEnumerator", {
   "MoveNext": Function,
   "get_Current": Function,
   "Reset": Function,
 });
-JSIL.MakeInterface(System.Collections, "IEnumerable", {
+JSIL.MakeInterface(System.Collections, "IEnumerable", "System.Collections.IEnumerable", {
   "GetEnumerator": Function
 });
 
-System.Collections.Generic = {};
-JSIL.MakeInterface(System.Collections.Generic, "IEnumerator$bt1", {
+JSIL.MakeInterface(System.Collections.Generic, "IEnumerator$bt1", "System.Collections.Generic.IEnumerator`1", {
   "MoveNext": Function,
   "get_Current": Function,
   "Reset": Function, 
 });
-JSIL.MakeInterface(System.Collections.Generic, "IEnumerable$bt1", {
+JSIL.MakeInterface(System.Collections.Generic, "IEnumerable$bt1", "System.Collections.Generic.IEnumerable`1", {
   "GetEnumerator": Function
 });
 
-System.Enum = {};
 System.Enum.Parse = function (type, value) {
   var num = Number(value);
 
@@ -425,7 +462,6 @@ System.Enum.prototype.toString = function ToString() {
   }
 };
 
-System.Array = {};
 System.Array.prototype = JSIL.MakeProto(System.Object, "System.Array", true);
 System.Array.Types = {};
 System.Array.Of = function (type) {
@@ -444,7 +480,6 @@ System.Array.CheckType = function (value) {
   return JSIL.IsArray(value);
 }
 
-JSIL.Array = {};
 JSIL.Array.New = function (type, sizeOrInitializer) {
   if (Array.isArray(sizeOrInitializer)) {
     // If non-numeric, assume array initializer
@@ -525,7 +560,6 @@ JSIL.MultidimensionalArray.New = function (type) {
   return new JSIL.MultidimensionalArray(dimensions);
 };
 
-System.Delegate = {};
 System.Delegate.prototype = JSIL.MakeProto(Function, "System.Delegate", true);
 System.Delegate.prototype.Invoke = function () {
   return this.__method__.apply(this.__object__, arguments);
@@ -576,7 +610,6 @@ System.Delegate.Remove = function (lhs, rhs) {
     return JSIL.MulticastDelegate.New(newList);
 };
 
-JSIL.Delegate = {};
 JSIL.Delegate.Types = {};
 JSIL.Delegate.New = function (typeName, object, method) {
   var proto = JSIL.Delegate.Types[typeName];
@@ -606,7 +639,6 @@ JSIL.Delegate.New = function (typeName, object, method) {
   return result;
 }
 
-System.MulticastDelegate = {};
 System.MulticastDelegate.prototype = JSIL.MakeProto(System.Delegate, "System.MulticastDelegate", true);
 System.MulticastDelegate.prototype.GetInvocationList = function () {
   return this.delegates;
@@ -617,7 +649,6 @@ System.MulticastDelegate.prototype.Invoke = function () {
 System.MulticastDelegate.Combine = System.Delegate.Combine;
 System.MulticastDelegate.Remove = System.Delegate.Remove;
 
-JSIL.MulticastDelegate = {};
 JSIL.MulticastDelegate.New = function (delegates) {
   var invoker = function () {
     var result;
@@ -655,7 +686,6 @@ System.InvalidCastException = function (message) {
 };
 System.InvalidCastException.prototype = JSIL.MakeProto(System.Exception, "System.InvalidCastException", true);
 
-System.Console = {};
 System.Console.WriteLine = function () {
   print(System.String.Format.apply(null, arguments));
 };
@@ -737,6 +767,12 @@ JSIL.ArrayEnumerator.prototype._ctor = function (array) {
   this._length = array.length;
   this._index = -1;
 }
+JSIL.ArrayEnumerator.prototype.Reset = function () {
+  if (this._array === null)
+    throw new Error("Enumerator is disposed or not initialized");
+
+  this._index = -1;
+}
 JSIL.ArrayEnumerator.prototype.MoveNext = function () {
   if (this._index >= this._length)
     return false;
@@ -760,13 +796,10 @@ JSIL.ArrayEnumerator.prototype.__ImplementInterface__(System.IDisposable);
 JSIL.ArrayEnumerator.prototype.__ImplementInterface__(System.Collections.IEnumerator);
 JSIL.ArrayEnumerator.prototype.__ImplementInterface__(System.Collections.Generic.IEnumerator$bt1);
 
-System.Collections.Generic.List$bt1 = function (sizeOrInitializer) {
-  this._ctor(sizeOrInitializer);
-};
+JSIL.MakeClass(System.Object, System.Collections.Generic, "List$bt1", "System.Collections.Generic.List`1");
 System.Collections.Generic.List$bt1.Of = function (T) {
   return System.Collections.Generic.List$bt1;
 };
-System.Collections.Generic.List$bt1.prototype = JSIL.MakeProto(System.Object, "System.Collections.Generic.List`1", true);
 System.Collections.Generic.List$bt1.prototype._ctor = function (sizeOrInitializer) {
   var size = Number(sizeOrInitializer);
 
@@ -793,13 +826,11 @@ System.Collections.Generic.List$bt1.prototype.GetEnumerator = function () {
 System.Collections.Generic.List$bt1.prototype.__ImplementInterface__(System.Collections.IEnumerable);
 System.Collections.Generic.List$bt1.prototype.__ImplementInterface__(System.Collections.Generic.IEnumerable$bt1);
 
-System.Collections.Generic.List$bt1.Enumerator = function (list) {
-  this._ctor(list);
-};
+// TODO: This type is actually a struct in the CLR
+JSIL.MakeClass(JSIL.ArrayEnumerator, System.Collections.Generic.List$bt1, "Enumerator", "System.Collections.Generic.List`1.Enumerator");
 System.Collections.Generic.List$bt1.Enumerator.Of = function (T) {
   return System.Collections.Generic.List$bt1.Enumerator;
 };
-System.Collections.Generic.List$bt1.Enumerator.prototype = JSIL.MakeProto(JSIL.ArrayEnumerator, "System.Collections.Generic.List`1.Enumerator", false);
 System.Collections.Generic.List$bt1.Enumerator.prototype._array = null;
 System.Collections.Generic.List$bt1.Enumerator.prototype._length = 0;
 System.Collections.Generic.List$bt1.Enumerator.prototype._index = -1;
@@ -810,12 +841,7 @@ System.Collections.Generic.List$bt1.Enumerator.prototype._ctor = function (list)
   }
 }
 
-System.Drawing = {};
-
-System.Drawing.Bitmap = function (width, height) {
-  this._ctor(width, height);
-};
-System.Drawing.Bitmap.prototype = JSIL.MakeProto(System.Object, "System.Drawing.Bitmap", true);
+JSIL.MakeClass(System.Object, System.Drawing, "Bitmap", "System.Drawing.Bitmap");
 System.Drawing.Bitmap.prototype._ctor = function (width, height) {
   this.Width = width;
   this.Height = height;
@@ -830,14 +856,14 @@ System.Drawing.Bitmap.prototype.SetPixel = function (x, y, color) {
 System.Drawing.Bitmap.prototype.Save = function (filename) {
 }
 
-System.Drawing.Color = function (a, r, g, b, name) {
+JSIL.MakeStruct(System.Drawing, "Color", "System.Drawing.Color");
+System.Drawing.Color.prototype._ctor = function (a, r, g, b, name) {
   this.A = a;
   this.R = r;
   this.G = g;
   this.B = b;
   this.Name = name;
 };
-System.Drawing.Color.prototype = JSIL.MakeProto(System.Object, "System.Drawing.Color", false);
 System.Drawing.Color.prototype.toString = function () {
   if (typeof (this.Name) != "undefined")
     return this.Name;
@@ -859,8 +885,6 @@ System.Drawing.Color.OldLace = new System.Drawing.Color(0xFF, 0xFD, 0xF5, 0xE6, 
 System.Drawing.Color.BlueViolet = new System.Drawing.Color(0xFF, 0x8A, 0x2B, 0xE2, "BlueViolet");
 System.Drawing.Color.Aquamarine = new System.Drawing.Color(0xFF, 0x7F, 0xFF, 0xD4, "Aquamarine");
 
-System.Threading = {};
-System.Threading.Interlocked = {};
 System.Threading.Interlocked.CompareExchange = function (targetRef, value, comparand) {
   var currentValue = targetRef.value;
   if (currentValue === comparand) {

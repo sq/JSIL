@@ -286,7 +286,9 @@ namespace JSIL {
             output.LPar();
             output.Identifier(GetParent(iface), true);
             output.Comma();
-            output.Value(iface.Name);
+            output.Value(Util.EscapeIdentifier(iface.Name, false));
+            output.Comma();
+            output.Value(iface.FullName);
             output.Comma();
 
             output.OpenBrace();
@@ -310,7 +312,9 @@ namespace JSIL {
             output.LPar();
             output.Identifier(GetParent(enm), true);
             output.Comma();
-            output.Value(enm.Name);
+            output.Value(Util.EscapeIdentifier(enm.Name, false));
+            output.Comma();
+            output.Value(enm.FullName);
             output.Comma();
             output.OpenBrace();
 
@@ -341,6 +345,8 @@ namespace JSIL {
 
             context.CurrentType = typedef;
 
+            output.DeclareNamespace(typedef.Namespace);
+
             if (typedef.IsInterface) {
                 TranslateInterface(context, output, typedef);
                 return;
@@ -356,8 +362,7 @@ namespace JSIL {
             bool isStatic = typedef.IsAbstract && typedef.IsSealed;
 
             if (isStatic) {
-                output.Identifier(typedef);
-                output.Token(" = {}");
+                output.DeclareNamespace(typedef.FullName);
             } else {
                 if (typedef.IsValueType)
                     output.Identifier("JSIL.MakeStruct", true);
@@ -372,14 +377,16 @@ namespace JSIL {
                 output.Identifier(GetParent(typedef), true);
                 output.Comma();
                 output.Value(Util.EscapeIdentifier(typedef.Name, true));
+                output.Comma();
+                output.Value(typedef.FullName);
                 output.RPar();
+                output.Semicolon();
             }
-            output.Semicolon();
-
-            output.NewLine();
 
             foreach (var nestedTypedef in typedef.NestedTypes)
                 ForwardDeclareType(context, output, nestedTypedef);
+
+            output.NewLine();
         }
 
         protected void TranslateTypeDefinition (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef) {
