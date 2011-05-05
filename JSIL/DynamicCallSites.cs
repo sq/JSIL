@@ -116,9 +116,9 @@ namespace JSIL {
                 return new JSInvocationExpression(
                     JSDotExpression.New(
                         thisArgument,
-                        new JSIdentifier(MemberName, returnType), translator.JS.call
+                        new JSIdentifier(MemberName, returnType)
                     ),
-                    arguments.Skip(1).ToArray()
+                    arguments.Skip(2).ToArray()
                 );
             }
         }
