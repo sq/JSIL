@@ -279,10 +279,13 @@ namespace JSIL {
                 foreach (var cb in tcb.CatchBlocks) {
                     JSExpression pairCondition = null;
 
-                    if (cb.ExceptionType.FullName == "System.Object") {
-                        Console.Error.WriteLine("Ignoring impossible catch clause");
-                        continue;
-                    } else if (cb.ExceptionType.FullName == "System.Exception") {
+                    if (
+                        (cb.ExceptionType.FullName == "System.Exception") ||
+                        (cb.ExceptionType.FullName == "System.Object")
+                    ) {
+                        if (foundUniversalCatch)
+                            throw new NotImplementedException("Found multiple catch-all clauses");
+
                         foundUniversalCatch = true;
                     } else {
                         if (foundUniversalCatch)
