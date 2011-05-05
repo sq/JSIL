@@ -501,11 +501,7 @@ namespace JSIL {
         }
 
         protected JSVariable Translate_Ldloc (ILExpression node, ILVariable variable) {
-            JSVariable v;
-            if (!Variables.TryGetValue(variable.Name, out v))
-                Debugger.Break();
-
-            return v;
+            return new JSIndirectVariable(Variables, variable.Name);
         }
 
         protected JSExpression Translate_Ldloca (ILExpression node, ILVariable variable) {
@@ -515,12 +511,8 @@ namespace JSIL {
         }
 
         protected JSBinaryOperatorExpression Translate_Stloc (ILExpression node, ILVariable variable) {
-            JSVariable v;
-            if (!Variables.TryGetValue(variable.Name, out v))
-                Debugger.Break();
-
             return new JSBinaryOperatorExpression(
-                JSOperator.Assignment, v,
+                JSOperator.Assignment, Translate_Ldloc(node, variable),
                 TranslateNode(node.Arguments[0]),
                 TypeSystem
             );

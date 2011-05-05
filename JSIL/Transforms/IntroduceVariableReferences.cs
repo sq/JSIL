@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using ICSharpCode.Decompiler.ILAst;
@@ -7,6 +8,7 @@ using JSIL.Ast;
 
 namespace JSIL.Transforms {
     public class IntroduceVariableReferences : JSAstVisitor {
+        public readonly HashSet<string> TransformedVariables = new HashSet<string>();
         public readonly Dictionary<string, JSVariable> Variables;
         public readonly JSILIdentifier JSIL;
 
@@ -58,6 +60,24 @@ namespace JSIL.Transforms {
             return null;
         }
 
+        protected void TransformVariableIntoReference (JSVariable variable, JSVariableDeclarationStatement statement, int declarationIndex) {
+            var oldDeclaration = statement.Declarations[declarationIndex];
+            var newVariable = variable.Reference();
+            var newDeclaration = new JSBinaryOperatorExpression(
+                JSOperator.Assignment,
+                // We have to use variable here, not newVariable, otherwise the resulting
+                // assignment looks like 'x.value = initializer' instead of 'x = initializer'
+                variable, 
+                JSIL.NewReference(oldDeclaration.Right), 
+                newVariable.Type
+            );
+
+            Debug.WriteLine(String.Format("Transformed {0} into {1}", variable, newVariable));
+            Variables[variable.Identifier] = newVariable;
+            statement.Declarations[declarationIndex] = newDeclaration;
+            TransformedVariables.Add(variable.Identifier);
+        }
+
         public void VisitNode (JSFunctionExpression fn) {
             var referencesToTransform =
                 from r in fn.AllChildrenRecursive.OfType<JSPassByReferenceExpression>()
@@ -70,6 +90,11 @@ namespace JSIL.Transforms {
             foreach (var r in referencesToTransform) {
                 var cr = GetConstructedReference(r);
 
+                if ((cr == null) || TransformedVariables.Contains(cr.Identifier)) {
+                    // We have already done the variable transform for this variable in the past.
+                    continue;
+                }
+
                 var parameter = (from p in fn.Parameters
                                  where p.Identifier == cr.Identifier
                                  select p).FirstOrDefault();
@@ -78,14 +103,18 @@ namespace JSIL.Transforms {
                     Console.WriteLine("{0} is reference to {1}", r, parameter);
                 } else {
                     var declaration = (from vds in declarations
-                                       from vd in vds.Declarations
-                                       where MatchesConstructedReference(vd.Left, cr)
-                                       select new { vds = vds, vd = vd }).FirstOrDefault();
+                                       from ivd in vds.Declarations.Select((vd, i) => new { vd = vd, i = i })
+                                       where MatchesConstructedReference(ivd.vd.Left, cr)
+                                       select new { vds = vds, vd = ivd.vd, i = ivd.i }).FirstOrDefault();
 
                     if (declaration == null)
                         throw new InvalidOperationException(String.Format("Could not locate declaration for {0}", cr));
 
-                    Console.WriteLine("{0} declared in {1} at {2}", r, declaration.vds, declaration.vd);
+                    TransformVariableIntoReference(
+                        (JSVariable)declaration.vd.Left, 
+                        declaration.vds, 
+                        declaration.i
+                    );
                 }
             }
 

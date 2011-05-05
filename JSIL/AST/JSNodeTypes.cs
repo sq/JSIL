@@ -725,20 +725,32 @@ namespace JSIL.Ast {
     }
 
     public class JSVariable : JSIdentifier {
-        public readonly TypeReference Type;
-        public readonly bool IsReference;
+        protected readonly TypeReference _Type;
+        protected readonly bool _IsReference;
 
         public JSVariable (string name, TypeReference type)
             : base(name) {
 
             if (type is ByReferenceType) {
                 type = type.GetElementType();
-                IsReference = true;
+                _IsReference = true;
             } else {
-                IsReference = false;
+                _IsReference = false;
             }
 
-            Type = type;
+            _Type = type;
+        }
+
+        public virtual TypeReference Type {
+            get {
+                return _Type;
+            }
+        }
+
+        public virtual bool IsReference {
+            get {
+                return _IsReference;
+            }
         }
 
         public virtual bool IsParameter {
@@ -779,6 +791,10 @@ namespace JSIL.Ast {
         public override string ToString () {
             if (IsReference)
                 return String.Format("<ref {0} {1}>", Type, Identifier);
+            else if (IsThis)
+                return String.Format("<this {0}>", Type);
+            else if (IsParameter)
+                return String.Format("<parameter {0} {1}>", Type, Identifier);
             else
                 return String.Format("<var {0} {1}>", Type, Identifier);
         }
@@ -819,9 +835,25 @@ namespace JSIL.Ast {
         public readonly JSVariable Referent;
 
         public JSVariableDereference (JSVariable referent)
-            : base(referent.Identifier, referent.Type.GetElementType()) {
+            : base(referent.Identifier, null) {
 
             Referent = referent;
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return Referent.GetExpectedType(typeSystem).GetElementType();
+        }
+
+        public override TypeReference Type {
+            get {
+                return Referent.Type.GetElementType();
+            }
+        }
+
+        public override bool IsReference {
+            get {
+                return (Referent.Type.GetElementType()) is ByReferenceType;
+            }
         }
 
         public override bool IsParameter {
@@ -841,13 +873,75 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSIndirectVariable : JSVariable {
+        public readonly IDictionary<string, JSVariable> Variables;
+
+        public JSIndirectVariable (IDictionary<string, JSVariable> variables, string identifier)
+            : base(identifier, null) {
+
+            Variables = variables;
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return Variables[Identifier].GetExpectedType(typeSystem);
+        }
+
+        public override TypeReference Type {
+            get {
+                return Variables[Identifier].Type;
+            }
+        }
+
+        public override bool IsReference {
+            get {
+                return Variables[Identifier].IsReference;
+            }
+        }
+
+        public override bool IsParameter {
+            get {
+                return Variables[Identifier].IsParameter;
+            }
+        }
+
+        public override bool IsThis {
+            get {
+                return Variables[Identifier].IsThis;
+            }
+        }
+
+        public override JSVariable Dereference () {
+            return Variables[Identifier].Dereference();
+        }
+
+        public override JSVariable Reference () {
+            return Variables[Identifier].Reference();
+        }
+    }
+
     public class JSVariableReference : JSVariable {
         public readonly JSVariable Referent;
 
         public JSVariableReference (JSVariable referent)
-            : base(referent.Identifier, new ByReferenceType(referent.Type)) {
+            : base(referent.Identifier, null) {
 
             Referent = referent;
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return new ByReferenceType(Referent.GetExpectedType(typeSystem));
+        }
+
+        public override TypeReference Type {
+            get {
+                return new ByReferenceType(Referent.Type);
+            }
+        }
+
+        public override bool IsReference {
+            get {
+                return true;
+            }
         }
 
         public override bool IsParameter {

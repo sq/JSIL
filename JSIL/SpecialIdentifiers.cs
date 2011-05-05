@@ -128,6 +128,15 @@ namespace JSIL {
             );
         }
 
+        public JSNewExpression NewReference (JSExpression initialValue) {
+            var resultType = new ByReferenceType(initialValue.GetExpectedType(TypeSystem));
+
+            return new JSNewExpression(
+                Dot("Variable", resultType),
+                initialValue
+            );
+        }
+
         public JSNewExpression NewCollectionInitializer (JSArrayExpression values) {
             return new JSNewExpression(
                 Dot("CollectionInitializer", TypeSystem.Object),
