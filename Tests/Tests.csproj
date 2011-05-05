@@ -133,6 +133,8 @@
     <None Include="SimpleTestCases\DefaultValue.cs" />
     <None Include="FailingTestCases\FlagsEnums.cs" />
     <None Include="SimpleTestCases\Constants.cs" />
+    <None Include="SimpleTestCases\DynamicStaticOverloadedMethods.cs" />
+    <None Include="SimpleTestCases\DynamicReturnTypes.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

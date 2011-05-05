@@ -733,6 +733,9 @@ namespace JSIL {
         }
 
         protected JSBinaryOperatorExpression Translate_Stloc (ILExpression node, ILVariable variable) {
+            if (node.Arguments[0].Code == ILCode.GetCallSite)
+                DynamicCallSites.SetAlias(variable, (FieldReference)node.Arguments[0].Operand);
+
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment, Translate_Ldloc(node, variable),
                 TranslateNode(node.Arguments[0]),
@@ -1222,22 +1225,30 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_InvokeCallSiteTarget (ILExpression node, MethodReference method) {
-            var ldtarget = node.Arguments[0];
-            if (ldtarget.Code != ILCode.Ldfld)
-                throw new NotImplementedException();
-
-            var ldcallsite = ldtarget.Arguments[0];
-            if (ldcallsite.Code != ILCode.GetCallSite)
-                throw new NotImplementedException();
+            ILExpression ldtarget, ldcallsite;
+            
+            ldtarget = node.Arguments[0];
+            if (ldtarget.Code == ILCode.Ldloc) {
+                ldcallsite = node.Arguments[1];
+            } else if (ldtarget.Code == ILCode.Ldfld) {
+                ldcallsite = ldtarget.Arguments[0];
+            } else {
+                throw new NotImplementedException("Unknown call site pattern");
+            }
 
             DynamicCallSiteInfo callSite;
-            if (!DynamicCallSites.Get((FieldReference)ldcallsite.Operand, out callSite)) {
-                throw new InvalidOperationException("Invalid call site invocation");
+
+            if (ldcallsite.Code == ILCode.Ldloc) {
+                if (!DynamicCallSites.Get((ILVariable)ldcallsite.Operand, out callSite))
+                    throw new InvalidOperationException("Invalid call site invocation");
+            } else if (ldcallsite.Code == ILCode.GetCallSite) {
+                if (!DynamicCallSites.Get((FieldReference)ldcallsite.Operand, out callSite))
+                    throw new InvalidOperationException("Invalid call site invocation");
+            } else {
+                throw new NotImplementedException("Unknown call site pattern");
             }
 
             var invocationArguments = Translate(node.Arguments.Skip(1));
-            Debugger.Break();
-
             return callSite.Translate(this, invocationArguments);
 
             /*

@@ -11,6 +11,17 @@ using Mono.Cecil;
 namespace JSIL {
     internal class DynamicCallSiteInfoCollection {
         protected readonly Dictionary<string, DynamicCallSiteInfo> CallSites = new Dictionary<string, DynamicCallSiteInfo>();
+        protected readonly Dictionary<string, FieldReference> Aliases = new Dictionary<string, FieldReference>();
+
+        public bool Get (ILVariable localVariable, out DynamicCallSiteInfo info) {
+            FieldReference storageField;
+
+            if (Aliases.TryGetValue(localVariable.Name, out storageField))
+                return Get(storageField, out info);
+
+            info = null;
+            return false;
+        }
 
         public bool Get (FieldReference storageField, out DynamicCallSiteInfo info) {
             return CallSites.TryGetValue(storageField.FullName, out info);
@@ -29,6 +40,10 @@ namespace JSIL {
 
             return CallSites[storageField.FullName] = callSiteInfo;
         }
+
+        public void SetAlias (ILVariable variable, FieldReference fieldReference) {
+            Aliases[variable.Name] = fieldReference;
+        }
     }
 
     internal abstract class DynamicCallSiteInfo {
@@ -46,11 +61,14 @@ namespace JSIL {
             public InvokeMember (TypeReference targetType, JSExpression[] arguments)
                 : base (arguments) {
 
-                if (targetType.FullName.StartsWith("System.Action`"))
+                var targetTypeName = targetType.FullName;
+                var git = targetType as GenericInstanceType;
+
+                if (targetTypeName.StartsWith("System.Action`")) {
                     ReturnType = null;
-                else if (targetType.FullName.StartsWith("System.Func`"))
-                    Debugger.Break();
-                else
+                } else if (targetTypeName.StartsWith("System.Func`")) {
+                    ReturnType = git.GenericArguments[git.GenericArguments.Count - 1];
+                } else
                     throw new NotImplementedException("This type of call site target is not implemented");
 
                 if ((BinderFlags & CSharpBinderFlags.ResultDiscarded) == CSharpBinderFlags.ResultDiscarded)
@@ -88,13 +106,17 @@ namespace JSIL {
             }
 
             public override JSExpression Translate (ILBlockTranslator translator, JSExpression[] arguments) {
-                var callSite = arguments[0];
+                // The first argument is always the callsite, so we ignore it
                 var thisArgument = arguments[1];
+
+                var returnType = ReturnType;
+                if (returnType == null)
+                    returnType = translator.TypeSystem.Void;
 
                 return new JSInvocationExpression(
                     JSDotExpression.New(
                         thisArgument,
-                        new JSIdentifier(MemberName, ReturnType), translator.JS.call
+                        new JSIdentifier(MemberName, returnType), translator.JS.call
                     ),
                     arguments.Skip(1).ToArray()
                 );
