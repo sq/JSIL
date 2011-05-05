@@ -40,6 +40,10 @@ JSIL.UnmaterializedReference = function () {
   throw new Error("A variable reference could not be materialized.");
 };
 
+JSIL.IgnoredMember = function (memberName) {
+  throw new Error("An attempt was made to reference the member '" + memberName + "', but it was explicitly ignored during translation.");
+};
+
 JSIL.CloneObject = function (obj) {
   function ClonedObject() { }
   ClonedObject.prototype = obj;

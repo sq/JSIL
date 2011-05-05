@@ -554,7 +554,12 @@ namespace JSIL {
             );
         }
 
-        protected JSDotExpression Translate_Ldsfld (ILExpression node, FieldReference field) {
+        protected JSExpression Translate_Ldsfld (ILExpression node, FieldReference field) {
+            if (AssemblyTranslator.IsIgnored(field.Resolve()))
+                return new JSInvocationExpression(
+                    JSIL.IgnoredMember, JSLiteral.New(field.Name)
+                ); 
+
             return new JSDotExpression(new JSType(field.DeclaringType), new JSField(field));
         }
 
@@ -571,9 +576,14 @@ namespace JSIL {
             );
         }
 
-        protected JSDotExpression Translate_Ldfld (ILExpression node, FieldReference field) {
+        protected JSExpression Translate_Ldfld (ILExpression node, FieldReference field) {
             var firstArg = node.Arguments[0];
             var translated = TranslateNode(firstArg);
+
+            if (AssemblyTranslator.IsIgnored(field.Resolve()))
+                return new JSInvocationExpression(
+                    JSIL.IgnoredMember, JSLiteral.New(field.Name)
+                );
 
             JSExpression thisExpression;
             if (firstArg.InferredType.GetElementType().IsValueType) {
@@ -915,6 +925,11 @@ namespace JSIL {
                 }
             }
 
+            if (AssemblyTranslator.IsIgnored(method.Resolve()))
+                return new JSInvocationExpression(
+                    JSIL.IgnoredMember, JSLiteral.New(method.Name)
+                );
+
             var thisType = ThisMethod.DeclaringType.GetElementType();
             var declaringType = method.DeclaringType.GetElementType();
 
@@ -971,6 +986,11 @@ namespace JSIL {
             var firstArg = node.Arguments[0];
             var translated = TranslateNode(firstArg);
             JSExpression thisExpression;
+
+            if (AssemblyTranslator.IsIgnored(method.Resolve()))
+                return new JSInvocationExpression(
+                    JSIL.IgnoredMember, JSLiteral.New(method.Name)
+                );
 
             if (firstArg.InferredType.GetElementType().IsValueType) {
                 if (!JSReferenceExpression.TryDereference(translated, out thisExpression))

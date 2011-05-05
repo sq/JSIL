@@ -221,7 +221,7 @@ namespace JSIL {
             return GetTypeInformation(type);
         }
 
-        protected bool IsIgnored (Mono.Cecil.ICustomAttributeProvider attributedNode) {
+        public static bool IsIgnored (Mono.Cecil.ICustomAttributeProvider attributedNode) {
             foreach (var attribute in attributedNode.CustomAttributes) {
                 var attributeName = attribute.AttributeType.FullName;
 
