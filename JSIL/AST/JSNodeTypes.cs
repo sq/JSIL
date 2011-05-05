@@ -917,6 +917,11 @@ namespace JSIL.Ast {
         public override JSVariable Reference () {
             return Variables[Identifier].Reference();
         }
+
+        public override bool Equals (object obj) {            
+            return base.Equals(obj) || 
+                Variables[Identifier].Equals(obj);
+        }
     }
 
     public class JSVariableReference : JSVariable {

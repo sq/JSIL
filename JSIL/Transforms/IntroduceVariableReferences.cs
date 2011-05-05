@@ -35,6 +35,10 @@ namespace JSIL.Transforms {
                 if (JSReferenceExpression.TryDereference(pbr.Referent, out referent)) {
                     referentVariable = referent as JSVariable;
 
+                    // Ignore variables we previously transformed.
+                    if ((referentVariable != null) && TransformedVariables.Contains(referentVariable.Identifier))
+                        return null;
+
                     return referentVariable;
                 } else
                     return null;
@@ -44,9 +48,13 @@ namespace JSIL.Transforms {
             if (referentVariable == null)
                 return null;
 
+            // Ignore variables we previously transformed.
+            if (TransformedVariables.Contains(referentVariable.Identifier))
+                return null;
+
             // If the variable does not match the one in the dictionary, it is a constructed
             //  reference to a parameter.
-            if (referentVariable != Variables[referentVariable.Identifier]) {
+            if (!referentVariable.Equals(Variables[referentVariable.Identifier])) {
                 if (!referentVariable.IsParameter)
                     throw new InvalidOperationException();
 
@@ -90,7 +98,7 @@ namespace JSIL.Transforms {
             foreach (var r in referencesToTransform) {
                 var cr = GetConstructedReference(r);
 
-                if ((cr == null) || TransformedVariables.Contains(cr.Identifier)) {
+                if (cr == null) {
                     // We have already done the variable transform for this variable in the past.
                     continue;
                 }
