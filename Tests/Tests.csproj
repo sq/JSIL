@@ -45,8 +45,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ComparisonTests.cs" />
-    <None Include="FailingTestCases\MemberRefParameters.cs" />
-    <None Include="FailingTestCases\OverloadedConstructors.cs" />
     <None Include="FailingTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />
     <Compile Include="DependencyTests.cs" />
@@ -133,6 +131,8 @@
     <None Include="SimpleTestCases\StaticMemberRefParameters.cs" />
     <None Include="SimpleTestCases\Operators.cs" />
     <None Include="SimpleTestCases\DefaultValue.cs" />
+    <None Include="FailingTestCases\FlagsEnums.cs" />
+    <None Include="SimpleTestCases\Constants.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

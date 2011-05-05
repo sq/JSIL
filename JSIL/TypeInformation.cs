@@ -51,6 +51,7 @@ namespace JSIL.Internal {
 
             if (type.IsEnum) {
                 long enumValue = 0;
+
                 foreach (var field in type.Fields) {
                     // Skip 'value__'
                     if (field.IsRuntimeSpecialName)
@@ -65,6 +66,8 @@ namespace JSIL.Internal {
 
                     enumValue += 1;
                 }
+
+                IsFlagsEnum = ILBlockTranslator.IsFlagsEnum(type);
             }
         }
     }

@@ -64,6 +64,7 @@
     <Compile Include="AST\JSAstVisitor.cs" />
     <Compile Include="AST\JSOperators.cs" />
     <Compile Include="AST\JSNodeTypes.cs" />
+    <Compile Include="DynamicCallSites.cs" />
     <Compile Include="JavascriptAstEmitter.cs" />
     <Compile Include="JavascriptFormatter.cs" />
     <Compile Include="ILBlockTranslator.cs" />

@@ -20,6 +20,7 @@ namespace JSIL {
 
         public readonly HashSet<string> ParameterNames = new HashSet<string>();
         public readonly Dictionary<string, JSVariable> Variables = new Dictionary<string, JSVariable>();
+        public readonly DynamicCallSiteInfoCollection DynamicCallSites = new DynamicCallSiteInfoCollection();
 
         public readonly JSILIdentifier JSIL;
         public readonly JSSpecialIdentifiers JS;
@@ -170,7 +171,16 @@ namespace JSIL {
             return AssemblyTranslator.TranslateMethod(Context, method, TypeInfo);
         }
 
-        protected static bool IsDelegateType (TypeReference type) {
+        public static bool IsFlagsEnum (TypeReference enumType) {
+            var typedef = enumType.Resolve();
+            var fa = (from ca in typedef.CustomAttributes
+                      where ca.AttributeType.FullName == "System.FlagsAttribute"
+                      select ca).FirstOrDefault();
+
+            return (fa != null);
+        }
+
+        public static bool IsDelegateType (TypeReference type) {
             var typedef = type.Resolve();
             if (
                 (typedef != null) && (typedef.BaseType != null) &&
@@ -277,13 +287,36 @@ namespace JSIL {
             return result;
         }
 
-        public JSIfStatement TranslateNode (ILCondition condition) {
+        public JSStatement TranslateNode (ILCondition condition) {
+            var cond = condition.Condition;
+            if (
+                (cond.Code == ILCode.LogicNot) &&
+                (cond.Arguments.Count > 0) &&
+                (cond.Arguments[0].Code == ILCode.GetCallSite) &&
+                (condition.TrueBlock != null) &&
+                (condition.TrueBlock.Body.Count == 1) &&
+                (condition.TrueBlock.Body[0] is ILExpression)
+            ) {
+                var callSiteExpression = (ILExpression)condition.TrueBlock.Body[0];
+                var binderExpression = callSiteExpression.Arguments[0].Arguments[0];
+                var binderMethod = (MethodReference)binderExpression.Operand;
+                var arguments = Translate(binderExpression.Arguments);
+
+                DynamicCallSites.InitializeCallSite(
+                    (FieldReference)cond.Arguments[0].Operand, 
+                    binderMethod.Name,
+                    arguments
+                );
+
+                return new JSNullStatement();
+            }
+
             JSStatement falseBlock = null;
             if ((condition.FalseBlock != null) && (condition.FalseBlock.Body.Count > 0))
                 falseBlock = TranslateNode(condition.FalseBlock);
 
             return new JSIfStatement(
-                TranslateNode(condition.Condition),
+                TranslateNode(cond),
                 TranslateNode(condition.TrueBlock),
                 falseBlock
             );
@@ -621,10 +654,21 @@ namespace JSIL {
                 typeInfo = TypeInfo.Get(node.ExpectedType);
 
             if ((typeInfo != null) && (typeInfo.EnumMembers.Count > 0)) {
-                EnumMemberInfo em;
+                EnumMemberInfo[] enumMembers = null;
+                if (typeInfo.IsFlagsEnum) {
+                    enumMembers = (
+                        from em in typeInfo.EnumMembers.Values
+                        where (value & em.Value) == em.Value
+                        select em
+                    ).ToArray();
+                } else {
+                    EnumMemberInfo em;
+                    if (typeInfo.ValueToEnumMember.TryGetValue(value, out em))
+                        enumMembers = new EnumMemberInfo[1] { em };
+                }
 
-                if (typeInfo.ValueToEnumMember.TryGetValue(value, out em))
-                    return new JSEnumLiteral(em);
+                if ((enumMembers != null) && (enumMembers.Length > 0))
+                    return new JSEnumLiteral(value, enumMembers);
                 else {
                     switch (node.Code) {
                         case ILCode.Ldc_I4:
@@ -941,6 +985,14 @@ namespace JSIL {
                 ),
                 Translate(node.Arguments.Skip(1), method.Parameters)
             );
+        }
+
+        protected JSExpression Translate_GetCallSite (ILExpression node, FieldReference field) {
+            return JSLiteral.Null(field.FieldType);
+        }
+
+        protected JSExpression Translate_CreateCallSite (ILExpression node, FieldReference field) {
+            return JSLiteral.Null(field.FieldType);
         }
 
         protected JSExpression Translate_CallGetter (ILExpression node, MethodReference getter) {

@@ -7,6 +7,8 @@ using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class IntroduceVariableReferences : JSAstVisitor {
+        public const bool Tracing = false;
+
         public readonly HashSet<string> TransformedVariables = new HashSet<string>();
         public readonly Dictionary<string, JSVariable> Variables;
         public readonly HashSet<string> ParameterNames;
@@ -83,7 +85,9 @@ namespace JSIL.Transforms {
                 )
             );
 
-            Debug.WriteLine(String.Format("Transformed {0} into {1}={2}", parameter, newVariable, newParameter));
+            if (Tracing)
+                Debug.WriteLine(String.Format("Transformed {0} into {1}={2}", parameter, newVariable, newParameter));
+
             Variables[newVariable.Identifier] = newVariable;
             Variables.Add(newParameter.Identifier, newParameter);
             ParameterNames.Remove(parameter.Identifier);
@@ -103,7 +107,9 @@ namespace JSIL.Transforms {
                 newVariable.Type
             );
 
-            Debug.WriteLine(String.Format("Transformed {0} into {1}", variable, newVariable));
+            if (Tracing)
+                Debug.WriteLine(String.Format("Transformed {0} into {1}", variable, newVariable));
+
             Variables[variable.Identifier] = newVariable;
             statement.Declarations[declarationIndex] = newDeclaration;
             TransformedVariables.Add(variable.Identifier);

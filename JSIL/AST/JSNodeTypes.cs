@@ -575,17 +575,23 @@ namespace JSIL.Ast {
 
     public class JSEnumLiteral : JSLiteralBase<long> {
         public readonly TypeReference EnumType;
-        public readonly string Name;
+        public readonly string[] Names;
 
-        public JSEnumLiteral (EnumMemberInfo member)
-            : base(member.Value) {
+        public JSEnumLiteral (long rawValue, params EnumMemberInfo[] members)
+            : base(rawValue) {
 
-            EnumType = member.DeclaringType;
-            Name = member.Name;
+            EnumType = members.First().DeclaringType;
+            Names = (from m in members select m.Name).ToArray();
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             return EnumType;
+        }
+
+        public override string ToString () {
+            return String.Format("<{0}>", String.Join(
+                " | ", (from n in Names select String.Format("{0}.{1}", EnumType.Name, n)).ToArray()
+            ));
         }
     }
 

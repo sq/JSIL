@@ -284,6 +284,8 @@ namespace JSIL {
         protected void TranslateInterface (DecompilerContext context, JavascriptFormatter output, TypeDefinition iface) {
             output.Identifier("JSIL.MakeInterface", true);
             output.LPar();
+            output.NewLine();
+
             output.Identifier(GetParent(iface), true);
             output.Comma();
             output.Value(Util.EscapeIdentifier(iface.Name, false));
@@ -293,13 +295,21 @@ namespace JSIL {
 
             output.OpenBrace();
 
-            output.CommaSeparatedList(
-                from m in iface.Methods select new KeyValuePair<string, string>(
-                    Util.EscapeIdentifier(m.Name), "Function"
-                ),
-                ListValueType.Primitive, ListValueType.Identifier
-            );
+            bool isFirst = true;
+            foreach (var m in iface.Methods) {
+                if (!isFirst) {
+                    output.Comma();
+                    output.NewLine();
+                }
 
+                output.Value(Util.EscapeIdentifier(m.Name));
+                output.Token(": ");
+                output.Identifier("Function");
+
+                isFirst = false;
+            }
+
+            output.NewLine();
             output.CloseBrace();
 
             output.RPar();
@@ -310,6 +320,8 @@ namespace JSIL {
         protected void TranslateEnum (DecompilerContext context, JavascriptFormatter output, TypeDefinition enm) {
             output.Identifier("JSIL.MakeEnum", true);
             output.LPar();
+            output.NewLine();
+
             output.Identifier(GetParent(enm), true);
             output.Comma();
             output.Value(Util.EscapeIdentifier(enm.Name, false));
@@ -319,7 +331,6 @@ namespace JSIL {
             output.OpenBrace();
 
             bool isFirst = true;
-
             foreach (var em in GetTypeInformation(enm).EnumMembers.Values) {
                 if (!isFirst) {
                     output.Comma();
@@ -333,7 +344,12 @@ namespace JSIL {
                 isFirst = false;
             }
 
+            output.NewLine();
             output.CloseBrace();
+            output.Comma();
+            output.Value(ILBlockTranslator.IsFlagsEnum(enm));
+            output.NewLine();
+
             output.RPar();
             output.Semicolon();
             output.NewLine();
@@ -453,7 +469,12 @@ namespace JSIL {
             output.Identifier(field.Name);
             output.Token(" = ");
 
-            output.DefaultValue(field.FieldType);
+            if (field.HasConstant) {
+                output.Value(field.Constant as dynamic);
+            } else {
+                output.DefaultValue(field.FieldType);
+            }
+
             output.Semicolon();
         }
 

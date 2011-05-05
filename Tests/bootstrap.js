@@ -108,7 +108,7 @@ JSIL.MakeInterface = function (namespace, localName, fullName, members) {
   namespace[localName] = result;
 };
 
-JSIL.MakeEnum = function (namespace, localName, fullName, members) {
+JSIL.MakeEnum = function (namespace, localName, fullName, members, isFlagsEnum) {
   if (typeof (namespace[localName]) != "undefined")
     throw new Error("Duplicate definition of enum " + fullName);
 

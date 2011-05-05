@@ -9,6 +9,8 @@ using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class EmulateStructAssignment : JSAstVisitor {
+        public const bool Tracing = false;
+
         public readonly CLRSpecialIdentifiers CLR;
         public readonly TypeSystem TypeSystem;
 
@@ -52,7 +54,8 @@ namespace JSIL.Transforms {
 
         public void VisitNode (JSPairExpression pair) {
             if (IsCopyNeeded(pair.Value)) {
-                Debug.WriteLine(String.Format("struct copy introduced for object value {0}", pair.Value));
+                if (Tracing)
+                    Debug.WriteLine(String.Format("struct copy introduced for object value {0}", pair.Value));
                 pair.Value = MakeCopy(pair.Value);
             }
 
@@ -64,7 +67,8 @@ namespace JSIL.Transforms {
                 var argument = invocation.Arguments[i];
 
                 if (IsCopyNeeded(argument)) {
-                    Debug.WriteLine(String.Format("struct copy introduced for argument {0}", argument));
+                    if (Tracing)
+                        Debug.WriteLine(String.Format("struct copy introduced for argument {0}", argument));
                     invocation.Arguments[i] = MakeCopy(argument);
                 }
             }
@@ -79,7 +83,8 @@ namespace JSIL.Transforms {
             }
 
             if (IsCopyNeeded(boe.Right)) {
-                Debug.WriteLine(String.Format("struct copy introduced for assignment rhs {0}", boe.Right));
+                if (Tracing)
+                    Debug.WriteLine(String.Format("struct copy introduced for assignment rhs {0}", boe.Right));
                 boe.Right = MakeCopy(boe.Right);
             }
 

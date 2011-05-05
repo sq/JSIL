@@ -114,9 +114,18 @@ namespace JSIL {
         }
 
         public void VisitNode (JSEnumLiteral enm) {
-            Output.Identifier(enm.EnumType);
-            Output.Dot();
-            Output.Identifier(enm.Name);
+            bool isFirst = true;
+
+            foreach (var name in enm.Names) {
+                if (!isFirst)
+                    Output.Token(" | ");
+
+                Output.Identifier(enm.EnumType);
+                Output.Dot();
+                Output.Identifier(name);
+
+                isFirst = false;
+            }
         }
 
         public void VisitNode (JSNullLiteral nil) {
@@ -204,9 +213,33 @@ namespace JSIL {
             Output.OpenBrace();
             Visit(ifs.TrueClause);
 
-            if (ifs.FalseClause != null) {
-                Output.CloseAndReopenBrace("else");
-                Visit(ifs.FalseClause);
+            JSStatement falseClause = ifs.FalseClause;
+            while (falseClause != null) {
+                var nestedBlock = falseClause as JSBlockStatement;
+                var nestedIf = falseClause as JSIfStatement;
+                if ((nestedBlock != null) && (nestedBlock.Statements.Count == 1))
+                    nestedIf = nestedBlock.Statements[0] as JSIfStatement;
+
+                if (nestedIf != null) {
+                    Output.CloseAndReopenBrace((o) => {
+                        if (o != this.Output)
+                            throw new InvalidOperationException();
+
+                        o.Keyword("else if");
+                        o.Space();
+                        o.LPar();
+                        Visit(nestedIf.Condition);
+                        o.RPar();
+                    });
+
+                    Visit(nestedIf.TrueClause);
+
+                    falseClause = nestedIf.FalseClause;
+                } else {
+                    Output.CloseAndReopenBrace("else");
+                    Visit(falseClause);
+                    falseClause = null;
+                }
             }
 
             Output.CloseBrace();
