@@ -527,8 +527,12 @@ namespace JSIL {
                     new JSMethod(method), translator.Translate(method.Parameters), body
                 );
 
-                new EmulateStructAssignment(context.CurrentModule.TypeSystem).Visit(function);
-                new IntroduceVariableDeclarations(allVariables).Visit(function);
+                new EmulateStructAssignment(
+                    context.CurrentModule.TypeSystem, translator.CLR
+                ).Visit(function);
+                new IntroduceVariableDeclarations(
+                    allVariables
+                ).Visit(function);
 
                 if (output != null) {
                     var emitter = new JavascriptAstEmitter(output, translator.JSIL);

@@ -9,12 +9,14 @@ namespace JSIL {
     public class CLRSpecialIdentifiers {
         protected readonly TypeSystem TypeSystem;
 
-        public readonly JSIdentifier Length;
+        public readonly JSIdentifier Length,
+            MemberwiseClone;
 
         public CLRSpecialIdentifiers (TypeSystem typeSystem) {
             TypeSystem = typeSystem;
 
             Length = new JSIdentifier("Length", TypeSystem.Int32);
+            MemberwiseClone = new JSIdentifier("MemberwiseClone", TypeSystem.Object); 
         }
     };
 

@@ -312,7 +312,6 @@ namespace JSIL {
                 IncludeTypeParens.Pop();
             }
 
-            Output.Space();
             Output.LPar();
             CommaSeparatedList(newexp.Arguments);
             Output.RPar();

@@ -732,9 +732,9 @@ namespace JSIL.Ast {
 
         public override string ToString () {
             if (IsReference)
-                return String.Format("ref {0} {1}", Type, Identifier);
+                return String.Format("<ref {0} {1}>", Type, Identifier);
             else
-                return String.Format("{0} {1}", Type, Identifier);
+                return String.Format("<var {0} {1}>", Type, Identifier);
         }
     }
 
@@ -768,6 +768,10 @@ namespace JSIL.Ast {
             get {
                 return (JSIdentifier)Values[1];
             }
+        }
+
+        public override string ToString () {
+            return String.Format("{0} . {1}", Target, Member);
         }
     }
 
@@ -848,6 +852,14 @@ namespace JSIL.Ast {
                 return Values.Skip(1);
             }
         }
+
+        public override string ToString () {
+            return String.Format(
+                "{0} ( {1} )", 
+                Target, 
+                String.Join(", ", (from a in Arguments select a.ToString()).ToArray())
+            );
+        }
     }
 
     public class JSArrayExpression : JSExpression {
@@ -882,11 +894,17 @@ namespace JSIL.Ast {
             get {
                 return Values[0];
             }
+            set {
+                Values[0] = value;
+            }
         }
 
         public JSExpression Value {
             get {
                 return Values[1];
+            }
+            set {
+                Values[1] = value;
             }
         }
     }
@@ -895,6 +913,10 @@ namespace JSIL.Ast {
         public JSObjectExpression (params JSPairExpression[] pairs) : base(
             pairs
         ) {
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return typeSystem.Object;
         }
 
         new public IEnumerable<JSPairExpression> Values {
@@ -972,11 +994,17 @@ namespace JSIL.Ast {
             get {
                 return Values[0];
             }
+            set {
+                Values[0] = value;
+            }
         }
 
         public JSExpression Right {
             get {
                 return Values[1];
+            }
+            set {
+                Values[1] = value;
             }
         }
     }

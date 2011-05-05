@@ -220,8 +220,10 @@ namespace JSIL.Internal {
             Identifier(type.ElementType);
             RPar();
 
-            if (includeParens)
+            if (includeParens) {
                 RPar();
+                Space();
+            }
         }
 
         protected void TypeIdentifier (ArrayType type, bool includeParens) {
@@ -233,8 +235,10 @@ namespace JSIL.Internal {
             Identifier(type.ElementType);
             RPar();
 
-            if (includeParens)
+            if (includeParens) {
                 RPar();
+                Space();
+            }
         }
 
         protected void TypeIdentifier (GenericInstanceType type, bool includeParens) {
@@ -248,8 +252,10 @@ namespace JSIL.Internal {
             CommaSeparatedList(type.GenericArguments);
             RPar();
 
-            if (includeParens)
+            if (includeParens) {
                 RPar();
+                Space();
+            }
         }
 
         public void Identifier (MethodReference method, bool fullyQualified = true) {
