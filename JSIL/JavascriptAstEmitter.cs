@@ -13,13 +13,15 @@ namespace JSIL {
     public class JavascriptAstEmitter : JSAstVisitor {
         public readonly JavascriptFormatter Output;
 
+        public readonly TypeSystem TypeSystem;
         public readonly JSILIdentifier JSIL;
 
         protected readonly Stack<bool> IncludeTypeParens = new Stack<bool>();
 
-        public JavascriptAstEmitter (JavascriptFormatter output, JSILIdentifier jsil) {
+        public JavascriptAstEmitter (JavascriptFormatter output, JSILIdentifier jsil, TypeSystem typeSystem) {
             Output = output;
             JSIL = jsil;
+            TypeSystem = typeSystem;
             IncludeTypeParens.Push(false);
         }
 
@@ -320,6 +322,18 @@ namespace JSIL {
 
         public void VisitNode (JSBinaryOperatorExpression bop) {
             bool parens = (bop.Operator != JSOperator.Assignment);
+
+            if (bop.Operator == JSOperator.Divide) {
+                // We need to perform manual truncation to maintain the semantics of C#'s division operator
+                if (
+                    (ILBlockTranslator.IsIntegral(bop.Left.GetExpectedType(TypeSystem)) &&
+                    ILBlockTranslator.IsIntegral(bop.Right.GetExpectedType(TypeSystem))) ||
+                    ILBlockTranslator.IsIntegral(bop.GetExpectedType(TypeSystem))
+                ) {
+                    Output.Identifier("Math.floor", true);
+                    parens = true;
+                }
+            }
 
             if (parens)
                 Output.LPar();

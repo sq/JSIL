@@ -217,6 +217,22 @@ namespace JSIL {
             return AssemblyTranslator.TranslateMethod(Context, method, TypeInfo);
         }
 
+        public static bool IsIntegral (TypeReference type) {
+            if (type.IsPrimitive) {
+                switch (type.FullName) {
+                    case "System.Decimal":
+                    case "System.Double":
+                    case "System.Single":
+                    case "System.Boolean":
+                        return false;
+                    default:
+                        return true;
+                }
+            } else {
+                return false;
+            }
+        }
+
         public static bool IsFlagsEnum (TypeReference enumType) {
             var typedef = enumType.Resolve();
             var fa = (from ca in typedef.CustomAttributes

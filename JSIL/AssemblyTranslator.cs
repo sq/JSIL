@@ -570,7 +570,7 @@ namespace JSIL {
                 ).Visit(function);
 
                 if (output != null) {
-                    var emitter = new JavascriptAstEmitter(output, translator.JSIL);
+                    var emitter = new JavascriptAstEmitter(output, translator.JSIL, context.CurrentModule.TypeSystem);
                     emitter.Visit(function);
                 }
 

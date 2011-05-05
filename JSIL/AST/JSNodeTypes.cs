@@ -272,6 +272,31 @@ namespace JSIL.Ast {
         public virtual TypeReference GetExpectedType (TypeSystem typeSystem) {
             throw new NoExpectedTypeException(this);
         }
+
+        protected static TypeReference FindParameterInContext (GenericParameter parameter, object context) {
+            var instance = context as IGenericInstance;
+            if (instance != null)
+                return instance.GenericArguments[parameter.Position];
+
+            return null;
+        }
+
+        public static TypeReference ResolveGenericType (TypeReference type, params object[] contexts) {           
+            if (type.IsGenericParameter) {
+                var param = (GenericParameter)type;
+
+                foreach (var ctx in contexts) {
+                    var result = FindParameterInContext(param, ctx);
+
+                    if (result != null)
+                        return result;
+                }
+
+                throw new NotImplementedException("Could not resolve generic parameter");
+            } else {
+                return type;
+            }
+        }
     }
 
     // Indicates that the contained expression is a constructed reference to a JS value.
@@ -705,7 +730,7 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return Field.FieldType;
+            return ResolveGenericType(Field.FieldType, Field, Field.DeclaringType);
         }
     }
 
@@ -718,7 +743,7 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return Method.ReturnType;
+            return ResolveGenericType(Method.ReturnType, Method, Method.DeclaringType);
         }
 
         protected static string GetMethodName (MethodReference method) {
