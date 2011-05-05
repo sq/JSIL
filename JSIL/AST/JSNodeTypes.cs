@@ -348,7 +348,7 @@ namespace JSIL.Ast {
         }
 
         public override string ToString () {
-            return String.Format("&{0}", Referent);
+            return String.Format("&({0})", Referent);
         }
     }
 
@@ -748,11 +748,11 @@ namespace JSIL.Ast {
             return new JSParameter(parameter.Name, parameter.ParameterType);
         }
 
-        public JSVariable Reference () {
+        public virtual JSVariable Reference () {
             return new JSVariable(Identifier, new ByReferenceType(Type));
         }
 
-        public JSVariable Dereference () {
+        public virtual JSVariable Dereference () {
             if (IsReference)
                 return new JSVariable(Identifier, Type.GetElementType());
             else
@@ -781,11 +781,24 @@ namespace JSIL.Ast {
                 return true;
             }
         }
+
+        public override JSVariable Reference () {
+            return new JSParameter(Identifier, new ByReferenceType(Type));
+        }
+
+        public override JSVariable Dereference () {
+            if (IsReference)
+                return new JSParameter(Identifier, Type.GetElementType());
+            else
+                throw new InvalidOperationException();
+        }
     }
 
     public class JSThisParameter : JSParameter {
-        public JSThisParameter (TypeReference type)
-            : base("this", GetTypeOfThisParameter(type)) {
+        public JSThisParameter (TypeReference type, bool autoReference = true) : base(
+            "this", 
+            autoReference ? GetTypeOfThisParameter(type) : type
+        ) {
         }
 
         protected static TypeReference GetTypeOfThisParameter (TypeReference type) {
@@ -793,6 +806,17 @@ namespace JSIL.Ast {
                 return new ByReferenceType(type);
             else
                 return type;
+        }
+
+        public override JSVariable Reference () {
+            return new JSThisParameter(new ByReferenceType(Type), false);
+        }
+
+        public override JSVariable Dereference () {
+            if (IsReference)
+                return new JSThisParameter(Type.GetElementType(), false);
+            else
+                throw new InvalidOperationException();
         }
     }
 

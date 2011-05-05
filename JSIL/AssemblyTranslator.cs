@@ -533,9 +533,14 @@ namespace JSIL {
                 );
 
                 new EmulateStructAssignment(
-                    context.CurrentModule.TypeSystem, translator.CLR
+                    context.CurrentModule.TypeSystem, 
+                    translator.CLR
                 ).Visit(function);
                 new IntroduceVariableDeclarations(
+                    translator.Variables
+                ).Visit(function);
+                new IntroduceVariableReferences(
+                    translator.JSIL,
                     translator.Variables
                 ).Visit(function);
 

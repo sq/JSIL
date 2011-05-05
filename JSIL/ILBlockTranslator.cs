@@ -510,7 +510,7 @@ namespace JSIL {
 
         protected JSExpression Translate_Ldloca (ILExpression node, ILVariable variable) {
             return JSReferenceExpression.New(
-                Translate_Ldloc(node, variable).Reference()
+                Translate_Ldloc(node, variable)
             );
         }
 
