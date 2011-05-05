@@ -55,24 +55,26 @@ namespace JSIL.Ast {
         public static readonly JSBinaryOperator LogicalAnd = "&&";
         public static readonly JSBinaryOperator LogicalOr = "||";
 
-        public static readonly JSUnaryOperator Increment = "++";
-        public static readonly JSUnaryOperator Decrement = "--";
-        public static readonly JSUnaryOperator BitwiseNot = "~";
-        public static readonly JSUnaryOperator LogicalNot = "!";
-        public static readonly JSUnaryOperator Negation = "-";
+        public static readonly JSUnaryOperator PreIncrement = new JSUnaryOperator("++", false);
+        public static readonly JSUnaryOperator PreDecrement = new JSUnaryOperator("--", false);
+        public static readonly JSUnaryOperator PostIncrement = new JSUnaryOperator("++", true);
+        public static readonly JSUnaryOperator PostDecrement = new JSUnaryOperator("--", true);
+        public static readonly JSUnaryOperator BitwiseNot = new JSUnaryOperator("~", false);
+        public static readonly JSUnaryOperator LogicalNot = new JSUnaryOperator("!", false);
+        public static readonly JSUnaryOperator Negation = new JSUnaryOperator("-", false);
     }
 
     public sealed class JSUnaryOperator : JSOperator {
-        public JSUnaryOperator (string token)
+        public readonly bool IsPostfix;
+
+        public JSUnaryOperator (string token, bool isPostfix)
             : base(token) {
+
+            IsPostfix = isPostfix;
         }
 
         public override string ToString () {
             return String.Format("UnaryOperator {0}", Token);
-        }
-
-        public static implicit operator JSUnaryOperator (string token) {
-            return new JSUnaryOperator(token);
         }
     }
 

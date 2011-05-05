@@ -18,7 +18,7 @@ namespace JSIL.Transforms {
                 fn.Body.Statements.Insert(
                     0, new JSVariableDeclarationStatement(
                         (from v in Variables select new JSBinaryOperatorExpression(
-                            JSOperator.Assignment, new JSVariable(v.Name, v.Type), JSLiteral.DefaultValue(v.Type)
+                            JSOperator.Assignment, new JSVariable(v.Name, v.Type), JSLiteral.DefaultValue(v.Type), v.Type
                         )).ToArray()
                     )
                 );

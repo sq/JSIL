@@ -18,11 +18,25 @@ namespace JSIL {
         public readonly JavascriptFormatter Output = null;
         public readonly ITypeInfoSource TypeInfo;
 
+        public readonly JSILIdentifier JSIL;
+        public readonly JSSpecialIdentifiers JS;
+        public readonly CLRSpecialIdentifiers CLR;
+
         public ILBlockTranslator (DecompilerContext context, MethodDefinition method, ILBlock ilb, ITypeInfoSource typeInfo) {
             Context = context;
             ThisMethod = method;
             Block = ilb;
             TypeInfo = typeInfo;
+
+            JSIL = new JSILIdentifier(TypeSystem);
+            JS = new JSSpecialIdentifiers(TypeSystem);
+            CLR = new CLRSpecialIdentifiers(TypeSystem);
+        }
+
+        protected TypeSystem TypeSystem {
+            get {
+                return Context.CurrentModule.TypeSystem;
+            }
         }
 
         public JSBlockStatement Translate () {
@@ -33,7 +47,7 @@ namespace JSIL {
             Console.Error.WriteLine("Node        NYI: {0}", node.GetType().Name);
 
             return new JSInvocationExpression(
-                JSDotExpression.New(new JSIdentifier("JSIL"), "UntranslatableNode"),
+                JSIL.UntranslatableNode,
                 new JSStringLiteral(node.GetType().Name)
             );
         }
@@ -88,7 +102,8 @@ namespace JSIL {
         protected JSUnaryOperatorExpression Translate_UnaryOp (ILExpression node, JSUnaryOperator op) {
             return new JSUnaryOperatorExpression(
                 op,
-                TranslateNode(node.Arguments[0])
+                TranslateNode(node.Arguments[0]),
+                node.ExpectedType
             );
         }
 
@@ -96,7 +111,8 @@ namespace JSIL {
             return new JSBinaryOperatorExpression(
                 op,
                 TranslateNode(node.Arguments[0]),
-                TranslateNode(node.Arguments[1])
+                TranslateNode(node.Arguments[1]),
+                node.ExpectedType
             );
         }
 
@@ -218,7 +234,7 @@ namespace JSIL {
 
                 Console.Error.WriteLine("Instruction NYI: {0} {1}", expression.Code, operandType);
                 return new JSInvocationExpression(
-                    JSDotExpression.New(new JSIdentifier("JSIL"), "UntranslatableInstruction"),
+                    JSIL.UntranslatableInstruction,
                     String.IsNullOrWhiteSpace(operandType) ?
                         new JSExpression[] { 
                             new JSStringLiteral(expression.Code.ToString())
@@ -272,10 +288,7 @@ namespace JSIL {
                         if (foundUniversalCatch)
                             throw new NotImplementedException("Catch-all clause must be last");
 
-                        pairCondition = new JSInvocationExpression(
-                            new JSDotExpression(new JSIdentifier("JSIL"), "CheckType"),
-                            catchVariable, new JSType(cb.ExceptionType)
-                        );
+                        pairCondition = JSIL.CheckType(catchVariable, cb.ExceptionType);
                     }
 
                     var pairBody = TranslateBlock(cb.Body);
@@ -283,7 +296,8 @@ namespace JSIL {
                     if (cb.ExceptionVariable != null)
                         pairBody.Statements.Insert(
                             0, new JSExpressionStatement(new JSBinaryOperatorExpression(
-                                JSOperator.Assignment, new JSVariable(cb.ExceptionVariable.Name, cb.ExceptionVariable.Type), catchVariable
+                                JSOperator.Assignment, new JSVariable(cb.ExceptionVariable.Name, cb.ExceptionVariable.Type), 
+                                catchVariable, cb.ExceptionVariable.Type
                             ))
                         );
 
@@ -346,10 +360,9 @@ namespace JSIL {
             ) {
                 // The C# expression 'x is y' translates into roughly '(x is y) > null' in IL, 
                 //  because there's no IL opcode for != and the IL isinst opcode returns object, not bool
-                return new JSInvocationExpression(
-                    new JSDotExpression(new JSIdentifier("JSIL"), "CheckType"),
+                return JSIL.CheckType(
                     TranslateNode(node.Arguments[1]),
-                    new JSType((TypeReference)node.Arguments[0].Operand)
+                    (TypeReference)node.Arguments[0].Operand
                 );
             } else {
                 return Translate_BinaryOp(node, JSOperator.GreaterThan);
@@ -474,7 +487,8 @@ namespace JSIL {
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
                 new JSVariable(variable.Name, variable.Type),
-                TranslateNode(node.Arguments[0])
+                TranslateNode(node.Arguments[0]),
+                TypeSystem
             );
         }
 
@@ -490,7 +504,8 @@ namespace JSIL {
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
                 new JSDotExpression(new JSType(field.DeclaringType), new JSField(field)),
-                TranslateNode(node.Arguments[0])
+                TranslateNode(node.Arguments[0]),
+                TypeSystem
             );
         }
 
@@ -505,7 +520,8 @@ namespace JSIL {
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
                 new JSDotExpression(TranslateNode(node.Arguments[0]), new JSField(field)),
-                TranslateNode(node.Arguments[1])
+                TranslateNode(node.Arguments[1]),
+                TypeSystem
             );
         }
 
@@ -542,14 +558,14 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldnull (ILExpression node) {
-            return JSLiteral.Null();
+            return JSLiteral.Null(node.ExpectedType);
         }
 
         protected JSExpression Translate_Ldftn (ILExpression node, MethodReference method) {
             if (method.HasThis)
                 return JSDotExpression.New(
                     new JSType(method.DeclaringType),
-                    "prototype",
+                    JS.prototype,
                     new JSMethod(method)
                 );
             else
@@ -569,12 +585,27 @@ namespace JSIL {
 
                 if (typeInfo.ValueToEnumMember.TryGetValue(value, out em))
                     return new JSEnumLiteral(em);
-                else
-                    return JSLiteral.New(value);
+                else {
+                    switch (node.Code) {
+                        case ILCode.Ldc_I4:
+                        return new JSIntegerLiteral(value, typeof(int));
+                        case ILCode.Ldc_I8:
+                        return new JSIntegerLiteral(value, typeof(long));
+                    }
+
+                    throw new NotImplementedException();
+                }
             } else if (node.ExpectedType.FullName == "System.Boolean") {
                 return JSLiteral.New(value != 0);
             } else {
-                return JSLiteral.New(value);
+                switch (node.Code) {
+                    case ILCode.Ldc_I4:
+                        return new JSIntegerLiteral(value, typeof(int));
+                    case ILCode.Ldc_I8:
+                        return new JSIntegerLiteral(value, typeof(long));
+                }
+
+                throw new NotImplementedException();
             }
         }
 
@@ -593,7 +624,7 @@ namespace JSIL {
         protected JSDotExpression Translate_Ldlen (ILExpression node) {
             return new JSDotExpression(
                 TranslateNode(node.Arguments[0]),
-                "Length"
+                CLR.Length
             );
         }
 
@@ -611,14 +642,15 @@ namespace JSIL {
                     TranslateNode(node.Arguments[0]),
                     TranslateNode(node.Arguments[1])
                 ),
-                TranslateNode(node.Arguments[2])
+                TranslateNode(node.Arguments[2]),
+                TypeSystem
             );
         }
 
         protected JSInvocationExpression Translate_NullCoalescing (ILExpression node) {
-            return new JSInvocationExpression(
-                JSDotExpression.New(new JSIdentifier("JSIL"), "Coalesce"),
-                Translate(node.Arguments)
+            return JSIL.Coalesce(
+                TranslateNode(node.Arguments[0]),
+                TranslateNode(node.Arguments[1])
             );
         }
 
@@ -628,18 +660,16 @@ namespace JSIL {
                 return TranslateNode(node.Arguments[0]);
             }
 
-            return new JSInvocationExpression(
-                new JSDotExpression(new JSIdentifier("JSIL"), "Cast"),
+            return JSIL.Cast(
                 TranslateNode(node.Arguments[0]),
-                new JSType(targetType)
+                targetType
             );
         }
 
         protected JSInvocationExpression Translate_Isinst (ILExpression node, TypeReference targetType) {
-            return new JSInvocationExpression(
-                new JSDotExpression(new JSIdentifier("JSIL"), "TryCast"),
+            return JSIL.TryCast(
                 TranslateNode(node.Arguments[0]),
-                new JSType(targetType)
+                targetType
             );
         }
 
@@ -648,10 +678,9 @@ namespace JSIL {
         }
 
         protected JSInvocationExpression Translate_Conv (ILExpression node, TypeReference targetType) {
-            return new JSInvocationExpression(
-                new JSDotExpression(new JSIdentifier("JSIL"), "Cast"),
+            return JSIL.Cast(
                 TranslateNode(node.Arguments[0]),
-                new JSType(targetType)
+                targetType
             );
         }
 
@@ -695,23 +724,15 @@ namespace JSIL {
 
         protected JSExpression Translate_Newobj (ILExpression node, MethodReference constructor) {
             if (IsDelegateType(constructor.DeclaringType)) {
-                return new JSInvocationExpression(
-                    JSDotExpression.New(new JSIdentifier("System"), "Delegate", "New"),
-                    (new JSExpression[] { 
-                        JSLiteral.New(constructor.DeclaringType) 
-                    }).Concat(
-                        Translate(node.Arguments)
-                    ).ToArray()
+                return JSIL.NewDelegate(
+                    constructor.DeclaringType,
+                    TranslateNode(node.Arguments[0]),
+                    TranslateNode(node.Arguments[1])
                 );
             } else if (constructor.DeclaringType.IsArray) {
-                
-                return new JSInvocationExpression(
-                    JSDotExpression.New(new JSIdentifier("JSIL"), "MultidimensionalArray", "New"),
-                    (new JSExpression[] { 
-                        new JSType(constructor.DeclaringType.GetElementType())
-                    }).Concat(
-                        Translate(node.Arguments)
-                    ).ToArray()
+                return JSIL.NewMultidimensionalArray(
+                    constructor.DeclaringType.GetElementType(),
+                    Translate(node.Arguments)
                 );
             }
 
@@ -726,17 +747,15 @@ namespace JSIL {
         }
 
         protected JSInvocationExpression Translate_Newarr (ILExpression node, TypeReference elementType) {
-            return new JSInvocationExpression(
-                JSDotExpression.New(new JSIdentifier("System"), "Array", "New"),
-                new JSType(elementType),
+            return JSIL.NewArray(
+                elementType,
                 TranslateNode(node.Arguments[0])
             );
         }
 
         protected JSInvocationExpression Translate_InitArray (ILExpression node, TypeReference elementType) {
-            return new JSInvocationExpression(
-                JSDotExpression.New(new JSIdentifier("System"), "Array", "New"),
-                new JSType(elementType),
+            return JSIL.NewArray(
+                elementType,
                 new JSArrayExpression(Translate(node.Arguments))
             );
         }
@@ -757,7 +776,8 @@ namespace JSIL {
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
                 TranslateNode(node.Arguments[0]),
-                new JSArrayExpression(values.ToArray())
+                new JSArrayExpression(values.ToArray()),
+                TypeSystem
             );
         }
 
@@ -778,9 +798,11 @@ namespace JSIL {
                 }
             }
 
+            var target = TranslateNode(node.Arguments[0]);
+
             return new JSInvocationExpression(
                 new JSDotExpression(
-                    TranslateNode(node.Arguments[0]), "__Initialize__"
+                    target, new JSIdentifier("__Initialize__", target.GetExpectedType(TypeSystem))
                 ),
                 new JSObjectExpression(initializers.ToArray())
             );
@@ -839,9 +861,9 @@ namespace JSIL {
                 } else {
                     thisExpression = JSDotExpression.New(
                         new JSType(method.DeclaringType),
-                        "prototype", new JSMethod(method)
+                        JS.prototype, new JSMethod(method)
                     );
-                    methodName = new JSIdentifier("call");
+                    methodName = JS.call;
                 }
             } else {
                 thisExpression = new JSType(method.DeclaringType);
@@ -905,11 +927,11 @@ namespace JSIL {
 
             if (arg == 1)
                 return new JSUnaryOperatorExpression(
-                    JSOperator.Increment, target, true
+                    JSOperator.PostIncrement, target
                 );
             else
                 return new JSUnaryOperatorExpression(
-                    JSOperator.Decrement, target, true
+                    JSOperator.PostDecrement, target
                 );
         }
     }

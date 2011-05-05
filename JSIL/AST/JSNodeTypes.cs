@@ -265,10 +265,8 @@ namespace JSIL.Ast {
             );
         }
 
-        public virtual TypeReference ExpectedType {
-            get {
-                return null;
-            }
+        public virtual TypeReference GetExpectedType (TypeSystem typeSystem) {
+            throw new NoExpectedTypeException(this);
         }
     }
 
@@ -303,15 +301,12 @@ namespace JSIL.Ast {
         /// <summary>
         /// Converts a constructed reference into an actual reference to the expression it refers to, allowing it to be passed to functions.
         /// </summary>
-        public static bool TryMaterialize (JSExpression reference, out JSExpression materialized) {
+        public static bool TryMaterialize (JSILIdentifier jsil, JSExpression reference, out JSExpression materialized) {
             var mref = reference as JSMemberReferenceExpression;
 
             if (mref != null) {
                 var dot = (JSDotExpression)mref.Referent;
-                materialized = new JSNewExpression(
-                    JSDotExpression.New(
-                        new JSIdentifier("JSIL"), "MemberReference"
-                    ),
+                materialized = jsil.NewMemberReference(
                     dot.Target, dot.Member.ToLiteral()
                 );
                 return true;
@@ -347,10 +342,8 @@ namespace JSIL.Ast {
             }
         }
 
-        public override TypeReference ExpectedType {
-            get {
-                return Referent.ExpectedType;
-            }
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return Referent.GetExpectedType(typeSystem);
         }
     }
 
@@ -375,10 +368,9 @@ namespace JSIL.Ast {
             }
         }
 
-        public override TypeReference ExpectedType {
-            get {
-                return Referent.ExpectedType;
-            }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return Referent.GetExpectedType(typeSystem);
         }
     }
 
@@ -411,28 +403,56 @@ namespace JSIL.Ast {
             return new JSBooleanLiteral(value);
         }
 
+        public static JSIntegerLiteral New (sbyte value) {
+            return new JSIntegerLiteral(value, typeof(sbyte));
+        }
+
+        public static JSIntegerLiteral New (byte value) {
+            return new JSIntegerLiteral(value, typeof(byte));
+        }
+
+        public static JSIntegerLiteral New (short value) {
+            return new JSIntegerLiteral(value, typeof(short));
+        }
+
+        public static JSIntegerLiteral New (ushort value) {
+            return new JSIntegerLiteral(value, typeof(ushort));
+        }
+
+        public static JSIntegerLiteral New (int value) {
+            return new JSIntegerLiteral(value, typeof(int));
+        }
+
+        public static JSIntegerLiteral New (uint value) {
+            return new JSIntegerLiteral(value, typeof(uint));
+        }
+
         public static JSIntegerLiteral New (long value) {
-            return new JSIntegerLiteral(value);
+            return new JSIntegerLiteral(value, typeof(long));
         }
 
         public static JSIntegerLiteral New (ulong value) {
-            return new JSIntegerLiteral((long)value);
+            return new JSIntegerLiteral((long)value, typeof(ulong));
+        }
+
+        public static JSNumberLiteral New (float value) {
+            return new JSNumberLiteral(value, typeof(float));
         }
 
         public static JSNumberLiteral New (double value) {
-            return new JSNumberLiteral(value);
+            return new JSNumberLiteral(value, typeof(double));
         }
 
         public static JSNumberLiteral New (decimal value) {
-            return new JSNumberLiteral((double)value);
+            return new JSNumberLiteral((double)value, typeof(decimal));
         }
 
         public static JSDefaultValueLiteral DefaultValue (TypeReference type) {
             return new JSDefaultValueLiteral(type);
         }
 
-        public static JSNullLiteral Null () {
-            return new JSNullLiteral();
+        public static JSNullLiteral Null (TypeReference type) {
+            return new JSNullLiteral(type);
         }
     }
 
@@ -448,17 +468,36 @@ namespace JSIL.Ast {
                 return this.Value;
             }
         }
+
+        public override string ToString () {
+            return String.Format("<{0} {1}>", GetType().Name, Value);
+        }
     }
 
     public class JSDefaultValueLiteral : JSLiteralBase<TypeReference> {
         public JSDefaultValueLiteral (TypeReference type)
             : base(type) {
         }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return Value;
+        }
     }
 
     public class JSNullLiteral : JSLiteralBase<object> {
-        public JSNullLiteral ()
+        public readonly TypeReference Type;
+
+        public JSNullLiteral (TypeReference type)
             : base(null) {
+
+            Type = type;
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            if (Type != null)
+                return Type;
+            else
+                return typeSystem.Object;
         }
     }
 
@@ -466,17 +505,55 @@ namespace JSIL.Ast {
         public JSBooleanLiteral (bool value)
             : base(value) {
         }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return typeSystem.Boolean;
+        }
     }
 
     public class JSStringLiteral : JSLiteralBase<string> {
         public JSStringLiteral (string value)
             : base(value) {
         }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return typeSystem.String;
+        }
     }
 
     public class JSIntegerLiteral : JSLiteralBase<long> {
-        public JSIntegerLiteral (long value)
+        public readonly Type OriginalType;
+
+        public JSIntegerLiteral (long value, Type originalType)
             : base(value) {
+
+            OriginalType = originalType;
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            if (OriginalType != null) {
+                switch (OriginalType.FullName) {
+                    case "System.Byte":
+                        return typeSystem.Byte;
+                    case "System.SByte":
+                        return typeSystem.SByte;
+                    case "System.UInt16":
+                        return typeSystem.UInt16;
+                    case "System.Int16":
+                        return typeSystem.Int16;
+                    case "System.UInt32":
+                        return typeSystem.UInt32;
+                    case "System.Int32":
+                        return typeSystem.Int32;
+                    case "System.UInt64":
+                        return typeSystem.UInt64;
+                    case "System.Int64":
+                        return typeSystem.Int64;
+                    default:
+                        throw new NotImplementedException();
+                }
+            } else
+                return typeSystem.Int64;
         }
     }
 
@@ -490,11 +567,35 @@ namespace JSIL.Ast {
             EnumType = member.DeclaringType;
             Name = member.Name;
         }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return EnumType;
+        }
     }
 
     public class JSNumberLiteral : JSLiteralBase<double> {
-        public JSNumberLiteral (double value)
+        public readonly Type OriginalType;
+
+        public JSNumberLiteral (double value, Type originalType)
             : base(value) {
+
+                OriginalType = originalType;
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            if (OriginalType != null) {
+                switch (OriginalType.FullName) {
+                    case "System.Single":
+                        return typeSystem.Single;
+                    case "System.Double":
+                        return typeSystem.Double;
+                    case "System.Decimal":
+                        return new TypeReference(typeSystem.Double.Namespace, "Decimal", typeSystem.Double.Module, typeSystem.Double.Scope, true);
+                    default:
+                        throw new NotImplementedException();
+                }
+            } else
+                return typeSystem.Double;
         }
     }
 
@@ -502,17 +603,19 @@ namespace JSIL.Ast {
         public JSTypeNameLiteral (TypeReference value)
             : base(value) {
         }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return typeSystem.String;
+        }
     }
 
     public class JSIdentifier : JSExpression {
         public readonly string Identifier;
+        public readonly TypeReference Type;
 
-        public JSIdentifier (string identifier) {
+        public JSIdentifier (string identifier, TypeReference type = null) {
             Identifier = identifier;
-        }
-
-        public static implicit operator JSIdentifier (string identifier) {
-            return new JSIdentifier(identifier);
+            Type = type;
         }
 
         public override bool Equals (object obj) {
@@ -530,6 +633,13 @@ namespace JSIL.Ast {
 
         public override int GetHashCode () {
             return Identifier.GetHashCode();
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            if (Type != null)
+                return Type;
+            else
+                return base.GetExpectedType(typeSystem);
         }
 
         public override string ToString () {
@@ -555,6 +665,10 @@ namespace JSIL.Ast {
             Type = type;
         }
 
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return Type;
+        }
+        
         public override JSLiteral ToLiteral () {
             return JSLiteral.New(Type);
         }
@@ -567,6 +681,10 @@ namespace JSIL.Ast {
             : base(field.Name) {
             Field = field;
         }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return Field.FieldType;
+        }
     }
 
     public class JSMethod : JSIdentifier {
@@ -575,6 +693,10 @@ namespace JSIL.Ast {
         public JSMethod (MethodReference method)
             : base(GetMethodName(method)) {
             Method = method;
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return Method.ReturnType;
         }
 
         protected static string GetMethodName (MethodReference method) {
@@ -604,10 +726,8 @@ namespace JSIL.Ast {
             Type = type;
         }
 
-        public override TypeReference ExpectedType {
-            get {
-                return Type;
-            }
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return Type;
         }
 
         public override string ToString () {
@@ -634,6 +754,10 @@ namespace JSIL.Ast {
             return result;
         }
 
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return Member.GetExpectedType(typeSystem);
+        }
+
         public JSExpression Target {
             get {
                 return Values[0];
@@ -650,6 +774,16 @@ namespace JSIL.Ast {
     public class JSIndexerExpression : JSExpression {
         public JSIndexerExpression (JSExpression target, JSExpression index)
             : base (target, index) {
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            var targetType = Target.GetExpectedType(typeSystem);
+
+            var at = targetType as ArrayType;
+            if (at != null)
+                return at.GetElementType();
+            else
+                return base.GetExpectedType(typeSystem);
         }
 
         public JSExpression Target {
@@ -673,6 +807,10 @@ namespace JSIL.Ast {
         public JSNewExpression (JSExpression type, params JSExpression[] arguments) : base(
             (new [] { type }).Concat(arguments).ToArray()
         ) {
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return Values[0].GetExpectedType(typeSystem);
         }
 
         public JSExpression Type {
@@ -699,6 +837,10 @@ namespace JSIL.Ast {
             get {
                 return Values[0];
             }
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return Target.GetExpectedType(typeSystem);
         }
 
         public IList<JSExpression> Arguments {
@@ -755,16 +897,64 @@ namespace JSIL.Ast {
         where TOperator : JSOperator {
 
         public readonly TOperator Operator;
+        public readonly TypeReference ExpectedType;
 
-        protected JSOperatorExpression (TOperator op, params JSExpression[] values)
+        protected JSOperatorExpression (TOperator op, TypeReference expectedType, params JSExpression[] values)
             : base(values) {
+
             Operator = op;
+            ExpectedType = expectedType;
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            if (ExpectedType != null)
+                return ExpectedType;
+
+            TypeReference inferredType = null;
+            foreach (var value in Values) {
+                var valueType = value.GetExpectedType(typeSystem);
+
+                if (inferredType == null)
+                    inferredType = valueType;
+                else if (valueType.FullName == inferredType.FullName)
+                    continue;
+                else
+                    return base.GetExpectedType(typeSystem);
+            }
+
+            return inferredType;
         }
     }
 
     public class JSBinaryOperatorExpression : JSOperatorExpression<JSBinaryOperator> {
-        public JSBinaryOperatorExpression (JSBinaryOperator op, JSExpression lhs, JSExpression rhs)
-            : base(op, lhs, rhs) {
+        /// <summary>
+        /// Construct a binary operator expression with an explicit expected type.
+        /// If the explicit expected type is null, expected type will be inferred to be the type of both sides if they share a type.
+        /// </summary>
+        public JSBinaryOperatorExpression (JSBinaryOperator op, JSExpression lhs, JSExpression rhs, TypeReference expectedType) : base(
+            op, expectedType, lhs, rhs
+        ) {
+        }
+
+        /// <summary>
+        /// Construct a binary operator expression with an implicit expected type.
+        /// If the operator is the assignment operator, the expected type will be the expected type of the right hand side.
+        /// Otherwise, the expected type will be inferred to be the type of both sides if they share a type.
+        /// Otherwise, the expression will have no expected type.
+        /// </summary>
+        public JSBinaryOperatorExpression (JSBinaryOperator op, JSExpression lhs, JSExpression rhs, TypeSystem typeSystem)
+            : base(
+            op, 
+            InferExpectedType(op, lhs, rhs, typeSystem),
+            lhs, rhs
+        ) {
+        }
+
+        public static TypeReference InferExpectedType (JSBinaryOperator op, JSExpression lhs, JSExpression rhs, TypeSystem typeSystem) {
+            if (op == JSOperator.Assignment)
+                return rhs.GetExpectedType(typeSystem);
+            else
+                return null;
         }
 
         public JSExpression Left {
@@ -781,18 +971,26 @@ namespace JSIL.Ast {
     }
 
     public class JSUnaryOperatorExpression : JSOperatorExpression<JSUnaryOperator> {
-        public readonly bool Postfix;
+        public JSUnaryOperatorExpression (JSUnaryOperator op, JSExpression expression, TypeReference expectedType = null)
+            : base(op, expectedType, expression) {
+        }
 
-        public JSUnaryOperatorExpression (JSUnaryOperator op, JSExpression expression, bool postfix = false)
-            : base(op, expression) {
-
-            Postfix = postfix;
+        public bool IsPostfix {
+            get {
+                return ((JSUnaryOperator)Operator).IsPostfix;
+            }
         }
 
         public JSExpression Expression {
             get {
                 return Values[0];
             }
+        }
+    }
+
+    public class NoExpectedTypeException : NotImplementedException {
+        public NoExpectedTypeException (JSExpression node)
+            : base(String.Format("Node of type {0} has no expected type: {1}", node.GetType().Name, node)) {
         }
     }
 }

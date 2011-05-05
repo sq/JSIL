@@ -497,7 +497,7 @@ namespace JSIL {
             output.Semicolon();
         }
 
-        public static JSFunctionExpression TranslateMethod (DecompilerContext context, MethodDefinition method, ITypeInfoSource typeInfo) {
+        public static JSFunctionExpression TranslateMethod (DecompilerContext context, MethodDefinition method, ITypeInfoSource typeInfo, JavascriptFormatter output = null) {
             var oldMethod = context.CurrentMethod;
             try {
                 context.CurrentMethod = method;
@@ -517,10 +517,16 @@ namespace JSIL {
                 var body = translator.Translate();
 
                 var function = new JSFunctionExpression(
-                    method.Name, translator.Translate(method.Parameters), body
+                    new JSMethod(method), translator.Translate(method.Parameters), body
                 );
 
+                new EmulateStructAssignment(context.CurrentModule.TypeSystem).Visit(function);
                 new IntroduceVariableDeclarations(allVariables).Visit(function);
+
+                if (output != null) {
+                    var emitter = new JavascriptAstEmitter(output, translator.JSIL);
+                    emitter.Visit(function);
+                }
 
                 return function;
             } finally {
@@ -549,9 +555,7 @@ namespace JSIL {
 
             output.Token(" = ");
 
-            var function = TranslateMethod(context, method, this);
-            var emitter = new JavascriptAstEmitter(output);
-            emitter.Visit(function);
+            TranslateMethod(context, method, this, output);
         }
     }
 }

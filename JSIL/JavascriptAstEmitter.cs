@@ -13,10 +13,13 @@ namespace JSIL {
     public class JavascriptAstEmitter : JSAstVisitor {
         public readonly JavascriptFormatter Output;
 
+        public readonly JSILIdentifier JSIL;
+
         protected readonly Stack<bool> IncludeTypeParens = new Stack<bool>();
 
-        public JavascriptAstEmitter (JavascriptFormatter output) {
+        public JavascriptAstEmitter (JavascriptFormatter output, JSILIdentifier jsil) {
             Output = output;
+            JSIL = jsil;
             IncludeTypeParens.Push(false);
         }
 
@@ -158,7 +161,7 @@ namespace JSIL {
         public void VisitNode (JSPassByReferenceExpression byref) {
             JSExpression referent;
 
-            if (JSReferenceExpression.TryMaterialize(byref.Referent, out referent)) {
+            if (JSReferenceExpression.TryMaterialize(JSIL, byref.Referent, out referent)) {
                 Output.Comment("ref");
                 Visit(referent);
             } else {
@@ -273,12 +276,12 @@ namespace JSIL {
         }
 
         public void VisitNode (JSUnaryOperatorExpression bop) {
-            if (!bop.Postfix)
+            if (!bop.IsPostfix)
                 Output.Token(bop.Operator.Token);
 
             Visit(bop.Expression);
 
-            if (bop.Postfix)
+            if (bop.IsPostfix)
                 Output.Token(bop.Operator.Token);
         }
 

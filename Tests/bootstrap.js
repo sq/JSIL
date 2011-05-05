@@ -440,7 +440,12 @@ System.Array.Of = function (type) {
 
   return compositeType;
 };
-System.Array.New = function (type, sizeOrInitializer) {
+System.Array.CheckType = function (value) {
+  return JSIL.IsArray(value);
+}
+
+JSIL.Array = {};
+JSIL.Array.New = function (type, sizeOrInitializer) {
   if (Array.isArray(sizeOrInitializer)) {
     // If non-numeric, assume array initializer
     var result = new Array(sizeOrInitializer.length);
@@ -458,9 +463,6 @@ System.Array.New = function (type, sizeOrInitializer) {
 
   return result;
 };
-System.Array.CheckType = function (value) {
-  return JSIL.IsArray(value);
-}
 
 JSIL.MultidimensionalArray = function (dimensions) {
   var totalSize = dimensions[0];
@@ -541,7 +543,7 @@ System.Delegate.Combine = function (lhs, rhs) {
 
   var newList = Array.prototype.slice.call(lhs.GetInvocationList());
   newList.push.apply(newList, rhs.GetInvocationList());
-  var result = System.MulticastDelegate.New(newList);
+  var result = JSIL.MulticastDelegate.New(newList);
   return result;
 };
 System.Delegate.Remove = function (lhs, rhs) {
@@ -571,15 +573,17 @@ System.Delegate.Remove = function (lhs, rhs) {
   else if (newList.length == 1)
     return newList[0];
   else
-    return System.MulticastDelegate.New(newList);
+    return JSIL.MulticastDelegate.New(newList);
 };
-System.Delegate.Types = {};
-System.Delegate.New = function (typeName, object, method) {
-  var proto = System.Delegate.Types[typeName];
+
+JSIL.Delegate = {};
+JSIL.Delegate.Types = {};
+JSIL.Delegate.New = function (typeName, object, method) {
+  var proto = JSIL.Delegate.Types[typeName];
 
   if (typeof (proto) == "undefined") {
     proto = JSIL.MakeProto(System.Delegate, typeName, true);
-    System.Delegate.Types[typeName] = proto;
+    JSIL.Delegate.Types[typeName] = proto;
   }
 
   if ((typeof (method) == "undefined") &&
@@ -602,7 +606,7 @@ System.Delegate.New = function (typeName, object, method) {
   return result;
 }
 
-System.MulticastDelegate = {}
+System.MulticastDelegate = {};
 System.MulticastDelegate.prototype = JSIL.MakeProto(System.Delegate, "System.MulticastDelegate", true);
 System.MulticastDelegate.prototype.GetInvocationList = function () {
   return this.delegates;
@@ -612,7 +616,9 @@ System.MulticastDelegate.prototype.Invoke = function () {
 };
 System.MulticastDelegate.Combine = System.Delegate.Combine;
 System.MulticastDelegate.Remove = System.Delegate.Remove;
-System.MulticastDelegate.New = function (delegates) {
+
+JSIL.MulticastDelegate = {};
+JSIL.MulticastDelegate.New = function (delegates) {
   var invoker = function () {
     var result;
     for (var i = 0; i < this.length; i++) {
