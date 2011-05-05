@@ -474,12 +474,7 @@ namespace JSIL {
         }
 
         protected JSIdentifier Translate_Ldloc (ILExpression node, ILVariable variable) {
-            // Methods of structs have a 'this' pointer which is a reference, and we want to treat it as if it
-            //  were a object instead
-            if ((variable.Name == "this") && (variable.OriginalParameter.Index == -1))
-                return new JSVariable(variable.Name, variable.Type.GetElementType());
-            else
-                return new JSVariable(variable.Name, variable.Type);
+            return new JSVariable(variable.Name, variable.Type);
         }
 
         protected JSExpression Translate_Ldloca (ILExpression node, ILVariable variable) {
@@ -506,15 +501,26 @@ namespace JSIL {
         protected JSBinaryOperatorExpression Translate_Stsfld (ILExpression node, FieldReference field) {
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
-                new JSDotExpression(new JSType(field.DeclaringType), new JSField(field)),
+                Translate_Ldsfld(node, field),
                 TranslateNode(node.Arguments[0]),
                 TypeSystem
             );
         }
 
         protected JSDotExpression Translate_Ldfld (ILExpression node, FieldReference field) {
+            var firstArg = node.Arguments[0];
+            var translated = TranslateNode(firstArg);
+
+            JSExpression thisExpression;
+            if (firstArg.InferredType.GetElementType().IsValueType) {
+                if (!JSReferenceExpression.TryDereference(translated, out thisExpression))
+                    throw new InvalidOperationException("this-expression for field access on value type must be a reference");
+            } else {
+                thisExpression = translated;
+            }
+
             return new JSDotExpression(
-                TranslateNode(node.Arguments[0]), 
+                thisExpression, 
                 new JSField(field)
             );
         }
@@ -522,7 +528,7 @@ namespace JSIL {
         protected JSBinaryOperatorExpression Translate_Stfld (ILExpression node, FieldReference field) {
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
-                new JSDotExpression(TranslateNode(node.Arguments[0]), new JSField(field)),
+                Translate_Ldfld(node, field),
                 TranslateNode(node.Arguments[1]),
                 TypeSystem
             );
