@@ -324,18 +324,24 @@ namespace JSIL {
         }
 
         public void VisitNode (JSBinaryOperatorExpression bop) {
-            bool parens = (bop.Operator != JSOperator.Assignment);
+            bool parens = !(bop.Operator is JSAssignmentOperator);
+            bool needsTruncation = false;
 
-            if (bop.Operator == JSOperator.Divide) {
-                // We need to perform manual truncation to maintain the semantics of C#'s division operator
-                if (
+            // We need to perform manual truncation to maintain the semantics of C#'s division operator
+            if ((bop.Operator == JSOperator.Divide)) {
+                needsTruncation =                     
                     (ILBlockTranslator.IsIntegral(bop.Left.GetExpectedType(TypeSystem)) &&
                     ILBlockTranslator.IsIntegral(bop.Right.GetExpectedType(TypeSystem))) ||
-                    ILBlockTranslator.IsIntegral(bop.GetExpectedType(TypeSystem))
-                ) {
-                    Output.Identifier("Math.floor", true);
-                    parens = true;
-                }
+                    ILBlockTranslator.IsIntegral(bop.GetExpectedType(TypeSystem));
+
+                parens |= needsTruncation;
+            }
+
+            if (needsTruncation) {
+                if (bop.Operator is JSAssignmentOperator)
+                    throw new NotImplementedException();
+
+                Output.Identifier("Math.floor", true);
             }
 
             if (parens)

@@ -522,6 +522,7 @@ namespace JSIL {
 
         protected JSBinaryOperatorExpression Translate_CompoundAssignment (ILExpression node) {
             JSAssignmentOperator op;
+            var translated = (JSBinaryOperatorExpression)TranslateNode(node.Arguments[0]);
 
             switch (node.Arguments[0].Code) {
                 case ILCode.Add:
@@ -533,9 +534,12 @@ namespace JSIL {
                 case ILCode.Mul:
                     op = JSOperator.MultiplyAssignment;
                     break;
+                // We can't emit the /= operator since its semantics differ from C#'s
                 case ILCode.Div:
-                    op = JSOperator.DivideAssignment;
-                    break;
+                    return new JSBinaryOperatorExpression(
+                        JSOperator.Assignment, translated.Left, 
+                        translated, translated.ExpectedType
+                    );
                 case ILCode.Rem:
                     op = JSOperator.RemainderAssignment;
                     break;
@@ -560,8 +564,6 @@ namespace JSIL {
                 default:
                     return null;
             }
-
-            var translated = (JSBinaryOperatorExpression)TranslateNode(node.Arguments[0]);
 
             return new JSBinaryOperatorExpression(
                 op, translated.Left, translated.Right, translated.ExpectedType

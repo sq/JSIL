@@ -1276,7 +1276,7 @@ namespace JSIL.Ast {
         }
 
         public static TypeReference InferExpectedType (JSBinaryOperator op, JSExpression lhs, JSExpression rhs, TypeSystem typeSystem) {
-            if (op == JSOperator.Assignment)
+            if (op is JSAssignmentOperator)
                 return rhs.GetExpectedType(typeSystem);
             else
                 return null;
