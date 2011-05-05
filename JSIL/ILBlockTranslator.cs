@@ -732,13 +732,18 @@ namespace JSIL {
             );
         }
 
-        protected JSBinaryOperatorExpression Translate_Stloc (ILExpression node, ILVariable variable) {
+        protected JSExpression Translate_Stloc (ILExpression node, ILVariable variable) {
             if (node.Arguments[0].Code == ILCode.GetCallSite)
                 DynamicCallSites.SetAlias(variable, (FieldReference)node.Arguments[0].Operand);
 
+            // GetCallSite and CreateCallSite produce null expressions, so we want to ignore assignments containing them
+            var value = TranslateNode(node.Arguments[0]);
+            if (value.IsNull)
+                return new JSNullExpression();
+
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment, Translate_Ldloc(node, variable),
-                TranslateNode(node.Arguments[0]),
+                value,
                 TypeSystem
             );
         }
@@ -768,6 +773,10 @@ namespace JSIL {
         protected JSExpression Translate_Ldfld (ILExpression node, FieldReference field) {
             var firstArg = node.Arguments[0];
             var translated = TranslateNode(firstArg);
+
+            // GetCallSite and CreateCallSite produce null expressions, so we want to ignore field references containing them
+            if (translated.IsNull)
+                return new JSNullExpression();
 
             if (AssemblyTranslator.IsIgnored(field.Resolve()))
                 return new JSInvocationExpression(
@@ -1054,7 +1063,9 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_InitializedObject (ILExpression node) {
-            return JSExpression.Null;
+            // This should get eliminated by the handler for InitObject, but if we just return a null expression here,
+            //  stfld treats us as an invalid assignment target.
+            return new JSInvocationExpression(JSIL.UntranslatableInstruction, JSLiteral.New("InitializedObject"));
         }
 
         protected JSExpression Translate_InitCollection (ILExpression node) {
