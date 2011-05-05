@@ -516,22 +516,27 @@ namespace JSIL {
                 optimizer.Optimize(context, ilb);
 
                 var allVariables = ilb.GetSelfAndChildrenRecursive<ILExpression>().Select(e => e.Operand as ILVariable)
-                    .Where(v => v != null && !v.IsParameter).Distinct().ToList();
+                    .Where(v => v != null && !v.IsParameter).Distinct();
 
                 NameVariables.AssignNamesToVariables(context, decompiler.Parameters, allVariables, ilb);
 
-                var translator = new ILBlockTranslator(context, method, ilb, typeInfo);
+                var translator = new ILBlockTranslator(context, method, ilb, typeInfo, allVariables);
                 var body = translator.Translate();
 
                 var function = new JSFunctionExpression(
-                    new JSMethod(method), translator.Translate(method.Parameters), body
+                    new JSMethod(method), 
+                    (from v in translator.Variables.Values 
+                     where v.IsParameter && !(v is JSThisParameter)
+                     select (JSParameter)v
+                    ).ToArray(), 
+                    body
                 );
 
                 new EmulateStructAssignment(
                     context.CurrentModule.TypeSystem, translator.CLR
                 ).Visit(function);
                 new IntroduceVariableDeclarations(
-                    allVariables
+                    translator.Variables
                 ).Visit(function);
 
                 if (output != null) {

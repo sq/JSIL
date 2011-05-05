@@ -18,11 +18,13 @@ namespace JSIL {
         public readonly JavascriptFormatter Output = null;
         public readonly ITypeInfoSource TypeInfo;
 
+        public readonly Dictionary<string, JSVariable> Variables = new Dictionary<string, JSVariable>();
+
         public readonly JSILIdentifier JSIL;
         public readonly JSSpecialIdentifiers JS;
         public readonly CLRSpecialIdentifiers CLR;
 
-        public ILBlockTranslator (DecompilerContext context, MethodDefinition method, ILBlock ilb, ITypeInfoSource typeInfo) {
+        public ILBlockTranslator (DecompilerContext context, MethodDefinition method, ILBlock ilb, ITypeInfoSource typeInfo, IEnumerable<ILVariable> allVariables) {
             Context = context;
             ThisMethod = method;
             Block = ilb;
@@ -31,6 +33,15 @@ namespace JSIL {
             JSIL = new JSILIdentifier(TypeSystem);
             JS = new JSSpecialIdentifiers(TypeSystem);
             CLR = new CLRSpecialIdentifiers(TypeSystem);
+
+            if (method.HasThis)
+                Variables.Add("this", new JSThisParameter(method.DeclaringType));
+
+            foreach (var parameter in method.Parameters)
+                Variables.Add(parameter.Name, JSVariable.New(parameter));
+
+            foreach (var variable in allVariables)
+                Variables.Add(variable.Name, JSVariable.New(variable));
         }
 
         protected TypeSystem TypeSystem {
@@ -82,10 +93,23 @@ namespace JSIL {
             ).ToArray();
         }
 
-        public JSVariable[] Translate (IEnumerable<ParameterDefinition> parameters) {
+        public static JSVariable[] Translate (IEnumerable<ParameterDefinition> parameters) {
             return (
-                from p in parameters select new JSVariable(p.Name, p.ParameterType)
+                from p in parameters select JSVariable.New(p)
             ).ToArray();
+        }
+
+        protected JSVariable DeclareVariable (string name, TypeReference type) {
+            JSVariable result;
+            if (Variables.TryGetValue(name, out result)) {
+                if (result.Type != type)
+                    throw new InvalidOperationException("A variable with that name is already declared in this scope, with a different type.");
+            } else {
+                result = new JSVariable(name, type);
+                Variables.Add(name, result);
+            }
+
+            return result;
         }
 
         protected void CommaSeparatedList (IEnumerable<ILExpression> values) {
@@ -273,7 +297,7 @@ namespace JSIL {
 
             if (tcb.CatchBlocks.Count > 0) {
                 var pairs = new List<KeyValuePair<JSExpression, JSStatement>>();
-                catchVariable = new JSVariable("$exception", Context.CurrentModule.TypeSystem.Object);
+                catchVariable = DeclareVariable("$exception", Context.CurrentModule.TypeSystem.Object);
 
                 bool isFirst = true, foundUniversalCatch = false, openBrace = false;
                 foreach (var cb in tcb.CatchBlocks) {
@@ -296,13 +320,16 @@ namespace JSIL {
 
                     var pairBody = TranslateBlock(cb.Body);
 
-                    if (cb.ExceptionVariable != null)
+                    if (cb.ExceptionVariable != null) {
+                        var excVariable = DeclareVariable(cb.ExceptionVariable.Name, cb.ExceptionVariable.Type);
+
                         pairBody.Statements.Insert(
-                            0, new JSExpressionStatement(new JSBinaryOperatorExpression(
-                                JSOperator.Assignment, new JSVariable(cb.ExceptionVariable.Name, cb.ExceptionVariable.Type), 
+                            0, new JSVariableDeclarationStatement(new JSBinaryOperatorExpression(
+                                JSOperator.Assignment, excVariable,
                                 catchVariable, cb.ExceptionVariable.Type
                             ))
                         );
+                    }
 
                     pairs.Add(new KeyValuePair<JSExpression, JSStatement>(
                         pairCondition, pairBody
@@ -473,18 +500,27 @@ namespace JSIL {
             }
         }
 
-        protected JSIdentifier Translate_Ldloc (ILExpression node, ILVariable variable) {
-            return new JSVariable(variable.Name, variable.Type);
+        protected JSVariable Translate_Ldloc (ILExpression node, ILVariable variable) {
+            JSVariable v;
+            if (!Variables.TryGetValue(variable.Name, out v))
+                Debugger.Break();
+
+            return v;
         }
 
         protected JSExpression Translate_Ldloca (ILExpression node, ILVariable variable) {
-            return JSReferenceExpression.New(Translate_Ldloc(node, variable));
+            return JSReferenceExpression.New(
+                Translate_Ldloc(node, variable).Reference()
+            );
         }
 
         protected JSBinaryOperatorExpression Translate_Stloc (ILExpression node, ILVariable variable) {
+            JSVariable v;
+            if (!Variables.TryGetValue(variable.Name, out v))
+                Debugger.Break();
+
             return new JSBinaryOperatorExpression(
-                JSOperator.Assignment,
-                new JSVariable(variable.Name, variable.Type),
+                JSOperator.Assignment, v,
                 TranslateNode(node.Arguments[0]),
                 TypeSystem
             );

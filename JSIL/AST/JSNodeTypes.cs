@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using ICSharpCode.Decompiler.ILAst;
 using JSIL.Internal;
 using Mono.Cecil;
 
@@ -95,15 +96,15 @@ namespace JSIL.Ast {
 
     public class JSFunctionExpression : JSExpression {
         public readonly JSIdentifier FunctionName;
-        public readonly IList<JSVariable> Parameters;
+        public readonly JSParameter[] Parameters;
         public readonly JSBlockStatement Body;
 
-        public JSFunctionExpression (JSIdentifier functionName, IList<JSVariable> parameters, JSBlockStatement body)
+        public JSFunctionExpression (JSIdentifier functionName, JSParameter[] parameters, JSBlockStatement body)
             : this (parameters, body) {
             FunctionName = functionName;
         }
 
-        public JSFunctionExpression (IList<JSVariable> parameters, JSBlockStatement body) {
+        public JSFunctionExpression (JSParameter[] parameters, JSBlockStatement body) {
             FunctionName = null;
             Parameters = parameters;
             Body = body;
@@ -287,7 +288,7 @@ namespace JSIL.Ast {
             var refe = reference as JSReferenceExpression;
 
             if ((variable != null) && (variable.IsReference)) {
-                referent = new JSVariable(variable.Identifier, variable.Type.GetElementType());
+                referent = variable.Dereference();
                 return true;
             } else if (refe == null) {
                 referent = null;
@@ -318,7 +319,7 @@ namespace JSIL.Ast {
                 variable = refe.Referent as JSVariable;
 
             if ((variable != null) && (variable.IsReference)) {
-                materialized = new JSVariable(variable.Identifier, variable.Type.GetElementType());
+                materialized = variable.Dereference();
                 return true;
             }
 
@@ -345,6 +346,10 @@ namespace JSIL.Ast {
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             return Referent.GetExpectedType(typeSystem);
         }
+
+        public override string ToString () {
+            return String.Format("&{0}", Referent);
+        }
     }
 
     public class JSMemberReferenceExpression : JSReferenceExpression {
@@ -368,9 +373,12 @@ namespace JSIL.Ast {
             }
         }
 
-
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             return Referent.GetExpectedType(typeSystem);
+        }
+
+        public override string ToString () {
+            return String.Format("<ref {0}>", Referent);
         }
     }
 
@@ -726,6 +734,31 @@ namespace JSIL.Ast {
             Type = type;
         }
 
+        public virtual bool IsParameter {
+            get {
+                return false;
+            }
+        }
+
+        public static JSVariable New (ILVariable variable) {
+            return new JSVariable(variable.Name, variable.Type);
+        }
+
+        public static JSVariable New (ParameterReference parameter) {
+            return new JSParameter(parameter.Name, parameter.ParameterType);
+        }
+
+        public JSVariable Reference () {
+            return new JSVariable(Identifier, new ByReferenceType(Type));
+        }
+
+        public JSVariable Dereference () {
+            if (IsReference)
+                return new JSVariable(Identifier, Type.GetElementType());
+            else
+                throw new InvalidOperationException();
+        }
+
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             return Type;
         }
@@ -735,6 +768,31 @@ namespace JSIL.Ast {
                 return String.Format("<ref {0} {1}>", Type, Identifier);
             else
                 return String.Format("<var {0} {1}>", Type, Identifier);
+        }
+    }
+
+    public class JSParameter : JSVariable {
+        internal JSParameter (string name, TypeReference type)
+            : base(name, type) {
+        }
+
+        public override bool IsParameter {
+            get {
+                return true;
+            }
+        }
+    }
+
+    public class JSThisParameter : JSParameter {
+        public JSThisParameter (TypeReference type)
+            : base("this", GetTypeOfThisParameter(type)) {
+        }
+
+        protected static TypeReference GetTypeOfThisParameter (TypeReference type) {
+            if (type.IsValueType)
+                return new ByReferenceType(type);
+            else
+                return type;
         }
     }
 
