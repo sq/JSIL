@@ -7,6 +7,7 @@ using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.ILAst;
 using JSIL.Ast;
 using JSIL.Internal;
+using JSIL.Transforms;
 using Microsoft.CSharp.RuntimeBinder;
 using Mono.Cecil;
 
@@ -477,8 +478,18 @@ namespace JSIL {
                         (cb.ExceptionType.FullName == "System.Exception") ||
                         (cb.ExceptionType.FullName == "System.Object")
                     ) {
-                        if (foundUniversalCatch)
-                            throw new NotImplementedException("Found multiple catch-all clauses");
+                        // Bad IL sometimes contains entirely meaningless catch clauses. It's best to just ignore them.
+                        if (
+                            (cb.Body.Count == 1) && (cb.Body[0] is ILExpression) &&
+                            (((ILExpression)cb.Body[0]).Code == ILCode.Rethrow)
+                        ) {
+                            continue;
+                        }
+
+                        if (foundUniversalCatch) {
+                            Debug.WriteLine("Found multiple catch-all catch clauses. Any after the first will be ignored.");
+                            continue;
+                        }
 
                         foundUniversalCatch = true;
                     } else {
@@ -763,7 +774,7 @@ namespace JSIL {
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment, Translate_Ldloc(node, variable),
                 value,
-                TypeSystem
+                value.GetExpectedType(TypeSystem)
             );
         }
 
@@ -781,11 +792,13 @@ namespace JSIL {
         }
 
         protected JSBinaryOperatorExpression Translate_Stsfld (ILExpression node, FieldReference field) {
+            var rhs = TranslateNode(node.Arguments[0]);
+
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
                 Translate_Ldsfld(node, field),
-                TranslateNode(node.Arguments[0]),
-                TypeSystem
+                rhs,
+                rhs.GetExpectedType(TypeSystem)
             );
         }
 
@@ -805,7 +818,7 @@ namespace JSIL {
             JSExpression thisExpression;
             if (DereferenceType(firstArg.InferredType).IsValueType) {
                 if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression))
-                    throw new InvalidOperationException("this-expression for field access on value type must be a reference");
+                    Debug.WriteLine("Warning: Accessing a field of a value type with a value as this instead of a reference.");
             } else {
                 thisExpression = translated;
             }
@@ -824,11 +837,12 @@ namespace JSIL {
         }
 
         protected JSBinaryOperatorExpression Translate_Stfld (ILExpression node, FieldReference field) {
+            var rhs = TranslateNode(node.Arguments[1]);
+
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
                 Translate_Ldfld(node, field),
-                TranslateNode(node.Arguments[1]),
-                TypeSystem
+                rhs, rhs.GetExpectedType(TypeSystem)
             );
         }
 
@@ -946,15 +960,22 @@ namespace JSIL {
             );
         }
 
-        protected JSIndexerExpression Translate_Ldelem (ILExpression node, TypeReference elementType) {
-            return new JSIndexerExpression(
+        protected JSExpression Translate_Ldelem (ILExpression node, TypeReference elementType) {
+            var expectedType = elementType ?? node.ExpectedType ?? node.InferredType;
+
+            JSExpression result = new JSIndexerExpression(
                 TranslateNode(node.Arguments[0]),
                 TranslateNode(node.Arguments[1]),
-                elementType ?? node.ExpectedType
+                expectedType
             );
+
+            if (EmulateStructAssignment.IsStruct(expectedType))
+                result = JSReferenceExpression.New(result);
+
+            return result;
         }
 
-        protected JSIndexerExpression Translate_Ldelem (ILExpression node) {
+        protected JSExpression Translate_Ldelem (ILExpression node) {
             return Translate_Ldelem(node, null);
         }
 
@@ -1149,13 +1170,15 @@ namespace JSIL {
                 values.Add(invocation.Arguments[0]);
             }
 
+            var initializer = JSIL.NewCollectionInitializer(
+                new JSArrayExpression(inferredType, values.ToArray())
+            );
+
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
                 TranslateNode(node.Arguments[0]),
-                JSIL.NewCollectionInitializer(
-                    new JSArrayExpression(inferredType, values.ToArray())
-                ),
-                TypeSystem
+                initializer,
+                TypeSystem.Object
             );
         }
 
@@ -1195,7 +1218,10 @@ namespace JSIL {
                         (TypeReference)node.Arguments[0].Operand
                     );
                 } else {
-                    Console.Error.WriteLine("Unrecognized typeof expression");
+                    return new JSInvocationExpression(
+                        JSIL.UntranslatableInstruction, 
+                        JSLiteral.New(node.Arguments[0].ToString())
+                    );
                 }
             }
 

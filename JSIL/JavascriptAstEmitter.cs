@@ -245,7 +245,9 @@ namespace JSIL {
                     Output.NewLine();
                 }
 
+                Output.PlainTextFormatter.Indent();
                 Visit(c.Body);
+                Output.PlainTextFormatter.Unindent();
             }
 
             Output.CloseBrace();

@@ -20,6 +20,9 @@ namespace JSIL.Transforms {
         }
 
         public static bool IsStruct (TypeReference type) {
+            if (type == null)
+                return false;
+
             var typedef = type.Resolve();
 
             if (typedef != null) {

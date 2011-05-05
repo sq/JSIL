@@ -354,9 +354,6 @@ namespace JSIL.Ast {
     public class JSReferenceExpression : JSExpression {
         protected JSReferenceExpression (JSExpression referent)
             : base (referent) {
-
-            if (referent is JSReferenceExpression)
-                throw new InvalidOperationException("Nested references are not allowed");
         }
 
         /// <summary>
@@ -365,6 +362,12 @@ namespace JSIL.Ast {
         public static bool TryDereference (JSILIdentifier jsil, JSExpression reference, out JSExpression referent) {
             var variable = reference as JSVariable;
             var refe = reference as JSReferenceExpression;
+            var boe = reference as JSBinaryOperatorExpression;
+
+            if ((boe != null) && (boe.Operator is JSAssignmentOperator)) {
+                if (TryDereference(jsil, boe.Right, out referent))
+                    return true;
+            }
 
             if (variable != null) {
                 if (variable.IsReference) {
@@ -439,7 +442,7 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return Referent.GetExpectedType(typeSystem);
+            return new ByReferenceType(Referent.GetExpectedType(typeSystem));
         }
 
         public override string ToString () {
@@ -1332,27 +1335,6 @@ namespace JSIL.Ast {
         public JSBinaryOperatorExpression (JSBinaryOperator op, JSExpression lhs, JSExpression rhs, TypeReference expectedType) : base(
             op, expectedType, lhs, rhs
         ) {
-        }
-
-        /// <summary>
-        /// Construct a binary operator expression with an implicit expected type.
-        /// If the operator is the assignment operator, the expected type will be the expected type of the right hand side.
-        /// Otherwise, the expected type will be inferred to be the type of both sides if they share a type.
-        /// Otherwise, the expression will have no expected type.
-        /// </summary>
-        public JSBinaryOperatorExpression (JSBinaryOperator op, JSExpression lhs, JSExpression rhs, TypeSystem typeSystem)
-            : base(
-            op, 
-            InferExpectedType(op, lhs, rhs, typeSystem),
-            lhs, rhs
-        ) {
-        }
-
-        public static TypeReference InferExpectedType (JSBinaryOperator op, JSExpression lhs, JSExpression rhs, TypeSystem typeSystem) {
-            if (op is JSAssignmentOperator)
-                return rhs.GetExpectedType(typeSystem);
-            else
-                return null;
         }
 
         public JSExpression Left {
