@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using ICSharpCode.Decompiler.ILAst;
 using JSIL.Internal;
+using JSIL.Transforms;
 using Mono.Cecil;
 
 namespace JSIL.Ast {
@@ -96,15 +97,16 @@ namespace JSIL.Ast {
 
     public class JSFunctionExpression : JSExpression {
         public readonly JSIdentifier FunctionName;
-        public readonly JSParameter[] Parameters;
+        // This has to be JSVariable[], because 'this' is of type (JSVariableReference<JSThisParameter>) for structs
+        public readonly JSVariable[] Parameters;
         public readonly JSBlockStatement Body;
 
-        public JSFunctionExpression (JSIdentifier functionName, JSParameter[] parameters, JSBlockStatement body)
+        public JSFunctionExpression (JSIdentifier functionName, JSVariable[] parameters, JSBlockStatement body)
             : this (parameters, body) {
             FunctionName = functionName;
         }
 
-        public JSFunctionExpression (JSParameter[] parameters, JSBlockStatement body) {
+        public JSFunctionExpression (JSVariable[] parameters, JSBlockStatement body) {
             FunctionName = null;
             Parameters = parameters;
             Body = body;
@@ -320,6 +322,11 @@ namespace JSIL.Ast {
 
             if ((variable != null) && (variable.IsReference)) {
                 materialized = variable.Dereference();
+                return true;
+            }
+
+            if ((variable != null) && EmulateStructAssignment.IsStruct(variable.Type)) {
+                materialized = variable;
                 return true;
             }
 
@@ -740,6 +747,12 @@ namespace JSIL.Ast {
             }
         }
 
+        public virtual bool IsThis {
+            get {
+                return false;
+            }
+        }
+
         public static JSVariable New (ILVariable variable) {
             return new JSVariable(variable.Name, variable.Type);
         }
@@ -749,12 +762,12 @@ namespace JSIL.Ast {
         }
 
         public virtual JSVariable Reference () {
-            return new JSVariable(Identifier, new ByReferenceType(Type));
+            return new JSVariableReference(this);
         }
 
         public virtual JSVariable Dereference () {
             if (IsReference)
-                return new JSVariable(Identifier, Type.GetElementType());
+                return new JSVariableDereference(this);
             else
                 throw new InvalidOperationException();
         }
@@ -781,42 +794,76 @@ namespace JSIL.Ast {
                 return true;
             }
         }
-
-        public override JSVariable Reference () {
-            return new JSParameter(Identifier, new ByReferenceType(Type));
-        }
-
-        public override JSVariable Dereference () {
-            if (IsReference)
-                return new JSParameter(Identifier, Type.GetElementType());
-            else
-                throw new InvalidOperationException();
-        }
     }
 
     public class JSThisParameter : JSParameter {
-        public JSThisParameter (TypeReference type, bool autoReference = true) : base(
-            "this", 
-            autoReference ? GetTypeOfThisParameter(type) : type
-        ) {
+        public JSThisParameter (TypeReference type) : 
+            base("this", type) {
         }
 
-        protected static TypeReference GetTypeOfThisParameter (TypeReference type) {
+        public override bool IsThis {
+            get {
+                return true;
+            }
+        }
+
+        public static JSVariable New (TypeReference type) {
             if (type.IsValueType)
-                return new ByReferenceType(type);
+                return new JSVariableReference(new JSThisParameter(type));
             else
-                return type;
+                return new JSThisParameter(type);
+        }
+    }
+
+    public class JSVariableDereference : JSVariable {
+        public readonly JSVariable Referent;
+
+        public JSVariableDereference (JSVariable referent)
+            : base(referent.Identifier, referent.Type.GetElementType()) {
+
+            Referent = referent;
+        }
+
+        public override bool IsParameter {
+            get {
+                return Referent.IsParameter;
+            }
+        }
+
+        public override bool IsThis {
+            get {
+                return Referent.IsThis;
+            }
         }
 
         public override JSVariable Reference () {
-            return new JSThisParameter(new ByReferenceType(Type), false);
+            return Referent;
+        }
+    }
+
+    public class JSVariableReference : JSVariable {
+        public readonly JSVariable Referent;
+
+        public JSVariableReference (JSVariable referent)
+            : base(referent.Identifier, new ByReferenceType(referent.Type)) {
+
+            Referent = referent;
+        }
+
+        public override bool IsParameter {
+            get {
+                return Referent.IsParameter;
+            }
+        }
+
+        public override bool IsThis {
+            get {
+                return Referent.IsThis;
+            }
         }
 
         public override JSVariable Dereference () {
-            if (IsReference)
-                return new JSThisParameter(Type.GetElementType(), false);
-            else
-                throw new InvalidOperationException();
+            return Referent;
         }
     }
 

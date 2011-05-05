@@ -48,7 +48,11 @@ namespace JSIL.Transforms {
                 if (!referentVariable.IsParameter)
                     throw new InvalidOperationException();
 
-                return referentVariable;
+                // If the parameter is a reference, we don't care about it.
+                if (Variables[referentVariable.Identifier].IsReference)
+                    return null;
+                else
+                    return referentVariable;
             }
 
             return null;

@@ -35,7 +35,7 @@ namespace JSIL {
             CLR = new CLRSpecialIdentifiers(TypeSystem);
 
             if (method.HasThis)
-                Variables.Add("this", new JSThisParameter(method.DeclaringType));
+                Variables.Add("this", JSThisParameter.New(method.DeclaringType));
 
             foreach (var parameter in method.Parameters)
                 Variables.Add(parameter.Name, JSVariable.New(parameter));

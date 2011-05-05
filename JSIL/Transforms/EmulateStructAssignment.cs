@@ -17,7 +17,7 @@ namespace JSIL.Transforms {
             CLR = clr;
         }
 
-        protected static bool IsStruct (TypeReference type) {
+        public static bool IsStruct (TypeReference type) {
             var typedef = type.Resolve();
 
             if (typedef != null) {
@@ -37,7 +37,8 @@ namespace JSIL.Transforms {
             if (
                 (value is JSLiteral) ||
                 (value is JSInvocationExpression) ||
-                (value is JSNewExpression)
+                (value is JSNewExpression) ||
+                (value is JSPassByReferenceExpression)
             ) {
                 return false;
             }

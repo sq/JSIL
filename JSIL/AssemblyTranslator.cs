@@ -526,8 +526,8 @@ namespace JSIL {
                 var function = new JSFunctionExpression(
                     new JSMethod(method), 
                     (from v in translator.Variables.Values 
-                     where v.IsParameter && !(v is JSThisParameter)
-                     select (JSParameter)v
+                     where v.IsParameter && !v.IsThis
+                     select v
                     ).ToArray(), 
                     body
                 );
