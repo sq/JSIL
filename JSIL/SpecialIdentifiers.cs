@@ -23,16 +23,18 @@ namespace JSIL {
     public class JSSpecialIdentifiers {
         protected readonly TypeSystem TypeSystem;
 
-        public readonly JSIdentifier prototype,
-            call;
+        public readonly JSIdentifier prototype;
         public readonly JSDotExpression floor;
 
         public JSSpecialIdentifiers (TypeSystem typeSystem) {
             TypeSystem = typeSystem;
 
             prototype = Object("prototype");
-            call = Object("call");
             floor = new JSDotExpression(Object("Math"), new JSIdentifier("floor", TypeSystem.Int64));
+        }
+
+        public JSIdentifier call (TypeReference returnType) {
+            return new JSIdentifier("call", returnType);
         }
 
         protected JSIdentifier Object (string name) {

@@ -22,10 +22,17 @@ namespace JSIL.Ast {
         public IEnumerable<JSNode> AllChildrenRecursive {
             get {
                 foreach (var child in Children) {
+                    if (child == null)
+                        continue;
+
                     yield return child;
 
-                    foreach (var subchild in child.AllChildrenRecursive)
+                    foreach (var subchild in child.AllChildrenRecursive) {
+                        if (subchild == null)
+                            continue;
+
                         yield return subchild;
+                    }
                 }
             }
         }

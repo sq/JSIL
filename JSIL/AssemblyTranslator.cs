@@ -203,10 +203,8 @@ namespace JSIL {
         }
 
         public TypeInfo GetTypeInformation (TypeReference type) {
-            if (type == null) {
-                Debugger.Break();
+            if (type == null)
                 throw new ArgumentNullException("type");
-            }
 
             var fullName = type.FullName;
 
@@ -219,6 +217,17 @@ namespace JSIL {
 
         TypeInfo ITypeInfoSource.Get (TypeReference type) {
             return GetTypeInformation(type);
+        }
+
+        public static bool IsIgnored (MethodDefinition method) {
+            if (method == null)
+                return false;
+
+            foreach (var p in method.Parameters)
+                if (p.ParameterType.IsPointer)
+                    return true;
+
+            return IsIgnored((Mono.Cecil.ICustomAttributeProvider)method);
         }
 
         public static bool IsIgnored (Mono.Cecil.ICustomAttributeProvider attributedNode) {

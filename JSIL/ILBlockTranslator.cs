@@ -897,9 +897,13 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldc (ILExpression node, long value) {
+            string typeName = null;
+            var expressionType = node.ExpectedType ?? node.InferredType;
             TypeInfo typeInfo = null;
-            if (node.ExpectedType != null)
-                typeInfo = TypeInfo.Get(node.ExpectedType);
+            if (expressionType != null) {
+                typeName = expressionType.FullName;
+                typeInfo = TypeInfo.Get(expressionType);
+            }
 
             if ((typeInfo != null) && (typeInfo.EnumMembers.Count > 0)) {
                 EnumMemberInfo[] enumMembers = null;
@@ -920,14 +924,14 @@ namespace JSIL {
                 else {
                     switch (node.Code) {
                         case ILCode.Ldc_I4:
-                        return new JSIntegerLiteral(value, typeof(int));
+                            return new JSIntegerLiteral(value, typeof(int));
                         case ILCode.Ldc_I8:
-                        return new JSIntegerLiteral(value, typeof(long));
+                            return new JSIntegerLiteral(value, typeof(long));
                     }
 
                     throw new NotImplementedException();
                 }
-            } else if (node.ExpectedType.FullName == "System.Boolean") {
+            } else if (typeName == "System.Boolean") {
                 return JSLiteral.New(value != 0);
             } else {
                 switch (node.Code) {
@@ -1028,16 +1032,12 @@ namespace JSIL {
 
         protected JSExpression Translate_Unbox_Any (ILExpression node, TypeReference targetType) {
             var value = TranslateNode(node.Arguments[0]);
+            var result = JSIL.Cast(value, targetType);
 
-            JSExpression referent;
-            if (JSReferenceExpression.TryDereference(JSIL, value, out referent)) {
-                Debugger.Break();
-                return referent;
-            } else {
-                return JSIL.Cast(
-                    value, targetType
-                );
-            }
+            if (EmulateStructAssignment.IsStruct(targetType))
+                return JSReferenceExpression.New(result);
+            else
+                return result;
         }
 
         protected JSExpression Translate_Conv (ILExpression node, TypeReference targetType) {
@@ -1190,10 +1190,16 @@ namespace JSIL {
 
                 var boe = translated as JSBinaryOperatorExpression;
                 if (boe != null) {
-                    var key = ((JSDotExpression)boe.Left).Member;
-                    var value = boe.Right;
+                    var leftDot = boe.Left as JSDotExpression;
 
-                    initializers.Add(new JSPairExpression(key, value));
+                    if (leftDot != null) {
+                        var key = leftDot.Member;
+                        var value = boe.Right;
+
+                        initializers.Add(new JSPairExpression(key, value));
+                    } else {
+                        Debug.WriteLine(String.Format("Warning: Unrecognized object initializer form: {0}", boe));
+                    }
                 } else {
                     Debug.WriteLine(String.Format("Warning: Object initializer element not implemented: {0}", translated));
                 }
@@ -1226,7 +1232,7 @@ namespace JSIL {
             }
 
             var methodDef = method.Resolve();
-            if (AssemblyTranslator.IsIgnored(methodDef))
+            if ((methodDef != null) && AssemblyTranslator.IsIgnored(methodDef))
                 return new JSInvocationExpression(
                     JSIL.IgnoredMember, JSLiteral.New(method.Name)
                 );
@@ -1271,7 +1277,7 @@ namespace JSIL {
                         new JSType(method.DeclaringType),
                         JS.prototype, new JSMethod(method)
                     );
-                    methodName = JS.call;
+                    methodName = JS.call(method.ReturnType);
                 }
             } else {
                 thisExpression = new JSType(method.DeclaringType);
