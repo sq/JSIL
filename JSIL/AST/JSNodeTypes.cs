@@ -97,16 +97,17 @@ namespace JSIL.Ast {
 
     public class JSFunctionExpression : JSExpression {
         public readonly JSIdentifier FunctionName;
-        // This has to be JSVariable[], because 'this' is of type (JSVariableReference<JSThisParameter>) for structs
-        public readonly JSVariable[] Parameters;
+        // This has to be JSVariable, because 'this' is of type (JSVariableReference<JSThisParameter>) for structs
+        // We also need to make this an IEnumerable, so it can be a select expression instead of a constant array
+        public readonly IEnumerable<JSVariable> Parameters;
         public readonly JSBlockStatement Body;
 
-        public JSFunctionExpression (JSIdentifier functionName, JSVariable[] parameters, JSBlockStatement body)
+        public JSFunctionExpression (JSIdentifier functionName, IEnumerable<JSVariable> parameters, JSBlockStatement body)
             : this (parameters, body) {
             FunctionName = functionName;
         }
 
-        public JSFunctionExpression (JSVariable[] parameters, JSBlockStatement body) {
+        public JSFunctionExpression (IEnumerable<JSVariable> parameters, JSBlockStatement body) {
             FunctionName = null;
             Parameters = parameters;
             Body = body;

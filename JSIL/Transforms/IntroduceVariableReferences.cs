@@ -2,19 +2,20 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using ICSharpCode.Decompiler.ILAst;
 using JSIL.Ast;
+using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class IntroduceVariableReferences : JSAstVisitor {
         public readonly HashSet<string> TransformedVariables = new HashSet<string>();
         public readonly Dictionary<string, JSVariable> Variables;
+        public readonly HashSet<string> ParameterNames;
         public readonly JSILIdentifier JSIL;
 
-        public IntroduceVariableReferences (JSILIdentifier jsil, Dictionary<string, JSVariable> variables) {
+        public IntroduceVariableReferences (JSILIdentifier jsil, Dictionary<string, JSVariable> variables, HashSet<string> parameterNames) {
             JSIL = jsil;
             Variables = variables;
+            ParameterNames = parameterNames;
         }
 
         protected bool MatchesConstructedReference (JSExpression lhs, JSVariable rhs) {
@@ -68,6 +69,28 @@ namespace JSIL.Transforms {
             return null;
         }
 
+        protected void TransformParameterIntoReference (JSVariable parameter, JSBlockStatement block) {
+            var newParameter = new JSParameter("_" + parameter.Identifier, parameter.Type);
+            var newVariable = new JSVariable(parameter.Identifier, new ByReferenceType(parameter.Type));
+            var newDeclaration = new JSVariableDeclarationStatement(
+                new JSBinaryOperatorExpression(
+                    JSOperator.Assignment,
+                    // We have to use parameter here, not newVariable or newParameter, otherwise the resulting
+                    // assignment looks like 'x.value = initializer' instead of 'x = initializer'
+                    parameter,
+                    JSIL.NewReference(newParameter),
+                    newVariable.Type
+                )
+            );
+
+            Debug.WriteLine(String.Format("Transformed {0} into {1}={2}", parameter, newVariable, newParameter));
+            Variables[newVariable.Identifier] = newVariable;
+            Variables.Add(newParameter.Identifier, newParameter);
+            ParameterNames.Remove(parameter.Identifier);
+            ParameterNames.Add(newParameter.Identifier);
+            block.Statements.Insert(0, newDeclaration);
+        }
+
         protected void TransformVariableIntoReference (JSVariable variable, JSVariableDeclarationStatement statement, int declarationIndex) {
             var oldDeclaration = statement.Declarations[declarationIndex];
             var newVariable = variable.Reference();
@@ -88,10 +111,10 @@ namespace JSIL.Transforms {
 
         public void VisitNode (JSFunctionExpression fn) {
             var referencesToTransform =
-                from r in fn.AllChildrenRecursive.OfType<JSPassByReferenceExpression>()
+                (from r in fn.AllChildrenRecursive.OfType<JSPassByReferenceExpression>()
                 let cr = GetConstructedReference(r)
                 where cr != null
-                select r;
+                select r).ToArray();
             var declarations =
                 fn.AllChildrenRecursive.OfType<JSVariableDeclarationStatement>().ToArray();
 
@@ -108,7 +131,7 @@ namespace JSIL.Transforms {
                                  select p).FirstOrDefault();
 
                 if (parameter != null) {
-                    Console.WriteLine("{0} is reference to {1}", r, parameter);
+                    TransformParameterIntoReference(parameter, fn.Body);
                 } else {
                     var declaration = (from vds in declarations
                                        from ivd in vds.Declarations.Select((vd, i) => new { vd = vd, i = i })

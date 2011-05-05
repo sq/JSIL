@@ -525,10 +525,7 @@ namespace JSIL {
 
                 var function = new JSFunctionExpression(
                     new JSMethod(method), 
-                    (from v in translator.Variables.Values 
-                     where v.IsParameter && !v.IsThis
-                     select v
-                    ).ToArray(), 
+                    from p in translator.ParameterNames select translator.Variables[p], 
                     body
                 );
 
@@ -541,7 +538,8 @@ namespace JSIL {
                 ).Visit(function);
                 new IntroduceVariableReferences(
                     translator.JSIL,
-                    translator.Variables
+                    translator.Variables,
+                    translator.ParameterNames
                 ).Visit(function);
 
                 if (output != null) {

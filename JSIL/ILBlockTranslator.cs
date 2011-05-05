@@ -18,6 +18,7 @@ namespace JSIL {
         public readonly JavascriptFormatter Output = null;
         public readonly ITypeInfoSource TypeInfo;
 
+        public readonly HashSet<string> ParameterNames = new HashSet<string>();
         public readonly Dictionary<string, JSVariable> Variables = new Dictionary<string, JSVariable>();
 
         public readonly JSILIdentifier JSIL;
@@ -37,8 +38,10 @@ namespace JSIL {
             if (method.HasThis)
                 Variables.Add("this", JSThisParameter.New(method.DeclaringType));
 
-            foreach (var parameter in method.Parameters)
+            foreach (var parameter in method.Parameters) {
+                ParameterNames.Add(parameter.Name);
                 Variables.Add(parameter.Name, JSVariable.New(parameter));
+            }
 
             foreach (var variable in allVariables)
                 Variables.Add(variable.Name, JSVariable.New(variable));
