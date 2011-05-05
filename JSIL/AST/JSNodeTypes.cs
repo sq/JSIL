@@ -1091,11 +1091,18 @@ namespace JSIL.Ast {
     }
 
     public class JSIndexerExpression : JSExpression {
-        public JSIndexerExpression (JSExpression target, JSExpression index)
+        public TypeReference ElementType;
+
+        public JSIndexerExpression (JSExpression target, JSExpression index, TypeReference elementType = null)
             : base (target, index) {
+
+            ElementType = elementType;
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            if (ElementType != null)
+                return ElementType;
+
             var targetType = Target.GetExpectedType(typeSystem);
 
             var at = targetType as ArrayType;

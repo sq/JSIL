@@ -217,6 +217,14 @@ namespace JSIL {
             return AssemblyTranslator.TranslateMethod(Context, method, TypeInfo);
         }
 
+        public static TypeReference DereferenceType (TypeReference type) {
+            var brt = type as ByReferenceType;
+            if (brt != null)
+                return brt.ElementType;
+            else
+                return type;
+        }
+
         public static bool IsNumeric (TypeReference type) {
             if (type.IsPrimitive) {
                 switch (type.FullName) {
@@ -784,7 +792,7 @@ namespace JSIL {
                 );
 
             JSExpression thisExpression;
-            if (firstArg.InferredType.GetElementType().IsValueType) {
+            if (DereferenceType(firstArg.InferredType).IsValueType) {
                 if (!JSReferenceExpression.TryDereference(translated, out thisExpression))
                     throw new InvalidOperationException("this-expression for field access on value type must be a reference");
             } else {
@@ -794,6 +802,13 @@ namespace JSIL {
             return new JSDotExpression(
                 thisExpression, 
                 new JSField(field)
+            );
+        }
+
+        protected JSExpression Translate_Stind (ILExpression node) {
+            return new JSInvocationExpression(
+                JSIL.UntranslatableInstruction,
+                JSLiteral.New(node.Code.ToString())
             );
         }
 
@@ -813,6 +828,9 @@ namespace JSIL {
         protected JSExpression Translate_Ldobj (ILExpression node, TypeReference type) {
             var reference = TranslateNode(node.Arguments[0]);
             JSExpression referent;
+
+            if (reference.GetExpectedType(TypeSystem).IsPointer)
+                return new JSInvocationExpression(JSIL.UntranslatablePointer, reference);
 
             if (!JSReferenceExpression.TryDereference(reference, out referent))
                 throw new NotImplementedException();
@@ -920,11 +938,16 @@ namespace JSIL {
             );
         }
 
-        protected JSIndexerExpression Translate_Ldelem (ILExpression node) {
+        protected JSIndexerExpression Translate_Ldelem (ILExpression node, TypeReference elementType) {
             return new JSIndexerExpression(
                 TranslateNode(node.Arguments[0]),
-                TranslateNode(node.Arguments[1])
+                TranslateNode(node.Arguments[1]),
+                elementType
             );
+        }
+
+        protected JSIndexerExpression Translate_Ldelem (ILExpression node) {
+            return Translate_Ldelem(node, null);
         }
 
         protected JSBinaryOperatorExpression Translate_Stelem (ILExpression node) {
@@ -986,12 +1009,36 @@ namespace JSIL {
                 return JSIL.Cast(value, targetType);
         }
 
+        protected JSExpression Translate_Conv_I (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int64);
+        }
+
+        protected JSExpression Translate_Conv_U (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt64);
+        }
+
+        protected JSExpression Translate_Conv_U1 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Byte);
+        }
+
+        protected JSExpression Translate_Conv_U2 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt16);
+        }
+
         protected JSExpression Translate_Conv_U4 (ILExpression node) {
             return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt32);
         }
 
         protected JSExpression Translate_Conv_U8 (ILExpression node) {
             return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt64);
+        }
+
+        protected JSExpression Translate_Conv_I1 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.SByte);
+        }
+
+        protected JSExpression Translate_Conv_I2 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int16);
         }
 
         protected JSExpression Translate_Conv_I4 (ILExpression node) {
@@ -1141,8 +1188,8 @@ namespace JSIL {
                     JSIL.IgnoredMember, JSLiteral.New(method.Name)
                 );
 
-            var thisType = ThisMethod.DeclaringType.GetElementType();
-            var declaringType = method.DeclaringType.GetElementType();
+            var thisType = DereferenceType(ThisMethod.DeclaringType);
+            var declaringType = DereferenceType(method.DeclaringType);
 
             IEnumerable<ILExpression> arguments = node.Arguments;
             JSExpression thisExpression;
@@ -1152,10 +1199,11 @@ namespace JSIL {
                 var firstArg = arguments.First();
                 var ilv = firstArg.Operand as ILVariable;
 
-                var firstArgType = firstArg.ExpectedType.GetElementType();
+                var firstArgType = DereferenceType(firstArg.ExpectedType);
+
                 var translated = TranslateNode(firstArg);
 
-                if (firstArg.InferredType.GetElementType().IsValueType) {
+                if (DereferenceType(firstArg.InferredType).IsValueType) {
                     if (!JSReferenceExpression.TryDereference(translated, out thisExpression))
                         throw new InvalidOperationException("this-expression for method invocation on value type must be a reference");
                 } else {
@@ -1212,7 +1260,7 @@ namespace JSIL {
                     JSIL.IgnoredMember, JSLiteral.New(method.Name)
                 );
 
-            if (firstArg.InferredType.GetElementType().IsValueType) {
+            if (DereferenceType(firstArg.InferredType).IsValueType) {
                 if (!JSReferenceExpression.TryDereference(translated, out thisExpression))
                     throw new InvalidOperationException("this-expression for method invocation on value type must be a reference");
             } else {

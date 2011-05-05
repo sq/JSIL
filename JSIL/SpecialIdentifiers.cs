@@ -45,6 +45,7 @@ namespace JSIL {
 
         public readonly JSDotExpression UntranslatableNode,
             UntranslatableInstruction,
+            UntranslatablePointer,
             IgnoredMember;
 
         public JSILIdentifier (TypeSystem typeSystem)
@@ -54,6 +55,7 @@ namespace JSIL {
 
             UntranslatableNode = Dot("UntranslatableNode", TypeSystem.Void);
             UntranslatableInstruction = Dot("UntranslatableInstruction", TypeSystem.Void);
+            UntranslatablePointer = Dot("UntranslatablePointer", TypeSystem.Void);
             IgnoredMember = Dot("IgnoredMember", TypeSystem.Void);
         }
 
