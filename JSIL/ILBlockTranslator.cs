@@ -217,9 +217,28 @@ namespace JSIL {
             return AssemblyTranslator.TranslateMethod(Context, method, TypeInfo);
         }
 
+        public static bool IsNumeric (TypeReference type) {
+            if (type.IsPrimitive) {
+                switch (type.FullName) {
+                    case "System.String":
+                    case "System.IntPtr":
+                    case "System.UIntPtr":
+                    case "System.Boolean":
+                        return false;
+                    default:
+                        return true;
+                }
+            } else {
+                return false;
+            }
+        }
+
         public static bool IsIntegral (TypeReference type) {
             if (type.IsPrimitive) {
                 switch (type.FullName) {
+                    case "System.String":
+                    case "System.IntPtr":
+                    case "System.UIntPtr":
                     case "System.Decimal":
                     case "System.Double":
                     case "System.Single":
@@ -894,34 +913,44 @@ namespace JSIL {
             return Translate_Castclass(node, targetType);
         }
 
-        protected JSInvocationExpression Translate_Conv (ILExpression node, TypeReference targetType) {
-            return JSIL.Cast(
-                TranslateNode(node.Arguments[0]),
-                targetType
-            );
+        protected JSExpression Translate_Conv (ILExpression node, TypeReference targetType) {
+            var value = TranslateNode(node.Arguments[0]);
+            var currentType = value.GetExpectedType(TypeSystem);
+
+            if (IsNumeric(currentType) && IsNumeric(targetType)) {
+                if (IsIntegral(targetType)) {
+                    if (IsIntegral(currentType))
+                        return value;
+                    else
+                        return new JSInvocationExpression(JS.floor, value);
+                } else {
+                    return value;
+                }
+            } else
+                return JSIL.Cast(value, targetType);
         }
 
-        protected JSInvocationExpression Translate_Conv_U4 (ILExpression node) {
+        protected JSExpression Translate_Conv_U4 (ILExpression node) {
             return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt32);
         }
 
-        protected JSInvocationExpression Translate_Conv_U8 (ILExpression node) {
+        protected JSExpression Translate_Conv_U8 (ILExpression node) {
             return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt64);
         }
 
-        protected JSInvocationExpression Translate_Conv_I4 (ILExpression node) {
+        protected JSExpression Translate_Conv_I4 (ILExpression node) {
             return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32);
         }
 
-        protected JSInvocationExpression Translate_Conv_I8 (ILExpression node) {
+        protected JSExpression Translate_Conv_I8 (ILExpression node) {
             return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int64);
         }
 
-        protected JSInvocationExpression Translate_Conv_R4 (ILExpression node) {
+        protected JSExpression Translate_Conv_R4 (ILExpression node) {
             return Translate_Conv(node, Context.CurrentModule.TypeSystem.Single);
         }
 
-        protected JSInvocationExpression Translate_Conv_R8 (ILExpression node) {
+        protected JSExpression Translate_Conv_R8 (ILExpression node) {
             return Translate_Conv(node, Context.CurrentModule.TypeSystem.Double);
         }
 

@@ -25,12 +25,14 @@ namespace JSIL {
 
         public readonly JSIdentifier prototype,
             call;
+        public readonly JSDotExpression floor;
 
         public JSSpecialIdentifiers (TypeSystem typeSystem) {
             TypeSystem = typeSystem;
 
             prototype = Object("prototype");
             call = Object("call");
+            floor = new JSDotExpression(Object("Math"), new JSIdentifier("floor", TypeSystem.Int64));
         }
 
         protected JSIdentifier Object (string name) {
