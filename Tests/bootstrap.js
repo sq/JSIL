@@ -169,7 +169,8 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
   }
 
   var ct = expectedType.CheckType;
-  if (typeof (ct) != "undefined" && !Boolean(bypassCustomCheckMethod))
+  if ((typeof (ct) != "undefined") && 
+      !Boolean(bypassCustomCheckMethod))
     return ct(value);
 
   var expectedProto = expectedType.prototype;
@@ -177,8 +178,10 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
       (typeof (expectedProto) == "null"))
     return false;
 
-  if (JSIL.CheckDerivation(Object.getPrototypeOf(value), expectedProto))
-    return true;
+  if (typeof (value) == "object") {
+    if (JSIL.CheckDerivation(Object.getPrototypeOf(value), expectedProto))
+      return true;
+  }
 
   return false;
 };
@@ -979,10 +982,40 @@ System.Double.CheckType = function (value) {
 }
 System.Double.prototype = JSIL.MakeNumericProto(Number, "System.Double", false);
 
-System.Decimal = function (value) {
-  return value;
-}
+JSIL.MakeStruct(System, "Decimal", "System.Decimal");
 System.Decimal.CheckType = function (value) {
-  return (typeof (value) == "number");
-}
-System.Decimal.prototype = JSIL.MakeNumericProto(Number, "System.Decimal", false);
+  return (typeof (value) == "number") || 
+    JSIL.CheckType(value, System.Decimal, true);
+};
+System.Decimal.prototype._ctor = function (value) {
+  this.value = value;
+};
+System.Decimal.prototype.toString = function (format) {
+  return this.value.toString();
+};
+System.Decimal.op_Explicit = function (value) {
+  if (JSIL.CheckType(value, System.Decimal, true))
+    return value;
+  else
+    return new System.Decimal(value);
+};
+System.Decimal.op_Addition = function (lhs, rhs) {
+  lhs = System.Decimal.op_Explicit(lhs);
+  rhs = System.Decimal.op_Explicit(rhs);
+  return new System.Decimal(lhs.value + rhs.value);
+};
+System.Decimal.op_Subtraction = function (lhs, rhs) {
+  lhs = System.Decimal.op_Explicit(lhs);
+  rhs = System.Decimal.op_Explicit(rhs);
+  return new System.Decimal(lhs.value - rhs.value);
+};
+System.Decimal.op_Multiply = function (lhs, rhs) {
+  lhs = System.Decimal.op_Explicit(lhs);
+  rhs = System.Decimal.op_Explicit(rhs);
+  return new System.Decimal(lhs.value * rhs.value);
+};
+System.Decimal.op_Division = function (lhs, rhs) {
+  lhs = System.Decimal.op_Explicit(lhs);
+  rhs = System.Decimal.op_Explicit(rhs);
+  return new System.Decimal(lhs.value / rhs.value);
+};
