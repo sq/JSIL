@@ -149,6 +149,9 @@ namespace JSIL {
                     case "System.Decimal":
                         Output.Value(0.0);
                         break;
+                    case "System.Boolean":
+                        Output.Keyword("false");
+                        break;
                     default:
                         VisitNode(new JSNewExpression(new JSType(defaultValue.Value)));
                         break;
