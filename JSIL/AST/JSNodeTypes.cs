@@ -1219,6 +1219,38 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSTernaryOperatorExpression : JSExpression {
+        public readonly TypeReference ExpectedType;
+
+        public JSTernaryOperatorExpression (JSExpression condition, JSExpression trueValue, JSExpression falseValue, TypeReference expectedType)
+            : base (condition, trueValue, falseValue) {
+
+            ExpectedType = expectedType;
+        }
+
+        public JSExpression Condition {
+            get {
+                return Values[0];
+            }
+        }
+
+        public JSExpression True{
+            get {
+                return Values[1];
+            }
+        }
+
+        public JSExpression False {
+            get {
+                return Values[2];
+            }
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return ExpectedType;
+        }
+    }
+
     public class JSBinaryOperatorExpression : JSOperatorExpression<JSBinaryOperator> {
         /// <summary>
         /// Construct a binary operator expression with an explicit expected type.

@@ -31,7 +31,18 @@ namespace JSIL.Ast {
 
         public abstract override string ToString ();
 
-        public static readonly JSBinaryOperator Assignment = "=";
+        public static readonly JSAssignmentOperator Assignment = "=";
+        public static readonly JSAssignmentOperator AddAssignment = "+=";
+        public static readonly JSAssignmentOperator SubtractAssignment = "-=";
+        public static readonly JSAssignmentOperator MultiplyAssignment = "*=";
+        public static readonly JSAssignmentOperator DivideAssignment = "/=";
+        public static readonly JSAssignmentOperator RemainderAssignment = "%=";
+        public static readonly JSAssignmentOperator ShiftLeftAssignment = "<<=";
+        public static readonly JSAssignmentOperator ShiftRightAssignment = ">>=";
+        public static readonly JSAssignmentOperator ShiftRightUnsignedAssignment = ">>>=";
+        public static readonly JSAssignmentOperator BitwiseAndAssignment = "&=";
+        public static readonly JSAssignmentOperator BitwiseOrAssignment = "|=";
+        public static readonly JSAssignmentOperator BitwiseXorAssignment = "^=";
 
         public static readonly JSBinaryOperator Equal = "===";
         public static readonly JSBinaryOperator NotEqual = "!==";
@@ -47,6 +58,7 @@ namespace JSIL.Ast {
         public static readonly JSBinaryOperator Remainder = "%";
         public static readonly JSBinaryOperator ShiftLeft = "<<";
         public static readonly JSBinaryOperator ShiftRight = ">>";
+        public static readonly JSBinaryOperator ShiftRightUnsigned = ">>>";
 
         public static readonly JSBinaryOperator BitwiseAnd = "&";
         public static readonly JSBinaryOperator BitwiseOr = "|";
@@ -64,7 +76,7 @@ namespace JSIL.Ast {
         public static readonly JSUnaryOperator Negation = new JSUnaryOperator("-", false);
     }
 
-    public sealed class JSUnaryOperator : JSOperator {
+    public class JSUnaryOperator : JSOperator {
         public readonly bool IsPostfix;
 
         public JSUnaryOperator (string token, bool isPostfix)
@@ -78,7 +90,7 @@ namespace JSIL.Ast {
         }
     }
 
-    public sealed class JSBinaryOperator : JSOperator {
+    public class JSBinaryOperator : JSOperator {
         public JSBinaryOperator (string token)
             : base(token) {
         }
@@ -89,6 +101,20 @@ namespace JSIL.Ast {
 
         public static implicit operator JSBinaryOperator (string token) {
             return new JSBinaryOperator(token);
+        }
+    }
+
+    public class JSAssignmentOperator : JSBinaryOperator {
+        public JSAssignmentOperator (string token)
+            : base(token) {
+        }
+
+        public override string ToString () {
+            return String.Format("AssignmentOperator {0}", Token);
+        }
+
+        public static implicit operator JSAssignmentOperator (string token) {
+            return new JSAssignmentOperator(token);
         }
     }
 }

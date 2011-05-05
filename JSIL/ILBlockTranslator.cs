@@ -501,6 +501,63 @@ namespace JSIL {
             return Translate_EqualityComparison(node, true);
         }
 
+        protected JSBinaryOperatorExpression Translate_CompoundAssignment (ILExpression node) {
+            JSAssignmentOperator op;
+
+            switch (node.Arguments[0].Code) {
+                case ILCode.Add:
+                    op = JSOperator.AddAssignment;
+                    break;
+                case ILCode.Sub:
+                    op = JSOperator.SubtractAssignment;
+                    break;
+                case ILCode.Mul:
+                    op = JSOperator.MultiplyAssignment;
+                    break;
+                case ILCode.Div:
+                    op = JSOperator.DivideAssignment;
+                    break;
+                case ILCode.Rem:
+                    op = JSOperator.RemainderAssignment;
+                    break;
+                case ILCode.Shl:
+                    op = JSOperator.ShiftLeftAssignment;
+                    break;
+                case ILCode.Shr_Un:
+                    op = JSOperator.ShiftRightUnsignedAssignment;
+                    break;
+                case ILCode.Shr:
+                    op = JSOperator.ShiftRightAssignment;
+                    break;
+                case ILCode.And:
+                    op = JSOperator.BitwiseAndAssignment;
+                    break;
+                case ILCode.Or:
+                    op = JSOperator.BitwiseOrAssignment;
+                    break;
+                case ILCode.Xor:
+                    op = JSOperator.BitwiseXorAssignment;
+                    break;
+                default:
+                    return null;
+            }
+
+            var translated = (JSBinaryOperatorExpression)TranslateNode(node.Arguments[0]);
+
+            return new JSBinaryOperatorExpression(
+                op, translated.Left, translated.Right, translated.ExpectedType
+            );
+        }
+
+        protected JSTernaryOperatorExpression Translate_TernaryOp (ILExpression node) {
+            return new JSTernaryOperatorExpression(
+                TranslateNode(node.Arguments[0]),
+                TranslateNode(node.Arguments[1]),
+                TranslateNode(node.Arguments[2]),
+                node.ExpectedType
+            );
+        }
+
         protected JSBinaryOperatorExpression Translate_Mul (ILExpression node) {
             return Translate_BinaryOp(node, JSOperator.Multiply);
         }
@@ -527,6 +584,10 @@ namespace JSIL {
 
         protected JSBinaryOperatorExpression Translate_Shr (ILExpression node) {
             return Translate_BinaryOp(node, JSOperator.ShiftRight);
+        }
+
+        protected JSBinaryOperatorExpression Translate_Shr_Un (ILExpression node) {
+            return Translate_BinaryOp(node, JSOperator.ShiftRightUnsigned);
         }
 
         protected JSBinaryOperatorExpression Translate_And (ILExpression node) {

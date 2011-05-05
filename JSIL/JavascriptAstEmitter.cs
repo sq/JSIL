@@ -351,6 +351,18 @@ namespace JSIL {
                 Output.RPar();
         }
 
+        public void VisitNode (JSTernaryOperatorExpression ternary) {
+            Visit(ternary.Condition);
+
+            Output.Token(" ? ");
+
+            Visit(ternary.True);
+
+            Output.Token(" : ");
+
+            Visit(ternary.False);
+        }
+
         public void VisitNode (JSNewExpression newexp) {
             Output.Keyword("new");
             Output.Space();
