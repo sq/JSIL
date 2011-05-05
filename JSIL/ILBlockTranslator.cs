@@ -48,7 +48,7 @@ namespace JSIL {
                 Variables.Add(variable.Name, JSVariable.New(variable));
         }
 
-        protected TypeSystem TypeSystem {
+        public TypeSystem TypeSystem {
             get {
                 return Context.CurrentModule.TypeSystem;
             }
@@ -368,7 +368,7 @@ namespace JSIL {
             return result;
         }
 
-        public JSStatement TranslateNode (ILCondition condition) {
+        protected bool TranslateCallSiteConstruction (ILCondition condition, out JSStatement result) {
             var cond = condition.Condition;
             if (
                 (cond.Code == ILCode.LogicNot) &&
@@ -379,28 +379,43 @@ namespace JSIL {
                 (condition.TrueBlock.Body[0] is ILExpression)
             ) {
                 var callSiteExpression = (ILExpression)condition.TrueBlock.Body[0];
+                var callSiteType = callSiteExpression.Arguments[0].ExpectedType;
                 var binderExpression = callSiteExpression.Arguments[0].Arguments[0];
                 var binderMethod = (MethodReference)binderExpression.Operand;
                 var arguments = Translate(binderExpression.Arguments);
+                var targetType = ((IGenericInstance)callSiteType).GenericArguments[0];
 
                 DynamicCallSites.InitializeCallSite(
-                    (FieldReference)cond.Arguments[0].Operand, 
+                    (FieldReference)cond.Arguments[0].Operand,
                     binderMethod.Name,
+                    targetType,
                     arguments
                 );
 
-                return new JSNullStatement();
+                result = new JSNullStatement();
+                return true;
             }
+
+            result = null;
+            return false;
+        }
+
+        public JSStatement TranslateNode (ILCondition condition) {
+            JSStatement result = null;
+            if (TranslateCallSiteConstruction(condition, out result))
+                return result;
 
             JSStatement falseBlock = null;
             if ((condition.FalseBlock != null) && (condition.FalseBlock.Body.Count > 0))
                 falseBlock = TranslateNode(condition.FalseBlock);
 
-            return new JSIfStatement(
-                TranslateNode(cond),
+            result = new JSIfStatement(
+                TranslateNode(condition.Condition),
                 TranslateNode(condition.TrueBlock),
                 falseBlock
             );
+
+            return result;
         }
 
         public JSLabelStatement TranslateNode (ILLabel label) {
@@ -1206,12 +1221,60 @@ namespace JSIL {
             );
         }
 
+        protected JSExpression Translate_InvokeCallSiteTarget (ILExpression node, MethodReference method) {
+            var ldtarget = node.Arguments[0];
+            if (ldtarget.Code != ILCode.Ldfld)
+                throw new NotImplementedException();
+
+            var ldcallsite = ldtarget.Arguments[0];
+            if (ldcallsite.Code != ILCode.GetCallSite)
+                throw new NotImplementedException();
+
+            DynamicCallSiteInfo callSite;
+            if (!DynamicCallSites.Get((FieldReference)ldcallsite.Operand, out callSite)) {
+                throw new InvalidOperationException("Invalid call site invocation");
+            }
+
+            var invocationArguments = Translate(node.Arguments.Skip(1));
+            Debugger.Break();
+
+            return callSite.Translate(this, invocationArguments);
+
+            /*
+            var cond = condition.Condition;
+            if (
+                (cond.Code == ILCode.LogicNot) &&
+                (cond.Arguments.Count > 0) &&
+                (cond.Arguments[0].Code == ILCode.GetCallSite) &&
+                (condition.TrueBlock != null) &&
+                (condition.TrueBlock.Body.Count == 1) &&
+                (condition.TrueBlock.Body[0] is ILExpression)
+            ) {
+                var callSiteExpression = (ILExpression)condition.TrueBlock.Body[0];
+                var binderExpression = callSiteExpression.Arguments[0].Arguments[0];
+                var binderMethod = (MethodReference)binderExpression.Operand;
+                var arguments = Translate(binderExpression.Arguments);
+
+                DynamicCallSites.InitializeCallSite(
+                    (FieldReference)cond.Arguments[0].Operand,
+                    binderMethod.Name,
+                    arguments
+                );
+
+                result = new JSNullStatement();
+                return true;
+            }
+             */
+
+            return null;
+        }
+
         protected JSExpression Translate_GetCallSite (ILExpression node, FieldReference field) {
-            return JSLiteral.Null(field.FieldType);
+            return new JSNullExpression();
         }
 
         protected JSExpression Translate_CreateCallSite (ILExpression node, FieldReference field) {
-            return JSLiteral.Null(field.FieldType);
+            return new JSNullExpression();
         }
 
         protected JSExpression Translate_CallGetter (ILExpression node, MethodReference getter) {

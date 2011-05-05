@@ -476,6 +476,10 @@ namespace JSIL.Ast {
         public override string ToString () {
             return "<Null>";
         }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return typeSystem.Void;
+        }
     }
 
     public abstract class JSLiteral : JSExpression {
