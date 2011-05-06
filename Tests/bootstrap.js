@@ -884,18 +884,30 @@ System.Drawing.Bitmap.prototype.Save = function (filename) {
 }
 
 JSIL.MakeStruct(System.Drawing, "Color", "System.Drawing.Color");
+System.Drawing.Color.prototype.A = 0;
+System.Drawing.Color.prototype.R = 0;
+System.Drawing.Color.prototype.G = 0;
+System.Drawing.Color.prototype.B = 0;
+System.Drawing.Color.prototype.Name = null;
 System.Drawing.Color.prototype._ctor = function (a, r, g, b, name) {
   this.A = a;
   this.R = r;
   this.G = g;
   this.B = b;
   this.Name = name;
-};
+}
 System.Drawing.Color.prototype.toString = function () {
-  if (typeof (this.Name) != "undefined")
+  if ((typeof (this.Name) != "undefined") && (this.Name != null))
     return this.Name;
   else
     return System.String.Format("Color({0}, {1}, {2}, {3})", this.A, this.R, this.G, this.B);
+}
+System.Drawing.Color.prototype.MemberwiseClone = function () {
+  if ((typeof (this.Name) != "undefined") && (this.Name != null)) {
+    return this;
+  } else {
+    return new System.Drawing.Color(this.A, this.R, this.G, this.B, this.Name);
+  }
 }
 System.Drawing.Color.FromArgb = function () {
   if (arguments.length == 3) {

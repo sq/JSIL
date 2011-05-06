@@ -56,6 +56,7 @@ namespace JSIL {
         public const int LargeMethodThreshold = 1024;
 
         public readonly Dictionary<string, TypeInfo> TypeInformation = new Dictionary<string, TypeInfo>();
+        public readonly Dictionary<string, ModuleInfo> ModuleInformation = new Dictionary<string, ModuleInfo>();
         public readonly HashSet<string> GeneratedFiles = new HashSet<string>();
         public readonly List<Regex> IgnoredAssemblies = new List<Regex>();
 
@@ -207,6 +208,19 @@ namespace JSIL {
             tw.Flush();
         }
 
+        public ModuleInfo GetModuleInformation (ModuleDefinition module) {
+            if (module == null)
+                throw new ArgumentNullException("module");
+
+            var fullName = module.FullyQualifiedName;
+
+            ModuleInfo result;
+            if (!ModuleInformation.TryGetValue(fullName, out result))
+                ModuleInformation[fullName] = result = new ModuleInfo(module);
+
+            return result;
+        }
+
         public TypeInfo GetTypeInformation (TypeReference type) {
             if (type == null)
                 throw new ArgumentNullException("type");
@@ -214,66 +228,36 @@ namespace JSIL {
             var fullName = type.FullName;
 
             TypeInfo result;
-            if (!TypeInformation.TryGetValue(fullName, out result))
-                TypeInformation[fullName] = result = new TypeInfo(type.ResolveOrThrow());
+            if (!TypeInformation.TryGetValue(fullName, out result)) {
+                TypeInformation[fullName] = result = new TypeInfo(
+                    GetModuleInformation(type.Module), type.ResolveOrThrow()
+                );
+            }
 
             return result;
+        }
+
+        ModuleInfo ITypeInfoSource.Get (ModuleDefinition module) {
+            return GetModuleInformation(module);
         }
 
         TypeInfo ITypeInfoSource.Get (TypeReference type) {
             return GetTypeInformation(type);
         }
 
-        public static bool IsIgnored (MethodDefinition method) {
-            if (method == null)
-                return false;
-
-            foreach (var p in method.Parameters)
-                if (p.ParameterType.IsPointer)
-                    return true;
-
-            return IsIgnored((Mono.Cecil.ICustomAttributeProvider)method);
+        public bool IsIgnored (ModuleDefinition module) {
+            var moduleInformation = GetModuleInformation(module);
+            return moduleInformation.IsIgnored;
         }
 
-        public static bool IsIgnored (Mono.Cecil.ICustomAttributeProvider attributedNode) {
-            if (attributedNode == null)
-                return false;
+        public bool IsIgnored (TypeReference type) {
+            var typeInformation = GetTypeInformation(type);
+            return typeInformation.IsIgnored;
+        }
 
-            foreach (var attribute in attributedNode.CustomAttributes) {
-                var attributeName = attribute.AttributeType.FullName;
-
-                switch (attributeName) {
-                    case "JSIL.Meta.JSIgnore":
-                        return true;
-                }
-            }
-
-            var ms = attributedNode as IMetadataScope;
-            var md = attributedNode as IMemberDefinition;
-            string fullName;
-            string name;
-
-            if (md != null) {
-                fullName = md.FullName;
-                name = md.Name;
-            } else if (ms != null) {
-                fullName = name = ms.Name;
-            } else {
-                return false;
-            }
-
-            if (name.EndsWith("__BackingField"))
-                return false;
-            else if (name == "<Module>")
-                return true;
-            else if (name.StartsWith("<") && name.Contains("__SiteContainer"))
-                return true;
-            else if (name.StartsWith("CS$<"))
-                return true;
-            else if (name.Contains("<PrivateImplementationDetails>"))
-                return true;
-
-            return false;
+        public bool IsIgnored (MemberReference member) {
+            var typeInformation = GetTypeInformation(member.DeclaringType);
+            return typeInformation.IgnoredMembers.Contains(member);
         }
 
         protected void TranslateModule (DecompilerContext context, JavascriptFormatter output, ModuleDefinition module) {
@@ -360,8 +344,10 @@ namespace JSIL {
             output.Comma();
             output.OpenBrace();
 
+            var typeInformation = GetTypeInformation(enm);
+
             bool isFirst = true;
-            foreach (var em in GetTypeInformation(enm).EnumMembers.Values) {
+            foreach (var em in typeInformation.EnumMembers.Values) {
                 if (!isFirst) {
                     output.Comma();
                     output.NewLine();
@@ -377,7 +363,7 @@ namespace JSIL {
             output.NewLine();
             output.CloseBrace();
             output.Comma();
-            output.Value(ILBlockTranslator.IsFlagsEnum(enm));
+            output.Value(typeInformation.IsFlagsEnum);
             output.NewLine();
 
             output.RPar();

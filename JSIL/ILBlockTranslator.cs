@@ -160,7 +160,7 @@ namespace JSIL {
             if (!typeInfo.MethodToProperty.TryGetValue(method, out property))
                 return false;
 
-            if (AssemblyTranslator.IsIgnored(property)) {
+            if (TypeInfo.IsIgnored(property)) {
                 result = new JSInvocationExpression(
                     JSIL.IgnoredMember, JSLiteral.New(property.Name)
                 );
@@ -261,15 +261,6 @@ namespace JSIL {
             } else {
                 return false;
             }
-        }
-
-        public static bool IsFlagsEnum (TypeReference enumType) {
-            var typedef = enumType.Resolve();
-            var fa = (from ca in typedef.CustomAttributes
-                      where ca.AttributeType.FullName == "System.FlagsAttribute"
-                      select ca).FirstOrDefault();
-
-            return (fa != null);
         }
 
         public static bool IsDelegateType (TypeReference type) {
@@ -811,7 +802,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldsfld (ILExpression node, FieldReference field) {
-            if (AssemblyTranslator.IsIgnored(field.Resolve()))
+            if (TypeInfo.IsIgnored(field))
                 return new JSInvocationExpression(
                     JSIL.IgnoredMember, JSLiteral.New(field.Name)
                 ); 
@@ -842,7 +833,7 @@ namespace JSIL {
             if (translated.IsNull)
                 return new JSNullExpression();
 
-            if (AssemblyTranslator.IsIgnored(field.Resolve()))
+            if (TypeInfo.IsIgnored(field))
                 return new JSInvocationExpression(
                     JSIL.IgnoredMember, JSLiteral.New(field.Name)
                 );
@@ -1265,7 +1256,7 @@ namespace JSIL {
             }
 
             var methodDef = method.Resolve();
-            if ((methodDef != null) && AssemblyTranslator.IsIgnored(methodDef))
+            if (TypeInfo.IsIgnored(method))
                 return new JSInvocationExpression(
                     JSIL.IgnoredMember, JSLiteral.New(method.Name)
                 );
@@ -1345,7 +1336,7 @@ namespace JSIL {
             JSExpression thisExpression;
 
             var methodDef = method.Resolve();
-            if (AssemblyTranslator.IsIgnored(methodDef))
+            if (TypeInfo.IsIgnored(method))
                 return new JSInvocationExpression(
                     JSIL.IgnoredMember, JSLiteral.New(method.Name)
                 );

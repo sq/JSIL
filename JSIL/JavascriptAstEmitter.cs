@@ -196,7 +196,7 @@ namespace JSIL {
                 functionName = function.FunctionName.Identifier;
 
             Output.OpenFunction(
-                functionName,
+                null,
                 (o) => {
                     if (o != Output)
                         throw new InvalidOperationException();

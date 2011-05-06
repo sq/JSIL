@@ -406,11 +406,14 @@ namespace JSIL.Ast {
             var mref = reference as JSMemberReferenceExpression;
 
             if (mref != null) {
-                var dot = (JSDotExpression)mref.Referent;
-                materialized = jsil.NewMemberReference(
-                    dot.Target, dot.Member.ToLiteral()
-                );
-                return true;
+                var dot = mref.Referent as JSDotExpression;
+
+                if (dot != null) {
+                    materialized = jsil.NewMemberReference(
+                        dot.Target, dot.Member.ToLiteral()
+                    );
+                    return true;
+                }
             }
 
             var variable = reference as JSVariable;

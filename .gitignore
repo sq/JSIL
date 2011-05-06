@@ -21,3 +21,4 @@ Tests/SpecialTestCases/*.js
 Tests/FailingTestCases/*.js
 
 /Examples/Mannux
+/Examples/Mannux-xna
