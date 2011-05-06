@@ -3,16 +3,19 @@ using JSIL;
 
 public static class Program {  
     public static void Main (string[] args) {
-        var print = Builtins.Global["pr" + "int"];
-        if (print != null)
-            print("printed");
+        const string pri = "pri";
+        string nt = "nt";
 
-        if (Builtins.Local["print"] != null)
-            Builtins.Local["print"]("printed again");
+        var p = Builtins.Global[pri + nt];
+        if (p != null)
+            p("printed");
 
-        var quit = Builtins.Global["quit"];
-        if (quit != null)
-            quit();
+        if (Builtins.Local["p"] != null)
+            Builtins.Local["p"]("printed again");
+
+        var q = Builtins.Global["quit"];
+        if (q != null)
+            q();
 
         Console.WriteLine("test");
     }
