@@ -7,114 +7,75 @@ using NUnit.Framework;
 namespace JSIL.Tests {
     [TestFixture]
     public class MetadataTests {
-        [Test]
-        public void JSIgnorePreventsTranslationOfType () {
+        protected void GenericIgnoreTest (string fileName, string workingOutput, string jsErrorSubstring) {
             long elapsed;
-            using (var test = new ComparisonTest(@"SpecialTestCases\IgnoreType.cs")) {
+            using (var test = new ComparisonTest(fileName)) {
                 var csOutput = test.RunCSharp(new string[0], out elapsed);
-                Assert.AreEqual("Test", csOutput.Trim());
+                Assert.AreEqual(workingOutput, csOutput.Trim());
 
                 try {
                     string generatedJs;
                     test.RunJavascript(new string[0], out generatedJs, out elapsed);
-                    Assert.Fail("Expected javascript to throw");
+                    Assert.Fail("Expected javascript to throw an exception containing the string \"" + jsErrorSubstring + "\".");
                 } catch (JavaScriptException jse) {
-                    if (!jse.ErrorText.Contains("ReferenceError: Test is not defined"))
+                    if (!jse.ErrorText.Contains(jsErrorSubstring))
                         throw;
                 }
             }
+        }
+
+        [Test]
+        public void JSIgnorePreventsTranslationOfType () {
+            GenericIgnoreTest(
+                @"SpecialTestCases\IgnoreType.cs",
+                "Test",
+                "ReferenceError: Test is not defined"
+            );
         }
 
         [Test]
         public void JSIgnorePreventsTranslationOfMethod () {
-            long elapsed;
-            using (var test = new ComparisonTest(@"SpecialTestCases\IgnoreMethod.cs")) {
-                var csOutput = test.RunCSharp(new string[0], out elapsed);
-                Assert.AreEqual("Foo", csOutput.Trim());
-
-                try {
-                    string generatedJs;
-                    test.RunJavascript(new string[0], out generatedJs, out elapsed);
-                    Assert.Fail("Expected javascript to throw");
-                } catch (JavaScriptException jse) {
-                    if (!jse.ErrorText.Contains("attempt was made to reference the member 'Foo()'"))
-                        throw;
-                }
-            }
+            GenericIgnoreTest(
+                @"SpecialTestCases\IgnoreMethod.cs",
+                "Foo",
+                "attempt was made to reference the member 'Foo()'"
+            );
         }
 
         [Test]
         public void JSIgnorePreventsTranslationOfProperty () {
-            long elapsed;
-            using (var test = new ComparisonTest(@"SpecialTestCases\IgnoreProperty.cs")) {
-                var csOutput = test.RunCSharp(new string[0], out elapsed);
-
-                Assert.AreEqual("0", csOutput.Trim());
-
-                try {
-                    string generatedJs;
-                    test.RunJavascript(new string[0], out generatedJs, out elapsed);
-                    Assert.Fail("Expected javascript to throw");
-                } catch (JavaScriptException jse) {
-                    if (!jse.ErrorText.Contains("attempt was made to reference the member 'Property'"))
-                        throw;
-                }
-            }
+            GenericIgnoreTest(
+                @"SpecialTestCases\IgnoreProperty.cs",
+                "0",
+                "attempt was made to reference the member 'Property'"
+            );
         }
 
         [Test]
         public void JSIgnorePreventsTranslationOfEvent () {
-            long elapsed;
-            using (var test = new ComparisonTest(@"SpecialTestCases\IgnoreEvent.cs")) {
-                var csOutput = test.RunCSharp(new string[0], out elapsed);
-
-                Assert.AreEqual("a", csOutput.Trim());
-
-                try {
-                    string generatedJs;
-                    test.RunJavascript(new string[0], out generatedJs, out elapsed);
-                    Assert.Fail("Expected javascript to throw");
-                } catch (JavaScriptException jse) {
-                    if (!jse.ErrorText.Contains("attempt was made to reference the member 'Event'"))
-                        throw;
-                }
-            }
+            GenericIgnoreTest(
+                @"SpecialTestCases\IgnoreEvent.cs",
+                "a",
+                "attempt was made to reference the member 'Event'"
+            );
         }
 
         [Test]
         public void JSIgnorePreventsTranslationOfField () {
-            long elapsed;
-            using (var test = new ComparisonTest(@"SpecialTestCases\IgnoreField.cs")) {
-                var csOutput = test.RunCSharp(new string[0], out elapsed);
-                Assert.AreEqual("1", csOutput.Trim());
-
-                try {
-                    string generatedJs;
-                    test.RunJavascript(new string[0], out generatedJs, out elapsed);
-                    Assert.Fail("Expected javascript to throw");
-                } catch (JavaScriptException jse) {
-                    if (!jse.ErrorText.Contains("attempt was made to reference the member 'Field'"))
-                        throw;
-                }
-            }
+            GenericIgnoreTest(
+                @"SpecialTestCases\IgnoreField.cs",
+                "1",
+                "attempt was made to reference the member 'Field'"
+            );
         }
 
         [Test]
         public void JSIgnorePreventsTranslationOfConstructor () {
-            long elapsed;
-            using (var test = new ComparisonTest(@"SpecialTestCases\IgnoreConstructor.cs")) {
-                var csOutput = test.RunCSharp(new string[0], out elapsed);
-                Assert.AreEqual("new Test(<int>)\r\nnew Test(<string>)", csOutput.Trim());
-
-                try {
-                    string generatedJs;
-                    test.RunJavascript(new string[0], out generatedJs, out elapsed);
-                    Assert.Fail("Expected javascript to throw");
-                } catch (JavaScriptException jse) {
-                    if (!jse.ErrorText.Contains("attempt was made to reference the member '.ctor(s)'"))
-                        throw;
-                }
-            }
+            GenericIgnoreTest(
+                @"SpecialTestCases\IgnoreConstructor.cs",
+                "new Test(<int>)\r\nnew Test(<string>)",
+                "attempt was made to reference the member '.ctor(s)'"
+            );
         }
 
         [Test]
