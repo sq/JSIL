@@ -95,6 +95,15 @@ namespace JSIL.Ast {
                     Statements[i] = stmt;
             }
         }
+
+        public override string ToString () {
+            var sb = new StringBuilder();
+
+            foreach (var stmt in Statements)
+                sb.AppendLine(stmt.ToString());
+
+            return sb.ToString();
+        }
     }
 
     public class JSVariableDeclarationStatement : JSStatement {
@@ -114,12 +123,15 @@ namespace JSIL.Ast {
             if (oldChild == null)
                 throw new ArgumentNullException();
 
-            var boe = (JSBinaryOperatorExpression)newChild;
+            var boe = newChild as JSBinaryOperatorExpression;
 
-            for (int i = 0, c = Declarations.Count; i < c; i++) {
-                if (Declarations[i] == oldChild)
-                    Declarations[i] = boe;
-            }
+            if (boe == null)
+                Declarations.RemoveAll((c) => c == oldChild);
+            else
+                for (int i = 0, c = Declarations.Count; i < c; i++) {
+                    if (Declarations[i] == oldChild)
+                        Declarations[i] = boe;
+                }
         }
     }
 
@@ -156,6 +168,10 @@ namespace JSIL.Ast {
 
             if (oldChild == _Expression)
                 _Expression = (JSExpression)newChild;
+        }
+
+        public override string ToString () {
+            return String.Format("~ {0}", _Expression);
         }
     }
 
@@ -360,6 +376,13 @@ namespace JSIL.Ast {
             if (_FalseClause == oldChild)
                 _FalseClause = (JSStatement)newChild;
         }
+
+        public override string ToString () {
+            return String.Format(
+                "if ({0}) {{\r\n{1}\r\n}} else {{\r\n{2}\r\n}}", 
+                _Condition, Util.Indent(_TrueClause), Util.Indent(_FalseClause)
+            );
+        }
     }
 
     public class JSWhileLoop : JSStatement {
@@ -399,6 +422,13 @@ namespace JSIL.Ast {
 
             if (_Body == oldChild)
                 _Body = (JSStatement)newChild;
+        }
+
+        public override string ToString () {
+            return String.Format(
+                "while ({0}) {{\r\n{1}\r\n}}",
+                _Condition, Util.Indent(_Body)
+            );
         }
     }
 
@@ -757,6 +787,19 @@ namespace JSIL.Ast {
             }
         }
 
+        public override bool Equals (object obj) {
+            if (obj == null)
+                return false;
+
+            if (GetType() != obj.GetType())
+                return false;
+
+            var rhs = (JSLiteralBase<T>)obj;
+            var comparer = Comparer<T>.Default;
+
+            return comparer.Compare(Value, rhs.Value) == 0;
+        }
+
         public override string ToString () {
             return String.Format("<{0} {1}>", GetType().Name, Value);
         }
@@ -787,6 +830,10 @@ namespace JSIL.Ast {
             else
                 return typeSystem.Object;
         }
+
+        public override string ToString () {
+            return "null";
+        }
     }
 
     public class JSBooleanLiteral : JSLiteralBase<bool> {
@@ -806,6 +853,10 @@ namespace JSIL.Ast {
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             return typeSystem.String;
+        }
+
+        public override string ToString () {
+            return Util.EscapeString(Value, '"');
         }
     }
 
@@ -842,6 +893,10 @@ namespace JSIL.Ast {
                 }
             } else
                 return typeSystem.Int64;
+        }
+
+        public override string ToString () {
+            return String.Format("{0}", Value);
         }
     }
 
@@ -1099,6 +1154,13 @@ namespace JSIL.Ast {
             return Type;
         }
 
+        public override int GetHashCode () {
+            if (Type != null)
+                return Identifier.GetHashCode() ^ Type.GetHashCode();
+            else
+                return Identifier.GetHashCode();
+        }
+
         public override string ToString () {
             if (IsReference)
                 return String.Format("<ref {0} {1}>", Type, Identifier);
@@ -1330,7 +1392,7 @@ namespace JSIL.Ast {
         }
 
         public override string ToString () {
-            return String.Format("{0} . {1}", Target, Member);
+            return String.Format("{0}.{1}", Target, Member);
         }
     }
 
@@ -1366,6 +1428,10 @@ namespace JSIL.Ast {
             get {
                 return Values[1];
             }
+        }
+
+        public override string ToString () {
+            return String.Format("{0}[{1}]", Target, Index);
         }
     }
 
@@ -1421,7 +1487,7 @@ namespace JSIL.Ast {
 
         public override string ToString () {
             return String.Format(
-                "{0} ( {1} )", 
+                "{0}:({1})", 
                 Target, 
                 String.Join(", ", (from a in Arguments select a.ToString()).ToArray())
             );
@@ -1602,6 +1668,10 @@ namespace JSIL.Ast {
 
             return result;
         }
+
+        public override string ToString () {
+            return String.Format("({0} {1} {2})", Left, Operator, Right);
+        }
     }
 
     public class JSUnaryOperatorExpression : JSOperatorExpression<JSUnaryOperator> {
@@ -1619,6 +1689,33 @@ namespace JSIL.Ast {
             get {
                 return Values[0];
             }
+        }
+
+        public override string ToString () {
+            if (IsPostfix)
+                return String.Format("({0}{1})", Expression, Operator);
+            else
+                return String.Format("({0}{1})", Operator, Expression);
+        }
+    }
+
+    public class JSChangeTypeExpression : JSExpression {
+        public readonly TypeReference NewType;
+
+        public JSChangeTypeExpression (JSExpression inner, TypeReference newType)
+            : base(inner) {
+
+            NewType = newType;
+        }
+
+        public JSExpression Expression {
+            get {
+                return Values[0];
+            }
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return NewType;
         }
     }
 

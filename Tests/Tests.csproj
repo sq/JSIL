@@ -147,6 +147,7 @@
     <None Include="SpecialTestCases\VerbatimThis.cs" />
     <None Include="SpecialTestCases\StringConcat.cs" />
     <None Include="SpecialTestCases\PostIncrement.cs" />
+    <None Include="SpecialTestCases\SingleUseTemporaries.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

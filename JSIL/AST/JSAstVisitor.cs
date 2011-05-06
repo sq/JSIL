@@ -8,6 +8,7 @@ using Microsoft.CSharp.RuntimeBinder;
 namespace JSIL.Ast {
     public abstract class JSAstVisitor {
         public readonly Stack<JSNode> Stack = new Stack<JSNode>();
+        protected int NodeIndex, NextNodeIndex;
         protected JSNode CurrentNode = null;
         protected JSNode PreviousSibling = null;
         protected JSNode NextSibling = null;
@@ -17,9 +18,15 @@ namespace JSIL.Ast {
         /// </summary>
         /// <param name="node">The node to visit.</param>
         public void Visit (JSNode node) {
+            var oldCurrentNode = CurrentNode;
+            var oldNodeIndex = NodeIndex;
+
             CurrentNode = node;
 
             try {
+                NodeIndex = NextNodeIndex;
+                NextNodeIndex += 1;
+
                 if (node != null) {
                     if (node.IsNull)
                         return;
@@ -28,7 +35,8 @@ namespace JSIL.Ast {
                 } else
                     VisitNode(null);
             } finally {
-                CurrentNode = null;
+                CurrentNode = oldCurrentNode;
+                NodeIndex = oldNodeIndex;
             }
         }
 
@@ -87,7 +95,10 @@ namespace JSIL.Ast {
 
         protected JSNode ParentNode {
             get {
-                return Stack.Peek();
+                if (Stack.Count == 0)
+                    return null;
+                else
+                    return Stack.Peek();
             }
         }
     }

@@ -33,8 +33,10 @@ namespace JSIL.Tests {
                 "abc\r\nde"
             );
             try {
-                Assert.IsFalse(generatedJs.Contains("d + e"));
-                Assert.IsTrue(generatedJs.Contains("a + (b + c)"));
+                Assert.AreEqual(
+                    2, 
+                    generatedJs.Split(new string[] { "System.String.Concat" }, StringSplitOptions.RemoveEmptyEntries).Length
+                );
             } catch {
                 Console.WriteLine(generatedJs);
 
@@ -51,6 +53,23 @@ namespace JSIL.Tests {
             try {
                 Assert.IsFalse(generatedJs.Contains("i + 1"));
                 Assert.IsFalse(generatedJs.Contains("i - 1"));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
+        public void EliminateSingleUseTemporaries () {
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\SingleUseTemporaries.cs",
+                "a\r\nb\r\nc"
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("array = objs"));
+                Assert.IsFalse(generatedJs.Contains("obj = array[i]"));
             } catch {
                 Console.WriteLine(generatedJs);
 

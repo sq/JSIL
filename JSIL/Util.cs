@@ -227,5 +227,18 @@ namespace JSIL.Internal {
         public static IList<T> Skip<T> (this IList<T> list, int offset) {
             return new ListSkipAdapter<T>(list, offset);
         }
+
+        public static string Indent (object inner) {
+            if (inner == null)
+                return "";
+
+            var text = inner.ToString();
+
+            return String.Join(
+                Environment.NewLine,
+                (from l in text.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries)
+                 select "    " + l).ToArray()
+            );
+        }
     }
 }

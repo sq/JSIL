@@ -87,7 +87,7 @@ namespace JSIL.Ast {
         }
 
         public override string ToString () {
-            return String.Format("UnaryOperator {0}", Token);
+            return String.Format("{0}", Token);
         }
     }
 
@@ -97,7 +97,7 @@ namespace JSIL.Ast {
         }
 
         public override string ToString () {
-            return String.Format("BinaryOperator {0}", Token);
+            return String.Format("{0}", Token);
         }
 
         public static implicit operator JSBinaryOperator (string token) {
@@ -111,7 +111,7 @@ namespace JSIL.Ast {
         }
 
         public override string ToString () {
-            return String.Format("AssignmentOperator {0}", Token);
+            return String.Format("{0}", Token);
         }
 
         public static implicit operator JSAssignmentOperator (string token) {

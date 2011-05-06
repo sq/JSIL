@@ -64,6 +64,9 @@ namespace JSIL {
         }
 
         public void VisitNode (JSVariableDeclarationStatement vars) {
+            if (vars.Declarations.Count == 0)
+                return;
+
             Output.Keyword("var");
             Output.Space();
 
@@ -83,6 +86,10 @@ namespace JSIL {
             Visit(dot.Target);
             Output.Dot();
             Visit(dot.Member);
+        }
+
+        public void VisitNode (JSChangeTypeExpression cte) {
+            Visit(cte.Expression);
         }
 
         public void VisitNode (JSIndexerExpression idx) {

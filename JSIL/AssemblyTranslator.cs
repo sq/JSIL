@@ -597,6 +597,11 @@ namespace JSIL {
                     translator.CLR
                 ).Visit(function);
 
+                new EliminateSingleUseTemporaries(
+                    context.CurrentModule.TypeSystem,
+                    translator.Variables
+                ).Visit(function);
+
                 new IntroduceVariableDeclarations(
                     translator.Variables,
                     this
@@ -608,10 +613,9 @@ namespace JSIL {
                     translator.ParameterNames
                 ).Visit(function);
 
-                if (true)
-                    new SimplifyOperators(
-                        context.CurrentModule.TypeSystem
-                    ).Visit(function);
+                new SimplifyOperators(
+                    context.CurrentModule.TypeSystem
+                ).Visit(function);
 
                 if (output != null) {
                     var emitter = new JavascriptAstEmitter(output, translator.JSIL, context.CurrentModule.TypeSystem);
