@@ -45,6 +45,12 @@ namespace JSIL.Compiler {
             translator.CouldNotResolveAssembly += (fn, ex) => {
                 Console.Error.WriteLine("Could not load module {0}: {1}", fn, ex.Message);
             };
+            translator.StartedDecompilingMethod += (fn) => {
+                Console.Error.Write("Decompiling {0}... ", fn);
+            };
+            translator.FinishedDecompilingMethod += (fn) => {
+                Console.Error.WriteLine("done.");
+            };
 
             var filenames = new HashSet<string>(arguments);
 
@@ -64,6 +70,8 @@ namespace JSIL.Compiler {
                 Console.WriteLine("  Specifies the directory into which the generated javascript should be written.");
                 Console.WriteLine("--nodeps");
                 Console.WriteLine("  Disables translating dependencies.");
+                Console.WriteLine("--ignore:<regex>");
+                Console.WriteLine("  Specifies a regular expression filter used to ignore certain dependencies.");
                 return;
             }
 

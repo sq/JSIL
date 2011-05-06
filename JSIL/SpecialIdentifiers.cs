@@ -152,18 +152,9 @@ namespace JSIL {
             );
         }
 
-        public JSInvocationExpression Coalesce (JSExpression left, JSExpression right) {
-            var tLeft = left.GetExpectedType(TypeSystem);
-            var tRight = right.GetExpectedType(TypeSystem);
-
-            if (tLeft.FullName != tRight.FullName)
-                throw new NotImplementedException(String.Format(
-                    "Coalescing two different types is not implemented: {0}, {1}",
-                    tLeft, tRight
-                ));
-
+        public JSInvocationExpression Coalesce (JSExpression left, JSExpression right, TypeReference expectedType) {
             return new JSInvocationExpression(
-                Dot("Coalesce", tLeft),
+                Dot("Coalesce", expectedType),
                 left, right
             );
         }

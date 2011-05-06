@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.ILAst;
@@ -172,7 +173,7 @@ namespace JSIL {
 
             // Accesses to a base property should go through a regular method invocation, since
             //  javascript properties do not have a mechanism for base access
-            if (method.HasThis && !property.DeclaringType.Equals(thisExpression.GetExpectedType(TypeSystem)))
+            if (method.HasThis && !TypesAreEqual(property.DeclaringType, thisExpression.GetExpectedType(TypeSystem)))
                 return false;
 
             if (method == property.GetMethod) {
@@ -215,10 +216,6 @@ namespace JSIL {
             } else {
                 return Translate_BinaryOp(node, checkEqual ? JSOperator.Equal : JSOperator.NotEqual);
             }
-        }
-
-        protected JSFunctionExpression EmitLambda (MethodDefinition method) {
-            return AssemblyTranslator.TranslateMethod(Context, method, TypeInfo);
         }
 
         public static TypeReference DereferenceType (TypeReference type) {
@@ -287,6 +284,35 @@ namespace JSIL {
                 )
             ) {
                 return true;
+            }
+
+            return false;
+        }
+
+        public static bool TypesAreEqual (TypeReference target, TypeReference source) {
+            var dTarget = target.Resolve();
+            var dSource = source.Resolve();
+
+            if (Object.Equals(dTarget, dSource) && (dSource != null))
+                return true;
+            if (Object.Equals(target, source))
+                return true;
+
+            return false;
+        }
+
+        public static bool TypesAreAssignable (TypeReference target, TypeReference source) {
+            if (TypesAreEqual(target, source))
+                return true;
+
+            var dSource = source.Resolve();
+
+            if (TypesAreAssignable(target, dSource.BaseType))
+                return true;
+
+            foreach (var iface in dSource.Interfaces) {
+                if (TypesAreAssignable(target, iface))
+                    return true;
             }
 
             return false;
@@ -379,6 +405,9 @@ namespace JSIL {
                         }
                 );
                 Output.RPar();
+            } catch (TargetInvocationException tie) {
+                Console.Error.WriteLine("Error occurred while translating node {0}", expression);
+                throw tie.InnerException;
             }
 
             return result;
@@ -463,9 +492,6 @@ namespace JSIL {
             JSBlockStatement catchBlock = null;
             JSBlockStatement finallyBlock = null;
 
-            if (tcb.FaultBlock != null)
-                throw new NotImplementedException();
-
             if (tcb.CatchBlocks.Count > 0) {
                 var pairs = new List<KeyValuePair<JSExpression, JSStatement>>();
                 catchVariable = DeclareVariable("$exception", Context.CurrentModule.TypeSystem.Object);
@@ -534,6 +560,14 @@ namespace JSIL {
 
             if (tcb.FinallyBlock != null)
                 finallyBlock = TranslateNode(tcb.FinallyBlock);
+
+            if (tcb.FaultBlock != null) {
+                Debug.WriteLine("Warning: Fault blocks are not translatable.");
+                body.Statements.Add(new JSExpressionStatement(new JSInvocationExpression(
+                    JSIL.UntranslatableNode, 
+                    JSLiteral.New(tcb.FaultBlock.ToString())
+                )));
+            }
 
             return new JSTryCatchBlock(
                 body, catchVariable, catchBlock, finallyBlock
@@ -1007,7 +1041,8 @@ namespace JSIL {
         protected JSInvocationExpression Translate_NullCoalescing (ILExpression node) {
             return JSIL.Coalesce(
                 TranslateNode(node.Arguments[0]),
-                TranslateNode(node.Arguments[1])
+                TranslateNode(node.Arguments[1]),
+                node.ExpectedType ?? node.InferredType
             );
         }
 
@@ -1264,10 +1299,10 @@ namespace JSIL {
                 // Make sure that 'this' references only pass this check when they don't refer to 
                 //  members of base types/interfaces.
                 if (
-                    (declaringType.Equals(firstArgType)) &&
+                    (TypesAreEqual(declaringType, firstArgType)) &&
                     (
                         (ilv == null) || (ilv.Name != "this") ||
-                        (thisType.Equals(firstArgType))
+                        (TypesAreEqual(thisType, firstArgType))
                     )
                 ) {
                     methodName = new JSMethod(method);

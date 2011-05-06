@@ -53,6 +53,8 @@ namespace JSIL {
     }
 
     public class AssemblyTranslator : ITypeInfoSource {
+        public const int LargeMethodThreshold = 1024;
+
         public readonly Dictionary<string, TypeInfo> TypeInformation = new Dictionary<string, TypeInfo>();
         public readonly HashSet<string> GeneratedFiles = new HashSet<string>();
         public readonly List<Regex> IgnoredAssemblies = new List<Regex>();
@@ -60,6 +62,9 @@ namespace JSIL {
         public event Action<string> StartedLoadingAssembly;
         public event Action<string> StartedDecompilingAssembly;
         public event Action<string> StartedTranslatingAssembly;
+
+        public event Action<string> StartedDecompilingMethod;
+        public event Action<string> FinishedDecompilingMethod;
 
         public event Action<string, Exception> CouldNotLoadSymbols;
         public event Action<string, Exception> CouldNotResolveAssembly;
@@ -558,10 +563,13 @@ namespace JSIL {
             output.Semicolon();
         }
 
-        public static JSFunctionExpression TranslateMethod (DecompilerContext context, MethodDefinition method, ITypeInfoSource typeInfo, JavascriptFormatter output = null) {
+        public JSFunctionExpression TranslateMethod (DecompilerContext context, MethodDefinition method, ITypeInfoSource typeInfo, JavascriptFormatter output = null) {
             var oldMethod = context.CurrentMethod;
             try {
                 context.CurrentMethod = method;
+
+                if (method.Body.Instructions.Count > LargeMethodThreshold)
+                    this.StartedDecompilingMethod(method.FullName);
 
                 var decompiler = new ILAstBuilder();
                 var ilb = new ILBlock(decompiler.Build(method, true));
@@ -600,6 +608,9 @@ namespace JSIL {
                     var emitter = new JavascriptAstEmitter(output, translator.JSIL, context.CurrentModule.TypeSystem);
                     emitter.Visit(function);
                 }
+
+                if (method.Body.Instructions.Count > LargeMethodThreshold)
+                    this.FinishedDecompilingMethod(method.FullName);
 
                 return function;
             } finally {
