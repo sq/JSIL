@@ -136,7 +136,7 @@ namespace JSIL {
             return new JSUnaryOperatorExpression(
                 op,
                 TranslateNode(node.Arguments[0]),
-                node.ExpectedType
+                node.ExpectedType ?? node.InferredType
             );
         }
 
@@ -145,7 +145,7 @@ namespace JSIL {
                 op,
                 TranslateNode(node.Arguments[0]),
                 TranslateNode(node.Arguments[1]),
-                node.ExpectedType
+                node.ExpectedType ?? node.InferredType
             );
         }
 
@@ -248,11 +248,14 @@ namespace JSIL {
             if (method.HasThis && !TypesAreEqual(property.DeclaringType, thisExpression.GetExpectedType(TypeSystem)))
                 return false;
 
-            if (method == property.GetMethod) {
+            if ((property.GetMethod != null) && (method.FullName == property.GetMethod.FullName)) {
                 result = new JSDotExpression(
                     thisExpression, new JSProperty(property)
                 );
             } else {
+                if (arguments.Length == 0)
+                    throw new InvalidOperationException("Attempting to invoke a property setter with no arguments");
+
                 result = new JSBinaryOperatorExpression(
                     JSOperator.Assignment,
                     new JSDotExpression(
@@ -410,7 +413,7 @@ namespace JSIL {
                 if (expression != null)
                     statement = new JSExpressionStatement(expression);
                 else
-                    Debug.WriteLine("Warning: Null statement");
+                    Console.Error.WriteLine("Warning: Null statement: {0}", node);
             }
 
             return statement;
@@ -450,7 +453,7 @@ namespace JSIL {
                 result = invokeResult as JSExpression;
 
                 if (result == null)
-                    Debug.WriteLine(String.Format("Instruction {0} did not produce a JS AST expression", expression));
+                    Console.Error.WriteLine(String.Format("Instruction {0} did not produce a JS AST expression", expression));
             } catch (MissingMethodException) {
                 string operandType = "";
                 if (expression.Operand != null)
@@ -577,7 +580,7 @@ namespace JSIL {
                         }
 
                         if (foundUniversalCatch) {
-                            Debug.WriteLine("Found multiple catch-all catch clauses. Any after the first will be ignored.");
+                            Console.Error.WriteLine("Found multiple catch-all catch clauses. Any after the first will be ignored.");
                             continue;
                         }
 
@@ -626,7 +629,7 @@ namespace JSIL {
                 finallyBlock = TranslateNode(tcb.FinallyBlock);
 
             if (tcb.FaultBlock != null) {
-                Debug.WriteLine("Warning: Fault blocks are not translatable.");
+                Console.Error.WriteLine("Warning: Fault blocks are not translatable.");
                 body.Statements.Add(new JSExpressionStatement(new JSInvocationExpression(
                     JSIL.UntranslatableNode, 
                     JSLiteral.New(tcb.FaultBlock.ToString())
@@ -737,7 +740,7 @@ namespace JSIL {
                 TranslateNode(node.Arguments[0]),
                 TranslateNode(node.Arguments[1]),
                 TranslateNode(node.Arguments[2]),
-                node.ExpectedType
+                node.ExpectedType ?? node.InferredType
             );
         }
 
@@ -915,8 +918,10 @@ namespace JSIL {
 
             JSExpression thisExpression;
             if (DereferenceType(firstArg.InferredType).IsValueType) {
-                if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression))
-                    Debug.WriteLine("Warning: Accessing a field of a value type with a value as this instead of a reference.");
+                if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression)) {
+                    Console.Error.WriteLine("Warning: Accessing a field of a value type with a value as this instead of a reference.");
+                    thisExpression = translated;
+                }
             } else {
                 thisExpression = translated;
             }
@@ -953,7 +958,7 @@ namespace JSIL {
             JSExpression referent;
 
             if (!JSReferenceExpression.TryDereference(JSIL, reference, out referent))
-                Debug.WriteLine(String.Format("Warning: unsupported reference type for ldobj: {0}", node.Arguments[0]));
+                Console.Error.WriteLine(String.Format("Warning: unsupported reference type for ldobj: {0}", node.Arguments[0]));
 
             return reference;
         }
@@ -977,7 +982,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldnull (ILExpression node) {
-            return JSLiteral.Null(node.ExpectedType);
+            return JSLiteral.Null(node.ExpectedType ?? node.InferredType);
         }
 
         protected JSExpression Translate_Ldftn (ILExpression node, MethodReference method) {
@@ -1111,7 +1116,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Castclass (ILExpression node, TypeReference targetType) {
-            if (IsDelegateType(targetType) && IsDelegateType(node.ExpectedType)) {
+            if (IsDelegateType(targetType) && IsDelegateType(node.ExpectedType ?? node.InferredType)) {
                 // TODO: We treat all delegate types as equivalent, so we can skip these casts for now
                 return TranslateNode(node.Arguments[0]);
             }
@@ -1269,7 +1274,7 @@ namespace JSIL {
                 if (inferredType == null)
                     inferredType = valueType;
                 else if (inferredType.FullName != valueType.FullName)
-                    throw new NotImplementedException("Mixed-type collection initializers not supported");
+                    Console.Error.WriteLine("Mixed-type collection initializers not supported: {0}", node);
 
                 values.Add(invocation.Arguments[0]);
             }
@@ -1302,10 +1307,10 @@ namespace JSIL {
 
                         initializers.Add(new JSPairExpression(key, value));
                     } else {
-                        Debug.WriteLine(String.Format("Warning: Unrecognized object initializer form: {0}", boe));
+                        Console.Error.WriteLine(String.Format("Warning: Unrecognized object initializer form: {0}", boe));
                     }
                 } else {
-                    Debug.WriteLine(String.Format("Warning: Object initializer element not implemented: {0}", translated));
+                    Console.Error.WriteLine(String.Format("Warning: Object initializer element not implemented: {0}", translated));
                 }
             }
 

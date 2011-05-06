@@ -48,18 +48,29 @@ namespace JSIL.Transforms {
                         )
                     ))
                 ) {
-                    var boe = JSBinaryOperatorExpression.New(
-                        JSOperator.Add,
-                        ie.Arguments,
-                        TypeSystem.String
-                    );
+                    if (ie.Arguments.Count >= 2) {
+                        var boe = JSBinaryOperatorExpression.New(
+                            JSOperator.Add,
+                            ie.Arguments,
+                            TypeSystem.String
+                        );
 
-                    ParentNode.ReplaceChild(
-                        ie,
-                        boe
-                    );
+                        ParentNode.ReplaceChild(
+                            ie,
+                            boe
+                        );
 
-                    VisitChildren(boe);
+                        VisitChildren(boe);
+                    } else {
+                        var firstArg = ie.Arguments.FirstOrDefault();
+
+                        ParentNode.ReplaceChild(
+                            ie, firstArg
+                        );
+
+                        if (firstArg != null)
+                            VisitChildren(firstArg);
+                    }
                     return;
                 }
             }

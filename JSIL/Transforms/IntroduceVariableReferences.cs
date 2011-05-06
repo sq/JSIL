@@ -58,8 +58,6 @@ namespace JSIL.Transforms {
             // If the variable does not match the one in the dictionary, it is a constructed
             //  reference to a parameter.
             if (!referentVariable.Equals(Variables[referentVariable.Identifier])) {
-                if (!referentVariable.IsParameter)
-                    throw new InvalidOperationException();
 
                 // If the parameter is a reference, we don't care about it.
                 if (Variables[referentVariable.Identifier].IsReference)

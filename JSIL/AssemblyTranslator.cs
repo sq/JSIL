@@ -231,9 +231,14 @@ namespace JSIL {
 
             TypeInfo result;
             if (!TypeInformation.TryGetValue(fullName, out result)) {
-                TypeInformation[fullName] = result = new TypeInfo(
-                    GetModuleInformation(type.Module), type.ResolveOrThrow(), type
-                );
+                var resolvedType = (type as TypeDefinition) ?? type.Resolve();
+
+                if (resolvedType != null)
+                    TypeInformation[fullName] = result = new TypeInfo(
+                        GetModuleInformation(type.Module), resolvedType, type
+                    );
+                else
+                    return null;
             }
 
             return result;
@@ -254,12 +259,20 @@ namespace JSIL {
 
         public bool IsIgnored (TypeReference type) {
             var typeInformation = GetTypeInformation(type);
-            return typeInformation.IsIgnored;
+
+            if (typeInformation != null)
+                return typeInformation.IsIgnored;
+            else
+                return false;
         }
 
         public bool IsIgnored (MemberReference member) {
             var typeInformation = GetTypeInformation(member.DeclaringType);
-            return typeInformation.IgnoredMembers.Contains(member);
+
+            if (typeInformation != null)
+                return typeInformation.IgnoredMembers.Contains(member);
+            else
+                return false;
         }
 
         protected void TranslateModule (DecompilerContext context, JavascriptFormatter output, ModuleDefinition module) {
@@ -347,6 +360,8 @@ namespace JSIL {
             output.OpenBrace();
 
             var typeInformation = GetTypeInformation(enm);
+            if (typeInformation == null)
+                throw new InvalidOperationException();
 
             bool isFirst = true;
             foreach (var em in typeInformation.EnumMembers.Values) {
@@ -435,6 +450,8 @@ namespace JSIL {
                 return;
 
             var info = GetTypeInformation(typedef);
+            if (info == null)
+                throw new InvalidOperationException();
 
             foreach (var field in typedef.Fields) {
                 if (IsIgnored(field))
@@ -638,6 +655,9 @@ namespace JSIL {
                 return;
 
             var typeInfo = GetTypeInformation(method.DeclaringType);
+            if (typeInfo == null)
+                throw new InvalidOperationException();
+
             MetadataCollection methodMetadata;
             if (typeInfo.MemberMetadata.TryGetValue(method, out methodMetadata)) {
                 if (methodMetadata.HasAttribute("JSIL.Meta.JSReplacement"))

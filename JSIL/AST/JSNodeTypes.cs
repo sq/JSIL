@@ -207,30 +207,25 @@ namespace JSIL.Ast {
 
     // Technically, the following expressions should be statements. But in ILAst, they're expressions...
     public class JSReturnExpression : JSExpression {
-        public readonly JSExpression Value;
-
-        public JSReturnExpression (JSExpression value = null) {
-            Value = value;
+        public JSReturnExpression (JSExpression value = null)
+            : base (value) {
         }
 
-        public override IEnumerable<JSNode> Children {
+        public JSExpression Value {
             get {
-                if (Value != null)
-                    yield return Value;
+                return Values[0];
             }
         }
     }
 
     public class JSThrowExpression : JSExpression {
-        public readonly JSExpression Exception;
-
-        public JSThrowExpression (JSExpression exception = null) {
-            Exception = exception;
+        public JSThrowExpression (JSExpression exception = null)
+            : base (exception) {
         }
 
-        public override IEnumerable<JSNode> Children {
+        public JSExpression Exception {
             get {
-                yield return Exception;
+                return Values[0];
             }
         }
     }
@@ -515,6 +510,8 @@ namespace JSIL.Ast {
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
                 throw new ArgumentNullException();
+            if ((oldChild == this) || (newChild == this))
+                throw new InvalidOperationException("Infinite recursion");
 
             var expr = (JSExpression)newChild;
 
@@ -575,6 +572,14 @@ namespace JSIL.Ast {
             var refe = reference as JSReferenceExpression;
             var boe = reference as JSBinaryOperatorExpression;
 
+            var expressionType = reference.GetExpectedType(jsil.TypeSystem);
+            if (expressionType.IsPointer) {
+                referent = new JSInvocationExpression(
+                    jsil.UntranslatablePointer, reference
+                );
+                return true;
+            }
+
             if ((boe != null) && (boe.Operator is JSAssignmentOperator)) {
                 if (TryDereference(jsil, boe.Right, out referent))
                     return true;
@@ -583,13 +588,6 @@ namespace JSIL.Ast {
             if (variable != null) {
                 if (variable.IsReference) {
                     referent = variable.Dereference();
-                    return true;
-                }
-
-                if (variable.Type.IsPointer) {
-                    referent = new JSInvocationExpression(
-                        jsil.UntranslatablePointer, variable
-                    );
                     return true;
                 }
             }
@@ -1380,6 +1378,9 @@ namespace JSIL.Ast {
     public class JSDotExpression : JSExpression {
         public JSDotExpression (JSExpression target, JSIdentifier member)
             : base (target, member) {
+
+            if ((target == null) || (member == null))
+                throw new ArgumentNullException();
         }
 
         public static JSDotExpression New (JSExpression leftMost, params JSIdentifier[] memberNames) {
@@ -1732,16 +1733,29 @@ namespace JSIL.Ast {
     public class JSChangeTypeExpression : JSExpression {
         public readonly TypeReference NewType;
 
-        public JSChangeTypeExpression (JSExpression inner, TypeReference newType)
+        protected JSChangeTypeExpression (JSExpression inner, TypeReference newType)
             : base(inner) {
 
             NewType = newType;
+        }
+
+        public static JSChangeTypeExpression New (JSExpression inner, TypeReference newType) {
+            var cte = inner as JSChangeTypeExpression;
+
+            if (cte != null)
+                return new JSChangeTypeExpression(cte.Expression, newType);
+            else
+                return new JSChangeTypeExpression(inner, newType);
         }
 
         public JSExpression Expression {
             get {
                 return Values[0];
             }
+        }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            base.ReplaceChild(oldChild, newChild);
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {

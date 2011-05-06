@@ -13,10 +13,11 @@ namespace JSIL.Transforms {
 
         public readonly TypeSystem TypeSystem;
         public readonly Dictionary<string, JSVariable> Variables;
-        public readonly Dictionary<JSVariable, JSChangeTypeExpression> FirstValues = new Dictionary<JSVariable, JSChangeTypeExpression>();
+        public readonly Dictionary<JSVariable, JSExpressionStatement> FirstValues = new Dictionary<JSVariable, JSExpressionStatement>();
         public readonly Dictionary<JSVariable, List<int>> Assignments = new Dictionary<JSVariable, List<int>>();
         public readonly Dictionary<JSVariable, List<int>> Copies = new Dictionary<JSVariable, List<int>>();
         public readonly Dictionary<JSVariable, List<int>> Accesses = new Dictionary<JSVariable, List<int>>();
+        public readonly Dictionary<JSVariable, List<int>> Conversions = new Dictionary<JSVariable, List<int>>();
         public readonly Dictionary<JSVariable, List<int>> ControlFlowAccesses = new Dictionary<JSVariable, List<int>>();
 
         public EliminateSingleUseTemporaries (TypeSystem typeSystem, Dictionary<string, JSVariable> variables) {
@@ -25,12 +26,19 @@ namespace JSIL.Transforms {
         }
 
         protected void EliminateVariable (JSNode context, JSVariable variable, JSExpression replaceWith) {
-            var replacer = new VariableEliminator(variable, replaceWith);
+            {
+                var replacer = new VariableEliminator(
+                    variable,
+                    JSChangeTypeExpression.New(replaceWith, variable.GetExpectedType(TypeSystem))
+                );
+                replacer.Visit(context);
+            }
 
-            replacer.Visit(context);
-
-            foreach (var fv in FirstValues.Values)
-                replacer.Visit(fv);
+            {
+                var replacer = new VariableEliminator(variable, replaceWith);
+                foreach (var fv in FirstValues.Values)
+                    replacer.Visit(fv);
+            }
 
             Variables.Remove(variable.Identifier);
         }
@@ -44,7 +52,11 @@ namespace JSIL.Transforms {
                 if (v.IsReference || v.IsThis || v.IsParameter)
                     continue;
 
-                List<int> assignments, accesses, copies, controlFlowAccesses;
+                var valueType = v.GetExpectedType(TypeSystem);
+                if (valueType.IsPointer || valueType.IsFunctionPointer || valueType.IsByReference)
+                    continue;
+
+                List<int> assignments, accesses, copies, controlFlowAccesses, conversions;
 
                 if (!Assignments.TryGetValue(v, out assignments)) {
                     if (TraceLevel >= 1)
@@ -56,6 +68,13 @@ namespace JSIL.Transforms {
                 if (ControlFlowAccesses.TryGetValue(v, out controlFlowAccesses) && (controlFlowAccesses.Count > 0)) {
                     if (TraceLevel >= 1)
                         Debug.WriteLine(String.Format("Cannot eliminate {0}; it participates in control flow.", v));
+
+                    continue;
+                }
+
+                if (Conversions.TryGetValue(v, out conversions) && (conversions.Count > 0)) {
+                    if (TraceLevel >= 1)
+                        Debug.WriteLine(String.Format("Cannot eliminate {0}; it undergoes type conversion.", v));
 
                     continue;
                 }
@@ -80,11 +99,19 @@ namespace JSIL.Transforms {
                     continue;
                 }
 
-                if (TraceLevel >= 1)
-                    Debug.WriteLine(String.Format("Eliminating {0}", v));
+                var replacement = FirstValues[v].Expression;
+                if (replacement.AllChildrenRecursive.Contains(v)) {
+                    if (TraceLevel >= 1)
+                        Debug.WriteLine(String.Format("Cannot eliminate {0}; it contains a self-reference.", v));
 
-                var replacement = FirstValues[v];
+                    continue;
+                }
+
                 FirstValues.Remove(v);
+
+                if (TraceLevel >= 1)
+                    Debug.WriteLine(String.Format("Eliminating {0} <- {1}", v, replacement));
+
                 EliminateVariable(fn, v, replacement);
             }
         }
@@ -143,10 +170,14 @@ namespace JSIL.Transforms {
         public void VisitNode (JSUnaryOperatorExpression uoe) {
             var variable = uoe.Expression as JSVariable;
 
-            if ((uoe.Operator == JSOperator.PostDecrement) ||
-                (uoe.Operator == JSOperator.PostIncrement) ||
-                (uoe.Operator == JSOperator.PreDecrement) ||
-                (uoe.Operator == JSOperator.PreIncrement)) {
+            if (
+                (variable != null) && (
+                    (uoe.Operator == JSOperator.PostDecrement) ||
+                    (uoe.Operator == JSOperator.PostIncrement) ||
+                    (uoe.Operator == JSOperator.PreDecrement) ||
+                    (uoe.Operator == JSOperator.PreIncrement)
+                )
+            ) {
 
                 if (TraceLevel >= 2)
                     Debug.WriteLine(String.Format(
@@ -170,7 +201,7 @@ namespace JSIL.Transforms {
 
                 if (!FirstValues.ContainsKey(leftVar)) {
                     isFirst = true;
-                    FirstValues.Add(leftVar, new JSChangeTypeExpression(boe.Right, leftVar.GetExpectedType(TypeSystem)));
+                    FirstValues.Add(leftVar, new JSExpressionStatement(boe.Right));
                 }
 
                 AddToList(Assignments, leftVar, NodeIndex);
@@ -184,11 +215,26 @@ namespace JSIL.Transforms {
                 if (rightVar != null) {
                     AddToList(Copies, rightVar, NodeIndex);
 
-                    if (TraceLevel >= 2)
-                        Debug.WriteLine(String.Format(
-                            "{0:0000} Copies: {1} into {2}\r\n{3}",
-                            NodeIndex, rightVar, leftVar, boe
-                        ));
+                    if (
+                        !ILBlockTranslator.TypesAreEqual(
+                            leftVar.GetExpectedType(TypeSystem),
+                            rightVar.GetExpectedType(TypeSystem)
+                        )
+                    ) {
+                        AddToList(Conversions, rightVar, NodeIndex);
+
+                        if (TraceLevel >= 2)
+                            Debug.WriteLine(String.Format(
+                                "{0:0000} Converts: {1} into {2}\r\n{3}",
+                                NodeIndex, rightVar, leftVar, boe
+                            ));
+                    } else {
+                        if (TraceLevel >= 2)
+                            Debug.WriteLine(String.Format(
+                                "{0:0000} Copies: {1} into {2}\r\n{3}",
+                                NodeIndex, rightVar, leftVar, boe
+                            ));
+                    }
                 }
             }
 

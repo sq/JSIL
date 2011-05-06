@@ -108,7 +108,10 @@ namespace JSIL {
         }
 
         public void VisitNode (JSVerbatimLiteral verbatim) {
-            Output.PlainTextOutput.Write(verbatim.Value);
+            foreach (var line in verbatim.Value.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries)) {
+                Output.PlainTextOutput.Write(line);
+                Output.PlainTextOutput.WriteLine();
+            }
         }
 
         public void VisitNode (JSTypeNameLiteral type) {

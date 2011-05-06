@@ -44,7 +44,7 @@ namespace JSIL {
     };
 
     public class JSILIdentifier : JSIdentifier {
-        protected readonly TypeSystem TypeSystem;
+        public readonly TypeSystem TypeSystem;
 
         public readonly JSDotExpression UntranslatableNode,
             UntranslatableInstruction,
