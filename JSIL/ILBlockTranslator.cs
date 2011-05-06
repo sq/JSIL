@@ -149,6 +149,16 @@ namespace JSIL {
             );
         }
 
+        protected JSExpression Translate_IgnoredMethod (string methodName, IEnumerable<ParameterDefinition> parameters) {
+            return new JSInvocationExpression(
+                JSIL.IgnoredMember, JSLiteral.New(String.Format(
+                    "{0}({1})",
+                    methodName,
+                    String.Join(", ", (from p in parameters select p.Name).ToArray())
+                ))
+            );
+        }
+
         protected bool Translate_PropertyCall (JSExpression thisExpression, MethodDefinition method, JSExpression[] arguments, out JSExpression result) {
             result = null;
 
@@ -1147,6 +1157,11 @@ namespace JSIL {
                 );
             }
 
+            if (TypeInfo.IsIgnored(constructor))
+                return Translate_IgnoredMethod(
+                    constructor.Name, constructor.Parameters
+                );
+
             return new JSNewExpression(
                 constructor.DeclaringType,
                 Translate(node.Arguments)
@@ -1257,9 +1272,7 @@ namespace JSIL {
 
             var methodDef = method.Resolve();
             if (TypeInfo.IsIgnored(method))
-                return new JSInvocationExpression(
-                    JSIL.IgnoredMember, JSLiteral.New(method.Name)
-                );
+                return Translate_IgnoredMethod(method.Name, method.Parameters);
 
             var thisType = DereferenceType(ThisMethod.DeclaringType);
             var declaringType = DereferenceType(method.DeclaringType);
@@ -1337,9 +1350,7 @@ namespace JSIL {
 
             var methodDef = method.Resolve();
             if (TypeInfo.IsIgnored(method))
-                return new JSInvocationExpression(
-                    JSIL.IgnoredMember, JSLiteral.New(method.Name)
-                );
+                return Translate_IgnoredMethod(method.Name, method.Parameters);
 
             if (DereferenceType(firstArg.InferredType).IsValueType) {
                 if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression))

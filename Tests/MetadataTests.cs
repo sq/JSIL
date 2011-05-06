@@ -37,7 +37,7 @@ namespace JSIL.Tests {
                     test.RunJavascript(new string[0], out generatedJs, out elapsed);
                     Assert.Fail("Expected javascript to throw");
                 } catch (JavaScriptException jse) {
-                    if (!jse.ErrorText.Contains("attempt was made to reference the member 'Foo'"))
+                    if (!jse.ErrorText.Contains("attempt was made to reference the member 'Foo()'"))
                         throw;
                 }
             }
@@ -94,6 +94,24 @@ namespace JSIL.Tests {
                     Assert.Fail("Expected javascript to throw");
                 } catch (JavaScriptException jse) {
                     if (!jse.ErrorText.Contains("attempt was made to reference the member 'Field'"))
+                        throw;
+                }
+            }
+        }
+
+        [Test]
+        public void JSIgnorePreventsTranslationOfConstructor () {
+            long elapsed;
+            using (var test = new ComparisonTest(@"SpecialTestCases\IgnoreConstructor.cs")) {
+                var csOutput = test.RunCSharp(new string[0], out elapsed);
+                Assert.AreEqual("new Test(<int>)\r\nnew Test(<string>)", csOutput.Trim());
+
+                try {
+                    string generatedJs;
+                    test.RunJavascript(new string[0], out generatedJs, out elapsed);
+                    Assert.Fail("Expected javascript to throw");
+                } catch (JavaScriptException jse) {
+                    if (!jse.ErrorText.Contains("attempt was made to reference the member '.ctor(s)'"))
                         throw;
                 }
             }
