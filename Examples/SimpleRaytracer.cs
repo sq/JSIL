@@ -270,7 +270,7 @@ namespace simpleray {
         }
         
         static void SetTimeout (int timeoutMs, Action action) {
-          JSIL.Verbatim.Eval(@"
+          JSIL.Verbatim.Expression(@"
               setTimeout(action, timeoutMs);
               return
           ");
