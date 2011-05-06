@@ -550,6 +550,12 @@ namespace JSIL.Ast {
             return true;
         }
 
+        public virtual bool IsConstant {
+            get {
+                return false;
+            }
+        }
+
         public override bool Equals (object obj) {
             return EqualsImpl(obj, false);
         }
@@ -800,6 +806,12 @@ namespace JSIL.Ast {
             return comparer.Compare(Value, rhs.Value) == 0;
         }
 
+        public override bool IsConstant {
+            get {
+                return true;
+            }
+        }
+
         public override string ToString () {
             return String.Format("<{0} {1}>", GetType().Name, Value);
         }
@@ -999,6 +1011,12 @@ namespace JSIL.Ast {
                 return Type;
             else
                 return base.GetExpectedType(typeSystem);
+        }
+
+        public override bool IsConstant {
+            get {
+                return true;
+            }
         }
 
         public override string ToString () {
@@ -1391,6 +1409,12 @@ namespace JSIL.Ast {
             }
         }
 
+        public override bool IsConstant {
+            get {
+                return Target.IsConstant && Member.IsConstant;
+            }
+        }
+
         public override string ToString () {
             return String.Format("{0}.{1}", Target, Member);
         }
@@ -1427,6 +1451,12 @@ namespace JSIL.Ast {
         public JSExpression Index {
             get {
                 return Values[1];
+            }
+        }
+
+        public override bool IsConstant {
+            get {
+                return Target.IsConstant && Index.IsConstant;
             }
         }
 

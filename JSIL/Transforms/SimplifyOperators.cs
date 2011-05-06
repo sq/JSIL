@@ -119,7 +119,7 @@ namespace JSIL.Transforms {
 
             if (
                 (boe.Operator == JSOperator.Assignment) && 
-                (nestedBoe != null) && (boe.Left is JSVariable)
+                (nestedBoe != null) && (boe.Left.IsConstant)
             ) {
                 JSUnaryOperator prefixOperator;
                 JSAssignmentOperator compoundOperator;
