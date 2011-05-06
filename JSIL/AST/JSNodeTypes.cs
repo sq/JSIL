@@ -42,10 +42,21 @@ namespace JSIL.Ast {
                 return false;
             }
         }
+
+        public abstract void ReplaceChild (JSNode oldChild, JSNode newChild);
     }
 
     public abstract class JSStatement : JSNode {
         public static readonly JSNullStatement Null = new JSNullStatement();
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            if (oldChild == null)
+                throw new ArgumentNullException();
+
+            throw new NotImplementedException(
+                String.Format("Statements of type '{0}' do not support child replacement", GetType().Name)
+            );
+        }
     }
 
     public sealed class JSNullStatement : JSStatement {
@@ -72,6 +83,18 @@ namespace JSIL.Ast {
                 return Statements;
             }
         }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            if (oldChild == null)
+                throw new ArgumentNullException();
+
+            var stmt = (JSStatement)newChild;
+
+            for (int i = 0, c = Statements.Count; i < c; i++) {
+                if (Statements[i] == oldChild)
+                    Statements[i] = stmt;
+            }
+        }
     }
 
     public class JSVariableDeclarationStatement : JSStatement {
@@ -86,6 +109,18 @@ namespace JSIL.Ast {
                 return Declarations;
             }
         }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            if (oldChild == null)
+                throw new ArgumentNullException();
+
+            var boe = (JSBinaryOperatorExpression)newChild;
+
+            for (int i = 0, c = Declarations.Count; i < c; i++) {
+                if (Declarations[i] == oldChild)
+                    Declarations[i] = boe;
+            }
+        }
     }
 
     public class JSLabelStatement : JSStatement {
@@ -97,16 +132,30 @@ namespace JSIL.Ast {
     }
 
     public class JSExpressionStatement : JSStatement {
-        public readonly JSExpression Expression;
+        protected JSExpression _Expression;
 
         public JSExpressionStatement (JSExpression expression) {
-            Expression = expression;
+            _Expression = expression;
         }
 
         public override IEnumerable<JSNode> Children {
             get {
-                yield return Expression;
+                yield return _Expression;
             }
+        }
+
+        public JSExpression Expression {
+            get {
+                return _Expression;
+            }
+        }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            if (oldChild == null)
+                throw new ArgumentNullException();
+
+            if (oldChild == _Expression)
+                _Expression = (JSExpression)newChild;
         }
     }
 
@@ -198,33 +247,53 @@ namespace JSIL.Ast {
     }
 
     public class JSSwitchStatement : JSStatement {
-        public readonly JSExpression Condition;
+        protected JSExpression _Condition;
         public readonly List<JSSwitchCase> Cases = new List<JSSwitchCase>();
 
         public JSSwitchStatement (JSExpression condition, params JSSwitchCase[] cases) {
-            Condition = condition;
+            _Condition = condition;
             Cases.AddRange(cases);
         }
 
         public override IEnumerable<JSNode> Children {
             get {
-                yield return Condition;
+                yield return _Condition;
 
                 foreach (var c in Cases)
                     yield return c;
             }
         }
+
+        public JSExpression Condition {
+            get {
+                return _Condition;
+            }
+        }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            if (oldChild == null)
+                throw new ArgumentNullException();
+
+            if (_Condition == oldChild)
+                _Condition = (JSExpression)newChild;
+
+            var cse = (JSSwitchCase)newChild;
+
+            for (int i = 0, c = Cases.Count; i < c; i++) {
+                if (Cases[i] == oldChild)
+                    Cases[i] = cse;
+            }
+        }
     }
 
     public class JSIfStatement : JSStatement {
-        public readonly JSExpression Condition;
-        public readonly JSStatement TrueClause;
-        public JSStatement FalseClause;
+        protected JSExpression _Condition;
+        protected JSStatement _TrueClause, _FalseClause;
 
         public JSIfStatement (JSExpression condition, JSStatement trueClause, JSStatement falseClause = null) {
-            Condition = condition;
-            TrueClause = trueClause;
-            FalseClause = falseClause;
+            _Condition = condition;
+            _TrueClause = trueClause;
+            _FalseClause = falseClause;
         }
 
         public static JSIfStatement New (params KeyValuePair<JSExpression, JSStatement>[] conditions) {
@@ -241,10 +310,10 @@ namespace JSIL.Ast {
 
                 if (cond != null) {
                     next = new JSIfStatement(cond, conditions[i].Value);
-                    current.FalseClause = next;
+                    current._FalseClause = next;
                     current = next;
                 } else
-                    current.FalseClause = conditions[i].Value;
+                    current._FalseClause = conditions[i].Value;
             }
 
             return result;
@@ -252,29 +321,84 @@ namespace JSIL.Ast {
 
         public override IEnumerable<JSNode> Children {
             get {
-                yield return Condition;
-                yield return TrueClause;
+                yield return _Condition;
+                yield return _TrueClause;
 
-                if (FalseClause != null)
-                    yield return FalseClause;
+                if (_FalseClause != null)
+                    yield return _FalseClause;
             }
+        }
+
+        public JSExpression Condition {
+            get {
+                return _Condition;
+            }
+        }
+
+        public JSStatement TrueClause {
+            get {
+                return _TrueClause;
+            }
+        }
+
+        public JSStatement FalseClause {
+            get {
+                return _FalseClause;
+            }
+        }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            if (oldChild == null)
+                throw new ArgumentNullException();
+
+            if (_Condition == oldChild)
+                _Condition = (JSExpression)newChild;
+
+            if (_TrueClause == oldChild)
+                _TrueClause = (JSStatement)newChild;
+
+            if (_FalseClause == oldChild)
+                _FalseClause = (JSStatement)newChild;
         }
     }
 
     public class JSWhileLoop : JSStatement {
-        public readonly JSExpression Condition;
-        public readonly JSStatement Body;
+        protected JSExpression _Condition;
+        protected JSStatement _Body;
 
         public JSWhileLoop (JSExpression condition, JSStatement body) {
-            Condition = condition;
-            Body = body;
+            _Condition = condition;
+            _Body = body;
         }
 
         public override IEnumerable<JSNode> Children {
             get {
-                yield return Condition;
-                yield return Body;
+                yield return _Condition;
+                yield return _Body;
             }
+        }
+
+        public JSExpression Condition {
+            get {
+                return _Condition;
+            }
+        }
+
+        public JSStatement Body {
+            get {
+                return _Body;
+            }
+        }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            if (oldChild == null)
+                throw new ArgumentNullException();
+
+            if (_Condition == oldChild)
+                _Condition = (JSExpression)newChild;
+
+            if (_Body == oldChild)
+                _Body = (JSStatement)newChild;
         }
     }
 
@@ -316,7 +440,9 @@ namespace JSIL.Ast {
 
         public override IEnumerable<JSNode> Children {
             get {
-                return Values;
+                // We don't want to use foreach here, since a value could be changed during iteration
+                for (int i = 0, c = Values.Count; i < c; i++)
+                    yield return Values[i];
             }
         }
 
@@ -354,6 +480,48 @@ namespace JSIL.Ast {
             } else {
                 return type;
             }
+        }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            if (oldChild == null)
+                throw new ArgumentNullException();
+
+            var expr = (JSExpression)newChild;
+
+            for (int i = 0, c = Values.Count; i < c; i++) {
+                if (Values[i] == oldChild)
+                    Values[i] = expr;
+            }
+        }
+
+        protected bool EqualsImpl (object obj, bool fieldsChecked) {
+            if (this == obj)
+                return true;
+            else if (obj == null)
+                return false;
+            else if (obj.GetType() != GetType())
+                return false;
+
+            var rhs = (JSExpression)obj;
+            if (Values.Count != rhs.Values.Count)
+                return false;
+
+            if ((Values.Count == 0) && (!fieldsChecked))
+                throw new NotImplementedException(String.Format("Expressions of type {0} cannot be compared", GetType().Name));
+
+            for (int i = 0, c = Values.Count; i < c; i++) {
+                var lhsV = Values[i];
+                var rhsV = rhs.Values[i];
+
+                if (!lhsV.Equals(rhsV))
+                    return false;
+            }
+
+            return true;
+        }
+
+        public override bool Equals (object obj) {
+            return EqualsImpl(obj, false);
         }
     }
 
@@ -757,13 +925,13 @@ namespace JSIL.Ast {
         public override bool Equals (object obj) {
             var id = obj as JSIdentifier;
             var str = obj as string;
+
             if (id != null) {
-                return String.Equals(Identifier, id.Identifier) ||
-                    base.Equals(id);
-            } else if (str != null) {
-                return String.Equals(Identifier, str);
+                return String.Equals(Identifier, id.Identifier) &&
+                    ILBlockTranslator.TypesAreEqual(Type, id.Type) &&
+                    EqualsImpl(obj, true);
             } else {
-                return base.Equals(obj);
+                return EqualsImpl(obj, true);
             }
         }
 
@@ -940,6 +1108,26 @@ namespace JSIL.Ast {
                 return String.Format("<parameter {0} {1}>", Type, Identifier);
             else
                 return String.Format("<var {0} {1}>", Type, Identifier);
+        }
+
+        public override bool Equals (object obj) {
+            var rhs = obj as JSVariable;
+            if (rhs != null) {
+                if (rhs.Identifier != Identifier)
+                    return false;
+                if (rhs.IsParameter != IsParameter)
+                    return false;
+                else if (rhs.IsReference != IsReference)
+                    return false;
+                else if (rhs.IsThis != IsThis)
+                    return false;
+                else if (!ILBlockTranslator.TypesAreEqual(Type, rhs.Type))
+                    return false;
+                else
+                    return true;
+            }
+
+            return EqualsImpl(obj, true);
         }
     }
 
@@ -1395,6 +1583,24 @@ namespace JSIL.Ast {
             set {
                 Values[1] = value;
             }
+        }
+
+        public static JSBinaryOperatorExpression New (JSBinaryOperator op, IList<JSExpression> values, TypeReference expectedType) {
+            if (values.Count < 2)
+                throw new ArgumentException();
+
+            var result = new JSBinaryOperatorExpression(
+                op, values[0], values[1], expectedType
+            );
+            var current = result;
+
+            for (int i = 2, c = values.Count; i < c; i++) {
+                var next = new JSBinaryOperatorExpression(op, current.Right, values[i], expectedType);
+                current.Right = next;
+                current = next;
+            }
+
+            return result;
         }
     }
 

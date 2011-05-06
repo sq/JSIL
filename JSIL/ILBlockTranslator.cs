@@ -351,6 +351,9 @@ namespace JSIL {
         }
 
         public static bool TypesAreEqual (TypeReference target, TypeReference source) {
+            if ((target == null) || (source == null))
+                return (target == source);
+
             var dTarget = target.Resolve();
             var dSource = source.Resolve();
 

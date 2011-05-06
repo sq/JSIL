@@ -291,6 +291,19 @@ namespace JSIL.Tests {
     }
 
     public class GenericTestFixture {
+        protected string GetJavascript (string fileName, string expectedText = null) {
+            long elapsed;
+            string generatedJs;
+            using (var test = new ComparisonTest(fileName)) {
+                var output = test.RunJavascript(new string[0], out generatedJs, out elapsed);
+
+                if (expectedText != null)
+                    Assert.AreEqual(expectedText, output.Trim());
+            }
+
+            return generatedJs;
+        }
+
         protected string GenericTest (string fileName, string csharpOutput, string javascriptOutput) {
             long elapsed;
             string generatedJs;

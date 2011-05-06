@@ -596,15 +596,22 @@ namespace JSIL {
                     context.CurrentModule.TypeSystem, 
                     translator.CLR
                 ).Visit(function);
+
                 new IntroduceVariableDeclarations(
                     translator.Variables,
                     this
                 ).Visit(function);
+
                 new IntroduceVariableReferences(
                     translator.JSIL,
                     translator.Variables,
                     translator.ParameterNames
                 ).Visit(function);
+
+                if (true)
+                    new SimplifyOperators(
+                        context.CurrentModule.TypeSystem
+                    ).Visit(function);
 
                 if (output != null) {
                     var emitter = new JavascriptAstEmitter(output, translator.JSIL, context.CurrentModule.TypeSystem);

@@ -3,7 +3,9 @@ using JSIL.Meta;
 
 public static class Program { 
     public static void Main (string[] args) {
-        var i = int.Parse(args[0]);
+        Func<string> two = () => "2";
+
+        var i = int.Parse(two());
 
         if (i == 0) {
             Console.WriteLine("Zero");

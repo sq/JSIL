@@ -8,13 +8,17 @@ using Microsoft.CSharp.RuntimeBinder;
 namespace JSIL.Ast {
     public abstract class JSAstVisitor {
         public readonly Stack<JSNode> Stack = new Stack<JSNode>();
+        protected JSNode CurrentNode = null;
+        protected JSNode PreviousSibling = null;
+        protected JSNode NextSibling = null;
 
         /// <summary>
         /// Visits a node and its children (if any), updating the traversal stack.
         /// </summary>
         /// <param name="node">The node to visit.</param>
         public void Visit (JSNode node) {
-            Stack.Push(node);
+            CurrentNode = node;
+
             try {
                 if (node != null) {
                     if (node.IsNull)
@@ -23,11 +27,8 @@ namespace JSIL.Ast {
                     (this as dynamic).VisitNode(node as dynamic);
                 } else
                     VisitNode(null);
-            } catch (RuntimeBinderException) {
-                Debug.WriteLine("Warning: Failed to dynamically dispatch node of type {0}", node.GetType());
-                VisitNode(node);
             } finally {
-                Stack.Pop();
+                CurrentNode = null;
             }
         }
 
@@ -48,8 +49,46 @@ namespace JSIL.Ast {
                 return;
             }
 
-            foreach (var child in node.Children)
-                Visit(child);
+            if (Stack.Contains(node))
+                throw new InvalidOperationException("AST traversal formed a cycle");
+
+            Stack.Push(node);
+            var oldPreviousSibling = PreviousSibling;
+            var oldNextSibling = NextSibling;
+
+            try {
+                PreviousSibling = NextSibling = null;
+
+                using (var e = node.Children.GetEnumerator()) {
+                    while (e.MoveNext()) {
+                        var toVisit = NextSibling;
+                        NextSibling = e.Current;
+
+                        if (toVisit != null)
+                            Visit(toVisit);
+
+                        PreviousSibling = toVisit;
+                    }
+
+                    if (NextSibling != null) {
+                        var toVisit = NextSibling;
+                        NextSibling = null;
+
+                        if (toVisit != null)
+                            Visit(toVisit);
+                    }
+                }
+            } finally {
+                Stack.Pop();
+                PreviousSibling = oldPreviousSibling;
+                NextSibling = oldNextSibling;
+            }
+        }
+
+        protected JSNode ParentNode {
+            get {
+                return Stack.Peek();
+            }
         }
     }
 }

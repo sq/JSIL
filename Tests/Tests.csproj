@@ -145,6 +145,8 @@
     <None Include="SimpleTestCases\DynamicInvoke.cs" />
     <None Include="SpecialTestCases\IgnoreLocal.cs" />
     <None Include="SpecialTestCases\VerbatimThis.cs" />
+    <None Include="SpecialTestCases\StringConcat.cs" />
+    <None Include="SpecialTestCases\PostIncrement.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
