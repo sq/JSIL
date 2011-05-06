@@ -80,12 +80,12 @@ namespace JSIL.Transforms {
                     continue;
                 }
 
-                if (TraceLevel >= 1) {
+                if (TraceLevel >= 1)
                     Debug.WriteLine(String.Format("Eliminating {0}", v));
-                    var replacement = FirstValues[v];
-                    FirstValues.Remove(v);
-                    EliminateVariable(fn, v, replacement);
-                }
+
+                var replacement = FirstValues[v];
+                FirstValues.Remove(v);
+                EliminateVariable(fn, v, replacement);
             }
         }
 

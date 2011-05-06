@@ -171,7 +171,8 @@ namespace JSIL {
                     returnType = translator.TypeSystem.Void;
 
                 return new JSInvocationExpression(
-                    thisArgument, arguments.Skip(2).ToArray()
+                    new JSChangeTypeExpression(thisArgument, returnType), 
+                    arguments.Skip(2).ToArray()
                 );
             }
         }
@@ -218,10 +219,16 @@ namespace JSIL {
                 if (returnType == null)
                     returnType = translator.TypeSystem.Void;
 
+                switch (Operation) {
+                    case ExpressionType.IsTrue:
+                        returnType = translator.TypeSystem.Boolean;
+                        break;
+                }
+
                 return new JSUnaryOperatorExpression(
                     GetOperator(Operation),
                     arguments[1],
-                    ReturnType
+                    returnType
                 );
             }
         }
@@ -323,10 +330,21 @@ namespace JSIL {
                 if (returnType == null)
                     returnType = translator.TypeSystem.Void;
 
+                switch (Operation) {
+                    case ExpressionType.Equal:
+                    case ExpressionType.NotEqual:
+                    case ExpressionType.LessThan:
+                    case ExpressionType.GreaterThan:
+                    case ExpressionType.LessThanOrEqual:
+                    case ExpressionType.GreaterThanOrEqual:
+                        returnType = translator.TypeSystem.Boolean;
+                    break;
+                }
+
                 return new JSBinaryOperatorExpression(
                     GetOperator(Operation), 
                     arguments[1], arguments[2], 
-                    ReturnType
+                    returnType
                 );
             }
         }
@@ -349,10 +367,6 @@ namespace JSIL {
             }
 
             public override JSExpression Translate (ILBlockTranslator translator, JSExpression[] arguments) {
-                var returnType = ReturnType;
-                if (returnType == null)
-                    returnType = translator.TypeSystem.Void;
-
                 return translator.JSIL.Cast(
                     arguments[1],
                     TargetType
