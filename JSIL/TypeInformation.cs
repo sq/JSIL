@@ -30,11 +30,13 @@ namespace JSIL.Internal {
                 return false;
             else if (fullName.Contains("<Module>"))
                 return true;
-            else if (fullName.Contains("<>") && fullName.Contains("__SiteContainer"))
+            else if (fullName.Contains("__SiteContainer"))
                 return true;
             else if (fullName.StartsWith("CS$<"))
                 return true;
             else if (fullName.Contains("<PrivateImplementationDetails>"))
+                return true;
+            else if (fullName.Contains("Runtime.CompilerServices.CallSite"))
                 return true;
 
             return false;
@@ -54,6 +56,9 @@ namespace JSIL.Internal {
     }
 
     public class TypeInfo {
+        public readonly TypeDefinition Definition;
+        public readonly TypeReference Reference;
+
         // Class information
         public readonly bool IsIgnored;
         public readonly MethodDefinition StaticConstructor;
@@ -89,7 +94,10 @@ namespace JSIL.Internal {
             new MemberReferenceComparer()
         );
 
-        public TypeInfo (ModuleInfo module, TypeDefinition type) {
+        public TypeInfo (ModuleInfo module, TypeDefinition type, TypeReference reference) {
+            Definition = type;
+            Reference = reference;
+
             Metadata = new MetadataCollection(type);
 
             foreach (var field in type.Fields)
@@ -166,6 +174,7 @@ namespace JSIL.Internal {
 
             IsIgnored = module.IsIgnored ||
                 TypeInformation.IsIgnoredName(type.FullName) ||
+                TypeInformation.IsIgnoredName(reference.FullName) ||
                 Metadata.HasAttribute("JSIL.Meta.JSIgnore");
         }
 

@@ -4,13 +4,16 @@ using System.Linq;
 using System.Text;
 using ICSharpCode.Decompiler.ILAst;
 using JSIL.Ast;
+using JSIL.Internal;
 
 namespace JSIL.Transforms {
     public class IntroduceVariableDeclarations : JSAstVisitor {
         public readonly IDictionary<string, JSVariable> Variables;
+        public readonly ITypeInfoSource TypeInfo;
 
-        public IntroduceVariableDeclarations (IDictionary<string, JSVariable> variables) {
+        public IntroduceVariableDeclarations (IDictionary<string, JSVariable> variables, ITypeInfoSource typeInfo) {
             Variables = variables;
+            TypeInfo = typeInfo;
         }
 
         public void VisitNode (JSFunctionExpression fn) {
@@ -26,9 +29,11 @@ namespace JSIL.Transforms {
                     select tcb.CatchVariable.Identifier
                 )
             );
+
             var nonParameters = (from v in Variables.Values 
                                  where !v.IsParameter && 
-                                       !existingDeclarations.Contains(v.Identifier) 
+                                       !existingDeclarations.Contains(v.Identifier) &&
+                                       !TypeInfo.IsIgnored(v.Type)
                                  select v).ToArray();
 
             if (nonParameters.Length > 0)

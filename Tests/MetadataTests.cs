@@ -62,6 +62,28 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void LocalsOfIgnoredTypesAreNotInitialized () {
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\IgnoreLocal.cs",
+                "",
+                "null"
+            );
+
+            Assert.IsFalse(
+                generatedJs.Contains("var local"),
+                "Locals of ignored types should not be declared"
+            );
+
+            // Not sure it's actually possible to implement this, but it's less important anyway.
+            /*
+            Assert.IsFalse(
+                generatedJs.Contains("local ="),
+                "Locals of ignored types should not be assigned"
+            );
+             */
+        }
+
+        [Test]
         public void JSReplacementReplacesMethods () {
             var generatedJs = GenericTest(
                 @"SpecialTestCases\ReplaceMethod.cs",

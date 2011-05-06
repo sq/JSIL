@@ -32,14 +32,26 @@ namespace JSIL {
             DynamicCallSiteInfo callSiteInfo;
 
             switch (bindingType) {
+                case "GetIndex":
+                    callSiteInfo = new DynamicCallSiteInfo.GetIndex(targetType, arguments);
+                break;
+                case "SetIndex":
+                    callSiteInfo = new DynamicCallSiteInfo.SetIndex(targetType, arguments);
+                break;
                 case "GetMember":
                     callSiteInfo = new DynamicCallSiteInfo.GetMember(targetType, arguments);
                 break;
                 case "SetMember":
                     callSiteInfo = new DynamicCallSiteInfo.SetMember(targetType, arguments);
                 break;
+                case "Invoke":
+                    callSiteInfo = new DynamicCallSiteInfo.Invoke(targetType, arguments);
+                break;
                 case "InvokeMember":
                     callSiteInfo = new DynamicCallSiteInfo.InvokeMember(targetType, arguments);
+                break;
+                case "UnaryOperation":
+                    callSiteInfo = new DynamicCallSiteInfo.UnaryOperation(targetType, arguments);
                 break;
                 case "BinaryOperation":
                     callSiteInfo = new DynamicCallSiteInfo.BinaryOperation(targetType, arguments);
@@ -130,6 +142,86 @@ namespace JSIL {
                         new JSIdentifier(MemberName, returnType)
                     ),
                     arguments.Skip(2).ToArray()
+                );
+            }
+        }
+
+        public class Invoke : DynamicCallSiteInfo {
+            public Invoke (TypeReference targetType, JSExpression[] arguments)
+                : base(targetType, arguments) {
+            }
+
+            public TypeReference UsageContext {
+                get {
+                    return ((JSType)Arguments[1]).Type;
+                }
+            }
+
+            public JSExpression ArgumentInfo {
+                get {
+                    return Arguments[2];
+                }
+            }
+
+            public override JSExpression Translate (ILBlockTranslator translator, JSExpression[] arguments) {
+                var thisArgument = arguments[1];
+
+                var returnType = ReturnType;
+                if (returnType == null)
+                    returnType = translator.TypeSystem.Void;
+
+                return new JSInvocationExpression(
+                    thisArgument, arguments.Skip(2).ToArray()
+                );
+            }
+        }
+
+        public class UnaryOperation : DynamicCallSiteInfo {
+            public UnaryOperation (TypeReference targetType, JSExpression[] arguments)
+                : base(targetType, arguments) {
+            }
+
+            public ExpressionType Operation {
+                get {
+                    return (ExpressionType)((JSEnumLiteral)Arguments[1]).Value;
+                }
+            }
+
+            public TypeReference UsageContext {
+                get {
+                    return ((JSType)Arguments[2]).Type;
+                }
+            }
+
+            public JSExpression ArgumentInfo {
+                get {
+                    return Arguments[3];
+                }
+            }
+
+            public static JSUnaryOperator GetOperator (ExpressionType et) {
+                switch (et) {
+                    case ExpressionType.Negate:
+                    case ExpressionType.NegateChecked:
+                        return JSOperator.Negation;
+                    case ExpressionType.Not:
+                        return JSOperator.BitwiseNot;
+                    case ExpressionType.IsTrue:
+                        return JSOperator.IsTrue;
+                    default:
+                        throw new NotImplementedException(String.Format("The unary operator '{0}' is not implemented.", et));
+                }
+            }
+
+            public override JSExpression Translate (ILBlockTranslator translator, JSExpression[] arguments) {
+                var returnType = ReturnType;
+                if (returnType == null)
+                    returnType = translator.TypeSystem.Void;
+
+                return new JSUnaryOperatorExpression(
+                    GetOperator(Operation),
+                    arguments[1],
+                    ReturnType
                 );
             }
         }
@@ -342,6 +434,74 @@ namespace JSIL {
                         new JSIdentifier(MemberName, returnType)
                     ),
                     arguments[2], returnType
+                );
+            }
+        }
+
+        public class GetIndex : DynamicCallSiteInfo {
+            public GetIndex (TypeReference targetType, JSExpression[] arguments)
+                : base(targetType, arguments) {
+            }
+
+            public TypeReference UsageContext {
+                get {
+                    return ((JSType)Arguments[1]).Type;
+                }
+            }
+
+            public JSExpression ArgumentInfo {
+                get {
+                    return Arguments[2];
+                }
+            }
+
+            public override JSExpression Translate (ILBlockTranslator translator, JSExpression[] arguments) {
+                var thisArgument = arguments[1];
+
+                var returnType = ReturnType;
+                if (returnType == null)
+                    returnType = translator.TypeSystem.Void;
+
+                return new JSIndexerExpression(
+                    thisArgument,
+                    arguments[2],
+                    returnType
+                );
+            }
+        }
+
+        public class SetIndex : DynamicCallSiteInfo {
+            public SetIndex (TypeReference targetType, JSExpression[] arguments)
+                : base(targetType, arguments) {
+            }
+
+            public TypeReference UsageContext {
+                get {
+                    return ((JSType)Arguments[1]).Type;
+                }
+            }
+
+            public JSExpression ArgumentInfo {
+                get {
+                    return Arguments[2];
+                }
+            }
+
+            public override JSExpression Translate (ILBlockTranslator translator, JSExpression[] arguments) {
+                var thisArgument = arguments[1];
+
+                var returnType = ReturnType;
+                if (returnType == null)
+                    returnType = translator.TypeSystem.Void;
+
+                return new JSBinaryOperatorExpression(
+                    JSBinaryOperator.Assignment,
+                    new JSIndexerExpression(
+                        thisArgument,
+                        arguments[2],
+                        returnType
+                    ),
+                    arguments[3], returnType
                 );
             }
         }

@@ -177,12 +177,24 @@ namespace JSIL {
                 case "System.Object JSIL.Builtins::Eval(System.String)":
                     methodExpression = JS.eval;
                 break;
-                case "System.Object JSIL.Verbatim::Expression(System.String)":
+                case "System.Object JSIL.Verbatim::Expression(System.String)": {
                     var expression = arguments[0] as JSStringLiteral;
                     if (expression == null)
                         throw new InvalidOperationException("JSIL.Verbatim.Expression must recieve a string literal as an argument");
 
                     return new JSVerbatimLiteral(expression.Value);
+                }
+                case "System.Object JSIL.JSGlobal::get_Item(System.String)": {
+                    var expression = arguments[0] as JSStringLiteral;
+                    if (expression != null)
+                        return new JSDotExpression(
+                            JSIL.GlobalNamespace, new JSIdentifier(expression.Value, TypeSystem.Object)
+                        );
+                    else
+                        return new JSIndexerExpression(
+                            JSIL.GlobalNamespace, arguments[0], TypeSystem.Object
+                        );
+                }
             }
 
             return new JSInvocationExpression(

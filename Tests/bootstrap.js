@@ -51,6 +51,8 @@ JSIL.IgnoredMember = function (memberName) {
   throw new Error("An attempt was made to reference the member '" + memberName + "', but it was explicitly ignored during translation.");
 };
 
+JSIL.GlobalNamespace = this;
+
 JSIL.CloneObject = function (obj) {
   function ClonedObject() { }
   ClonedObject.prototype = obj;

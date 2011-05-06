@@ -138,6 +138,12 @@
     <None Include="SpecialTestCases\IgnoreEvent.cs" />
     <None Include="SpecialTestCases\IgnoreConstructor.cs" />
     <None Include="SpecialTestCases\Verbatim.cs" />
+    <None Include="SpecialTestCases\IndexBuiltinByName.cs" />
+    <None Include="SimpleTestCases\DynamicUnaryOperators.cs" />
+    <None Include="SimpleTestCases\DynamicGetIndex.cs" />
+    <None Include="SimpleTestCases\DynamicSetIndex.cs" />
+    <None Include="SimpleTestCases\DynamicInvoke.cs" />
+    <None Include="SpecialTestCases\IgnoreLocal.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

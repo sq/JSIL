@@ -225,12 +225,14 @@ namespace JSIL {
             if (type == null)
                 throw new ArgumentNullException("type");
 
+            type = JSExpression.ResolveGenericType(type, type, type.DeclaringType);
+
             var fullName = type.FullName;
 
             TypeInfo result;
             if (!TypeInformation.TryGetValue(fullName, out result)) {
                 TypeInformation[fullName] = result = new TypeInfo(
-                    GetModuleInformation(type.Module), type.ResolveOrThrow()
+                    GetModuleInformation(type.Module), type.ResolveOrThrow(), type
                 );
             }
 
@@ -595,7 +597,8 @@ namespace JSIL {
                     translator.CLR
                 ).Visit(function);
                 new IntroduceVariableDeclarations(
-                    translator.Variables
+                    translator.Variables,
+                    this
                 ).Visit(function);
                 new IntroduceVariableReferences(
                     translator.JSIL,

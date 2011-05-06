@@ -16,6 +16,14 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void CustomNamedBuiltins () {
+            GenericTest(
+                @"SpecialTestCases\IndexBuiltinByName.cs",
+                "test", "print"
+            );
+        }
+
+        [Test]
         public void VerbatimIsEmittedRawInGeneratedJavascript () {
             GenericTest(
                 @"SpecialTestCases\Verbatim.cs",

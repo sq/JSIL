@@ -74,6 +74,7 @@ namespace JSIL.Ast {
         public static readonly JSUnaryOperator BitwiseNot = new JSUnaryOperator("~", false);
         public static readonly JSUnaryOperator LogicalNot = new JSUnaryOperator("!", false);
         public static readonly JSUnaryOperator Negation = new JSUnaryOperator("-", false);
+        public static readonly JSUnaryOperator IsTrue = new JSUnaryOperator("!!", false);
     }
 
     public class JSUnaryOperator : JSOperator {
