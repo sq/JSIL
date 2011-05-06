@@ -350,7 +350,7 @@ namespace JSIL.Ast {
                         return result;
                 }
 
-                throw new NotImplementedException("Could not resolve generic parameter");
+                return type;
             } else {
                 return type;
             }
@@ -807,6 +807,28 @@ namespace JSIL.Ast {
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             return ResolveGenericType(Field.FieldType, Field, Field.DeclaringType);
+        }
+    }
+
+    public class JSProperty : JSIdentifier {
+        public readonly PropertyReference Property;
+
+        public JSProperty (PropertyReference property)
+            : base(GetPropertyName(property)) {
+            Property = property;
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return ResolveGenericType(Property.PropertyType, Property, Property.DeclaringType);
+        }
+
+        protected static string GetPropertyName (PropertyReference property) {
+            var declType = property.DeclaringType.Resolve();
+
+            if ((declType != null) && (declType.IsInterface))
+                return String.Format("{0}.{1}", declType.Name, property.Name);
+            else
+                return property.Name;
         }
     }
 

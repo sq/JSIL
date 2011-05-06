@@ -25,6 +25,9 @@ JSIL.DeclareNamespace(JSIL, "Delegate");
 JSIL.DeclareNamespace(JSIL, "Dynamic");
 JSIL.DeclareNamespace(JSIL, "MulticastDelegate");
 
+// Hack
+JSIL.DeclareNamespace(this, "Property");
+
 JSIL.UntranslatableNode = function (nodeType) {
   throw new Error("An ILAst node of type " + nodeType + " could not be translated.");
 };
@@ -321,13 +324,24 @@ System.Object.prototype.__ImplementInterface__ = function (iface) {
     if (!members.hasOwnProperty(key))
       continue;
 
+    var memberType = members[key];
     var shortName = iface.__ShortName__ + "_" + key;
 
     if (!this.hasOwnProperty(key) && !this.hasOwnProperty(shortName))
       throw new Error("Missing implementation of interface member " + shortName);
 
-    if (!this.hasOwnProperty(shortName))
-      this[shortName] = this[key];
+    if (!this.hasOwnProperty(shortName)) {
+      if (memberType === Function)
+        this[shortName] = this[key];
+      else if (memberType === Property) {
+        var descriptor = Object.getOwnPropertyDescriptor(this, key);
+
+        if ((typeof (descriptor) == "undefined") || (descriptor == null))
+          throw new Error("Cannot find descriptor for property '" + key + "'");
+
+        Object.defineProperty(this, shortName, descriptor);
+      }
+    }
   }
 
   interfaces.push(iface);
@@ -436,6 +450,7 @@ JSIL.MakeInterface(System.Collections, "IEnumerator", "System.Collections.IEnume
   "MoveNext": Function,
   "get_Current": Function,
   "Reset": Function,
+  "Current": Property
 });
 JSIL.MakeInterface(System.Collections, "IEnumerable", "System.Collections.IEnumerable", {
   "GetEnumerator": Function
@@ -445,6 +460,7 @@ JSIL.MakeInterface(System.Collections.Generic, "IEnumerator$bt1", "System.Collec
   "MoveNext": Function,
   "get_Current": Function,
   "Reset": Function, 
+  "Current": Property
 });
 JSIL.MakeInterface(System.Collections.Generic, "IEnumerable$bt1", "System.Collections.Generic.IEnumerable`1", {
   "GetEnumerator": Function

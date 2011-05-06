@@ -106,7 +106,7 @@ namespace JSIL.Internal {
             MethodGroup = methodGroup;
             Method = method;
             Index = index;
-            MangledName = String.Format("{0}_{1}", method.Name, index);
+            MangledName = String.Format("{0}${1}", method.Name, index);
         }
     }
 

@@ -326,6 +326,19 @@ namespace JSIL {
                 isFirst = false;
             }
 
+            foreach (var p in iface.Properties) {
+                if (!isFirst) {
+                    output.Comma();
+                    output.NewLine();
+                }
+
+                output.Value(Util.EscapeIdentifier(p.Name));
+                output.Token(": ");
+                output.Identifier("Property");
+
+                isFirst = false;
+            }
+
             output.NewLine();
             output.CloseBrace();
 

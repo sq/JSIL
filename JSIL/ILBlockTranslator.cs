@@ -178,15 +178,13 @@ namespace JSIL {
 
             if (method == property.GetMethod) {
                 result = new JSDotExpression(
-                    thisExpression,
-                    new JSIdentifier(property.Name, property.PropertyType)
+                    thisExpression, new JSProperty(property)
                 );
             } else {
                 result = new JSBinaryOperatorExpression(
                     JSOperator.Assignment,
                     new JSDotExpression(
-                        thisExpression,
-                        new JSIdentifier(property.Name, property.PropertyType)
+                        thisExpression, new JSProperty(property)
                     ),
                     arguments[0], property.PropertyType
                 );
@@ -407,7 +405,7 @@ namespace JSIL {
                 Output.RPar();
             } catch (TargetInvocationException tie) {
                 Console.Error.WriteLine("Error occurred while translating node {0}", expression);
-                throw tie.InnerException;
+                throw;
             }
 
             return result;
@@ -1275,6 +1273,8 @@ namespace JSIL {
             var thisType = DereferenceType(ThisMethod.DeclaringType);
             var declaringType = DereferenceType(method.DeclaringType);
 
+            var declaringTypeDef = declaringType.Resolve();
+
             IEnumerable<ILExpression> arguments = node.Arguments;
             JSExpression thisExpression;
             JSIdentifier methodName;
@@ -1297,12 +1297,18 @@ namespace JSIL {
                 // If the call is of the form x.Method(...), we don't need to specify the this parameter
                 //  explicitly using the form type.Method.call(x, ...).
                 // Make sure that 'this' references only pass this check when they don't refer to 
-                //  members of base types/interfaces.
+                //  members of base types. It's always okay to use thiscall form for interfaces, since we qualify 
+                //  the name of the method/property.
                 if (
-                    (TypesAreEqual(declaringType, firstArgType)) &&
+                    ((TypesAreEqual(declaringType, firstArgType)) &&
                     (
                         (ilv == null) || (ilv.Name != "this") ||
                         (TypesAreEqual(thisType, firstArgType))
+                    )) || (
+                        (declaringTypeDef != null) && 
+                        (declaringTypeDef.IsInterface) &&
+                        TypesAreAssignable(declaringTypeDef, thisType) &&
+                        TypesAreAssignable(declaringTypeDef, firstArgType)
                     )
                 ) {
                     methodName = new JSMethod(method);
