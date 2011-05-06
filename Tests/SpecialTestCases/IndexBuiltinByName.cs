@@ -5,7 +5,10 @@ public static class Program {
     public static void Main (string[] args) {
         var print = Builtins.Global["pr" + "int"];
         if (print != null)
-            print("print");
+            print("printed");
+
+        if (Builtins.Local["print"] != null)
+            Builtins.Local["print"]("printed again");
 
         var quit = Builtins.Global["quit"];
         if (quit != null)

@@ -195,6 +195,25 @@ namespace JSIL {
                             JSIL.GlobalNamespace, arguments[0], TypeSystem.Object
                         );
                 }
+                case "System.Object JSIL.JSLocal::get_Item(System.String)": {
+                    var expression = arguments[0] as JSStringLiteral;
+                    if (expression == null)
+                        throw new InvalidOperationException("JSLocal must recieve a string literal as an index");
+
+                    return new JSIdentifier(expression.Value, TypeSystem.Object);
+                }
+                case "System.Object JSIL.Builtins::get_This()":
+                    return Variables["this"];
+            }
+
+            var methodDef = method.Resolve();
+            var methodDot = methodExpression as JSDotExpression;
+            JSExpression propertyResult;
+            if (
+                (methodDef != null) && (methodDot != null) &&
+                Translate_PropertyCall(methodDot.Target, methodDef, arguments, out propertyResult)
+            ) {
+                return propertyResult;
             }
 
             return new JSInvocationExpression(
@@ -1371,12 +1390,6 @@ namespace JSIL {
 
             var translatedArguments = Translate(arguments.ToArray(), method.Parameters);
 
-            if (methodDef != null) {
-                JSExpression propertyResult;
-                if (Translate_PropertyCall(thisExpression, methodDef, translatedArguments, out propertyResult))
-                    return propertyResult;
-            }
-
             return Translate_MethodReplacement(
                 method, new JSDotExpression(thisExpression, methodName), 
                 translatedArguments
@@ -1398,12 +1411,6 @@ namespace JSIL {
             }
 
             var translatedArguments = Translate(node.Arguments.Skip(1), method.Parameters);
-
-            if (methodDef != null) {
-                JSExpression propertyResult;
-                if (Translate_PropertyCall(thisExpression, methodDef, translatedArguments, out propertyResult))
-                    return propertyResult;
-            }
 
             return Translate_MethodReplacement(
                method, new JSDotExpression(thisExpression, new JSMethod(method)),

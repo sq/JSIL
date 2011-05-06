@@ -7,6 +7,7 @@ using System.Text;
 namespace JSIL {
     public static class Builtins {
         public static readonly JSGlobal Global = new JSGlobal();
+        public static readonly JSLocal Local = new JSLocal();
 
         /// <summary>
         /// When running as C#, this method does nothing and returns null.
@@ -15,6 +16,15 @@ namespace JSIL {
         /// <param name="expression">The expression to evaluate.</param>
         public static dynamic Eval (string expression) {
             return null;
+        }
+
+        /// <summary>
+        /// When running as javascript, this property evaluates to the current scope's this-reference.
+        /// </summary>
+        public static dynamic This {
+            get {
+                return null;
+            }
         }
     }
 
@@ -30,6 +40,22 @@ namespace JSIL {
     }
 
     public class JSGlobal {
+        /// <summary>
+        /// Retrieves a name from the global namespace (note that this is the global namespace at the time that the JSIL runtime was loaded).
+        /// </summary>
+        /// <param name="name">The name to retrieve. This may be a literal, or a string-producing expression.</param>
+        public dynamic this[string name] {
+            get {
+                return null;
+            }
+        }
+    }
+
+    public class JSLocal {
+        /// <summary>
+        /// Retrieves a name from the local namespace.
+        /// </summary>
+        /// <param name="name">The name to retrieve. This must be a string literal!</param>
         public dynamic this[string name] {
             get {
                 return null;

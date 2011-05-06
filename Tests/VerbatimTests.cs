@@ -19,7 +19,7 @@ namespace JSIL.Tests {
         public void CustomNamedBuiltins () {
             GenericTest(
                 @"SpecialTestCases\IndexBuiltinByName.cs",
-                "test", "print"
+                "test", "printed\r\nprinted again"
             );
         }
 
@@ -28,6 +28,14 @@ namespace JSIL.Tests {
             GenericTest(
                 @"SpecialTestCases\Verbatim.cs",
                 "1\r\n2", "1"
+            );
+        }
+
+        [Test]
+        public void BuiltinsThisEvaluatesToJSThis () {
+            GenericTest(
+                @"SpecialTestCases\VerbatimThis.cs",
+                "", "Program/CustomType"
             );
         }
     }
