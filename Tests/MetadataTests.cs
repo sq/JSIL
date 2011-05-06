@@ -6,24 +6,7 @@ using NUnit.Framework;
 
 namespace JSIL.Tests {
     [TestFixture]
-    public class MetadataTests {
-        protected void GenericIgnoreTest (string fileName, string workingOutput, string jsErrorSubstring) {
-            long elapsed;
-            using (var test = new ComparisonTest(fileName)) {
-                var csOutput = test.RunCSharp(new string[0], out elapsed);
-                Assert.AreEqual(workingOutput, csOutput.Trim());
-
-                try {
-                    string generatedJs;
-                    test.RunJavascript(new string[0], out generatedJs, out elapsed);
-                    Assert.Fail("Expected javascript to throw an exception containing the string \"" + jsErrorSubstring + "\".");
-                } catch (JavaScriptException jse) {
-                    if (!jse.ErrorText.Contains(jsErrorSubstring))
-                        throw;
-                }
-            }
-        }
-
+    public class MetadataTests : GenericTestFixture {
         [Test]
         public void JSIgnorePreventsTranslationOfType () {
             GenericIgnoreTest(
@@ -80,28 +63,25 @@ namespace JSIL.Tests {
 
         [Test]
         public void JSReplacementReplacesMethods () {
-            long elapsed;
-            string generatedJs;
-            using (var test = new ComparisonTest(@"SpecialTestCases\ReplaceMethod.cs")) {
-                var csOutput = test.RunCSharp(new string[0], out elapsed);
-                var jsOutput = test.RunJavascript(new string[0], out generatedJs, out elapsed);
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\ReplaceMethod.cs",
+                "none",
+                "185"
+            );
 
-                Assert.AreEqual("none", csOutput.Trim());
-                Assert.AreEqual("185", jsOutput.Trim());
-            }
+            Assert.IsFalse(
+                generatedJs.Contains("Program.GetJSVersion"), 
+                "Replaced methods should not have their body emitted"
+            );
         }
 
         [Test]
         public void MethodsContainingActualUnsafeCodeIgnored () {
-            long elapsed;
-            string generatedJs;
-            using (var test = new ComparisonTest(@"SpecialTestCases\IgnoreUnsafeCode.cs")) {
-                var csOutput = test.RunCSharp(new string[0], out elapsed);
-                var jsOutput = test.RunJavascript(new string[0], out generatedJs, out elapsed);
-
-                Assert.AreEqual("Foo\r\nBar\r\nBaz", csOutput.Trim());
-                Assert.AreEqual("Foo\r\nBar", jsOutput.Trim());
-            }
+            GenericTest(
+                @"SpecialTestCases\IgnoreUnsafeCode.cs",
+                "Foo\r\nBar\r\nBaz",
+                "Foo\r\nBar\r\nCaught: Error: An attempt was made to reference the member 'Baz()'"
+            );
         }
     }
 }

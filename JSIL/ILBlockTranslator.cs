@@ -159,6 +159,37 @@ namespace JSIL {
             );
         }
 
+        protected JSExpression Translate_MethodReplacement (MethodReference method, JSExpression methodExpression, JSExpression[] arguments) {
+            var typeInfo = TypeInfo.Get(method.DeclaringType);
+            if (typeInfo != null) {
+                MetadataCollection metadata;
+                if (typeInfo.MemberMetadata.TryGetValue(method, out metadata)) {
+                    var parms = metadata.GetAttributeParameters("JSIL.Meta.JSReplacement");
+                    if (parms != null)
+                        methodExpression = new JSVerbatimLiteral((string)parms[0].Value);
+                }
+            }
+
+            if (TypeInfo.IsIgnored(method))
+                return Translate_IgnoredMethod(method.Name, method.Parameters);
+
+            switch (method.FullName) {
+                case "System.Object JSIL.Builtins::Eval(System.String)":
+                    methodExpression = JS.eval;
+                break;
+                case "System.Object JSIL.Verbatim::Expression(System.String)":
+                    var expression = arguments[0] as JSStringLiteral;
+                    if (expression == null)
+                        throw new InvalidOperationException("JSIL.Verbatim.Expression must recieve a string literal as an argument");
+
+                    return new JSVerbatimLiteral(expression.Value);
+            }
+
+            return new JSInvocationExpression(
+                methodExpression, arguments
+            );
+        }
+
         protected bool Translate_PropertyCall (JSExpression thisExpression, MethodDefinition method, JSExpression[] arguments, out JSExpression result) {
             result = null;
 
@@ -1271,9 +1302,6 @@ namespace JSIL {
             }
 
             var methodDef = method.Resolve();
-            if (TypeInfo.IsIgnored(method))
-                return Translate_IgnoredMethod(method.Name, method.Parameters);
-
             var thisType = DereferenceType(ThisMethod.DeclaringType);
             var declaringType = DereferenceType(method.DeclaringType);
 
@@ -1337,8 +1365,8 @@ namespace JSIL {
                     return propertyResult;
             }
 
-            return new JSInvocationExpression(
-                new JSDotExpression(thisExpression, methodName),
+            return Translate_MethodReplacement(
+                method, new JSDotExpression(thisExpression, methodName), 
                 translatedArguments
             );
         }
@@ -1349,8 +1377,6 @@ namespace JSIL {
             JSExpression thisExpression;
 
             var methodDef = method.Resolve();
-            if (TypeInfo.IsIgnored(method))
-                return Translate_IgnoredMethod(method.Name, method.Parameters);
 
             if (DereferenceType(firstArg.InferredType).IsValueType) {
                 if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression))
@@ -1367,11 +1393,9 @@ namespace JSIL {
                     return propertyResult;
             }
 
-            return new JSInvocationExpression(
-                new JSDotExpression(
-                    thisExpression, new JSMethod(method)
-                ),
-                translatedArguments
+            return Translate_MethodReplacement(
+               method, new JSDotExpression(thisExpression, new JSMethod(method)),
+               translatedArguments
             );
         }
 

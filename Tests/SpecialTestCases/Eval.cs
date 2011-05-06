@@ -3,9 +3,9 @@ using JSIL;
 
 public static class Program {
     public static int Foo () {
-      Verbatim.Eval("return 2");
+      var result = Builtins.Eval("2") ?? 1;
       
-      return 1;
+      return (int)result;
     }
   
     public static void Main (string[] args) {

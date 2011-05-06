@@ -227,6 +227,17 @@ namespace JSIL.Internal {
 
             return null;
         }
+
+        public IList<CustomAttributeArgument> GetAttributeParameters (string fullName) {
+            var attrs = GetAttributes(fullName);
+            if ((attrs == null) || (attrs.Count == 0))
+                return null;
+
+            if (attrs.Count > 1)
+                throw new NotImplementedException("There are multiple attributes of the type '" + fullName + "'.");
+
+            return attrs.First().ConstructorArguments;
+        }
     }
 
     public class MethodGroupInfo {

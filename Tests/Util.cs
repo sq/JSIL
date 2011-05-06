@@ -289,4 +289,37 @@ namespace JSIL.Tests {
             }
         }
     }
+
+    public class GenericTestFixture {
+        protected string GenericTest (string fileName, string csharpOutput, string javascriptOutput) {
+            long elapsed;
+            string generatedJs;
+            using (var test = new ComparisonTest(fileName)) {
+                var csOutput = test.RunCSharp(new string[0], out elapsed);
+                var jsOutput = test.RunJavascript(new string[0], out generatedJs, out elapsed);
+
+                Assert.AreEqual(csharpOutput, csOutput.Trim(), "Did not get expected output from C# test");
+                Assert.AreEqual(javascriptOutput, jsOutput.Trim(), "Did not get expected output from JavaScript test");
+            }
+
+            return generatedJs;
+        }
+
+        protected void GenericIgnoreTest (string fileName, string workingOutput, string jsErrorSubstring) {
+            long elapsed;
+            using (var test = new ComparisonTest(fileName)) {
+                var csOutput = test.RunCSharp(new string[0], out elapsed);
+                Assert.AreEqual(workingOutput, csOutput.Trim());
+
+                try {
+                    string generatedJs;
+                    test.RunJavascript(new string[0], out generatedJs, out elapsed);
+                    Assert.Fail("Expected javascript to throw an exception containing the string \"" + jsErrorSubstring + "\".");
+                } catch (JavaScriptException jse) {
+                    if (!jse.ErrorText.Contains(jsErrorSubstring))
+                        throw;
+                }
+            }
+        }
+    }
 }

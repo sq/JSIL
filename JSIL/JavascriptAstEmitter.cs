@@ -100,6 +100,10 @@ namespace JSIL {
             Output.Value(str.Value);
         }
 
+        public void VisitNode (JSVerbatimLiteral verbatim) {
+            Output.PlainTextOutput.Write(verbatim.Value);
+        }
+
         public void VisitNode (JSTypeNameLiteral type) {
             Output.Value(type.Value);
         }

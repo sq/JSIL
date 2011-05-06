@@ -623,6 +623,13 @@ namespace JSIL {
             if (!method.HasBody)
                 return;
 
+            var typeInfo = GetTypeInformation(method.DeclaringType);
+            MetadataCollection methodMetadata;
+            if (typeInfo.MemberMetadata.TryGetValue(method, out methodMetadata)) {
+                if (methodMetadata.HasAttribute("JSIL.Meta.JSReplacement"))
+                    return;
+            }
+
             output.Identifier(method.DeclaringType);
             if (!method.IsStatic) {
                 output.Dot();
@@ -631,7 +638,7 @@ namespace JSIL {
             output.Dot();
 
             MethodGroupItem mgi;
-            if (GetTypeInformation(method.DeclaringType).MethodToMethodGroupItem.TryGetValue(method, out mgi))
+            if (typeInfo.MethodToMethodGroupItem.TryGetValue(method, out mgi))
                 output.Identifier(mgi.MangledName);
             else
                 output.Identifier(method.Name);

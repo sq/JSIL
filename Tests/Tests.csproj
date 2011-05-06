@@ -137,6 +137,7 @@
     <None Include="SimpleTestCases\DynamicReturnTypes.cs" />
     <None Include="SpecialTestCases\IgnoreEvent.cs" />
     <None Include="SpecialTestCases\IgnoreConstructor.cs" />
+    <None Include="SpecialTestCases\Verbatim.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

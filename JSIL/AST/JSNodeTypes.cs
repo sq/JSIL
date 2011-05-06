@@ -735,6 +735,16 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSVerbatimLiteral : JSLiteralBase<string> {
+        public JSVerbatimLiteral (string expression)
+            : base(expression) {
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return typeSystem.Object;
+        }
+    }
+
     public class JSIdentifier : JSExpression {
         public readonly string Identifier;
         public readonly TypeReference Type;

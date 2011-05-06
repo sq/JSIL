@@ -6,17 +6,21 @@ using NUnit.Framework;
 
 namespace JSIL.Tests {
     [TestFixture]
-    public class VerbatimTests {
+    public class VerbatimTests : GenericTestFixture {
         [Test]
-        public void EvalIsEmittedIntoBodyOfMethod () {
-            long elapsed;
-            string generatedJs;
-            using (var test = new ComparisonTest(@"SpecialTestCases\Eval.cs")) {
-                var csOutput = test.RunCSharp(new string[0], out elapsed);
-                Assert.AreEqual("1", csOutput.Trim());
-                var jsOutput = test.RunJavascript(new string[0], out generatedJs, out elapsed);
-                Assert.AreEqual("2", jsOutput.Trim());
-            }
+        public void EvalIsReplacedInGeneratedJavascript () {
+            GenericTest(
+                @"SpecialTestCases\Eval.cs",
+                "1", "2"
+            );
+        }
+
+        [Test]
+        public void VerbatimIsEmittedRawInGeneratedJavascript () {
+            GenericTest(
+                @"SpecialTestCases\Verbatim.cs",
+                "1\r\n2", "1"
+            );
         }
     }
 }

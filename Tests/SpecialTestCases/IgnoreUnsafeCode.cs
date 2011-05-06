@@ -8,7 +8,8 @@ public static class Program {
         instance.Bar();
         try {
             instance.Baz();
-        } catch {
+        } catch (Exception ex) {
+            Console.WriteLine("Caught: {0}", ex);
         }
     }
 }
