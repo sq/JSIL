@@ -185,9 +185,13 @@ namespace JSIL {
         }
 
         public void VisitNode (JSExpressionStatement statement) {
+            bool isNull = (statement.IsNull ||
+                statement.Expression.IsNull) && 
+                !(statement.Expression is JSUntranslatableExpression);
+
             Visit(statement.Expression);
 
-            if (!statement.IsNull && !statement.Expression.IsNull)
+            if (!isNull)
                 Output.Semicolon();
         }
 
@@ -298,7 +302,6 @@ namespace JSIL {
             Output.LPar();
             Output.Value((ue.Type ?? "").ToString());
             Output.RPar();
-            Output.Semicolon();
         }
 
         public void VisitNode (JSDefaultValueLiteral defaultValue) {
@@ -331,7 +334,10 @@ namespace JSIL {
         }
 
         public void VisitNode (JSVariable variable) {
-            Output.Identifier(variable.Identifier);
+            if (variable.IsThis)
+                Output.Keyword("this");
+            else
+                Output.Identifier(variable.Identifier);
 
             if (variable.IsReference) {
                 Output.Dot();
@@ -480,6 +486,11 @@ namespace JSIL {
         }
 
         public void VisitNode (JSTryCatchBlock tcb) {
+            if ((tcb.Catch ?? tcb.Finally) == null) {
+                Visit(tcb.Body);
+                return;
+            }
+
             Output.NewLine();
 
             Output.Keyword("try");

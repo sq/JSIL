@@ -398,6 +398,7 @@ namespace JSIL.Internal {
                 ns = ns.Substring(lastDot + 1);
 
                 DeclareNamespace(parent);
+                parent = Util.EscapeIdentifier(parent, false);
             } else {
                 parent = "this";
             }

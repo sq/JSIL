@@ -26,7 +26,6 @@ namespace JSIL.Internal {
         public static Regex ValidIdentifier = new Regex("$[A-Za-z_$]([A-Za-z_$0-9]*)^", RegexOptions.Compiled);
 
         public static string EscapeIdentifier (string identifier, bool escapePeriods = true) {
-            bool isReservedWord = ReservedWords.Contains(identifier);
             string result = identifier;
 
             if (!ValidIdentifier.IsMatch(identifier)) {
@@ -47,11 +46,32 @@ namespace JSIL.Internal {
                             else
                                 sb.Append(".");
                         break;
+                        case '+':
+                            if (escapePeriods)
+                                sb.Append("_");
+                            else
+                                sb.Append(".");
+                        break;
+                        case '`':
+                            sb.Append("$b");
+                        break;
+                        case '~':
+                            sb.Append("$t");
+                        break;
+                        case ':':
+                            sb.Append("$c");
+                        break;
                         case '<':
-                            sb.Append("$lt");
+                            sb.Append("$l");
                         break;
                         case '>':
-                            sb.Append("$gt");
+                            sb.Append("$g");
+                        break;
+                        case '(':
+                            sb.Append("$lp");
+                        break;
+                        case ')':
+                            sb.Append("$rp");
                         break;
                         case '{':
                             sb.Append("$lc");
@@ -65,20 +85,29 @@ namespace JSIL.Internal {
                         case ']':
                             sb.Append("$rb");
                         break;
-                        case '`':
-                            sb.Append("$bt");
-                        break;
                         case '@':
                             sb.Append("$at");
                         break;
                         case '-':
-                            sb.Append("_");
+                            sb.Append("$da");
                         break;
                         case '=':
                             sb.Append("$eq");
                         break;
                         case ' ':
                             sb.Append("$sp");
+                        break;
+                        case '?':
+                            sb.Append("$qu");
+                        break;
+                        case '!':
+                            sb.Append("$ex");
+                        break;
+                        case '*':
+                            sb.Append("$as");
+                        break;
+                        case '&':
+                            sb.Append("$am");
                         break;
                         default:
                             if ((ch <= 32) || (ch >= 127))
@@ -90,9 +119,11 @@ namespace JSIL.Internal {
                 }
 
                 result = sb.ToString();
-            } else if (isReservedWord) {
-                result = "cs$" + result;
             }
+
+            bool isReservedWord = ReservedWords.Contains(result);
+            if (isReservedWord)
+                result = "$" + result;
 
             string mapped;
             if (IdentifierMappings.TryGetValue(result, out mapped))

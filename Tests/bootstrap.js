@@ -473,11 +473,11 @@ JSIL.MakeInterface(System.Collections, "IEnumerable", "System.Collections.IEnume
   "GetEnumerator": Function
 });
 
-JSIL.MakeInterface(System.Collections.Generic, "IEnumerator$bt1", "System.Collections.Generic.IEnumerator`1", {
+JSIL.MakeInterface(System.Collections.Generic, "IEnumerator$b1", "System.Collections.Generic.IEnumerator`1", {
   "get_Current": Function,
   "Current": Property
 });
-JSIL.MakeInterface(System.Collections.Generic, "IEnumerable$bt1", "System.Collections.Generic.IEnumerable`1", {
+JSIL.MakeInterface(System.Collections.Generic, "IEnumerable$b1", "System.Collections.Generic.IEnumerable`1", {
   "GetEnumerator": Function
 });
 
@@ -843,7 +843,7 @@ Object.defineProperty(
 );
 JSIL.ArrayEnumerator.prototype.__ImplementInterface__(System.IDisposable);
 JSIL.ArrayEnumerator.prototype.__ImplementInterface__(System.Collections.IEnumerator);
-JSIL.ArrayEnumerator.prototype.__ImplementInterface__(System.Collections.Generic.IEnumerator$bt1);
+JSIL.ArrayEnumerator.prototype.__ImplementInterface__(System.Collections.Generic.IEnumerator$b1);
 
 JSIL.MakeClass(System.Object, System.Threading, "Thread", "System.Threading.Thread");
 System.Threading.Thread.prototype._ctor = function () {
@@ -851,11 +851,11 @@ System.Threading.Thread.prototype._ctor = function () {
 System.Threading.Thread.prototype.ManagedThreadId = 0;
 System.Threading.Thread.CurrentThread = new System.Threading.Thread();
 
-JSIL.MakeClass(System.Object, System.Collections.Generic, "List$bt1", "System.Collections.Generic.List`1");
-System.Collections.Generic.List$bt1.Of = function (T) {
-  return System.Collections.Generic.List$bt1;
+JSIL.MakeClass(System.Object, System.Collections.Generic, "List$b1", "System.Collections.Generic.List`1");
+System.Collections.Generic.List$b1.Of = function (T) {
+  return System.Collections.Generic.List$b1;
 };
-System.Collections.Generic.List$bt1.prototype._ctor = function (sizeOrInitializer) {
+System.Collections.Generic.List$b1.prototype._ctor = function (sizeOrInitializer) {
   var size = Number(sizeOrInitializer);
 
   if (isNaN(size)) {
@@ -867,7 +867,7 @@ System.Collections.Generic.List$bt1.prototype._ctor = function (sizeOrInitialize
     this.Count = size;
   }
 };
-System.Collections.Generic.List$bt1.prototype.Add = function (item) {
+System.Collections.Generic.List$b1.prototype.Add = function (item) {
   if (this.Count >= this.Items.length) {
     this.Items.push(item);
   } else {
@@ -875,21 +875,21 @@ System.Collections.Generic.List$bt1.prototype.Add = function (item) {
   }
   this.Count += 1;
 };
-System.Collections.Generic.List$bt1.prototype.GetEnumerator = function () {
-  return new System.Collections.Generic.List$bt1.Enumerator(this);
+System.Collections.Generic.List$b1.prototype.GetEnumerator = function () {
+  return new System.Collections.Generic.List$b1.Enumerator(this);
 };
-System.Collections.Generic.List$bt1.prototype.__ImplementInterface__(System.Collections.IEnumerable);
-System.Collections.Generic.List$bt1.prototype.__ImplementInterface__(System.Collections.Generic.IEnumerable$bt1);
+System.Collections.Generic.List$b1.prototype.__ImplementInterface__(System.Collections.IEnumerable);
+System.Collections.Generic.List$b1.prototype.__ImplementInterface__(System.Collections.Generic.IEnumerable$b1);
 
 // TODO: This type is actually a struct in the CLR
-JSIL.MakeClass(JSIL.ArrayEnumerator, System.Collections.Generic.List$bt1, "Enumerator", "System.Collections.Generic.List`1.Enumerator");
-System.Collections.Generic.List$bt1.Enumerator.Of = function (T) {
-  return System.Collections.Generic.List$bt1.Enumerator;
+JSIL.MakeClass(JSIL.ArrayEnumerator, System.Collections.Generic.List$b1, "Enumerator", "System.Collections.Generic.List`1.Enumerator");
+System.Collections.Generic.List$b1.Enumerator.Of = function (T) {
+  return System.Collections.Generic.List$b1.Enumerator;
 };
-System.Collections.Generic.List$bt1.Enumerator.prototype._array = null;
-System.Collections.Generic.List$bt1.Enumerator.prototype._length = 0;
-System.Collections.Generic.List$bt1.Enumerator.prototype._index = -1;
-System.Collections.Generic.List$bt1.Enumerator.prototype._ctor = function (list) {
+System.Collections.Generic.List$b1.Enumerator.prototype._array = null;
+System.Collections.Generic.List$b1.Enumerator.prototype._length = 0;
+System.Collections.Generic.List$b1.Enumerator.prototype._index = -1;
+System.Collections.Generic.List$b1.Enumerator.prototype._ctor = function (list) {
   if (typeof (list) != "undefined") {
     this._array = list.Items;
     this._length = list.Count;

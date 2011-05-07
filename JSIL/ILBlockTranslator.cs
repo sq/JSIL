@@ -500,6 +500,10 @@ namespace JSIL {
         public JSExpression TranslateNode (ILExpression expression) {
             JSExpression result = null;
 
+            var type = expression.ExpectedType ?? expression.InferredType;
+            if ((type != null) && (type.IsPointer || type.IsPinned || type.IsFunctionPointer))
+                return new JSUntranslatableExpression(expression);
+
             var methodName = String.Format("Translate_{0}", expression.Code);
             var bindingFlags = System.Reflection.BindingFlags.Instance |
                         System.Reflection.BindingFlags.InvokeMethod |

@@ -572,7 +572,7 @@ namespace JSIL {
                 output.Value(Util.EscapeIdentifier(field.Name));
                 output.Comma();
 
-                output.Token("{ enumerable: true, value: ");
+                output.Token("{ value: ");
             } else {
                 output.Dot();
                 output.Identifier(field.Name);
@@ -648,11 +648,17 @@ namespace JSIL {
                 if (method.Body.Instructions.Count > LargeMethodThreshold)
                     this.StartedDecompilingMethod(method.FullName);
 
+                ILBlock ilb;
                 var decompiler = new ILAstBuilder();
-                var ilb = new ILBlock(decompiler.Build(method, true));
-
                 var optimizer = new ILAstOptimizer();
-                optimizer.Optimize(context, ilb);
+
+                try {
+                    ilb = new ILBlock(decompiler.Build(method, true));
+                    optimizer.Optimize(context, ilb);
+                } catch (Exception exception) {
+                    Console.Error.WriteLine("ILSpy was unable to decompile the method '{0}' because an error occurred:\r\n{1}", method, exception);
+                    return null;
+                }
 
                 var allVariables = ilb.GetSelfAndChildrenRecursive<ILExpression>().Select(e => e.Operand as ILVariable)
                     .Where(v => v != null && !v.IsParameter).Distinct();
@@ -757,6 +763,7 @@ namespace JSIL {
                 output.LPar();
                 output.Value(method.Name);
                 output.RPar();
+                output.Semicolon();
             }
 
             output.NewLine();
@@ -793,15 +800,11 @@ namespace JSIL {
             }
 
             output.Comma();
-            output.NewLine();
-
             output.OpenBrace();
 
-            output.Token("enumerable: true");
+            bool needsComma = false;
 
             if (property.GetMethod != null) {
-                output.Comma();
-                output.NewLine();
                 output.Token("get: ");
 
                 output.Identifier(property.DeclaringType);
@@ -811,11 +814,16 @@ namespace JSIL {
                 }
                 output.Dot();
                 output.Identifier(property.GetMethod, false);
+
+                needsComma = true;
             }
 
             if (property.SetMethod != null) {
-                output.Comma();
-                output.NewLine();
+                if (needsComma) {
+                    output.Comma();
+                    output.NewLine();
+                }
+
                 output.Token("set: ");
 
                 output.Identifier(property.DeclaringType);
