@@ -719,8 +719,8 @@ namespace JSIL {
             bool needLineBreak = 
                 ((invocation.Arguments.Count > 1) && 
                 (
-                    (CountOfMatchingSubtrees<JSFunctionExpression>(invocation.Arguments) > 0) ||
-                    (CountOfMatchingSubtrees<JSInvocationExpression>(invocation.Arguments) > 0)
+                    (CountOfMatchingSubtrees<JSFunctionExpression>(invocation.Arguments) > 1) ||
+                    (CountOfMatchingSubtrees<JSInvocationExpression>(invocation.Arguments) > 1)
                 )) ||
                 (invocation.Arguments.Count > 4);
 
