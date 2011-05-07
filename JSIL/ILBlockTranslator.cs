@@ -71,7 +71,11 @@ namespace JSIL {
         }
 
         public JSBlockStatement Translate () {
-            return TranslateNode(Block);
+            try {
+                return TranslateNode(Block);
+            } catch (AbortTranslation) {
+                return null;
+            }
         }
 
         public JSNode TranslateNode (ILNode node) {
@@ -469,6 +473,10 @@ namespace JSIL {
             return TranslateBlock(block.GetChildren());
         }
 
+        public JSExpression TranslateNode (ILFixedStatement fxd) {
+            throw new AbortTranslation();
+        }
+
         public JSExpression TranslateNode (ILExpression expression) {
             JSExpression result = null;
 
@@ -519,6 +527,9 @@ namespace JSIL {
                 );
                 Output.RPar();
             } catch (TargetInvocationException tie) {
+                if (tie.InnerException is AbortTranslation)
+                    throw tie.InnerException;
+
                 Console.Error.WriteLine("Error occurred while translating node {0}", expression);
                 throw;
             }
@@ -1043,6 +1054,14 @@ namespace JSIL {
             );
         }
 
+        protected JSExpression Translate_Arglist (ILExpression node) {
+            throw new AbortTranslation();
+        }
+
+        protected JSExpression Translate_Localloc (ILExpression node) {
+            throw new AbortTranslation();
+        }
+
         protected JSStringLiteral Translate_Ldstr (ILExpression node, string text) {
             return JSLiteral.New(text);
         }
@@ -1412,12 +1431,17 @@ namespace JSIL {
         }
 
         protected JSInvocationExpression Translate_InitObject (ILExpression node) {
+            var target = TranslateNode(node.Arguments[0]);
+            var typeInfo = TypeInfo.Get(target.GetExpectedType(TypeSystem));
+
             var initializers = new List<JSPairExpression>();
 
             for (var i = 1; i < node.Arguments.Count; i++) {
                 var translated = TranslateNode(node.Arguments[i]);
 
                 var boe = translated as JSBinaryOperatorExpression;
+                var ie = translated as JSInvocationExpression;
+
                 if (boe != null) {
                     var leftDot = boe.Left as JSDotExpression;
 
@@ -1429,12 +1453,23 @@ namespace JSIL {
                     } else {
                         Console.Error.WriteLine(String.Format("Warning: Unrecognized object initializer form: {0}", boe));
                     }
+                } else if (ie != null) {
+                    var method = ie.Target.AllChildrenRecursive.OfType<JSMethod>().FirstOrDefault();
+                    PropertyDefinition property;
+                    if (
+                        (method != null) && (typeInfo != null) && 
+                        (typeInfo.MethodToProperty.TryGetValue(method.Method, out property))
+                    ) {
+                        initializers.Add(new JSPairExpression(
+                            new JSProperty(property), ie.Arguments[0]
+                        ));
+                    } else {
+                        Console.Error.WriteLine(String.Format("Warning: Object initializer element not implemented: {0}", translated));
+                    }
                 } else {
                     Console.Error.WriteLine(String.Format("Warning: Object initializer element not implemented: {0}", translated));
                 }
             }
-
-            var target = TranslateNode(node.Arguments[0]);
 
             return new JSInvocationExpression(
                 new JSDotExpression(
@@ -1645,5 +1680,8 @@ namespace JSIL {
                     JSOperator.PostDecrement, target
                 );
         }
+    }
+
+    public class AbortTranslation : Exception {
     }
 }

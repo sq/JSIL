@@ -619,12 +619,19 @@ namespace JSIL {
                 var allVariables = ilb.GetSelfAndChildrenRecursive<ILExpression>().Select(e => e.Operand as ILVariable)
                     .Where(v => v != null && !v.IsParameter).Distinct();
 
+                foreach (var v in allVariables)
+                    if (v.Type.IsPointer)
+                        return null;
+
                 NameVariables.AssignNamesToVariables(context, decompiler.Parameters, allVariables, ilb);
 
                 var translator = new ILBlockTranslator(
                     this, context, method, ilb, decompiler.Parameters, allVariables
                 );
                 var body = translator.Translate();
+
+                if (body == null)
+                    return null;
 
                 var function = new JSFunctionExpression(
                     method,
@@ -706,7 +713,13 @@ namespace JSIL {
 
             output.Token(" = ");
 
-            TranslateMethod(context, method, output);
+            var function = TranslateMethod(context, method, output);
+            if (function == null) {
+                output.Identifier("JSIL.UntranslatableFunction", true);
+                output.LPar();
+                output.Value(method.Name);
+                output.RPar();
+            }
 
             output.NewLine();
         }

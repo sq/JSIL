@@ -32,6 +32,10 @@ JSIL.UntranslatableNode = function (nodeType) {
   throw new Error("An ILAst node of type " + nodeType + " could not be translated.");
 };
 
+JSIL.UntranslatableFunction = function (functionName) {
+  throw new Error("The function '" + functionName + "' could not be translated.");
+};
+
 JSIL.UntranslatablePointer = function () {
   throw new Error("An expression using native pointers could not be translated.");
 };
