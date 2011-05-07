@@ -606,6 +606,10 @@ namespace JSIL {
 
             if (ParentNode is JSIfStatement)
                 parens = false;
+            else if ((ParentNode is JSWhileLoop) && ((JSWhileLoop)ParentNode).Condition == bop)
+                parens = false;
+            else if ((ParentNode is JSSwitchStatement) && ((JSSwitchStatement)ParentNode).Condition == bop)
+                parens = false;
 
             // We need to perform manual truncation to maintain the semantics of C#'s division operator
             if ((bop.Operator == JSOperator.Divide)) {
