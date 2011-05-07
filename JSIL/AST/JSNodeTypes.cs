@@ -1280,6 +1280,12 @@ namespace JSIL.Ast {
             return ResolveGenericType(Property.PropertyType, Property, Property.DeclaringType);
         }
 
+        public override bool IsConstant {
+            get {
+                return false;
+            }
+        }
+
         protected static string GetPropertyName (PropertyReference property) {
             var declType = property.DeclaringType.Resolve();
 
@@ -1853,6 +1859,12 @@ namespace JSIL.Ast {
 
             Operator = op;
             ExpectedType = expectedType;
+        }
+
+        public override bool IsConstant {
+            get {
+                return Values.All((v) => v.IsConstant);
+            }
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {

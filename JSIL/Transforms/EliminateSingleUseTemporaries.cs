@@ -58,6 +58,19 @@ namespace JSIL.Transforms {
             )
                 return true;
 
+            var de = source as JSDotExpression;
+            if (
+                (de != null) &&
+                IsEffectivelyConstant(target, de.Target) &&
+                IsEffectivelyConstant(target, de.Member)
+            )
+                return true;
+
+            if ((source is JSUnaryOperatorExpression) || (source is JSBinaryOperatorExpression)) {
+                if (source.Children.OfType<JSExpression>().All((_v) => IsEffectivelyConstant(target, _v)))
+                    return true;
+            }
+
             if (source.IsConstant)
                 return true;
 

@@ -689,13 +689,6 @@ namespace JSIL {
                     translator.CLR
                 ).Visit(function);
 
-                /*
-                if (SimplifyOperators)
-                    new SimplifyOperators(
-                        context.CurrentModule.TypeSystem
-                    ).Visit(function);
-                 */
-
                 if (EliminateTemporaries)
                     new EliminateSingleUseTemporaries(
                         context.CurrentModule.TypeSystem,
@@ -713,7 +706,7 @@ namespace JSIL {
                     translator.ParameterNames
                 ).Visit(function);
 
-                // We do operator simplification twice since temporary elimination may make more simplification possible
+                // Temporary elimination makes it possible to simplify more operators, so do it last
                 if (SimplifyOperators)
                     new SimplifyOperators(
                         context.CurrentModule.TypeSystem
