@@ -610,6 +610,8 @@ namespace JSIL {
                 parens = false;
             else if ((ParentNode is JSSwitchStatement) && ((JSSwitchStatement)ParentNode).Condition == bop)
                 parens = false;
+            else if ((ParentNode is JSBinaryOperatorExpression) && ((JSBinaryOperatorExpression)ParentNode).Operator == bop.Operator)
+                parens = false;
 
             // We need to perform manual truncation to maintain the semantics of C#'s division operator
             if ((bop.Operator == JSOperator.Divide)) {
@@ -631,10 +633,16 @@ namespace JSIL {
             if (parens)
                 Output.LPar();
 
+            int depth = Stack.OfType<JSBinaryOperatorExpression>().Count();
+
             Visit(bop.Left);
             Output.Space();
             Output.Token(bop.Operator.Token);
             Output.Space();
+
+            if ((bop.Operator is JSLogicalOperator) && (depth > 1))
+                Output.NewLine();
+
             Visit(bop.Right);
 
             if (parens)

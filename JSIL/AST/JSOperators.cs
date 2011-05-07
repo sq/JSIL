@@ -64,8 +64,8 @@ namespace JSIL.Ast {
         public static readonly JSBinaryOperator BitwiseOr = "|";
         public static readonly JSBinaryOperator BitwiseXor = "^";
 
-        public static readonly JSBinaryOperator LogicalAnd = "&&";
-        public static readonly JSBinaryOperator LogicalOr = "||";
+        public static readonly JSLogicalOperator LogicalAnd = "&&";
+        public static readonly JSLogicalOperator LogicalOr = "||";
 
         public static readonly JSUnaryOperator PreIncrement = new JSUnaryOperator("++", false);
         public static readonly JSUnaryOperator PreDecrement = new JSUnaryOperator("--", false);
@@ -105,13 +105,19 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSAssignmentOperator : JSBinaryOperator {
-        public JSAssignmentOperator (string token)
+    public class JSLogicalOperator : JSBinaryOperator {
+        public JSLogicalOperator (string token)
             : base(token) {
         }
 
-        public override string ToString () {
-            return String.Format("{0}", Token);
+        public static implicit operator JSLogicalOperator (string token) {
+            return new JSLogicalOperator(token);
+        }
+    }
+
+    public class JSAssignmentOperator : JSBinaryOperator {
+        public JSAssignmentOperator (string token)
+            : base(token) {
         }
 
         public static implicit operator JSAssignmentOperator (string token) {
