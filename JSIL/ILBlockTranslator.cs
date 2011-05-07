@@ -145,6 +145,10 @@ namespace JSIL {
             return result;
         }
 
+        protected static bool CopyOnReturn (TypeReference type) {
+            return EmulateStructAssignment.IsStruct(type) || type.IsValueType;
+        }
+
         protected void CommaSeparatedList (IEnumerable<ILExpression> values) {
             bool isFirst = true;
             foreach (var value in values) {
@@ -246,7 +250,7 @@ namespace JSIL {
                 );
             }
 
-            if (EmulateStructAssignment.IsStruct(method.ReturnType))
+            if (CopyOnReturn(method.ReturnType))
                 result = JSReferenceExpression.New(result);
 
             return result;
@@ -970,8 +974,9 @@ namespace JSIL {
             if (TypeInfo.IsIgnored(field))
                 return new JSInvocationExpression(
                     JSIL.IgnoredMember, JSLiteral.New(field.Name)
-                ); 
+                );
 
+            // TODO: When returning a value type we should be returning it by reference, but doing that would break Ldflda.
             return new JSDotExpression(new JSType(field.DeclaringType), new JSField(field));
         }
 
@@ -1013,6 +1018,7 @@ namespace JSIL {
                 thisExpression = translated;
             }
 
+            // TODO: When returning a value type we should be returning it by reference, but doing that would break Ldflda.
             return new JSDotExpression(
                 thisExpression, 
                 new JSField(field)
@@ -1168,7 +1174,7 @@ namespace JSIL {
                 expectedType
             );
 
-            if (EmulateStructAssignment.IsStruct(expectedType))
+            if (CopyOnReturn(expectedType))
                 result = JSReferenceExpression.New(result);
 
             return result;
@@ -1230,7 +1236,7 @@ namespace JSIL {
             var value = TranslateNode(node.Arguments[0]);
             var result = JSIL.Cast(value, targetType);
 
-            if (EmulateStructAssignment.IsStruct(targetType))
+            if (CopyOnReturn(targetType))
                 return JSReferenceExpression.New(result);
             else
                 return result;
@@ -1277,6 +1283,10 @@ namespace JSIL {
             return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt64);
         }
 
+        protected JSExpression Translate_Conv_Ovf_U8 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.UInt64);
+        }
+
         protected JSExpression Translate_Conv_I1 (ILExpression node) {
             return Translate_Conv(node, Context.CurrentModule.TypeSystem.SByte);
         }
@@ -1289,7 +1299,15 @@ namespace JSIL {
             return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32);
         }
 
+        protected JSExpression Translate_Conv_Ovf_I4 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32);
+        }
+
         protected JSExpression Translate_Conv_I8 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int64);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_I8 (ILExpression node) {
             return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int64);
         }
 
@@ -1298,6 +1316,10 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Conv_R8 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Double);
+        }
+
+        protected JSExpression Translate_Conv_R_Un (ILExpression node) {
             return Translate_Conv(node, Context.CurrentModule.TypeSystem.Double);
         }
 
