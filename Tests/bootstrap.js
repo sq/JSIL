@@ -75,6 +75,17 @@ JSIL.MakeType = function (baseType, namespace, localName, fullName, isReferenceT
     throw new Error("Duplicate definition of type " + fullName);
 
   var ctor = function () {
+    var sf = this.__StructFields__;
+    if (typeof (sf) == "object") {
+      for (var fieldName in sf) {
+        if (!sf.hasOwnProperty(fieldName))
+          continue;
+
+        var fieldType = sf[fieldName];
+        this[fieldName] = new fieldType();
+      }
+    }
+
     this._ctor.apply(this, arguments);
   };
   ctor.toString = function () {
@@ -347,11 +358,18 @@ System.Object.prototype.__ImplementInterface__ = function (iface) {
 System.Object.prototype.MemberwiseClone = function () {
   var result = Object.create(Object.getPrototypeOf(this));
 
+  var sf = this.__StructFields__;
+  if (typeof (sf) != "object")
+    sf = {};
+
   for (var key in this) {
     if (!this.hasOwnProperty(key))
       continue;
 
-    result[key] = this[key];
+    if (sf.hasOwnProperty(key))
+      result[key] = this[key].MemberwiseClone();
+    else
+      result[key] = this[key];
   }
 
   return result;
@@ -375,6 +393,7 @@ System.Object.prototype.__Initialize__ = function (dict) {
 
   return this;
 };
+System.Object.prototype.__StructFields__ = {};
 System.Object.prototype._ctor = function () {
 };
 System.Object.prototype.toString = function ToString() {

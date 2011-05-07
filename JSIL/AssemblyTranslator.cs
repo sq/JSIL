@@ -343,7 +343,7 @@ namespace JSIL {
             }
 
             output.NewLine();
-            output.CloseBrace();
+            output.CloseBrace(false);
 
             output.RPar();
             output.Semicolon();
@@ -382,7 +382,7 @@ namespace JSIL {
             }
 
             output.NewLine();
-            output.CloseBrace();
+            output.CloseBrace(false);
             output.Comma();
             output.Value(typeInformation.IsFlagsEnum);
             output.NewLine();
@@ -457,11 +457,49 @@ namespace JSIL {
             if (info == null)
                 throw new InvalidOperationException();
 
+            var structFields = new List<FieldDefinition>();
+
             foreach (var field in typedef.Fields) {
                 if (IsIgnored(field))
                     continue;
 
-                EmitFieldDefault(context, output, field);
+                if (
+                    !field.HasConstant &&
+                    EmulateStructAssignment.IsStruct(field.FieldType) &&
+                    !field.IsStatic
+                ) {
+                    structFields.Add(field);
+                } else {
+                    EmitFieldDefault(context, output, field);
+                }
+            }
+
+            if (structFields.Count > 0) {
+                output.Identifier(typedef);
+                output.Dot();
+                output.Identifier("prototype");
+                output.Dot();
+                output.Identifier("__StructFields__");
+                output.Token(" = ");
+                output.OpenBrace();
+
+                bool isFirst = true;
+                foreach (var sf in structFields) {
+                    if (!isFirst) {
+                        output.Comma();
+                        output.NewLine();
+                    }
+
+                    output.Identifier(sf.Name);
+                    output.Token(": ");
+                    output.Identifier(sf.FieldType);
+
+                    isFirst = false;
+                }
+
+                output.NewLine();
+                output.CloseBrace(false);
+                output.Semicolon();
             }
 
             foreach (var method in typedef.Methods)
@@ -475,7 +513,7 @@ namespace JSIL {
 
             var cctor = (from m in typedef.Methods where m.Name == ".cctor" select m).FirstOrDefault();
             if (cctor != null) {
-                output.Identifier(cctor, true);
+                output.Identifier(cctor);
                 output.LPar();
                 output.RPar();
                 output.Semicolon();
@@ -790,7 +828,7 @@ namespace JSIL {
             }
 
             output.NewLine();
-            output.CloseBrace();
+            output.CloseBrace(false);
 
             output.RPar();
             output.Semicolon();
