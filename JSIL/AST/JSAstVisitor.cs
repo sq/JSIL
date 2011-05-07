@@ -10,6 +10,7 @@ namespace JSIL.Ast {
     public abstract class JSAstVisitor {
         public readonly Stack<JSNode> Stack = new Stack<JSNode>();
         protected int NodeIndex, NextNodeIndex;
+        protected int StatementIndex, NextStatementIndex;
         protected JSNode PreviousSibling = null;
         protected JSNode NextSibling = null;
 
@@ -103,6 +104,7 @@ namespace JSIL.Ast {
         /// <param name="node">The node to visit.</param>
         public void Visit (JSNode node) {
             var oldNodeIndex = NodeIndex;
+            var oldStatementIndex = StatementIndex;
 
             if (Stack.Contains(node))
                 throw new InvalidOperationException("AST traversal formed a cycle");
@@ -111,6 +113,11 @@ namespace JSIL.Ast {
             try {
                 NodeIndex = NextNodeIndex;
                 NextNodeIndex += 1;
+
+                if (node is JSStatement) {
+                    StatementIndex = NextStatementIndex;
+                    NextStatementIndex += 1;
+                }
 
                 var visitor = Visitors.Get(node);
 
@@ -121,6 +128,7 @@ namespace JSIL.Ast {
             } finally {
                 Stack.Pop();
                 NodeIndex = oldNodeIndex;
+                StatementIndex = oldStatementIndex;
             }
         }
 

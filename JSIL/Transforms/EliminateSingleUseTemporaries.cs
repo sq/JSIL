@@ -6,8 +6,6 @@ using JSIL.Ast;
 using Mono.Cecil;
 
 namespace JSIL.Transforms {
-    // This only works correctly for cases where a variable is assigned once and used once.
-    // With a better algorithm it could detect and handle more sophisticated cases, but it's probably not worth it.
     public class EliminateSingleUseTemporaries : JSAstVisitor {
         public const int TraceLevel = 0;
 
@@ -63,19 +61,20 @@ namespace JSIL.Transforms {
             if (source.IsConstant)
                 return true;
 
+            List<Tuple<int, int>> assignments;
+
             // Try to find a spot between the source variable's assignments where all of our
             //  copies and accesses can fit. If we find one, our variable is effectively constant.
             var v = source as JSVariable;
             if (v != null) {
-                List<Tuple<int, int>> assignments, targetAssignments;
-                List<int> targetAccesses;
-
                 if (!Assignments.TryGetValue(v, out assignments))
                     return v.IsParameter;
 
+                List<Tuple<int, int>> targetAssignments;
                 if (!Assignments.TryGetValue(target, out targetAssignments))
                     return false;
 
+                List<int> targetAccesses;
                 if (!Accesses.TryGetValue(target, out targetAccesses))
                     return false;
 
@@ -110,6 +109,24 @@ namespace JSIL.Transforms {
 
                 return true;
             }
+
+            // Attempt to handle the simple case where a variable is assigned a non-constant expression once and then used immediately
+            if (!Assignments.TryGetValue(target, out assignments))
+                return false;
+
+            if (assignments.Count != 1)
+                return false;
+
+            List<int> accesses;
+            if (!Accesses.TryGetValue(target, out accesses))
+                return false;
+
+            int firstAccess, lastAccess;
+            if (!GetMinMax(accesses, out firstAccess, out lastAccess))
+                return false;
+
+            if (firstAccess == assignments.First().Item2 + 1)
+                return true;
 
             return false;
         }
@@ -289,10 +306,10 @@ namespace JSIL.Transforms {
                 if (TraceLevel >= 3)
                     Debug.WriteLine(String.Format(
                         "{0:0000} Reassigns: {1}\r\n{2}",
-                        NodeIndex, variable, uoe
+                        StatementIndex, variable, uoe
                     ));
 
-                AddToList(Assignments, variable, new Tuple<int, int>(NodeIndex, NextNodeIndex - 1));
+                AddToList(Assignments, variable, new Tuple<int, int>(StatementIndex, NextStatementIndex - 1));
             }
         }
 
@@ -311,16 +328,16 @@ namespace JSIL.Transforms {
                     FirstValues.Add(leftVar, new JSExpressionStatement(boe.Right));
                 }
 
-                AddToList(Assignments, leftVar, new Tuple<int, int>(NodeIndex, NextNodeIndex - 1));
+                AddToList(Assignments, leftVar, new Tuple<int, int>(StatementIndex, NextStatementIndex - 1));
 
                 if (TraceLevel >= 3)
                     Debug.WriteLine(String.Format(
-                        "{0:0000} {2}: {1}\r\n{3}", 
-                        NodeIndex, leftVar, isFirst ? "Assigns" : "Reassigns", boe
+                        "{0:0000} {2}: {1}\r\n{3}",
+                        StatementIndex, leftVar, isFirst ? "Assigns" : "Reassigns", boe
                     ));
 
                 if (rightVar != null) {
-                    AddToList(Copies, rightVar, NodeIndex);
+                    AddToList(Copies, rightVar, StatementIndex);
 
                     if (
                         !ILBlockTranslator.TypesAreEqual(
@@ -328,18 +345,18 @@ namespace JSIL.Transforms {
                             rightVar.GetExpectedType(TypeSystem)
                         )
                     ) {
-                        AddToList(Conversions, rightVar, NodeIndex);
+                        AddToList(Conversions, rightVar, StatementIndex);
 
                         if (TraceLevel >= 3)
                             Debug.WriteLine(String.Format(
                                 "{0:0000} Converts: {1} into {2}\r\n{3}",
-                                NodeIndex, rightVar, leftVar, boe
+                                StatementIndex, rightVar, leftVar, boe
                             ));
                     } else {
                         if (TraceLevel >= 3)
                             Debug.WriteLine(String.Format(
                                 "{0:0000} Copies: {1} into {2}\r\n{3}",
-                                NodeIndex, rightVar, leftVar, boe
+                                StatementIndex, rightVar, leftVar, boe
                             ));
                     }
                 }
@@ -361,18 +378,18 @@ namespace JSIL.Transforms {
                 if (TraceLevel >= 3)
                     Debug.WriteLine(String.Format(
                         "{0:0000} Accesses: {1}\r\n{2}",
-                        NodeIndex, variable, enclosingStatement
+                        StatementIndex, variable, enclosingStatement
                     ));
 
                 if (enclosingStatement is JSExpressionStatement)
-                    AddToList(Accesses, variable, NodeIndex);
+                    AddToList(Accesses, variable, StatementIndex);
                 else
-                    AddToList(ControlFlowAccesses, variable, NodeIndex);
+                    AddToList(ControlFlowAccesses, variable, StatementIndex);
             } else {
                 if (TraceLevel >= 4)
                     Debug.WriteLine(String.Format(
                         "{0:0000} Ignoring Access: {1}\r\n{2}",
-                        NodeIndex, variable, GetEnclosingNodes<JSStatement>().FirstOrDefault()
+                        StatementIndex, variable, GetEnclosingNodes<JSStatement>().FirstOrDefault()
                     ));
             }
 
