@@ -41,7 +41,7 @@ namespace JSIL {
         }
 
         public override void VisitNode (JSNode node) {
-            if (node != null) {
+            if ((node != null) && !node.IsNull) {
                 Console.Error.WriteLine("Cannot emit {0}", node.GetType().Name);
                 Output.Identifier("JSIL.UntranslatableNode", true);
                 Output.LPar();
@@ -57,7 +57,8 @@ namespace JSIL {
             if (includeBraces)
                 Output.OpenBrace();
 
-            VisitChildren(block);
+            foreach (var stmt in block.Statements)
+                Visit(stmt);
 
             if (includeBraces)
                 Output.CloseBrace();
@@ -240,6 +241,8 @@ namespace JSIL {
         }
 
         public void VisitNode (JSSwitchStatement swtch) {
+            WriteLabel(swtch);
+
             Output.Keyword("switch");
             Output.Space();
 
@@ -271,10 +274,17 @@ namespace JSIL {
             Output.CloseBrace();
         }
 
-        public void VisitNode (JSLabelStatement label) {
-            Output.Identifier(label.LabelName);
+        protected void WriteLabel (JSStatement stmt) {
+            if (String.IsNullOrWhiteSpace(stmt.Label))
+                return;
+
+            Output.Identifier(stmt.Label);
             Output.Token(": ");
             Output.NewLine();
+        }
+
+        public void VisitNode (JSLabelStatement label) {
+            WriteLabel(label);
         }
 
         public void VisitNode (JSIfStatement ifs) {
@@ -354,6 +364,8 @@ namespace JSIL {
         }
 
         public void VisitNode (JSWhileLoop loop) {
+            WriteLabel(loop);
+
             Output.NewLine();
             Output.Keyword("while");
             Output.Space();
@@ -363,9 +375,7 @@ namespace JSIL {
             Output.RPar();
             Output.Space();
 
-            Output.OpenBrace();
-            Visit(loop.Body);
-            Output.CloseBrace();
+            VisitNode((JSBlockStatement)loop, true);
         }
 
         public void VisitNode (JSReturnExpression ret) {

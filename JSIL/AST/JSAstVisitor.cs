@@ -28,9 +28,6 @@ namespace JSIL.Ast {
                 NextNodeIndex += 1;
 
                 if (node != null) {
-                    if (node.IsNull)
-                        return;
-
                     (this as dynamic).VisitNode(node as dynamic);
                 } else
                     VisitNode(null);
@@ -45,6 +42,11 @@ namespace JSIL.Ast {
         /// By default, this method traverses the node's children, but takes no other action.
         /// </summary>
         public virtual void VisitNode (JSNode node) {
+            if (node == null) {
+                Debug.WriteLine("Warning: Null node found in JavaScript AST");
+                return;
+            }
+
             VisitChildren(node as dynamic);
         }
 
@@ -52,10 +54,8 @@ namespace JSIL.Ast {
         /// Traverses all of a node's children. This is the default behavior for VisitNode.
         /// </summary>
         protected virtual void VisitChildren (JSNode node) {
-            if (node == null) {
-                Debug.WriteLine("Warning: Null node found in JavaScript AST");
-                return;
-            }
+            if (node == null)
+                throw new ArgumentNullException();
 
             if (Stack.Contains(node))
                 throw new InvalidOperationException("AST traversal formed a cycle");

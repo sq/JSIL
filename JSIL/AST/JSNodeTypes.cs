@@ -49,6 +49,8 @@ namespace JSIL.Ast {
     public abstract class JSStatement : JSNode {
         public static readonly JSNullStatement Null = new JSNullStatement();
 
+        public string Label = null;
+
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
                 throw new ArgumentNullException();
@@ -144,10 +146,8 @@ namespace JSIL.Ast {
     }
 
     public class JSLabelStatement : JSStatement {
-        public readonly string LabelName;
-
         public JSLabelStatement (string name) {
-            LabelName = name;
+            Label = name;
         }
     }
 
@@ -412,31 +412,26 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSWhileLoop : JSStatement {
+    public class JSWhileLoop : JSBlockStatement {
         protected JSExpression _Condition;
-        protected JSStatement _Body;
 
-        public JSWhileLoop (JSExpression condition, JSStatement body) {
+        public JSWhileLoop (JSExpression condition, params JSStatement[] body) {
             _Condition = condition;
-            _Body = body;
+            Statements.AddRange(body);
         }
 
         public override IEnumerable<JSNode> Children {
             get {
                 yield return _Condition;
-                yield return _Body;
+
+                foreach (var s in base.Children)
+                    yield return s;
             }
         }
 
         public JSExpression Condition {
             get {
                 return _Condition;
-            }
-        }
-
-        public JSStatement Body {
-            get {
-                return _Body;
             }
         }
 
@@ -447,14 +442,14 @@ namespace JSIL.Ast {
             if (_Condition == oldChild)
                 _Condition = (JSExpression)newChild;
 
-            if (_Body == oldChild)
-                _Body = (JSStatement)newChild;
+            if (newChild is JSStatement)
+                base.ReplaceChild(oldChild, newChild);
         }
 
         public override string ToString () {
             return String.Format(
                 "while ({0}) {{\r\n{1}\r\n}}",
-                _Condition, Util.Indent(_Body)
+                _Condition, Util.Indent(base.ToString())
             );
         }
     }
