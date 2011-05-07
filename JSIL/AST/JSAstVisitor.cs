@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using Microsoft.CSharp.RuntimeBinder;
 
@@ -12,6 +13,90 @@ namespace JSIL.Ast {
         protected JSNode CurrentNode = null;
         protected JSNode PreviousSibling = null;
         protected JSNode NextSibling = null;
+
+        protected readonly VisitorCache Visitors;
+
+        protected JSAstVisitor () {
+            Visitors = new VisitorCache(this);
+        }
+
+        protected class VisitorCache {
+            protected class Adapter<T> where T : JSNode {
+                public readonly Action<T> Method;
+
+                public Adapter (Action<T> method) {
+                    Method = method;
+                }
+
+                public void Visit (JSNode node) {
+                    Method((T)node);
+                }
+            }
+
+            public readonly Dictionary<Type, Action<JSNode>> Methods = new Dictionary<Type, Action<JSNode>>();
+            public readonly Dictionary<Type, Action<JSNode>> Cache = new Dictionary<Type, Action<JSNode>>();
+            public readonly Type VisitorType;
+
+            public VisitorCache (JSAstVisitor target) {
+                VisitorType = target.GetType();
+
+                foreach (var m in VisitorType.GetMethods()) {
+                    if (m.Name != "VisitNode")
+                        continue;
+
+                    var parameters = m.GetParameters();
+                    if (parameters.Length != 1)
+                        continue;
+
+                    var nodeType = parameters[0].ParameterType;
+
+                    Methods.Add(nodeType, MakeVisitorAdapter(m, nodeType, target));
+                }
+            }
+
+            protected static Action<JSNode> MakeVisitorAdapter (MethodInfo method, Type nodeType, JSAstVisitor target) {
+                var tAdapterUnbound = typeof(Adapter<>);
+                var tAdapter = tAdapterUnbound.MakeGenericType(nodeType);
+                var tVisitorMethodUnbound = typeof(Action<>);
+                var tVisitorMethod = tVisitorMethodUnbound.MakeGenericType(nodeType);
+                var tAdapterMethod = typeof(Action<JSNode>);
+
+                var visitorMethod = Delegate.CreateDelegate(tVisitorMethod, target, method);
+
+                var adapter = tAdapter.GetConstructor(new[] { 
+                        tVisitorMethod
+                    }).Invoke(new object[] { visitorMethod });
+
+                var adapterMethod = adapter.GetType().GetMethod("Visit", BindingFlags.Public | BindingFlags.Instance);
+                var result = Delegate.CreateDelegate(tAdapterMethod, adapter, adapterMethod);
+
+                return (Action<JSNode>)result;
+            }
+
+            public Action<JSNode> Get (JSNode node) {
+                if (node == null)
+                    return null;
+
+                var nodeType = node.GetType();
+                var currentType = nodeType;
+                Action<JSNode> result;
+
+                if (Cache.TryGetValue(nodeType, out result))
+                    return result;
+
+                while (currentType != null) {
+                    if (Methods.TryGetValue(currentType, out result)) {
+                        Cache[nodeType] = result;
+                        return result;
+                    }
+
+                    currentType = currentType.BaseType;
+                }
+
+                Cache[nodeType] = null;
+                return null;
+            }
+        }
 
         /// <summary>
         /// Visits a node and its children (if any), updating the traversal stack.
@@ -27,10 +112,11 @@ namespace JSIL.Ast {
                 NodeIndex = NextNodeIndex;
                 NextNodeIndex += 1;
 
-                if (node != null) {
-                    (this as dynamic).VisitNode(node as dynamic);
-                } else
-                    VisitNode(null);
+                var visitor = Visitors.Get(node);
+                if (visitor != null)
+                    visitor(node);
+                else
+                    VisitNode(node);
             } finally {
                 CurrentNode = oldCurrentNode;
                 NodeIndex = oldNodeIndex;
@@ -47,7 +133,7 @@ namespace JSIL.Ast {
                 return;
             }
 
-            VisitChildren(node as dynamic);
+            VisitChildren(node);
         }
 
         /// <summary>

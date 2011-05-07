@@ -60,7 +60,11 @@ namespace JSIL {
             base.VisitNode(node);
         }
 
-        public void VisitNode (JSBlockStatement block, bool includeBraces = false) {
+        public void VisitNode (JSBlockStatement block) {
+            VisitNode(block, false);
+        }
+
+        public void VisitNode (JSBlockStatement block, bool includeBraces) {
             if (includeBraces)
                 Output.OpenBrace();
 
