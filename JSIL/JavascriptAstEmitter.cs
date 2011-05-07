@@ -76,16 +76,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSExpressionStatement statement) {
-            bool needsParens =
-                CountOfMatchingSubtrees<JSFunctionExpression>(statement.Children) > 0;
-
-            if (needsParens)
-                Output.LPar();
-
             Visit(statement.Expression);
-
-            if (needsParens)
-                Output.RPar();
 
             if (!statement.IsNull && !statement.Expression.IsNull)
                 Output.Semicolon();
@@ -489,7 +480,17 @@ namespace JSIL {
         }
 
         public void VisitNode (JSInvocationExpression invocation) {
+            bool needsParens =
+                CountOfMatchingSubtrees<JSFunctionExpression>(new[] { invocation.Target }) > 0;
+
+            if (needsParens)
+                Output.LPar();
+
             Visit(invocation.Target);
+
+            if (needsParens)
+                Output.RPar();
+
             Output.LPar();
 
             bool needLineBreak = 
