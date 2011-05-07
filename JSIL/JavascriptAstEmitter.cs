@@ -604,6 +604,9 @@ namespace JSIL {
             bool parens = !(bop.Operator is JSAssignmentOperator);
             bool needsTruncation = false;
 
+            if (ParentNode is JSIfStatement)
+                parens = false;
+
             // We need to perform manual truncation to maintain the semantics of C#'s division operator
             if ((bop.Operator == JSOperator.Divide)) {
                 needsTruncation =                     

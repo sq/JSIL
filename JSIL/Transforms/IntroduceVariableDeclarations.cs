@@ -19,7 +19,7 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSFunctionExpression fn) {
-            if (Stack.Count != 0) {
+            if (Stack.OfType<JSFunctionExpression>().Count() > 1) {
                 var nested = new IntroduceVariableDeclarations(fn.AllVariables, TypeInfo);
                 nested.Visit(fn);
                 return;

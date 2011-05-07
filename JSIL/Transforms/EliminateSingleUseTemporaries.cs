@@ -116,7 +116,7 @@ namespace JSIL.Transforms {
 
         public void VisitNode (JSFunctionExpression fn) {
             // Create a new visitor for nested function expressions
-            if (Stack.Count > 0) {
+            if (Stack.OfType<JSFunctionExpression>().Count() > 1) {
                 var nested = new EliminateSingleUseTemporaries(TypeSystem, fn.AllVariables);
                 nested.Visit(fn);
                 return;

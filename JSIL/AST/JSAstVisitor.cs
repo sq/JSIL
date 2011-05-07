@@ -10,7 +10,6 @@ namespace JSIL.Ast {
     public abstract class JSAstVisitor {
         public readonly Stack<JSNode> Stack = new Stack<JSNode>();
         protected int NodeIndex, NextNodeIndex;
-        protected JSNode CurrentNode = null;
         protected JSNode PreviousSibling = null;
         protected JSNode NextSibling = null;
 
@@ -103,22 +102,24 @@ namespace JSIL.Ast {
         /// </summary>
         /// <param name="node">The node to visit.</param>
         public void Visit (JSNode node) {
-            var oldCurrentNode = CurrentNode;
             var oldNodeIndex = NodeIndex;
 
-            CurrentNode = node;
+            if (Stack.Contains(node))
+                throw new InvalidOperationException("AST traversal formed a cycle");
+            Stack.Push(node);
 
             try {
                 NodeIndex = NextNodeIndex;
                 NextNodeIndex += 1;
 
                 var visitor = Visitors.Get(node);
+
                 if (visitor != null)
                     visitor(node);
                 else
                     VisitNode(node);
             } finally {
-                CurrentNode = oldCurrentNode;
+                Stack.Pop();
                 NodeIndex = oldNodeIndex;
             }
         }
@@ -143,10 +144,6 @@ namespace JSIL.Ast {
             if (node == null)
                 throw new ArgumentNullException();
 
-            if (Stack.Contains(node))
-                throw new InvalidOperationException("AST traversal formed a cycle");
-
-            Stack.Push(node);
             var oldPreviousSibling = PreviousSibling;
             var oldNextSibling = NextSibling;
 
@@ -173,18 +170,20 @@ namespace JSIL.Ast {
                     }
                 }
             } finally {
-                Stack.Pop();
                 PreviousSibling = oldPreviousSibling;
                 NextSibling = oldNextSibling;
             }
         }
 
+        protected JSNode CurrentNode {
+            get {
+                return Stack.FirstOrDefault();
+            }
+        }
+
         protected JSNode ParentNode {
             get {
-                if (Stack.Count == 0)
-                    return null;
-                else
-                    return Stack.Peek();
+                return Stack.Skip(1).FirstOrDefault();
             }
         }
     }
