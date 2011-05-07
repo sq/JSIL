@@ -108,9 +108,17 @@ namespace JSIL {
         }
 
         public void VisitNode (JSVerbatimLiteral verbatim) {
+            bool isFirst = true;
+
             foreach (var line in verbatim.Value.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries)) {
-                Output.PlainTextOutput.Write(line);
-                Output.PlainTextOutput.WriteLine();
+                if (String.IsNullOrWhiteSpace(line))
+                    continue;
+
+                if (!isFirst)
+                    Output.PlainTextOutput.WriteLine();
+
+                Output.PlainTextOutput.Write(line.Trim());
+                isFirst = false;
             }
         }
 

@@ -9,7 +9,7 @@ namespace JSIL.Transforms {
     // This only works correctly for cases where a variable is assigned once and used once.
     // With a better algorithm it could detect and handle more sophisticated cases, but it's probably not worth it.
     public class EliminateSingleUseTemporaries : JSAstVisitor {
-        public const int TraceLevel = 1;
+        public const int TraceLevel = 0;
 
         public readonly TypeSystem TypeSystem;
         public readonly Dictionary<string, JSVariable> Variables;
