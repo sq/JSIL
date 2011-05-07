@@ -218,6 +218,8 @@ namespace JSIL {
                     return Variables["this"];
             }
 
+            JSExpression result;
+
             var methodDef = method.Resolve();
             var methodDot = methodExpression as JSDotExpression;
             JSExpression propertyResult;
@@ -225,12 +227,17 @@ namespace JSIL {
                 (methodDef != null) && (methodDot != null) &&
                 Translate_PropertyCall(methodDot.Target, methodDef, arguments, out propertyResult)
             ) {
-                return propertyResult;
+                result = propertyResult;
+            } else {
+                result = new JSInvocationExpression(
+                    methodExpression, arguments
+                );
             }
 
-            return new JSInvocationExpression(
-                methodExpression, arguments
-            );
+            if (EmulateStructAssignment.IsStruct(method.ReturnType))
+                result = JSReferenceExpression.New(result);
+
+            return result;
         }
 
         protected bool Translate_PropertyCall (JSExpression thisExpression, MethodDefinition method, JSExpression[] arguments, out JSExpression result) {
@@ -1279,6 +1286,10 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Br (ILExpression node, ILLabel targetLabel) {
+            return new JSGotoExpression(targetLabel.Name);
+        }
+
+        protected JSExpression Translate_Leave (ILExpression node, ILLabel targetLabel) {
             return new JSGotoExpression(targetLabel.Name);
         }
 
