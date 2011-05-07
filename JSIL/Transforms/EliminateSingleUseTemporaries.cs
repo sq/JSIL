@@ -9,12 +9,12 @@ namespace JSIL.Transforms {
     // This only works correctly for cases where a variable is assigned once and used once.
     // With a better algorithm it could detect and handle more sophisticated cases, but it's probably not worth it.
     public class EliminateSingleUseTemporaries : JSAstVisitor {
-        public const int TraceLevel = 0;
+        public const int TraceLevel = 1;
 
         public readonly TypeSystem TypeSystem;
         public readonly Dictionary<string, JSVariable> Variables;
         public readonly Dictionary<JSVariable, JSExpressionStatement> FirstValues = new Dictionary<JSVariable, JSExpressionStatement>();
-        public readonly Dictionary<JSVariable, List<int>> Assignments = new Dictionary<JSVariable, List<int>>();
+        public readonly Dictionary<JSVariable, List<Tuple<int, int>>> Assignments = new Dictionary<JSVariable, List<Tuple<int, int>>>();
         public readonly Dictionary<JSVariable, List<int>> Copies = new Dictionary<JSVariable, List<int>>();
         public readonly Dictionary<JSVariable, List<int>> Accesses = new Dictionary<JSVariable, List<int>>();
         public readonly Dictionary<JSVariable, List<int>> Conversions = new Dictionary<JSVariable, List<int>>();
@@ -67,10 +67,11 @@ namespace JSIL.Transforms {
             //  copies and accesses can fit. If we find one, our variable is effectively constant.
             var v = source as JSVariable;
             if (v != null) {
-                List<int> assignments, targetAssignments, targetAccesses;
+                List<Tuple<int, int>> assignments, targetAssignments;
+                List<int> targetAccesses;
 
                 if (!Assignments.TryGetValue(v, out assignments))
-                    return false;
+                    return v.IsParameter;
 
                 if (!Assignments.TryGetValue(target, out targetAssignments))
                     return false;
@@ -89,13 +90,13 @@ namespace JSIL.Transforms {
                 bool foundAssignmentSlot = false;
 
                 for (int i = 0, c = assignments.Count; i < c; i++) {
-                    int assignment = assignments[i], nextAssignment = int.MaxValue;
+                    int assignment = assignments[i].Item1, nextAssignment = int.MaxValue;
                     if (i < c - 1)
-                        nextAssignment = assignments[i + 1];
+                        nextAssignment = assignments[i + 1].Item2;
 
                     if (
                         (targetFirstAssigned >= assignment) &&
-                        (targetLastAssigned < nextAssignment) &&
+                        (targetFirstAssigned < nextAssignment) &&
                         (targetFirstAccessed >= assignment) &&
                         (targetLastAccessed <= nextAssignment)
                     ) {
@@ -107,12 +108,7 @@ namespace JSIL.Transforms {
                 if (!foundAssignmentSlot)
                     return false;
 
-                JSExpressionStatement firstValue;
-                if (!FirstValues.TryGetValue(v, out firstValue))
-                    return false;
-
-                if (firstValue.Expression.IsConstant)
-                    return true;
+                return true;
             }
 
             return false;
@@ -142,7 +138,8 @@ namespace JSIL.Transforms {
                     if (valueType.IsPointer || valueType.IsFunctionPointer || valueType.IsByReference)
                         continue;
 
-                    List<int> assignments, accesses, copies, controlFlowAccesses, conversions;
+                    List<Tuple<int, int>> assignments;
+                    List<int> accesses, copies, controlFlowAccesses, conversions;
 
                     if (!Assignments.TryGetValue(v, out assignments)) {
                         if (TraceLevel >= 2)
@@ -224,6 +221,19 @@ namespace JSIL.Transforms {
             return true;
         }
 
+        protected bool GetMinMax (List<Tuple<int, int>> intervals, out int min, out int max) {
+            min = int.MaxValue;
+            max = int.MinValue;
+
+            if (intervals.Count == 0)
+                return false;
+
+            min = intervals.Min((t) => Math.Min(t.Item1, t.Item2));
+            max = intervals.Max((t) => Math.Max(t.Item1, t.Item2));
+
+            return true;
+        }
+
         protected IEnumerable<T> GetEnclosingNodes<T> (Func<T, bool> selector = null, Func<JSNode, bool> halter = null)
             where T : JSNode {
 
@@ -253,17 +263,19 @@ namespace JSIL.Transforms {
             }
         }
 
-        protected void AddToList (Dictionary<JSVariable, List<int>> dict, JSVariable variable, int index) {
-            List<int> list;
+        protected void AddToList<T> (Dictionary<JSVariable, List<T>> dict, JSVariable variable, T index) {
+            List<T> list;
 
             if (!dict.TryGetValue(variable, out list))
-                dict[variable] = list = new List<int>();
+                dict[variable] = list = new List<T>();
 
             list.Add(index);
         }
 
         public void VisitNode (JSUnaryOperatorExpression uoe) {
             var variable = uoe.Expression as JSVariable;
+
+            VisitChildren(uoe);
 
             if (
                 (variable != null) && (
@@ -280,16 +292,16 @@ namespace JSIL.Transforms {
                         NodeIndex, variable, uoe
                     ));
 
-                AddToList(Assignments, variable, NodeIndex);
+                AddToList(Assignments, variable, new Tuple<int, int>(NodeIndex, NextNodeIndex - 1));
             }
-
-            VisitChildren(uoe);
         }
 
         public void VisitNode (JSBinaryOperatorExpression boe) {
             var isAssignment = boe.Operator == JSOperator.Assignment;
             var leftVar = boe.Left as JSVariable;
             var rightVar = boe.Right as JSVariable;
+
+            VisitChildren(boe);
 
             if ((leftVar != null) && isAssignment) {
                 bool isFirst = false;
@@ -299,7 +311,7 @@ namespace JSIL.Transforms {
                     FirstValues.Add(leftVar, new JSExpressionStatement(boe.Right));
                 }
 
-                AddToList(Assignments, leftVar, NodeIndex);
+                AddToList(Assignments, leftVar, new Tuple<int, int>(NodeIndex, NextNodeIndex - 1));
 
                 if (TraceLevel >= 3)
                     Debug.WriteLine(String.Format(
@@ -332,8 +344,6 @@ namespace JSIL.Transforms {
                     }
                 }
             }
-
-            VisitChildren(boe);
         }
 
         public void VisitNode (JSVariable variable) {
