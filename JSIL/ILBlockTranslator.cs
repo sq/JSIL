@@ -790,9 +790,11 @@ namespace JSIL {
             ) {
                 // The C# expression 'x is y' translates into roughly '(x is y) > null' in IL, 
                 //  because there's no IL opcode for != and the IL isinst opcode returns object, not bool
+                var value = TranslateNode(node.Arguments[0].Arguments[0]);
+                var targetType = (TypeReference)node.Arguments[0].Operand;
+
                 return JSIL.CheckType(
-                    TranslateNode(node.Arguments[1]),
-                    (TypeReference)node.Arguments[0].Operand
+                    value, targetType
                 );
             } else {
                 return Translate_BinaryOp(node, JSOperator.GreaterThan);
@@ -919,19 +921,6 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_LogicNot (ILExpression node) {
-            var arg = node.Arguments[0];
-
-            switch (arg.Code) {
-                case ILCode.Ceq:
-                    return Translate_EqualityComparison(arg, false);
-                case ILCode.Clt:
-                case ILCode.Clt_Un:
-                    return Translate_BinaryOp(arg, JSOperator.GreaterThanOrEqual);
-                case ILCode.Cgt:
-                case ILCode.Cgt_Un:
-                    return Translate_BinaryOp(arg, JSOperator.LessThanOrEqual);
-            }
-
             return Translate_UnaryOp(node, JSOperator.LogicalNot);
         }
 
