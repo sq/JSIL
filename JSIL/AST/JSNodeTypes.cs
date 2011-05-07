@@ -2007,8 +2007,16 @@ namespace JSIL.Ast {
             }
         }
 
-        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
-            base.ReplaceChild(oldChild, newChild);
+        public override bool IsConstant {
+            get {
+                return Expression.IsConstant;
+            }
+        }
+
+        public override bool IsNull {
+            get {
+                return Expression.IsNull;
+            }
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {

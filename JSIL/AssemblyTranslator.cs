@@ -689,10 +689,12 @@ namespace JSIL {
                     translator.CLR
                 ).Visit(function);
 
+                /*
                 if (SimplifyOperators)
                     new SimplifyOperators(
                         context.CurrentModule.TypeSystem
                     ).Visit(function);
+                 */
 
                 if (EliminateTemporaries)
                     new EliminateSingleUseTemporaries(
@@ -710,6 +712,12 @@ namespace JSIL {
                     translator.Variables,
                     translator.ParameterNames
                 ).Visit(function);
+
+                // We do operator simplification twice since temporary elimination may make more simplification possible
+                if (SimplifyOperators)
+                    new SimplifyOperators(
+                        context.CurrentModule.TypeSystem
+                    ).Visit(function);
 
                 if (output != null) {
                     var emitter = new JavascriptAstEmitter(output, translator.JSIL, context.CurrentModule.TypeSystem);
