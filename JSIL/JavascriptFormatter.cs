@@ -408,5 +408,13 @@ namespace JSIL.Internal {
             RPar();
             Semicolon();
         }
+
+        public void Label (string labelName) {
+            PlainTextFormatter.Unindent();
+            Identifier(labelName);
+            Token(": ");
+            PlainTextFormatter.Indent();
+            NewLine();
+        }
     }
 }

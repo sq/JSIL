@@ -119,6 +119,9 @@ namespace JSIL.Internal {
         }
 
         public static string EscapeString (string text, char? quoteCharacter = null) {
+            if (text == null)
+                return "null";
+
             bool containsSingle = text.Contains('\'');
             bool containsDouble = text.Contains('"');
 

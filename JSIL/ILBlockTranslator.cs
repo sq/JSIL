@@ -28,6 +28,11 @@ namespace JSIL {
         public readonly JSSpecialIdentifiers JS;
         public readonly CLRSpecialIdentifiers CLR;
 
+        protected int LabelledBlockCount = 0;
+        protected int UnlabelledBlockCount = 0;
+
+        protected readonly Stack<JSStatement> Blocks = new Stack<JSStatement>();
+
         public ILBlockTranslator (AssemblyTranslator translator, DecompilerContext context, MethodDefinition method, ILBlock ilb, IEnumerable<ILVariable> parameters, IEnumerable<ILVariable> allVariables) {
             Translator = translator;
             Context = context;
@@ -391,22 +396,56 @@ namespace JSIL {
             return false;
         }
 
+        protected bool ContainsLabels (ILNode root) {
+            var labels = root.GetSelfAndChildrenRecursive<ILLabel>();
+            return labels.Count() > 0;
+        }
+
 
         //
         // IL Node Types
         //
 
         protected JSBlockStatement TranslateBlock (IEnumerable<ILNode> children) {
-            var nodes = new List<JSStatement>();
+            JSBlockStatement result, currentBlock;
 
-            foreach (var node in children) {
-                var translated = TranslateStatement(node);
+            if (children.Any(
+                n => ContainsLabels(n)
+            )) {
+                var index = LabelledBlockCount++;
+                result = new JSLabelGroupStatement(index);
 
-                if (translated != null)
-                    nodes.Add(translated);
+                currentBlock = new JSBlockStatement();
+                currentBlock.Label = String.Format("__entry{0}__", index);
+                result.Statements.Add(currentBlock);
+            } else {
+                currentBlock = result = new JSBlockStatement();
             }
 
-            return new JSBlockStatement(nodes.ToArray());
+            foreach (var node in children) {
+                var label = node as ILLabel;
+                var expr = node as ILExpression;
+                var isGoto = (expr != null) && (expr.Code == ILCode.Br);
+
+                if (label != null) {
+                    currentBlock = new JSBlockStatement {
+                        Label = label.Name
+                    };
+                    result.Statements.Add(currentBlock);
+
+                    continue;
+                } else if (isGoto) {
+                    currentBlock.Statements.Add(new JSExpressionStatement(new JSGotoExpression(
+                        ((ILLabel)expr.Operand).Name
+                    )));
+                } else {
+                    var translated = TranslateStatement(node);
+                    if (translated != null)
+                        currentBlock.Statements.Add(translated);
+                }
+            }
+
+            return result;
         }
 
         protected JSStatement TranslateStatement (ILNode node) {
@@ -536,10 +575,6 @@ namespace JSIL {
             return result;
         }
 
-        public JSLabelStatement TranslateNode (ILLabel label) {
-            return new JSLabelStatement(label.Name);
-        }
-
         public JSSwitchCase TranslateNode (ILSwitch.CaseBlock block) {
             JSExpression[] values = null;
 
@@ -553,10 +588,19 @@ namespace JSIL {
         }
 
         public JSSwitchStatement TranslateNode (ILSwitch swtch) {
-            return new JSSwitchStatement(
-                TranslateNode(swtch.Condition),
-                (from cb in swtch.CaseBlocks select TranslateNode(cb)).ToArray()
+            var result = new JSSwitchStatement(
+                TranslateNode(swtch.Condition)
             );
+
+            Blocks.Push(result);
+
+            result.Cases.AddRange(
+                (from cb in swtch.CaseBlocks select TranslateNode(cb))
+            );
+
+            Blocks.Pop();
+
+            return result;
         }
 
         public JSTryCatchBlock TranslateNode (ILTryCatchBlock tcb) {
@@ -654,10 +698,15 @@ namespace JSIL {
             else
                 condition = JSLiteral.New(true);
 
-            return new JSWhileLoop(
-                condition,
-                TranslateNode(loop.BodyBlock)
-            );
+            var result = new JSWhileLoop(condition);
+            result.Label = String.Format("__while{0}__", UnlabelledBlockCount++);
+            Blocks.Push(result);
+
+            var body = TranslateNode(loop.BodyBlock);
+
+            Blocks.Pop();
+            result.Statements.Add(body);
+            return result;
         }
 
 
@@ -840,11 +889,21 @@ namespace JSIL {
         }
 
         protected JSBreakExpression Translate_LoopOrSwitchBreak (ILExpression node) {
-            return new JSBreakExpression();
+            var result = new JSBreakExpression();
+
+            if (Blocks.Count > 0)
+                result.TargetLabel = Blocks.Peek().Label;
+
+            return result;
         }
 
         protected JSContinueExpression Translate_LoopContinue (ILExpression node) {
-            return new JSContinueExpression();
+            var result = new JSContinueExpression();
+
+            if (Blocks.Count > 0)
+                result.TargetLabel = Blocks.Peek().Label;
+
+            return result;
         }
 
         protected JSReturnExpression Translate_Ret (ILExpression node) {
@@ -1217,6 +1276,10 @@ namespace JSIL {
 
         protected JSExpression Translate_Box (ILExpression node, TypeReference valueType) {
             return JSReferenceExpression.New(TranslateNode(node.Arguments[0]));
+        }
+
+        protected JSExpression Translate_Br (ILExpression node, ILLabel targetLabel) {
+            return new JSGotoExpression(targetLabel.Name);
         }
 
         protected JSExpression Translate_Newobj (ILExpression node, MethodReference constructor) {

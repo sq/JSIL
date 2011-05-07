@@ -61,7 +61,7 @@ namespace JSIL.Ast {
         }
     }
 
-    public sealed class JSNullStatement : JSStatement {
+    public class JSNullStatement : JSStatement {
         public override bool IsNull {
             get {
                 return true;
@@ -70,6 +70,27 @@ namespace JSIL.Ast {
 
         public override string ToString () {
             return "<Null>";
+        }
+    }
+
+    public class JSGotoExpression : JSNullExpression {
+        public readonly string TargetLabel;
+
+        public JSGotoExpression (string targetLabel) {
+            TargetLabel = targetLabel;
+        }
+
+        public override bool Equals (object obj) {
+            var rhs = obj as JSGotoExpression;
+
+            if (rhs == null)
+                return base.Equals(obj);
+
+            return String.Equals(TargetLabel, rhs.TargetLabel);
+        }
+
+        public override string ToString () {
+            return String.Format("goto {0}", TargetLabel);
         }
     }
 
@@ -106,6 +127,16 @@ namespace JSIL.Ast {
                 sb.AppendLine(stmt.ToString());
 
             return sb.ToString();
+        }
+    }
+
+    public class JSLabelGroupStatement : JSBlockStatement {
+        public readonly int GroupIndex;
+
+        public JSLabelGroupStatement (int index, params JSBlockStatement[] labelledBlocks) {
+            GroupIndex = index;
+
+            Statements.AddRange(labelledBlocks);
         }
     }
 
@@ -263,9 +294,13 @@ namespace JSIL.Ast {
     }
 
     public class JSBreakExpression : JSExpression {
+        public string TargetLabel;
+
     }
 
     public class JSContinueExpression : JSExpression {
+        public string TargetLabel;
+
     }
 
     public class JSSwitchCase : JSStatement {
@@ -753,7 +788,7 @@ namespace JSIL.Ast {
         }
     }
 
-    public sealed class JSNullExpression : JSExpression {
+    public class JSNullExpression : JSExpression {
         public override bool IsNull {
             get {
                 return true;
