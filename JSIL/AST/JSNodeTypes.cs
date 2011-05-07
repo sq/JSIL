@@ -1527,7 +1527,24 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return Target.GetExpectedType(typeSystem);
+            var targetType = Target.GetExpectedType(typeSystem);
+
+            // TODO: Fix this terrible hack. (The real problem is that JSMethod has to return 
+            //  its return type as its expected type, instead of Func<...>)
+            if (ILBlockTranslator.IsDelegateType(targetType)) {
+                var resolved = ResolveGenericType(targetType, targetType).Resolve();
+                if (Target.AllChildrenRecursive.OfType<JSMethod>().Count() == 0) {
+                    // This expression is probably invoking a delegate.
+                    var invokeMethod = resolved.Methods.Where(
+                        (m) => m.Name == "Invoke"
+                    ).FirstOrDefault();
+
+                    var resultType = ResolveGenericType(invokeMethod.ReturnType, invokeMethod, targetType);
+                    return resultType;
+                }
+            }
+
+            return targetType;
         }
 
         public IList<JSExpression> Arguments {
