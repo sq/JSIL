@@ -8,6 +8,8 @@ using JSIL.Internal;
 
 namespace JSIL.Transforms {
     public class IntroduceVariableDeclarations : JSAstVisitor {
+        public readonly HashSet<JSVariable> ToDeclare = new HashSet<JSVariable>();
+
         public readonly IDictionary<string, JSVariable> Variables;
         public readonly ITypeInfoSource TypeInfo;
 
@@ -36,25 +38,56 @@ namespace JSIL.Transforms {
                 )
             );
 
-            var nonParameters = (from v in Variables.Values 
-                                 where !v.IsParameter && 
-                                       !existingDeclarations.Contains(v.Identifier) &&
-                                       !TypeInfo.IsIgnored(v.Type)
-                                 select v).ToArray();
+            foreach (var v_ in from v in Variables.Values
+                               where !v.IsParameter &&
+                                     !existingDeclarations.Contains(v.Identifier) &&
+                                     !TypeInfo.IsIgnored(v.Type)
+                               select v) 
+            {
+                ToDeclare.Add(v_);
+            }
 
-            if (nonParameters.Length > 0)
+            VisitChildren(fn);
+
+            if (ToDeclare.Count > 0)
                 fn.Body.Statements.Insert(
                     0, new JSVariableDeclarationStatement(
-                        (from v in nonParameters
+                        (from v in ToDeclare
                          select new JSBinaryOperatorExpression(
-                            JSOperator.Assignment, v, 
+                            JSOperator.Assignment, v,
                             JSLiteral.DefaultValue(v.Type), 
                             v.Type
                         )).ToArray()
                     )
                 );
+        }
 
-            VisitChildren(fn);
+        public void VisitNode (JSExpressionStatement es) {
+            var boe = es.Expression as JSBinaryOperatorExpression;
+
+            if (boe != null) {
+                var isAssignment = boe.Operator == JSOperator.Assignment;
+                var leftVar = boe.Left as JSVariable;
+
+                if (
+                    (leftVar != null) && isAssignment &&
+                    (boe.Right.IsConstant) && (!leftVar.IsReference) &&
+                    (!leftVar.IsParameter)
+                ) {
+                    if (ToDeclare.Contains(leftVar)) {
+                        ToDeclare.Remove(leftVar);
+
+                        ParentNode.ReplaceChild(es, new JSVariableDeclarationStatement(
+                            boe
+                        ));
+
+                        VisitChildren(boe);
+                        return;
+                    }
+                }
+            }
+
+            VisitChildren(es.Expression);
         }
     }
 }

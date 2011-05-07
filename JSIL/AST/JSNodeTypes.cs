@@ -80,7 +80,8 @@ namespace JSIL.Ast {
 
         public override IEnumerable<JSNode> Children {
             get {
-                return Statements;
+                for (int i = 0, c = Statements.Count; i < c; i++)
+                    yield return Statements[i];
             }
         }
 
@@ -132,6 +133,13 @@ namespace JSIL.Ast {
                     if (Declarations[i] == oldChild)
                         Declarations[i] = boe;
                 }
+        }
+
+        public override string ToString () {
+            return String.Format(
+                "var {0}",
+                String.Join(", ", (from d in Declarations select d.ToString()).ToArray())
+            );
         }
     }
 
@@ -1230,6 +1238,12 @@ namespace JSIL.Ast {
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             return Type;
+        }
+
+        public override bool IsConstant {
+            get {
+                return false;
+            }
         }
 
         public override int GetHashCode () {

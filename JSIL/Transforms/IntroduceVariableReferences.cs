@@ -94,19 +94,22 @@ namespace JSIL.Transforms {
         }
 
         protected void TransformVariableIntoReference (JSVariable variable, JSVariableDeclarationStatement statement, int declarationIndex) {
+            if (variable.IsReference)
+                Debugger.Break();
+
             var oldDeclaration = statement.Declarations[declarationIndex];
             var newVariable = variable.Reference();
             var newDeclaration = new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
-                // We have to use variable here, not newVariable, otherwise the resulting
-                // assignment looks like 'x.value = initializer' instead of 'x = initializer'
-                variable, 
+                // We have to use a constructed ref to the variable here, otherwise
+                //  the declaration will look like 'var x.value = foo'
+                new JSVariable(variable.Identifier, variable.Type),
                 JSIL.NewReference(oldDeclaration.Right), 
                 newVariable.Type
             );
 
             if (Tracing)
-                Debug.WriteLine(String.Format("Transformed {0} into {1}", variable, newVariable));
+                Debug.WriteLine(String.Format("Transformed {0} into {1} in {2}", variable, newVariable, statement));
 
             Variables[variable.Identifier] = newVariable;
             statement.Declarations[declarationIndex] = newDeclaration;
