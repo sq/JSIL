@@ -75,7 +75,7 @@ namespace JSIL.Tests {
         public const float JavascriptExecutionTimeout = 30.0f;
 
         public static readonly Regex ElapsedRegex = new Regex(
-            @"runtime = (?'elapsed'[0-9]*(\.[0-9]*)?) ms", RegexOptions.Compiled | RegexOptions.ExplicitCapture
+            @"// elapsed: (?'elapsed'[0-9]*(\.[0-9]*)?)", RegexOptions.Compiled | RegexOptions.ExplicitCapture
         );
 
         protected TempFileCollection TemporaryFiles;
@@ -155,7 +155,7 @@ namespace JSIL.Tests {
             }
 
             var invocationJs = String.Format(
-                @"timeout({0}); {1}.Main({2});", 
+                @"timeout({0}); var started = elapsed(); {1}.Main({2}); var ended = elapsed(); print('// elapsed: ' + (ended - started));", 
                 JavascriptExecutionTimeout, declaringType, argsJson
             );
 
