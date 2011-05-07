@@ -518,6 +518,7 @@ namespace JSIL.Ast {
 
     public abstract class JSExpression : JSNode {
         public static readonly JSNullExpression Null = new JSNullExpression();
+        protected static readonly Dictionary<string, TypeReference> MethodTypeCache = new Dictionary<string, TypeReference>();
 
         protected readonly IList<JSExpression> Values;
 

@@ -22,7 +22,7 @@ namespace JSIL {
         public readonly JSILIdentifier JSIL;
 
         protected readonly Stack<bool> IncludeTypeParens = new Stack<bool>();
-        protected readonly Stack<Action<string>> GotoStack = new Stack<Action<string>>();
+        protected readonly Stack<Func<string, bool>> GotoStack = new Stack<Func<string, bool>>();
         protected readonly Stack<BlockType> BlockStack = new Stack<BlockType>();
 
         public JavascriptAstEmitter (JavascriptFormatter output, JSILIdentifier jsil, TypeSystem typeSystem) {
@@ -108,8 +108,13 @@ namespace JSIL {
             Output.OpenBrace();
 
             bool isFirst = true;
-            Action<string> emitGoto = (labelName) => {
+            Func<string, bool> emitGoto = (labelName) => {
                 if (labelName != null) {
+                    if (!labelGroup.Statements.Any(
+                        (l) => l.Label == labelName
+                    ))
+                        return false;
+
                     Output.Identifier(labelVar);
                     Output.Token(" = ");
                     Output.Value(labelName);
@@ -120,6 +125,8 @@ namespace JSIL {
                 Output.Space();
                 Output.Identifier(stepLabel);
                 Output.Semicolon();
+
+                return true;
             };
 
             GotoStack.Push(emitGoto);
@@ -257,17 +264,19 @@ namespace JSIL {
 
         public void VisitNode (JSGotoExpression go) {
             if (GotoStack.Count > 0) {
-                var emitter = GotoStack.Peek();
-                emitter(go.TargetLabel);
-            } else {
-                Output.Identifier("JSIL.UntranslatableInstruction", true);
-                Output.LPar();
-                Output.Value("goto");
-                Output.Comma();
-                Output.Value(go.TargetLabel);
-                Output.RPar();
-                Output.Semicolon();
+                foreach (var eg in GotoStack) {
+                    if (eg(go.TargetLabel))
+                        return;
+                }
             }
+
+            Output.Identifier("JSIL.UntranslatableInstruction", true);
+            Output.LPar();
+            Output.Value("goto");
+            Output.Comma();
+            Output.Value(go.TargetLabel);
+            Output.RPar();
+            Output.Semicolon();
         }
 
         public void VisitNode (JSDefaultValueLiteral defaultValue) {
@@ -449,6 +458,8 @@ namespace JSIL {
         }
 
         public void VisitNode (JSTryCatchBlock tcb) {
+            Output.NewLine();
+
             Output.Keyword("try");
             Output.Space();
             Output.OpenBrace();

@@ -830,6 +830,12 @@ JSIL.ArrayEnumerator.prototype.__ImplementInterface__(System.IDisposable);
 JSIL.ArrayEnumerator.prototype.__ImplementInterface__(System.Collections.IEnumerator);
 JSIL.ArrayEnumerator.prototype.__ImplementInterface__(System.Collections.Generic.IEnumerator$bt1);
 
+JSIL.MakeClass(System.Object, System.Threading, "Thread", "System.Threading.Thread");
+System.Threading.Thread.prototype._ctor = function () {
+};
+System.Threading.Thread.prototype.ManagedThreadId = 0;
+System.Threading.Thread.CurrentThread = new System.Threading.Thread();
+
 JSIL.MakeClass(System.Object, System.Collections.Generic, "List$bt1", "System.Collections.Generic.List`1");
 System.Collections.Generic.List$bt1.Of = function (T) {
   return System.Collections.Generic.List$bt1;
