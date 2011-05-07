@@ -24,6 +24,8 @@ namespace JSIL {
         public readonly Dictionary<string, JSVariable> Variables = new Dictionary<string, JSVariable>();
         public readonly DynamicCallSiteInfoCollection DynamicCallSites = new DynamicCallSiteInfoCollection();
 
+        protected readonly Dictionary<ILVariable, JSVariable> RenamedVariables = new Dictionary<ILVariable, JSVariable>();
+
         public readonly JSILIdentifier JSIL;
         public readonly JSSpecialIdentifiers JS;
         public readonly CLRSpecialIdentifiers CLR;
@@ -54,8 +56,16 @@ namespace JSIL {
                 Variables.Add(parameter.Name, new JSParameter(parameter.Name, parameter.Type));
             }
 
-            foreach (var variable in allVariables)
-                Variables.Add(variable.Name, JSVariable.New(variable));
+            foreach (var variable in allVariables) {
+                var v = JSVariable.New(variable);
+                if (Variables.ContainsKey(v.Identifier)) {
+                    v = new JSVariable(variable.OriginalVariable.Name, variable.Type);
+                    RenamedVariables[variable] = v;
+                    Variables.Add(v.Identifier, v);
+                } else {
+                    Variables.Add(v.Identifier, v);
+                }
+            }
         }
 
         public ITypeInfoSource TypeInfo {
@@ -120,16 +130,18 @@ namespace JSIL {
             ).ToArray();
         }
 
-        protected JSVariable DeclareVariable (string name, TypeReference type) {
-            JSVariable result;
-            if (Variables.TryGetValue(name, out result)) {
-                if (result.Type != type)
+        protected JSVariable DeclareVariable (ILVariable variable) {
+            var result = JSVariable.New(variable);
+
+            JSVariable existing;
+            if (Variables.TryGetValue(result.Identifier, out existing)) {
+                if (result.Type != existing.Type)
                     throw new InvalidOperationException("A variable with that name is already declared in this scope, with a different type.");
-            } else {
-                result = new JSVariable(name, type);
-                Variables.Add(name, result);
+
+                return existing;
             }
 
+            Variables[result.Identifier] = result;
             return result;
         }
 
@@ -616,7 +628,11 @@ namespace JSIL {
 
             if (tcb.CatchBlocks.Count > 0) {
                 var pairs = new List<KeyValuePair<JSExpression, JSStatement>>();
-                catchVariable = DeclareVariable("$exception", Context.CurrentModule.TypeSystem.Object);
+                catchVariable = DeclareVariable(new ILVariable {
+                    IsGenerated = true,
+                    Name = "$exception", 
+                    Type = Context.CurrentModule.TypeSystem.Object
+                });
 
                 bool isFirst = true, foundUniversalCatch = false, openBrace = false;
                 foreach (var cb in tcb.CatchBlocks) {
@@ -650,7 +666,7 @@ namespace JSIL {
                     var pairBody = TranslateBlock(cb.Body);
 
                     if (cb.ExceptionVariable != null) {
-                        var excVariable = DeclareVariable(cb.ExceptionVariable.Name, cb.ExceptionVariable.Type);
+                        var excVariable = DeclareVariable(cb.ExceptionVariable);
 
                         pairBody.Statements.Insert(
                             0, new JSVariableDeclarationStatement(new JSBinaryOperatorExpression(
@@ -921,7 +937,11 @@ namespace JSIL {
         }
 
         protected JSVariable Translate_Ldloc (ILExpression node, ILVariable variable) {
-            return new JSIndirectVariable(Variables, variable.Name);
+            JSVariable renamed;
+            if (RenamedVariables.TryGetValue(variable, out renamed))
+                return new JSIndirectVariable(Variables, renamed.Identifier);
+            else
+                return new JSIndirectVariable(Variables, variable.Name);
         }
 
         protected JSExpression Translate_Ldloca (ILExpression node, ILVariable variable) {
@@ -1397,7 +1417,12 @@ namespace JSIL {
             var values = new List<JSExpression>();
 
             for (var i = 1; i < node.Arguments.Count; i++) {
-                var invocation = (JSInvocationExpression)TranslateNode(node.Arguments[i]);
+                var translated = TranslateNode(node.Arguments[i]);
+
+                while (translated is JSReferenceExpression)
+                    translated = ((JSReferenceExpression)translated).Referent;
+
+                var invocation = (JSInvocationExpression)translated;
 
                 var valueType = invocation.Arguments[0].GetExpectedType(TypeSystem);
 
@@ -1429,6 +1454,9 @@ namespace JSIL {
 
             for (var i = 1; i < node.Arguments.Count; i++) {
                 var translated = TranslateNode(node.Arguments[i]);
+
+                while (translated is JSReferenceExpression)
+                    translated = ((JSReferenceExpression)translated).Referent;
 
                 var boe = translated as JSBinaryOperatorExpression;
                 var ie = translated as JSInvocationExpression;

@@ -155,6 +155,8 @@
     <None Include="TestCases\IndirectInterleavedTemporaries.cs" />
     <None Include="SpecialTestCases\PrivateNames.cs" />
     <None Include="SimpleTestCases\StructProperties.cs" />
+    <None Include="SimpleTestCases\StructInitializers.cs" />
+    <None Include="SimpleTestCases\InitializerOnSubStruct.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
