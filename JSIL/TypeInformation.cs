@@ -188,6 +188,10 @@ namespace JSIL.Internal {
             var m = Regex.Match(method.Name, @"\<(?'scope'[^>]*)\>(?'mangling'[^_]*)__(?'index'[0-9]*)");
             if (m.Success)
                 IgnoredMembers.Add(method);
+            else if (method.ReturnType.IsPointer)
+                IgnoredMembers.Add(method);
+            else if (method.Parameters.Any((p) => p.ParameterType.IsPointer))
+                IgnoredMembers.Add(method);
         }
 
         protected void AddMember<T> (T definition)

@@ -30,12 +30,12 @@ namespace JSIL {
             TypeSystem = typeSystem;
 
             prototype = Object("prototype");
-            eval = Object("eval");
-            floor = new JSDotExpression(Object("Math"), new JSIdentifier("floor", TypeSystem.Int64));
+            eval = JSIdentifier.Method("eval", TypeSystem, TypeSystem.Object, TypeSystem.String);
+            floor = new JSDotExpression(Object("Math"), JSIdentifier.Method("floor", TypeSystem, TypeSystem.Int64));
         }
 
         public JSIdentifier call (TypeReference returnType) {
-            return new JSIdentifier("call", returnType);
+            return JSIdentifier.Method("call", TypeSystem, returnType);
         }
 
         protected JSIdentifier Object (string name) {
@@ -69,7 +69,7 @@ namespace JSIL {
         }
 
         protected JSDotExpression Dot (string rhs, TypeReference rhsType = null) {
-            return Dot(new JSIdentifier(rhs, rhsType));
+            return Dot(JSIdentifier.Method(rhs, TypeSystem, rhsType));
         }
 
         public JSInvocationExpression CheckType (JSExpression expression, TypeReference targetType) {
@@ -99,7 +99,7 @@ namespace JSIL {
             return new JSInvocationExpression(
                 new JSDotExpression(
                     Dot("Array", TypeSystem.Object),
-                    new JSIdentifier("New", arrayType)
+                    JSIdentifier.Method("New", TypeSystem, arrayType, TypeSystem.Object)
                 ),
                 new JSType(elementType),
                 sizeOrArrayInitializer
@@ -112,7 +112,7 @@ namespace JSIL {
             return new JSInvocationExpression(
                 new JSDotExpression(
                     Dot("MultidimensionalArray", TypeSystem.Object),
-                    new JSIdentifier("New", arrayType)
+                    JSIdentifier.Method("New", TypeSystem, arrayType, TypeSystem.Object, TypeSystem.Object)
                 ),
                 (new JSExpression[] { new JSType(elementType) }.Concat(dimensions)).ToArray()
             );
@@ -122,7 +122,7 @@ namespace JSIL {
             return new JSInvocationExpression(
                 new JSDotExpression(
                     Dot("Delegate", TypeSystem.Object),
-                    new JSIdentifier("New", delegateType)
+                    JSIdentifier.Method("New", TypeSystem, delegateType, TypeSystem.String, TypeSystem.Object, TypeSystem.Object)
                 ),
                 JSLiteral.New(delegateType),
                 thisReference,

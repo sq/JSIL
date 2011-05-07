@@ -517,8 +517,59 @@ namespace JSIL.Ast {
     }
 
     public abstract class JSExpression : JSNode {
+        protected struct MethodSignature {
+            public readonly TypeReference ReturnType;
+            public readonly IEnumerable<TypeReference> ParameterTypes;
+            public readonly int ParameterCount;
+            private readonly int HashCode;
+
+            public MethodSignature (TypeReference returnType, IEnumerable<TypeReference> parameterTypes) {
+                ReturnType = returnType;
+                ParameterTypes = parameterTypes;
+                ParameterCount = parameterTypes.Count();
+
+                HashCode = ReturnType.FullName.GetHashCode() ^ ParameterCount;
+
+                int i = 0;
+                foreach (var p in ParameterTypes) {
+                    HashCode ^= (p.FullName.GetHashCode() << i);
+                    i += 1;
+                }
+            }
+
+            public override int GetHashCode () {
+                return HashCode;
+            }
+
+            public bool Equals (MethodSignature rhs) {
+                if (!ILBlockTranslator.TypesAreEqual(
+                    ReturnType, rhs.ReturnType
+                ))
+                    return false;
+
+                if (ParameterCount != rhs.ParameterCount)
+                    return false;
+
+                using (var e1 = ParameterTypes.GetEnumerator())
+                using (var e2 = rhs.ParameterTypes.GetEnumerator())
+                while (e1.MoveNext() && e2.MoveNext()) {
+                    if (!ILBlockTranslator.TypesAreEqual(e1.Current, e2.Current))
+                        return false;
+                }
+
+                return true;
+            }
+
+            public override bool Equals (object obj) {
+                if (obj is MethodSignature)
+                    return Equals((MethodSignature)obj);
+                else
+                    return base.Equals(obj);
+            }
+        }
+
         public static readonly JSNullExpression Null = new JSNullExpression();
-        protected static readonly Dictionary<string, TypeReference> MethodTypeCache = new Dictionary<string, TypeReference>();
+        protected static readonly Dictionary<MethodSignature, TypeReference> MethodTypeCache = new Dictionary<MethodSignature, TypeReference>();
 
         protected readonly IList<JSExpression> Values;
 
@@ -571,37 +622,67 @@ namespace JSIL.Ast {
         }
 
         public static TypeReference ConstructDelegateType (MethodReference method, TypeSystem typeSystem) {
+            return ConstructDelegateType(
+                ResolveGenericType(method.ReturnType, method), 
+                (from p in method.Parameters 
+                 select ResolveGenericType(p.ParameterType, p, method)), 
+                 typeSystem
+            );
+        }
+
+        public static TypeReference ConstructDelegateType (TypeReference returnType, IEnumerable<TypeReference> parameterTypes, TypeSystem typeSystem) {
+            TypeReference result;
+            var signature = new MethodSignature(returnType, parameterTypes);
+
+            if (MethodTypeCache.TryGetValue(signature, out result))
+                return result;
+
             TypeReference genericDelegateType;
 
             var systemModule = typeSystem.Boolean.Resolve().Module;
             bool hasReturnType;
 
-            if (ILBlockTranslator.TypesAreEqual(typeSystem.Void, method.ReturnType)) {
+            if (ILBlockTranslator.TypesAreEqual(typeSystem.Void, returnType)) {
                 hasReturnType = false;
-                var name = String.Format("System.Action`{0}", method.Parameters.Count);
+                var name = String.Format("System.Action`{0}", signature.ParameterCount);
                 genericDelegateType = systemModule.GetType(
-                    method.Parameters.Count == 0 ? "System.Action" : name
+                    signature.ParameterCount == 0 ? "System.Action" : name
                 );
             } else {
                 hasReturnType = true;
                 genericDelegateType = systemModule.GetType(String.Format(
-                    "System.Func`{0}", method.Parameters.Count + 1
+                    "System.Func`{0}", signature.ParameterCount + 1
                 ));
             }
 
-            if (genericDelegateType == null) {
-                Console.Error.WriteLine("Warning: Type inference failed for '{0}' (too many parameters?)", method.FullName);
-                return null;
+            if (genericDelegateType != null) {
+                var git = new GenericInstanceType(genericDelegateType);
+                foreach (var pt in parameterTypes)
+                    git.GenericArguments.Add(pt);
+
+                if (hasReturnType)
+                    git.GenericArguments.Add(returnType);
+
+                MethodTypeCache[signature] = git;
+                return git;
+            } else {
+                var baseType = systemModule.GetType("System.MulticastDelegate");
+
+                var td = new TypeDefinition(
+                    "JSIL.Meta", "MethodSignature", TypeAttributes.Class | TypeAttributes.NotPublic, baseType
+                );
+
+                var invoke = new MethodDefinition(
+                    "Invoke", MethodAttributes.Public, returnType
+                );
+                foreach (var pt in parameterTypes)
+                    invoke.Parameters.Add(new ParameterDefinition(pt));
+
+                td.Methods.Add(invoke);
+
+                MethodTypeCache[signature] = td;
+                return td;
             }
-
-            var result = new GenericInstanceType(genericDelegateType);
-            foreach (var parameter in method.Parameters)
-                result.GenericArguments.Add(ResolveGenericType(parameter.ParameterType, parameter, method));
-
-            if (hasReturnType)
-                result.GenericArguments.Add(ResolveGenericType(method.ReturnType, method));
-
-            return result;
         }
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
@@ -1082,6 +1163,12 @@ namespace JSIL.Ast {
         public JSIdentifier (string identifier, TypeReference type = null) {
             Identifier = identifier;
             Type = type;
+        }
+
+        public static JSIdentifier Method (string name, TypeSystem typeSystem, TypeReference returnType, params TypeReference[] parameterTypes) {
+            return new JSIdentifier(name,
+                ConstructDelegateType(returnType, parameterTypes, typeSystem)
+            );
         }
 
         public override bool Equals (object obj) {
@@ -1625,19 +1712,23 @@ namespace JSIL.Ast {
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             var targetType = Target.GetExpectedType(typeSystem);
 
+            var targetMethod = Target.AllChildrenRecursive.OfType<JSMethod>().FirstOrDefault();
+
+            if (targetMethod != null)
+                return ResolveGenericType(targetMethod.Method.ReturnType, targetMethod.Method, targetMethod.Method.DeclaringType);
+
             // Any invocation expression targeting a method or delegate will have an expected type that is a delegate.
             // We need to deconstruct the delegate and get its return type.
             if (ILBlockTranslator.IsDelegateType(targetType)) {
                 var resolved = ResolveGenericType(targetType, targetType).Resolve();
-                if (Target.AllChildrenRecursive.OfType<JSMethod>().Count() == 0) {
-                    var invokeMethod = resolved.Methods.Where(
-                        (m) => m.Name == "Invoke"
-                    ).FirstOrDefault();
 
-                    if (invokeMethod != null) {
-                        var resultType = ResolveGenericType(invokeMethod.ReturnType, invokeMethod, targetType);
-                        return resultType;
-                    }
+                var invokeMethod = resolved.Methods.Where(
+                    (m) => m.Name == "Invoke"
+                ).FirstOrDefault();
+
+                if (invokeMethod != null) {
+                    var resultType = ResolveGenericType(invokeMethod.ReturnType, invokeMethod, targetType);
+                    return resultType;
                 }
             }
 
