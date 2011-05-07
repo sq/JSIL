@@ -12,7 +12,7 @@ namespace JSIL.Transforms {
         public readonly TypeSystem TypeSystem;
         public readonly Dictionary<string, JSVariable> Variables;
         public readonly Dictionary<JSVariable, JSExpressionStatement> FirstValues = new Dictionary<JSVariable, JSExpressionStatement>();
-        public readonly Dictionary<JSVariable, List<Tuple<int, int>>> Assignments = new Dictionary<JSVariable, List<Tuple<int, int>>>();
+        public readonly Dictionary<JSVariable, List<int>> Assignments = new Dictionary<JSVariable, List<int>>();
         public readonly Dictionary<JSVariable, List<int>> Copies = new Dictionary<JSVariable, List<int>>();
         public readonly Dictionary<JSVariable, List<int>> Accesses = new Dictionary<JSVariable, List<int>>();
         public readonly Dictionary<JSVariable, List<int>> Conversions = new Dictionary<JSVariable, List<int>>();
@@ -61,7 +61,7 @@ namespace JSIL.Transforms {
             if (source.IsConstant)
                 return true;
 
-            List<Tuple<int, int>> assignments;
+            List<int> assignments;
 
             // Try to find a spot between the source variable's assignments where all of our
             //  copies and accesses can fit. If we find one, our variable is effectively constant.
@@ -70,7 +70,7 @@ namespace JSIL.Transforms {
                 if (!Assignments.TryGetValue(v, out assignments))
                     return v.IsParameter;
 
-                List<Tuple<int, int>> targetAssignments;
+                List<int> targetAssignments;
                 if (!Assignments.TryGetValue(target, out targetAssignments))
                     return false;
 
@@ -89,9 +89,9 @@ namespace JSIL.Transforms {
                 bool foundAssignmentSlot = false;
 
                 for (int i = 0, c = assignments.Count; i < c; i++) {
-                    int assignment = assignments[i].Item1, nextAssignment = int.MaxValue;
+                    int assignment = assignments[i], nextAssignment = int.MaxValue;
                     if (i < c - 1)
-                        nextAssignment = assignments[i + 1].Item2;
+                        nextAssignment = assignments[i + 1];
 
                     if (
                         (targetFirstAssigned >= assignment) &&
@@ -125,7 +125,7 @@ namespace JSIL.Transforms {
             if (!GetMinMax(accesses, out firstAccess, out lastAccess))
                 return false;
 
-            if (firstAccess == assignments.First().Item2 + 1)
+            if (firstAccess == assignments.First() + 1)
                 return true;
 
             return false;
@@ -155,7 +155,7 @@ namespace JSIL.Transforms {
                     if (valueType.IsPointer || valueType.IsFunctionPointer || valueType.IsByReference)
                         continue;
 
-                    List<Tuple<int, int>> assignments;
+                    List<int> assignments;
                     List<int> accesses, copies, controlFlowAccesses, conversions;
 
                     if (!Assignments.TryGetValue(v, out assignments)) {
@@ -309,7 +309,7 @@ namespace JSIL.Transforms {
                         StatementIndex, variable, uoe
                     ));
 
-                AddToList(Assignments, variable, new Tuple<int, int>(StatementIndex, NextStatementIndex - 1));
+                AddToList(Assignments, variable, StatementIndex);
             }
         }
 
@@ -328,7 +328,7 @@ namespace JSIL.Transforms {
                     FirstValues.Add(leftVar, new JSExpressionStatement(boe.Right));
                 }
 
-                AddToList(Assignments, leftVar, new Tuple<int, int>(StatementIndex, NextStatementIndex - 1));
+                AddToList(Assignments, leftVar, StatementIndex);
 
                 if (TraceLevel >= 3)
                     Debug.WriteLine(String.Format(
