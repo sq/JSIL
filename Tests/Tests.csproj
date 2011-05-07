@@ -112,7 +112,7 @@
     <None Include="SimpleTestCases\Interfaces.cs" />
     <None Include="SimpleTestCases\InterfaceInheritance.cs" />
     <None Include="SimpleTestCases\IntAndFloatCast.cs" />
-    <None Include="SimpleTestCases\Lambdas.cs" />
+    <None Include="TestCases\Lambdas.cs" />
     <None Include="SimpleTestCases\ForEach.cs" />
     <None Include="SimpleTestCases\CustomEnumerator.cs" />
     <None Include="SimpleTestCases\OverloadWithRefArray.cs" />
@@ -148,6 +148,7 @@
     <None Include="SpecialTestCases\StringConcat.cs" />
     <None Include="SpecialTestCases\PostIncrement.cs" />
     <None Include="SpecialTestCases\SingleUseTemporaries.cs" />
+    <None Include="TestCases\LambdasUsingLocals.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

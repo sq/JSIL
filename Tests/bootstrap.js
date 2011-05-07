@@ -597,6 +597,13 @@ System.Delegate.prototype.toString = System.Object.prototype.toString;
 System.Delegate.prototype.GetInvocationList = function () {
   return [ this ];
 };
+System.Delegate.GetInvocationList = function (delegate) {
+  if (typeof (delegate.GetInvocationList) == "function") {
+    return delegate.GetInvocationList();
+  } else if (typeof (delegate) == "function") {
+    return [ delegate ];
+  }
+};
 System.Delegate.Combine = function (lhs, rhs) {
   if (rhs === null) {
     return lhs;
@@ -604,8 +611,8 @@ System.Delegate.Combine = function (lhs, rhs) {
     return rhs;
   }
 
-  var newList = Array.prototype.slice.call(lhs.GetInvocationList());
-  newList.push.apply(newList, rhs.GetInvocationList());
+  var newList = Array.prototype.slice.call(System.Delegate.GetInvocationList(lhs));
+  newList.push.apply(newList, System.Delegate.GetInvocationList(rhs));
   var result = JSIL.MulticastDelegate.New(newList);
   return result;
 };
@@ -613,8 +620,8 @@ System.Delegate.Remove = function (lhs, rhs) {
   if (rhs === null)
     return lhs;
 
-  var newList = Array.prototype.slice.call(lhs.GetInvocationList());
-  var rhsList = rhs.GetInvocationList();
+  var newList = Array.prototype.slice.call(System.Delegate.GetInvocationList(lhs));
+  var rhsList = System.Delegate.GetInvocationList(rhs);
 
   for (var i = 0; i < rhsList.length; i++) {
     var needle = rhsList[i];
@@ -683,7 +690,7 @@ JSIL.MulticastDelegate.New = function (delegates) {
     var result;
     for (var i = 0; i < this.length; i++) {
       var d = this[i];
-      result = d.Invoke.apply(d, arguments);
+      result = d.apply(null, arguments);
     }
     return result;
   };

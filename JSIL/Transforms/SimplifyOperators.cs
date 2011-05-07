@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using ICSharpCode.Decompiler.ILAst;
@@ -72,6 +73,13 @@ namespace JSIL.Transforms {
                             VisitChildren(firstArg);
                     }
                     return;
+                } else if (
+                    (method != null) &&
+                    ILBlockTranslator.IsDelegateType(method.Method.DeclaringType) &&
+                    ILBlockTranslator.IsDelegateType(target.Target.GetExpectedType(TypeSystem)) &&
+                    (method.Method.Name == "Invoke")
+                ) {
+                    ie.ReplaceChild(target, target.Target);
                 }
             }
 

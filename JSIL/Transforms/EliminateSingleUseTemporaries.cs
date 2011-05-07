@@ -44,6 +44,13 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSFunctionExpression fn) {
+            // Create a new visitor for nested function expressions
+            if (Stack.Count > 0) {
+                var nested = new EliminateSingleUseTemporaries(TypeSystem, fn.AllVariables);
+                nested.Visit(fn);
+                return;
+            }
+
             var nullList = new List<int>();
 
             VisitChildren(fn);

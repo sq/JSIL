@@ -191,6 +191,7 @@ namespace JSIL {
             var context = new DecompilerContext(assembly.MainModule);
 
             context.Settings.YieldReturn = false;
+            context.Settings.AnonymousMethods = true;
             context.Settings.QueryExpressions = false;
             context.Settings.LockStatement = false;
             context.Settings.FullyQualifyAmbiguousTypeNames = true;
@@ -581,7 +582,7 @@ namespace JSIL {
             output.Semicolon();
         }
 
-        public JSFunctionExpression TranslateMethod (DecompilerContext context, MethodDefinition method, ITypeInfoSource typeInfo, JavascriptFormatter output = null) {
+        public JSFunctionExpression TranslateMethod (DecompilerContext context, MethodDefinition method, JavascriptFormatter output = null) {
             var oldMethod = context.CurrentMethod;
             try {
                 context.CurrentMethod = method;
@@ -600,11 +601,14 @@ namespace JSIL {
 
                 NameVariables.AssignNamesToVariables(context, decompiler.Parameters, allVariables, ilb);
 
-                var translator = new ILBlockTranslator(context, method, ilb, typeInfo, decompiler.Parameters, allVariables);
+                var translator = new ILBlockTranslator(
+                    this, context, method, ilb, decompiler.Parameters, allVariables
+                );
                 var body = translator.Translate();
 
                 var function = new JSFunctionExpression(
-                    new JSMethod(method), 
+                    method,
+                    translator.Variables,
                     from p in translator.ParameterNames select translator.Variables[p], 
                     body
                 );
@@ -637,6 +641,7 @@ namespace JSIL {
                 if (output != null) {
                     var emitter = new JavascriptAstEmitter(output, translator.JSIL, context.CurrentModule.TypeSystem);
                     emitter.Visit(function);
+                    output.Semicolon();
                 }
 
                 if (method.Body.Instructions.Count > LargeMethodThreshold)
@@ -679,7 +684,7 @@ namespace JSIL {
 
             output.Token(" = ");
 
-            TranslateMethod(context, method, this, output);
+            TranslateMethod(context, method, output);
         }
 
         protected void TranslateProperty (DecompilerContext context, JavascriptFormatter output, PropertyDefinition property) {

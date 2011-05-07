@@ -11,7 +11,7 @@ using NUnit.Framework;
 
 namespace JSIL.Tests {
     [TestFixture]
-    public class ComparisonTests {
+    public class ComparisonTests : GenericTestFixture {
         [Test]
         public void HelloWorld () {
             using (var test = new ComparisonTest(@"TestCases\HelloWorld.cs")) {
@@ -67,6 +67,15 @@ namespace JSIL.Tests {
             Assert.AreEqual(0, failureList.Count, 
                 String.Format("{0} test(s) failed:\r\n{1}", failureList.Count, String.Join("\r\n", failureList.ToArray()))
             );
+        }
+
+        [Test]
+        public void LambdaTests () {
+            using (var test = new ComparisonTest(@"TestCases\Lambdas.cs"))
+                test.Run();
+
+            using (var test = new ComparisonTest(@"TestCases\LambdasUsingLocals.cs"))
+                test.Run();
         }
 
         [Test]

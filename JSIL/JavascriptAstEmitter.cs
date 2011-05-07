@@ -76,7 +76,16 @@ namespace JSIL {
         }
 
         public void VisitNode (JSExpressionStatement statement) {
+            bool needsParens =
+                CountOfMatchingSubtrees<JSFunctionExpression>(statement.Children) > 0;
+
+            if (needsParens)
+                Output.LPar();
+
             Visit(statement.Expression);
+
+            if (needsParens)
+                Output.RPar();
 
             if (!statement.IsNull && !statement.Expression.IsNull)
                 Output.Semicolon();
@@ -205,10 +214,6 @@ namespace JSIL {
         }
 
         public void VisitNode (JSFunctionExpression function) {
-            string functionName = null;
-            if (function.FunctionName != null)
-                functionName = function.FunctionName.Identifier;
-
             Output.OpenFunction(
                 null,
                 (o) => {
@@ -232,7 +237,7 @@ namespace JSIL {
 
             Visit(function.Body);
 
-            Output.CloseBrace();
+            Output.CloseBrace(false);
         }
 
         public void VisitNode (JSSwitchStatement swtch) {
@@ -476,10 +481,33 @@ namespace JSIL {
             Output.CloseBrace();
         }
 
+        protected int CountOfMatchingSubtrees<TNode> (IEnumerable<JSNode> nodes) 
+            where TNode : JSNode {
+            return (from n in nodes
+                    where n.AllChildrenRecursive.OfType<TNode>().FirstOrDefault() != null
+                    select n).Count();
+        }
+
         public void VisitNode (JSInvocationExpression invocation) {
             Visit(invocation.Target);
             Output.LPar();
-            CommaSeparatedList(invocation.Arguments);
+
+            bool needLineBreak = 
+                ((invocation.Arguments.Count > 1) && 
+                (
+                    (CountOfMatchingSubtrees<JSFunctionExpression>(invocation.Arguments) > 0) ||
+                    (CountOfMatchingSubtrees<JSInvocationExpression>(invocation.Arguments) > 0)
+                )) ||
+                (invocation.Arguments.Count > 4);
+
+            if (needLineBreak)
+                Output.NewLine();
+
+            CommaSeparatedList(invocation.Arguments, needLineBreak);
+
+            if (needLineBreak)
+                Output.NewLine();
+
             Output.RPar();
         }
     }

@@ -176,32 +176,52 @@ namespace JSIL.Ast {
     }
 
     public class JSFunctionExpression : JSExpression {
-        public readonly JSIdentifier FunctionName;
+        public readonly MethodDefinition OriginalMethod;
+        public readonly Dictionary<string, JSVariable> AllVariables;
         // This has to be JSVariable, because 'this' is of type (JSVariableReference<JSThisParameter>) for structs
         // We also need to make this an IEnumerable, so it can be a select expression instead of a constant array
         public readonly IEnumerable<JSVariable> Parameters;
         public readonly JSBlockStatement Body;
 
-        public JSFunctionExpression (JSIdentifier functionName, IEnumerable<JSVariable> parameters, JSBlockStatement body)
-            : this (parameters, body) {
-            FunctionName = functionName;
-        }
-
-        public JSFunctionExpression (IEnumerable<JSVariable> parameters, JSBlockStatement body) {
-            FunctionName = null;
+        public JSFunctionExpression (
+            MethodDefinition originalMethod, Dictionary<string, JSVariable> allVariables, IEnumerable<JSVariable> parameters, JSBlockStatement body
+        ) {
+            OriginalMethod = originalMethod;
+            AllVariables = allVariables;
             Parameters = parameters;
             Body = body;
         }
 
         public override IEnumerable<JSNode> Children {
             get {
-                yield return FunctionName;
-
                 foreach (var parameter in Parameters)
                     yield return parameter;
 
                 yield return Body;
             }
+        }
+
+        public override bool Equals (object obj) {
+            var rhs = obj as JSFunctionExpression;
+            if (rhs != null) {
+                if (!Object.Equals(OriginalMethod, rhs.OriginalMethod))
+                    return false;
+                if (!Object.Equals(AllVariables, rhs.AllVariables))
+                    return false;
+                if (!Object.Equals(Parameters, rhs.Parameters))
+                    return false;
+
+                return EqualsImpl(obj, true);
+            }
+
+            return EqualsImpl(obj, true);
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            if (OriginalMethod != null)
+                return OriginalMethod.ReturnType;
+            else
+                return typeSystem.Void;
         }
     }
 

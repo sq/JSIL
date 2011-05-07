@@ -135,12 +135,12 @@ namespace JSIL.Internal {
             PlainTextOutput.Indent();
         }
 
-        public void CloseBrace (bool semicolon = false) {
+        public void CloseBrace (bool newLine = true) {
             PlainTextOutput.Unindent();
-            if (semicolon)
-                PlainTextOutput.WriteLine("};");
-            else
+            if (newLine)
                 PlainTextOutput.WriteLine("}");
+            else
+                PlainTextOutput.Write("}");
         }
 
         public void CloseAndReopenBrace (Action<JavascriptFormatter> midtext) {

@@ -14,11 +14,11 @@ using Mono.Cecil;
 
 namespace JSIL {
     class ILBlockTranslator {
+        public readonly AssemblyTranslator Translator;
         public readonly DecompilerContext Context;
         public readonly MethodDefinition ThisMethod;
         public readonly ILBlock Block;
         public readonly JavascriptFormatter Output = null;
-        public readonly ITypeInfoSource TypeInfo;
 
         public readonly HashSet<string> ParameterNames = new HashSet<string>();
         public readonly Dictionary<string, JSVariable> Variables = new Dictionary<string, JSVariable>();
@@ -28,11 +28,11 @@ namespace JSIL {
         public readonly JSSpecialIdentifiers JS;
         public readonly CLRSpecialIdentifiers CLR;
 
-        public ILBlockTranslator (DecompilerContext context, MethodDefinition method, ILBlock ilb, ITypeInfoSource typeInfo, IEnumerable<ILVariable> parameters, IEnumerable<ILVariable> allVariables) {
+        public ILBlockTranslator (AssemblyTranslator translator, DecompilerContext context, MethodDefinition method, ILBlock ilb, IEnumerable<ILVariable> parameters, IEnumerable<ILVariable> allVariables) {
+            Translator = translator;
             Context = context;
             ThisMethod = method;
             Block = ilb;
-            TypeInfo = typeInfo;
 
             JSIL = new JSILIdentifier(TypeSystem);
             JS = new JSSpecialIdentifiers(TypeSystem);
@@ -51,6 +51,12 @@ namespace JSIL {
 
             foreach (var variable in allVariables)
                 Variables.Add(variable.Name, JSVariable.New(variable));
+        }
+
+        public ITypeInfoSource TypeInfo {
+            get {
+                return Translator;
+            }
         }
 
         public TypeSystem TypeSystem {
@@ -1215,10 +1221,44 @@ namespace JSIL {
 
         protected JSExpression Translate_Newobj (ILExpression node, MethodReference constructor) {
             if (IsDelegateType(constructor.DeclaringType)) {
+                var thisArg = TranslateNode(node.Arguments[0]);
+                var methodRef = TranslateNode(node.Arguments[1]);
+
+                var methodDot = methodRef as JSDotExpression;
+
+                // Detect compiler-generated lambda methods
+                if (methodDot != null) {
+                    var methodMember = methodDot.Member as JSMethod;
+
+                    if (methodMember != null) {
+                        var methodDef = methodMember.Method.Resolve();
+                        if (methodDef != null) {
+                            if (
+                                methodDef.IsPrivate && 
+                                methodDef.IsCompilerGenerated()
+                            ) {
+                                // Lambda with no closed-over values
+
+                                return Translator.TranslateMethod(
+                                    Context, methodDef
+                                );
+                            } else if (
+                                methodDef.DeclaringType.IsCompilerGenerated() &&
+                                TypesAreEqual(
+                                    thisArg.GetExpectedType(TypeSystem),
+                                    methodDef.DeclaringType
+                                )
+                            ) {
+                                // Lambda with closed-over values
+                                Debugger.Break();
+                            }
+                        }
+                    }
+                }
+
                 return JSIL.NewDelegate(
                     constructor.DeclaringType,
-                    TranslateNode(node.Arguments[0]),
-                    TranslateNode(node.Arguments[1])
+                    thisArg, methodRef
                 );
             } else if (constructor.DeclaringType.IsArray) {
                 return JSIL.NewMultidimensionalArray(
