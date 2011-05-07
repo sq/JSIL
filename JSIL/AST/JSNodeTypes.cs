@@ -1626,6 +1626,12 @@ namespace JSIL.Ast {
                 return base.Values;
             }
         }
+
+        public override bool IsConstant {
+            get {
+                return Values.All((v) => v.IsConstant);
+            }
+        }
     }
 
     public class JSPairExpression : JSExpression {

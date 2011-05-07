@@ -71,6 +71,9 @@ namespace JSIL {
         public event Action<string, Exception> CouldNotResolveAssembly;
 
         public string OutputDirectory = Environment.CurrentDirectory;
+
+        public bool EliminateTemporaries = true;
+        public bool SimplifyOperators = true;
         public bool IncludeDependencies = true;
         public bool UseSymbols = true;
 
@@ -618,10 +621,11 @@ namespace JSIL {
                     translator.CLR
                 ).Visit(function);
 
-                new EliminateSingleUseTemporaries(
-                    context.CurrentModule.TypeSystem,
-                    translator.Variables
-                ).Visit(function);
+                if (EliminateTemporaries)
+                    new EliminateSingleUseTemporaries(
+                        context.CurrentModule.TypeSystem,
+                        translator.Variables
+                    ).Visit(function);
 
                 new IntroduceVariableDeclarations(
                     translator.Variables,
@@ -634,9 +638,10 @@ namespace JSIL {
                     translator.ParameterNames
                 ).Visit(function);
 
-                new SimplifyOperators(
-                    context.CurrentModule.TypeSystem
-                ).Visit(function);
+                if (SimplifyOperators)
+                    new SimplifyOperators(
+                        context.CurrentModule.TypeSystem
+                    ).Visit(function);
 
                 if (output != null) {
                     var emitter = new JavascriptAstEmitter(output, translator.JSIL, context.CurrentModule.TypeSystem);

@@ -151,6 +151,8 @@
     <None Include="TestCases\LambdasUsingLocals.cs" />
     <None Include="SimpleTestCases\DelegatesReturningDelegates.cs" />
     <None Include="SimpleTestCases\LotsOfParameters.cs" />
+    <None Include="TestCases\InterleavedTemporaries.cs" />
+    <None Include="TestCases\IndirectInterleavedTemporaries.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

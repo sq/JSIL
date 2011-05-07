@@ -101,5 +101,17 @@ namespace JSIL.Tests {
             using (var test = new ComparisonTest(@"TestCases\IntegerArithmetic.cs"))
                 test.Run();
         }
+
+        [Test]
+        public void InterleavedTemporaries () {
+            using (var test = new ComparisonTest(@"TestCases\InterleavedTemporaries.cs"))
+                test.Run();
+        }
+
+        [Test]
+        public void IndirectInterleavedTemporaries () {
+            using (var test = new ComparisonTest(@"TestCases\IndirectInterleavedTemporaries.cs"))
+                test.Run();
+        }
     }
 }

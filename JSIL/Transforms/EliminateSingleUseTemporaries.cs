@@ -9,7 +9,7 @@ namespace JSIL.Transforms {
     // This only works correctly for cases where a variable is assigned once and used once.
     // With a better algorithm it could detect and handle more sophisticated cases, but it's probably not worth it.
     public class EliminateSingleUseTemporaries : JSAstVisitor {
-        public const int TraceLevel = 0;
+        public const int TraceLevel = 1;
 
         public readonly TypeSystem TypeSystem;
         public readonly Dictionary<string, JSVariable> Variables;
@@ -66,28 +66,28 @@ namespace JSIL.Transforms {
                 List<int> assignments, accesses, copies, controlFlowAccesses, conversions;
 
                 if (!Assignments.TryGetValue(v, out assignments)) {
-                    if (TraceLevel >= 1)
+                    if (TraceLevel >= 2)
                         Debug.WriteLine(String.Format("Never found an initial assignment for {0}.", v));
 
                     continue;
                 }
 
                 if (ControlFlowAccesses.TryGetValue(v, out controlFlowAccesses) && (controlFlowAccesses.Count > 0)) {
-                    if (TraceLevel >= 1)
+                    if (TraceLevel >= 2)
                         Debug.WriteLine(String.Format("Cannot eliminate {0}; it participates in control flow.", v));
 
                     continue;
                 }
 
                 if (Conversions.TryGetValue(v, out conversions) && (conversions.Count > 0)) {
-                    if (TraceLevel >= 1)
+                    if (TraceLevel >= 2)
                         Debug.WriteLine(String.Format("Cannot eliminate {0}; it undergoes type conversion.", v));
 
                     continue;
                 }
 
                 if (assignments.Count > 1) {
-                    if (TraceLevel >= 1)
+                    if (TraceLevel >= 2)
                         Debug.WriteLine(String.Format("Cannot eliminate {0}; it is reassigned.", v));
 
                     continue;
@@ -100,7 +100,7 @@ namespace JSIL.Transforms {
                     copies = nullList;
 
                 if ((copies.Count + accesses.Count) > 1) {
-                    if (TraceLevel >= 1)
+                    if (TraceLevel >= 2)
                         Debug.WriteLine(String.Format("Cannot eliminate {0}; it is used multiple times.", v));
 
                     continue;
@@ -108,8 +108,15 @@ namespace JSIL.Transforms {
 
                 var replacement = FirstValues[v].Expression;
                 if (replacement.AllChildrenRecursive.Contains(v)) {
-                    if (TraceLevel >= 1)
+                    if (TraceLevel >= 2)
                         Debug.WriteLine(String.Format("Cannot eliminate {0}; it contains a self-reference.", v));
+
+                    continue;
+                }
+
+                if (!replacement.IsConstant) {
+                    if (TraceLevel >= 2)
+                        Debug.WriteLine(String.Format("Cannot eliminate {0}; it is not a constant expression.", v));
 
                     continue;
                 }
@@ -186,7 +193,7 @@ namespace JSIL.Transforms {
                 )
             ) {
 
-                if (TraceLevel >= 2)
+                if (TraceLevel >= 3)
                     Debug.WriteLine(String.Format(
                         "{0:0000} Reassigns: {1}\r\n{2}",
                         NodeIndex, variable, uoe
@@ -213,7 +220,7 @@ namespace JSIL.Transforms {
 
                 AddToList(Assignments, leftVar, NodeIndex);
 
-                if (TraceLevel >= 2)
+                if (TraceLevel >= 3)
                     Debug.WriteLine(String.Format(
                         "{0:0000} {2}: {1}\r\n{3}", 
                         NodeIndex, leftVar, isFirst ? "Assigns" : "Reassigns", boe
@@ -230,13 +237,13 @@ namespace JSIL.Transforms {
                     ) {
                         AddToList(Conversions, rightVar, NodeIndex);
 
-                        if (TraceLevel >= 2)
+                        if (TraceLevel >= 3)
                             Debug.WriteLine(String.Format(
                                 "{0:0000} Converts: {1} into {2}\r\n{3}",
                                 NodeIndex, rightVar, leftVar, boe
                             ));
                     } else {
-                        if (TraceLevel >= 2)
+                        if (TraceLevel >= 3)
                             Debug.WriteLine(String.Format(
                                 "{0:0000} Copies: {1} into {2}\r\n{3}",
                                 NodeIndex, rightVar, leftVar, boe
@@ -260,7 +267,7 @@ namespace JSIL.Transforms {
             ) {
                 var enclosingStatement = GetEnclosingNodes<JSStatement>().FirstOrDefault();
 
-                if (TraceLevel >= 2)
+                if (TraceLevel >= 3)
                     Debug.WriteLine(String.Format(
                         "{0:0000} Accesses: {1}\r\n{2}",
                         NodeIndex, variable, enclosingStatement
@@ -271,7 +278,7 @@ namespace JSIL.Transforms {
                 else
                     AddToList(ControlFlowAccesses, variable, NodeIndex);
             } else {
-                if (TraceLevel >= 3)
+                if (TraceLevel >= 4)
                     Debug.WriteLine(String.Format(
                         "{0:0000} Ignoring Access: {1}\r\n{2}",
                         NodeIndex, variable, GetEnclosingNodes<JSStatement>().FirstOrDefault()
