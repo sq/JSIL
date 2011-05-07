@@ -205,7 +205,7 @@ namespace JSIL {
             );
         }
 
-        protected JSExpression Translate_MethodReplacement (MethodReference method, JSExpression methodExpression, JSExpression[] arguments) {
+        protected JSExpression Translate_MethodReplacement (MethodReference method, JSExpression thisExpression, JSExpression methodExpression, JSExpression[] arguments, bool virt) {
             var typeInfo = TypeInfo.Get(method.DeclaringType);
             if (typeInfo != null) {
                 MetadataCollection metadata;
@@ -255,11 +255,10 @@ namespace JSIL {
             JSExpression result;
 
             var methodDef = method.Resolve();
-            var methodDot = methodExpression as JSDotExpression;
             JSExpression propertyResult;
             if (
-                (methodDef != null) && (methodDot != null) &&
-                Translate_PropertyCall(methodDot.Target, methodDef, arguments, out propertyResult)
+                (methodDef != null) &&
+                Translate_PropertyCall(thisExpression, methodDef, arguments, virt, out propertyResult)
             ) {
                 result = propertyResult;
             } else {
@@ -274,7 +273,7 @@ namespace JSIL {
             return result;
         }
 
-        protected bool Translate_PropertyCall (JSExpression thisExpression, MethodDefinition method, JSExpression[] arguments, out JSExpression result) {
+        protected bool Translate_PropertyCall (JSExpression thisExpression, MethodDefinition method, JSExpression[] arguments, bool virt, out JSExpression result) {
             result = null;
 
             var typeInfo = TypeInfo.Get(method.DeclaringType);
@@ -296,28 +295,48 @@ namespace JSIL {
             if (property.IsIndexer())
                 return false;
 
+            var thisType = thisExpression.GetExpectedType(TypeSystem);
+            Func<JSExpression> generate = () => {
+                if ((property.GetMethod != null) && (method.FullName == property.GetMethod.FullName)) {
+                    return new JSDotExpression(
+                        thisExpression, new JSProperty(property)
+                    );
+                } else {
+                    if (arguments.Length == 0)
+                        throw new InvalidOperationException("Attempting to invoke a property setter with no arguments");
+
+                    return new JSBinaryOperatorExpression(
+                        JSOperator.Assignment,
+                        new JSDotExpression(
+                            thisExpression, new JSProperty(property)
+                        ),
+                        arguments[0], property.PropertyType
+                    );
+                }
+            };
+
             // Accesses to a base property should go through a regular method invocation, since
             //  javascript properties do not have a mechanism for base access
-            if (method.HasThis && !TypesAreEqual(property.DeclaringType, thisExpression.GetExpectedType(TypeSystem)))
+            if (method.HasThis && !virt) {
+                var resolved = thisType.Resolve();
+                if (resolved == null)
+                    return false;
+
+                var thisProperty = resolved.Properties.Where((p) => p.Name == property.Name).FirstOrDefault();
+                if (thisProperty != null) {
+                    if (TypesAreEqual(thisProperty.DeclaringType, property.DeclaringType)) {
+                        result = generate();
+                        return true;
+                    }
+                } else {
+                    result = generate();
+                    return true;
+                }
+
                 return false;
-
-            if ((property.GetMethod != null) && (method.FullName == property.GetMethod.FullName)) {
-                result = new JSDotExpression(
-                    thisExpression, new JSProperty(property)
-                );
-            } else {
-                if (arguments.Length == 0)
-                    throw new InvalidOperationException("Attempting to invoke a property setter with no arguments");
-
-                result = new JSBinaryOperatorExpression(
-                    JSOperator.Assignment,
-                    new JSDotExpression(
-                        thisExpression, new JSProperty(property)
-                    ),
-                    arguments[0], property.PropertyType
-                );
             }
 
+            result = generate();
             return true;
         }
 
@@ -1563,7 +1582,7 @@ namespace JSIL {
 
             IEnumerable<ILExpression> arguments = node.Arguments;
             JSExpression thisExpression;
-            JSIdentifier methodName;
+            JSExpression invokeTarget;
 
             if (method.HasThis) {
                 var firstArg = arguments.First();
@@ -1597,25 +1616,21 @@ namespace JSIL {
                         TypesAreAssignable(declaringTypeDef, firstArgType)
                     )
                 ) {
-                    methodName = new JSMethod(method);
                     arguments = arguments.Skip(1);
+                    invokeTarget = JSDotExpression.New(thisExpression, new JSMethod(method));
                 } else {
-                    thisExpression = JSDotExpression.New(
-                        new JSType(method.DeclaringType),
-                        JS.prototype, new JSMethod(method)
-                    );
-                    methodName = JS.call(method.ReturnType);
+                    invokeTarget = JSDotExpression.New(new JSType(method.DeclaringType), JS.prototype, new JSMethod(method), JS.call(method.ReturnType));
                 }
             } else {
                 thisExpression = new JSType(method.DeclaringType);
-                methodName = new JSMethod(method);
+                invokeTarget = JSDotExpression.New(thisExpression, new JSMethod(method));
             }
 
             var translatedArguments = Translate(arguments.ToArray(), method.Parameters);
 
             return Translate_MethodReplacement(
-                method, new JSDotExpression(thisExpression, methodName), 
-                translatedArguments
+                method, thisExpression, invokeTarget, 
+                translatedArguments, false
             );
         }
 
@@ -1623,8 +1638,6 @@ namespace JSIL {
             var firstArg = node.Arguments[0];
             var translated = TranslateNode(firstArg);
             JSExpression thisExpression;
-
-            var methodDef = method.Resolve();
 
             if (DereferenceType(firstArg.InferredType).IsValueType) {
                 if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression))
@@ -1636,8 +1649,8 @@ namespace JSIL {
             var translatedArguments = Translate(node.Arguments.Skip(1), method.Parameters);
 
             return Translate_MethodReplacement(
-               method, new JSDotExpression(thisExpression, new JSMethod(method)),
-               translatedArguments
+               method, thisExpression, new JSDotExpression(thisExpression, new JSMethod(method)),
+               translatedArguments, true
             );
         }
 

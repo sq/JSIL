@@ -1463,6 +1463,12 @@ namespace JSIL.Ast {
             }
         }
 
+        public override bool IsConstant {
+            get {
+                return true;
+            }
+        }
+
         public static JSVariable New (TypeReference type) {
             if (type.IsValueType)
                 return new JSVariableReference(new JSThisParameter(type));
@@ -1541,6 +1547,12 @@ namespace JSIL.Ast {
         public override bool IsParameter {
             get {
                 return Variables[Identifier].IsParameter;
+            }
+        }
+
+        public override bool IsConstant {
+            get {
+                return Variables[Identifier].IsConstant;
             }
         }
 
