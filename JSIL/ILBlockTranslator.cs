@@ -409,6 +409,7 @@ namespace JSIL {
         protected JSBlockStatement TranslateBlock (IEnumerable<ILNode> children) {
             JSBlockStatement result, currentBlock;
 
+            // TODO: Fix this heuristic by building a flow graph at the beginning of method translation
             if (children.Any(
                 n => ContainsLabels(n)
             )) {

@@ -270,6 +270,8 @@ namespace JSIL {
                 }
             }
 
+            Console.Error.WriteLine("Warning: Untranslatable goto encountered: " + go);
+
             Output.Identifier("JSIL.UntranslatableInstruction", true);
             Output.LPar();
             Output.Value("goto");

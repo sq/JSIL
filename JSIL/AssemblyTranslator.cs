@@ -497,6 +497,23 @@ namespace JSIL {
 
             foreach (var nestedTypedef in typedef.NestedTypes)
                 TranslateTypeDefinition(context, output, nestedTypedef);
+
+            bool isStatic = typedef.IsAbstract && typedef.IsSealed;
+            if (!isStatic) {
+                output.Identifier("Object.seal", true);
+                output.LPar();
+                output.Identifier(typedef);
+                output.Dot();
+                output.Identifier("prototype");
+                output.RPar();
+                output.Semicolon();
+            }
+
+            output.Identifier("Object.seal", true);
+            output.LPar();
+            output.Identifier(typedef);
+            output.RPar();
+            output.Semicolon();
         }
 
         protected void EmitFieldDefault (DecompilerContext context, JavascriptFormatter output, FieldDefinition field) {
