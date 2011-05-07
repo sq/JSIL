@@ -14,6 +14,8 @@ namespace JSIL.Transforms {
         public readonly CLRSpecialIdentifiers CLR;
         public readonly TypeSystem TypeSystem;
 
+        protected readonly Dictionary<string, int> ReferenceCounts = new Dictionary<string, int>();
+
         public EmulateStructAssignment (TypeSystem typeSystem, CLRSpecialIdentifiers clr) {
             TypeSystem = typeSystem;
             CLR = clr;
@@ -47,12 +49,34 @@ namespace JSIL.Transforms {
             ) {
                 return false;
             }
-            
+
+            var rightVar = value as JSVariable;
+            if (rightVar != null) {
+                int referenceCount;
+                if (ReferenceCounts.TryGetValue(rightVar.Identifier, out referenceCount) &&
+                    (referenceCount == 1) && !rightVar.IsReference && rightVar.IsParameter)
+                    return false;
+            }
+ 
             return true;
         }
 
         protected JSInvocationExpression MakeCopy (JSExpression value) {
             return new JSInvocationExpression(new JSDotExpression(value, CLR.MemberwiseClone));
+        }
+
+        public void VisitNode (JSFunctionExpression fn) {
+            // Create a new visitor for nested function expressions
+            if (Stack.OfType<JSFunctionExpression>().Count() > 1) {
+                var nested = new EmulateStructAssignment(TypeSystem, CLR);
+                nested.Visit(fn);
+                return;
+            }
+
+            var countRefs = new CountVariableReferences(ReferenceCounts);
+            countRefs.Visit(fn);
+
+            VisitChildren(fn);
         }
 
         public void VisitNode (JSPairExpression pair) {
@@ -92,6 +116,26 @@ namespace JSIL.Transforms {
             }
 
             VisitChildren(boe);
+        }
+    }
+
+    public class CountVariableReferences : JSAstVisitor {
+        public readonly Dictionary<string, int> ReferenceCounts;
+
+        public CountVariableReferences (Dictionary<string, int> referenceCounts) {
+            ReferenceCounts = referenceCounts;
+        }
+
+        public void VisitNode (JSVariable variable) {
+            // If our parent node is the function, we're in the argument list
+            if (ParentNode is JSFunctionExpression)
+                return;
+
+            int count;
+            if (ReferenceCounts.TryGetValue(variable.Identifier, out count))
+                ReferenceCounts[variable.Identifier] = count + 1;
+            else
+                ReferenceCounts[variable.Identifier] = 1;
         }
     }
 }
