@@ -62,24 +62,20 @@ namespace JSIL.Transforms {
                 );
         }
 
-        public void VisitNode (JSExpressionStatement es) {
-            var boe = es.Expression as JSBinaryOperatorExpression;
+        public void VisitNode (JSBinaryOperatorExpression boe) {
+            var isAssignment = boe.Operator == JSOperator.Assignment;
+            var leftVar = boe.Left as JSVariable;
 
-            if (boe != null) {
-                var isAssignment = boe.Operator == JSOperator.Assignment;
-                var leftVar = boe.Left as JSVariable;
+            if (
+                (leftVar != null) && isAssignment && 
+                !leftVar.IsReference && !leftVar.IsParameter
+            ) {
+                if (ToDeclare.Contains(leftVar)) {
+                    ToDeclare.Remove(leftVar);
 
-                if (
-                    (leftVar != null) && isAssignment &&
-                    (boe.Right.IsConstant) && (!leftVar.IsReference) &&
-                    (!leftVar.IsParameter)
-                ) {
-                    if (ToDeclare.Contains(leftVar)) {
-                        ToDeclare.Remove(leftVar);
-
-                        ParentNode.ReplaceChild(es, new JSVariableDeclarationStatement(
-                            boe
-                        ));
+                    var superParent = Stack.Skip(2).FirstOrDefault();
+                    if ((superParent != null) && (ParentNode is JSStatement)) {
+                        superParent.ReplaceChild(ParentNode, new JSVariableDeclarationStatement(boe));
 
                         VisitChildren(boe);
                         return;
@@ -87,7 +83,7 @@ namespace JSIL.Transforms {
                 }
             }
 
-            VisitChildren(es.Expression);
+            VisitChildren(boe);
         }
     }
 }
