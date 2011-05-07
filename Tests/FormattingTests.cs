@@ -76,5 +76,11 @@ namespace JSIL.Tests {
                 throw;
             }
         }
+
+        [Test]
+        public void PrivateNames () {
+            using (var test = new ComparisonTest(@"SpecialTestCases\PrivateNames.cs"))
+                test.Run();
+        }
     }
 }

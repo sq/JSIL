@@ -685,7 +685,7 @@ namespace JSIL {
             if (typeInfo.MethodToMethodGroupItem.TryGetValue(method, out mgi))
                 output.Identifier(mgi.MangledName);
             else
-                output.Identifier(method.Name);
+                output.Identifier(method, false);
 
             output.Token(" = ");
 
@@ -710,7 +710,20 @@ namespace JSIL {
             }
             output.Comma();
 
-            output.Value(property.Name);
+            var over = (property.SetMethod ?? property.GetMethod).Overrides.FirstOrDefault();
+
+            var separators = new char[] { '.', '+', '/', ':' };
+            var lastDot = property.Name.LastIndexOfAny(separators);
+            if (over != null) {
+                // For some reason property.Name is fully qualified, unlike method.Name, when it privately implements an interface property.
+                var declaringType = over.DeclaringType;
+                var shortName = property.Name.Substring(lastDot + 1);
+                var identifier = String.Format("{0}.{1}", declaringType.Name, shortName);
+                output.Value(Util.EscapeIdentifier(identifier));
+            } else {
+                output.Value(property.Name);
+            }
+
             output.Comma();
             output.NewLine();
 
@@ -729,7 +742,7 @@ namespace JSIL {
                     output.Keyword("prototype");
                 }
                 output.Dot();
-                output.Identifier(property.GetMethod.Name);
+                output.Identifier(property.GetMethod, false);
             }
 
             if (property.SetMethod != null) {
@@ -743,9 +756,10 @@ namespace JSIL {
                     output.Keyword("prototype");
                 }
                 output.Dot();
-                output.Identifier(property.SetMethod.Name);
+                output.Identifier(property.SetMethod, false);
             }
 
+            output.NewLine();
             output.CloseBrace();
 
             output.RPar();

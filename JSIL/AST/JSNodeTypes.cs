@@ -1196,13 +1196,22 @@ namespace JSIL.Ast {
                 return result;
         }
 
-        protected static string GetMethodName (MethodReference method) {
+        public static string GetMethodName (MethodReference method) {
+            var methodDef = method.Resolve();
+            if (methodDef != null) {
+                var over = methodDef.Overrides.FirstOrDefault();
+
+                if (over != null)
+                    return String.Format("{0}.{1}", over.DeclaringType.Name, over.Name);
+            }
+
             var declType = method.DeclaringType.Resolve();
 
-            if ((declType != null) && (declType.IsInterface))
+            if ((declType != null) && declType.IsInterface) {
                 return String.Format("{0}.{1}", declType.Name, method.Name);
-            else
+            } else {
                 return method.Name;
+            }
         }
     }
 

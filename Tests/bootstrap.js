@@ -327,21 +327,21 @@ System.Object.prototype.__ImplementInterface__ = function (iface) {
       continue;
 
     var memberType = members[key];
-    var shortName = iface.__ShortName__ + "_" + key;
+    var qualifiedName = iface.__ShortName__ + "_" + key;
 
-    if (!this.hasOwnProperty(key) && !this.hasOwnProperty(shortName))
-      throw new Error("Missing implementation of interface member " + shortName);
+    if (!this.hasOwnProperty(key) && !this.hasOwnProperty(qualifiedName))
+      throw new Error("Missing implementation of interface member " + qualifiedName);
 
-    if (!this.hasOwnProperty(shortName)) {
+    if (!this.hasOwnProperty(qualifiedName)) {
       if (memberType === Function)
-        this[shortName] = this[key];
+        this[qualifiedName] = this[key];
       else if (memberType === Property) {
         var descriptor = Object.getOwnPropertyDescriptor(this, key);
 
         if ((typeof (descriptor) == "undefined") || (descriptor == null))
           throw new Error("Cannot find descriptor for property '" + key + "'");
 
-        Object.defineProperty(this, shortName, descriptor);
+        Object.defineProperty(this, qualifiedName, descriptor);
       }
     }
   }
@@ -459,9 +459,7 @@ JSIL.MakeInterface(System.Collections, "IEnumerable", "System.Collections.IEnume
 });
 
 JSIL.MakeInterface(System.Collections.Generic, "IEnumerator$bt1", "System.Collections.Generic.IEnumerator`1", {
-  "MoveNext": Function,
   "get_Current": Function,
-  "Reset": Function, 
   "Current": Property
 });
 JSIL.MakeInterface(System.Collections.Generic, "IEnumerable$bt1", "System.Collections.Generic.IEnumerable`1", {

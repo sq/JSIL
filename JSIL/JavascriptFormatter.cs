@@ -8,6 +8,7 @@ using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.Ast;
 using ICSharpCode.Decompiler.ILAst;
 using ICSharpCode.NRefactory.CSharp;
+using JSIL.Ast;
 using JSIL.Internal;
 using Mono.Cecil;
 
@@ -251,7 +252,7 @@ namespace JSIL.Internal {
         }
 
         public void Identifier (MethodReference method, bool fullyQualified = true) {
-            string methodName = method.Name;
+            string methodName = JSMethod.GetMethodName(method);
 
             // TODO: This doesn't work because it breaks Console.WriteLine :(
             /*
@@ -272,10 +273,6 @@ namespace JSIL.Internal {
                     Dot();
                 }
             }
-
-            var tdef = method.DeclaringType.Resolve();
-            if ((tdef != null) && (tdef.IsInterface))
-                methodName = String.Format("{0}.{1}", tdef.Name, methodName);
 
             Identifier(methodName);
         }
@@ -389,10 +386,15 @@ namespace JSIL.Internal {
 
             DeclaredNamespaces.Add(ns);
 
-            var lastDot = ns.LastIndexOf(".");
+            var lastDot = ns.LastIndexOfAny(new char[] { '.', '/', '+', ':' });
             string parent;
             if (lastDot > 0) {
                 parent = ns.Substring(0, lastDot);
+
+                // Handle ::
+                if (parent.EndsWith(":"))
+                    parent = parent.Substring(0, parent.Length - 1);
+
                 ns = ns.Substring(lastDot + 1);
 
                 DeclareNamespace(parent);
@@ -404,7 +406,7 @@ namespace JSIL.Internal {
             LPar();
             Identifier(parent, true);
             Comma();
-            Value(ns);
+            Value(Util.EscapeIdentifier(ns));
             RPar();
             Semicolon();
         }

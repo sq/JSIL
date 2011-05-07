@@ -153,6 +153,7 @@
     <None Include="SimpleTestCases\LotsOfParameters.cs" />
     <None Include="TestCases\InterleavedTemporaries.cs" />
     <None Include="TestCases\IndirectInterleavedTemporaries.cs" />
+    <None Include="SpecialTestCases\PrivateNames.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
