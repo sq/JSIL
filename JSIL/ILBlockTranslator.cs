@@ -1250,7 +1250,17 @@ namespace JSIL {
                                 )
                             ) {
                                 // Lambda with closed-over values
-                                Debugger.Break();
+                                var function = Translator.TranslateMethod(
+                                    Context, methodDef
+                                );
+
+                                new VariableEliminator(
+                                    function.AllVariables["this"],
+                                    thisArg
+                                ).Visit(function);
+                                function.AllVariables.Remove("this");
+                                
+                                return function;
                             }
                         }
                     }

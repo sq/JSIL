@@ -219,7 +219,7 @@ namespace JSIL.Ast {
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             if (OriginalMethod != null)
-                return OriginalMethod.ReturnType;
+                return ConstructDelegateType(OriginalMethod, typeSystem);
             else
                 return typeSystem.Void;
         }
@@ -525,6 +525,35 @@ namespace JSIL.Ast {
             } else {
                 return type;
             }
+        }
+
+        public static TypeReference ConstructDelegateType (MethodReference method, TypeSystem typeSystem) {
+            TypeReference genericDelegateType;
+
+            var systemModule = typeSystem.Boolean.Resolve().Module;
+            bool hasReturnType;
+
+            if (ILBlockTranslator.TypesAreEqual(typeSystem.Void, method.ReturnType)) {
+                hasReturnType = false;
+                var name = String.Format("System.Action`{0}", method.Parameters.Count);
+                genericDelegateType = systemModule.GetType(
+                    method.Parameters.Count == 0 ? "System.Action" : name
+                );
+            } else {
+                hasReturnType = true;
+                genericDelegateType = systemModule.GetType(String.Format(
+                    "System.Func`{0}", method.Parameters.Count + 1
+                ));
+            }
+
+            var result = new GenericInstanceType(genericDelegateType);
+            foreach (var parameter in method.Parameters)
+                result.GenericArguments.Add(ResolveGenericType(parameter.ParameterType, parameter, method));
+
+            if (hasReturnType)
+                result.GenericArguments.Add(ResolveGenericType(method.ReturnType, method));
+
+            return result;
         }
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
@@ -1113,7 +1142,7 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return ResolveGenericType(Method.ReturnType, Method, Method.DeclaringType);
+            return ConstructDelegateType(Method, typeSystem);
         }
 
         protected static string GetMethodName (MethodReference method) {
@@ -1529,12 +1558,11 @@ namespace JSIL.Ast {
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             var targetType = Target.GetExpectedType(typeSystem);
 
-            // TODO: Fix this terrible hack. (The real problem is that JSMethod has to return 
-            //  its return type as its expected type, instead of Func<...>)
+            // Any invocation expression targeting a method or delegate will have an expected type that is a delegate.
+            // We need to deconstruct the delegate and get its return type.
             if (ILBlockTranslator.IsDelegateType(targetType)) {
                 var resolved = ResolveGenericType(targetType, targetType).Resolve();
                 if (Target.AllChildrenRecursive.OfType<JSMethod>().Count() == 0) {
-                    // This expression is probably invoking a delegate.
                     var invokeMethod = resolved.Methods.Where(
                         (m) => m.Name == "Invoke"
                     ).FirstOrDefault();

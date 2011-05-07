@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using Mono.Cecil;
 
 namespace JSIL.Internal {
@@ -37,6 +39,8 @@ namespace JSIL.Internal {
             else if (fullName.Contains("<PrivateImplementationDetails>"))
                 return true;
             else if (fullName.Contains("Runtime.CompilerServices.CallSite"))
+                return true;
+            else if (fullName.Contains("__CachedAnonymousMethodDelegate"))
                 return true;
 
             return false;
@@ -176,6 +180,14 @@ namespace JSIL.Internal {
                 TypeInformation.IsIgnoredName(type.FullName) ||
                 TypeInformation.IsIgnoredName(reference.FullName) ||
                 Metadata.HasAttribute("JSIL.Meta.JSIgnore");
+        }
+
+        protected void AddMember (MethodDefinition method) {
+            AddMember<MethodDefinition>(method);
+
+            var m = Regex.Match(method.Name, @"\<(?'scope'[^>]*)\>(?'mangling'[^_]*)__(?'index'[0-9]*)");
+            if (m.Success)
+                IgnoredMembers.Add(method);
         }
 
         protected void AddMember<T> (T definition)

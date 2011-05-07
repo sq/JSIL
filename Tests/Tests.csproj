@@ -149,6 +149,7 @@
     <None Include="SpecialTestCases\PostIncrement.cs" />
     <None Include="SpecialTestCases\SingleUseTemporaries.cs" />
     <None Include="TestCases\LambdasUsingLocals.cs" />
+    <None Include="SimpleTestCases\DelegatesReturningDelegates.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
