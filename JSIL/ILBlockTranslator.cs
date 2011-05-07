@@ -81,10 +81,7 @@ namespace JSIL {
         public JSNode TranslateNode (ILNode node) {
             Console.Error.WriteLine("Node        NYI: {0}", node.GetType().Name);
 
-            return new JSInvocationExpression(
-                JSIL.UntranslatableNode,
-                new JSStringLiteral(node.GetType().Name)
-            );
+            return new JSUntranslatableStatement(node.GetType().Name);
         }
 
         public JSExpression[] Translate (IList<ILExpression> values, IList<ParameterDefinition> parameters) {
@@ -514,18 +511,7 @@ namespace JSIL {
                     operandType = expression.Operand.GetType().FullName;
 
                 Console.Error.WriteLine("Instruction NYI: {0} {1}", expression.Code, operandType);
-                return new JSInvocationExpression(
-                    JSIL.UntranslatableInstruction,
-                    String.IsNullOrWhiteSpace(operandType) ?
-                        new JSExpression[] { 
-                            new JSStringLiteral(expression.Code.ToString())
-                        } :
-                        new JSExpression[] { 
-                            new JSStringLiteral(expression.Code.ToString()), 
-                            new JSStringLiteral(operandType)
-                        }
-                );
-                Output.RPar();
+                return new JSUntranslatableExpression(expression);
             } catch (TargetInvocationException tie) {
                 if (tie.InnerException is AbortTranslation)
                     throw tie.InnerException;
@@ -692,10 +678,7 @@ namespace JSIL {
 
             if (tcb.FaultBlock != null) {
                 Console.Error.WriteLine("Warning: Fault blocks are not translatable.");
-                body.Statements.Add(new JSExpressionStatement(new JSInvocationExpression(
-                    JSIL.UntranslatableNode, 
-                    JSLiteral.New(tcb.FaultBlock.ToString())
-                )));
+                body.Statements.Add(new JSUntranslatableStatement("Fault Block"));
             }
 
             return new JSTryCatchBlock(
@@ -946,7 +929,7 @@ namespace JSIL {
 
             // GetCallSite and CreateCallSite produce null expressions, so we want to ignore assignments containing them
             var value = TranslateNode(node.Arguments[0]);
-            if (value.IsNull)
+            if ((value.IsNull) && !(value is JSUntranslatableExpression))
                 return new JSNullExpression();
 
             return new JSBinaryOperatorExpression(
@@ -985,7 +968,7 @@ namespace JSIL {
             var translated = TranslateNode(firstArg);
 
             // GetCallSite and CreateCallSite produce null expressions, so we want to ignore field references containing them
-            if (translated.IsNull)
+            if ((translated.IsNull) && !(translated is JSUntranslatableExpression))
                 return new JSNullExpression();
 
             if (TypeInfo.IsIgnored(field))
@@ -1010,10 +993,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Stind (ILExpression node) {
-            return new JSInvocationExpression(
-                JSIL.UntranslatableInstruction,
-                JSLiteral.New(node.Code.ToString())
-            );
+            return new JSUntranslatableExpression(node);
         }
 
         protected JSBinaryOperatorExpression Translate_Stfld (ILExpression node, FieldReference field) {
@@ -1398,7 +1378,7 @@ namespace JSIL {
         protected JSExpression Translate_InitializedObject (ILExpression node) {
             // This should get eliminated by the handler for InitObject, but if we just return a null expression here,
             //  stfld treats us as an invalid assignment target.
-            return new JSInvocationExpression(JSIL.UntranslatableInstruction, JSLiteral.New("InitializedObject"));
+            return new JSUntranslatableExpression(node.Code);
         }
 
         protected JSExpression Translate_InitCollection (ILExpression node) {
@@ -1488,10 +1468,7 @@ namespace JSIL {
                         (TypeReference)node.Arguments[0].Operand
                     );
                 } else {
-                    return new JSInvocationExpression(
-                        JSIL.UntranslatableInstruction, 
-                        JSLiteral.New(node.Arguments[0].ToString())
-                    );
+                    return new JSUntranslatableExpression(node.Arguments[0]);
                 }
             }
 

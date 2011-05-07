@@ -281,6 +281,22 @@ namespace JSIL {
             Output.Semicolon();
         }
 
+        public void VisitNode (JSUntranslatableStatement us) {
+            Output.Identifier("JSIL.UntranslatableNode", true);
+            Output.LPar();
+            Output.Value((us.Type ?? "").ToString());
+            Output.RPar();
+            Output.Semicolon();
+        }
+
+        public void VisitNode (JSUntranslatableExpression ue) {
+            Output.Identifier("JSIL.UntranslatableInstruction", true);
+            Output.LPar();
+            Output.Value((ue.Type ?? "").ToString());
+            Output.RPar();
+            Output.Semicolon();
+        }
+
         public void VisitNode (JSDefaultValueLiteral defaultValue) {
             if (TypeAnalysis.IsIntegerOrEnum(defaultValue.Value)) {
                 Output.Value(0);

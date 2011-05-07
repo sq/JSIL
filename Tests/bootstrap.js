@@ -36,19 +36,11 @@ JSIL.UntranslatableFunction = function (functionName) {
   throw new Error("The function '" + functionName + "' could not be translated.");
 };
 
-JSIL.UntranslatablePointer = function () {
-  throw new Error("An expression using native pointers could not be translated.");
-};
-
 JSIL.UntranslatableInstruction = function (instruction, operand) {
   if (typeof (operand) != "undefined")
     throw new Error("A MSIL instruction of type " + instruction + " with an operand of type " + operand + " could not be translated.");
   else
     throw new Error("A MSIL instruction of type " + instruction + " could not be translated.");
-};
-
-JSIL.UnmaterializedReference = function () {
-  throw new Error("A variable reference could not be materialized.");
 };
 
 JSIL.IgnoredMember = function (memberName) {

@@ -752,9 +752,7 @@ namespace JSIL.Ast {
 
             var expressionType = reference.GetExpectedType(jsil.TypeSystem);
             if (expressionType.IsPointer) {
-                referent = new JSInvocationExpression(
-                    jsil.UntranslatablePointer, reference
-                );
+                referent = new JSUntranslatableExpression("Pointer");
                 return true;
             }
 
@@ -883,6 +881,30 @@ namespace JSIL.Ast {
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             return typeSystem.Void;
+        }
+    }
+
+    public class JSUntranslatableStatement : JSNullStatement {
+        public readonly object Type;
+
+        public JSUntranslatableStatement (object type) {
+            Type = type;
+        }
+
+        public override string ToString () {
+            return String.Format("Untranslatable Statement {0}", Type);
+        }
+    }
+
+    public class JSUntranslatableExpression : JSNullExpression {
+        public readonly object Type;
+
+        public JSUntranslatableExpression (object type) {
+            Type = type;
+        }
+
+        public override string ToString () {
+            return String.Format("Untranslatable Expression {0}", Type);
         }
     }
 
