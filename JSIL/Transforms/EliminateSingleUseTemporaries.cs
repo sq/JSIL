@@ -29,7 +29,7 @@ namespace JSIL.Transforms {
             {
                 var replacer = new VariableEliminator(
                     variable,
-                    JSChangeTypeExpression.New(replaceWith, variable.GetExpectedType(TypeSystem))
+                    JSChangeTypeExpression.New(replaceWith, TypeSystem, variable.GetExpectedType(TypeSystem))
                 );
                 replacer.Visit(context);
             }

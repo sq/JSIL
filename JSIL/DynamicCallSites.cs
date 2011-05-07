@@ -171,7 +171,7 @@ namespace JSIL {
                     returnType = translator.TypeSystem.Void;
 
                 return new JSInvocationExpression(
-                    JSChangeTypeExpression.New(thisArgument, returnType), 
+                    JSChangeTypeExpression.New(thisArgument, translator.TypeSystem, returnType), 
                     arguments.Skip(2).ToArray()
                 );
             }

@@ -1992,13 +1992,23 @@ namespace JSIL.Ast {
             NewType = newType;
         }
 
-        public static JSChangeTypeExpression New (JSExpression inner, TypeReference newType) {
+        public static JSExpression New (JSExpression inner, TypeSystem typeSystem, TypeReference newType) {
             var cte = inner as JSChangeTypeExpression;
+            JSChangeTypeExpression result;
 
-            if (cte != null)
-                return new JSChangeTypeExpression(cte.Expression, newType);
+            if (cte != null) {
+                inner = cte.Expression;
+
+                result = new JSChangeTypeExpression(cte.Expression, newType);
+            } else {
+                result = new JSChangeTypeExpression(inner, newType);
+            }
+
+            var innerType = inner.GetExpectedType(typeSystem);
+            if (ILBlockTranslator.TypesAreEqual(newType, innerType))
+                return inner;
             else
-                return new JSChangeTypeExpression(inner, newType);
+                return result;
         }
 
         public JSExpression Expression {
