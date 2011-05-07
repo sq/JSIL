@@ -7,6 +7,7 @@ using ICSharpCode.Decompiler.Ast;
 using ICSharpCode.Decompiler.ILAst;
 using JSIL.Ast;
 using JSIL.Internal;
+using JSIL.Transforms;
 using Mono.Cecil;
 
 namespace JSIL {
@@ -340,6 +341,13 @@ namespace JSIL {
                 Output.Identifier(variable.Identifier);
 
             if (variable.IsReference) {
+                if (variable.IsThis) {
+                    if (variable.Type.GetElementType().IsValueType)
+                        return;
+                    else
+                        throw new InvalidOperationException("The this-reference should never be a reference to a non-value type");
+                }
+
                 Output.Dot();
                 Output.Identifier("value");
             }
