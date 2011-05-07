@@ -160,20 +160,38 @@ namespace JSIL {
             }
         }
 
-        protected JSUnaryOperatorExpression Translate_UnaryOp (ILExpression node, JSUnaryOperator op) {
+        protected JSExpression Translate_UnaryOp (ILExpression node, JSUnaryOperator op) {
+            var inner = TranslateNode(node.Arguments[0]);
+            var innerType = inner.GetExpectedType(TypeSystem);
+
+            // Detect the weird pattern '!(x = y as z)' and transform it into '(x = y as z) != null'
+            if (
+                (op == JSOperator.LogicalNot) && 
+                !TypesAreEqual(TypeSystem.Boolean, innerType)
+            ) {
+                return new JSBinaryOperatorExpression(
+                    JSOperator.NotEqual, inner, new JSDefaultValueLiteral(innerType), TypeSystem.Boolean
+                );
+            }
+
             return new JSUnaryOperatorExpression(
-                op,
-                TranslateNode(node.Arguments[0]),
-                node.ExpectedType ?? node.InferredType
+                op, inner, node.ExpectedType ?? node.InferredType
             );
         }
 
-        protected JSBinaryOperatorExpression Translate_BinaryOp (ILExpression node, JSBinaryOperator op) {
+        protected JSExpression Translate_BinaryOp (ILExpression node, JSBinaryOperator op) {
+            var lhs = TranslateNode(node.Arguments[0]);
+            var rhs = TranslateNode(node.Arguments[1]);
+
+            var boeLeft = lhs as JSBinaryOperatorExpression;
+            if (
+                (op is JSAssignmentOperator) &&
+                (boeLeft != null) && !(boeLeft.Operator is JSAssignmentOperator)
+            )
+                return new JSUntranslatableExpression(node);
+
             return new JSBinaryOperatorExpression(
-                op,
-                TranslateNode(node.Arguments[0]),
-                TranslateNode(node.Arguments[1]),
-                node.ExpectedType ?? node.InferredType
+                op, lhs, rhs, node.ExpectedType ?? node.InferredType
             );
         }
 
@@ -740,7 +758,7 @@ namespace JSIL {
         // MSIL Instructions
         //
 
-        protected JSBinaryOperatorExpression Translate_Clt (ILExpression node) {
+        protected JSExpression Translate_Clt (ILExpression node) {
             return Translate_BinaryOp(node, JSOperator.LessThan);
         }
 
@@ -825,59 +843,59 @@ namespace JSIL {
             );
         }
 
-        protected JSBinaryOperatorExpression Translate_Mul (ILExpression node) {
+        protected JSExpression Translate_Mul (ILExpression node) {
             return Translate_BinaryOp(node, JSOperator.Multiply);
         }
 
-        protected JSBinaryOperatorExpression Translate_Div (ILExpression node) {
+        protected JSExpression Translate_Div (ILExpression node) {
             return Translate_BinaryOp(node, JSOperator.Divide);
         }
 
-        protected JSBinaryOperatorExpression Translate_Rem (ILExpression node) {
+        protected JSExpression Translate_Rem (ILExpression node) {
             return Translate_BinaryOp(node, JSOperator.Remainder);
         }
 
-        protected JSBinaryOperatorExpression Translate_Add (ILExpression node) {
+        protected JSExpression Translate_Add (ILExpression node) {
             return Translate_BinaryOp(node, JSOperator.Add);
         }
 
-        protected JSBinaryOperatorExpression Translate_Sub (ILExpression node) {
+        protected JSExpression Translate_Sub (ILExpression node) {
             return Translate_BinaryOp(node, JSOperator.Subtract);
         }
 
-        protected JSBinaryOperatorExpression Translate_Shl (ILExpression node) {
+        protected JSExpression Translate_Shl (ILExpression node) {
             return Translate_BinaryOp(node, JSOperator.ShiftLeft);
         }
 
-        protected JSBinaryOperatorExpression Translate_Shr (ILExpression node) {
+        protected JSExpression Translate_Shr (ILExpression node) {
             return Translate_BinaryOp(node, JSOperator.ShiftRight);
         }
 
-        protected JSBinaryOperatorExpression Translate_Shr_Un (ILExpression node) {
+        protected JSExpression Translate_Shr_Un (ILExpression node) {
             return Translate_BinaryOp(node, JSOperator.ShiftRightUnsigned);
         }
 
-        protected JSBinaryOperatorExpression Translate_And (ILExpression node) {
+        protected JSExpression Translate_And (ILExpression node) {
             return Translate_BinaryOp(node, JSOperator.BitwiseAnd);
         }
 
-        protected JSBinaryOperatorExpression Translate_Or (ILExpression node) {
+        protected JSExpression Translate_Or (ILExpression node) {
             return Translate_BinaryOp(node, JSOperator.BitwiseOr);
         }
 
-        protected JSBinaryOperatorExpression Translate_Xor (ILExpression node) {
+        protected JSExpression Translate_Xor (ILExpression node) {
             return Translate_BinaryOp(node, JSOperator.BitwiseXor);
         }
 
-        protected JSUnaryOperatorExpression Translate_Not (ILExpression node) {
+        protected JSExpression Translate_Not (ILExpression node) {
             return Translate_UnaryOp(node, JSOperator.BitwiseNot);
         }
 
-        protected JSBinaryOperatorExpression Translate_LogicOr (ILExpression node) {
+        protected JSExpression Translate_LogicOr (ILExpression node) {
             return Translate_BinaryOp(node, JSOperator.LogicalOr);
         }
 
-        protected JSBinaryOperatorExpression Translate_LogicAnd (ILExpression node) {
+        protected JSExpression Translate_LogicAnd (ILExpression node) {
             return Translate_BinaryOp(node, JSOperator.LogicalAnd);
         }
 
@@ -898,7 +916,7 @@ namespace JSIL {
             return Translate_UnaryOp(node, JSOperator.LogicalNot);
         }
 
-        protected JSUnaryOperatorExpression Translate_Neg (ILExpression node) {
+        protected JSExpression Translate_Neg (ILExpression node) {
             return Translate_UnaryOp(node, JSOperator.Negation);
         }
 

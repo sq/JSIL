@@ -590,14 +590,14 @@ namespace JSIL {
             }
         }
 
-        public void VisitNode (JSUnaryOperatorExpression bop) {
-            if (!bop.IsPostfix)
-                Output.Token(bop.Operator.Token);
+        public void VisitNode (JSUnaryOperatorExpression uop) {
+            if (!uop.IsPostfix)
+                Output.Token(uop.Operator.Token);
 
-            Visit(bop.Expression);
+            Visit(uop.Expression);
 
-            if (bop.IsPostfix)
-                Output.Token(bop.Operator.Token);
+            if (uop.IsPostfix)
+                Output.Token(uop.Operator.Token);
         }
 
         public void VisitNode (JSBinaryOperatorExpression bop) {

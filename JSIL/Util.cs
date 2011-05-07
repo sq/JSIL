@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -136,6 +137,8 @@ namespace JSIL.Internal {
             switch (character) {
                 case '\'':
                     return @"\'";
+                case '\\':
+                    return @"\\";
                 case '"':
                     return "\\\"";
                 case '\t':
@@ -170,6 +173,8 @@ namespace JSIL.Internal {
             foreach (var ch in text) {
                 if (ch == quoteCharacter.Value)
                     sb.Append(EscapeCharacter(ch));
+                else if (ch == '\\')
+                    sb.Append(@"\\");
                 else if ((ch < ' ') || (ch > 127))
                     sb.Append(EscapeCharacter(ch));
                 else
