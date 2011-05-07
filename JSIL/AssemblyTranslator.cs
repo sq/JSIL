@@ -684,16 +684,16 @@ namespace JSIL {
                     body
                 );
 
-                new EmulateStructAssignment(
-                    context.CurrentModule.TypeSystem, 
-                    translator.CLR
-                ).Visit(function);
-
                 if (EliminateTemporaries)
                     new EliminateSingleUseTemporaries(
                         context.CurrentModule.TypeSystem,
                         translator.Variables
                     ).Visit(function);
+
+                new EmulateStructAssignment(
+                    context.CurrentModule.TypeSystem,
+                    translator.CLR
+                ).Visit(function);
 
                 new IntroduceVariableDeclarations(
                     translator.Variables,

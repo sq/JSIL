@@ -7,7 +7,7 @@ using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class EliminateSingleUseTemporaries : JSAstVisitor {
-        public const int TraceLevel = 0;
+        public const int TraceLevel = 1;
 
         public readonly TypeSystem TypeSystem;
         public readonly Dictionary<string, JSVariable> Variables;
@@ -387,11 +387,18 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSVariable variable) {
+            if (ParentNode is JSFunctionExpression) {
+                // In argument list
+                return;
+            }
+
             if (
                 GetEnclosingNodes<JSBinaryOperatorExpression>(
                     (boe) => {
                         var isAssignment = boe.Operator == JSOperator.Assignment;
-                        return isAssignment && (boe.Left.Equals(variable) || boe.Right.Equals(variable));
+                        var leftIsVariable = boe.Left is JSVariable;
+                        return isAssignment && leftIsVariable && 
+                            (boe.Left.Equals(variable) || boe.Right.Equals(variable));
                     },
                     (n) => (n is JSStatement) || (n is JSBinaryOperatorExpression)
                 ).Count() == 0
@@ -438,6 +445,11 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSVariable variable) {
+            if (ParentNode is JSFunctionExpression) {
+                // In argument list
+                return;
+            }
+
             if (Variable.Equals(variable)) {
                 ParentNode.ReplaceChild(variable, Replacement);
             } else {
