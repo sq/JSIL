@@ -218,9 +218,13 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            if (OriginalMethod != null)
-                return ConstructDelegateType(OriginalMethod, typeSystem);
-            else
+            if (OriginalMethod != null) {
+                var delegateType = ConstructDelegateType(OriginalMethod, typeSystem);
+                if (delegateType == null)
+                    return OriginalMethod.ReturnType;
+                else
+                    return delegateType;
+            } else
                 return typeSystem.Void;
         }
     }
@@ -544,6 +548,11 @@ namespace JSIL.Ast {
                 genericDelegateType = systemModule.GetType(String.Format(
                     "System.Func`{0}", method.Parameters.Count + 1
                 ));
+            }
+
+            if (genericDelegateType == null) {
+                Console.Error.WriteLine("Warning: Type inference failed for '{0}' (too many parameters?)", method.FullName);
+                return null;
             }
 
             var result = new GenericInstanceType(genericDelegateType);
@@ -1142,7 +1151,11 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return ConstructDelegateType(Method, typeSystem);
+            var result = ConstructDelegateType(Method, typeSystem);
+            if (result == null)
+                return Method.ReturnType;
+            else
+                return result;
         }
 
         protected static string GetMethodName (MethodReference method) {
@@ -1567,8 +1580,10 @@ namespace JSIL.Ast {
                         (m) => m.Name == "Invoke"
                     ).FirstOrDefault();
 
-                    var resultType = ResolveGenericType(invokeMethod.ReturnType, invokeMethod, targetType);
-                    return resultType;
+                    if (invokeMethod != null) {
+                        var resultType = ResolveGenericType(invokeMethod.ReturnType, invokeMethod, targetType);
+                        return resultType;
+                    }
                 }
             }
 

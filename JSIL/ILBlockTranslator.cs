@@ -1299,11 +1299,17 @@ namespace JSIL {
             );
         }
 
-        protected JSInvocationExpression Translate_InitArray (ILExpression node, TypeReference elementType) {
-            return JSIL.NewArray(
-                elementType,
-                new JSArrayExpression(elementType, Translate(node.Arguments))
-            );
+        protected JSExpression Translate_InitArray (ILExpression node, TypeReference elementType) {
+            var initializer = new JSArrayExpression(elementType, Translate(node.Arguments));
+
+            if (TypesAreEqual(
+                TypeSystem.Object, elementType
+            ))
+                return initializer;
+            else
+                return JSIL.NewArray(
+                    elementType, initializer
+                );
         }
 
         protected JSExpression Translate_InitializedObject (ILExpression node) {
