@@ -233,6 +233,16 @@ namespace JSIL.Transforms {
                         Debug.WriteLine(String.Format("Eliminating {0} <- {1}", v, replacement));
 
                     mutated = true;
+
+                    var transferDataTo = replacement as JSVariable;
+                    if (transferDataTo != null) {
+                        foreach (var access in accesses)
+                            AddToList(Accesses, transferDataTo, access);
+
+                        foreach (var copy in copies)
+                            AddToList(Copies, transferDataTo, copy);
+                    }
+
                     EliminateVariable(fn, v, replacement);
                 }
             } while (mutated);
