@@ -113,6 +113,9 @@
     <Content Include="..\Libraries\System.Drawing.js">
       <Link>JS Libraries\System.Drawing.js</Link>
     </Content>
+    <Content Include="..\Libraries\System.Windows.js">
+      <Link>JS Libraries\System.Windows.js</Link>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -8,9 +8,9 @@
 }
 #log {
 	font-family: Consolas, Courier New, Courier;
-	font-size: 12pt;
+	font-size: 10pt;
 	width: 640px;
-	height: 200px;
+	height: 400px;
 	overflow: scroll;
 	position: absolute;
 	left: 2px;

@@ -5,8 +5,10 @@
   </head>
   <body>
     <script src="../../../Libraries/JSIL.Core.js"></script>
+    <script src="../../../Libraries/System.Windows.js"></script>
+    <script src="../../../Libraries/System.Drawing.js"></script>
     <script src="../../../Libraries/JSIL.XNA.js"></script>
-    <script src="Mannux, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null.js"></script>
+    <script src="Mannux.js"></script>
     
     <canvas id="canvas"></canvas><br>
     <textarea id="log"></textarea>
@@ -23,6 +25,9 @@
         document.getElementById("log").value += text + "\n";
       },
     }
+    
+    document.getElementById("log").value = "";
+    Mannux.Program.Main([]);
     </script>
   </body>
 </html>

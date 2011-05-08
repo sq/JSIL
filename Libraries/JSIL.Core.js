@@ -82,6 +82,9 @@ JSIL.CloneObject = function (obj) {
 };
 
 JSIL.MakeProto = function (baseType, typeName, isReferenceType) {
+  if (typeof (baseType) == "undefined")
+    throw new Error("The base type of '" + typeName + "' is not defined");
+
   var prototype = JSIL.CloneObject(baseType.prototype);
   prototype.__BaseType__ = baseType;
   prototype.__ShortName__ = typeName;
@@ -108,11 +111,23 @@ JSIL.MakeType = function (baseType, namespace, localName, fullName, isReferenceT
           continue;
 
         var fieldType = sf[fieldName];
-        this[fieldName] = new fieldType();
+        if ((typeof (fieldType) != "undefined") && (typeof (fieldType.constructor) != "undefined")) {
+          this[fieldName] = new fieldType();
+        } else {
+          this[fieldName] = new System.ValueType();
+          JSIL.Host.logWriteLine("Warning: The type of struct field '" + localName + "." + fieldName + "' is undefined.");
+        }
       }
     }
 
-    this._ctor.apply(this, arguments);
+    try {
+      this._ctor.apply(this, arguments);
+    } catch (e) {
+      if (JSIL.CheckType(e, JSIL.MissingOverloadException) && (arguments.length == 0))
+        return;
+
+      throw e;
+    }
   };
   ctor.toString = function () {
     return "<Type " + this.prototype.__TypeName__ + ">";
@@ -327,7 +342,7 @@ JSIL.DispatchOverload = function (name, args, overloads) {
     return overloadMethod.apply(this, args);
   }
 
-  throw new Error("No overload of '" + name + "' found that could accept the argument list '" + Array.prototype.slice.apply(args).toString() + "'");
+  throw new JSIL.MissingOverloadException(name, Array.prototype.slice.apply(args));
 };
 
 JSIL.OverloadedMethod = function (type, name, overloads) {
@@ -434,6 +449,9 @@ JSIL.Reference.__ExpectedType__ = System.Object;
 JSIL.Reference.Types = {};
 
 JSIL.Reference.Of = function (type) {
+  if (typeof (type) == "undefined")
+    throw new Error("Undefined reference type");
+
   var compositeType = JSIL.Reference.Types[type];
 
   if (typeof (compositeType) == "undefined") {
@@ -488,6 +506,9 @@ JSIL.Interface.prototype.Of = function (T) {
 JSIL.MakeInterface(System, "IDisposable", "System.IDisposable", {
   "Dispose": Function
 });
+JSIL.MakeInterface(System, "IEquatable$b1", "System.IEquatable`1", {
+  "Equals": Function
+});
 
 JSIL.MakeInterface(System.Collections, "IEnumerator", "System.Collections.IEnumerator", {
   "MoveNext": Function,
@@ -533,6 +554,9 @@ System.Enum.prototype.toString = function ToString() {
 System.Array.prototype = JSIL.MakeProto(System.Object, "System.Array", true);
 System.Array.Types = {};
 System.Array.Of = function (type) {
+  if (typeof (type) == "undefined")
+    throw new Error("Attempting to create an array of an undefined type");
+
   var compositeType = System.Array.Types[type];
 
   if (typeof (compositeType) == "undefined") {
@@ -761,6 +785,14 @@ System.InvalidCastException = function (message) {
 };
 System.InvalidCastException.prototype = JSIL.MakeProto(System.Exception, "System.InvalidCastException", true);
 
+JSIL.MissingOverloadException = function (methodName, args) {
+  this._ctor(System.String.Format(
+    "No overload of method '{0}' matching the argument list '{1}' could be found.",
+    methodName, args
+  ));
+};
+JSIL.MissingOverloadException.prototype = JSIL.MakeProto(System.Exception, "JSIL.MissingOverloadException", true);
+
 System.Console.WriteLine = function () {
   JSIL.Host.logWriteLine(System.String.Format.apply(null, arguments));
 };
@@ -907,6 +939,8 @@ System.Collections.Generic.List$b1.prototype.GetEnumerator = function () {
 System.Collections.Generic.List$b1.prototype.__ImplementInterface__(System.Collections.IEnumerable);
 System.Collections.Generic.List$b1.prototype.__ImplementInterface__(System.Collections.Generic.IEnumerable$b1);
 
+System.Collections.ArrayList = System.Collections.Generic.List$b1.Of(System.Object);
+
 // TODO: This type is actually a struct in the CLR
 JSIL.MakeClass(JSIL.ArrayEnumerator, System.Collections.Generic.List$b1, "Enumerator", "System.Collections.Generic.List`1.Enumerator");
 System.Collections.Generic.List$b1.Enumerator.Of = function (T) {
@@ -987,6 +1021,18 @@ System.Byte.CheckType = function (value) {
   return (typeof (value) == "number") && (value >= 0) && (value <= 255);
 }
 System.Byte.prototype = JSIL.MakeNumericProto(Number, "System.Byte", true);
+
+System.UInt16 = function (value) {
+  return Math.abs(Math.floor(value));
+};
+System.UInt16.CheckType = function (value) {
+  return (typeof (value) == "number") && (value >= 0);
+}
+System.UInt16.prototype = JSIL.MakeNumericProto(Number, "System.UInt16", true);
+System.UInt16.MaxValue = 65535;
+System.UInt16.Parse = function (text) {
+  return Math.abs(parseInt(text, 10));
+};
 
 System.Int32 = function (value) {
   return Math.floor(value);
