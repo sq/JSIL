@@ -152,7 +152,7 @@ namespace JSIL.Internal {
                 case '\n':
                     return @"\n";
                 default:
-                    return String.Format(@"\x{0:x}", (int)character);
+                    return String.Format(@"\x{0:x4}", (int)character);
             }
         }
 

@@ -370,8 +370,9 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
   __interfaces__:
   for (var i = 0, l = interfacesToImplement.length; i < l; i++) {
     var iface = interfacesToImplement[i];
+
     if (typeof (iface) == "undefined") {
-      JSIL.Host.warning("Type ", type, " implements an undefined interface.");
+      JSIL.Host.warning("Type ", JSIL.GetTypeName(type), " implements an undefined interface.");
       continue __interfaces__;
     }
 
@@ -389,6 +390,9 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
       var memberType = members[key];
       var qualifiedName = iface.__ShortName__ + "_" + key;
 
+      var hasShort = proto.hasOwnProperty(key);
+      var hasQualified = proto.hasOwnProperty(qualifiedName);
+
       if (memberType === Function) {
         var shortImpl = proto[key];
         var qualifiedImpl = proto[qualifiedName];
@@ -396,9 +400,6 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
         var shortImpl = getOwnDescriptorRecursive(proto, key);
         var qualifiedImpl = getOwnDescriptorRecursive(proto, qualifiedName);
       }
-
-      var hasShort = (typeof (shortImpl) !== "undefined") && (shortImpl !== null);
-      var hasQualified = (typeof (qualifiedImpl) !== "undefined") && (qualifiedImpl !== null);
 
       if (!hasShort && !hasQualified) {
         JSIL.Host.warning("Type ", JSIL.GetTypeName(type), " is missing implementation of interface member ", qualifiedName);
@@ -413,7 +414,8 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
       }
     }
 
-    interfaces.push(iface);
+    if (interfaces.indexOf(iface) < 0)
+      interfaces.push(iface);
   }
 };
 
@@ -551,7 +553,7 @@ JSIL.Dynamic.Cast = function (value, expectedType) {
   return value;
 };
 
-JSIL.DispatchOverload = function (name, args, overloads) {
+JSIL.FindOverload = function (args, overloads) {
   var l = args.length;
 
   find_overload:
@@ -581,16 +583,21 @@ JSIL.DispatchOverload = function (name, args, overloads) {
         throw new Error("No method named '" + overloadName + "' could be found.");
     }
 
-    return overloadMethod.apply(this, args);
+    return overloadMethod;
   }
 
-  throw new JSIL.MissingOverloadException(name, Array.prototype.slice.apply(args));
+  return null;
 };
 
 JSIL.OverloadedMethod = function (type, name, overloads) {
   type[name] = function () {
     var args = Array.prototype.slice.call(arguments);
-    return JSIL.DispatchOverload.call(this, JSIL.GetTypeName(type) + "." + name, args, overloads);
+    var method = JSIL.FindOverload.call(this, args, overloads);
+
+    if (method === null)
+      throw new JSIL.MissingOverloadException(name, args);
+    else
+      return method.apply(this, args);
   };
 };
 
