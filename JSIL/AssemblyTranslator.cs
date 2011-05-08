@@ -59,6 +59,7 @@ namespace JSIL {
         public readonly Dictionary<string, ModuleInfo> ModuleInformation = new Dictionary<string, ModuleInfo>();
         public readonly HashSet<string> GeneratedFiles = new HashSet<string>();
         public readonly List<Regex> IgnoredAssemblies = new List<Regex>();
+        public readonly HashSet<string> DeclaredTypes = new HashSet<string>();
 
         public event Action<string> StartedLoadingAssembly;
         public event Action<string> StartedDecompilingAssembly;
@@ -400,6 +401,11 @@ namespace JSIL {
             if (IsIgnored(typedef))
                 return;
 
+            if (DeclaredTypes.Contains(typedef.FullName)) {
+                Debug.WriteLine("Cycle in type references detected: {0}", typedef);
+                return;
+            }
+
             context.CurrentType = typedef;
 
             output.DeclareNamespace(typedef.Namespace);
@@ -413,8 +419,17 @@ namespace JSIL {
             }
 
             var baseClass = typedef.Module.TypeSystem.Object;
-            if (typedef.BaseType != null)
+            if (typedef.BaseType != null) {
                 baseClass = typedef.BaseType;
+
+                var resolved = baseClass.Resolve();
+                if (!DeclaredTypes.Contains(baseClass.FullName) &&
+                    (resolved != null) &&
+                    (resolved.Module.Assembly == typedef.Module.Assembly)) {
+
+                    ForwardDeclareType(context, output, resolved);
+                }
+            }
 
             bool isStatic = typedef.IsAbstract && typedef.IsSealed;
 
@@ -439,6 +454,8 @@ namespace JSIL {
                 output.RPar();
                 output.Semicolon();
             }
+
+            DeclaredTypes.Add(typedef.FullName);
 
             foreach (var nestedTypedef in typedef.NestedTypes)
                 ForwardDeclareType(context, output, nestedTypedef);

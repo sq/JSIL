@@ -1878,7 +1878,7 @@ Controller.prototype.GetResourceFromObject = function (o) {
 
 	__while0__: 
 		while (enumerator.IEnumerator_MoveNext()) {
-			var r = JSIL.Cast(JSIL.Cast(enumerator.IEnumerator_Current, System.Collections.DictionaryEntry.MemberwiseClone()).Value, Controller.Resource);
+			var r = JSIL.Cast(JSIL.Cast(enumerator.IEnumerator_Current, System.Collections.DictionaryEntry).Value, Controller.Resource);
 
 			if (r.obj === o) {
 				var result = r;
@@ -2268,7 +2268,7 @@ Editor.AutoSelectionThing.prototype.height = null;
 Editor.AutoSelectionThing.prototype.span = null;
 
 Sprites.ParticleSprite.prototype._ctor = function (g, d) {
-	this.particles = JSIL.Array.New(Sprites.ParticleSprite.Particle.MemberwiseClone(), 15);
+	this.particles = JSIL.Array.New(Sprites.ParticleSprite.Particle, 15);
 	System.Object.prototype._ctor.call(this);
 	this.graph = g;
 	this.direction = d;

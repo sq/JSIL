@@ -87,9 +87,10 @@ System.Drawing.Color.FromArgb = function () {
     throw new Error("Expected (r, g, b) or (a, r, g, b)");
   }
 };
-
-System.Drawing.Color.Black = new System.Drawing.Color(0xFF, 0x0, 0x0, 0x0, "Black");
-System.Drawing.Color.White = new System.Drawing.Color(0xFF, 0xFF, 0xFF, 0xFF, "White");
-System.Drawing.Color.OldLace = new System.Drawing.Color(0xFF, 0xFD, 0xF5, 0xE6, "OldLace");
-System.Drawing.Color.BlueViolet = new System.Drawing.Color(0xFF, 0x8A, 0x2B, 0xE2, "BlueViolet");
-System.Drawing.Color.Aquamarine = new System.Drawing.Color(0xFF, 0x7F, 0xFF, 0xD4, "Aquamarine");
+System.Drawing.Color._cctor = function () {
+  System.Drawing.Color.Black = new System.Drawing.Color(0xFF, 0x0, 0x0, 0x0, "Black");
+  System.Drawing.Color.White = new System.Drawing.Color(0xFF, 0xFF, 0xFF, 0xFF, "White");
+  System.Drawing.Color.OldLace = new System.Drawing.Color(0xFF, 0xFD, 0xF5, 0xE6, "OldLace");
+  System.Drawing.Color.BlueViolet = new System.Drawing.Color(0xFF, 0x8A, 0x2B, 0xE2, "BlueViolet");
+  System.Drawing.Color.Aquamarine = new System.Drawing.Color(0xFF, 0x7F, 0xFF, 0xD4, "Aquamarine");
+};
