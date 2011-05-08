@@ -185,8 +185,10 @@ JSIL.CopyMembers = function (source, target) {
 }
 
 JSIL.MakeType = function (baseType, namespace, localName, fullName, isReferenceType) {
-  if (typeof (namespace[localName]) != "undefined")
-    throw new Error("Duplicate definition of type " + fullName);
+  if (typeof (namespace[localName]) != "undefined") {
+    JSIL.Host.warning("Duplicate definition of type ", fullName);
+    return;
+  }
 
   var typeObject = function () {
     JSIL.InitializeType(typeObject);
@@ -225,8 +227,10 @@ JSIL.MakeStruct = function (namespace, localName, fullName) {
 };
 
 JSIL.MakeInterface = function (namespace, localName, fullName, members) {
-  if (typeof (namespace[localName]) != "undefined")
-    throw new Error("Duplicate definition of interface " + fullName);
+  if (typeof (namespace[localName]) != "undefined") {
+    JSIL.Host.warning("Duplicate definition of interface ", fullName);
+    return;
+  }
 
   var prototype = JSIL.CloneObject(JSIL.Interface.prototype);
   prototype.__BaseType__ = System.Object;
@@ -245,8 +249,10 @@ JSIL.MakeInterface = function (namespace, localName, fullName, members) {
 };
 
 JSIL.MakeEnum = function (namespace, localName, fullName, members, isFlagsEnum) {
-  if (typeof (namespace[localName]) != "undefined")
-    throw new Error("Duplicate definition of enum " + fullName);
+  if (typeof (namespace[localName]) != "undefined") {
+    JSIL.Host.warning("Duplicate definition of enum ", fullName);
+    return;
+  }
 
   var prototype = JSIL.CloneObject(System.Enum.prototype);
   prototype.__BaseType__ = System.Enum;
