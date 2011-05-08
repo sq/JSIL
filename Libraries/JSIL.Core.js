@@ -480,18 +480,24 @@ System.Object.prototype.MemberwiseClone = function () {
 
   return result;
 };
-System.Object.prototype.__Initialize__ = function (dict) {
-  for (var key in dict) {
-    if (!dict.hasOwnProperty(key))
+System.Object.prototype.__Initialize__ = function (initializer) {
+  var collectionInitializer = "JSIL.CollectionInitializer";
+  if (initializer.__TypeName__ == collectionInitializer) {
+    initializer.Apply(this);
+    return this;
+  } else if (JSIL.IsArray(initializer)) {
+    JSIL.CollectionInitializer.prototype.Apply.call(initializer, this);
+    return this;
+  }
+
+  for (var key in initializer) {
+    if (!initializer.hasOwnProperty(key))
       continue;
 
-    var value = dict[key];
+    var value = initializer[key];
 
-    if (value.__TypeName__ == "JSIL.CollectionInitializer") {
-      var values = value.values;
-      for (var i = 0, l = values.length; i < l; i++)
-        this[key].Add(values[i]);
-
+    if (value.__TypeName__ == collectionInitializer) {
+      value.Apply(this[key]);
     } else {
       this[key] = value;
     }
@@ -559,6 +565,18 @@ JSIL.CollectionInitializer = function () {
   this.values = Array.prototype.slice.call(arguments);
 };
 JSIL.CollectionInitializer.prototype = JSIL.MakeProto(System.Object, "JSIL.CollectionInitializer", true);
+JSIL.CollectionInitializer.prototype.Apply = function (target) {
+  var values;
+
+  // This method is designed to support being applied to a regular array as well
+  if (this.hasOwnProperty("values"))
+    values = this.values;
+  else
+    values = this;
+
+  for (var i = 0, l = values.length; i < l; i++)
+    target.Add(values[i]);
+};
 
 System.ValueType = function () { };
 System.ValueType.prototype = JSIL.MakeProto(System.Object, "System.ValueType", false);

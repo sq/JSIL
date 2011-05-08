@@ -160,6 +160,7 @@
     <None Include="SimpleTestCases\SelfTypedFields.cs" />
     <None Include="SimpleTestCases\LockTypeObject.cs" />
     <None Include="SpecialTestCases\NestedInitialization.cs" />
+    <None Include="SimpleTestCases\CollectionInitializers.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

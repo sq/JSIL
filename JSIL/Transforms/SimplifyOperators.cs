@@ -145,12 +145,13 @@ namespace JSIL.Transforms {
 
         public void VisitNode (JSBinaryOperatorExpression boe) {
             var nestedBoe = boe.Right as JSBinaryOperatorExpression;
+            var isAssignment = (boe.Operator == JSOperator.Assignment);
+            var leftNew = boe.Left as JSNewExpression;
+            var rightNew = boe.Right as JSNewExpression;
 
             if (
-                (boe.Operator == JSOperator.Assignment) && 
-                (nestedBoe != null) && (
-                    boe.Left.IsConstant || boe.Left is JSVariable
-                )
+                isAssignment && (nestedBoe != null) && 
+                (boe.Left.IsConstant || boe.Left is JSVariable)
             ) {
                 JSUnaryOperator prefixOperator;
                 JSAssignmentOperator compoundOperator;
@@ -182,6 +183,31 @@ namespace JSIL.Transforms {
 
                     ParentNode.ReplaceChild(boe, newBoe);
                     Visit(newBoe);
+
+                    return;
+                }
+            } else if (
+                isAssignment && (leftNew != null) &&
+                (rightNew != null)
+            ) {
+                var rightType = rightNew.Type as JSDotExpression;
+                if (
+                    (rightType != null) &&
+                    (rightType.Member.Identifier == "CollectionInitializer")
+                ) {
+                    var newInvocation = new JSInvocationExpression(
+                        new JSDotExpression(
+                            boe.Left,
+                            new JSIdentifier("__Initialize__", boe.Left.GetExpectedType(TypeSystem))
+                        ),
+                        new JSArrayExpression(
+                            TypeSystem.Object,
+                            rightNew.Arguments.ToArray()
+                        )
+                    );
+
+                    ParentNode.ReplaceChild(boe, newInvocation);
+                    Visit(newInvocation);
 
                     return;
                 }
