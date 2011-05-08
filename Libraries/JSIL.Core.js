@@ -51,7 +51,7 @@ JSIL.Host.getCanvas = function () {
 };
 JSIL.Host.logWrite = function (text) {
   if (typeof (console) !== "undefined")
-    Function.prototype.apply.apply(console.log, [console, [text]]);
+    Function.prototype.apply.apply(console.log, [console, text]);
   else if (JSIL.HostType.IsBrowser)
     window.alert(text);
   else
@@ -59,7 +59,7 @@ JSIL.Host.logWrite = function (text) {
 };
 JSIL.Host.logWriteLine = function (text) {
   if (typeof (console) !== "undefined")
-    Function.prototype.apply.apply(console.log, [console, [text]]);
+    Function.prototype.apply.apply(console.log, [console, text]);
   else if (JSIL.HostType.IsBrowser)
     window.alert(text);
   else
@@ -67,7 +67,7 @@ JSIL.Host.logWriteLine = function (text) {
 };
 JSIL.Host.warning = function (text) {
   if (typeof (console) !== "undefined")
-    Function.prototype.apply.apply(console.warn, [console, [arguments]]);
+    Function.prototype.apply.apply(console.warn, [console, arguments]);
   else
     JSIL.Host.logWriteLine(System.String.Concat.apply(null, arguments));
 };
@@ -75,7 +75,7 @@ JSIL.Host.error = function (exception, text) {
   var rest = Array.prototype.slice.call(arguments, 1);
 
   if (typeof (console) !== "undefined")
-    Function.prototype.apply.apply(console.warn, [console, [rest.concat(exception)]]);
+    Function.prototype.apply.apply(console.warn, [console, rest.concat(exception)]);
   else
     throw exception;
 }
@@ -156,27 +156,15 @@ JSIL.TypeObject.toString = function () {
 };
 
 JSIL.InitializeType = function (type) {
-  if (type.__TypeInitialized__ || false) {
+  if (type.__TypeInitialized__ || false)
     return;
-  }
 
   // Not entirely correct, but prevents recursive type initialization
   type.__TypeInitialized__ = true;
 
   if (typeof (type._cctor) != "undefined") {
-    try {
-      type._cctor();
-    } catch (e) {
-      JSIL.Host.error(e, "Static initializer for type ", type, " threw an exception");
-    }
+    type._cctor();
   }
-
-  /*
-    if (typeof (type.prototype) != "undefined")
-      Object.seal(type.prototype);
-
-    Object.seal(type);
-  */
 }
 
 JSIL.InitializeStructFields = function (instance, typeObject) {
@@ -217,6 +205,9 @@ JSIL.CopyMembers = function (source, target) {
 // Replaces a class with a property getter that, upon first access,
 //  runs the class's static constructor (if any).
 JSIL.SealType = function (namespace, name) {
+  var state = {
+    sealed: true
+  };
   var type = namespace[name];
 
   var cctor = type._cctor;
@@ -224,13 +215,24 @@ JSIL.SealType = function (namespace, name) {
     return;
 
   var getter = function () {
-    delete namespace[name];
-    namespace[name] = type;
+    if (!state.sealed)
+      return type;
+    state.sealed = false;
+
+    delete namespace["__" + name];
+    Object.defineProperty(
+      namespace, name, { 
+        configurable: true,
+        enumerable: true,
+        value: type
+      }
+    );
     JSIL.InitializeType(type);
     return type;
   };
 
   delete namespace[name];
+  namespace["__" + name] = type;
 
   Object.defineProperty(namespace, name, {
     configurable: true,
@@ -334,10 +336,12 @@ JSIL.MakeEnum = function (namespace, localName, fullName, members, isFlagsEnum) 
     if (!members.hasOwnProperty(key))
       continue;
 
-    result.__ValueToName__[members[key]] = key;
+    var value = Math.floor(members[key]);
+
+    result.__ValueToName__[value] = key;
 
     var obj = Object.create(prototype);
-    obj.value = members[key];
+    obj.value = value;
     obj.name = key;
 
     result[key] = obj;
@@ -351,6 +355,17 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
   if (typeof (interfaces) == "undefined") {
     type.prototype.__Interfaces__ = interfaces = [];
   }
+
+  var getOwnDescriptorRecursive = function (target, name) {
+    while (!target.hasOwnProperty(name)) {
+      target = Object.getPrototypeOf(target);
+
+      if ((typeof (target) == "undefined") || (target === null))
+        return null;
+    }
+
+    return Object.getOwnPropertyDescriptor(target, name);
+  };
 
   __interfaces__:
   for (var i = 0, l = interfacesToImplement.length; i < l; i++) {
@@ -374,24 +389,27 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
       var memberType = members[key];
       var qualifiedName = iface.__ShortName__ + "_" + key;
 
-      if (!proto.hasOwnProperty(key) && !proto.hasOwnProperty(qualifiedName)) {
-        JSIL.Host.warning("Type ", type, " is missing implementation of interface member ", qualifiedName);
+      if (memberType === Function) {
+        var shortImpl = proto[key];
+        var qualifiedImpl = proto[qualifiedName];
+      } else if (memberType === Property) {
+        var shortImpl = getOwnDescriptorRecursive(proto, key);
+        var qualifiedImpl = getOwnDescriptorRecursive(proto, qualifiedName);
+      }
+
+      var hasShort = (typeof (shortImpl) !== "undefined") && (shortImpl !== null);
+      var hasQualified = (typeof (qualifiedImpl) !== "undefined") && (qualifiedImpl !== null);
+
+      if (!hasShort && !hasQualified) {
+        JSIL.Host.warning("Type ", JSIL.GetTypeName(type), " is missing implementation of interface member ", qualifiedName);
         continue __members__;
       }
 
-      if (!proto.hasOwnProperty(qualifiedName)) {
+      if (!hasQualified) {
         if (memberType === Function)
           proto[qualifiedName] = proto[key];
-        else if (memberType === Property) {
-          var descriptor = Object.getOwnPropertyDescriptor(proto, key);
-
-          if ((typeof (descriptor) == "undefined") || (descriptor == null)) {
-            JSIL.Host.warning("Type ", type, " is missing implementation of interface property ", qualifiedName);
-            continue __members__;
-          }
-
-          Object.defineProperty(proto, qualifiedName, descriptor);
-        }
+        else if (memberType === Property)
+          Object.defineProperty(proto, qualifiedName, shortImpl);
       }
     }
 
@@ -480,15 +498,10 @@ JSIL.GetType = function (value) {
 }
 
 JSIL.GetTypeName = function (value) {
-  var result;
-  var proto = value.prototype;
-  if (typeof (proto) == "undefined")
-    proto = value.__proto__;
+  var result = value.__FullName__;
 
-  if ((typeof (proto) != "undefined") && (typeof (proto.__FullName__) != "undefined"))
-    result = proto.__FullName__;
-  else if (typeof (value.__FullName__) != "undefined")
-    result = value.__FullName__;
+  if ((typeof (result) == "undefined") && (typeof (value.prototype) != "undefined"))
+    result = value.prototype.__FullName__;
 
   if (typeof (result) == "undefined")
     result = typeof (value);
@@ -1290,7 +1303,7 @@ System.Decimal.CheckType = function (value) {
     JSIL.CheckType(value, System.Decimal, true);
 };
 System.Decimal.prototype._ctor = function (value) {
-  this.value = value;
+  this.value = Number(value);
 };
 System.Decimal.prototype.toString = function (format) {
   return this.value.toString();
