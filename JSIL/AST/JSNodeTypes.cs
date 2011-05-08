@@ -1261,7 +1261,10 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return Type;
+            return new TypeReference(
+                typeSystem.Boolean.Namespace, "Type",
+                typeSystem.Boolean.Module, typeSystem.Boolean.Scope
+            );
         }
         
         public override JSLiteral ToLiteral () {

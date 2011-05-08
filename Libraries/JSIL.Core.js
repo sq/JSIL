@@ -190,6 +190,7 @@ JSIL.MakeType = function (baseType, namespace, localName, fullName, isReferenceT
   };
   ctor.__IsReferenceType__ = isReferenceType;
   ctor.__TypeInitialized__ = false;
+  ctor.__LockCount__ = 0;
   ctor.__FullName__ = fullName;
   initType = function () {
     JSIL.InitializeType(ctor);
@@ -498,6 +499,7 @@ System.Object.prototype.__Initialize__ = function (dict) {
 
   return this;
 };
+System.Object.prototype.__LockCount__ = 0;
 System.Object.prototype.__StructFields__ = {};
 System.Object.prototype._ctor = function () {
 };

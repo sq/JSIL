@@ -175,28 +175,6 @@ JSIL.MakeEnum(
 
 JSIL.MakeClass(Entities.Entity, Entities, "Bullet", "Entities.Bullet");
 
-Object.defineProperty(Entities.Entity, "maxvelocity", { value: 4 });
-Object.defineProperty(Entities.Entity, "gravity", { value: 0.21699999272823334 });
-Entities.Entity.prototype.touchingground = new System.Boolean();
-Entities.Entity.prototype.touchingceiling = new System.Boolean();
-Entities.Entity.prototype.touchingleftwall = new System.Boolean();
-Entities.Entity.prototype.touchingrightwall = new System.Boolean();
-Entities.Entity.prototype.leftwall = null;
-Entities.Entity.prototype.rightwall = null;
-Entities.Entity.prototype.floor = null;
-Entities.Entity.prototype.ceiling = null;
-Entities.Entity.prototype.x = 0;
-Entities.Entity.prototype.y = 0;
-Entities.Entity.prototype.width = 0;
-Entities.Entity.prototype.height = 0;
-Entities.Entity.prototype.vx = 0;
-Entities.Entity.prototype.vy = 0;
-Entities.Entity.prototype.sprite = null;
-Entities.Entity.prototype.anim = null;
-Entities.Entity.prototype.direction = 0;
-Entities.Entity.prototype.visible = new System.Boolean();
-Entities.Entity.prototype.UpdateState = null;
-Entities.Entity.prototype.engine = null;
 Entities.Entity.prototype._ctor = function (e, s) {
 	this.x = 0;
 	this.y = 0;
@@ -349,11 +327,36 @@ Object.defineProperty(Entities.Entity.prototype, "Facing", {
 		get: Entities.Entity.prototype.get_Facing, 
 		set: Entities.Entity.prototype.set_Facing
 	});
+Entities.Entity.prototype.touchingground = false;
+Entities.Entity.prototype.touchingceiling = false;
+Entities.Entity.prototype.touchingleftwall = false;
+Entities.Entity.prototype.touchingrightwall = false;
+Entities.Entity.prototype.leftwall = null;
+Entities.Entity.prototype.rightwall = null;
+Entities.Entity.prototype.floor = null;
+Entities.Entity.prototype.ceiling = null;
+Entities.Entity.prototype.x = 0;
+Entities.Entity.prototype.y = 0;
+Entities.Entity.prototype.width = 0;
+Entities.Entity.prototype.height = 0;
+Entities.Entity.prototype.vx = 0;
+Entities.Entity.prototype.vy = 0;
+Entities.Entity.prototype.sprite = null;
+Entities.Entity.prototype.anim = null;
+Entities.Entity.prototype.direction = 0;
+Entities.Entity.prototype.visible = false;
+Entities.Entity.prototype.UpdateState = null;
+Entities.Entity.prototype.engine = null;
+Entities.Entity._cctor = function () {
+	Object.defineProperty(Entities.Entity, "maxvelocity", {
+			"value": 4}
+	);
+	Object.defineProperty(Entities.Entity, "gravity", {
+			"value": 0.21699999272823334}
+	);
+};
 
-Object.seal(Entities.Entity.prototype);
-Object.seal(Entities.Entity);
-Entities.Enemies.Enemy.prototype.hp = 0;
-Entities.Enemies.Enemy.prototype.damage = 0;
+
 Entities.Enemies.Enemy.prototype._ctor = function (e, s) {
 	this.hp = 0;
 	this.damage = 0;
@@ -394,10 +397,9 @@ Object.defineProperty(Entities.Enemies.Enemy.prototype, "Damage", {
 		get: Entities.Enemies.Enemy.prototype.get_Damage, 
 		set: Entities.Enemies.Enemy.prototype.set_Damage
 	});
+Entities.Enemies.Enemy.prototype.hp = 0;
+Entities.Enemies.Enemy.prototype.damage = 0;
 
-Object.seal(Entities.Enemies.Enemy.prototype);
-Object.seal(Entities.Enemies.Enemy);
-Entities.Enemies.Hopper.prototype.delay = 0;
 Entities.Enemies.Hopper.prototype._ctor = function (e, startx, starty) {
 	this.delay = 0;
 	Entities.Enemies.Enemy.prototype._ctor.call(this, e, e.RipperSprite);
@@ -454,15 +456,8 @@ Entities.Enemies.Hopper.prototype.DoTick = function () {
 	}
 };
 
+Entities.Enemies.Hopper.prototype.delay = 0;
 
-Object.seal(Entities.Enemies.Hopper.prototype);
-Object.seal(Entities.Enemies.Hopper);
-Editor.TileSetMode.prototype.editor = null;
-Editor.TileSetMode.prototype.engine = null;
-Editor.TileSetMode.prototype.curtile = 0;
-Editor.TileSetMode.prototype.curlayer = 0;
-Editor.TileSetMode.prototype.oldx = 0;
-Editor.TileSetMode.prototype.oldy = 0;
 Editor.TileSetMode.prototype._ctor = function (e) {
 	this.curtile = 0;
 	this.curlayer = 0;
@@ -515,15 +510,13 @@ Editor.TileSetMode.prototype.RenderHUD = function () {
 };
 
 Editor.TileSetMode.prototype.__ImplementInterface__(Editor.IEditorState);
+Editor.TileSetMode.prototype.editor = null;
+Editor.TileSetMode.prototype.engine = null;
+Editor.TileSetMode.prototype.curtile = 0;
+Editor.TileSetMode.prototype.curlayer = 0;
+Editor.TileSetMode.prototype.oldx = 0;
+Editor.TileSetMode.prototype.oldy = 0;
 
-Object.seal(Editor.TileSetMode.prototype);
-Object.seal(Editor.TileSetMode);
-Editor.Tileset.prototype.Bitmap = null;
-Editor.Tileset.prototype.TileWidth = 0;
-Editor.Tileset.prototype.TileHeight = 0;
-Editor.Tileset.prototype.NumTiles = 0;
-Editor.Tileset.prototype.Padded = new System.Boolean();
-Editor.Tileset.prototype.TilesPerRow = 0;
 Editor.Tileset.prototype._ctor = function (bitmap, tileWidth, tileHeight, tilesPerRow, numTiles) {
 	System.Object.prototype._ctor.call(this);
 	this.Bitmap = bitmap;
@@ -547,10 +540,13 @@ Editor.Tileset.prototype.PointFromTile = function (i) {
 	return new System.Drawing.Point((Math.floor(i / tilex) * ty), ((i % tilex) * tx));
 };
 
+Editor.Tileset.prototype.Bitmap = null;
+Editor.Tileset.prototype.TileWidth = 0;
+Editor.Tileset.prototype.TileHeight = 0;
+Editor.Tileset.prototype.NumTiles = 0;
+Editor.Tileset.prototype.Padded = false;
+Editor.Tileset.prototype.TilesPerRow = 0;
 
-Object.seal(Editor.Tileset.prototype);
-Object.seal(Editor.Tileset);
-Timer.prototype.rate = 0;
 Timer.prototype._ctor = function (r) {
 	System.Object.prototype._ctor.call(this);
 	this.rate = r;
@@ -567,12 +563,8 @@ Timer.op_Implicit = function (t) {
 Object.defineProperty(Timer.prototype, "Time", {
 		get: Timer.prototype.get_Time
 	});
+Timer.prototype.rate = 0;
 
-Object.seal(Timer.prototype);
-Object.seal(Timer);
-Input.X360Gamepad.prototype.__StructFields__ = {
-	ps: Microsoft.Xna.Framework.Input.GamePadState
-};
 Input.X360Gamepad.prototype.Poll = function () {
 	this.ps = Microsoft.Xna.Framework.Input.GamePad.GetState(Microsoft.Xna.Framework.PlayerIndex.One);
 };
@@ -616,12 +608,10 @@ Input.X360Gamepad.prototype._ctor = function () {
 };
 
 Input.X360Gamepad.prototype.__ImplementInterface__(Input.IInputDevice);
+Input.X360Gamepad.prototype.__StructFields__ = {
+	ps: Microsoft.Xna.Framework.Input.GamePadState
+};
 
-Object.seal(Input.X360Gamepad.prototype);
-Object.seal(Input.X360Gamepad);
-Cataract.XNAGraph.prototype.device = null;
-Cataract.XNAGraph.prototype.contentManager = null;
-Cataract.XNAGraph.prototype.spriteBatch = null;
 Cataract.XNAGraph.prototype._ctor = function (device, contentManager) {
 	System.Object.prototype._ctor.call(this);
 	this.device = device;
@@ -696,15 +686,11 @@ Object.defineProperty(Cataract.XNAGraph.prototype, "XRes", {
 Object.defineProperty(Cataract.XNAGraph.prototype, "YRes", {
 		get: Cataract.XNAGraph.prototype.get_YRes
 	});
+Cataract.XNAGraph.prototype.device = null;
+Cataract.XNAGraph.prototype.contentManager = null;
+Cataract.XNAGraph.prototype.spriteBatch = null;
 
-Object.seal(Cataract.XNAGraph.prototype);
-Object.seal(Cataract.XNAGraph);
 
-Object.seal(Editor.ChangeTileHandler.prototype);
-Object.seal(Editor.ChangeTileHandler);
-Editor.TileSetPreview.prototype.tileset = null;
-Editor.TileSetPreview.prototype.panel = null;
-Editor.TileSetPreview.prototype.ChangeTile = null;
 Editor.TileSetPreview.prototype._ctor = function (t) {
 	this.panel = new Editor.TileSetPreview.DoubleBufferedPanel();
 	System.Windows.Forms.ScrollableControl.prototype._ctor.call(this);
@@ -750,6 +736,9 @@ Editor.TileSetPreview.prototype.remove_ChangeTile = function (value) {
 	this.ChangeTile = System.Delegate.Remove(this.ChangeTile, value);
 };
 
+Editor.TileSetPreview.prototype.tileset = null;
+Editor.TileSetPreview.prototype.panel = null;
+Editor.TileSetPreview.prototype.ChangeTile = null;
 
 Editor.TileSetPreview.DoubleBufferedPanel.prototype._ctor = function () {
 	System.Windows.Forms.Panel.prototype._ctor.call(this);
@@ -757,16 +746,6 @@ Editor.TileSetPreview.DoubleBufferedPanel.prototype._ctor = function () {
 };
 
 
-Object.seal(Editor.TileSetPreview.DoubleBufferedPanel.prototype);
-Object.seal(Editor.TileSetPreview.DoubleBufferedPanel);
-Object.seal(Editor.TileSetPreview.prototype);
-Object.seal(Editor.TileSetPreview);
-Editor.MapInfoView.prototype.editor = null;
-Editor.MapInfoView.prototype.engine = null;
-Editor.MapInfoView.prototype.curlay = null;
-Editor.MapInfoView.prototype.layername = null;
-Editor.MapInfoView.prototype.widthbox = null;
-Editor.MapInfoView.prototype.heightbox = null;
 Editor.MapInfoView.prototype._ctor = function (e) {
 	System.Windows.Forms.Control.prototype._ctor.call(this);
 	this.editor = e;
@@ -949,12 +928,13 @@ Editor.MapInfoView.prototype.ChangeDims = function (o, e) {
 	}
 };
 
+Editor.MapInfoView.prototype.editor = null;
+Editor.MapInfoView.prototype.engine = null;
+Editor.MapInfoView.prototype.curlay = null;
+Editor.MapInfoView.prototype.layername = null;
+Editor.MapInfoView.prototype.widthbox = null;
+Editor.MapInfoView.prototype.heightbox = null;
 
-Object.seal(Editor.MapInfoView.prototype);
-Object.seal(Editor.MapInfoView);
-Editor.EntityEditMode.prototype.editor = null;
-Editor.EntityEditMode.prototype.engine = null;
-Editor.EntityEditMode.prototype.curent = null;
 Editor.EntityEditMode.prototype._ctor = function (e) {
 	System.Object.prototype._ctor.call(this);
 	this.editor = e;
@@ -1069,10 +1049,10 @@ Object.defineProperty(Editor.EntityEditMode.prototype, "CurEnt", {
 		set: Editor.EntityEditMode.prototype.set_CurEnt
 	});
 Editor.EntityEditMode.prototype.__ImplementInterface__(Editor.IEditorState);
+Editor.EntityEditMode.prototype.editor = null;
+Editor.EntityEditMode.prototype.engine = null;
+Editor.EntityEditMode.prototype.curent = null;
 
-Object.seal(Editor.EntityEditMode.prototype);
-Object.seal(Editor.EntityEditMode);
-Entities.Enemies.Skree.prototype.flying = new System.Boolean();
 Entities.Enemies.Skree.prototype._ctor = function (e, startx, starty) {
 	this.flying = false;
 	Entities.Enemies.Enemy.prototype._ctor.call(this, e, e.RipperSprite);
@@ -1100,10 +1080,8 @@ Entities.Enemies.Skree.prototype.DoTick = function () {
 	}
 };
 
+Entities.Enemies.Skree.prototype.flying = false;
 
-Object.seal(Entities.Enemies.Skree.prototype);
-Object.seal(Entities.Enemies.Skree);
-Object.defineProperty(Import.MannuxMap, "mapsig", { value: "Mannux Map wee!" });
 Import.MannuxMap.ReadString = function (file) {
 	var s = "";
 
@@ -1311,35 +1289,13 @@ Import.MannuxMap.prototype._ctor = function () {
 	System.Object.prototype._ctor.call(this);
 };
 
+Import.MannuxMap._cctor = function () {
+	Object.defineProperty(Import.MannuxMap, "mapsig", {
+			"value": "Mannux Map wee!"}
+	);
+};
 
-Object.seal(Import.MannuxMap.prototype);
-Object.seal(Import.MannuxMap);
-AnimState.prototype.frame = 0;
-AnimState.prototype.count = 0;
-AnimState.prototype.first = 0;
-AnimState.prototype.last = 0;
-AnimState.prototype.delay = 0;
-AnimState.prototype.loop = new System.Boolean();
-AnimState.prototype.dead = new System.Boolean();
-AnimState.playerstand = null;
-AnimState.playerwalk = null;
-AnimState.playerwalkshootingangleup = null;
-AnimState.playerwalkshootingangledown = null;
-AnimState.playerwalkshooting = null;
-AnimState.playershooting = null;
-AnimState.playershootup = null;
-AnimState.playerjump = null;
-AnimState.playerfall = null;
-AnimState.playerfallshooting = null;
-AnimState.playerfallshootingangleup = null;
-AnimState.playerfallshootingangledown = null;
-AnimState.playerfallshootingup = null;
-AnimState.playerfallshootingdown = null;
-AnimState.playercrouch = null;
-AnimState.playercrouchshooting = null;
-AnimState.playercrouchshootingangleup = null;
-AnimState.playercrouchshootingangledown = null;
-AnimState.hurt = null;
+
 AnimState.prototype._ctor$0 = function () {
 	this.dead = false;
 	System.Object.prototype._ctor.call(this);
@@ -1414,7 +1370,43 @@ AnimState.prototype.Update = function () {
 	}
 };
 
+JSIL.OverloadedMethod(AnimState.prototype, "_ctor", [
+		["_ctor$0", []], 
+		["_ctor$1", [System.Int32, System.Int32, System.Int32, System.Boolean]]
+	]
+);
+JSIL.OverloadedMethod(AnimState.prototype, "Set", [
+		["Set$0", [AnimState]], 
+		["Set$1", [System.Int32, System.Int32, System.Int32, System.Boolean]]
+	]
+);
+AnimState.prototype.frame = 0;
+AnimState.prototype.count = 0;
+AnimState.prototype.first = 0;
+AnimState.prototype.last = 0;
+AnimState.prototype.delay = 0;
+AnimState.prototype.loop = false;
+AnimState.prototype.dead = false;
 AnimState._cctor = function () {
+	AnimState.playerstand = null;
+	AnimState.playerwalk = null;
+	AnimState.playerwalkshootingangleup = null;
+	AnimState.playerwalkshootingangledown = null;
+	AnimState.playerwalkshooting = null;
+	AnimState.playershooting = null;
+	AnimState.playershootup = null;
+	AnimState.playerjump = null;
+	AnimState.playerfall = null;
+	AnimState.playerfallshooting = null;
+	AnimState.playerfallshootingangleup = null;
+	AnimState.playerfallshootingangledown = null;
+	AnimState.playerfallshootingup = null;
+	AnimState.playerfallshootingdown = null;
+	AnimState.playercrouch = null;
+	AnimState.playercrouchshooting = null;
+	AnimState.playercrouchshootingangleup = null;
+	AnimState.playercrouchshootingangledown = null;
+	AnimState.hurt = null;
 	AnimState.playerstand = JSIL.Array.New(AnimState, [new AnimState(0, 0, 0, false), new AnimState(8, 8, 0, false)]);
 	AnimState.playerwalk = JSIL.Array.New(AnimState, [new AnimState(16, 23, 20, true), new AnimState(24, 31, 20, true)]);
 	AnimState.playerwalkshootingangleup = JSIL.Array.New(AnimState, [new AnimState(48, 55, 20, true), new AnimState(56, 63, 20, true)]);
@@ -1436,22 +1428,7 @@ AnimState._cctor = function () {
 	AnimState.hurt = JSIL.Array.New(AnimState, [new AnimState(7, 7, 0, false), new AnimState(15, 15, 0, false)]);
 };
 
-JSIL.OverloadedMethod(AnimState.prototype, "_ctor", [
-		["_ctor$0", []], 
-		["_ctor$1", [System.Int32, System.Int32, System.Int32, System.Boolean]]
-	]
-);
-JSIL.OverloadedMethod(AnimState.prototype, "Set", [
-		["Set$0", [AnimState]], 
-		["Set$1", [System.Int32, System.Int32, System.Int32, System.Boolean]]
-	]
-);
-AnimState._cctor();
 
-Object.seal(AnimState.prototype);
-Object.seal(AnimState);
-Mannux.MannuxGame.prototype.graphics = null;
-Mannux.MannuxGame.prototype.spriteBatch = null;
 Mannux.MannuxGame.prototype._ctor = function () {
 	Microsoft.Xna.Framework.Game.prototype._ctor.call(this);
 	this.graphics = new Microsoft.Xna.Framework.GraphicsDeviceManager(this);
@@ -1482,27 +1459,9 @@ Mannux.MannuxGame.prototype.Draw = function (gameTime) {
 	Microsoft.Xna.Framework.Game.prototype.Draw.call(this, gameTime);
 };
 
+Mannux.MannuxGame.prototype.graphics = null;
+Mannux.MannuxGame.prototype.spriteBatch = null;
 
-Object.seal(Mannux.MannuxGame.prototype);
-Object.seal(Mannux.MannuxGame);
-Editor.Editor.prototype.engine = null;
-Editor.Editor.prototype.graph = null;
-Editor.Editor.prototype.menu = null;
-Editor.Editor.prototype.form = null;
-Editor.Editor.prototype.tabs = null;
-Editor.Editor.prototype.statbar = null;
-Editor.Editor.prototype.tilesetpreview = null;
-Editor.Editor.prototype.mapinfoview = null;
-Editor.Editor.prototype.mapentpropertiesview = null;
-Editor.Editor.prototype.autoselectionthing = null;
-Editor.Editor.prototype.tileset = null;
-Editor.Editor.prototype.state = null;
-Editor.Editor.prototype.tilesetmode = null;
-Editor.Editor.prototype.copypastemode = null;
-Editor.Editor.prototype.obstructionmode = null;
-Editor.Editor.prototype.entityeditmode = null;
-Editor.Editor.prototype.OnExit = null;
-Editor.Editor.prototype.Running = new System.Boolean();
 Editor.Editor.prototype.add_OnExit = function (value) {
 	this.OnExit = System.Delegate.Combine(this.OnExit, value);
 };
@@ -1748,17 +1707,25 @@ Editor.Editor.prototype.OnTileChange = function (newtile) {
 	this.tilesetmode.curtile = newtile;
 };
 
+Editor.Editor.prototype.engine = null;
+Editor.Editor.prototype.graph = null;
+Editor.Editor.prototype.menu = null;
+Editor.Editor.prototype.form = null;
+Editor.Editor.prototype.tabs = null;
+Editor.Editor.prototype.statbar = null;
+Editor.Editor.prototype.tilesetpreview = null;
+Editor.Editor.prototype.mapinfoview = null;
+Editor.Editor.prototype.mapentpropertiesview = null;
+Editor.Editor.prototype.autoselectionthing = null;
+Editor.Editor.prototype.tileset = null;
+Editor.Editor.prototype.state = null;
+Editor.Editor.prototype.tilesetmode = null;
+Editor.Editor.prototype.copypastemode = null;
+Editor.Editor.prototype.obstructionmode = null;
+Editor.Editor.prototype.entityeditmode = null;
+Editor.Editor.prototype.OnExit = null;
+Editor.Editor.prototype.Running = false;
 
-Object.seal(Editor.Editor.prototype);
-Object.seal(Editor.Editor);
-Sprites.BitmapSprite.prototype.width = 0;
-Sprites.BitmapSprite.prototype.height = 0;
-Sprites.BitmapSprite.prototype.rowLength = 0;
-Sprites.BitmapSprite.prototype.tex = null;
-Sprites.BitmapSprite.prototype.graph = null;
-Sprites.BitmapSprite.prototype.__StructFields__ = {
-	hotspot: Microsoft.Xna.Framework.Rectangle
-};
 Sprites.BitmapSprite.prototype._ctor = function (g, assetName, cellWidth, cellHeight, rowLength, hotspot) {
 	System.Object.prototype._ctor.call(this);
 	this.graph = g;
@@ -1796,11 +1763,15 @@ Object.defineProperty(Sprites.BitmapSprite.prototype, "Height", {
 Object.defineProperty(Sprites.BitmapSprite.prototype, "HotSpot", {
 		get: Sprites.BitmapSprite.prototype.get_HotSpot
 	});
+Sprites.BitmapSprite.prototype.__StructFields__ = {
+	hotspot: Microsoft.Xna.Framework.Rectangle
+};
+Sprites.BitmapSprite.prototype.width = 0;
+Sprites.BitmapSprite.prototype.height = 0;
+Sprites.BitmapSprite.prototype.rowLength = 0;
+Sprites.BitmapSprite.prototype.tex = null;
+Sprites.BitmapSprite.prototype.graph = null;
 
-Object.seal(Sprites.BitmapSprite.prototype);
-Object.seal(Sprites.BitmapSprite);
-Import.VectorIndexBuffer.prototype.points = null;
-Import.VectorIndexBuffer.prototype.lines = null;
 Import.VectorIndexBuffer.prototype._ctor = function () {
 	this.points = new (System.Collections.Generic.List$b1.Of(Import.Geo.Vertex)) ();
 	System.Object.prototype._ctor.call(this);
@@ -1861,12 +1832,10 @@ Object.defineProperty(Import.VectorIndexBuffer.prototype, "Points", {
 Object.defineProperty(Import.VectorIndexBuffer.prototype, "Lines", {
 		get: Import.VectorIndexBuffer.prototype.get_Lines
 	});
+Import.VectorIndexBuffer.prototype.points = null;
+Import.VectorIndexBuffer.prototype.lines = null;
 
-Object.seal(Import.VectorIndexBuffer.prototype);
-Object.seal(Import.VectorIndexBuffer);
-Import.Geo.Vertex.prototype.x = 0;
-Import.Geo.Vertex.prototype.y = 0;
-Import.Geo.Vertex.prototype._ctor = function (a, b) {
+Import.Geo.Vertex.prototype._ctor$0 = function (a, b) {
 	this.x = a;
 	this.y = b;
 };
@@ -1887,6 +1856,10 @@ Import.Geo.Vertex.prototype.set_Y = function (value) {
 	this.y = value;
 };
 
+JSIL.OverloadedMethod(Import.Geo.Vertex.prototype, "_ctor", [
+		["_ctor$0", [System.Int32, System.Int32]]
+	]
+);
 Object.defineProperty(Import.Geo.Vertex.prototype, "X", {
 		get: Import.Geo.Vertex.prototype.get_X, 
 		set: Import.Geo.Vertex.prototype.set_X
@@ -1895,11 +1868,9 @@ Object.defineProperty(Import.Geo.Vertex.prototype, "Y", {
 		get: Import.Geo.Vertex.prototype.get_Y, 
 		set: Import.Geo.Vertex.prototype.set_Y
 	});
+Import.Geo.Vertex.prototype.x = 0;
+Import.Geo.Vertex.prototype.y = 0;
 
-Object.seal(Import.Geo.Vertex.prototype);
-Object.seal(Import.Geo.Vertex);
-Controller.prototype.resources = null;
-Controller.prototype.disposestate = 0;
 Controller.prototype.GetResourceFromObject = function (o) {
 	var enumerator = this.resources.GetEnumerator();
 
@@ -1972,10 +1943,9 @@ Controller.prototype._ctor = function () {
 };
 
 Controller.prototype.__ImplementInterface__(System.IDisposable);
+Controller.prototype.resources = null;
+Controller.prototype.disposestate = 0;
 
-Controller.Resource.prototype.obj = null;
-Controller.Resource.prototype.fname = null;
-Controller.Resource.prototype.refcount = 0;
 Controller.Resource.prototype._ctor = function (o, s) {
 	System.Object.prototype._ctor.call(this);
 	this.obj = o;
@@ -1983,16 +1953,10 @@ Controller.Resource.prototype._ctor = function (o, s) {
 	this.refcount = 1;
 };
 
+Controller.Resource.prototype.obj = null;
+Controller.Resource.prototype.fname = null;
+Controller.Resource.prototype.refcount = 0;
 
-Object.seal(Controller.Resource.prototype);
-Object.seal(Controller.Resource);
-Object.seal(Controller.prototype);
-Object.seal(Controller);
-Object.defineProperty(Editor.MapEntPropertiesView, "numprops", { value: 5 });
-Editor.MapEntPropertiesView.prototype.editor = null;
-Editor.MapEntPropertiesView.prototype.engine = null;
-Editor.MapEntPropertiesView.prototype.enttypes = null;
-Editor.MapEntPropertiesView.prototype.entprops = null;
 Editor.MapEntPropertiesView.prototype._ctor = function (e) {
 	System.Windows.Forms.Control.prototype._ctor.call(this);
 	this.editor = e;
@@ -2070,9 +2034,17 @@ Editor.MapEntPropertiesView.prototype.UpdateDlg = function (e) {
 	}
 };
 
+Editor.MapEntPropertiesView.prototype.editor = null;
+Editor.MapEntPropertiesView.prototype.engine = null;
+Editor.MapEntPropertiesView.prototype.enttypes = null;
+Editor.MapEntPropertiesView.prototype.entprops = null;
+Editor.MapEntPropertiesView._cctor = function () {
+	Object.defineProperty(Editor.MapEntPropertiesView, "numprops", {
+			"value": 5}
+	);
+};
 
-Object.seal(Editor.MapEntPropertiesView.prototype);
-Object.seal(Editor.MapEntPropertiesView);
+
 Vector.Increase = function (f, quantity) {
 	return (f + quantity);
 };
@@ -2115,10 +2087,6 @@ Vector.prototype._ctor = function () {
 };
 
 
-Object.seal(Vector.prototype);
-Object.seal(Vector);
-Input.InputHandler.prototype.kd = null;
-Input.InputHandler.prototype.md = null;
 Input.InputHandler.prototype.get_Keyboard = function () {
 	return this.kd;
 };
@@ -2144,13 +2112,9 @@ Object.defineProperty(Input.InputHandler.prototype, "Keyboard", {
 Object.defineProperty(Input.InputHandler.prototype, "Mouse", {
 		get: Input.InputHandler.prototype.get_Mouse
 	});
+Input.InputHandler.prototype.kd = null;
+Input.InputHandler.prototype.md = null;
 
-Object.seal(Input.InputHandler.prototype);
-Object.seal(Input.InputHandler);
-Entities.Door.prototype.open = new System.Boolean();
-Entities.Door.prototype.map = null;
-Entities.Door.prototype.Newx = 0;
-Entities.Door.prototype.Newy = 0;
 Entities.Door.prototype._ctor = function (e, startx, starty, face, mapname, newx, newy) {
 	this.open = false;
 	Entities.Entity.prototype._ctor.call(this, e, e.DoorSprite);
@@ -2224,17 +2188,11 @@ Entities.Door.prototype.CollisionThings = function () {
 	}
 };
 
+Entities.Door.prototype.open = false;
+Entities.Door.prototype.map = null;
+Entities.Door.prototype.Newx = 0;
+Entities.Door.prototype.Newy = 0;
 
-Object.seal(Entities.Door.prototype);
-Object.seal(Entities.Door);
-Editor.AutoSelectionThing.prototype.editor = null;
-Editor.AutoSelectionThing.prototype.firsttile = null;
-Editor.AutoSelectionThing.prototype.width = null;
-Editor.AutoSelectionThing.prototype.height = null;
-Editor.AutoSelectionThing.prototype.span = null;
-Editor.AutoSelectionThing.prototype.__StructFields__ = {
-	pos: System.Drawing.Point
-};
 Editor.AutoSelectionThing.prototype.AddBox = function (name) {
 	var i = new System.Windows.Forms.Label();
 	i.Text = name;
@@ -2300,20 +2258,15 @@ __while0__:
 	this.editor.copypastemode.Selection = b;
 };
 
-
-Object.seal(Editor.AutoSelectionThing.prototype);
-Object.seal(Editor.AutoSelectionThing);
-Object.defineProperty(Sprites.ParticleSprite, "maxparticles", { value: 15 });
-Sprites.ParticleSprite.prototype.particles = null;
-Sprites.ParticleSprite.prototype.graph = null;
-Sprites.ParticleSprite.prototype.direction = 0;
-Sprites.ParticleSprite.prototype.r = 0;
-Sprites.ParticleSprite.prototype.g = 0;
-Sprites.ParticleSprite.prototype.b = 0;
-Sprites.ParticleSprite.prototype.a = 0;
-Sprites.ParticleSprite.prototype.__StructFields__ = {
-	hotspot: System.Drawing.Rectangle
+Editor.AutoSelectionThing.prototype.__StructFields__ = {
+	pos: System.Drawing.Point
 };
+Editor.AutoSelectionThing.prototype.editor = null;
+Editor.AutoSelectionThing.prototype.firsttile = null;
+Editor.AutoSelectionThing.prototype.width = null;
+Editor.AutoSelectionThing.prototype.height = null;
+Editor.AutoSelectionThing.prototype.span = null;
+
 Sprites.ParticleSprite.prototype._ctor = function (g, d) {
 	this.particles = JSIL.Array.New(Sprites.ParticleSprite.Particle.MemberwiseClone(), 15);
 	System.Object.prototype._ctor.call(this);
@@ -2402,15 +2355,27 @@ Object.defineProperty(Sprites.ParticleSprite.prototype, "HotSpot", {
 		get: Sprites.ParticleSprite.prototype.get_HotSpot
 	});
 Sprites.ParticleSprite.prototype.__ImplementInterface__(Sprites.ISprite);
+Sprites.ParticleSprite.prototype.__StructFields__ = {
+	hotspot: System.Drawing.Rectangle
+};
+Sprites.ParticleSprite.prototype.particles = null;
+Sprites.ParticleSprite.prototype.graph = null;
+Sprites.ParticleSprite.prototype.direction = 0;
+Sprites.ParticleSprite.prototype.r = 0;
+Sprites.ParticleSprite.prototype.g = 0;
+Sprites.ParticleSprite.prototype.b = 0;
+Sprites.ParticleSprite.prototype.a = 0;
+Sprites.ParticleSprite._cctor = function () {
+	Object.defineProperty(Sprites.ParticleSprite, "maxparticles", {
+			"value": 15}
+	);
+};
+
 
 Sprites.ParticleSprite.Particle.prototype.x = 0;
 Sprites.ParticleSprite.Particle.prototype.y = 0;
 Sprites.ParticleSprite.Particle.prototype.size = 0;
 
-Object.seal(Sprites.ParticleSprite.Particle.prototype);
-Object.seal(Sprites.ParticleSprite.Particle);
-Object.seal(Sprites.ParticleSprite.prototype);
-Object.seal(Sprites.ParticleSprite);
 Entities.Boom.prototype._ctor = function (e, startx, starty) {
 	Entities.Entity.prototype._ctor.call(this, e, e.BoomSprite);
 	this.UpdateState = JSIL.Delegate.New("System.Action", this, Entities.Boom.prototype.CheckCollision);
@@ -2427,30 +2392,6 @@ Entities.Boom.prototype.CheckCollision = function () {
 };
 
 
-Object.seal(Entities.Boom.prototype);
-Object.seal(Entities.Boom);
-Engine.rand = null;
-Engine.prototype.graph = null;
-Engine.prototype.graphics = null;
-Engine.prototype.input = null;
-Engine.prototype.map = null;
-Engine.prototype.tileset = null;
-Engine.prototype.cameraTarget = null;
-Engine.prototype.player = null;
-Engine.prototype.time = null;
-Engine.prototype.editor = null;
-Engine.prototype.obs = null;
-Engine.prototype.entities = null;
-Engine.prototype.killlist = null;
-Engine.prototype.addlist = null;
-Engine.prototype.xwin = 0;
-Engine.prototype.ywin = 0;
-Engine.prototype.mapfilename = null;
-Engine.prototype.TabbySprite = null;
-Engine.prototype.RipperSprite = null;
-Engine.prototype.DoorSprite = null;
-Engine.prototype.BoomSprite = null;
-Engine.prototype.BulletSprite = null;
 Engine.prototype._ctor = function () {
 	this.entities = new System.Collections.ArrayList();
 	this.killlist = new System.Collections.ArrayList();
@@ -2884,10 +2825,6 @@ Engine.prototype.DestroyEntity = function (e) {
 	this.killlist.Add(e);
 };
 
-Engine._cctor = function () {
-	Engine.rand = new System.Random();
-};
-
 JSIL.OverloadedMethod(Engine.prototype, "MapSwitch", [
 		["MapSwitch$0", [System.String]], 
 		["MapSwitch$1", [System.String, System.Int32, System.Int32]]
@@ -2906,17 +2843,33 @@ Object.defineProperty(Engine.prototype, "YWin", {
 		get: Engine.prototype.get_YWin, 
 		set: Engine.prototype.set_YWin
 	});
-Engine._cctor();
+Engine.prototype.graph = null;
+Engine.prototype.graphics = null;
+Engine.prototype.input = null;
+Engine.prototype.map = null;
+Engine.prototype.tileset = null;
+Engine.prototype.cameraTarget = null;
+Engine.prototype.player = null;
+Engine.prototype.time = null;
+Engine.prototype.editor = null;
+Engine.prototype.obs = null;
+Engine.prototype.entities = null;
+Engine.prototype.killlist = null;
+Engine.prototype.addlist = null;
+Engine.prototype.xwin = 0;
+Engine.prototype.ywin = 0;
+Engine.prototype.mapfilename = null;
+Engine.prototype.TabbySprite = null;
+Engine.prototype.RipperSprite = null;
+Engine.prototype.DoorSprite = null;
+Engine.prototype.BoomSprite = null;
+Engine.prototype.BulletSprite = null;
+Engine._cctor = function () {
+	Engine.rand = null;
+	Engine.rand = new System.Random();
+};
 
-Object.seal(Engine.prototype);
-Object.seal(Engine);
-Editor.ObstructionMode.prototype.editor = null;
-Editor.ObstructionMode.prototype.engine = null;
-Editor.ObstructionMode.prototype.curpoint = 0;
-Editor.ObstructionMode.prototype.leftdown = new System.Boolean();
-Editor.ObstructionMode.prototype.rightdown = new System.Boolean();
-Editor.ObstructionMode.prototype.snap = new System.Boolean();
-Editor.ObstructionMode.prototype.MOVE_KEYS = 0;
+
 Editor.ObstructionMode.prototype._ctor = function (e) {
 	this.leftdown = false;
 	this.rightdown = false;
@@ -3074,10 +3027,14 @@ Editor.ObstructionMode.prototype.RenderHUD = function () {
 };
 
 Editor.ObstructionMode.prototype.__ImplementInterface__(Editor.IEditorState);
+Editor.ObstructionMode.prototype.editor = null;
+Editor.ObstructionMode.prototype.engine = null;
+Editor.ObstructionMode.prototype.curpoint = 0;
+Editor.ObstructionMode.prototype.leftdown = false;
+Editor.ObstructionMode.prototype.rightdown = false;
+Editor.ObstructionMode.prototype.snap = false;
+Editor.ObstructionMode.prototype.MOVE_KEYS = 0;
 
-Object.seal(Editor.ObstructionMode.prototype);
-Object.seal(Editor.ObstructionMode);
-Import.VectorObstructionMap.prototype.lines = null;
 Import.VectorObstructionMap.prototype._ctor = function (b) {
 	System.Object.prototype._ctor.call(this);
 	this.Generate(b);
@@ -3125,17 +3082,8 @@ __while0__:
 	return result;
 };
 
+Import.VectorObstructionMap.prototype.lines = null;
 
-Object.seal(Import.VectorObstructionMap.prototype);
-Object.seal(Import.VectorObstructionMap);
-Import.Map.prototype.layers = null;
-Import.Map.prototype.entities = null;
-Import.Map.prototype.obs = null;
-Import.Map.prototype.width = 0;
-Import.Map.prototype.height = 0;
-Import.Map.prototype.vspname = null;
-Import.Map.prototype.musicname = null;
-Import.Map.prototype.renderstring = null;
 Import.Map.prototype._ctor$0 = function (x, y) {
 	System.Object.prototype._ctor.call(this);
 	this.width = x;
@@ -3289,12 +3237,15 @@ Object.defineProperty(Import.Map.prototype, "Obs", {
 Object.defineProperty(Import.Map.prototype, "Entities", {
 		get: Import.Map.prototype.get_Entities
 	});
+Import.Map.prototype.layers = null;
+Import.Map.prototype.entities = null;
+Import.Map.prototype.obs = null;
+Import.Map.prototype.width = 0;
+Import.Map.prototype.height = 0;
+Import.Map.prototype.vspname = null;
+Import.Map.prototype.musicname = null;
+Import.Map.prototype.renderstring = null;
 
-Import.Map.Layer.prototype.tiles = null;
-Import.Map.Layer.prototype.name = null;
-Import.Map.Layer.prototype.parx = 0;
-Import.Map.Layer.prototype.pary = 0;
-Import.Map.Layer.prototype.visible = new System.Boolean();
 Import.Map.Layer.prototype._ctor = function (width, height, n) {
 	System.Object.prototype._ctor.call(this);
 	this.name = n;
@@ -3397,17 +3348,12 @@ Object.defineProperty(Import.Map.Layer.prototype, "Item", {
 		get: Import.Map.Layer.prototype.get_Item, 
 		set: Import.Map.Layer.prototype.set_Item
 	});
+Import.Map.Layer.prototype.tiles = null;
+Import.Map.Layer.prototype.name = null;
+Import.Map.Layer.prototype.parx = 0;
+Import.Map.Layer.prototype.pary = 0;
+Import.Map.Layer.prototype.visible = false;
 
-Object.seal(Import.Map.Layer.prototype);
-Object.seal(Import.Map.Layer);
-Object.seal(Import.Map.prototype);
-Object.seal(Import.Map);
-Import.Geo.Line.prototype.slope = 0;
-Import.Geo.Line.prototype.yint = 0;
-Import.Geo.Line.prototype.__StructFields__ = {
-	a: Import.Geo.Vertex, 
-	b: Import.Geo.Vertex
-};
 Import.Geo.Line.prototype._ctor$0 = function (A, B) {
 	System.Object.prototype._ctor.call(this);
 	this.a = A;
@@ -3578,9 +3524,13 @@ Object.defineProperty(Import.Geo.Line.prototype, "A", {
 Object.defineProperty(Import.Geo.Line.prototype, "B", {
 		get: Import.Geo.Line.prototype.get_B
 	});
+Import.Geo.Line.prototype.__StructFields__ = {
+	a: Import.Geo.Vertex, 
+	b: Import.Geo.Vertex
+};
+Import.Geo.Line.prototype.slope = 0;
+Import.Geo.Line.prototype.yint = 0;
 
-Object.seal(Import.Geo.Line.prototype);
-Object.seal(Import.Geo.Line);
 RLE.prototype._ctor = function () {
 	System.Object.prototype._ctor.call(this);
 };
@@ -3653,8 +3603,6 @@ JSIL.OverloadedMethod(RLE, "Read", [
 	]
 );
 
-Object.seal(RLE.prototype);
-Object.seal(RLE);
 Import.v2Map.Load = function (fname) {
 	var f = new System.IO.FileStream(fname, System.IO.FileMode.Open);
 	var stream = new System.IO.BinaryReader(f, System.Text.Encoding.ASCII);
@@ -3722,10 +3670,6 @@ Import.v2Map.prototype._ctor = function () {
 };
 
 
-Object.seal(Import.v2Map.prototype);
-Object.seal(Import.v2Map);
-Mannux.Import.AutoArray$b1.prototype.data = null;
-Mannux.Import.AutoArray$b1.prototype.length = 0;
 Mannux.Import.AutoArray$b1.prototype._ctor = function () {
 	this.data = null;
 	this.length = 0;
@@ -3811,11 +3755,9 @@ Object.defineProperty(Mannux.Import.AutoArray$b1.prototype, "Item", {
 Object.defineProperty(Mannux.Import.AutoArray$b1.prototype, "Array", {
 		get: Mannux.Import.AutoArray$b1.prototype.get_Array
 	});
+Mannux.Import.AutoArray$b1.prototype.data = null;
+Mannux.Import.AutoArray$b1.prototype.length = 0;
 
-Object.seal(Mannux.Import.AutoArray$b1.prototype);
-Object.seal(Mannux.Import.AutoArray$b1);
-Editor.NewMapDlg.prototype.widthbox = null;
-Editor.NewMapDlg.prototype.heightbox = null;
 Editor.NewMapDlg.prototype._ctor = function () {
 	System.Windows.Forms.Form.prototype._ctor.call(this);
 	this.FormBorderStyle = this;
@@ -3869,9 +3811,9 @@ Object.defineProperty(Editor.NewMapDlg.prototype, "MapWidth", {
 Object.defineProperty(Editor.NewMapDlg.prototype, "MapHeight", {
 		get: Editor.NewMapDlg.prototype.get_MapHeight
 	});
+Editor.NewMapDlg.prototype.widthbox = null;
+Editor.NewMapDlg.prototype.heightbox = null;
 
-Object.seal(Editor.NewMapDlg.prototype);
-Object.seal(Editor.NewMapDlg);
 Mannux.Program.Main = function (args) {
 	var game = new Engine();
 
@@ -3886,32 +3828,20 @@ Mannux.Program.Main = function (args) {
 };
 
 
-Object.seal(Mannux.Program);
-Import.MapEnt.prototype.x = 0;
-Import.MapEnt.prototype.y = 0;
-Import.MapEnt.prototype.type = null;
-Import.MapEnt.prototype.data = null;
-Import.MapEnt.enttypes = null;
 Import.MapEnt.prototype._ctor = function () {
 	System.Object.prototype._ctor.call(this);
 };
 
+Import.MapEnt.prototype.x = 0;
+Import.MapEnt.prototype.y = 0;
+Import.MapEnt.prototype.type = null;
+Import.MapEnt.prototype.data = null;
 Import.MapEnt._cctor = function () {
+	Import.MapEnt.enttypes = null;
 	Import.MapEnt.enttypes = JSIL.Array.New(System.String, ["player", "door", "ripper", "hopper"]);
 };
 
-Import.MapEnt._cctor();
 
-Object.seal(Import.MapEnt.prototype);
-Object.seal(Import.MapEnt);
-Input.MouseDevice.prototype.MouseDown = null;
-Input.MouseDevice.prototype.MouseUp = null;
-Input.MouseDevice.prototype.MouseWheel = null;
-Input.MouseDevice.prototype.Moved = null;
-Input.MouseDevice.prototype.__StructFields__ = {
-	oldms: Microsoft.Xna.Framework.Input.MouseState, 
-	ms: Microsoft.Xna.Framework.Input.MouseState
-};
 Input.MouseDevice.prototype.add_MouseDown = function (value) {
 	this.MouseDown = System.Delegate.Combine(this.MouseDown, value);
 };
@@ -4010,25 +3940,15 @@ Input.MouseDevice.prototype._ctor = function () {
 	System.Object.prototype._ctor.call(this);
 };
 
+Input.MouseDevice.prototype.__StructFields__ = {
+	oldms: Microsoft.Xna.Framework.Input.MouseState, 
+	ms: Microsoft.Xna.Framework.Input.MouseState
+};
+Input.MouseDevice.prototype.MouseDown = null;
+Input.MouseDevice.prototype.MouseUp = null;
+Input.MouseDevice.prototype.MouseWheel = null;
+Input.MouseDevice.prototype.Moved = null;
 
-Object.seal(Input.MouseDevice.prototype);
-Object.seal(Input.MouseDevice);
-Object.defineProperty(Entities.Player, "key_C", { value: 0 });
-Object.defineProperty(Entities.Player, "key_SPACE", { value: 1 });
-Object.defineProperty(Entities.Player, "groundfriction", { value: 0.25999999046325684 });
-Object.defineProperty(Entities.Player, "airfriction", { value: 0.016599999740719795 });
-Object.defineProperty(Entities.Player, "groundaccel", { value: 0.52999997138977051 });
-Object.defineProperty(Entities.Player, "airaccel", { value: 0.20000000298023224 });
-Object.defineProperty(Entities.Player, "maxxvelocity", { value: 2.5 });
-Object.defineProperty(Entities.Player, "maxyvelocity", { value: 250 });
-Object.defineProperty(Entities.Player, "jumpvelocity", { value: -3.3299999237060547 });
-Object.defineProperty(Entities.Player, "fire_delay", { value: 12 });
-Object.defineProperty(Entities.Player, "jumpheight", { value: 30 });
-Entities.Player.prototype.input = null;
-Entities.Player.prototype.jumpcount = 0;
-Entities.Player.prototype.hp = 0;
-Entities.Player.prototype.hurtcount = 0;
-Entities.Player.prototype.firedelay = 0;
 Entities.Player.prototype._ctor = function (e) {
 	this.hp = 100;
 	this.hurtcount = 0;
@@ -4460,10 +4380,48 @@ Object.defineProperty(Entities.Player.prototype, "HP", {
 		get: Entities.Player.prototype.get_HP, 
 		set: Entities.Player.prototype.set_HP
 	});
+Entities.Player.prototype.input = null;
+Entities.Player.prototype.jumpcount = 0;
+Entities.Player.prototype.hp = 0;
+Entities.Player.prototype.hurtcount = 0;
+Entities.Player.prototype.firedelay = 0;
+Entities.Player._cctor = function () {
+	Object.defineProperty(Entities.Player, "key_C", {
+			"value": 0}
+	);
+	Object.defineProperty(Entities.Player, "key_SPACE", {
+			"value": 1}
+	);
+	Object.defineProperty(Entities.Player, "groundfriction", {
+			"value": 0.25999999046325684}
+	);
+	Object.defineProperty(Entities.Player, "airfriction", {
+			"value": 0.016599999740719795}
+	);
+	Object.defineProperty(Entities.Player, "groundaccel", {
+			"value": 0.52999997138977051}
+	);
+	Object.defineProperty(Entities.Player, "airaccel", {
+			"value": 0.20000000298023224}
+	);
+	Object.defineProperty(Entities.Player, "maxxvelocity", {
+			"value": 2.5}
+	);
+	Object.defineProperty(Entities.Player, "maxyvelocity", {
+			"value": 250}
+	);
+	Object.defineProperty(Entities.Player, "jumpvelocity", {
+			"value": -3.3299999237060547}
+	);
+	Object.defineProperty(Entities.Player, "fire_delay", {
+			"value": 12}
+	);
+	Object.defineProperty(Entities.Player, "jumpheight", {
+			"value": 30}
+	);
+};
 
-Object.seal(Entities.Player.prototype);
-Object.seal(Entities.Player);
-Object.defineProperty(Entities.Enemies.Ripper, "speed", { value: 1 });
+
 Entities.Enemies.Ripper.prototype._ctor = function (e, startx, starty) {
 	Entities.Enemies.Enemy.prototype._ctor.call(this, e, e.RipperSprite);
 	this.x = startx;
@@ -4491,9 +4449,13 @@ Entities.Enemies.Ripper.prototype.DoTick = function () {
 	}
 };
 
+Entities.Enemies.Ripper._cctor = function () {
+	Object.defineProperty(Entities.Enemies.Ripper, "speed", {
+			"value": 1}
+	);
+};
 
-Object.seal(Entities.Enemies.Ripper.prototype);
-Object.seal(Entities.Enemies.Ripper);
+
 Editor.NumberEditBox.prototype.get_CreateParams = function () {
 	var c = System.Windows.Forms.TextBox.prototype.get_CreateParams.call(this);
 	c.ClassStyle |= 8192;
@@ -4508,23 +4470,11 @@ Object.defineProperty(Editor.NumberEditBox.prototype, "CreateParams", {
 		get: Editor.NumberEditBox.prototype.get_CreateParams
 	});
 
-Object.seal(Editor.NumberEditBox.prototype);
-Object.seal(Editor.NumberEditBox);
 Editor.Util.prototype._ctor = function () {
 	System.Object.prototype._ctor.call(this);
 };
 
 
-Object.seal(Editor.Util.prototype);
-Object.seal(Editor.Util);
-Editor.CopyPasteMode.prototype.editor = null;
-Editor.CopyPasteMode.prototype.engine = null;
-Editor.CopyPasteMode.prototype.curselection = null;
-Editor.CopyPasteMode.prototype.state = 0;
-Editor.CopyPasteMode.prototype.__StructFields__ = {
-	p1: Import.Geo.Vertex, 
-	p2: Import.Geo.Vertex
-};
 Editor.CopyPasteMode.prototype._ctor = function (e) {
 	this.state = Editor.CopyPasteMode.EditState.DoingNothing;
 	System.Object.prototype._ctor.call(this);
@@ -4680,15 +4630,15 @@ Object.defineProperty(Editor.CopyPasteMode.prototype, "Selection", {
 		set: Editor.CopyPasteMode.prototype.set_Selection
 	});
 Editor.CopyPasteMode.prototype.__ImplementInterface__(Editor.IEditorState);
-
-Object.seal(Editor.CopyPasteMode.prototype);
-Object.seal(Editor.CopyPasteMode);
-Input.KeyboardDevice.prototype.xAxis = 0;
-Input.KeyboardDevice.prototype.yAxis = 0;
-Input.KeyboardDevice.prototype.__StructFields__ = {
-	oldks: Microsoft.Xna.Framework.Input.KeyboardState, 
-	ks: Microsoft.Xna.Framework.Input.KeyboardState
+Editor.CopyPasteMode.prototype.__StructFields__ = {
+	p1: Import.Geo.Vertex, 
+	p2: Import.Geo.Vertex
 };
+Editor.CopyPasteMode.prototype.editor = null;
+Editor.CopyPasteMode.prototype.engine = null;
+Editor.CopyPasteMode.prototype.curselection = null;
+Editor.CopyPasteMode.prototype.state = 0;
+
 Input.KeyboardDevice.prototype.Poll = function () {
 	this.oldks = this.ks.MemberwiseClone();
 	this.ks = Microsoft.Xna.Framework.Input.Keyboard.GetState();
@@ -4753,10 +4703,13 @@ Input.KeyboardDevice.prototype._ctor = function () {
 };
 
 Input.KeyboardDevice.prototype.__ImplementInterface__(Input.IInputDevice);
+Input.KeyboardDevice.prototype.__StructFields__ = {
+	oldks: Microsoft.Xna.Framework.Input.KeyboardState, 
+	ks: Microsoft.Xna.Framework.Input.KeyboardState
+};
+Input.KeyboardDevice.prototype.xAxis = 0;
+Input.KeyboardDevice.prototype.yAxis = 0;
 
-Object.seal(Input.KeyboardDevice.prototype);
-Object.seal(Input.KeyboardDevice);
-Object.defineProperty(Entities.Bullet, "velocity", { value: 6.5999999046325684 });
 Entities.Bullet.prototype._ctor = function (e, startx, starty, d) {
 	Entities.Entity.prototype._ctor.call(this, e, e.BulletSprite);
 	this.UpdateState = JSIL.Delegate.New("System.Action", this, Entities.Bullet.prototype.CheckCollision);
@@ -4836,6 +4789,61 @@ Entities.Bullet.prototype.CheckCollision = function () {
 	}
 };
 
+Entities.Bullet._cctor = function () {
+	Object.defineProperty(Entities.Bullet, "velocity", {
+			"value": 6.5999999046325684}
+	);
+};
 
-Object.seal(Entities.Bullet.prototype);
-Object.seal(Entities.Bullet);
+
+JSIL.InitializeType(Entities.Entity);
+JSIL.InitializeType(Entities.Enemies.Enemy);
+JSIL.InitializeType(Entities.Enemies.Hopper);
+JSIL.InitializeType(Editor.TileSetMode);
+JSIL.InitializeType(Editor.Tileset);
+JSIL.InitializeType(Timer);
+JSIL.InitializeType(Input.X360Gamepad);
+JSIL.InitializeType(Cataract.XNAGraph);
+JSIL.InitializeType(Editor.ChangeTileHandler);
+JSIL.InitializeType(Editor.TileSetPreview.DoubleBufferedPanel);
+JSIL.InitializeType(Editor.TileSetPreview);
+JSIL.InitializeType(Editor.MapInfoView);
+JSIL.InitializeType(Editor.EntityEditMode);
+JSIL.InitializeType(Entities.Enemies.Skree);
+JSIL.InitializeType(Import.MannuxMap);
+JSIL.InitializeType(AnimState);
+JSIL.InitializeType(Mannux.MannuxGame);
+JSIL.InitializeType(Editor.Editor);
+JSIL.InitializeType(Sprites.BitmapSprite);
+JSIL.InitializeType(Import.VectorIndexBuffer);
+JSIL.InitializeType(Import.Geo.Vertex);
+JSIL.InitializeType(Controller.Resource);
+JSIL.InitializeType(Controller);
+JSIL.InitializeType(Editor.MapEntPropertiesView);
+JSIL.InitializeType(Vector);
+JSIL.InitializeType(Input.InputHandler);
+JSIL.InitializeType(Entities.Door);
+JSIL.InitializeType(Editor.AutoSelectionThing);
+JSIL.InitializeType(Sprites.ParticleSprite.Particle);
+JSIL.InitializeType(Sprites.ParticleSprite);
+JSIL.InitializeType(Entities.Boom);
+JSIL.InitializeType(Engine);
+JSIL.InitializeType(Editor.ObstructionMode);
+JSIL.InitializeType(Import.VectorObstructionMap);
+JSIL.InitializeType(Import.Map.Layer);
+JSIL.InitializeType(Import.Map);
+JSIL.InitializeType(Import.Geo.Line);
+JSIL.InitializeType(RLE);
+JSIL.InitializeType(Import.v2Map);
+JSIL.InitializeType(Mannux.Import.AutoArray$b1);
+JSIL.InitializeType(Editor.NewMapDlg);
+JSIL.InitializeType(Mannux.Program);
+JSIL.InitializeType(Import.MapEnt);
+JSIL.InitializeType(Input.MouseDevice);
+JSIL.InitializeType(Entities.Player);
+JSIL.InitializeType(Entities.Enemies.Ripper);
+JSIL.InitializeType(Editor.NumberEditBox);
+JSIL.InitializeType(Editor.Util);
+JSIL.InitializeType(Editor.CopyPasteMode);
+JSIL.InitializeType(Input.KeyboardDevice);
+JSIL.InitializeType(Entities.Bullet);

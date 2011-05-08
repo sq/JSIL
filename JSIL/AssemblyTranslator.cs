@@ -69,6 +69,7 @@ namespace JSIL {
 
         public event Action<string, Exception> CouldNotLoadSymbols;
         public event Action<string, Exception> CouldNotResolveAssembly;
+        public event Action<string, Exception> CouldNotDecompileMethod;
 
         public string OutputDirectory = Environment.CurrentDirectory;
 
@@ -616,7 +617,9 @@ namespace JSIL {
                     ilb = new ILBlock(decompiler.Build(method, true));
                     optimizer.Optimize(context, ilb);
                 } catch (Exception exception) {
-                    Console.Error.WriteLine("ILSpy was unable to decompile the method '{0}' because an error occurred:\r\n{1}", method, exception);
+                    if (CouldNotDecompileMethod != null)
+                        CouldNotDecompileMethod(method.ToString(), exception);
+
                     return null;
                 }
 
