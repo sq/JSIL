@@ -70,13 +70,23 @@ JSIL.Host.warning = function (text) {
   else
     JSIL.Host.logWriteLine(System.String.Concat.apply(null, arguments));
 };
+JSIL.Host.error = function (exception, text) {
+  var rest = Array.prototype.slice.call(arguments, 1);
+
+  if (typeof (console) !== "undefined")
+    console.error.apply(null, rest.concat([exception]));
+  else
+    throw exception;
+}
 
 JSIL.UntranslatableNode = function (nodeType) {
   throw new Error("An ILAst node of type " + nodeType + " could not be translated.");
 };
 
 JSIL.UntranslatableFunction = function (functionName) {
-  throw new Error("The function '" + functionName + "' could not be translated.");
+  return function () {
+    throw new Error("The function '" + functionName + "' could not be translated.");
+  };
 };
 
 JSIL.UntranslatableInstruction = function (instruction, operand) {
@@ -140,7 +150,11 @@ JSIL.InitializeType = function (type) {
   type.__TypeInitialized__ = true;
 
   if (typeof (type._cctor) != "undefined") {
-    type._cctor();
+    try {
+      type._cctor();
+    } catch (e) {
+      JSIL.Host.error(e, "Static initializer for type ", typeName, " threw an exception");
+    }
   }
 
   if (typeof (type.prototype) != "undefined")
@@ -162,7 +176,7 @@ JSIL.InitializeStructFields = function (instance, typeObject) {
         instance[fieldName] = new fieldType();
       } else {
         instance[fieldName] = new System.ValueType();
-        JSIL.Host.warning("Warning: The type of field ", typeObject.__FullName__ + "." + fieldName, " is undefined.");
+        JSIL.Host.error("Warning: The type of field ", typeObject.__FullName__ + "." + fieldName, " is undefined.");
       }
     }
   }

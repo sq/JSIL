@@ -234,21 +234,27 @@ namespace JSIL.Internal {
             }
         }
 
+        // TODO: Figure out whether generic argument information can be used
         protected void TypeIdentifier (GenericInstanceType type, bool includeParens) {
+            /*
             if (includeParens)
                 LPar();
+             */
 
             Identifier(type.ElementType);
-            Dot();
-            Identifier("Of");
-            LPar();
-            CommaSeparatedList(type.GenericArguments);
-            RPar();
 
+            Comment(
+                "<{0}>", String.Join(", ", 
+                    (from a in type.GenericArguments select String.Concat(a.Name)).ToArray()
+                )
+            );
+
+            /*
             if (includeParens) {
                 RPar();
                 Space();
             }
+             */
         }
 
         public void Identifier (MethodReference method, bool fullyQualified = true) {

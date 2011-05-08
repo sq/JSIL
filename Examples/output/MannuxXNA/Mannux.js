@@ -630,7 +630,7 @@ Cataract.XNAGraph.prototype.End = function () {
 Cataract.XNAGraph.prototype.Blit$0 = function (img, pos, slice) {
 	var destRect = new Microsoft.Xna.Framework.Rectangle();
 	destRect._ctor(Math.floor(pos.X), Math.floor(pos.Y), slice.Width, slice.Height);
-	this.spriteBatch.Draw(img, destRect.MemberwiseClone(), new (System.Nullable$b1.Of(Microsoft.Xna.Framework.Rectangle)) (slice), Microsoft.Xna.Framework.Graphics.Color.White);
+	this.spriteBatch.Draw(img, destRect.MemberwiseClone(), new System.Nullable$b1/* <Rectangle> */ (slice), Microsoft.Xna.Framework.Graphics.Color.White);
 };
 
 Cataract.XNAGraph.prototype.Blit$1 = function (src, x, y, trans) {
@@ -1773,9 +1773,9 @@ Sprites.BitmapSprite.prototype.tex = null;
 Sprites.BitmapSprite.prototype.graph = null;
 
 Import.VectorIndexBuffer.prototype._ctor = function () {
-	this.points = new (System.Collections.Generic.List$b1.Of(Import.Geo.Vertex)) ();
+	this.points = new System.Collections.Generic.List$b1/* <Vertex> */ ();
 	System.Object.prototype._ctor.call(this);
-	this.points = new (System.Collections.Generic.List$b1.Of(Import.Geo.Vertex)) ();
+	this.points = new System.Collections.Generic.List$b1/* <Vertex> */ ();
 	this.lines = new System.Collections.ArrayList();
 };
 
