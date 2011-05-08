@@ -78,6 +78,23 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void NestedInitialization () {
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\NestedInitialization.cs",
+                "a = 5, b = 7\r\na = 5, b = 7"
+            );
+
+            try {
+                Assert.IsTrue(generatedJs.Contains("var b ="));
+                Assert.IsTrue(generatedJs.Contains(", b = \"7\""));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
         public void PrivateNames () {
             using (var test = new ComparisonTest(@"SpecialTestCases\PrivateNames.cs"))
                 test.Run();

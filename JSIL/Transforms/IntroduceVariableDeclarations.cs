@@ -9,6 +9,7 @@ using JSIL.Internal;
 namespace JSIL.Transforms {
     public class IntroduceVariableDeclarations : JSAstVisitor {
         public readonly HashSet<JSVariable> ToDeclare = new HashSet<JSVariable>();
+        public readonly HashSet<JSVariable> CouldntDeclare = new HashSet<JSVariable>();
 
         public readonly IDictionary<string, JSVariable> Variables;
         public readonly ITypeInfoSource TypeInfo;
@@ -70,15 +71,16 @@ namespace JSIL.Transforms {
                 (leftVar != null) && isAssignment && 
                 !leftVar.IsReference && !leftVar.IsParameter
             ) {
-                if (ToDeclare.Contains(leftVar)) {
-                    ToDeclare.Remove(leftVar);
-
+                if (ToDeclare.Contains(leftVar) && !CouldntDeclare.Contains(leftVar)) {
                     var superParent = Stack.Skip(2).FirstOrDefault();
                     if ((superParent != null) && (ParentNode is JSStatement)) {
+                        ToDeclare.Remove(leftVar);
                         superParent.ReplaceChild(ParentNode, new JSVariableDeclarationStatement(boe));
 
                         VisitChildren(boe);
                         return;
+                    } else {
+                        CouldntDeclare.Add(leftVar);
                     }
                 }
             }

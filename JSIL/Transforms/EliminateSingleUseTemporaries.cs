@@ -7,7 +7,7 @@ using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class EliminateSingleUseTemporaries : JSAstVisitor {
-        public const int TraceLevel = 0;
+        public const int TraceLevel = 4;
 
         public readonly TypeSystem TypeSystem;
         public readonly Dictionary<string, JSVariable> Variables;
@@ -392,19 +392,21 @@ namespace JSIL.Transforms {
                 return;
             }
 
-            if (
-                GetEnclosingNodes<JSBinaryOperatorExpression>(
-                    (boe) => {
-                        var isAssignment = boe.Operator == JSOperator.Assignment;
-                        var leftIsVariable = boe.Left is JSVariable;
-                        return isAssignment && leftIsVariable && 
-                            (boe.Left.Equals(variable) || boe.Right.Equals(variable));
-                    },
-                    (n) => (n is JSStatement) || (n is JSBinaryOperatorExpression)
-                ).Count() == 0
-            ) {
-                var enclosingStatement = GetEnclosingNodes<JSStatement>().FirstOrDefault();
+            var enclosingStatement = GetEnclosingNodes<JSStatement>().FirstOrDefault();
+            var enclosingAssignmentStatements = GetEnclosingNodes<JSExpressionStatement>(
+                (es) => {
+                    var boe = es.Expression as JSBinaryOperatorExpression;
+                    if (boe == null)
+                        return false;
 
+                    var isAssignment = boe.Operator == JSOperator.Assignment;
+                    var leftIsVariable = boe.Left is JSVariable;
+                    return isAssignment && leftIsVariable && 
+                        (boe.Left.Equals(variable) || boe.Right.Equals(variable));
+                }
+            ).ToArray();
+
+            if (enclosingAssignmentStatements.Length == 0) {
                 if (TraceLevel >= 3)
                     Debug.WriteLine(String.Format(
                         "{0:0000} Accesses: {1}\r\n{2}",
