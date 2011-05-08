@@ -1,0 +1,18 @@
+#canvas {
+	background-color: black;
+	width: 640px;
+	height: 480px;
+	position: absolute;
+	left: 2px;
+	top: 2px;
+}
+#log {
+	font-family: Consolas, Courier New, Courier;
+	font-size: 12pt;
+	width: 640px;
+	height: 200px;
+	overflow: scroll;
+	position: absolute;
+	left: 2px;
+	top: 484px;
+}

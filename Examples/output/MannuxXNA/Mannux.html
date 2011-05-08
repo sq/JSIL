@@ -1,0 +1,25 @@
+<html>
+  <head>
+    <title>Mannux</title>
+    <link rel="stylesheet" href="mannux.css" />
+  </head>
+  <body>
+    <script src="../../../Libraries/JSIL.Core.js"></script>
+    <script src="../../../Libraries/JSIL.XNA.js"></script>
+    <script src="Mannux, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null.js"></script>
+    
+    <canvas id="canvas"></canvas><br>
+    <textarea id="log"></textarea>
+    
+    <script type="text/javascript">
+    JSIL.Host = {
+      getCanvas : function (desiredWidth, desiredHeight) {
+        return document.getElementById("canvas");
+      },
+      logWrite : function (text) {
+        document.getElementById("log").value += text;
+      },
+    }
+    </script>
+  </body>
+</html>

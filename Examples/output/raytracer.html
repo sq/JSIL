@@ -1,0 +1,38 @@
+<html>
+  <head>
+    <title>Raytracer</title>
+  </head>
+  <body>
+    <script src="../../Libraries/JSIL.Core.js"></script>
+    <script src="../../Libraries/System.Drawing.js"></script>
+    <script src="SimpleRaytracer, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null.js"></script>
+    
+    <a href="../SimpleRaytracer.cs">Source C#</a> | <a href="SimpleRaytracer, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null.js">Compiled JS</a>
+    <br><hr>
+    <button id="runButton">Run raytracer</button><br>
+    <textarea id="output" cols="30" rows="6"></textarea><br>
+    <canvas id="canvas">
+    </canvas>
+    
+    <script type="text/javascript">
+    JSIL.Host = {
+      getCanvas: function (desiredWidth, desiredHeight) {
+        var canvas = document.getElementById("canvas");
+        canvas.width = desiredWidth;
+        canvas.height = desiredHeight;
+        return canvas;
+      },
+      logWrite: function (text) {
+        document.getElementById("output").value += text;
+      }
+    };
+    
+    document.getElementById("runButton").addEventListener(
+      "click", function () { 
+        document.getElementById("output").value = "";
+        simpleray.RayTracer.Main(); 
+      }, true
+    );
+    </script>
+  </body>
+</html>
