@@ -66,7 +66,7 @@ namespace JSIL.Internal {
         // Class information
         public readonly bool IsIgnored;
         public readonly MethodDefinition StaticConstructor;
-        public readonly List<MethodDefinition> Constructors = new List<MethodDefinition>();
+        public readonly HashSet<MethodDefinition> Constructors = new HashSet<MethodDefinition>();
         public readonly MetadataCollection Metadata;
 
         // Method overloading information
@@ -107,8 +107,12 @@ namespace JSIL.Internal {
             foreach (var field in type.Fields)
                 AddMember(field);
 
-            foreach (var method in type.Methods)
+            foreach (var method in type.Methods) {
+                if (method.Name == ".ctor")
+                    Constructors.Add(method);
+
                 AddMember(method);
+            }
 
             foreach (var property in type.Properties) {
                 if (property.GetMethod != null)
@@ -135,11 +139,19 @@ namespace JSIL.Internal {
                               Name = m.Name, IsStatic = m.IsStatic
                           } into mg select mg;
 
-            foreach (var mg in methodGroups) {
-                if (mg.Key.Name == ".ctor")
-                    Constructors.AddRange(mg);
+            bool createdCtorMethodGroup = false;
 
-                if (mg.Count() > 1) {
+            foreach (var mg in methodGroups) {
+                // A struct with a single constructor that takes parameters must
+                //  always form a method group so that we don't invoke it with
+                //  the wrong argument count.
+                if (
+                    (mg.Count() > 1) || 
+                    (type.IsValueType && 
+                     (mg.Key.Name == ".ctor") && 
+                     (mg.First().Parameters.Count > 0)
+                    )
+                ) {
                     var info = new MethodGroupInfo(type, mg.Key.Name, mg.Key.IsStatic);
                     info.Items.AddRange(mg.Select(
                         (m, i) => new MethodGroupItem(info, m, i)

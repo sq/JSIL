@@ -5,26 +5,26 @@
   </head>
   <body>
     <script src="../../../Libraries/JSIL.Core.js"></script>
+    <script src="mscorlib.js"></script>
     <script src="../../../Libraries/System.Windows.js"></script>
     <script src="../../../Libraries/System.Drawing.js"></script>
     <script src="../../../Libraries/JSIL.XNA.js"></script>
+    <script src="xna.js"></script>
     <script src="Mannux.js"></script>
     
     <canvas id="canvas"></canvas><br>
     <textarea id="log"></textarea>
     
     <script type="text/javascript">
-    JSIL.Host = {
-      getCanvas : function (desiredWidth, desiredHeight) {
+    JSIL.Host.getCanvas = function (desiredWidth, desiredHeight) {
         return document.getElementById("canvas");
-      },
-      logWrite : function (text) {
+    };
+    JSIL.Host.logWrite = function (text) {
         document.getElementById("log").value += text;
-      },
-      logWriteLine : function (text) {
+    };
+    JSIL.Host.logWriteLine = function (text) {
         document.getElementById("log").value += text + "\n";
-      },
-    }
+    };
     
     document.getElementById("log").value = "";
     Mannux.Program.Main([]);

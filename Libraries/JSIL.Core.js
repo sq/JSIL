@@ -1,11 +1,20 @@
 "use strict";
 
 if (typeof (JSIL) === "undefined")
-  var JSIL = {};
+  var JSIL = {
+    __FullName__ : "JSIL"
+  };
 
 JSIL.DeclareNamespace = function (parent, name) {
-  if (typeof (parent[name]) === "undefined")
-    parent[name] = {};
+  if (typeof (parent[name]) === "undefined") {
+    var parentName = "";
+    if (typeof (parent.__FullName__) != "undefined")
+      parentName = parent.__FullName__ + ".";
+
+    parent[name] = {
+      __FullName__ : parentName + name
+    };
+  }
 }
 
 JSIL.DeclareNamespace(this, "System");
@@ -18,6 +27,8 @@ JSIL.DeclareNamespace(System, "MulticastDelegate");
 JSIL.DeclareNamespace(System, "Console");
 JSIL.DeclareNamespace(System, "Threading");
 JSIL.DeclareNamespace(System.Threading, "Interlocked");
+JSIL.DeclareNamespace(System.Threading, "Monitor");
+JSIL.DeclareNamespace(System, "Globalization");
 
 JSIL.DeclareNamespace(JSIL, "Array");
 JSIL.DeclareNamespace(JSIL, "Delegate");
@@ -52,6 +63,12 @@ JSIL.Host.logWriteLine = function (text) {
     window.alert(text);
   else
     print(text);
+};
+JSIL.Host.warning = function (text) {
+  if (typeof (console) !== "undefined")
+    console.warn.apply(null, arguments);
+  else
+    JSIL.Host.logWriteLine(System.String.Concat.apply(null, arguments));
 };
 
 JSIL.UntranslatableNode = function (nodeType) {
@@ -99,44 +116,84 @@ JSIL.MakeNumericProto = function (baseType, typeName, isIntegral) {
   return prototype;
 }
 
+JSIL.InitializeType = function (type) {
+  var typeName = type.__FullName__;
+
+  if (type.__TypeInitialized__ || false) {
+    // JSIL.Host.logWriteLine("Already initialized: " + typeName);
+    return;
+  }
+
+  // Not entirely correct, but prevents recursive type initialization
+  type.__TypeInitialized__ = true;
+
+  if (typeof (type._cctor) != "undefined") {
+    // JSIL.Host.logWriteLine("Running cctor: " + typeName);
+    type._cctor();
+  } else {
+    // JSIL.Host.logWriteLine("No cctor: " + typeName);
+  }
+
+  if (typeof (type.prototype) != "undefined")
+    Object.seal(type.prototype);
+
+  Object.seal(type);
+}
+
+JSIL.InitializeStructFields = function (instance, localName) {
+  var sf = instance.__StructFields__;
+
+  if (typeof (sf) == "object") {
+    for (var fieldName in sf) {
+      if (!sf.hasOwnProperty(fieldName))
+        continue;
+
+      var fieldType = sf[fieldName];
+      if ((typeof (fieldType) != "undefined") && (typeof (fieldType.constructor) != "undefined")) {
+        instance[fieldName] = new fieldType();
+      } else {
+        instance[fieldName] = new System.ValueType();
+        JSIL.Host.warning("Warning: The type of struct field ", localName + "." + fieldName, " is undefined.");
+      }
+    }
+  }
+};
+
 JSIL.MakeType = function (baseType, namespace, localName, fullName, isReferenceType) {
   if (typeof (namespace[localName]) != "undefined")
     throw new Error("Duplicate definition of type " + fullName);
 
+  var initType;
   var ctor = function () {
-    var sf = this.__StructFields__;
-    if (typeof (sf) == "object") {
-      for (var fieldName in sf) {
-        if (!sf.hasOwnProperty(fieldName))
-          continue;
+    JSIL.InitializeStructFields(this, localName);
 
-        var fieldType = sf[fieldName];
-        if ((typeof (fieldType) != "undefined") && (typeof (fieldType.constructor) != "undefined")) {
-          this[fieldName] = new fieldType();
-        } else {
-          this[fieldName] = new System.ValueType();
-          JSIL.Host.logWriteLine("Warning: The type of struct field '" + localName + "." + fieldName + "' is undefined.");
-        }
-      }
-    }
+    if (typeof (initType) != "undefined")
+      initType();
 
     try {
-      this._ctor.apply(this, arguments);
+      if (typeof (this._ctor) != "undefined")
+        this._ctor.apply(this, arguments);
     } catch (e) {
       if (JSIL.CheckType(e, JSIL.MissingOverloadException) && (arguments.length == 0))
         return;
-
-      throw e;
+      else
+        throw e;
     }
   };
+  ctor.prototype = JSIL.MakeProto(baseType, fullName, false);
+  ctor.prototype.__ShortName__ = localName;
   ctor.toString = function () {
-    return "<Type " + this.prototype.__TypeName__ + ">";
+    return "<Type " + fullName + ">";
   };
   ctor.Of = function (T) {
     return ctor;
   };
-  ctor.prototype = JSIL.MakeProto(baseType, fullName, false);
-  ctor.prototype.__ShortName__ = localName;
+  ctor.__IsReferenceType__ = isReferenceType;
+  ctor.__TypeInitialized__ = false;
+  ctor.__FullName__ = fullName;
+  initType = function () {
+    JSIL.InitializeType(ctor);
+  };
 
   namespace[localName] = ctor;
 };
@@ -216,6 +273,11 @@ JSIL.CheckDerivation = function (haystack, needle) {
 };
 
 JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
+  if (typeof (expectedType) == "undefined") {
+    JSIL.Host.warning("Warning: Comparing value against an undefined type: ", value);
+    return false;
+  }
+
   if (typeof (value) == "undefined")
     return false;
   else if (value === null)
@@ -230,7 +292,7 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
   }
 
   var ct = expectedType.CheckType;
-  if ((typeof (ct) != "undefined") && 
+  if ((typeof (ct) != "undefined") &&
       !Boolean(bypassCustomCheckMethod))
     return ct(value);
 
@@ -324,8 +386,10 @@ JSIL.DispatchOverload = function (name, args, overloads) {
       var expectedType = overloadArgs[j];
       var arg = args[j];
 
-      if (!JSIL.CheckType(arg, expectedType))
+      if (expectedType.__IsReferenceType__ && (arg === null)) {
+      } else if (!JSIL.CheckType(arg, expectedType)) {
         continue find_overload;
+      }
     }
 
     var overloadName = overloads[i][0];
@@ -348,7 +412,7 @@ JSIL.DispatchOverload = function (name, args, overloads) {
 JSIL.OverloadedMethod = function (type, name, overloads) {
   type[name] = function () {
     var args = Array.prototype.slice.call(arguments);
-    return JSIL.DispatchOverload.call(this, name, args, overloads);
+    return JSIL.DispatchOverload.call(this, type["__TypeName__"] + "." + name, args, overloads);
   };
 };
 
@@ -780,15 +844,15 @@ System.Exception.prototype.toString = function () {
     return System.String.Format("{0}: {1}", this.__TypeName__, this.Message);
 };
 
-System.InvalidCastException = function (message) {
-  this._ctor(message);
-};
-System.InvalidCastException.prototype = JSIL.MakeProto(System.Exception, "System.InvalidCastException", true);
+JSIL.MakeClass(System.Exception, System, "InvalidCastException", "System.InvalidCastException");
+JSIL.MakeClass(System.Exception, System, "InvalidOperationException", "System.InvalidOperationException");
 
 JSIL.MissingOverloadException = function (methodName, args) {
+  this.methodName = methodName;
+  this.args = Array.prototype.slice.call(args);
   this._ctor(System.String.Format(
     "No overload of method '{0}' matching the argument list '{1}' could be found.",
-    methodName, args
+    this.methodName, this.args
   ));
 };
 JSIL.MissingOverloadException.prototype = JSIL.MakeProto(System.Exception, "JSIL.MissingOverloadException", true);
@@ -904,10 +968,21 @@ JSIL.ArrayEnumerator.prototype.__ImplementInterface__(System.Collections.IEnumer
 JSIL.ArrayEnumerator.prototype.__ImplementInterface__(System.Collections.Generic.IEnumerator$b1);
 
 JSIL.MakeClass(System.Object, System.Threading, "Thread", "System.Threading.Thread");
+System.Threading.Thread._cctor = function () {
+  System.Threading.Thread.prototype.ManagedThreadId = 0;
+  System.Threading.Thread._currentThread = new System.Threading.Thread();
+};
+System.Threading.Thread.get_CurrentThread = function () {
+  JSIL.InitializeType(System.Threading.Thread);
+  return System.Threading.Thread._currentThread;
+};
 System.Threading.Thread.prototype._ctor = function () {
 };
-System.Threading.Thread.prototype.ManagedThreadId = 0;
-System.Threading.Thread.CurrentThread = new System.Threading.Thread();
+Object.defineProperty(
+  System.Threading.Thread, "CurrentThread", {
+    get: System.Threading.Thread.get_CurrentThread
+  }
+);
 
 JSIL.MakeClass(System.Object, System.Collections.Generic, "List$b1", "System.Collections.Generic.List`1");
 System.Collections.Generic.List$b1.Of = function (T) {
@@ -964,6 +1039,12 @@ System.Threading.Interlocked.CompareExchange = function (targetRef, value, compa
   } else {
     return currentValue;
   }
+};
+
+System.Threading.Monitor.Enter = function (obj) {
+};
+
+System.Threading.Monitor.Exit = function (obj) {
 };
 
 System.Random = function () {
@@ -1052,6 +1133,7 @@ System.Single = function (value) {
 System.Single.CheckType = function (value) {
   return (typeof (value) == "number");
 }
+System.Single.IsNaN = isNaN;
 System.Single.prototype = JSIL.MakeNumericProto(Number, "System.Single", false);
 
 System.Double = function (value) {
@@ -1060,6 +1142,7 @@ System.Double = function (value) {
 System.Double.CheckType = function (value) {
   return (typeof (value) == "number");
 }
+System.Double.IsNaN = isNaN;
 System.Double.prototype = JSIL.MakeNumericProto(Number, "System.Double", false);
 
 JSIL.MakeStruct(System, "Decimal", "System.Decimal");

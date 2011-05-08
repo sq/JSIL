@@ -15,21 +15,20 @@
     </canvas>
     
     <script type="text/javascript">
-    JSIL.Host = {
-      getCanvas: function (desiredWidth, desiredHeight) {
-        var canvas = document.getElementById("canvas");
+    JSIL.Host.getCanvas = function (desiredWidth, desiredHeight) {
+        var result = document.getElementById("canvas");
         canvas.width = desiredWidth;
         canvas.height = desiredHeight;
         return canvas;
-      },
-      logWrite: function (text) {
+    };
+    JSIL.Host.logWrite = function (text) {
         document.getElementById("output").value += text;
-      },
-      logWriteLine: function (text) {
+    };
+    JSIL.Host.logWriteLine = function (text) {
         document.getElementById("output").value += text + "\n";
-      }
     };
     
+    document.getElementById("output").value = "";
     document.getElementById("runButton").addEventListener(
       "click", function () { 
         document.getElementById("output").value = "";

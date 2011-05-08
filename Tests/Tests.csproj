@@ -157,6 +157,7 @@
     <None Include="SimpleTestCases\StructProperties.cs" />
     <None Include="SimpleTestCases\StructInitializers.cs" />
     <None Include="SimpleTestCases\InitializerOnSubStruct.cs" />
+    <None Include="SimpleTestCases\SelfTypedFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

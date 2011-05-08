@@ -290,6 +290,9 @@ namespace JSIL {
 
             foreach (var typedef in module.Types)
                 TranslateTypeDefinition(context, output, typedef);
+
+            foreach (var typedef in module.Types)
+                InitializeType(context, output, typedef);
         }
 
         protected string GetParent (TypeReference type) {
@@ -442,6 +445,27 @@ namespace JSIL {
             output.NewLine();
         }
 
+        protected void InitializeType (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef) {
+            if (IsIgnored(typedef))
+                return;
+
+            context.CurrentType = typedef;
+
+            foreach (var nestedTypedef in typedef.NestedTypes)
+                InitializeType(context, output, nestedTypedef);
+
+            if (typedef.IsInterface)
+                return;
+            else if (typedef.IsEnum)
+                return;
+
+            output.Identifier("JSIL.InitializeType", true);
+            output.LPar();
+            output.Identifier(typedef);
+            output.RPar();
+            output.Semicolon();
+        }
+
         protected void TranslateTypeDefinition (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef) {
             if (IsIgnored(typedef))
                 return;
@@ -457,24 +481,43 @@ namespace JSIL {
             if (info == null)
                 throw new InvalidOperationException();
 
-            var structFields = new List<FieldDefinition>();
+            MethodDefinition cctor = null;
 
-            foreach (var field in typedef.Fields) {
-                if (IsIgnored(field))
+            foreach (var method in typedef.Methods) {
+                if (method.Name == ".cctor") {
+                    cctor = method;
                     continue;
-
-                if (
-                    !field.HasConstant &&
-                    EmulateStructAssignment.IsStruct(field.FieldType) &&
-                    !field.IsStatic
-                ) {
-                    structFields.Add(field);
-                } else {
-                    EmitFieldDefault(context, output, field);
                 }
+
+                TranslateMethod(context, output, method);
             }
 
-            if (structFields.Count > 0) {
+            foreach (var methodGroup in info.MethodGroups)
+                TranslateMethodGroup(context, output, methodGroup);
+
+            foreach (var property in typedef.Properties)
+                TranslateProperty(context, output, property);
+
+            foreach (var iface in typedef.Interfaces) {
+                output.Identifier(typedef);
+                output.Dot();
+                output.Identifier("prototype");
+                output.Dot();
+                output.Identifier("__ImplementInterface__");
+                output.LPar();
+                output.Identifier(iface);
+                output.RPar();
+                output.Semicolon();
+            }
+
+            var structFields = 
+                (from field in typedef.Fields
+                where !IsIgnored(field) && !field.HasConstant &&
+                    EmulateStructAssignment.IsStruct(field.FieldType) &&
+                    !field.IsStatic
+                select field).ToArray();
+
+            if (structFields.Length > 0) {
                 output.Identifier(typedef);
                 output.Dot();
                 output.Identifier("prototype");
@@ -502,95 +545,12 @@ namespace JSIL {
                 output.Semicolon();
             }
 
-            foreach (var method in typedef.Methods)
-                TranslateMethod(context, output, method);
-
-            foreach (var methodGroup in info.MethodGroups)
-                TranslateMethodGroup(context, output, methodGroup);
-
-            foreach (var property in typedef.Properties)
-                TranslateProperty(context, output, property);
-
-            var cctor = (from m in typedef.Methods where m.Name == ".cctor" select m).FirstOrDefault();
-            if (cctor != null) {
-                output.Identifier(cctor);
-                output.LPar();
-                output.RPar();
-                output.Semicolon();
-            }
-
-            foreach (var iface in typedef.Interfaces) {
-                output.Identifier(typedef);
-                output.Dot();
-                output.Identifier("prototype");
-                output.Dot();
-                output.Identifier("__ImplementInterface__");
-                output.LPar();
-                output.Identifier(iface);
-                output.RPar();
-                output.Semicolon();
-            }
+            TranslateTypeStaticConstructor(context, output, typedef, cctor);
 
             output.NewLine();
 
             foreach (var nestedTypedef in typedef.NestedTypes)
                 TranslateTypeDefinition(context, output, nestedTypedef);
-
-            bool isStatic = typedef.IsAbstract && typedef.IsSealed;
-            if (!isStatic) {
-                output.Identifier("Object.seal", true);
-                output.LPar();
-                output.Identifier(typedef);
-                output.Dot();
-                output.Identifier("prototype");
-                output.RPar();
-                output.Semicolon();
-            }
-
-            output.Identifier("Object.seal", true);
-            output.LPar();
-            output.Identifier(typedef);
-            output.RPar();
-            output.Semicolon();
-        }
-
-        protected void EmitFieldDefault (DecompilerContext context, JavascriptFormatter output, FieldDefinition field) {
-            if (field.HasConstant) {
-                output.Identifier("Object.defineProperty", true);
-                output.LPar();
-            }
-
-            output.Identifier(field.DeclaringType);
-
-            if (!field.IsStatic) {
-                output.Dot();
-                output.Identifier("prototype");
-            }
-
-            if (field.HasConstant) {
-                output.Comma();
-                output.Value(Util.EscapeIdentifier(field.Name));
-                output.Comma();
-
-                output.Token("{ value: ");
-            } else {
-                output.Dot();
-                output.Identifier(field.Name);
-                output.Token(" = ");
-            }
-
-            if (field.HasConstant) {
-                output.Value(field.Constant as dynamic);
-            } else {
-                output.DefaultValue(field.FieldType);
-            }
-
-            if (field.HasConstant) {
-                output.Token(" }");
-                output.RPar();
-            }
-
-            output.Semicolon();
         }
 
         protected void TranslateMethodGroup (DecompilerContext context, JavascriptFormatter output, MethodGroupInfo methodGroup) {
@@ -640,7 +600,7 @@ namespace JSIL {
             output.Semicolon();
         }
 
-        public JSFunctionExpression TranslateMethod (DecompilerContext context, MethodDefinition method, JavascriptFormatter output = null) {
+        internal JSFunctionExpression TranslateMethod (DecompilerContext context, MethodDefinition method, Action<JSFunctionExpression> bodyTransformer = null) {
             var oldMethod = context.CurrentMethod;
             try {
                 context.CurrentMethod = method;
@@ -712,11 +672,8 @@ namespace JSIL {
                         context.CurrentModule.TypeSystem
                     ).Visit(function);
 
-                if (output != null) {
-                    var emitter = new JavascriptAstEmitter(output, translator.JSIL, context.CurrentModule.TypeSystem);
-                    emitter.Visit(function);
-                    output.Semicolon();
-                }
+                if (bodyTransformer != null)
+                    bodyTransformer(function);
 
                 if (method.Body.Instructions.Count > LargeMethodThreshold)
                     this.FinishedDecompilingMethod(method.FullName);
@@ -727,7 +684,82 @@ namespace JSIL {
             }
         }
 
-        protected void TranslateMethod (DecompilerContext context, JavascriptFormatter output, MethodDefinition method) {
+        protected JSExpression TranslateField (FieldDefinition field) {
+            JSDotExpression target;
+            
+            if (field.IsStatic)
+                target = JSDotExpression.New(
+                    new JSType(field.DeclaringType), new JSField(field)
+                );
+            else
+                target = JSDotExpression.New(
+                    new JSType(field.DeclaringType), new JSIdentifier("prototype"), new JSField(field)
+                );
+
+            if (field.HasConstant) {
+                return new JSInvocationExpression(
+                    JSDotExpression.New(
+                        new JSIdentifier("Object"), new JSIdentifier("defineProperty")
+                    ),
+                    target.Target, target.Member.ToLiteral(),
+                    new JSObjectExpression(new JSPairExpression(
+                        JSLiteral.New("value"),
+                        JSLiteral.New(field.Constant as dynamic)
+                    ))
+                );
+            } else {
+                return new JSBinaryOperatorExpression(
+                    JSOperator.Assignment, target,
+                    new JSDefaultValueLiteral(field.FieldType), 
+                    field.FieldType
+                );
+            }
+        }
+
+        protected void TranslateTypeStaticConstructor (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef, MethodDefinition cctor) {
+            var typeSystem = context.CurrentModule.TypeSystem;
+            var fieldsToEmit =
+                (from f in typedef.Fields
+                where f.IsStatic
+                select f).ToArray();
+
+            // We initialize all static fields in the cctor to avoid ordering issues
+            Action<JSFunctionExpression> fixupCctor = (f) => {
+                int insertPosition = 0;
+
+                foreach (var field in fieldsToEmit) {
+                    var expr = TranslateField(field);
+                    if (expr != null) {
+                        var stmt = new JSExpressionStatement(expr);
+                        f.Body.Statements.Insert(insertPosition++, stmt);
+                    }
+                }
+            };
+
+            // Instance field defaults are initialized inline
+            var emitter = new JavascriptAstEmitter(output, new JSILIdentifier(typeSystem), typeSystem);
+            foreach (var f in typedef.Fields) {
+                if (f.IsStatic)
+                    continue;
+                if (EmulateStructAssignment.IsStruct(f.FieldType))
+                    continue;
+
+                var expr = TranslateField(f);
+                if (expr != null)
+                    emitter.Visit(new JSExpressionStatement(expr));
+            }
+
+            if ((cctor != null) && !IsIgnored(cctor)) {
+                TranslateMethod(context, output, cctor, fixupCctor);
+            } else if (fieldsToEmit.Length > 0) {
+                var fakeCctor = new MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static, typeSystem.Void);
+                fakeCctor.DeclaringType = typedef;
+
+                TranslateMethod(context, output, fakeCctor, fixupCctor);
+            }
+        }
+
+        protected void TranslateMethod (DecompilerContext context, JavascriptFormatter output, MethodDefinition method, Action<JSFunctionExpression> bodyTransformer = null) {
             if (IsIgnored(method))
                 return;
             if (!method.HasBody)
@@ -758,7 +790,19 @@ namespace JSIL {
 
             output.Token(" = ");
 
-            var function = TranslateMethod(context, method, output);
+            var emitter = new JavascriptAstEmitter(
+                output, new JSILIdentifier(context.CurrentModule.TypeSystem),
+                context.CurrentModule.TypeSystem
+            );
+
+            var function = TranslateMethod(context, method, (f) => {
+                if (bodyTransformer != null)
+                    bodyTransformer(f);
+
+                emitter.Visit(f);
+                output.Semicolon();
+            });
+
             if (function == null) {
                 output.Identifier("JSIL.UntranslatableFunction", true);
                 output.LPar();
