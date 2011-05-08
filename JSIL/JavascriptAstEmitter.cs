@@ -197,7 +197,17 @@ namespace JSIL {
         }
 
         public void VisitNode (JSDotExpression dot) {
+            var parens = (dot.Target is JSNumberLiteral) ||
+                (dot.Target is JSIntegerLiteral);
+
+            if (parens)
+                Output.LPar();
+
             Visit(dot.Target);
+
+            if (parens)
+                Output.RPar();
+
             Output.Dot();
             Visit(dot.Member);
         }

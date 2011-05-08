@@ -162,6 +162,7 @@
     <None Include="SpecialTestCases\NestedInitialization.cs" />
     <None Include="SimpleTestCases\CollectionInitializers.cs" />
     <None Include="SimpleTestCases\StructThisAssignment.cs" />
+    <None Include="SimpleTestCases\ValueTypeMethods.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
