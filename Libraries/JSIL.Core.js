@@ -150,12 +150,10 @@ JSIL.TypeObject.Of = function (T) {
   return this.__Self__;
 };
 JSIL.TypeObject.toString = function () {
-  return "<Type " + this.__FullName__ + ">";
+  return "<Type " + JSIL.GetTypeName(this) + ">";
 };
 
 JSIL.InitializeType = function (type) {
-  var typeName = type.__FullName__;
-
   if (type.__TypeInitialized__ || false) {
     return;
   }
@@ -190,7 +188,7 @@ JSIL.InitializeStructFields = function (instance, typeObject) {
         instance[fieldName] = new fieldType();
       } else {
         instance[fieldName] = new System.ValueType();
-        JSIL.Host.error("Warning: The type of field ", typeObject.__FullName__ + "." + fieldName, " is undefined.");
+        JSIL.Host.error("Warning: The type of field ", JSIL.GetTypeName(typeObject) + "." + fieldName, " is undefined.");
       }
     }
   }
@@ -427,8 +425,10 @@ JSIL.GetTypeName = function (value) {
   if (typeof (proto) == "undefined")
     proto = value.__proto__;
 
-  if (typeof (proto) != "undefined")
+  if ((typeof (proto) != "undefined") && (typeof (proto.__FullName__) != "undefined"))
     result = proto.__FullName__;
+  else if (typeof (value.__FullName__) != "undefined")
+    result = value.__FullName__;
 
   if (typeof (result) == "undefined")
     result = typeof (value);
@@ -517,7 +517,7 @@ JSIL.DispatchOverload = function (name, args, overloads) {
 JSIL.OverloadedMethod = function (type, name, overloads) {
   type[name] = function () {
     var args = Array.prototype.slice.call(arguments);
-    return JSIL.DispatchOverload.call(this, type.__FullName__ + "." + name, args, overloads);
+    return JSIL.DispatchOverload.call(this, JSIL.GetTypeName(type) + "." + name, args, overloads);
   };
 };
 
@@ -532,12 +532,11 @@ System.Object.prototype.MemberwiseClone = function () {
   return result;
 };
 System.Object.prototype.__Initialize__ = function (initializer) {
-  var collectionInitializer = "JSIL.CollectionInitializer";
-  if (initializer.__FullName__ == collectionInitializer) {
-    initializer.Apply(this);
-    return this;
-  } else if (JSIL.IsArray(initializer)) {
+  if (JSIL.IsArray(initializer)) {
     JSIL.CollectionInitializer.prototype.Apply.call(initializer, this);
+    return this;
+  } else if (JSIL.CheckType(initializer, JSIL.CollectionInitializer)) {
+    initializer.Apply(this);
     return this;
   }
 
@@ -547,7 +546,7 @@ System.Object.prototype.__Initialize__ = function (initializer) {
 
     var value = initializer[key];
 
-    if (value.__FullName__ == collectionInitializer) {
+    if (JSIL.CheckType(value, JSIL.CollectionInitializer)) {
       value.Apply(this[key]);
     } else {
       this[key] = value;
@@ -560,7 +559,7 @@ System.Object.prototype.__LockCount__ = 0;
 System.Object.prototype.__StructFields__ = {};
 System.Object.prototype._ctor = function () {};
 System.Object.prototype.toString = function ToString() {
-  return this.__FullName__;
+  return JSIL.GetTypeName(this);
 };
 
 JSIL.MakeClass(System.Object, JSIL, "Reference", "JSIL.Reference");
@@ -573,11 +572,12 @@ JSIL.Reference.Types = {};
 JSIL.Reference.Of = function (type) {
   if (typeof (type) == "undefined")
     throw new Error("Undefined reference type");
-
-  var compositeType = JSIL.Reference.Types[type.prototype.__FullName__];
+  
+  var elementName = JSIL.GetTypeName(type);
+  var compositeType = JSIL.Reference.Types[elementName];
 
   if (typeof (compositeType) == "undefined") {
-    var typeName = "ref " + type.prototype.__FullName__;
+    var typeName = "ref " + elementName;
     compositeType = JSIL.CloneObject(JSIL.Reference);
     compositeType.CheckType = function (value) {
       var isReference = JSIL.CheckType(value, JSIL.Reference, true);
@@ -585,7 +585,8 @@ JSIL.Reference.Of = function (type) {
       return isReference && isRightType;
     };
     compositeType.prototype = JSIL.MakeProto(JSIL.Reference, typeName, true);
-    JSIL.Reference.Types[type.prototype.__FullName__] = compositeType;
+    compositeType.__FullName__ = typeName;
+    JSIL.Reference.Types[elementName] = compositeType;
   }
 
   return compositeType;
@@ -693,13 +694,15 @@ System.Array.Of = function (type) {
   if (typeof (type) == "undefined")
     throw new Error("Attempting to create an array of an undefined type");
 
-  var compositeType = System.Array.Types[type.prototype.__FullName__];
+  var elementName = JSIL.GetTypeName(type);
+  var compositeType = System.Array.Types[elementName];
 
   if (typeof (compositeType) == "undefined") {
-    var typeName = type.prototype.__FullName__ + "[]";
+    var typeName = elementName + "[]";
     compositeType = JSIL.CloneObject(System.Array);
+    compositeType.__FullName__ = typeName;
     compositeType.prototype = JSIL.MakeProto(System.Array, typeName, true);
-    System.Array.Types[type.prototype.__FullName__] = compositeType;
+    System.Array.Types[elementName] = compositeType;
   }
 
   return compositeType;
@@ -860,7 +863,7 @@ JSIL.Delegate.New = function (typeName, object, method) {
     method = object;
     object = null;
 
-    if (method.__FullName__ == typeName)
+    if (JSIL.GetTypeName(method) == typeName)
       return method;
   }
 
@@ -911,9 +914,9 @@ System.Exception.prototype._ctor = function (message) {
 }
 System.Exception.prototype.toString = function () {
   if (this.Message === null)
-    return System.String.Format("{0}: Exception of type '{0}' was thrown.", this.__FullName__);
+    return System.String.Format("{0}: Exception of type '{0}' was thrown.", JSIL.GetTypeName(this));
   else
-    return System.String.Format("{0}: {1}", this.__FullName__, this.Message);
+    return System.String.Format("{0}: {1}", JSIL.GetTypeName(this), this.Message);
 };
 
 JSIL.MakeClass(System.Exception, System, "InvalidCastException", "System.InvalidCastException");
