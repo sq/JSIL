@@ -98,7 +98,7 @@ namespace JSIL.Tests {
 
             TestSourceFolder = Path.GetFullPath(Path.Combine(assemblyPath, @"..\"));
             JSShellPath = Path.GetFullPath(Path.Combine(assemblyPath, @"..\..\Upstream\SpiderMonkey\js.exe"));
-            BootstrapJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, "bootstrap.js"));
+            BootstrapJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.Core.js"));
         }
 
         public ComparisonTest (string filename) {

@@ -16,7 +16,6 @@ JSIL.DeclareNamespace(System, "Delegate");
 JSIL.DeclareNamespace(System, "Enum");
 JSIL.DeclareNamespace(System, "MulticastDelegate");
 JSIL.DeclareNamespace(System, "Console");
-JSIL.DeclareNamespace(System, "Drawing");
 JSIL.DeclareNamespace(System, "Threading");
 JSIL.DeclareNamespace(System.Threading, "Interlocked");
 
@@ -27,6 +26,33 @@ JSIL.DeclareNamespace(JSIL, "MulticastDelegate");
 
 // Hack
 JSIL.DeclareNamespace(this, "Property");
+
+// You can change these fields, but you shouldn't need to in practice
+JSIL.DeclareNamespace(JSIL, "HostType");
+JSIL.HostType.IsBrowser = (typeof (window) !== "undefined") && (typeof (navigator) !== "undefined");
+
+// Redefine this class at runtime or override its members to change the behavior of JSIL builtins.
+JSIL.DeclareNamespace(JSIL, "Host");
+
+JSIL.Host.getCanvas = function () {
+  throw new Error("No canvas implementation");
+};
+JSIL.Host.logWrite = function (text) {
+  if (typeof (console) !== "undefined")
+    console.log(text);
+  else if (JSIL.HostType.IsBrowser)
+    window.alert(text);
+  else
+    putstr(text);
+};
+JSIL.Host.logWriteLine = function (text) {
+  if (typeof (console) !== "undefined")
+    console.log(text);
+  else if (JSIL.HostType.IsBrowser)
+    window.alert(text);
+  else
+    print(text);
+};
 
 JSIL.UntranslatableNode = function (nodeType) {
   throw new Error("An ILAst node of type " + nodeType + " could not be translated.");
@@ -736,10 +762,10 @@ System.InvalidCastException = function (message) {
 System.InvalidCastException.prototype = JSIL.MakeProto(System.Exception, "System.InvalidCastException", true);
 
 System.Console.WriteLine = function () {
-  print(System.String.Format.apply(null, arguments));
+  JSIL.Host.logWriteLine(System.String.Format.apply(null, arguments));
 };
 System.Console.Write = function () {
-  putstr(System.String.Format.apply(null, arguments));
+  JSIL.Host.logWrite(System.String.Format.apply(null, arguments));
 };
 
 String.prototype.Split = function (separators) {
@@ -895,62 +921,6 @@ System.Collections.Generic.List$b1.Enumerator.prototype._ctor = function (list) 
     this._length = list.Count;
   }
 }
-
-JSIL.MakeClass(System.Object, System.Drawing, "Bitmap", "System.Drawing.Bitmap");
-System.Drawing.Bitmap.prototype._ctor = function (width, height) {
-  this.Width = width;
-  this.Height = height;
-  this.Pixels = new Array(width * height);
-}
-System.Drawing.Bitmap.prototype.SetPixel = function (x, y, color) {
-  if ((x < 0) || (y < 0) || (x >= this.Width) || (y >= this.Height))
-    throw new Error("Coordinates out of bounds");
-
-  this.Pixels[(y * this.Width) + x] = color;
-}
-System.Drawing.Bitmap.prototype.Save = function (filename) {
-}
-
-JSIL.MakeStruct(System.Drawing, "Color", "System.Drawing.Color");
-System.Drawing.Color.prototype.A = 0;
-System.Drawing.Color.prototype.R = 0;
-System.Drawing.Color.prototype.G = 0;
-System.Drawing.Color.prototype.B = 0;
-System.Drawing.Color.prototype.Name = null;
-System.Drawing.Color.prototype._ctor = function (a, r, g, b, name) {
-  this.A = a;
-  this.R = r;
-  this.G = g;
-  this.B = b;
-  this.Name = name;
-}
-System.Drawing.Color.prototype.toString = function () {
-  if ((typeof (this.Name) != "undefined") && (this.Name != null))
-    return this.Name;
-  else
-    return System.String.Format("Color({0}, {1}, {2}, {3})", this.A, this.R, this.G, this.B);
-}
-System.Drawing.Color.prototype.MemberwiseClone = function () {
-  if ((typeof (this.Name) != "undefined") && (this.Name != null)) {
-    return this;
-  } else {
-    return new System.Drawing.Color(this.A, this.R, this.G, this.B, this.Name);
-  }
-}
-System.Drawing.Color.FromArgb = function () {
-  if (arguments.length == 3) {
-    return new System.Drawing.Color(255, arguments[0], arguments[1], arguments[2]);
-  } else if (arguments.length == 4) {
-    return new System.Drawing.Color(arguments[0], arguments[1], arguments[2], arguments[3]);
-  } else {
-    throw new Error("Expected (r, g, b) or (a, r, g, b)");
-  }
-};
-
-System.Drawing.Color.Black = new System.Drawing.Color(0xFF, 0x0, 0x0, 0x0, "Black");
-System.Drawing.Color.OldLace = new System.Drawing.Color(0xFF, 0xFD, 0xF5, 0xE6, "OldLace");
-System.Drawing.Color.BlueViolet = new System.Drawing.Color(0xFF, 0x8A, 0x2B, 0xE2, "BlueViolet");
-System.Drawing.Color.Aquamarine = new System.Drawing.Color(0xFF, 0x7F, 0xFF, 0xD4, "Aquamarine");
 
 System.Threading.Interlocked.CompareExchange = function (targetRef, value, comparand) {
   var currentValue = targetRef.value;

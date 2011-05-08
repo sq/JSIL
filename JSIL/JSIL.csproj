@@ -101,7 +101,19 @@
       <Name>ICSharpCode.NRefactory</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <None Include="..\Libraries\JSIL.Core.js">
+      <Link>JS Libraries\JSIL.Core.js</Link>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\Libraries\JSIL.XNA.js">
+      <Link>JS Libraries\JSIL.XNA.js</Link>
+    </Content>
+    <Content Include="..\Libraries\System.Drawing.js">
+      <Link>JS Libraries\System.Drawing.js</Link>
+    </Content>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
