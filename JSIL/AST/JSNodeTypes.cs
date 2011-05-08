@@ -882,6 +882,10 @@ namespace JSIL.Ast {
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             return typeSystem.Void;
         }
+
+        public override bool Equals (object obj) {
+            return EqualsImpl(obj, true);
+        }
     }
 
     public class JSUntranslatableStatement : JSNullStatement {
@@ -905,6 +909,16 @@ namespace JSIL.Ast {
 
         public override string ToString () {
             return String.Format("Untranslatable Expression {0}", Type);
+        }
+
+        public override bool Equals (object obj) {
+            var rhs = obj as JSUntranslatableExpression;
+            if (rhs != null) {
+                if (!Object.Equals(Type, rhs.Type))
+                    return false;
+            }
+
+            return EqualsImpl(obj, true);
         }
     }
 
