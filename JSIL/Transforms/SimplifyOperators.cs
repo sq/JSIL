@@ -80,6 +80,16 @@ namespace JSIL.Transforms {
                     (method.Method.Name == "Invoke")
                 ) {
                     ie.ReplaceChild(target, target.Target);
+                } else if (
+                    (method != null) &&
+                    (method.Method.DeclaringType.FullName == "System.Type") &&
+                    (method.Method.Name == "GetTypeFromHandle")
+                ) {
+                    var typeObj = ie.Arguments.FirstOrDefault();
+                    ParentNode.ReplaceChild(ie, typeObj);
+
+                    Visit(typeObj);
+                    return;
                 }
             }
 

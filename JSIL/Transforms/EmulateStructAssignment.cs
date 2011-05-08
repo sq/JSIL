@@ -36,6 +36,9 @@ namespace JSIL.Transforms {
         }
 
         protected bool IsCopyNeeded (JSExpression value) {
+            if (value.IsNull)
+                return false;
+
             var valueType = value.GetExpectedType(TypeSystem);
 
             if (!IsStruct(valueType))

@@ -92,6 +92,21 @@ namespace JSIL {
                 ReturnType = null;
         }
 
+        protected TypeReference UnwrapType (JSExpression expression) {
+            var type = expression as JSType;
+            if (type != null)
+                return type.Type;
+
+            var invocation = expression as JSInvocationExpression;
+            if (invocation != null) {
+                type = invocation.Arguments.FirstOrDefault() as JSType;
+                if (type != null)
+                    return type.Type;
+            }
+
+            throw new NotImplementedException("Unrecognized type expression");
+        }
+
         public abstract JSExpression Translate (ILBlockTranslator translator, JSExpression[] arguments);
 
         public CSharpBinderFlags BinderFlags {
@@ -119,7 +134,7 @@ namespace JSIL {
 
             public TypeReference UsageContext {
                 get {
-                    return ((JSType)Arguments[3]).Type;
+                    return UnwrapType(Arguments[3]);
                 }
             }
 
@@ -153,7 +168,7 @@ namespace JSIL {
 
             public TypeReference UsageContext {
                 get {
-                    return ((JSType)Arguments[1]).Type;
+                    return UnwrapType(Arguments[1]);
                 }
             }
 
@@ -190,7 +205,7 @@ namespace JSIL {
 
             public TypeReference UsageContext {
                 get {
-                    return ((JSType)Arguments[2]).Type;
+                    return UnwrapType(Arguments[2]);
                 }
             }
 
@@ -246,7 +261,7 @@ namespace JSIL {
 
             public TypeReference UsageContext {
                 get {
-                    return ((JSType)Arguments[2]).Type;
+                    return UnwrapType(Arguments[2]);
                 }
             }
 
@@ -356,13 +371,13 @@ namespace JSIL {
 
             public TypeReference TargetType {
                 get {
-                    return ((JSType)Arguments[1]).Type;
+                    return UnwrapType(Arguments[1]);
                 }
             }
 
             public TypeReference UsageContext {
                 get {
-                    return ((JSType)Arguments[2]).Type;
+                    return UnwrapType(Arguments[2]);
                 }
             }
 
@@ -387,7 +402,7 @@ namespace JSIL {
 
             public TypeReference UsageContext {
                 get {
-                    return ((JSType)Arguments[2]).Type;
+                    return UnwrapType(Arguments[2]);
                 }
             }
 
@@ -424,7 +439,7 @@ namespace JSIL {
 
             public TypeReference UsageContext {
                 get {
-                    return ((JSType)Arguments[2]).Type;
+                    return UnwrapType(Arguments[2]);
                 }
             }
 
@@ -459,7 +474,7 @@ namespace JSIL {
 
             public TypeReference UsageContext {
                 get {
-                    return ((JSType)Arguments[1]).Type;
+                    return UnwrapType(Arguments[1]);
                 }
             }
 
@@ -491,7 +506,7 @@ namespace JSIL {
 
             public TypeReference UsageContext {
                 get {
-                    return ((JSType)Arguments[1]).Type;
+                    return UnwrapType(Arguments[1]);
                 }
             }
 

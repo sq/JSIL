@@ -1563,17 +1563,6 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Call (ILExpression node, MethodReference method) {
-            // This translates the MSIL equivalent of 'typeof(T)' into a direct reference to the specified type
-            if (method.FullName == "System.Type System.Type::GetTypeFromHandle(System.RuntimeTypeHandle)") {
-                var translated = TranslateNode(node.Arguments[0]);
-
-                if ((translated != null) && (!translated.IsNull)) {
-                    return translated;
-                } else {
-                    return new JSUntranslatableExpression(node);
-                }
-            }
-
             var methodDef = method.Resolve();
             var thisType = DereferenceType(ThisMethod.DeclaringType);
             var declaringType = DereferenceType(method.DeclaringType);
