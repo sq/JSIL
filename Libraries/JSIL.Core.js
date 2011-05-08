@@ -153,7 +153,7 @@ JSIL.InitializeType = function (type) {
     try {
       type._cctor();
     } catch (e) {
-      JSIL.Host.error(e, "Static initializer for type ", typeName, " threw an exception");
+      JSIL.Host.error(e, "Static initializer for type ", type, " threw an exception");
     }
   }
 
@@ -295,6 +295,59 @@ JSIL.MakeEnum = function (namespace, localName, fullName, members, isFlagsEnum) 
   Object.freeze(result);
 
   namespace[localName] = result;
+};
+
+JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
+  var interfaces = type.prototype.__Interfaces__;
+  if (typeof (interfaces) == "undefined") {
+    type.prototype.__Interfaces__ = interfaces = [];
+  }
+
+  __interfaces__:
+  for (var i = 0, l = interfacesToImplement.length; i < l; i++) {
+    var iface = interfacesToImplement[i];
+    if (typeof (iface) == "undefined") {
+      JSIL.Host.warning("Type ", type, " implements an undefined interface.");
+      continue __interfaces__;
+    }
+
+    // In cases where an interface method (IInterface_MethodName) is implemented by a regular method
+    //  (MethodName), we make a copy of the regular method with the name of the interface method, so
+    //  that attempts to directly invoke the interface method will still work.
+    var members = iface.__Members__;
+    var proto = type.prototype;
+
+    __members__:
+    for (var key in members) {
+      if (!members.hasOwnProperty(key))
+        continue __members__;
+
+      var memberType = members[key];
+      var qualifiedName = iface.__ShortName__ + "_" + key;
+
+      if (!proto.hasOwnProperty(key) && !proto.hasOwnProperty(qualifiedName)) {
+        JSIL.Host.warning("Type ", type, " is missing implementation of interface member ", qualifiedName);
+        continue __members__;
+      }
+
+      if (!proto.hasOwnProperty(qualifiedName)) {
+        if (memberType === Function)
+          proto[qualifiedName] = proto[key];
+        else if (memberType === Property) {
+          var descriptor = Object.getOwnPropertyDescriptor(proto, key);
+
+          if ((typeof (descriptor) == "undefined") || (descriptor == null)) {
+            JSIL.Host.warning("Type ", type, " is missing implementation of interface property ", qualifiedName);
+            continue __members__;
+          }
+
+          Object.defineProperty(proto, qualifiedName, descriptor);
+        }
+      }
+    }
+
+    interfaces.push(iface);
+  }
 };
 
 JSIL.CheckDerivation = function (haystack, needle) {
@@ -454,49 +507,9 @@ JSIL.OverloadedMethod = function (type, name, overloads) {
   };
 };
 
-System.Object = function () { };
+JSIL.MakeClass(Object, System, "Object", "System.Object");
 System.Object.CheckType = function (value) {
   return true;
-}
-System.Object.prototype = JSIL.MakeProto(Object, "System.Object", true);
-System.Object.prototype.__ImplementInterface__ = function (iface) {
-  var interfaces = this.__Interfaces__;
-  if (typeof (interfaces) == "undefined") {
-    this.__Interfaces__ = interfaces = [];
-  }
-
-  if (typeof (iface) == "undefined")
-    throw new Error("Implementing undefined interface");
-
-  // In cases where an interface method (IInterface_MethodName) is implemented by a regular method
-  //  (MethodName), we make a copy of the regular method with the name of the interface method, so
-  //  that attempts to directly invoke the interface method will still work.
-  var members = iface.__Members__;
-  for (var key in members) {
-    if (!members.hasOwnProperty(key))
-      continue;
-
-    var memberType = members[key];
-    var qualifiedName = iface.__ShortName__ + "_" + key;
-
-    if (!this.hasOwnProperty(key) && !this.hasOwnProperty(qualifiedName))
-      throw new Error("Missing implementation of interface member " + qualifiedName);
-
-    if (!this.hasOwnProperty(qualifiedName)) {
-      if (memberType === Function)
-        this[qualifiedName] = this[key];
-      else if (memberType === Property) {
-        var descriptor = Object.getOwnPropertyDescriptor(this, key);
-
-        if ((typeof (descriptor) == "undefined") || (descriptor == null))
-          throw new Error("Cannot find descriptor for property '" + key + "'");
-
-        Object.defineProperty(this, qualifiedName, descriptor);
-      }
-    }
-  }
-
-  interfaces.push(iface);
 }
 System.Object.prototype.MemberwiseClone = function () {
   var result = Object.create(Object.getPrototypeOf(this));
@@ -531,8 +544,7 @@ System.Object.prototype.__Initialize__ = function (initializer) {
 };
 System.Object.prototype.__LockCount__ = 0;
 System.Object.prototype.__StructFields__ = {};
-System.Object.prototype._ctor = function () {
-};
+System.Object.prototype._ctor = function () {};
 System.Object.prototype.toString = function ToString() {
   return this.__FullName__;
 };
@@ -1007,9 +1019,9 @@ Object.defineProperty(
     JSIL.ArrayEnumerator.prototype, "Current",
     { get: JSIL.ArrayEnumerator.prototype.get_Current }
 );
-JSIL.ArrayEnumerator.prototype.__ImplementInterface__(System.IDisposable);
-JSIL.ArrayEnumerator.prototype.__ImplementInterface__(System.Collections.IEnumerator);
-JSIL.ArrayEnumerator.prototype.__ImplementInterface__(System.Collections.Generic.IEnumerator$b1);
+JSIL.ImplementInterfaces(JSIL.ArrayEnumerator, [
+  System.IDisposable, System.Collections.IEnumerator, System.Collections.Generic.IEnumerator$b1
+]);
 
 JSIL.MakeClass(System.Object, System.Threading, "Thread", "System.Threading.Thread");
 System.Threading.Thread._cctor = function () {
@@ -1055,8 +1067,9 @@ System.Collections.Generic.List$b1.prototype.Add = function (item) {
 System.Collections.Generic.List$b1.prototype.GetEnumerator = function () {
   return new System.Collections.Generic.List$b1.Enumerator(this);
 };
-System.Collections.Generic.List$b1.prototype.__ImplementInterface__(System.Collections.IEnumerable);
-System.Collections.Generic.List$b1.prototype.__ImplementInterface__(System.Collections.Generic.IEnumerable$b1);
+JSIL.ImplementInterfaces(System.Collections.Generic.List$b1, [
+  System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
+]);
 
 System.Collections.ArrayList = System.Collections.Generic.List$b1.Of(System.Object);
 

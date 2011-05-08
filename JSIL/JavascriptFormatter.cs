@@ -199,9 +199,17 @@ namespace JSIL.Internal {
         }
 
         protected void TypeIdentifier (TypeReference type, bool includeParens) {
-            PlainTextOutput.Write(Util.EscapeIdentifier(
-                type.FullName, false
-            ));
+            if (type.IsGenericParameter) {
+                Comment(type.FullName);
+                if (type.IsValueType)
+                    Identifier("System.ValueType", true);
+                else
+                    Identifier("System.Object", true);
+            } else {
+                PlainTextOutput.Write(Util.EscapeIdentifier(
+                    type.FullName, false
+                ));
+            }
         }
 
         protected void TypeIdentifier (ByReferenceType type, bool includeParens) {
@@ -234,27 +242,8 @@ namespace JSIL.Internal {
             }
         }
 
-        // TODO: Figure out whether generic argument information can be used
         protected void TypeIdentifier (GenericInstanceType type, bool includeParens) {
-            /*
-            if (includeParens)
-                LPar();
-             */
-
             Identifier(type.ElementType);
-
-            Comment(
-                "<{0}>", String.Join(", ", 
-                    (from a in type.GenericArguments select String.Concat(a.Name)).ToArray()
-                )
-            );
-
-            /*
-            if (includeParens) {
-                RPar();
-                Space();
-            }
-             */
         }
 
         public void Identifier (MethodReference method, bool fullyQualified = true) {

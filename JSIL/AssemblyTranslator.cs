@@ -516,14 +516,20 @@ namespace JSIL {
             foreach (var property in typedef.Properties)
                 TranslateProperty(context, output, property);
 
-            foreach (var iface in typedef.Interfaces) {
-                output.Identifier(typedef);
-                output.Dot();
-                output.Identifier("prototype");
-                output.Dot();
-                output.Identifier("__ImplementInterface__");
+            var interfaces = (from i in typedef.Interfaces
+                              where !IsIgnored(i)
+                              select i).ToArray();
+
+            if (interfaces.Length > 0) {
+                output.Identifier("JSIL.ImplementInterfaces", true);
                 output.LPar();
-                output.Identifier(iface);
+                output.Identifier(typedef);
+                output.Comma();
+                output.OpenBracket(true);
+                output.NewLine();
+                output.CommaSeparatedList(interfaces, ListValueType.Identifier);
+                output.NewLine();
+                output.CloseBracket(true);
                 output.RPar();
                 output.Semicolon();
             }
