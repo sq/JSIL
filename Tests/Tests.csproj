@@ -163,6 +163,7 @@
     <None Include="SimpleTestCases\CollectionInitializers.cs" />
     <None Include="SimpleTestCases\StructThisAssignment.cs" />
     <None Include="SimpleTestCases\ValueTypeMethods.cs" />
+    <None Include="SimpleTestCases\GetType.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
