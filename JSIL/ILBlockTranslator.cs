@@ -1550,16 +1550,27 @@ namespace JSIL {
             );
         }
 
+        protected JSExpression Translate_Ldtoken (ILExpression node, TypeReference type) {
+            return new JSType(type);
+        }
+
+        protected JSExpression Translate_Ldtoken (ILExpression node, MethodReference method) {
+            return new JSMethod(method);
+        }
+
+        protected JSExpression Translate_Ldtoken (ILExpression node, FieldReference field) {
+            return new JSField(field);
+        }
+
         protected JSExpression Translate_Call (ILExpression node, MethodReference method) {
             // This translates the MSIL equivalent of 'typeof(T)' into a direct reference to the specified type
             if (method.FullName == "System.Type System.Type::GetTypeFromHandle(System.RuntimeTypeHandle)") {
-                var tr = node.Arguments[0].Operand as TypeReference;
-                if (tr != null) {
-                    return new JSType(
-                        (TypeReference)node.Arguments[0].Operand
-                    );
+                var translated = TranslateNode(node.Arguments[0]);
+
+                if ((translated != null) && (!translated.IsNull)) {
+                    return translated;
                 } else {
-                    return new JSUntranslatableExpression(node.Arguments[0]);
+                    return new JSUntranslatableExpression(node);
                 }
             }
 
