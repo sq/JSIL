@@ -120,11 +120,25 @@ JSIL.MakeProto = function (baseType, typeName, isReferenceType) {
   return prototype;
 };
 
+JSIL.MakeProperty = function (target, name, getter, setter) {
+  var descriptor = {
+    configurable: true,
+    enumerable: true
+  };
+
+  if (typeof (getter) == "function")
+    descriptor["get"] = getter;
+  if (typeof (setter) == "function")
+    descriptor["set"] = setter;
+
+  Object.defineProperty(target, name, descriptor);
+};
+
 JSIL.MakeNumericProto = function (baseType, typeName, isIntegral) {
   var prototype = JSIL.MakeProto(baseType, typeName, false);
   prototype.__IsIntegral__ = isIntegral;
   return prototype;
-}
+};
 
 JSIL.TypeObject = function () {};
 JSIL.TypeObject.__IsReferenceType__ = true;
@@ -560,7 +574,7 @@ JSIL.Reference.Of = function (type) {
   if (typeof (type) == "undefined")
     throw new Error("Undefined reference type");
 
-  var compositeType = JSIL.Reference.Types[type];
+  var compositeType = JSIL.Reference.Types[type.prototype.__FullName__];
 
   if (typeof (compositeType) == "undefined") {
     var typeName = "ref " + type.prototype.__FullName__;
@@ -571,7 +585,7 @@ JSIL.Reference.Of = function (type) {
       return isReference && isRightType;
     };
     compositeType.prototype = JSIL.MakeProto(JSIL.Reference, typeName, true);
-    JSIL.Reference.Types[type] = compositeType;
+    JSIL.Reference.Types[type.prototype.__FullName__] = compositeType;
   }
 
   return compositeType;
@@ -593,7 +607,9 @@ JSIL.MemberReference.prototype.set_value = function (value) {
 }
 Object.defineProperty(JSIL.MemberReference.prototype, "value", {
   get: JSIL.MemberReference.prototype.get_value,
-  set: JSIL.MemberReference.prototype.set_value
+  set: JSIL.MemberReference.prototype.set_value,
+  configurable: false,
+  enumerable: false
 });
 
 
@@ -677,13 +693,13 @@ System.Array.Of = function (type) {
   if (typeof (type) == "undefined")
     throw new Error("Attempting to create an array of an undefined type");
 
-  var compositeType = System.Array.Types[type];
+  var compositeType = System.Array.Types[type.prototype.__FullName__];
 
   if (typeof (compositeType) == "undefined") {
     var typeName = type.prototype.__FullName__ + "[]";
     compositeType = JSIL.CloneObject(System.Array);
     compositeType.prototype = JSIL.MakeProto(System.Array, typeName, true);
-    System.Array.Types[type] = compositeType;
+    System.Array.Types[type.prototype.__FullName__] = compositeType;
   }
 
   return compositeType;
@@ -1016,8 +1032,10 @@ JSIL.ArrayEnumerator.prototype.get_Current = function () {
   return this._array[this._index];
 };
 Object.defineProperty(
-    JSIL.ArrayEnumerator.prototype, "Current",
-    { get: JSIL.ArrayEnumerator.prototype.get_Current }
+    JSIL.ArrayEnumerator.prototype, "Current", { 
+      get: JSIL.ArrayEnumerator.prototype.get_Current,
+      configurable: true
+    }
 );
 JSIL.ImplementInterfaces(JSIL.ArrayEnumerator, [
   System.IDisposable, System.Collections.IEnumerator, System.Collections.Generic.IEnumerator$b1
@@ -1036,7 +1054,8 @@ System.Threading.Thread.prototype._ctor = function () {
 };
 Object.defineProperty(
   System.Threading.Thread, "CurrentThread", {
-    get: System.Threading.Thread.get_CurrentThread
+    get: System.Threading.Thread.get_CurrentThread,
+    configurable: true
   }
 );
 

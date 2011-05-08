@@ -526,9 +526,7 @@ namespace JSIL {
                 output.Identifier(typedef);
                 output.Comma();
                 output.OpenBracket(true);
-                output.NewLine();
                 output.CommaSeparatedList(interfaces, ListValueType.Identifier);
-                output.NewLine();
                 output.CloseBracket(true);
                 output.RPar();
                 output.Semicolon();
@@ -845,7 +843,7 @@ namespace JSIL {
             if (IsIgnored(property))
                 return;
 
-            output.Identifier("Object.defineProperty", true);
+            output.Identifier("JSIL.MakeProperty", true);
             output.LPar();
 
             var isStatic = !(property.SetMethod ?? property.GetMethod).IsStatic;
@@ -872,13 +870,9 @@ namespace JSIL {
             }
 
             output.Comma();
-            output.OpenBrace();
-
-            bool needsComma = false;
+            output.NewLine();
 
             if (property.GetMethod != null) {
-                output.Token("get: ");
-
                 output.Identifier(property.DeclaringType);
                 if (isStatic) {
                     output.Dot();
@@ -886,18 +880,13 @@ namespace JSIL {
                 }
                 output.Dot();
                 output.Identifier(property.GetMethod, false);
-
-                needsComma = true;
+            } else {
+                output.Keyword("null");
             }
 
+            output.Comma();
+
             if (property.SetMethod != null) {
-                if (needsComma) {
-                    output.Comma();
-                    output.NewLine();
-                }
-
-                output.Token("set: ");
-
                 output.Identifier(property.DeclaringType);
                 if (isStatic) {
                     output.Dot();
@@ -905,10 +894,9 @@ namespace JSIL {
                 }
                 output.Dot();
                 output.Identifier(property.SetMethod, false);
+            } else {
+                output.Keyword("null");
             }
-
-            output.NewLine();
-            output.CloseBrace(false);
 
             output.RPar();
             output.Semicolon();
