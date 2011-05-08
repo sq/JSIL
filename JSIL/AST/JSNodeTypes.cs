@@ -124,7 +124,7 @@ namespace JSIL.Ast {
             var sb = new StringBuilder();
 
             foreach (var stmt in Statements)
-                sb.AppendLine(stmt.ToString());
+                sb.AppendLine(String.Concat(stmt));
 
             return sb.ToString();
         }
@@ -171,7 +171,7 @@ namespace JSIL.Ast {
         public override string ToString () {
             return String.Format(
                 "var {0}",
-                String.Join(", ", (from d in Declarations select d.ToString()).ToArray())
+                String.Join(", ", (from d in Declarations select String.Concat(d)).ToArray())
             );
         }
     }
@@ -588,7 +588,7 @@ namespace JSIL.Ast {
         public override string ToString () {
             return String.Format(
                 "{0}[{1}]", GetType().Name,
-                String.Join(", ", (from v in Values select v.ToString()).ToArray())
+                String.Join(", ", (from v in Values select String.Concat(v)).ToArray())
             );
         }
 
@@ -1802,7 +1802,7 @@ namespace JSIL.Ast {
             return String.Format(
                 "{0}:({1})", 
                 Target, 
-                String.Join(", ", (from a in Arguments select a.ToString()).ToArray())
+                String.Join(", ", (from a in Arguments select String.Concat(a)).ToArray())
             );
         }
     }
