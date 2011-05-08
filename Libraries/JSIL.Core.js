@@ -1042,9 +1042,19 @@ System.Threading.Interlocked.CompareExchange = function (targetRef, value, compa
 };
 
 System.Threading.Monitor.Enter = function (obj) {
+  var current = (obj.__LockCount__ || 0);
+  if (current >= 1)    
+    JSIL.Host.warning("Warning: lock recursion ", obj);
+
+  obj.__LockCount__ = current + 1;
 };
 
 System.Threading.Monitor.Exit = function (obj) {
+  var current = (obj.__LockCount__ || 0);
+  if (current <= 0)
+    JSIL.Host.warning("Warning: unlocking an object that is not locked ", obj);
+
+  obj.__LockCount__ = current - 1;
 };
 
 System.Random = function () {
