@@ -604,6 +604,20 @@ namespace JSIL.Ast {
             return null;
         }
 
+        public static TypeReference DeReferenceType (TypeReference type, bool once = false) {
+            var brt = type as ByReferenceType;
+
+            while (brt != null) {
+                type = brt.ElementType;
+                brt = type as ByReferenceType;
+
+                if (once)
+                    break;
+            }
+
+            return type;
+        }
+
         public static TypeReference ResolveGenericType (TypeReference type, params object[] contexts) {           
             if (type.IsGenericParameter) {
                 var param = (GenericParameter)type;
@@ -1356,7 +1370,7 @@ namespace JSIL.Ast {
             : base(name) {
 
             if (type is ByReferenceType) {
-                type = type.GetElementType();
+                type = ((ByReferenceType)type).ElementType;
                 _IsReference = true;
             } else {
                 _IsReference = false;
@@ -1504,18 +1518,18 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return Referent.GetExpectedType(typeSystem).GetElementType();
+            return DeReferenceType(Referent.GetExpectedType(typeSystem), true);
         }
 
         public override TypeReference Type {
             get {
-                return Referent.Type.GetElementType();
+                return DeReferenceType(Referent.Type, true);
             }
         }
 
         public override bool IsReference {
             get {
-                return (Referent.Type.GetElementType()) is ByReferenceType;
+                return DeReferenceType(Referent.Type, true) is ByReferenceType;
             }
         }
 
@@ -1694,11 +1708,11 @@ namespace JSIL.Ast {
             if (ElementType != null)
                 return ElementType;
 
-            var targetType = Target.GetExpectedType(typeSystem);
+            var targetType = DeReferenceType(Target.GetExpectedType(typeSystem));
 
             var at = targetType as ArrayType;
             if (at != null)
-                return at.GetElementType();
+                return at.ElementType;
             else
                 return base.GetExpectedType(typeSystem);
         }

@@ -117,6 +117,7 @@ JSIL.MakeNumericProto = function (baseType, typeName, isIntegral) {
 }
 
 JSIL.TypeObject = function () {};
+JSIL.TypeObject.__IsReferenceType__ = true;
 JSIL.TypeObject.__TypeInitialized__ = false;
 JSIL.TypeObject.__LockCount__ = 0;
 JSIL.TypeObject.__FullName__ = null;
@@ -203,6 +204,7 @@ JSIL.MakeType = function (baseType, namespace, localName, fullName, isReferenceT
   };
 
   typeObject.__proto__ = JSIL.TypeObject;
+  typeObject.__IsReferenceType__ = isReferenceType;
   typeObject.__Self__ = typeObject;
   typeObject.__FullName__ = fullName;
   typeObject.__ShortName__ = localName;

@@ -342,7 +342,7 @@ namespace JSIL {
 
             if (variable.IsReference) {
                 if (variable.IsThis) {
-                    if (variable.Type.GetElementType().IsValueType)
+                    if (JSExpression.DeReferenceType(variable.Type).IsValueType)
                         return;
                     else
                         throw new InvalidOperationException("The this-reference should never be a reference to a non-value type");
