@@ -65,7 +65,8 @@ namespace JSIL.Internal {
 
         // Class information
         public readonly bool IsIgnored;
-        public readonly MethodDefinition StaticConstructor;
+        // This needs to be mutable so we can introduce a constructed cctor later
+        public MethodDefinition StaticConstructor;
         public readonly HashSet<MethodDefinition> Constructors = new HashSet<MethodDefinition>();
         public readonly MetadataCollection Metadata;
 
@@ -143,16 +144,7 @@ namespace JSIL.Internal {
             bool createdCtorMethodGroup = false;
 
             foreach (var mg in methodGroups) {
-                // A struct with a single constructor that takes parameters must
-                //  always form a method group so that we don't invoke it with
-                //  the wrong argument count.
-                if (
-                    (mg.Count() > 1) || 
-                    (type.IsValueType && 
-                     (mg.Key.Name == ".ctor") && 
-                     (mg.First().Parameters.Count > 0)
-                    )
-                ) {
+                if (mg.Count() > 1) {
                     var info = new MethodGroupInfo(type, mg.Key.Name, mg.Key.IsStatic);
                     info.Items.AddRange(mg.Select(
                         (m, i) => new MethodGroupItem(info, m, i)

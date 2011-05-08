@@ -214,6 +214,45 @@ JSIL.CopyMembers = function (source, target) {
   }
 }
 
+// Replaces a class with a property getter that, upon first access,
+//  runs the class's static constructor (if any).
+JSIL.SealType = function (namespace, name) {
+  var type = namespace[name];
+
+  var cctor = type._cctor;
+  if (typeof (cctor) != "function")
+    return;
+
+  var getter = function () {
+    delete namespace[name];
+    namespace[name] = type;
+    JSIL.InitializeType(type);
+    return type;
+  };
+
+  delete namespace[name];
+
+  Object.defineProperty(namespace, name, {
+    configurable: true,
+    enumerable: true,
+    get: getter
+  });
+}
+
+JSIL.MakeStaticClass = function (namespace, localName, fullName) {
+  if (typeof (namespace[localName]) != "undefined") {
+    JSIL.Host.warning("Duplicate definition of type ", fullName);
+    return;
+  }
+
+  var typeObject = JSIL.CloneObject(JSIL.TypeObject);
+  typeObject.__FullName__ = fullName;
+  typeObject.__ShortName__ = localName;
+  typeObject.__IsStatic__ = true;
+
+  namespace[localName] = typeObject;
+}
+
 JSIL.MakeType = function (baseType, namespace, localName, fullName, isReferenceType) {
   if (typeof (namespace[localName]) != "undefined") {
     JSIL.Host.warning("Duplicate definition of type ", fullName);
@@ -224,19 +263,15 @@ JSIL.MakeType = function (baseType, namespace, localName, fullName, isReferenceT
     JSIL.InitializeType(typeObject);
     JSIL.InitializeStructFields(this, typeObject);
 
-    try {
-      var args = arguments;
-      if (args === null)
-        args = [];
+    var args = arguments;
+    if (args === null)
+      args = [];
 
-      if (typeof (this._ctor) != "undefined")
-        this._ctor.apply(this, args);
-    } catch (e) {
-      if (JSIL.CheckType(e, JSIL.MissingOverloadException) && (args.length == 0))
-        return;
-      else
-        throw e;
-    }
+    if (!typeObject.__IsReferenceType__ && (args.length == 0))
+      return;
+
+    if (typeof (this._ctor) != "undefined")
+      this._ctor.apply(this, args);
   };
 
   typeObject.__proto__ = JSIL.TypeObject;
@@ -1072,22 +1107,10 @@ JSIL.ImplementInterfaces(JSIL.ArrayEnumerator, [
 ]);
 
 JSIL.MakeClass(System.Object, System.Threading, "Thread", "System.Threading.Thread");
-System.Threading.Thread._cctor = function () {
-  System.Threading.Thread.prototype.ManagedThreadId = 0;
-  System.Threading.Thread._currentThread = new System.Threading.Thread();
-};
-System.Threading.Thread.get_CurrentThread = function () {
-  JSIL.InitializeType(System.Threading.Thread);
-  return System.Threading.Thread._currentThread;
-};
 System.Threading.Thread.prototype._ctor = function () {
 };
-Object.defineProperty(
-  System.Threading.Thread, "CurrentThread", {
-    get: System.Threading.Thread.get_CurrentThread,
-    configurable: true
-  }
-);
+System.Threading.Thread.prototype.ManagedThreadId = 0;
+System.Threading.Thread.CurrentThread = new System.Threading.Thread();
 
 JSIL.MakeClass(System.Object, System.Collections.Generic, "List$b1", "System.Collections.Generic.List`1");
 System.Collections.Generic.List$b1.Of = function (T) {

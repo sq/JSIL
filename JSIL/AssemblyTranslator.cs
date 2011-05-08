@@ -294,7 +294,7 @@ namespace JSIL {
                 TranslateTypeDefinition(context, output, typedef);
 
             foreach (var typedef in module.Types)
-                InitializeType(context, output, typedef);
+                SealType(context, output, typedef);
         }
 
         protected string GetParent (TypeReference type) {
@@ -434,7 +434,15 @@ namespace JSIL {
             bool isStatic = typedef.IsAbstract && typedef.IsSealed;
 
             if (isStatic) {
-                output.DeclareNamespace(typedef.FullName);
+                output.Identifier("JSIL.MakeStaticClass", true);
+                output.LPar();
+                output.Identifier(GetParent(typedef), true);
+                output.Comma();
+                output.Value(Util.EscapeIdentifier(typedef.Name, true));
+                output.Comma();
+                output.Value(typedef.FullName);
+                output.RPar();
+                output.Semicolon();
             } else {
                 if (typedef.IsValueType)
                     output.Identifier("JSIL.MakeStruct", true);
@@ -463,25 +471,31 @@ namespace JSIL {
             output.NewLine();
         }
 
-        protected void InitializeType (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef) {
+        protected void SealType (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef) {
             if (IsIgnored(typedef))
                 return;
 
             context.CurrentType = typedef;
-
-            foreach (var nestedTypedef in typedef.NestedTypes)
-                InitializeType(context, output, nestedTypedef);
 
             if (typedef.IsInterface)
                 return;
             else if (typedef.IsEnum)
                 return;
 
-            output.Identifier("JSIL.InitializeType", true);
-            output.LPar();
-            output.Identifier(typedef);
-            output.RPar();
-            output.Semicolon();
+            foreach (var nestedTypedef in typedef.NestedTypes)
+                SealType(context, output, nestedTypedef);
+
+            var typeInfo = GetTypeInformation(typedef);
+
+            if (typeInfo.StaticConstructor != null) {
+                output.Identifier("JSIL.SealType", true);
+                output.LPar();
+                output.Identifier(GetParent(typedef), true);
+                output.Comma();
+                output.Value(Util.EscapeIdentifier(typedef.Name, true));
+                output.RPar();
+                output.Semicolon();
+            }
         }
 
         protected void TranslateTypeDefinition (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef) {
@@ -499,16 +513,8 @@ namespace JSIL {
             if (info == null)
                 throw new InvalidOperationException();
 
-            MethodDefinition cctor = null;
-
-            foreach (var method in typedef.Methods) {
-                if (method.Name == ".cctor") {
-                    cctor = method;
-                    continue;
-                }
-
+            foreach (var method in typedef.Methods)
                 TranslateMethod(context, output, method);
-            }
 
             foreach (var methodGroup in info.MethodGroups)
                 TranslateMethodGroup(context, output, methodGroup);
@@ -567,7 +573,7 @@ namespace JSIL {
                 output.Semicolon();
             }
 
-            TranslateTypeStaticConstructor(context, output, typedef, cctor);
+            TranslateTypeStaticConstructor(context, output, typedef, info.StaticConstructor);
 
             output.NewLine();
 
@@ -709,6 +715,24 @@ namespace JSIL {
             }
         }
 
+        protected static bool NeedsStaticConstructor (TypeReference type) {
+            if (EmulateStructAssignment.IsStruct(type))
+                return true;
+            else if (type.IsPrimitive)
+                return false;
+
+            var resolved = type.Resolve();
+            if (resolved == null)
+                return true;
+
+            if (resolved.IsEnum)
+                return false;
+            if (!resolved.IsValueType)
+                return false;
+
+            return true;
+        }
+
         protected JSExpression TranslateField (FieldDefinition field) {
             JSDotExpression target;
             
@@ -745,8 +769,8 @@ namespace JSIL {
             var typeSystem = context.CurrentModule.TypeSystem;
             var fieldsToEmit =
                 (from f in typedef.Fields
-                where f.IsStatic
-                select f).ToArray();
+                 where f.IsStatic && NeedsStaticConstructor(f.FieldType)
+                 select f).ToArray();
 
             // We initialize all static fields in the cctor to avoid ordering issues
             Action<JSFunctionExpression> fixupCctor = (f) => {
@@ -761,11 +785,17 @@ namespace JSIL {
                 }
             };
 
-            // Instance field defaults are initialized inline
+            // Default values for instance fields of struct types are handled
+            //  by the instance constructor.
+            // Default values for static fields of struct types are handled
+            //  by the cctor.
+            // Everything else is emitted inline.
+
             var emitter = new JavascriptAstEmitter(output, new JSILIdentifier(typeSystem), typeSystem);
             foreach (var f in typedef.Fields) {
-                if (f.IsStatic)
+                if (f.IsStatic && NeedsStaticConstructor(f.FieldType))
                     continue;
+
                 if (EmulateStructAssignment.IsStruct(f.FieldType))
                     continue;
 
@@ -779,6 +809,8 @@ namespace JSIL {
             } else if (fieldsToEmit.Length > 0) {
                 var fakeCctor = new MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static, typeSystem.Void);
                 fakeCctor.DeclaringType = typedef;
+
+                GetTypeInformation(typedef).StaticConstructor = fakeCctor;
 
                 TranslateMethod(context, output, fakeCctor, fixupCctor);
             }
