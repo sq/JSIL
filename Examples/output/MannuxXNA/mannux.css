@@ -6,6 +6,33 @@
 	left: 2px;
 	top: 2px;
 }
+#loadButton {
+	width: 200px;
+	height: 40px;
+	position: absolute;	
+	left: 222px;
+	top: 222px;
+	z-index: 90;
+}
+#loadingProgress {
+	background-color: black;
+	border: 3px solid white;
+	border-radius: 6px;
+	width: 200px;
+	height: 20px;
+	position: absolute;	
+	left: 219px;
+	top: 229px;
+	z-index: 99;
+}
+#progressBar {
+	background-color: white;
+	border: 1px solid white;
+	width: 0px;
+	height: 20px;
+	margin: -1px;
+	padding: 0px;
+}
 #log {
 	font-family: Consolas, Courier New, Courier;
 	font-size: 10pt;

@@ -5,15 +5,15 @@
   </head>
   <body>
     <script src="../../../Libraries/JSIL.Core.js"></script>
-    <script src="mscorlib.js"></script>
-    <script src="../../../Libraries/System.Windows.js"></script>
-    <script src="../../../Libraries/System.Drawing.js"></script>
-    <script src="xnaframework.js"></script>
-    <script src="xnagame.js"></script>
-    <script src="../../../Libraries/JSIL.XNA.js"></script>
-    <script src="Mannux.js"></script>
+    
+    <!-- workaround for chromium bug -->
+    <div id="scripts"></div>
     
     <canvas id="canvas"></canvas><br>
+    <button id="loadButton">Load Mannux</button>
+    <div id="loadingProgress" style="display: none">
+      <div id="progressBar"></div>
+    </div>
     <textarea id="log"></textarea>
     
     <script type="text/javascript">
@@ -27,8 +27,71 @@
         document.getElementById("log").value += text + "\n";
     };
     
+    function loadScript (filename, onError, onDoneLoading) {
+      var e = document.createElement("script");
+      e.addEventListener("error", onError);
+      e.addEventListener("load", onDoneLoading);
+      e.id = "script_" + filename;
+      e.src = filename;
+      document.getElementById("scripts").appendChild(e);
+    }
+    
+    function loadNextScript (scripts, i, onDoneLoading, scriptLoadDelay) {      
+      var w = (i * document.getElementById("loadingProgress").clientWidth) / scripts.length;
+      document.getElementById("progressBar").style.width = w;
+      
+      if (i >= scripts.length) {
+        setTimeout(onDoneLoading, scriptLoadDelay);
+        return;
+      }
+    
+      var theScript = scripts[i];
+      var j = i + 1;
+      
+      var stepCallback = function () {
+        JSIL.Host.logWriteLine("done.");
+        loadNextScript(scripts, j, onDoneLoading, scriptLoadDelay);
+      };
+      
+      var errorCallback = function (e) {
+        JSIL.Host.logWriteLine("The script '" + theScript + "' could not be loaded:" + String(e));
+        stepCallback();
+      };
+      
+      JSIL.Host.logWrite("Loading script '" + theScript + "' ... ");
+      setTimeout(function () {        
+        loadScript(theScript, errorCallback, stepCallback);
+      }, scriptLoadDelay);
+    }
+    
+    function loadScripts (scripts, onDoneLoading) {
+      loadNextScript(scripts, 0, onDoneLoading, 100);
+    }
+    
+    function beginLoading () {
+      document.getElementById("loadButton").style.display = "none";
+      document.getElementById("loadingProgress").style.display = "block";
+      
+      var scriptsToLoad = [
+        "mscorlib.js",
+        "../../../Libraries/System.Windows.js",
+        "../../../Libraries/System.Drawing.js",
+        "Microsoft.Xna.Framework.js",
+        "Microsoft.Xna.Framework.Game.js",
+        "../../../Libraries/JSIL.XNA.js",
+        "Mannux.js"
+      ];
+      
+      loadScripts(scriptsToLoad, function () {
+        document.getElementById("loadingProgress").style.display = "none";
+        Mannux.Program.Main([]);
+      });
+    }
+    
     document.getElementById("log").value = "";
-    Mannux.Program.Main([]);
+    document.getElementById("loadButton").addEventListener(
+      "click", beginLoading, true
+    );
     </script>
   </body>
 </html>

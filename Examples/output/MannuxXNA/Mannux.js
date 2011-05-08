@@ -125,7 +125,7 @@ JSIL.MakeClass(System.Object, Mannux.Import, "AutoArray$b1", "Mannux.Import.Auto
 
 JSIL.MakeClass(System.Windows.Forms.Form, Editor, "NewMapDlg", "Editor.NewMapDlg");
 
-JSIL.DeclareNamespace(Mannux, "Program");
+JSIL.MakeStaticClass(Mannux, "Program", "Mannux.Program");
 
 JSIL.MakeClass(System.Object, Import, "MapEnt", "Import.MapEnt");
 
@@ -295,38 +295,28 @@ Entities.Entity.prototype.set_Facing = function (value) {
 	this.direction = value;
 };
 
-Object.defineProperty(Entities.Entity.prototype, "X", {
-		get: Entities.Entity.prototype.get_X, 
-		set: Entities.Entity.prototype.set_X
-	});
-Object.defineProperty(Entities.Entity.prototype, "Y", {
-		get: Entities.Entity.prototype.get_Y, 
-		set: Entities.Entity.prototype.set_Y
-	});
-Object.defineProperty(Entities.Entity.prototype, "VX", {
-		get: Entities.Entity.prototype.get_VX, 
-		set: Entities.Entity.prototype.set_VX
-	});
-Object.defineProperty(Entities.Entity.prototype, "VY", {
-		get: Entities.Entity.prototype.get_VY, 
-		set: Entities.Entity.prototype.set_VY
-	});
-Object.defineProperty(Entities.Entity.prototype, "Width", {
-		get: Entities.Entity.prototype.get_Width, 
-		set: Entities.Entity.prototype.set_Width
-	});
-Object.defineProperty(Entities.Entity.prototype, "Height", {
-		get: Entities.Entity.prototype.get_Height, 
-		set: Entities.Entity.prototype.set_Height
-	});
-Object.defineProperty(Entities.Entity.prototype, "Visible", {
-		get: Entities.Entity.prototype.get_Visible, 
-		set: Entities.Entity.prototype.set_Visible
-	});
-Object.defineProperty(Entities.Entity.prototype, "Facing", {
-		get: Entities.Entity.prototype.get_Facing, 
-		set: Entities.Entity.prototype.set_Facing
-	});
+JSIL.MakeProperty(Entities.Entity.prototype, "X", 
+	Entities.Entity.prototype.get_X, Entities.Entity.prototype.set_X);
+JSIL.MakeProperty(Entities.Entity.prototype, "Y", 
+	Entities.Entity.prototype.get_Y, Entities.Entity.prototype.set_Y);
+JSIL.MakeProperty(Entities.Entity.prototype, "VX", 
+	Entities.Entity.prototype.get_VX, Entities.Entity.prototype.set_VX);
+JSIL.MakeProperty(Entities.Entity.prototype, "VY", 
+	Entities.Entity.prototype.get_VY, Entities.Entity.prototype.set_VY);
+JSIL.MakeProperty(Entities.Entity.prototype, "Width", 
+	Entities.Entity.prototype.get_Width, Entities.Entity.prototype.set_Width);
+JSIL.MakeProperty(Entities.Entity.prototype, "Height", 
+	Entities.Entity.prototype.get_Height, Entities.Entity.prototype.set_Height);
+JSIL.MakeProperty(Entities.Entity.prototype, "Visible", 
+	Entities.Entity.prototype.get_Visible, Entities.Entity.prototype.set_Visible);
+JSIL.MakeProperty(Entities.Entity.prototype, "Facing", 
+	Entities.Entity.prototype.get_Facing, Entities.Entity.prototype.set_Facing);
+Object.defineProperty(Entities.Entity, "maxvelocity", {
+		"value": 4}
+);
+Object.defineProperty(Entities.Entity, "gravity", {
+		"value": 0.21699999272823334}
+);
 Entities.Entity.prototype.touchingground = false;
 Entities.Entity.prototype.touchingceiling = false;
 Entities.Entity.prototype.touchingleftwall = false;
@@ -347,15 +337,6 @@ Entities.Entity.prototype.direction = 0;
 Entities.Entity.prototype.visible = false;
 Entities.Entity.prototype.UpdateState = null;
 Entities.Entity.prototype.engine = null;
-Entities.Entity._cctor = function () {
-	Object.defineProperty(Entities.Entity, "maxvelocity", {
-			"value": 4}
-	);
-	Object.defineProperty(Entities.Entity, "gravity", {
-			"value": 0.21699999272823334}
-	);
-};
-
 
 Entities.Enemies.Enemy.prototype._ctor = function (e, s) {
 	this.hp = 0;
@@ -389,14 +370,10 @@ Entities.Enemies.Enemy.prototype.set_Damage = function (value) {
 	this.damage = value;
 };
 
-Object.defineProperty(Entities.Enemies.Enemy.prototype, "HP", {
-		get: Entities.Enemies.Enemy.prototype.get_HP, 
-		set: Entities.Enemies.Enemy.prototype.set_HP
-	});
-Object.defineProperty(Entities.Enemies.Enemy.prototype, "Damage", {
-		get: Entities.Enemies.Enemy.prototype.get_Damage, 
-		set: Entities.Enemies.Enemy.prototype.set_Damage
-	});
+JSIL.MakeProperty(Entities.Enemies.Enemy.prototype, "HP", 
+	Entities.Enemies.Enemy.prototype.get_HP, Entities.Enemies.Enemy.prototype.set_HP);
+JSIL.MakeProperty(Entities.Enemies.Enemy.prototype, "Damage", 
+	Entities.Enemies.Enemy.prototype.get_Damage, Entities.Enemies.Enemy.prototype.set_Damage);
 Entities.Enemies.Enemy.prototype.hp = 0;
 Entities.Enemies.Enemy.prototype.damage = 0;
 
@@ -509,7 +486,10 @@ Editor.TileSetMode.prototype.KeyPress = function (e) {
 Editor.TileSetMode.prototype.RenderHUD = function () {
 };
 
-Editor.TileSetMode.prototype.__ImplementInterface__(Editor.IEditorState);
+JSIL.ImplementInterfaces(Editor.TileSetMode, [
+		Editor.IEditorState
+	]
+);
 Editor.TileSetMode.prototype.editor = null;
 Editor.TileSetMode.prototype.engine = null;
 Editor.TileSetMode.prototype.curtile = 0;
@@ -560,9 +540,8 @@ Timer.op_Implicit = function (t) {
 	return t.Time;
 };
 
-Object.defineProperty(Timer.prototype, "Time", {
-		get: Timer.prototype.get_Time
-	});
+JSIL.MakeProperty(Timer.prototype, "Time", 
+	Timer.prototype.get_Time, null);
 Timer.prototype.rate = 0;
 
 Input.X360Gamepad.prototype.Poll = function () {
@@ -607,7 +586,10 @@ Input.X360Gamepad.prototype._ctor = function () {
 	System.Object.prototype._ctor.call(this);
 };
 
-Input.X360Gamepad.prototype.__ImplementInterface__(Input.IInputDevice);
+JSIL.ImplementInterfaces(Input.X360Gamepad, [
+		Input.IInputDevice
+	]
+);
 Input.X360Gamepad.prototype.__StructFields__ = {
 	ps: Microsoft.Xna.Framework.Input.GamePadState
 };
@@ -630,7 +612,7 @@ Cataract.XNAGraph.prototype.End = function () {
 Cataract.XNAGraph.prototype.Blit$0 = function (img, pos, slice) {
 	var destRect = new Microsoft.Xna.Framework.Rectangle();
 	destRect._ctor(Math.floor(pos.X), Math.floor(pos.Y), slice.Width, slice.Height);
-	this.spriteBatch.Draw(img, destRect.MemberwiseClone(), new System.Nullable$b1/* <Rectangle> */ (slice), Microsoft.Xna.Framework.Graphics.Color.White);
+	this.spriteBatch.Draw(img, destRect.MemberwiseClone(), new System.Nullable$b1(slice), Microsoft.Xna.Framework.Graphics.Color.White);
 };
 
 Cataract.XNAGraph.prototype.Blit$1 = function (src, x, y, trans) {
@@ -680,12 +662,10 @@ JSIL.OverloadedMethod(Cataract.XNAGraph.prototype, "DrawPoints", [
 		["DrawPoints$1", [System.Array.Of(Microsoft.Xna.Framework.Graphics.VertexPositionColor), Microsoft.Xna.Framework.Graphics.Color]]
 	]
 );
-Object.defineProperty(Cataract.XNAGraph.prototype, "XRes", {
-		get: Cataract.XNAGraph.prototype.get_XRes
-	});
-Object.defineProperty(Cataract.XNAGraph.prototype, "YRes", {
-		get: Cataract.XNAGraph.prototype.get_YRes
-	});
+JSIL.MakeProperty(Cataract.XNAGraph.prototype, "XRes", 
+	Cataract.XNAGraph.prototype.get_XRes, null);
+JSIL.MakeProperty(Cataract.XNAGraph.prototype, "YRes", 
+	Cataract.XNAGraph.prototype.get_YRes, null);
 Cataract.XNAGraph.prototype.device = null;
 Cataract.XNAGraph.prototype.contentManager = null;
 Cataract.XNAGraph.prototype.spriteBatch = null;
@@ -1044,11 +1024,12 @@ Editor.EntityEditMode.prototype.RenderHUD = function () {
 Editor.EntityEditMode.prototype.MouseWheel = function (p, delta) {
 };
 
-Object.defineProperty(Editor.EntityEditMode.prototype, "CurEnt", {
-		get: Editor.EntityEditMode.prototype.get_CurEnt, 
-		set: Editor.EntityEditMode.prototype.set_CurEnt
-	});
-Editor.EntityEditMode.prototype.__ImplementInterface__(Editor.IEditorState);
+JSIL.MakeProperty(Editor.EntityEditMode.prototype, "CurEnt", 
+	Editor.EntityEditMode.prototype.get_CurEnt, Editor.EntityEditMode.prototype.set_CurEnt);
+JSIL.ImplementInterfaces(Editor.EntityEditMode, [
+		Editor.IEditorState
+	]
+);
 Editor.EntityEditMode.prototype.editor = null;
 Editor.EntityEditMode.prototype.engine = null;
 Editor.EntityEditMode.prototype.curent = null;
@@ -1289,12 +1270,9 @@ Import.MannuxMap.prototype._ctor = function () {
 	System.Object.prototype._ctor.call(this);
 };
 
-Import.MannuxMap._cctor = function () {
-	Object.defineProperty(Import.MannuxMap, "mapsig", {
-			"value": "Mannux Map wee!"}
-	);
-};
-
+Object.defineProperty(Import.MannuxMap, "mapsig", {
+		"value": "Mannux Map wee!"}
+);
 
 AnimState.prototype._ctor$0 = function () {
 	this.dead = false;
@@ -1370,6 +1348,28 @@ AnimState.prototype.Update = function () {
 	}
 };
 
+AnimState._cctor = function () {
+	AnimState.playerstand = JSIL.Array.New(AnimState, [new AnimState(0, 0, 0, false), new AnimState(8, 8, 0, false)]);
+	AnimState.playerwalk = JSIL.Array.New(AnimState, [new AnimState(16, 23, 20, true), new AnimState(24, 31, 20, true)]);
+	AnimState.playerwalkshootingangleup = JSIL.Array.New(AnimState, [new AnimState(48, 55, 20, true), new AnimState(56, 63, 20, true)]);
+	AnimState.playerwalkshootingangledown = JSIL.Array.New(AnimState, [new AnimState(64, 71, 20, true), new AnimState(72, 79, 20, true)]);
+	AnimState.playerwalkshooting = JSIL.Array.New(AnimState, [new AnimState(32, 39, 20, true), new AnimState(40, 47, 20, true)]);
+	AnimState.playershooting = JSIL.Array.New(AnimState, [new AnimState(4, 4, 0, false), new AnimState(12, 12, 0, false)]);
+	AnimState.playershootup = JSIL.Array.New(AnimState, [new AnimState(10, 10, 0, false), new AnimState(10, 10, 0, false)]);
+	AnimState.playerjump = JSIL.Array.New(AnimState, [new AnimState(82, 85, 12, true), new AnimState(90, 93, 12, true)]);
+	AnimState.playerfall = JSIL.Array.New(AnimState, [new AnimState(80, 80, 0, false), new AnimState(88, 88, 0, false)]);
+	AnimState.playerfallshooting = JSIL.Array.New(AnimState, [new AnimState(98, 98, 0, false), new AnimState(106, 106, 0, false)]);
+	AnimState.playerfallshootingangleup = JSIL.Array.New(AnimState, [new AnimState(97, 97, 0, false), new AnimState(105, 105, 0, false)]);
+	AnimState.playerfallshootingangledown = JSIL.Array.New(AnimState, [new AnimState(99, 99, 0, false), new AnimState(107, 107, 0, false)]);
+	AnimState.playerfallshootingup = JSIL.Array.New(AnimState, [new AnimState(96, 96, 0, false), new AnimState(104, 104, 0, false)]);
+	AnimState.playerfallshootingdown = JSIL.Array.New(AnimState, [new AnimState(100, 100, 0, false), new AnimState(108, 108, 0, false)]);
+	AnimState.playercrouch = JSIL.Array.New(AnimState, [new AnimState(116, 116, 0, false), new AnimState(112, 112, 0, false)]);
+	AnimState.playercrouchshooting = JSIL.Array.New(AnimState, [new AnimState(118, 118, 0, false), new AnimState(114, 114, 0, false)]);
+	AnimState.playercrouchshootingangleup = JSIL.Array.New(AnimState, [new AnimState(117, 117, 0, false), new AnimState(113, 113, 0, false)]);
+	AnimState.playercrouchshootingangledown = JSIL.Array.New(AnimState, [new AnimState(119, 119, 0, false), new AnimState(115, 115, 0, false)]);
+	AnimState.hurt = JSIL.Array.New(AnimState, [new AnimState(7, 7, 0, false), new AnimState(15, 15, 0, false)]);
+};
+
 JSIL.OverloadedMethod(AnimState.prototype, "_ctor", [
 		["_ctor$0", []], 
 		["_ctor$1", [System.Int32, System.Int32, System.Int32, System.Boolean]]
@@ -1387,26 +1387,26 @@ AnimState.prototype.last = 0;
 AnimState.prototype.delay = 0;
 AnimState.prototype.loop = false;
 AnimState.prototype.dead = false;
+AnimState.playerstand = null;
+AnimState.playerwalk = null;
+AnimState.playerwalkshootingangleup = null;
+AnimState.playerwalkshootingangledown = null;
+AnimState.playerwalkshooting = null;
+AnimState.playershooting = null;
+AnimState.playershootup = null;
+AnimState.playerjump = null;
+AnimState.playerfall = null;
+AnimState.playerfallshooting = null;
+AnimState.playerfallshootingangleup = null;
+AnimState.playerfallshootingangledown = null;
+AnimState.playerfallshootingup = null;
+AnimState.playerfallshootingdown = null;
+AnimState.playercrouch = null;
+AnimState.playercrouchshooting = null;
+AnimState.playercrouchshootingangleup = null;
+AnimState.playercrouchshootingangledown = null;
+AnimState.hurt = null;
 AnimState._cctor = function () {
-	AnimState.playerstand = null;
-	AnimState.playerwalk = null;
-	AnimState.playerwalkshootingangleup = null;
-	AnimState.playerwalkshootingangledown = null;
-	AnimState.playerwalkshooting = null;
-	AnimState.playershooting = null;
-	AnimState.playershootup = null;
-	AnimState.playerjump = null;
-	AnimState.playerfall = null;
-	AnimState.playerfallshooting = null;
-	AnimState.playerfallshootingangleup = null;
-	AnimState.playerfallshootingangledown = null;
-	AnimState.playerfallshootingup = null;
-	AnimState.playerfallshootingdown = null;
-	AnimState.playercrouch = null;
-	AnimState.playercrouchshooting = null;
-	AnimState.playercrouchshootingangleup = null;
-	AnimState.playercrouchshootingangledown = null;
-	AnimState.hurt = null;
 	AnimState.playerstand = JSIL.Array.New(AnimState, [new AnimState(0, 0, 0, false), new AnimState(8, 8, 0, false)]);
 	AnimState.playerwalk = JSIL.Array.New(AnimState, [new AnimState(16, 23, 20, true), new AnimState(24, 31, 20, true)]);
 	AnimState.playerwalkshootingangleup = JSIL.Array.New(AnimState, [new AnimState(48, 55, 20, true), new AnimState(56, 63, 20, true)]);
@@ -1754,15 +1754,12 @@ Sprites.BitmapSprite.prototype.Draw = function (x, y, frame) {
 	this.graph.Blit(this.tex, new Microsoft.Xna.Framework.Vector2(x, y), slice.MemberwiseClone());
 };
 
-Object.defineProperty(Sprites.BitmapSprite.prototype, "Width", {
-		get: Sprites.BitmapSprite.prototype.get_Width
-	});
-Object.defineProperty(Sprites.BitmapSprite.prototype, "Height", {
-		get: Sprites.BitmapSprite.prototype.get_Height
-	});
-Object.defineProperty(Sprites.BitmapSprite.prototype, "HotSpot", {
-		get: Sprites.BitmapSprite.prototype.get_HotSpot
-	});
+JSIL.MakeProperty(Sprites.BitmapSprite.prototype, "Width", 
+	Sprites.BitmapSprite.prototype.get_Width, null);
+JSIL.MakeProperty(Sprites.BitmapSprite.prototype, "Height", 
+	Sprites.BitmapSprite.prototype.get_Height, null);
+JSIL.MakeProperty(Sprites.BitmapSprite.prototype, "HotSpot", 
+	Sprites.BitmapSprite.prototype.get_HotSpot, null);
 Sprites.BitmapSprite.prototype.__StructFields__ = {
 	hotspot: Microsoft.Xna.Framework.Rectangle
 };
@@ -1773,9 +1770,9 @@ Sprites.BitmapSprite.prototype.tex = null;
 Sprites.BitmapSprite.prototype.graph = null;
 
 Import.VectorIndexBuffer.prototype._ctor = function () {
-	this.points = new System.Collections.Generic.List$b1/* <Vertex> */ ();
+	this.points = new System.Collections.Generic.List$b1();
 	System.Object.prototype._ctor.call(this);
-	this.points = new System.Collections.Generic.List$b1/* <Vertex> */ ();
+	this.points = new System.Collections.Generic.List$b1();
 	this.lines = new System.Collections.ArrayList();
 };
 
@@ -1826,16 +1823,14 @@ __while0__:
 	this.points.RemoveAt(idx);
 };
 
-Object.defineProperty(Import.VectorIndexBuffer.prototype, "Points", {
-		get: Import.VectorIndexBuffer.prototype.get_Points
-	});
-Object.defineProperty(Import.VectorIndexBuffer.prototype, "Lines", {
-		get: Import.VectorIndexBuffer.prototype.get_Lines
-	});
+JSIL.MakeProperty(Import.VectorIndexBuffer.prototype, "Points", 
+	Import.VectorIndexBuffer.prototype.get_Points, null);
+JSIL.MakeProperty(Import.VectorIndexBuffer.prototype, "Lines", 
+	Import.VectorIndexBuffer.prototype.get_Lines, null);
 Import.VectorIndexBuffer.prototype.points = null;
 Import.VectorIndexBuffer.prototype.lines = null;
 
-Import.Geo.Vertex.prototype._ctor$0 = function (a, b) {
+Import.Geo.Vertex.prototype._ctor = function (a, b) {
 	this.x = a;
 	this.y = b;
 };
@@ -1856,18 +1851,10 @@ Import.Geo.Vertex.prototype.set_Y = function (value) {
 	this.y = value;
 };
 
-JSIL.OverloadedMethod(Import.Geo.Vertex.prototype, "_ctor", [
-		["_ctor$0", [System.Int32, System.Int32]]
-	]
-);
-Object.defineProperty(Import.Geo.Vertex.prototype, "X", {
-		get: Import.Geo.Vertex.prototype.get_X, 
-		set: Import.Geo.Vertex.prototype.set_X
-	});
-Object.defineProperty(Import.Geo.Vertex.prototype, "Y", {
-		get: Import.Geo.Vertex.prototype.get_Y, 
-		set: Import.Geo.Vertex.prototype.set_Y
-	});
+JSIL.MakeProperty(Import.Geo.Vertex.prototype, "X", 
+	Import.Geo.Vertex.prototype.get_X, Import.Geo.Vertex.prototype.set_X);
+JSIL.MakeProperty(Import.Geo.Vertex.prototype, "Y", 
+	Import.Geo.Vertex.prototype.get_Y, Import.Geo.Vertex.prototype.set_Y);
 Import.Geo.Vertex.prototype.x = 0;
 Import.Geo.Vertex.prototype.y = 0;
 
@@ -1942,7 +1929,10 @@ Controller.prototype._ctor = function () {
 	System.Object.prototype._ctor.call(this);
 };
 
-Controller.prototype.__ImplementInterface__(System.IDisposable);
+JSIL.ImplementInterfaces(Controller, [
+		System.IDisposable
+	]
+);
 Controller.prototype.resources = null;
 Controller.prototype.disposestate = 0;
 
@@ -2034,16 +2024,13 @@ Editor.MapEntPropertiesView.prototype.UpdateDlg = function (e) {
 	}
 };
 
+Object.defineProperty(Editor.MapEntPropertiesView, "numprops", {
+		"value": 5}
+);
 Editor.MapEntPropertiesView.prototype.editor = null;
 Editor.MapEntPropertiesView.prototype.engine = null;
 Editor.MapEntPropertiesView.prototype.enttypes = null;
 Editor.MapEntPropertiesView.prototype.entprops = null;
-Editor.MapEntPropertiesView._cctor = function () {
-	Object.defineProperty(Editor.MapEntPropertiesView, "numprops", {
-			"value": 5}
-	);
-};
-
 
 Vector.Increase = function (f, quantity) {
 	return (f + quantity);
@@ -2106,12 +2093,10 @@ Input.InputHandler.prototype._ctor = function () {
 	System.Object.prototype._ctor.call(this);
 };
 
-Object.defineProperty(Input.InputHandler.prototype, "Keyboard", {
-		get: Input.InputHandler.prototype.get_Keyboard
-	});
-Object.defineProperty(Input.InputHandler.prototype, "Mouse", {
-		get: Input.InputHandler.prototype.get_Mouse
-	});
+JSIL.MakeProperty(Input.InputHandler.prototype, "Keyboard", 
+	Input.InputHandler.prototype.get_Keyboard, null);
+JSIL.MakeProperty(Input.InputHandler.prototype, "Mouse", 
+	Input.InputHandler.prototype.get_Mouse, null);
 Input.InputHandler.prototype.kd = null;
 Input.InputHandler.prototype.md = null;
 
@@ -2342,22 +2327,24 @@ Sprites.ParticleSprite.prototype.get_HotSpot = function () {
 Sprites.ParticleSprite.prototype.Dispose = function () {
 };
 
-Object.defineProperty(Sprites.ParticleSprite.prototype, "Width", {
-		get: Sprites.ParticleSprite.prototype.get_Width
-	});
-Object.defineProperty(Sprites.ParticleSprite.prototype, "Height", {
-		get: Sprites.ParticleSprite.prototype.get_Height
-	});
-Object.defineProperty(Sprites.ParticleSprite.prototype, "NumFrames", {
-		get: Sprites.ParticleSprite.prototype.get_NumFrames
-	});
-Object.defineProperty(Sprites.ParticleSprite.prototype, "HotSpot", {
-		get: Sprites.ParticleSprite.prototype.get_HotSpot
-	});
-Sprites.ParticleSprite.prototype.__ImplementInterface__(Sprites.ISprite);
+JSIL.MakeProperty(Sprites.ParticleSprite.prototype, "Width", 
+	Sprites.ParticleSprite.prototype.get_Width, null);
+JSIL.MakeProperty(Sprites.ParticleSprite.prototype, "Height", 
+	Sprites.ParticleSprite.prototype.get_Height, null);
+JSIL.MakeProperty(Sprites.ParticleSprite.prototype, "NumFrames", 
+	Sprites.ParticleSprite.prototype.get_NumFrames, null);
+JSIL.MakeProperty(Sprites.ParticleSprite.prototype, "HotSpot", 
+	Sprites.ParticleSprite.prototype.get_HotSpot, null);
+JSIL.ImplementInterfaces(Sprites.ParticleSprite, [
+		Sprites.ISprite
+	]
+);
 Sprites.ParticleSprite.prototype.__StructFields__ = {
 	hotspot: System.Drawing.Rectangle
 };
+Object.defineProperty(Sprites.ParticleSprite, "maxparticles", {
+		"value": 15}
+);
 Sprites.ParticleSprite.prototype.particles = null;
 Sprites.ParticleSprite.prototype.graph = null;
 Sprites.ParticleSprite.prototype.direction = 0;
@@ -2365,12 +2352,6 @@ Sprites.ParticleSprite.prototype.r = 0;
 Sprites.ParticleSprite.prototype.g = 0;
 Sprites.ParticleSprite.prototype.b = 0;
 Sprites.ParticleSprite.prototype.a = 0;
-Sprites.ParticleSprite._cctor = function () {
-	Object.defineProperty(Sprites.ParticleSprite, "maxparticles", {
-			"value": 15}
-	);
-};
-
 
 Sprites.ParticleSprite.Particle.prototype.x = 0;
 Sprites.ParticleSprite.Particle.prototype.y = 0;
@@ -2825,6 +2806,10 @@ Engine.prototype.DestroyEntity = function (e) {
 	this.killlist.Add(e);
 };
 
+Engine._cctor = function () {
+	Engine.rand = new System.Random();
+};
+
 JSIL.OverloadedMethod(Engine.prototype, "MapSwitch", [
 		["MapSwitch$0", [System.String]], 
 		["MapSwitch$1", [System.String, System.Int32, System.Int32]]
@@ -2835,14 +2820,11 @@ JSIL.OverloadedMethod(Engine.prototype, "SpawnEntity", [
 		["SpawnEntity$1", [Entities.Entity]]
 	]
 );
-Object.defineProperty(Engine.prototype, "XWin", {
-		get: Engine.prototype.get_XWin, 
-		set: Engine.prototype.set_XWin
-	});
-Object.defineProperty(Engine.prototype, "YWin", {
-		get: Engine.prototype.get_YWin, 
-		set: Engine.prototype.set_YWin
-	});
+JSIL.MakeProperty(Engine.prototype, "XWin", 
+	Engine.prototype.get_XWin, Engine.prototype.set_XWin);
+JSIL.MakeProperty(Engine.prototype, "YWin", 
+	Engine.prototype.get_YWin, Engine.prototype.set_YWin);
+Engine.rand = null;
 Engine.prototype.graph = null;
 Engine.prototype.graphics = null;
 Engine.prototype.input = null;
@@ -2865,7 +2847,6 @@ Engine.prototype.DoorSprite = null;
 Engine.prototype.BoomSprite = null;
 Engine.prototype.BulletSprite = null;
 Engine._cctor = function () {
-	Engine.rand = null;
 	Engine.rand = new System.Random();
 };
 
@@ -3026,7 +3007,10 @@ Editor.ObstructionMode.prototype.MouseWheel = function (p, delta) {
 Editor.ObstructionMode.prototype.RenderHUD = function () {
 };
 
-Editor.ObstructionMode.prototype.__ImplementInterface__(Editor.IEditorState);
+JSIL.ImplementInterfaces(Editor.ObstructionMode, [
+		Editor.IEditorState
+	]
+);
 Editor.ObstructionMode.prototype.editor = null;
 Editor.ObstructionMode.prototype.engine = null;
 Editor.ObstructionMode.prototype.curpoint = 0;
@@ -3216,27 +3200,20 @@ JSIL.OverloadedMethod(Import.Map.prototype, "AddLayer", [
 		["AddLayer$2", [System.Array.Of(System.Int32)]]
 	]
 );
-Object.defineProperty(Import.Map.prototype, "Item", {
-		get: Import.Map.prototype.get_Item
-	});
-Object.defineProperty(Import.Map.prototype, "Layers", {
-		get: Import.Map.prototype.get_Layers
-	});
-Object.defineProperty(Import.Map.prototype, "NumLayers", {
-		get: Import.Map.prototype.get_NumLayers
-	});
-Object.defineProperty(Import.Map.prototype, "Width", {
-		get: Import.Map.prototype.get_Width
-	});
-Object.defineProperty(Import.Map.prototype, "Height", {
-		get: Import.Map.prototype.get_Height
-	});
-Object.defineProperty(Import.Map.prototype, "Obs", {
-		get: Import.Map.prototype.get_Obs
-	});
-Object.defineProperty(Import.Map.prototype, "Entities", {
-		get: Import.Map.prototype.get_Entities
-	});
+JSIL.MakeProperty(Import.Map.prototype, "Item", 
+	Import.Map.prototype.get_Item, null);
+JSIL.MakeProperty(Import.Map.prototype, "Layers", 
+	Import.Map.prototype.get_Layers, null);
+JSIL.MakeProperty(Import.Map.prototype, "NumLayers", 
+	Import.Map.prototype.get_NumLayers, null);
+JSIL.MakeProperty(Import.Map.prototype, "Width", 
+	Import.Map.prototype.get_Width, null);
+JSIL.MakeProperty(Import.Map.prototype, "Height", 
+	Import.Map.prototype.get_Height, null);
+JSIL.MakeProperty(Import.Map.prototype, "Obs", 
+	Import.Map.prototype.get_Obs, null);
+JSIL.MakeProperty(Import.Map.prototype, "Entities", 
+	Import.Map.prototype.get_Entities, null);
 Import.Map.prototype.layers = null;
 Import.Map.prototype.entities = null;
 Import.Map.prototype.obs = null;
@@ -3328,26 +3305,18 @@ __while0__:
 	this.tiles = newdata;
 };
 
-Object.defineProperty(Import.Map.Layer.prototype, "Width", {
-		get: Import.Map.Layer.prototype.get_Width
-	});
-Object.defineProperty(Import.Map.Layer.prototype, "Height", {
-		get: Import.Map.Layer.prototype.get_Height
-	});
-Object.defineProperty(Import.Map.Layer.prototype, "ParallaxX", {
-		get: Import.Map.Layer.prototype.get_ParallaxX
-	});
-Object.defineProperty(Import.Map.Layer.prototype, "ParallaxY", {
-		get: Import.Map.Layer.prototype.get_ParallaxY
-	});
-Object.defineProperty(Import.Map.Layer.prototype, "Name", {
-		get: Import.Map.Layer.prototype.get_Name, 
-		set: Import.Map.Layer.prototype.set_Name
-	});
-Object.defineProperty(Import.Map.Layer.prototype, "Item", {
-		get: Import.Map.Layer.prototype.get_Item, 
-		set: Import.Map.Layer.prototype.set_Item
-	});
+JSIL.MakeProperty(Import.Map.Layer.prototype, "Width", 
+	Import.Map.Layer.prototype.get_Width, null);
+JSIL.MakeProperty(Import.Map.Layer.prototype, "Height", 
+	Import.Map.Layer.prototype.get_Height, null);
+JSIL.MakeProperty(Import.Map.Layer.prototype, "ParallaxX", 
+	Import.Map.Layer.prototype.get_ParallaxX, null);
+JSIL.MakeProperty(Import.Map.Layer.prototype, "ParallaxY", 
+	Import.Map.Layer.prototype.get_ParallaxY, null);
+JSIL.MakeProperty(Import.Map.Layer.prototype, "Name", 
+	Import.Map.Layer.prototype.get_Name, Import.Map.Layer.prototype.set_Name);
+JSIL.MakeProperty(Import.Map.Layer.prototype, "Item", 
+	Import.Map.Layer.prototype.get_Item, Import.Map.Layer.prototype.set_Item);
 Import.Map.Layer.prototype.tiles = null;
 Import.Map.Layer.prototype.name = null;
 Import.Map.Layer.prototype.parx = 0;
@@ -3512,18 +3481,14 @@ JSIL.OverloadedMethod(Import.Geo.Line.prototype, "Touches", [
 		["Touches$1", [System.Drawing.Rectangle, JSIL.Reference.Of(Import.Geo.Vertex)]]
 	]
 );
-Object.defineProperty(Import.Geo.Line.prototype, "Slope", {
-		get: Import.Geo.Line.prototype.get_Slope
-	});
-Object.defineProperty(Import.Geo.Line.prototype, "YIntercept", {
-		get: Import.Geo.Line.prototype.get_YIntercept
-	});
-Object.defineProperty(Import.Geo.Line.prototype, "A", {
-		get: Import.Geo.Line.prototype.get_A
-	});
-Object.defineProperty(Import.Geo.Line.prototype, "B", {
-		get: Import.Geo.Line.prototype.get_B
-	});
+JSIL.MakeProperty(Import.Geo.Line.prototype, "Slope", 
+	Import.Geo.Line.prototype.get_Slope, null);
+JSIL.MakeProperty(Import.Geo.Line.prototype, "YIntercept", 
+	Import.Geo.Line.prototype.get_YIntercept, null);
+JSIL.MakeProperty(Import.Geo.Line.prototype, "A", 
+	Import.Geo.Line.prototype.get_A, null);
+JSIL.MakeProperty(Import.Geo.Line.prototype, "B", 
+	Import.Geo.Line.prototype.get_B, null);
 Import.Geo.Line.prototype.__StructFields__ = {
 	a: Import.Geo.Vertex, 
 	b: Import.Geo.Vertex
@@ -3683,7 +3648,7 @@ Mannux.Import.AutoArray$b1.prototype.get_Capacity = function () {
 
 Mannux.Import.AutoArray$b1.prototype.Realloc = function (count) {
 	System.Diagnostics.Debug.Assert((count >= this.length));
-	var newData = JSIL.Array.New(T, count);
+	var newData = JSIL.Array.New(/* T */ System.Object, count);
 	var i = 0;
 
 __while0__: 
@@ -3733,7 +3698,7 @@ Mannux.Import.AutoArray$b1.prototype.set_Item = function (index, value) {
 };
 
 Mannux.Import.AutoArray$b1.prototype.ToArray = function () {
-	var result = JSIL.Array.New(T, this.length);
+	var result = JSIL.Array.New(/* T */ System.Object, this.length);
 	System.Array.Copy(this.data, result, this.length);
 	return result;
 };
@@ -3742,19 +3707,14 @@ Mannux.Import.AutoArray$b1.prototype.get_Array = function () {
 	return this.data;
 };
 
-Object.defineProperty(Mannux.Import.AutoArray$b1.prototype, "Capacity", {
-		get: Mannux.Import.AutoArray$b1.prototype.get_Capacity
-	});
-Object.defineProperty(Mannux.Import.AutoArray$b1.prototype, "Length", {
-		get: Mannux.Import.AutoArray$b1.prototype.get_Length
-	});
-Object.defineProperty(Mannux.Import.AutoArray$b1.prototype, "Item", {
-		get: Mannux.Import.AutoArray$b1.prototype.get_Item, 
-		set: Mannux.Import.AutoArray$b1.prototype.set_Item
-	});
-Object.defineProperty(Mannux.Import.AutoArray$b1.prototype, "Array", {
-		get: Mannux.Import.AutoArray$b1.prototype.get_Array
-	});
+JSIL.MakeProperty(Mannux.Import.AutoArray$b1.prototype, "Capacity", 
+	Mannux.Import.AutoArray$b1.prototype.get_Capacity, null);
+JSIL.MakeProperty(Mannux.Import.AutoArray$b1.prototype, "Length", 
+	Mannux.Import.AutoArray$b1.prototype.get_Length, null);
+JSIL.MakeProperty(Mannux.Import.AutoArray$b1.prototype, "Item", 
+	Mannux.Import.AutoArray$b1.prototype.get_Item, Mannux.Import.AutoArray$b1.prototype.set_Item);
+JSIL.MakeProperty(Mannux.Import.AutoArray$b1.prototype, "Array", 
+	Mannux.Import.AutoArray$b1.prototype.get_Array, null);
 Mannux.Import.AutoArray$b1.prototype.data = null;
 Mannux.Import.AutoArray$b1.prototype.length = 0;
 
@@ -3805,12 +3765,10 @@ Editor.NewMapDlg.prototype.get_MapHeight = function () {
 	return System.Convert.ToInt32(this.heightbox.Text);
 };
 
-Object.defineProperty(Editor.NewMapDlg.prototype, "MapWidth", {
-		get: Editor.NewMapDlg.prototype.get_MapWidth
-	});
-Object.defineProperty(Editor.NewMapDlg.prototype, "MapHeight", {
-		get: Editor.NewMapDlg.prototype.get_MapHeight
-	});
+JSIL.MakeProperty(Editor.NewMapDlg.prototype, "MapWidth", 
+	Editor.NewMapDlg.prototype.get_MapWidth, null);
+JSIL.MakeProperty(Editor.NewMapDlg.prototype, "MapHeight", 
+	Editor.NewMapDlg.prototype.get_MapHeight, null);
 Editor.NewMapDlg.prototype.widthbox = null;
 Editor.NewMapDlg.prototype.heightbox = null;
 
@@ -3832,12 +3790,16 @@ Import.MapEnt.prototype._ctor = function () {
 	System.Object.prototype._ctor.call(this);
 };
 
+Import.MapEnt._cctor = function () {
+	Import.MapEnt.enttypes = JSIL.Array.New(System.String, ["player", "door", "ripper", "hopper"]);
+};
+
 Import.MapEnt.prototype.x = 0;
 Import.MapEnt.prototype.y = 0;
 Import.MapEnt.prototype.type = null;
 Import.MapEnt.prototype.data = null;
+Import.MapEnt.enttypes = null;
 Import.MapEnt._cctor = function () {
-	Import.MapEnt.enttypes = null;
 	Import.MapEnt.enttypes = JSIL.Array.New(System.String, ["player", "door", "ripper", "hopper"]);
 };
 
@@ -4376,51 +4338,46 @@ Entities.Player.prototype.set_HP = function (value) {
 	}
 };
 
-Object.defineProperty(Entities.Player.prototype, "HP", {
-		get: Entities.Player.prototype.get_HP, 
-		set: Entities.Player.prototype.set_HP
-	});
+JSIL.MakeProperty(Entities.Player.prototype, "HP", 
+	Entities.Player.prototype.get_HP, Entities.Player.prototype.set_HP);
+Object.defineProperty(Entities.Player, "key_C", {
+		"value": 0}
+);
+Object.defineProperty(Entities.Player, "key_SPACE", {
+		"value": 1}
+);
+Object.defineProperty(Entities.Player, "groundfriction", {
+		"value": 0.25999999046325684}
+);
+Object.defineProperty(Entities.Player, "airfriction", {
+		"value": 0.016599999740719795}
+);
+Object.defineProperty(Entities.Player, "groundaccel", {
+		"value": 0.52999997138977051}
+);
+Object.defineProperty(Entities.Player, "airaccel", {
+		"value": 0.20000000298023224}
+);
+Object.defineProperty(Entities.Player, "maxxvelocity", {
+		"value": 2.5}
+);
+Object.defineProperty(Entities.Player, "maxyvelocity", {
+		"value": 250}
+);
+Object.defineProperty(Entities.Player, "jumpvelocity", {
+		"value": -3.3299999237060547}
+);
+Object.defineProperty(Entities.Player, "fire_delay", {
+		"value": 12}
+);
+Object.defineProperty(Entities.Player, "jumpheight", {
+		"value": 30}
+);
 Entities.Player.prototype.input = null;
 Entities.Player.prototype.jumpcount = 0;
 Entities.Player.prototype.hp = 0;
 Entities.Player.prototype.hurtcount = 0;
 Entities.Player.prototype.firedelay = 0;
-Entities.Player._cctor = function () {
-	Object.defineProperty(Entities.Player, "key_C", {
-			"value": 0}
-	);
-	Object.defineProperty(Entities.Player, "key_SPACE", {
-			"value": 1}
-	);
-	Object.defineProperty(Entities.Player, "groundfriction", {
-			"value": 0.25999999046325684}
-	);
-	Object.defineProperty(Entities.Player, "airfriction", {
-			"value": 0.016599999740719795}
-	);
-	Object.defineProperty(Entities.Player, "groundaccel", {
-			"value": 0.52999997138977051}
-	);
-	Object.defineProperty(Entities.Player, "airaccel", {
-			"value": 0.20000000298023224}
-	);
-	Object.defineProperty(Entities.Player, "maxxvelocity", {
-			"value": 2.5}
-	);
-	Object.defineProperty(Entities.Player, "maxyvelocity", {
-			"value": 250}
-	);
-	Object.defineProperty(Entities.Player, "jumpvelocity", {
-			"value": -3.3299999237060547}
-	);
-	Object.defineProperty(Entities.Player, "fire_delay", {
-			"value": 12}
-	);
-	Object.defineProperty(Entities.Player, "jumpheight", {
-			"value": 30}
-	);
-};
-
 
 Entities.Enemies.Ripper.prototype._ctor = function (e, startx, starty) {
 	Entities.Enemies.Enemy.prototype._ctor.call(this, e, e.RipperSprite);
@@ -4449,12 +4406,9 @@ Entities.Enemies.Ripper.prototype.DoTick = function () {
 	}
 };
 
-Entities.Enemies.Ripper._cctor = function () {
-	Object.defineProperty(Entities.Enemies.Ripper, "speed", {
-			"value": 1}
-	);
-};
-
+Object.defineProperty(Entities.Enemies.Ripper, "speed", {
+		"value": 1}
+);
 
 Editor.NumberEditBox.prototype.get_CreateParams = function () {
 	var c = System.Windows.Forms.TextBox.prototype.get_CreateParams.call(this);
@@ -4466,9 +4420,8 @@ Editor.NumberEditBox.prototype._ctor = function () {
 	System.Windows.Forms.TextBox.prototype._ctor.call(this);
 };
 
-Object.defineProperty(Editor.NumberEditBox.prototype, "CreateParams", {
-		get: Editor.NumberEditBox.prototype.get_CreateParams
-	});
+JSIL.MakeProperty(Editor.NumberEditBox.prototype, "CreateParams", 
+	Editor.NumberEditBox.prototype.get_CreateParams, null);
 
 Editor.Util.prototype._ctor = function () {
 	System.Object.prototype._ctor.call(this);
@@ -4625,11 +4578,12 @@ Editor.CopyPasteMode.prototype.set_Selection = function (value) {
 	this.curselection = value;
 };
 
-Object.defineProperty(Editor.CopyPasteMode.prototype, "Selection", {
-		get: Editor.CopyPasteMode.prototype.get_Selection, 
-		set: Editor.CopyPasteMode.prototype.set_Selection
-	});
-Editor.CopyPasteMode.prototype.__ImplementInterface__(Editor.IEditorState);
+JSIL.MakeProperty(Editor.CopyPasteMode.prototype, "Selection", 
+	Editor.CopyPasteMode.prototype.get_Selection, Editor.CopyPasteMode.prototype.set_Selection);
+JSIL.ImplementInterfaces(Editor.CopyPasteMode, [
+		Editor.IEditorState
+	]
+);
 Editor.CopyPasteMode.prototype.__StructFields__ = {
 	p1: Import.Geo.Vertex, 
 	p2: Import.Geo.Vertex
@@ -4702,7 +4656,10 @@ Input.KeyboardDevice.prototype._ctor = function () {
 	System.Object.prototype._ctor.call(this);
 };
 
-Input.KeyboardDevice.prototype.__ImplementInterface__(Input.IInputDevice);
+JSIL.ImplementInterfaces(Input.KeyboardDevice, [
+		Input.IInputDevice
+	]
+);
 Input.KeyboardDevice.prototype.__StructFields__ = {
 	oldks: Microsoft.Xna.Framework.Input.KeyboardState, 
 	ks: Microsoft.Xna.Framework.Input.KeyboardState
@@ -4789,61 +4746,10 @@ Entities.Bullet.prototype.CheckCollision = function () {
 	}
 };
 
-Entities.Bullet._cctor = function () {
-	Object.defineProperty(Entities.Bullet, "velocity", {
-			"value": 6.5999999046325684}
-	);
-};
+Object.defineProperty(Entities.Bullet, "velocity", {
+		"value": 6.5999999046325684}
+);
 
-
-JSIL.InitializeType(Entities.Entity);
-JSIL.InitializeType(Entities.Enemies.Enemy);
-JSIL.InitializeType(Entities.Enemies.Hopper);
-JSIL.InitializeType(Editor.TileSetMode);
-JSIL.InitializeType(Editor.Tileset);
-JSIL.InitializeType(Timer);
-JSIL.InitializeType(Input.X360Gamepad);
-JSIL.InitializeType(Cataract.XNAGraph);
-JSIL.InitializeType(Editor.ChangeTileHandler);
-JSIL.InitializeType(Editor.TileSetPreview.DoubleBufferedPanel);
-JSIL.InitializeType(Editor.TileSetPreview);
-JSIL.InitializeType(Editor.MapInfoView);
-JSIL.InitializeType(Editor.EntityEditMode);
-JSIL.InitializeType(Entities.Enemies.Skree);
-JSIL.InitializeType(Import.MannuxMap);
-JSIL.InitializeType(AnimState);
-JSIL.InitializeType(Mannux.MannuxGame);
-JSIL.InitializeType(Editor.Editor);
-JSIL.InitializeType(Sprites.BitmapSprite);
-JSIL.InitializeType(Import.VectorIndexBuffer);
-JSIL.InitializeType(Import.Geo.Vertex);
-JSIL.InitializeType(Controller.Resource);
-JSIL.InitializeType(Controller);
-JSIL.InitializeType(Editor.MapEntPropertiesView);
-JSIL.InitializeType(Vector);
-JSIL.InitializeType(Input.InputHandler);
-JSIL.InitializeType(Entities.Door);
-JSIL.InitializeType(Editor.AutoSelectionThing);
-JSIL.InitializeType(Sprites.ParticleSprite.Particle);
-JSIL.InitializeType(Sprites.ParticleSprite);
-JSIL.InitializeType(Entities.Boom);
-JSIL.InitializeType(Engine);
-JSIL.InitializeType(Editor.ObstructionMode);
-JSIL.InitializeType(Import.VectorObstructionMap);
-JSIL.InitializeType(Import.Map.Layer);
-JSIL.InitializeType(Import.Map);
-JSIL.InitializeType(Import.Geo.Line);
-JSIL.InitializeType(RLE);
-JSIL.InitializeType(Import.v2Map);
-JSIL.InitializeType(Mannux.Import.AutoArray$b1);
-JSIL.InitializeType(Editor.NewMapDlg);
-JSIL.InitializeType(Mannux.Program);
-JSIL.InitializeType(Import.MapEnt);
-JSIL.InitializeType(Input.MouseDevice);
-JSIL.InitializeType(Entities.Player);
-JSIL.InitializeType(Entities.Enemies.Ripper);
-JSIL.InitializeType(Editor.NumberEditBox);
-JSIL.InitializeType(Editor.Util);
-JSIL.InitializeType(Editor.CopyPasteMode);
-JSIL.InitializeType(Input.KeyboardDevice);
-JSIL.InitializeType(Entities.Bullet);
+JSIL.SealType(this, "AnimState");
+JSIL.SealType(this, "Engine");
+JSIL.SealType(Import, "MapEnt");
