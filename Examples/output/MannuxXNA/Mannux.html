@@ -1,10 +1,12 @@
+<!DOCTYPE html> 
 <html>
   <head>
     <title>Mannux</title>
     <link rel="stylesheet" href="mannux.css" />
   </head>
-  <body>
-    <script src="../../../Libraries/JSIL.Core.js"></script>
+  <body onload="onLoad()">
+    <script src="../../../Libraries/JSIL.Core.js" type="text/javascript"></script>
+    <script src="../../../Libraries/JSIL.Bootstrap.js" type="text/javascript"></script>
     
     <!-- workaround for chromium bug -->
     <div id="scripts"></div>
@@ -29,8 +31,9 @@
     
     function loadScript (filename, onError, onDoneLoading) {
       var e = document.createElement("script");
-      e.addEventListener("error", onError);
-      e.addEventListener("load", onDoneLoading);
+      e.type = "text/javascript";
+      e.addEventListener("error", onError, true);
+      e.addEventListener("load", onDoneLoading, true);
       e.id = "script_" + filename;
       e.src = filename;
       document.getElementById("scripts").appendChild(e);
@@ -88,7 +91,10 @@
       });
     }
     
-    document.getElementById("log").value = "";
+    function onLoad () {
+      document.getElementById("log").value = "";
+    }
+    
     document.getElementById("loadButton").addEventListener(
       "click", beginLoading, true
     );

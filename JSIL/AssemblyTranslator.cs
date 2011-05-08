@@ -791,7 +791,7 @@ namespace JSIL {
             //  by the cctor.
             // Everything else is emitted inline.
 
-            var emitter = new JavascriptAstEmitter(output, new JSILIdentifier(typeSystem), typeSystem);
+            var emitter = new JavascriptAstEmitter(output, new JSILIdentifier(typeSystem), typeSystem, this);
             foreach (var f in typedef.Fields) {
                 if (f.IsStatic && NeedsStaticConstructor(f.FieldType))
                     continue;
@@ -849,7 +849,7 @@ namespace JSIL {
 
             var emitter = new JavascriptAstEmitter(
                 output, new JSILIdentifier(context.CurrentModule.TypeSystem),
-                context.CurrentModule.TypeSystem
+                context.CurrentModule.TypeSystem, this
             );
 
             var function = TranslateMethod(context, method, (f) => {

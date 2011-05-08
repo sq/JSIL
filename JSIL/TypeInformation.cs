@@ -138,17 +138,16 @@ namespace JSIL.Internal {
             var methodGroups = from m in type.Methods 
                           where !IgnoredMembers.Contains(m)
                           group m by new { 
-                              Name = m.Name, IsStatic = m.IsStatic
+                              m.Name, m.IsStatic
                           } into mg select mg;
-
-            bool createdCtorMethodGroup = false;
 
             foreach (var mg in methodGroups) {
                 if (mg.Count() > 1) {
                     var info = new MethodGroupInfo(type, mg.Key.Name, mg.Key.IsStatic);
-                    info.Items.AddRange(mg.Select(
-                        (m, i) => new MethodGroupItem(info, m, i)
-                    ));
+                    info.Items.AddRange(
+                        mg.OrderBy((md) => md.FullName)
+                        .Select((m, i) => new MethodGroupItem(info, m, i))
+                    );
 
                     MethodGroups.Add(info);
 

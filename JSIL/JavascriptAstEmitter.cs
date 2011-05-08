@@ -17,6 +17,7 @@ namespace JSIL {
     }
 
     public class JavascriptAstEmitter : JSAstVisitor {
+        public readonly ITypeInfoSource TypeInfo;
         public readonly JavascriptFormatter Output;
 
         public readonly TypeSystem TypeSystem;
@@ -26,10 +27,11 @@ namespace JSIL {
         protected readonly Stack<Func<string, bool>> GotoStack = new Stack<Func<string, bool>>();
         protected readonly Stack<BlockType> BlockStack = new Stack<BlockType>();
 
-        public JavascriptAstEmitter (JavascriptFormatter output, JSILIdentifier jsil, TypeSystem typeSystem) {
+        public JavascriptAstEmitter (JavascriptFormatter output, JSILIdentifier jsil, TypeSystem typeSystem, ITypeInfoSource typeInfo) {
             Output = output;
             JSIL = jsil;
             TypeSystem = typeSystem;
+            TypeInfo = typeInfo;
             IncludeTypeParens.Push(false);
         }
 
@@ -221,6 +223,21 @@ namespace JSIL {
             Output.OpenBracket();
             Visit(idx.Index);
             Output.CloseBracket();
+        }
+
+        public void VisitNode (JSMethod method) {
+            /*
+            var info = TypeInfo.Get(method.Method.DeclaringType);
+            if (info != null) {
+                MethodGroupItem mgi;
+                if (info.MethodToMethodGroupItem.TryGetValue(method.Method, out mgi)) {
+                    Output.Identifier(mgi.MangledName);
+                    return;
+                }
+            }
+             */
+            
+            Output.Identifier(method.Identifier);
         }
 
         public void VisitNode (JSIdentifier identifier) {

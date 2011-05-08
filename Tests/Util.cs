@@ -82,7 +82,7 @@ namespace JSIL.Tests {
 
         public static readonly string TestSourceFolder;
         public static readonly string JSShellPath;
-        public static readonly string BootstrapJSPath;
+        public static readonly string CoreJSPath, BootstrapJSPath;
 
         public readonly string Filename;
         public readonly Assembly Assembly;
@@ -98,7 +98,8 @@ namespace JSIL.Tests {
 
             TestSourceFolder = Path.GetFullPath(Path.Combine(assemblyPath, @"..\"));
             JSShellPath = Path.GetFullPath(Path.Combine(assemblyPath, @"..\..\Upstream\SpiderMonkey\js.exe"));
-            BootstrapJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.Core.js"));
+            CoreJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.Core.js"));
+            BootstrapJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.Bootstrap.js"));
         }
 
         public ComparisonTest (string filename) {
@@ -166,7 +167,7 @@ namespace JSIL.Tests {
             try {
                 // throw new Exception();
 
-                var psi = new ProcessStartInfo(JSShellPath, String.Format("-j -m -f {0} -f {1}", BootstrapJSPath, tempFilename)) {
+                var psi = new ProcessStartInfo(JSShellPath, String.Format("-j -m -f {0} -f {1} -f {2}", CoreJSPath, BootstrapJSPath, tempFilename)) {
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,
