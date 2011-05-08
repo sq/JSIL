@@ -609,7 +609,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSBinaryOperatorExpression bop) {
-            bool parens = !(bop.Operator is JSAssignmentOperator);
+            bool parens = true;
             bool needsTruncation = false;
 
             if (ParentNode is JSIfStatement)
@@ -619,6 +619,10 @@ namespace JSIL {
             else if ((ParentNode is JSSwitchStatement) && ((JSSwitchStatement)ParentNode).Condition == bop)
                 parens = false;
             else if ((ParentNode is JSBinaryOperatorExpression) && ((JSBinaryOperatorExpression)ParentNode).Operator == bop.Operator)
+                parens = false;
+            else if (ParentNode is JSVariableDeclarationStatement)
+                parens = false;
+            else if (ParentNode is JSExpressionStatement)
                 parens = false;
 
             // We need to perform manual truncation to maintain the semantics of C#'s division operator

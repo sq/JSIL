@@ -86,7 +86,7 @@ namespace JSIL.Tests {
 
             try {
                 Assert.IsTrue(generatedJs.Contains("var b ="));
-                Assert.IsTrue(generatedJs.Contains(", b = \"7\""));
+                Assert.IsTrue(generatedJs.Contains(", (b = \"7"));
             } catch {
                 Console.WriteLine(generatedJs);
 

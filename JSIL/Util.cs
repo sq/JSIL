@@ -16,7 +16,11 @@ namespace JSIL.Internal {
             "continue", "for", "switch", "while",
             "debugger", "function", "this", "with",
             "default", "if", "throw", "delete",
-            "in", "try"
+            "in", "try", "import", "class", "enum",
+            "export", "extends", "super", "let",
+            "package", "interface", "implements", "private",
+            "protected", "public", "static", "yield",
+            "const", "true", "false", "null"
         };
 
         public static readonly Dictionary<string, string> IdentifierMappings = new Dictionary<string, string> {
