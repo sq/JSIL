@@ -135,6 +135,7 @@ namespace JSIL.Internal {
             }
 
             var methodGroups = from m in type.Methods 
+                          where !IgnoredMembers.Contains(m)
                           group m by new { 
                               Name = m.Name, IsStatic = m.IsStatic
                           } into mg select mg;

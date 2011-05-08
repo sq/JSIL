@@ -672,6 +672,7 @@ namespace JSIL {
                 // Temporary elimination makes it possible to simplify more operators, so do it last
                 if (SimplifyOperators)
                     new SimplifyOperators(
+                        translator.JSIL,
                         context.CurrentModule.TypeSystem
                     ).Visit(function);
 

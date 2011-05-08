@@ -47,7 +47,8 @@ namespace JSIL {
         public readonly TypeSystem TypeSystem;
 
         public readonly JSDotExpression IgnoredMember,
-            GlobalNamespace;
+            GlobalNamespace,
+            CopyMembers;
 
         public JSILIdentifier (TypeSystem typeSystem)
             : base("JSIL", typeSystem.Object) {
@@ -56,6 +57,7 @@ namespace JSIL {
 
             IgnoredMember = Dot("IgnoredMember", TypeSystem.Void);
             GlobalNamespace = Dot("GlobalNamespace", TypeSystem.Object);
+            CopyMembers = Dot("CopyMembers", TypeSystem.Void);
         }
 
         protected JSDotExpression Dot (JSIdentifier rhs) {

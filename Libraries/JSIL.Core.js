@@ -105,7 +105,7 @@ JSIL.MakeProto = function (baseType, typeName, isReferenceType) {
   var prototype = JSIL.CloneObject(baseType.prototype);
   prototype.__BaseType__ = baseType;
   prototype.__ShortName__ = typeName;
-  prototype.__TypeName__ = typeName;
+  prototype.__FullName__ = typeName;
   prototype.__IsReferenceType__ = Boolean(isReferenceType);
   return prototype;
 };
@@ -116,11 +116,22 @@ JSIL.MakeNumericProto = function (baseType, typeName, isIntegral) {
   return prototype;
 }
 
+JSIL.TypeObject = function () {};
+JSIL.TypeObject.__TypeInitialized__ = false;
+JSIL.TypeObject.__LockCount__ = 0;
+JSIL.TypeObject.__FullName__ = null;
+JSIL.TypeObject.__ShortName__ = null;
+JSIL.TypeObject.Of = function (T) {
+  return this.__Self__;
+};
+JSIL.TypeObject.toString = function () {
+  return "<Type " + this.__FullName__ + ">";
+};
+
 JSIL.InitializeType = function (type) {
   var typeName = type.__FullName__;
 
   if (type.__TypeInitialized__ || false) {
-    // JSIL.Host.logWriteLine("Already initialized: " + typeName);
     return;
   }
 
@@ -128,10 +139,7 @@ JSIL.InitializeType = function (type) {
   type.__TypeInitialized__ = true;
 
   if (typeof (type._cctor) != "undefined") {
-    // JSIL.Host.logWriteLine("Running cctor: " + typeName);
     type._cctor();
-  } else {
-    // JSIL.Host.logWriteLine("No cctor: " + typeName);
   }
 
   if (typeof (type.prototype) != "undefined")
@@ -140,7 +148,7 @@ JSIL.InitializeType = function (type) {
   Object.seal(type);
 }
 
-JSIL.InitializeStructFields = function (instance, localName) {
+JSIL.InitializeStructFields = function (instance, typeObject) {
   var sf = instance.__StructFields__;
 
   if (typeof (sf) == "object") {
@@ -153,22 +161,35 @@ JSIL.InitializeStructFields = function (instance, localName) {
         instance[fieldName] = new fieldType();
       } else {
         instance[fieldName] = new System.ValueType();
-        JSIL.Host.warning("Warning: The type of struct field ", localName + "." + fieldName, " is undefined.");
+        JSIL.Host.warning("Warning: The type of field ", typeObject.__FullName__ + "." + fieldName, " is undefined.");
       }
     }
   }
 };
 
+JSIL.CopyMembers = function (source, target) {
+  var sf = source.__StructFields__;
+  if (typeof (sf) != "object")
+    sf = {};
+
+  for (var key in source) {
+    if (!source.hasOwnProperty(key))
+      continue;
+
+    if (sf.hasOwnProperty(key))
+      target[key] = source[key].MemberwiseClone();
+    else
+      target[key] = source[key];
+  }
+}
+
 JSIL.MakeType = function (baseType, namespace, localName, fullName, isReferenceType) {
   if (typeof (namespace[localName]) != "undefined")
     throw new Error("Duplicate definition of type " + fullName);
 
-  var initType;
-  var ctor = function () {
-    JSIL.InitializeStructFields(this, localName);
-
-    if (typeof (initType) != "undefined")
-      initType();
+  var typeObject = function () {
+    JSIL.InitializeType(typeObject);
+    JSIL.InitializeStructFields(this, typeObject);
 
     try {
       if (typeof (this._ctor) != "undefined")
@@ -180,23 +201,17 @@ JSIL.MakeType = function (baseType, namespace, localName, fullName, isReferenceT
         throw e;
     }
   };
-  ctor.prototype = JSIL.MakeProto(baseType, fullName, false);
-  ctor.prototype.__ShortName__ = localName;
-  ctor.toString = function () {
-    return "<Type " + fullName + ">";
-  };
-  ctor.Of = function (T) {
-    return ctor;
-  };
-  ctor.__IsReferenceType__ = isReferenceType;
-  ctor.__TypeInitialized__ = false;
-  ctor.__LockCount__ = 0;
-  ctor.__FullName__ = fullName;
-  initType = function () {
-    JSIL.InitializeType(ctor);
-  };
 
-  namespace[localName] = ctor;
+  typeObject.__proto__ = JSIL.TypeObject;
+  typeObject.__Self__ = typeObject;
+  typeObject.__FullName__ = fullName;
+  typeObject.__ShortName__ = localName;
+  typeObject.__LockCount__ = 0;
+
+  typeObject.prototype = JSIL.MakeProto(baseType, fullName, false);
+  typeObject.prototype.__ShortName__ = localName;
+
+  namespace[localName] = typeObject;
 };
 
 JSIL.MakeClass = function (baseType, namespace, localName, fullName) {
@@ -215,7 +230,7 @@ JSIL.MakeInterface = function (namespace, localName, fullName, members) {
   prototype.__BaseType__ = System.Object;
   prototype.__Members__ = members;
   prototype.__ShortName__ = localName;
-  prototype.__TypeName__ = fullName;
+  prototype.__FullName__ = fullName;
 
   var ctor = function () { };
   ctor.prototype = prototype;
@@ -234,7 +249,7 @@ JSIL.MakeEnum = function (namespace, localName, fullName, members, isFlagsEnum) 
   var prototype = JSIL.CloneObject(System.Enum.prototype);
   prototype.__BaseType__ = System.Enum;
   prototype.__ShortName__ = localName;
-  prototype.__TypeName__ = fullName;
+  prototype.__FullName__ = fullName;
 
   var result = {
     prototype: prototype,
@@ -324,7 +339,7 @@ JSIL.GetTypeName = function (value) {
     proto = value.__proto__;
 
   if (typeof (proto) != "undefined")
-    result = proto.__TypeName__;
+    result = proto.__FullName__;
 
   if (typeof (result) == "undefined")
     result = typeof (value);
@@ -413,7 +428,7 @@ JSIL.DispatchOverload = function (name, args, overloads) {
 JSIL.OverloadedMethod = function (type, name, overloads) {
   type[name] = function () {
     var args = Array.prototype.slice.call(arguments);
-    return JSIL.DispatchOverload.call(this, type["__TypeName__"] + "." + name, args, overloads);
+    return JSIL.DispatchOverload.call(this, type.__FullName__ + "." + name, args, overloads);
   };
 };
 
@@ -464,25 +479,12 @@ System.Object.prototype.__ImplementInterface__ = function (iface) {
 System.Object.prototype.MemberwiseClone = function () {
   var result = Object.create(Object.getPrototypeOf(this));
 
-  var sf = this.__StructFields__;
-  if (typeof (sf) != "object")
-    sf = {};
-
-  for (var key in this) {
-    if (!this.hasOwnProperty(key))
-      continue;
-
-    if (sf.hasOwnProperty(key))
-      result[key] = this[key].MemberwiseClone();
-    else
-      result[key] = this[key];
-  }
-
+  JSIL.CopyMembers(this, result);
   return result;
 };
 System.Object.prototype.__Initialize__ = function (initializer) {
   var collectionInitializer = "JSIL.CollectionInitializer";
-  if (initializer.__TypeName__ == collectionInitializer) {
+  if (initializer.__FullName__ == collectionInitializer) {
     initializer.Apply(this);
     return this;
   } else if (JSIL.IsArray(initializer)) {
@@ -496,7 +498,7 @@ System.Object.prototype.__Initialize__ = function (initializer) {
 
     var value = initializer[key];
 
-    if (value.__TypeName__ == collectionInitializer) {
+    if (value.__FullName__ == collectionInitializer) {
       value.Apply(this[key]);
     } else {
       this[key] = value;
@@ -510,7 +512,7 @@ System.Object.prototype.__StructFields__ = {};
 System.Object.prototype._ctor = function () {
 };
 System.Object.prototype.toString = function ToString() {
-  return this.__TypeName__;
+  return this.__FullName__;
 };
 
 JSIL.MakeClass(System.Object, JSIL, "Reference", "JSIL.Reference");
@@ -527,7 +529,7 @@ JSIL.Reference.Of = function (type) {
   var compositeType = JSIL.Reference.Types[type];
 
   if (typeof (compositeType) == "undefined") {
-    var typeName = "ref " + type.prototype.__TypeName__;
+    var typeName = "ref " + type.prototype.__FullName__;
     compositeType = JSIL.CloneObject(JSIL.Reference);
     compositeType.CheckType = function (value) {
       var isReference = JSIL.CheckType(value, JSIL.Reference, true);
@@ -644,7 +646,7 @@ System.Array.Of = function (type) {
   var compositeType = System.Array.Types[type];
 
   if (typeof (compositeType) == "undefined") {
-    var typeName = type.prototype.__TypeName__ + "[]";
+    var typeName = type.prototype.__FullName__ + "[]";
     compositeType = JSIL.CloneObject(System.Array);
     compositeType.prototype = JSIL.MakeProto(System.Array, typeName, true);
     System.Array.Types[type] = compositeType;
@@ -668,7 +670,7 @@ JSIL.Array.New = function (type, sizeOrInitializer) {
 
   /* Even worse, doing this deoptimizes all uses of the array in TraceMonkey. AUGH
   // Can't do this the right way, because .prototype for arrays in JS is insanely busted
-  result.__TypeName__ = type.__TypeName__ + "[]";
+  result.__FullName__ = type.__FullName__ + "[]";
   result.toString = System.Object.prototype.toString;
   */
 
@@ -808,7 +810,7 @@ JSIL.Delegate.New = function (typeName, object, method) {
     method = object;
     object = null;
 
-    if (method.__TypeName__ == typeName)
+    if (method.__FullName__ == typeName)
       return method;
   }
 
@@ -859,9 +861,9 @@ System.Exception.prototype._ctor = function (message) {
 }
 System.Exception.prototype.toString = function () {
   if (this.Message === null)
-    return System.String.Format("{0}: Exception of type '{0}' was thrown.", this.__TypeName__);
+    return System.String.Format("{0}: Exception of type '{0}' was thrown.", this.__FullName__);
   else
-    return System.String.Format("{0}: {1}", this.__TypeName__, this.Message);
+    return System.String.Format("{0}: {1}", this.__FullName__, this.Message);
 };
 
 JSIL.MakeClass(System.Exception, System, "InvalidCastException", "System.InvalidCastException");

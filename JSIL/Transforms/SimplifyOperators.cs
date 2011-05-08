@@ -11,6 +11,8 @@ using Mono.Cecil;
 namespace JSIL.Transforms {
     public class SimplifyOperators : JSAstVisitor {
         public readonly TypeSystem TypeSystem;
+        public readonly JSILIdentifier JSIL;
+
         public readonly Dictionary<JSBinaryOperator, JSBinaryOperator> InvertedOperators = new Dictionary<JSBinaryOperator, JSBinaryOperator> {
             { JSOperator.LessThan, JSOperator.GreaterThanOrEqual },
             { JSOperator.LessThanOrEqual, JSOperator.GreaterThan },
@@ -29,7 +31,8 @@ namespace JSIL.Transforms {
             { JSOperator.Subtract, JSOperator.PreDecrement }
         };
 
-        public SimplifyOperators (TypeSystem typeSystem) {
+        public SimplifyOperators (JSILIdentifier jsil, TypeSystem typeSystem) {
+            JSIL = jsil;
             TypeSystem = typeSystem;
         }
 
@@ -144,14 +147,22 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSBinaryOperatorExpression boe) {
-            var nestedBoe = boe.Right as JSBinaryOperatorExpression;
+            JSExpression left, right;
+
+            if (!JSReferenceExpression.TryDereference(JSIL, boe.Left, out left))
+                left = boe.Left;
+            if (!JSReferenceExpression.TryDereference(JSIL, boe.Right, out right))
+                right = boe.Right;
+
+            var nestedBoe = right as JSBinaryOperatorExpression;
             var isAssignment = (boe.Operator == JSOperator.Assignment);
-            var leftNew = boe.Left as JSNewExpression;
-            var rightNew = boe.Right as JSNewExpression;
+            var leftNew = left as JSNewExpression;
+            var rightNew = right as JSNewExpression;
+            var leftVar = left as JSVariable;
 
             if (
                 isAssignment && (nestedBoe != null) && 
-                (boe.Left.IsConstant || boe.Left is JSVariable)
+                (boe.Left.IsConstant || (leftVar != null))
             ) {
                 JSUnaryOperator prefixOperator;
                 JSAssignmentOperator compoundOperator;
@@ -204,6 +215,26 @@ namespace JSIL.Transforms {
                             TypeSystem.Object,
                             rightNew.Arguments.ToArray()
                         )
+                    );
+
+                    ParentNode.ReplaceChild(boe, newInvocation);
+                    Visit(newInvocation);
+
+                    return;
+                }
+            } else if (
+                isAssignment && (leftVar != null) &&
+                leftVar.IsThis
+            ) {
+                var leftType = leftVar.GetExpectedType(TypeSystem);
+                if (!EmulateStructAssignment.IsStruct(leftType)) {
+                    ParentNode.ReplaceChild(boe, new JSUntranslatableExpression(boe));
+
+                    return;
+                } else {
+                    var newInvocation = new JSInvocationExpression(
+                        JSIL.CopyMembers,
+                        boe.Right, leftVar
                     );
 
                     ParentNode.ReplaceChild(boe, newInvocation);
