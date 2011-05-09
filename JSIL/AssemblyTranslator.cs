@@ -306,12 +306,16 @@ namespace JSIL {
 
         IMemberInfo ITypeInfoSource.Get (MemberReference member) {
             var typeInfo = GetTypeInformation(member.DeclaringType);
-            if (typeInfo == null)
-                throw new InvalidDataException();
+            if (typeInfo == null) {
+                Console.Error.WriteLine("Warning: type not loaded: {0}", member.DeclaringType.FullName);
+                return null;
+            }
 
             IMemberInfo result;
-            if (!typeInfo.Members.TryGetValue(member, out result))
-                throw new InvalidDataException();
+            if (!typeInfo.Members.TryGetValue(member, out result)) {
+                Console.Error.WriteLine("Warning: member not defined: {0}", member.FullName);
+                return null;
+            }
 
             return result;
         }
@@ -329,8 +333,10 @@ namespace JSIL {
         {
             var typeInformation = GetTypeInformation(member.DeclaringType);
             IMemberInfo result;
-            if (!typeInformation.Members.TryGetValue(member, out result))
-                throw new InvalidDataException();
+            if (!typeInformation.Members.TryGetValue(member, out result)) {
+                Console.Error.WriteLine("Warning: member not defined: {0}", member.FullName);
+                return null;
+            }
 
             return (T)result;
         }
@@ -878,7 +884,7 @@ namespace JSIL {
         protected void TranslateMethod (DecompilerContext context, JavascriptFormatter output, MethodDefinition method, Action<JSFunctionExpression> bodyTransformer = null) {
             var methodInfo = GetMemberInformation<Internal.MethodInfo>(method);
             if (methodInfo == null)
-                throw new InvalidOperationException();
+                return;
             if (methodInfo.IsIgnored)
                 return;
             if (methodInfo.IsExternal)

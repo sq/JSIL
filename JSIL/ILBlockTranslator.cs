@@ -1065,12 +1065,22 @@ namespace JSIL {
                     JSIL.IgnoredMember, JSLiteral.New(field.Name)
                 );
 
+            JSExpression result = new JSDotExpression(
+                new JSType(field.DeclaringType),
+                new JSField(fieldInfo)
+            );
+
+            if (CopyOnReturn(field.FieldType))
+                result = JSReferenceExpression.New(result);
+
             // TODO: When returning a value type we should be returning it by reference, but doing that would break Ldflda.
-            return new JSDotExpression(new JSType(field.DeclaringType), new JSField(fieldInfo));
+            return result;
         }
 
         protected JSExpression Translate_Ldsflda (ILExpression node, FieldReference field) {
-            return new JSMemberReferenceExpression(Translate_Ldsfld(node, field));
+            return new JSMemberReferenceExpression(
+                Translate_Ldsfld(node, field)
+            );
         }
 
         protected JSBinaryOperatorExpression Translate_Stsfld (ILExpression node, FieldReference field) {
@@ -1101,18 +1111,22 @@ namespace JSIL {
             JSExpression thisExpression;
             if (DereferenceType(firstArg.InferredType).IsValueType) {
                 if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression)) {
-                    Console.Error.WriteLine("Warning: Accessing a field of a value type with a value as this instead of a reference.");
+                    Console.Error.WriteLine("Warning: Accessing {0} without a reference as this.", field.FullName);
                     thisExpression = translated;
                 }
             } else {
                 thisExpression = translated;
             }
 
-            // TODO: When returning a value type we should be returning it by reference, but doing that would break Ldflda.
-            return new JSDotExpression(
-                thisExpression, 
+            JSExpression result = new JSDotExpression(
+                thisExpression,
                 new JSField(fieldInfo)
             );
+
+            if (CopyOnReturn(field.FieldType))
+                result = JSReferenceExpression.New(result);
+
+            return result;
         }
 
         protected JSExpression Translate_Stind (ILExpression node) {
@@ -1584,7 +1598,12 @@ namespace JSIL {
                 var ie = translated as JSInvocationExpression;
 
                 if (boe != null) {
-                    var leftDot = boe.Left as JSDotExpression;
+                    var left = boe.Left;
+
+                    while (left is JSReferenceExpression)
+                        left = ((JSReferenceExpression)left).Referent;
+
+                    var leftDot = left as JSDotExpression;
 
                     if (leftDot != null) {
                         var key = leftDot.Member;
@@ -1592,7 +1611,7 @@ namespace JSIL {
 
                         initializers.Add(new JSPairExpression(key, value));
                     } else {
-                        Console.Error.WriteLine(String.Format("Warning: Unrecognized object initializer form: {0}", boe));
+                        Console.Error.WriteLine(String.Format("Warning: Unrecognized object initializer target: {0}", left));
                     }
                 } else if (ie != null) {
                     var method = ie.Target.AllChildrenRecursive.OfType<JSMethod>().FirstOrDefault();

@@ -824,7 +824,11 @@ namespace JSIL.Ast {
             var mref = reference as JSMemberReferenceExpression;
 
             if (mref != null) {
-                var dot = mref.Referent as JSDotExpression;
+                var referent = mref.Referent;
+                while (referent is JSReferenceExpression)
+                    referent = ((JSReferenceExpression)referent).Referent;
+
+                var dot = referent as JSDotExpression;
 
                 if (dot != null) {
                     materialized = jsil.NewMemberReference(
