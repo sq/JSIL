@@ -226,18 +226,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSMethod method) {
-            /*
-            var info = TypeInfo.Get(method.Method.DeclaringType);
-            if (info != null) {
-                MethodGroupItem mgi;
-                if (info.MethodToMethodGroupItem.TryGetValue(method.Method, out mgi)) {
-                    Output.Identifier(mgi.MangledName);
-                    return;
-                }
-            }
-             */
-            
-            Output.Identifier(method.Identifier);
+            Output.Identifier(method.Method.Name);
         }
 
         public void VisitNode (JSIdentifier identifier) {
@@ -258,7 +247,14 @@ namespace JSIL {
                 if (!isFirst)
                     Output.PlainTextOutput.WriteLine();
 
-                Output.PlainTextOutput.Write(line.Trim());
+                var pieces = line.Split(new string[] { "$this" }, StringSplitOptions.None);
+
+                for (int i = 0, l = pieces.Length; i < l; i++) {
+                    Output.PlainTextOutput.Write(pieces[i].Trim());
+                    if (i < (l - 1))
+                        Visit(verbatim.This);
+                }
+
                 isFirst = false;
             }
         }

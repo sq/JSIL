@@ -247,18 +247,6 @@ namespace JSIL.Internal {
         }
 
         public void Identifier (MethodReference method, bool fullyQualified = true) {
-            string methodName = JSMethod.GetMethodName(method);
-
-            // TODO: This doesn't work because it breaks Console.WriteLine :(
-            /*
-            var mdef = method.Resolve();
-            if (mdef != null) {
-                MethodGroupItem mgi;
-                if (TypeInfo.Get(method.DeclaringType).MethodToMethodGroupItem.TryGetValue(mdef, out mgi))
-                    methodName = mgi.MangledName;
-            }
-             */
-
             if (fullyQualified) {
                 Identifier(method.DeclaringType);
                 Dot();
@@ -269,7 +257,9 @@ namespace JSIL.Internal {
                 }
             }
 
-            Identifier(methodName);
+            var info = TypeInfo.Get(method);
+
+            Identifier(info.Name);
         }
 
         public void Keyword (string keyword) {

@@ -1197,28 +1197,28 @@ namespace JSIL.Ast {
     }
 
     public class JSVerbatimLiteral : JSLiteralBase<string> {
-        public JSVerbatimLiteral (string expression)
+        public readonly TypeReference Type;
+        public readonly JSExpression This;
+
+        public JSVerbatimLiteral (string expression, JSExpression thisExpression, TypeReference type = null)
             : base(expression) {
+            Type = type;
+            This = thisExpression;
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return typeSystem.Object;
+            if (Type != null)
+                return Type;
+            else
+                return typeSystem.Object;
         }
     }
 
-    public class JSIdentifier : JSExpression {
-        public readonly string Identifier;
+    public abstract class JSIdentifier : JSExpression {
         public readonly TypeReference Type;
 
-        public JSIdentifier (string identifier, TypeReference type = null) {
-            Identifier = identifier;
+        public JSIdentifier (TypeReference type = null) {
             Type = type;
-        }
-
-        public static JSIdentifier Method (string name, TypeSystem typeSystem, TypeReference returnType, params TypeReference[] parameterTypes) {
-            return new JSIdentifier(name,
-                ConstructDelegateType(returnType, parameterTypes, typeSystem)
-            );
         }
 
         public override bool Equals (object obj) {
@@ -1245,6 +1245,10 @@ namespace JSIL.Ast {
                 return base.GetExpectedType(typeSystem);
         }
 
+        public abstract string Identifier {
+            get;
+        }
+
         public override bool IsConstant {
             get {
                 return true;
@@ -1260,7 +1264,20 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSNamespace : JSIdentifier {
+    public class JSStringIdentifier : JSIdentifier {
+        public readonly string Text;
+
+        public JSStringIdentifier (string text, TypeReference type = null)
+            : base(type) {
+            Text = text;
+        }
+
+        public override string Identifier {
+            get { return Text; }
+        }
+    }
+
+    public class JSNamespace : JSStringIdentifier {
         public JSNamespace (string name)
             : base(name) {
         }
@@ -1269,9 +1286,12 @@ namespace JSIL.Ast {
     public class JSType : JSIdentifier {
         public readonly TypeReference Type;
 
-        public JSType (TypeReference type)
-            : base(type.FullName) {
+        public JSType (TypeReference type) {
             Type = type;
+        }
+
+        public override string Identifier {
+            get { return Type.FullName; }
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
@@ -1287,28 +1307,34 @@ namespace JSIL.Ast {
     }
 
     public class JSField : JSIdentifier {
-        public readonly FieldReference Field;
+        public readonly FieldInfo Field;
 
-        public JSField (FieldReference field)
-            : base(field.Name) {
+        public JSField (FieldInfo field) {
             Field = field;
         }
 
+        public override string Identifier {
+            get { return Field.Name; }
+        }
+
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return ResolveGenericType(Field.FieldType, Field, Field.DeclaringType);
+            return ResolveGenericType(Field.Type, Field, Field.DeclaringType);
         }
     }
 
     public class JSProperty : JSIdentifier {
-        public readonly PropertyReference Property;
+        public readonly PropertyInfo Property;
 
-        public JSProperty (PropertyReference property)
-            : base(GetPropertyName(property)) {
+        public JSProperty (PropertyInfo property) {
             Property = property;
         }
 
+        public override string Identifier {
+            get { return Property.Name; }
+        }
+
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return ResolveGenericType(Property.PropertyType, Property, Property.DeclaringType);
+            return ResolveGenericType(Property.Type, Property, Property.DeclaringType);
         }
 
         public override bool IsConstant {
@@ -1328,46 +1354,52 @@ namespace JSIL.Ast {
     }
 
     public class JSMethod : JSIdentifier {
-        public readonly MethodReference Method;
+        public readonly MethodInfo Method;
 
-        public JSMethod (MethodReference method)
-            : base(GetMethodName(method)) {
+        public JSMethod (MethodInfo method) {
             Method = method;
         }
 
+        public override string Identifier {
+            get { return Method.Name; }
+        }
+
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            var result = ConstructDelegateType(Method, typeSystem);
+            var result = ConstructDelegateType(Method.Member, typeSystem);
             if (result == null)
                 return Method.ReturnType;
             else
                 return result;
         }
+    }
 
-        public static string GetMethodName (MethodReference method) {
-            var methodDef = method.Resolve();
-            if (methodDef != null) {
-                var over = methodDef.Overrides.FirstOrDefault();
+    public class JSFakeMethod : JSIdentifier {
+        public readonly string Name;
+        public readonly TypeReference ReturnType;
+        public readonly TypeReference[] ParameterTypes;
 
-                if (over != null)
-                    return String.Format("{0}.{1}", over.DeclaringType.Name, over.Name);
-            }
+        public JSFakeMethod (string name, TypeReference returnType, params TypeReference[] parameterTypes) {
+            Name = name;
+            ReturnType = returnType;
+            ParameterTypes = parameterTypes;
+        }
 
-            var declType = method.DeclaringType.Resolve();
+        public override string Identifier {
+            get { return Name; }
+        }
 
-            if ((declType != null) && declType.IsInterface) {
-                return String.Format("{0}.{1}", declType.Name, method.Name);
-            } else {
-                return method.Name;
-            }
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return ConstructDelegateType(ReturnType, ParameterTypes, typeSystem);
         }
     }
 
     public class JSVariable : JSIdentifier {
+        public readonly string Name;
         protected readonly TypeReference _Type;
         protected readonly bool _IsReference;
 
-        public JSVariable (string name, TypeReference type)
-            : base(name) {
+        public JSVariable (string name, TypeReference type) {
+            Name = name;
 
             if (type is ByReferenceType) {
                 type = ((ByReferenceType)type).ElementType;
@@ -1377,6 +1409,10 @@ namespace JSIL.Ast {
             }
 
             _Type = type;
+        }
+
+        public override string Identifier {
+            get { return Name; }
         }
 
         public virtual TypeReference Type {

@@ -9,14 +9,12 @@ namespace JSIL {
     public class CLRSpecialIdentifiers {
         protected readonly TypeSystem TypeSystem;
 
-        public readonly JSIdentifier Length,
-            MemberwiseClone;
+        public readonly JSIdentifier MemberwiseClone;
 
         public CLRSpecialIdentifiers (TypeSystem typeSystem) {
             TypeSystem = typeSystem;
 
-            Length = new JSIdentifier("Length", TypeSystem.Int32);
-            MemberwiseClone = new JSIdentifier("MemberwiseClone", TypeSystem.Object); 
+            MemberwiseClone = new JSStringIdentifier("MemberwiseClone", TypeSystem.Object); 
         }
     };
 
@@ -30,16 +28,16 @@ namespace JSIL {
             TypeSystem = typeSystem;
 
             prototype = Object("prototype");
-            eval = JSIdentifier.Method("eval", TypeSystem, TypeSystem.Object, TypeSystem.String);
-            floor = new JSDotExpression(Object("Math"), JSIdentifier.Method("floor", TypeSystem, TypeSystem.Int64));
+            eval = new JSFakeMethod("eval", TypeSystem.Object, TypeSystem.String);
+            floor = new JSDotExpression(Object("Math"), new JSFakeMethod("floor", TypeSystem.Int64));
         }
 
         public JSIdentifier call (TypeReference returnType) {
-            return JSIdentifier.Method("call", TypeSystem, returnType);
+            return new JSFakeMethod("call", returnType);
         }
 
         protected JSIdentifier Object (string name) {
-            return new JSIdentifier(name, TypeSystem.Object);
+            return new JSStringIdentifier(name, TypeSystem.Object);
         }
     };
 
@@ -50,9 +48,7 @@ namespace JSIL {
             GlobalNamespace,
             CopyMembers;
 
-        public JSILIdentifier (TypeSystem typeSystem)
-            : base("JSIL", typeSystem.Object) {
-
+        public JSILIdentifier (TypeSystem typeSystem) {
             TypeSystem = typeSystem;
 
             IgnoredMember = Dot("IgnoredMember", TypeSystem.Void);
@@ -60,12 +56,16 @@ namespace JSIL {
             CopyMembers = Dot("CopyMembers", TypeSystem.Void);
         }
 
+        public override string Identifier {
+            get { return "JSIL"; }
+        }
+
         protected JSDotExpression Dot (JSIdentifier rhs) {
             return new JSDotExpression(this, rhs);
         }
 
         protected JSDotExpression Dot (string rhs, TypeReference rhsType = null) {
-            return Dot(JSIdentifier.Method(rhs, TypeSystem, rhsType));
+            return Dot(new JSFakeMethod(rhs, rhsType));
         }
 
         public JSInvocationExpression CheckType (JSExpression expression, TypeReference targetType) {
@@ -95,7 +95,7 @@ namespace JSIL {
             return new JSInvocationExpression(
                 new JSDotExpression(
                     Dot("Array", TypeSystem.Object),
-                    JSIdentifier.Method("New", TypeSystem, arrayType, TypeSystem.Object)
+                    new JSFakeMethod("New", arrayType, TypeSystem.Object)
                 ),
                 new JSType(elementType),
                 sizeOrArrayInitializer
@@ -108,7 +108,7 @@ namespace JSIL {
             return new JSInvocationExpression(
                 new JSDotExpression(
                     Dot("MultidimensionalArray", TypeSystem.Object),
-                    JSIdentifier.Method("New", TypeSystem, arrayType, TypeSystem.Object, TypeSystem.Object)
+                    new JSFakeMethod("New", arrayType, TypeSystem.Object, TypeSystem.Object)
                 ),
                 (new JSExpression[] { new JSType(elementType) }.Concat(dimensions)).ToArray()
             );
@@ -118,7 +118,7 @@ namespace JSIL {
             return new JSInvocationExpression(
                 new JSDotExpression(
                     Dot("Delegate", TypeSystem.Object),
-                    JSIdentifier.Method("New", TypeSystem, delegateType, TypeSystem.String, TypeSystem.Object, TypeSystem.Object)
+                    new JSFakeMethod("New", delegateType, TypeSystem.String, TypeSystem.Object, TypeSystem.Object)
                 ),
                 JSLiteral.New(delegateType),
                 thisReference,

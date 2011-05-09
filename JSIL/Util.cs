@@ -23,11 +23,6 @@ namespace JSIL.Internal {
             "const", "true", "false", "null"
         };
 
-        public static readonly Dictionary<string, string> IdentifierMappings = new Dictionary<string, string> {
-            { "ToString", "toString" },
-            { "Length", "length" }
-        };
-
         public static Regex ValidIdentifier = new Regex("$[A-Za-z_$]([A-Za-z_$0-9]*)^", RegexOptions.Compiled);
 
         public static string EscapeIdentifier (string identifier, bool escapePeriods = true) {
@@ -129,10 +124,6 @@ namespace JSIL.Internal {
             bool isReservedWord = ReservedWords.Contains(result);
             if (isReservedWord)
                 result = "$" + result;
-
-            string mapped;
-            if (IdentifierMappings.TryGetValue(result, out mapped))
-                result = mapped;
 
             return result;
         }

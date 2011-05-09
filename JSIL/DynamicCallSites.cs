@@ -154,7 +154,7 @@ namespace JSIL {
                 return new JSInvocationExpression(
                     JSDotExpression.New(
                         thisArgument,
-                        new JSIdentifier(MemberName, returnType)
+                        new JSStringIdentifier(MemberName, returnType)
                     ),
                     arguments.Skip(2).ToArray()
                 );
@@ -421,7 +421,7 @@ namespace JSIL {
 
                 return JSDotExpression.New(
                     thisArgument,
-                    new JSIdentifier(MemberName, returnType)
+                    new JSStringIdentifier(MemberName, returnType)
                 );
             }
         }
@@ -460,7 +460,7 @@ namespace JSIL {
                     JSBinaryOperator.Assignment,
                     JSDotExpression.New(
                         thisArgument,
-                        new JSIdentifier(MemberName, returnType)
+                        new JSStringIdentifier(MemberName, returnType)
                     ),
                     arguments[2], returnType
                 );

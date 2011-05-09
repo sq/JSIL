@@ -55,6 +55,7 @@ namespace JSIL {
     public class AssemblyTranslator : ITypeInfoSource {
         public const int LargeMethodThreshold = 1024;
 
+        public readonly Dictionary<string, ProxyInfo> TypeProxies = new Dictionary<string, ProxyInfo>();
         public readonly Dictionary<string, TypeInfo> TypeInformation = new Dictionary<string, TypeInfo>();
         public readonly Dictionary<string, ModuleInfo> ModuleInformation = new Dictionary<string, ModuleInfo>();
         public readonly HashSet<string> GeneratedFiles = new HashSet<string>();
@@ -79,6 +80,10 @@ namespace JSIL {
         public bool IncludeDependencies = true;
         public bool UseSymbols = true;
 
+        public AssemblyTranslator () {
+            AddProxyAssembly(typeof(JSIL.Proxies.ObjectProxy).Assembly);
+        }
+
         protected static ReaderParameters GetReaderParameters (bool useSymbols, string mainAssemblyPath = null) {
             var readerParameters = new ReaderParameters {
                 ReadingMode = ReadingMode.Deferred,
@@ -97,8 +102,41 @@ namespace JSIL {
             return readerParameters;
         }
 
+        public void AddProxyAssembly (string path) {
+            var assemblies = LoadAssembly(path, UseSymbols, false);
+
+            foreach (var asm in assemblies) {
+                foreach (var module in asm.Modules) {
+                    foreach (var type in module.Types) {
+                        bool isProxyType = false;
+
+                        foreach (var ca in type.CustomAttributes) {
+                            if (ca.AttributeType.FullName == "JSIL.Meta.JSProxy") {
+                                isProxyType = true;
+                                break;
+                            }
+                        }
+
+                        if (isProxyType) {
+                            if (!TypeProxies.ContainsKey(type.FullName))
+                                TypeProxies.Add(type.FullName, new ProxyInfo(type));
+                        }
+                    }
+                }
+            }
+        }
+
+        public void AddProxyAssembly (Assembly assembly) {
+            var path = new Uri(assembly.CodeBase).AbsolutePath.Replace("/", "\\");
+            AddProxyAssembly(path);
+        }
+
         public AssemblyDefinition[] LoadAssembly (string path) {
-            var readerParameters = GetReaderParameters(UseSymbols, path);
+            return LoadAssembly(path, UseSymbols, IncludeDependencies);
+        }
+
+        protected AssemblyDefinition[] LoadAssembly (string path, bool useSymbols, bool includeDependencies) {
+            var readerParameters = GetReaderParameters(useSymbols, path);
 
             if (StartedLoadingAssembly != null)
                 StartedLoadingAssembly(path);
@@ -110,7 +148,7 @@ namespace JSIL {
             var result = new List<AssemblyDefinition>();
             result.Add(assembly);
 
-            if (IncludeDependencies) {
+            if (includeDependencies) {
                 var assemblyNames = new HashSet<string>();
                 foreach (var module in assembly.Modules) {
                     foreach (var reference in module.AssemblyReferences) {
@@ -140,7 +178,7 @@ namespace JSIL {
                         try {
                             result.Add(module.AssemblyResolver.Resolve(reference, readerParameters));
                         } catch (Exception ex) {
-                            if (UseSymbols) {
+                            if (useSymbols) {
                                 try {
                                     result.Add(module.AssemblyResolver.Resolve(reference, GetReaderParameters(false, path)));
                                     if (CouldNotLoadSymbols != null)
@@ -166,6 +204,7 @@ namespace JSIL {
                 return;
 
             var assemblies = LoadAssembly(assemblyPath);
+
             GeneratedFiles.Add(assemblyPath);
 
             if (outputStream == null) {
@@ -241,7 +280,7 @@ namespace JSIL {
 
                 if (resolvedType != null)
                     TypeInformation[fullName] = result = new TypeInfo(
-                        GetModuleInformation(type.Module), resolvedType, type
+                        this, GetModuleInformation(type.Module), resolvedType
                     );
                 else
                     return null;
@@ -250,12 +289,38 @@ namespace JSIL {
             return result;
         }
 
+        ProxyInfo[] ITypeInfoSource.GetProxies (TypeReference type) {
+            var result = new List<ProxyInfo>();
+
+            foreach (var p in TypeProxies.Values) {
+                if (ILBlockTranslator.TypesAreAssignable(p.ProxiedType, type))
+                    result.Add(p);
+            }
+
+            return result.ToArray();
+        }
+
+        IMemberInfo ITypeInfoSource.Get (MemberReference member) {
+            var typeInfo = GetTypeInformation(member.DeclaringType);
+            if (typeInfo == null)
+                throw new InvalidOperationException();
+
+            return typeInfo.Members[member];
+        }
+
         ModuleInfo ITypeInfoSource.Get (ModuleDefinition module) {
             return GetModuleInformation(module);
         }
 
         TypeInfo ITypeInfoSource.Get (TypeReference type) {
             return GetTypeInformation(type);
+        }
+
+        protected T GetMemberInformation<T> (MemberReference member)
+            where T : class, Internal.IMemberInfo
+        {
+            var typeInformation = GetTypeInformation(member.DeclaringType);
+            return (T)typeInformation.Members[member];
         }
 
         public bool IsIgnored (ModuleDefinition module) {
@@ -274,11 +339,8 @@ namespace JSIL {
 
         public bool IsIgnored (MemberReference member) {
             var typeInformation = GetTypeInformation(member.DeclaringType);
-
-            if (typeInformation != null)
-                return typeInformation.IgnoredMembers.Contains(member);
-            else
-                return false;
+            var memberInformation = typeInformation.Members[member];
+            return memberInformation.IsIgnored;
         }
 
         protected void TranslateModule (DecompilerContext context, JavascriptFormatter output, ModuleDefinition module) {
@@ -735,20 +797,21 @@ namespace JSIL {
 
         protected JSExpression TranslateField (FieldDefinition field) {
             JSDotExpression target;
+            var fieldInfo = GetMemberInformation<Internal.FieldInfo>(field);
             
             if (field.IsStatic)
                 target = JSDotExpression.New(
-                    new JSType(field.DeclaringType), new JSField(field)
+                    new JSType(field.DeclaringType), new JSField(fieldInfo)
                 );
             else
                 target = JSDotExpression.New(
-                    new JSType(field.DeclaringType), new JSIdentifier("prototype"), new JSField(field)
+                    new JSType(field.DeclaringType), new JSStringIdentifier("prototype"), new JSField(fieldInfo)
                 );
 
             if (field.HasConstant) {
                 return new JSInvocationExpression(
                     JSDotExpression.New(
-                        new JSIdentifier("Object"), new JSIdentifier("defineProperty")
+                        new JSStringIdentifier("Object"), new JSStringIdentifier("defineProperty")
                     ),
                     target.Target, target.Member.ToLiteral(),
                     new JSObjectExpression(new JSPairExpression(
@@ -822,13 +885,13 @@ namespace JSIL {
             if (!method.HasBody)
                 return;
 
-            var typeInfo = GetTypeInformation(method.DeclaringType);
-            if (typeInfo == null)
+            var methodInfo = GetMemberInformation<Internal.MethodInfo>(method);
+            if (methodInfo == null)
                 throw new InvalidOperationException();
 
-            MetadataCollection methodMetadata;
-            if (typeInfo.MemberMetadata.TryGetValue(method, out methodMetadata)) {
-                if (methodMetadata.HasAttribute("JSIL.Meta.JSReplacement"))
+            var metadata = methodInfo.Metadata;
+            if (metadata != null) {
+                if (metadata.HasAttribute("JSIL.Meta.JSReplacement"))
                     return;
             }
 
@@ -839,11 +902,7 @@ namespace JSIL {
             }
             output.Dot();
 
-            MethodGroupItem mgi;
-            if (typeInfo.MethodToMethodGroupItem.TryGetValue(method, out mgi))
-                output.Identifier(mgi.MangledName);
-            else
-                output.Identifier(method, false);
+            output.Identifier(methodInfo.Name, false);
 
             output.Token(" = ");
 

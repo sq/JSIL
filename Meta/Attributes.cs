@@ -16,28 +16,50 @@ namespace JSIL.Meta {
 
     /// <summary>
     /// Specifies that references to this identifier should be replaced with a specified javascript expression when translating code to JavaScript.
+    /// The special token '$this' can be used to refer to the this-reference from within the expression.
     /// </summary>
     [AttributeUsage(
         AttributeTargets.Method | AttributeTargets.Field |
-        AttributeTargets.Parameter
+        AttributeTargets.Property | AttributeTargets.Constructor
     )]
     public class JSReplacement : Attribute {
-        public JSReplacement (string Expression) {
+        public JSReplacement (string expression) {
         }
     }
 
     /// <summary>
-    /// Specifies that references to this property or event's accessors should be replaced with specified javascript expressions when translating code to JavaScript.
+    /// Specifies that the name of this member should be changed when translating code to javascript.
     /// </summary>
     [AttributeUsage(
-        AttributeTargets.Property | AttributeTargets.Event
+        AttributeTargets.Method | AttributeTargets.Field |
+        AttributeTargets.Property
     )]
-    public class JSAccessorReplacement : Attribute {
-        public JSAccessorReplacement (
-            string Get = null,
-            string Set = null,
-            string Add = null,
-            string Remove = null
+    public class JSChangeName : Attribute {
+        public JSChangeName (string newName) {
+        }
+    }
+
+    public enum JSProxyMemberPolicy {
+        ReplaceDeclared
+    }
+
+    public enum JSProxyAttributePolicy {
+        Add,
+        Replace
+    }
+
+    /// <summary>
+    /// Specifies that a type should be treated as a proxy for another type, replacing the target type's members and/or attributes.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface)]
+    public class JSProxy : Attribute {
+        /// <param name="type">The type to proxy.</param>
+        /// <param name="memberPolicy">Determines how members defined in the proxied type should be replaced with members defined by the proxy type.</param>
+        /// <param name="attributePolicy">Determines how how attributes defined in the proxied type should be replaced with attributes attached to the proxy type.</param>
+        public JSProxy (
+            Type type,
+            JSProxyMemberPolicy memberPolicy = JSProxyMemberPolicy.ReplaceDeclared,
+            JSProxyAttributePolicy attributePolicy = JSProxyAttributePolicy.Add
         ) {
         }
     }

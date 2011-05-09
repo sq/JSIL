@@ -209,7 +209,7 @@ namespace JSIL.Transforms {
                     var newInvocation = new JSInvocationExpression(
                         new JSDotExpression(
                             boe.Left,
-                            new JSIdentifier("__Initialize__", boe.Left.GetExpectedType(TypeSystem))
+                            new JSStringIdentifier("__Initialize__", boe.Left.GetExpectedType(TypeSystem))
                         ),
                         new JSArrayExpression(
                             TypeSystem.Object,
