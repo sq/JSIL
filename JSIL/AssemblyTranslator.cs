@@ -276,7 +276,7 @@ namespace JSIL {
 
             TypeInfo result;
             if (!TypeInformation.TryGetValue(fullName, out result)) {
-                var resolvedType = (type as TypeDefinition) ?? type.Resolve();
+                var resolvedType = ILBlockTranslator.GetTypeDefinition(type);
 
                 if (resolvedType != null)
                     TypeInformation[fullName] = result = new TypeInfo(

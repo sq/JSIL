@@ -31,13 +31,98 @@ namespace JSIL.Internal {
         }
     }
 
-    internal class MemberReferenceComparer : IEqualityComparer<MemberReference> {
-        protected string GetKey (MemberReference mr) {
-            return mr.FullName;
+    internal struct MemberIdentifier {
+        public string Name;
+        public TypeReference ReturnType;
+        public int ParameterCount;
+        public IEnumerable<TypeReference> ParameterTypes;
+
+        public MemberIdentifier (MemberReference mr) {
+            Name = mr.FullName;
+            ReturnType = null;
+            ParameterCount = 0;
+            ParameterTypes = null;
         }
 
-        public bool Equals (MemberReference x, MemberReference y) {
-            return String.Equals(GetKey(x), GetKey(y));
+        public MemberIdentifier (MethodReference mr) {
+            Name = mr.Name;
+            ReturnType = mr.ReturnType;
+            ParameterCount = mr.Parameters.Count;
+            ParameterTypes = (from p in mr.Parameters select p.ParameterType);
+        }
+
+        static bool TypesAreEqual (TypeReference lhs, TypeReference rhs) {
+            if (lhs == null || rhs == null)
+                return (lhs == rhs);
+
+            if (lhs.IsGenericParameter || rhs.IsGenericParameter)
+                return true;
+
+            return ILBlockTranslator.TypesAreEqual(lhs, rhs);
+        }
+
+        public bool Equals (MemberIdentifier rhs) {
+            if (!String.Equals(Name, rhs.Name))
+                return false;
+
+            if (!TypesAreEqual(ReturnType, rhs.ReturnType))
+                return false;
+
+            if ((ParameterTypes == null) || (rhs.ParameterTypes == null)) {
+                if (ParameterTypes != rhs.ParameterTypes)
+                    return false;
+            } else {
+                if (ParameterCount != rhs.ParameterCount)
+                    return false;
+
+                using (var eLeft = ParameterTypes.GetEnumerator())
+                using (var eRight = rhs.ParameterTypes.GetEnumerator()) {
+                    bool left, right;
+                    while ((left = eLeft.MoveNext()) & (right = eRight.MoveNext())) {
+                        if (!TypesAreEqual(eLeft.Current, eRight.Current))
+                            return false;
+                    }
+
+                    if (left != right)
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
+        public override bool Equals (object obj) {
+            if (obj is MemberIdentifier)
+                return Equals((MemberIdentifier)obj);
+
+            return base.Equals(obj);
+        }
+
+        public override int GetHashCode () {
+            return Name.GetHashCode() ^ ParameterCount.GetHashCode();
+        }
+
+        public override string ToString () {
+            return String.Format(
+                "{0} {1} ( {2} )", ReturnType, Name,
+                String.Join(", ", (from p in ParameterTypes select p.ToString()).ToArray())
+            );
+        }
+    }
+
+    internal class MemberReferenceComparer : IEqualityComparer<MemberReference> {
+        protected MemberIdentifier GetKey (MemberReference mr) {
+            var method = mr as MethodReference;
+            if (method != null)
+                return new MemberIdentifier(method);
+            else
+                return new MemberIdentifier(mr);
+        }
+
+        public bool Equals (MemberReference lhs, MemberReference rhs) {
+            var keyLeft = GetKey(lhs);
+            var keyRight = GetKey(rhs);
+            return keyLeft.Equals(keyRight);
         }
 
         public int GetHashCode (MemberReference obj) {
@@ -316,7 +401,13 @@ namespace JSIL.Internal {
         }
 
         public static bool IsIgnoredName (string fullName) {
+            var m = Regex.Match(fullName, @"\<(?'scope'[^>]*)\>(?'mangling'[^_]*)__(?'index'[0-9]*)");
+            if (m.Success)
+                return false; 
+
             if (fullName.EndsWith("__BackingField"))
+                return false;
+            else if (fullName.Contains("__DisplayClass"))
                 return false;
             else if (fullName.Contains("<Module>"))
                 return true;
@@ -330,11 +421,6 @@ namespace JSIL.Internal {
                 return true;
             else if (fullName.Contains("__CachedAnonymousMethodDelegate"))
                 return true;
-            else {
-                var m = Regex.Match(fullName, @"\<(?'scope'[^>]*)\>(?'mangling'[^_]*)__(?'index'[0-9]*)");
-                if (m.Success)
-                    return true;
-            }
 
             return false;
         }
@@ -536,6 +622,18 @@ namespace JSIL.Internal {
         public PropertyInfo (PropertyDefinition property, ProxyInfo[] proxies) : base(
             proxies.ResolveProxy(property), proxies, property.PropertyType.IsPointer
         ) {
+        }
+
+        protected override string GetName () {
+            string result;
+            var declType = Member.DeclaringType.Resolve();
+
+            if ((declType != null) && declType.IsInterface)
+                result = String.Format("{0}.{1}", declType.Name, Member.Name);
+            else
+                result = Member.Name;
+
+            return result;
         }
 
         public TypeReference Type {

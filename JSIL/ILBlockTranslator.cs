@@ -329,23 +329,14 @@ namespace JSIL {
 
             // Accesses to a base property should go through a regular method invocation, since
             //  javascript properties do not have a mechanism for base access
-            if (method.HasThis && !virt) {
-                var resolved = GetTypeDefinition(thisType);
-                if (resolved == null)
-                    return false;
-
-                var thisProperty = resolved.Properties.Where((p) => p.Name == propertyInfo.Name).FirstOrDefault();
-                if (thisProperty != null) {
-                    if (TypesAreEqual(thisProperty.DeclaringType, propertyInfo.DeclaringType)) {
-                        result = generate();
-                        return true;
-                    }
+            if (method.HasThis) {
+                if (TypesAreEqual(thisType, propertyInfo.DeclaringType)) {
+                    result = generate();
+                    return true;
                 } else {
                     result = generate();
                     return true;
                 }
-
-                return false;
             }
 
             result = generate();
@@ -377,8 +368,11 @@ namespace JSIL {
 
         public static TypeDefinition GetTypeDefinition (TypeReference typeRef) {
             var ts = typeRef.Module.TypeSystem;
+            typeRef = DereferenceType(typeRef);
 
-            if (typeRef is ArrayType)
+            if (typeRef.IsGenericParameter)
+                return null;
+            else if (typeRef is ArrayType)
                 return new TypeReference(ts.Object.Namespace, "Array", ts.Object.Module, ts.Object.Scope).ResolveOrThrow();
             else
                 return typeRef.ResolveOrThrow();
