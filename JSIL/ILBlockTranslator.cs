@@ -842,6 +842,10 @@ namespace JSIL {
                 //  because there's no IL opcode for != and the IL isinst opcode returns object, not bool
                 var value = TranslateNode(node.Arguments[0].Arguments[0]);
                 var targetType = (TypeReference)node.Arguments[0].Operand;
+
+                if (targetType.IsGenericParameter)
+                    return JSChangeTypeExpression.New(Translate_GenericTypeCast(targetType), TypeSystem, TypeSystem.Boolean);
+
                 var targetInfo = TypeInfo.Get(targetType);
 
                 if (targetInfo.IsIgnored)
@@ -1313,16 +1317,20 @@ namespace JSIL {
             );
         }
 
-        protected JSExpression Translate_Isinst (ILExpression node, TypeReference targetType) {
-            var targetInfo = TypeInfo.Get(targetType);
+        protected JSExpression Translate_GenericTypeCast (TypeReference targetType) {
+            return new JSUntranslatableExpression(String.Format("Cast to generic parameter type '{0}'", targetType.FullName));
+        }
 
+        protected JSExpression Translate_Isinst (ILExpression node, TypeReference targetType) {
+            var firstArg = TranslateNode(node.Arguments[0]);
+            if (targetType.IsGenericParameter)
+                return JSChangeTypeExpression.New(Translate_GenericTypeCast(targetType), TypeSystem, targetType);
+
+            var targetInfo = TypeInfo.Get(targetType);
             if (targetInfo.IsIgnored)
                 return new JSNullLiteral(targetType);
             else
-                return JSIL.TryCast(
-                    TranslateNode(node.Arguments[0]),
-                    targetType
-                );
+                return JSIL.TryCast(firstArg, targetType);
         }
 
         protected JSExpression Translate_Unbox_Any (ILExpression node, TypeReference targetType) {
