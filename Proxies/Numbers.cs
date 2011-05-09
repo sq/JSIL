@@ -12,7 +12,7 @@ namespace JSIL.Proxies {
     )]
     public abstract class IntegerProxy {
         [JSRuntimeDispatch]
-        new public static object Parse () {
+        new public static object Parse (params AnyType[] arguments) {
             throw new InvalidOperationException();
         }
     }
@@ -23,7 +23,7 @@ namespace JSIL.Proxies {
     )]
     public abstract class DecimalProxy {
         [JSRuntimeDispatch]
-        new public static Decimal op_Explicit () {
+        new public static Decimal op_Explicit (params AnyType[] arguments) {
             throw new InvalidOperationException();
         }
     }

@@ -9,7 +9,7 @@ namespace JSIL.Proxies {
     )]
     public abstract class DelegateProxy {
         [JSRuntimeDispatch]
-        public static void Combine () {
+        public static void Combine (params AnyType[] arguments) {
             throw new InvalidOperationException();
         }
     }

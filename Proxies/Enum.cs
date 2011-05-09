@@ -9,7 +9,7 @@ namespace JSIL.Proxies {
     )]
     public abstract class EnumProxy {
         [JSRuntimeDispatch]
-        new public static object Parse () {
+        new public static object Parse (params AnyType[] arguments) {
             throw new InvalidOperationException();
         }
     }

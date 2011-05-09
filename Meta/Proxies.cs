@@ -10,8 +10,8 @@ namespace JSIL.Proxy {
     }
 
     public enum JSProxyAttributePolicy {
-        Add,
-        Replace
+        ReplaceDeclared,
+        ReplaceAll
     }
 
     /// <summary>
@@ -25,7 +25,7 @@ namespace JSIL.Proxy {
         public JSProxy (
             Type type,
             JSProxyMemberPolicy memberPolicy = JSProxyMemberPolicy.ReplaceDeclared,
-            JSProxyAttributePolicy attributePolicy = JSProxyAttributePolicy.Add
+            JSProxyAttributePolicy attributePolicy = JSProxyAttributePolicy.ReplaceDeclared
         ) {
         }
 
@@ -35,7 +35,7 @@ namespace JSIL.Proxy {
         public JSProxy (
             Type[] types,
             JSProxyMemberPolicy memberPolicy = JSProxyMemberPolicy.ReplaceDeclared,
-            JSProxyAttributePolicy attributePolicy = JSProxyAttributePolicy.Add
+            JSProxyAttributePolicy attributePolicy = JSProxyAttributePolicy.ReplaceDeclared
         ) {
         }
     }

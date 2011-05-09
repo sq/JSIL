@@ -11,6 +11,9 @@ namespace JSIL.Proxies {
         [JSReplacement("JSIL.GetType($this)")]
         new abstract public Type GetType ();
 
+        [JSExternal]
+        new abstract public AnyType MemberwiseClone ();
+
         [JSChangeName("toString")]
         new abstract public string ToString ();
     }

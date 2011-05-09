@@ -45,12 +45,14 @@ namespace JSIL.Internal {
         public int ParameterCount;
         public IEnumerable<TypeReference> ParameterTypes;
 
+        public static readonly IEnumerable<TypeReference> AnyParameterTypes;
+
         public MemberIdentifier (MethodReference mr) {
             Type = MemberType.Method;
             Name = mr.Name;
             ReturnType = mr.ReturnType;
             ParameterCount = mr.Parameters.Count;
-            ParameterTypes = (from p in mr.Parameters select p.ParameterType);
+            ParameterTypes = GetParameterTypes(mr.Parameters);
         }
 
         public MemberIdentifier (PropertyReference pr) {
@@ -88,6 +90,20 @@ namespace JSIL.Internal {
             ParameterTypes = null;
         }
 
+        static IEnumerable<TypeReference> GetParameterTypes (IList<ParameterDefinition> parameters) {
+            if (
+                (parameters.Count == 1) && (parameters[0].ParameterType.IsArray) &&
+                IsAnyType(parameters[0].ParameterType.GetElementType()) &&
+                (from ca in parameters[0].CustomAttributes 
+                 where ca.AttributeType.FullName == "System.ParamArrayAttribute" 
+                 select ca).Count() == 1
+            ) {
+                return AnyParameterTypes;
+            }
+
+            return (from p in parameters select p.ParameterType);
+        }
+
         static bool IsAnyType (TypeReference t) {
             t = JSExpression.DeReferenceType(t);
 
@@ -97,6 +113,15 @@ namespace JSIL.Internal {
         static bool TypesAreEqual (TypeReference lhs, TypeReference rhs) {
             if (lhs == null || rhs == null)
                 return (lhs == rhs);
+
+            if (
+                lhs.IsArray && rhs.IsArray && (
+                    IsAnyType(lhs.GetElementType()) ||
+                    IsAnyType(rhs.GetElementType())
+                )
+            ) {
+                return true;
+            }
 
             if (IsAnyType(lhs) || IsAnyType(rhs))
                 return true;
@@ -114,7 +139,8 @@ namespace JSIL.Internal {
             if (!TypesAreEqual(ReturnType, rhs.ReturnType))
                 return false;
 
-            if ((ParameterTypes == null) || (rhs.ParameterTypes == null)) {
+            if ((ParameterTypes == AnyParameterTypes) || (rhs.ParameterTypes == AnyParameterTypes)) {
+            } else if ((ParameterTypes == null) || (rhs.ParameterTypes == null)) {
                 if (ParameterTypes != rhs.ParameterTypes)
                     return false;
             } else {
@@ -476,7 +502,7 @@ namespace JSIL.Internal {
             }
 
             foreach (var proxy in Proxies) {
-                Metadata.Update(proxy.Metadata, proxy.AttributePolicy == JSProxyAttributePolicy.Replace);
+                Metadata.Update(proxy.Metadata, proxy.AttributePolicy == JSProxyAttributePolicy.ReplaceAll);
 
                 foreach (var property in proxy.Properties.Values) {
                     if (Members.ContainsKey(property))
@@ -579,33 +605,22 @@ namespace JSIL.Internal {
     }
 
     public class MetadataCollection {
-        public readonly Dictionary<string, HashSet<CustomAttribute>> CustomAttributes = new Dictionary<string, HashSet<CustomAttribute>>();
+        public readonly Dictionary<string, CustomAttribute> CustomAttributes = new Dictionary<string, CustomAttribute>();
 
         public MetadataCollection (ICustomAttributeProvider target) {
-            HashSet<CustomAttribute> attrs;
-
             foreach (var ca in target.CustomAttributes) {
                 var key = ca.AttributeType.FullName;
 
-                if (!CustomAttributes.TryGetValue(key, out attrs))
-                    CustomAttributes[key] = attrs = new HashSet<CustomAttribute>();
-
-                attrs.Add(ca);
+                CustomAttributes[key] = ca;
             }
         }
 
-        public void Update (MetadataCollection rhs, bool replace) {
-            if (replace)
+        public void Update (MetadataCollection rhs, bool replaceAll) {
+            if (replaceAll)
                 CustomAttributes.Clear();
 
-            foreach (var kvp in rhs.CustomAttributes) {
-                HashSet<CustomAttribute> setLhs;
-                if (!CustomAttributes.TryGetValue(kvp.Key, out setLhs))
-                    CustomAttributes[kvp.Key] = setLhs = new HashSet<CustomAttribute>();
-
-                foreach (var ca in kvp.Value)
-                    setLhs.Add(ca);
-            }
+            foreach (var kvp in rhs.CustomAttributes)
+                CustomAttributes[kvp.Key] = kvp.Value;
         }
 
         public bool HasAttribute (TypeReference attributeType) {
@@ -617,37 +632,34 @@ namespace JSIL.Internal {
         }
 
         public bool HasAttribute (string fullName) {
-            var attrs = GetAttributes(fullName);
+            var attr = GetAttribute(fullName);
 
-            return ((attrs != null) && (attrs.Count > 0));
+            return attr != null;
         }
 
-        public HashSet<CustomAttribute> GetAttributes (TypeReference attributeType) {
-            return GetAttributes(attributeType.FullName);
+        public CustomAttribute GetAttribute (TypeReference attributeType) {
+            return GetAttribute(attributeType.FullName);
         }
 
-        public HashSet<CustomAttribute> GetAttributes (Type attributeType) {
-            return GetAttributes(attributeType.FullName);
+        public CustomAttribute GetAttribute (Type attributeType) {
+            return GetAttribute(attributeType.FullName);
         }
 
-        public HashSet<CustomAttribute> GetAttributes (string fullName) {
-            HashSet<CustomAttribute> attrs;
+        public CustomAttribute GetAttribute (string fullName) {
+            CustomAttribute attr;
 
-            if (CustomAttributes.TryGetValue(fullName, out attrs))
-                return attrs;
+            if (CustomAttributes.TryGetValue(fullName, out attr))
+                return attr;
 
             return null;
         }
 
         public IList<CustomAttributeArgument> GetAttributeParameters (string fullName) {
-            var attrs = GetAttributes(fullName);
-            if ((attrs == null) || (attrs.Count == 0))
+            var attr = GetAttribute(fullName);
+            if (attr == null)
                 return null;
 
-            if (attrs.Count > 1)
-                throw new NotImplementedException("There are multiple attributes of the type '" + fullName + "'.");
-
-            return attrs.First().ConstructorArguments;
+            return attr.ConstructorArguments;
         }
     }
 
@@ -696,7 +708,7 @@ namespace JSIL.Internal {
             foreach (var proxy in proxies) {
                 foreach (var proxyMember in proxy.GetMembersByName(member.Name)) {
                     var meta = new MetadataCollection(proxyMember);
-                    Metadata.Update(meta, proxy.AttributePolicy == JSProxyAttributePolicy.Replace);
+                    Metadata.Update(meta, proxy.AttributePolicy == JSProxyAttributePolicy.ReplaceAll);
                 }
             }
         }

@@ -9,7 +9,7 @@ namespace JSIL.Proxies {
     )]
     public abstract class ConsoleProxy {
         [JSRuntimeDispatch]
-        new public static void WriteLine () {
+        new public static void WriteLine (params AnyType[] arguments) {
             throw new InvalidOperationException();
         }
     }

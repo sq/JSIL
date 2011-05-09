@@ -8,19 +8,20 @@ namespace JSIL.Proxies {
         JSProxyMemberPolicy.ReplaceNone
     )]
     public abstract class StringProxy {
+        [JSExternal]
         [JSRuntimeDispatch]
-        new public static string Format () {
+        new public static string Format (params AnyType[] arguments) {
             throw new InvalidOperationException();
         }
 
+        [JSExternal]
         [JSRuntimeDispatch]
-        new public static string Concat () {
+        new public static string Concat (params AnyType[] arguments) {
             throw new InvalidOperationException();
         }
 
+        [JSExternal]
         [JSRuntimeDispatch]
-        new public string[] Split () {
-            throw new InvalidOperationException();
-        }
+        public abstract string[] Split (params AnyType[] arguments);
     }
 }

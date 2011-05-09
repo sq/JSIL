@@ -301,7 +301,7 @@ namespace JSIL {
                 }
             }
 
-            return result.ToArray();
+            return result.Distinct().ToArray();
         }
 
         IMemberInfo ITypeInfoSource.Get (MemberReference member) {
