@@ -476,6 +476,9 @@ namespace JSIL {
         }
 
         public static IEnumerable<TypeDefinition> AllBaseTypesOf (TypeDefinition type) {
+            if (type == null)
+                yield break;
+
             var baseType = GetTypeDefinition(type.BaseType);
 
             while (baseType != null) {
@@ -1324,7 +1327,7 @@ namespace JSIL {
 
         protected JSExpression Translate_Unbox_Any (ILExpression node, TypeReference targetType) {
             var value = TranslateNode(node.Arguments[0]);
-            var result = JSIL.Cast(value, targetType);
+            var result = JSIL.Cast(value, JSExpression.ResolveGenericType(targetType, ThisMethod, ThisMethod.DeclaringType));
 
             if (CopyOnReturn(targetType))
                 return JSReferenceExpression.New(result);

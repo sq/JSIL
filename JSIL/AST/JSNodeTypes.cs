@@ -668,8 +668,10 @@ namespace JSIL.Ast {
             TypeReference result;
             var signature = new MethodSignature(returnType, parameterTypes);
 
+            /*
             if (returnType.IsGenericParameter || parameterTypes.Any((p) => p.IsGenericParameter))
                 throw new ArgumentException();
+             */
 
             if (MethodTypeCache.TryGetValue(signature, out result))
                 return result;
@@ -1419,6 +1421,11 @@ namespace JSIL.Ast {
             Name = name;
             ReturnType = returnType;
             ParameterTypes = parameterTypes;
+
+            /*
+            if (ReturnType.IsGenericParameter || parameterTypes.Any((p) => p.IsGenericParameter))
+                throw new ArgumentException()
+             */
         }
 
         public override string Identifier {

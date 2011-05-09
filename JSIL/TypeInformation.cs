@@ -30,19 +30,21 @@ namespace JSIL.Internal {
     }
 
     internal struct MemberIdentifier {
+        public enum MemberType {
+            Field,
+            Property,
+            Event,
+            Method
+        }
+
+        public MemberType Type;
         public string Name;
         public TypeReference ReturnType;
         public int ParameterCount;
         public IEnumerable<TypeReference> ParameterTypes;
 
-        public MemberIdentifier (MemberReference mr) {
-            Name = mr.FullName;
-            ReturnType = null;
-            ParameterCount = 0;
-            ParameterTypes = null;
-        }
-
         public MemberIdentifier (MethodReference mr) {
+            Type = MemberType.Method;
             Name = mr.Name;
             ReturnType = mr.ReturnType;
             ParameterCount = mr.Parameters.Count;
@@ -50,13 +52,34 @@ namespace JSIL.Internal {
         }
 
         public MemberIdentifier (PropertyReference pr) {
+            Type = MemberType.Property;
             Name = pr.Name;
             ReturnType = pr.PropertyType;
+            ParameterCount = 0;
+            ParameterTypes = null;
+
+            var pd = pr.Resolve();
+            if (pd != null) {
+                if (pd.GetMethod != null) {
+                    ParameterCount = pd.GetMethod.Parameters.Count;
+                    ParameterTypes = (from p in pd.GetMethod.Parameters select p.ParameterType);
+                } else if (pd.SetMethod != null) {
+                    ParameterCount = pd.SetMethod.Parameters.Count - 1;
+                    ParameterTypes = (from p in pd.SetMethod.Parameters.Skip(1) select p.ParameterType);
+                }
+            }
+        }
+
+        public MemberIdentifier (FieldReference fr) {
+            Type = MemberType.Field;
+            Name = fr.Name;
+            ReturnType = fr.FieldType;
             ParameterCount = 0;
             ParameterTypes = null;
         }
 
         public MemberIdentifier (EventReference er) {
+            Type = MemberType.Event;
             Name = er.Name;
             ReturnType = er.EventType;
             ParameterCount = 0;
@@ -79,6 +102,9 @@ namespace JSIL.Internal {
         }
 
         public bool Equals (MemberIdentifier rhs) {
+            if (Type != rhs.Type)
+                return false;
+
             if (!String.Equals(Name, rhs.Name))
                 return false;
 
@@ -116,7 +142,7 @@ namespace JSIL.Internal {
         }
 
         public override int GetHashCode () {
-            return Name.GetHashCode() ^ ParameterCount.GetHashCode();
+            return Type.GetHashCode() ^ Name.GetHashCode() ^ (ParameterCount.GetHashCode()) << 8;
         }
 
         public override string ToString () {
@@ -132,6 +158,7 @@ namespace JSIL.Internal {
             var method = mr as MethodReference;
             var property = mr as PropertyReference;
             var evt = mr as EventReference;
+            var field = mr as FieldReference;
 
             if (method != null)
                 return new MemberIdentifier(method);
@@ -139,8 +166,10 @@ namespace JSIL.Internal {
                 return new MemberIdentifier(property);
             else if (evt != null)
                 return new MemberIdentifier(evt);
+            else if (field != null)
+                return new MemberIdentifier(field);
             else
-                return new MemberIdentifier(mr);
+                throw new NotImplementedException();
         }
 
         public bool Equals (MemberReference lhs, MemberReference rhs) {
