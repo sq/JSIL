@@ -293,7 +293,6 @@ namespace JSIL.Internal {
                 Events.Add(evt);
             }
 
-            // TODO: Support overloaded methods
             foreach (var method in proxyType.Methods) {
                 if (!ILBlockTranslator.TypesAreEqual(method.DeclaringType, proxyType))
                     continue;
@@ -551,6 +550,10 @@ namespace JSIL.Internal {
                     if (seenMethods.Contains(method))
                         continue;
 
+                    // TODO: No way to detect whether the constructor was compiler-generated.
+                    if ((method.Name == ".ctor") && (method.Parameters.Count == 0))
+                        continue;
+
                     AddProxyMember(proxy, method);
                 }
             }
@@ -567,7 +570,7 @@ namespace JSIL.Internal {
         protected bool BeforeAddProxyMember<T> (ProxyInfo proxy, T member, out IMemberInfo result, ICustomAttributeProvider owningMember = null)
             where T : MemberReference, ICustomAttributeProvider
         {
-            if (Members.TryGetValue(member, out result)) {
+            while (Members.TryGetValue(member, out result)) {
                 if (
                     (proxy.MemberPolicy == JSProxyMemberPolicy.ReplaceNone) ||
                     member.CustomAttributes.Any(ShouldNeverReplace) ||
@@ -577,6 +580,8 @@ namespace JSIL.Internal {
                 } else if (proxy.MemberPolicy == JSProxyMemberPolicy.ReplaceDeclared) {
                     if (result.IsFromProxy)
                         Debug.WriteLine(String.Format("Warning: Proxy member '{0}' replacing proxy member '{1}'.", member, result));
+
+                    Members.Remove(member);
                 } else {
                     throw new ArgumentException();
                 }
@@ -661,37 +666,37 @@ namespace JSIL.Internal {
 
         protected MethodInfo AddMember (MethodDefinition method, PropertyInfo property) {
             var result = new MethodInfo(this, method, Proxies, property);
-            Members[method] = result;
+            Members.Add(method, result);
             return result;
         }
 
         protected MethodInfo AddMember (MethodDefinition method, EventInfo evt) {
             var result = new MethodInfo(this, method, Proxies, evt);
-            Members[method] = result;
+            Members.Add(method, result);
             return result;
         }
 
         protected MethodInfo AddMember (MethodDefinition method) {
             var result = new MethodInfo(this, method, Proxies);
-            Members[method] = result;
+            Members.Add(method, result);
             return result;
         }
 
         protected FieldInfo AddMember (FieldDefinition field) {
             var result = new FieldInfo(this, field, Proxies);
-            Members[field] = result;
+            Members.Add(field, result);
             return result;
         }
 
         protected PropertyInfo AddMember (PropertyDefinition property) {
             var result = new PropertyInfo(this, property, Proxies);
-            Members[property] = result;
+            Members.Add(property, result);
             return result;
         }
 
         protected EventInfo AddMember (EventDefinition evt) {
             var result = new EventInfo(this, evt, Proxies);
-            Members[evt] = result;
+            Members.Add(evt, result);
             return result;
         }
     }
