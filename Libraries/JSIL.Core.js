@@ -144,6 +144,7 @@ JSIL.MakeNumericType = function (baseType, target, typeName, isIntegral) {
 
 JSIL.TypeObject = function () {};
 JSIL.TypeObject.__IsReferenceType__ = true;
+JSIL.TypeObject.__IsInterface__ = false;
 JSIL.TypeObject.__TypeInitialized__ = false;
 JSIL.TypeObject.__LockCount__ = 0;
 JSIL.TypeObject.__FullName__ = null;
@@ -285,6 +286,7 @@ JSIL.MakeType = function (baseType, namespace, localName, fullName, isReferenceT
 
   typeObject.prototype = JSIL.MakeProto(baseType, typeObject, fullName, false);
   typeObject.prototype.__ShortName__ = localName;
+  typeObject.prototype.__Interfaces__ = [];
 
   namespace[localName] = typeObject;
 };
@@ -303,17 +305,17 @@ JSIL.MakeInterface = function (namespace, localName, fullName, members) {
     return;
   }
 
-  var prototype = JSIL.CloneObject(JSIL.Interface.prototype);
-  prototype.__BaseType__ = System.Object;
-  prototype.__Members__ = members;
-  prototype.__ShortName__ = localName;
-  prototype.__FullName__ = fullName;
+  var typeObject = function() {
+    throw new Error("Cannot construct an instance of an interface");
+  }
+  typeObject.__proto__ = JSIL.TypeObject;
+  typeObject.__Members__ = members;
+  typeObject.__ShortName__ = localName;
+  typeObject.__FullName__ = fullName;
+  typeObject.__IsInterface__ = true;
+  typeObject.prototype = JSIL.CloneObject(JSIL.Interface.prototype);
 
-  var ctor = function () { };
-  ctor.prototype = prototype;
-  var result = new ctor();
-
-  namespace[localName] = result;
+  namespace[localName] = typeObject;
 };
 
 JSIL.MakeEnum = function (namespace, localName, fullName, members, isFlagsEnum) {
@@ -373,6 +375,11 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
 
     if (typeof (iface) == "undefined") {
       JSIL.Host.warning("Type ", JSIL.GetTypeName(type), " implements an undefined interface.");
+      continue __interfaces__;
+    }
+
+    if (iface.__IsInterface__ !== true) {
+      JSIL.Host.warning("Type ", JSIL.GetTypeName(iface), " is not an interface.");
       continue __interfaces__;
     }
 
@@ -441,14 +448,22 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
   if (typeof (value) == "undefined")
     return false;
   else if (value === null)
-    return Boolean(expectedType.__IsReferenceType__);
+    return false;
 
-  var interfaces = value.__Interfaces__;
-  if (JSIL.IsArray(interfaces)) {
-    for (var i = 0; i < interfaces.length; i++) {
-      if (interfaces[i] === expectedType)
-        return true;
+  if (expectedType.__IsInterface__ === true) {
+    var interfaces = value.__Interfaces__;
+
+    while (JSIL.IsArray(interfaces)) {
+      for (var i = 0; i < interfaces.length; i++) {
+        if (interfaces[i] === expectedType)
+          return true;
+      }
+
+      value = Object.getPrototypeOf(value);
+      interfaces = value.__Interfaces__;
     }
+
+    return false;
   }
 
   var ct = expectedType.CheckType;
