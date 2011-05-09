@@ -2,7 +2,7 @@ using System;
 using JSIL.Meta;
 
 public static class Program {
-    [JSReplacement("version")]
+    [JSReplacement("version()")]
     public static string GetJSVersion () {
       return "none";
     }

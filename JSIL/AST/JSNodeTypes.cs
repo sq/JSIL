@@ -960,6 +960,9 @@ namespace JSIL.Ast {
     }
 
     public abstract class JSLiteral : JSExpression {
+        internal JSLiteral (params JSExpression[] values) : base (values) {
+        }
+
         public abstract object Literal {
             get;
         }
@@ -1219,14 +1222,20 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSVerbatimLiteral : JSLiteralBase<string> {
+    public class JSVerbatimLiteral : JSLiteral {
         public readonly TypeReference Type;
+        public readonly string Expression;
         public readonly JSExpression This;
 
         public JSVerbatimLiteral (string expression, JSExpression thisExpression, TypeReference type = null)
-            : base(expression) {
+            : base(thisExpression) {
             Type = type;
+            Expression = expression;
             This = thisExpression;
+        }
+
+        public override object Literal {
+            get { return Expression; }
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
@@ -1234,6 +1243,13 @@ namespace JSIL.Ast {
                 return Type;
             else
                 return typeSystem.Object;
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                if (This != null)
+                    yield return This;
+            }
         }
     }
 

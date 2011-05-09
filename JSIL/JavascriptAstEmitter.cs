@@ -240,7 +240,7 @@ namespace JSIL {
         public void VisitNode (JSVerbatimLiteral verbatim) {
             bool isFirst = true;
 
-            foreach (var line in verbatim.Value.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries)) {
+            foreach (var line in verbatim.Expression.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries)) {
                 if (String.IsNullOrWhiteSpace(line))
                     continue;
 

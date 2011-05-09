@@ -213,7 +213,7 @@ namespace JSIL {
                 if (metadata != null) {
                     var parms = metadata.GetAttributeParameters("JSIL.Meta.JSReplacement");
                     if (parms != null)
-                        methodExpression = new JSVerbatimLiteral(
+                        return new JSVerbatimLiteral(
                             (string)parms[0].Value, thisExpression, method.ReturnType
                         );
                 }
