@@ -792,10 +792,14 @@ namespace JSIL {
                 //  because there's no IL opcode for != and the IL isinst opcode returns object, not bool
                 var value = TranslateNode(node.Arguments[0].Arguments[0]);
                 var targetType = (TypeReference)node.Arguments[0].Operand;
+                var targetInfo = TypeInfo.Get(targetType);
 
-                return JSIL.CheckType(
-                    value, targetType
-                );
+                if (targetInfo.IsIgnored)
+                    return JSLiteral.New(false);
+                else
+                    return JSIL.CheckType(
+                        value, targetType
+                    );
             } else {
                 return Translate_BinaryOp(node, JSOperator.GreaterThan);
             }
@@ -1255,11 +1259,16 @@ namespace JSIL {
             );
         }
 
-        protected JSInvocationExpression Translate_Isinst (ILExpression node, TypeReference targetType) {
-            return JSIL.TryCast(
-                TranslateNode(node.Arguments[0]),
-                targetType
-            );
+        protected JSExpression Translate_Isinst (ILExpression node, TypeReference targetType) {
+            var targetInfo = TypeInfo.Get(targetType);
+
+            if (targetInfo.IsIgnored)
+                return new JSNullLiteral(targetType);
+            else
+                return JSIL.TryCast(
+                    TranslateNode(node.Arguments[0]),
+                    targetType
+                );
         }
 
         protected JSExpression Translate_Unbox_Any (ILExpression node, TypeReference targetType) {

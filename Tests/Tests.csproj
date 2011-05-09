@@ -164,6 +164,7 @@
     <None Include="SimpleTestCases\StructThisAssignment.cs" />
     <None Include="SimpleTestCases\ValueTypeMethods.cs" />
     <None Include="SimpleTestCases\GetType.cs" />
+    <None Include="SpecialTestCases\IgnoreInterface.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

@@ -17,6 +17,15 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void JSIgnorePreventsTranslationOfInterface () {
+            GenericTest(
+                @"SpecialTestCases\IgnoreInterface.cs",
+                "Test.Foo\r\nTrue",
+                "Test.Foo\r\nfalse"
+            );
+        }
+
+        [Test]
         public void JSIgnorePreventsTranslationOfMethod () {
             GenericIgnoreTest(
                 @"SpecialTestCases\IgnoreMethod.cs",
@@ -102,7 +111,7 @@ namespace JSIL.Tests {
             GenericTest(
                 @"SpecialTestCases\IgnoreUnsafeCode.cs",
                 "Foo\r\nBar\r\nBaz",
-                "Foo\r\nBar\r\nCaught: Error: An attempt was made to reference the member 'Baz()'"
+                "Foo\r\nBar\r\nCaught: Error: The function 'Baz' could not be translated."
             );
         }
     }
