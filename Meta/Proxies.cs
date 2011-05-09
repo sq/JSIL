@@ -40,6 +40,13 @@ namespace JSIL.Proxy {
         }
     }
 
+    [AttributeUsage(
+        AttributeTargets.Event | AttributeTargets.Property |
+        AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Field
+    )]
+    public class NeverReplace : Attribute {
+    }
+
     /// <summary>
     /// Use this as a stand-in type when defining a proxy to specify that any type is valid for the given parameter/return type.
     /// </summary>

@@ -5,10 +5,11 @@ using JSIL.Proxy;
 namespace JSIL.Proxies {
     [JSProxy(
         typeof(Array),
-        memberPolicy: JSProxyMemberPolicy.ReplaceNone
+        memberPolicy: JSProxyMemberPolicy.ReplaceDeclared
     )]
     public abstract class ArrayProxy {
         [JSChangeName("length")]
+        [NeverReplace]
         abstract public int Length { get; }
 
         [JSReplacement("JSIL.Array.New($elementType, $size)")]

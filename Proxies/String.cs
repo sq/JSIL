@@ -5,7 +5,7 @@ using JSIL.Proxy;
 namespace JSIL.Proxies {
     [JSProxy(
         typeof(String),
-        JSProxyMemberPolicy.ReplaceNone
+        JSProxyMemberPolicy.ReplaceDeclared
     )]
     public abstract class StringProxy {
         [JSExternal]
@@ -23,5 +23,9 @@ namespace JSIL.Proxies {
         [JSExternal]
         [JSRuntimeDispatch]
         public abstract string[] Split (params AnyType[] arguments);
+
+        [JSChangeName("length")]
+        [NeverReplace]
+        abstract public int Length { get; }
     }
 }

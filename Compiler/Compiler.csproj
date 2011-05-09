@@ -73,6 +73,10 @@
       <Project>{DA03D241-B70C-44D7-A465-3CEB5A9416AE}</Project>
       <Name>JSIL</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Upstream\ILSpy\Mono.Cecil\Mono.Cecil.csproj">
+      <Project>{D68133BD-1E63-496E-9EDE-4FBDBF77B486}</Project>
+      <Name>Mono.Cecil</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
