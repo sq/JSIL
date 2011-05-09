@@ -41,8 +41,7 @@ namespace JSIL.Transforms {
 
             foreach (var v_ in from v in Variables.Values
                                where !v.IsParameter &&
-                                     !existingDeclarations.Contains(v.Identifier) &&
-                                     !TypeInfo.IsIgnored(v.Type)
+                                     !existingDeclarations.Contains(v.Identifier)
                                select v) 
             {
                 ToDeclare.Add(v_);

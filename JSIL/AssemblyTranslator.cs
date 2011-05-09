@@ -293,8 +293,12 @@ namespace JSIL {
             var result = new List<ProxyInfo>();
 
             foreach (var p in TypeProxies.Values) {
-                if (ILBlockTranslator.TypesAreAssignable(p.ProxiedType, type))
-                    result.Add(p);
+                foreach (var pt in p.ProxiedTypes) {
+                    if (ILBlockTranslator.TypesAreAssignable(pt, type)) {
+                        result.Add(p);
+                        break;
+                    }
+                }
             }
 
             return result.ToArray();
@@ -303,9 +307,13 @@ namespace JSIL {
         IMemberInfo ITypeInfoSource.Get (MemberReference member) {
             var typeInfo = GetTypeInformation(member.DeclaringType);
             if (typeInfo == null)
-                throw new InvalidOperationException();
+                throw new InvalidDataException();
 
-            return typeInfo.Members[member];
+            IMemberInfo result;
+            if (!typeInfo.Members.TryGetValue(member, out result))
+                throw new InvalidDataException();
+
+            return result;
         }
 
         ModuleInfo ITypeInfoSource.Get (ModuleDefinition module) {

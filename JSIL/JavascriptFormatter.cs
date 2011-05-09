@@ -257,8 +257,7 @@ namespace JSIL.Internal {
                 }
             }
 
-            var info = TypeInfo.Get(method);
-
+            var info = TypeInfo.GetMethod(method);
             Identifier(info.Name);
         }
 

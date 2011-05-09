@@ -206,7 +206,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_MethodReplacement (MethodReference method, JSExpression thisExpression, JSExpression methodExpression, JSExpression[] arguments, bool virt) {
-            var methodInfo = TypeInfo.Get(method);
+            var methodInfo = TypeInfo.GetMethod(method);
             if (methodInfo != null) {
                 var metadata = methodInfo.Metadata;
 
@@ -219,7 +219,7 @@ namespace JSIL {
                 }
             }
 
-            if (TypeInfo.IsIgnored(method))
+            if (methodInfo.IsIgnored)
                 return Translate_IgnoredMethod(method.Name, method.Parameters);
 
             switch (method.FullName) {
@@ -281,7 +281,7 @@ namespace JSIL {
         protected bool Translate_PropertyCall (JSExpression thisExpression, MethodDefinition method, JSExpression[] arguments, bool virt, out JSExpression result) {
             result = null;
 
-            var methodInfo = TypeInfo.Get(method);
+            var methodInfo = TypeInfo.GetMethod(method);
             if (methodInfo == null)
                 return false;
 
@@ -1035,12 +1035,12 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldsfld (ILExpression node, FieldReference field) {
-            if (TypeInfo.IsIgnored(field))
+            var fieldInfo = TypeInfo.GetField(field);
+            if (fieldInfo.IsIgnored)
                 return new JSInvocationExpression(
                     JSIL.IgnoredMember, JSLiteral.New(field.Name)
                 );
 
-            var fieldInfo = TypeInfo.GetField(field);
             // TODO: When returning a value type we should be returning it by reference, but doing that would break Ldflda.
             return new JSDotExpression(new JSType(field.DeclaringType), new JSField(fieldInfo));
         }
@@ -1068,7 +1068,8 @@ namespace JSIL {
             if ((translated.IsNull) && !(translated is JSUntranslatableExpression))
                 return new JSNullExpression();
 
-            if (TypeInfo.IsIgnored(field))
+            var fieldInfo = TypeInfo.GetField(field);
+            if (fieldInfo.IsIgnored)
                 return new JSInvocationExpression(
                     JSIL.IgnoredMember, JSLiteral.New(field.Name)
                 );
@@ -1083,7 +1084,6 @@ namespace JSIL {
                 thisExpression = translated;
             }
 
-            var fieldInfo = TypeInfo.GetField(field);
             // TODO: When returning a value type we should be returning it by reference, but doing that would break Ldflda.
             return new JSDotExpression(
                 thisExpression, 
@@ -1409,6 +1409,8 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Newobj (ILExpression node, MethodReference constructor) {
+            var methodInfo = TypeInfo.GetMethod(constructor);
+
             if (IsDelegateType(constructor.DeclaringType)) {
                 var thisArg = TranslateNode(node.Arguments[0]);
                 var methodRef = TranslateNode(node.Arguments[1]);
@@ -1464,7 +1466,7 @@ namespace JSIL {
                 );
             }
 
-            if (TypeInfo.IsIgnored(constructor))
+            if (methodInfo.IsIgnored)
                 return Translate_IgnoredMethod(
                     constructor.Name, constructor.Parameters
                 );

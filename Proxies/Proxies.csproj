@@ -39,6 +39,8 @@
   <ItemGroup>
     <Compile Include="Array.cs" />
     <Compile Include="Console.cs" />
+    <Compile Include="Math.cs" />
+    <Compile Include="Numbers.cs" />
     <Compile Include="Object.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="String.cs" />

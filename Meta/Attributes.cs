@@ -70,5 +70,15 @@ namespace JSIL.Meta {
             JSProxyAttributePolicy attributePolicy = JSProxyAttributePolicy.Add
         ) {
         }
+
+        /// <param name="types">The types to proxy.</param>
+        /// <param name="memberPolicy">Determines how members defined in the proxied type should be replaced with members defined by the proxy type.</param>
+        /// <param name="attributePolicy">Determines how how attributes defined in the proxied type should be replaced with attributes attached to the proxy type.</param>
+        public JSProxy (
+            Type[] types,
+            JSProxyMemberPolicy memberPolicy = JSProxyMemberPolicy.ReplaceDeclared,
+            JSProxyAttributePolicy attributePolicy = JSProxyAttributePolicy.Add
+        ) {
+        }
     }
 }

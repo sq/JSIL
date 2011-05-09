@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -14,9 +15,6 @@ namespace JSIL.Internal {
         IMemberInfo Get (MemberReference member);
 
         ProxyInfo[] GetProxies (TypeReference type);
-
-        bool IsIgnored (TypeReference type);
-        bool IsIgnored (MemberReference member);
     }
 
     public static class TypeInfoSourceExtensions {
@@ -34,12 +32,16 @@ namespace JSIL.Internal {
     }
 
     internal class MemberReferenceComparer : IEqualityComparer<MemberReference> {
+        protected string GetKey (MemberReference mr) {
+            return mr.FullName;
+        }
+
         public bool Equals (MemberReference x, MemberReference y) {
-            return String.Equals(x.FullName, y.FullName);
+            return String.Equals(GetKey(x), GetKey(y));
         }
 
         public int GetHashCode (MemberReference obj) {
-            return obj.FullName.GetHashCode();
+            return GetKey(obj).GetHashCode();
         }
     }
 
@@ -57,7 +59,7 @@ namespace JSIL.Internal {
 
     public class ProxyInfo {
         public readonly TypeDefinition Definition;
-        public readonly TypeReference ProxiedType;
+        public readonly TypeReference[] ProxiedTypes;
 
         public readonly MetadataCollection Metadata;
 
@@ -75,7 +77,15 @@ namespace JSIL.Internal {
 
             var args = Metadata.GetAttributeParameters("JSIL.Meta.JSProxy");
 
-            ProxiedType = (TypeReference)args[0].Value;
+            var caa = args[0].Value as CustomAttributeArgument[];
+            if (caa != null) {
+                ProxiedTypes = new TypeReference[caa.Length];
+                for (var i = 0; i < ProxiedTypes.Length; i++)
+                    ProxiedTypes[i] = (TypeReference)caa[i].Value;
+            } else {
+                ProxiedTypes = new[] { (TypeReference)args[0].Value };
+            }
+
             AttributePolicy = (JSProxyAttributePolicy)args[1].Value;
             MemberPolicy = (JSProxyMemberPolicy)args[2].Value;
 
@@ -320,6 +330,11 @@ namespace JSIL.Internal {
                 return true;
             else if (fullName.Contains("__CachedAnonymousMethodDelegate"))
                 return true;
+            else {
+                var m = Regex.Match(fullName, @"\<(?'scope'[^>]*)\>(?'mangling'[^_]*)__(?'index'[0-9]*)");
+                if (m.Success)
+                    return true;
+            }
 
             return false;
         }
@@ -453,11 +468,7 @@ namespace JSIL.Internal {
         public readonly string ForcedName;
 
         public MemberInfo (T member, ProxyInfo[] proxies, bool isIgnored = false) {
-            IsIgnored = isIgnored;
-
-            var m = Regex.Match(member.Name, @"\<(?'scope'[^>]*)\>(?'mangling'[^_]*)__(?'index'[0-9]*)");
-            if (m.Success)
-                IsIgnored = true;
+            IsIgnored = isIgnored || TypeInfo.IsIgnoredName(member.FullName);
 
             Member = member;
             Metadata = new MetadataCollection(member);
