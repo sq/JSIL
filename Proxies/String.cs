@@ -22,7 +22,15 @@ namespace JSIL.Proxies {
 
         [JSExternal]
         [JSRuntimeDispatch]
-        public abstract string[] Split (params AnyType[] arguments);
+        public abstract string[] Split (AnyType[] dividers);
+
+        [JSExternal]
+        [JSRuntimeDispatch]
+        public abstract string[] Split (AnyType[] dividers, StringSplitOptions options);
+
+        [JSExternal]
+        [JSRuntimeDispatch]
+        public abstract string[] Split (AnyType[] dividers, int maximumCount, StringSplitOptions options);
 
         [JSChangeName("length")]
         [NeverReplace]

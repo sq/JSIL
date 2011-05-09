@@ -1228,17 +1228,19 @@ namespace JSIL.Ast {
     public class JSVerbatimLiteral : JSLiteral {
         public readonly TypeReference Type;
         public readonly string Expression;
-        public readonly JSExpression This;
 
         public JSVerbatimLiteral (string expression, JSExpression thisExpression, TypeReference type = null)
             : base(thisExpression) {
             Type = type;
             Expression = expression;
-            This = thisExpression;
         }
 
         public override object Literal {
             get { return Expression; }
+        }
+
+        public JSExpression This {
+            get { return Values[0]; }
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
@@ -1246,13 +1248,6 @@ namespace JSIL.Ast {
                 return Type;
             else
                 return typeSystem.Object;
-        }
-
-        public override IEnumerable<JSNode> Children {
-            get {
-                if (This != null)
-                    yield return This;
-            }
         }
     }
 
@@ -1682,9 +1677,25 @@ namespace JSIL.Ast {
             return Variables[Identifier].Reference();
         }
 
-        public override bool Equals (object obj) {            
-            return base.Equals(obj) || 
-                Variables[Identifier].Equals(obj);
+        public override bool Equals (object obj) {
+            JSVariable variable;
+            if (Variables.TryGetValue(Identifier, out variable))
+                return variable.Equals(obj) || base.Equals(obj);
+            else {
+                variable = obj as JSVariable;
+                if (variable.Identifier == Identifier)
+                    return true;
+                else
+                    return base.Equals(obj);
+            }
+        }
+
+        public override string ToString () {
+            JSVariable variable;
+            if (Variables.TryGetValue(Identifier, out variable))
+                return String.Format("@{0}", variable);
+            else
+                return "@undef";
         }
     }
 
