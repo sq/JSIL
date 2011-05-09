@@ -45,7 +45,7 @@ namespace JSIL.Internal {
         public int ParameterCount;
         public IEnumerable<TypeReference> ParameterTypes;
 
-        public static readonly IEnumerable<TypeReference> AnyParameterTypes;
+        public static readonly IEnumerable<TypeReference> AnyParameterTypes = new TypeReference[0] {};
 
         public MemberIdentifier (MethodReference mr) {
             Type = MemberType.Method;
