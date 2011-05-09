@@ -710,6 +710,7 @@ namespace JSIL.Ast {
                 var td = new TypeDefinition(
                     "JSIL.Meta", "MethodSignature", TypeAttributes.Class | TypeAttributes.NotPublic, baseType
                 );
+                td.DeclaringType = baseType;
 
                 var invoke = new MethodDefinition(
                     "Invoke", MethodAttributes.Public, returnType
