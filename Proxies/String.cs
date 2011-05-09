@@ -11,5 +11,10 @@ namespace JSIL.Proxies {
         new public static string Format () {
             throw new InvalidOperationException();
         }
+
+        [JSRuntimeDispatch]
+        new public static string Concat () {
+            throw new InvalidOperationException();
+        }
     }
 }

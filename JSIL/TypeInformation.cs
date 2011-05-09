@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using JSIL.Meta;
 using Mono.Cecil;
@@ -49,6 +46,20 @@ namespace JSIL.Internal {
             ReturnType = mr.ReturnType;
             ParameterCount = mr.Parameters.Count;
             ParameterTypes = (from p in mr.Parameters select p.ParameterType);
+        }
+
+        public MemberIdentifier (PropertyReference pr) {
+            Name = pr.Name;
+            ReturnType = pr.PropertyType;
+            ParameterCount = 0;
+            ParameterTypes = null;
+        }
+
+        public MemberIdentifier (EventReference er) {
+            Name = er.Name;
+            ReturnType = er.EventType;
+            ParameterCount = 0;
+            ParameterTypes = null;
         }
 
         static bool TypesAreEqual (TypeReference lhs, TypeReference rhs) {
@@ -113,8 +124,15 @@ namespace JSIL.Internal {
     internal class MemberReferenceComparer : IEqualityComparer<MemberReference> {
         protected MemberIdentifier GetKey (MemberReference mr) {
             var method = mr as MethodReference;
+            var property = mr as PropertyReference;
+            var evt = mr as EventReference;
+
             if (method != null)
                 return new MemberIdentifier(method);
+            else if (property != null)
+                return new MemberIdentifier(property);
+            else if (evt != null)
+                return new MemberIdentifier(evt);
             else
                 return new MemberIdentifier(mr);
         }
@@ -161,18 +179,28 @@ namespace JSIL.Internal {
             Metadata = new MetadataCollection(proxyType);
 
             var args = Metadata.GetAttributeParameters("JSIL.Meta.JSProxy");
-
-            var caa = args[0].Value as CustomAttributeArgument[];
-            if (caa != null) {
-                ProxiedTypes = new TypeReference[caa.Length];
-                for (var i = 0; i < ProxiedTypes.Length; i++)
-                    ProxiedTypes[i] = (TypeReference)caa[i].Value;
-            } else {
-                ProxiedTypes = new[] { (TypeReference)args[0].Value };
+            // Attribute parameter ordering is random. Awesome!
+            foreach (var arg in args) {
+                switch (arg.Type.FullName) {
+                    case "JSIL.Meta.JSProxyAttributePolicy":
+                        AttributePolicy = (JSProxyAttributePolicy)arg.Value;
+                        break;
+                    case "JSIL.Meta.JSProxyMemberPolicy":
+                        MemberPolicy = (JSProxyMemberPolicy)arg.Value;
+                        break;
+                    case "System.Type":
+                        ProxiedTypes = new[] { (TypeReference)arg.Value };
+                        break;
+                    case "System.Type[]":
+                        var values = (CustomAttributeArgument[])arg.Value;
+                        ProxiedTypes = new TypeReference[values.Length];
+                        for (var i = 0; i < ProxiedTypes.Length; i++)
+                            ProxiedTypes[i] = (TypeReference)values[i].Value;
+                        break;
+                    default:
+                        throw new NotImplementedException();
+                }
             }
-
-            AttributePolicy = (JSProxyAttributePolicy)args[1].Value;
-            MemberPolicy = (JSProxyMemberPolicy)args[2].Value;
 
             foreach (var field in proxyType.Fields) {
                 if (!ILBlockTranslator.TypesAreEqual(field.DeclaringType, proxyType))

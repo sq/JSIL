@@ -330,9 +330,8 @@ namespace JSIL {
             // Accesses to a base property should go through a regular method invocation, since
             //  javascript properties do not have a mechanism for base access
             if (method.HasThis) {
-                if (TypesAreEqual(thisType, propertyInfo.DeclaringType)) {
-                    result = generate();
-                    return true;
+                if (!TypesAreEqual(thisType, propertyInfo.DeclaringType)) {
+                    return false;
                 } else {
                     result = generate();
                     return true;

@@ -39,7 +39,7 @@ namespace JSIL.Tests {
             GenericIgnoreTest(
                 @"SpecialTestCases\IgnoreProperty.cs",
                 "0",
-                "attempt was made to reference the member 'Property'"
+                "attempt was made to reference the member 'get_Property()'"
             );
         }
 
@@ -48,7 +48,7 @@ namespace JSIL.Tests {
             GenericIgnoreTest(
                 @"SpecialTestCases\IgnoreEvent.cs",
                 "a",
-                "attempt was made to reference the member 'Event'"
+                "attempt was made to reference the member 'add_Event(value)'"
             );
         }
 
