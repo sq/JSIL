@@ -10,6 +10,8 @@ Meta/obj
 Meta/bin
 Tests/obj
 Tests/bin
+Proxies/obj
+Proxies/bin
 Examples/simpleray
 Examples/bin
 /bin

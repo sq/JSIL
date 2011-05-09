@@ -203,10 +203,7 @@ namespace JSIL.Internal {
         public readonly MetadataCollection Metadata;
         public readonly ProxyInfo[] Proxies;
 
-        public readonly List<MethodGroupInfo> MethodGroups = new List<MethodGroupInfo>();
-        public readonly Dictionary<MemberReference, MethodGroupItem> MethodToMethodGroupItem = new Dictionary<MemberReference, MethodGroupItem>(
-            new MemberReferenceComparer()
-        );
+        public readonly HashSet<MethodGroupInfo> MethodGroups = new HashSet<MethodGroupInfo>();
 
         public readonly bool IsFlagsEnum;
         public readonly Dictionary<long, EnumMemberInfo> ValueToEnumMember = new Dictionary<long, EnumMemberInfo>();
@@ -258,23 +255,24 @@ namespace JSIL.Internal {
             }
 
             var methodGroups = from m in type.Methods 
-                          where Members[m].IsIgnored
+                          where !Members[m].IsIgnored
                           group m by new { 
                               m.Name, m.IsStatic
                           } into mg select mg;
 
             foreach (var mg in methodGroups) {
-                if (mg.Count() > 1) {
-                    var info = new MethodGroupInfo(type, mg.Key.Name, mg.Key.IsStatic);
-                    info.Items.AddRange(
-                        mg.OrderBy((md) => md.FullName)
-                        .Select((m, i) => new MethodGroupItem(info, m, i))
-                    );
+                var count = mg.Count();
+                if (count > 1) {
+                    int i = 0;
 
-                    MethodGroups.Add(info);
+                    foreach (var item in mg) {
+                        (Members[item] as MethodInfo).OverloadIndex = i;
+                        i += 1;
+                    }
 
-                    foreach (var m in info.Items)
-                        MethodToMethodGroupItem[m.Method] = m;
+                    MethodGroups.Add(new MethodGroupInfo(
+                        this, (from m in mg select (Members[m] as MethodInfo)).ToArray(), mg.First().Name
+                    ));
                 } else {
                     if (mg.Key.Name == ".cctor")
                         StaticConstructor = mg.First();
@@ -547,7 +545,7 @@ namespace JSIL.Internal {
         public readonly PropertyInfo Property = null;
         public readonly EventInfo Event = null;
 
-        public MethodGroupItem MethodGroup = null;
+        public int? OverloadIndex;
 
         public MethodInfo (MethodDefinition method, ProxyInfo[] proxies) : base (
             proxies.ResolveProxy(method), proxies,
@@ -574,15 +572,22 @@ namespace JSIL.Internal {
         }
 
         protected override string GetName () {
+            string result;
             var declType = Member.DeclaringType.Resolve();
             var over = Member.Overrides.FirstOrDefault();
 
             if ((declType != null) && declType.IsInterface)
-                return String.Format("{0}.{1}", declType.Name, Member.Name);
+                result = String.Format("{0}.{1}", declType.Name, Member.Name);
             else if (over != null)
-                return String.Format("{0}.{1}", over.DeclaringType.Name, over.Name);
+                result = String.Format("{0}.{1}", over.DeclaringType.Name, over.Name);
             else
-                return Member.Name;
+                result = Member.Name;
+
+            if ((OverloadIndex.HasValue) && !Metadata.HasAttribute("JSIL.Meta.JSRuntimeDispatch")) {
+                result = String.Format("{0}${1}", result, OverloadIndex.Value);
+            }
+
+            return result;
         }
 
         public override PropertyInfo DeclaringProperty {
@@ -599,29 +604,16 @@ namespace JSIL.Internal {
     }
 
     public class MethodGroupInfo {
-        public readonly TypeReference DeclaringType;
+        public readonly TypeInfo DeclaringType;
+        public readonly MethodInfo[] Methods;
         public readonly bool IsStatic;
         public readonly string Name;
-        public readonly List<MethodGroupItem> Items = new List<MethodGroupItem>();
 
-        public MethodGroupInfo (TypeReference declaringType, string name, bool isStatic) {
+        public MethodGroupInfo (TypeInfo declaringType, MethodInfo[] methods, string name) {
             DeclaringType = declaringType;
+            Methods = methods;
+            IsStatic = Methods.First().Member.IsStatic;
             Name = name;
-            IsStatic = isStatic;
-        }
-    }
-
-    public class MethodGroupItem {
-        public readonly MethodGroupInfo MethodGroup;
-        public readonly MethodDefinition Method;
-        public readonly int Index;
-        public readonly string MangledName;
-
-        public MethodGroupItem (MethodGroupInfo methodGroup, MethodDefinition method, int index) {
-            MethodGroup = methodGroup;
-            Method = method;
-            Index = index;
-            MangledName = String.Format("{0}${1}", method.Name, index);
         }
     }
 

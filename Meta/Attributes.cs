@@ -39,8 +39,16 @@ namespace JSIL.Meta {
         }
     }
 
+    /// <summary>
+    /// Specifies that, if overloaded, the correct overload of this method to invoke should be decided at runtime instead of compile time.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Method)]
+    public class JSRuntimeDispatch : Attribute {
+    }
+
     public enum JSProxyMemberPolicy {
-        ReplaceDeclared
+        ReplaceDeclared,
+        ReplaceNone
     }
 
     public enum JSProxyAttributePolicy {

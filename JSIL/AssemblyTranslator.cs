@@ -649,7 +649,7 @@ namespace JSIL {
             output.Identifier("JSIL.OverloadedMethod", true);
             output.LPar();
 
-            output.Identifier(methodGroup.DeclaringType);
+            output.Identifier(methodGroup.DeclaringType.Definition);
             if (!methodGroup.IsStatic) {
                 output.Dot();
                 output.Keyword("prototype");
@@ -662,8 +662,8 @@ namespace JSIL {
 
             bool isFirst = true;
             i = 0;
-            foreach (var method in methodGroup.Items) {
-                if (IsIgnored(method.Method))
+            foreach (var method in methodGroup.Methods) {
+                if (method.IsIgnored)
                     continue;
 
                 if (!isFirst) {
@@ -672,12 +672,12 @@ namespace JSIL {
                 }
 
                 output.OpenBracket();
-                output.Value(Util.EscapeIdentifier(method.MangledName));
+                output.Value(Util.EscapeIdentifier(method.Name));
                 output.Comma();
 
                 output.OpenBracket();
                 output.CommaSeparatedList(
-                    from p in method.Method.Parameters select p.ParameterType
+                    from p in method.Member.Parameters select p.ParameterType
                 );
                 output.CloseBracket();
 
