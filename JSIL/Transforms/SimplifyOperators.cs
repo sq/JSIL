@@ -78,14 +78,13 @@ namespace JSIL.Transforms {
                     return;
                 } else if (
                     (method != null) &&
-                    ILBlockTranslator.IsDelegateType(method.Method.DeclaringType) &&
-                    ILBlockTranslator.IsDelegateType(target.Target.GetExpectedType(TypeSystem)) &&
+                    ILBlockTranslator.IsDelegateType(method.Reference.DeclaringType) &&
                     (method.Method.Name == "Invoke")
                 ) {
                     ie.ReplaceChild(target, target.Target);
                 } else if (
                     (method != null) &&
-                    (method.Method.DeclaringType.FullName == "System.Type") &&
+                    (method.Reference.DeclaringType.FullName == "System.Type") &&
                     (method.Method.Name == "GetTypeFromHandle")
                 ) {
                     var typeObj = ie.Arguments.FirstOrDefault();

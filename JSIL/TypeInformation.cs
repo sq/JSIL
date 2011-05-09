@@ -225,10 +225,6 @@ namespace JSIL.Internal {
 
             // TODO: Support overloaded methods
             foreach (var method in proxyType.Methods) {
-                // TODO: No way to detect whether the constructor was compiler-generated.
-                if ((method.Name == ".ctor") && (method.Parameters.Count == 0))
-                    continue;
-
                 if (!ILBlockTranslator.TypesAreEqual(method.DeclaringType, proxyType))
                     continue;
 
@@ -306,6 +302,10 @@ namespace JSIL.Internal {
         public static MethodDefinition ResolveProxy (this ProxyInfo[] proxies, MethodDefinition method) {
             var key = method.Name;
             MethodDefinition temp;
+
+            // TODO: No way to detect whether the constructor was compiler-generated.
+            if ((method.Name == ".ctor") && (method.Parameters.Count == 0))
+                return method;
 
             foreach (var proxy in proxies)
                 if (proxy.Methods.TryGetValue(key, out temp) && (!temp.IsAbstract))
@@ -454,29 +454,29 @@ namespace JSIL.Internal {
         }
 
         protected void AddMember (MethodDefinition method, PropertyInfo property) {
-            Members.Add(method, new MethodInfo(method, Proxies, property));
+            Members.Add(method, new MethodInfo(this, method, Proxies, property));
         }
 
         protected void AddMember (MethodDefinition method, EventInfo evt) {
-            Members.Add(method, new MethodInfo(method, Proxies, evt));
+            Members.Add(method, new MethodInfo(this, method, Proxies, evt));
         }
 
         protected void AddMember (MethodDefinition method) {
-            Members.Add(method, new MethodInfo(method, Proxies));
+            Members.Add(method, new MethodInfo(this, method, Proxies));
         }
 
         protected void AddMember (FieldDefinition field) {
-            Members.Add(field, new FieldInfo(field, Proxies));
+            Members.Add(field, new FieldInfo(this, field, Proxies));
         }
 
         protected PropertyInfo AddMember (PropertyDefinition property) {
-            var result = new PropertyInfo(property, Proxies);
+            var result = new PropertyInfo(this, property, Proxies);
             Members.Add(property, result);
             return result;
         }
 
         protected EventInfo AddMember (EventDefinition evt) {
-            var result = new EventInfo(evt, Proxies);
+            var result = new EventInfo(this, evt, Proxies);
             Members.Add(evt, result);
             return result;
         }
@@ -576,13 +576,15 @@ namespace JSIL.Internal {
     public class MemberInfo<T> : IMemberInfo
         where T : MemberReference, ICustomAttributeProvider 
     {
+        public readonly TypeInfo DeclaringType;
         public readonly T Member;
         public readonly MetadataCollection Metadata;
         public readonly bool IsIgnored;
         public readonly string ForcedName;
 
-        public MemberInfo (T member, ProxyInfo[] proxies, bool isIgnored = false) {
+        public MemberInfo (TypeInfo parent, T member, ProxyInfo[] proxies, bool isIgnored = false) {
             IsIgnored = isIgnored || TypeInfo.IsIgnoredName(member.FullName);
+            DeclaringType = parent;
 
             Member = member;
             Metadata = new MetadataCollection(member);
@@ -621,10 +623,6 @@ namespace JSIL.Internal {
             }
         }
 
-        public TypeReference DeclaringType {
-            get { return Member.DeclaringType; }
-        }
-
         public virtual PropertyInfo DeclaringProperty {
             get { return null; }
         }
@@ -634,8 +632,8 @@ namespace JSIL.Internal {
     }
 
     public class FieldInfo : MemberInfo<FieldDefinition> {
-        public FieldInfo (FieldDefinition field, ProxyInfo[] proxies) : base(
-            proxies.ResolveProxy(field), proxies, field.FieldType.IsPointer
+        public FieldInfo (TypeInfo parent, FieldDefinition field, ProxyInfo[] proxies) : base(
+            parent, proxies.ResolveProxy(field), proxies, field.FieldType.IsPointer
         ) {
         }
 
@@ -647,8 +645,8 @@ namespace JSIL.Internal {
     }
 
     public class PropertyInfo : MemberInfo<PropertyDefinition> {
-        public PropertyInfo (PropertyDefinition property, ProxyInfo[] proxies) : base(
-            proxies.ResolveProxy(property), proxies, property.PropertyType.IsPointer
+        public PropertyInfo (TypeInfo parent, PropertyDefinition property, ProxyInfo[] proxies) : base(
+            parent, proxies.ResolveProxy(property), proxies, property.PropertyType.IsPointer
         ) {
         }
 
@@ -672,8 +670,8 @@ namespace JSIL.Internal {
     }
 
     public class EventInfo : MemberInfo<EventDefinition> {
-        public EventInfo (EventDefinition evt, ProxyInfo[] proxies) : base(
-            proxies.ResolveProxy(evt), proxies, false
+        public EventInfo (TypeInfo parent, EventDefinition evt, ProxyInfo[] proxies) : base(
+            parent, proxies.ResolveProxy(evt), proxies, false
         ) {
         }
     }
@@ -684,14 +682,14 @@ namespace JSIL.Internal {
 
         public int? OverloadIndex;
 
-        public MethodInfo (MethodDefinition method, ProxyInfo[] proxies) : base (
-            proxies.ResolveProxy(method), proxies,
+        public MethodInfo (TypeInfo parent, MethodDefinition method, ProxyInfo[] proxies) : base (
+            parent, proxies.ResolveProxy(method), proxies,
             (method.ReturnType.IsPointer) || (method.Parameters.Any((p) => p.ParameterType.IsPointer))
         ) {
         }
 
-        public MethodInfo (MethodDefinition method, ProxyInfo[] proxies, PropertyInfo property) : base (
-            proxies.ResolveProxy(method), proxies,
+        public MethodInfo (TypeInfo parent, MethodDefinition method, ProxyInfo[] proxies, PropertyInfo property) : base (
+            parent, proxies.ResolveProxy(method), proxies,
             method.ReturnType.IsPointer || 
                 method.Parameters.Any((p) => p.ParameterType.IsPointer) || 
                 property.IsIgnored
@@ -699,8 +697,8 @@ namespace JSIL.Internal {
             Property = property;
         }
 
-        public MethodInfo (MethodDefinition method, ProxyInfo[] proxies, EventInfo evt) : base(
-            proxies.ResolveProxy(method), proxies,
+        public MethodInfo (TypeInfo parent, MethodDefinition method, ProxyInfo[] proxies, EventInfo evt) : base(
+            parent, proxies.ResolveProxy(method), proxies,
             method.ReturnType.IsPointer || 
                 method.Parameters.Any((p) => p.ParameterType.IsPointer) ||
                 evt.IsIgnored

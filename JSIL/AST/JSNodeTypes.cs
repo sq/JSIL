@@ -635,7 +635,27 @@ namespace JSIL.Ast {
             }
         }
 
+        public static MethodReference ResolveGenericMethod (MethodReference method, params object[] contexts) {
+            contexts = new object[] { method, method.DeclaringType }.Concat(contexts).ToArray();
+
+            var result = new MethodReference(
+                method.Name,
+                ResolveGenericType(method.ReturnType, contexts),
+                ResolveGenericType(method.DeclaringType, contexts)
+            );
+
+            foreach (var parameter in method.Parameters)
+                result.Parameters.Add(new ParameterDefinition(
+                    parameter.Name, parameter.Attributes,
+                    ResolveGenericType(parameter.ParameterType, contexts)
+                ));
+
+            return result;
+        }
+
         public static TypeReference ConstructDelegateType (MethodReference method, TypeSystem typeSystem) {
+            method = ResolveGenericMethod(method);
+
             return ConstructDelegateType(
                 ResolveGenericType(method.ReturnType, method), 
                 (from p in method.Parameters 
@@ -647,6 +667,9 @@ namespace JSIL.Ast {
         public static TypeReference ConstructDelegateType (TypeReference returnType, IEnumerable<TypeReference> parameterTypes, TypeSystem typeSystem) {
             TypeReference result;
             var signature = new MethodSignature(returnType, parameterTypes);
+
+            if (returnType.IsGenericParameter || parameterTypes.Any((p) => p.IsGenericParameter))
+                throw new ArgumentException();
 
             if (MethodTypeCache.TryGetValue(signature, out result))
                 return result;
@@ -1354,9 +1377,11 @@ namespace JSIL.Ast {
     }
 
     public class JSMethod : JSIdentifier {
+        public readonly MethodReference Reference;
         public readonly MethodInfo Method;
 
-        public JSMethod (MethodInfo method) {
+        public JSMethod (MethodReference reference, MethodInfo method) {
+            Reference = reference;
             Method = method;
         }
 
@@ -1365,11 +1390,7 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            var result = ConstructDelegateType(Method.Member, typeSystem);
-            if (result == null)
-                return Method.ReturnType;
-            else
-                return result;
+            return ConstructDelegateType(Reference, typeSystem);
         }
     }
 

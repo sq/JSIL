@@ -330,7 +330,7 @@ namespace JSIL {
             // Accesses to a base property should go through a regular method invocation, since
             //  javascript properties do not have a mechanism for base access
             if (method.HasThis) {
-                if (!TypesAreEqual(thisType, propertyInfo.DeclaringType)) {
+                if (!TypesAreEqual(thisType, propertyInfo.DeclaringType.Definition)) {
                     return false;
                 } else {
                     result = generate();
@@ -1149,12 +1149,12 @@ namespace JSIL {
                 return JSDotExpression.New(
                     new JSType(method.DeclaringType),
                     JS.prototype,
-                    new JSMethod(methodInfo)
+                    new JSMethod(method, methodInfo)
                 );
             else
                 return new JSDotExpression(
                     new JSType(method.DeclaringType),
-                    new JSMethod(methodInfo)
+                    new JSMethod(method, methodInfo)
                 );
         }
 
@@ -1591,7 +1591,7 @@ namespace JSIL {
 
         protected JSExpression Translate_Ldtoken (ILExpression node, MethodReference method) {
             var methodInfo = TypeInfo.GetMethod(method);
-            return new JSMethod(methodInfo);
+            return new JSMethod(method, methodInfo);
         }
 
         protected JSExpression Translate_Ldtoken (ILExpression node, FieldReference field) {
@@ -1643,13 +1643,13 @@ namespace JSIL {
                     )
                 ) {
                     arguments = arguments.Skip(1);
-                    invokeTarget = JSDotExpression.New(thisExpression, new JSMethod(methodInfo));
+                    invokeTarget = JSDotExpression.New(thisExpression, new JSMethod(method, methodInfo));
                 } else {
-                    invokeTarget = JSDotExpression.New(new JSType(method.DeclaringType), JS.prototype, new JSMethod(methodInfo), JS.call(method.ReturnType));
+                    invokeTarget = JSDotExpression.New(new JSType(method.DeclaringType), JS.prototype, new JSMethod(method, methodInfo), JS.call(method.ReturnType));
                 }
             } else {
                 thisExpression = new JSType(method.DeclaringType);
-                invokeTarget = JSDotExpression.New(thisExpression, new JSMethod(methodInfo));
+                invokeTarget = JSDotExpression.New(thisExpression, new JSMethod(method, methodInfo));
             }
 
             var translatedArguments = Translate(arguments.ToArray(), method.Parameters);
@@ -1676,7 +1676,7 @@ namespace JSIL {
             var methodInfo = TypeInfo.GetMethod(method);
 
             return Translate_MethodReplacement(
-               method, thisExpression, new JSDotExpression(thisExpression, new JSMethod(methodInfo)),
+               method, thisExpression, new JSDotExpression(thisExpression, new JSMethod(method, methodInfo)),
                translatedArguments, true
             );
         }

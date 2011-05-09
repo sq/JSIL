@@ -42,7 +42,7 @@ namespace JSIL.Meta {
     /// <summary>
     /// Specifies that, if overloaded, the correct overload of this method to invoke should be decided at runtime instead of compile time.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Method)]
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor)]
     public class JSRuntimeDispatch : Attribute {
     }
 

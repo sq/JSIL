@@ -15,4 +15,15 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
     }
+
+    [JSProxy(
+        typeof(Decimal),
+        JSProxyMemberPolicy.ReplaceNone
+    )]
+    public abstract class DecimalProxy {
+        [JSRuntimeDispatch]
+        new public static Decimal op_Explicit () {
+            throw new InvalidOperationException();
+        }
+    }
 }
