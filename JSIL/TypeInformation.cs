@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using JSIL.Ast;
@@ -204,10 +205,10 @@ namespace JSIL.Internal {
         public readonly JSProxyAttributePolicy AttributePolicy;
         public readonly JSProxyMemberPolicy MemberPolicy;
 
-        public readonly Dictionary<string, FieldDefinition> Fields = new Dictionary<string, FieldDefinition>();
-        public readonly Dictionary<string, PropertyDefinition> Properties = new Dictionary<string, PropertyDefinition>();
-        public readonly Dictionary<string, EventDefinition> Events = new Dictionary<string, EventDefinition>();
-        public readonly Dictionary<string, MethodDefinition> Methods = new Dictionary<string, MethodDefinition>();
+        public readonly Dictionary<MemberReference, FieldDefinition> Fields = new Dictionary<MemberReference, FieldDefinition>(new MemberReferenceComparer());
+        public readonly Dictionary<MemberReference, PropertyDefinition> Properties = new Dictionary<MemberReference, PropertyDefinition>(new MemberReferenceComparer());
+        public readonly Dictionary<MemberReference, EventDefinition> Events = new Dictionary<MemberReference, EventDefinition>(new MemberReferenceComparer());
+        public readonly Dictionary<MemberReference, MethodDefinition> Methods = new Dictionary<MemberReference, MethodDefinition>(new MemberReferenceComparer());
 
         public ProxyInfo (TypeDefinition proxyType) {
             Definition = proxyType;
@@ -241,21 +242,21 @@ namespace JSIL.Internal {
                 if (!ILBlockTranslator.TypesAreEqual(field.DeclaringType, proxyType))
                     continue;
 
-                Fields[field.Name] = field;
+                Fields[field] = field;
             }
 
             foreach (var property in proxyType.Properties) {
                 if (!ILBlockTranslator.TypesAreEqual(property.DeclaringType, proxyType))
                     continue;
 
-                Properties[property.Name] = property;
+                Properties[property] = property;
             }
 
             foreach (var evt in proxyType.Events) {
                 if (!ILBlockTranslator.TypesAreEqual(evt.DeclaringType, proxyType))
                     continue;
 
-                Events[evt.Name] = evt;
+                Events[evt] = evt;
             }
 
             // TODO: Support overloaded methods
@@ -263,28 +264,42 @@ namespace JSIL.Internal {
                 if (!ILBlockTranslator.TypesAreEqual(method.DeclaringType, proxyType))
                     continue;
 
-                Methods[method.Name] = method;
+                Methods[method] = method;
             }
         }
 
-        public bool GetMember<T> (string key, out T result)
+        public IEnumerable<ICustomAttributeProvider> GetMembersByName (string name) {
+            return (from m in Methods.Values
+                    where m.Name == name
+                    select m).Cast<ICustomAttributeProvider>().Concat(
+                    from p in Properties.Values
+                    where p.Name == name
+                    select p).Cast<ICustomAttributeProvider>().Concat(
+                    from e in Events.Values
+                    where e.Name == name
+                    select e).Cast<ICustomAttributeProvider>().Concat(
+                    from f in Fields.Values
+                    where f.Name == name
+                    select f).Cast<ICustomAttributeProvider>();
+        }
+
+        public bool GetMember<T> (MemberReference member, out T result)
             where T : class {
 
-            // TODO: Support overloaded methods
             MethodDefinition method;
-            if (Methods.TryGetValue(key, out method) && ((result = method as T) != null))
+            if (Methods.TryGetValue(member, out method) && ((result = method as T) != null))
                 return true;
 
             FieldDefinition field;
-            if (Fields.TryGetValue(key, out field) && ((result = field as T) != null))
+            if (Fields.TryGetValue(member, out field) && ((result = field as T) != null))
                 return true;
 
             PropertyDefinition property;
-            if (Properties.TryGetValue(key, out property) && ((result = property as T) != null))
+            if (Properties.TryGetValue(member, out property) && ((result = property as T) != null))
                 return true;
 
             EventDefinition evt;
-            if (Events.TryGetValue(key, out evt) && ((result = evt as T) != null))
+            if (Events.TryGetValue(member, out evt) && ((result = evt as T) != null))
                 return true;
 
             result = null;
@@ -298,7 +313,7 @@ namespace JSIL.Internal {
             FieldDefinition temp;
 
             foreach (var proxy in proxies)
-                if (proxy.Fields.TryGetValue(key, out temp) && (proxy.MemberPolicy != JSProxyMemberPolicy.ReplaceNone))
+                if (proxy.Fields.TryGetValue(field, out temp) && (proxy.MemberPolicy != JSProxyMemberPolicy.ReplaceNone))
                     field = temp;
 
             return field;
@@ -310,7 +325,7 @@ namespace JSIL.Internal {
 
             foreach (var proxy in proxies)
                 if (
-                    proxy.Properties.TryGetValue(key, out temp) && 
+                    proxy.Properties.TryGetValue(property, out temp) && 
                     !(temp.GetMethod ?? temp.SetMethod).IsAbstract &&
                     !(temp.SetMethod ?? temp.GetMethod).IsAbstract && 
                     (proxy.MemberPolicy != JSProxyMemberPolicy.ReplaceNone)
@@ -326,7 +341,7 @@ namespace JSIL.Internal {
 
             foreach (var proxy in proxies)
                 if (
-                    proxy.Events.TryGetValue(key, out temp) && 
+                    proxy.Events.TryGetValue(evt, out temp) && 
                     !(temp.AddMethod ?? temp.RemoveMethod).IsAbstract &&
                     !(temp.RemoveMethod ?? temp.AddMethod).IsAbstract && 
                     (proxy.MemberPolicy != JSProxyMemberPolicy.ReplaceNone)
@@ -345,7 +360,7 @@ namespace JSIL.Internal {
                 return method;
 
             foreach (var proxy in proxies) {
-                if (proxy.Methods.TryGetValue(key, out temp) && !temp.IsAbstract && (proxy.MemberPolicy != JSProxyMemberPolicy.ReplaceNone))
+                if (proxy.Methods.TryGetValue(method, out temp) && !temp.IsAbstract && (proxy.MemberPolicy != JSProxyMemberPolicy.ReplaceNone))
                     method = temp;
             }
 
@@ -380,9 +395,6 @@ namespace JSIL.Internal {
             Proxies = source.GetProxies(type);
 
             Metadata = new MetadataCollection(type);
-
-            foreach (var proxy in Proxies)
-                Metadata.Update(proxy.Metadata, proxy.AttributePolicy == JSProxyAttributePolicy.Replace);
 
             foreach (var field in type.Fields)
                 AddMember(field);
@@ -459,6 +471,50 @@ namespace JSIL.Internal {
                 }
 
                 IsFlagsEnum = Metadata.HasAttribute("System.FlagsAttribute");
+            }
+
+            foreach (var proxy in Proxies) {
+                Metadata.Update(proxy.Metadata, proxy.AttributePolicy == JSProxyAttributePolicy.Replace);
+
+                foreach (var property in proxy.Properties.Values) {
+                    if (Members.ContainsKey(property))
+                        continue;
+
+                    var p = AddMember(property);
+
+                    if (property.GetMethod != null)
+                        AddMember(property.GetMethod, p);
+
+                    if (property.SetMethod != null)
+                        AddMember(property.SetMethod, p);
+                }
+
+                foreach (var evt in proxy.Events.Values) {
+                    if (Members.ContainsKey(evt))
+                        continue;
+
+                    var e = AddMember(evt);
+
+                    if (evt.AddMethod != null)
+                        AddMember(evt.AddMethod, e);
+
+                    if (evt.RemoveMethod != null)
+                        AddMember(evt.RemoveMethod, e);
+                }
+
+                foreach (var field in proxy.Fields.Values) {
+                    if (Members.ContainsKey(field))
+                        continue;
+
+                    AddMember(field);
+                }
+
+                foreach (var method in proxy.Methods.Values) {
+                    if (Members.ContainsKey(method))
+                        continue;
+
+                    AddMember(method);
+                }
             }
 
             IsIgnored = module.IsIgnored ||
@@ -631,9 +687,8 @@ namespace JSIL.Internal {
                 IsIgnored = true;
 
             foreach (var proxy in proxies) {
-                T temp;
-                if (proxy.GetMember<T>(member.Name, out temp)) {
-                    var meta = new MetadataCollection(temp);
+                foreach (var proxyMember in proxy.GetMembersByName(member.Name)) {
+                    var meta = new MetadataCollection(proxyMember);
                     Metadata.Update(meta, proxy.AttributePolicy == JSProxyAttributePolicy.Replace);
                 }
             }
