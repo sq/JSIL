@@ -679,6 +679,9 @@ namespace JSIL {
                     output.NewLine();
                 }
 
+                if (method.Name.Contains("ctor"))
+                    Debugger.Break();
+
                 output.OpenBracket();
                 output.Value(Util.EscapeIdentifier(method.Name));
                 output.Comma();

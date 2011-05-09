@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using JSIL.Ast;
 using JSIL.Meta;
 using Mono.Cecil;
 
@@ -62,11 +63,16 @@ namespace JSIL.Internal {
             ParameterTypes = null;
         }
 
+        static bool IsGenericParameter (TypeReference t) {
+            t = JSExpression.DeReferenceType(t);
+            return t.IsGenericParameter;
+        }
+
         static bool TypesAreEqual (TypeReference lhs, TypeReference rhs) {
             if (lhs == null || rhs == null)
                 return (lhs == rhs);
 
-            if (lhs.IsGenericParameter || rhs.IsGenericParameter)
+            if (IsGenericParameter(lhs) || IsGenericParameter(rhs))
                 return true;
 
             return ILBlockTranslator.TypesAreEqual(lhs, rhs);
@@ -263,7 +269,7 @@ namespace JSIL.Internal {
             FieldDefinition temp;
 
             foreach (var proxy in proxies)
-                if (proxy.Fields.TryGetValue(key, out temp))
+                if (proxy.Fields.TryGetValue(key, out temp) && (proxy.MemberPolicy != JSProxyMemberPolicy.ReplaceNone))
                     field = temp;
 
             return field;
@@ -277,7 +283,8 @@ namespace JSIL.Internal {
                 if (
                     proxy.Properties.TryGetValue(key, out temp) && 
                     !(temp.GetMethod ?? temp.SetMethod).IsAbstract &&
-                    !(temp.SetMethod ?? temp.GetMethod).IsAbstract
+                    !(temp.SetMethod ?? temp.GetMethod).IsAbstract && 
+                    (proxy.MemberPolicy != JSProxyMemberPolicy.ReplaceNone)
                 )
                     property = temp;
 
@@ -292,7 +299,8 @@ namespace JSIL.Internal {
                 if (
                     proxy.Events.TryGetValue(key, out temp) && 
                     !(temp.AddMethod ?? temp.RemoveMethod).IsAbstract &&
-                    !(temp.RemoveMethod ?? temp.AddMethod).IsAbstract
+                    !(temp.RemoveMethod ?? temp.AddMethod).IsAbstract && 
+                    (proxy.MemberPolicy != JSProxyMemberPolicy.ReplaceNone)
                 )
                     evt = temp;
 
@@ -304,12 +312,13 @@ namespace JSIL.Internal {
             MethodDefinition temp;
 
             // TODO: No way to detect whether the constructor was compiler-generated.
-            if ((method.Name == ".ctor") && (method.Parameters.Count == 0))
+            if (method.Name == ".ctor" && (method.Parameters.Count == 0))
                 return method;
 
-            foreach (var proxy in proxies)
-                if (proxy.Methods.TryGetValue(key, out temp) && (!temp.IsAbstract))
+            foreach (var proxy in proxies) {
+                if (proxy.Methods.TryGetValue(key, out temp) && !temp.IsAbstract && (proxy.MemberPolicy != JSProxyMemberPolicy.ReplaceNone))
                     method = temp;
+            }
 
             return method;
         }

@@ -595,7 +595,7 @@ JSIL.OverloadedMethod = function (type, name, overloads) {
     var method = JSIL.FindOverload.call(this, args, overloads);
 
     if (method === null)
-      throw new JSIL.MissingOverloadException(name, args);
+      throw new Error("No overload of '" + name + "' matching the argument list '" + String(args) + "' could be found.");
     else
       return method.apply(this, args);
   };

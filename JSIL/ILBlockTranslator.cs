@@ -330,7 +330,7 @@ namespace JSIL {
             // Accesses to a base property should go through a regular method invocation, since
             //  javascript properties do not have a mechanism for base access
             if (method.HasThis) {
-                if (!TypesAreEqual(thisType, propertyInfo.DeclaringType.Definition)) {
+                if (AllBaseTypesOf(GetTypeDefinition(thisType)).Contains(propertyInfo.DeclaringType.Definition)) {
                     return false;
                 } else {
                     result = generate();
@@ -366,6 +366,9 @@ namespace JSIL {
         }
 
         public static TypeDefinition GetTypeDefinition (TypeReference typeRef) {
+            if (typeRef == null)
+                return null;
+
             var ts = typeRef.Module.TypeSystem;
             typeRef = DereferenceType(typeRef);
 
@@ -449,6 +452,15 @@ namespace JSIL {
             if ((target == null) || (source == null))
                 return (target == source);
 
+            if (target.IsByReference != source.IsByReference)
+                return false;
+            if (target.IsPointer != source.IsPointer)
+                return false;
+            if (target.IsGenericParameter != source.IsGenericParameter)
+                return false;
+            if (target.IsArray != source.IsArray)
+                return false;
+
             var dTarget = GetTypeDefinition(target);
             var dSource = GetTypeDefinition(source);
 
@@ -463,11 +475,23 @@ namespace JSIL {
             return false;
         }
 
+        public static IEnumerable<TypeDefinition> AllBaseTypesOf (TypeDefinition type) {
+            var baseType = GetTypeDefinition(type.BaseType);
+
+            while (baseType != null) {
+                yield return baseType;
+
+                baseType = GetTypeDefinition(baseType.BaseType);
+            }
+        }
+
         public static bool TypesAreAssignable (TypeReference target, TypeReference source) {
             if (TypesAreEqual(target, source))
                 return true;
 
             var dSource = GetTypeDefinition(source);
+            if (TypesAreEqual(target, dSource))
+                return true;
 
             if ((dSource.BaseType != null) && TypesAreAssignable(target, dSource.BaseType))
                 return true;
@@ -1402,8 +1426,6 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Newobj (ILExpression node, MethodReference constructor) {
-            var methodInfo = TypeInfo.GetMethod(constructor);
-
             if (IsDelegateType(constructor.DeclaringType)) {
                 var thisArg = TranslateNode(node.Arguments[0]);
                 var methodRef = TranslateNode(node.Arguments[1]);
@@ -1459,6 +1481,7 @@ namespace JSIL {
                 );
             }
 
+            var methodInfo = TypeInfo.GetMethod(constructor);
             if (methodInfo.IsIgnored)
                 return Translate_IgnoredMethod(
                     constructor.Name, constructor.Parameters
