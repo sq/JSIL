@@ -328,31 +328,16 @@ namespace JSIL {
             where T : class, Internal.IMemberInfo
         {
             var typeInformation = GetTypeInformation(member.DeclaringType);
-            return (T)typeInformation.Members[member];
-        }
+            IMemberInfo result;
+            if (!typeInformation.Members.TryGetValue(member, out result))
+                throw new InvalidDataException();
 
-        public bool IsIgnored (ModuleDefinition module) {
-            var moduleInformation = GetModuleInformation(module);
-            return moduleInformation.IsIgnored;
-        }
-
-        public bool IsIgnored (TypeReference type) {
-            var typeInformation = GetTypeInformation(type);
-
-            if (typeInformation != null)
-                return typeInformation.IsIgnored;
-            else
-                return false;
-        }
-
-        public bool IsIgnored (MemberReference member) {
-            var typeInformation = GetTypeInformation(member.DeclaringType);
-            var memberInformation = typeInformation.Members[member];
-            return memberInformation.IsIgnored;
+            return (T)result;
         }
 
         protected void TranslateModule (DecompilerContext context, JavascriptFormatter output, ModuleDefinition module) {
-            if (IsIgnored(module))
+            var moduleInfo = GetModuleInformation(module);
+            if (moduleInfo.IsIgnored)
                 return;
 
             context.CurrentModule = module;
@@ -468,7 +453,8 @@ namespace JSIL {
         }
 
         protected void ForwardDeclareType (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef) {
-            if (IsIgnored(typedef))
+            var typeInfo = GetTypeInformation(typedef);
+            if (typeInfo.IsIgnored)
                 return;
 
             if (DeclaredTypes.Contains(typedef.FullName)) {
@@ -542,7 +528,8 @@ namespace JSIL {
         }
 
         protected void SealType (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef) {
-            if (IsIgnored(typedef))
+            var typeInfo = GetTypeInformation(typedef);
+            if (typeInfo.IsIgnored)
                 return;
 
             context.CurrentType = typedef;
@@ -554,8 +541,6 @@ namespace JSIL {
 
             foreach (var nestedTypedef in typedef.NestedTypes)
                 SealType(context, output, nestedTypedef);
-
-            var typeInfo = GetTypeInformation(typedef);
 
             if (typeInfo.StaticConstructor != null) {
                 output.Identifier("JSIL.SealType", true);
@@ -569,7 +554,8 @@ namespace JSIL {
         }
 
         protected void TranslateTypeDefinition (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef) {
-            if (IsIgnored(typedef))
+            var typeInfo = GetTypeInformation(typedef);
+            if (typeInfo.IsIgnored)
                 return;
 
             context.CurrentType = typedef;
@@ -593,7 +579,7 @@ namespace JSIL {
                 TranslateProperty(context, output, property);
 
             var interfaces = (from i in typedef.Interfaces
-                              where !IsIgnored(i)
+                              where !GetTypeInformation(i).IsIgnored
                               select i).ToArray();
 
             if (interfaces.Length > 0) {
@@ -610,7 +596,7 @@ namespace JSIL {
 
             var structFields = 
                 (from field in typedef.Fields
-                where !IsIgnored(field) && !field.HasConstant &&
+                where !typeInfo.Members[field].IsIgnored && !field.HasConstant &&
                     EmulateStructAssignment.IsStruct(field.FieldType) &&
                     !field.IsStatic
                 select field).ToArray();
@@ -678,9 +664,6 @@ namespace JSIL {
                     output.Comma();
                     output.NewLine();
                 }
-
-                if (method.Name.Contains("ctor"))
-                    Debugger.Break();
 
                 output.OpenBracket();
                 output.Value(Util.EscapeIdentifier(method.Name));
@@ -878,27 +861,28 @@ namespace JSIL {
                     emitter.Visit(new JSExpressionStatement(expr));
             }
 
-            if ((cctor != null) && !IsIgnored(cctor)) {
+            if (cctor != null) {
                 TranslateMethod(context, output, cctor, fixupCctor);
             } else if (fieldsToEmit.Length > 0) {
                 var fakeCctor = new MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static, typeSystem.Void);
                 fakeCctor.DeclaringType = typedef;
 
-                GetTypeInformation(typedef).StaticConstructor = fakeCctor;
+                var typeInfo = GetTypeInformation(typedef);
+                typeInfo.StaticConstructor = fakeCctor;
+                typeInfo.Members[fakeCctor] = new Internal.MethodInfo(typeInfo, fakeCctor, new ProxyInfo[0]);
 
                 TranslateMethod(context, output, fakeCctor, fixupCctor);
             }
         }
 
         protected void TranslateMethod (DecompilerContext context, JavascriptFormatter output, MethodDefinition method, Action<JSFunctionExpression> bodyTransformer = null) {
-            if (IsIgnored(method))
-                return;
-            if (!method.HasBody)
-                return;
-
             var methodInfo = GetMemberInformation<Internal.MethodInfo>(method);
             if (methodInfo == null)
                 throw new InvalidOperationException();
+            if (methodInfo.IsIgnored)
+                return;
+            if (!method.HasBody)
+                return;
 
             var metadata = methodInfo.Metadata;
             if (metadata != null) {
@@ -942,7 +926,8 @@ namespace JSIL {
         }
 
         protected void TranslateProperty (DecompilerContext context, JavascriptFormatter output, PropertyDefinition property) {
-            if (IsIgnored(property))
+            var propertyInfo = GetMemberInformation<Internal.PropertyInfo>(property);
+            if (propertyInfo.IsIgnored)
                 return;
 
             output.Identifier("JSIL.MakeProperty", true);
