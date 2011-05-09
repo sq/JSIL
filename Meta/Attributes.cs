@@ -46,39 +46,11 @@ namespace JSIL.Meta {
     public class JSRuntimeDispatch : Attribute {
     }
 
-    public enum JSProxyMemberPolicy {
-        ReplaceDeclared,
-        ReplaceNone
-    }
-
-    public enum JSProxyAttributePolicy {
-        Add,
-        Replace
-    }
-
     /// <summary>
-    /// Specifies that a type should be treated as a proxy for another type, replacing the target type's members and/or attributes.
+    /// Specifies that this method is implemented externally and should not be generated when translating code to JavaScript
+    ///  (but does not prevent use of the method like <see cref="JSIgnore"/> does.)
     /// </summary>
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface)]
-    public class JSProxy : Attribute {
-        /// <param name="type">The type to proxy.</param>
-        /// <param name="memberPolicy">Determines how members defined in the proxied type should be replaced with members defined by the proxy type.</param>
-        /// <param name="attributePolicy">Determines how how attributes defined in the proxied type should be replaced with attributes attached to the proxy type.</param>
-        public JSProxy (
-            Type type,
-            JSProxyMemberPolicy memberPolicy = JSProxyMemberPolicy.ReplaceDeclared,
-            JSProxyAttributePolicy attributePolicy = JSProxyAttributePolicy.Add
-        ) {
-        }
-
-        /// <param name="types">The types to proxy.</param>
-        /// <param name="memberPolicy">Determines how members defined in the proxied type should be replaced with members defined by the proxy type.</param>
-        /// <param name="attributePolicy">Determines how how attributes defined in the proxied type should be replaced with attributes attached to the proxy type.</param>
-        public JSProxy (
-            Type[] types,
-            JSProxyMemberPolicy memberPolicy = JSProxyMemberPolicy.ReplaceDeclared,
-            JSProxyAttributePolicy attributePolicy = JSProxyAttributePolicy.Add
-        ) {
-        }
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor)]
+    public class JSExternal : Attribute {
     }
 }

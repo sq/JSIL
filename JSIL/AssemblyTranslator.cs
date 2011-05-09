@@ -111,7 +111,7 @@ namespace JSIL {
                         bool isProxyType = false;
 
                         foreach (var ca in type.CustomAttributes) {
-                            if (ca.AttributeType.FullName == "JSIL.Meta.JSProxy") {
+                            if (ca.AttributeType.FullName == "JSIL.Proxy.JSProxy") {
                                 isProxyType = true;
                                 break;
                             }
@@ -881,14 +881,10 @@ namespace JSIL {
                 throw new InvalidOperationException();
             if (methodInfo.IsIgnored)
                 return;
+            if (methodInfo.IsExternal)
+                return;
             if (!method.HasBody)
                 return;
-
-            var metadata = methodInfo.Metadata;
-            if (metadata != null) {
-                if (metadata.HasAttribute("JSIL.Meta.JSReplacement"))
-                    return;
-            }
 
             output.Identifier(method.DeclaringType);
             if (!method.IsStatic) {

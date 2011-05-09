@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using JSIL.Ast;
 using JSIL.Meta;
+using JSIL.Proxy;
 using Mono.Cecil;
 
 namespace JSIL.Internal {
@@ -87,16 +88,17 @@ namespace JSIL.Internal {
             ParameterTypes = null;
         }
 
-        static bool IsGenericParameter (TypeReference t) {
+        static bool IsAnyType (TypeReference t) {
             t = JSExpression.DeReferenceType(t);
-            return t.IsGenericParameter;
+
+            return t.IsGenericParameter || t.FullName == "JSIL.Proxy.AnyType";
         }
 
         static bool TypesAreEqual (TypeReference lhs, TypeReference rhs) {
             if (lhs == null || rhs == null)
                 return (lhs == rhs);
 
-            if (IsGenericParameter(lhs) || IsGenericParameter(rhs))
+            if (IsAnyType(lhs) || IsAnyType(rhs))
                 return true;
 
             return ILBlockTranslator.TypesAreEqual(lhs, rhs);
@@ -214,14 +216,14 @@ namespace JSIL.Internal {
             Definition = proxyType;
             Metadata = new MetadataCollection(proxyType);
 
-            var args = Metadata.GetAttributeParameters("JSIL.Meta.JSProxy");
+            var args = Metadata.GetAttributeParameters("JSIL.Proxy.JSProxy");
             // Attribute parameter ordering is random. Awesome!
             foreach (var arg in args) {
                 switch (arg.Type.FullName) {
-                    case "JSIL.Meta.JSProxyAttributePolicy":
+                    case "JSIL.Proxy.JSProxyAttributePolicy":
                         AttributePolicy = (JSProxyAttributePolicy)arg.Value;
                         break;
-                    case "JSIL.Meta.JSProxyMemberPolicy":
+                    case "JSIL.Proxy.JSProxyMemberPolicy":
                         MemberPolicy = (JSProxyMemberPolicy)arg.Value;
                         break;
                     case "System.Type":
@@ -674,10 +676,12 @@ namespace JSIL.Internal {
         public readonly T Member;
         public readonly MetadataCollection Metadata;
         public readonly bool IsIgnored;
+        public readonly bool IsExternal;
         public readonly string ForcedName;
 
-        public MemberInfo (TypeInfo parent, T member, ProxyInfo[] proxies, bool isIgnored = false) {
+        public MemberInfo (TypeInfo parent, T member, ProxyInfo[] proxies, bool isIgnored = false, bool isExternal = false) {
             IsIgnored = isIgnored || TypeInfo.IsIgnoredName(member.FullName);
+            IsExternal = isExternal;
             DeclaringType = parent;
 
             Member = member;
@@ -685,6 +689,9 @@ namespace JSIL.Internal {
 
             if (Metadata.HasAttribute("JSIL.Meta.JSIgnore"))
                 IsIgnored = true;
+
+            if (Metadata.HasAttribute("JSIL.Meta.JSExternal") || Metadata.HasAttribute("JSIL.Meta.JSReplacement"))
+                IsExternal = true;
 
             foreach (var proxy in proxies) {
                 foreach (var proxyMember in proxy.GetMembersByName(member.Name)) {
@@ -777,7 +784,8 @@ namespace JSIL.Internal {
 
         public MethodInfo (TypeInfo parent, MethodDefinition method, ProxyInfo[] proxies) : base (
             parent, proxies.ResolveProxy(method), proxies,
-            (method.ReturnType.IsPointer) || (method.Parameters.Any((p) => p.ParameterType.IsPointer))
+            (method.ReturnType.IsPointer) || (method.Parameters.Any((p) => p.ParameterType.IsPointer)),
+            method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall
         ) {
         }
 
@@ -785,7 +793,8 @@ namespace JSIL.Internal {
             parent, proxies.ResolveProxy(method), proxies,
             method.ReturnType.IsPointer || 
                 method.Parameters.Any((p) => p.ParameterType.IsPointer) || 
-                property.IsIgnored
+                property.IsIgnored,
+            method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall
         ) {
             Property = property;
         }
@@ -794,7 +803,8 @@ namespace JSIL.Internal {
             parent, proxies.ResolveProxy(method), proxies,
             method.ReturnType.IsPointer || 
                 method.Parameters.Any((p) => p.ParameterType.IsPointer) ||
-                evt.IsIgnored
+                evt.IsIgnored,
+            method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall
         ) {
             Event = evt;
         }
