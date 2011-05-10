@@ -5,7 +5,10 @@ if (typeof (JSIL) === "undefined")
     __FullName__ : "JSIL"
   };
 
-JSIL.DeclareNamespace = function (parent, name) {
+JSIL.DeclareNamespace = function (parent, name, sealed) {
+  if (typeof (sealed) === "undefined")
+    sealed = true;
+
   if (typeof (parent[name]) === "undefined") {
     var parentName = "";
     if (typeof (parent.__FullName__) != "undefined")
@@ -14,7 +17,7 @@ JSIL.DeclareNamespace = function (parent, name) {
     Object.defineProperty(
       parent, name, {
         enumerable: true,
-        configurable: false,
+        configurable: !sealed,
         value: {
           __FullName__ : parentName + name
         }
@@ -26,16 +29,16 @@ JSIL.DeclareNamespace = function (parent, name) {
 JSIL.DeclareNamespace(this, "System");
 JSIL.DeclareNamespace(System, "Collections");
 JSIL.DeclareNamespace(System.Collections, "Generic");
-JSIL.DeclareNamespace(System, "Array");
-JSIL.DeclareNamespace(System, "Delegate");
-JSIL.DeclareNamespace(System, "Enum");
-JSIL.DeclareNamespace(System, "MulticastDelegate");
-JSIL.DeclareNamespace(System, "Console");
+JSIL.DeclareNamespace(System, "Array", false);
+JSIL.DeclareNamespace(System, "Delegate", false);
+JSIL.DeclareNamespace(System, "Enum", false);
+JSIL.DeclareNamespace(System, "MulticastDelegate", false);
+JSIL.DeclareNamespace(System, "Console", false);
 JSIL.DeclareNamespace(System, "Threading");
-JSIL.DeclareNamespace(System.Threading, "Interlocked");
-JSIL.DeclareNamespace(System.Threading, "Monitor");
-JSIL.DeclareNamespace(System, "Globalization");
-JSIL.DeclareNamespace(System, "Environment");
+JSIL.DeclareNamespace(System.Threading, "Interlocked", false);
+JSIL.DeclareNamespace(System.Threading, "Monitor", false);
+JSIL.DeclareNamespace(System, "Globalization", false);
+JSIL.DeclareNamespace(System, "Environment", false);
 
 JSIL.DeclareNamespace(JSIL, "Array");
 JSIL.DeclareNamespace(JSIL, "Delegate");
@@ -46,7 +49,7 @@ JSIL.DeclareNamespace(JSIL, "MulticastDelegate");
 JSIL.DeclareNamespace(this, "Property");
 
 // You can change these fields, but you shouldn't need to in practice
-JSIL.DeclareNamespace(JSIL, "HostType");
+JSIL.DeclareNamespace(JSIL, "HostType", false);
 JSIL.HostType.IsBrowser = (typeof (window) !== "undefined") && (typeof (navigator) !== "undefined");
 
 // Redefine this class at runtime or override its members to change the behavior of JSIL builtins.
@@ -226,7 +229,6 @@ JSIL.SealType = function (namespace, name) {
       return type;
     state.sealed = false;
 
-    delete namespace["__" + name];
     Object.defineProperty(
       namespace, name, { 
         configurable: true,
@@ -237,9 +239,6 @@ JSIL.SealType = function (namespace, name) {
     JSIL.InitializeType(type);
     return type;
   };
-
-  delete namespace[name];
-  namespace["__" + name] = type;
 
   Object.defineProperty(namespace, name, {
     configurable: true,
@@ -355,7 +354,13 @@ JSIL.MakeEnum = function (namespace, localName, fullName, members, isFlagsEnum) 
     result[key] = obj;
   }
 
-  namespace[localName] = result;
+  Object.defineProperty(
+    namespace, localName, {
+      configurable: true,
+      enumerable: true,
+      value: result
+    }
+  );
 };
 
 JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
@@ -611,6 +616,11 @@ JSIL.FindOverload = function (args, overloads) {
 };
 
 JSIL.OverloadedMethod = function (type, name, overloads) {
+  for (var i = 0; i < overloads.length; i++) {
+    if (overloads[i][0] === name)
+      throw new Error("Recursive definition of overloaded method " + JSIL.GetTypeName(type) + "." + name);
+  }
+
   type[name] = function () {
     var args = Array.prototype.slice.call(arguments);
     var method = JSIL.FindOverload.call(this, args, overloads);

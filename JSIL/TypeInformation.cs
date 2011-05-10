@@ -793,7 +793,7 @@ namespace JSIL.Internal {
         public readonly bool IsIgnored;
         public readonly bool IsExternal;
         internal readonly bool IsFromProxy;
-        public readonly string ForcedName;
+        protected readonly string _ForcedName;
 
         public MemberInfo (TypeInfo parent, T member, ProxyInfo[] proxies, bool isIgnored = false, bool isExternal = false) {
             IsIgnored = isIgnored || TypeInfo.IsIgnoredName(member.FullName);
@@ -844,13 +844,22 @@ namespace JSIL.Internal {
             get { return IsIgnored; }
         }
 
-        public string Name {
+        public string ForcedName {
             get {
+                if (_ForcedName != null)
+                    return _ForcedName;
+
                 var parms = Metadata.GetAttributeParameters("JSIL.Meta.JSChangeName");
                 if (parms != null)
                     return (string)parms[0].Value;
 
-                return GetName();
+                return null;
+            }
+        }
+
+        public string Name {
+            get {
+                return ForcedName ?? GetName();
             }
         }
 
@@ -946,6 +955,10 @@ namespace JSIL.Internal {
         }
 
         protected override string GetName () {
+            return GetName(false);
+        }
+
+        public string GetName (bool forceNameMangling = false) {
             string result;
             var declType = Member.DeclaringType.Resolve();
             var over = Member.Overrides.FirstOrDefault();
@@ -957,7 +970,10 @@ namespace JSIL.Internal {
             else
                 result = Member.Name;
 
-            if ((OverloadIndex.HasValue) && !Metadata.HasAttribute("JSIL.Meta.JSRuntimeDispatch")) {
+            if (
+                (OverloadIndex.HasValue) && 
+                (forceNameMangling || !Metadata.HasAttribute("JSIL.Meta.JSRuntimeDispatch"))
+            ) {
                 result = String.Format("{0}${1}", result, OverloadIndex.Value);
             }
 

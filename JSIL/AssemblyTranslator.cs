@@ -684,7 +684,7 @@ namespace JSIL {
                 }
 
                 output.OpenBracket();
-                output.Value(Util.EscapeIdentifier(method.Name));
+                output.Value(Util.EscapeIdentifier(method.ForcedName ?? method.GetName(true)));
                 output.Comma();
 
                 output.OpenBracket();
@@ -911,7 +911,9 @@ namespace JSIL {
             }
             output.Dot();
 
-            output.Identifier(methodInfo.Name, false);
+            output.Identifier(
+                methodInfo.ForcedName ?? methodInfo.GetName(true), false
+            );
 
             output.Token(" = ");
 
