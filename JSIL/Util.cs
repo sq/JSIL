@@ -121,6 +121,9 @@ namespace JSIL.Internal {
                 result = sb.ToString();
             }
 
+            if (result.Contains("modopt") && escapePeriods == false)
+                Debugger.Break();
+
             bool isReservedWord = ReservedWords.Contains(result);
             if (isReservedWord)
                 result = "$" + result;

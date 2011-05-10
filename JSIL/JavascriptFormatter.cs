@@ -105,7 +105,7 @@ namespace JSIL.Internal {
                 if (!isFirst)
                     Comma();
 
-                Identifier(type as dynamic);
+                Identifier(type, false);
 
                 isFirst = false;
             }
@@ -245,8 +245,16 @@ namespace JSIL.Internal {
             }
         }
 
+        protected void TypeIdentifier (OptionalModifierType modopt, bool includeParens) {
+            Identifier(modopt.ElementType as dynamic, includeParens);
+        }
+
+        protected void TypeIdentifier (PointerType ptr, bool includeParens) {
+            Identifier(ptr.ElementType as dynamic, includeParens);
+        }
+
         protected void TypeIdentifier (GenericInstanceType type, bool includeParens) {
-            Identifier(type.ElementType);
+            Identifier(type.ElementType as dynamic, includeParens);
         }
 
         public void Identifier (MethodReference method, bool fullyQualified = true) {

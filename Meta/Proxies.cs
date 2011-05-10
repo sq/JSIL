@@ -40,13 +40,35 @@ namespace JSIL.Proxy {
             bool inheritable = true
         ) {
         }
+
+        /// <param name="typeName">The type to proxy.</param>
+        /// <param name="memberPolicy">Determines how members defined in the proxied type should be replaced with members defined by the proxy type.</param>
+        /// <param name="attributePolicy">Determines how how attributes defined in the proxied type should be replaced with attributes attached to the proxy type.</param>
+        public JSProxy (
+            string typeName,
+            JSProxyMemberPolicy memberPolicy = JSProxyMemberPolicy.ReplaceDeclared,
+            JSProxyAttributePolicy attributePolicy = JSProxyAttributePolicy.ReplaceDeclared,
+            bool inheritable = true
+        ) {
+        }
+
+        /// <param name="typeNames">The types to proxy.</param>
+        /// <param name="memberPolicy">Determines how members defined in the proxied type should be replaced with members defined by the proxy type.</param>
+        /// <param name="attributePolicy">Determines how how attributes defined in the proxied type should be replaced with attributes attached to the proxy type.</param>
+        public JSProxy (
+            string[] typeNames,
+            JSProxyMemberPolicy memberPolicy = JSProxyMemberPolicy.ReplaceDeclared,
+            JSProxyAttributePolicy attributePolicy = JSProxyAttributePolicy.ReplaceDeclared,
+            bool inheritable = true
+        ) {
+        }
     }
 
     [AttributeUsage(
         AttributeTargets.Event | AttributeTargets.Property |
         AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Field
     )]
-    public class NeverReplace : Attribute {
+    public class JSNeverReplace : Attribute {
     }
 
     /// <summary>

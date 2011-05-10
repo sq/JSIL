@@ -12,7 +12,7 @@ namespace JSIL.Proxies {
         new abstract public Type GetType ();
 
         [JSExternal]
-        [NeverReplace]
+        [JSNeverReplace]
         new abstract public AnyType MemberwiseClone ();
 
         [JSChangeName("toString")]

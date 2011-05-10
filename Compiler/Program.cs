@@ -24,6 +24,10 @@ namespace JSIL.Compiler {
                     case "i":
                         translator.IgnoredAssemblies.Add(new Regex(m.Groups["value"].Value, RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture));
                         break;
+                    case "proxy":
+                    case "p":
+                        translator.AddProxyAssembly(Path.GetFullPath(m.Groups["value"].Value), false);
+                        break;
                 }
             }
         }

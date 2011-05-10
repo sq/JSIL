@@ -39,6 +39,8 @@ JSIL.DeclareNamespace(System.Threading, "Interlocked", false);
 JSIL.DeclareNamespace(System.Threading, "Monitor", false);
 JSIL.DeclareNamespace(System, "Globalization", false);
 JSIL.DeclareNamespace(System, "Environment", false);
+JSIL.DeclareNamespace(System, "Runtime", false);
+JSIL.DeclareNamespace(System.Runtime, "InteropServices", false);
 
 JSIL.DeclareNamespace(JSIL, "Array");
 JSIL.DeclareNamespace(JSIL, "Delegate");

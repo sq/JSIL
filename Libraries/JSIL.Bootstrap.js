@@ -3,6 +3,13 @@
 if (typeof (JSIL) === "undefined")
   throw new Error("JSIL.Core is required");
 
+JSIL.DeclareNamespace(System, "ComponentModel");
+
+JSIL.MakeClass(System.Object, System.ComponentModel, "MemberDescriptor", "System.ComponentModel.MemberDescriptor");
+JSIL.MakeClass(System.ComponentModel.MemberDescriptor, System.ComponentModel, "PropertyDescriptor", "System.ComponentModel.PropertyDescriptor");
+JSIL.MakeClass(System.Object, System.ComponentModel, "TypeConverter", "System.ComponentModel.TypeConverter");
+JSIL.MakeClass(System.ComponentModel.TypeConverter, System.ComponentModel, "ExpandableObjectConverter", "System.ComponentModel.ExpandableObjectConverter");
+
 System.Delegate.prototype = JSIL.MakeProto(Function, System.Delegate, "System.Delegate", true);
 System.Delegate.prototype.Invoke = function () {
   return this.__method__.apply(this.__object__, arguments);

@@ -998,6 +998,39 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSIgnoredMemberReference : JSNullExpression {
+        public readonly bool ThrowError;
+        public readonly IMemberInfo Member;
+        public readonly JSExpression[] Arguments;
+
+        public JSIgnoredMemberReference (bool throwError, IMemberInfo member, params JSExpression[] arguments) {
+            ThrowError = throwError;
+            Member = member;
+            Arguments = arguments;
+        }
+
+        public override string ToString () {
+            return String.Format("Reference to ignored member {0}", Member.Name);
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                foreach (var arg in Arguments)
+                    yield return arg;
+            }
+        }
+
+        public override bool Equals (object obj) {
+            var rhs = obj as JSIgnoredMemberReference;
+            if (rhs != null) {
+                if (!Object.Equals(Member, rhs.Member))
+                    return false;
+            }
+
+            return EqualsImpl(obj, true);
+        }
+    }
+
     public abstract class JSLiteral : JSExpression {
         internal JSLiteral (params JSExpression[] values) : base (values) {
         }
@@ -1406,7 +1439,7 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return ResolveGenericType(Field.Type, Field, Field.DeclaringType);
+            return ResolveGenericType(Field.ReturnType, Field, Field.DeclaringType);
         }
     }
 
@@ -1422,7 +1455,7 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return ResolveGenericType(Property.Type, Property, Property.DeclaringType);
+            return ResolveGenericType(Property.ReturnType, Property, Property.DeclaringType);
         }
 
         public override bool IsConstant {

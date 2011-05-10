@@ -249,6 +249,7 @@ namespace JSIL.Internal {
     public class ProxyInfo {
         public readonly TypeDefinition Definition;
         public readonly TypeReference[] ProxiedTypes;
+        public readonly string[] ProxiedTypeNames;
 
         public readonly MetadataCollection Metadata;
 
@@ -266,6 +267,8 @@ namespace JSIL.Internal {
             Definition = proxyType;
             Metadata = new MetadataCollection(proxyType);
             IsInheritable = true;
+            ProxiedTypes = new TypeReference[0];
+            ProxiedTypeNames = new string[0];
 
             var args = Metadata.GetAttributeParameters("JSIL.Proxy.JSProxy");
             // Attribute parameter ordering is random. Awesome!
@@ -280,15 +283,24 @@ namespace JSIL.Internal {
                     case "System.Type":
                         ProxiedTypes = new[] { (TypeReference)arg.Value };
                         break;
-                    case "System.Type[]":
+                    case "System.Type[]": {
                         var values = (CustomAttributeArgument[])arg.Value;
                         ProxiedTypes = new TypeReference[values.Length];
                         for (var i = 0; i < ProxiedTypes.Length; i++)
                             ProxiedTypes[i] = (TypeReference)values[i].Value;
                         break;
+                    }
                     case "System.Boolean":
                         IsInheritable = (bool)arg.Value;
                         break;
+                    case "System.String":
+                        ProxiedTypeNames = new[] { (string)arg.Value };
+                        break;
+                    case "System.String[]": {
+                        var values = (CustomAttributeArgument[])arg.Value;
+                        ProxiedTypeNames = (from v in values select (string)v.Value).ToArray();
+                        break;
+                    }
                     default:
                         throw new NotImplementedException();
                 }
@@ -454,6 +466,19 @@ namespace JSIL.Internal {
             Proxies = source.GetProxies(type);
             Metadata = new MetadataCollection(type);
 
+            foreach (var proxy in Proxies)
+                Metadata.Update(proxy.Metadata, proxy.AttributePolicy == JSProxyAttributePolicy.ReplaceAll);
+
+            IsIgnored = module.IsIgnored ||
+                IsIgnoredName(type.FullName) ||
+                Metadata.HasAttribute("JSIL.Meta.JSIgnore");
+
+            if (Definition.DeclaringType != null) {
+                var dt = source.Get(Definition.DeclaringType);
+                if (dt != null)
+                    IsIgnored |= dt.IsIgnored;
+            }
+
             foreach (var field in type.Fields)
                 AddMember(field);
 
@@ -507,8 +532,6 @@ namespace JSIL.Internal {
             }
 
             foreach (var proxy in Proxies) {
-                Metadata.Update(proxy.Metadata, proxy.AttributePolicy == JSProxyAttributePolicy.ReplaceAll);
-
                 var seenMethods = new HashSet<MethodDefinition>();
 
                 foreach (var property in proxy.Properties) {
@@ -589,14 +612,10 @@ namespace JSIL.Internal {
                         StaticConstructor = mg.First().Member;
                 }
             }
-
-            IsIgnored = module.IsIgnored ||
-                IsIgnoredName(type.FullName) ||
-                Metadata.HasAttribute("JSIL.Meta.JSIgnore");
         }
 
         protected static bool ShouldNeverReplace (CustomAttribute ca) {
-            return ca.AttributeType.FullName == "JSIL.Proxy.NeverReplace";
+            return ca.AttributeType.FullName == "JSIL.Proxy.JSNeverReplace";
         }
 
         protected bool BeforeAddProxyMember<T> (ProxyInfo proxy, T member, out IMemberInfo result, ICustomAttributeProvider owningMember = null)
@@ -793,30 +812,18 @@ namespace JSIL.Internal {
     }
 
     public interface IMemberInfo {
-        TypeInfo DeclaringType {
-            get;
-        }
-        PropertyInfo DeclaringProperty {
-            get;
-        }
-        EventInfo DeclaringEvent {
-            get;
-        }
-        MetadataCollection Metadata {
-            get;
-        }
-        string Name {
-            get;
-        }
-        bool IsStatic {
-            get;
-        }
-        bool IsFromProxy {
-            get;
-        }
-        bool IsIgnored {
-            get;
-        }
+        TypeInfo DeclaringType { get; }
+        TypeReference ReturnType { get; }
+        PropertyInfo DeclaringProperty { get; }
+        EventInfo DeclaringEvent { get; }
+        MetadataCollection Metadata { get; }
+        string Name { get; }
+        bool IsStatic { get; }
+        bool IsFromProxy { get; }
+        bool IsIgnored { get; }
+        JSReadPolicy ReadPolicy { get; }
+        JSWritePolicy WritePolicy { get; }
+        JSInvokePolicy InvokePolicy { get; }
     }
 
     public abstract class MemberInfo<T> : IMemberInfo
@@ -825,24 +832,25 @@ namespace JSIL.Internal {
         public readonly TypeInfo DeclaringType;
         public readonly T Member;
         public readonly MetadataCollection Metadata;
-        public readonly bool IsIgnored;
         public readonly bool IsExternal;
         internal readonly bool IsFromProxy;
+        protected readonly bool _IsIgnored;
         protected readonly string _ForcedName;
+        protected readonly JSReadPolicy _ReadPolicy;
+        protected readonly JSWritePolicy _WritePolicy;
+        protected readonly JSInvokePolicy _InvokePolicy;
 
         public MemberInfo (TypeInfo parent, T member, ProxyInfo[] proxies, bool isIgnored = false, bool isExternal = false) {
-            IsIgnored = isIgnored || TypeInfo.IsIgnoredName(member.FullName);
+            _ReadPolicy = JSReadPolicy.Unmodified;
+            _WritePolicy = JSWritePolicy.Unmodified;
+            _InvokePolicy = JSInvokePolicy.Unmodified;
+
+            _IsIgnored = isIgnored || TypeInfo.IsIgnoredName(member.FullName);
             IsExternal = isExternal;
             DeclaringType = parent;
 
             Member = member;
             Metadata = new MetadataCollection(member);
-
-            if (Metadata.HasAttribute("JSIL.Meta.JSIgnore"))
-                IsIgnored = true;
-
-            if (Metadata.HasAttribute("JSIL.Meta.JSExternal") || Metadata.HasAttribute("JSIL.Meta.JSReplacement"))
-                IsExternal = true;
 
             var ca = member.DeclaringType as ICustomAttributeProvider;
             if ((ca != null) && (ca.CustomAttributes.Any((p) => p.AttributeType.FullName == "JSIL.Proxy.JSProxy")))
@@ -855,6 +863,27 @@ namespace JSIL.Internal {
                 foreach (var proxyMember in proxy.GetMembersByName(member.Name)) {
                     var meta = new MetadataCollection(proxyMember);
                     Metadata.Update(meta, proxy.AttributePolicy == JSProxyAttributePolicy.ReplaceAll);
+                }
+            }
+
+            if (Metadata.HasAttribute("JSIL.Meta.JSIgnore"))
+                _IsIgnored = true;
+
+            if (Metadata.HasAttribute("JSIL.Meta.JSExternal") || Metadata.HasAttribute("JSIL.Meta.JSReplacement"))
+                IsExternal = true;
+
+            var parms = Metadata.GetAttributeParameters("JSIL.Meta.JSPolicy");
+            foreach (var param in parms) {
+                switch (param.Type.FullName) {
+                    case "JSIL.Meta.JSReadPolicy":
+                        _ReadPolicy = (JSReadPolicy)param.Value;
+                        break;
+                    case "JSIL.Meta.JSWritePolicy":
+                        _WritePolicy = (JSWritePolicy)param.Value;
+                        break;
+                    case "JSIL.Meta.JSInvokePolicy":
+                        _InvokePolicy = (JSInvokePolicy)param.Value;
+                        break;
                 }
             }
         }
@@ -885,8 +914,8 @@ namespace JSIL.Internal {
             get { return Metadata; }
         }
 
-        bool IMemberInfo.IsIgnored {
-            get { return IsIgnored; }
+        public bool IsIgnored {
+            get { return _IsIgnored | DeclaringType.IsIgnored; }
         }
 
         public string ForcedName {
@@ -912,11 +941,28 @@ namespace JSIL.Internal {
             get;
         }
 
+        public abstract TypeReference ReturnType {
+            get;
+        }
+
         public virtual PropertyInfo DeclaringProperty {
             get { return null; }
         }
+
         public virtual EventInfo DeclaringEvent {
             get { return null; }
+        }
+
+        public JSReadPolicy ReadPolicy {
+            get { return _ReadPolicy; }
+        }
+
+        public JSWritePolicy WritePolicy {
+            get { return _WritePolicy; }
+        }
+
+        public JSInvokePolicy InvokePolicy {
+            get { return _InvokePolicy; }
         }
 
         public override string ToString () {
@@ -930,10 +976,8 @@ namespace JSIL.Internal {
         ) {
         }
 
-        public TypeReference Type {
-            get {
-                return Member.FieldType;
-            }
+        public override TypeReference ReturnType {
+            get { return Member.FieldType; }
         }
 
         public override bool IsStatic {
@@ -962,10 +1006,8 @@ namespace JSIL.Internal {
             return result;
         }
 
-        public TypeReference Type {
-            get {
-                return Member.PropertyType;
-            }
+        public override TypeReference ReturnType {
+            get { return Member.PropertyType; }
         }
 
         public override bool IsStatic {
@@ -981,6 +1023,10 @@ namespace JSIL.Internal {
 
         public override bool IsStatic {
             get { return (Member.AddMethod ?? Member.RemoveMethod).IsStatic; }
+        }
+
+        public override TypeReference ReturnType {
+            get { return Member.EventType; }
         }
     }
 
@@ -1058,7 +1104,7 @@ namespace JSIL.Internal {
             get { return Event; }
         }
 
-        public TypeReference ReturnType {
+        public override TypeReference ReturnType {
             get { return Member.ReturnType; }
         }
     }
@@ -1088,6 +1134,77 @@ namespace JSIL.Internal {
             FullName = type.FullName + "." + name;
             Name = name;
             Value = value;
+        }
+    }
+
+    public static class PolicyExtensions {
+        public static bool ApplyReadPolicy (this IMemberInfo member, JSExpression thisExpression, out JSExpression result) {
+            result = null;
+            if (member == null)
+                return false;
+
+            switch (member.ReadPolicy) {
+                case JSReadPolicy.ReturnDefaultValue:
+                    result = new JSDefaultValueLiteral(member.ReturnType);
+                    return true;
+                case JSReadPolicy.LogWarning:
+                case JSReadPolicy.ThrowError:
+                    result = new JSIgnoredMemberReference(member.ReadPolicy == JSReadPolicy.ThrowError, member, thisExpression);
+                    return true;
+            }
+
+            if (member.IsIgnored) {
+                result = new JSIgnoredMemberReference(true, member, thisExpression);
+                return true;
+            }
+
+            return false;
+        }
+
+        public static bool ApplyWritePolicy (this IMemberInfo member, JSExpression thisExpression, JSExpression newValue, out JSExpression result) {
+            result = null;
+            if (member == null)
+                return false;
+
+            switch (member.WritePolicy) {
+                case JSWritePolicy.DiscardValue:
+                    result = new JSNullExpression();
+                    return true;
+                case JSWritePolicy.LogWarning:
+                case JSWritePolicy.ThrowError:
+                    result = new JSIgnoredMemberReference(member.WritePolicy == JSWritePolicy.ThrowError, member, thisExpression, newValue);
+                    return true;
+            }
+
+            if (member.IsIgnored) {
+                result = new JSIgnoredMemberReference(true, member, thisExpression, newValue);
+                return true;
+            }
+
+            return false;
+        }
+
+        public static bool ApplyInvokePolicy (this IMemberInfo member, JSExpression thisExpression, JSExpression[] parameters, out JSExpression result) {
+            result = null;
+            if (member == null)
+                return false;
+
+            switch (member.InvokePolicy) {
+                case JSInvokePolicy.ReturnDefaultValue:
+                    result = new JSDefaultValueLiteral(member.ReturnType);
+                    return true;
+                case JSInvokePolicy.LogWarning:
+                case JSInvokePolicy.ThrowError:
+                    result = new JSIgnoredMemberReference(member.InvokePolicy == JSInvokePolicy.ThrowError, member, new[] { thisExpression }.Concat(parameters).ToArray());
+                    return true;
+            }
+
+            if (member.IsIgnored) {
+                result = new JSIgnoredMemberReference(true, member, new[] { thisExpression }.Concat(parameters).ToArray());
+                return true;
+            }
+
+            return false;
         }
     }
 }

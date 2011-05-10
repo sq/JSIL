@@ -5,11 +5,11 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{12DBCC9A-50FE-43B1-BAD1-8029D4AD60C8}</ProjectGuid>
+    <ProjectGuid>{6F32441A-1C9A-4678-8ABC-CBD35ACBD3EB}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>JSIL.Proxies</RootNamespace>
-    <AssemblyName>JSIL.Proxies</AssemblyName>
+    <RootNamespace>JSIL.Proxies.XNA</RootNamespace>
+    <AssemblyName>JSIL.Proxies.XNA</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile>Client</TargetFrameworkProfile>
@@ -18,7 +18,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\bin\</OutputPath>
+    <OutputPath>..\..\bin\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -26,32 +26,23 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>..\bin\</OutputPath>
+    <OutputPath>..\..\bin\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.Xna.Framework, Version=3.1.0.0, Culture=neutral, PublicKeyToken=6d5c3888ef60e27d, processorArchitecture=x86" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Array.cs" />
-    <Compile Include="Console.cs" />
-    <Compile Include="Type.cs" />
-    <Compile Include="Threading.cs" />
-    <Compile Include="Delegate.cs" />
-    <Compile Include="Enum.cs" />
-    <Compile Include="Exceptions.cs" />
-    <Compile Include="Math.cs" />
-    <Compile Include="Numbers.cs" />
-    <Compile Include="Object.cs" />
+    <Compile Include="UnsafeNativeMethods.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="String.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Meta\Meta.csproj">
+    <ProjectReference Include="..\..\Meta\Meta.csproj">
       <Project>{37C67C73-1F58-49B8-A39E-768AC88C2447}</Project>
       <Name>Meta</Name>
     </ProjectReference>

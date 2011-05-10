@@ -1,6 +1,27 @@
 ﻿using System;
 
 namespace JSIL.Meta {
+    public enum JSReadPolicy {
+        Unmodified,
+        LogWarning,
+        ThrowError,
+        ReturnDefaultValue
+    }
+
+    public enum JSInvokePolicy {
+        Unmodified,
+        LogWarning,
+        ThrowError,
+        ReturnDefaultValue
+    }
+
+    public enum JSWritePolicy {
+        Unmodified,
+        LogWarning,
+        ThrowError,
+        DiscardValue
+    }
+
     /// <summary>
     /// Specifies that a class, method, property or field should be ignored when translating code to JavaScript.
     /// </summary>
@@ -12,6 +33,23 @@ namespace JSIL.Meta {
         AttributeTargets.Enum | AttributeTargets.Interface
     )]
     public class JSIgnore : Attribute {
+    }
+
+    /// <summary>
+    /// Specifies a policy to apply to reads, writes, or invocations of a member when translating code to JavaScript.
+    /// </summary>
+    [AttributeUsage(
+        AttributeTargets.Method | AttributeTargets.Property | 
+        AttributeTargets.Field | AttributeTargets.Event | 
+        AttributeTargets.Constructor
+    )]
+    public class JSPolicy : Attribute {
+        public JSPolicy (
+            JSReadPolicy read = JSReadPolicy.Unmodified,
+            JSWritePolicy write = JSWritePolicy.Unmodified,
+            JSInvokePolicy invoke = JSInvokePolicy.Unmodified
+        ) {
+        }
     }
 
     /// <summary>

@@ -81,7 +81,7 @@ namespace JSIL {
         public bool UseSymbols = true;
 
         public AssemblyTranslator () {
-            AddProxyAssembly(typeof(JSIL.Proxies.ObjectProxy).Assembly);
+            AddProxyAssembly(typeof(JSIL.Proxies.ObjectProxy).Assembly, false);
         }
 
         protected static ReaderParameters GetReaderParameters (bool useSymbols, string mainAssemblyPath = null) {
@@ -102,8 +102,8 @@ namespace JSIL {
             return readerParameters;
         }
 
-        public void AddProxyAssembly (string path) {
-            var assemblies = LoadAssembly(path, UseSymbols, false);
+        public void AddProxyAssembly (string path, bool includeDependencies) {
+            var assemblies = LoadAssembly(path, UseSymbols, includeDependencies);
 
             foreach (var asm in assemblies) {
                 foreach (var module in asm.Modules) {
@@ -126,9 +126,9 @@ namespace JSIL {
             }
         }
 
-        public void AddProxyAssembly (Assembly assembly) {
+        public void AddProxyAssembly (Assembly assembly, bool includeDependencies) {
             var path = new Uri(assembly.CodeBase).AbsolutePath.Replace("/", "\\");
-            AddProxyAssembly(path);
+            AddProxyAssembly(path, includeDependencies);
         }
 
         public AssemblyDefinition[] LoadAssembly (string path) {
@@ -299,6 +299,21 @@ namespace JSIL {
                         isMatch = ILBlockTranslator.TypesAreAssignable(pt, type);
                     else
                         isMatch = ILBlockTranslator.TypesAreEqual(pt, type);
+
+                    if (isMatch) {
+                        result.Add(p);
+                        break;
+                    }
+                }
+
+                foreach (var ptn in p.ProxiedTypeNames) {
+                    bool isMatch;
+                    if (p.IsInheritable)
+                        isMatch = new[] { type.FullName }.Concat(ILBlockTranslator.AllBaseTypesOf(
+                            ILBlockTranslator.GetTypeDefinition(type)).Select((t) => t.FullName))
+                            .Contains(ptn);
+                    else
+                        isMatch = type.FullName == ptn;
 
                     if (isMatch) {
                         result.Add(p);

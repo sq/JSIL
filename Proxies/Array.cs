@@ -9,7 +9,7 @@ namespace JSIL.Proxies {
     )]
     public abstract class ArrayProxy {
         [JSChangeName("length")]
-        [NeverReplace]
+        [JSNeverReplace]
         abstract public int Length { get; }
 
         [JSReplacement("JSIL.Array.New($elementType, $size)")]

@@ -33,7 +33,7 @@ namespace JSIL.Proxies {
         public abstract string[] Split (AnyType[] dividers, int maximumCount, StringSplitOptions options);
 
         [JSChangeName("length")]
-        [NeverReplace]
+        [JSNeverReplace]
         abstract public int Length { get; }
 
         [JSReplacement("$this[$index]")]

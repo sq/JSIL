@@ -195,16 +195,6 @@ namespace JSIL {
             );
         }
 
-        protected JSExpression Translate_IgnoredMethod (string methodName, IEnumerable<ParameterDefinition> parameters) {
-            return new JSInvocationExpression(
-                JSIL.IgnoredMember, JSLiteral.New(String.Format(
-                    "{0}({1})",
-                    methodName,
-                    String.Join(", ", (from p in parameters select p.Name).ToArray())
-                ))
-            );
-        }
-
         protected JSExpression Translate_MethodReplacement (MethodReference method, JSExpression thisExpression, JSExpression methodExpression, JSExpression[] arguments, bool virt) {
             var methodInfo = TypeInfo.GetMethod(method);
             if (methodInfo != null) {
@@ -230,7 +220,7 @@ namespace JSIL {
             }
 
             if (methodInfo.IsIgnored)
-                return Translate_IgnoredMethod(method.Name, method.Parameters);
+                return new JSIgnoredMemberReference(true, methodInfo, new[] { thisExpression }.Concat(arguments).ToArray());
 
             switch (method.FullName) {
                 case "System.Object JSIL.Builtins::Eval(System.String)":
@@ -318,7 +308,7 @@ namespace JSIL {
                     argsDict.Add(kvp.Name, kvp.Value);
                 }
 
-                result = new JSVerbatimLiteral((string)parms[0].Value, argsDict, propertyInfo.Type);
+                result = new JSVerbatimLiteral((string)parms[0].Value, argsDict, propertyInfo.ReturnType);
                 return true;
             }
 
@@ -337,7 +327,7 @@ namespace JSIL {
                         new JSDotExpression(
                             thisExpression, new JSProperty(propertyInfo)
                         ),
-                        arguments[0], propertyInfo.Type
+                        arguments[0], propertyInfo.ReturnType
                     );
                 }
             };
@@ -1498,10 +1488,11 @@ namespace JSIL {
 
         protected JSExpression Translate_Newobj (ILExpression node, MethodReference constructor) {
             constructor = JSExpression.ResolveGenericMethod(constructor, ThisMethod, ThisMethod.DeclaringType);
+            var arguments = Translate(node.Arguments);
 
             if (IsDelegateType(constructor.DeclaringType)) {
-                var thisArg = TranslateNode(node.Arguments[0]);
-                var methodRef = TranslateNode(node.Arguments[1]);
+                var thisArg = arguments[0];
+                var methodRef = arguments[1];
 
                 var methodDot = methodRef as JSDotExpression;
 
@@ -1549,20 +1540,16 @@ namespace JSIL {
                 );
             } else if (constructor.DeclaringType.IsArray) {
                 return JSIL.NewMultidimensionalArray(
-                    constructor.DeclaringType.GetElementType(),
-                    Translate(node.Arguments)
+                    constructor.DeclaringType.GetElementType(), arguments
                 );
             }
 
             var methodInfo = TypeInfo.GetMethod(constructor);
             if ((methodInfo == null) || methodInfo.IsIgnored)
-                return Translate_IgnoredMethod(
-                    constructor.Name, constructor.Parameters
-                );
+                return new JSIgnoredMemberReference(true, methodInfo, arguments);
 
             return new JSNewExpression(
-                constructor.DeclaringType,
-                Translate(node.Arguments)
+                constructor.DeclaringType, arguments
             );
         }
 
