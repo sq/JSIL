@@ -178,9 +178,6 @@ System.String.Format = function (format) {
 };
 
 JSIL.MakeClass(System.Object, JSIL, "ArrayEnumerator", "JSIL.ArrayEnumerator");
-JSIL.ArrayEnumerator = function (array) {
-  this._ctor(array);
-};
 JSIL.ArrayEnumerator.prototype._ctor = function (array) {
   this._array = array;
   this._length = array.length;

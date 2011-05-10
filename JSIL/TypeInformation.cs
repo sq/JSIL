@@ -114,13 +114,10 @@ namespace JSIL.Internal {
             if (lhs == null || rhs == null)
                 return (lhs == rhs);
 
-            if (
-                lhs.IsArray && rhs.IsArray && (
-                    IsAnyType(lhs.GetElementType()) ||
-                    IsAnyType(rhs.GetElementType())
-                )
-            ) {
-                return true;
+            if (lhs.IsArray && IsAnyType(lhs.GetElementType())) {
+                return rhs.IsArray;
+            } else if (rhs.IsArray && IsAnyType(rhs.GetElementType())) {
+                return lhs.IsArray;
             }
 
             if (IsAnyType(lhs) || IsAnyType(rhs))

@@ -212,10 +212,18 @@ namespace JSIL {
 
                 if (metadata != null) {
                     var parms = metadata.GetAttributeParameters("JSIL.Meta.JSReplacement");
-                    if (parms != null)
+                    if (parms != null) {
+                        var argsDict = new Dictionary<string, JSExpression>();
+                        argsDict["this"] = thisExpression;
+
+                        foreach (var kvp in methodInfo.Member.Parameters.Zip(arguments, (p, v) => new { p.Name, Value = v })) {
+                            argsDict.Add(kvp.Name, kvp.Value);
+                        }
+
                         return new JSVerbatimLiteral(
-                            (string)parms[0].Value, thisExpression, method.ReturnType
+                            (string)parms[0].Value, argsDict, method.ReturnType
                         );
+                    }
                 }
             } else {
                 return new JSUntranslatableExpression("Invocation of method without info '" + method.FullName + "'");
@@ -234,7 +242,7 @@ namespace JSIL {
                         throw new InvalidOperationException("JSIL.Verbatim.Expression must recieve a string literal as an argument");
 
                     return new JSVerbatimLiteral(
-                        expression.Value, null
+                        expression.Value, null, null
                     );
                 }
                 case "System.Object JSIL.JSGlobal::get_Item(System.String)": {
@@ -303,7 +311,14 @@ namespace JSIL {
             var parms = methodInfo.Metadata.GetAttributeParameters("JSIL.Meta.JSReplacement") ??
                 propertyInfo.Metadata.GetAttributeParameters("JSIL.Meta.JSReplacement");
             if (parms != null) {
-                result = new JSVerbatimLiteral((string)parms[0].Value, thisExpression, propertyInfo.Type);
+                var argsDict = new Dictionary<string, JSExpression>();
+                argsDict["this"] = thisExpression;
+
+                foreach (var kvp in methodInfo.Member.Parameters.Zip(arguments, (p, v) => new { p.Name, Value = v })) {
+                    argsDict.Add(kvp.Name, kvp.Value);
+                }
+
+                result = new JSVerbatimLiteral((string)parms[0].Value, argsDict, propertyInfo.Type);
                 return true;
             }
 
@@ -514,7 +529,9 @@ namespace JSIL {
                 return true;
 
             var dSource = GetTypeDefinition(source);
-            if (TypesAreEqual(target, dSource))
+            if (dSource == null)
+                return false;
+            else if (TypesAreEqual(target, dSource))
                 return true;
 
             if ((dSource.BaseType != null) && TypesAreAssignable(target, dSource.BaseType))

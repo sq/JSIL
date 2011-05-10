@@ -35,5 +35,8 @@ namespace JSIL.Proxies {
         [JSChangeName("length")]
         [NeverReplace]
         abstract public int Length { get; }
+
+        [JSReplacement("$this[$index]")]
+        abstract public char get_Chars (int index);
     }
 }

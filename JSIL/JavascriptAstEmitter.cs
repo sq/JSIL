@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using ICSharpCode.Decompiler.Ast;
 using ICSharpCode.Decompiler.ILAst;
 using JSIL.Ast;
@@ -238,6 +239,8 @@ namespace JSIL {
         }
 
         public void VisitNode (JSVerbatimLiteral verbatim) {
+            var regex = new Regex(@"(\$(?'name'[a-zA-Z_]([a-zA-Z0-9_]*))|(?'text'[^\$]*)|)", RegexOptions.ExplicitCapture);
+
             bool isFirst = true;
 
             foreach (var line in verbatim.Expression.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries)) {
@@ -247,12 +250,19 @@ namespace JSIL {
                 if (!isFirst)
                     Output.PlainTextOutput.WriteLine();
 
-                var pieces = line.Split(new string[] { "$this" }, StringSplitOptions.None);
+                var matches = regex.Matches(line);
 
-                for (int i = 0, l = pieces.Length; i < l; i++) {
-                    Output.PlainTextOutput.Write(pieces[i].Trim());
-                    if (i < (l - 1))
-                        Visit(verbatim.This);
+                foreach (Match m in matches) {
+                    if (m.Groups["text"].Success) {
+                        Output.PlainTextOutput.Write(m.Groups["text"].Value.Trim());
+                    } else if (m.Groups["name"].Success) {
+                        var key = m.Groups["name"].Value;
+
+                        if (verbatim.Variables.ContainsKey(key))
+                            Visit(verbatim.Variables[key]);
+                        else
+                            Output.PlainTextOutput.Write("null");
+                    }
                 }
 
                 isFirst = false;

@@ -16,7 +16,7 @@ namespace JSIL.Meta {
 
     /// <summary>
     /// Specifies that references to this identifier should be replaced with a specified javascript expression when translating code to JavaScript.
-    /// The special token '$this' can be used to refer to the this-reference from within the expression.
+    /// To refer to a parameter within the replacement expression, wrap the parameter name in curly braces - the this-reference becomes {this}, for example.
     /// </summary>
     [AttributeUsage(
         AttributeTargets.Method | AttributeTargets.Field |

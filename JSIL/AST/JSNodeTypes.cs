@@ -1264,19 +1264,25 @@ namespace JSIL.Ast {
     public class JSVerbatimLiteral : JSLiteral {
         public readonly TypeReference Type;
         public readonly string Expression;
+        public readonly IDictionary<string, JSExpression> Variables;
 
-        public JSVerbatimLiteral (string expression, JSExpression thisExpression, TypeReference type = null)
-            : base(thisExpression) {
+        public JSVerbatimLiteral (string expression, IDictionary<string, JSExpression> variables, TypeReference type = null)
+            : base(GetValues(variables)) {
+
             Type = type;
             Expression = expression;
+            Variables = variables;
+        }
+
+        protected static JSExpression[] GetValues (IDictionary<string, JSExpression> variables) {
+            if (variables != null)
+                return variables.Values.ToArray();
+            else
+                return new JSExpression[0];
         }
 
         public override object Literal {
             get { return Expression; }
-        }
-
-        public JSExpression This {
-            get { return Values[0]; }
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
@@ -1284,6 +1290,15 @@ namespace JSIL.Ast {
                 return Type;
             else
                 return typeSystem.Object;
+        }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            foreach (var key in Variables.Keys.ToArray()) {
+                if (Variables[key] == oldChild)
+                    Variables[key] = (JSExpression)newChild;
+            }
+
+            base.ReplaceChild(oldChild, newChild);
         }
     }
 

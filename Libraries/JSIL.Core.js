@@ -229,13 +229,6 @@ JSIL.SealType = function (namespace, name) {
       return type;
     state.sealed = false;
 
-    Object.defineProperty(
-      namespace, name, { 
-        configurable: true,
-        enumerable: true,
-        value: type
-      }
-    );
     JSIL.InitializeType(type);
     return type;
   };
@@ -293,7 +286,11 @@ JSIL.MakeType = function (baseType, namespace, localName, fullName, isReferenceT
   typeObject.prototype.__ShortName__ = localName;
   typeObject.prototype.__Interfaces__ = [];
 
-  namespace[localName] = typeObject;
+  Object.defineProperty(namespace, localName, {
+    configurable: true,
+    enumerable: true,
+    value: typeObject
+  });
 };
 
 JSIL.MakeClass = function (baseType, namespace, localName, fullName) {
@@ -328,9 +325,11 @@ JSIL.MakeEnum = function (namespace, localName, fullName, members, isFlagsEnum) 
     JSIL.Host.warning("Duplicate definition of enum ", fullName);
     return;
   }
-
+  
+  var enumType = System.Enum;
+  var enumProto = enumType.prototype;
   var prototype = JSIL.CloneObject(System.Enum.prototype);
-  prototype.__BaseType__ = System.Enum;
+  prototype.__BaseType__ = enumType;
   prototype.__ShortName__ = localName;
   prototype.__FullName__ = fullName;
 

@@ -716,10 +716,6 @@ namespace JSIL {
                 if (method.Body.Instructions.Count > LargeMethodThreshold)
                     this.StartedDecompilingMethod(method.FullName);
 
-                if ((method.Name == "Synchronized") && (method.DeclaringType.FullName.Contains("Hashtable"))) {
-                    Debugger.Break();
-                }
-
                 ILBlock ilb;
                 var decompiler = new ILAstBuilder();
                 var optimizer = new ILAstOptimizer();
