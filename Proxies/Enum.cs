@@ -5,11 +5,12 @@ using JSIL.Proxy;
 namespace JSIL.Proxies {
     [JSProxy(
         typeof(Enum),
-        JSProxyMemberPolicy.ReplaceNone
+        JSProxyMemberPolicy.ReplaceDeclared
     )]
     public abstract class EnumProxy {
         [JSRuntimeDispatch]
-        new public static object Parse (params AnyType[] arguments) {
+        [JSExternal]
+        new public static AnyType Parse (params AnyType[] arguments) {
             throw new InvalidOperationException();
         }
     }

@@ -69,7 +69,7 @@ namespace JSIL.Internal {
                     ParameterTypes = (from p in pd.GetMethod.Parameters select p.ParameterType);
                 } else if (pd.SetMethod != null) {
                     ParameterCount = pd.SetMethod.Parameters.Count - 1;
-                    ParameterTypes = (from p in pd.SetMethod.Parameters.Skip(1) select p.ParameterType);
+                    ParameterTypes = (from p in pd.SetMethod.Parameters select p.ParameterType).Take(ParameterCount);
                 }
             }
         }
@@ -92,13 +92,15 @@ namespace JSIL.Internal {
 
         static IEnumerable<TypeReference> GetParameterTypes (IList<ParameterDefinition> parameters) {
             if (
-                (parameters.Count == 1) && (parameters[0].ParameterType.IsArray) &&
-                IsAnyType(parameters[0].ParameterType.GetElementType()) &&
+                (parameters.Count == 1) && 
                 (from ca in parameters[0].CustomAttributes 
                  where ca.AttributeType.FullName == "System.ParamArrayAttribute" 
                  select ca).Count() == 1
             ) {
-                return AnyParameterTypes;
+                var t = JSExpression.DeReferenceType(parameters[0].ParameterType);
+                var at = t as ArrayType;
+                if ((at != null) && IsAnyType(at.ElementType))
+                    return AnyParameterTypes;
             }
 
             return (from p in parameters select p.ParameterType);
@@ -185,7 +187,7 @@ namespace JSIL.Internal {
         }
 
         public override int GetHashCode () {
-            return Type.GetHashCode() ^ Name.GetHashCode() ^ (ParameterCount.GetHashCode()) << 8;
+            return Name.GetHashCode();
         }
 
         public override string ToString () {
@@ -587,9 +589,6 @@ namespace JSIL.Internal {
                         StaticConstructor = mg.First().Member;
                 }
             }
-
-            if (type.FullName == "System.Enum")
-                Debugger.Break();
 
             IsIgnored = module.IsIgnored ||
                 IsIgnoredName(type.FullName) ||
