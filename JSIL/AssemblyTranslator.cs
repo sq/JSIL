@@ -646,6 +646,18 @@ namespace JSIL {
         protected void TranslateMethodGroup (DecompilerContext context, JavascriptFormatter output, MethodGroupInfo methodGroup) {
             int i = 0;
 
+            foreach (var method in methodGroup.Methods) {
+                foreach (var p in method.Member.Parameters) {
+                    var resolved = p.ParameterType.Resolve();
+                    if ((resolved != null) && 
+                        !DeclaredTypes.Contains(resolved.FullName) &&
+                        (resolved.Module.Assembly == methodGroup.DeclaringType.Definition.Module.Assembly)
+                    ) {
+                        ForwardDeclareType(context, output, resolved);
+                    }
+                }
+            }
+
             output.Identifier("JSIL.OverloadedMethod", true);
             output.LPar();
 

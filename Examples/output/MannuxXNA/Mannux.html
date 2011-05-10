@@ -76,13 +76,13 @@
       document.getElementById("loadingProgress").style.display = "block";
       
       var scriptsToLoad = [
-        "mscorlib.js",
+        "mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js",
         "../../../Libraries/System.Windows.js",
         "../../../Libraries/System.Drawing.js",
-        "Microsoft.Xna.Framework.js",
-        "Microsoft.Xna.Framework.Game.js",
+        "Microsoft.Xna.Framework, Version=3.1.0.0, Culture=neutral, PublicKeyToken=6d5c3888ef60e27d.js",
+        "Microsoft.Xna.Framework.Game, Version=3.1.0.0, Culture=neutral, PublicKeyToken=6d5c3888ef60e27d.js",
         "../../../Libraries/JSIL.XNA.js",
-        "Mannux.js"
+        "Mannux, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null.js"
       ];
       
       loadScripts(scriptsToLoad, function () {

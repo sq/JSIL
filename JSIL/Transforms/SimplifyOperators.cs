@@ -146,7 +146,7 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSBinaryOperatorExpression boe) {
-            JSExpression left, right;
+            JSExpression left, right, nestedLeft;
 
             if (!JSReferenceExpression.TryDereference(JSIL, boe.Left, out left))
                 left = boe.Left;
@@ -161,12 +161,17 @@ namespace JSIL.Transforms {
 
             if (
                 isAssignment && (nestedBoe != null) && 
-                (boe.Left.IsConstant || (leftVar != null))
+                (left.IsConstant || (leftVar != null) || left is JSDotExpression) &&
+                !(ParentNode is JSVariableDeclarationStatement)
             ) {
                 JSUnaryOperator prefixOperator;
                 JSAssignmentOperator compoundOperator;
+
+                if (!JSReferenceExpression.TryDereference(JSIL, nestedBoe.Left, out nestedLeft))
+                    nestedLeft = nestedBoe.Left;
+
                 var rightLiteral = nestedBoe.Right as JSIntegerLiteral;
-                var areEqual = boe.Left.Equals(nestedBoe.Left);
+                var areEqual = left.Equals(nestedLeft);
 
                 if (
                     areEqual &&

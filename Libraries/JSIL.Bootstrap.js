@@ -365,6 +365,30 @@ System.UInt16.Parse = function (text) {
   return Math.abs(parseInt(text, 10));
 };
 
+System.Int16 = function (value) {
+  return Math.abs(Math.floor(value));
+};
+System.Int16.CheckType = function (value) {
+  return (typeof (value) == "number") && (value >= 0);
+}
+JSIL.MakeNumericType(Number, System.Int16, "System.Int16", true);
+System.Int16.MaxValue = 32767;
+System.Int16.Parse = function (text) {
+  return Math.abs(parseInt(text, 10));
+};
+
+System.UInt32 = function (value) {
+  return Math.abs(Math.floor(value));
+};
+System.UInt32.CheckType = function (value) {
+  return (typeof (value) == "number") && (value >= 0);
+}
+JSIL.MakeNumericType(Number, System.UInt32, "System.UInt32", true);
+System.UInt32.MaxValue = 4294967295;
+System.UInt32.Parse = function (text) {
+  return Math.abs(parseInt(text, 10));
+};
+
 System.Int32 = function (value) {
   return Math.floor(value);
 };
@@ -374,6 +398,17 @@ System.Int32.CheckType = function (value) {
 JSIL.MakeNumericType(Number, System.Int32, "System.Int32", true);
 System.Int32.MaxValue = 2147483647;
 System.Int32.Parse = function (text) {
+  return parseInt(text, 10);
+};
+
+System.Int64 = function (value) {
+  return Math.floor(value);
+};
+System.Int64.CheckType = function (value) {
+  return (typeof (value) == "number");
+}
+JSIL.MakeNumericType(Number, System.Int64, "System.Int64", true);
+System.Int64.Parse = function (text) {
   return parseInt(text, 10);
 };
 

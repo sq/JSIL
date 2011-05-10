@@ -48,11 +48,12 @@ namespace JSIL.Tests {
         public void PostIncrement () {
             var generatedJs = GetJavascript(
                 @"SpecialTestCases\PostIncrement.cs",
-                "2\r\n3\r\n1\r\n0\r\n0"
+                "2\r\n3\r\n1\r\n0\r\n0\r\n0\r\n1"
             );
             try {
                 Assert.IsFalse(generatedJs.Contains("i + 1"));
                 Assert.IsFalse(generatedJs.Contains("i - 1"));
+                Assert.IsFalse(generatedJs.Contains("this.Value + value"));
             } catch {
                 Console.WriteLine(generatedJs);
 
