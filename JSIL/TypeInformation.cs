@@ -107,6 +107,9 @@ namespace JSIL.Internal {
         static bool IsAnyType (TypeReference t) {
             t = JSExpression.DeReferenceType(t);
 
+            if (t == null)
+                return false;
+
             return t.IsGenericParameter || t.FullName == "JSIL.Proxy.AnyType";
         }
 
@@ -114,10 +117,24 @@ namespace JSIL.Internal {
             if (lhs == null || rhs == null)
                 return (lhs == rhs);
 
-            if (lhs.IsArray && IsAnyType(lhs.GetElementType())) {
-                return rhs.IsArray;
-            } else if (rhs.IsArray && IsAnyType(rhs.GetElementType())) {
-                return lhs.IsArray;
+            var lhsReference = lhs as ByReferenceType;
+            var rhsReference = rhs as ByReferenceType;
+
+            if ((lhsReference != null) || (rhsReference != null)) {
+                if ((lhsReference == null) || (rhsReference == null))
+                    return false;
+
+                return TypesAreEqual(lhsReference.ElementType, rhsReference.ElementType);
+            }
+
+            var lhsArray = lhs as ArrayType;
+            var rhsArray = rhs as ArrayType;
+
+            if ((lhsArray != null) || (rhsArray != null)) {
+                if ((lhsArray == null) || (rhsArray == null))
+                    return false;
+
+                return TypesAreEqual(lhsArray.ElementType, rhsArray.ElementType);
             }
 
             if (IsAnyType(lhs) || IsAnyType(rhs))

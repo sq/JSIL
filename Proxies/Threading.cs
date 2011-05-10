@@ -8,8 +8,9 @@ namespace JSIL.Proxies {
         JSProxyMemberPolicy.ReplaceNone
     )]
     public abstract class InterlockedProxy {
+        [JSExternal]
         [JSRuntimeDispatch]
-        public static void CompareExchange (params AnyType[] arguments) {
+        public static AnyType CompareExchange (ref AnyType destination, AnyType value, AnyType comparand) {
             throw new InvalidOperationException();
         }
     }
@@ -19,11 +20,13 @@ namespace JSIL.Proxies {
         JSProxyMemberPolicy.ReplaceNone
     )]
     public abstract class MonitorProxy {
+        [JSExternal]
         [JSRuntimeDispatch]
         public static void Enter (AnyType o) {
             throw new InvalidOperationException();
         }
 
+        [JSExternal]
         [JSRuntimeDispatch]
         public static void Exit (AnyType o) {
             throw new InvalidOperationException();

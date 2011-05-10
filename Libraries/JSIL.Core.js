@@ -525,6 +525,9 @@ JSIL.GetType = function (value) {
 }
 
 JSIL.GetTypeName = function (value) {
+  if (typeof (value) == "undefined" || value === null)
+    return "System.Object";
+
   var result = value.__FullName__;
 
   if ((typeof (result) == "undefined") && (typeof (value.prototype) != "undefined"))
@@ -539,7 +542,7 @@ JSIL.GetTypeName = function (value) {
     return "System.Double";
   else if (JSIL.IsArray(value))
     return "System.Array";
-  else if (result == "object")
+  else if (result == "object" || result == "undefined")
     return "System.Object";
 
   return result;
@@ -615,6 +618,16 @@ JSIL.FindOverload = function (prototype, args, overloads) {
 };
 
 JSIL.OverloadedMethod = function (type, name, overloads) {
+  if (overloads.length < 1)
+    return type[name] = null;
+  else if (overloads.length < 2) {
+    var overload = overloads[i][0];
+    if (typeof (overload) == "function")
+      return type[name] = overload;
+    else
+      return type[name] = type[overload];
+  }
+
   for (var i = 0; i < overloads.length; i++) {
     if (overloads[i][0] === name)
       throw new Error("Recursive definition of overloaded method " + JSIL.GetTypeName(type) + "." + name);
@@ -631,6 +644,7 @@ JSIL.OverloadedMethod = function (type, name, overloads) {
   };
 
   type[name] = result;
+  return result;
 };
 
 JSIL.MakeClass(Object, System, "Object", "System.Object");
@@ -697,6 +711,9 @@ JSIL.Reference.Of = function (type) {
     compositeType.CheckType = function (value) {
       var isReference = JSIL.CheckType(value, JSIL.Reference, true);
       var isRightType = JSIL.CheckType(value.value, type, false);
+      console.info("CheckType(Reference.Of(", JSIL.GetTypeName(type), "), ", JSIL.GetTypeName(value), ")");
+      console.info("CheckType(", JSIL.GetTypeName(type), "), ", JSIL.GetTypeName(value.value), ")");
+      console.info("isReference=", isReference, " isRightType=", isRightType);
       return isReference && isRightType;
     };
     compositeType.prototype = JSIL.MakeProto(JSIL.Reference, compositeType, typeName, true);
