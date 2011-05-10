@@ -681,6 +681,9 @@ System.Object.prototype.__Initialize__ = function (initializer) {
 
   return this;
 };
+System.Object.CheckType = function (value) {
+  return (typeof (value) == "object");
+};
 System.Object.prototype.__LockCount__ = 0;
 System.Object.prototype.__StructFields__ = {};
 System.Object.prototype._ctor = function () {};

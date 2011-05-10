@@ -33,21 +33,27 @@ namespace JSIL.Proxies {
         }
 
         [JSExternal]
+        [JSRuntimeDispatch]
         public abstract void Set (AnyType x, AnyType value);
 
         [JSExternal]
+        [JSRuntimeDispatch]
         public abstract void Set (AnyType x, AnyType y, AnyType value);
 
         [JSExternal]
+        [JSRuntimeDispatch]
         public abstract void Set (AnyType x, AnyType y, AnyType z, AnyType value);
 
         [JSExternal]
+        [JSRuntimeDispatch]
         public abstract AnyType Get (AnyType x);
 
         [JSExternal]
+        [JSRuntimeDispatch]
         public abstract AnyType Get (AnyType x, AnyType y);
 
         [JSExternal]
+        [JSRuntimeDispatch]
         public abstract AnyType Get (AnyType x, AnyType y, AnyType z);
 
         [JSReplacement("$this.Get.apply($this, $indices)")]

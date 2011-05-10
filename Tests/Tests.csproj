@@ -169,6 +169,7 @@
     <None Include="SimpleTestCases\OverloadedProperties.cs" />
     <None Include="SimpleTestCases\IfNull.cs" />
     <None Include="SimpleTestCases\StringCharacters.cs" />
+    <None Include="SimpleTestCases\ComplexRefOverload.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

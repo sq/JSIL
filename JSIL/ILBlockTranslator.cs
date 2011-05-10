@@ -1167,10 +1167,6 @@ namespace JSIL {
             return result;
         }
 
-        protected JSExpression Translate_Stind (ILExpression node) {
-            return new JSUntranslatableExpression(node);
-        }
-
         protected JSBinaryOperatorExpression Translate_Stfld (ILExpression node, FieldReference field) {
             var rhs = TranslateNode(node.Arguments[1]);
 
@@ -1199,14 +1195,26 @@ namespace JSIL {
             return Translate_Ldobj(node, null);
         }
 
-        protected JSExpression Translate_AddressOf (ILExpression node) {
-            return JSReferenceExpression.New(TranslateNode(node.Arguments[0]));
+        protected JSExpression Translate_Stobj (ILExpression node, TypeReference type) {
+            var reference = TranslateNode(node.Arguments[0]);
+            JSExpression referent;
+
+            if (!JSReferenceExpression.TryDereference(JSIL, reference, out referent))
+                Console.Error.WriteLine(String.Format("Warning: unsupported reference type for sdobj: {0}", node.Arguments[0]));
+
+            var value = TranslateNode(node.Arguments[1]);
+
+            return new JSBinaryOperatorExpression(
+                JSOperator.Assignment, reference, value, node.ExpectedType ?? node.InferredType
+            );
         }
 
-        protected JSExpression Translate_Stobj (ILExpression node, TypeReference type) {
-            return Translate_BinaryOp(
-                node, JSOperator.Assignment
-            );
+        protected JSExpression Translate_Stind (ILExpression node) {
+            return Translate_Stobj(node, null);
+        }
+
+        protected JSExpression Translate_AddressOf (ILExpression node) {
+            return JSReferenceExpression.New(TranslateNode(node.Arguments[0]));
         }
 
         protected JSExpression Translate_Arglist (ILExpression node) {

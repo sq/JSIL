@@ -447,9 +447,9 @@ namespace JSIL.Internal {
 
         public TypeInfo (ITypeInfoSource source, ModuleInfo module, TypeDefinition type) {
             Definition = type;
+            bool isStatic = type.IsSealed && type.IsAbstract;
 
             Proxies = source.GetProxies(type);
-
             Metadata = new MetadataCollection(type);
 
             foreach (var field in type.Fields)
@@ -481,31 +481,6 @@ namespace JSIL.Internal {
 
                 if (!Members.ContainsKey(method))
                     AddMember(method);
-            }
-
-            var methodGroups = from m in type.Methods 
-                          where !Members[m].IsIgnored
-                          group m by new { 
-                              m.Name, m.IsStatic
-                          } into mg select mg;
-
-            foreach (var mg in methodGroups) {
-                var count = mg.Count();
-                if (count > 1) {
-                    int i = 0;
-
-                    foreach (var item in mg) {
-                        (Members[item] as MethodInfo).OverloadIndex = i;
-                        i += 1;
-                    }
-
-                    MethodGroups.Add(new MethodGroupInfo(
-                        this, (from m in mg select (Members[m] as MethodInfo)).ToArray(), mg.First().Name
-                    ));
-                } else {
-                    if (mg.Key.Name == ".cctor")
-                        StaticConstructor = mg.First();
-                }
             }
 
             if (type.IsEnum) {
@@ -563,11 +538,17 @@ namespace JSIL.Internal {
                 }
 
                 foreach (var field in proxy.Fields) {
+                    if (isStatic && !field.IsStatic)
+                        continue;
+
                     AddProxyMember(proxy, field);
                 }
 
                 foreach (var method in proxy.Methods) {
                     if (seenMethods.Contains(method))
+                        continue;
+
+                    if (isStatic && !method.IsStatic)
                         continue;
 
                     // TODO: No way to detect whether the constructor was compiler-generated.
@@ -577,6 +558,38 @@ namespace JSIL.Internal {
                     AddProxyMember(proxy, method);
                 }
             }
+
+            var methodGroups = from m in Members.Values.OfType<MethodInfo>()
+                               where !m.IsIgnored
+                               orderby m.Member.FullName ascending
+                               group m by new {
+                                   m.Name, m.IsStatic
+                               } into mg
+                               select mg;
+
+            foreach (var mg in methodGroups) {
+                var count = mg.Count();
+                if (count > 1) {
+                    int i = 0;
+
+                    var groupName = mg.First().Name;
+
+                    foreach (var item in mg) {
+                        item.OverloadIndex = i;
+                        i += 1;
+                    }
+
+                    MethodGroups.Add(new MethodGroupInfo(
+                        this, mg.ToArray(), groupName
+                    ));
+                } else {
+                    if (mg.Key.Name == ".cctor")
+                        StaticConstructor = mg.First().Member;
+                }
+            }
+
+            if (type.FullName.Contains("Interlocked"))
+                Debugger.Break();
 
             IsIgnored = module.IsIgnored ||
                 IsIgnoredName(type.FullName) ||
@@ -796,6 +809,9 @@ namespace JSIL.Internal {
         string Name {
             get;
         }
+        bool IsStatic {
+            get;
+        }
         bool IsFromProxy {
             get;
         }
@@ -883,6 +899,10 @@ namespace JSIL.Internal {
             }
         }
 
+        public abstract bool IsStatic {
+            get;
+        }
+
         public virtual PropertyInfo DeclaringProperty {
             get { return null; }
         }
@@ -905,6 +925,10 @@ namespace JSIL.Internal {
             get {
                 return Member.FieldType;
             }
+        }
+
+        public override bool IsStatic {
+            get { return Member.IsStatic; }
         }
     }
 
@@ -931,12 +955,20 @@ namespace JSIL.Internal {
                 return Member.PropertyType;
             }
         }
+
+        public override bool IsStatic {
+            get { return (Member.GetMethod ?? Member.SetMethod).IsStatic; }
+        }
     }
 
     public class EventInfo : MemberInfo<EventDefinition> {
         public EventInfo (TypeInfo parent, EventDefinition evt, ProxyInfo[] proxies) : base(
             parent, evt, proxies, false
         ) {
+        }
+
+        public override bool IsStatic {
+            get { return (Member.AddMethod ?? Member.RemoveMethod).IsStatic; }
         }
     }
 
@@ -998,6 +1030,10 @@ namespace JSIL.Internal {
             }
 
             return result;
+        }
+
+        public override bool IsStatic {
+            get { return Member.IsStatic; }
         }
 
         public override PropertyInfo DeclaringProperty {
