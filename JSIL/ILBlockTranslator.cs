@@ -376,6 +376,8 @@ namespace JSIL {
                 return null;
             else if (typeRef is ArrayType)
                 return new TypeReference(ts.Object.Namespace, "Array", ts.Object.Module, ts.Object.Scope).ResolveOrThrow();
+            else if (IsIgnoredType(typeRef))
+                return null;
             else
                 return typeRef.ResolveOrThrow();
         }
@@ -1079,7 +1081,7 @@ namespace JSIL {
 
         protected JSExpression Translate_Ldsfld (ILExpression node, FieldReference field) {
             var fieldInfo = TypeInfo.GetField(field);
-            if (fieldInfo.IsIgnored)
+            if (IsIgnoredType(field.FieldType) || (fieldInfo == null) || fieldInfo.IsIgnored)
                 return new JSInvocationExpression(
                     JSIL.IgnoredMember, JSLiteral.New(field.Name)
                 );
@@ -1122,7 +1124,7 @@ namespace JSIL {
                 return new JSNullExpression();
 
             var fieldInfo = TypeInfo.GetField(field);
-            if (fieldInfo.IsIgnored)
+            if (IsIgnoredType(field.FieldType) || (fieldInfo == null) || fieldInfo.IsIgnored)
                 return new JSInvocationExpression(
                     JSIL.IgnoredMember, JSLiteral.New(field.Name)
                 );
@@ -1470,6 +1472,8 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Newobj (ILExpression node, MethodReference constructor) {
+            constructor = JSExpression.ResolveGenericMethod(constructor, ThisMethod, ThisMethod.DeclaringType);
+
             if (IsDelegateType(constructor.DeclaringType)) {
                 var thisArg = TranslateNode(node.Arguments[0]);
                 var methodRef = TranslateNode(node.Arguments[1]);
@@ -1526,7 +1530,7 @@ namespace JSIL {
             }
 
             var methodInfo = TypeInfo.GetMethod(constructor);
-            if (methodInfo.IsIgnored)
+            if ((methodInfo == null) || methodInfo.IsIgnored)
                 return Translate_IgnoredMethod(
                     constructor.Name, constructor.Parameters
                 );

@@ -598,8 +598,20 @@ namespace JSIL.Ast {
 
         protected static TypeReference FindParameterInContext (GenericParameter parameter, object context) {
             var instance = context as IGenericInstance;
-            if (instance != null)
+            if ((instance != null) && (parameter.Position < instance.GenericArguments.Count) &&
+                !instance.GenericArguments[parameter.Position].IsGenericParameter)
                 return instance.GenericArguments[parameter.Position];
+            var type = context as GenericInstanceType;
+            if ((type != null) && (parameter.Position < type.GenericArguments.Count) &&
+                !type.GenericArguments[parameter.Position].IsGenericParameter)
+                return type.GenericArguments[parameter.Position];
+            var method = context as GenericInstanceMethod;
+            if ((method != null) && (parameter.Position < method.GenericArguments.Count) &&
+                !method.GenericArguments[parameter.Position].IsGenericParameter)
+                return method.GenericArguments[parameter.Position];
+
+            if (context is IEnumerable<object>)
+                throw new ArgumentException();
 
             return null;
         }
@@ -625,17 +637,33 @@ namespace JSIL.Ast {
                 foreach (var ctx in contexts) {
                     var result = FindParameterInContext(param, ctx);
 
-                    if (result != null)
+                    if ((result != null) && (!result.IsGenericParameter))
                         return result;
                 }
 
                 return type;
-            } else {
-                return type;
+            } else if (type is GenericInstanceType) {
+                var git = type as GenericInstanceType;
+                if (!git.GenericArguments.Any((ga) => ga.IsGenericParameter))
+                    return type;
+
+                var result = new GenericInstanceType(git.ElementType);
+                for (var i = 0; i < git.GenericArguments.Count; i++)
+                    result.GenericArguments.Add(ResolveGenericType(
+                        git.GenericArguments[i], new object[] { type }.Concat(contexts).ToArray()
+                    ));
+
+                return result;
             }
+
+            return type;
         }
 
         public static MethodReference ResolveGenericMethod (MethodReference method, params object[] contexts) {
+            if (!method.ReturnType.IsGenericParameter &&
+                !method.Parameters.Any((p) => p.ParameterType.IsGenericParameter))
+                return method;
+
             contexts = new object[] { method, method.DeclaringType }.Concat(contexts).ToArray();
 
             var result = new MethodReference(
@@ -650,6 +678,10 @@ namespace JSIL.Ast {
                     ResolveGenericType(parameter.ParameterType, contexts)
                 ));
 
+            if (!method.ReturnType.IsGenericParameter &&
+                !method.Parameters.Any((p) => p.ParameterType.IsGenericParameter))
+                Console.Error.WriteLine("Warning: Failed to resolve generic method '{0}'.", method);
+
             return result;
         }
 
@@ -657,9 +689,9 @@ namespace JSIL.Ast {
             method = ResolveGenericMethod(method);
 
             return ConstructDelegateType(
-                ResolveGenericType(method.ReturnType, method), 
+                ResolveGenericType(method.ReturnType, method, method.DeclaringType), 
                 (from p in method.Parameters 
-                 select ResolveGenericType(p.ParameterType, p, method)), 
+                 select ResolveGenericType(p.ParameterType, p, method, method.DeclaringType)), 
                  typeSystem
             );
         }
