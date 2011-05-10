@@ -1430,15 +1430,6 @@ namespace JSIL.Ast {
                 return false;
             }
         }
-
-        protected static string GetPropertyName (PropertyReference property) {
-            var declType = property.DeclaringType.Resolve();
-
-            if ((declType != null) && (declType.IsInterface))
-                return String.Format("{0}.{1}", declType.Name, property.Name);
-            else
-                return property.Name;
-        }
     }
 
     public class JSMethod : JSIdentifier {

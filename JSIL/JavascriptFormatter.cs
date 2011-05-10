@@ -195,7 +195,10 @@ namespace JSIL.Internal {
         }
 
         public void Identifier (TypeReference type, bool includeParens = false) {
-            TypeIdentifier(type as dynamic, includeParens);
+            if (type.FullName == "JSIL.Proxy.AnyType")
+                Identifier("System.Object", true);
+            else
+                TypeIdentifier(type as dynamic, includeParens);
         }
 
         protected void TypeIdentifier (TypeReference type, bool includeParens) {

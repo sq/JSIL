@@ -12,9 +12,34 @@ namespace JSIL.Proxies {
     )]
     public abstract class IntegerProxy {
         [JSRuntimeDispatch]
+        [JSExternal]
         new public static object Parse (params AnyType[] arguments) {
             throw new InvalidOperationException();
         }
+
+        [JSChangeName("toString")]
+        [JSRuntimeDispatch]
+        [JSExternal]
+        new public abstract string ToString ();
+    }
+
+    [JSProxy(
+        new[] { 
+            typeof(Single), typeof(Double), typeof(Decimal)
+        },
+        JSProxyMemberPolicy.ReplaceNone
+    )]
+    public abstract class NumberProxy {
+        [JSRuntimeDispatch]
+        [JSExternal]
+        new public static object Parse (params AnyType[] arguments) {
+            throw new InvalidOperationException();
+        }
+
+        [JSChangeName("toString")]
+        [JSRuntimeDispatch]
+        [JSExternal]
+        new public abstract string ToString ();
     }
 
     [JSProxy(

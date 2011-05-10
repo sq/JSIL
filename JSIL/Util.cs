@@ -181,15 +181,6 @@ namespace JSIL.Internal {
             return sb.ToString();
         }
 
-        public static string GetFullName (this MethodDeclaration methodDeclaration) {
-            var pdt = methodDeclaration.PrivateImplementationType.Annotation<TypeReference>();
-
-            if (pdt == null)
-                return methodDeclaration.Name;
-            else
-                return String.Format("{0}.{1}", pdt.FullName, methodDeclaration.Name);
-        }
-
         public sealed class ListSkipAdapter<T> : IList<T> {
             public readonly IList<T> List;
             public readonly int Offset;

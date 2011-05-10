@@ -588,7 +588,7 @@ namespace JSIL.Internal {
                 }
             }
 
-            if (type.FullName.Contains("Interlocked"))
+            if (type.FullName == "System.Enum")
                 Debugger.Break();
 
             IsIgnored = module.IsIgnored ||
@@ -860,8 +860,18 @@ namespace JSIL.Internal {
             }
         }
 
+        // Sometimes the type system prefixes the name of a member with some or all of the declaring type's name.
+        //  The rules seem to be random, so just strip it off.
+        protected static string GetShortName (MemberReference member) {
+            var result = member.Name;
+            int lastIndex = result.LastIndexOfAny(new char[] { '.', '/', '+', ':' });
+            if (lastIndex >= 1)
+                result = result.Substring(lastIndex + 1);
+            return result;
+        }
+
         protected virtual string GetName () {
-            return Member.Name;
+            return ForcedName ?? Member.Name;
         }
 
         bool IMemberInfo.IsFromProxy {
@@ -895,7 +905,7 @@ namespace JSIL.Internal {
 
         public string Name {
             get {
-                return ForcedName ?? GetName();
+                return GetName();
             }
         }
 
@@ -933,9 +943,12 @@ namespace JSIL.Internal {
     }
 
     public class PropertyInfo : MemberInfo<PropertyDefinition> {
+        protected readonly string ShortName;
+
         public PropertyInfo (TypeInfo parent, PropertyDefinition property, ProxyInfo[] proxies) : base(
             parent, property, proxies, ILBlockTranslator.IsIgnoredType(property.PropertyType)
         ) {
+            ShortName = GetShortName(property);
         }
 
         protected override string GetName () {
@@ -943,9 +956,9 @@ namespace JSIL.Internal {
             var declType = Member.DeclaringType.Resolve();
 
             if ((declType != null) && declType.IsInterface)
-                result = String.Format("{0}.{1}", declType.Name, Member.Name);
+                result = ForcedName ?? String.Format("{0}.{1}", declType.Name, ShortName);
             else
-                result = Member.Name;
+                result = ForcedName ?? ShortName;
 
             return result;
         }
@@ -977,6 +990,7 @@ namespace JSIL.Internal {
         public readonly EventInfo Event = null;
 
         public int? OverloadIndex;
+        protected readonly string ShortName;
 
         public MethodInfo (TypeInfo parent, MethodDefinition method, ProxyInfo[] proxies) : base (
             parent, method, proxies,
@@ -984,6 +998,7 @@ namespace JSIL.Internal {
                 (method.Parameters.Any((p) => ILBlockTranslator.IsIgnoredType(p.ParameterType))),
             method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall
         ) {
+            ShortName = GetShortName(method);
         }
 
         public MethodInfo (TypeInfo parent, MethodDefinition method, ProxyInfo[] proxies, PropertyInfo property) : base (
@@ -994,6 +1009,7 @@ namespace JSIL.Internal {
             method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall
         ) {
             Property = property;
+            ShortName = GetShortName(method);
         }
 
         public MethodInfo (TypeInfo parent, MethodDefinition method, ProxyInfo[] proxies, EventInfo evt) : base(
@@ -1004,29 +1020,28 @@ namespace JSIL.Internal {
             method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall
         ) {
             Event = evt;
+            ShortName = GetShortName(method);
         }
 
         protected override string GetName () {
-            return GetName(false);
+            return GetName(null);
         }
 
-        public string GetName (bool forceNameMangling = false) {
+        public string GetName (bool? nameMangling = null) {
             string result;
             var declType = Member.DeclaringType.Resolve();
             var over = Member.Overrides.FirstOrDefault();
 
             if ((declType != null) && declType.IsInterface)
-                result = String.Format("{0}.{1}", declType.Name, Member.Name);
+                result = ForcedName ?? String.Format("{0}.{1}", declType.Name, ShortName);
             else if (over != null)
-                result = String.Format("{0}.{1}", over.DeclaringType.Name, over.Name);
+                result = ForcedName ?? String.Format("{0}.{1}", over.DeclaringType.Name, ShortName);
             else
-                result = Member.Name;
+                result = ForcedName ?? ShortName;
 
-            if (
-                (OverloadIndex.HasValue) && 
-                (forceNameMangling || !Metadata.HasAttribute("JSIL.Meta.JSRuntimeDispatch"))
-            ) {
-                result = String.Format("{0}${1}", result, OverloadIndex.Value);
+            if (OverloadIndex.HasValue) {
+                if (nameMangling.GetValueOrDefault(!Metadata.HasAttribute("JSIL.Meta.JSRuntimeDispatch")))
+                    result = String.Format("{0}${1}", result, OverloadIndex.Value);
             }
 
             return result;

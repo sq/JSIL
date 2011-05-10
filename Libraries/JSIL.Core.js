@@ -621,7 +621,7 @@ JSIL.OverloadedMethod = function (type, name, overloads) {
   if (overloads.length < 1)
     return type[name] = null;
   else if (overloads.length < 2) {
-    var overload = overloads[i][0];
+    var overload = overloads[0][0];
     if (typeof (overload) == "function")
       return type[name] = overload;
     else

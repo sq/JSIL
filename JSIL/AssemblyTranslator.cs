@@ -683,6 +683,8 @@ namespace JSIL {
             foreach (var method in methodGroup.Methods) {
                 if (method.IsIgnored)
                     continue;
+                else if (method.IsExternal)
+                    continue;
 
                 if (!isFirst) {
                     output.Comma();
@@ -690,7 +692,7 @@ namespace JSIL {
                 }
 
                 output.OpenBracket();
-                output.Value(Util.EscapeIdentifier(method.ForcedName ?? method.GetName(true)));
+                output.Value(Util.EscapeIdentifier(method.GetName(true)));
                 output.Comma();
 
                 output.OpenBracket();
@@ -918,7 +920,7 @@ namespace JSIL {
             output.Dot();
 
             output.Identifier(
-                methodInfo.ForcedName ?? methodInfo.GetName(true), false
+                methodInfo.GetName(true), false
             );
 
             output.Token(" = ");
@@ -964,19 +966,7 @@ namespace JSIL {
             }
             output.Comma();
 
-            var over = (property.SetMethod ?? property.GetMethod).Overrides.FirstOrDefault();
-
-            var separators = new char[] { '.', '+', '/', ':' };
-            var lastDot = property.Name.LastIndexOfAny(separators);
-            if (over != null) {
-                // For some reason property.Name is fully qualified, unlike method.Name, when it privately implements an interface property.
-                var declaringType = over.DeclaringType;
-                var shortName = property.Name.Substring(lastDot + 1);
-                var identifier = String.Format("{0}.{1}", declaringType.Name, shortName);
-                output.Value(Util.EscapeIdentifier(identifier));
-            } else {
-                output.Value(property.Name);
-            }
+            output.Value(propertyInfo.Name);
 
             output.Comma();
             output.NewLine();
