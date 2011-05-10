@@ -165,7 +165,7 @@ namespace JSIL.Transforms {
                         continue;
 
                     var valueType = v.GetExpectedType(TypeSystem);
-                    if (valueType.IsPointer || valueType.IsFunctionPointer || valueType.IsByReference)
+                    if (valueType.IsByReference || ILBlockTranslator.IsIgnoredType(valueType))
                         continue;
 
                     List<int> assignments;

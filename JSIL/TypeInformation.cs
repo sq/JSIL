@@ -868,7 +868,7 @@ namespace JSIL.Internal {
 
     public class FieldInfo : MemberInfo<FieldDefinition> {
         public FieldInfo (TypeInfo parent, FieldDefinition field, ProxyInfo[] proxies) : base(
-            parent, field, proxies, field.FieldType.IsPointer
+            parent, field, proxies, ILBlockTranslator.IsIgnoredType(field.FieldType)
         ) {
         }
 
@@ -881,7 +881,7 @@ namespace JSIL.Internal {
 
     public class PropertyInfo : MemberInfo<PropertyDefinition> {
         public PropertyInfo (TypeInfo parent, PropertyDefinition property, ProxyInfo[] proxies) : base(
-            parent, property, proxies, property.PropertyType.IsPointer
+            parent, property, proxies, ILBlockTranslator.IsIgnoredType(property.PropertyType)
         ) {
         }
 
@@ -919,15 +919,16 @@ namespace JSIL.Internal {
 
         public MethodInfo (TypeInfo parent, MethodDefinition method, ProxyInfo[] proxies) : base (
             parent, method, proxies,
-            (method.ReturnType.IsPointer) || (method.Parameters.Any((p) => p.ParameterType.IsPointer)),
+            ILBlockTranslator.IsIgnoredType(method.ReturnType) || 
+                (method.Parameters.Any((p) => ILBlockTranslator.IsIgnoredType(p.ParameterType))),
             method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall
         ) {
         }
 
         public MethodInfo (TypeInfo parent, MethodDefinition method, ProxyInfo[] proxies, PropertyInfo property) : base (
             parent, method, proxies,
-            method.ReturnType.IsPointer || 
-                method.Parameters.Any((p) => p.ParameterType.IsPointer) || 
+            ILBlockTranslator.IsIgnoredType(method.ReturnType) || 
+                (method.Parameters.Any((p) => ILBlockTranslator.IsIgnoredType(p.ParameterType))) ||
                 property.IsIgnored,
             method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall
         ) {
@@ -936,8 +937,8 @@ namespace JSIL.Internal {
 
         public MethodInfo (TypeInfo parent, MethodDefinition method, ProxyInfo[] proxies, EventInfo evt) : base(
             parent, method, proxies,
-            method.ReturnType.IsPointer || 
-                method.Parameters.Any((p) => p.ParameterType.IsPointer) ||
+            ILBlockTranslator.IsIgnoredType(method.ReturnType) ||
+                (method.Parameters.Any((p) => ILBlockTranslator.IsIgnoredType(p.ParameterType))) ||
                 evt.IsIgnored,
             method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall
         ) {

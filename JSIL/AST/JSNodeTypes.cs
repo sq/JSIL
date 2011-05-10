@@ -791,8 +791,8 @@ namespace JSIL.Ast {
             var boe = reference as JSBinaryOperatorExpression;
 
             var expressionType = reference.GetExpectedType(jsil.TypeSystem);
-            if (expressionType.IsPointer) {
-                referent = new JSUntranslatableExpression("Pointer");
+            if (ILBlockTranslator.IsIgnoredType(expressionType)) {
+                referent = new JSUntranslatableExpression(expressionType.FullName);
                 return true;
             }
 

@@ -217,6 +217,8 @@ namespace JSIL {
                             (string)parms[0].Value, thisExpression, method.ReturnType
                         );
                 }
+            } else {
+                return new JSUntranslatableExpression("Invocation of method without info '" + method.FullName + "'");
             }
 
             if (methodInfo.IsIgnored)
@@ -259,11 +261,9 @@ namespace JSIL {
 
             JSExpression result;
 
-            var methodDef = method.Resolve();
             JSExpression propertyResult;
             if (
-                (methodDef != null) &&
-                Translate_PropertyCall(thisExpression, methodDef, arguments, virt, out propertyResult)
+                Translate_PropertyCall(thisExpression, methodInfo.Member, arguments, virt, out propertyResult)
             ) {
                 result = propertyResult;
             } else {
@@ -431,6 +431,21 @@ namespace JSIL {
             }
         }
 
+        public static bool IsIgnoredType (TypeReference type) {
+            type = DereferenceType(type);
+
+            if (type == null)
+                return false;
+            else if (type.IsPointer)
+                return true;
+            else if (type.IsPinned)
+                return true;
+            else if (type.IsFunctionPointer)
+                return true;
+            else
+                return false;
+        }
+
         public static bool IsDelegateType (TypeReference type) {
             type = DereferenceType(type);
 
@@ -459,6 +474,10 @@ namespace JSIL {
             if (target.IsGenericParameter != source.IsGenericParameter)
                 return false;
             if (target.IsArray != source.IsArray)
+                return false;
+            if (target.IsFunctionPointer != source.IsFunctionPointer)
+                return false;
+            if (target.IsPinned != source.IsPinned)
                 return false;
 
             var dTarget = GetTypeDefinition(target);
@@ -588,7 +607,7 @@ namespace JSIL {
             JSExpression result = null;
 
             var type = expression.ExpectedType ?? expression.InferredType;
-            if ((type != null) && (type.IsPointer || type.IsPinned || type.IsFunctionPointer))
+            if (ILBlockTranslator.IsIgnoredType(type))
                 return new JSUntranslatableExpression(expression);
 
             var methodName = String.Format("Translate_{0}", expression.Code);

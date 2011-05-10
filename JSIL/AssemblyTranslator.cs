@@ -716,7 +716,7 @@ namespace JSIL {
                     .Where(v => v != null && !v.IsParameter).Distinct();
 
                 foreach (var v in allVariables)
-                    if (v.Type.IsPointer)
+                    if (ILBlockTranslator.IsIgnoredType(v.Type))
                         return null;
 
                 NameVariables.AssignNamesToVariables(context, decompiler.Parameters, allVariables, ilb);
