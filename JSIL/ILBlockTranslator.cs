@@ -162,15 +162,15 @@ namespace JSIL {
 
         protected JSExpression Translate_UnaryOp (ILExpression node, JSUnaryOperator op) {
             var inner = TranslateNode(node.Arguments[0]);
-            var innerType = inner.GetExpectedType(TypeSystem);
+            var innerType = JSExpression.DeReferenceType(inner.GetExpectedType(TypeSystem));
 
             // Detect the weird pattern '!(x = y as z)' and transform it into '(x = y as z) != null'
             if (
                 (op == JSOperator.LogicalNot) && 
-                !TypesAreEqual(TypeSystem.Boolean, innerType)
+                !TypesAreAssignable(TypeSystem.Boolean, innerType)
             ) {
                 return new JSBinaryOperatorExpression(
-                    JSOperator.NotEqual, inner, new JSDefaultValueLiteral(innerType), TypeSystem.Boolean
+                    JSOperator.Equal, inner, new JSDefaultValueLiteral(innerType), TypeSystem.Boolean
                 );
             }
 

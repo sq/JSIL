@@ -167,6 +167,7 @@
     <None Include="SpecialTestCases\IgnoreInterface.cs" />
     <None Include="SimpleTestCases\InheritedInterfaces.cs" />
     <None Include="SimpleTestCases\OverloadedProperties.cs" />
+    <None Include="SimpleTestCases\IfNull.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
