@@ -11,9 +11,15 @@ JSIL.DeclareNamespace = function (parent, name) {
     if (typeof (parent.__FullName__) != "undefined")
       parentName = parent.__FullName__ + ".";
 
-    parent[name] = {
-      __FullName__ : parentName + name
-    };
+    Object.defineProperty(
+      parent, name, {
+        enumerable: true,
+        configurable: false,
+        value: {
+          __FullName__ : parentName + name
+        }
+      }
+    );
   }
 }
 

@@ -468,6 +468,8 @@ namespace JSIL {
                 return;
             }
 
+            DeclaredTypes.Add(typedef.FullName);
+
             context.CurrentType = typedef;
 
             output.DeclareNamespace(typedef.Namespace);
@@ -524,8 +526,6 @@ namespace JSIL {
                 output.RPar();
                 output.Semicolon();
             }
-
-            DeclaredTypes.Add(typedef.FullName);
 
             foreach (var nestedTypedef in typedef.NestedTypes)
                 ForwardDeclareType(context, output, nestedTypedef);
