@@ -294,7 +294,13 @@ namespace JSIL {
 
             foreach (var p in TypeProxies.Values) {
                 foreach (var pt in p.ProxiedTypes) {
-                    if (ILBlockTranslator.TypesAreAssignable(pt, type)) {
+                    bool isMatch;
+                    if (p.IsInheritable)
+                        isMatch = ILBlockTranslator.TypesAreAssignable(pt, type);
+                    else
+                        isMatch = ILBlockTranslator.TypesAreEqual(pt, type);
+
+                    if (isMatch) {
                         result.Add(p);
                         break;
                     }

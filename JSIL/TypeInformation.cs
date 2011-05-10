@@ -244,9 +244,12 @@ namespace JSIL.Internal {
         public readonly HashSet<EventDefinition> Events = new HashSet<EventDefinition>();
         public readonly HashSet<MethodDefinition> Methods = new HashSet<MethodDefinition>();
 
+        public readonly bool IsInheritable;
+
         public ProxyInfo (TypeDefinition proxyType) {
             Definition = proxyType;
             Metadata = new MetadataCollection(proxyType);
+            IsInheritable = true;
 
             var args = Metadata.GetAttributeParameters("JSIL.Proxy.JSProxy");
             // Attribute parameter ordering is random. Awesome!
@@ -266,6 +269,9 @@ namespace JSIL.Internal {
                         ProxiedTypes = new TypeReference[values.Length];
                         for (var i = 0; i < ProxiedTypes.Length; i++)
                             ProxiedTypes[i] = (TypeReference)values[i].Value;
+                        break;
+                    case "System.Boolean":
+                        IsInheritable = (bool)arg.Value;
                         break;
                     default:
                         throw new NotImplementedException();

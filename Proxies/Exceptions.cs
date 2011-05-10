@@ -5,7 +5,9 @@ using JSIL.Proxy;
 namespace JSIL.Proxies {
     [JSProxy(
         typeof(Exception),
-        JSProxyMemberPolicy.ReplaceNone
+        JSProxyMemberPolicy.ReplaceNone,
+        JSProxyAttributePolicy.ReplaceDeclared,
+        false
     )]
     public abstract class ExceptionProxy {
         [JSRuntimeDispatch]

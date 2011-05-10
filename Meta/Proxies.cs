@@ -25,7 +25,8 @@ namespace JSIL.Proxy {
         public JSProxy (
             Type type,
             JSProxyMemberPolicy memberPolicy = JSProxyMemberPolicy.ReplaceDeclared,
-            JSProxyAttributePolicy attributePolicy = JSProxyAttributePolicy.ReplaceDeclared
+            JSProxyAttributePolicy attributePolicy = JSProxyAttributePolicy.ReplaceDeclared,
+            bool inheritable = true
         ) {
         }
 
@@ -35,7 +36,8 @@ namespace JSIL.Proxy {
         public JSProxy (
             Type[] types,
             JSProxyMemberPolicy memberPolicy = JSProxyMemberPolicy.ReplaceDeclared,
-            JSProxyAttributePolicy attributePolicy = JSProxyAttributePolicy.ReplaceDeclared
+            JSProxyAttributePolicy attributePolicy = JSProxyAttributePolicy.ReplaceDeclared,
+            bool inheritable = true
         ) {
         }
     }

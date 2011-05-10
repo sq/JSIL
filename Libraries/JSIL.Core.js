@@ -579,7 +579,7 @@ JSIL.Dynamic.Cast = function (value, expectedType) {
   return value;
 };
 
-JSIL.FindOverload = function (args, overloads) {
+JSIL.FindOverload = function (prototype, args, overloads) {
   var l = args.length;
 
   find_overload:
@@ -604,7 +604,7 @@ JSIL.FindOverload = function (args, overloads) {
     if (typeof (overloadName) == "function") {
       overloadMethod = overloadName;
     } else {
-      overloadMethod = this[overloadName];
+      overloadMethod = prototype[overloadName];
       if (typeof (overloadMethod) == "undefined")
         throw new Error("No method named '" + overloadName + "' could be found.");
     }
@@ -621,15 +621,17 @@ JSIL.OverloadedMethod = function (type, name, overloads) {
       throw new Error("Recursive definition of overloaded method " + JSIL.GetTypeName(type) + "." + name);
   }
 
-  type[name] = function () {
+  var result = function () {
     var args = Array.prototype.slice.call(arguments);
-    var method = JSIL.FindOverload.call(this, args, overloads);
+    var method = JSIL.FindOverload(type, args, overloads);
 
     if (method === null)
       throw new Error("No overload of '" + name + "' matching the argument list '" + String(args) + "' could be found.");
     else
       return method.apply(this, args);
   };
+
+  type[name] = result;
 };
 
 JSIL.MakeClass(Object, System, "Object", "System.Object");
