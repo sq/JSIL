@@ -1130,7 +1130,7 @@ namespace JSIL {
                 );
 
             JSExpression thisExpression;
-            if (DereferenceType(firstArg.InferredType).IsValueType) {
+            if (IsInvalidThisExpression(firstArg)) {
                 if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression)) {
                     Console.Error.WriteLine("Warning: Accessing {0} without a reference as this.", field.FullName);
                     thisExpression = translated;
@@ -1694,7 +1694,7 @@ namespace JSIL {
 
                 var translated = TranslateNode(firstArg);
 
-                if (DereferenceType(firstArg.InferredType).IsValueType) {
+                if (IsInvalidThisExpression(firstArg)) {
                     if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression))
                         throw new InvalidOperationException("this-expression for method invocation on value type must be a reference");
                 } else {
@@ -1736,12 +1736,23 @@ namespace JSIL {
             );
         }
 
+        protected bool IsInvalidThisExpression (ILExpression thisNode) {
+            if (thisNode.InferredType == null)
+                return false;
+
+            var dereferenced = DereferenceType(thisNode.InferredType);
+            if ((dereferenced != null) && dereferenced.IsValueType)
+                return true;
+
+            return false;
+        }
+
         protected JSExpression Translate_Callvirt (ILExpression node, MethodReference method) {
             var firstArg = node.Arguments[0];
             var translated = TranslateNode(firstArg);
             JSExpression thisExpression;
 
-            if (DereferenceType(firstArg.InferredType).IsValueType) {
+            if (IsInvalidThisExpression(firstArg)) {
                 if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression))
                     throw new InvalidOperationException("this-expression for method invocation on value type must be a reference");
             } else {
