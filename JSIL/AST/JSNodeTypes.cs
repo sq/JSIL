@@ -1028,6 +1028,13 @@ namespace JSIL.Ast {
             if (rhs != null) {
                 if (!Object.Equals(Member, rhs.Member))
                     return false;
+
+                if (Arguments.Length != rhs.Arguments.Length)
+                    return false;
+
+                for (int i = 0; i < Arguments.Length; i++)
+                    if (!Arguments[i].Equals(rhs.Arguments[i]))
+                        return false;
             }
 
             return EqualsImpl(obj, true);

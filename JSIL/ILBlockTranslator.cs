@@ -180,6 +180,14 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_BinaryOp (ILExpression node, JSBinaryOperator op) {
+            if (IsIgnoredType(node.Arguments[0].ExpectedType) ||
+                IsIgnoredType(node.Arguments[1].ExpectedType) ||
+                IsIgnoredType(node.Arguments[0].InferredType) ||
+                IsIgnoredType(node.Arguments[1].InferredType)
+            ) {
+                return new JSUntranslatableExpression(node);
+            }
+
             var lhs = TranslateNode(node.Arguments[0]);
             var rhs = TranslateNode(node.Arguments[1]);
 
@@ -189,10 +197,6 @@ namespace JSIL {
                 (boeLeft != null) && !(boeLeft.Operator is JSAssignmentOperator)
             )
                 return new JSUntranslatableExpression(node);
-
-            if (IsIgnoredType(node.Arguments[0].ExpectedType) || IsIgnoredType(node.Arguments[1].ExpectedType)) {
-                return new JSUntranslatableExpression(node);
-            }
 
             return new JSBinaryOperatorExpression(
                 op, lhs, rhs, node.ExpectedType ?? node.InferredType
@@ -389,14 +393,16 @@ namespace JSIL {
                 return typeRef.ResolveOrThrow();
         }
 
-        public static TypeReference DereferenceType (TypeReference type) {
+        public static TypeReference DereferenceType (TypeReference type, bool dereferencePointers = false) {
             var brt = type as ByReferenceType;
             if (brt != null)
                 return brt.ElementType;
 
-            var pt = type as PointerType;
-            if (pt != null)
-                return pt.ElementType;
+            if (dereferencePointers) {
+                var pt = type as PointerType;
+                if (pt != null)
+                    return pt.ElementType;
+            }
 
             return type;
         }

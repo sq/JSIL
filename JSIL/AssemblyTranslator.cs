@@ -596,8 +596,13 @@ namespace JSIL {
             if (info == null)
                 throw new InvalidOperationException();
 
-            foreach (var method in typedef.Methods)
+            foreach (var method in typedef.Methods) {
+                // We translate the static constructor explicitly later, and inject field initialization
+                if (method.Name == ".cctor")
+                    continue;
+
                 TranslateMethod(context, output, method);
+            }
 
             foreach (var methodGroup in info.MethodGroups)
                 TranslateMethodGroup(context, output, methodGroup);
