@@ -651,6 +651,11 @@ namespace JSIL.Ast {
                     TypeAnalysis.SubstituteTypeArgs(parameter.ParameterType, method)
                 ));
 
+            result.HasThis = method.HasThis;
+            result.ExplicitThis = method.ExplicitThis;
+            result.CallingConvention = method.CallingConvention;
+            result.DeclaringType = method.DeclaringType;
+
             if (!method.ReturnType.IsGenericParameter &&
                 !method.Parameters.Any((p) => p.ParameterType.IsGenericParameter))
                 Console.Error.WriteLine("Warning: Failed to resolve generic method '{0}'.", method);
@@ -1473,6 +1478,13 @@ namespace JSIL.Ast {
         public JSMethod (MethodReference reference, MethodInfo method) {
             if ((reference == null) || (method == null))
                 throw new ArgumentNullException();
+
+            if (
+                reference.ReturnType.IsGenericParameter ||
+                reference.Parameters.Any((p) => p.ParameterType.IsGenericParameter)
+            ) {
+                throw new InvalidOperationException("Unbound generic type in invocation");
+            }
 
             Reference = reference;
             Method = method;

@@ -1260,6 +1260,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldftn (ILExpression node, MethodReference method) {
+            method = JSExpression.ResolveGenericMethod(method);
             var methodInfo = TypeInfo.GetMethod(method);
 
             if (method.HasThis)
@@ -1714,6 +1715,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldtoken (ILExpression node, MethodReference method) {
+            method = JSExpression.ResolveGenericMethod(method);
             var methodInfo = TypeInfo.GetMethod(method);
             return new JSMethod(method, methodInfo);
         }
@@ -1724,6 +1726,8 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Call (ILExpression node, MethodReference method) {
+            method = JSExpression.ResolveGenericMethod(method);
+
             var methodInfo = TypeInfo.GetMethod(method);
             if (methodInfo == null)
                 return new JSIgnoredMemberReference(true, null, JSLiteral.New(method.FullName));
@@ -1807,6 +1811,8 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Callvirt (ILExpression node, MethodReference method) {
+            method = JSExpression.ResolveGenericMethod(method);
+
             var firstArg = node.Arguments[0];
             var translated = TranslateNode(firstArg);
             JSExpression thisExpression;
@@ -1857,34 +1863,6 @@ namespace JSIL {
 
             var invocationArguments = Translate(node.Arguments.Skip(1));
             return callSite.Translate(this, invocationArguments);
-
-            /*
-            var cond = condition.Condition;
-            if (
-                (cond.Code == ILCode.LogicNot) &&
-                (cond.Arguments.Count > 0) &&
-                (cond.Arguments[0].Code == ILCode.GetCallSite) &&
-                (condition.TrueBlock != null) &&
-                (condition.TrueBlock.Body.Count == 1) &&
-                (condition.TrueBlock.Body[0] is ILExpression)
-            ) {
-                var callSiteExpression = (ILExpression)condition.TrueBlock.Body[0];
-                var binderExpression = callSiteExpression.Arguments[0].Arguments[0];
-                var binderMethod = (MethodReference)binderExpression.Operand;
-                var arguments = Translate(binderExpression.Arguments);
-
-                DynamicCallSites.InitializeCallSite(
-                    (FieldReference)cond.Arguments[0].Operand,
-                    binderMethod.Name,
-                    arguments
-                );
-
-                result = new JSNullStatement();
-                return true;
-            }
-             */
-
-            return null;
         }
 
         protected JSExpression Translate_GetCallSite (ILExpression node, FieldReference field) {
