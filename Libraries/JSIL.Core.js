@@ -116,7 +116,11 @@ JSIL.ExternalMember = function (namespace, memberName) {
   if (typeof (namespace) === "undefined") {
     JSIL.Host.error(new Error("External member '" + memberName + "' declared in undefined namespace"));
   } else if (typeof (namespace[memberName]) === "undefined") {
-    JSIL.Host.warning("External member '" + memberName + "' of namespace '", JSIL.GetTypeName(namespace), "' is not defined");
+    var namespaceName = JSIL.GetTypeName(namespace);
+    JSIL.Host.warning("External member '" + memberName + "' of namespace '" + namespaceName + "' is not defined");
+    namespace[memberName] = function () {
+        JSIL.Host.error(new Error("The external function '" + memberName + "' of namespace '" + namespaceName + "' has not been implemented."));
+    };
   }
 }
 
@@ -512,10 +516,17 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
 };
 
 JSIL.IsArray = function (value) {
-  return (typeof (value) === "object") &&
-         (value !== null) &&
-         (typeof (value.length) === "number") &&
-         (value.__proto__ === Array.prototype);
+  if ((typeof (value) === "object") && (value !== null) && (value.__proto__ === Array.prototype)) {
+    var length = null;
+    try {
+      length = value.length;
+    } catch (e) {
+    }
+    if (typeof (length) === "number")
+      return true;
+  }
+
+  return false;
 };
 
 JSIL.GetType = function (value) {
@@ -550,16 +561,18 @@ JSIL.GetTypeName = function (value) {
   if ((typeof (result) === "undefined") && (typeof (value.prototype) !== "undefined"))
     result = value.prototype.__FullName__;
 
-  if (typeof (result) === "undefined")
+  if (typeof (result) === "string")
+    return result;
+  else if (typeof (result) === "undefined")
     result = typeof (value);
 
-  if (result == "string")
+  if (result === "string")
     return "System.String";
-  else if (result == "number")
+  else if (result === "number")
     return "System.Double";
   else if (JSIL.IsArray(value))
     return "System.Array";
-  else if (result == "object" || result == "undefined")
+  else if (result === "object" || result === "undefined")
     return "System.Object";
 
   return result;

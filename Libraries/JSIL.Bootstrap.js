@@ -128,13 +128,18 @@ String.prototype.Split = function (separators) {
   return this.split(separators[0]);
 };
 
-System.String = function (text) {
-  return text;
-};
+JSIL.MakeClass(System.Object, System, "String", "System.String");
 System.String.CheckType = function (value) {
-  return (typeof (value) === "string");
+  return (typeof (value) === "string") || (
+    (typeof (value.text) === "string") && (value.__proto__ === System.String.prototype)
+  );
 }
-System.String.prototype = JSIL.MakeProto(String, System.String, "System.String", true);
+System.String.prototype._ctor = function (text) {
+  if (typeof (text) === "string")
+    this.text = text;
+  else
+    this.text = String(text);
+}
 System.String.toString = function () {
   return this.text;
 }
