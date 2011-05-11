@@ -19,7 +19,9 @@ System.Delegate.prototype.GetInvocationList = function () {
   return [ this ];
 };
 System.Delegate.GetInvocationList = function (delegate) {
-  if (typeof (delegate.GetInvocationList) == "function") {
+  if (delegate === null) {
+    return [ ];
+  } else if (typeof (delegate.GetInvocationList) == "function") {
     return delegate.GetInvocationList();
   } else if (typeof (delegate) == "function") {
     return [ delegate ];
@@ -275,22 +277,31 @@ System.Collections.Generic.List$b1.Enumerator.prototype._ctor = function (list) 
   }
 }
 
-System.Threading.Interlocked.CompareExchange = function (targetRef, value, comparand) {
+System.Threading.Interlocked.CompareExchange = function (targetRef, value, comparand, succeeded) {
   var currentValue = targetRef.value;
   if (currentValue === comparand) {
     targetRef.value = value;
+    if (typeof (succeeded) != "undefined")
+      succeeded.value = true;
+
     return comparand;
   } else {
+    if (typeof (succeeded) != "undefined")
+      succeeded.value = false;
+
     return currentValue;
   }
 };
 
-System.Threading.Monitor.Enter = function (obj) {
+System.Threading.Monitor.Enter = function (obj, lockTaken) {
   var current = (obj.__LockCount__ || 0);
-  if (current >= 1)    
+  if (current >= 1)
     JSIL.Host.warning("Warning: lock recursion ", obj);
 
   obj.__LockCount__ = current + 1;
+
+  if (typeof (lockTaken) != "undefined")
+    lockTaken.value = true;
 };
 
 System.Threading.Monitor.Exit = function (obj) {
@@ -474,4 +485,8 @@ System.Decimal.op_Division = function (lhs, rhs) {
 
 System.Environment.GetResourceFromDefault = function (key) {
   return key;
+};
+System.Environment.nativeGetTickCount = function () {
+  var t = new Date();
+  return t.getTime();
 };

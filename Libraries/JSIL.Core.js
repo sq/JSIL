@@ -175,7 +175,11 @@ JSIL.InitializeType = function (type) {
   type.__TypeInitialized__ = true;
 
   if (typeof (type._cctor) != "undefined") {
-    type._cctor();
+    try {
+      type._cctor();
+    } catch (e) {
+      JSIL.Host.error(e, "Unhandled exception in static constructor for type ", JSIL.GetTypeName(type));
+    }
   }
 }
 

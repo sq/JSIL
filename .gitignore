@@ -12,6 +12,8 @@ Tests/obj
 Tests/bin
 Proxies/obj
 Proxies/bin
+Proxies/XNA/obj
+Proxies/XNA/bin
 Examples/simpleray
 Examples/bin
 /bin

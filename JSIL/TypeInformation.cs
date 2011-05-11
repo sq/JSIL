@@ -873,17 +873,19 @@ namespace JSIL.Internal {
                 IsExternal = true;
 
             var parms = Metadata.GetAttributeParameters("JSIL.Meta.JSPolicy");
-            foreach (var param in parms) {
-                switch (param.Type.FullName) {
-                    case "JSIL.Meta.JSReadPolicy":
-                        _ReadPolicy = (JSReadPolicy)param.Value;
+            if (parms != null) {
+                foreach (var param in parms) {
+                    switch (param.Type.FullName) {
+                        case "JSIL.Meta.JSReadPolicy":
+                            _ReadPolicy = (JSReadPolicy)param.Value;
                         break;
-                    case "JSIL.Meta.JSWritePolicy":
-                        _WritePolicy = (JSWritePolicy)param.Value;
+                        case "JSIL.Meta.JSWritePolicy":
+                            _WritePolicy = (JSWritePolicy)param.Value;
                         break;
-                    case "JSIL.Meta.JSInvokePolicy":
-                        _InvokePolicy = (JSInvokePolicy)param.Value;
+                        case "JSIL.Meta.JSInvokePolicy":
+                            _InvokePolicy = (JSInvokePolicy)param.Value;
                         break;
+                    }
                 }
             }
         }

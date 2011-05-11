@@ -9,11 +9,13 @@ namespace JSIL.Proxies {
     )]
     public abstract class InterlockedProxy {
         [JSExternal]
+        [JSRuntimeDispatch]
         public static AnyType CompareExchange (ref AnyType destination, AnyType value, AnyType comparand) {
             throw new InvalidOperationException();
         }
 
-        [JSIgnore]
+        [JSExternal]
+        [JSRuntimeDispatch]
         public static int CompareExchange (ref int location1, int value, int comparand, ref bool succeeded) {
             throw new InvalidOperationException();
         }
@@ -25,11 +27,13 @@ namespace JSIL.Proxies {
     )]
     public abstract class MonitorProxy {
         [JSExternal]
+        [JSRuntimeDispatch]
         public static void Enter (Object o) {
             throw new InvalidOperationException();
         }
 
-        [JSIgnore]
+        [JSExternal]
+        [JSRuntimeDispatch]
         public static void Enter (Object o, ref bool lockTaken) {
             throw new InvalidOperationException();
         }

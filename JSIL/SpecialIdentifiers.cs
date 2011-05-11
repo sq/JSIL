@@ -44,14 +44,12 @@ namespace JSIL {
     public class JSILIdentifier : JSIdentifier {
         public readonly TypeSystem TypeSystem;
 
-        public readonly JSDotExpression IgnoredMember,
-            GlobalNamespace,
+        public readonly JSDotExpression GlobalNamespace,
             CopyMembers;
 
         public JSILIdentifier (TypeSystem typeSystem) {
             TypeSystem = typeSystem;
 
-            IgnoredMember = Dot("IgnoredMember", TypeSystem.Void);
             GlobalNamespace = Dot("GlobalNamespace", TypeSystem.Object);
             CopyMembers = Dot("CopyMembers", TypeSystem.Void);
         }

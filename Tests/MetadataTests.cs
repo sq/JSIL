@@ -12,7 +12,7 @@ namespace JSIL.Tests {
             GenericIgnoreTest(
                 @"SpecialTestCases\IgnoreType.cs",
                 "Test",
-                "ReferenceError: Test is not defined"
+                "attempt was made to reference the member '.ctor()'"
             );
         }
 

@@ -190,6 +190,10 @@ namespace JSIL {
             )
                 return new JSUntranslatableExpression(node);
 
+            if (IsIgnoredType(node.Arguments[0].ExpectedType) || IsIgnoredType(node.Arguments[1].ExpectedType)) {
+                return new JSUntranslatableExpression(node);
+            }
+
             return new JSBinaryOperatorExpression(
                 op, lhs, rhs, node.ExpectedType ?? node.InferredType
             );
@@ -288,9 +292,7 @@ namespace JSIL {
                 return false;
 
             if (propertyInfo.IsIgnored) {
-                result = new JSInvocationExpression(
-                    JSIL.IgnoredMember, JSLiteral.New(propertyInfo.Name)
-                );
+                result = new JSIgnoredMemberReference(true, propertyInfo, arguments);
                 return true;
             }
 
@@ -1076,7 +1078,7 @@ namespace JSIL {
 
             // GetCallSite and CreateCallSite produce null expressions, so we want to ignore assignments containing them
             var value = TranslateNode(node.Arguments[0]);
-            if ((value.IsNull) && !(value is JSUntranslatableExpression))
+            if ((value.IsNull) && !(value is JSUntranslatableExpression) && !(value is JSIgnoredMemberReference))
                 return new JSNullExpression();
 
             return new JSBinaryOperatorExpression(
@@ -1088,10 +1090,10 @@ namespace JSIL {
 
         protected JSExpression Translate_Ldsfld (ILExpression node, FieldReference field) {
             var fieldInfo = TypeInfo.GetField(field);
-            if (IsIgnoredType(field.FieldType) || (fieldInfo == null) || fieldInfo.IsIgnored)
-                return new JSInvocationExpression(
-                    JSIL.IgnoredMember, JSLiteral.New(field.Name)
-                );
+            if (fieldInfo == null)
+                return new JSIgnoredMemberReference(true, null, JSLiteral.New(field.FullName));
+            else if (IsIgnoredType(field.FieldType) || fieldInfo.IsIgnored)
+                return new JSIgnoredMemberReference(true, fieldInfo);
 
             JSExpression result = new JSDotExpression(
                 new JSType(field.DeclaringType),
@@ -1127,14 +1129,12 @@ namespace JSIL {
             var translated = TranslateNode(firstArg);
 
             // GetCallSite and CreateCallSite produce null expressions, so we want to ignore field references containing them
-            if ((translated.IsNull) && !(translated is JSUntranslatableExpression))
+            if ((translated.IsNull) && !(translated is JSUntranslatableExpression) && !(translated is JSIgnoredMemberReference))
                 return new JSNullExpression();
 
             var fieldInfo = TypeInfo.GetField(field);
             if (IsIgnoredType(field.FieldType) || (fieldInfo == null) || fieldInfo.IsIgnored)
-                return new JSInvocationExpression(
-                    JSIL.IgnoredMember, JSLiteral.New(field.Name)
-                );
+                return new JSIgnoredMemberReference(true, fieldInfo, translated);
 
             JSExpression thisExpression;
             if (IsInvalidThisExpression(firstArg)) {
@@ -1689,6 +1689,9 @@ namespace JSIL {
 
         protected JSExpression Translate_Call (ILExpression node, MethodReference method) {
             var methodInfo = TypeInfo.GetMethod(method);
+            if (methodInfo == null)
+                return new JSIgnoredMemberReference(true, null, JSLiteral.New(method.FullName));
+
             var thisType = DereferenceType(ThisMethod.DeclaringType);
             var declaringType = DereferenceType(method.DeclaringType);
 
@@ -1773,6 +1776,9 @@ namespace JSIL {
 
             var translatedArguments = Translate(node.Arguments.Skip(1), method.Parameters);
             var methodInfo = TypeInfo.GetMethod(method);
+
+            if (methodInfo == null)
+                return new JSIgnoredMemberReference(true, null, JSLiteral.New(method.FullName));
 
             return Translate_MethodReplacement(
                method, thisExpression, new JSDotExpression(thisExpression, new JSMethod(method, methodInfo)),

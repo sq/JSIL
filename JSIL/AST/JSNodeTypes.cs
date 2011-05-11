@@ -1004,6 +1004,9 @@ namespace JSIL.Ast {
         public readonly JSExpression[] Arguments;
 
         public JSIgnoredMemberReference (bool throwError, IMemberInfo member, params JSExpression[] arguments) {
+            if ((member == null) && ((arguments == null) || (arguments.Length == 0)))
+                throw new ArgumentNullException();
+
             ThrowError = throwError;
             Member = member;
             Arguments = arguments;
@@ -1028,6 +1031,14 @@ namespace JSIL.Ast {
             }
 
             return EqualsImpl(obj, true);
+        }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            for (int i = 0; i < Arguments.Length; i++)
+                if (Arguments[i] == oldChild)
+                    Arguments[i] = (JSExpression)newChild;
+
+            base.ReplaceChild(oldChild, newChild);
         }
     }
 
@@ -1431,6 +1442,9 @@ namespace JSIL.Ast {
         public readonly FieldInfo Field;
 
         public JSField (FieldInfo field) {
+            if (field == null)
+                throw new ArgumentNullException();
+
             Field = field;
         }
 
@@ -1447,6 +1461,9 @@ namespace JSIL.Ast {
         public readonly PropertyInfo Property;
 
         public JSProperty (PropertyInfo property) {
+            if (property == null)
+                throw new ArgumentNullException();
+
             Property = property;
         }
 
@@ -1470,6 +1487,9 @@ namespace JSIL.Ast {
         public readonly MethodInfo Method;
 
         public JSMethod (MethodReference reference, MethodInfo method) {
+            if ((reference == null) || (method == null))
+                throw new ArgumentNullException();
+
             Reference = reference;
             Method = method;
         }

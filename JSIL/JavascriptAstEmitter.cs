@@ -191,7 +191,8 @@ namespace JSIL {
         public void VisitNode (JSExpressionStatement statement) {
             bool isNull = (statement.IsNull ||
                 statement.Expression.IsNull) && 
-                !(statement.Expression is JSUntranslatableExpression);
+                !(statement.Expression is JSUntranslatableExpression) &&
+                !(statement.Expression is JSIgnoredMemberReference);
 
             Visit(statement.Expression);
 
@@ -335,6 +336,27 @@ namespace JSIL {
             Output.Identifier("JSIL.UntranslatableInstruction", true);
             Output.LPar();
             Output.Value((ue.Type ?? "").ToString());
+            Output.RPar();
+        }
+
+        public void VisitNode (JSIgnoredMemberReference imr) {
+            Output.Identifier("JSIL.IgnoredMember", true);
+            Output.LPar();
+            if (imr.Member != null) {
+                var method = imr.Member as MethodInfo;
+                if (method != null)
+                    Output.Value(String.Format(
+                        "{0}({1})", method.Name, String.Join(", ",
+                            (from p in method.Member.Parameters select p.Name).ToArray()
+                        )
+                    ));
+                else
+                    Output.Value(imr.Member.Name);
+            }
+            if (imr.Arguments.Length != 0) {
+                Output.Comma();
+                CommaSeparatedList(imr.Arguments);
+            }
             Output.RPar();
         }
 
