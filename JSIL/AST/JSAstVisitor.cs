@@ -106,8 +106,11 @@ namespace JSIL.Ast {
             var oldNodeIndex = NodeIndex;
             var oldStatementIndex = StatementIndex;
 
+#if PARANOID
             if (Stack.Contains(node))
                 throw new InvalidOperationException("AST traversal formed a cycle");
+#endif
+
             Stack.Push(node);
 
             try {

@@ -80,6 +80,8 @@ namespace JSIL {
         public bool IncludeDependencies = true;
         public bool UseSymbols = true;
 
+        protected JavascriptAstEmitter AstEmitter;
+
         public AssemblyTranslator () {
             AddProxyAssembly(typeof(JSIL.Proxies.ObjectProxy).Assembly, false);
         }
@@ -468,6 +470,9 @@ namespace JSIL {
                 return;
 
             context.CurrentModule = module;
+
+            // Probably should be an argument, not a member variable...
+            AstEmitter = new JavascriptAstEmitter(output, new JSILIdentifier(context.CurrentModule.TypeSystem), context.CurrentModule.TypeSystem, this);
 
             foreach (var typedef in module.Types)
                 ForwardDeclareType(context, output, typedef);
@@ -993,7 +998,6 @@ namespace JSIL {
             //  by the cctor.
             // Everything else is emitted inline.
 
-            var emitter = new JavascriptAstEmitter(output, new JSILIdentifier(typeSystem), typeSystem, this);
             foreach (var f in typedef.Fields) {
                 if (f.IsStatic && NeedsStaticConstructor(f.FieldType))
                     continue;
@@ -1003,7 +1007,7 @@ namespace JSIL {
 
                 var expr = TranslateField(f);
                 if (expr != null)
-                    emitter.Visit(new JSExpressionStatement(expr));
+                    AstEmitter.Visit(new JSExpressionStatement(expr));
             }
 
             if (cctor != null) {
@@ -1045,16 +1049,11 @@ namespace JSIL {
 
             output.Token(" = ");
 
-            var emitter = new JavascriptAstEmitter(
-                output, new JSILIdentifier(context.CurrentModule.TypeSystem),
-                context.CurrentModule.TypeSystem, this
-            );
-
             var function = TranslateMethod(context, method, (f) => {
                 if (bodyTransformer != null)
                     bodyTransformer(f);
 
-                emitter.Visit(f);
+                AstEmitter.Visit(f);
                 output.Semicolon();
             });
 

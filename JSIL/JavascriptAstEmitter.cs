@@ -703,15 +703,17 @@ namespace JSIL {
             if (parens)
                 Output.LPar();
 
-            int depth = Stack.OfType<JSBinaryOperatorExpression>().Count();
-
             Visit(bop.Left);
             Output.Space();
             Output.Token(bop.Operator.Token);
             Output.Space();
 
-            if ((bop.Operator is JSLogicalOperator) && (depth > 1))
+            if (
+                (bop.Operator is JSLogicalOperator) &&
+                (Stack.OfType<JSBinaryOperatorExpression>().Skip(1).FirstOrDefault() != null)
+            ) {
                 Output.NewLine();
+            }
 
             Visit(bop.Right);
 

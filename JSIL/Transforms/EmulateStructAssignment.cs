@@ -70,7 +70,7 @@ namespace JSIL.Transforms {
 
         public void VisitNode (JSFunctionExpression fn) {
             // Create a new visitor for nested function expressions
-            if (Stack.OfType<JSFunctionExpression>().Count() > 1) {
+            if (Stack.OfType<JSFunctionExpression>().Skip(1).FirstOrDefault() != null) {
                 var nested = new EmulateStructAssignment(TypeSystem, CLR);
                 nested.Visit(fn);
                 return;

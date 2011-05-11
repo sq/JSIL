@@ -572,8 +572,8 @@ namespace JSIL {
         }
 
         protected bool ContainsLabels (ILNode root) {
-            var labels = root.GetSelfAndChildrenRecursive<ILLabel>();
-            return labels.Count() > 0;
+            var label = root.GetSelfAndChildrenRecursive<ILLabel>().FirstOrDefault();
+            return label != null;
         }
 
 
@@ -641,7 +641,7 @@ namespace JSIL {
         }
 
         public JSBlockStatement TranslateNode (ILBlock block) {
-            return TranslateBlock(block.GetChildren());
+            return TranslateBlock(block.Body);
         }
 
         public JSExpression TranslateNode (ILFixedStatement fxd) {
