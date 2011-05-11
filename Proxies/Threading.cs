@@ -16,7 +16,7 @@ namespace JSIL.Proxies {
 
         [JSExternal]
         [JSRuntimeDispatch]
-        public static int CompareExchange (ref int location1, int value, int comparand, ref bool succeeded) {
+        public static Int32 CompareExchange (ref Int32 location1, Int32 value, Int32 comparand, ref Boolean succeeded) {
             throw new InvalidOperationException();
         }
     }

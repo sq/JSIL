@@ -24,4 +24,11 @@ namespace JSIL.Proxies {
         )]
         public static System.Reflection.MemberFilter FilterNameIgnoreCase;
     }
+
+    [JSProxy(
+        "System.RuntimeType",
+        JSProxyMemberPolicy.ReplaceNone
+    )]
+    public abstract class RuntimeTypeProxy {
+    }
 }

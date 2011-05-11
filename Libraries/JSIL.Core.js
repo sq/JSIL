@@ -60,33 +60,45 @@ JSIL.DeclareNamespace(JSIL, "Host");
 JSIL.Host.getCanvas = function () {
   throw new Error("No canvas implementation");
 };
-JSIL.Host.logWrite = function (text) {
-  if (typeof (console) !== "undefined")
-    Function.prototype.apply.apply(console.log, [console, text]);
-  else if (JSIL.HostType.IsBrowser)
-    window.alert(text);
-  else
-    putstr(text);
-};
-JSIL.Host.logWriteLine = function (text) {
-  if (typeof (console) !== "undefined")
-    Function.prototype.apply.apply(console.log, [console, text]);
-  else if (JSIL.HostType.IsBrowser)
-    window.alert(text);
-  else
-    print(text);
-};
-JSIL.Host.warning = function (text) {
-  if (typeof (console) !== "undefined")
-    Function.prototype.apply.apply(console.warn, [console, arguments]);
-  else
+
+if (typeof (console) !== "undefined")
+  JSIL.Host.logWrite = console.log.bind(console);
+else
+  JSIL.Host.logWrite = function (text) {
+    if (JSIL.HostType.IsBrowser)
+      window.alert(text);
+    else
+      putstr(text);
+  };
+
+if (typeof (console) !== "undefined")
+  JSIL.Host.logWriteLine = console.log.bind(console);
+else
+  JSIL.Host.logWriteLine = function (text) {
+    if (JSIL.HostType.IsBrowser)
+      window.alert(text);
+    else
+      print(text);
+  };
+
+if (typeof (console) !== "undefined")
+  JSIL.Host.warning = console.warn.bind(console);
+else
+  JSIL.Host.warning = function (text) {
     JSIL.Host.logWriteLine(System.String.Concat.apply(null, arguments));
-};
+  };
+
 JSIL.Host.error = function (exception, text) {
   var rest = Array.prototype.slice.call(arguments, 1);
+  var stack = null;
+  try {
+    stack = exception.stack;
+  } catch (e) {
+    stack = exception;
+  }
 
   if (typeof (console) !== "undefined")
-    Function.prototype.apply.apply(console.warn, [console, rest.concat(exception)]);
+    Function.prototype.apply.apply(console.error, [console, rest.concat([stack])]);
   else
     throw exception;
 }
@@ -174,13 +186,15 @@ JSIL.TypeObjectPrototype.prototype.Of = function (T) {
   return this.__Self__;
 };
 
-JSIL.TypeObject = new JSIL.TypeObjectPrototype();
-JSIL.TypeObject.__IsReferenceType__ = true;
-JSIL.TypeObject.__IsInterface__ = false;
-JSIL.TypeObject.__TypeInitialized__ = false;
-JSIL.TypeObject.__LockCount__ = 0;
-JSIL.TypeObject.__FullName__ = null;
-JSIL.TypeObject.__ShortName__ = null;
+System.RuntimeType = new JSIL.TypeObjectPrototype();
+System.RuntimeType.prototype = {}; // Fixes mscorlib translation generating members for RuntimeType
+System.RuntimeType.__IsReferenceType__ = true;
+System.RuntimeType.IsInterface = false;
+System.RuntimeType.IsEnum = false;
+System.RuntimeType.__TypeInitialized__ = false;
+System.RuntimeType.__LockCount__ = 0;
+System.RuntimeType.__FullName__ = null;
+System.RuntimeType.__ShortName__ = null;
 
 JSIL.InitializeType = function (type) {
   if (type.__TypeInitialized__ || false)
@@ -211,7 +225,7 @@ JSIL.InitializeStructFields = function (instance, typeObject) {
         instance[fieldName] = new fieldType();
       } else {
         instance[fieldName] = new System.ValueType();
-        JSIL.Host.error(new Error("The type of field ", JSIL.GetTypeName(typeObject) + "." + fieldName, " is undefined."));
+        JSIL.Host.error(new Error("The type of field " + JSIL.GetTypeName(typeObject) + "." + fieldName + " is undefined."));
       }
     }
   }
@@ -267,7 +281,7 @@ JSIL.MakeStaticClass = function (namespace, localName, fullName) {
     return;
   }
 
-  var typeObject = JSIL.CloneObject(JSIL.TypeObject);
+  var typeObject = JSIL.CloneObject(System.RuntimeType);
   typeObject.__FullName__ = fullName;
   typeObject.__ShortName__ = localName;
   typeObject.__IsStatic__ = true;
@@ -296,7 +310,7 @@ JSIL.MakeType = function (baseType, namespace, localName, fullName, isReferenceT
       this._ctor.apply(this, args);
   };
 
-  typeObject.__proto__ = JSIL.TypeObject;
+  typeObject.__proto__ = System.RuntimeType;
   typeObject.__IsReferenceType__ = isReferenceType;
   typeObject.__Self__ = typeObject;
   typeObject.__FullName__ = fullName;
@@ -331,11 +345,11 @@ JSIL.MakeInterface = function (namespace, localName, fullName, members) {
   var typeObject = function() {
     throw new Error("Cannot construct an instance of an interface");
   }
-  typeObject.__proto__ = JSIL.TypeObject;
+  typeObject.__proto__ = System.RuntimeType;
   typeObject.__Members__ = members;
   typeObject.__ShortName__ = localName;
   typeObject.__FullName__ = fullName;
-  typeObject.__IsInterface__ = true;
+  typeObject.IsInterface = true;
   typeObject.prototype = JSIL.CloneObject(JSIL.Interface.prototype);
 
   namespace[localName] = typeObject;
@@ -348,14 +362,16 @@ JSIL.MakeEnum = function (namespace, localName, fullName, members, isFlagsEnum) 
   }
   
   var enumType = System.Enum;
-  var enumProto = enumType.prototype;
-  var prototype = JSIL.CloneObject(System.Enum.prototype);
+  var prototype = JSIL.CloneObject(enumType.prototype);
   prototype.__BaseType__ = enumType;
   prototype.__ShortName__ = localName;
   prototype.__FullName__ = fullName;
 
   var result = {
     prototype: prototype,
+    __BaseType__: enumType,
+    __FullName__: fullName, 
+    IsEnum: true,
     __ValueToName__: {}
   };
 
@@ -409,7 +425,7 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
       continue __interfaces__;
     }
 
-    if (iface.__IsInterface__ !== true) {
+    if (iface.IsInterface !== true) {
       JSIL.Host.warning("Type ", JSIL.GetTypeName(iface), " is not an interface.");
       continue __interfaces__;
     }
@@ -481,7 +497,7 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
   else if (value === null)
     return false;
 
-  if (expectedType.__IsInterface__ === true) {
+  if (expectedType.IsInterface === true) {
     var interfaces = value.__Interfaces__;
 
     while (JSIL.IsArray(interfaces)) {
@@ -532,7 +548,7 @@ JSIL.IsArray = function (value) {
 JSIL.GetType = function (value) {
   var result;
 
-  if (typeof (value.__Type__) != "undefined")
+  if ((typeof (value) !== "undefined") && (typeof (value.__Type__) !== "undefined"))
     return value.__Type__;
 
   var type = typeof (value);

@@ -94,3 +94,51 @@ System.Drawing.Color._cctor = function () {
   System.Drawing.Color.BlueViolet = new System.Drawing.Color(0xFF, 0x8A, 0x2B, 0xE2, "BlueViolet");
   System.Drawing.Color.Aquamarine = new System.Drawing.Color(0xFF, 0x7F, 0xFF, 0xD4, "Aquamarine");
 };
+JSIL.SealType(System.Drawing, "Color");
+
+JSIL.MakeStruct(System.Drawing, "Size", "System.Drawing.Size");
+System.Drawing.Size.prototype.Width = 0;
+System.Drawing.Size.prototype.Height = 0;
+System.Drawing.Size.prototype._ctor = function (w, h) {
+  this.Width = w;
+  this.Height = h;
+}
+System.Drawing.Size._cctor = function () {
+  System.Drawing.Size.Empty = new System.Drawing.Size();
+}
+JSIL.SealType(System.Drawing, "Size");
+
+JSIL.MakeStruct(System.Drawing, "Point", "System.Drawing.Point");
+System.Drawing.Point.prototype.X = 0;
+System.Drawing.Point.prototype.Y = 0;
+System.Drawing.Point.prototype._ctor = function (x, y) {
+  this.X = x;
+  this.Y = y;
+}
+System.Drawing.Point._cctor = function () {
+  System.Drawing.Point.Empty = new System.Drawing.Point();
+}
+JSIL.SealType(System.Drawing, "Point");
+
+JSIL.MakeStruct(System.Drawing, "Rectangle", "System.Drawing.Rectangle");
+System.Drawing.Rectangle.prototype.X = 0;
+System.Drawing.Rectangle.prototype.Y = 0;
+System.Drawing.Rectangle.prototype.Width = 0;
+System.Drawing.Rectangle.prototype.Height = 0;
+System.Drawing.Rectangle.prototype._ctor = function (x, y, w, h) {
+  if ((typeof (x) === "object") && (typeof (y) === "object")) {
+    this.X = x.X;
+    this.Y = x.Y;
+    this.Width = y.Width;
+    this.Height = y.Height;
+  } else {
+    this.X = x;
+    this.Y = y;
+    this.Width = w;
+    this.Height = h;
+  }
+}
+System.Drawing.Rectangle._cctor = function () {
+  System.Drawing.Rectangle.Empty = new System.Drawing.Rectangle();
+}
+JSIL.SealType(System.Drawing, "Rectangle");

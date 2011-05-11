@@ -87,7 +87,11 @@
       
       loadScripts(scriptsToLoad, function () {
         document.getElementById("loadingProgress").style.display = "none";
-        Mannux.Program.Main([]);
+        try {
+          Mannux.Program.Main([]);
+        } catch (e) {
+          JSIL.Host.error(e, "Error while starting Mannux");
+        }
       });
     }
     
