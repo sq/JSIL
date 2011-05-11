@@ -16,6 +16,7 @@ namespace JSIL {
     class ILBlockTranslator {
         public readonly AssemblyTranslator Translator;
         public readonly DecompilerContext Context;
+        public readonly MethodReference ThisMethodReference;
         public readonly MethodDefinition ThisMethod;
         public readonly ILBlock Block;
         public readonly JavascriptFormatter Output = null;
@@ -35,18 +36,19 @@ namespace JSIL {
 
         protected readonly Stack<JSStatement> Blocks = new Stack<JSStatement>();
 
-        public ILBlockTranslator (AssemblyTranslator translator, DecompilerContext context, MethodDefinition method, ILBlock ilb, IEnumerable<ILVariable> parameters, IEnumerable<ILVariable> allVariables) {
+        public ILBlockTranslator (AssemblyTranslator translator, DecompilerContext context, MethodReference methodReference, MethodDefinition methodDefinition, ILBlock ilb, IEnumerable<ILVariable> parameters, IEnumerable<ILVariable> allVariables) {
             Translator = translator;
             Context = context;
-            ThisMethod = method;
+            ThisMethodReference = methodReference;
+            ThisMethod = methodDefinition;
             Block = ilb;
 
             JSIL = new JSILIdentifier(TypeSystem);
             JS = new JSSpecialIdentifiers(TypeSystem);
             CLR = new CLRSpecialIdentifiers(TypeSystem);
 
-            if (method.HasThis)
-                Variables.Add("this", JSThisParameter.New(method.DeclaringType));
+            if (methodReference.HasThis)
+                Variables.Add("this", JSThisParameter.New(methodReference.DeclaringType));
 
             foreach (var parameter in parameters) {
                 if ((parameter.Name == "this") && (parameter.OriginalParameter.Index == -1))
@@ -276,7 +278,7 @@ namespace JSIL {
 
             JSExpression propertyResult;
             if (
-                Translate_PropertyCall(thisExpression, methodInfo.Member, arguments, virt, out propertyResult)
+                Translate_PropertyCall(thisExpression, method, methodInfo.Member, arguments, virt, out propertyResult)
             ) {
                 result = propertyResult;
             } else {
@@ -291,7 +293,7 @@ namespace JSIL {
             return result;
         }
 
-        protected bool Translate_PropertyCall (JSExpression thisExpression, MethodDefinition method, JSExpression[] arguments, bool virt, out JSExpression result) {
+        protected bool Translate_PropertyCall (JSExpression thisExpression, MemberReference reference, MethodDefinition method, JSExpression[] arguments, bool virt, out JSExpression result) {
             result = null;
 
             var methodInfo = TypeInfo.GetMethod(method);
@@ -329,7 +331,7 @@ namespace JSIL {
             Func<JSExpression> generate = () => {
                 if ((propertyInfo.Member.GetMethod != null) && (method.FullName == propertyInfo.Member.GetMethod.FullName)) {
                     return new JSDotExpression(
-                        thisExpression, new JSProperty(propertyInfo)
+                        thisExpression, new JSProperty(reference, propertyInfo)
                     );
                 } else {
                     if (arguments.Length == 0)
@@ -338,7 +340,7 @@ namespace JSIL {
                     return new JSBinaryOperatorExpression(
                         JSOperator.Assignment,
                         new JSDotExpression(
-                            thisExpression, new JSProperty(propertyInfo)
+                            thisExpression, new JSProperty(reference, propertyInfo)
                         ),
                         arguments[0], propertyInfo.ReturnType
                     );
@@ -1131,7 +1133,7 @@ namespace JSIL {
 
             JSExpression result = new JSDotExpression(
                 new JSType(field.DeclaringType),
-                new JSField(fieldInfo)
+                new JSField(field, fieldInfo)
             );
 
             if (CopyOnReturn(field.FieldType))
@@ -1182,7 +1184,7 @@ namespace JSIL {
 
             JSExpression result = new JSDotExpression(
                 thisExpression,
-                new JSField(fieldInfo)
+                new JSField(field, fieldInfo)
             );
 
             if (CopyOnReturn(field.FieldType))
@@ -1419,7 +1421,7 @@ namespace JSIL {
 
         protected JSExpression Translate_Unbox_Any (ILExpression node, TypeReference targetType) {
             var value = TranslateNode(node.Arguments[0]);
-            var result = JSIL.Cast(value, JSExpression.ResolveGenericType(targetType, ThisMethod, ThisMethod.DeclaringType));
+            var result = JSIL.Cast(value, TypeAnalysis.SubstituteTypeArgs(targetType, ThisMethodReference));
 
             if (CopyOnReturn(targetType))
                 return JSReferenceExpression.New(result);
@@ -1521,7 +1523,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Newobj (ILExpression node, MethodReference constructor) {
-            constructor = JSExpression.ResolveGenericMethod(constructor, ThisMethod, ThisMethod.DeclaringType);
+            constructor = JSExpression.ResolveGenericMethod(constructor);
             var arguments = Translate(node.Arguments);
 
             if (IsDelegateType(constructor.DeclaringType)) {
@@ -1543,7 +1545,7 @@ namespace JSIL {
                             // Lambda with no closed-over values
 
                             return Translator.TranslateMethod(
-                                Context, methodDef
+                                Context, constructor, methodDef
                             );
                         } else if (
                             methodDef.DeclaringType.IsCompilerGenerated() &&
@@ -1554,7 +1556,7 @@ namespace JSIL {
                         ) {
                             // Lambda with closed-over values
                             var function = Translator.TranslateMethod(
-                                Context, methodDef
+                                Context, constructor, methodDef
                             );
 
                             new VariableEliminator(
@@ -1689,7 +1691,7 @@ namespace JSIL {
                         (method != null) && (method.Method.DeclaringProperty != null)
                     ) {
                         initializers.Add(new JSPairExpression(
-                            new JSProperty(method.Method.DeclaringProperty), ie.Arguments[0]
+                            new JSProperty(method.Reference, method.Method.DeclaringProperty), ie.Arguments[0]
                         ));
                     } else {
                         Console.Error.WriteLine(String.Format("Warning: Object initializer element not implemented: {0}", translated));
@@ -1718,7 +1720,7 @@ namespace JSIL {
 
         protected JSExpression Translate_Ldtoken (ILExpression node, FieldReference field) {
             var fieldInfo = TypeInfo.GetField(field);
-            return new JSField(fieldInfo);
+            return new JSField(field, fieldInfo);
         }
 
         protected JSExpression Translate_Call (ILExpression node, MethodReference method) {
@@ -1768,13 +1770,21 @@ namespace JSIL {
                     )
                 ) {
                     arguments = arguments.Skip(1);
-                    invokeTarget = JSDotExpression.New(thisExpression, new JSMethod(method, methodInfo));
+                    invokeTarget = JSDotExpression.New(
+                        thisExpression, new JSMethod(method, methodInfo)
+                    );
                 } else {
-                    invokeTarget = JSDotExpression.New(new JSType(method.DeclaringType), JS.prototype, new JSMethod(method, methodInfo), JS.call(method.ReturnType));
+                    invokeTarget = JSDotExpression.New(
+                        new JSType(method.DeclaringType), JS.prototype, 
+                        new JSMethod(method, methodInfo), 
+                        JS.call(method.ReturnType)
+                    );
                 }
             } else {
                 thisExpression = new JSType(method.DeclaringType);
-                invokeTarget = JSDotExpression.New(thisExpression, new JSMethod(method, methodInfo));
+                invokeTarget = JSDotExpression.New(
+                    thisExpression, new JSMethod(method, methodInfo)
+                );
             }
 
             var translatedArguments = Translate(arguments.ToArray(), method.Parameters);
@@ -1815,8 +1825,9 @@ namespace JSIL {
                 return new JSIgnoredMemberReference(true, null, JSLiteral.New(method.FullName));
 
             return Translate_MethodReplacement(
-               method, thisExpression, new JSDotExpression(thisExpression, new JSMethod(method, methodInfo)),
-               translatedArguments, true
+               method, thisExpression, new JSDotExpression(
+                   thisExpression, new JSMethod(method, methodInfo)
+               ), translatedArguments, true
             );
         }
 

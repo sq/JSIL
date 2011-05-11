@@ -271,7 +271,12 @@ namespace JSIL {
             if (type == null)
                 throw new ArgumentNullException("type");
 
-            type = JSExpression.ResolveGenericType(type, type, type.DeclaringType);
+            // TODO: Enable this once it's fixed in ILSpy upstream
+            /*
+            if (type.DeclaringType != null)
+                type = TypeAnalysis.SubstituteTypeArgs(type, type.DeclaringType);
+             */
+
             var identifier = new TypeIdentifier(type);
 
             var fullName = type.FullName;
@@ -439,7 +444,12 @@ namespace JSIL {
             if (type == null)
                 throw new ArgumentNullException("type");
 
-            type = JSExpression.ResolveGenericType(type, type, type.DeclaringType);
+            // TODO: Enable this once it's fixed upstream
+            /*
+            if (type.DeclaringType != null)
+                type = TypeAnalysis.SubstituteTypeArgs(type, type.DeclaringType);
+             */
+
             var identifier = new TypeIdentifier(type);
 
             TypeInfo result;
@@ -706,7 +716,7 @@ namespace JSIL {
                 if (method.Name == ".cctor")
                     continue;
 
-                TranslateMethod(context, output, method);
+                TranslateMethod(context, output, method, method);
             }
 
             foreach (var methodGroup in info.MethodGroups)
@@ -834,12 +844,16 @@ namespace JSIL {
             output.Semicolon();
         }
 
-        internal JSFunctionExpression TranslateMethod (DecompilerContext context, MethodDefinition method, Action<JSFunctionExpression> bodyTransformer = null) {
+        internal JSFunctionExpression TranslateMethod (DecompilerContext context, MethodReference method, MethodDefinition methodDef, Action<JSFunctionExpression> bodyTransformer = null) {
             var oldMethod = context.CurrentMethod;
             try {
-                context.CurrentMethod = method;
+                if (method == null)
+                    throw new ArgumentNullException("method");
+                if (methodDef == null)
+                    throw new ArgumentNullException("methodDef");
 
-                if (method.Body.Instructions.Count > LargeMethodThreshold)
+                context.CurrentMethod = methodDef;
+                if (methodDef.Body.Instructions.Count > LargeMethodThreshold)
                     this.StartedDecompilingMethod(method.FullName);
 
                 ILBlock ilb;
@@ -847,7 +861,7 @@ namespace JSIL {
                 var optimizer = new ILAstOptimizer();
 
                 try {
-                    ilb = new ILBlock(decompiler.Build(method, true));
+                    ilb = new ILBlock(decompiler.Build(methodDef, true));
                     optimizer.Optimize(context, ilb);
                 } catch (Exception exception) {
                     if (CouldNotDecompileMethod != null)
@@ -866,7 +880,7 @@ namespace JSIL {
                 NameVariables.AssignNamesToVariables(context, decompiler.Parameters, allVariables, ilb);
 
                 var translator = new ILBlockTranslator(
-                    this, context, method, ilb, decompiler.Parameters, allVariables
+                    this, context, method, methodDef, ilb, decompiler.Parameters, allVariables
                 );
                 var body = translator.Translate();
 
@@ -874,7 +888,7 @@ namespace JSIL {
                     return null;
 
                 var function = new JSFunctionExpression(
-                    method,
+                    methodDef, method,
                     translator.Variables,
                     from p in translator.ParameterNames select translator.Variables[p], 
                     body
@@ -912,7 +926,7 @@ namespace JSIL {
                 if (bodyTransformer != null)
                     bodyTransformer(function);
 
-                if (method.Body.Instructions.Count > LargeMethodThreshold)
+                if (methodDef.Body.Instructions.Count > LargeMethodThreshold)
                     this.FinishedDecompilingMethod(method.FullName);
 
                 return function;
@@ -945,11 +959,11 @@ namespace JSIL {
             
             if (field.IsStatic)
                 target = JSDotExpression.New(
-                    new JSType(field.DeclaringType), new JSField(fieldInfo)
+                    new JSType(field.DeclaringType), new JSField(field, fieldInfo)
                 );
             else
                 target = JSDotExpression.New(
-                    new JSType(field.DeclaringType), new JSStringIdentifier("prototype"), new JSField(fieldInfo)
+                    new JSType(field.DeclaringType), new JSStringIdentifier("prototype"), new JSField(field, fieldInfo)
                 );
 
             if (field.HasConstant) {
@@ -1011,7 +1025,7 @@ namespace JSIL {
             }
 
             if (cctor != null) {
-                TranslateMethod(context, output, cctor, fixupCctor);
+                TranslateMethod(context, output, cctor, cctor, fixupCctor);
             } else if (fieldsToEmit.Length > 0) {
                 var fakeCctor = new MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static, typeSystem.Void);
                 fakeCctor.DeclaringType = typedef;
@@ -1021,11 +1035,11 @@ namespace JSIL {
                 var identifier = MemberIdentifier.New(fakeCctor);
                 typeInfo.Members[identifier] = new Internal.MethodInfo(typeInfo, identifier, fakeCctor, new ProxyInfo[0]);
 
-                TranslateMethod(context, output, fakeCctor, fixupCctor);
+                TranslateMethod(context, output, fakeCctor, fakeCctor, fixupCctor);
             }
         }
 
-        protected void TranslateMethod (DecompilerContext context, JavascriptFormatter output, MethodDefinition method, Action<JSFunctionExpression> bodyTransformer = null) {
+        protected void TranslateMethod (DecompilerContext context, JavascriptFormatter output, MethodReference methodRef, MethodDefinition method, Action<JSFunctionExpression> bodyTransformer = null) {
             var methodInfo = GetMemberInformation<Internal.MethodInfo>(method);
             if (methodInfo == null)
                 return;
@@ -1049,7 +1063,7 @@ namespace JSIL {
 
             output.Token(" = ");
 
-            var function = TranslateMethod(context, method, (f) => {
+            var function = TranslateMethod(context, methodRef, method, (f) => {
                 if (bodyTransformer != null)
                     bodyTransformer(f);
 

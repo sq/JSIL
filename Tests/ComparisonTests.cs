@@ -65,8 +65,11 @@ namespace JSIL.Tests {
                     using (var test = new ComparisonTest(filename))
                         test.Run();
                 } catch (Exception ex) {
-                    Console.Error.WriteLine(ex);
                     failureList.Add(Path.GetFileNameWithoutExtension(filename));
+                    if (ex.Message == "JS test failed")
+                        Debug.WriteLine(ex.InnerException);
+                    else
+                        Debug.WriteLine(ex);
                 }
             }
 
@@ -81,6 +84,12 @@ namespace JSIL.Tests {
                 test.Run();
 
             using (var test = new ComparisonTest(@"TestCases\LambdasUsingLocals.cs"))
+                test.Run();
+
+            using (var test = new ComparisonTest(@"TestCases\DelegatesReturningDelegates.cs"))
+                test.Run();
+
+            using (var test = new ComparisonTest(@"TestCases\NestedGenericMethodCalls.cs"))
                 test.Run();
         }
 

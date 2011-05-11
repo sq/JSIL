@@ -774,37 +774,46 @@ namespace JSIL {
                     select n).Count();
         }
 
-        public void VisitNode (JSInvocationExpression invocation) {
+        protected void VisitInvocation (JSExpression target, IList<JSExpression> arguments) {
             bool needsParens =
-                CountOfMatchingSubtrees<JSFunctionExpression>(new[] { invocation.Target }) > 0;
+                CountOfMatchingSubtrees<JSFunctionExpression>(new[] { target }) > 0;
 
             if (needsParens)
                 Output.LPar();
 
-            Visit(invocation.Target);
+            Visit(target);
 
             if (needsParens)
                 Output.RPar();
 
             Output.LPar();
 
-            bool needLineBreak = 
-                ((invocation.Arguments.Count > 1) && 
+            bool needLineBreak =
+                ((arguments.Count > 1) &&
                 (
-                    (CountOfMatchingSubtrees<JSFunctionExpression>(invocation.Arguments) > 1) ||
-                    (CountOfMatchingSubtrees<JSInvocationExpression>(invocation.Arguments) > 1)
+                    (CountOfMatchingSubtrees<JSFunctionExpression>(arguments) > 1) ||
+                    (CountOfMatchingSubtrees<JSInvocationExpression>(arguments) > 1) ||
+                    (CountOfMatchingSubtrees<JSDelegateInvocationExpression>(arguments) > 1)
                 )) ||
-                (invocation.Arguments.Count > 4);
+                (arguments.Count > 4);
 
             if (needLineBreak)
                 Output.NewLine();
 
-            CommaSeparatedList(invocation.Arguments, needLineBreak);
+            CommaSeparatedList(arguments, needLineBreak);
 
             if (needLineBreak)
                 Output.NewLine();
 
             Output.RPar();
+        }
+
+        public void VisitNode (JSDelegateInvocationExpression invocation) {
+            VisitInvocation(invocation.Target, invocation.Arguments);
+        }
+
+        public void VisitNode (JSInvocationExpression invocation) {
+            VisitInvocation(invocation.Target, invocation.Arguments);
         }
     }
 }

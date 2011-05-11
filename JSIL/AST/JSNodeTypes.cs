@@ -216,6 +216,8 @@ namespace JSIL.Ast {
 
     public class JSFunctionExpression : JSExpression {
         public readonly MethodDefinition OriginalMethod;
+        public readonly MethodReference OriginalMethodReference;
+
         public readonly Dictionary<string, JSVariable> AllVariables;
         // This has to be JSVariable, because 'this' is of type (JSVariableReference<JSThisParameter>) for structs
         // We also need to make this an IEnumerable, so it can be a select expression instead of a constant array
@@ -223,9 +225,10 @@ namespace JSIL.Ast {
         public readonly JSBlockStatement Body;
 
         public JSFunctionExpression (
-            MethodDefinition originalMethod, Dictionary<string, JSVariable> allVariables, IEnumerable<JSVariable> parameters, JSBlockStatement body
+            MethodDefinition originalMethod, MethodReference originalMethodReference, Dictionary<string, JSVariable> allVariables, IEnumerable<JSVariable> parameters, JSBlockStatement body
         ) {
             OriginalMethod = originalMethod;
+            OriginalMethodReference = originalMethodReference;
             AllVariables = allVariables;
             Parameters = parameters;
             Body = body;
@@ -258,7 +261,7 @@ namespace JSIL.Ast {
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             if (OriginalMethod != null) {
-                var delegateType = ConstructDelegateType(OriginalMethod, typeSystem);
+                var delegateType = ConstructDelegateType(OriginalMethodReference, typeSystem);
                 if (delegateType == null)
                     return OriginalMethod.ReturnType;
                 else
@@ -630,52 +633,22 @@ namespace JSIL.Ast {
             return type;
         }
 
-        public static TypeReference ResolveGenericType (TypeReference type, params object[] contexts) {           
-            if (type.IsGenericParameter) {
-                var param = (GenericParameter)type;
-
-                foreach (var ctx in contexts) {
-                    var result = FindParameterInContext(param, ctx);
-
-                    if ((result != null) && (!result.IsGenericParameter))
-                        return result;
-                }
-
-                return type;
-            } else if (type is GenericInstanceType) {
-                var git = type as GenericInstanceType;
-                if (!git.GenericArguments.Any((ga) => ga.IsGenericParameter))
-                    return type;
-
-                var result = new GenericInstanceType(git.ElementType);
-                for (var i = 0; i < git.GenericArguments.Count; i++)
-                    result.GenericArguments.Add(ResolveGenericType(
-                        git.GenericArguments[i], new object[] { type }.Concat(contexts).ToArray()
-                    ));
-
-                return result;
-            }
-
-            return type;
-        }
-
-        public static MethodReference ResolveGenericMethod (MethodReference method, params object[] contexts) {
+        public static MethodReference ResolveGenericMethod (MethodReference method) {
             if (!method.ReturnType.IsGenericParameter &&
                 !method.Parameters.Any((p) => p.ParameterType.IsGenericParameter))
                 return method;
 
-            contexts = new object[] { method, method.DeclaringType }.Concat(contexts).ToArray();
+            TypeReference returnType;
+            returnType = TypeAnalysis.SubstituteTypeArgs(method.ReturnType, method);
 
             var result = new MethodReference(
-                method.Name,
-                ResolveGenericType(method.ReturnType, contexts),
-                ResolveGenericType(method.DeclaringType, contexts)
+                method.Name, returnType, method.DeclaringType
             );
 
             foreach (var parameter in method.Parameters)
                 result.Parameters.Add(new ParameterDefinition(
                     parameter.Name, parameter.Attributes,
-                    ResolveGenericType(parameter.ParameterType, contexts)
+                    TypeAnalysis.SubstituteTypeArgs(parameter.ParameterType, method)
                 ));
 
             if (!method.ReturnType.IsGenericParameter &&
@@ -689,9 +662,9 @@ namespace JSIL.Ast {
             method = ResolveGenericMethod(method);
 
             return ConstructDelegateType(
-                ResolveGenericType(method.ReturnType, method, method.DeclaringType), 
-                (from p in method.Parameters 
-                 select ResolveGenericType(p.ParameterType, p, method, method.DeclaringType)), 
+                TypeAnalysis.SubstituteTypeArgs(method.ReturnType, method), 
+                (from p in method.Parameters
+                 select TypeAnalysis.SubstituteTypeArgs(p.ParameterType, method)), 
                  typeSystem
             );
         }
@@ -1446,12 +1419,14 @@ namespace JSIL.Ast {
     }
 
     public class JSField : JSIdentifier {
+        public readonly FieldReference Reference;
         public readonly FieldInfo Field;
 
-        public JSField (FieldInfo field) {
-            if (field == null)
+        public JSField (FieldReference reference, FieldInfo field) {
+            if ((reference == null) || (field == null))
                 throw new ArgumentNullException();
 
+            Reference = reference;
             Field = field;
         }
 
@@ -1460,17 +1435,19 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return ResolveGenericType(Field.ReturnType, Field, Field.DeclaringType);
+            return TypeAnalysis.SubstituteTypeArgs(Field.ReturnType, Reference);
         }
     }
 
     public class JSProperty : JSIdentifier {
+        public readonly MemberReference Reference;
         public readonly PropertyInfo Property;
 
-        public JSProperty (PropertyInfo property) {
-            if (property == null)
+        public JSProperty (MemberReference reference, PropertyInfo property) {
+            if ((reference == null) || (property == null))
                 throw new ArgumentNullException();
 
+            Reference = reference;
             Property = property;
         }
 
@@ -1479,7 +1456,7 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return ResolveGenericType(Property.ReturnType, Property, Property.DeclaringType);
+            return TypeAnalysis.SubstituteTypeArgs(Property.ReturnType, Reference);
         }
 
         public override bool IsConstant {
@@ -1977,32 +1954,70 @@ namespace JSIL.Ast {
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             var targetType = Target.GetExpectedType(typeSystem);
 
-            var targetMethod = Target.AllChildrenRecursive.OfType<JSMethod>().FirstOrDefault();
+            var targetAbstractMethod = Target.AllChildrenRecursive.OfType<JSIdentifier>()
+                .FirstOrDefault((i) => {
+                    var m = i as JSMethod;
+                    var fm = i as JSFakeMethod;
+                    return (m != null) || (fm != null);
+                });
+
+            var targetMethod = (Target as JSMethod) ?? (targetAbstractMethod as JSMethod);
+            var targetFakeMethod = (Target as JSFakeMethod) ?? (targetAbstractMethod as JSFakeMethod);
 
             if (targetMethod != null)
-                return ResolveGenericType(targetMethod.Method.ReturnType, targetMethod.Method, targetMethod.Method.DeclaringType);
+                return TypeAnalysis.SubstituteTypeArgs(targetMethod.Reference.ReturnType, targetMethod.Reference);
+            else if (targetFakeMethod != null)
+                return targetFakeMethod.ReturnType;
 
             // Any invocation expression targeting a method or delegate will have an expected type that is a delegate.
-            // We need to deconstruct the delegate and get its return type.
-            if (ILBlockTranslator.IsDelegateType(targetType)) {
-                var resolved = ResolveGenericType(targetType, targetType).Resolve();
-
-                var invokeMethod = resolved.Methods.Where(
-                    (m) => m.Name == "Invoke"
-                ).FirstOrDefault();
-
-                if (invokeMethod != null) {
-                    var resultType = ResolveGenericType(invokeMethod.ReturnType, invokeMethod, targetType);
-                    return resultType;
-                }
-            }
+            // This should be handled by replacing the JSInvocationExpression with a JSDelegateInvocationExpression
+            if (ILBlockTranslator.IsDelegateType(targetType))
+                throw new NotImplementedException();                
 
             return targetType;
         }
 
-        public IList<JSExpression> Arguments {
+        public virtual IList<JSExpression> Arguments {
             get {
                 return Values.Skip(1);
+            }
+        }
+
+        public override string ToString () {
+            return String.Format(
+                "{0}:({1})", 
+                Target, 
+                String.Join(", ", (from a in Arguments select String.Concat(a)).ToArray())
+            );
+        }
+    }
+
+    public class JSDelegateInvocationExpression : JSExpression {
+        public JSDelegateInvocationExpression (JSExpression target, JSMethod invokeMethod, params JSExpression[] arguments)
+            : base ( 
+                (new [] { target, invokeMethod }).Concat(arguments).ToArray() 
+            ) {
+        }
+
+        public JSExpression Target {
+            get {
+                return Values[0];
+            }
+        }
+
+        public JSMethod InvokeMethod {
+            get {
+                return (JSMethod)Values[1];
+            }
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {            
+            return TypeAnalysis.SubstituteTypeArgs(InvokeMethod.Reference.ReturnType, InvokeMethod.Reference);
+        }
+
+        public virtual IList<JSExpression> Arguments {
+            get {
+                return Values.Skip(2);
             }
         }
 

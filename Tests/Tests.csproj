@@ -149,7 +149,7 @@
     <None Include="SpecialTestCases\PostIncrement.cs" />
     <None Include="SpecialTestCases\SingleUseTemporaries.cs" />
     <None Include="TestCases\LambdasUsingLocals.cs" />
-    <None Include="SimpleTestCases\DelegatesReturningDelegates.cs" />
+    <None Include="TestCases\DelegatesReturningDelegates.cs" />
     <None Include="SimpleTestCases\LotsOfParameters.cs" />
     <None Include="TestCases\InterleavedTemporaries.cs" />
     <None Include="TestCases\IndirectInterleavedTemporaries.cs" />
@@ -171,6 +171,7 @@
     <None Include="SimpleTestCases\StringCharacters.cs" />
     <None Include="SimpleTestCases\ComplexRefOverload.cs" />
     <None Include="SpecialTestCases\IgnoreParameterType.cs" />
+    <None Include="TestCases\NestedGenericMethodCalls.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

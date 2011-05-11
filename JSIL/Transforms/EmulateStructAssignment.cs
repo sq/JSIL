@@ -47,6 +47,7 @@ namespace JSIL.Transforms {
             if (
                 (value is JSLiteral) ||
                 (value is JSInvocationExpression) ||
+                (value is JSDelegateInvocationExpression) ||
                 (value is JSNewExpression) ||
                 (value is JSPassByReferenceExpression)
             ) {
@@ -93,6 +94,20 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSInvocationExpression invocation) {
+            for (int i = 0, c = invocation.Arguments.Count; i < c; i++) {
+                var argument = invocation.Arguments[i];
+
+                if (IsCopyNeeded(argument)) {
+                    if (Tracing)
+                        Debug.WriteLine(String.Format("struct copy introduced for argument {0}", argument));
+                    invocation.Arguments[i] = MakeCopy(argument);
+                }
+            }
+
+            VisitChildren(invocation);
+        }
+
+        public void VisitNode (JSDelegateInvocationExpression invocation) {
             for (int i = 0, c = invocation.Arguments.Count; i < c; i++) {
                 var argument = invocation.Arguments[i];
 

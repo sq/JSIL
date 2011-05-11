@@ -81,7 +81,11 @@ namespace JSIL.Transforms {
                     ILBlockTranslator.IsDelegateType(method.Reference.DeclaringType) &&
                     (method.Method.Name == "Invoke")
                 ) {
-                    ie.ReplaceChild(target, target.Target);
+                    var newIe = new JSDelegateInvocationExpression(target.Target, method, ie.Arguments.ToArray());
+                    ParentNode.ReplaceChild(ie, newIe);
+
+                    Visit(newIe);
+                    return;
                 } else if (
                     (method != null) &&
                     (method.Reference.DeclaringType.FullName == "System.Type") &&

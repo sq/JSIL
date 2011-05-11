@@ -93,7 +93,7 @@ namespace JSIL {
             return new JSInvocationExpression(
                 new JSDotExpression(
                     Dot("Array", TypeSystem.Object),
-                    new JSFakeMethod("New", arrayType, TypeSystem.Object)
+                    new JSFakeMethod("New", arrayType, arrayType)
                 ),
                 new JSType(elementType),
                 sizeOrArrayInitializer
