@@ -172,6 +172,7 @@
     <None Include="SimpleTestCases\ComplexRefOverload.cs" />
     <None Include="SpecialTestCases\IgnoreParameterType.cs" />
     <None Include="TestCases\NestedGenericMethodCalls.cs" />
+    <None Include="SimpleTestCases\StructArrayLiteral.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

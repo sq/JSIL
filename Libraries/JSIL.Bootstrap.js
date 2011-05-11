@@ -21,9 +21,9 @@ System.Delegate.prototype.GetInvocationList = function () {
 System.Delegate.GetInvocationList = function (delegate) {
   if (delegate === null) {
     return [ ];
-  } else if (typeof (delegate.GetInvocationList) == "function") {
+  } else if (typeof (delegate.GetInvocationList) === "function") {
     return delegate.GetInvocationList();
-  } else if (typeof (delegate) == "function") {
+  } else if (typeof (delegate) === "function") {
     return [ delegate ];
   }
 };
@@ -132,9 +132,12 @@ System.String = function (text) {
   return text;
 };
 System.String.CheckType = function (value) {
-  return (typeof (value) == "string");
+  return (typeof (value) === "string");
 }
 System.String.prototype = JSIL.MakeProto(String, System.String, "System.String", true);
+System.String.toString = function () {
+  return this.text;
+}
 System.String.Concat = function (firstValue) {
   var result = String(firstValue);
 
@@ -172,7 +175,7 @@ System.String.Format = function (format) {
       }
     } else {
 
-      if (typeof (value) == "boolean") {
+      if (typeof (value) === "boolean") {
         if (value)
           return "True";
         else
@@ -316,10 +319,10 @@ JSIL.MakeClass(System.Object, System, "Random", "System.Random");
 System.Random.prototype._ctor = function () {
 }
 System.Random.prototype.Next = function (min, max) {
-  if (typeof (min) == "undefined") {
+  if (typeof (min) === "undefined") {
     min = 0;
     max = Int32.MaxValue;
-  } else if (typeof (max) == "undefined") {
+  } else if (typeof (max) === "undefined") {
     max = min;
     min = 0;
   }
@@ -351,7 +354,7 @@ System.Char = function (ch) {
   return ch;
 };
 System.Char.CheckType = function (value) {
-  return (typeof (value) == "string") && (value.length == 1);
+  return (typeof (value) === "string") && (value.length == 1);
 }
 System.Char.prototype = JSIL.MakeProto(String, System.Char, "System.Char", false);
 
@@ -364,7 +367,7 @@ System.Byte = function (value) {
     return Math.floor(value);
 };
 System.Byte.CheckType = function (value) {
-  return (typeof (value) == "number") && (value >= 0) && (value <= 255);
+  return (typeof (value) === "number") && (value >= 0) && (value <= 255);
 }
 JSIL.MakeNumericType(Number, System.Byte, "System.Byte", true);
 
@@ -372,7 +375,7 @@ System.UInt16 = function (value) {
   return Math.abs(Math.floor(value));
 };
 System.UInt16.CheckType = function (value) {
-  return (typeof (value) == "number") && (value >= 0);
+  return (typeof (value) === "number") && (value >= 0);
 }
 JSIL.MakeNumericType(Number, System.UInt16, "System.UInt16", true);
 System.UInt16.MaxValue = 65535;
@@ -384,7 +387,7 @@ System.Int16 = function (value) {
   return Math.abs(Math.floor(value));
 };
 System.Int16.CheckType = function (value) {
-  return (typeof (value) == "number") && (value >= 0);
+  return (typeof (value) === "number");
 }
 JSIL.MakeNumericType(Number, System.Int16, "System.Int16", true);
 System.Int16.MaxValue = 32767;
@@ -396,7 +399,7 @@ System.UInt32 = function (value) {
   return Math.abs(Math.floor(value));
 };
 System.UInt32.CheckType = function (value) {
-  return (typeof (value) == "number") && (value >= 0);
+  return (typeof (value) === "number") && (value >= 0);
 }
 JSIL.MakeNumericType(Number, System.UInt32, "System.UInt32", true);
 System.UInt32.MaxValue = 4294967295;
@@ -408,7 +411,7 @@ System.Int32 = function (value) {
   return Math.floor(value);
 };
 System.Int32.CheckType = function (value) {
-  return (typeof (value) == "number");
+  return (typeof (value) === "number");
 }
 JSIL.MakeNumericType(Number, System.Int32, "System.Int32", true);
 System.Int32.MaxValue = 2147483647;
@@ -420,7 +423,7 @@ System.Int64 = function (value) {
   return Math.floor(value);
 };
 System.Int64.CheckType = function (value) {
-  return (typeof (value) == "number");
+  return (typeof (value) === "number");
 }
 JSIL.MakeNumericType(Number, System.Int64, "System.Int64", true);
 System.Int64.Parse = function (text) {
@@ -431,7 +434,7 @@ System.Single = function (value) {
   return value;
 }
 System.Single.CheckType = function (value) {
-  return (typeof (value) == "number");
+  return (typeof (value) === "number");
 }
 System.Single.IsNaN = isNaN;
 JSIL.MakeNumericType(Number, System.Single, "System.Single", false);
@@ -440,14 +443,14 @@ System.Double = function (value) {
   return value;
 }
 System.Double.CheckType = function (value) {
-  return (typeof (value) == "number");
+  return (typeof (value) === "number");
 }
 System.Double.IsNaN = isNaN;
 JSIL.MakeNumericType(Number, System.Double, "System.Double", false);
 
 JSIL.MakeStruct(System, "Decimal", "System.Decimal");
 System.Decimal.CheckType = function (value) {
-  return (typeof (value) == "number") || 
+  return (typeof (value) === "number") || 
     JSIL.CheckType(value, System.Decimal, true);
 };
 System.Decimal.prototype._ctor = function (value) {

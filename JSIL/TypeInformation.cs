@@ -955,9 +955,6 @@ namespace JSIL.Internal {
                     }
                 }
             }
-
-            if (Member.Name.Contains("GetProcessAffinityMask"))
-                Debugger.Break();
         }
 
         // Sometimes the type system prefixes the name of a member with some or all of the declaring type's name.

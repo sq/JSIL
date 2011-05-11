@@ -11,7 +11,7 @@ JSIL.DeclareNamespace = function (parent, name, sealed) {
 
   if (typeof (parent[name]) === "undefined") {
     var parentName = "";
-    if (typeof (parent.__FullName__) != "undefined")
+    if (typeof (parent.__FullName__) !== "undefined")
       parentName = parent.__FullName__ + ".";
 
     Object.defineProperty(
@@ -102,7 +102,7 @@ JSIL.UntranslatableFunction = function (functionName) {
 };
 
 JSIL.UntranslatableInstruction = function (instruction, operand) {
-  if (typeof (operand) != "undefined")
+  if (typeof (operand) !== "undefined")
     JSIL.Host.error(new Error("A MSIL instruction of type " + instruction + " with an operand of type " + operand + " could not be translated."));
   else
     JSIL.Host.error(new Error("A MSIL instruction of type " + instruction + " could not be translated."));
@@ -113,10 +113,10 @@ JSIL.IgnoredMember = function (memberName) {
 };
 
 JSIL.ExternalMember = function (namespace, memberName) {
-  if (typeof (namespace) == "undefined") {
+  if (typeof (namespace) === "undefined") {
     JSIL.Host.error(new Error("External member '" + memberName + "' declared in undefined namespace"));
-  } else if (typeof (namespace[memberName] == undefined)) {
-    JSIL.Host.warning("External member '" + memberName + "' of namespace '", namespace, "' is not defined");
+  } else if (typeof (namespace[memberName]) === "undefined") {
+    JSIL.Host.warning("External member '" + memberName + "' of namespace '", JSIL.GetTypeName(namespace), "' is not defined");
   }
 }
 
@@ -129,7 +129,7 @@ JSIL.CloneObject = function (obj) {
 };
 
 JSIL.MakeProto = function (baseType, target, typeName, isReferenceType) {
-  if (typeof (baseType) == "undefined")
+  if (typeof (baseType) === "undefined")
     throw new Error("The base type of '" + typeName + "' is not defined");
 
   var prototype = JSIL.CloneObject(baseType.prototype);
@@ -147,9 +147,9 @@ JSIL.MakeProperty = function (target, name, getter, setter) {
     enumerable: true
   };
 
-  if (typeof (getter) == "function")
+  if (typeof (getter) === "function")
     descriptor["get"] = getter;
-  if (typeof (setter) == "function")
+  if (typeof (setter) === "function")
     descriptor["set"] = setter;
 
   Object.defineProperty(target, name, descriptor);
@@ -161,19 +161,22 @@ JSIL.MakeNumericType = function (baseType, target, typeName, isIntegral) {
   target.prototype = prototype;
 };
 
-JSIL.TypeObject = function () {};
+JSIL.TypeObjectPrototype = function () {
+};
+JSIL.TypeObjectPrototype.prototype.toString = function () {
+  return JSIL.GetTypeName(this);
+};
+JSIL.TypeObjectPrototype.prototype.Of = function (T) {
+  return this.__Self__;
+};
+
+JSIL.TypeObject = new JSIL.TypeObjectPrototype();
 JSIL.TypeObject.__IsReferenceType__ = true;
 JSIL.TypeObject.__IsInterface__ = false;
 JSIL.TypeObject.__TypeInitialized__ = false;
 JSIL.TypeObject.__LockCount__ = 0;
 JSIL.TypeObject.__FullName__ = null;
 JSIL.TypeObject.__ShortName__ = null;
-JSIL.TypeObject.Of = function (T) {
-  return this.__Self__;
-};
-JSIL.TypeObject.toString = function () {
-  return JSIL.GetTypeName(this);
-};
 
 JSIL.InitializeType = function (type) {
   if (type.__TypeInitialized__ || false)
@@ -194,7 +197,7 @@ JSIL.InitializeType = function (type) {
 JSIL.InitializeStructFields = function (instance, typeObject) {
   var sf = instance.__StructFields__;
 
-  if (typeof (sf) == "object") {
+  if (typeof (sf) === "object") {
     for (var fieldName in sf) {
       if (!sf.hasOwnProperty(fieldName))
         continue;
@@ -378,7 +381,7 @@ JSIL.MakeEnum = function (namespace, localName, fullName, members, isFlagsEnum) 
 
 JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
   var interfaces = type.prototype.__Interfaces__;
-  if (typeof (interfaces) == "undefined") {
+  if (typeof (interfaces) === "undefined") {
     type.prototype.__Interfaces__ = interfaces = [];
   }
 
@@ -386,7 +389,7 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
     while (!target.hasOwnProperty(name)) {
       target = Object.getPrototypeOf(target);
 
-      if ((typeof (target) == "undefined") || (target === null))
+      if ((typeof (target) === "undefined") || (target === null))
         return null;
     }
 
@@ -397,7 +400,7 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
   for (var i = 0, l = interfacesToImplement.length; i < l; i++) {
     var iface = interfacesToImplement[i];
 
-    if (typeof (iface) == "undefined") {
+    if (typeof (iface) === "undefined") {
       JSIL.Host.warning("Type ", JSIL.GetTypeName(type), " implements an undefined interface.");
       continue __interfaces__;
     }
@@ -464,12 +467,12 @@ JSIL.CheckDerivation = function (haystack, needle) {
 };
 
 JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
-  if (typeof (expectedType) == "undefined") {
+  if (typeof (expectedType) === "undefined") {
     JSIL.Host.warning("Warning: Comparing value against an undefined type: ", value);
     return false;
   }
 
-  if (typeof (value) == "undefined")
+  if (typeof (value) === "undefined")
     return false;
   else if (value === null)
     return false;
@@ -496,11 +499,11 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
     return ct(value);
 
   var expectedProto = expectedType.prototype;
-  if ((typeof (expectedProto) == "undefined") ||
-      (typeof (expectedProto) == "null"))
+  if ((typeof (expectedProto) === "undefined") ||
+      (typeof (expectedProto) === "null"))
     return false;
 
-  if (typeof (value) == "object") {
+  if (typeof (value) === "object") {
     if (JSIL.CheckDerivation(Object.getPrototypeOf(value), expectedProto))
       return true;
   }
@@ -509,10 +512,10 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
 };
 
 JSIL.IsArray = function (value) {
-  return (typeof (value) == "object") &&
+  return (typeof (value) === "object") &&
          (value !== null) &&
-         (typeof (value.length) == "number") &&
-         (value.__proto__ == Array.prototype);
+         (typeof (value.length) === "number") &&
+         (value.__proto__ === Array.prototype);
 };
 
 JSIL.GetType = function (value) {
@@ -539,15 +542,15 @@ JSIL.GetType = function (value) {
 }
 
 JSIL.GetTypeName = function (value) {
-  if (typeof (value) == "undefined" || value === null)
+  if (typeof (value) === "undefined" || value === null)
     return "System.Object";
 
   var result = value.__FullName__;
 
-  if ((typeof (result) == "undefined") && (typeof (value.prototype) != "undefined"))
+  if ((typeof (result) === "undefined") && (typeof (value.prototype) !== "undefined"))
     result = value.prototype.__FullName__;
 
-  if (typeof (result) == "undefined")
+  if (typeof (result) === "undefined")
     result = typeof (value);
 
   if (result == "string")
@@ -617,11 +620,11 @@ JSIL.FindOverload = function (prototype, args, overloads) {
     var overloadName = overloads[i][0];
     var overloadMethod;
 
-    if (typeof (overloadName) == "function") {
+    if (typeof (overloadName) === "function") {
       overloadMethod = overloadName;
     } else {
       overloadMethod = prototype[overloadName];
-      if (typeof (overloadMethod) == "undefined")
+      if (typeof (overloadMethod) === "undefined")
         throw new Error("No method named '" + overloadName + "' could be found.");
     }
 
@@ -636,7 +639,7 @@ JSIL.OverloadedMethod = function (type, name, overloads) {
     return type[name] = null;
   else if (overloads.length < 2) {
     var overload = overloads[0][0];
-    if (typeof (overload) == "function")
+    if (typeof (overload) === "function")
       return type[name] = overload;
     else
       return type[name] = type[overload];
@@ -696,7 +699,7 @@ System.Object.prototype.__Initialize__ = function (initializer) {
   return this;
 };
 System.Object.CheckType = function (value) {
-  return (typeof (value) == "object");
+  return (typeof (value) === "object");
 };
 System.Object.prototype.__LockCount__ = 0;
 System.Object.prototype.__StructFields__ = {};
@@ -716,21 +719,20 @@ JSIL.Reference.__ExpectedType__ = System.Object;
 JSIL.Reference.Types = {};
 
 JSIL.Reference.Of = function (type) {
-  if (typeof (type) == "undefined")
+  if (typeof (type) === "undefined")
     throw new Error("Undefined reference type");
   
   var elementName = JSIL.GetTypeName(type);
   var compositeType = JSIL.Reference.Types[elementName];
 
-  if (typeof (compositeType) == "undefined") {
+  if (typeof (compositeType) === "undefined") {
     var typeName = "ref " + elementName;
     compositeType = JSIL.CloneObject(JSIL.Reference);
     compositeType.CheckType = function (value) {
       var isReference = JSIL.CheckType(value, JSIL.Reference, true);
       var isRightType = JSIL.CheckType(value.value, type, false);
-      console.info("CheckType(Reference.Of(", JSIL.GetTypeName(type), "), ", JSIL.GetTypeName(value), ")");
-      console.info("CheckType(", JSIL.GetTypeName(type), "), ", JSIL.GetTypeName(value.value), ")");
-      console.info("isReference=", isReference, " isRightType=", isRightType);
+      if (!isRightType && (type === System.Object) && (value.value === null))
+        isRightType = true;
       return isReference && isRightType;
     };
     compositeType.prototype = JSIL.MakeProto(JSIL.Reference, compositeType, typeName, true);
@@ -821,7 +823,7 @@ System.Enum.Parse = function (type, value) {
   } else {
     var name = type.__ValueToName__[value];
 
-    if (typeof (name) == "undefined")
+    if (typeof (name) === "undefined")
       return value;
     else
       return type[name];
@@ -829,7 +831,7 @@ System.Enum.Parse = function (type, value) {
 };
 System.Enum.prototype = JSIL.MakeProto(System.Object, System.Enum, "System.Enum", false);
 System.Enum.prototype.toString = function ToString() {
-  if (typeof (this.name) == "undefined") {
+  if (typeof (this.name) === "undefined") {
     return this.value.toString();
   } else {
     return this.name;
@@ -839,13 +841,13 @@ System.Enum.prototype.toString = function ToString() {
 System.Array.prototype = JSIL.MakeProto(System.Object, System.Array, "System.Array", true);
 System.Array.Types = {};
 System.Array.Of = function (type) {
-  if (typeof (type) == "undefined")
+  if (typeof (type) === "undefined")
     throw new Error("Attempting to create an array of an undefined type");
 
   var elementName = JSIL.GetTypeName(type);
   var compositeType = System.Array.Types[elementName];
 
-  if (typeof (compositeType) == "undefined") {
+  if (typeof (compositeType) === "undefined") {
     var typeName = elementName + "[]";
     compositeType = JSIL.CloneObject(System.Array);
     compositeType.__FullName__ = typeName;
@@ -943,13 +945,13 @@ JSIL.Delegate.Types = {};
 JSIL.Delegate.New = function (typeName, object, method) {
   var proto = JSIL.Delegate.Types[typeName];
 
-  if (typeof (proto) == "undefined") {
+  if (typeof (proto) === "undefined") {
     proto = JSIL.MakeProto(System.Delegate, {}, typeName, true);
     JSIL.Delegate.Types[typeName] = proto;
   }
 
-  if ((typeof (method) == "undefined") &&
-      (typeof (object) == "function")
+  if ((typeof (method) === "undefined") &&
+      (typeof (object) === "function")
   ) {
     method = object;
     object = null;

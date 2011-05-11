@@ -2062,7 +2062,7 @@ namespace JSIL.Ast {
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             if (ElementType != null)
-                return ElementType;
+                return new ArrayType(ElementType);
             else
                 return base.GetExpectedType(typeSystem);
         }
