@@ -113,7 +113,7 @@
     <None Include="SimpleTestCases\InterfaceInheritance.cs" />
     <None Include="SimpleTestCases\IntAndFloatCast.cs" />
     <None Include="TestCases\Lambdas.cs" />
-    <None Include="SimpleTestCases\ForEach.cs" />
+    <None Include="TestCases\ForEach.cs" />
     <None Include="SimpleTestCases\CustomEnumerator.cs" />
     <None Include="SimpleTestCases\OverloadWithRefArray.cs" />
     <None Include="TestCases\YieldReturn.cs" />
@@ -170,6 +170,7 @@
     <None Include="SimpleTestCases\IfNull.cs" />
     <None Include="SimpleTestCases\StringCharacters.cs" />
     <None Include="SimpleTestCases\ComplexRefOverload.cs" />
+    <None Include="SpecialTestCases\IgnoreParameterType.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

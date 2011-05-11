@@ -29,6 +29,12 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void ForEach () {
+            using (var test = new ComparisonTest(@"TestCases\ForEach.cs"))
+                test.Run();
+        }
+
+        [Test]
         public void NBody () {
             using (var test = new ComparisonTest(@"TestCases\NBody.cs")) {
                 test.Run();

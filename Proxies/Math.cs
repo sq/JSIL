@@ -9,12 +9,12 @@ namespace JSIL.Proxies {
     )]
     public abstract class MathProxy {
         [JSRuntimeDispatch]
-        public static void Min (params AnyType[] arguments) {
+        public static AnyType Min (params AnyType[] arguments) {
             throw new InvalidOperationException();
         }
 
         [JSRuntimeDispatch]
-        public static void Max (params AnyType[] arguments) {
+        public static AnyType Max (params AnyType[] arguments) {
             throw new InvalidOperationException();
         }
     }

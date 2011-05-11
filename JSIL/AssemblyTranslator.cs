@@ -55,8 +55,8 @@ namespace JSIL {
     public class AssemblyTranslator : ITypeInfoSource {
         public const int LargeMethodThreshold = 1024;
 
-        public readonly Dictionary<string, ProxyInfo> TypeProxies = new Dictionary<string, ProxyInfo>();
-        public readonly Dictionary<string, TypeInfo> TypeInformation = new Dictionary<string, TypeInfo>();
+        public readonly Dictionary<TypeIdentifier, ProxyInfo> TypeProxies = new Dictionary<TypeIdentifier, ProxyInfo>();
+        public readonly Dictionary<TypeIdentifier, TypeInfo> TypeInformation = new Dictionary<TypeIdentifier, TypeInfo>();
         public readonly Dictionary<string, ModuleInfo> ModuleInformation = new Dictionary<string, ModuleInfo>();
         public readonly HashSet<string> GeneratedFiles = new HashSet<string>();
         public readonly List<Regex> IgnoredAssemblies = new List<Regex>();
@@ -118,8 +118,8 @@ namespace JSIL {
                         }
 
                         if (isProxyType) {
-                            if (!TypeProxies.ContainsKey(type.FullName))
-                                TypeProxies.Add(type.FullName, new ProxyInfo(type));
+                            var identifier = new TypeIdentifier(type);
+                            TypeProxies.Add(identifier, new ProxyInfo(type));
                         }
                     }
                 }
@@ -176,11 +176,11 @@ namespace JSIL {
 
                         assemblyNames.Add(reference.FullName);
                         try {
-                            result.Add(module.AssemblyResolver.Resolve(reference, readerParameters));
+                            result.Add(readerParameters.AssemblyResolver.Resolve(reference, readerParameters));
                         } catch (Exception ex) {
                             if (useSymbols) {
                                 try {
-                                    result.Add(module.AssemblyResolver.Resolve(reference, GetReaderParameters(false, path)));
+                                    result.Add(readerParameters.AssemblyResolver.Resolve(reference, GetReaderParameters(false, path)));
                                     if (CouldNotLoadSymbols != null)
                                         CouldNotLoadSymbols(reference.FullName, ex);
                                 } catch (Exception ex2) {
@@ -216,7 +216,6 @@ namespace JSIL {
 
                     if (File.Exists(outputPath))
                         File.Delete(outputPath);
-
 
                     using (outputStream = File.OpenWrite(outputPath))
                         Translate(assembly, outputStream);
@@ -271,22 +270,105 @@ namespace JSIL {
                 throw new ArgumentNullException("type");
 
             type = JSExpression.ResolveGenericType(type, type, type.DeclaringType);
+            var identifier = new TypeIdentifier(type);
 
             var fullName = type.FullName;
 
-            TypeInfo result;
-            if (!TypeInformation.TryGetValue(fullName, out result)) {
-                var resolvedType = ILBlockTranslator.GetTypeDefinition(type);
+            var typesToInitialize = new Dictionary<TypeIdentifier, TypeDefinition>();
+            var secondPass = new Dictionary<TypeIdentifier, TypeInfo>();
 
-                if (resolvedType != null)
-                    TypeInformation[fullName] = result = new TypeInfo(
-                        this, GetModuleInformation(type.Module), resolvedType
-                    );
-                else
-                    return null;
+            TypeInfo result;
+            if (!TypeInformation.TryGetValue(identifier, out result)) {
+                var typedef = ILBlockTranslator.GetTypeDefinition(type);
+                identifier = new TypeIdentifier(typedef);
+                typesToInitialize.Add(identifier, typedef);
             }
 
+            // We must construct type information in two passes, so that method group construction
+            //  behaves correctly and ignores all the right methods.
+            // The first pass walks all the way through the type graph (starting with the current type),
+            //  ensuring we have type information for all the types in the graph. We do this iteratively
+            //  to avoid overflowing the stack.
+            // After we have type information for all the types in the graph, we then walk over all
+            //  the types again, and construct their method groups, since we have the necessary
+            //  information to determine which methods are ignored.
+            while (typesToInitialize.Count > 0) {
+                var kvp = typesToInitialize.First();
+                typesToInitialize.Remove(kvp.Key);
+
+                if (TypeInformation.ContainsKey(kvp.Key))
+                    continue;
+                else if (kvp.Value == null) {
+                    TypeInformation[kvp.Key] = null;
+                    continue;
+                }
+
+                var moreTypes = ConstructTypeInformation(kvp.Key, kvp.Value);
+
+                TypeInfo temp;
+                if (TypeInformation.TryGetValue(kvp.Key, out temp))
+                    secondPass.Add(kvp.Key, temp);
+
+                foreach (var more in moreTypes) {
+                    if (typesToInitialize.ContainsKey(more.Key))
+                        continue;
+                    else if (TypeInformation.ContainsKey(more.Key))
+                        continue;
+
+                    typesToInitialize.Add(more.Key, more.Value);
+                }
+            }
+
+            foreach (var ti in secondPass.Values)
+                ti.ConstructMethodGroups();
+
+            if (!TypeInformation.TryGetValue(identifier, out result))
+                return null;
+
             return result;
+        }
+
+        protected Dictionary<TypeIdentifier, TypeDefinition> ConstructTypeInformation (TypeIdentifier identifier, TypeDefinition type) {
+            var moduleInfo = GetModuleInformation(type.Module);
+
+            var result = new TypeInfo(this, moduleInfo, type);
+            TypeInformation[identifier] = result;
+
+            var typesToInitialize = new Dictionary<TypeIdentifier, TypeDefinition>();
+            Action<TypeReference> addType = (tr) => {
+                if (tr == null)
+                    return;
+
+                var _identifier = new TypeIdentifier(tr);
+                if (_identifier.Equals(identifier))
+                    return;
+                else if (TypeInformation.ContainsKey(_identifier))
+                    return;
+                else if (typesToInitialize.ContainsKey(_identifier))
+                    return;
+
+                var td = ILBlockTranslator.GetTypeDefinition(tr);
+                if (td == null)
+                    return;
+
+                _identifier = new TypeIdentifier(td);
+                if (typesToInitialize.ContainsKey(_identifier))
+                    return;
+
+                typesToInitialize.Add(_identifier, td);
+            };
+
+            foreach (var member in result.Members.Values) {
+                addType(member.ReturnType);
+
+                var method = member as Internal.MethodInfo;
+                if (method != null) {
+                    foreach (var p in method.Member.Parameters)
+                        addType(p.ParameterType);
+                }
+            }
+
+            return typesToInitialize;
         }
 
         ProxyInfo[] ITypeInfoSource.GetProxies (TypeReference type) {
@@ -332,8 +414,10 @@ namespace JSIL {
                 return null;
             }
 
+            var identifier = MemberIdentifier.New(member);
+
             IMemberInfo result;
-            if (!typeInfo.Members.TryGetValue(member, out result)) {
+            if (!typeInfo.Members.TryGetValue(identifier, out result)) {
                 Console.Error.WriteLine("Warning: member not defined: {0}", member.FullName);
                 return null;
             }
@@ -349,12 +433,28 @@ namespace JSIL {
             return GetTypeInformation(type);
         }
 
+        TypeInfo ITypeInfoSource.GetExisting (TypeReference type) {
+            if (type == null)
+                throw new ArgumentNullException("type");
+
+            type = JSExpression.ResolveGenericType(type, type, type.DeclaringType);
+            var identifier = new TypeIdentifier(type);
+
+            TypeInfo result;
+            if (!TypeInformation.TryGetValue(identifier, out result))
+                return null;
+
+            return result;
+        }
+
         protected T GetMemberInformation<T> (MemberReference member)
             where T : class, Internal.IMemberInfo
         {
             var typeInformation = GetTypeInformation(member.DeclaringType);
+            var identifier = MemberIdentifier.New(member);
+
             IMemberInfo result;
-            if (!typeInformation.Members.TryGetValue(member, out result)) {
+            if (!typeInformation.Members.TryGetValue(identifier, out result)) {
                 Console.Error.WriteLine("Warning: member not defined: {0}", member.FullName);
                 return null;
             }
@@ -628,7 +728,7 @@ namespace JSIL {
 
             var structFields = 
                 (from field in typedef.Fields
-                where !typeInfo.Members[field].IsIgnored && !field.HasConstant &&
+                where !typeInfo.Members[MemberIdentifier.New(field)].IsIgnored && !field.HasConstant &&
                     EmulateStructAssignment.IsStruct(field.FieldType) &&
                     !field.IsStatic
                 select field).ToArray();
@@ -672,7 +772,11 @@ namespace JSIL {
         protected void TranslateMethodGroup (DecompilerContext context, JavascriptFormatter output, MethodGroupInfo methodGroup) {
             int i = 0;
 
-            foreach (var method in methodGroup.Methods) {
+            var methods = (from m in methodGroup.Methods where !m.IsIgnored && !m.IsExternal select m).ToArray();
+            if (methods.Length == 0)
+                return;
+
+            foreach (var method in methods) {
                 foreach (var p in method.Member.Parameters) {
                     var resolved = p.ParameterType.Resolve();
                     if ((resolved != null) && 
@@ -700,12 +804,7 @@ namespace JSIL {
 
             bool isFirst = true;
             i = 0;
-            foreach (var method in methodGroup.Methods) {
-                if (method.IsIgnored)
-                    continue;
-                else if (method.IsExternal)
-                    continue;
-
+            foreach (var method in methods) {
                 if (!isFirst) {
                     output.Comma();
                     output.NewLine();
@@ -915,7 +1014,8 @@ namespace JSIL {
 
                 var typeInfo = GetTypeInformation(typedef);
                 typeInfo.StaticConstructor = fakeCctor;
-                typeInfo.Members[fakeCctor] = new Internal.MethodInfo(typeInfo, fakeCctor, new ProxyInfo[0]);
+                var identifier = MemberIdentifier.New(fakeCctor);
+                typeInfo.Members[identifier] = new Internal.MethodInfo(typeInfo, identifier, fakeCctor, new ProxyInfo[0]);
 
                 TranslateMethod(context, output, fakeCctor, fixupCctor);
             }

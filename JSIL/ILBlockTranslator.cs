@@ -180,6 +180,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_BinaryOp (ILExpression node, JSBinaryOperator op) {
+            // Detect attempts to perform pointer arithmetic
             if (IsIgnoredType(node.Arguments[0].ExpectedType) ||
                 IsIgnoredType(node.Arguments[1].ExpectedType) ||
                 IsIgnoredType(node.Arguments[0].InferredType) ||
@@ -187,6 +188,12 @@ namespace JSIL {
             ) {
                 return new JSUntranslatableExpression(node);
             }
+
+            // Detect attempts to perform pointer arithmetic on a local variable.
+            // (ldloca produces a reference, not a pointer, so the previous check won't catch this.)
+            if ((node.Arguments[0].Code == ILCode.Ldloca) &&
+                !(op is JSAssignmentOperator))
+                return new JSUntranslatableExpression(node);
 
             var lhs = TranslateNode(node.Arguments[0]);
             var rhs = TranslateNode(node.Arguments[1]);
@@ -478,35 +485,47 @@ namespace JSIL {
             return false;
         }
 
+        // Yuck :(
+        static readonly Dictionary<Tuple<string, string>, bool> TypeEqualityCache = new Dictionary<Tuple<string, string>, bool>();
+        static readonly Dictionary<Tuple<string, string>, bool> TypeAssignabilityCache = new Dictionary<Tuple<string, string>, bool>();
+
         public static bool TypesAreEqual (TypeReference target, TypeReference source) {
             if ((target == null) || (source == null))
                 return (target == source);
 
+            bool result;
+            var cacheKey = new Tuple<string, string>(target.FullName, source.FullName);
+            if (TypeEqualityCache.TryGetValue(cacheKey, out result))
+                return result;
+
             if (target.IsByReference != source.IsByReference)
-                return false;
-            if (target.IsPointer != source.IsPointer)
-                return false;
-            if (target.IsGenericParameter != source.IsGenericParameter)
-                return false;
-            if (target.IsArray != source.IsArray)
-                return false;
-            if (target.IsFunctionPointer != source.IsFunctionPointer)
-                return false;
-            if (target.IsPinned != source.IsPinned)
-                return false;
+                result = false;
+            else if (target.IsPointer != source.IsPointer)
+                result = false;
+            else if (target.IsGenericParameter != source.IsGenericParameter)
+                result = false;
+            else if (target.IsArray != source.IsArray)
+                result = false;
+            else if (target.IsFunctionPointer != source.IsFunctionPointer)
+                result = false;
+            else if (target.IsPinned != source.IsPinned)
+                result = false;
+            else {
+                var dTarget = GetTypeDefinition(target);
+                var dSource = GetTypeDefinition(source);
 
-            var dTarget = GetTypeDefinition(target);
-            var dSource = GetTypeDefinition(source);
+                if (Object.Equals(dTarget, dSource) && (dSource != null))
+                    result = true;
+                else if (Object.Equals(target, source))
+                    result = true;
+                else if (String.Equals(target.FullName, source.FullName))
+                    result = true;
+                else
+                    result = false;
+            }
 
-            if (Object.Equals(dTarget, dSource) && (dSource != null))
-                return true;
-            if (Object.Equals(target, source))
-                return true;
-
-            if (String.Equals(target.FullName, source.FullName))
-                return true;
-
-            return false;
+            TypeEqualityCache[cacheKey] = result;
+            return result;
         }
 
         public static IEnumerable<TypeDefinition> AllBaseTypesOf (TypeDefinition type) {
@@ -523,24 +542,33 @@ namespace JSIL {
         }
 
         public static bool TypesAreAssignable (TypeReference target, TypeReference source) {
-            if (TypesAreEqual(target, source))
+            bool result;
+
+            var cacheKey = new Tuple<string, string>(target.FullName, source.FullName);
+            if (TypeEqualityCache.TryGetValue(cacheKey, out result) && result == true)
                 return true;
+            else if (TypeAssignabilityCache.TryGetValue(cacheKey, out result))
+                return result;
 
             var dSource = GetTypeDefinition(source);
+
             if (dSource == null)
-                return false;
+                result = false;
             else if (TypesAreEqual(target, dSource))
-                return true;
-
-            if ((dSource.BaseType != null) && TypesAreAssignable(target, dSource.BaseType))
-                return true;
-
-            foreach (var iface in dSource.Interfaces) {
-                if (TypesAreAssignable(target, iface))
-                    return true;
+                result = true;
+            else if ((dSource.BaseType != null) && TypesAreAssignable(target, dSource.BaseType))
+                result = true;
+            else {
+                foreach (var iface in dSource.Interfaces) {
+                    if (TypesAreAssignable(target, iface)) {
+                        result = true;
+                        break;
+                    }
+                }
             }
 
-            return false;
+            TypeAssignabilityCache[cacheKey] = result;
+            return result;
         }
 
         protected bool ContainsLabels (ILNode root) {

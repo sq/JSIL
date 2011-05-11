@@ -9,7 +9,7 @@ public static class Program {
         object d = "d";
         object e = "e";
 
-        JSIL.Builtins.Global["print"](a + b + c);
-        JSIL.Builtins.Global["print"](String.Concat(d, e));
+        (JSIL.Builtins.Global["print"] as dynamic)(a + b + c);
+        (JSIL.Builtins.Global["print"] as dynamic)(String.Concat(d, e));
     }
 }

@@ -61,7 +61,7 @@ namespace JSIL.Tests {
 
                 if (results.Errors.Count > 0) {
                     throw new Exception(
-                        String.Join(Environment.NewLine, results.Errors.Cast<CompilerError>().Select((ce) => ce.ErrorText).ToArray())
+                        String.Join(Environment.NewLine, results.Errors.Cast<CompilerError>().Select((ce) => ce.ToString()).ToArray())
                     );
                 }
 

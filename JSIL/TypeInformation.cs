@@ -12,6 +12,7 @@ namespace JSIL.Internal {
     public interface ITypeInfoSource {
         ModuleInfo Get (ModuleDefinition module);
         TypeInfo Get (TypeReference type);
+        TypeInfo GetExisting (TypeReference type);
         IMemberInfo Get (MemberReference member);
 
         ProxyInfo[] GetProxies (TypeReference type);
@@ -31,21 +32,102 @@ namespace JSIL.Internal {
         }
     }
 
-    internal struct MemberIdentifier {
+    public class TypeIdentifier {
+        public readonly string Assembly;
+        public readonly string Namespace;
+        public readonly string DeclaringTypeName;
+        public readonly string Name;
+
+        public TypeIdentifier (TypeDefinition type)
+            : this ((TypeReference)type) {
+            Assembly = type.Module.Assembly.FullName;
+        }
+
+        public TypeIdentifier (TypeReference type) {
+            Assembly = null;
+            Namespace = type.Namespace;
+            if (type.DeclaringType != null)
+                DeclaringTypeName = type.DeclaringType.FullName;
+            else
+                DeclaringTypeName = null;
+            Name = type.Name;
+        }
+
+        public bool Equals (TypeIdentifier rhs) {
+            if (!String.Equals(Name, rhs.Name))
+                return false;
+
+            if (!String.Equals(Namespace, rhs.Namespace))
+                return false;
+
+            if (!String.Equals(DeclaringTypeName, rhs.DeclaringTypeName))
+                return false;
+
+            if ((Assembly == null) || (rhs.Assembly == null))
+                return true;
+            else if (!String.Equals(Assembly, rhs.Assembly))
+                return false;
+            else
+                return true;
+        }
+
+        public override bool Equals (object obj) {
+            var rhs = obj as TypeIdentifier;
+            if (rhs != null)
+                return Equals(rhs);
+
+            return base.Equals(obj);
+        }
+
+        public override int GetHashCode () {
+            var result = Namespace.GetHashCode() ^ Name.GetHashCode();
+            if (DeclaringTypeName != null)
+                result ^= DeclaringTypeName.GetHashCode();
+
+            return result;
+        }
+
+        public override string ToString () {
+            if (DeclaringTypeName != null)
+                return String.Format("{0} {1}.{2}/{3}", Assembly, Namespace, DeclaringTypeName, Name);
+            else
+                return String.Format("{0} {1}.{2}", Assembly, Namespace, Name);
+        }
+    }
+
+    public class MemberIdentifier {
         public enum MemberType {
             Field,
             Property,
             Event,
-            Method
+            Method,
         }
 
-        public MemberType Type;
-        public string Name;
-        public TypeReference ReturnType;
-        public int ParameterCount;
-        public IEnumerable<TypeReference> ParameterTypes;
+        public readonly MemberType Type;
+        public readonly string Name;
+        public readonly TypeReference ReturnType;
+        public readonly int ParameterCount;
+        public readonly IEnumerable<TypeReference> ParameterTypes;
 
         public static readonly IEnumerable<TypeReference> AnyParameterTypes = new TypeReference[0] {};
+
+        public static MemberIdentifier New (MemberReference mr) {
+            var method = mr as MethodReference;
+            var property = mr as PropertyReference;
+            var evt = mr as EventReference;
+            var field = mr as FieldReference;
+
+            if (method != null)
+                return new MemberIdentifier(method);
+            else if (property != null)
+                return new MemberIdentifier(property);
+            else if (evt != null)
+                return new MemberIdentifier(evt);
+            else if (field != null)
+                return new MemberIdentifier(field);
+            else
+                throw new NotImplementedException();
+        }
 
         public MemberIdentifier (MethodReference mr) {
             Type = MemberType.Method;
@@ -107,12 +189,11 @@ namespace JSIL.Internal {
         }
 
         static bool IsAnyType (TypeReference t) {
-            t = JSExpression.DeReferenceType(t);
-
             if (t == null)
                 return false;
 
-            return t.IsGenericParameter || t.FullName == "JSIL.Proxy.AnyType";
+            return (t.Name == "AnyType" && t.Namespace == "JSIL.Proxy") || 
+                (JSExpression.DeReferenceType(t).IsGenericParameter);
         }
 
         static bool TypesAreEqual (TypeReference lhs, TypeReference rhs) {
@@ -137,6 +218,26 @@ namespace JSIL.Internal {
                     return false;
 
                 return TypesAreEqual(lhsArray.ElementType, rhsArray.ElementType);
+            }
+
+            var lhsGit = lhs as GenericInstanceType;
+            var rhsGit = rhs as GenericInstanceType;
+
+            if ((lhsGit != null) && (rhsGit != null)) {
+                if (lhsGit.GenericArguments.Count != rhsGit.GenericArguments.Count)
+                    return false;
+
+                if (!TypesAreEqual(lhsGit.ElementType, rhsGit.ElementType))
+                    return false;
+
+                using (var eLeft = lhsGit.GenericArguments.GetEnumerator())
+                using (var eRight = rhsGit.GenericArguments.GetEnumerator())
+                while (eLeft.MoveNext() && eRight.MoveNext()) {
+                    if (!TypesAreEqual(eLeft.Current, eRight.Current))
+                        return false;
+                }
+
+                return true;
             }
 
             if (IsAnyType(lhs) || IsAnyType(rhs))
@@ -180,57 +281,27 @@ namespace JSIL.Internal {
         }
 
         public override bool Equals (object obj) {
-            if (obj is MemberIdentifier)
-                return Equals((MemberIdentifier)obj);
+            var rhs = obj as MemberIdentifier;
+            if (rhs != null)
+                return Equals(rhs);
 
             return base.Equals(obj);
         }
 
         public override int GetHashCode () {
-            return Name.GetHashCode();
+            return Type.GetHashCode() ^ Name.GetHashCode();
         }
 
         public override string ToString () {
-            return String.Format(
-                "{0} {1} ( {2} )", ReturnType, Name,
-                String.Join(", ", (from p in ParameterTypes select p.ToString()).ToArray())
-            );
-        }
-    }
-
-    internal class MemberReferenceComparer : IEqualityComparer<MemberReference> {
-        protected MemberIdentifier GetKey (MemberReference mr) {
-            var method = mr as MethodReference;
-            var property = mr as PropertyReference;
-            var evt = mr as EventReference;
-            var field = mr as FieldReference;
-
-            if (method != null)
-                return new MemberIdentifier(method);
-            else if (property != null)
-                return new MemberIdentifier(property);
-            else if (evt != null)
-                return new MemberIdentifier(evt);
-            else if (field != null)
-                return new MemberIdentifier(field);
+            if (ParameterTypes != null)
+                return String.Format(
+                    "{0} {1} ( {2} )", ReturnType, Name,
+                    String.Join(", ", (from p in ParameterTypes select p.ToString()).ToArray())
+                );
             else
-                throw new NotImplementedException();
-        }
-
-        public bool Equals (MemberReference lhs, MemberReference rhs) {
-            var keyLeft = GetKey(lhs);
-            var keyRight = GetKey(rhs);
-            return keyLeft.Equals(keyRight);
-        }
-
-        public int GetHashCode (MemberReference obj) {
-            return GetKey(obj).GetHashCode();
-        }
-
-        public Func<T, bool> GetMatcher<T> (MemberReference lhs)
-            where T : MemberReference {
-            return (rhs) =>
-                Equals(lhs, rhs);
+                return String.Format(
+                    "{0} {1}", ReturnType, Name
+                );
         }
     }
 
@@ -256,10 +327,10 @@ namespace JSIL.Internal {
         public readonly JSProxyAttributePolicy AttributePolicy;
         public readonly JSProxyMemberPolicy MemberPolicy;
 
-        public readonly HashSet<FieldDefinition> Fields = new HashSet<FieldDefinition>();
-        public readonly HashSet<PropertyDefinition> Properties = new HashSet<PropertyDefinition>();
-        public readonly HashSet<EventDefinition> Events = new HashSet<EventDefinition>();
-        public readonly HashSet<MethodDefinition> Methods = new HashSet<MethodDefinition>();
+        public readonly Dictionary<MemberIdentifier, FieldDefinition> Fields = new Dictionary<MemberIdentifier, FieldDefinition>();
+        public readonly Dictionary<MemberIdentifier, PropertyDefinition> Properties = new Dictionary<MemberIdentifier, PropertyDefinition>();
+        public readonly Dictionary<MemberIdentifier, EventDefinition> Events = new Dictionary<MemberIdentifier, EventDefinition>();
+        public readonly Dictionary<MemberIdentifier, MethodDefinition> Methods = new Dictionary<MemberIdentifier, MethodDefinition>();
 
         public readonly bool IsInheritable;
 
@@ -271,6 +342,9 @@ namespace JSIL.Internal {
             ProxiedTypeNames = new string[0];
 
             var args = Metadata.GetAttributeParameters("JSIL.Proxy.JSProxy");
+            if (args == null)
+                throw new ArgumentNullException("JSProxy without arguments");
+
             // Attribute parameter ordering is random. Awesome!
             foreach (var arg in args) {
                 switch (arg.Type.FullName) {
@@ -310,139 +384,59 @@ namespace JSIL.Internal {
                 if (!ILBlockTranslator.TypesAreEqual(field.DeclaringType, proxyType))
                     continue;
 
-                Fields.Add(field);
+                Fields.Add(new MemberIdentifier(field), field);
             }
 
             foreach (var property in proxyType.Properties) {
                 if (!ILBlockTranslator.TypesAreEqual(property.DeclaringType, proxyType))
                     continue;
 
-                Properties.Add(property);
+                Properties.Add(new MemberIdentifier(property), property);
             }
 
             foreach (var evt in proxyType.Events) {
                 if (!ILBlockTranslator.TypesAreEqual(evt.DeclaringType, proxyType))
                     continue;
 
-                Events.Add(evt);
+                Events.Add(new MemberIdentifier(evt), evt);
             }
 
             foreach (var method in proxyType.Methods) {
                 if (!ILBlockTranslator.TypesAreEqual(method.DeclaringType, proxyType))
                     continue;
 
-                Methods.Add(method);
+                Methods.Add(new MemberIdentifier(method), method);
             }
         }
 
-        public IEnumerable<ICustomAttributeProvider> GetMembersByName (string name) {
-            return (from m in Methods
-                    where m.Name == name
-                    select m).Cast<ICustomAttributeProvider>().Concat(
-                    from p in Properties
-                    where p.Name == name
-                    select p).Cast<ICustomAttributeProvider>().Concat(
-                    from e in Events
-                    where e.Name == name
-                    select e).Cast<ICustomAttributeProvider>().Concat(
-                    from f in Fields
-                    where f.Name == name
-                    select f).Cast<ICustomAttributeProvider>();
-        }
-
-        public bool GetMember<T> (MemberReference member, out T result)
+        public bool GetMember<T> (MemberIdentifier member, out T result)
             where T : class {
 
-            var comparer = new MemberReferenceComparer();
-
-            result = Methods.FirstOrDefault(comparer.GetMatcher<MethodDefinition>(member)) as T;
-            if (result != null)
+            MethodDefinition method;
+            if (Methods.TryGetValue(member, out method) && ((result = method as T) != null))
                 return true;
 
-            result = Fields.FirstOrDefault(comparer.GetMatcher<FieldDefinition>(member)) as T;
-            if (result != null)
+            FieldDefinition field;
+            if (Fields.TryGetValue(member, out field) && ((result = field as T) != null))
                 return true;
 
-            result = Properties.FirstOrDefault(comparer.GetMatcher<PropertyDefinition>(member)) as T;
-            if (result != null)
+            PropertyDefinition property;
+            if (Properties.TryGetValue(member, out property) && ((result = property as T) != null))
                 return true;
 
-            result = Events.FirstOrDefault(comparer.GetMatcher<EventDefinition>(member)) as T;
-            if (result != null)
+            EventDefinition evt;
+            if (Events.TryGetValue(member, out evt) && ((result = evt as T) != null))
                 return true;
 
+            result = null;
             return false;
         }
     }
 
-    /*
-    internal static class ProxyExtensions {
-        public static FieldDefinition ResolveProxy (this ProxyInfo[] proxies, FieldDefinition field) {
-            var key = field.Name;
-            FieldDefinition temp;
-
-            foreach (var proxy in proxies)
-                if (proxy.GetMember(field, out temp) && (proxy.MemberPolicy != JSProxyMemberPolicy.ReplaceNone))
-                    field = temp;
-
-            return field;
-        }
-
-        public static PropertyDefinition ResolveProxy (this ProxyInfo[] proxies, PropertyDefinition property) {
-            var key = property.Name;
-            PropertyDefinition temp;
-
-            foreach (var proxy in proxies)
-                if (
-                    proxy.GetMember(property, out temp) && 
-                    !(temp.GetMethod ?? temp.SetMethod).IsAbstract &&
-                    !(temp.SetMethod ?? temp.GetMethod).IsAbstract && 
-                    (proxy.MemberPolicy != JSProxyMemberPolicy.ReplaceNone)
-                )
-                    property = temp;
-
-            return property;
-        }
-
-        public static EventDefinition ResolveProxy (this ProxyInfo[] proxies, EventDefinition evt) {
-            var key = evt.Name;
-            EventDefinition temp;
-
-            foreach (var proxy in proxies)
-                if (
-                    proxy.GetMember(evt, out temp) && 
-                    !(temp.AddMethod ?? temp.RemoveMethod).IsAbstract &&
-                    !(temp.RemoveMethod ?? temp.AddMethod).IsAbstract && 
-                    (proxy.MemberPolicy != JSProxyMemberPolicy.ReplaceNone)
-                )
-                    evt = temp;
-
-            return evt;
-        }
-
-        public static MethodDefinition ResolveProxy (this ProxyInfo[] proxies, MethodDefinition method) {
-            var key = method.Name;
-            MethodDefinition temp;
-
-            // TODO: No way to detect whether the constructor was compiler-generated.
-            if (method.Name == ".ctor" && (method.Parameters.Count == 0))
-                return method;
-
-            foreach (var proxy in proxies) {
-                if (proxy.GetMember(method, out temp) && !temp.IsAbstract && (proxy.MemberPolicy != JSProxyMemberPolicy.ReplaceNone))
-                    method = temp;
-            }
-
-            return method;
-        }
-    }
-     */
-
     public class TypeInfo {
         public readonly TypeDefinition Definition;
+        public readonly ITypeInfoSource Source;
 
-        // Class information
-        public readonly bool IsIgnored;
         // This needs to be mutable so we can introduce a constructed cctor later
         public MethodDefinition StaticConstructor;
         public readonly HashSet<MethodDefinition> Constructors = new HashSet<MethodDefinition>();
@@ -455,11 +449,13 @@ namespace JSIL.Internal {
         public readonly Dictionary<long, EnumMemberInfo> ValueToEnumMember = new Dictionary<long, EnumMemberInfo>();
         public readonly Dictionary<string, EnumMemberInfo> EnumMembers = new Dictionary<string, EnumMemberInfo>();
 
-        public readonly Dictionary<MemberReference, IMemberInfo> Members = new Dictionary<MemberReference, IMemberInfo>(
-            new MemberReferenceComparer()
-        );
+        public readonly Dictionary<MemberIdentifier, IMemberInfo> Members = new Dictionary<MemberIdentifier, IMemberInfo>();
+
+        protected bool _IsIgnored = false;
+        protected bool _MethodGroupsInitialized = false;
 
         public TypeInfo (ITypeInfoSource source, ModuleInfo module, TypeDefinition type) {
+            Source = source;
             Definition = type;
             bool isStatic = type.IsSealed && type.IsAbstract;
 
@@ -469,15 +465,11 @@ namespace JSIL.Internal {
             foreach (var proxy in Proxies)
                 Metadata.Update(proxy.Metadata, proxy.AttributePolicy == JSProxyAttributePolicy.ReplaceAll);
 
-            IsIgnored = module.IsIgnored ||
+            _IsIgnored = module.IsIgnored ||
                 IsIgnoredName(type.FullName) ||
-                Metadata.HasAttribute("JSIL.Meta.JSIgnore");
-
-            if (Definition.DeclaringType != null) {
-                var dt = source.Get(Definition.DeclaringType);
-                if (dt != null)
-                    IsIgnored |= dt.IsIgnored;
-            }
+                Metadata.HasAttribute("JSIL.Meta.JSIgnore") ||
+                Metadata.HasAttribute("System.Runtime.CompilerServices.UnsafeValueTypeAttribute") ||
+                Metadata.HasAttribute("System.Runtime.CompilerServices.NativeCppClassAttribute");
 
             foreach (var field in type.Fields)
                 AddMember(field);
@@ -506,8 +498,7 @@ namespace JSIL.Internal {
                 if (method.Name == ".ctor")
                     Constructors.Add(method);
 
-                if (!Members.ContainsKey(method))
-                    AddMember(method);
+                AddMember(method);
             }
 
             if (type.IsEnum) {
@@ -534,7 +525,7 @@ namespace JSIL.Internal {
             foreach (var proxy in Proxies) {
                 var seenMethods = new HashSet<MethodDefinition>();
 
-                foreach (var property in proxy.Properties) {
+                foreach (var property in proxy.Properties.Values) {
                     var p = (PropertyInfo)AddProxyMember(proxy, property);
 
                     if (property.GetMethod != null) {
@@ -548,7 +539,7 @@ namespace JSIL.Internal {
                     }
                 }
 
-                foreach (var evt in proxy.Events) {
+                foreach (var evt in proxy.Events.Values) {
                     var e = (EventInfo)AddProxyMember(proxy, evt);
 
                     if (evt.AddMethod != null) {
@@ -562,14 +553,14 @@ namespace JSIL.Internal {
                     }
                 }
 
-                foreach (var field in proxy.Fields) {
+                foreach (var field in proxy.Fields.Values) {
                     if (isStatic && !field.IsStatic)
                         continue;
 
                     AddProxyMember(proxy, field);
                 }
 
-                foreach (var method in proxy.Methods) {
+                foreach (var method in proxy.Methods.Values) {
                     if (seenMethods.Contains(method))
                         continue;
 
@@ -583,14 +574,22 @@ namespace JSIL.Internal {
                     AddProxyMember(proxy, method);
                 }
             }
+        }
 
-            var methodGroups = from m in Members.Values.OfType<MethodInfo>()
-                               where !m.IsIgnored
-                               orderby m.Member.FullName ascending
-                               group m by new {
-                                   m.Name, m.IsStatic
-                               } into mg
-                               select mg;
+        internal void ConstructMethodGroups () {
+            if (_MethodGroupsInitialized)
+                return;
+
+            _MethodGroupsInitialized = true;
+
+            var methodGroups = (from kvp in Members where kvp.Key.Type == MemberIdentifier.MemberType.Method
+                                let m = (MethodInfo)kvp.Value
+                                where !m.IsIgnored
+                                group m by new {
+                                    m.Name,
+                                    m.IsStatic
+                                } into mg
+                                select mg).ToArray();
 
             foreach (var mg in methodGroups) {
                 var count = mg.Count();
@@ -599,7 +598,7 @@ namespace JSIL.Internal {
 
                     var groupName = mg.First().Name;
 
-                    foreach (var item in mg) {
+                    foreach (var item in mg.OrderBy((m) => m.Member.MetadataToken.ToUInt32())) {
                         item.OverloadIndex = i;
                         i += 1;
                     }
@@ -614,6 +613,18 @@ namespace JSIL.Internal {
             }
         }
 
+        public bool IsIgnored {
+            get {
+                if (Definition.DeclaringType != null) {
+                    var dt = Source.GetExisting(Definition.DeclaringType);
+                    if ((dt != null) && dt.IsIgnored)
+                        return true;
+                }
+
+                return _IsIgnored;
+            }
+        }
+
         protected static bool ShouldNeverReplace (CustomAttribute ca) {
             return ca.AttributeType.FullName == "JSIL.Proxy.JSNeverReplace";
         }
@@ -621,7 +632,9 @@ namespace JSIL.Internal {
         protected bool BeforeAddProxyMember<T> (ProxyInfo proxy, T member, out IMemberInfo result, ICustomAttributeProvider owningMember = null)
             where T : MemberReference, ICustomAttributeProvider
         {
-            while (Members.TryGetValue(member, out result)) {
+            var identifier = MemberIdentifier.New(member);
+
+            while (Members.TryGetValue(identifier, out result)) {
                 if (
                     (proxy.MemberPolicy == JSProxyMemberPolicy.ReplaceNone) ||
                     member.CustomAttributes.Any(ShouldNeverReplace) ||
@@ -632,7 +645,7 @@ namespace JSIL.Internal {
                     if (result.IsFromProxy)
                         Debug.WriteLine(String.Format("Warning: Proxy member '{0}' replacing proxy member '{1}'.", member, result));
 
-                    Members.Remove(member);
+                    Members.Remove(identifier);
                 } else {
                     throw new ArgumentException();
                 }
@@ -690,12 +703,12 @@ namespace JSIL.Internal {
             return AddMember(evt);
         }
 
-        public static bool IsIgnoredName (string fullName) {
-            var m = Regex.Match(fullName, @"\<(?'scope'[^>]*)\>(?'mangling'[^_]*)__(?'index'[0-9]*)");
-            if (m.Success)
-                return false; 
+        static readonly Regex MangledNameRegex = new Regex(@"\<([^>]*)\>([^_]*)__([0-9]*)", RegexOptions.Compiled | RegexOptions.ExplicitCapture);
 
-            if (fullName.EndsWith("__BackingField"))
+        public static bool IsIgnoredName (string fullName) {
+            if (MangledNameRegex.IsMatch(fullName))
+                return false; 
+            else if (fullName.EndsWith("__BackingField"))
                 return false;
             else if (fullName.Contains("__DisplayClass"))
                 return false;
@@ -716,39 +729,89 @@ namespace JSIL.Internal {
         }
 
         protected MethodInfo AddMember (MethodDefinition method, PropertyInfo property) {
-            var result = new MethodInfo(this, method, Proxies, property);
-            Members.Add(method, result);
-            return result;
+            IMemberInfo result;
+            var identifier = new MemberIdentifier(method);
+            if (Members.TryGetValue(identifier, out result))
+                return (MethodInfo)result;
+
+            result = new MethodInfo(this, identifier, method, Proxies, property);
+            Members.Add(identifier, result);
+            return (MethodInfo)result;
         }
 
         protected MethodInfo AddMember (MethodDefinition method, EventInfo evt) {
-            var result = new MethodInfo(this, method, Proxies, evt);
-            Members.Add(method, result);
-            return result;
+            IMemberInfo result;
+            var identifier = new MemberIdentifier(method);
+            if (Members.TryGetValue(identifier, out result))
+                return (MethodInfo)result;
+
+            result = new MethodInfo(this, identifier, method, Proxies, evt);
+            Members.Add(identifier, result);
+            return (MethodInfo)result;
         }
 
         protected MethodInfo AddMember (MethodDefinition method) {
-            var result = new MethodInfo(this, method, Proxies);
-            Members.Add(method, result);
-            return result;
+            IMemberInfo result;
+            var identifier = new MemberIdentifier(method);
+            if (Members.TryGetValue(identifier, out result))
+                return (MethodInfo)result;
+
+            result = new MethodInfo(this, identifier, method, Proxies);
+            Members.Add(identifier, result);
+            return (MethodInfo)result;
         }
 
         protected FieldInfo AddMember (FieldDefinition field) {
-            var result = new FieldInfo(this, field, Proxies);
-            Members.Add(field, result);
-            return result;
+            IMemberInfo result;
+            var identifier = new MemberIdentifier(field);
+            if (Members.TryGetValue(identifier, out result))
+                return (FieldInfo)result;
+
+            result = new FieldInfo(this, identifier, field, Proxies);
+            Members.Add(identifier, result);
+            return (FieldInfo)result;
         }
 
         protected PropertyInfo AddMember (PropertyDefinition property) {
-            var result = new PropertyInfo(this, property, Proxies);
-            Members.Add(property, result);
-            return result;
+            IMemberInfo result;
+            var identifier = new MemberIdentifier(property);
+            if (Members.TryGetValue(identifier, out result))
+                return (PropertyInfo)result;
+
+            result = new PropertyInfo(this, identifier, property, Proxies);
+            Members.Add(identifier, result);
+            return (PropertyInfo)result;
         }
 
         protected EventInfo AddMember (EventDefinition evt) {
-            var result = new EventInfo(this, evt, Proxies);
-            Members.Add(evt, result);
-            return result;
+            IMemberInfo result;
+            var identifier = new MemberIdentifier(evt);
+            if (Members.TryGetValue(identifier, out result))
+                return (EventInfo)result;
+
+            result = new EventInfo(this, identifier, evt, Proxies);
+            Members.Add(identifier, result);
+            return (EventInfo)result;
+        }
+
+        internal bool IsTypeIgnored (ParameterDefinition pd) {
+            return IsTypeIgnored(pd.ParameterType);
+        }
+
+        internal bool IsTypeIgnored (TypeReference t) {
+            if (ILBlockTranslator.IsIgnoredType(t))
+                return true;
+
+            if (t.IsPrimitive)
+                return false;
+            else if (t.FullName == "System.Void")
+                return false;
+
+            var typeInfo = Source.GetExisting(t);
+            if ((typeInfo != null) && typeInfo.IsIgnored)
+                return true;
+
+            return false;
         }
     }
 
@@ -829,6 +892,7 @@ namespace JSIL.Internal {
     public abstract class MemberInfo<T> : IMemberInfo
         where T : MemberReference, ICustomAttributeProvider 
     {
+        public readonly MemberIdentifier Identifier;
         public readonly TypeInfo DeclaringType;
         public readonly T Member;
         public readonly MetadataCollection Metadata;
@@ -840,7 +904,9 @@ namespace JSIL.Internal {
         protected readonly JSWritePolicy _WritePolicy;
         protected readonly JSInvokePolicy _InvokePolicy;
 
-        public MemberInfo (TypeInfo parent, T member, ProxyInfo[] proxies, bool isIgnored = false, bool isExternal = false) {
+        public MemberInfo (TypeInfo parent, MemberIdentifier identifier, T member, ProxyInfo[] proxies, bool isIgnored = false, bool isExternal = false) {
+            Identifier = identifier;
+
             _ReadPolicy = JSReadPolicy.Unmodified;
             _WritePolicy = JSWritePolicy.Unmodified;
             _InvokePolicy = JSInvokePolicy.Unmodified;
@@ -860,7 +926,8 @@ namespace JSIL.Internal {
 
             if (proxies != null)
             foreach (var proxy in proxies) {
-                foreach (var proxyMember in proxy.GetMembersByName(member.Name)) {
+                ICustomAttributeProvider proxyMember;
+                if (proxy.GetMember<ICustomAttributeProvider>(identifier, out proxyMember)) {
                     var meta = new MetadataCollection(proxyMember);
                     Metadata.Update(meta, proxy.AttributePolicy == JSProxyAttributePolicy.ReplaceAll);
                 }
@@ -916,8 +983,8 @@ namespace JSIL.Internal {
             get { return Metadata; }
         }
 
-        public bool IsIgnored {
-            get { return _IsIgnored | DeclaringType.IsIgnored; }
+        public virtual bool IsIgnored {
+            get { return _IsIgnored | DeclaringType.IsIgnored | DeclaringType.IsTypeIgnored(ReturnType); }
         }
 
         public string ForcedName {
@@ -973,8 +1040,8 @@ namespace JSIL.Internal {
     }
 
     public class FieldInfo : MemberInfo<FieldDefinition> {
-        public FieldInfo (TypeInfo parent, FieldDefinition field, ProxyInfo[] proxies) : base(
-            parent, field, proxies, ILBlockTranslator.IsIgnoredType(field.FieldType)
+        public FieldInfo (TypeInfo parent, MemberIdentifier identifier, FieldDefinition field, ProxyInfo[] proxies) : base(
+            parent, identifier, field, proxies, ILBlockTranslator.IsIgnoredType(field.FieldType)
         ) {
         }
 
@@ -990,8 +1057,8 @@ namespace JSIL.Internal {
     public class PropertyInfo : MemberInfo<PropertyDefinition> {
         protected readonly string ShortName;
 
-        public PropertyInfo (TypeInfo parent, PropertyDefinition property, ProxyInfo[] proxies) : base(
-            parent, property, proxies, ILBlockTranslator.IsIgnoredType(property.PropertyType)
+        public PropertyInfo (TypeInfo parent, MemberIdentifier identifier, PropertyDefinition property, ProxyInfo[] proxies) : base(
+            parent, identifier, property, proxies, ILBlockTranslator.IsIgnoredType(property.PropertyType)
         ) {
             ShortName = GetShortName(property);
         }
@@ -1018,8 +1085,8 @@ namespace JSIL.Internal {
     }
 
     public class EventInfo : MemberInfo<EventDefinition> {
-        public EventInfo (TypeInfo parent, EventDefinition evt, ProxyInfo[] proxies) : base(
-            parent, evt, proxies, false
+        public EventInfo (TypeInfo parent, MemberIdentifier identifier, EventDefinition evt, ProxyInfo[] proxies) : base(
+            parent, identifier, evt, proxies, false
         ) {
         }
 
@@ -1039,31 +1106,29 @@ namespace JSIL.Internal {
         public int? OverloadIndex;
         protected readonly string ShortName;
 
-        public MethodInfo (TypeInfo parent, MethodDefinition method, ProxyInfo[] proxies) : base (
-            parent, method, proxies,
+        public MethodInfo (TypeInfo parent, MemberIdentifier identifier, MethodDefinition method, ProxyInfo[] proxies) : base (
+            parent, identifier, method, proxies,
             ILBlockTranslator.IsIgnoredType(method.ReturnType) || 
-                (method.Parameters.Any((p) => ILBlockTranslator.IsIgnoredType(p.ParameterType))),
+                method.Parameters.Any((p) => ILBlockTranslator.IsIgnoredType(p.ParameterType)),
             method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall
         ) {
             ShortName = GetShortName(method);
         }
 
-        public MethodInfo (TypeInfo parent, MethodDefinition method, ProxyInfo[] proxies, PropertyInfo property) : base (
-            parent, method, proxies,
+        public MethodInfo (TypeInfo parent, MemberIdentifier identifier, MethodDefinition method, ProxyInfo[] proxies, PropertyInfo property) : base (
+            parent, identifier, method, proxies,
             ILBlockTranslator.IsIgnoredType(method.ReturnType) || 
-                (method.Parameters.Any((p) => ILBlockTranslator.IsIgnoredType(p.ParameterType))) ||
-                property.IsIgnored,
+                method.Parameters.Any((p) => ILBlockTranslator.IsIgnoredType(p.ParameterType)),
             method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall
         ) {
             Property = property;
             ShortName = GetShortName(method);
         }
 
-        public MethodInfo (TypeInfo parent, MethodDefinition method, ProxyInfo[] proxies, EventInfo evt) : base(
-            parent, method, proxies,
+        public MethodInfo (TypeInfo parent, MemberIdentifier identifier, MethodDefinition method, ProxyInfo[] proxies, EventInfo evt) : base(
+            parent, identifier, method, proxies,
             ILBlockTranslator.IsIgnoredType(method.ReturnType) ||
-                (method.Parameters.Any((p) => ILBlockTranslator.IsIgnoredType(p.ParameterType))) ||
-                evt.IsIgnored,
+                method.Parameters.Any((p) => ILBlockTranslator.IsIgnoredType(p.ParameterType)),
             method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall
         ) {
             Event = evt;
@@ -1092,6 +1157,17 @@ namespace JSIL.Internal {
             }
 
             return result;
+        }
+
+        public override bool IsIgnored {
+            get {
+                if ((Event != null) && Event.IsIgnored)
+                    return true;
+                if ((Property != null) && Property.IsIgnored)
+                    return true;
+
+                return base.IsIgnored || Member.Parameters.Any(DeclaringType.IsTypeIgnored);
+            }
         }
 
         public override bool IsStatic {

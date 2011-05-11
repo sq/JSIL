@@ -353,8 +353,11 @@ namespace JSIL {
                 else
                     Output.Value(imr.Member.Name);
             }
+
             if (imr.Arguments.Length != 0) {
-                Output.Comma();
+                if (imr.Member != null)
+                    Output.Comma();
+
                 CommaSeparatedList(imr.Arguments);
             }
             Output.RPar();

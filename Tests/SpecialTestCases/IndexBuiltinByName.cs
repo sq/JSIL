@@ -6,14 +6,14 @@ public static class Program {
         const string pri = "pri";
         string nt = "nt";
 
-        var p = Builtins.Global[pri + nt];
+        var p = Builtins.Global[pri + nt] as dynamic;
         if (p != null)
             p("printed");
 
         if (Builtins.Local["p"] != null)
-            Builtins.Local["p"]("printed again");
+            (Builtins.Local["p"] as dynamic)("printed again");
 
-        var q = Builtins.Global["quit"];
+        var q = Builtins.Global["quit"] as dynamic;
         if (q != null)
             q();
 
