@@ -92,25 +92,33 @@ JSIL.Host.error = function (exception, text) {
 }
 
 JSIL.UntranslatableNode = function (nodeType) {
-  throw new Error("An ILAst node of type " + nodeType + " could not be translated.");
+  JSIL.Host.error(new Error("An ILAst node of type " + nodeType + " could not be translated."));
 };
 
 JSIL.UntranslatableFunction = function (functionName) {
   return function () {
-    throw new Error("The function '" + functionName + "' could not be translated.");
+    JSIL.Host.error(new Error("The function '" + functionName + "' could not be translated."));
   };
 };
 
 JSIL.UntranslatableInstruction = function (instruction, operand) {
   if (typeof (operand) != "undefined")
-    throw new Error("A MSIL instruction of type " + instruction + " with an operand of type " + operand + " could not be translated.");
+    JSIL.Host.error(new Error("A MSIL instruction of type " + instruction + " with an operand of type " + operand + " could not be translated."));
   else
-    throw new Error("A MSIL instruction of type " + instruction + " could not be translated.");
+    JSIL.Host.error(new Error("A MSIL instruction of type " + instruction + " could not be translated."));
 };
 
 JSIL.IgnoredMember = function (memberName) {
-  throw new Error("An attempt was made to reference the member '" + memberName + "', but it was explicitly ignored during translation.");
+  JSIL.Host.error(new Error("An attempt was made to reference the member '" + memberName + "', but it was explicitly ignored during translation."));
 };
+
+JSIL.ExternalMember = function (namespace, memberName) {
+  if (typeof (namespace) == "undefined") {
+    JSIL.Host.error(new Error("External member '" + memberName + "' declared in undefined namespace"));
+  } else if (typeof (namespace[memberName] == undefined)) {
+    JSIL.Host.warning("External member '" + memberName + "' of namespace '", namespace, "' is not defined");
+  }
+}
 
 JSIL.GlobalNamespace = this;
 
@@ -196,7 +204,7 @@ JSIL.InitializeStructFields = function (instance, typeObject) {
         instance[fieldName] = new fieldType();
       } else {
         instance[fieldName] = new System.ValueType();
-        JSIL.Host.error("Warning: The type of field ", JSIL.GetTypeName(typeObject) + "." + fieldName, " is undefined.");
+        JSIL.Host.error(new Error("The type of field ", JSIL.GetTypeName(typeObject) + "." + fieldName, " is undefined."));
       }
     }
   }

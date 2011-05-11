@@ -111,7 +111,7 @@ namespace JSIL.Tests {
             GenericTest(
                 @"SpecialTestCases\IgnoreUnsafeCode.cs",
                 "Foo\r\nBar\r\nBaz",
-                "Foo\r\nBar\r\nCaught: Error: The function 'Baz' could not be translated."
+                "Foo\r\nBar\r\nCaught: Error: The function 'System.Void Test::Baz()' could not be translated."
             );
         }
     }

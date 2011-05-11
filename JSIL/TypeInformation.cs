@@ -955,6 +955,9 @@ namespace JSIL.Internal {
                     }
                 }
             }
+
+            if (Member.Name.Contains("GetProcessAffinityMask"))
+                Debugger.Break();
         }
 
         // Sometimes the type system prefixes the name of a member with some or all of the declaring type's name.
@@ -1110,7 +1113,7 @@ namespace JSIL.Internal {
             parent, identifier, method, proxies,
             ILBlockTranslator.IsIgnoredType(method.ReturnType) || 
                 method.Parameters.Any((p) => ILBlockTranslator.IsIgnoredType(p.ParameterType)),
-            method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall
+            method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall || method.IsPInvokeImpl
         ) {
             ShortName = GetShortName(method);
         }
@@ -1119,7 +1122,7 @@ namespace JSIL.Internal {
             parent, identifier, method, proxies,
             ILBlockTranslator.IsIgnoredType(method.ReturnType) || 
                 method.Parameters.Any((p) => ILBlockTranslator.IsIgnoredType(p.ParameterType)),
-            method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall
+            method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall || method.IsPInvokeImpl
         ) {
             Property = property;
             ShortName = GetShortName(method);
@@ -1129,7 +1132,7 @@ namespace JSIL.Internal {
             parent, identifier, method, proxies,
             ILBlockTranslator.IsIgnoredType(method.ReturnType) ||
                 method.Parameters.Any((p) => ILBlockTranslator.IsIgnoredType(p.ParameterType)),
-            method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall
+            method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall || method.IsPInvokeImpl
         ) {
             Event = evt;
             ShortName = GetShortName(method);

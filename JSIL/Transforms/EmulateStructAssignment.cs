@@ -36,7 +36,7 @@ namespace JSIL.Transforms {
         }
 
         protected bool IsCopyNeeded (JSExpression value) {
-            if (value.IsNull)
+            if ((value == null) || (value.IsNull))
                 return false;
 
             var valueType = value.GetExpectedType(TypeSystem);

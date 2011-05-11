@@ -599,26 +599,6 @@ namespace JSIL.Ast {
             throw new NoExpectedTypeException(this);
         }
 
-        protected static TypeReference FindParameterInContext (GenericParameter parameter, object context) {
-            var instance = context as IGenericInstance;
-            if ((instance != null) && (parameter.Position < instance.GenericArguments.Count) &&
-                !instance.GenericArguments[parameter.Position].IsGenericParameter)
-                return instance.GenericArguments[parameter.Position];
-            var type = context as GenericInstanceType;
-            if ((type != null) && (parameter.Position < type.GenericArguments.Count) &&
-                !type.GenericArguments[parameter.Position].IsGenericParameter)
-                return type.GenericArguments[parameter.Position];
-            var method = context as GenericInstanceMethod;
-            if ((method != null) && (parameter.Position < method.GenericArguments.Count) &&
-                !method.GenericArguments[parameter.Position].IsGenericParameter)
-                return method.GenericArguments[parameter.Position];
-
-            if (context is IEnumerable<object>)
-                throw new ArgumentException();
-
-            return null;
-        }
-
         public static TypeReference DeReferenceType (TypeReference type, bool once = false) {
             var brt = type as ByReferenceType;
 
@@ -633,9 +613,33 @@ namespace JSIL.Ast {
             return type;
         }
 
+        public static bool IsOpenGenericType (ParameterDefinition pd) {
+            return IsOpenGenericType(pd.ParameterType);
+        }
+
+        public static bool IsOpenGenericType (TypeReference type) {
+            type = DeReferenceType(type);
+
+            if (type.IsGenericParameter)
+                return true;
+
+            foreach (var gp in type.GenericParameters)
+                if (IsOpenGenericType(gp))
+                    return true;
+
+            var git = type as GenericInstanceType;
+            if (git != null) {
+                foreach (var ga in git.GenericArguments)
+                    if (IsOpenGenericType(ga))
+                        return true;
+            }
+
+            return false;
+        }
+
         public static MethodReference ResolveGenericMethod (MethodReference method) {
-            if (!method.ReturnType.IsGenericParameter &&
-                !method.Parameters.Any((p) => p.ParameterType.IsGenericParameter))
+            if (!IsOpenGenericType(method.ReturnType) &&
+                !method.Parameters.Any(IsOpenGenericType))
                 return method;
 
             TypeReference returnType;
@@ -656,9 +660,9 @@ namespace JSIL.Ast {
             result.CallingConvention = method.CallingConvention;
             result.DeclaringType = method.DeclaringType;
 
-            if (!method.ReturnType.IsGenericParameter &&
-                !method.Parameters.Any((p) => p.ParameterType.IsGenericParameter))
-                Console.Error.WriteLine("Warning: Failed to resolve generic method '{0}'.", method);
+            if (IsOpenGenericType(result.ReturnType) ||
+                result.Parameters.Any(IsOpenGenericType))
+                throw new AbortTranslation(String.Format("Failed to resolve generic method '{0}'.", method));
 
             return result;
         }
@@ -666,22 +670,21 @@ namespace JSIL.Ast {
         public static TypeReference ConstructDelegateType (MethodReference method, TypeSystem typeSystem) {
             method = ResolveGenericMethod(method);
 
-            return ConstructDelegateType(
-                TypeAnalysis.SubstituteTypeArgs(method.ReturnType, method), 
-                (from p in method.Parameters
-                 select TypeAnalysis.SubstituteTypeArgs(p.ParameterType, method)), 
-                 typeSystem
-            );
+            try {
+                return ConstructDelegateType(
+                    TypeAnalysis.SubstituteTypeArgs(method.ReturnType, method),
+                    (from p in method.Parameters
+                     select TypeAnalysis.SubstituteTypeArgs(p.ParameterType, method)),
+                     typeSystem
+                );
+            } catch (OpenGenericTypeException) {
+                throw;
+            }
         }
 
         public static TypeReference ConstructDelegateType (TypeReference returnType, IEnumerable<TypeReference> parameterTypes, TypeSystem typeSystem) {
             TypeReference result;
             var signature = new MethodSignature(returnType, parameterTypes);
-
-            /*
-            if (returnType.IsGenericParameter || parameterTypes.Any((p) => p.IsGenericParameter))
-                throw new ArgumentException();
-             */
 
             if (MethodTypeCache.TryGetValue(signature, out result))
                 return result;
@@ -1480,10 +1483,9 @@ namespace JSIL.Ast {
                 throw new ArgumentNullException();
 
             if (
-                reference.ReturnType.IsGenericParameter ||
-                reference.Parameters.Any((p) => p.ParameterType.IsGenericParameter)
+                IsOpenGenericType(reference.ReturnType) || reference.Parameters.Any(IsOpenGenericType)
             ) {
-                throw new InvalidOperationException("Unbound generic type in invocation");
+                throw new AbortTranslation("Unbound generic type in invocation");
             }
 
             Reference = reference;
@@ -1509,6 +1511,11 @@ namespace JSIL.Ast {
             ReturnType = returnType;
             ParameterTypes = parameterTypes;
 
+            if (IsOpenGenericType(ReturnType))
+                throw new OpenGenericTypeException("Open generic return type");
+            else if (parameterTypes.Any(IsOpenGenericType))
+                throw new OpenGenericTypeException("Open generic parameter type");
+
             /*
             if (ReturnType.IsGenericParameter || parameterTypes.Any((p) => p.IsGenericParameter))
                 throw new ArgumentException()
@@ -1520,7 +1527,9 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return ConstructDelegateType(ReturnType, ParameterTypes, typeSystem);
+            return ConstructDelegateType(
+                ReturnType, ParameterTypes, typeSystem
+            );
         }
     }
 

@@ -787,7 +787,7 @@ namespace JSIL {
         protected void TranslateMethodGroup (DecompilerContext context, JavascriptFormatter output, MethodGroupInfo methodGroup) {
             int i = 0;
 
-            var methods = (from m in methodGroup.Methods where !m.IsIgnored && !m.IsExternal select m).ToArray();
+            var methods = (from m in methodGroup.Methods where !m.IsIgnored select m).ToArray();
             if (methods.Length == 0)
                 return;
 
@@ -1043,9 +1043,27 @@ namespace JSIL {
             var methodInfo = GetMemberInformation<Internal.MethodInfo>(method);
             if (methodInfo == null)
                 return;
-            if (methodInfo.IsIgnored)
+
+            if (methodInfo.IsExternal) {
+                if (methodInfo.Metadata.HasAttribute("JSIL.Meta.JSReplacement"))
+                    return;
+
+                output.Identifier("JSIL.ExternalMember", true);
+                output.LPar();
+                output.Identifier(method.DeclaringType);
+                if (!method.IsStatic) {
+                    output.Dot();
+                    output.Keyword("prototype");
+                }
+                output.Comma();
+                output.Value(Util.EscapeIdentifier(methodInfo.GetName(true)));
+                output.RPar();
+                output.Semicolon();
+                output.NewLine();
                 return;
-            if (methodInfo.IsExternal)
+            }
+
+            if (methodInfo.IsIgnored)
                 return;
             if (!method.HasBody)
                 return;
@@ -1074,7 +1092,7 @@ namespace JSIL {
             if (function == null) {
                 output.Identifier("JSIL.UntranslatableFunction", true);
                 output.LPar();
-                output.Value(method.Name);
+                output.Value(method.FullName);
                 output.RPar();
                 output.Semicolon();
             }

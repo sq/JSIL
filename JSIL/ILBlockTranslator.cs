@@ -85,7 +85,8 @@ namespace JSIL {
         public JSBlockStatement Translate () {
             try {
                 return TranslateNode(Block);
-            } catch (AbortTranslation) {
+            } catch (AbortTranslation at) {
+                Console.Error.WriteLine("Method {0} not translated: {1}", ThisMethod.Name, at.Message);
                 return null;
             }
         }
@@ -647,7 +648,7 @@ namespace JSIL {
         }
 
         public JSExpression TranslateNode (ILFixedStatement fxd) {
-            throw new AbortTranslation();
+            throw new AbortTranslation("Fixed statements not implemented");
         }
 
         public JSExpression TranslateNode (ILExpression expression) {
@@ -908,9 +909,11 @@ namespace JSIL {
                 //  because there's no IL opcode for != and the IL isinst opcode returns object, not bool
                 var value = TranslateNode(node.Arguments[0].Arguments[0]);
                 var targetType = (TypeReference)node.Arguments[0].Operand;
-
-                if (targetType.IsGenericParameter)
-                    return JSChangeTypeExpression.New(Translate_GenericTypeCast(targetType), TypeSystem, TypeSystem.Boolean);
+                try {
+                    targetType = TypeAnalysis.SubstituteTypeArgs(targetType, ThisMethodReference);
+                } catch (OpenGenericTypeException) {
+                    throw new AbortTranslation(String.Format("Cast value to open generic type '{0}'", targetType));
+                }
 
                 var targetInfo = TypeInfo.Get(targetType);
 
@@ -1244,11 +1247,11 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Arglist (ILExpression node) {
-            throw new AbortTranslation();
+            throw new AbortTranslation("Arglist instruction not implemented");
         }
 
         protected JSExpression Translate_Localloc (ILExpression node) {
-            throw new AbortTranslation();
+            throw new AbortTranslation("Localloc not implemented");
         }
 
         protected JSStringLiteral Translate_Ldstr (ILExpression node, string text) {
@@ -1393,6 +1396,12 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Castclass (ILExpression node, TypeReference targetType) {
+            try {
+                targetType = TypeAnalysis.SubstituteTypeArgs(targetType, ThisMethodReference);
+            } catch (OpenGenericTypeException) {
+                throw new AbortTranslation(String.Format("Cast object to open generic type '{0}'", targetType));
+            }
+
             if (IsDelegateType(targetType) && IsDelegateType(node.ExpectedType ?? node.InferredType)) {
                 // TODO: We treat all delegate types as equivalent, so we can skip these casts for now
                 return TranslateNode(node.Arguments[0]);
@@ -1404,14 +1413,13 @@ namespace JSIL {
             );
         }
 
-        protected JSExpression Translate_GenericTypeCast (TypeReference targetType) {
-            return new JSUntranslatableExpression(String.Format("Cast to generic parameter type '{0}'", targetType.FullName));
-        }
-
         protected JSExpression Translate_Isinst (ILExpression node, TypeReference targetType) {
             var firstArg = TranslateNode(node.Arguments[0]);
-            if (targetType.IsGenericParameter)
-                return JSChangeTypeExpression.New(Translate_GenericTypeCast(targetType), TypeSystem, targetType);
+            try {
+                targetType = TypeAnalysis.SubstituteTypeArgs(targetType, ThisMethodReference);
+            } catch (OpenGenericTypeException) {
+                throw new AbortTranslation(String.Format("Compared type of value with open generic type '{0}'", targetType));
+            }
 
             var targetInfo = TypeInfo.Get(targetType);
             if (targetInfo.IsIgnored)
@@ -1422,7 +1430,13 @@ namespace JSIL {
 
         protected JSExpression Translate_Unbox_Any (ILExpression node, TypeReference targetType) {
             var value = TranslateNode(node.Arguments[0]);
-            var result = JSIL.Cast(value, TypeAnalysis.SubstituteTypeArgs(targetType, ThisMethodReference));
+            try {
+                targetType = TypeAnalysis.SubstituteTypeArgs(targetType, ThisMethodReference);
+            } catch (OpenGenericTypeException) {
+                throw new AbortTranslation(String.Format("Attempted to unbox an open generic type or method: {0}", targetType));
+            }
+
+            var result = JSIL.Cast(value, targetType);
 
             if (CopyOnReturn(targetType))
                 return JSReferenceExpression.New(result);
@@ -1433,6 +1447,12 @@ namespace JSIL {
         protected JSExpression Translate_Conv (ILExpression node, TypeReference targetType) {
             var value = TranslateNode(node.Arguments[0]);
             var currentType = value.GetExpectedType(TypeSystem);
+
+            try {
+                targetType = TypeAnalysis.SubstituteTypeArgs(targetType, ThisMethodReference);
+            } catch (OpenGenericTypeException) {
+                throw new AbortTranslation(String.Format("Cast value to open generic type '{0}'", targetType));
+            }
 
             if (IsNumeric(currentType) && IsNumeric(targetType)) {
                 if (IsIntegral(targetType)) {
@@ -1560,11 +1580,13 @@ namespace JSIL {
                                 Context, constructor, methodDef
                             );
 
-                            new VariableEliminator(
-                                function.AllVariables["this"],
-                                thisArg
-                            ).Visit(function);
-                            function.AllVariables.Remove("this");
+                            if (function != null) {
+                                new VariableEliminator(
+                                    function.AllVariables["this"],
+                                    thisArg
+                                ).Visit(function);
+                                function.AllVariables.Remove("this");
+                            }
                                 
                             return function;
                         }
@@ -1911,5 +1933,8 @@ namespace JSIL {
     }
 
     public class AbortTranslation : Exception {
+        public AbortTranslation (string reason)
+            : base(reason) {
+        }
     }
 }
