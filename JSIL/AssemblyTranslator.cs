@@ -894,11 +894,18 @@ namespace JSIL {
                     body
                 );
 
-                if (EliminateTemporaries)
-                    new EliminateSingleUseTemporaries(
-                        context.CurrentModule.TypeSystem,
-                        translator.Variables
-                    ).Visit(function);
+                // Run elimination repeatedly, since eliminating one variable may make it possible to eliminate others
+                if (EliminateTemporaries) {
+                    bool eliminated;
+                    do {
+                        var visitor = new EliminateSingleUseTemporaries(
+                            context.CurrentModule.TypeSystem,
+                            translator.Variables
+                        );
+                        visitor.Visit(function);
+                        eliminated = visitor.EliminatedVariables.Count > 0;
+                    } while (eliminated);
+                }
 
                 new EmulateStructAssignment(
                     context.CurrentModule.TypeSystem,

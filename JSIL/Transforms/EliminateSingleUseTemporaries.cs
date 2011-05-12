@@ -17,6 +17,7 @@ namespace JSIL.Transforms {
         public readonly Dictionary<JSVariable, List<int>> Accesses = new Dictionary<JSVariable, List<int>>();
         public readonly Dictionary<JSVariable, List<int>> Conversions = new Dictionary<JSVariable, List<int>>();
         public readonly Dictionary<JSVariable, List<int>> ControlFlowAccesses = new Dictionary<JSVariable, List<int>>();
+        public readonly HashSet<JSVariable> EliminatedVariables = new HashSet<JSVariable>();
 
         public EliminateSingleUseTemporaries (TypeSystem typeSystem, Dictionary<string, JSVariable> variables) {
             TypeSystem = typeSystem;
@@ -147,8 +148,14 @@ namespace JSIL.Transforms {
         public void VisitNode (JSFunctionExpression fn) {
             // Create a new visitor for nested function expressions
             if (Stack.OfType<JSFunctionExpression>().Skip(1).FirstOrDefault() != null) {
-                var nested = new EliminateSingleUseTemporaries(TypeSystem, fn.AllVariables);
-                nested.Visit(fn);
+                bool eliminated = false;
+
+                do {
+                    var nested = new EliminateSingleUseTemporaries(TypeSystem, fn.AllVariables);
+                    nested.Visit(fn);
+                    eliminated = nested.EliminatedVariables.Count > 0;
+                } while (eliminated);
+
                 return;
             }
 
@@ -156,96 +163,91 @@ namespace JSIL.Transforms {
 
             VisitChildren(fn);
 
-            bool mutated;
-            do {
-                mutated = false;
+            foreach (var v in FirstValues.Keys.ToArray()) {
+                if (v.IsReference || v.IsThis || v.IsParameter)
+                    continue;
 
-                foreach (var v in FirstValues.Keys.ToArray()) {
-                    if (v.IsReference || v.IsThis || v.IsParameter)
-                        continue;
+                var valueType = v.GetExpectedType(TypeSystem);
+                if (valueType.IsByReference || ILBlockTranslator.IsIgnoredType(valueType))
+                    continue;
 
-                    var valueType = v.GetExpectedType(TypeSystem);
-                    if (valueType.IsByReference || ILBlockTranslator.IsIgnoredType(valueType))
-                        continue;
+                List<int> assignments;
+                List<int> accesses, copies, controlFlowAccesses, conversions;
 
-                    List<int> assignments;
-                    List<int> accesses, copies, controlFlowAccesses, conversions;
+                if (!Assignments.TryGetValue(v, out assignments)) {
+                    if (TraceLevel >= 2)
+                        Debug.WriteLine(String.Format("Never found an initial assignment for {0}.", v));
 
-                    if (!Assignments.TryGetValue(v, out assignments)) {
-                        if (TraceLevel >= 2)
-                            Debug.WriteLine(String.Format("Never found an initial assignment for {0}.", v));
-
-                        continue;
-                    }
-
-                    if (ControlFlowAccesses.TryGetValue(v, out controlFlowAccesses) && (controlFlowAccesses.Count > 0)) {
-                        if (TraceLevel >= 2)
-                            Debug.WriteLine(String.Format("Cannot eliminate {0}; it participates in control flow.", v));
-
-                        continue;
-                    }
-
-                    if (Conversions.TryGetValue(v, out conversions) && (conversions.Count > 0)) {
-                        if (TraceLevel >= 2)
-                            Debug.WriteLine(String.Format("Cannot eliminate {0}; it undergoes type conversion.", v));
-
-                        continue;
-                    }
-
-                    if (assignments.Count > 1) {
-                        if (TraceLevel >= 2)
-                            Debug.WriteLine(String.Format("Cannot eliminate {0}; it is reassigned.", v));
-
-                        continue;
-                    }
-
-                    if (!Accesses.TryGetValue(v, out accesses))
-                        accesses = nullList;
-
-                    if (!Copies.TryGetValue(v, out copies))
-                        copies = nullList;
-
-                    if ((copies.Count + accesses.Count) > 1) {
-                        if (TraceLevel >= 2)
-                            Debug.WriteLine(String.Format("Cannot eliminate {0}; it is used multiple times.", v));
-
-                        continue;
-                    }
-
-                    var replacement = FirstValues[v].Expression;
-                    if (replacement.AllChildrenRecursive.Contains(v)) {
-                        if (TraceLevel >= 2)
-                            Debug.WriteLine(String.Format("Cannot eliminate {0}; it contains a self-reference.", v));
-
-                        continue;
-                    }
-
-                    if (!IsEffectivelyConstant(v, replacement)) {
-                        if (TraceLevel >= 2)
-                            Debug.WriteLine(String.Format("Cannot eliminate {0}; it is not a constant expression.", v));
-
-                        continue;
-                    }
-
-                    FirstValues.Remove(v);
-
-                    if (TraceLevel >= 1)
-                        Debug.WriteLine(String.Format("Eliminating {0} <- {1}", v, replacement));
-
-                    mutated = true;
-
-                    var transferDataTo = replacement as JSVariable;
-                    if (transferDataTo != null) {
-                        foreach (var access in accesses)
-                            AddToList(Accesses, transferDataTo, access);
-
-                        foreach (var copy in copies)
-                            AddToList(Copies, transferDataTo, copy);
-                    }
-
-                    EliminateVariable(fn, v, replacement);
+                    continue;
                 }
-            } while (mutated);
+
+                if (ControlFlowAccesses.TryGetValue(v, out controlFlowAccesses) && (controlFlowAccesses.Count > 0)) {
+                    if (TraceLevel >= 2)
+                        Debug.WriteLine(String.Format("Cannot eliminate {0}; it participates in control flow.", v));
+
+                    continue;
+                }
+
+                if (Conversions.TryGetValue(v, out conversions) && (conversions.Count > 0)) {
+                    if (TraceLevel >= 2)
+                        Debug.WriteLine(String.Format("Cannot eliminate {0}; it undergoes type conversion.", v));
+
+                    continue;
+                }
+
+                if (assignments.Count > 1) {
+                    if (TraceLevel >= 2)
+                        Debug.WriteLine(String.Format("Cannot eliminate {0}; it is reassigned.", v));
+
+                    continue;
+                }
+
+                if (!Accesses.TryGetValue(v, out accesses))
+                    accesses = nullList;
+
+                if (!Copies.TryGetValue(v, out copies))
+                    copies = nullList;
+
+                if ((copies.Count + accesses.Count) > 1) {
+                    if (TraceLevel >= 2)
+                        Debug.WriteLine(String.Format("Cannot eliminate {0}; it is used multiple times.", v));
+
+                    continue;
+                }
+
+                var replacement = FirstValues[v].Expression;
+                if (replacement.AllChildrenRecursive.Contains(v)) {
+                    if (TraceLevel >= 2)
+                        Debug.WriteLine(String.Format("Cannot eliminate {0}; it contains a self-reference.", v));
+
+                    continue;
+                }
+
+                if (!IsEffectivelyConstant(v, replacement)) {
+                    if (TraceLevel >= 2)
+                        Debug.WriteLine(String.Format("Cannot eliminate {0}; it is not a constant expression.", v));
+
+                    continue;
+                }
+
+                FirstValues.Remove(v);
+
+                if (TraceLevel >= 1)
+                    Debug.WriteLine(String.Format("Eliminating {0} <- {1}", v, replacement));
+
+                EliminatedVariables.Add(v);
+
+                var transferDataTo = replacement as JSVariable;
+                if (transferDataTo != null) {
+                    foreach (var access in accesses)
+                        AddToList(Accesses, transferDataTo, access);
+
+                    foreach (var copy in copies)
+                        AddToList(Copies, transferDataTo, copy);
+                }
+
+                EliminateVariable(fn, v, replacement);
+            }
         }
 
         protected bool GetMinMax (List<int> indices, out int min, out int max) {
@@ -406,17 +408,20 @@ namespace JSIL.Transforms {
                 }
             ).ToArray();
 
-            if (enclosingAssignmentStatements.Length == 0) {
+            if ((enclosingAssignmentStatements.Length == 0) && (
+                !(enclosingStatement is JSTryCatchBlock) &&
+                !(enclosingStatement is JSVariableDeclarationStatement)
+            )) {
                 if (TraceLevel >= 3)
                     Debug.WriteLine(String.Format(
                         "{0:0000} Accesses: {1}\r\n{2}",
                         StatementIndex, variable, enclosingStatement
                     ));
 
-                if (enclosingStatement is JSExpressionStatement)
-                    AddToList(Accesses, variable, StatementIndex);
-                else
+                if ((enclosingStatement is JSIfStatement) || (enclosingStatement is JSWhileLoop) || (enclosingStatement is JSSwitchStatement))
                     AddToList(ControlFlowAccesses, variable, StatementIndex);
+                else
+                    AddToList(Accesses, variable, StatementIndex);
             } else {
                 if (TraceLevel >= 4)
                     Debug.WriteLine(String.Format(

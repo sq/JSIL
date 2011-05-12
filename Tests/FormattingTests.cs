@@ -79,6 +79,22 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void EliminateSingleUseExceptionTemporaries () {
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\SingleUseExceptionTemporaries.cs",
+                "a\r\nb"
+            );
+
+            try {
+                Assert.IsTrue(generatedJs.Contains("ex = $exception"));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
         public void NestedInitialization () {
             var generatedJs = GetJavascript(
                 @"SpecialTestCases\NestedInitialization.cs",

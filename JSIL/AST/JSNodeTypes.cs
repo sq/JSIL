@@ -939,7 +939,7 @@ namespace JSIL.Ast {
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             return typeSystem.Void;
         }
-
+    
         public override bool Equals (object obj) {
             return EqualsImpl(obj, true);
         }
@@ -994,7 +994,10 @@ namespace JSIL.Ast {
         }
 
         public override string ToString () {
-            return String.Format("Reference to ignored member {0}", Member.Name);
+            if (Member != null)
+                return String.Format("Reference to ignored member {0}", Member.Name);
+            else
+                return "Reference to ignored member (no info)";
         }
 
         public override IEnumerable<JSNode> Children {
@@ -1653,6 +1656,18 @@ namespace JSIL.Ast {
         }
 
         public override bool IsParameter {
+            get {
+                return true;
+            }
+        }
+    }
+
+    public class JSExceptionVariable : JSVariable {
+        public JSExceptionVariable (TypeSystem typeSystem) :
+            base("$exception", new TypeReference("System", "Exception", typeSystem.Object.Module, typeSystem.Object.Scope)) {
+        }
+
+        public override bool IsConstant {
             get {
                 return true;
             }

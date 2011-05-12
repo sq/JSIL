@@ -134,18 +134,20 @@ namespace JSIL {
         }
 
         protected JSVariable DeclareVariable (ILVariable variable) {
-            var result = JSVariable.New(variable);
+            return DeclareVariable(JSVariable.New(variable));
+        }
 
+        protected JSVariable DeclareVariable (JSVariable variable) {
             JSVariable existing;
-            if (Variables.TryGetValue(result.Identifier, out existing)) {
-                if (result.Type != existing.Type)
+            if (Variables.TryGetValue(variable.Identifier, out existing)) {
+                if (!TypesAreEqual(variable.Type, existing.Type))
                     throw new InvalidOperationException("A variable with that name is already declared in this scope, with a different type.");
 
                 return existing;
             }
 
-            Variables[result.Identifier] = result;
-            return result;
+            Variables[variable.Identifier] = variable;
+            return variable;
         }
 
         protected static bool CopyOnReturn (TypeReference type) {
@@ -294,10 +296,10 @@ namespace JSIL {
             return result;
         }
 
-        protected bool Translate_PropertyCall (JSExpression thisExpression, MemberReference reference, MethodDefinition method, JSExpression[] arguments, bool virt, out JSExpression result) {
+        protected bool Translate_PropertyCall (JSExpression thisExpression, MethodReference reference, MethodDefinition method, JSExpression[] arguments, bool virt, out JSExpression result) {
             result = null;
 
-            var methodInfo = TypeInfo.GetMethod(method);
+            var methodInfo = TypeInfo.GetMethod(reference);
             if (methodInfo == null)
                 return false;
 
@@ -328,9 +330,9 @@ namespace JSIL {
                 return true;
             }
 
-            var thisType = thisExpression.GetExpectedType(TypeSystem);
+            var thisType = GetTypeDefinition(thisExpression.GetExpectedType(TypeSystem));
             Func<JSExpression> generate = () => {
-                if ((propertyInfo.Member.GetMethod != null) && (method.FullName == propertyInfo.Member.GetMethod.FullName)) {
+                if ((propertyInfo.Member.GetMethod != null) && (method.Name == propertyInfo.Member.GetMethod.Name)) {
                     return new JSDotExpression(
                         thisExpression, new JSProperty(reference, propertyInfo)
                     );
@@ -350,8 +352,8 @@ namespace JSIL {
 
             // Accesses to a base property should go through a regular method invocation, since
             //  javascript properties do not have a mechanism for base access
-            if (method.HasThis) {
-                if (AllBaseTypesOf(GetTypeDefinition(thisType)).Contains(propertyInfo.DeclaringType.Definition)) {
+            if (method.HasThis) {                
+                if (!TypesAreEqual(methodInfo.DeclaringType.Definition, thisType) && !virt) {
                     return false;
                 } else {
                     result = generate();
@@ -790,11 +792,7 @@ namespace JSIL {
 
             if (tcb.CatchBlocks.Count > 0) {
                 var pairs = new List<KeyValuePair<JSExpression, JSStatement>>();
-                catchVariable = DeclareVariable(new ILVariable {
-                    IsGenerated = true,
-                    Name = "$exception", 
-                    Type = Context.CurrentModule.TypeSystem.Object
-                });
+                catchVariable = DeclareVariable(new JSExceptionVariable(TypeSystem));
 
                 bool isFirst = true, foundUniversalCatch = false, openBrace = false;
                 foreach (var cb in tcb.CatchBlocks) {
@@ -1056,7 +1054,9 @@ namespace JSIL {
         }
 
         protected JSThrowExpression Translate_Rethrow (ILExpression node) {
-            return new JSThrowExpression(new JSStringIdentifier("$exception", TypeSystem.Object));
+            return new JSThrowExpression(new JSStringIdentifier(
+                "$exception", new TypeReference("System", "Exception", TypeSystem.Object.Module, TypeSystem.Object.Scope)
+            ));
         }
 
         protected JSThrowExpression Translate_Throw (ILExpression node) {

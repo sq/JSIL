@@ -173,6 +173,8 @@
     <None Include="SpecialTestCases\IgnoreParameterType.cs" />
     <None Include="TestCases\NestedGenericMethodCalls.cs" />
     <None Include="SimpleTestCases\StructArrayLiteral.cs" />
+    <None Include="SimpleTestCases\VirtualBaseProperties.cs" />
+    <None Include="SpecialTestCases\SingleUseExceptionTemporaries.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

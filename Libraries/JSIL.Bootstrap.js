@@ -99,16 +99,22 @@ System.Exception = function (message) {
   this._ctor(message);
 };
 System.Exception.prototype = JSIL.MakeProto(Error, System.Exception, "System.Exception", true);
-System.Exception.prototype.Message = null;
+System.Exception.prototype._Message = null;
 System.Exception.prototype._ctor = function (message) {
   if (typeof (message) != "undefined")
-    this.Message = String(message);
+    this._Message = String(message);
 }
-System.Exception.prototype.toString = function () {
-  if (this.Message === null)
-    return System.String.Format("{0}: Exception of type '{0}' was thrown.", JSIL.GetTypeName(this));
+System.Exception.prototype.get_Message = function () {  
+  if ((typeof (this._Message) === "undefined") || (this._Message === null))
+    return System.String.Format("Exception of type '{0}' was thrown.", JSIL.GetTypeName(this));
   else
-    return System.String.Format("{0}: {1}", JSIL.GetTypeName(this), this.Message);
+    return this._Message;
+}
+JSIL.MakeProperty(System.Exception.prototype, "Message", 
+  System.Exception.prototype.get_Message, null);
+System.Exception.prototype.toString = function () {
+  var message = this.Message;
+  return System.String.Format("{0}: {1}", JSIL.GetTypeName(this), message);
 };
 
 JSIL.MakeClass(System.Exception, System, "InvalidCastException", "System.InvalidCastException");
