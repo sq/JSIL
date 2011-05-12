@@ -61,45 +61,52 @@ JSIL.Host.getCanvas = function () {
   throw new Error("No canvas implementation");
 };
 
-if (typeof (console) !== "undefined")
-  JSIL.Host.logWrite = console.log.bind(console);
-else
-  JSIL.Host.logWrite = function (text) {
-    if (JSIL.HostType.IsBrowser)
-      window.alert(text);
-    else
-      putstr(text);
-  };
+JSIL.Host.logWrite = function (text) {
+  if (typeof (console) !== "undefined")
+    Function.prototype.apply.call(console.log, console, arguments);
+  else if (JSIL.HostType.IsBrowser)
+    window.alert(text);
+  else
+    putstr(text);
+};
 
-if (typeof (console) !== "undefined")
-  JSIL.Host.logWriteLine = console.log.bind(console);
-else
-  JSIL.Host.logWriteLine = function (text) {
-    if (JSIL.HostType.IsBrowser)
-      window.alert(text);
-    else
-      print(text);
-  };
+JSIL.Host.logWriteLine = function (text) {
+  if (typeof (console) !== "undefined")
+    Function.prototype.apply.call(console.log, console, arguments);
+  else if (JSIL.HostType.IsBrowser)
+    window.alert(text);
+  else
+    print(text);
+};
 
-if (typeof (console) !== "undefined")
-  JSIL.Host.warning = console.warn.bind(console);
-else
-  JSIL.Host.warning = function (text) {
+JSIL.Host.warning = function (text) {
+  if (typeof (console) !== "undefined")
+    Function.prototype.apply.call(console.warn, console, arguments);
+  else
     JSIL.Host.logWriteLine(System.String.Concat.apply(null, arguments));
-  };
+};
 
 JSIL.Host.error = function (exception, text) {
   var rest = Array.prototype.slice.call(arguments, 1);
+  rest.push(exception);
+
   var stack = null;
   try {
     stack = exception.stack;
   } catch (e) {
-    stack = exception;
+    stack = null;
   }
 
-  if (typeof (console) !== "undefined")
-    Function.prototype.apply.apply(console.error, [console, rest.concat([stack])]);
-  else
+  if ((typeof (stack) !== "undefined") && (stack !== null)) {
+    if (stack.indexOf(String(exception)) >= 0)
+      rest.pop();
+
+    rest.push(stack);
+  }
+
+  if (typeof (console) !== "undefined") {
+    Function.prototype.apply.call(console.error, console, rest);
+  } else
     throw exception;
 }
 
@@ -196,22 +203,6 @@ System.RuntimeType.__LockCount__ = 0;
 System.RuntimeType.__FullName__ = null;
 System.RuntimeType.__ShortName__ = null;
 
-JSIL.InitializeType = function (type) {
-  if (type.__TypeInitialized__ || false)
-    return;
-
-  // Not entirely correct, but prevents recursive type initialization
-  type.__TypeInitialized__ = true;
-
-  if (typeof (type._cctor) != "undefined") {
-    try {
-      type._cctor();
-    } catch (e) {
-      JSIL.Host.error(e, "Unhandled exception in static constructor for type ", JSIL.GetTypeName(type));
-    }
-  }
-}
-
 JSIL.InitializeStructFields = function (instance, typeObject) {
   var sf = instance.__StructFields__;
 
@@ -264,7 +255,20 @@ JSIL.SealType = function (namespace, name) {
       return type;
     state.sealed = false;
 
-    JSIL.InitializeType(type);
+    if (type.__TypeInitialized__ || false)
+      return type;
+
+    // Not entirely correct, but prevents recursive type initialization
+    type.__TypeInitialized__ = true;
+
+    if (typeof (type._cctor) != "undefined") {
+      try {
+        type._cctor();
+      } catch (e) {
+        JSIL.Host.error(e, "Unhandled exception in static constructor for type ", JSIL.GetTypeName(type), " ");
+      }
+    }
+
     return type;
   };
 
@@ -296,7 +300,19 @@ JSIL.MakeType = function (baseType, namespace, localName, fullName, isReferenceT
   }
 
   var typeObject = function () {
-    JSIL.InitializeType(typeObject);
+    if ((typeObject.__TypeInitialized__ || false) === false) {
+      // Not entirely correct, but prevents recursive type initialization
+      typeObject.__TypeInitialized__ = true;
+
+      if (typeof (typeObject._cctor) != "undefined") {
+        try {
+          typeObject._cctor();
+        } catch (e) {
+          JSIL.Host.error(e, "Unhandled exception in static constructor for type ", JSIL.GetTypeName(typeObject), " ");
+        }
+      }
+    }
+
     JSIL.InitializeStructFields(this, typeObject);
 
     var args = arguments;
