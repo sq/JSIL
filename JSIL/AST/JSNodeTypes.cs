@@ -634,6 +634,14 @@ namespace JSIL.Ast {
                         return true;
             }
 
+            var modopt = type as OptionalModifierType;
+            if (modopt != null)
+                return IsOpenGenericType(modopt.ElementType);
+
+            var modreq = type as RequiredModifierType;
+            if (modreq != null)
+                return IsOpenGenericType(modreq.ElementType);
+
             return false;
         }
 
@@ -985,8 +993,10 @@ namespace JSIL.Ast {
         public readonly JSExpression[] Arguments;
 
         public JSIgnoredMemberReference (bool throwError, IMemberInfo member, params JSExpression[] arguments) {
+            /*
             if ((member == null) && ((arguments == null) || (arguments.Length == 0)))
                 throw new ArgumentNullException();
+             */
 
             ThrowError = throwError;
             Member = member;

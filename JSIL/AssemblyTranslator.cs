@@ -287,6 +287,9 @@ namespace JSIL {
             TypeInfo result;
             if (!TypeInformation.TryGetValue(identifier, out result)) {
                 var typedef = ILBlockTranslator.GetTypeDefinition(type);
+                if (typedef == null)
+                    return null;
+
                 identifier = new TypeIdentifier(typedef);
                 typesToInitialize.Add(identifier, typedef);
             }
@@ -596,7 +599,7 @@ namespace JSIL {
 
         protected void ForwardDeclareType (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef) {
             var typeInfo = GetTypeInformation(typedef);
-            if (typeInfo.IsIgnored)
+            if ((typeInfo == null) || typeInfo.IsIgnored)
                 return;
 
             if (DeclaredTypes.Contains(typedef.FullName)) {
@@ -671,7 +674,7 @@ namespace JSIL {
 
         protected void SealType (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef) {
             var typeInfo = GetTypeInformation(typedef);
-            if (typeInfo.IsIgnored)
+            if ((typeInfo == null) || typeInfo.IsIgnored)
                 return;
 
             context.CurrentType = typedef;
@@ -697,7 +700,7 @@ namespace JSIL {
 
         protected void TranslateTypeDefinition (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef) {
             var typeInfo = GetTypeInformation(typedef);
-            if (typeInfo.IsIgnored)
+            if ((typeInfo == null) || typeInfo.IsIgnored)
                 return;
 
             context.CurrentType = typedef;
@@ -741,9 +744,17 @@ namespace JSIL {
                 output.Semicolon();
             }
 
+            Func<FieldDefinition, bool> isFieldIgnored = (f) => {
+                IMemberInfo memberInfo;
+                if (typeInfo.Members.TryGetValue(MemberIdentifier.New(f), out memberInfo))
+                    return memberInfo.IsIgnored;
+                else
+                    return true;
+            };
+
             var structFields = 
                 (from field in typedef.Fields
-                where !typeInfo.Members[MemberIdentifier.New(field)].IsIgnored && !field.HasConstant &&
+                where !isFieldIgnored(field) && !field.HasConstant &&
                     EmulateStructAssignment.IsStruct(field.FieldType) &&
                     !field.IsStatic
                 select field).ToArray();
@@ -963,6 +974,12 @@ namespace JSIL {
         protected JSExpression TranslateField (FieldDefinition field) {
             JSDotExpression target;
             var fieldInfo = GetMemberInformation<Internal.FieldInfo>(field);
+            if ((fieldInfo == null) || fieldInfo.IsIgnored) {
+                if (fieldInfo != null)
+                    return new JSIgnoredMemberReference(true, fieldInfo);
+                else
+                    return new JSIgnoredMemberReference(true, null, new JSStringLiteral(field.FullName));
+            }
             
             if (field.IsStatic)
                 target = JSDotExpression.New(
@@ -1109,7 +1126,7 @@ namespace JSIL {
 
         protected void TranslateProperty (DecompilerContext context, JavascriptFormatter output, PropertyDefinition property) {
             var propertyInfo = GetMemberInformation<Internal.PropertyInfo>(property);
-            if (propertyInfo.IsIgnored)
+            if ((propertyInfo == null) || propertyInfo.IsIgnored)
                 return;
 
             output.Identifier("JSIL.MakeProperty", true);

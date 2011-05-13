@@ -395,7 +395,7 @@ namespace JSIL {
             var ts = typeRef.Module.TypeSystem;
             typeRef = DereferenceType(typeRef);
 
-            if (typeRef.IsGenericParameter)
+            if (JSExpression.IsOpenGenericType(typeRef))
                 return null;
             else if (typeRef is ArrayType)
                 return new TypeReference(ts.Object.Namespace, "Array", ts.Object.Module, ts.Object.Scope).ResolveOrThrow();
@@ -1342,6 +1342,9 @@ namespace JSIL {
 
         protected JSExpression Translate_Ldlen (ILExpression node) {
             var arg = TranslateNode(node.Arguments[0]);
+            if (arg.IsNull)
+                return arg;
+
             var argType = GetTypeDefinition(arg.GetExpectedType(TypeSystem));
             var lengthProp = (from p in argType.Properties where p.Name == "Length" select p).First();
             return Translate_CallGetter(node, lengthProp.GetMethod);
@@ -1349,9 +1352,12 @@ namespace JSIL {
 
         protected JSExpression Translate_Ldelem (ILExpression node, TypeReference elementType) {
             var expectedType = elementType ?? node.ExpectedType ?? node.InferredType;
+            var target = TranslateNode(node.Arguments[0]);
+            if (target.IsNull)
+                return target;
 
             JSExpression result = new JSIndexerExpression(
-                TranslateNode(node.Arguments[0]),
+                target,
                 TranslateNode(node.Arguments[1]),
                 expectedType
             );
@@ -1370,17 +1376,21 @@ namespace JSIL {
             return JSReferenceExpression.New(Translate_Ldelem(node, elementType));
         }
 
-        protected JSBinaryOperatorExpression Translate_Stelem (ILExpression node) {
+        protected JSExpression Translate_Stelem (ILExpression node) {
             return Translate_Stelem(node, null);
         }
 
-        protected JSBinaryOperatorExpression Translate_Stelem (ILExpression node, TypeReference elementType) {
+        protected JSExpression Translate_Stelem (ILExpression node, TypeReference elementType) {
+            var target = TranslateNode(node.Arguments[0]);
+            if (target.IsNull)
+                return target;
+
             var rhs = TranslateNode(node.Arguments[2]);
 
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
                 new JSIndexerExpression(
-                    TranslateNode(node.Arguments[0]),
+                    target,
                     TranslateNode(node.Arguments[1])
                 ),
                 rhs, elementType ?? rhs.GetExpectedType(TypeSystem)

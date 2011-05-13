@@ -249,6 +249,10 @@ namespace JSIL.Internal {
             Identifier(modopt.ElementType as dynamic, includeParens);
         }
 
+        protected void TypeIdentifier (RequiredModifierType modreq, bool includeParens) {
+            Identifier(modreq.ElementType as dynamic, includeParens);
+        }
+
         protected void TypeIdentifier (PointerType ptr, bool includeParens) {
             Identifier(ptr.ElementType as dynamic, includeParens);
         }
