@@ -14,6 +14,9 @@ namespace JSIL.Transforms {
         public readonly HashSet<string> ParameterNames;
         public readonly JSILIdentifier JSIL;
 
+        protected readonly HashSet<JSPassByReferenceExpression> ReferencesToTransform = new HashSet<JSPassByReferenceExpression>();
+        protected readonly HashSet<JSVariableDeclarationStatement> Declarations = new HashSet<JSVariableDeclarationStatement>();
+
         public IntroduceVariableReferences (JSILIdentifier jsil, Dictionary<string, JSVariable> variables, HashSet<string> parameterNames) {
             JSIL = jsil;
             Variables = variables;
@@ -116,16 +119,29 @@ namespace JSIL.Transforms {
             TransformedVariables.Add(variable.Identifier);
         }
 
-        public void VisitNode (JSFunctionExpression fn) {
-            var referencesToTransform =
-                (from r in fn.AllChildrenRecursive.OfType<JSPassByReferenceExpression>()
-                let cr = GetConstructedReference(r)
-                where cr != null
-                select r).ToArray();
-            var declarations =
-                fn.AllChildrenRecursive.OfType<JSVariableDeclarationStatement>().ToArray();
+        public void VisitNode (JSPassByReferenceExpression pbr) {
+            if (GetConstructedReference(pbr) != null)
+                ReferencesToTransform.Add(pbr);
 
-            foreach (var r in referencesToTransform) {
+            VisitChildren(pbr);
+        }
+
+        public void VisitNode (JSVariableDeclarationStatement vds) {
+            Declarations.Add(vds);
+
+            VisitChildren(vds);
+        }
+
+        public void VisitNode (JSFunctionExpression fn) {
+            // Create a new visitor for nested function expressions
+            if (Stack.OfType<JSFunctionExpression>().Skip(1).FirstOrDefault() != null) {
+                new IntroduceVariableReferences(JSIL, fn.AllVariables, new HashSet<string>(from p in fn.Parameters select p.Name)).Visit(fn);
+                return;
+            }
+
+            VisitChildren(fn);
+
+            foreach (var r in ReferencesToTransform) {
                 var cr = GetConstructedReference(r);
 
                 if (cr == null) {
@@ -140,7 +156,7 @@ namespace JSIL.Transforms {
                 if (parameter != null) {
                     TransformParameterIntoReference(parameter, fn.Body);
                 } else {
-                    var declaration = (from vds in declarations
+                    var declaration = (from vds in Declarations
                                        from ivd in vds.Declarations.Select((vd, i) => new { vd = vd, i = i })
                                        where MatchesConstructedReference(ivd.vd.Left, cr)
                                        select new { vds = vds, vd = ivd.vd, i = ivd.i }).FirstOrDefault();
@@ -155,8 +171,6 @@ namespace JSIL.Transforms {
                     );
                 }
             }
-
-            VisitChildren(fn);
         }
     }
 }

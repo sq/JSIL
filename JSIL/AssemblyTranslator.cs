@@ -982,12 +982,8 @@ namespace JSIL {
         protected JSExpression TranslateField (FieldDefinition field) {
             JSDotExpression target;
             var fieldInfo = GetMemberInformation<Internal.FieldInfo>(field);
-            if ((fieldInfo == null) || fieldInfo.IsIgnored) {
-                if (fieldInfo != null)
-                    return new JSIgnoredMemberReference(true, fieldInfo);
-                else
-                    return new JSIgnoredMemberReference(true, null, new JSStringLiteral(field.FullName));
-            }
+            if ((fieldInfo == null) || fieldInfo.IsIgnored)
+                return null;
             
             if (field.IsStatic)
                 target = JSDotExpression.New(
