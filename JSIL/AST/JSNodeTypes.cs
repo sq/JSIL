@@ -1393,7 +1393,7 @@ namespace JSIL.Ast {
         }
 
         public virtual JSLiteral ToLiteral () {
-            return JSLiteral.New(Identifier);
+            return JSLiteral.New(Util.EscapeIdentifier(Identifier));
         }
     }
 

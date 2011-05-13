@@ -176,6 +176,7 @@
     <None Include="SimpleTestCases\VirtualBaseProperties.cs" />
     <None Include="SpecialTestCases\SingleUseExceptionTemporaries.cs" />
     <None Include="TestCases\LambdaRefParameters.cs" />
+    <None Include="SimpleTestCases\MemberRefMangledNames.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
