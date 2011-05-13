@@ -91,6 +91,9 @@ namespace JSIL.Tests {
 
             using (var test = new ComparisonTest(@"TestCases\NestedGenericMethodCalls.cs"))
                 test.Run();
+
+            using (var test = new ComparisonTest(@"TestCases\LambdaRefParameters.cs"))
+                test.Run();
         }
 
         [Test]
