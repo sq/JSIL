@@ -728,8 +728,16 @@ namespace JSIL {
             foreach (var property in typedef.Properties)
                 TranslateProperty(context, output, property);
 
+            Func<TypeReference, bool> isInterfaceIgnored = (i) => {
+                var interfaceInfo = GetTypeInformation(i);
+                if (interfaceInfo != null)
+                    return interfaceInfo.IsIgnored;
+                else
+                    return true;
+            };
+
             var interfaces = (from i in typedef.Interfaces
-                              where !GetTypeInformation(i).IsIgnored
+                              where !isInterfaceIgnored(i)
                               select i).ToArray();
 
             if (interfaces.Length > 0) {

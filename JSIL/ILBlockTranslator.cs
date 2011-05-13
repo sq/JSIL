@@ -395,6 +395,22 @@ namespace JSIL {
             var ts = typeRef.Module.TypeSystem;
             typeRef = DereferenceType(typeRef);
 
+            bool unwrapped = false;
+            do {
+                var rmt = typeRef as RequiredModifierType;
+                var omt = typeRef as OptionalModifierType;
+
+                if (rmt != null) {
+                    typeRef = rmt.ElementType;
+                    unwrapped = true;
+                } else if (omt != null) {
+                    typeRef = omt.ElementType;
+                    unwrapped = true;
+                } else {
+                    unwrapped = false;
+                }
+            } while (unwrapped);
+
             if (JSExpression.IsOpenGenericType(typeRef))
                 return null;
             else if (typeRef is ArrayType)
@@ -1265,6 +1281,8 @@ namespace JSIL {
         protected JSExpression Translate_Ldftn (ILExpression node, MethodReference method) {
             method = JSExpression.ResolveGenericMethod(method);
             var methodInfo = TypeInfo.GetMethod(method);
+            if (methodInfo == null)
+                return new JSIgnoredMemberReference(true, null, new JSStringLiteral(method.FullName));
 
             if (method.HasThis)
                 return JSDotExpression.New(
@@ -1346,7 +1364,10 @@ namespace JSIL {
                 return arg;
 
             var argType = GetTypeDefinition(arg.GetExpectedType(TypeSystem));
-            var lengthProp = (from p in argType.Properties where p.Name == "Length" select p).First();
+            var lengthProp = (from p in argType.Properties where p.Name == "Length" select p).FirstOrDefault();
+            if (lengthProp == null)
+                return new JSUntranslatableExpression(String.Format("Retrieving the length of a type with no length property: {0}", argType.FullName));
+
             return Translate_CallGetter(node, lengthProp.GetMethod);
         }
 

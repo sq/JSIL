@@ -2001,7 +2001,7 @@ namespace JSIL.Ast {
             var targetType = Target.GetExpectedType(typeSystem);
 
             var targetAbstractMethod = Target.AllChildrenRecursive.OfType<JSIdentifier>()
-                .FirstOrDefault((i) => {
+                .LastOrDefault((i) => {
                     var m = i as JSMethod;
                     var fm = i as JSFakeMethod;
                     return (m != null) || (fm != null);
