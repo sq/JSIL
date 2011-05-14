@@ -1145,7 +1145,7 @@ namespace JSIL {
             }
             output.Comma();
 
-            output.Value(propertyInfo.Name);
+            output.Value(Util.EscapeIdentifier(propertyInfo.Name));
 
             output.Comma();
             output.NewLine();

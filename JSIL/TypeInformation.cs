@@ -1066,9 +1066,12 @@ namespace JSIL.Internal {
         protected override string GetName () {
             string result;
             var declType = Member.DeclaringType.Resolve();
+            var over = (Member.GetMethod ?? Member.SetMethod).Overrides.FirstOrDefault();
 
             if ((declType != null) && declType.IsInterface)
                 result = ForcedName ?? String.Format("{0}.{1}", declType.Name, ShortName);
+            else if (over != null)
+                result = ForcedName ?? String.Format("{0}.{1}", over.DeclaringType.Name, ShortName);
             else
                 result = ForcedName ?? ShortName;
 
