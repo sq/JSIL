@@ -103,10 +103,7 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSUnaryOperatorExpression uoe) {
-            var isBoolean = ILBlockTranslator.TypesAreEqual(
-                TypeSystem.Boolean, 
-                uoe.Expression.GetExpectedType(TypeSystem)
-            );
+            var isBoolean = ILBlockTranslator.IsBoolean(uoe.GetExpectedType(TypeSystem));
 
             if (isBoolean) {
                 if (uoe.Operator == JSOperator.IsTrue) {

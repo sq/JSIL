@@ -474,6 +474,11 @@ namespace JSIL {
             }
         }
 
+        public static bool IsBoolean (TypeReference type) {
+            type = DereferenceType(type);
+            return type.FullName == "System.Boolean";
+        }
+
         public static bool IsIgnoredType (TypeReference type) {
             type = DereferenceType(type);
 

@@ -112,6 +112,23 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void IfBooleanProperty () {
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\IfBooleanProperty.cs",
+                "true\r\nfalse"
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("!!Program.P"));
+                Assert.IsTrue(generatedJs.Contains("!Program.P"));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
         public void PrivateNames () {
             using (var test = new ComparisonTest(@"SpecialTestCases\PrivateNames.cs"))
                 test.Run();

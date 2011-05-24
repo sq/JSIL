@@ -178,6 +178,7 @@
     <None Include="TestCases\LambdaRefParameters.cs" />
     <None Include="SimpleTestCases\MemberRefMangledNames.cs" />
     <None Include="SimpleTestCases\InterfaceProperties.cs" />
+    <None Include="SpecialTestCases\IfBooleanProperty.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
