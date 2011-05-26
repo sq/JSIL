@@ -181,6 +181,7 @@
     <None Include="SpecialTestCases\IfBooleanProperty.cs" />
     <None Include="SpecialTestCases\ReplacementArgumentNameMismatch.cs" />
     <None Include="SpecialTestCases\IgnoreDerivedType.cs" />
+    <None Include="SpecialTestCases\StubbedMethodBodies.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

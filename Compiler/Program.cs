@@ -24,6 +24,10 @@ namespace JSIL.Compiler {
                     case "i":
                         translator.IgnoredAssemblies.Add(new Regex(m.Groups["value"].Value, RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture));
                         break;
+                    case "stub":
+                    case "s":
+                        translator.StubbedAssemblies.Add(new Regex(m.Groups["value"].Value, RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture));
+                        break;
                     case "proxy":
                     case "p":
                         translator.AddProxyAssembly(Path.GetFullPath(m.Groups["value"].Value), false);
@@ -75,10 +79,14 @@ namespace JSIL.Compiler {
                 Console.WriteLine("Options:");
                 Console.WriteLine("--out:<folder>");
                 Console.WriteLine("  Specifies the directory into which the generated javascript should be written.");
+                Console.WriteLine("--proxy:<assembly>");
+                Console.WriteLine("  Specifies the location of a proxy assembly that contains type information for other assemblies.");
                 Console.WriteLine("--nodeps");
                 Console.WriteLine("  Disables translating dependencies.");
                 Console.WriteLine("--ignore:<regex>");
                 Console.WriteLine("  Specifies a regular expression filter used to ignore certain dependencies.");
+                Console.WriteLine("--stub:<regex>");
+                Console.WriteLine("  Specifies a regular expression filter used to specify that certain dependencies should only be generated as stubs.");
                 return;
             }
 

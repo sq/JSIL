@@ -60,6 +60,7 @@ namespace JSIL {
         public readonly Dictionary<string, ModuleInfo> ModuleInformation = new Dictionary<string, ModuleInfo>();
         public readonly HashSet<string> GeneratedFiles = new HashSet<string>();
         public readonly List<Regex> IgnoredAssemblies = new List<Regex>();
+        public readonly List<Regex> StubbedAssemblies = new List<Regex>();
         public readonly HashSet<string> DeclaredTypes = new HashSet<string>();
 
         public event Action<string> StartedLoadingAssembly;
@@ -254,8 +255,16 @@ namespace JSIL {
             var tw = new StreamWriter(outputStream, Encoding.ASCII);
             var formatter = new JavascriptFormatter(tw, this);
 
+            bool stubbed = false;
+            foreach (var sa in StubbedAssemblies) {
+                if (sa.IsMatch(assembly.FullName)) {
+                    stubbed = true;
+                    break;
+                }
+            }
+            
             foreach (var module in assembly.Modules)
-                TranslateModule(context, formatter, module);
+                TranslateModule(context, formatter, module, stubbed);
 
             tw.Flush();
         }
@@ -487,7 +496,7 @@ namespace JSIL {
             return (T)result;
         }
 
-        protected void TranslateModule (DecompilerContext context, JavascriptFormatter output, ModuleDefinition module) {
+        protected void TranslateModule (DecompilerContext context, JavascriptFormatter output, ModuleDefinition module, bool stubbed) {
             var moduleInfo = GetModuleInformation(module);
             if (moduleInfo.IsIgnored)
                 return;
@@ -503,7 +512,7 @@ namespace JSIL {
             }
 
             foreach (var typedef in module.Types)
-                TranslateTypeDefinition(context, output, typedef);
+                TranslateTypeDefinition(context, output, typedef, stubbed);
 
             foreach (var typedef in module.Types)
                 SealType(context, output, typedef);
@@ -638,9 +647,11 @@ namespace JSIL {
                 baseClass = typedef.BaseType;
 
                 var resolved = baseClass.Resolve();
-                if (!DeclaredTypes.Contains(resolved.FullName) &&
+                if (
+                    !DeclaredTypes.Contains(resolved.FullName) &&
                     (resolved != null) &&
-                    (resolved.Module.Assembly == typedef.Module.Assembly)) {
+                    (resolved.Module.Assembly == typedef.Module.Assembly)
+                ) {
 
                     ForwardDeclareType(context, output, resolved);
                 }
@@ -690,9 +701,11 @@ namespace JSIL {
                     if (fieldTypeDef == null)
                         continue;
 
-                    if (!DeclaredTypes.Contains(fieldTypeDef.FullName) &&
+                    if (
+                        !DeclaredTypes.Contains(fieldTypeDef.FullName) &&
                         (fieldTypeDef != null) &&
-                        (fieldTypeDef.Module.Assembly == typedef.Module.Assembly)) {
+                        (fieldTypeDef.Module.Assembly == typedef.Module.Assembly)
+                    ) {
 
                         ForwardDeclareType(context, output, fieldTypeDef);
                     }
@@ -728,7 +741,7 @@ namespace JSIL {
             }
         }
 
-        protected void TranslateTypeDefinition (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef) {
+        protected void TranslateTypeDefinition (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef, bool stubbed) {
             var typeInfo = GetTypeInformation(typedef);
             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
                 return;
@@ -749,14 +762,17 @@ namespace JSIL {
                 if (method.Name == ".cctor")
                     continue;
 
-                TranslateMethod(context, output, method, method);
+                TranslateMethod(context, output, method, method, stubbed);
             }
+            
+            if (stubbed) {
+            } else {
+                foreach (var methodGroup in info.MethodGroups)
+                    TranslateMethodGroup(context, output, methodGroup);
 
-            foreach (var methodGroup in info.MethodGroups)
-                TranslateMethodGroup(context, output, methodGroup);
-
-            foreach (var property in typedef.Properties)
-                TranslateProperty(context, output, property);
+                foreach (var property in typedef.Properties)
+                    TranslateProperty(context, output, property);
+            }
 
             Func<TypeReference, bool> isInterfaceIgnored = (i) => {
                 var interfaceInfo = GetTypeInformation(i);
@@ -825,12 +841,12 @@ namespace JSIL {
                 output.Semicolon();
             }
 
-            TranslateTypeStaticConstructor(context, output, typedef, info.StaticConstructor);
+            TranslateTypeStaticConstructor(context, output, typedef, info.StaticConstructor, stubbed);
 
             output.NewLine();
 
             foreach (var nestedTypedef in typedef.NestedTypes)
-                TranslateTypeDefinition(context, output, nestedTypedef);
+                TranslateTypeDefinition(context, output, nestedTypedef, stubbed);
         }
 
         protected void TranslateMethodGroup (DecompilerContext context, JavascriptFormatter output, MethodGroupInfo methodGroup) {
@@ -1044,7 +1060,7 @@ namespace JSIL {
             }
         }
 
-        protected void TranslateTypeStaticConstructor (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef, MethodDefinition cctor) {
+        protected void TranslateTypeStaticConstructor (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef, MethodDefinition cctor, bool stubbed) {
             var typeSystem = context.CurrentModule.TypeSystem;
             var fieldsToEmit =
                 (from f in typedef.Fields
@@ -1082,8 +1098,8 @@ namespace JSIL {
                     AstEmitter.Visit(new JSExpressionStatement(expr));
             }
 
-            if (cctor != null) {
-                TranslateMethod(context, output, cctor, cctor, fixupCctor);
+            if ((cctor != null) && !stubbed) {
+                TranslateMethod(context, output, cctor, cctor, false, fixupCctor);
             } else if (fieldsToEmit.Length > 0) {
                 var fakeCctor = new MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static, typeSystem.Void);
                 fakeCctor.DeclaringType = typedef;
@@ -1093,16 +1109,16 @@ namespace JSIL {
                 var identifier = MemberIdentifier.New(fakeCctor);
                 typeInfo.Members[identifier] = new Internal.MethodInfo(typeInfo, identifier, fakeCctor, new ProxyInfo[0]);
 
-                TranslateMethod(context, output, fakeCctor, fakeCctor, fixupCctor);
+                TranslateMethod(context, output, fakeCctor, fakeCctor, false, fixupCctor);
             }
         }
 
-        protected void TranslateMethod (DecompilerContext context, JavascriptFormatter output, MethodReference methodRef, MethodDefinition method, Action<JSFunctionExpression> bodyTransformer = null) {
+        protected void TranslateMethod (DecompilerContext context, JavascriptFormatter output, MethodReference methodRef, MethodDefinition method, bool stubbed, Action<JSFunctionExpression> bodyTransformer = null) {
             var methodInfo = GetMemberInformation<Internal.MethodInfo>(method);
             if (methodInfo == null)
                 return;
 
-            if (methodInfo.IsExternal) {
+            if (methodInfo.IsExternal || stubbed) {
                 if (methodInfo.Metadata.HasAttribute("JSIL.Meta.JSReplacement"))
                     return;
 

@@ -84,6 +84,7 @@ namespace JSIL.Tests {
         public static readonly string JSShellPath;
         public static readonly string CoreJSPath, BootstrapJSPath;
 
+        public readonly Regex[] StubbedAssemblies;
         public readonly string Filename;
         public readonly Assembly Assembly;
         public readonly MethodInfo TestMethod;
@@ -102,13 +103,15 @@ namespace JSIL.Tests {
             BootstrapJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.Bootstrap.js"));
         }
 
-        public ComparisonTest (string filename) {
+        public ComparisonTest (string filename, Regex[] stubbedAssemblies = null) {
             Filename = Path.Combine(TestSourceFolder, filename);
 
             var sourceCode = File.ReadAllText(Filename);
             Assembly = CSharpUtil.Compile(sourceCode, out TemporaryFiles);
 
             TestMethod = Assembly.GetType("Program").GetMethod("Main");
+
+            StubbedAssemblies = stubbedAssemblies;
         }
 
         public void Dispose () {
@@ -139,6 +142,9 @@ namespace JSIL.Tests {
             var translator = new JSIL.AssemblyTranslator {
                 IncludeDependencies = false
             };
+
+            if (StubbedAssemblies != null)
+                translator.StubbedAssemblies.AddRange(StubbedAssemblies);
 
             string translatedJs;
             using (var ms = new MemoryStream()) {
@@ -295,6 +301,7 @@ namespace JSIL.Tests {
         protected string GetJavascript (string fileName, string expectedText = null) {
             long elapsed;
             string generatedJs;
+
             using (var test = new ComparisonTest(fileName)) {
                 var output = test.RunJavascript(new string[0], out generatedJs, out elapsed);
 
@@ -305,10 +312,11 @@ namespace JSIL.Tests {
             return generatedJs;
         }
 
-        protected string GenericTest (string fileName, string csharpOutput, string javascriptOutput) {
+        protected string GenericTest (string fileName, string csharpOutput, string javascriptOutput, Regex[] stubbedAssemblies = null) {
             long elapsed;
             string generatedJs;
-            using (var test = new ComparisonTest(fileName)) {
+
+            using (var test = new ComparisonTest(fileName, stubbedAssemblies)) {
                 var csOutput = test.RunCSharp(new string[0], out elapsed);
                 var jsOutput = test.RunJavascript(new string[0], out generatedJs, out elapsed);
 
@@ -319,21 +327,25 @@ namespace JSIL.Tests {
             return generatedJs;
         }
 
-        protected void GenericIgnoreTest (string fileName, string workingOutput, string jsErrorSubstring) {
+        protected string GenericIgnoreTest (string fileName, string workingOutput, string jsErrorSubstring, Regex[] stubbedAssemblies = null) {
             long elapsed;
-            using (var test = new ComparisonTest(fileName)) {
+            string generatedJs = null;
+
+            using (var test = new ComparisonTest(fileName, stubbedAssemblies)) {
                 var csOutput = test.RunCSharp(new string[0], out elapsed);
                 Assert.AreEqual(workingOutput, csOutput.Trim());
 
                 try {
-                    string generatedJs;
                     test.RunJavascript(new string[0], out generatedJs, out elapsed);
                     Assert.Fail("Expected javascript to throw an exception containing the string \"" + jsErrorSubstring + "\".");
                 } catch (JavaScriptException jse) {
                     if (!jse.ErrorText.Contains(jsErrorSubstring))
                         throw;
                 }
+
             }
+
+            return generatedJs;
         }
     }
 }
