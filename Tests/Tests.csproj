@@ -180,6 +180,7 @@
     <None Include="SimpleTestCases\InterfaceProperties.cs" />
     <None Include="SpecialTestCases\IfBooleanProperty.cs" />
     <None Include="SpecialTestCases\ReplacementArgumentNameMismatch.cs" />
+    <None Include="SpecialTestCases\IgnoreDerivedType.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

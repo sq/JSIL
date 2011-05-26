@@ -347,7 +347,11 @@ namespace JSIL {
         protected Dictionary<TypeIdentifier, TypeDefinition> ConstructTypeInformation (TypeIdentifier identifier, TypeDefinition type) {
             var moduleInfo = GetModuleInformation(type.Module);
 
-            var result = new TypeInfo(this, moduleInfo, type);
+            TypeInfo baseType = null;
+            if (type.BaseType != null)
+                baseType = GetTypeInformation(type.BaseType);
+
+            var result = new TypeInfo(this, moduleInfo, type, baseType);
             TypeInformation[identifier] = result;
 
             var typesToInitialize = new Dictionary<TypeIdentifier, TypeDefinition>();

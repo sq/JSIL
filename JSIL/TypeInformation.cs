@@ -436,6 +436,7 @@ namespace JSIL.Internal {
     public class TypeInfo {
         public readonly TypeDefinition Definition;
         public readonly ITypeInfoSource Source;
+        public readonly TypeInfo BaseClass;
 
         // This needs to be mutable so we can introduce a constructed cctor later
         public MethodDefinition StaticConstructor;
@@ -455,7 +456,8 @@ namespace JSIL.Internal {
         protected bool _IsIgnored = false;
         protected bool _MethodGroupsInitialized = false;
 
-        public TypeInfo (ITypeInfoSource source, ModuleInfo module, TypeDefinition type) {
+        public TypeInfo (ITypeInfoSource source, ModuleInfo module, TypeDefinition type, TypeInfo baseClass) {
+            BaseClass = baseClass;
             Source = source;
             Definition = type;
             bool isStatic = type.IsSealed && type.IsAbstract;
@@ -474,6 +476,9 @@ namespace JSIL.Internal {
                 Metadata.HasAttribute("JSIL.Meta.JSIgnore") ||
                 Metadata.HasAttribute("System.Runtime.CompilerServices.UnsafeValueTypeAttribute") ||
                 Metadata.HasAttribute("System.Runtime.CompilerServices.NativeCppClassAttribute");
+
+            if (baseClass != null)
+                _IsIgnored |= baseClass.IsIgnored;
 
             foreach (var field in type.Fields)
                 AddMember(field);

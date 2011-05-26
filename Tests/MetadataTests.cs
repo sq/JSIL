@@ -17,6 +17,15 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void JSIgnorePreventsTranslationOfDerivedType () {
+            GenericIgnoreTest(
+                @"SpecialTestCases\IgnoreDerivedType.cs",
+                "DerivedClass",
+                "attempt was made to reference the member '.ctor()'"
+            );
+        }
+
+        [Test]
         public void JSIgnorePreventsTranslationOfInterface () {
             GenericTest(
                 @"SpecialTestCases\IgnoreInterface.cs",
