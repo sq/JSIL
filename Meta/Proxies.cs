@@ -15,6 +15,7 @@ namespace JSIL.Proxy {
     }
 
     public enum JSProxyInterfacePolicy {
+        ReplaceNone,
         ReplaceDeclared,
         ReplaceAll
     }

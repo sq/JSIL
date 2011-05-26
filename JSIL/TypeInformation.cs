@@ -483,11 +483,14 @@ namespace JSIL.Internal {
             foreach (var proxy in Proxies) {
                 Metadata.Update(proxy.Metadata, proxy.AttributePolicy == JSProxyAttributePolicy.ReplaceAll);
 
-                if (proxy.InterfacePolicy == JSProxyInterfacePolicy.ReplaceAll)
-                    interfaces.Clear();
+                if (proxy.InterfacePolicy == JSProxyInterfacePolicy.ReplaceNone) {
+                } else {
+                    if (proxy.InterfacePolicy == JSProxyInterfacePolicy.ReplaceAll)
+                        interfaces.Clear();
 
-                foreach (var i in proxy.Interfaces)
-                    interfaces.Add(source.Get(i));
+                    foreach (var i in proxy.Interfaces)
+                        interfaces.Add(source.Get(i));
+                }
             }
 
             Interfaces = interfaces.ToArray();

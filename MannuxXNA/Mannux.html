@@ -10,7 +10,8 @@
     <script src="../Libraries/JSIL.Bootstrap.js" type="text/javascript"></script>
     
     <!-- workaround for chromium bug -->
-    <div id="scripts"></div>
+    <div id="scripts" style="display: none"></div>
+    <div id="images" style="display: none"></div>
     
     <canvas id="canvas"></canvas><br>
     <button id="loadButton">Load Mannux</button>
@@ -29,47 +30,82 @@
     JSIL.Host.logWriteLine = function (text) {
         document.getElementById("log").value += text + "\n";
     };
+    JSIL.Host.getFile = function (filename) {
+    };
+    JSIL.Host.getImage = function (filename) {
+    };
     
-    function loadScript (filename, onError, onDoneLoading) {
-      var e = document.createElement("script");
-      e.type = "text/javascript";
-      e.addEventListener("error", onError, true);
-      e.addEventListener("load", onDoneLoading, true);
-      e.id = "script_" + filename;
-      e.src = filename;
-      document.getElementById("scripts").appendChild(e);
-    }
+    var allFiles = {};
+    var allImages = {};
     
-    function loadNextScript (scripts, i, onDoneLoading, scriptLoadDelay) {      
-      var w = (i * document.getElementById("loadingProgress").clientWidth) / (scripts.length + 1);
+    function getShortName (filename) {
+      var lastIndex = filename.lastIndexOf("/");
+      if (lastIndex === -1)
+        return filename;
+      
+      return filename.substr(lastIndex + 1);
+    };
+    
+    var assetLoaders = {
+      "Script": function loadScript (filename, onError, onDoneLoading) {
+        var e = document.createElement("script");
+        e.type = "text/javascript";
+        e.addEventListener("error", onError, true);
+        e.addEventListener("load", onDoneLoading, true);
+        e.id = "script_" + filename;
+        e.src = filename;
+        document.getElementById("scripts").appendChild(e);
+      },
+      "Image": function loadImage (filename, onError, onDoneLoading) {
+        var e = document.createElement("img");
+        e.addEventListener("error", onError, true);
+        e.addEventListener("load", function () {
+          allImages[getShortName(filename)] = e;
+          onDoneLoading();
+        }, true);
+        e.id = "image_" + filename;
+        e.src = filename;
+        document.getElementById("images").appendChild(e);
+      }
+    };
+    
+    function loadNextAsset (assets, i, onDoneLoading, loadDelay) {      
+      var w = (i * document.getElementById("loadingProgress").clientWidth) / (assets.length + 1);
       document.getElementById("progressBar").setAttribute("style", "width: " + w.toString() + "px");
       
-      if (i >= scripts.length) {
-        setTimeout(onDoneLoading, scriptLoadDelay);
+      if (i >= assets.length) {
+        setTimeout(onDoneLoading, loadDelay);
         return;
       }
     
-      var theScript = scripts[i];
+      var assetSpec = assets[i];
       var j = i + 1;
       
       var stepCallback = function () {
-        JSIL.Host.logWriteLine("done.");
-        loadNextScript(scripts, j, onDoneLoading, scriptLoadDelay);
+        JSIL.Host.logWrite(".");
+        loadNextAsset(assets, j, onDoneLoading, loadDelay);
       };
       
       var errorCallback = function (e) {
-        JSIL.Host.logWriteLine("The script '" + theScript + "' could not be loaded:" + String(e));
+        JSIL.Host.logWriteLine("The asset '" + assetSpec + "' could not be loaded:" + String(e));
         stepCallback();
       };
       
-      JSIL.Host.logWrite("Loading script '" + theScript + "' ... ");
-      setTimeout(function () {        
-        loadScript(theScript, errorCallback, stepCallback);
-      }, scriptLoadDelay);
+      var assetType = assetSpec[0];
+      var assetPath = assetSpec[1];
+      var assetLoader = assetLoaders[assetType];
+      
+      if (typeof (assetLoader) !== "function") {
+        errorCallback("No asset loader registered for type '" + assetType + "'.");
+      } else {      
+        setTimeout(function () {        
+          assetLoader(assetPath, errorCallback, stepCallback);
+        }, loadDelay);
+      }
     }
     
-    function loadScripts (scripts, onDoneLoading) {
-      loadNextScript(scripts, 0, onDoneLoading, 100);
+    function loadAssets (assets, onDoneLoading) {
+      loadNextAsset(assets, 0, onDoneLoading, 100);
     }
     
     function beginLoading () {
@@ -77,24 +113,38 @@
       document.getElementById("loadButton").setAttribute("style", "display: none");
       document.getElementById("loadingProgress").setAttribute("style", "display: block");
       
-      var scriptsToLoad = [
-        "mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js",
-        "System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js",
-        "System.Data.SqlXml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js",
-        "System.Configuration, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a.js",
-        "System, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js",
-        "System.Core, Version=3.5.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js",
-        "System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a.js",
-        "../Libraries/System.Drawing.js",
-        "System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js",
-        "../Libraries/System.Windows.js",
-        "Microsoft.Xna.Framework, Version=3.1.0.0, Culture=neutral, PublicKeyToken=6d5c3888ef60e27d.js",
-        "Microsoft.Xna.Framework.Game, Version=3.1.0.0, Culture=neutral, PublicKeyToken=6d5c3888ef60e27d.js",
-        "../Libraries/JSIL.XNA.js",
-        "Mannux, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null.js"
+      var assetsToLoad = [
+        ["Script", "../Libraries/System.Drawing.js"],
+        ["Script", "../Libraries/System.Windows.js"],
+        ["Script", "mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
+        ["Script", "System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
+        ["Script", "System.Data.SqlXml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
+        ["Script", "System.Configuration, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a.js"],
+        ["Script", "System, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
+        ["Script", "System.Core, Version=3.5.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
+        ["Script", "System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a.js"],
+        ["Script", "System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
+        ["Script", "Microsoft.Xna.Framework, Version=3.1.0.0, Culture=neutral, PublicKeyToken=6d5c3888ef60e27d.js"],
+        ["Script", "Microsoft.Xna.Framework.Game, Version=3.1.0.0, Culture=neutral, PublicKeyToken=6d5c3888ef60e27d.js"],
+        ["Script", "../Libraries/JSIL.XNA.js"],
+        ["Script", "../Libraries/JSIL.IO.js"],
+        ["Script", "Mannux, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null.js"],
+        ["BinaryFile", "Content/map00.map"],
+        ["Image", "Content/Boom.png"],
+        ["Image", "Content/bullet.png"],
+        ["Image", "Content/mantiles.png"],
+        ["Image", "Content/ripper.png"],
+        ["Image", "Content/tabpis.png"],
+        ["TextFile", "Content/boom.txt"],
+        ["TextFile", "Content/bullet.txt"],
+        ["TextFile", "Content/door.txt"],
+        ["TextFile", "Content/ripper.txt"],
+        ["TextFile", "Content/tabby.txt"]
       ];
       
-      loadScripts(scriptsToLoad, function () {
+      JSIL.Host.logWrite("Loading ");
+      loadAssets(assetsToLoad, function () {
+        JSIL.Host.logWriteLine(" done.");
         try {
           JSIL.Initialize();
           

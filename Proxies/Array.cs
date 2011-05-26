@@ -61,5 +61,15 @@ namespace JSIL.Proxies {
 
         [JSReplacement("$this.Set.apply($this, $indices.concat([$value]))")]
         public abstract void SetValue (AnyType value, AnyType[] indices);
+
+        [JSReplacement("Array.prototype.indexOf.call($array, $value)")]
+        public static int IndexOf (AnyType[] array, AnyType value) {
+            throw new NotImplementedException();
+        }
+
+        [JSReplacement("Array.prototype.indexOf.call($array, $value, $startIndex)")]
+        public static int IndexOf (AnyType[] array, AnyType value, int startIndex) {
+            throw new NotImplementedException();
+        }
     }
 }
