@@ -6,8 +6,8 @@ namespace JSIL.Proxies {
     [JSProxy(
         typeof(Exception),
         JSProxyMemberPolicy.ReplaceDeclared,
-        JSProxyAttributePolicy.ReplaceDeclared,
-        false
+        JSProxyAttributePolicy.ReplaceDeclared, 
+        inheritable: false
     )]
     public abstract class ExceptionProxy {
         [JSRuntimeDispatch]

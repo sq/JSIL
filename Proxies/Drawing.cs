@@ -7,7 +7,7 @@ namespace JSIL.Proxies {
         "System.Drawing.Color",
         JSProxyMemberPolicy.ReplaceDeclared,
         JSProxyAttributePolicy.ReplaceDeclared,
-        false
+        inheritable: false
     )]
     public abstract class ColorProxy {
         [JSRuntimeDispatch]
@@ -18,10 +18,7 @@ namespace JSIL.Proxies {
     }
 
     [JSProxy(
-        "System.Drawing.Image",
-        JSProxyMemberPolicy.ReplaceDeclared,
-        JSProxyAttributePolicy.ReplaceDeclared,
-        true
+        "System.Drawing.Image"
     )]
     public abstract class ImageProxy {
         [JSRuntimeDispatch]

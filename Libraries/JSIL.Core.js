@@ -13,6 +13,24 @@ JSIL.PendingInitializers = [];
 JSIL.PrivateNamespaces = {};
 var $private = null;
 
+JSIL.DeclareAssembly = function (assemblyName) {
+  var existing = JSIL.PrivateNamespaces[assemblyName];
+  if (typeof (existing) !== "undefined")
+    return $private = existing;
+
+  // Create a new private global namespace for the new assembly
+  var result = Object.create(JSIL.GlobalNamespace);
+  result.toString = function () {
+    return assemblyName;
+  };
+
+  return JSIL.PrivateNamespaces[assemblyName] = $private = result;
+};
+
+JSIL.DeclareAssembly("JSIL.Core");
+
+
+
 JSIL.EscapeName = function (name) {
   return name.replace("`", "$b").replace(".", "_");
 };
@@ -59,12 +77,26 @@ JSIL.ResolveName = function (root, name) {
   var parts = JSIL.SplitName(name);
   var current = root;
 
+  if (typeof (root) === "undefined")
+    throw new Error("Invalid search root");
+
   for (var i = 0, l = parts.length - 1; i < l; i++) {
     var key = JSIL.EscapeName(parts[i]);
     var next = current[key];
 
     if (typeof (next) === "undefined") {
-      throw new Error("Could not find the name '" + key + "' in the namespace '" + current + "'.");
+      var namespaceName;
+      if (current === JSIL.GlobalNamespace)
+        namespaceName = "<global>";
+      else {
+        try {
+          namespaceName = current.toString();
+        } catch (e) {
+          namespaceName = "<unknown>";
+        }
+      }
+
+      throw new Error("Could not find the name '" + key + "' in the namespace '" + namespaceName + "'.");
     }
 
     current = next;
@@ -75,23 +107,6 @@ JSIL.ResolveName = function (root, name) {
     current, name.substr(0, name.length - (localName.length + 1)), 
     JSIL.EscapeName(localName), localName
   );
-};
-
-JSIL.DeclareAssembly = function (assemblyName) {
-  var existing = JSIL.PrivateNamespaces[assemblyName];
-  if (typeof (existing) !== "undefined")
-    return $private = existing;
-
-  // Create a new private global namespace for the new assembly
-  function ctor () {
-    this.__AssemblyName__ = assemblyName;
-    this.toString = function () {
-      return assemblyName;
-    };
-  };
-  ctor.prototype = JSIL.GlobalNamespace;
-
-  return JSIL.PrivateNamespaces[assemblyName] = $private = new ctor();
 };
 
 JSIL.DeclareNamespace = function (name, sealed) {
@@ -124,8 +139,6 @@ JSIL.DeclareNamespace = function (name, sealed) {
       }
     });
 }
-
-JSIL.DeclareAssembly("JSIL.Core");
 
 JSIL.DeclareNamespace("System");
 JSIL.DeclareNamespace("System.Collections");
@@ -306,9 +319,7 @@ JSIL.TypeRef.prototype.get = function () {
 };
 
 JSIL.CloneObject = function (obj) {
-  function ClonedObject() { }
-  ClonedObject.prototype = obj;
-  return new ClonedObject();
+  return Object.create(obj);
 };
 
 JSIL.MakeProto = function (baseType, target, typeName, isReferenceType) {
@@ -488,6 +499,11 @@ JSIL.SealTypes = function (namespace/*, ...names */) {
     if (typeof (cctor) !== "function")
       continue;
 
+    try {
+      delete namespace[name];
+    } catch (e) {
+    }
+
     Object.defineProperty(namespace, name, {
       configurable: true,
       enumerable: true,
@@ -562,6 +578,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic) {
   };
 
   typeObject.__IsReferenceType__ = isReferenceType;
+  typeObject.__Context__ = $private;
   typeObject.__Self__ = typeObject;
   typeObject.__FullName__ = fullName;
   typeObject.__ShortName__ = localName;
@@ -614,7 +631,6 @@ JSIL.MakeInterface = function (fullName, members) {
   var typeObject = function() {
     throw new Error("Cannot construct an instance of an interface");
   }
-  typeObject.__proto__ = System.RuntimeType;
   typeObject.__Members__ = members;
   typeObject.__ShortName__ = localName;
   typeObject.__FullName__ = fullName;
@@ -709,7 +725,9 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
       JSIL.Host.warning("Type ", JSIL.GetTypeName(type), " implements an undefined interface.");
       continue __interfaces__;
     } else if (typeof (iface) === "string") {
-      iface = JSIL.ResolveName($private, iface).get();
+      iface = JSIL.ResolveName(
+        type.__Context__ || JSIL.GlobalNamespace, iface
+      ).get();
     }
 
     if (iface.IsInterface !== true) {
@@ -1052,7 +1070,6 @@ JSIL.Reference.Of = function (type) {
       return isReference && isRightType;
     };
     compositeType.prototype = JSIL.MakeProto(JSIL.Reference, compositeType, typeName, true);
-    compositeType.prototype.__proto__ = JSIL.Reference.prototype;
     compositeType.__FullName__ = typeName;
     JSIL.Reference.Types[elementName] = compositeType;
   }
@@ -1168,7 +1185,6 @@ System.Array.Of = function (type) {
     compositeType = JSIL.CloneObject(System.Array);
     compositeType.__FullName__ = typeName;
     compositeType.prototype = JSIL.MakeProto(System.Array, compositeType, typeName, true);
-    compositeType.prototype.__proto__ = System.Array.prototype;
     System.Array.Types[elementName] = compositeType;
   }
 
@@ -1264,7 +1280,6 @@ JSIL.Delegate.New = function (typeName, object, method) {
 
   if (typeof (proto) === "undefined") {
     proto = JSIL.MakeProto(System.Delegate, {}, typeName, true);
-    proto.__proto__ = System.Delegate.prototype;
     JSIL.Delegate.Types[typeName] = proto;
   }
 

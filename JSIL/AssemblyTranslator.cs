@@ -590,6 +590,10 @@ namespace JSIL {
 
             bool isFirst = true;
             foreach (var m in iface.Methods) {
+                var methodInfo = this.GetMethod(m);
+                if ((methodInfo != null) && methodInfo.IsIgnored)
+                    continue;
+
                 if (!isFirst) {
                     output.Comma();
                     output.NewLine();
@@ -603,6 +607,10 @@ namespace JSIL {
             }
 
             foreach (var p in iface.Properties) {
+                var propertyInfo = this.GetProperty(p);
+                if ((propertyInfo != null) && propertyInfo.IsIgnored)
+                    continue;
+
                 if (!isFirst) {
                     output.Comma();
                     output.NewLine();
@@ -811,8 +819,8 @@ namespace JSIL {
                     return true;
             };
 
-            var interfaces = (from i in typedef.Interfaces
-                              where !isInterfaceIgnored(i)
+            var interfaces = (from i in typeInfo.Interfaces
+                              where !i.IsIgnored
                               select i).ToArray();
 
             if (interfaces.Length > 0) {

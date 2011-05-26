@@ -37,7 +37,7 @@ namespace JSIL.Internal {
             PlainTextFormatter = new TextOutputFormatter(PlainTextOutput);
             TypeInfo = typeInfo;
             Assembly = assembly;
-            PrivateToken = String.Format("$private{0:X2}", NextAssemblyId++);
+            PrivateToken = String.Format("$asm{0:X2}", NextAssemblyId++);
         }
 
         public void LPar () {
@@ -69,7 +69,7 @@ namespace JSIL.Internal {
                 else if (valueType == ListValueType.Identifier)
                     Identifier(value as dynamic);
                 else if (valueType == ListValueType.TypeReference)
-                    TypeReference((TypeReference)value);
+                    TypeReference(value as dynamic);
                 else
                     PlainTextOutput.Write(value.ToString());
 
@@ -92,7 +92,7 @@ namespace JSIL.Internal {
                 else if (keyType == ListValueType.Identifier)
                     Identifier(kvp.Key as dynamic);
                 else if (keyType == ListValueType.TypeReference)
-                    TypeReference(kvp.Key as TypeReference);
+                    TypeReference(kvp.Key as dynamic);
                 else
                     PlainTextOutput.Write(kvp.Key.ToString());
 
@@ -103,7 +103,7 @@ namespace JSIL.Internal {
                 else if (valueType == ListValueType.Identifier)
                     Identifier(kvp.Value as dynamic);
                 else if (valueType == ListValueType.TypeReference)
-                    TypeReference(kvp.Value as TypeReference);
+                    TypeReference(kvp.Value as dynamic);
                 else
                     PlainTextOutput.Write(kvp.Value.ToString());
 
@@ -202,6 +202,10 @@ namespace JSIL.Internal {
             Value(Util.EscapeIdentifier((typeDef ?? type).FullName, EscapingMode.String));
         }
 
+        public void TypeReference (TypeInfo type) {
+            TypeReference(type.Definition);
+        }
+
         public void Identifier (string name, EscapingMode? escapingMode = EscapingMode.MemberIdentifier) {
             if (escapingMode.HasValue)
                 PlainTextOutput.Write(Util.EscapeIdentifier(
@@ -226,6 +230,10 @@ namespace JSIL.Internal {
                 Identifier("System.Object", null);
             else
                 TypeIdentifier(type as dynamic, includeParens);
+        }
+
+        protected void TypeIdentifier (TypeInfo type, bool includeParens) {
+            TypeIdentifier(type.Definition as dynamic, includeParens);
         }
 
         protected void TypeIdentifier (TypeReference type, bool includeParens) {

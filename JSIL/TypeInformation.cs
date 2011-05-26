@@ -322,10 +322,12 @@ namespace JSIL.Internal {
         public readonly TypeReference[] ProxiedTypes;
         public readonly string[] ProxiedTypeNames;
 
+        public readonly TypeReference[] Interfaces;
         public readonly MetadataCollection Metadata;
 
         public readonly JSProxyAttributePolicy AttributePolicy;
         public readonly JSProxyMemberPolicy MemberPolicy;
+        public readonly JSProxyInterfacePolicy InterfacePolicy;
 
         public readonly Dictionary<MemberIdentifier, FieldDefinition> Fields = new Dictionary<MemberIdentifier, FieldDefinition>();
         public readonly Dictionary<MemberIdentifier, PropertyDefinition> Properties = new Dictionary<MemberIdentifier, PropertyDefinition>();
@@ -337,6 +339,7 @@ namespace JSIL.Internal {
         public ProxyInfo (TypeDefinition proxyType) {
             Definition = proxyType;
             Metadata = new MetadataCollection(proxyType);
+            Interfaces = proxyType.Interfaces.ToArray();
             IsInheritable = true;
             ProxiedTypes = new TypeReference[0];
             ProxiedTypeNames = new string[0];
@@ -353,6 +356,9 @@ namespace JSIL.Internal {
                         break;
                     case "JSIL.Proxy.JSProxyMemberPolicy":
                         MemberPolicy = (JSProxyMemberPolicy)arg.Value;
+                        break;
+                    case "JSIL.Proxy.JSProxyInterfacePolicy":
+                        InterfacePolicy = (JSProxyInterfacePolicy)arg.Value;
                         break;
                     case "System.Type":
                         ProxiedTypes = new[] { (TypeReference)arg.Value };
@@ -438,6 +444,8 @@ namespace JSIL.Internal {
         public readonly ITypeInfoSource Source;
         public readonly TypeInfo BaseClass;
 
+        public readonly TypeInfo[] Interfaces;
+
         // This needs to be mutable so we can introduce a constructed cctor later
         public MethodDefinition StaticConstructor;
         public readonly HashSet<MethodDefinition> Constructors = new HashSet<MethodDefinition>();
@@ -468,8 +476,21 @@ namespace JSIL.Internal {
             // Do this check before copying attributes from proxy types, since that will copy their JSProxy attribute
             IsProxy = Metadata.HasAttribute("JSIL.Proxy.JSProxy");
 
-            foreach (var proxy in Proxies)
+            var interfaces = new HashSet<TypeInfo>(
+                from i in type.Interfaces select source.Get(i)
+            );
+
+            foreach (var proxy in Proxies) {
                 Metadata.Update(proxy.Metadata, proxy.AttributePolicy == JSProxyAttributePolicy.ReplaceAll);
+
+                if (proxy.InterfacePolicy == JSProxyInterfacePolicy.ReplaceAll)
+                    interfaces.Clear();
+
+                foreach (var i in proxy.Interfaces)
+                    interfaces.Add(source.Get(i));
+            }
+
+            Interfaces = interfaces.ToArray();
 
             _IsIgnored = module.IsIgnored ||
                 IsIgnoredName(type.FullName) ||

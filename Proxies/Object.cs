@@ -4,10 +4,7 @@ using JSIL.Proxy;
 
 namespace JSIL.Proxies {
     [JSProxy(
-        typeof(Object),
-        JSProxyMemberPolicy.ReplaceDeclared,
-        JSProxyAttributePolicy.ReplaceDeclared,
-        true
+        typeof(Object)
     )]
     public abstract class ObjectProxy {
         [JSReplacement("JSIL.GetType($this)")]

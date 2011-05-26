@@ -19,7 +19,7 @@
     </div>
     <textarea id="log"></textarea>
     
-    <script type="text/javascript">
+    <script type="text/javascript">    
     JSIL.Host.getCanvas = function (desiredWidth, desiredHeight) {
         return document.getElementById("canvas");
     };
@@ -41,8 +41,8 @@
     }
     
     function loadNextScript (scripts, i, onDoneLoading, scriptLoadDelay) {      
-      var w = (i * document.getElementById("loadingProgress").clientWidth) / scripts.length;
-      document.getElementById("progressBar").style.width = w;
+      var w = (i * document.getElementById("loadingProgress").clientWidth) / (scripts.length + 1);
+      document.getElementById("progressBar").setAttribute("style", "width: " + w.toString() + "px");
       
       if (i >= scripts.length) {
         setTimeout(onDoneLoading, scriptLoadDelay);
@@ -73,8 +73,9 @@
     }
     
     function beginLoading () {
-      document.getElementById("loadButton").style.display = "none";
-      document.getElementById("loadingProgress").style.display = "block";
+      document.getElementById("progressBar").setAttribute("style", "width: 0px");
+      document.getElementById("loadButton").setAttribute("style", "display: none");
+      document.getElementById("loadingProgress").setAttribute("style", "display: block");
       
       var scriptsToLoad = [
         "mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js",
@@ -93,19 +94,13 @@
         "Mannux, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null.js"
       ];
       
-      loadScripts(scriptsToLoad, function () {        
-        JSIL.Initialize();
-        
-        document.getElementById("loadingProgress").style.display = "none";
-        
-        if (typeof (console) === "undefined") {
-          try {
-            Mannux.Program.Main([]);
-          } catch (e) {
-            JSIL.Host.error(e, "Error while starting Mannux: ");
-          }
-        } else {
+      loadScripts(scriptsToLoad, function () {
+        try {
+          JSIL.Initialize();
+          
           Mannux.Program.Main([]);
+        } finally {
+          document.getElementById("loadingProgress").setAttribute("style", "display: none");
         }
       });
     }
