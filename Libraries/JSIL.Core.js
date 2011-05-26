@@ -20,9 +20,16 @@ JSIL.DeclareAssembly = function (assemblyName) {
 
   // Create a new private global namespace for the new assembly
   var result = Object.create(JSIL.GlobalNamespace);
-  result.toString = function () {
-    return assemblyName;
-  };
+  try {
+    Object.defineProperty(result, "toString", {
+      configurable: true,
+      enumerable: true,
+      value: function () {
+        return assemblyName;
+      }
+    });
+  } catch (e) {
+  }
 
   return JSIL.PrivateNamespaces[assemblyName] = $private = result;
 };
