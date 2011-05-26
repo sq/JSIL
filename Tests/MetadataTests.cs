@@ -114,5 +114,13 @@ namespace JSIL.Tests {
                 "Foo\r\nBar\r\nCaught: Error: The function 'System.Void Test::Baz()' could not be translated."
             );
         }
+
+        [Test]
+        public void ProxiedMethodsWithJSReplacementWorkEvenIfArgumentNamesdoNotMatch () {
+            GenericTest(
+                @"SpecialTestCases\ReplacementArgumentNameMismatch.cs",
+                "2 4", "2 4"
+            );
+        }
     }
 }

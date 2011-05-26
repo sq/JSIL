@@ -104,9 +104,7 @@ namespace JSIL {
             return readerParameters;
         }
 
-        public void AddProxyAssembly (string path, bool includeDependencies) {
-            var assemblies = LoadAssembly(path, UseSymbols, includeDependencies);
-
+        public void AddProxyAssemblies (AssemblyDefinition[] assemblies) {
             foreach (var asm in assemblies) {
                 foreach (var module in asm.Modules) {
                     foreach (var type in module.Types) {
@@ -126,6 +124,12 @@ namespace JSIL {
                     }
                 }
             }
+        }
+
+        public void AddProxyAssembly (string path, bool includeDependencies) {
+            var assemblies = LoadAssembly(path, UseSymbols, includeDependencies);
+
+            AddProxyAssemblies(assemblies);
         }
 
         public void AddProxyAssembly (Assembly assembly, bool includeDependencies) {
@@ -206,6 +210,8 @@ namespace JSIL {
                 return;
 
             var assemblies = LoadAssembly(assemblyPath);
+
+            AddProxyAssemblies(assemblies);
 
             GeneratedFiles.Add(assemblyPath);
 
@@ -599,7 +605,7 @@ namespace JSIL {
 
         protected void ForwardDeclareType (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef) {
             var typeInfo = GetTypeInformation(typedef);
-            if ((typeInfo == null) || typeInfo.IsIgnored)
+            if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
                 return;
 
             if (DeclaredTypes.Contains(typedef.FullName)) {
@@ -700,7 +706,7 @@ namespace JSIL {
 
         protected void TranslateTypeDefinition (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef) {
             var typeInfo = GetTypeInformation(typedef);
-            if ((typeInfo == null) || typeInfo.IsIgnored)
+            if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
                 return;
 
             context.CurrentType = typedef;

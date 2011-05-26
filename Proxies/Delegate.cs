@@ -5,10 +5,11 @@ using JSIL.Proxy;
 namespace JSIL.Proxies {
     [JSProxy(
         new [] { typeof(Delegate), typeof (MulticastDelegate) },
-        JSProxyMemberPolicy.ReplaceNone
+        memberPolicy: JSProxyMemberPolicy.ReplaceDeclared
     )]
     public abstract class DelegateProxy {
         [JSRuntimeDispatch]
+        [JSExternal]
         public static AnyType Combine (params AnyType[] arguments) {
             throw new InvalidOperationException();
         }

@@ -346,11 +346,7 @@ System.Random.prototype.NextDouble = function () {
 
 System.Math = {
   Max: Math.max,
-  Sqrt: Math.sqrt,
-  Pow: Math.pow,
-  Abs: Math.abs,
-  Cos: Math.cos,
-  Sin: Math.sin
+  Min: Math.min
 };
 
 System.Boolean = function (b) {

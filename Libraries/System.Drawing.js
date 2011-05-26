@@ -18,7 +18,7 @@ if (JSIL.HostType.IsBrowser) {
     this.context.putImageData(this.buffer, 0, 0);
 
     this.setPixelCount = 0;
-    this.flushInterval = 16;
+    this.flushInterval = width - 1;
   }
   System.Drawing.Bitmap.prototype.SetPixel = function (x, y, color) {
     var index = ((y * this.buffer.width) + x) * 4;

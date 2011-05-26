@@ -450,6 +450,7 @@ namespace JSIL.Internal {
         public readonly Dictionary<string, EnumMemberInfo> EnumMembers = new Dictionary<string, EnumMemberInfo>();
 
         public readonly Dictionary<MemberIdentifier, IMemberInfo> Members = new Dictionary<MemberIdentifier, IMemberInfo>();
+        public readonly bool IsProxy;
 
         protected bool _IsIgnored = false;
         protected bool _MethodGroupsInitialized = false;
@@ -461,6 +462,9 @@ namespace JSIL.Internal {
 
             Proxies = source.GetProxies(type);
             Metadata = new MetadataCollection(type);
+
+            // Do this check before copying attributes from proxy types, since that will copy their JSProxy attribute
+            IsProxy = Metadata.HasAttribute("JSIL.Proxy.JSProxy");
 
             foreach (var proxy in Proxies)
                 Metadata.Update(proxy.Metadata, proxy.AttributePolicy == JSProxyAttributePolicy.ReplaceAll);
@@ -1103,6 +1107,7 @@ namespace JSIL.Internal {
     }
 
     public class MethodInfo : MemberInfo<MethodDefinition> {
+        public readonly ParameterDefinition[] Parameters;
         public readonly PropertyInfo Property = null;
         public readonly EventInfo Event = null;
 
@@ -1116,6 +1121,7 @@ namespace JSIL.Internal {
             method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall || method.IsPInvokeImpl
         ) {
             ShortName = GetShortName(method);
+            Parameters = method.Parameters.ToArray();
         }
 
         public MethodInfo (TypeInfo parent, MemberIdentifier identifier, MethodDefinition method, ProxyInfo[] proxies, PropertyInfo property) : base (
@@ -1126,6 +1132,7 @@ namespace JSIL.Internal {
         ) {
             Property = property;
             ShortName = GetShortName(method);
+            Parameters = method.Parameters.ToArray();
         }
 
         public MethodInfo (TypeInfo parent, MemberIdentifier identifier, MethodDefinition method, ProxyInfo[] proxies, EventInfo evt) : base(
@@ -1136,6 +1143,7 @@ namespace JSIL.Internal {
         ) {
             Event = evt;
             ShortName = GetShortName(method);
+            Parameters = method.Parameters.ToArray();
         }
 
         protected override string GetName () {

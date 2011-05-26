@@ -29,6 +29,7 @@ using System.Drawing;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using JSIL.Meta;
 
 namespace simpleray {
     public class Vector3f {
@@ -275,12 +276,8 @@ namespace simpleray {
             );
         }
         
+        [JSReplacement("setTimeout($action, $timeoutMs)")]
         static void SetTimeout (int timeoutMs, Action action) {
-          JSIL.Verbatim.Expression(@"
-              setTimeout(action, timeoutMs);
-              return
-          ");
-          
           action();
         }
         

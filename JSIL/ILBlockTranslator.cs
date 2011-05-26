@@ -226,7 +226,7 @@ namespace JSIL {
                         var argsDict = new Dictionary<string, JSExpression>();
                         argsDict["this"] = thisExpression;
 
-                        foreach (var kvp in methodInfo.Member.Parameters.Zip(arguments, (p, v) => new { p.Name, Value = v })) {
+                        foreach (var kvp in methodInfo.Parameters.Zip(arguments, (p, v) => new { p.Name, Value = v })) {
                             argsDict.Add(kvp.Name, kvp.Value);
                         }
 
@@ -322,7 +322,7 @@ namespace JSIL {
                 var argsDict = new Dictionary<string, JSExpression>();
                 argsDict["this"] = thisExpression;
 
-                foreach (var kvp in methodInfo.Member.Parameters.Zip(arguments, (p, v) => new { p.Name, Value = v })) {
+                foreach (var kvp in methodInfo.Parameters.Zip(arguments, (p, v) => new { p.Name, Value = v })) {
                     argsDict.Add(kvp.Name, kvp.Value);
                 }
 

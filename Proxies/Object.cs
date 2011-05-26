@@ -5,7 +5,9 @@ using JSIL.Proxy;
 namespace JSIL.Proxies {
     [JSProxy(
         typeof(Object),
-        JSProxyMemberPolicy.ReplaceNone
+        JSProxyMemberPolicy.ReplaceDeclared,
+        JSProxyAttributePolicy.ReplaceDeclared,
+        true
     )]
     public abstract class ObjectProxy {
         [JSReplacement("JSIL.GetType($this)")]
@@ -16,6 +18,7 @@ namespace JSIL.Proxies {
         new abstract public AnyType MemberwiseClone ();
 
         [JSChangeName("toString")]
+        [JSNeverReplace]
         new abstract public string ToString ();
     }
 }
