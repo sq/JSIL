@@ -280,28 +280,25 @@ namespace JSIL {
                 formatter.NewLine();
             }
 
-            formatter.Identifier("JSIL.DeclareAssembly", null);
-            formatter.LPar();
-            formatter.Value(assembly.FullName);
-            formatter.RPar();
-            formatter.Semicolon();
+            formatter.DeclareAssembly();
 
             // Important to clear this because types with the exact same full names can be defined in multiple assemblies
             DeclaredTypes.Clear();
             foreach (var module in assembly.Modules)
                 TranslateModule(context, formatter, module, initializer, stubbed);
 
-            formatter.Identifier("JSIL.QueueInitializer", null);
-            formatter.LPar();
-            formatter.OpenFunction(null, null);
-            formatter.NewLine();
+            foreach (var init in initializer) {
+                formatter.Identifier("JSIL.QueueInitializer", null);
+                formatter.LPar();
+                formatter.OpenFunction(null, null);
+                formatter.NewLine();
 
-            foreach (var init in initializer)
                 init();
 
-            formatter.CloseBrace(false);
-            formatter.RPar();
-            formatter.Semicolon();
+                formatter.CloseBrace(false);
+                formatter.RPar();
+                formatter.Semicolon();
+            }
 
             tw.Flush();
         }
@@ -555,28 +552,29 @@ namespace JSIL {
             }
 
             if (sealedTypes.Count > 0) {
-                initializer.Add(() => {
-                    var groups = (from st in sealedTypes
-                                  let parent = JavascriptFormatter.GetParent(st)
-                                  group st by parent);
+                var groups = (from st in sealedTypes
+                                let parent = JavascriptFormatter.GetParent(st)
+                                group st by parent);
 
-                    foreach (var g in groups) {
+                foreach (var g in groups) {
+                    var _ = g;
+                    initializer.Add(() => {
                         output.Identifier("JSIL.SealTypes", null);
                         output.LPar();
 
-                        output.Identifier(g.Key, EscapingMode.TypeIdentifier);
+                        output.Identifier(_.Key, EscapingMode.TypeIdentifier);
                         output.Comma();
                         output.NewLine();
 
                         output.CommaSeparatedList(
-                            (from typedef in g select typedef.Name), ListValueType.Primitive
+                            (from typedef in _ select typedef.Name), ListValueType.Primitive
                         );
 
                         output.NewLine();
                         output.RPar();
                         output.Semicolon();
-                    }
-                });
+                    });
+                }
             }
         }
 
@@ -685,6 +683,12 @@ namespace JSIL {
             } else if (typedef.IsEnum) {
                 TranslateEnum(context, output, typedef);
                 return;
+            }
+
+            var declaringType = typedef.DeclaringType;
+            if (declaringType != null) {
+                if (!DeclaredTypes.Contains(declaringType.FullName))
+                    ForwardDeclareType(context, output, declaringType);
             }
 
             var baseClass = typedef.Module.TypeSystem.Object;
@@ -818,7 +822,7 @@ namespace JSIL {
                     output.Identifier(typedef);
                     output.Comma();
                     output.OpenBracket(true);
-                    output.CommaSeparatedList(interfaces, ListValueType.Identifier);
+                    output.CommaSeparatedList(interfaces, ListValueType.TypeReference);
                     /*
                     output.CommaSeparatedList(
                         (from i in interfaces

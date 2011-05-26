@@ -16,7 +16,8 @@ namespace JSIL.Internal {
     public enum ListValueType {
         Primitive,
         Identifier,
-        Raw
+        Raw,
+        TypeReference
     }
 
     public class JavascriptFormatter {
@@ -25,7 +26,9 @@ namespace JSIL.Internal {
         public readonly TextOutputFormatter PlainTextFormatter;
         public readonly ITypeInfoSource TypeInfo;
         public readonly AssemblyDefinition Assembly;
+        public readonly string PrivateToken;
 
+        protected static int NextAssemblyId = 1;
         protected readonly HashSet<string> DeclaredNamespaces = new HashSet<string>();
 
         public JavascriptFormatter (TextWriter output, ITypeInfoSource typeInfo, AssemblyDefinition assembly) {
@@ -34,6 +37,7 @@ namespace JSIL.Internal {
             PlainTextFormatter = new TextOutputFormatter(PlainTextOutput);
             TypeInfo = typeInfo;
             Assembly = assembly;
+            PrivateToken = String.Format("$private{0:X2}", NextAssemblyId++);
         }
 
         public void LPar () {
@@ -64,6 +68,8 @@ namespace JSIL.Internal {
                     Value(value as dynamic);
                 else if (valueType == ListValueType.Identifier)
                     Identifier(value as dynamic);
+                else if (valueType == ListValueType.TypeReference)
+                    TypeReference((TypeReference)value);
                 else
                     PlainTextOutput.Write(value.ToString());
 
@@ -85,6 +91,8 @@ namespace JSIL.Internal {
                     Value(kvp.Key as dynamic);
                 else if (keyType == ListValueType.Identifier)
                     Identifier(kvp.Key as dynamic);
+                else if (keyType == ListValueType.TypeReference)
+                    TypeReference(kvp.Key as TypeReference);
                 else
                     PlainTextOutput.Write(kvp.Key.ToString());
 
@@ -94,6 +102,8 @@ namespace JSIL.Internal {
                     Value(kvp.Value as dynamic);
                 else if (valueType == ListValueType.Identifier)
                     Identifier(kvp.Value as dynamic);
+                else if (valueType == ListValueType.TypeReference)
+                    TypeReference(kvp.Value as TypeReference);
                 else
                     PlainTextOutput.Write(kvp.Value.ToString());
 
@@ -227,8 +237,10 @@ namespace JSIL.Internal {
                     Identifier("System.Object", null);
             } else {
                 var typedef = type.Resolve();
-                if ((typedef != null) && (typedef.Module.Assembly == Assembly) && !typedef.IsPublic)
-                    PlainTextOutput.Write("$private.");
+                if ((typedef != null) && (typedef.Module.Assembly == Assembly) && !typedef.IsPublic) {
+                    PlainTextOutput.Write(PrivateToken);
+                    PlainTextOutput.Write(".");
+                }
 
                 PlainTextOutput.Write(Util.EscapeIdentifier(
                     type.FullName, EscapingMode.TypeIdentifier
@@ -395,6 +407,18 @@ namespace JSIL.Internal {
             Identifier(typeReference);
             LPar();
             RPar();
+        }
+
+        public void DeclareAssembly () {
+            Keyword("var");
+            Space();
+            Identifier(PrivateToken);
+            Token(" = ");
+            Identifier("JSIL.DeclareAssembly", null);
+            LPar();
+            Value(Assembly.FullName);
+            RPar();
+            Semicolon();
         }
 
         public void DeclareNamespace (string ns) {
