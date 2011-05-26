@@ -5,12 +5,46 @@ if (typeof (JSIL) === "undefined")
   
 JSIL.DeclareAssembly("JSIL.Windows");
 
-JSIL.DeclareNamespace("System.Windows");
-JSIL.DeclareNamespace("System.Windows.Forms");
+System.Windows.Forms.Control.prototype.clientWidth = 16;
+System.Windows.Forms.Control.prototype.clientHeight = 16;
 
-JSIL.MakeClass(System.Object, "System.Windows.Forms.Control", true);
-JSIL.MakeClass(System.Windows.Forms.Control, "System.Windows.Forms.ScrollableControl", true);
-JSIL.MakeClass(System.Windows.Forms.ScrollableControl, "System.Windows.Forms.Panel", true);
-JSIL.MakeClass(System.Windows.Forms.ScrollableControl, "System.Windows.Forms.ContainerControl", true);
-JSIL.MakeClass(System.Windows.Forms.ContainerControl, "System.Windows.Forms.Form", true);
-JSIL.MakeClass(System.Windows.Forms.Control, "System.Windows.Forms.TextBox", true);
+System.Windows.Forms.Control.prototype.SetStyle = function (styles, newState) {
+};
+
+System.Windows.Forms.Control.prototype._ctor = function () {
+  this.Controls = new System.Collections.Generic.List$b1();
+};
+
+System.Windows.Forms.Control.prototype.get_Controls = function () {
+  return this.Controls;
+};
+
+System.Windows.Forms.Control.prototype.get_ClientSize = function () {
+  return new System.Drawing.Size(this.clientWidth, this.clientHeight);
+};
+
+System.Windows.Forms.Control.prototype.set_ClientSize = function (size) {
+  this.clientWidth = size.Width;
+  this.clientHeight = size.Height;
+};
+
+System.Windows.Forms.Control.prototype.add_Paint = function (handler) {
+};
+
+System.Windows.Forms.Control.prototype.Show = function () {
+};
+
+System.Windows.Forms.Control.prototype.Refresh = function () {
+};
+
+System.Windows.Forms.Form.prototype._ctor = function () {
+  System.Windows.Forms.Control.prototype._ctor.call(this);
+};
+
+System.Windows.Forms.StatusBar.prototype._ctor = function () {
+  this.Panels = new System.Collections.Generic.List$b1();
+};
+
+System.Windows.Forms.TabControl.prototype._ctor = function () {
+  this.TabPages = new System.Collections.Generic.List$b1();
+};

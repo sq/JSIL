@@ -80,7 +80,10 @@ namespace JSIL.Meta {
     /// <summary>
     /// Specifies that, if overloaded, the correct overload of this method to invoke should be decided at runtime instead of compile time.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor)]
+    [AttributeUsage(
+        AttributeTargets.Method | AttributeTargets.Constructor |
+        AttributeTargets.Property                
+    )]
     public class JSRuntimeDispatch : Attribute {
     }
 
@@ -88,7 +91,10 @@ namespace JSIL.Meta {
     /// Specifies that this method is implemented externally and should not be generated when translating code to JavaScript
     ///  (but does not prevent use of the method like <see cref="JSIgnore"/> does.)
     /// </summary>
-    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor)]
+    [AttributeUsage(
+        AttributeTargets.Method | AttributeTargets.Constructor |
+        AttributeTargets.Property                
+    )]
     public class JSExternal : Attribute {
     }
 }

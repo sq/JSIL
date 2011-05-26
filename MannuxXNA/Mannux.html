@@ -24,6 +24,13 @@
     JSIL.Host.getCanvas = function (desiredWidth, desiredHeight) {
         return document.getElementById("canvas");
     };
+    JSIL.Host.createCanvas = function (desiredWidth, desiredHeight) {
+        var e = document.createElement("canvas");
+        e.width = desiredWidth;
+        e.height = desiredHeight;
+        document.getElementById("images").appendChild(e);
+        return e;
+    };
     JSIL.Host.logWrite = function (text) {
         document.getElementById("log").value += text;
     };
@@ -31,8 +38,10 @@
         document.getElementById("log").value += text + "\n";
     };
     JSIL.Host.getFile = function (filename) {
+      return allFiles[filename.toLowerCase()];
     };
     JSIL.Host.getImage = function (filename) {
+      return allImages[filename.toLowerCase()];
     };
     
     var allFiles = {};
@@ -60,7 +69,7 @@
         var e = document.createElement("img");
         e.addEventListener("error", onError, true);
         e.addEventListener("load", function () {
-          allImages[getShortName(filename)] = e;
+          allImages[getShortName(filename).toLowerCase()] = e;
           onDoneLoading();
         }, true);
         e.id = "image_" + filename;
@@ -77,7 +86,7 @@
         req.open('GET', filename, false);
         req.send(null);
         if (req.status <= 299) {
-          allFiles[getShortName(filename)] = req.responseBody;
+          allFiles[getShortName(filename).toLowerCase()] = req.responseBody;
           onDoneLoading();
         } else {
           onError();
@@ -130,7 +139,6 @@
       
       var assetsToLoad = [
         ["Script", "../Libraries/System.Drawing.js"],
-        ["Script", "../Libraries/System.Windows.js"],
         ["Script", "mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
         ["Script", "System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
         ["Script", "System.Data.SqlXml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
@@ -141,6 +149,7 @@
         ["Script", "System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
         ["Script", "Microsoft.Xna.Framework, Version=3.1.0.0, Culture=neutral, PublicKeyToken=6d5c3888ef60e27d.js"],
         ["Script", "Microsoft.Xna.Framework.Game, Version=3.1.0.0, Culture=neutral, PublicKeyToken=6d5c3888ef60e27d.js"],
+        ["Script", "../Libraries/System.Windows.js"],
         ["Script", "../Libraries/JSIL.XNA.js"],
         ["Script", "../Libraries/JSIL.IO.js"],
         ["Script", "Mannux, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null.js"],

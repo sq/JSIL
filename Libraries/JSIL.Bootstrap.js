@@ -269,6 +269,9 @@ System.Collections.Generic.List$b1.prototype.Add = function (item) {
   }
   this.Count += 1;
 };
+System.Collections.Generic.List$b1.prototype.get_Item = function (index) {
+  return this.Items[index];
+};
 System.Collections.Generic.List$b1.prototype.GetEnumerator = function () {
   return new System.Collections.Generic.List$b1.Enumerator(this);
 };
