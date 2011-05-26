@@ -134,6 +134,14 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void ProxiedOperators () {
+            GenericTest(
+                @"SpecialTestCases\ProxiedOperators.cs",
+                "P 2 P 4", "2 4"
+            );
+        }
+
+        [Test]
         public void StubbedAssembliesDoNotGenerateMethodBodies () {
             var generatedJs = GenericIgnoreTest(
                 @"SpecialTestCases\StubbedMethodBodies.cs",

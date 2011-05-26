@@ -38,5 +38,15 @@ namespace JSIL.Proxies {
 
         [JSReplacement("$this[$index]")]
         abstract public char get_Chars (int index);
+
+        [JSReplacement("$lhs == $rhs")]
+        public static bool operator == (StringProxy lhs, StringProxy rhs) {
+            throw new NotImplementedException();
+        }
+
+        [JSReplacement("$lhs != $rhs")]
+        public static bool operator != (StringProxy lhs, StringProxy rhs) {
+            throw new NotImplementedException();
+        }
     }
 }

@@ -255,7 +255,7 @@ namespace JSIL {
 
                 foreach (Match m in matches) {
                     if (m.Groups["text"].Success) {
-                        Output.PlainTextOutput.Write(m.Groups["text"].Value.Trim());
+                        Output.PlainTextOutput.Write(m.Groups["text"].Value);
                     } else if (m.Groups["name"].Success) {
                         var key = m.Groups["name"].Value;
 

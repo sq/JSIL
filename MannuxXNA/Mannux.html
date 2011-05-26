@@ -66,6 +66,22 @@
         e.id = "image_" + filename;
         e.src = filename;
         document.getElementById("images").appendChild(e);
+      },
+      "File": function loadBinaryFile (filename, onError, onDoneLoading) {
+        var req;
+        if (typeof (ActiveXObject) !== "undefined")
+          req = new ActiveXObject("MSXML2.XMLHTTP");
+        else
+          req = new XMLHttpRequest();
+        
+        req.open('GET', filename, false);
+        req.send(null);
+        if (req.status <= 299) {
+          allFiles[getShortName(filename)] = req.responseBody;
+          onDoneLoading();
+        } else {
+          onError();
+        }
       }
     };
     
@@ -82,7 +98,6 @@
       var j = i + 1;
       
       var stepCallback = function () {
-        JSIL.Host.logWrite(".");
         loadNextAsset(assets, j, onDoneLoading, loadDelay);
       };
       
@@ -129,22 +144,22 @@
         ["Script", "../Libraries/JSIL.XNA.js"],
         ["Script", "../Libraries/JSIL.IO.js"],
         ["Script", "Mannux, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null.js"],
-        ["BinaryFile", "Content/map00.map"],
+        ["File", "Content/map00.map"],
         ["Image", "Content/Boom.png"],
         ["Image", "Content/bullet.png"],
         ["Image", "Content/mantiles.png"],
         ["Image", "Content/ripper.png"],
         ["Image", "Content/tabpis.png"],
-        ["TextFile", "Content/boom.txt"],
-        ["TextFile", "Content/bullet.txt"],
-        ["TextFile", "Content/door.txt"],
-        ["TextFile", "Content/ripper.txt"],
-        ["TextFile", "Content/tabby.txt"]
+        ["File", "Content/boom.txt"],
+        ["File", "Content/bullet.txt"],
+        ["File", "Content/door.txt"],
+        ["File", "Content/ripper.txt"],
+        ["File", "Content/tabby.txt"]
       ];
       
-      JSIL.Host.logWrite("Loading ");
+      JSIL.Host.logWrite("Loading data ... ");
       loadAssets(assetsToLoad, function () {
-        JSIL.Host.logWriteLine(" done.");
+        JSIL.Host.logWriteLine("done.");
         try {
           JSIL.Initialize();
           

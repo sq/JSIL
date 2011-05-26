@@ -182,6 +182,7 @@
     <None Include="SpecialTestCases\ReplacementArgumentNameMismatch.cs" />
     <None Include="SpecialTestCases\IgnoreDerivedType.cs" />
     <None Include="SpecialTestCases\StubbedMethodBodies.cs" />
+    <None Include="SpecialTestCases\ProxiedOperators.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

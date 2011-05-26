@@ -103,6 +103,8 @@ namespace JSIL.Internal {
             Method,
         }
 
+        public static readonly Dictionary<string, string[]> Proxies = new Dictionary<string, string[]>();
+
         public readonly MemberType Type;
         public readonly string Name;
         public readonly TypeReference ReturnType;
@@ -135,6 +137,7 @@ namespace JSIL.Internal {
             ReturnType = mr.ReturnType;
             ParameterCount = mr.Parameters.Count;
             ParameterTypes = GetParameterTypes(mr.Parameters);
+            LocateProxy(mr);
         }
 
         public MemberIdentifier (PropertyReference pr) {
@@ -143,6 +146,7 @@ namespace JSIL.Internal {
             ReturnType = pr.PropertyType;
             ParameterCount = 0;
             ParameterTypes = null;
+            LocateProxy(pr);
 
             var pd = pr.Resolve();
             if (pd != null) {
@@ -162,6 +166,7 @@ namespace JSIL.Internal {
             ReturnType = fr.FieldType;
             ParameterCount = 0;
             ParameterTypes = null;
+            LocateProxy(fr);
         }
 
         public MemberIdentifier (EventReference er) {
@@ -170,6 +175,55 @@ namespace JSIL.Internal {
             ReturnType = er.EventType;
             ParameterCount = 0;
             ParameterTypes = null;
+            LocateProxy(er);
+        }
+
+        protected static void LocateProxy (MemberReference mr) {
+            var fullName = mr.DeclaringType.FullName;
+            if (Proxies.ContainsKey(fullName))
+                return;
+
+            var icap = mr.DeclaringType as ICustomAttributeProvider;
+            if (icap == null)
+                return;
+
+            var metadata = new MetadataCollection(icap);
+            if (!metadata.HasAttribute("JSIL.Proxy.JSProxy"))
+                return;
+
+            string[] proxyTargets = null;
+            var args = metadata.GetAttributeParameters("JSIL.Proxy.JSProxy");
+
+            foreach (var arg in args) {
+                switch (arg.Type.FullName) {
+                    case "System.Type":
+                        proxyTargets = new string[] { ((TypeReference)arg.Value).FullName };
+
+                        break;
+                    case "System.Type[]": {
+                        var values = (CustomAttributeArgument[])arg.Value;
+                        proxyTargets = new string[values.Length];
+                        for (var i = 0; i < proxyTargets.Length; i++)
+                            proxyTargets[i] = ((TypeReference)values[i].Value).FullName;
+
+                        break;
+                    }
+                    case "System.String": {
+                        proxyTargets = new string[] { (string)arg.Value };
+
+                        break;
+                    }
+                    case "System.String[]": {
+                        var values = (CustomAttributeArgument[])arg.Value;
+                        proxyTargets = (from v in values select (string)v.Value).ToArray();
+
+                        break;
+                    }
+                }
+            }
+
+            if (proxyTargets != null)
+                Proxies[fullName] = proxyTargets;
         }
 
         static IEnumerable<TypeReference> GetParameterTypes (IList<ParameterDefinition> parameters) {
@@ -192,11 +246,11 @@ namespace JSIL.Internal {
             if (t == null)
                 return false;
 
-            return (t.Name == "AnyType" && t.Namespace == "JSIL.Proxy") || 
+            return (t.Name == "AnyType" && t.Namespace == "JSIL.Proxy") ||
                 (JSExpression.DeReferenceType(t).IsGenericParameter);
         }
 
-        static bool TypesAreEqual (TypeReference lhs, TypeReference rhs) {
+        bool TypesAreEqual (TypeReference lhs, TypeReference rhs) {
             if (lhs == null || rhs == null)
                 return (lhs == rhs);
 
@@ -237,6 +291,21 @@ namespace JSIL.Internal {
                         return false;
                 }
 
+                return true;
+            }
+
+            string[] proxyTargets;
+            if (
+                Proxies.TryGetValue(lhs.FullName, out proxyTargets) &&
+                (proxyTargets != null) &&
+                proxyTargets.Contains(rhs.FullName)
+            ) {
+                return true;
+            } else if (
+                Proxies.TryGetValue(rhs.FullName, out proxyTargets) &&
+                (proxyTargets != null) &&
+                proxyTargets.Contains(lhs.FullName)
+            ) {
                 return true;
             }
 
@@ -623,6 +692,9 @@ namespace JSIL.Internal {
                     AddProxyMember(proxy, method);
                 }
             }
+
+            if (type.FullName.Contains("ProxiedClass"))
+                Debugger.Break();
         }
 
         internal void ConstructMethodGroups () {
