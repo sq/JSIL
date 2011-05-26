@@ -39,25 +39,25 @@ namespace JSIL.Compiler {
         static void Main (string[] arguments) {
             var translator = new AssemblyTranslator();
             translator.StartedLoadingAssembly += (fn) => {
-                Console.Error.WriteLine("Loading {0}...", fn);
+                Console.Error.WriteLine("// Loading {0}...", fn);
             };
-            translator.StartedDecompilingAssembly += (fn) => {
-                Console.Error.WriteLine("Decompiling {0}...", fn);
-            };
-            translator.StartedTranslatingAssembly += (fn) => {
-                Console.Error.WriteLine("Translating {0}...", fn);
+            translator.StartedDecompilingAssembly += (fn, s) => {
+                if (s)
+                    Console.Error.WriteLine("// Generating stub for {0}...", fn);
+                else
+                    Console.Error.WriteLine("// Translating {0}...", fn);
             };
             translator.CouldNotLoadSymbols += (fn, ex) => {
-                Console.Error.WriteLine("Could not load symbols for module {0}: {1}", fn, ex.Message);
+                Console.Error.WriteLine("// Could not load symbols for module {0}: {1}", fn, ex.Message);
             };
             translator.CouldNotResolveAssembly += (fn, ex) => {
-                Console.Error.WriteLine("Could not load module {0}: {1}", fn, ex.Message);
+                Console.Error.WriteLine("// Could not load module {0}: {1}", fn, ex.Message);
             };
             translator.CouldNotDecompileMethod += (fn, ex) => {
-                Console.Error.WriteLine("Could not decompile method {0}: {1}", fn, ex.Message);
+                Console.Error.WriteLine("// Could not decompile method {0}: {1}", fn, ex.Message);
             };
             translator.StartedDecompilingMethod += (fn) => {
-                Console.Error.Write("Decompiling {0}... ", fn);
+                Console.Error.Write("// Decompiling {0}... ", fn);
             };
             translator.FinishedDecompilingMethod += (fn) => {
                 Console.Error.WriteLine("done.");

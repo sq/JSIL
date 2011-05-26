@@ -64,8 +64,7 @@ namespace JSIL {
         public readonly HashSet<string> DeclaredTypes = new HashSet<string>();
 
         public event Action<string> StartedLoadingAssembly;
-        public event Action<string> StartedDecompilingAssembly;
-        public event Action<string> StartedTranslatingAssembly;
+        public event Action<string, bool> StartedDecompilingAssembly;
 
         public event Action<string> StartedDecompilingMethod;
         public event Action<string> FinishedDecompilingMethod;
@@ -249,12 +248,6 @@ namespace JSIL {
             context.Settings.FullyQualifyAmbiguousTypeNames = true;
             context.Settings.ForEachStatement = false;
 
-            if (StartedDecompilingAssembly != null)
-                StartedDecompilingAssembly(assembly.MainModule.FullyQualifiedName);
-
-            var tw = new StreamWriter(outputStream, Encoding.ASCII);
-            var formatter = new JavascriptFormatter(tw, this);
-
             bool stubbed = false;
             foreach (var sa in StubbedAssemblies) {
                 if (sa.IsMatch(assembly.FullName)) {
@@ -262,6 +255,17 @@ namespace JSIL {
                     break;
                 }
             }
+
+            if (StartedDecompilingAssembly != null)
+                StartedDecompilingAssembly(assembly.MainModule.FullyQualifiedName, stubbed);
+
+            if (stubbed) {
+                var bytes = Encoding.ASCII.GetBytes(String.Format("// Generating type stubs only {0}", Environment.NewLine));
+                outputStream.Write(bytes, 0, bytes.Length);
+            }
+
+            var tw = new StreamWriter(outputStream, Encoding.ASCII);
+            var formatter = new JavascriptFormatter(tw, this);
             
             foreach (var module in assembly.Modules)
                 TranslateModule(context, formatter, module, stubbed);
@@ -692,24 +696,6 @@ namespace JSIL {
             foreach (var nestedTypeDef in typedef.NestedTypes) {
                 if (!DeclaredTypes.Contains(nestedTypeDef.FullName))
                     ForwardDeclareType(context, output, nestedTypeDef);
-            }
-
-            if (typedef.IsValueType) {
-                foreach (var field in typedef.Fields) {
-                    var fieldType = field.FieldType;
-                    var fieldTypeDef = fieldType.Resolve();
-                    if (fieldTypeDef == null)
-                        continue;
-
-                    if (
-                        !DeclaredTypes.Contains(fieldTypeDef.FullName) &&
-                        (fieldTypeDef != null) &&
-                        (fieldTypeDef.Module.Assembly == typedef.Module.Assembly)
-                    ) {
-
-                        ForwardDeclareType(context, output, fieldTypeDef);
-                    }
-                }
             }
 
             output.NewLine();
