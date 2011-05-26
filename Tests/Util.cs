@@ -152,7 +152,7 @@ namespace JSIL.Tests {
                 translatedJs = Encoding.ASCII.GetString(ms.GetBuffer(), 0, (int)ms.Length);
             }
 
-            var declaringType = JSIL.Internal.Util.EscapeIdentifier(TestMethod.DeclaringType.FullName, false);
+            var declaringType = JSIL.Internal.Util.EscapeIdentifier(TestMethod.DeclaringType.FullName, Internal.EscapingMode.TypeIdentifier);
 
             string argsJson;
             var jsonSerializer = new DataContractJsonSerializer(typeof(string[]));
@@ -173,7 +173,7 @@ namespace JSIL.Tests {
             try {
                 // throw new Exception();
 
-                var psi = new ProcessStartInfo(JSShellPath, String.Format("-j -m -f {0} -f {1} -f {2}", CoreJSPath, BootstrapJSPath, tempFilename)) {
+                var psi = new ProcessStartInfo(JSShellPath, String.Format("-w -j -m -f {0} -f {1} -f {2}", CoreJSPath, BootstrapJSPath, tempFilename)) {
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,

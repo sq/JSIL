@@ -2,13 +2,15 @@
 
 if (typeof (JSIL) === "undefined")
   throw new Error("JSIL.Core is required");
+  
+JSIL.DeclareAssembly("JSIL.Core");
 
-JSIL.DeclareNamespace(System, "ComponentModel");
+JSIL.DeclareNamespace("System.ComponentModel");
 
-JSIL.MakeClass(System.Object, System.ComponentModel, "MemberDescriptor", "System.ComponentModel.MemberDescriptor");
-JSIL.MakeClass(System.ComponentModel.MemberDescriptor, System.ComponentModel, "PropertyDescriptor", "System.ComponentModel.PropertyDescriptor");
-JSIL.MakeClass(System.Object, System.ComponentModel, "TypeConverter", "System.ComponentModel.TypeConverter");
-JSIL.MakeClass(System.ComponentModel.TypeConverter, System.ComponentModel, "ExpandableObjectConverter", "System.ComponentModel.ExpandableObjectConverter");
+JSIL.MakeClass("System.Object", "System.ComponentModel.MemberDescriptor", true);
+JSIL.MakeClass("System.ComponentModel.MemberDescriptor", "System.ComponentModel.PropertyDescriptor", true);
+JSIL.MakeClass("System.Object", "System.ComponentModel.TypeConverter", true);
+JSIL.MakeClass("System.ComponentModel.TypeConverter", "System.ComponentModel.ExpandableObjectConverter", true);
 
 System.Delegate.prototype = JSIL.MakeProto(Function, System.Delegate, "System.Delegate", true);
 System.Delegate.prototype.Invoke = function () {
@@ -96,10 +98,7 @@ JSIL.MulticastDelegate.New = function (delegates) {
   return result;
 };
 
-System.Exception = function (message) {
-  this._ctor(message);
-};
-System.Exception.prototype = JSIL.MakeProto(Error, System.Exception, "System.Exception", true);
+JSIL.MakeClass(Error, "System.Exception", true);
 System.Exception.prototype._Message = null;
 System.Exception.prototype._ctor = function (message) {
   if (typeof (message) != "undefined")
@@ -118,8 +117,8 @@ System.Exception.prototype.toString = function () {
   return System.String.Format("{0}: {1}", JSIL.GetTypeName(this), message);
 };
 
-JSIL.MakeClass(System.Exception, System, "InvalidCastException", "System.InvalidCastException");
-JSIL.MakeClass(System.Exception, System, "InvalidOperationException", "System.InvalidOperationException");
+JSIL.MakeClass("System.Exception", "System.InvalidCastException", true);
+JSIL.MakeClass("System.Exception", "System.InvalidOperationException", true);
 
 System.Console.WriteLine = function () {
   JSIL.Host.logWriteLine(System.String.Format.apply(null, arguments));
@@ -135,7 +134,7 @@ String.prototype.Split = function (separators) {
   return this.split(separators[0]);
 };
 
-JSIL.MakeClass(System.Object, System, "String", "System.String");
+JSIL.MakeClass("System.Object", "System.String", true);
 System.String.CheckType = function (value) {
   return (typeof (value) === "string") || (
     (typeof (value.text) === "string") && (value.__proto__ === System.String.prototype)
@@ -201,7 +200,7 @@ System.String.Format = function (format) {
   return format.replace(regex, matcher);
 };
 
-JSIL.MakeClass(System.Object, JSIL, "ArrayEnumerator", "JSIL.ArrayEnumerator");
+JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true);
 JSIL.ArrayEnumerator.prototype._ctor = function (array) {
   this._array = array;
   this._length = array.length;
@@ -238,13 +237,13 @@ JSIL.ImplementInterfaces(JSIL.ArrayEnumerator, [
   System.IDisposable, System.Collections.IEnumerator, System.Collections.Generic.IEnumerator$b1
 ]);
 
-JSIL.MakeClass(System.Object, System.Threading, "Thread", "System.Threading.Thread");
+JSIL.MakeClass("System.Object", "System.Threading.Thread", true);
 System.Threading.Thread.prototype._ctor = function () {
 };
 System.Threading.Thread.prototype.ManagedThreadId = 0;
 System.Threading.Thread.CurrentThread = new System.Threading.Thread();
 
-JSIL.MakeClass(System.Object, System.Collections.Generic, "List$b1", "System.Collections.Generic.List`1");
+JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true);
 System.Collections.Generic.List$b1.Of = function (T) {
   return System.Collections.Generic.List$b1;
 };
@@ -278,7 +277,7 @@ JSIL.ImplementInterfaces(System.Collections.Generic.List$b1, [
 System.Collections.ArrayList = System.Collections.Generic.List$b1.Of(System.Object);
 
 // TODO: This type is actually a struct in the CLR
-JSIL.MakeClass(JSIL.ArrayEnumerator, System.Collections.Generic.List$b1, "Enumerator", "System.Collections.Generic.List`1.Enumerator");
+JSIL.MakeClass("JSIL.ArrayEnumerator", "System.Collections.Generic.List`1.Enumerator", true);
 System.Collections.Generic.List$b1.Enumerator.Of = function (T) {
   return System.Collections.Generic.List$b1.Enumerator;
 };
@@ -327,7 +326,7 @@ System.Threading.Monitor.Exit = function (obj) {
   obj.__LockCount__ = current - 1;
 };
 
-JSIL.MakeClass(System.Object, System, "Random", "System.Random");
+JSIL.MakeClass("System.Object", "System.Random", true);
 System.Random.prototype._ctor = function () {
 }
 System.Random.prototype.Next = function (min, max) {
@@ -356,7 +355,7 @@ System.Boolean = function (b) {
 System.Boolean.CheckType = function (value) {
   return (value === false) || (value === true);
 }
-System.Boolean.prototype = JSIL.MakeProto(Boolean, System.Boolean, "System.Boolean", false);
+System.Boolean.prototype = JSIL.MakeProto(Boolean, "System.Boolean", false);
 
 System.Char = function (ch) {
   return ch;
@@ -364,7 +363,7 @@ System.Char = function (ch) {
 System.Char.CheckType = function (value) {
   return (typeof (value) === "string") && (value.length == 1);
 }
-System.Char.prototype = JSIL.MakeProto(String, System.Char, "System.Char", false);
+System.Char.prototype = JSIL.MakeProto(String, "System.Char", false);
 
 System.Byte = function (value) {
   if (value < 0)
@@ -377,7 +376,7 @@ System.Byte = function (value) {
 System.Byte.CheckType = function (value) {
   return (typeof (value) === "number") && (value >= 0) && (value <= 255);
 }
-JSIL.MakeNumericType(Number, System.Byte, "System.Byte", true);
+JSIL.MakeNumericType(Number, "System.Byte", true);
 
 System.UInt16 = function (value) {
   return Math.abs(Math.floor(value));
@@ -385,7 +384,7 @@ System.UInt16 = function (value) {
 System.UInt16.CheckType = function (value) {
   return (typeof (value) === "number") && (value >= 0);
 }
-JSIL.MakeNumericType(Number, System.UInt16, "System.UInt16", true);
+JSIL.MakeNumericType(Number, "System.UInt16", true);
 System.UInt16.MaxValue = 65535;
 System.UInt16.Parse = function (text) {
   return Math.abs(parseInt(text, 10));
@@ -397,7 +396,7 @@ System.Int16 = function (value) {
 System.Int16.CheckType = function (value) {
   return (typeof (value) === "number");
 }
-JSIL.MakeNumericType(Number, System.Int16, "System.Int16", true);
+JSIL.MakeNumericType(Number, "System.Int16", true);
 System.Int16.MaxValue = 32767;
 System.Int16.Parse = function (text) {
   return Math.abs(parseInt(text, 10));
@@ -409,7 +408,7 @@ System.UInt32 = function (value) {
 System.UInt32.CheckType = function (value) {
   return (typeof (value) === "number") && (value >= 0);
 }
-JSIL.MakeNumericType(Number, System.UInt32, "System.UInt32", true);
+JSIL.MakeNumericType(Number, "System.UInt32", true);
 System.UInt32.MaxValue = 4294967295;
 System.UInt32.Parse = function (text) {
   return Math.abs(parseInt(text, 10));
@@ -421,7 +420,7 @@ System.Int32 = function (value) {
 System.Int32.CheckType = function (value) {
   return (typeof (value) === "number");
 }
-JSIL.MakeNumericType(Number, System.Int32, "System.Int32", true);
+JSIL.MakeNumericType(Number, "System.Int32", true);
 System.Int32.MaxValue = 2147483647;
 System.Int32.Parse = function (text) {
   return parseInt(text, 10);
@@ -433,7 +432,7 @@ System.Int64 = function (value) {
 System.Int64.CheckType = function (value) {
   return (typeof (value) === "number");
 }
-JSIL.MakeNumericType(Number, System.Int64, "System.Int64", true);
+JSIL.MakeNumericType(Number, "System.Int64", true);
 System.Int64.Parse = function (text) {
   return parseInt(text, 10);
 };
@@ -445,7 +444,7 @@ System.Single.CheckType = function (value) {
   return (typeof (value) === "number");
 }
 System.Single.IsNaN = isNaN;
-JSIL.MakeNumericType(Number, System.Single, "System.Single", false);
+JSIL.MakeNumericType(Number, "System.Single", false);
 
 System.Double = function (value) {
   return value;
@@ -454,9 +453,9 @@ System.Double.CheckType = function (value) {
   return (typeof (value) === "number");
 }
 System.Double.IsNaN = isNaN;
-JSIL.MakeNumericType(Number, System.Double, "System.Double", false);
+JSIL.MakeNumericType(Number, "System.Double", false);
 
-JSIL.MakeStruct(System, "Decimal", "System.Decimal");
+JSIL.MakeStruct("System.Decimal", true);
 System.Decimal.CheckType = function (value) {
   return (typeof (value) === "number") || 
     JSIL.CheckType(value, System.Decimal, true);

@@ -24,14 +24,16 @@ namespace JSIL.Internal {
         public readonly PlainTextOutput PlainTextOutput;
         public readonly TextOutputFormatter PlainTextFormatter;
         public readonly ITypeInfoSource TypeInfo;
+        public readonly AssemblyDefinition Assembly;
 
         protected readonly HashSet<string> DeclaredNamespaces = new HashSet<string>();
 
-        public JavascriptFormatter (TextWriter output, ITypeInfoSource typeInfo) {
+        public JavascriptFormatter (TextWriter output, ITypeInfoSource typeInfo, AssemblyDefinition assembly) {
             Output = output;
             PlainTextOutput = new PlainTextOutput(Output);
             PlainTextFormatter = new TextOutputFormatter(PlainTextOutput);
             TypeInfo = typeInfo;
+            Assembly = assembly;
         }
 
         public void LPar () {
@@ -177,8 +179,8 @@ namespace JSIL.Internal {
         }
 
         public static string GetParent (TypeReference type) {
-            var fullname = Util.EscapeIdentifier(type.FullName, false);
-            var index = fullname.LastIndexOf('.');
+            var fullname = type.FullName;
+            var index = fullname.LastIndexOfAny(new char[] { '.', '+', '/' });
             if (index < 0)
                 return "JSIL.GlobalNamespace";
             else
@@ -186,23 +188,16 @@ namespace JSIL.Internal {
         }
 
         public void TypeReference (TypeReference type) {
-            Keyword("new");
-            Space();
-            Identifier("JSIL.TypeRef", true);
-            LPar();
-            Identifier(GetParent(type), true);
-            Comma();
-            Value(type.Name);
-            RPar();
+            Value(Util.EscapeIdentifier(type.FullName, EscapingMode.String));
         }
 
-        public void Identifier (string name, bool escaped = false) {
-            if (escaped)
-                PlainTextOutput.Write(name);
-            else
+        public void Identifier (string name, EscapingMode? escapingMode = EscapingMode.MemberIdentifier) {
+            if (escapingMode.HasValue)
                 PlainTextOutput.Write(Util.EscapeIdentifier(
-                    name, true
+                    name, escapingMode.Value
                 ));
+            else
+                PlainTextOutput.Write(name);
         }
 
         public void Identifier (ILVariable variable) {
@@ -217,7 +212,7 @@ namespace JSIL.Internal {
 
         public void Identifier (TypeReference type, bool includeParens = false) {
             if (type.FullName == "JSIL.Proxy.AnyType")
-                Identifier("System.Object", true);
+                Identifier("System.Object", null);
             else
                 TypeIdentifier(type as dynamic, includeParens);
         }
@@ -226,12 +221,16 @@ namespace JSIL.Internal {
             if (type.IsGenericParameter) {
                 Comment(type.FullName);
                 if (type.IsValueType)
-                    Identifier("System.ValueType", true);
+                    Identifier("System.ValueType", null);
                 else
-                    Identifier("System.Object", true);
+                    Identifier("System.Object", null);
             } else {
+                var typedef = type.Resolve();
+                if ((typedef != null) && (typedef.Module.Assembly == Assembly) && !typedef.IsPublic)
+                    PlainTextOutput.Write("$private.");
+
                 PlainTextOutput.Write(Util.EscapeIdentifier(
-                    type.FullName, false
+                    type.FullName, EscapingMode.TypeIdentifier
                 ));
             }
         }
@@ -240,7 +239,7 @@ namespace JSIL.Internal {
             if (includeParens)
                 LPar();
 
-            Identifier("JSIL.Reference.Of", true);
+            Identifier("JSIL.Reference.Of", null);
             LPar();
             Identifier(type.ElementType);
             RPar();
@@ -255,7 +254,7 @@ namespace JSIL.Internal {
             if (includeParens)
                 LPar();
 
-            Identifier("System.Array.Of", true);
+            Identifier("System.Array.Of", null);
             LPar();
             Identifier(type.ElementType);
             RPar();
@@ -415,19 +414,12 @@ namespace JSIL.Internal {
                 if (parent.EndsWith(":"))
                     parent = parent.Substring(0, parent.Length - 1);
 
-                ns = ns.Substring(lastDot + 1);
-
                 DeclareNamespace(parent);
-                parent = Util.EscapeIdentifier(parent, false);
-            } else {
-                parent = "this";
             }
 
-            Identifier("JSIL.DeclareNamespace", true);
+            Identifier("JSIL.DeclareNamespace", null);
             LPar();
-            Identifier(parent, true);
-            Comma();
-            Value(Util.EscapeIdentifier(ns));
+            Value(Util.EscapeIdentifier(ns, EscapingMode.String));
             RPar();
             Semicolon();
         }

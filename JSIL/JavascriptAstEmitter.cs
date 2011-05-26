@@ -54,7 +54,7 @@ namespace JSIL {
         public override void VisitNode (JSNode node) {
             if ((node != null) && !node.IsNull) {
                 Console.Error.WriteLine("Cannot emit {0}", node.GetType().Name);
-                Output.Identifier("JSIL.UntranslatableNode", true);
+                Output.Identifier("JSIL.UntranslatableNode", null);
                 Output.LPar();
                 Output.Value(node.GetType().Name);
                 Output.RPar();
@@ -315,7 +315,7 @@ namespace JSIL {
 
             Console.Error.WriteLine("Warning: Untranslatable goto encountered: " + go);
 
-            Output.Identifier("JSIL.UntranslatableInstruction", true);
+            Output.Identifier("JSIL.UntranslatableInstruction", null);
             Output.LPar();
             Output.Value("goto");
             Output.Comma();
@@ -325,7 +325,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSUntranslatableStatement us) {
-            Output.Identifier("JSIL.UntranslatableNode", true);
+            Output.Identifier("JSIL.UntranslatableNode", null);
             Output.LPar();
             Output.Value((us.Type ?? "").ToString());
             Output.RPar();
@@ -333,14 +333,14 @@ namespace JSIL {
         }
 
         public void VisitNode (JSUntranslatableExpression ue) {
-            Output.Identifier("JSIL.UntranslatableInstruction", true);
+            Output.Identifier("JSIL.UntranslatableInstruction", null);
             Output.LPar();
             Output.Value((ue.Type ?? "").ToString());
             Output.RPar();
         }
 
         public void VisitNode (JSIgnoredMemberReference imr) {
-            Output.Identifier("JSIL.IgnoredMember", true);
+            Output.Identifier("JSIL.IgnoredMember", null);
             Output.LPar();
             if (imr.Member != null) {
                 var method = imr.Member as MethodInfo;
@@ -418,7 +418,7 @@ namespace JSIL {
                 Output.Comment("ref");
                 Visit(referent);
             } else {
-                Output.Identifier("JSIL.UnmaterializedReference", true);
+                Output.Identifier("JSIL.UnmaterializedReference", null);
                 Output.LPar();
                 Output.RPar();
             }
@@ -697,7 +697,7 @@ namespace JSIL {
                 if (bop.Operator is JSAssignmentOperator)
                     throw new NotImplementedException();
 
-                Output.Identifier("Math.floor", true);
+                Output.Identifier("Math.floor", null);
             }
 
             if (parens)

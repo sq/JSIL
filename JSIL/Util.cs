@@ -8,6 +8,12 @@ using ICSharpCode.NRefactory.CSharp;
 using Mono.Cecil;
 
 namespace JSIL.Internal {
+    public enum EscapingMode {
+        MemberIdentifier,
+        TypeIdentifier,
+        String
+    }
+
     public static class Util {
         public static readonly HashSet<string> ReservedWords = new HashSet<string> {
             "break", "do", "instanceof", "typeof",
@@ -25,7 +31,7 @@ namespace JSIL.Internal {
 
         public static Regex ValidIdentifier = new Regex("$[A-Za-z_$]([A-Za-z_$0-9]*)^", RegexOptions.Compiled);
 
-        public static string EscapeIdentifier (string identifier, bool escapePeriods = true) {
+        public static string EscapeIdentifier (string identifier, EscapingMode escapingMode = EscapingMode.MemberIdentifier) {
             string result = identifier;
 
             if (!ValidIdentifier.IsMatch(identifier)) {
@@ -35,22 +41,26 @@ namespace JSIL.Internal {
 
                     switch (ch) {
                         case '.':
-                            if (escapePeriods)
-                                sb.Append("_");
-                            else
+                            if (escapingMode != EscapingMode.MemberIdentifier)
                                 sb.Append(".");
+                            else
+                                sb.Append("_");
                         break;
                         case '/':
-                            if (escapePeriods)
+                            if (escapingMode == EscapingMode.MemberIdentifier)
                                 sb.Append("_");
-                            else
+                            else if (escapingMode == EscapingMode.TypeIdentifier)
                                 sb.Append(".");
+                            else
+                                sb.Append("/");
                         break;
                         case '+':
-                            if (escapePeriods)
+                            if (escapingMode == EscapingMode.MemberIdentifier)
                                 sb.Append("_");
-                            else
+                            else if (escapingMode == EscapingMode.TypeIdentifier)
                                 sb.Append(".");
+                            else
+                                sb.Append("+");
                         break;
                         case '`':
                             sb.Append("$b");
@@ -120,9 +130,6 @@ namespace JSIL.Internal {
 
                 result = sb.ToString();
             }
-
-            if (result.Contains("modopt") && escapePeriods == false)
-                Debugger.Break();
 
             bool isReservedWord = ReservedWords.Contains(result);
             if (isReservedWord)

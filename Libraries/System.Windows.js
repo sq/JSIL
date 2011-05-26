@@ -2,6 +2,8 @@
 
 if (typeof (JSIL) === "undefined")
   throw new Error("JSIL.Core required");
+  
+JSIL.DeclareAssembly("JSIL.Windows");
 
 JSIL.DeclareNamespace(System, "Windows");
 JSIL.DeclareNamespace(System.Windows, "Forms");

@@ -1,64 +1,145 @@
 "use strict";
 
-if (typeof (JSIL) === "undefined")
-  var JSIL = {
-    __FullName__ : "JSIL"
-  };
+if (typeof (JSIL) !== "undefined")
+  throw new Error("JSIL.Core included twice");
 
-JSIL.DeclareNamespace = function (parent, name, sealed) {
-  if (typeof (sealed) === "undefined")
-    sealed = true;
-
-  if (typeof (parent[name]) === "undefined") {
-    var parentName = "";
-    if (typeof (parent.__FullName__) !== "undefined")
-      parentName = parent.__FullName__ + ".";
-
-    Object.defineProperty(
-      parent, name, {
-        enumerable: true,
-        configurable: !sealed,
-        value: {
-          __FullName__ : parentName + name
-        }
-      }
-    );
-  }
-}
+var JSIL = {
+  __FullName__ : "JSIL"
+};
 
 JSIL.GlobalNamespace = this;
 JSIL.PendingInitializers = [];
 
-JSIL.DeclareNamespace(this, "System");
-JSIL.DeclareNamespace(System, "Collections");
-JSIL.DeclareNamespace(System.Collections, "Generic");
-JSIL.DeclareNamespace(System, "Array", false);
-JSIL.DeclareNamespace(System, "Delegate", false);
-JSIL.DeclareNamespace(System, "Enum", false);
-JSIL.DeclareNamespace(System, "MulticastDelegate", false);
-JSIL.DeclareNamespace(System, "Console", false);
-JSIL.DeclareNamespace(System, "Threading");
-JSIL.DeclareNamespace(System.Threading, "Interlocked", false);
-JSIL.DeclareNamespace(System.Threading, "Monitor", false);
-JSIL.DeclareNamespace(System, "Globalization", false);
-JSIL.DeclareNamespace(System, "Environment", false);
-JSIL.DeclareNamespace(System, "Runtime", false);
-JSIL.DeclareNamespace(System.Runtime, "InteropServices", false);
+JSIL.PrivateNamespaces = {};
+var $private = null;
 
-JSIL.DeclareNamespace(JSIL, "Array");
-JSIL.DeclareNamespace(JSIL, "Delegate");
-JSIL.DeclareNamespace(JSIL, "Dynamic");
-JSIL.DeclareNamespace(JSIL, "MulticastDelegate");
+JSIL.EscapeName = function (name) {
+  return name.replace("`", "$b").replace(".", "_");
+};
+
+JSIL.GetParentName = function (name) {
+  var lastSeparator = name.lastIndexOf(/[./+]/);
+  return name.substr(0, lastSeparator);
+};
+
+JSIL.SplitName = function (name) {
+  if (typeof (name) !== "string")
+    JSIL.Host.error(new Error("Not a name: " + name));
+
+  return name.split(/[./+]/);
+};
+
+JSIL.ResolvedName = function (parent, parentName, key, localName) {
+  this.parent = parent;
+  this.parentName = parentName;
+  this.key = key;
+  this.localName = localName;
+}
+JSIL.ResolvedName.prototype.exists = function () {
+  return typeof(this.parent[this.key]) !== "undefined";
+}
+JSIL.ResolvedName.prototype.get = function () {
+  return this.parent[this.key];
+}
+JSIL.ResolvedName.prototype.set = function (value) {
+  this.parent[this.key] = value;
+}
+JSIL.ResolvedName.prototype.define = function (declaration) {
+  Object.defineProperty(this.parent, this.key, declaration);
+}
+
+JSIL.ResolveName = function (root, name) {
+  var parts = JSIL.SplitName(name);
+  var current = root;
+
+  for (var i = 0, l = parts.length - 1; i < l; i++) {
+    var key = JSIL.EscapeName(parts[i]);
+    var next = current[key];
+
+    if (typeof (next) === "undefined") {
+      throw new Error("Could not find the name '" + key + "' in the namespace '" + current + "'.");
+    }
+
+    current = next;
+  }
+
+  var localName = parts[parts.length - 1];
+  return new JSIL.ResolvedName(
+    current, JSIL.GetParentName(name), JSIL.EscapeName(localName), localName
+  );
+};
+
+JSIL.DeclareAssembly = function (assemblyName) {
+  var existing = JSIL.PrivateNamespaces[assemblyName];
+  if (typeof (existing) !== "undefined")
+    return $private = existing;
+
+  // Create a new private global namespace for the new assembly
+  function ctor () {
+    this.__AssemblyName__ = assemblyName;
+  };
+  ctor.prototype = JSIL.GlobalNamespace;
+
+  JSIL.PrivateNamespaces[assemblyName] = $private = new ctor();
+};
+
+JSIL.DeclareNamespace = function (name, sealed) {
+  if (typeof (sealed) === "undefined")
+    sealed = true;
+
+  var resolved = JSIL.ResolveName(JSIL.GlobalNamespace, name);
+  if (!resolved.exists())
+    resolved.define({
+      enumerable: true,
+      configurable: !sealed,
+      value: {
+        __FullName__ : name
+      }
+    });
+
+  var resolved = JSIL.ResolveName($private, name);
+  if (!resolved.exists())
+    resolved.define({
+      enumerable: true,
+      configurable: !sealed,
+      value: {
+        __FullName__ : name
+      }
+    });
+}
+
+JSIL.DeclareAssembly("JSIL.Core");
+
+JSIL.DeclareNamespace("System");
+JSIL.DeclareNamespace("System.Collections");
+JSIL.DeclareNamespace("System.Collections.Generic");
+JSIL.DeclareNamespace("System.Array", false);
+JSIL.DeclareNamespace("System.Delegate", false);
+JSIL.DeclareNamespace("System.Enum", false);
+JSIL.DeclareNamespace("System.MulticastDelegate", false);
+JSIL.DeclareNamespace("System.Console", false);
+JSIL.DeclareNamespace("System.Threading");
+JSIL.DeclareNamespace("System.Threading.Interlocked", false);
+JSIL.DeclareNamespace("System.Threading.Monitor", false);
+JSIL.DeclareNamespace("System.Globalization", false);
+JSIL.DeclareNamespace("System.Environment", false);
+JSIL.DeclareNamespace("System.Runtime", false);
+JSIL.DeclareNamespace("System.Runtime.InteropServices", false);
+
+JSIL.DeclareNamespace("JSIL.Array");
+JSIL.DeclareNamespace("JSIL.Delegate");
+JSIL.DeclareNamespace("JSIL.Dynamic");
+JSIL.DeclareNamespace("JSIL.MulticastDelegate");
 
 // Hack
-JSIL.DeclareNamespace(this, "Property");
+JSIL.DeclareNamespace("Property");
 
 // You can change these fields, but you shouldn't need to in practice
-JSIL.DeclareNamespace(JSIL, "HostType", false);
+JSIL.DeclareNamespace("JSIL.HostType", false);
 JSIL.HostType.IsBrowser = (typeof (window) !== "undefined") && (typeof (navigator) !== "undefined");
 
 // Redefine this class at runtime or override its members to change the behavior of JSIL builtins.
-JSIL.DeclareNamespace(JSIL, "Host");
+JSIL.DeclareNamespace("JSIL.Host", false);
 
 JSIL.Host.getCanvas = function () {
   throw new Error("No canvas implementation");
@@ -86,7 +167,7 @@ JSIL.Host.warning = function (text) {
   if (typeof (console) !== "undefined")
     Function.prototype.apply.call(console.warn, console, arguments);
   else
-    JSIL.Host.logWriteLine(System.String.Concat.apply(null, arguments));
+    JSIL.Host.logWriteLine(Array.prototype.join.call(arguments, ""));
 };
 
 JSIL.Host.error = function (exception, text) {
@@ -109,8 +190,12 @@ JSIL.Host.error = function (exception, text) {
 
   if (typeof (console) !== "undefined") {
     Function.prototype.apply.call(console.error, console, rest);
-  } else
+  } else if (typeof (print) === "function") {
+    // print(stack);
     throw exception;
+  } else {    
+    throw exception;
+  }
 }
 
 JSIL.UntranslatableNode = function (nodeType) {
@@ -200,7 +285,7 @@ JSIL.TypeRef.prototype.get = function () {
 
   var result = this.namespace[this.typeName];
   if (typeof (result) === "undefined")
-    throw new Error("Member '" + this.typeName + "' of namespace + '" + JSIL.GetTypeName(this.namespace) + "' is undefined.");
+    throw new Error("Member '" + this.typeName + "' of namespace '" + JSIL.GetTypeName(this.namespace) + "' is undefined.");
 
   return this.cachedReference = result;
 };
@@ -215,7 +300,12 @@ JSIL.MakeProto = function (baseType, target, typeName, isReferenceType) {
   if (typeof (baseType) === "undefined") {
     throw new Error("The base type of '" + typeName + "' is not defined");
   } else if (baseType.__proto__ !== JSIL.TypeRef.prototype) {
-    baseType = new JSIL.TypeRef(baseType);
+    if (typeof (baseType) === "string") {
+      var resolved = JSIL.ResolveName($private, baseType);
+      baseType = new JSIL.TypeRef(resolved.parent, resolved.key);
+    } else {
+      baseType = new JSIL.TypeRef(baseType);
+    }
   }
 
   var prototype = {
@@ -228,7 +318,7 @@ JSIL.MakeProto = function (baseType, target, typeName, isReferenceType) {
   return prototype;
 };
 
-JSIL.MakeProperty = function (target, name, getter, setter) {
+JSIL.MakeProperty = function (parent, name, getter, setter) {
   var descriptor = {
     configurable: true,
     enumerable: true
@@ -239,13 +329,14 @@ JSIL.MakeProperty = function (target, name, getter, setter) {
   if (typeof (setter) === "function")
     descriptor["set"] = setter;
 
-  Object.defineProperty(target, name, descriptor);
+  Object.defineProperty(parent, name, descriptor);
 };
 
-JSIL.MakeNumericType = function (baseType, target, typeName, isIntegral) {
-  var prototype = JSIL.MakeProto(baseType, target, typeName, false);
+JSIL.MakeNumericType = function (baseType, typeName, isIntegral) {
+  var resolved = JSIL.ResolveName(JSIL.GlobalNamespace, typeName);
+  var prototype = JSIL.MakeProto(baseType, resolved.get(), typeName, false);
   prototype.__IsIntegral__ = isIntegral;
-  target.prototype = prototype;
+  resolved.get().prototype = prototype;
 };
 
 JSIL.TypeObjectPrototype = function () {
@@ -329,19 +420,12 @@ JSIL.InitializeType = function (type) {
   }
 };
 
-// Replaces a class with a property getter that, upon first access,
-//  runs the class's static constructor (if any).
-JSIL.SealType = function (namespace, name) {
+JSIL.MakeSealedTypeGetter = function (type) {
   var state = {
     sealed: true
   };
-  var type = namespace[name];
 
-  var cctor = type._cctor;
-  if (typeof (cctor) != "function")
-    return;
-
-  var getter = function () {
+  return function () {
     if (!state.sealed)
       return type;
     state.sealed = false;
@@ -350,16 +434,39 @@ JSIL.SealType = function (namespace, name) {
 
     return type;
   };
+};
 
-  Object.defineProperty(namespace, name, {
-    configurable: true,
-    enumerable: true,
-    get: getter
-  });
+// Replaces a class with a property getter that, upon first access,
+//  runs the class's static constructor (if any).
+JSIL.SealTypes = function (namespace/*, ...names */) {
+  for (var i = 1, l = arguments.length; i < l; i++) {
+    var name = arguments[i];
+    var type = namespace[name];
+
+    var cctor = type._cctor;
+    if (typeof (cctor) != "function")
+      continue;
+
+    Object.defineProperty(namespace, name, {
+      configurable: true,
+      enumerable: true,
+      get: JSIL.MakeSealedTypeGetter(type)
+    });
+  }
 }
 
-JSIL.MakeStaticClass = function (namespace, localName, fullName) {
-  if (typeof (namespace[localName]) != "undefined") {
+JSIL.ShadowedTypeWarning = function (fullName) {
+  // JSIL.Host.warning("Type ", fullName, " is shadowed by another type of the same name.");
+};
+
+JSIL.MakeStaticClass = function (fullName, isPublic) {
+  if (typeof (isPublic) === "undefined")
+    JSIL.Host.error(new Error("Must specify isPublic"));
+
+  var resolved = JSIL.ResolveName($private, fullName);
+  var localName = resolved.localName;
+
+  if (resolved.exists()) {
     JSIL.Host.warning("Duplicate definition of type ", fullName);
     return;
   }
@@ -369,11 +476,26 @@ JSIL.MakeStaticClass = function (namespace, localName, fullName) {
   typeObject.__ShortName__ = localName;
   typeObject.__IsStatic__ = true;
 
-  namespace[localName] = typeObject;
+  resolved.set(typeObject);
+
+  if (isPublic) {
+    resolved = JSIL.ResolveName(JSIL.GlobalNamespace, fullName);
+    if (!resolved.exists()) {
+      resolved.set(typeObject);
+    } else {
+      JSIL.ShadowedTypeWarning(fullName);
+    }
+  }
 }
 
-JSIL.MakeType = function (baseType, namespace, localName, fullName, isReferenceType) {
-  if (typeof (namespace[localName]) != "undefined") {
+JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic) {
+  if (typeof (isPublic) === "undefined")
+    JSIL.Host.error(new Error("Must specify isPublic"));
+
+  var resolved = JSIL.ResolveName($private, fullName);
+  var localName = resolved.localName;
+
+  if (resolved.exists()) {
     JSIL.Host.warning("Duplicate definition of type ", fullName);
     return;
   }
@@ -406,23 +528,37 @@ JSIL.MakeType = function (baseType, namespace, localName, fullName, isReferenceT
   typeObject.prototype.__ShortName__ = localName;
   typeObject.prototype.__Interfaces__ = [];
 
-  Object.defineProperty(namespace, localName, {
+  var decl = {
     configurable: true,
     enumerable: true,
     value: typeObject
-  });
+  };
+
+  resolved.define(decl);
+
+  if (isPublic) {
+    resolved = JSIL.ResolveName(JSIL.GlobalNamespace, fullName);
+    if (!resolved.exists()) {
+      resolved.define(decl);
+    } else {
+      JSIL.ShadowedTypeWarning(fullName);
+    }
+  }
 };
 
-JSIL.MakeClass = function (baseType, namespace, localName, fullName) {
-  JSIL.MakeType(baseType, namespace, localName, fullName, true);
+JSIL.MakeClass = function (baseType, fullName, isPublic) {
+  JSIL.MakeType(baseType, fullName, true, isPublic);
 };
 
-JSIL.MakeStruct = function (namespace, localName, fullName) {
-  JSIL.MakeType(System.ValueType, namespace, localName, fullName, false);
+JSIL.MakeStruct = function (fullName, isPublic) {
+  JSIL.MakeType(System.ValueType, fullName, false, isPublic);
 };
 
-JSIL.MakeInterface = function (namespace, localName, fullName, members) {
-  if (typeof (namespace[localName]) != "undefined") {
+JSIL.MakeInterface = function (fullName, members) {
+  var resolved = JSIL.ResolveName($private, fullName);
+  var localName = resolved.localName;
+
+  if (resolved.exists()) {
     JSIL.Host.warning("Duplicate definition of interface ", fullName);
     return;
   }
@@ -437,11 +573,21 @@ JSIL.MakeInterface = function (namespace, localName, fullName, members) {
   typeObject.IsInterface = true;
   typeObject.prototype = JSIL.CloneObject(JSIL.Interface.prototype);
 
-  namespace[localName] = typeObject;
+  resolved.set(typeObject);
+
+  resolved = JSIL.ResolveName(JSIL.GlobalNamespace, fullName);
+  if (!resolved.exists()) {
+    resolved.set(typeObject);
+  } else {
+    JSIL.ShadowedTypeWarning(fullName);
+  }
 };
 
-JSIL.MakeEnum = function (namespace, localName, fullName, members, isFlagsEnum) {
-  if (typeof (namespace[localName]) != "undefined") {
+JSIL.MakeEnum = function (fullName, members, isFlagsEnum) {
+  var resolved = JSIL.ResolveName($private, fullName);
+  var localName = resolved.localName;
+
+  if (resolved.exists()) {
     JSIL.Host.warning("Duplicate definition of enum ", fullName);
     return;
   }
@@ -475,13 +621,19 @@ JSIL.MakeEnum = function (namespace, localName, fullName, members, isFlagsEnum) 
     result[key] = obj;
   }
 
-  Object.defineProperty(
-    namespace, localName, {
-      configurable: true,
-      enumerable: true,
-      value: result
-    }
-  );
+  var decl = {
+    configurable: true,
+    enumerable: true,
+    value: result
+  };
+  resolved.define(decl);
+
+  resolved = JSIL.ResolveName(JSIL.GlobalNamespace, fullName);
+  if (!resolved.exists()) {
+    resolved.define(decl);
+  } else {
+    JSIL.ShadowedTypeWarning(fullName);
+  }
 };
 
 JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
@@ -527,7 +679,7 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
         continue __members__;
 
       var memberType = members[key];
-      var qualifiedName = iface.__ShortName__ + "_" + key;
+      var qualifiedName = JSIL.EscapeName(iface.__ShortName__ + "." + key);
 
       var hasShort = proto.hasOwnProperty(key);
       var hasQualified = proto.hasOwnProperty(qualifiedName);
@@ -778,7 +930,7 @@ JSIL.OverloadedMethod = function (type, name, overloads) {
   return result;
 };
 
-JSIL.MakeClass(Object, System, "Object", "System.Object");
+JSIL.MakeClass(Object, "System.Object", true);
 System.Object.CheckType = function (value) {
   return true;
 }
@@ -825,9 +977,9 @@ System.Object.prototype.toString = function ToString() {
   return JSIL.GetTypeName(this);
 };
 
-JSIL.MakeClass(System.Object, JSIL, "Reference", "JSIL.Reference");
-JSIL.MakeClass(JSIL.Reference, JSIL, "Variable", "JSIL.Variable");
-JSIL.MakeClass(JSIL.Reference, JSIL, "MemberReference", "JSIL.MemberReference");
+JSIL.MakeClass("System.Object", "JSIL.Reference", true);
+JSIL.MakeClass("JSIL.Reference", "JSIL.Variable", true);
+JSIL.MakeClass("JSIL.Reference", "JSIL.MemberReference", true);
 
 JSIL.Reference.__ExpectedType__ = System.Object;
 JSIL.Reference.Types = {};
@@ -879,7 +1031,7 @@ Object.defineProperty(JSIL.MemberReference.prototype, "value", {
   enumerable: false
 });
 
-JSIL.MakeClass(System.Object, JSIL, "CollectionInitializer", "JSIL.CollectionInitializer");
+JSIL.MakeClass("System.Object", "JSIL.CollectionInitializer", true);
 JSIL.CollectionInitializer.prototype._ctor = function () {
   this.values = Array.prototype.slice.call(arguments);
 };
@@ -905,28 +1057,28 @@ JSIL.Interface.prototype.Of = function (T) {
   return this;
 };
 
-JSIL.MakeInterface(System, "IDisposable", "System.IDisposable", {
+JSIL.MakeInterface("System.IDisposable", {
   "Dispose": Function
 });
-JSIL.MakeInterface(System, "IEquatable$b1", "System.IEquatable`1", {
+JSIL.MakeInterface("System.IEquatable`1", {
   "Equals": Function
 });
 
-JSIL.MakeInterface(System.Collections, "IEnumerator", "System.Collections.IEnumerator", {
+JSIL.MakeInterface("System.Collections.IEnumerator", {
   "MoveNext": Function,
   "get_Current": Function,
   "Reset": Function,
   "Current": Property
 });
-JSIL.MakeInterface(System.Collections, "IEnumerable", "System.Collections.IEnumerable", {
+JSIL.MakeInterface("System.Collections.IEnumerable", {
   "GetEnumerator": Function
 });
 
-JSIL.MakeInterface(System.Collections.Generic, "IEnumerator$b1", "System.Collections.Generic.IEnumerator`1", {
+JSIL.MakeInterface("System.Collections.Generic.IEnumerator`1", {
   "get_Current": Function,
   "Current": Property
 });
-JSIL.MakeInterface(System.Collections.Generic, "IEnumerable$b1", "System.Collections.Generic.IEnumerable`1", {
+JSIL.MakeInterface("System.Collections.Generic.IEnumerable`1", {
   "GetEnumerator": Function
 });
 
