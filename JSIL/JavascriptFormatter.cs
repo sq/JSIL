@@ -168,11 +168,32 @@ namespace JSIL.Internal {
             }
 
             LPar();
-            emitParameters(this);
+            if (emitParameters != null)
+                emitParameters(this);
             RPar();
 
             Space();
             OpenBrace();
+        }
+
+        public static string GetParent (TypeReference type) {
+            var fullname = Util.EscapeIdentifier(type.FullName, false);
+            var index = fullname.LastIndexOf('.');
+            if (index < 0)
+                return "JSIL.GlobalNamespace";
+            else
+                return fullname.Substring(0, index);
+        }
+
+        public void TypeReference (TypeReference type) {
+            Keyword("new");
+            Space();
+            Identifier("JSIL.TypeRef", true);
+            LPar();
+            Identifier(GetParent(type), true);
+            Comma();
+            Value(type.Name);
+            RPar();
         }
 
         public void Identifier (string name, bool escaped = false) {
@@ -352,22 +373,22 @@ namespace JSIL.Internal {
 
             if (TypeAnalysis.IsIntegerOrEnum(typeReference)) {
                 Value(0);
-				return;
+                return;
             } else if (!typeReference.IsValueType) {
-				Keyword("null");
+                Keyword("null");
                 return;
             }
 
             switch (fullName) {
-				case "System.Nullable`1":
+                case "System.Nullable`1":
                     Keyword("null");
                     return;
-				case "System.Single":
+                case "System.Single":
                 case "System.Double":
                 case "System.Decimal":
                     Value(0.0);
                     return;
-			}
+            }
 
             Keyword("new");
             Space();

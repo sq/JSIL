@@ -734,6 +734,10 @@ namespace JSIL {
         }
 
         public void VisitNode (JSNewExpression newexp) {
+            bool parens = Stack.Skip(1).FirstOrDefault() is JSDotExpression;
+            if (parens)
+                Output.LPar();
+
             Output.Keyword("new");
             Output.Space();
 
@@ -747,6 +751,9 @@ namespace JSIL {
             Output.LPar();
             CommaSeparatedList(newexp.Arguments);
             Output.RPar();
+
+            if (parens)
+                Output.RPar();
         }
 
         public void VisitNode (JSPairExpression pair) {

@@ -82,12 +82,13 @@ System.MulticastDelegate.Remove = System.Delegate.Remove;
 JSIL.MulticastDelegate.New = function (delegates) {
   var invoker = function () {
     var result;
-    for (var i = 0; i < this.length; i++) {
+    for (var i = 0, l = this.length; i < l; i++) {
       var d = this[i];
       result = d.apply(null, arguments);
     }
     return result;
   };
+
   var result = invoker.bind(delegates);
   result.delegates = delegates;
   result.__proto__ = System.MulticastDelegate.prototype;
@@ -500,3 +501,8 @@ System.Environment.nativeGetTickCount = function () {
   var t = new Date();
   return t.getTime();
 };
+
+JSIL.QueueInitializer(function () {
+  JSIL.InitializeType(System.Delegate);
+  JSIL.InitializeType(System.MulticastDelegate);
+});

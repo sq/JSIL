@@ -78,6 +78,9 @@
       
       var scriptsToLoad = [
         "mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js",
+        "System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js",
+        "System.Configuration, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a.js",
+        "System, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js",
         "System.Core, Version=3.5.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js",
         "System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a.js",
         "../Libraries/System.Drawing.js",
@@ -89,8 +92,11 @@
         "Mannux, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null.js"
       ];
       
-      loadScripts(scriptsToLoad, function () {
+      loadScripts(scriptsToLoad, function () {        
+        JSIL.Initialize();
+        
         document.getElementById("loadingProgress").style.display = "none";
+        
         if (typeof (console) === "undefined") {
           try {
             Mannux.Program.Main([]);

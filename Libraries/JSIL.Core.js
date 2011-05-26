@@ -26,6 +26,9 @@ JSIL.DeclareNamespace = function (parent, name, sealed) {
   }
 }
 
+JSIL.GlobalNamespace = this;
+JSIL.PendingInitializers = [];
+
 JSIL.DeclareNamespace(this, "System");
 JSIL.DeclareNamespace(System, "Collections");
 JSIL.DeclareNamespace(System.Collections, "Generic");
@@ -131,19 +134,76 @@ JSIL.IgnoredMember = function (memberName) {
   JSIL.Host.error(new Error("An attempt was made to reference the member '" + memberName + "', but it was explicitly ignored during translation."));
 };
 
-JSIL.ExternalMember = function (namespace, memberName) {
+JSIL.MakeExternalMemberStub = function (namespaceName, memberName) {
+  return function () {
+    JSIL.Host.error(new Error("The external function '" + memberName + "' of namespace '" + namespaceName + "' has not been implemented."));
+  };
+}
+
+JSIL.ExternalMembers = function (namespace/*, ...memberNames */) {
   if (typeof (namespace) === "undefined") {
-    JSIL.Host.error(new Error("External member '" + memberName + "' declared in undefined namespace"));
-  } else if (typeof (namespace[memberName]) === "undefined") {
-    var namespaceName = JSIL.GetTypeName(namespace);
-    JSIL.Host.warning("External member '" + memberName + "' of namespace '" + namespaceName + "' is not defined");
-    namespace[memberName] = function () {
-        JSIL.Host.error(new Error("The external function '" + memberName + "' of namespace '" + namespaceName + "' has not been implemented."));
-    };
+    JSIL.Host.error(new Error("External members declared in undefined namespace"));
+    return;
+  } 
+  
+  var namespaceName = JSIL.GetTypeName(namespace);
+  for (var i = 1, l = arguments.length; i < l; i++) {
+    var memberName = arguments[i];
+
+    if (typeof (namespace[memberName]) === "undefined") {
+      JSIL.Host.warning("External member '" + memberName + "' of namespace '" + namespaceName + "' is not defined");
+      namespace[memberName] = JSIL.MakeExternalMemberStub(namespaceName, memberName);
+    }
   }
 }
 
-JSIL.GlobalNamespace = this;
+JSIL.QueueInitializer = function (initializer) {
+  JSIL.PendingInitializers.push(initializer);
+};
+
+JSIL.Initialize = function () {
+  var initializers = JSIL.PendingInitializers;
+  JSIL.PendingInitializers = [];
+
+  for (var i = 0, l = initializers.length; i < l; i++) {
+    try {
+      initializers[i]();
+    } catch (e) {
+      JSIL.Host.error(e, "An initializer failed");
+    }
+  }
+
+  if (JSIL.PendingInitializers.length > 0)
+    JSIL.Host.error(new Error("Recursive initialization detected"));
+};
+
+JSIL.TypeRef = function (namespace, typeName) {
+  if (typeof (typeName) === "string") {
+    this.namespace = namespace;
+    this.typeName = typeName;
+    this.cachedReference = null;
+  } else {
+    this.namespace = null;
+    this.typeName = null;
+    this.cachedReference = arguments[0];
+  }
+};
+JSIL.TypeRef.prototype.toString = function () {
+  if (this.namespace === null)
+    return JSIL.GetTypeName(this.cachedReference);
+  else
+    return "<TypeRef " + JSIL.GetTypeName(this.namespace) + "." + this.typeName + ">";
+};
+JSIL.TypeRef.prototype.get = function () {
+  if (this.cachedReference !== null)
+    return this.cachedReference;
+
+  var result = this.namespace[this.typeName];
+  if (typeof (result) === "undefined")
+    throw new Error("Member '" + this.typeName + "' of namespace + '" + JSIL.GetTypeName(this.namespace) + "' is undefined.");
+
+  return this.cachedReference = result;
+};
 
 JSIL.CloneObject = function (obj) {
   function ClonedObject() { }
@@ -152,15 +212,19 @@ JSIL.CloneObject = function (obj) {
 };
 
 JSIL.MakeProto = function (baseType, target, typeName, isReferenceType) {
-  if (typeof (baseType) === "undefined")
+  if (typeof (baseType) === "undefined") {
     throw new Error("The base type of '" + typeName + "' is not defined");
+  } else if (baseType.__proto__ !== JSIL.TypeRef.prototype) {
+    baseType = new JSIL.TypeRef(baseType);
+  }
 
-  var prototype = JSIL.CloneObject(baseType.prototype);
-  prototype.__Type__ = target;
-  prototype.__BaseType__ = baseType;
-  prototype.__ShortName__ = typeName;
-  prototype.__FullName__ = typeName;
-  prototype.__IsReferenceType__ = Boolean(isReferenceType);
+  var prototype = {
+    __Type__: target,
+    __BaseType__: baseType,
+    __ShortName__: typeName,
+    __FullName__: typeName,
+    __IsReferenceType__: Boolean(isReferenceType)
+  };
   return prototype;
 };
 
@@ -238,6 +302,33 @@ JSIL.CopyMembers = function (source, target) {
   }
 }
 
+JSIL.InitializeType = function (type) {
+  if (type.__TypeInitialized__ || false)
+    return;
+
+  // Not entirely correct, but prevents recursive type initialization
+  type.__TypeInitialized__ = true;
+
+  if (
+    (typeof (type.prototype) !== "undefined") &&
+    (typeof (type.prototype.__BaseType__) !== "undefined")
+  ) {
+    var baseType = type.prototype.__BaseType__.get();
+    JSIL.InitializeType(baseType);
+
+    // Yuck :(
+    type.prototype.__proto__ = baseType.prototype;
+  }
+
+  if (typeof (type._cctor) != "undefined") {
+    try {
+      type._cctor();
+    } catch (e) {
+      JSIL.Host.error(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(type));
+    }
+  }
+};
+
 // Replaces a class with a property getter that, upon first access,
 //  runs the class's static constructor (if any).
 JSIL.SealType = function (namespace, name) {
@@ -255,19 +346,7 @@ JSIL.SealType = function (namespace, name) {
       return type;
     state.sealed = false;
 
-    if (type.__TypeInitialized__ || false)
-      return type;
-
-    // Not entirely correct, but prevents recursive type initialization
-    type.__TypeInitialized__ = true;
-
-    if (typeof (type._cctor) != "undefined") {
-      try {
-        type._cctor();
-      } catch (e) {
-        JSIL.Host.error(e, "Unhandled exception in static constructor for type ", JSIL.GetTypeName(type), " ");
-      }
-    }
+    JSIL.InitializeType(type);
 
     return type;
   };
@@ -300,18 +379,8 @@ JSIL.MakeType = function (baseType, namespace, localName, fullName, isReferenceT
   }
 
   var typeObject = function () {
-    if ((typeObject.__TypeInitialized__ || false) === false) {
-      // Not entirely correct, but prevents recursive type initialization
-      typeObject.__TypeInitialized__ = true;
-
-      if (typeof (typeObject._cctor) != "undefined") {
-        try {
-          typeObject._cctor();
-        } catch (e) {
-          JSIL.Host.error(e, "Unhandled exception in static constructor for type ", JSIL.GetTypeName(typeObject), " ");
-        }
-      }
-    }
+    if ((typeObject.__TypeInitialized__ || false) === false)
+      JSIL.InitializeType(typeObject);
 
     JSIL.InitializeStructFields(this, typeObject);
 
@@ -781,6 +850,7 @@ JSIL.Reference.Of = function (type) {
       return isReference && isRightType;
     };
     compositeType.prototype = JSIL.MakeProto(JSIL.Reference, compositeType, typeName, true);
+    compositeType.prototype.__proto__ = JSIL.Reference.prototype;
     compositeType.__FullName__ = typeName;
     JSIL.Reference.Types[elementName] = compositeType;
   }
@@ -897,6 +967,7 @@ System.Array.Of = function (type) {
     compositeType = JSIL.CloneObject(System.Array);
     compositeType.__FullName__ = typeName;
     compositeType.prototype = JSIL.MakeProto(System.Array, compositeType, typeName, true);
+    compositeType.prototype.__proto__ = System.Array.prototype;
     System.Array.Types[elementName] = compositeType;
   }
 
@@ -992,6 +1063,7 @@ JSIL.Delegate.New = function (typeName, object, method) {
 
   if (typeof (proto) === "undefined") {
     proto = JSIL.MakeProto(System.Delegate, {}, typeName, true);
+    proto.__proto__ = System.Delegate.prototype;
     JSIL.Delegate.Types[typeName] = proto;
   }
 

@@ -143,18 +143,19 @@ namespace JSIL.Tests {
             );
 
             try {
-                Assert.IsTrue(generatedJs.Contains("ExternalMember(Program, \"Main"));
-                Assert.IsTrue(generatedJs.Contains("ExternalMember(Program, \"get_A"));
+                Assert.IsTrue(generatedJs.Contains("\"Main"));
+                Assert.IsTrue(generatedJs.Contains("\"get_A"));
 
-                Assert.IsTrue(generatedJs.Contains("ExternalMember(T.prototype, \"B"));
-                Assert.IsTrue(generatedJs.Contains("ExternalMember(T.prototype, \"set_C"));
-                Assert.IsTrue(generatedJs.Contains("ExternalMember(T.prototype, \"remove_D"));
-                Assert.IsTrue(generatedJs.Contains("ExternalMember(T.prototype, \"_ctor"));
+                Assert.IsTrue(generatedJs.Contains("\"B"));
+                Assert.IsTrue(generatedJs.Contains("\"set_C"));
+                Assert.IsTrue(generatedJs.Contains("\"remove_D"));
+                Assert.IsTrue(generatedJs.Contains("\"_ctor"));
 
                 Assert.IsTrue(generatedJs.Contains("Program.$lA$gk__BackingField = 0"));
                 Assert.IsTrue(generatedJs.Contains("T.prototype.$lC$gk__BackingField = 0"));
             } catch {
                 Console.WriteLine(generatedJs);
+                throw;
             }
         }
     }
