@@ -241,7 +241,9 @@ JSIL.MakeClass("System.Object", "System.Threading.Thread", true);
 System.Threading.Thread.prototype._ctor = function () {
 };
 System.Threading.Thread.prototype.ManagedThreadId = 0;
-System.Threading.Thread.CurrentThread = new System.Threading.Thread();
+System.Threading.Thread._cctor = function () {
+  System.Threading.Thread.CurrentThread = new System.Threading.Thread();
+};
 
 JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true);
 System.Collections.Generic.List$b1.Of = function (T) {
@@ -355,7 +357,7 @@ System.Boolean = function (b) {
 System.Boolean.CheckType = function (value) {
   return (value === false) || (value === true);
 }
-System.Boolean.prototype = JSIL.MakeProto(Boolean, "System.Boolean", false);
+System.Boolean.prototype = JSIL.MakeProto(Boolean, System.Boolean, "System.Boolean", false);
 
 System.Char = function (ch) {
   return ch;
@@ -363,7 +365,7 @@ System.Char = function (ch) {
 System.Char.CheckType = function (value) {
   return (typeof (value) === "string") && (value.length == 1);
 }
-System.Char.prototype = JSIL.MakeProto(String, "System.Char", false);
+System.Char.prototype = JSIL.MakeProto(String, System.Char, "System.Char", false);
 
 System.Byte = function (value) {
   if (value < 0)
@@ -504,4 +506,5 @@ System.Environment.nativeGetTickCount = function () {
 JSIL.QueueInitializer(function () {
   JSIL.InitializeType(System.Delegate);
   JSIL.InitializeType(System.MulticastDelegate);
+  JSIL.InitializeType(System.Threading.Thread);
 });

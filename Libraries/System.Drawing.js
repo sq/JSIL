@@ -5,9 +5,9 @@ if (typeof (JSIL) === "undefined")
   
 JSIL.DeclareAssembly("JSIL.Drawing");
 
-JSIL.DeclareNamespace(System, "Drawing");
+JSIL.DeclareNamespace("System.Drawing");
 
-JSIL.MakeClass(System.Object, System.Drawing, "Bitmap", "System.Drawing.Bitmap");
+JSIL.MakeClass("System.Object", "System.Drawing.Bitmap", true);
 
 if (JSIL.HostType.IsBrowser) {
   System.Drawing.Bitmap.prototype._ctor = function (width, height) {
@@ -54,7 +54,7 @@ if (JSIL.HostType.IsBrowser) {
   }
 }
 
-JSIL.MakeStruct(System.Drawing, "Color", "System.Drawing.Color");
+JSIL.MakeStruct("System.Drawing.Color", true);
 System.Drawing.Color.prototype.A = 0;
 System.Drawing.Color.prototype.R = 0;
 System.Drawing.Color.prototype.G = 0;
@@ -96,9 +96,8 @@ System.Drawing.Color._cctor = function () {
   System.Drawing.Color.BlueViolet = new System.Drawing.Color(0xFF, 0x8A, 0x2B, 0xE2, "BlueViolet");
   System.Drawing.Color.Aquamarine = new System.Drawing.Color(0xFF, 0x7F, 0xFF, 0xD4, "Aquamarine");
 };
-JSIL.SealType(System.Drawing, "Color");
 
-JSIL.MakeStruct(System.Drawing, "Size", "System.Drawing.Size");
+JSIL.MakeStruct("System.Drawing.Size", true);
 System.Drawing.Size.prototype.Width = 0;
 System.Drawing.Size.prototype.Height = 0;
 System.Drawing.Size.prototype._ctor = function (w, h) {
@@ -108,9 +107,8 @@ System.Drawing.Size.prototype._ctor = function (w, h) {
 System.Drawing.Size._cctor = function () {
   System.Drawing.Size.Empty = new System.Drawing.Size();
 }
-JSIL.SealType(System.Drawing, "Size");
 
-JSIL.MakeStruct(System.Drawing, "Point", "System.Drawing.Point");
+JSIL.MakeStruct("System.Drawing.Point", true);
 System.Drawing.Point.prototype.X = 0;
 System.Drawing.Point.prototype.Y = 0;
 System.Drawing.Point.prototype._ctor = function (x, y) {
@@ -120,9 +118,8 @@ System.Drawing.Point.prototype._ctor = function (x, y) {
 System.Drawing.Point._cctor = function () {
   System.Drawing.Point.Empty = new System.Drawing.Point();
 }
-JSIL.SealType(System.Drawing, "Point");
 
-JSIL.MakeStruct(System.Drawing, "Rectangle", "System.Drawing.Rectangle");
+JSIL.MakeStruct("System.Drawing.Rectangle", true);
 System.Drawing.Rectangle.prototype.X = 0;
 System.Drawing.Rectangle.prototype.Y = 0;
 System.Drawing.Rectangle.prototype.Width = 0;
@@ -143,4 +140,5 @@ System.Drawing.Rectangle.prototype._ctor = function (x, y, w, h) {
 System.Drawing.Rectangle._cctor = function () {
   System.Drawing.Rectangle.Empty = new System.Drawing.Rectangle();
 }
-JSIL.SealType(System.Drawing, "Rectangle");
+
+JSIL.SealTypes(System.Drawing, "Size", "Color", "Point", "Rectangle");

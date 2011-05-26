@@ -276,7 +276,7 @@ namespace JSIL {
             var formatter = new JavascriptFormatter(tw, this, assembly);
 
             if (stubbed) {
-                formatter.Comment("// Generating type stubs only");
+                formatter.Comment("Generating type stubs only");
                 formatter.NewLine();
             }
 
@@ -285,7 +285,9 @@ namespace JSIL {
             formatter.Value(assembly.FullName);
             formatter.RPar();
             formatter.Semicolon();
-            
+
+            // Important to clear this because types with the exact same full names can be defined in multiple assemblies
+            DeclaredTypes.Clear();
             foreach (var module in assembly.Modules)
                 TranslateModule(context, formatter, module, initializer, stubbed);
 
@@ -382,8 +384,9 @@ namespace JSIL {
             foreach (var ti in secondPass.Values)
                 ti.ConstructMethodGroups();
 
-            if (!TypeInformation.TryGetValue(identifier, out result))
+            if (!TypeInformation.TryGetValue(identifier, out result)) {
                 return null;
+            }
 
             return result;
         }
@@ -532,9 +535,6 @@ namespace JSIL {
         }
 
         protected void TranslateModule (DecompilerContext context, JavascriptFormatter output, ModuleDefinition module, List<Action> initializer, bool stubbed) {
-            // Important to clear this between modules, because types with the exact same full names can be defined in multiple assemblies
-            DeclaredTypes.Clear();
-
             var moduleInfo = GetModuleInformation(module);
             if (moduleInfo.IsIgnored)
                 return;
@@ -544,10 +544,8 @@ namespace JSIL {
             // Probably should be an argument, not a member variable...
             AstEmitter = new JavascriptAstEmitter(output, new JSILIdentifier(context.CurrentModule.TypeSystem), context.CurrentModule.TypeSystem, this);
 
-            foreach (var typedef in module.Types) {
-                if (!DeclaredTypes.Contains(typedef.FullName))
-                    ForwardDeclareType(context, output, typedef);
-            }
+            foreach (var typedef in module.Types)
+                ForwardDeclareType(context, output, typedef);
 
             var sealedTypes = new HashSet<TypeDefinition>();
 
@@ -571,7 +569,7 @@ namespace JSIL {
                         output.NewLine();
 
                         output.CommaSeparatedList(
-                            (from typedef in g select typedef.Name), ListValueType.Identifier
+                            (from typedef in g select typedef.Name), ListValueType.Primitive
                         );
 
                         output.NewLine();
@@ -675,11 +673,11 @@ namespace JSIL {
                 return;
             }
 
-            DeclaredTypes.Add(typedef.FullName);
-
             context.CurrentType = typedef;
 
             output.DeclareNamespace(typedef.Namespace);
+
+            DeclaredTypes.Add(typedef.FullName);
 
             if (typedef.IsInterface) {
                 TranslateInterface(context, output, typedef);
@@ -695,11 +693,10 @@ namespace JSIL {
 
                 var resolved = baseClass.Resolve();
                 if (
-                    !DeclaredTypes.Contains(resolved.FullName) &&
                     (resolved != null) &&
+                    !DeclaredTypes.Contains(resolved.FullName) &&
                     (resolved.Module.Assembly == typedef.Module.Assembly)
                 ) {
-
                     ForwardDeclareType(context, output, resolved);
                 }
             }
@@ -815,15 +812,25 @@ namespace JSIL {
                               select i).ToArray();
 
             if (interfaces.Length > 0) {
-                output.Identifier("JSIL.ImplementInterfaces", null);
-                output.LPar();
-                output.Identifier(typedef);
-                output.Comma();
-                output.OpenBracket(true);
-                output.CommaSeparatedList(interfaces, ListValueType.Identifier);
-                output.CloseBracket(true);
-                output.RPar();
-                output.Semicolon();
+                initializer.Add(() => {
+                    output.Identifier("JSIL.ImplementInterfaces", null);
+                    output.LPar();
+                    output.Identifier(typedef);
+                    output.Comma();
+                    output.OpenBracket(true);
+                    output.CommaSeparatedList(interfaces, ListValueType.Identifier);
+                    /*
+                    output.CommaSeparatedList(
+                        (from i in interfaces
+                         let id = i.Resolve()
+                         select Util.EscapeIdentifier((id ?? i).FullName, EscapingMode.String)),
+                         ListValueType.Primitive
+                    );
+                     */
+                    output.CloseBracket(true);
+                    output.RPar();
+                    output.Semicolon();
+                });
             }
 
             Func<FieldDefinition, bool> isFieldIgnored = (f) => {

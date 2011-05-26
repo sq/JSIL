@@ -5,12 +5,12 @@ if (typeof (JSIL) === "undefined")
   
 JSIL.DeclareAssembly("JSIL.Windows");
 
-JSIL.DeclareNamespace(System, "Windows");
-JSIL.DeclareNamespace(System.Windows, "Forms");
+JSIL.DeclareNamespace("System.Windows");
+JSIL.DeclareNamespace("System.Windows.Forms");
 
-JSIL.MakeClass(System.Object, System.Windows.Forms, "Control", "System.Windows.Forms.Control");
-JSIL.MakeClass(System.Windows.Forms.Control, System.Windows.Forms, "ScrollableControl", "System.Windows.Forms.ScrollableControl");
-JSIL.MakeClass(System.Windows.Forms.ScrollableControl, System.Windows.Forms, "Panel", "System.Windows.Forms.Panel");
-JSIL.MakeClass(System.Windows.Forms.ScrollableControl, System.Windows.Forms, "ContainerControl", "System.Windows.Forms.ContainerControl");
-JSIL.MakeClass(System.Windows.Forms.ContainerControl, System.Windows.Forms, "Form", "System.Windows.Forms.Form");
-JSIL.MakeClass(System.Windows.Forms.Control, System.Windows.Forms, "TextBox", "System.Windows.Forms.TextBox");
+JSIL.MakeClass(System.Object, "System.Windows.Forms.Control", true);
+JSIL.MakeClass(System.Windows.Forms.Control, "System.Windows.Forms.ScrollableControl", true);
+JSIL.MakeClass(System.Windows.Forms.ScrollableControl, "System.Windows.Forms.Panel", true);
+JSIL.MakeClass(System.Windows.Forms.ScrollableControl, "System.Windows.Forms.ContainerControl", true);
+JSIL.MakeClass(System.Windows.Forms.ContainerControl, "System.Windows.Forms.Form", true);
+JSIL.MakeClass(System.Windows.Forms.Control, "System.Windows.Forms.TextBox", true);

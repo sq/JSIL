@@ -188,7 +188,8 @@ namespace JSIL.Internal {
         }
 
         public void TypeReference (TypeReference type) {
-            Value(Util.EscapeIdentifier(type.FullName, EscapingMode.String));
+            var typeDef = ILBlockTranslator.GetTypeDefinition(type);
+            Value(Util.EscapeIdentifier((typeDef ?? type).FullName, EscapingMode.String));
         }
 
         public void Identifier (string name, EscapingMode? escapingMode = EscapingMode.MemberIdentifier) {

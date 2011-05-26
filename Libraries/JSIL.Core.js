@@ -17,16 +17,23 @@ JSIL.EscapeName = function (name) {
   return name.replace("`", "$b").replace(".", "_");
 };
 
+JSIL.SplitRegex = new RegExp("[\.\/\+]");
+
 JSIL.GetParentName = function (name) {
-  var lastSeparator = name.lastIndexOf(/[./+]/);
-  return name.substr(0, lastSeparator);
+  var parts = JSIL.SplitName(name);
+  return name.substr(0, name.length - (parts[parts.length - 1].length + 1));
+};
+
+JSIL.GetLocalName = function (name) {
+  var parts = JSIL.SplitName(name);
+  return parts[parts.length - 1];
 };
 
 JSIL.SplitName = function (name) {
   if (typeof (name) !== "string")
     JSIL.Host.error(new Error("Not a name: " + name));
 
-  return name.split(/[./+]/);
+  return name.split(JSIL.SplitRegex);
 };
 
 JSIL.ResolvedName = function (parent, parentName, key, localName) {
@@ -65,7 +72,8 @@ JSIL.ResolveName = function (root, name) {
 
   var localName = parts[parts.length - 1];
   return new JSIL.ResolvedName(
-    current, JSIL.GetParentName(name), JSIL.EscapeName(localName), localName
+    current, name.substr(0, name.length - (localName.length + 1)), 
+    JSIL.EscapeName(localName), localName
   );
 };
 
@@ -77,6 +85,9 @@ JSIL.DeclareAssembly = function (assemblyName) {
   // Create a new private global namespace for the new assembly
   function ctor () {
     this.__AssemblyName__ = assemblyName;
+    this.toString = function () {
+      return assemblyName;
+    };
   };
   ctor.prototype = JSIL.GlobalNamespace;
 
@@ -93,7 +104,10 @@ JSIL.DeclareNamespace = function (name, sealed) {
       enumerable: true,
       configurable: !sealed,
       value: {
-        __FullName__ : name
+        __FullName__: name,
+        toString: function () {
+          return name;
+        }
       }
     });
 
@@ -103,7 +117,10 @@ JSIL.DeclareNamespace = function (name, sealed) {
       enumerable: true,
       configurable: !sealed,
       value: {
-        __FullName__ : name
+        __FullName__: name,
+        toString: function () {
+          return name;
+        }
       }
     });
 }
@@ -262,32 +279,36 @@ JSIL.Initialize = function () {
     JSIL.Host.error(new Error("Recursive initialization detected"));
 };
 
-JSIL.TypeRef = function (namespace, typeName) {
-  if (typeof (typeName) === "string") {
-    this.namespace = namespace;
-    this.typeName = typeName;
-    this.cachedReference = null;
-  } else {
-    this.namespace = null;
+JSIL.TypeRef = function (context, name) {
+  if (arguments.length === 1) {
+    this.context = null;
     this.typeName = null;
     this.cachedReference = arguments[0];
+  } else {
+    if (typeof (name) === "string") {
+      this.context = context;
+      this.typeName = name;
+      this.cachedReference = null;
+    } else {
+      JSIL.Host.error(new Error("Invalid type reference"), context, name);
+    }
   }
 };
 JSIL.TypeRef.prototype.toString = function () {
-  if (this.namespace === null)
+  if (this.typeName === null)
     return JSIL.GetTypeName(this.cachedReference);
   else
-    return "<TypeRef " + JSIL.GetTypeName(this.namespace) + "." + this.typeName + ">";
+    return "<TypeRef " + this.typeName + ">";
 };
 JSIL.TypeRef.prototype.get = function () {
   if (this.cachedReference !== null)
     return this.cachedReference;
 
-  var result = this.namespace[this.typeName];
-  if (typeof (result) === "undefined")
-    throw new Error("Member '" + this.typeName + "' of namespace '" + JSIL.GetTypeName(this.namespace) + "' is undefined.");
+  var result = JSIL.ResolveName(this.context, this.typeName);
+  if (!result.exists())
+    JSIL.Host.error(new Error("The name '" + this.typeName + "' does not exist."));
 
-  return this.cachedReference = result;
+  return this.cachedReference = result.get();
 };
 
 JSIL.CloneObject = function (obj) {
@@ -299,22 +320,20 @@ JSIL.CloneObject = function (obj) {
 JSIL.MakeProto = function (baseType, target, typeName, isReferenceType) {
   if (typeof (baseType) === "undefined") {
     throw new Error("The base type of '" + typeName + "' is not defined");
-  } else if (baseType.__proto__ !== JSIL.TypeRef.prototype) {
-    if (typeof (baseType) === "string") {
-      var resolved = JSIL.ResolveName($private, baseType);
-      baseType = new JSIL.TypeRef(resolved.parent, resolved.key);
-    } else {
-      baseType = new JSIL.TypeRef(baseType);
-    }
+  } else if (typeof (baseType) === "string") {
+    baseType = new JSIL.TypeRef($private, baseType);
+  } else if (Object.getPrototypeOf(baseType) !== JSIL.TypeRef.prototype) {
+    baseType = new JSIL.TypeRef(baseType);
   }
 
-  var prototype = {
-    __Type__: target,
-    __BaseType__: baseType,
-    __ShortName__: typeName,
-    __FullName__: typeName,
-    __IsReferenceType__: Boolean(isReferenceType)
-  };
+  var baseTypeInstance = baseType.get();
+
+  var prototype = JSIL.CloneObject(baseTypeInstance.prototype);
+  prototype.__BaseType__ = baseTypeInstance;
+  prototype.__ShortName__ = JSIL.GetLocalName(typeName);
+  prototype.__FullName__ = typeName;
+  prototype.__IsReferenceType__ = Boolean(isReferenceType);
+
   return prototype;
 };
 
@@ -400,6 +419,7 @@ JSIL.InitializeType = function (type) {
   // Not entirely correct, but prevents recursive type initialization
   type.__TypeInitialized__ = true;
 
+  /*
   if (
     (typeof (type.prototype) !== "undefined") &&
     (typeof (type.prototype.__BaseType__) !== "undefined")
@@ -407,9 +427,17 @@ JSIL.InitializeType = function (type) {
     var baseType = type.prototype.__BaseType__.get();
     JSIL.InitializeType(baseType);
 
-    // Yuck :(
-    type.prototype.__proto__ = baseType.prototype;
+    var newPrototype = Object.create(baseType.prototype || Object);
+    for (var k in type.prototype) {
+      if (!type.prototype.hasOwnProperty(k))
+        continue;
+
+      Object.defineProperty(newPrototype, k, Object.getOwnPropertyDescriptor(type.prototype, k));
+    }
+
+    type.prototype = newPrototype;
   }
+  */
 
   if (typeof (type._cctor) != "undefined") {
     try {
@@ -472,6 +500,9 @@ JSIL.MakeStaticClass = function (fullName, isPublic) {
   }
 
   var typeObject = JSIL.CloneObject(System.RuntimeType);
+  typeObject.GetType = function () {
+    return typeObject;
+  };
   typeObject.__FullName__ = fullName;
   typeObject.__ShortName__ = localName;
   typeObject.__IsStatic__ = true;
@@ -517,16 +548,20 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic) {
       this._ctor.apply(this, args);
   };
 
-  typeObject.__proto__ = System.RuntimeType;
   typeObject.__IsReferenceType__ = isReferenceType;
   typeObject.__Self__ = typeObject;
   typeObject.__FullName__ = fullName;
   typeObject.__ShortName__ = localName;
   typeObject.__LockCount__ = 0;
+  typeObject.Of = JSIL.TypeObjectPrototype.prototype.Of;
+  typeObject.toString = JSIL.TypeObjectPrototype.prototype.toString;
 
   typeObject.prototype = JSIL.MakeProto(baseType, typeObject, fullName, false);
   typeObject.prototype.__ShortName__ = localName;
   typeObject.prototype.__Interfaces__ = [];
+  typeObject.prototype.GetType = function () {
+    return typeObject;
+  };
 
   var decl = {
     configurable: true,
@@ -551,7 +586,7 @@ JSIL.MakeClass = function (baseType, fullName, isPublic) {
 };
 
 JSIL.MakeStruct = function (fullName, isPublic) {
-  JSIL.MakeType(System.ValueType, fullName, false, isPublic);
+  JSIL.MakeType("System.ValueType", fullName, false, isPublic);
 };
 
 JSIL.MakeInterface = function (fullName, members) {
@@ -660,6 +695,8 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
     if (typeof (iface) === "undefined") {
       JSIL.Host.warning("Type ", JSIL.GetTypeName(type), " implements an undefined interface.");
       continue __interfaces__;
+    } else if (typeof (iface) === "string") {
+      iface = JSIL.ResolveName($private, iface);
     }
 
     if (iface.IsInterface !== true) {
@@ -785,8 +822,8 @@ JSIL.IsArray = function (value) {
 JSIL.GetType = function (value) {
   var result;
 
-  if ((typeof (value) !== "undefined") && (typeof (value.__Type__) !== "undefined"))
-    return value.__Type__;
+  if ((typeof (value) !== "undefined") && (typeof (value.GetType) === "function"))
+    return value.GetType();
 
   var type = typeof (value);
 
@@ -971,7 +1008,7 @@ System.Object.prototype.__LockCount__ = 0;
 System.Object.prototype.__StructFields__ = {};
 System.Object.prototype._ctor = function () {};
 System.Object.prototype.GetType = function () {
-  return JSIL.GetType(this);
+  return System.Object;
 };
 System.Object.prototype.toString = function ToString() {
   return JSIL.GetTypeName(this);
@@ -1048,8 +1085,7 @@ JSIL.CollectionInitializer.prototype.Apply = function (target) {
     target.Add(values[i]);
 };
 
-System.ValueType = function () {};
-System.ValueType.prototype = JSIL.MakeProto(System.Object, System.ValueType, "System.ValueType", false);
+JSIL.MakeClass("System.Object", "System.ValueType", true);
 
 JSIL.Interface = function () { };
 JSIL.Interface.prototype = JSIL.MakeProto(Object, JSIL.Interface, "JSIL.Interface", true);
