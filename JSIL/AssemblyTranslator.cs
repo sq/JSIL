@@ -497,8 +497,10 @@ namespace JSIL {
             // Probably should be an argument, not a member variable...
             AstEmitter = new JavascriptAstEmitter(output, new JSILIdentifier(context.CurrentModule.TypeSystem), context.CurrentModule.TypeSystem, this);
 
-            foreach (var typedef in module.Types)
-                ForwardDeclareType(context, output, typedef);
+            foreach (var typedef in module.Types) {
+                if (!DeclaredTypes.Contains(typedef.FullName))
+                    ForwardDeclareType(context, output, typedef);
+            }
 
             foreach (var typedef in module.Types)
                 TranslateTypeDefinition(context, output, typedef);
@@ -636,7 +638,7 @@ namespace JSIL {
                 baseClass = typedef.BaseType;
 
                 var resolved = baseClass.Resolve();
-                if (!DeclaredTypes.Contains(baseClass.FullName) &&
+                if (!DeclaredTypes.Contains(resolved.FullName) &&
                     (resolved != null) &&
                     (resolved.Module.Assembly == typedef.Module.Assembly)) {
 
@@ -676,8 +678,26 @@ namespace JSIL {
                 output.Semicolon();
             }
 
-            foreach (var nestedTypedef in typedef.NestedTypes)
-                ForwardDeclareType(context, output, nestedTypedef);
+            foreach (var nestedTypeDef in typedef.NestedTypes) {
+                if (!DeclaredTypes.Contains(nestedTypeDef.FullName))
+                    ForwardDeclareType(context, output, nestedTypeDef);
+            }
+
+            if (typedef.IsValueType) {
+                foreach (var field in typedef.Fields) {
+                    var fieldType = field.FieldType;
+                    var fieldTypeDef = fieldType.Resolve();
+                    if (fieldTypeDef == null)
+                        continue;
+
+                    if (!DeclaredTypes.Contains(fieldTypeDef.FullName) &&
+                        (fieldTypeDef != null) &&
+                        (fieldTypeDef.Module.Assembly == typedef.Module.Assembly)) {
+
+                        ForwardDeclareType(context, output, fieldTypeDef);
+                    }
+                }
+            }
 
             output.NewLine();
         }
