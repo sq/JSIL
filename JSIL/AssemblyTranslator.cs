@@ -863,7 +863,7 @@ namespace JSIL {
                     output.Dot();
                     output.Identifier("__StructFields__");
                     output.Token(" = ");
-                    output.OpenBrace();
+                    output.OpenBracket(true);
 
                     bool isFirst = true;
                     foreach (var sf in structFields) {
@@ -872,15 +872,17 @@ namespace JSIL {
                             output.NewLine();
                         }
 
-                        output.Identifier(sf.Name);
-                        output.Token(": ");
+                        output.OpenBracket();
+                        output.Value(sf.Name);
+                        output.Comma();
                         output.Identifier(sf.FieldType);
+                        output.CloseBracket();
 
                         isFirst = false;
                     }
 
                     output.NewLine();
-                    output.CloseBrace(false);
+                    output.CloseBracket(true);
                     output.Semicolon();
                 });
             }

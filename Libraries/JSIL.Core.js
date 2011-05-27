@@ -234,6 +234,33 @@ JSIL.Host.error = function (exception, text) {
   }
 }
 
+JSIL.Host.warnedAboutRunLater = false;
+JSIL.Host.pendingRunLaterItems = [];
+JSIL.Host.runLaterCallback = function () {
+  var items = JSIL.Host.pendingRunLaterItems;
+
+  while (items.length > 0) {
+    var item = items.pop();
+    item();
+  }
+}
+
+// This can fail to run the specified action if the host hasn't implemented it, so you should
+//  only use this to run performance improvements, not things you depend on
+JSIL.Host.runLater = function (action) {
+  if (typeof (setTimeout) === "function") {
+    var needEnqueue = JSIL.Host.pendingRunLaterItems.length <= 0;
+    JSIL.Host.pendingRunLaterItems.push(action);
+    if (needEnqueue)
+      setTimeout(JSIL.Host.runLaterCallback, 0);
+  } else {
+    if (!JSIL.Host.warnedAboutRunLater) {
+      JSIL.Host.warnedAboutRunLater = true;
+      JSIL.Host.warning("JSIL.Host.runLater is not implemented. Deferred callbacks will never run.");
+    }
+  }
+};
+
 JSIL.UntranslatableNode = function (nodeType) {
   JSIL.Host.error(new Error("An ILAst node of type " + nodeType + " could not be translated."));
 };
@@ -350,9 +377,19 @@ JSIL.TypeRef.prototype.get = function () {
 JSIL.New = function (type, constructorIndex, args) {
   var proto = type.prototype;
   var result = Object.create(proto);
-  var key = "_ctor$" + constructorIndex;
-  var ctor = proto[key];
-  ctor.apply(result, args);
+
+  if ((type.__TypeInitialized__ || false) === false)
+    JSIL.InitializeType(type);
+
+  JSIL.InitializeStructFields(result, type);
+
+  if (!type.__IsReferenceType__ && (args.length == 0)) {
+  } else {
+    var key = "_ctor$" + constructorIndex;
+    var ctor = proto[key];
+    ctor.apply(result, args);
+  }
+
   return result;
 }
 
@@ -433,36 +470,34 @@ System.RuntimeType.__ShortName__ = null;
 
 JSIL.InitializeStructFields = function (instance, typeObject) {
   var sf = instance.__StructFields__;
+  if (typeof (sf) !== "object")
+    return;
 
-  if (typeof (sf) === "object") {
-    for (var fieldName in sf) {
-      if (!sf.hasOwnProperty(fieldName))
-        continue;
+  for (var i = 0, l = sf.length; i < l; i++) {
+    var fieldName = sf[i][0];
+    var fieldType = sf[i][1];
 
-      var fieldType = sf[fieldName];
-      if ((typeof (fieldType) != "undefined") && (typeof (fieldType.constructor) != "undefined")) {
-        instance[fieldName] = new fieldType();
-      } else {
-        instance[fieldName] = new System.ValueType();
-        JSIL.Host.error(new Error("The type of field " + JSIL.GetTypeName(typeObject) + "." + fieldName + " is undefined."));
-      }
-    }
+    if (typeof (fieldType) === "function")
+      instance[fieldName] = new fieldType();
   }
 };
 
 JSIL.CopyMembers = function (source, target) {
   var sf = source.__StructFields__;
   if (typeof (sf) != "object")
-    sf = {};
+    sf = [];
 
   for (var key in source) {
     if (!source.hasOwnProperty(key))
       continue;
 
-    if (sf.hasOwnProperty(key))
-      target[key] = source[key].MemberwiseClone();
-    else
-      target[key] = source[key];
+    target[key] = source[key];
+  }
+
+  for (var i = 0, l = sf.length; i < l; i++) {
+    var fieldName = sf[i][0];
+    if (source.hasOwnProperty(fieldName))
+      target[key] = target[key].MemberwiseClone();
   }
 }
 
@@ -505,7 +540,7 @@ JSIL.InitializeType = function (type) {
   }
 };
 
-JSIL.MakeSealedTypeGetter = function (type) {
+JSIL.MakeSealedTypeGetter = function (type, unseal) {
   var state = {
     sealed: true
   };
@@ -513,11 +548,23 @@ JSIL.MakeSealedTypeGetter = function (type) {
   return function () {
     if (!state.sealed)
       return type;
+
     state.sealed = false;
 
     JSIL.InitializeType(type);
+    JSIL.Host.runLater(unseal);
 
     return type;
+  };
+};
+
+JSIL.MakeUnsealer = function (ns, name, type) {
+  return function () {
+    Object.defineProperty(ns, name, {
+      configurable: true,
+      enumerable: true,
+      value: type
+    });
   };
 };
 
@@ -551,15 +598,10 @@ JSIL.SealTypes = function (privateRoot, namespaceName /*, ...names */) {
     if (typeof (cctor) !== "function")
       return;
 
-    try {
-      delete ns[name];
-    } catch (e) {
-    }
-
     Object.defineProperty(ns, name, {
       configurable: true,
       enumerable: true,
-      get: JSIL.MakeSealedTypeGetter(type)
+      get: JSIL.MakeSealedTypeGetter(type, JSIL.MakeUnsealer(ns, name, type))
     });
   };
 
@@ -1156,7 +1198,7 @@ System.Object.CheckType = function (value) {
   return (typeof (value) === "object");
 };
 System.Object.prototype.__LockCount__ = 0;
-System.Object.prototype.__StructFields__ = {};
+System.Object.prototype.__StructFields__ = [];
 System.Object.prototype._ctor = function () {};
 System.Object.prototype.GetType = function () {
   return System.Object;
@@ -1356,8 +1398,17 @@ JSIL.MultidimensionalArray.prototype.GetUpperBound = function (i) {
 // This gets a little hairy: In C#, multidimensional array dimensions are presented in reverse order,
 //  like so: var arr = new int[depth, height, width]; arr[z, y, x] = ...;
 JSIL.MultidimensionalArray.prototype._ComputeIndex = function () {
-  if (arguments.length != this._dimensions.length)
-    throw new Error("You must specify an index for each dimension of the array.");
+  var dims = this._dimensions;
+  switch (dims.length) {
+    case 1:
+      return arguments[0];
+    case 2:
+      return (arguments[0] * dims[1]) + arguments[1];
+    case 3:
+      return (arguments[0] * dims[1]) + (arguments[1] * dims[1] * dims[2]) + arguments[2];
+    default:
+      throw new Error("Not implemented");
+  }
 
   var result = 0;
   for (var i = 0; i < arguments.length; i++) {
@@ -1375,13 +1426,11 @@ JSIL.MultidimensionalArray.prototype._ComputeIndex = function () {
   return result;
 };
 JSIL.MultidimensionalArray.prototype.Get = function () {
-  var indices = Array.prototype.slice.call(arguments, 0, arguments.length);
-  var index = this._ComputeIndex.apply(this, indices);
+  var index = this._ComputeIndex.apply(this, arguments);
   return this._items[index];
 };
 JSIL.MultidimensionalArray.prototype.Set = function () {
-  var indices = Array.prototype.slice.call(arguments, 0, arguments.length - 1);
-  var index = this._ComputeIndex.apply(this, indices);
+  var index = this._ComputeIndex.apply(this, arguments);
   this._items[index] = arguments[arguments.length - 1];
 };
 JSIL.MultidimensionalArray.New = function (type) {

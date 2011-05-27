@@ -98,14 +98,18 @@ System.IO.BinaryReader.prototype.ReadSByte = function () {
     return byte;
 };
 
+System.IO.BinaryReader.prototype._DecodeFloat = function () {
+  return 0.0;
+};
+
 System.IO.BinaryReader.prototype.ReadSingle = function () {
   var bytes = this.ReadChars(4);
-  return 0.0;
+  return this._DecodeFloat(bytes, 23, 8);
 };
 
 System.IO.BinaryReader.prototype.ReadDouble = function () {
   var bytes = this.ReadChars(8);
-  return 0.0;
+  return this._DecodeFloat(bytes, 52, 11);
 };
 
 System.IO.BinaryReader.prototype.ReadByte = function () {

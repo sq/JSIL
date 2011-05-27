@@ -3,7 +3,7 @@
 if (typeof (JSIL) === "undefined")
   throw new Error("JSIL.Core required");
 
-JSIL.DeclareAssembly("JSIL.XNA");
+var $jsilxna = JSIL.DeclareAssembly("JSIL.XNA");
 
 JSIL.MakeClass("System.Object", "HTML5ContentManager", true);
 HTML5ContentManager.prototype._ctor = function () {
@@ -146,7 +146,7 @@ Microsoft.Xna.Framework.Game.prototype._QueueStep = function () {
   } else if (typeof (webkitRequestAnimationFrame) !== "undefined") {
     webkitRequestAnimationFrame(stepCallback);
   } else {
-    function shouldStepCallback () {
+    var shouldStepCallback = function () {
       var now = self._GetNow();
 
       if (self._nextFrame <= now)
@@ -163,7 +163,7 @@ Microsoft.Xna.Framework.Game.prototype._Step = function () {
 
   var failed = true;
   try {
-    var gameTime = new Microsoft.Xna.Framework.GameTime();
+    var gameTime = JSIL.New(Microsoft.Xna.Framework.GameTime, 0, []);
     this.Update(gameTime);
     this.Draw(gameTime);
     failed = false;
@@ -369,17 +369,25 @@ Microsoft.Xna.Framework.Graphics.Color.prototype.MemberwiseClone = function () {
   return result;
 }
 
+Microsoft.Xna.Framework.Graphics.Color._cctor = function () {
+  var self = Microsoft.Xna.Framework.Graphics.Color;
+  self.black = new Microsoft.Xna.Framework.Graphics.Color(0, 0, 0);
+  self.transparentBlack = new Microsoft.Xna.Framework.Graphics.Color(0, 0, 0, 0);
+  self.white = new Microsoft.Xna.Framework.Graphics.Color(255, 255, 255);
+  self.transparentWhite = new Microsoft.Xna.Framework.Graphics.Color(255, 255, 255, 0);
+};
+
 Microsoft.Xna.Framework.Graphics.Color.get_Black = function () {
-  return new Microsoft.Xna.Framework.Graphics.Color(0, 0, 0);
+  return Microsoft.Xna.Framework.Graphics.Color.black;
 };
 Microsoft.Xna.Framework.Graphics.Color.get_TransparentBlack = function () {
-  return new Microsoft.Xna.Framework.Graphics.Color(0, 0, 0, 0);
+  return Microsoft.Xna.Framework.Graphics.Color.transparentBlack;
 };
 Microsoft.Xna.Framework.Graphics.Color.get_White = function () {
-  return new Microsoft.Xna.Framework.Graphics.Color(255, 255, 255);
+  return Microsoft.Xna.Framework.Graphics.Color.white;
 };
 Microsoft.Xna.Framework.Graphics.Color.get_TransparentWhite = function () {
-  return new Microsoft.Xna.Framework.Graphics.Color(255, 255, 255, 0);
+  return Microsoft.Xna.Framework.Graphics.Color.transparentWhite;
 };
 
 Microsoft.Xna.Framework.Rectangle.prototype._ctor = function (x, y, width, height) {
@@ -397,3 +405,8 @@ Microsoft.Xna.Framework.Rectangle.prototype.MemberwiseClone = function () {
   result.Height = this.Height;
   return result;
 }
+
+JSIL.SealTypes(
+  $jsilxna, "Microsoft.Xna.Framework.Graphics", 
+  "Color"
+);
