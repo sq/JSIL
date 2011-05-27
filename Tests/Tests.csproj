@@ -187,6 +187,7 @@
     <None Include="SimpleTestCases\OverloadWithEnum.cs" />
     <None Include="SimpleTestCases\OverloadWithDelegate.cs" />
     <None Include="TestCases\RefClass.cs" />
+    <None Include="SpecialTestCases\StringSwitch.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

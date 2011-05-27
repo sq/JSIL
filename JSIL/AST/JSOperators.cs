@@ -31,41 +31,41 @@ namespace JSIL.Ast {
 
         public abstract override string ToString ();
 
-        public static readonly JSAssignmentOperator Assignment = "=";
-        public static readonly JSAssignmentOperator AddAssignment = "+=";
-        public static readonly JSAssignmentOperator SubtractAssignment = "-=";
-        public static readonly JSAssignmentOperator MultiplyAssignment = "*=";
-        public static readonly JSAssignmentOperator DivideAssignment = "/=";
-        public static readonly JSAssignmentOperator RemainderAssignment = "%=";
-        public static readonly JSAssignmentOperator ShiftLeftAssignment = "<<=";
-        public static readonly JSAssignmentOperator ShiftRightAssignment = ">>=";
-        public static readonly JSAssignmentOperator ShiftRightUnsignedAssignment = ">>>=";
-        public static readonly JSAssignmentOperator BitwiseAndAssignment = "&=";
-        public static readonly JSAssignmentOperator BitwiseOrAssignment = "|=";
-        public static readonly JSAssignmentOperator BitwiseXorAssignment = "^=";
+        public static readonly JSAssignmentOperator Assignment = new JSAssignmentOperator("=");
+        public static readonly JSAssignmentOperator AddAssignment = new JSAssignmentOperator("+=");
+        public static readonly JSAssignmentOperator SubtractAssignment = new JSAssignmentOperator("-=");
+        public static readonly JSAssignmentOperator MultiplyAssignment = new JSAssignmentOperator("*=");
+        public static readonly JSAssignmentOperator DivideAssignment = new JSAssignmentOperator("/=");
+        public static readonly JSAssignmentOperator RemainderAssignment = new JSAssignmentOperator("%=");
+        public static readonly JSAssignmentOperator ShiftLeftAssignment = new JSAssignmentOperator("<<=");
+        public static readonly JSAssignmentOperator ShiftRightAssignment = new JSAssignmentOperator(">>=");
+        public static readonly JSAssignmentOperator ShiftRightUnsignedAssignment = new JSAssignmentOperator(">>>=");
+        public static readonly JSAssignmentOperator BitwiseAndAssignment = new JSAssignmentOperator("&=");
+        public static readonly JSAssignmentOperator BitwiseOrAssignment = new JSAssignmentOperator("|=");
+        public static readonly JSAssignmentOperator BitwiseXorAssignment = new JSAssignmentOperator("^=");
 
-        public static readonly JSBinaryOperator Equal = "===";
-        public static readonly JSBinaryOperator NotEqual = "!==";
-        public static readonly JSBinaryOperator LessThan = "<";
-        public static readonly JSBinaryOperator GreaterThan = ">";
-        public static readonly JSBinaryOperator LessThanOrEqual = "<=";
-        public static readonly JSBinaryOperator GreaterThanOrEqual = ">=";
+        public static readonly JSBinaryOperator Equal = new JSBinaryOperator("===");
+        public static readonly JSBinaryOperator NotEqual = new JSBinaryOperator("!==");
+        public static readonly JSBinaryOperator LessThan = new JSBinaryOperator("<");
+        public static readonly JSBinaryOperator GreaterThan = new JSBinaryOperator(">");
+        public static readonly JSBinaryOperator LessThanOrEqual = new JSBinaryOperator("<=");
+        public static readonly JSBinaryOperator GreaterThanOrEqual = new JSBinaryOperator(">=");
 
-        public static readonly JSBinaryOperator Add = "+";
-        public static readonly JSBinaryOperator Subtract = "-";
-        public static readonly JSBinaryOperator Multiply = "*";
-        public static readonly JSBinaryOperator Divide = "/";
-        public static readonly JSBinaryOperator Remainder = "%";
-        public static readonly JSBinaryOperator ShiftLeft = "<<";
-        public static readonly JSBinaryOperator ShiftRight = ">>";
-        public static readonly JSBinaryOperator ShiftRightUnsigned = ">>>";
+        public static readonly JSBinaryOperator Add = new JSBinaryOperator("+");
+        public static readonly JSBinaryOperator Subtract = new JSBinaryOperator("-");
+        public static readonly JSBinaryOperator Multiply = new JSBinaryOperator("*");
+        public static readonly JSBinaryOperator Divide = new JSBinaryOperator("/");
+        public static readonly JSBinaryOperator Remainder = new JSBinaryOperator("%");
+        public static readonly JSBinaryOperator ShiftLeft = new JSBinaryOperator("<<");
+        public static readonly JSBinaryOperator ShiftRight = new JSBinaryOperator(">>");
+        public static readonly JSBinaryOperator ShiftRightUnsigned = new JSBinaryOperator(">>>");
 
-        public static readonly JSBinaryOperator BitwiseAnd = "&";
-        public static readonly JSBinaryOperator BitwiseOr = "|";
-        public static readonly JSBinaryOperator BitwiseXor = "^";
+        public static readonly JSBinaryOperator BitwiseAnd = new JSBinaryOperator("&");
+        public static readonly JSBinaryOperator BitwiseOr = new JSBinaryOperator("|");
+        public static readonly JSBinaryOperator BitwiseXor = new JSBinaryOperator("^");
 
-        public static readonly JSLogicalOperator LogicalAnd = "&&";
-        public static readonly JSLogicalOperator LogicalOr = "||";
+        public static readonly JSLogicalOperator LogicalAnd = new JSLogicalOperator("&&");
+        public static readonly JSLogicalOperator LogicalOr = new JSLogicalOperator("||");
 
         public static readonly JSUnaryOperator PreIncrement = new JSUnaryOperator("++", false);
         public static readonly JSUnaryOperator PreDecrement = new JSUnaryOperator("--", false);
@@ -99,29 +99,17 @@ namespace JSIL.Ast {
         public override string ToString () {
             return String.Format("{0}", Token);
         }
-
-        public static implicit operator JSBinaryOperator (string token) {
-            return new JSBinaryOperator(token);
-        }
     }
 
     public class JSLogicalOperator : JSBinaryOperator {
         public JSLogicalOperator (string token)
             : base(token) {
         }
-
-        public static implicit operator JSLogicalOperator (string token) {
-            return new JSLogicalOperator(token);
-        }
     }
 
     public class JSAssignmentOperator : JSBinaryOperator {
         public JSAssignmentOperator (string token)
             : base(token) {
-        }
-
-        public static implicit operator JSAssignmentOperator (string token) {
-            return new JSAssignmentOperator(token);
         }
     }
 }

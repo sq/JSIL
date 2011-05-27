@@ -3,20 +3,23 @@
 	position: absolute;
 	left: 2px;
 	top: 2px;
+	margin: 0px;
+	border: 0px;
+	padding: 0px;
 }
 #loadButton {
 	width: 200px;
 	height: 40px;
 	position: absolute;	
-	left: 222px;
-	top: 222px;
+	left: 299px;
+	top: 279px;
 	z-index: 90;
 }
 #quitButton {
 	width: 32px;
 	height: 32px;
 	position: absolute;	
-	left: 644px;
+	left: 804px;
 	top: 2px;
 }
 #loadingProgress {
@@ -24,26 +27,29 @@
 	border: 3px solid white;
 	border-radius: 6px;
 	width: 200px;
-	height: 20px;
+	height: 30px;
 	position: absolute;	
-	left: 219px;
-	top: 229px;
+	left: 299px;
+	top: 284px;
 	z-index: 99;
 }
 #progressBar {
 	background-color: white;
 	border: 1px solid white;
-	height: 20px;
+	height: 30px;
 	margin: -1px;
 	padding: 0px;
 }
 #log {
 	font-family: Consolas, Courier New, Courier;
 	font-size: 9pt;
-	width: 640px;
+	margin: 0px;
+	border: 0px;
+	padding: 0px;
+	width: 800px;
 	height: 400px;
 	overflow: scroll;
 	position: absolute;
 	left: 2px;
-	top: 484px;
+	top: 604px;
 }

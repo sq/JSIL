@@ -258,6 +258,27 @@ Microsoft.Xna.Framework.Graphics.GraphicsDevice.prototype.InternalClear = functi
   this.context.fillRect(0, 0, this.viewport.Width, this.viewport.Height);
 };
 
+Microsoft.Xna.Framework.Graphics.GraphicsDevice.prototype.DrawUserPrimitives = function (primitiveType, vertices, vertexOffset, primitiveCount) {
+  switch (primitiveType) {
+    case Microsoft.Xna.Framework.Graphics.PrimitiveType.LineList:
+      for (var i = 0; i < primitiveCount; i++) {
+        var j = i * 2;
+        this.context.lineWidth = 2;
+        this.context.strokeStyle = vertices[j].Color.toCss();
+        this.context.beginPath();
+        this.context.moveTo(vertices[j].Position.X, vertices[j].Position.Y);
+        this.context.lineTo(vertices[j + 1].Position.X, vertices[j + 1].Position.Y);
+        this.context.closePath();
+        this.context.stroke();
+      }
+
+      break;
+    default:
+      JSIL.Host.error(new Error("The primitive type " + primitiveType.toString() + " is not implemented."));
+      return;
+  }
+};
+
 Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype._ctor = function (device) {
   this.device = device;
 };
@@ -404,6 +425,11 @@ Microsoft.Xna.Framework.Rectangle.prototype.MemberwiseClone = function () {
   result.Width = this.Width;
   result.Height = this.Height;
   return result;
+}
+
+Microsoft.Xna.Framework.Graphics.VertexPositionColor.prototype._ctor = function (position, color) {
+  this.Position = position;
+  this.Color = color;
 }
 
 JSIL.SealTypes(

@@ -27,6 +27,22 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void StringSwitch () {
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\StringSwitch.cs",
+                ""
+            );
+            try {
+                Assert.IsFalse(generatedJs.Contains("(!text =="));
+                Assert.IsTrue(generatedJs.Contains("(!(text =="));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
         public void StringConcat () {
             var generatedJs = GetJavascript(
                 @"SpecialTestCases\StringConcat.cs",

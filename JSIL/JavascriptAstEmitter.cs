@@ -240,10 +240,15 @@ namespace JSIL {
         }
 
         public void VisitNode (JSVerbatimLiteral verbatim) {
+            bool parens =
+                (ParentNode is JSBinaryOperatorExpression) || (ParentNode is JSUnaryOperatorExpression);
+
             var regex = new Regex(@"(\$(?'name'[a-zA-Z_]([a-zA-Z0-9_]*))|(?'text'[^\$]*)|)", RegexOptions.ExplicitCapture);
 
-            bool isFirst = true;
+            if (parens)
+                Output.LPar();
 
+            bool isFirst = true;
             foreach (var line in verbatim.Expression.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries)) {
                 if (String.IsNullOrWhiteSpace(line))
                     continue;
@@ -268,6 +273,9 @@ namespace JSIL {
 
                 isFirst = false;
             }
+
+            if (parens)
+                Output.RPar();
         }
 
         public void VisitNode (JSTypeNameLiteral type) {
@@ -676,9 +684,13 @@ namespace JSIL {
                 parens = false;
             else if ((ParentNode is JSSwitchStatement) && ((JSSwitchStatement)ParentNode).Condition == bop)
                 parens = false;
-            else if ((ParentNode is JSBinaryOperatorExpression) && ((JSBinaryOperatorExpression)ParentNode).Operator == bop.Operator)
+            else if (
+                (ParentNode is JSBinaryOperatorExpression) &&
+                ((JSBinaryOperatorExpression)ParentNode).Operator == bop.Operator &&
+                bop.Operator is JSLogicalOperator
+            ) {
                 parens = false;
-            else if (ParentNode is JSVariableDeclarationStatement)
+            } else if (ParentNode is JSVariableDeclarationStatement)
                 parens = false;
             else if (ParentNode is JSExpressionStatement)
                 parens = false;
