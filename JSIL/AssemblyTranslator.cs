@@ -643,6 +643,18 @@ namespace JSIL {
             output.NewLine();
         }
 
+        protected void TranslateDelegate (DecompilerContext context, JavascriptFormatter output, TypeDefinition del, TypeInfo typeInfo) {
+            output.Identifier("JSIL.MakeDelegate", null);
+            output.LPar();
+            output.NewLine();
+
+            output.Value(Util.EscapeIdentifier(del.FullName, EscapingMode.String));
+
+            output.RPar();
+            output.Semicolon();
+            output.NewLine();
+        }
+
         protected void ForwardDeclareType (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef) {
             var typeInfo = GetTypeInformation(typedef);
             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
@@ -664,6 +676,9 @@ namespace JSIL {
                 return;
             } else if (typedef.IsEnum) {
                 TranslateEnum(context, output, typedef);
+                return;
+            } else if (typeInfo.IsDelegate) {
+                TranslateDelegate(context, output, typedef, typeInfo);
                 return;
             }
 
@@ -756,6 +771,8 @@ namespace JSIL {
             if (typedef.IsInterface)
                 return;
             else if (typedef.IsEnum)
+                return;
+            else if (typeInfo.IsDelegate)
                 return;
 
             var info = GetTypeInformation(typedef);

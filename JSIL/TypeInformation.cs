@@ -560,9 +560,9 @@ namespace JSIL.Internal {
         public readonly bool IsFlagsEnum;
         public readonly Dictionary<long, EnumMemberInfo> ValueToEnumMember = new Dictionary<long, EnumMemberInfo>();
         public readonly Dictionary<string, EnumMemberInfo> EnumMembers = new Dictionary<string, EnumMemberInfo>();
-
         public readonly Dictionary<MemberIdentifier, IMemberInfo> Members = new Dictionary<MemberIdentifier, IMemberInfo>();
         public readonly bool IsProxy;
+        public readonly bool IsDelegate;
 
         protected bool _IsIgnored = false;
         protected bool _MethodGroupsInitialized = false;
@@ -578,6 +578,11 @@ namespace JSIL.Internal {
 
             // Do this check before copying attributes from proxy types, since that will copy their JSProxy attribute
             IsProxy = Metadata.HasAttribute("JSIL.Proxy.JSProxy");
+
+            IsDelegate = (type.BaseType != null) && (
+                (type.BaseType.FullName == "System.Delegate") ||
+                (type.BaseType.FullName == "System.MulticastDelegate")
+            );
 
             var interfaces = new HashSet<TypeInfo>(
                 from i in type.Interfaces select source.Get(i)

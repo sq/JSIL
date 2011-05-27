@@ -36,8 +36,6 @@ JSIL.DeclareAssembly = function (assemblyName) {
 
 JSIL.DeclareAssembly("JSIL.Core");
 
-
-
 JSIL.EscapeName = function (name) {
   return name.replace("`", "$b").replace(".", "_");
 };
@@ -1297,13 +1295,54 @@ JSIL.MultidimensionalArray.New = function (type) {
   return new JSIL.MultidimensionalArray(dimensions);
 };
 
+JSIL.MakeDelegateType = function (fullName, localName) {
+  var delegateType = System.MulticastDelegate;
+  var prototype = JSIL.CloneObject(delegateType.prototype);
+  prototype.__BaseType__ = delegateType;
+  prototype.__ShortName__ = localName;
+  prototype.__FullName__ = fullName;
+
+  var result = {
+    prototype: prototype,
+    __BaseType__: delegateType,
+    __FullName__: fullName,
+    IsEnum: false,
+  };
+
+  JSIL.Delegate.Types[fullName] = prototype;
+  return;
+}
+
+JSIL.MakeDelegate = function (fullName) {
+  var resolved = JSIL.ResolveName($private, fullName);
+
+  if (!resolved.exists()) {
+    var result = JSIL.MakeDelegateType(fullName);
+
+    var decl = {
+      configurable: true,
+      enumerable: true,
+      value: result
+    };
+    resolved.define(decl);
+    
+    resolved = JSIL.ResolveName(JSIL.GlobalNamespace, fullName);
+    if (!resolved.exists()) {
+      resolved.define(decl);
+    } else {
+      JSIL.ShadowedTypeWarning(fullName);
+    }
+  }
+
+  return resolved.get();
+};
+
 JSIL.Delegate.Types = {};
 JSIL.Delegate.New = function (typeName, object, method) {
-  var proto = JSIL.Delegate.Types[typeName];
-
-  if (typeof (proto) === "undefined") {
-    proto = JSIL.MakeProto(System.Delegate, {}, typeName, true);
-    JSIL.Delegate.Types[typeName] = proto;
+  var existingType = JSIL.Delegate.Types[typeName];
+  if (typeof (existingType) === "undefined") {
+    JSIL.MakeDelegateType(typeName, JSIL.GetLocalName(typeName));
+    existingType = JSIL.Delegate.Types[typeName];
   }
 
   if ((typeof (method) === "undefined") &&
@@ -1318,7 +1357,12 @@ JSIL.Delegate.New = function (typeName, object, method) {
 
   var result = method.bind(object);
 
-  result.__proto__ = proto;
+  result.toString = function () {
+    return typeName;
+  };
+  result.GetType = function () {
+    return existingType;
+  };
   result.__object__ = object;
   result.__method__ = method;
 

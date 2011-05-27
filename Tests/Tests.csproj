@@ -184,6 +184,8 @@
     <None Include="SpecialTestCases\StubbedMethodBodies.cs" />
     <None Include="SpecialTestCases\ProxiedOperators.cs" />
     <None Include="SimpleTestCases\EnumArrayLookup.cs" />
+    <None Include="SimpleTestCases\OverloadWithEnum.cs" />
+    <None Include="SimpleTestCases\OverloadWithDelegate.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
