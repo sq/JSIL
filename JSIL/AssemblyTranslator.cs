@@ -527,7 +527,7 @@ namespace JSIL {
 
             if (sealedTypes.Count > 0) {
                 var groups = (from st in sealedTypes
-                                let parent = JavascriptFormatter.GetParent(st)
+                                let parent = JavascriptFormatter.GetParent(st, null)
                                 group st by parent);
 
                 foreach (var g in groups) {

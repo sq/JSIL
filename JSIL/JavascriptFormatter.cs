@@ -188,11 +188,11 @@ namespace JSIL.Internal {
             OpenBrace();
         }
 
-        public static string GetParent (TypeReference type) {
+        public static string GetParent (TypeReference type, string defaultParent = "JSIL.GlobalNamespace") {
             var fullname = type.FullName;
             var index = fullname.LastIndexOfAny(new char[] { '.', '+', '/' });
             if (index < 0)
-                return "JSIL.GlobalNamespace";
+                return defaultParent;
             else
                 return fullname.Substring(0, index);
         }

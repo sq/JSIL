@@ -524,8 +524,23 @@ JSIL.MakeSealedTypeGetter = function (type) {
 // Replaces a class with a property getter that, upon first access,
 //  runs the class's static constructor (if any).
 JSIL.SealTypes = function (privateRoot, namespaceName /*, ...names */) {
-  var publicNamespace = JSIL.ResolveName(JSIL.GlobalNamespace, namespaceName);
-  var privateNamespace = JSIL.ResolveName(privateRoot, namespaceName);
+  var publicNamespace, privateNamespace;
+  if (namespaceName !== null) {
+    publicNamespace = JSIL.ResolveName(JSIL.GlobalNamespace, namespaceName);
+    if (publicNamespace.exists())
+      publicNamespace = publicNamespace.get();
+    else
+      publicNamespace = null;
+
+    privateNamespace = JSIL.ResolveName(privateRoot, namespaceName);
+    if (privateNamespace.exists())
+      privateNamespace = privateNamespace.get();
+    else
+      privateNamespace = null;
+  } else {
+    publicNamespace = JSIL.GlobalNamespace;
+    privateNamespace = privateRoot;
+  }
 
   function sealIt (ns, name) {
     var type = ns[name];
@@ -549,11 +564,11 @@ JSIL.SealTypes = function (privateRoot, namespaceName /*, ...names */) {
   };
 
   for (var i = 1, l = arguments.length; i < l; i++) {
-    if (publicNamespace.exists())
-      sealIt(publicNamespace.get(), arguments[i]);
+    if (publicNamespace !== null)
+      sealIt(publicNamespace, arguments[i]);
 
-    if (privateNamespace.exists())
-      sealIt(privateNamespace.get(), arguments[i]);    
+    if (privateNamespace !== null)
+      sealIt(privateNamespace, arguments[i]);    
   }
 }
 
