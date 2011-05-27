@@ -85,6 +85,13 @@ namespace JSIL.Proxy {
     public class JSNeverReplace : Attribute {
     }
 
+    [AttributeUsage(
+        AttributeTargets.Event | AttributeTargets.Property |
+        AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Field
+    )]
+    public class JSNeverInherit : Attribute {
+    }
+
     /// <summary>
     /// Use this as a stand-in type when defining a proxy to specify that any type is valid for the given parameter/return type.
     /// </summary>

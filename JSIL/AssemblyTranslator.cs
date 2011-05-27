@@ -438,33 +438,8 @@ namespace JSIL {
             var result = new List<ProxyInfo>();
 
             foreach (var p in TypeProxies.Values) {
-                foreach (var pt in p.ProxiedTypes) {
-                    bool isMatch;
-                    if (p.IsInheritable)
-                        isMatch = ILBlockTranslator.TypesAreAssignable(pt, type);
-                    else
-                        isMatch = ILBlockTranslator.TypesAreEqual(pt, type);
-
-                    if (isMatch) {
-                        result.Add(p);
-                        break;
-                    }
-                }
-
-                foreach (var ptn in p.ProxiedTypeNames) {
-                    bool isMatch;
-                    if (p.IsInheritable)
-                        isMatch = new[] { type.FullName }.Concat(ILBlockTranslator.AllBaseTypesOf(
-                            ILBlockTranslator.GetTypeDefinition(type)).Select((t) => t.FullName))
-                            .Contains(ptn);
-                    else
-                        isMatch = type.FullName == ptn;
-
-                    if (isMatch) {
-                        result.Add(p);
-                        break;
-                    }
-                }
+                if (p.IsMatch(type, null))
+                    result.Add(p);
             }
 
             return result.Distinct().ToArray();

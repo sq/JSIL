@@ -18,9 +18,19 @@ namespace JSIL.Proxies {
     }
 
     [JSProxy(
-        "System.Drawing.Image"
+        "System.Drawing.Image",
+        JSProxyMemberPolicy.ReplaceDeclared,
+        JSProxyAttributePolicy.ReplaceDeclared,
+        inheritable: true
     )]
     public abstract class ImageProxy {
+        [JSNeverInherit]
+        [JSRuntimeDispatch]
+        [JSExternal]
+        public ImageProxy (params AnyType[] values) {
+            throw new InvalidOperationException();
+        }
+
         [JSRuntimeDispatch]
         [JSExternal]
         public abstract void Save (params AnyType[] values);
@@ -33,6 +43,7 @@ namespace JSIL.Proxies {
         [JSRuntimeDispatch]
         [JSExternal]
         public UnitsProxy (params AnyType[] values) {
+            throw new InvalidOperationException();
         }
     }
 }

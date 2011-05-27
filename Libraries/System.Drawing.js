@@ -10,7 +10,26 @@ JSIL.DeclareNamespace("System.Drawing");
 JSIL.MakeClass("System.Object", "System.Drawing.Bitmap", true);
 
 if (JSIL.HostType.IsBrowser) {
-  System.Drawing.Bitmap.prototype._ctor$0 = function (width, height) {
+  System.Drawing.Bitmap.prototype._ctor$0 = function (filename) {
+    System.Drawing.Image.prototype._ctor.call(this);
+
+    this.image = JSIL.Host.getImage(filename);
+
+    this.canvas = JSIL.Host.createCanvas(this.image.naturalWidth, this.image.naturalHeight);
+    this.context = this.canvas.getContext('2d');
+    this.context.globalCompositeOperation = "copy";
+
+    this.context.drawImage(this.image, 0, 0);
+    this.buffer = this.context.getImageData(0, 0, this.image.naturalWidth, this.image.naturalHeight);
+  };
+
+  System.Drawing.Bitmap.prototype._ctor$1 = function (filename, b) {
+    System.Drawing.Bitmap.prototype._ctor$0.call(this, filename);
+  };
+
+  System.Drawing.Bitmap.prototype._ctor$7 = function (width, height) {
+    System.Drawing.Image.prototype._ctor.call(this);
+
     this.canvas = JSIL.Host.getCanvas(width, height);
     this.context = this.canvas.getContext('2d');
     this.context.globalCompositeOperation = "copy";
@@ -22,23 +41,13 @@ if (JSIL.HostType.IsBrowser) {
     this.flushInterval = width - 1;
   }
 
-  System.Drawing.Bitmap.prototype._ctor$1 = function (filename) {
-    this.image = JSIL.Host.getImage(filename);
-
-    this.canvas = JSIL.Host.createCanvas(this.image.naturalWidth, this.image.naturalHeight);
-    this.context = this.canvas.getContext('2d');
-    this.context.globalCompositeOperation = "copy";
-
-    this.context.drawImage(this.image, 0, 0);
-    this.buffer = this.context.getImageData(0, 0, this.image.naturalWidth, this.image.naturalHeight);
-  };
-
   System.Drawing.Bitmap.prototype._SetupContext = function (width, height) {
   };
 
   JSIL.OverloadedMethod(System.Drawing.Bitmap.prototype, "_ctor", [
-    ["_ctor$0", [System.Int32, System.Int32]],
-    ["_ctor$1", [System.String]],
+    ["_ctor$0", [System.String]], 
+    ["_ctor$1", [System.String, System.Boolean]], 
+    ["_ctor$7", [System.Int32, System.Int32]],
   ]);
 
   System.Drawing.Bitmap.prototype.SetPixel = function (x, y, color) {

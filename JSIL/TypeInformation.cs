@@ -510,6 +510,36 @@ namespace JSIL.Internal {
             result = null;
             return false;
         }
+
+        public bool IsMatch (TypeReference type, bool? forcedInheritable) {
+            bool inheritable = forcedInheritable.GetValueOrDefault(IsInheritable);
+
+            foreach (var pt in ProxiedTypes) {
+                bool isMatch;
+                if (inheritable)
+                    isMatch = ILBlockTranslator.TypesAreAssignable(pt, type);
+                else
+                    isMatch = ILBlockTranslator.TypesAreEqual(pt, type);
+
+                if (isMatch)
+                    return true;
+            }
+
+            foreach (var ptn in ProxiedTypeNames) {
+                bool isMatch;
+                if (inheritable)
+                    isMatch = new[] { type.FullName }.Concat(ILBlockTranslator.AllBaseTypesOf(
+                        ILBlockTranslator.GetTypeDefinition(type)).Select((t) => t.FullName))
+                        .Contains(ptn);
+                else
+                    isMatch = type.FullName == ptn;
+
+                if (isMatch)
+                    return true;
+            }
+
+            return false;
+        }
     }
 
     public class TypeInfo {
@@ -755,10 +785,21 @@ namespace JSIL.Internal {
             return ca.AttributeType.FullName == "JSIL.Proxy.JSNeverReplace";
         }
 
+        protected static bool ShouldNeverInherit (CustomAttribute ca) {
+            return ca.AttributeType.FullName == "JSIL.Proxy.JSNeverInherit";
+        }
+
         protected bool BeforeAddProxyMember<T> (ProxyInfo proxy, T member, out IMemberInfo result, ICustomAttributeProvider owningMember = null)
             where T : MemberReference, ICustomAttributeProvider
         {
             var identifier = MemberIdentifier.New(member);
+
+            if (member.CustomAttributes.Any(ShouldNeverInherit)) {
+                if (!proxy.IsMatch(this.Definition, false)) {
+                    result = null;
+                    return false;
+                }
+            }
 
             while (Members.TryGetValue(identifier, out result)) {
                 if (
