@@ -14,8 +14,9 @@
     <div id="images" style="display: none"></div>
     
     <canvas id="canvas"></canvas><br>
+    <button id="quitButton" title="Quit Game">X</button>
     <button id="loadButton">Load Mannux</button>
-    <div id="loadingProgress" style="display: none">
+    <div id="loadingProgress">
       <div id="progressBar"></div>
     </div>
     <textarea id="log"></textarea>
@@ -162,7 +163,7 @@
     
     function loadNextAsset (assets, i, onDoneLoading, loadDelay) {      
       var w = (i * document.getElementById("loadingProgress").clientWidth) / (assets.length + 1);
-      document.getElementById("progressBar").setAttribute("style", "width: " + w.toString() + "px");
+      document.getElementById("progressBar").style.width = w.toString() + "px";
       
       if (i >= assets.length) {
         setTimeout(onDoneLoading, loadDelay);
@@ -199,9 +200,9 @@
     }
     
     function beginLoading () {
-      document.getElementById("progressBar").setAttribute("style", "width: 0px");
-      document.getElementById("loadButton").setAttribute("style", "display: none");
-      document.getElementById("loadingProgress").setAttribute("style", "display: block");
+      document.getElementById("progressBar").style.width = "0px";
+      document.getElementById("loadButton").style.display = "none";
+      document.getElementById("loadingProgress").style.display = "";
       
       var assetsToLoad = [
         ["Script", "../Libraries/System.Drawing.js"],
@@ -247,17 +248,30 @@
         try {
           JSIL.Initialize();
           
+          document.getElementById("quitButton").style.display = "";
+          
           Mannux.Program.Main([]);
+          // Main doesn't block since we're using the browser's event loop
         } finally {
-          document.getElementById("loadingProgress").setAttribute("style", "display: none");
+          document.getElementById("loadingProgress").style.display = "none";
         }
       });
     }
     
-    function onLoad () {
-      document.getElementById("log").value = "";
+    function quitGame () {
+      Microsoft.Xna.Framework.Game.ForceQuit();
+      document.getElementById("quitButton").style.display = "none";
     }
     
+    function onLoad () {
+      document.getElementById("log").value = "";
+      document.getElementById("quitButton").style.display = "none";
+      document.getElementById("loadingProgress").style.display = "none";
+    }
+        
+    document.getElementById("quitButton").addEventListener(
+      "click", quitGame, true
+    );
     document.getElementById("loadButton").addEventListener(
       "click", beginLoading, true
     );

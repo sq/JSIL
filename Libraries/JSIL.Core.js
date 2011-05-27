@@ -1296,6 +1296,9 @@ JSIL.MultidimensionalArray.New = function (type) {
 };
 
 JSIL.MakeDelegateType = function (fullName, localName) {
+  if (typeof (JSIL.Delegate.Types[fullName]) !== "undefined")
+    return JSIL.Delegate.Types[fullName].__Self__;
+
   var delegateType = System.MulticastDelegate;
   var prototype = JSIL.CloneObject(delegateType.prototype);
   prototype.__BaseType__ = delegateType;
@@ -1306,35 +1309,52 @@ JSIL.MakeDelegateType = function (fullName, localName) {
     prototype: prototype,
     __BaseType__: delegateType,
     __FullName__: fullName,
+    CheckType: function (value) {
+      if (
+        (
+          (typeof (value) === "function") ||
+          (typeof (value) === "object")
+        ) &&
+        (typeof (value.GetType) === "function") &&
+        (value.GetType() === result)
+      )
+        return true;
+
+      return false;
+    },
     IsEnum: false,
   };
 
+  prototype.__Self__ = result;
   JSIL.Delegate.Types[fullName] = prototype;
-  return;
+  return result;
 }
 
 JSIL.MakeDelegate = function (fullName) {
-  var resolved = JSIL.ResolveName($private, fullName);
-
-  if (!resolved.exists()) {
-    var result = JSIL.MakeDelegateType(fullName);
-
-    var decl = {
-      configurable: true,
-      enumerable: true,
-      value: result
-    };
-    resolved.define(decl);
-    
-    resolved = JSIL.ResolveName(JSIL.GlobalNamespace, fullName);
-    if (!resolved.exists()) {
-      resolved.define(decl);
-    } else {
-      JSIL.ShadowedTypeWarning(fullName);
-    }
+  try {
+    delete JSIL.Delegate.Types[fullName];
+  } catch (e) {
   }
 
-  return resolved.get();
+  var result = JSIL.MakeDelegateType(fullName);
+  var decl = {
+    configurable: true,
+    enumerable: true,
+    value: result
+  };
+
+  var resolved = JSIL.ResolveName($private, fullName);
+  if (!resolved.exists())
+    resolved.define(decl);
+    
+  resolved = JSIL.ResolveName(JSIL.GlobalNamespace, fullName);
+  if (!resolved.exists()) {
+    resolved.define(decl);
+  } else {
+    JSIL.ShadowedTypeWarning(fullName);
+  }
+
+  return result;
 };
 
 JSIL.Delegate.Types = {};
@@ -1361,7 +1381,7 @@ JSIL.Delegate.New = function (typeName, object, method) {
     return typeName;
   };
   result.GetType = function () {
-    return existingType;
+    return existingType.__Self__;
   };
   result.__object__ = object;
   result.__method__ = method;

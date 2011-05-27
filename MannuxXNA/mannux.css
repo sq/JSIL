@@ -14,6 +14,13 @@
 	top: 222px;
 	z-index: 90;
 }
+#quitButton {
+	width: 32px;
+	height: 32px;
+	position: absolute;	
+	left: 644px;
+	top: 2px;
+}
 #loadingProgress {
 	background-color: black;
 	border: 3px solid white;

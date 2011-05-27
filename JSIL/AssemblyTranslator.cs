@@ -646,7 +646,6 @@ namespace JSIL {
         protected void TranslateDelegate (DecompilerContext context, JavascriptFormatter output, TypeDefinition del, TypeInfo typeInfo) {
             output.Identifier("JSIL.MakeDelegate", null);
             output.LPar();
-            output.NewLine();
 
             output.Value(Util.EscapeIdentifier(del.FullName, EscapingMode.String));
 

@@ -17,10 +17,15 @@ HTML5Asset.prototype._ctor = function (assetName) {
   this.name = assetName;
 }
 
+Microsoft.Xna.Framework.Game._QuitForced = false;
+Microsoft.Xna.Framework.Game.ForceQuit = function () {
+  Microsoft.Xna.Framework.Game._QuitForced = true;
+};
+
 Microsoft.Xna.Framework.Game.prototype._runHandle = null;
 Microsoft.Xna.Framework.Game.prototype._ctor = function () {
   this.content = new HTML5ContentManager();
-  this._frameDelay = 5;
+  this._frameDelay = 1000;
 };
 Microsoft.Xna.Framework.Game.prototype.get_Content = function () {
   return this.content;
@@ -37,6 +42,7 @@ Microsoft.Xna.Framework.Game.prototype.Draw = function (gameTime) {
 Microsoft.Xna.Framework.Game.prototype.Update = function (gameTime) {
 };
 Microsoft.Xna.Framework.Game.prototype.Run = function () {
+  Microsoft.Xna.Framework.Game._QuitForced = false;
   var self = this;
   this.Initialize();
   setTimeout(function () {
@@ -51,7 +57,7 @@ Microsoft.Xna.Framework.Game.prototype._Step = function () {
     this.Draw(gameTime);
     failed = false;
   } finally {
-    if (failed) {
+    if (failed || Microsoft.Xna.Framework.Game._QuitForced) {
       this.Exit();
     } else {
       var self = this;
