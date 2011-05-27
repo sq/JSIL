@@ -374,7 +374,7 @@ JSIL.TypeRef.prototype.get = function () {
   return this.cachedReference = result.get();
 };
 
-JSIL.New = function (type, constructorIndex, args) {
+JSIL.New = function (type, constructorName, args) {
   var proto = type.prototype;
   var result = Object.create(proto);
 
@@ -385,8 +385,7 @@ JSIL.New = function (type, constructorIndex, args) {
 
   if (!type.__IsReferenceType__ && (args.length == 0)) {
   } else {
-    var key = "_ctor$" + constructorIndex;
-    var ctor = proto[key];
+    var ctor = proto[constructorName];
     ctor.apply(result, args);
   }
 

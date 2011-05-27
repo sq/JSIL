@@ -752,7 +752,7 @@ namespace JSIL {
                 }
 
                 Output.Comma();
-                Output.Value(newexp.Constructor.OverloadIndex.Value);
+                Output.Value(Util.EscapeIdentifier(newexp.Constructor.Name, EscapingMode.MemberIdentifier));
 
                 Output.Comma();
                 Output.OpenBracket(true);
