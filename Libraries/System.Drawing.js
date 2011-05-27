@@ -167,16 +167,52 @@ System.Drawing.Rectangle.prototype.Width = 0;
 System.Drawing.Rectangle.prototype.Height = 0;
 System.Drawing.Rectangle.prototype._ctor = function (x, y, w, h) {
   if ((typeof (x) === "object") && (typeof (y) === "object")) {
-    this.X = x.X;
-    this.Y = x.Y;
-    this.Width = y.Width;
-    this.Height = y.Height;
+    this.x = x.X;
+    this.y = x.Y;
+    this.width = y.Width;
+    this.height = y.Height;
   } else {
-    this.X = x;
-    this.Y = y;
-    this.Width = w;
-    this.Height = h;
+    this.x = x;
+    this.y = y;
+    this.width = w;
+    this.height = h;
   }
+}
+System.Drawing.Rectangle.prototype.get_X = function () {
+  return this.x;
+}
+System.Drawing.Rectangle.prototype.get_Y = function () {
+  return this.y;
+}
+System.Drawing.Rectangle.prototype.set_X = function (value) {
+  this.x = value;
+}
+System.Drawing.Rectangle.prototype.set_Y = function (value) {
+  this.y = value;
+}
+System.Drawing.Rectangle.prototype.get_Width = function () {
+  return this.width;
+}
+System.Drawing.Rectangle.prototype.get_Height = function () {
+  return this.height;
+}
+System.Drawing.Rectangle.prototype.set_Width = function (value) {
+  this.width = value;
+}
+System.Drawing.Rectangle.prototype.set_Height = function (value) {
+  this.height = value;
+}
+System.Drawing.Rectangle.prototype.get_Left = function () {
+  return this.x;
+}
+System.Drawing.Rectangle.prototype.get_Top = function () {
+  return this.y;
+}
+System.Drawing.Rectangle.prototype.get_Right = function () {
+  return this.x + this.width;
+}
+System.Drawing.Rectangle.prototype.get_Bottom = function () {
+  return this.y + this.height;
 }
 System.Drawing.Rectangle._cctor = function () {
   System.Drawing.Rectangle.Empty = new System.Drawing.Rectangle();

@@ -192,15 +192,16 @@ Microsoft.Xna.Framework.Input.Keyboard.GetState = function (playerIndex) {
 
 Microsoft.Xna.Framework.Input.KeyboardState.prototype.keys = [];
 Microsoft.Xna.Framework.Input.KeyboardState.prototype._ctor = function (keys) {
+  // Note that these keys should be represented as raw integral key codes, not enumeration members
   this.keys = keys;
 };
 
 Microsoft.Xna.Framework.Input.KeyboardState.prototype.IsKeyDown = function (key) {
-  return Array.prototype.indexOf.call(this.keys, key) !== -1;
+  return Array.prototype.indexOf.call(this.keys, key.value) !== -1;
 };
 
 Microsoft.Xna.Framework.Input.KeyboardState.prototype.IsKeyUp = function (key) {
-  return Array.prototype.indexOf.call(this.keys, key) === -1;
+  return Array.prototype.indexOf.call(this.keys, key.value) === -1;
 };
 
 Microsoft.Xna.Framework.Input.Mouse.GetState = function (playerIndex) {
@@ -416,6 +417,19 @@ Microsoft.Xna.Framework.Rectangle.prototype._ctor = function (x, y, width, heigh
   this.Y = y;
   this.Width = width;
   this.Height = height;
+}
+
+Microsoft.Xna.Framework.Rectangle.prototype.get_Left = function () {
+  return this.X;
+}
+Microsoft.Xna.Framework.Rectangle.prototype.get_Top = function () {
+  return this.Y;
+}
+Microsoft.Xna.Framework.Rectangle.prototype.get_Right = function () {
+  return this.X + this.Width;
+}
+Microsoft.Xna.Framework.Rectangle.prototype.get_Bottom = function () {
+  return this.Y + this.Height;
 }
 
 Microsoft.Xna.Framework.Rectangle.prototype.MemberwiseClone = function () {

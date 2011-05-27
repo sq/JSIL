@@ -81,8 +81,9 @@
     
     window.addEventListener(
       "keydown", function (evt) {
-        if (Array.prototype.indexOf.call(heldKeys, evt.keyCode) === -1)
-          heldKeys.push(evt.keyCode);        
+        var keyCode = evt.keyCode;
+        if (Array.prototype.indexOf.call(heldKeys, keyCode) === -1)
+          heldKeys.push(keyCode);        
       }, true
     );
     
