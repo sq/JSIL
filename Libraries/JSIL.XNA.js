@@ -27,6 +27,13 @@ Microsoft.Xna.Framework.Vector2.prototype._ctor$1 = function (value) {
   this.X = this.Y = value;
 };
 
+Microsoft.Xna.Framework.Vector2.prototype.MemberwiseClone = function () {
+  var result = Object.create(Microsoft.Xna.Framework.Vector2.prototype);
+  result.X = this.X;
+  result.Y = this.Y;
+  return result;
+}
+
 Microsoft.Xna.Framework.Vector3.prototype._ctor$0 = function (x, y, z) {
   this.X = x;
   this.Y = y;
@@ -42,6 +49,14 @@ Microsoft.Xna.Framework.Vector3.prototype._ctor$2 = function (xy, z) {
   this.Y = xy.Y;
   this.Z = z;
 };
+
+Microsoft.Xna.Framework.Vector3.prototype.MemberwiseClone = function () {
+  var result = Object.create(Microsoft.Xna.Framework.Vector3.prototype);
+  result.X = this.X;
+  result.Y = this.Y;
+  result.Z = this.Z;
+  return result;
+}
 
 Microsoft.Xna.Framework.Vector4.prototype._ctor$0 = function (x, y, z, w) {
   this.X = x;
@@ -67,6 +82,15 @@ Microsoft.Xna.Framework.Vector4.prototype._ctor$2 = function (xyz, w) {
 Microsoft.Xna.Framework.Vector4.prototype._ctor$3 = function (value) {
   this.X = this.Y = this.Z = this.W = value;
 };
+
+Microsoft.Xna.Framework.Vector4.prototype.MemberwiseClone = function () {
+  var result = Object.create(Microsoft.Xna.Framework.Vector4.prototype);
+  result.X = this.X;
+  result.Y = this.Y;
+  result.Z = this.Z;
+  result.W = this.W;
+  return result;
+}
 
 Microsoft.Xna.Framework.Game._QuitForced = false;
 Microsoft.Xna.Framework.Game.ForceQuit = function () {
@@ -336,6 +360,15 @@ Microsoft.Xna.Framework.Graphics.Color.prototype.toCss = function () {
   }
 }
 
+Microsoft.Xna.Framework.Graphics.Color.prototype.MemberwiseClone = function () {
+  var result = Object.create(Microsoft.Xna.Framework.Graphics.Color.prototype);
+  result.a = this.a;
+  result.r = this.r;
+  result.g = this.g;
+  result.b = this.b;
+  return result;
+}
+
 Microsoft.Xna.Framework.Graphics.Color.get_Black = function () {
   return new Microsoft.Xna.Framework.Graphics.Color(0, 0, 0);
 };
@@ -354,4 +387,13 @@ Microsoft.Xna.Framework.Rectangle.prototype._ctor = function (x, y, width, heigh
   this.Y = y;
   this.Width = width;
   this.Height = height;
+}
+
+Microsoft.Xna.Framework.Rectangle.prototype.MemberwiseClone = function () {
+  var result = Object.create(Microsoft.Xna.Framework.Rectangle.prototype);
+  result.X = this.X;
+  result.Y = this.Y;
+  result.Width = this.Width;
+  result.Height = this.Height;
+  return result;
 }

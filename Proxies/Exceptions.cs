@@ -12,7 +12,7 @@ namespace JSIL.Proxies {
     public abstract class ExceptionProxy {
         [JSRuntimeDispatch]
         [JSExternal]
-        public ExceptionProxy () {
+        public ExceptionProxy (params AnyType[] values) {
         }
     }
 }

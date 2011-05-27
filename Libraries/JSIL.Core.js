@@ -347,6 +347,15 @@ JSIL.TypeRef.prototype.get = function () {
   return this.cachedReference = result.get();
 };
 
+JSIL.New = function (type, constructorIndex, args) {
+  var proto = type.prototype;
+  var result = Object.create(proto);
+  var key = "_ctor$" + constructorIndex;
+  var ctor = proto[key];
+  ctor.apply(result, args);
+  return result;
+}
+
 JSIL.CloneObject = function (obj) {
   return Object.create(obj);
 };
@@ -514,30 +523,37 @@ JSIL.MakeSealedTypeGetter = function (type) {
 
 // Replaces a class with a property getter that, upon first access,
 //  runs the class's static constructor (if any).
-JSIL.SealTypes = function (namespace/*, ...names */) {
-  for (var i = 1, l = arguments.length; i < l; i++) {
-    var name = arguments[i];
-    var type = namespace[name];
+JSIL.SealTypes = function (privateRoot, namespaceName /*, ...names */) {
+  var publicNamespace = JSIL.ResolveName(JSIL.GlobalNamespace, namespaceName);
+  var privateNamespace = JSIL.ResolveName(privateRoot, namespaceName);
 
-    if (typeof (type) === "undefined") {
-      JSIL.Host.warning("Attempt to seal undefined type '" + name + "'.");
-      continue;
-    }
+  function sealIt (ns, name) {
+    var type = ns[name];
+    if (typeof (type) === "undefined")
+      return;
 
     var cctor = type._cctor;
     if (typeof (cctor) !== "function")
-      continue;
+      return;
 
     try {
-      delete namespace[name];
+      delete ns[name];
     } catch (e) {
     }
 
-    Object.defineProperty(namespace, name, {
+    Object.defineProperty(ns, name, {
       configurable: true,
       enumerable: true,
       get: JSIL.MakeSealedTypeGetter(type)
     });
+  };
+
+  for (var i = 1, l = arguments.length; i < l; i++) {
+    if (publicNamespace.exists())
+      sealIt(publicNamespace.get(), arguments[i]);
+
+    if (privateNamespace.exists())
+      sealIt(privateNamespace.get(), arguments[i]);    
   }
 }
 

@@ -3,7 +3,7 @@
 if (typeof (JSIL) === "undefined")
   throw new Error("JSIL.Core required");
   
-JSIL.DeclareAssembly("JSIL.Drawing");
+var $jsildrawing = JSIL.DeclareAssembly("JSIL.Drawing");
 
 JSIL.DeclareNamespace("System.Drawing");
 
@@ -113,7 +113,12 @@ System.Drawing.Color.prototype.MemberwiseClone = function () {
   if ((typeof (this.Name) != "undefined") && (this.Name != null)) {
     return this;
   } else {
-    return new System.Drawing.Color(this.A, this.R, this.G, this.B, this.Name);
+    var result = Object.create(System.Drawing.Color.prototype);
+    result.A = this.A;
+    result.R = this.R;
+    result.G = this.G;
+    result.B = this.B;
+    return result;
   }
 }
 System.Drawing.Color.FromArgb = function () {
@@ -177,4 +182,7 @@ System.Drawing.Rectangle._cctor = function () {
   System.Drawing.Rectangle.Empty = new System.Drawing.Rectangle();
 }
 
-JSIL.SealTypes(System.Drawing, "Size", "Color", "Point", "Rectangle");
+JSIL.SealTypes(
+  $jsildrawing, "System.Drawing", 
+  "Size", "Color", "Point", "Rectangle"
+);

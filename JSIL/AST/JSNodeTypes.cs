@@ -1958,13 +1958,16 @@ namespace JSIL.Ast {
     }
 
     public class JSNewExpression : JSExpression {
-        public JSNewExpression (TypeReference type, params JSExpression[] arguments)
-            : this (new JSType(type), arguments) {
+        public readonly MethodInfo Constructor;
+
+        public JSNewExpression (TypeReference type, MethodInfo constructor, params JSExpression[] arguments)
+            : this (new JSType(type), constructor, arguments) {
         }
 
-        public JSNewExpression (JSExpression type, params JSExpression[] arguments) : base(
+        public JSNewExpression (JSExpression type, MethodInfo constructor, params JSExpression[] arguments) : base(
             (new [] { type }).Concat(arguments).ToArray()
         ) {
+            Constructor = constructor;
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {

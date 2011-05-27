@@ -536,8 +536,11 @@ namespace JSIL {
                         output.Identifier("JSIL.SealTypes", null);
                         output.LPar();
 
-                        output.Identifier(_.Key, EscapingMode.TypeIdentifier);
+                        output.Identifier(output.PrivateToken);
                         output.Comma();
+                        output.Value(_.Key);
+                        output.Comma();
+
                         output.NewLine();
 
                         output.CommaSeparatedList(

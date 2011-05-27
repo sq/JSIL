@@ -382,7 +382,7 @@ namespace JSIL {
                         Output.Keyword("false");
                         break;
                     default:
-                        VisitNode(new JSNewExpression(new JSType(defaultValue.Value)));
+                        VisitNode(new JSNewExpression(new JSType(defaultValue.Value), null));
                         break;
                 }
             }
@@ -735,25 +735,54 @@ namespace JSIL {
 
         public void VisitNode (JSNewExpression newexp) {
             bool parens = Stack.Skip(1).FirstOrDefault() is JSDotExpression;
-            if (parens)
+
+            if (
+                (newexp.Constructor != null) && 
+                newexp.Constructor.OverloadIndex.HasValue &&
+                newexp.Constructor.Name.Contains("$")
+            ) {
+                Output.Identifier("JSIL.New", null);
                 Output.LPar();
 
-            Output.Keyword("new");
-            Output.Space();
+                IncludeTypeParens.Push(false);
+                try {
+                    Visit(newexp.Type);
+                } finally {
+                    IncludeTypeParens.Pop();
+                }
 
-            IncludeTypeParens.Push(true);
-            try {
-                Visit(newexp.Type);
-            } finally {
-                IncludeTypeParens.Pop();
-            }
+                Output.Comma();
+                Output.Value(newexp.Constructor.OverloadIndex.Value);
 
-            Output.LPar();
-            CommaSeparatedList(newexp.Arguments);
-            Output.RPar();
+                Output.Comma();
+                Output.OpenBracket(true);
+                if (newexp.Arguments.Count > 0) {
+                    CommaSeparatedList(newexp.Arguments);
+                }
+                Output.CloseBracket(true);
 
-            if (parens)
                 Output.RPar();
+            } else {
+                if (parens)
+                    Output.LPar();
+
+                Output.Keyword("new");
+                Output.Space();
+
+                IncludeTypeParens.Push(true);
+                try {
+                    Visit(newexp.Type);
+                } finally {
+                    IncludeTypeParens.Pop();
+                }
+
+                Output.LPar();
+                CommaSeparatedList(newexp.Arguments);
+                Output.RPar();
+
+                if (parens)
+                    Output.RPar();
+            }
         }
 
         public void VisitNode (JSPairExpression pair) {
