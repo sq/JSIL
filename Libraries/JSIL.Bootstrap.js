@@ -12,6 +12,7 @@ JSIL.MakeClass("System.ComponentModel.MemberDescriptor", "System.ComponentModel.
 JSIL.MakeClass("System.Object", "System.ComponentModel.TypeConverter", true);
 JSIL.MakeClass("System.ComponentModel.TypeConverter", "System.ComponentModel.ExpandableObjectConverter", true);
 
+JSIL.MakeStruct("System.Nullable$b1", true);
 JSIL.MakeClass("System.Object", "System.Text.Encoding", true);
 JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true);
 
@@ -307,7 +308,7 @@ JSIL.ImplementInterfaces(System.Collections.Generic.List$b1, [
 System.Collections.ArrayList = System.Collections.Generic.List$b1.Of(System.Object);
 
 // TODO: This type is actually a struct in the CLR
-JSIL.MakeClass("JSIL.ArrayEnumerator", "System.Collections.Generic.List`1.Enumerator", true);
+JSIL.MakeClass("JSIL.ArrayEnumerator", "System.Collections.Generic.List`1/Enumerator", true);
 System.Collections.Generic.List$b1.Enumerator.Of = function (T) {
   return System.Collections.Generic.List$b1.Enumerator;
 };
@@ -320,6 +321,18 @@ System.Collections.Generic.List$b1.Enumerator.prototype._ctor = function (list) 
     this._length = list.Count;
   }
 }
+System.Collections.Generic.List$b1.Enumerator.prototype.MoveNext = function () {
+  return JSIL.ArrayEnumerator.prototype.MoveNext.call(this);
+};
+System.Collections.Generic.List$b1.Enumerator.prototype.Dispose = function () {
+  JSIL.ArrayEnumerator.prototype.Dispose.call(this);
+};
+System.Collections.Generic.List$b1.Enumerator.prototype.Reset = function () {
+  JSIL.ArrayEnumerator.prototype.Reset.call(this);
+};
+System.Collections.Generic.List$b1.Enumerator.prototype.get_Current = function () {
+  return JSIL.ArrayEnumerator.prototype.get_Current.call(this);
+};
 
 System.Threading.Interlocked.CompareExchange = function (targetRef, value, comparand, succeeded) {
   var currentValue = targetRef.value;
@@ -541,6 +554,25 @@ System.Text.Encoding.prototype._ctor = function () {
 
 System.Text.ASCIIEncoding.prototype._ctor = function () {
   System.Text.Encoding.prototype._ctor.call(this, arguments);
+};
+
+System.Nullable$b1.prototype._ctor = function (value) {
+  this.value = value;
+};
+
+System.Nullable$b1.prototype.get_HasValue = function () {
+  return (this.value !== null);
+};
+
+System.Nullable$b1.prototype.get_Value = function () {
+  if (this.value === null)
+    throw new System.NullReferenceException();
+
+  return this.value;
+};
+
+System.Nullable$b1.prototype.GetValueOrDefault = function () {
+  return this.value;
 };
 
 JSIL.QueueInitializer(function () {

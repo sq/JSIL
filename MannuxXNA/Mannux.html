@@ -13,7 +13,7 @@
     <div id="scripts" style="display: none"></div>
     <div id="images" style="display: none"></div>
     
-    <canvas id="canvas"></canvas><br>
+    <canvas id="canvas" width="640" height="480"></canvas><br>
     <button id="quitButton" title="Quit Game">X</button>
     <button id="loadButton">Load Mannux</button>
     <div id="loadingProgress">
@@ -57,6 +57,11 @@
         throw new System.Exception("The image '" + key + "' is not in the asset manifest.");
       return allImages[key];
     };
+    JSIL.Host.getAsset = function (filename) {
+      if (!allAssets.hasOwnProperty(filename))
+        throw new System.Exception("The asset '" + filename + "' is not in the asset manifest.");
+      return allAssets[filename];
+    };
     JSIL.Host.getHeldKeys = function () {
       return Array.prototype.slice.call(heldKeys);
     };
@@ -69,6 +74,7 @@
     
     var allFiles = {};
     var allImages = {};
+    var allAssets = {};
     var heldKeys = [];
     var heldButtons = [];
     var mousePosition = [0, 0];
@@ -106,6 +112,15 @@
       return filename.substr(lastIndex + 1).toLowerCase();
     };
     
+    function getAssetName (filename) {
+      filename = getShortName(filename);
+      var lastIndex = filename.lastIndexOf(".");
+      if (lastIndex === -1)
+        return filename;
+      
+      return filename.substr(0, lastIndex);
+    };
+    
     var assetLoaders = {
       "Script": function loadScript (filename, onError, onDoneLoading) {
         var e = document.createElement("script");
@@ -121,6 +136,7 @@
         e.addEventListener("error", onError, true);
         e.addEventListener("load", function () {
           allImages[getShortName(filename)] = e;
+          allAssets[getAssetName(filename)] = e;
           onDoneLoading();
         }, true);
         e.id = "image_" + filename;
@@ -231,6 +247,7 @@
         ["File", "Content/shaft.map"],
         ["File", "Content/testmap.map"],
         ["Image", "Content/Boom.png"],
+        ["Image", "Content/door.png"],
         ["Image", "Content/bullet.png"],
         ["Image", "Content/mantiles.png"],
         ["Image", "Content/ripper.png"],
