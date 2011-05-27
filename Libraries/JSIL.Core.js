@@ -226,13 +226,14 @@ JSIL.Host.error = function (exception, text) {
 
   if (typeof (console) !== "undefined") {
     Function.prototype.apply.call(console.error, console, rest);
-  } else if (typeof (print) === "function") {
-    // print(stack);
-    throw exception;
-  } else {    
-    throw exception;
   }
+
+  JSIL.Host.throwException(exception);
 }
+
+JSIL.Host.throwException = function (e) {
+  throw e;
+};
 
 JSIL.Host.warnedAboutRunLater = false;
 JSIL.Host.pendingRunLaterItems = [];

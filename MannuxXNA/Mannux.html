@@ -19,9 +19,11 @@
     <div id="loadingProgress">
       <div id="progressBar"></div>
     </div>
-    <textarea id="log"></textarea>
+    <div id="log"></div>
     
-    <script type="text/javascript">    
+    <script type="text/javascript">
+    var currentLogLine = null;
+    
     JSIL.Host.getCanvas = function (desiredWidth, desiredHeight) {
         var e = document.getElementById("canvas");
         if (typeof (desiredWidth) === "number")
@@ -40,10 +42,22 @@
         return e;
     };
     JSIL.Host.logWrite = function (text) {
-        document.getElementById("log").value += text;
+        if (currentLogLine === null) {
+          currentLogLine = document.createTextNode(text);
+          document.getElementById("log").appendChild(currentLogLine);
+        } else {
+          currentLogLine.textContent += text;
+        }
     };
     JSIL.Host.logWriteLine = function (text) {
-        document.getElementById("log").value += text + "\n";
+        if (currentLogLine === null) {
+          logLine = document.createTextNode(text);
+          document.getElementById("log").appendChild(logLine);
+        } else {
+          currentLogLine.textContent += text;
+          currentLogLine = null;
+        }
+        document.getElementById("log").appendChild(document.createElement("br"));
     };
     JSIL.Host.getFile = function (filename) {
       var key = getShortName(filename);
@@ -70,6 +84,17 @@
     };
     JSIL.Host.getHeldButtons = function () {
       return Array.prototype.slice.call(heldButtons);
+    };
+    JSIL.Host.throwException = function (e) {
+      var stack = "";
+      try {
+        stack = e.stack || "";
+      } catch (ex) {
+        stack = "";
+      }
+      JSIL.Host.logWriteLine("Unhandled exception: " + String(e));
+      if (stack.length > 0)
+        JSIL.Host.logWriteLine(stack);
     };
     
     var allFiles = {};
@@ -168,27 +193,32 @@
         req.open('GET', filename, false);
         if (typeof (req.overrideMimeType) !== "undefined")
           req.overrideMimeType('text/plain; charset=x-user-defined');
+                
+        req.onreadystatechange = function (evt) {
+          if (req.readyState != 4)
+            return;
+        
+          if (req.status <= 299) {
+            var bytes;
+            if (
+              (typeof (req.responseBody) !== "undefined") && 
+              (typeof (VBArray) !== "undefined")
+            ) {
+                bytes = new VBArray(req.responseBody).toArray();
+            } else {
+                var text = req.responseText;
+                bytes = new Array(req.responseText.length);
+                for (var i = 0, l = text.length; i < l; i++)
+                  bytes[i] = text.charCodeAt(i) & 0xFF;
+            }
+            allFiles[getShortName(filename)] = bytes;
+            onDoneLoading();
+          } else {
+            onError(req.statusText || req.status);
+          }
+        };
         
         req.send(null);
-        
-        if (req.status <= 299) {
-          var bytes;
-          if (
-            (typeof (req.responseBody) !== "undefined") && 
-            (typeof (VBArray) !== "undefined")
-          ) {
-              bytes = new VBArray(req.responseBody).toArray();
-          } else {
-              var text = req.responseText;
-              bytes = new Array(req.responseText.length);
-              for (var i = 0, l = text.length; i < l; i++)
-                bytes[i] = text.charCodeAt(i) & 0xFF;
-          }
-          allFiles[getShortName(filename)] = bytes;
-          onDoneLoading();
-        } else {
-          onError();
-        }
       }
     };
     
@@ -274,6 +304,7 @@
         ["File", "Content/tabby.txt"]
       ];
       
+      JSIL.Host.logWriteLine("Arrow keys to move. Space to jump. Ctrl to shoot.");
       JSIL.Host.logWrite("Loading data ... ");
       loadAssets(assetsToLoad, function () {
         JSIL.Host.logWriteLine("done.");
@@ -283,7 +314,7 @@
           document.getElementById("quitButton").style.display = "";
           
           Mannux.Program.Main([]);
-          // Main doesn't block since we're using the browser's event loop
+          // Main doesn't block since we're using the browser's event loop          
         } finally {
           document.getElementById("loadingProgress").style.display = "none";
         }
