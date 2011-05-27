@@ -17,6 +17,56 @@ HTML5Asset.prototype._ctor = function (assetName) {
   this.name = assetName;
 }
 
+Microsoft.Xna.Framework.Vector2.prototype._ctor$0 = function (x, y) {
+  this.X = x;
+  this.Y = y;
+};
+
+Microsoft.Xna.Framework.Vector2.prototype._ctor$1 = function (value) {
+  this.X = this.Y = value;
+};
+
+Microsoft.Xna.Framework.Vector3.prototype._ctor$0 = function (x, y, z) {
+  this.X = x;
+  this.Y = y;
+  this.Z = z;
+};
+
+Microsoft.Xna.Framework.Vector3.prototype._ctor$1 = function (value) {
+  this.X = this.Y = this.Z = value;
+};
+
+Microsoft.Xna.Framework.Vector3.prototype._ctor$2 = function (xy, z) {
+  this.X = xy.X;
+  this.Y = xy.Y;
+  this.Z = z;
+};
+
+Microsoft.Xna.Framework.Vector4.prototype._ctor$0 = function (x, y, z, w) {
+  this.X = x;
+  this.Y = y;
+  this.Z = z;
+  this.W = w;
+};
+
+Microsoft.Xna.Framework.Vector4.prototype._ctor$1 = function (xy, z, w) {
+  this.X = xy.X;
+  this.Y = xy.Y;
+  this.Z = z;
+  this.W = w;
+};
+
+Microsoft.Xna.Framework.Vector4.prototype._ctor$2 = function (xyz, w) {
+  this.X = xyz.X;
+  this.Y = xyz.Y;
+  this.Z = xyz.Z;
+  this.W = w;
+};
+
+Microsoft.Xna.Framework.Vector4.prototype._ctor$3 = function (value) {
+  this.X = this.Y = this.Z = this.W = value;
+};
+
 Microsoft.Xna.Framework.Game._QuitForced = false;
 Microsoft.Xna.Framework.Game.ForceQuit = function () {
   Microsoft.Xna.Framework.Game._QuitForced = true;
@@ -140,4 +190,19 @@ Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.Begin = function () {
 };
 
 Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.End = function () {
+};
+
+Microsoft.Xna.Framework.GameTime.prototype._ctor$0 = function () {
+};
+
+Microsoft.Xna.Framework.GameTime.prototype._ctor$1 = function (totalRealTime, elapsedRealTime, totalGameTime, elapsedGameTime, isRunningSlowly) {
+  this.totalRealTime = totalRealTime;
+  this.elapsedRealTime = elapsedRealTime;
+  this.totalGameTime = totalGameTime;
+  this.elapsedGameTime = elapsedGameTime;
+  this.isRunningSlowly = isRunningSlowly;
+};
+
+Microsoft.Xna.Framework.GameTime.prototype._ctor$2 = function (totalRealTime, elapsedRealTime, totalGameTime, elapsedGameTime) {
+  Microsoft.Xna.Framework.GameTime.prototype._ctor$1.call(this, totalRealTime, elapsedRealTime, totalGameTime, elapsedGameTime);
 };
