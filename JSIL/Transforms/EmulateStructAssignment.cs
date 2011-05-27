@@ -25,16 +25,15 @@ namespace JSIL.Transforms {
             if (type == null)
                 return false;
 
+            MetadataType etype = type.MetadataType;
+
+            type = ILBlockTranslator.DereferenceType(type);
             var typedef = ILBlockTranslator.GetTypeDefinition(type);
 
-            if (typedef != null) {
-                if (typedef.IsEnum)
-                    return false;
+            if ((typedef != null) && typedef.IsEnum)
+                return false;
 
-                return typedef.IsValueType && !typedef.IsPrimitive;
-            } else {
-                return type.IsValueType && !type.IsPrimitive;
-            }
+            return etype == MetadataType.ValueType;
         }
 
         protected bool IsCopyNeeded (JSExpression value) {

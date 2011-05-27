@@ -408,22 +408,13 @@ System.Char.CheckType = function (value) {
 }
 System.Char.prototype = JSIL.MakeProto(String, System.Char, "System.Char", false);
 
-System.Byte = function (value) {
-  if (value < 0)
-    value = 0;
-  else if (value > 255)
-    value = 255;
-  else
-    return Math.floor(value);
-};
+System.Byte = function () {};
 System.Byte.CheckType = function (value) {
   return (typeof (value) === "number") && (value >= 0) && (value <= 255);
 }
 JSIL.MakeNumericType(Number, "System.Byte", true);
 
-System.UInt16 = function (value) {
-  return Math.abs(Math.floor(value));
-};
+System.UInt16 = function () {};
 System.UInt16.CheckType = function (value) {
   return (typeof (value) === "number") && (value >= 0);
 }
@@ -433,9 +424,7 @@ System.UInt16.Parse = function (text) {
   return Math.abs(parseInt(text, 10));
 };
 
-System.Int16 = function (value) {
-  return Math.abs(Math.floor(value));
-};
+System.Int16 = function () {};
 System.Int16.CheckType = function (value) {
   return (typeof (value) === "number");
 }
@@ -445,9 +434,7 @@ System.Int16.Parse = function (text) {
   return Math.abs(parseInt(text, 10));
 };
 
-System.UInt32 = function (value) {
-  return Math.abs(Math.floor(value));
-};
+System.UInt32 = function () {};
 System.UInt32.CheckType = function (value) {
   return (typeof (value) === "number") && (value >= 0);
 }
@@ -457,9 +444,7 @@ System.UInt32.Parse = function (text) {
   return Math.abs(parseInt(text, 10));
 };
 
-System.Int32 = function (value) {
-  return Math.floor(value);
-};
+System.Int32 = function () {};
 System.Int32.CheckType = function (value) {
   return (typeof (value) === "number");
 }
@@ -469,9 +454,7 @@ System.Int32.Parse = function (text) {
   return parseInt(text, 10);
 };
 
-System.Int64 = function (value) {
-  return Math.floor(value);
-};
+System.Int64 = function () {};
 System.Int64.CheckType = function (value) {
   return (typeof (value) === "number");
 }
@@ -480,18 +463,14 @@ System.Int64.Parse = function (text) {
   return parseInt(text, 10);
 };
 
-System.Single = function (value) {
-  return value;
-}
+System.Single = function () {}
 System.Single.CheckType = function (value) {
   return (typeof (value) === "number");
 }
 System.Single.IsNaN = isNaN;
 JSIL.MakeNumericType(Number, "System.Single", false);
 
-System.Double = function (value) {
-  return value;
-}
+System.Double = function () {}
 System.Double.CheckType = function (value) {
   return (typeof (value) === "number");
 }

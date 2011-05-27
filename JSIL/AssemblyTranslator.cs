@@ -850,7 +850,8 @@ namespace JSIL {
 
             var structFields = 
                 (from field in typedef.Fields
-                where !isFieldIgnored(field) && !field.HasConstant &&
+                where !isFieldIgnored(field) && 
+                    !field.HasConstant &&
                     EmulateStructAssignment.IsStruct(field.FieldType) &&
                     !field.IsStatic
                 select field).ToArray();
@@ -1101,7 +1102,7 @@ namespace JSIL {
         protected static bool NeedsStaticConstructor (TypeReference type) {
             if (EmulateStructAssignment.IsStruct(type))
                 return true;
-            else if (type.IsPrimitive)
+            else if (type.MetadataType != MetadataType.ValueType)
                 return false;
 
             var resolved = type.Resolve();
@@ -1109,8 +1110,6 @@ namespace JSIL {
                 return true;
 
             if (resolved.IsEnum)
-                return false;
-            if (!resolved.IsValueType)
                 return false;
 
             return true;

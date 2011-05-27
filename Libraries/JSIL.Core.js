@@ -476,8 +476,9 @@ JSIL.InitializeStructFields = function (instance, typeObject) {
     var fieldName = sf[i][0];
     var fieldType = sf[i][1];
 
-    if (typeof (fieldType) === "function")
+    if (typeof (fieldType) === "function") {
       instance[fieldName] = new fieldType();
+    }
   }
 };
 

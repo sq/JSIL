@@ -438,39 +438,38 @@ namespace JSIL {
         public static bool IsNumeric (TypeReference type) {
             type = DereferenceType(type);
 
-            if (type.IsPrimitive) {
-                switch (type.FullName) {
-                    case "System.String":
-                    case "System.IntPtr":
-                    case "System.UIntPtr":
-                    case "System.Boolean":
-                    return false;
-                    default:
+            switch (type.MetadataType) {
+                case MetadataType.Char:
+                case MetadataType.Byte:
+                case MetadataType.Double:
+                case MetadataType.Single:
+                case MetadataType.Int16:
+                case MetadataType.Int32:
+                case MetadataType.Int64:
+                case MetadataType.UInt16:
+                case MetadataType.UInt32:
+                case MetadataType.UInt64:
                     return true;
-                }
-            } else {
-                return false;
+                default:
+                    return false;
             }
         }
 
         public static bool IsIntegral (TypeReference type) {
             type = DereferenceType(type);
 
-            if (type.IsPrimitive) {
-                switch (type.FullName) {
-                    case "System.String":
-                    case "System.IntPtr":
-                    case "System.UIntPtr":
-                    case "System.Decimal":
-                    case "System.Double":
-                    case "System.Single":
-                    case "System.Boolean":
-                    return false;
-                    default:
+            switch (type.MetadataType) {
+                case MetadataType.Char:
+                case MetadataType.Byte:
+                case MetadataType.Int16:
+                case MetadataType.Int32:
+                case MetadataType.Int64:
+                case MetadataType.UInt16:
+                case MetadataType.UInt32:
+                case MetadataType.UInt64:
                     return true;
-                }
-            } else {
-                return false;
+                default:
+                    return false;
             }
         }
 
