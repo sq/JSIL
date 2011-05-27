@@ -16,7 +16,61 @@ namespace JSIL.Proxies {
 
         [JSExternal]
         [JSRuntimeDispatch]
-        new public static string Concat (params AnyType[] arguments) {
+        new public static string Concat (params string[] arguments) {
+            throw new InvalidOperationException();
+        }
+
+        [JSExternal]
+        [JSRuntimeDispatch]
+        new public static string Concat (params object[] arguments) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("String($value)")]
+        [JSRuntimeDispatch]
+        new public static string Concat (object value) {
+            throw new InvalidOperationException();
+        }
+
+        [JSExternal]
+        [JSRuntimeDispatch]
+        new public static string Concat (object a, object b) {
+            throw new InvalidOperationException();
+        }
+
+        [JSExternal]
+        [JSRuntimeDispatch]
+        new public static string Concat (string a, string b) {
+            throw new InvalidOperationException();
+        }
+
+        [JSExternal]
+        [JSRuntimeDispatch]
+        new public static string Concat (object a, object b, object c) {
+            throw new InvalidOperationException();
+        }
+
+        [JSExternal]
+        [JSRuntimeDispatch]
+        new public static string Concat (string a, string b, string c) {
+            throw new InvalidOperationException();
+        }
+
+        [JSExternal]
+        [JSRuntimeDispatch]
+        new public static string Concat (object a, object b, object c, object d) {
+            throw new InvalidOperationException();
+        }
+
+        [JSExternal]
+        [JSRuntimeDispatch]
+        new public static string Concat (string a, string b, string c, string d) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("$lhs + String.fromCharCode($ch)")]
+        [JSRuntimeDispatch]
+        new public static string Concat (string lhs, char ch) {
             throw new InvalidOperationException();
         }
 

@@ -235,6 +235,10 @@ namespace JSIL {
             Output.Identifier(identifier.Identifier);
         }
 
+        public void VisitNode (JSCharLiteral ch) {
+            Output.Value(ch.Value);
+        }
+
         public void VisitNode (JSStringLiteral str) {
             Output.Value(str.Value);
         }

@@ -67,24 +67,64 @@ namespace JSIL {
         }
 
         public JSInvocationExpression CheckType (JSExpression expression, TypeReference targetType) {
-            return new JSInvocationExpression(
+            var result = new JSInvocationExpression(
                 Dot("CheckType", TypeSystem.Boolean),
                 expression, new JSType(targetType)
             );
+            result.ConstantIfArgumentsAre = true;
+            return result;
         }
 
         public JSInvocationExpression TryCast (JSExpression expression, TypeReference targetType) {
-            return new JSInvocationExpression(
+            var result = new JSInvocationExpression(
                 Dot("TryCast", targetType),
                 expression, new JSType(targetType)
             );
+            result.ConstantIfArgumentsAre = true;
+            return result;
         }
 
-        public JSInvocationExpression Cast (JSExpression expression, TypeReference targetType) {
-            return new JSInvocationExpression(
-                Dot("Cast", targetType),
-                expression, new JSType(targetType)
-            );
+        public JSExpression Cast (JSExpression expression, TypeReference targetType) {
+            var currentType = expression.GetExpectedType(TypeSystem);
+
+            if (targetType.FullName == "System.Char") {
+                var result = new JSInvocationExpression(
+                    JSDotExpression.New(
+                        new JSStringIdentifier("String"),
+                        new JSStringIdentifier("fromCharCode", TypeSystem.Char)
+                    ),
+                    expression
+                );
+                result.ConstantIfArgumentsAre = true;
+                return result;
+            } else if (
+                (currentType.FullName == "System.Char") &&
+                ILBlockTranslator.IsIntegral(targetType)
+            ) {
+                var result = new JSInvocationExpression(
+                    JSDotExpression.New(
+                        expression,
+                        new JSStringIdentifier("charCodeAt", TypeSystem.Char)
+                    ),
+                    JSLiteral.New(0)
+                );
+                result.ConstantIfArgumentsAre = true;
+                return result;
+            } else if (
+                ILBlockTranslator.GetTypeDefinition(currentType).IsEnum &&
+                ILBlockTranslator.IsIntegral(targetType)
+            ) {
+                return new JSDotExpression(
+                    expression, new JSStringIdentifier("value", targetType)
+                );
+            } else {
+                var result = new JSInvocationExpression(
+                    Dot("Cast", targetType),
+                    expression, new JSType(targetType)
+                );
+                result.ConstantIfArgumentsAre = true;
+                return result;
+            }
         }
 
         public JSInvocationExpression NewArray (TypeReference elementType, JSExpression sizeOrArrayInitializer) {

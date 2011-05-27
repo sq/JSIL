@@ -96,8 +96,8 @@
     <None Include="SimpleTestCases\OverloadedMethods.cs" />
     <None Include="SimpleTestCases\DynamicOverloadedMethods.cs" />
     <None Include="SimpleTestCases\OverloadedConstructors.cs" />
-    <None Include="SimpleTestCases\Events.cs" />
-    <None Include="SimpleTestCases\MulticastDelegates.cs" />
+    <None Include="TestCases\Events.cs" />
+    <None Include="TestCases\MulticastDelegates.cs" />
     <None Include="SpecialTestCases\IgnoreUnsafeCode.cs" />
     <None Include="SimpleTestCases\Arrays.cs" />
     <None Include="SimpleTestCases\MultiDimArrays.cs" />
@@ -189,6 +189,7 @@
     <None Include="TestCases\RefClass.cs" />
     <None Include="SpecialTestCases\StringSwitch.cs" />
     <None Include="TestCases\EnumSwitch.cs" />
+    <None Include="TestCases\Chars.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

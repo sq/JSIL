@@ -140,6 +140,8 @@ namespace JSIL.Internal {
 
         public static string EscapeCharacter (char character) {
             switch (character) {
+                case '\0':
+                    return @"\0";
                 case '\'':
                     return @"\'";
                 case '\\':
@@ -152,8 +154,12 @@ namespace JSIL.Internal {
                     return @"\r";
                 case '\n':
                     return @"\n";
-                default:
-                    return String.Format(@"\x{0:x4}", (int)character);
+                default: {
+                    if (character > 255)
+                        return String.Format(@"\x{0:x4}", (int)character);
+                    else
+                        return String.Format(@"\x{0:x2}", (int)character);
+                }
             }
         }
 

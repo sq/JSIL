@@ -35,6 +35,24 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void Events () {
+            using (var test = new ComparisonTest(@"TestCases\Events.cs"))
+                test.Run();
+        }
+
+        [Test]
+        public void MulticastDelegates () {
+            using (var test = new ComparisonTest(@"TestCases\MulticastDelegates.cs"))
+                test.Run();
+        }
+
+        [Test]
+        public void Chars () {
+            using (var test = new ComparisonTest(@"TestCases\Chars.cs"))
+                test.Run();
+        }
+
+        [Test]
         public void EnumSwitch () {
             using (var test = new ComparisonTest(@"TestCases\EnumSwitch.cs"))
                 test.Run();

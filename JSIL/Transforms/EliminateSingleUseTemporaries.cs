@@ -44,28 +44,44 @@ namespace JSIL.Transforms {
 
         protected bool IsEffectivelyConstant (JSVariable target, JSExpression source) {
             // Handle special cases where our interpretation of 'constant' needs to be more flexible
-            var ie = source as JSIndexerExpression;
-            if (
-                (ie != null) && 
-                IsEffectivelyConstant(target, ie.Target) && 
-                IsEffectivelyConstant(target, ie.Index)
-            )
-                return true;
+            {
+                var ie = source as JSIndexerExpression;
+                if (
+                    (ie != null) &&
+                    IsEffectivelyConstant(target, ie.Target) &&
+                    IsEffectivelyConstant(target, ie.Index)
+                )
+                    return true;
+            }
 
-            var ae = source as JSArrayExpression;
-            if (
-                (ae != null) &&
-                (from av in ae.Values select IsEffectivelyConstant(target, av)).All((b) => b)
-            )
-                return true;
+            {
+                var ae = source as JSArrayExpression;
+                if (
+                    (ae != null) &&
+                    (from av in ae.Values select IsEffectivelyConstant(target, av)).All((b) => b)
+                )
+                    return true;
+            }
 
-            var de = source as JSDotExpression;
-            if (
-                (de != null) &&
-                IsEffectivelyConstant(target, de.Target) &&
-                IsEffectivelyConstant(target, de.Member)
-            )
-                return true;
+            {
+                var de = source as JSDotExpression;
+                if (
+                    (de != null) &&
+                    IsEffectivelyConstant(target, de.Target) &&
+                    IsEffectivelyConstant(target, de.Member)
+                )
+                    return true;
+            }
+
+            {
+                var ie = source as JSInvocationExpression;
+                if (
+                    (ie != null) && ie.ConstantIfArgumentsAre &&
+                    IsEffectivelyConstant(target, ie.Target) &&
+                    ie.Arguments.All((a) => IsEffectivelyConstant(target, a))
+                )
+                    return true;
+            }
 
             if ((source is JSUnaryOperatorExpression) || (source is JSBinaryOperatorExpression)) {
                 if (source.Children.OfType<JSExpression>().All((_v) => IsEffectivelyConstant(target, _v)))

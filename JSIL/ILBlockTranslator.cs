@@ -439,8 +439,8 @@ namespace JSIL {
             type = DereferenceType(type);
 
             switch (type.MetadataType) {
-                case MetadataType.Char:
                 case MetadataType.Byte:
+                case MetadataType.SByte:
                 case MetadataType.Double:
                 case MetadataType.Single:
                 case MetadataType.Int16:
@@ -449,6 +449,10 @@ namespace JSIL {
                 case MetadataType.UInt16:
                 case MetadataType.UInt32:
                 case MetadataType.UInt64:
+                    return true;
+                // Blech
+                case MetadataType.UIntPtr:
+                case MetadataType.IntPtr:
                     return true;
                 default:
                     return false;
@@ -459,14 +463,18 @@ namespace JSIL {
             type = DereferenceType(type);
 
             switch (type.MetadataType) {
-                case MetadataType.Char:
                 case MetadataType.Byte:
+                case MetadataType.SByte:
                 case MetadataType.Int16:
                 case MetadataType.Int32:
                 case MetadataType.Int64:
                 case MetadataType.UInt16:
                 case MetadataType.UInt32:
                 case MetadataType.UInt64:
+                    return true;
+                // Blech
+                case MetadataType.UIntPtr:
+                case MetadataType.IntPtr:
                     return true;
                 default:
                     return false;
@@ -497,6 +505,9 @@ namespace JSIL {
             type = DereferenceType(type);
 
             var typedef = GetTypeDefinition(type);
+            if (typedef.FullName == "System.Delegate")
+                return true;
+
             if (
                 (typedef != null) && (typedef.BaseType != null) &&
                 (
@@ -568,6 +579,23 @@ namespace JSIL {
 
         public static bool TypesAreAssignable (TypeReference target, TypeReference source) {
             bool result;
+
+            // All values are assignable to object
+            if (target.FullName == "System.Object")
+                return true;
+
+            if (TypesAreEqual(DereferenceType(target), DereferenceType(source)))
+                return true;
+
+            // Complex hack necessary because System.Array and T[] do not implement IEnumerable<T>
+            var targetGit = target as GenericInstanceType;
+            if (
+                (targetGit != null) &&
+                (targetGit.Name == "IEnumerable`1") &&
+                source.IsArray &&
+                (targetGit.GenericArguments.FirstOrDefault() == source.GetElementType())
+            )
+                return true;
 
             var cacheKey = new Tuple<string, string>(target.FullName, source.FullName);
             if (TypeEqualityCache.TryGetValue(cacheKey, out result) && result == true)
@@ -1117,12 +1145,20 @@ namespace JSIL {
             }
         }
 
-        protected JSVariable Translate_Ldloc (ILExpression node, ILVariable variable) {
+        protected JSExpression Translate_Ldloc (ILExpression node, ILVariable variable) {
+            JSExpression result;
             JSVariable renamed;
+
             if (RenamedVariables.TryGetValue(variable, out renamed))
-                return new JSIndirectVariable(Variables, renamed.Identifier);
+                result = new JSIndirectVariable(Variables, renamed.Identifier);
             else
-                return new JSIndirectVariable(Variables, variable.Name);
+                result = new JSIndirectVariable(Variables, variable.Name);
+
+            var expectedType = node.ExpectedType ?? node.InferredType ?? variable.Type;
+            if (!TypesAreAssignable(expectedType, variable.Type))
+                result = Translate_Conv(result, expectedType);
+
+            return result;
         }
 
         protected JSExpression Translate_Ldloca (ILExpression node, ILVariable variable) {
@@ -1139,6 +1175,10 @@ namespace JSIL {
             var value = TranslateNode(node.Arguments[0]);
             if ((value.IsNull) && !(value is JSUntranslatableExpression) && !(value is JSIgnoredMemberReference))
                 return new JSNullExpression();
+
+            var expectedType = node.ExpectedType ?? node.InferredType ?? variable.Type;
+            if (!TypesAreAssignable(expectedType, value.GetExpectedType(TypeSystem)))
+                value = Translate_Conv(value, expectedType);
 
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment, Translate_Ldloc(node, variable),
@@ -1338,6 +1378,8 @@ namespace JSIL {
                 }
             } else if (typeName == "System.Boolean") {
                 return JSLiteral.New(value != 0);
+            } else if (typeName == "System.Char") {
+                return JSLiteral.New((char)value);
             } else {
                 switch (node.Code) {
                     case ILCode.Ldc_I4:
@@ -1483,18 +1525,22 @@ namespace JSIL {
                 return result;
         }
 
-        protected JSExpression Translate_Conv (ILExpression node, TypeReference targetType) {
-            var value = TranslateNode(node.Arguments[0]);
+        protected JSExpression Translate_Conv (JSExpression value, TypeReference expectedType) {
             var currentType = value.GetExpectedType(TypeSystem);
 
             try {
-                targetType = TypeAnalysis.SubstituteTypeArgs(targetType, ThisMethodReference);
+                expectedType = TypeAnalysis.SubstituteTypeArgs(expectedType, ThisMethodReference);
             } catch (OpenGenericTypeException) {
-                throw new AbortTranslation(String.Format("Cast value to open generic type '{0}'", targetType));
+                throw new AbortTranslation(String.Format("Cast value to open generic type '{0}'", expectedType));
             }
 
-            if (IsNumeric(currentType) && IsNumeric(targetType)) {
-                if (IsIntegral(targetType)) {
+            if (IsDelegateType(expectedType) && IsDelegateType(currentType))
+                return value;
+
+            if (IsNumeric(currentType) &&
+                IsNumeric(expectedType)
+            ) {
+                if (IsIntegral(expectedType)) {
                     if (IsIntegral(currentType))
                         return value;
                     else
@@ -1502,8 +1548,30 @@ namespace JSIL {
                 } else {
                     return value;
                 }
+            } else if (!TypesAreAssignable(expectedType, currentType)) {
+                if (expectedType.FullName == "System.Boolean") {
+                    if (IsIntegral(currentType)) {
+                        // i != 0 sometimes becomes (bool)i, so we want to generate the explicit form
+                        return new JSBinaryOperatorExpression(
+                            JSOperator.NotEqual, value, JSLiteral.New(0), TypeSystem.Boolean
+                        );
+                    } else if (!currentType.IsValueType) {
+                        // We need to detect any attempts to cast object references to boolean and not generate a cast
+                        //  for them, so that our logic in Translate_UnaryOp for detecting (x != null) will still work
+                        return value;
+                    }
+                }
+
+                return JSIL.Cast(value, expectedType);
             } else
-                return JSIL.Cast(value, targetType);
+                return value;
+        }
+
+        protected JSExpression Translate_Conv (ILExpression node, TypeReference targetType) {
+            var value = TranslateNode(node.Arguments[0]);
+            var expectedType = node.ExpectedType ?? node.InferredType ?? targetType;
+
+            return Translate_Conv(value, expectedType);
         }
 
         protected JSExpression Translate_Conv_I (ILExpression node) {
@@ -1571,7 +1639,8 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Box (ILExpression node, TypeReference valueType) {
-            return JSReferenceExpression.New(TranslateNode(node.Arguments[0]));
+            var value = TranslateNode(node.Arguments[0]);
+            return JSReferenceExpression.New(value);
         }
 
         protected JSExpression Translate_Br (ILExpression node, ILLabel targetLabel) {

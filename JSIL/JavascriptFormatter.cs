@@ -348,6 +348,10 @@ namespace JSIL.Internal {
             PlainTextOutput.Write(Util.EscapeString(value));
         }
 
+        public void Value (char value) {
+            PlainTextOutput.Write(Util.EscapeString("" + value));
+        }
+
         public void Value (long value) {
             PlainTextOutput.Write(value.ToString());
         }

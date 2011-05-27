@@ -160,8 +160,6 @@ System.String.Concat = function (firstValue) {
     var arg = arguments[i];
     if (typeof (arg) === "string")
       result += arg;
-    else if ((typeof (arg) === "number") && (arg >= 0) && (arg <= 255))
-      result += String.fromCharCode(arg);
     else
       result += String(arg);
   }
@@ -285,6 +283,12 @@ System.Collections.Generic.List$b1.prototype.Add = function (item) {
   }
   this._size += 1;
 };
+System.Collections.Generic.List$b1.prototype.Remove = function (item) {
+  this._items = this._items.filter(function (element) {
+    return element !== item;
+  });
+  this._size = this._items.length;
+};
 System.Collections.Generic.List$b1.prototype.Clear = function () {
   this._size = 0;
 };
@@ -293,6 +297,9 @@ System.Collections.Generic.List$b1.prototype.get_Item = function (index) {
 };
 System.Collections.Generic.List$b1.prototype.get_Count = function () {
   return this._size;
+};
+System.Collections.Generic.List$b1.prototype.get_Capacity = function () {
+  return this._items.length;
 };
 System.Collections.Generic.List$b1.prototype.GetEnumerator = function () {
   return new System.Collections.Generic.List$b1.Enumerator(this);

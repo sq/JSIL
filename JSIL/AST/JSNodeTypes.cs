@@ -1070,6 +1070,10 @@ namespace JSIL.Ast {
             return new JSBooleanLiteral(value);
         }
 
+        public static JSCharLiteral New (char value) {
+            return new JSCharLiteral(value);
+        }
+
         public static JSIntegerLiteral New (sbyte value) {
             return new JSIntegerLiteral(value, typeof(sbyte));
         }
@@ -1198,6 +1202,20 @@ namespace JSIL.Ast {
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             return typeSystem.Boolean;
+        }
+    }
+
+    public class JSCharLiteral : JSLiteralBase<char> {
+        public JSCharLiteral (char value)
+            : base(value) {
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return typeSystem.Char;
+        }
+
+        public override string ToString () {
+            return Util.EscapeCharacter(Value);
         }
     }
 
@@ -1998,7 +2016,14 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return Values[0].GetExpectedType(typeSystem);
+            var type = Type as JSType;
+
+            if (type != null)
+                return type.Type;
+            else if (Constructor != null)
+                return Constructor.DeclaringType.Definition;
+            else
+                return typeSystem.Object;
         }
 
         public JSExpression Type {
@@ -2015,6 +2040,8 @@ namespace JSIL.Ast {
     }
 
     public class JSInvocationExpression : JSExpression {
+        public bool ConstantIfArgumentsAre = false;
+
         public JSInvocationExpression (JSExpression target, params JSExpression[] arguments)
             : base ( 
                 (new [] { target }).Concat(arguments).ToArray() 
@@ -2024,6 +2051,15 @@ namespace JSIL.Ast {
         public JSExpression Target {
             get {
                 return Values[0];
+            }
+        }
+
+        public override bool IsConstant {
+            get {
+                if (ConstantIfArgumentsAre)
+                    return Arguments.All((a) => a.IsConstant) || base.IsConstant;
+                else
+                    return base.IsConstant;
             }
         }
 
