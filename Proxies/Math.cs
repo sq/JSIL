@@ -53,6 +53,12 @@ namespace JSIL.Proxies {
     public abstract class RandomProxy {
         [JSRuntimeDispatch]
         [JSExternal]
+        public RandomProxy (params AnyType[] values) {
+            throw new InvalidOperationException();
+        }
+
+        [JSRuntimeDispatch]
+        [JSExternal]
         public static AnyType Next (params AnyType[] arguments) {
             throw new InvalidOperationException();
         }

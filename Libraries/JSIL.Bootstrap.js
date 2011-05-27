@@ -12,6 +12,9 @@ JSIL.MakeClass("System.ComponentModel.MemberDescriptor", "System.ComponentModel.
 JSIL.MakeClass("System.Object", "System.ComponentModel.TypeConverter", true);
 JSIL.MakeClass("System.ComponentModel.TypeConverter", "System.ComponentModel.ExpandableObjectConverter", true);
 
+JSIL.MakeClass("System.Object", "System.Text.Encoding", true);
+JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true);
+
 System.Delegate.prototype = JSIL.MakeProto(Function, System.Delegate, "System.Delegate", true);
 System.Delegate.prototype.Invoke = function () {
   return this.__method__.apply(this.__object__, arguments);
@@ -248,9 +251,6 @@ JSIL.MakeClass("System.Object", "System.Threading.Thread", true);
 System.Threading.Thread.prototype._ctor = function () {
 };
 System.Threading.Thread.prototype.ManagedThreadId = 0;
-System.Threading.Thread._cctor = function () {
-  System.Threading.Thread.CurrentThread = new System.Threading.Thread();
-};
 
 JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true);
 System.Collections.Generic.List$b1.Of = function (T) {
@@ -260,31 +260,38 @@ System.Collections.Generic.List$b1.prototype._ctor = function (sizeOrInitializer
   var size = Number(sizeOrInitializer);
 
   if (isNaN(size)) {
-    this.Items = new Array();
-    this.Items.push.apply(this.Items, sizeOrInitializer);
-    this.Count = this.Items.length;
+    this._items = new Array();
+    this._items.push.apply(this._items, sizeOrInitializer);
+    this._size = this._items.length;
   } else {
-    this.Items = new Array(size);
-    this.Count = size;
+    this._items = new Array(size);
+    this._size = size;
   }
 };
 System.Collections.Generic.List$b1.prototype.Add = function (item) {
-  if (this.Count >= this.Items.length) {
-    this.Items.push(item);
+  if (this._size >= this._items.length) {
+    this._items.push(item);
   } else {
-    this.Items[this.Count] = item;
+    this._items[this._size] = item;
   }
-  this.Count += 1;
+  this._size += 1;
 };
 System.Collections.Generic.List$b1.prototype.Clear = function () {
-  this.Count = 0;
+  this._size = 0;
 };
 System.Collections.Generic.List$b1.prototype.get_Item = function (index) {
-  return this.Items[index];
+  return this._items[index];
+};
+System.Collections.Generic.List$b1.prototype.get_Count = function () {
+  return this._size;
 };
 System.Collections.Generic.List$b1.prototype.GetEnumerator = function () {
   return new System.Collections.Generic.List$b1.Enumerator(this);
 };
+JSIL.MakeProperty(
+  System.Collections.Generic.List$b1.prototype, "Count", 
+  System.Collections.Generic.List$b1.prototype.get_Count, null
+);
 JSIL.ImplementInterfaces(System.Collections.Generic.List$b1, [
   System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
 ]);
@@ -301,7 +308,7 @@ System.Collections.Generic.List$b1.Enumerator.prototype._length = 0;
 System.Collections.Generic.List$b1.Enumerator.prototype._index = -1;
 System.Collections.Generic.List$b1.Enumerator.prototype._ctor = function (list) {
   if (typeof (list) != "undefined") {
-    this._array = list.Items;
+    this._array = list._items;
     this._length = list.Count;
   }
 }
@@ -516,8 +523,22 @@ System.Environment.nativeGetTickCount = function () {
   return t.getTime();
 };
 
+System.Text.Encoding.get_ASCII = function () {
+  return System.Text.Encoding.asciiEncoding;
+};
+
+System.Text.Encoding.prototype._ctor = function () {
+  System.Object.prototype._ctor.call(this, arguments);
+};
+
+System.Text.ASCIIEncoding.prototype._ctor = function () {
+  System.Text.Encoding.prototype._ctor.call(this, arguments);
+};
+
 JSIL.QueueInitializer(function () {
-  JSIL.InitializeType(System.Delegate);
-  JSIL.InitializeType(System.MulticastDelegate);
-  JSIL.InitializeType(System.Threading.Thread);
+  // Can't use a cctor since these types already have them
+
+  System.Threading.Thread.CurrentThread = new System.Threading.Thread();
+
+  System.Text.Encoding.asciiEncoding = new System.Text.ASCIIEncoding();
 });

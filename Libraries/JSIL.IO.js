@@ -5,7 +5,13 @@ if (typeof (JSIL) === "undefined")
   
 JSIL.DeclareAssembly("JSIL.IO");
 
-System.IO.FileStream.prototype._ctor = function (filename, mode) {
+System.IO.FileStream.prototype._ctor$0 = function () {
+  System.IO.Stream.prototype._ctor.call(this);
+}
+
+System.IO.FileStream.prototype._ctor$1 = function (filename, mode) {
+  System.IO.Stream.prototype._ctor.call(this);
+
   this._fileName = filename;
   this._buffer = JSIL.Host.getFile(filename);
   if (
@@ -27,8 +33,24 @@ System.IO.FileStream.prototype.ReadByte = function () {
 System.IO.FileStream.prototype.Close = function () {
 };
 
-System.IO.BinaryReader.prototype._ctor = function (stream) {
+System.IO.BinaryReader.prototype._ctor$0 = function (stream) {
+  System.Object.prototype._ctor.call(this);
+
+  if (typeof (stream) !== "object")
+    throw new Error();
+
   this.m_stream = stream;
+  this.m_encoding = System.Text.Encoding.ASCII;
+};
+
+System.IO.BinaryReader.prototype._ctor$1 = function (stream, encoding) {
+  System.Object.prototype._ctor.call(this);
+
+  if (typeof (stream) !== "object")
+    throw new Error();
+
+  this.m_stream = stream;
+  this.m_encoding = encoding;
 };
 
 System.IO.BinaryReader.prototype.ReadChars = function (count) {

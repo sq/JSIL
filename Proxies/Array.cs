@@ -14,22 +14,22 @@ namespace JSIL.Proxies {
 
         [JSReplacement("JSIL.Array.New($elementType, $size)")]
         public static System.Array CreateInstance (Type elementType, Int32 size) {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
 
         [JSReplacement("JSIL.MultidimensionalArray.New.apply(null, [$elementType].concat($sizes))")]
         public static System.Array CreateInstance (Type elementType, AnyType[] sizes) {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
 
         [JSReplacement("JSIL.MultidimensionalArray.New($elementType, $sizeX, $sizeY)")]
         public static System.Array CreateInstance (Type elementType, AnyType sizeX, AnyType sizeY) {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
 
         [JSReplacement("JSIL.MultidimensionalArray.New($elementType, $sizeX, $sizeY, $sizeZ)")]
         public static System.Array CreateInstance (Type elementType, AnyType sizeX, AnyType sizeY, AnyType sizeZ) {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
 
         [JSExternal]
@@ -64,12 +64,12 @@ namespace JSIL.Proxies {
 
         [JSReplacement("Array.prototype.indexOf.call($array, $value)")]
         public static int IndexOf (AnyType[] array, AnyType value) {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
 
         [JSReplacement("Array.prototype.indexOf.call($array, $value, $startIndex)")]
         public static int IndexOf (AnyType[] array, AnyType value, int startIndex) {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
     }
 }

@@ -155,6 +155,7 @@ JSIL.DeclareNamespace("System.Delegate", false);
 JSIL.DeclareNamespace("System.Enum", false);
 JSIL.DeclareNamespace("System.MulticastDelegate", false);
 JSIL.DeclareNamespace("System.Console", false);
+JSIL.DeclareNamespace("System.Text");
 JSIL.DeclareNamespace("System.Threading");
 JSIL.DeclareNamespace("System.Threading.Interlocked", false);
 JSIL.DeclareNamespace("System.Threading.Monitor", false);
@@ -835,9 +836,13 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
   }
 
   var ct = expectedType.CheckType;
-  if ((typeof (ct) != "undefined") &&
-      !Boolean(bypassCustomCheckMethod))
-    return ct(value);
+  if (
+    (typeof (ct) != "undefined") &&
+    !Boolean(bypassCustomCheckMethod)
+  ) {
+    if (ct(value))
+      return true;
+  }
 
   var expectedProto = expectedType.prototype;
   if ((typeof (expectedProto) === "undefined") ||

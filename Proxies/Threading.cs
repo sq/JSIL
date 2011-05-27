@@ -43,4 +43,18 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
     }
+
+    [JSProxy(
+        typeof(System.Threading.Thread),
+        JSProxyMemberPolicy.ReplaceDeclared,
+        JSProxyAttributePolicy.ReplaceDeclared,
+        inheritable: true
+    )]
+    public abstract class ThreadProxy {
+        [JSExternal]
+        [JSRuntimeDispatch]
+        public ThreadProxy (params AnyType[] values) {
+            throw new InvalidOperationException();
+        }
+    }
 }

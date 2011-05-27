@@ -18,18 +18,24 @@ namespace JSIL.Proxies {
     public abstract class ListProxy<T> : IEnumerable<T> {
         [JSRuntimeDispatch]
         [JSExternal]
+        public ListProxy (params AnyType[] values) {
+            throw new InvalidOperationException();
+        }
+
+        [JSRuntimeDispatch]
+        [JSExternal]
         public abstract AnyType GetEnumerator ();
 
         [JSRuntimeDispatch]
         [JSExternal]
         IEnumerator IEnumerable.GetEnumerator () {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
 
         [JSRuntimeDispatch]
         [JSExternal]
         IEnumerator<T> IEnumerable<T>.GetEnumerator () {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
     }
 }

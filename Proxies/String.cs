@@ -41,12 +41,12 @@ namespace JSIL.Proxies {
 
         [JSReplacement("$lhs == $rhs")]
         public static bool operator == (StringProxy lhs, StringProxy rhs) {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
 
         [JSReplacement("$lhs != $rhs")]
         public static bool operator != (StringProxy lhs, StringProxy rhs) {
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
     }
 }
