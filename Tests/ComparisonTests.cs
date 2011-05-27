@@ -35,6 +35,12 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void EnumSwitch () {
+            using (var test = new ComparisonTest(@"TestCases\EnumSwitch.cs"))
+                test.Run();
+        }
+
+        [Test]
         public void RefStruct () {
             using (var test = new ComparisonTest(@"TestCases\RefStruct.cs"))
                 test.Run();

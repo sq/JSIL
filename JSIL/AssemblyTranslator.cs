@@ -882,7 +882,6 @@ namespace JSIL {
                         isFirst = false;
                     }
 
-                    output.NewLine();
                     output.CloseBracket(true);
                     output.Semicolon();
                 });

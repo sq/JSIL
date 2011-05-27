@@ -358,11 +358,13 @@ namespace JSIL.Ast {
             if (_Condition == oldChild)
                 _Condition = (JSExpression)newChild;
 
-            var cse = (JSSwitchCase)newChild;
+            var cse = newChild as JSSwitchCase;
 
-            for (int i = 0, c = Cases.Count; i < c; i++) {
-                if (Cases[i] == oldChild)
-                    Cases[i] = cse;
+            if (cse != null) {
+                for (int i = 0, c = Cases.Count; i < c; i++) {
+                    if (Cases[i] == oldChild)
+                        Cases[i] = cse;
+                }
             }
         }
     }

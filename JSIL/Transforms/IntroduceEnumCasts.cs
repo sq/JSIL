@@ -35,5 +35,23 @@ namespace JSIL.Transforms {
 
             VisitChildren(ie);
         }
+
+        public void VisitNode (JSSwitchStatement ss) {
+            var conditionType = ss.Condition.GetExpectedType(TypeSystem);
+
+            if (!ILBlockTranslator.IsIntegral(conditionType)) {
+                var indexTypeDef = ILBlockTranslator.GetTypeDefinition(conditionType);
+
+                if (indexTypeDef.IsEnum) {
+                    var cast = new JSDotExpression(
+                        ss.Condition, new JSStringIdentifier("value", TypeSystem.Int32)
+                    );
+
+                    ss.ReplaceChild(ss.Condition, cast);
+                }
+            }
+
+            VisitChildren(ss);
+        }
     }
 }
