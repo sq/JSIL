@@ -560,6 +560,12 @@ JSIL.MakeSealedTypeGetter = function (type, unseal) {
 
 JSIL.MakeUnsealer = function (ns, name, type) {
   return function () {
+    // Workaround for chromium bug
+    try {
+      delete ns[name];
+    } catch (e) {
+    }
+
     Object.defineProperty(ns, name, {
       configurable: true,
       enumerable: true,
@@ -597,6 +603,12 @@ JSIL.SealTypes = function (privateRoot, namespaceName /*, ...names */) {
     var cctor = type._cctor;
     if (typeof (cctor) !== "function")
       return;
+
+    // Workaround for chromium bug
+    try {
+      delete ns[name];
+    } catch (e) {
+    }
 
     Object.defineProperty(ns, name, {
       configurable: true,
