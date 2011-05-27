@@ -152,8 +152,15 @@ System.String.toString = function () {
 System.String.Concat = function (firstValue) {
   var result = String(firstValue);
 
-  for (var i = 1, l = arguments.length; i < l; i++)
-    result += String(arguments[i]);
+  for (var i = 1, l = arguments.length; i < l; i++) {
+    var arg = arguments[i];
+    if (typeof (arg) === "string")
+      result += arg;
+    else if ((typeof (arg) === "number") && (arg >= 0) && (arg <= 255))
+      result += String.fromCharCode(arg);
+    else
+      result += String(arg);
+  }
 
   return result;
 }
@@ -268,6 +275,9 @@ System.Collections.Generic.List$b1.prototype.Add = function (item) {
     this.Items[this.Count] = item;
   }
   this.Count += 1;
+};
+System.Collections.Generic.List$b1.prototype.Clear = function () {
+  this.Count = 0;
 };
 System.Collections.Generic.List$b1.prototype.get_Item = function (index) {
   return this.Items[index];

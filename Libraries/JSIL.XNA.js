@@ -20,6 +20,7 @@ HTML5Asset.prototype._ctor = function (assetName) {
 Microsoft.Xna.Framework.Game.prototype._runHandle = null;
 Microsoft.Xna.Framework.Game.prototype._ctor = function () {
   this.content = new HTML5ContentManager();
+  this._frameDelay = 5;
 };
 Microsoft.Xna.Framework.Game.prototype.get_Content = function () {
   return this.content;
@@ -30,16 +31,27 @@ Microsoft.Xna.Framework.Game.prototype.UnloadContent = function () {
 };
 Microsoft.Xna.Framework.Game.prototype.Run = function () {
   this.LoadContent();
-  this._runHandle = window.setInterval(this._Step, 1);
+  var self = this;
+  setTimeout(function () {
+    self._Step();
+  }, this._frameDelay);
 };
 Microsoft.Xna.Framework.Game.prototype._Step = function () {
-  var gameTime = new Microsoft.Xna.Framework.GameTime();
+  var failed = true;
   try {
+    var gameTime = new Microsoft.Xna.Framework.GameTime();
     this.Update(gameTime);
     this.Draw(gameTime);
-  } catch (e) {
-    this.Exit();
-    throw e;
+    failed = false;
+  } finally {
+    if (failed) {
+      this.Exit();
+    } else {
+      var self = this;
+      setTimeout(function () {
+        self._Step();
+      }, this._frameDelay);
+    }
   }
 };
 Microsoft.Xna.Framework.Game.prototype.Exit = function () {

@@ -38,10 +38,16 @@
         document.getElementById("log").value += text + "\n";
     };
     JSIL.Host.getFile = function (filename) {
-      return allFiles[filename.toLowerCase()];
+      var key = getShortName(filename);
+      if (!allFiles.hasOwnProperty(key))
+        throw new System.Exception("The file '" + key + "' is not in the asset manifest.");
+      return allFiles[key];
     };
     JSIL.Host.getImage = function (filename) {
-      return allImages[filename.toLowerCase()];
+      var key = getShortName(filename);
+      if (!allImages.hasOwnProperty(key))
+        throw new System.Exception("The image '" + key + "' is not in the asset manifest.");
+      return allImages[key];
     };
     
     var allFiles = {};
@@ -50,9 +56,9 @@
     function getShortName (filename) {
       var lastIndex = filename.lastIndexOf("/");
       if (lastIndex === -1)
-        return filename;
+        return filename.toLowerCase();
       
-      return filename.substr(lastIndex + 1);
+      return filename.substr(lastIndex + 1).toLowerCase();
     };
     
     var assetLoaders = {
@@ -69,7 +75,7 @@
         var e = document.createElement("img");
         e.addEventListener("error", onError, true);
         e.addEventListener("load", function () {
-          allImages[getShortName(filename).toLowerCase()] = e;
+          allImages[getShortName(filename)] = e;
           onDoneLoading();
         }, true);
         e.id = "image_" + filename;
@@ -84,9 +90,25 @@
           req = new XMLHttpRequest();
         
         req.open('GET', filename, false);
+        if (typeof (req.overrideMimeType) !== "undefined")
+          req.overrideMimeType('text/plain; charset=x-user-defined');
+        
         req.send(null);
+        
         if (req.status <= 299) {
-          allFiles[getShortName(filename).toLowerCase()] = req.responseBody;
+          var bytes;
+          if (
+            (typeof (req.responseBody) !== "undefined") && 
+            (typeof (VBArray) !== "undefined")
+          ) {
+              bytes = new VBArray(req.responseBody).toArray();
+          } else {
+              var text = req.responseText;
+              bytes = new Array(req.responseText.length);
+              for (var i = 0, l = text.length; i < l; i++)
+                bytes[i] = text.charCodeAt(i) & 0xFF;
+          }
+          allFiles[getShortName(filename)] = bytes;
           onDoneLoading();
         } else {
           onError();
@@ -153,7 +175,16 @@
         ["Script", "../Libraries/JSIL.XNA.js"],
         ["Script", "../Libraries/JSIL.IO.js"],
         ["Script", "Mannux, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null.js"],
+        ["File", "Content/Mannux.map"],
         ["File", "Content/map00.map"],
+        ["File", "Content/map01.map"],
+        ["File", "Content/MAP02.map"],
+        ["File", "Content/MAP03.map"],
+        ["File", "Content/MAP04.map"],
+        ["File", "Content/test.map"],
+        ["File", "Content/test2.map"],
+        ["File", "Content/shaft.map"],
+        ["File", "Content/testmap.map"],
         ["Image", "Content/Boom.png"],
         ["Image", "Content/bullet.png"],
         ["Image", "Content/mantiles.png"],

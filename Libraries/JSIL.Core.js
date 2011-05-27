@@ -584,6 +584,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic) {
       this._ctor.apply(this, args);
   };
 
+  typeObject.__IsArray__ = false;
   typeObject.__IsReferenceType__ = isReferenceType;
   typeObject.__Context__ = $private;
   typeObject.__Self__ = typeObject;
@@ -844,7 +845,7 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
 };
 
 JSIL.IsArray = function (value) {
-  if ((typeof (value) === "object") && (value !== null) && (value.__proto__ === Array.prototype)) {
+  if ((typeof (value) === "object") && (value !== null) && (Object.getPrototypeOf(value) === Array.prototype)) {
     var length = null;
     try {
       length = value.length;
@@ -1179,6 +1180,7 @@ System.Enum.prototype.toString = function ToString() {
 };
 
 System.Array.prototype = JSIL.MakeProto(System.Object, System.Array, "System.Array", true);
+System.Array.__IsArray__ = true;
 System.Array.Types = {};
 System.Array.Of = function (type) {
   if (typeof (type) === "undefined")
@@ -1191,6 +1193,7 @@ System.Array.Of = function (type) {
     var typeName = elementName + "[]";
     compositeType = JSIL.CloneObject(System.Array);
     compositeType.__FullName__ = typeName;
+    compositeType.__IsArray__ = true;
     compositeType.prototype = JSIL.MakeProto(System.Array, compositeType, typeName, true);
     System.Array.Types[elementName] = compositeType;
   }
