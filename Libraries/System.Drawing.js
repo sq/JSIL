@@ -217,6 +217,14 @@ System.Drawing.Rectangle.prototype.get_Bottom = function () {
 System.Drawing.Rectangle._cctor = function () {
   System.Drawing.Rectangle.Empty = new System.Drawing.Rectangle();
 }
+System.Drawing.Rectangle.prototype.MemberwiseClone = function () {
+  var result = Object.create(System.Drawing.Rectangle.prototype);
+  result.x = this.x;
+  result.y = this.y;
+  result.width = this.width;
+  result.height = this.height;
+  return result;
+}
 
 JSIL.SealTypes(
   $jsildrawing, "System.Drawing", 
