@@ -256,10 +256,16 @@ JSIL.IgnoredMember = function (memberName) {
 };
 
 JSIL.MakeExternalMemberStub = function (namespaceName, memberName, inheritedMember) {
+  var state = {
+    alreadyWarned: false
+  };
   var result;
   if (typeof (inheritedMember) === "function") {
     result = function () {
-      JSIL.Host.warning("The external method '" + memberName + "' of type '" + namespaceName + "' has not been implemented; calling inherited method.");
+      if (!state.alreadyWarned) {
+        JSIL.Host.warning("The external method '" + memberName + "' of type '" + namespaceName + "' has not been implemented; calling inherited method.");
+        state.alreadyWarned = true;
+      }
       return Function.prototype.apply.call(inheritedMember, this, arguments);
     };
   } else {
@@ -284,8 +290,13 @@ JSIL.ExternalMembers = function (namespace/*, ...memberNames */) {
     var memberValue = namespace[memberName];
 
     if (!namespace.hasOwnProperty(memberName)) {
-      // JSIL.Host.warning("External member '" + memberName + "' of namespace '" + namespaceName + "' is not defined");
-      namespace[memberName] = JSIL.MakeExternalMemberStub(namespaceName, memberName, memberValue);
+      Object.defineProperty(
+        namespace, memberName, {
+          enumerable: true,
+          configurable: true,
+          value: JSIL.MakeExternalMemberStub(namespaceName, memberName, memberValue)
+        }
+      );
     }
   }
 }
@@ -1066,7 +1077,13 @@ JSIL.OverloadedMethod = function (type, name, overloads) {
       return method.apply(this, args);
   };
 
-  type[name] = result;
+  Object.defineProperty(
+    type, name, {
+      configurable: true,
+      enumerable: true,
+      value: result
+    }
+  );
   return result;
 };
 

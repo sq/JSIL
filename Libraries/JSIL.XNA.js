@@ -76,7 +76,7 @@ Microsoft.Xna.Framework.Game.ForceQuit = function () {
 Microsoft.Xna.Framework.Game.prototype._runHandle = null;
 Microsoft.Xna.Framework.Game.prototype._ctor = function () {
   this.content = new HTML5ContentManager();
-  this._frameDelay = 1000;
+  this._frameDelay = 1000 / 60;
 };
 Microsoft.Xna.Framework.Game.prototype.get_Content = function () {
   return this.content;
@@ -94,11 +94,25 @@ Microsoft.Xna.Framework.Game.prototype.Update = function (gameTime) {
 };
 Microsoft.Xna.Framework.Game.prototype.Run = function () {
   Microsoft.Xna.Framework.Game._QuitForced = false;
-  var self = this;
   this.Initialize();
-  setTimeout(function () {
+  this._QueueStep();
+};
+Microsoft.Xna.Framework.Game.prototype._QueueStep = function () {
+  if (Microsoft.Xna.Framework.Game._QuitForced)
+    return;
+
+  var self = this;
+  var stepCallback = function () {
     self._Step();
-  }, this._frameDelay);
+  };
+
+  if (typeof (mozRequestAnimationFrame) !== "undefined") {
+    mozRequestAnimationFrame(stepCallback);
+  } else if (typeof (webkitRequestAnimationFrame) !== "undefined") {
+    webkitRequestAnimationFrame(stepCallback);
+  } else {
+    setTimeout(stepCallback, this._frameDelay);  
+  }
 };
 Microsoft.Xna.Framework.Game.prototype._Step = function () {
   var failed = true;
@@ -108,14 +122,10 @@ Microsoft.Xna.Framework.Game.prototype._Step = function () {
     this.Draw(gameTime);
     failed = false;
   } finally {
-    if (failed || Microsoft.Xna.Framework.Game._QuitForced) {
+    if (failed || Microsoft.Xna.Framework.Game._QuitForced)
       this.Exit();
-    } else {
-      var self = this;
-      setTimeout(function () {
-        self._Step();
-      }, this._frameDelay);
-    }
+    else
+      this._QueueStep();
   }
 };
 Microsoft.Xna.Framework.Game.prototype.Exit = function () {
