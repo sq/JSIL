@@ -484,6 +484,10 @@ namespace JSIL.Internal {
             }
         }
 
+        public override string ToString () {
+            return Definition.FullName;
+        }
+
         public bool GetMember<T> (MemberIdentifier member, out T result)
             where T : class {
 
@@ -692,9 +696,10 @@ namespace JSIL.Internal {
                     AddProxyMember(proxy, method);
                 }
             }
+        }
 
-            if (type.FullName.Contains("ProxiedClass"))
-                Debugger.Break();
+        public override string ToString () {
+            return Definition.FullName;
         }
 
         internal void ConstructMethodGroups () {

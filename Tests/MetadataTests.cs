@@ -146,7 +146,7 @@ namespace JSIL.Tests {
             var generatedJs = GenericIgnoreTest(
                 @"SpecialTestCases\StubbedMethodBodies.cs",
                 "",
-                "The external function 'Main' of namespace 'Program'",
+                "The external method 'Main' of type 'Program'",
                 new [] { new Regex(".*") }
             );
 

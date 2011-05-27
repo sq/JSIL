@@ -256,10 +256,17 @@ JSIL.IgnoredMember = function (memberName) {
   JSIL.Host.error(new Error("An attempt was made to reference the member '" + memberName + "', but it was explicitly ignored during translation."));
 };
 
-JSIL.MakeExternalMemberStub = function (namespaceName, memberName) {
-  return function () {
-    JSIL.Host.error(new Error("The external function '" + memberName + "' of namespace '" + namespaceName + "' has not been implemented."));
-  };
+JSIL.MakeExternalMemberStub = function (namespaceName, memberName, inheritedMember) {
+  if (typeof (inheritedMember) === "function") {
+    return function () {
+      JSIL.Host.warning("The external method '" + memberName + "' of type '" + namespaceName + "' has not been implemented; calling inherited method.");
+      return Function.prototype.apply.call(inheritedMember, this, arguments);
+    };
+  } else {
+    return function () {
+      JSIL.Host.error(new Error("The external method '" + memberName + "' of type '" + namespaceName + "' has not been implemented."));
+    };
+  }
 }
 
 JSIL.ExternalMembers = function (namespace/*, ...memberNames */) {
@@ -271,10 +278,11 @@ JSIL.ExternalMembers = function (namespace/*, ...memberNames */) {
   var namespaceName = JSIL.GetTypeName(namespace);
   for (var i = 1, l = arguments.length; i < l; i++) {
     var memberName = arguments[i];
+    var memberValue = namespace[memberName];
 
-    if (typeof (namespace[memberName]) === "undefined") {
+    if (!namespace.hasOwnProperty(memberName)) {
       // JSIL.Host.warning("External member '" + memberName + "' of namespace '" + namespaceName + "' is not defined");
-      namespace[memberName] = JSIL.MakeExternalMemberStub(namespaceName, memberName);
+      namespace[memberName] = JSIL.MakeExternalMemberStub(namespaceName, memberName, memberValue);
     }
   }
 }

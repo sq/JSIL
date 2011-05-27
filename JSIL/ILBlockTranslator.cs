@@ -1382,9 +1382,10 @@ namespace JSIL {
             if (target.IsNull)
                 return target;
 
+            var indexer = TranslateNode(node.Arguments[1]);
+
             JSExpression result = new JSIndexerExpression(
-                target,
-                TranslateNode(node.Arguments[1]),
+                target, indexer,
                 expectedType
             );
 
@@ -1407,17 +1408,20 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Stelem (ILExpression node, TypeReference elementType) {
+            var expectedType = elementType ?? node.ExpectedType ?? node.InferredType;
+
             var target = TranslateNode(node.Arguments[0]);
             if (target.IsNull)
                 return target;
 
+            var indexer = TranslateNode(node.Arguments[1]);
             var rhs = TranslateNode(node.Arguments[2]);
 
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
                 new JSIndexerExpression(
-                    target,
-                    TranslateNode(node.Arguments[1])
+                    target, indexer,
+                    expectedType
                 ),
                 rhs, elementType ?? rhs.GetExpectedType(TypeSystem)
             );
@@ -1601,7 +1605,7 @@ namespace JSIL {
                         ) {
                             // Lambda with no closed-over values
 
-                            return Translator.TranslateMethod(
+                            return Translator.TranslateMethodExpression(
                                 Context, constructor, methodDef
                             );
                         } else if (
@@ -1612,7 +1616,7 @@ namespace JSIL {
                             )
                         ) {
                             // Lambda with closed-over values
-                            var function = Translator.TranslateMethod(
+                            var function = Translator.TranslateMethodExpression(
                                 Context, constructor, methodDef
                             );
 

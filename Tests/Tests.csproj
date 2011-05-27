@@ -183,6 +183,7 @@
     <None Include="SpecialTestCases\IgnoreDerivedType.cs" />
     <None Include="SpecialTestCases\StubbedMethodBodies.cs" />
     <None Include="SpecialTestCases\ProxiedOperators.cs" />
+    <None Include="SimpleTestCases\EnumArrayLookup.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

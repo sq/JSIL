@@ -29,6 +29,10 @@ Microsoft.Xna.Framework.Game.prototype.LoadContent = function () {
 };
 Microsoft.Xna.Framework.Game.prototype.UnloadContent = function () {
 };
+Microsoft.Xna.Framework.Game.prototype.Draw = function (gameTime) {
+};
+Microsoft.Xna.Framework.Game.prototype.Update = function (gameTime) {
+};
 Microsoft.Xna.Framework.Game.prototype.Run = function () {
   this.LoadContent();
   var self = this;
@@ -64,3 +68,12 @@ Microsoft.Xna.Framework.Game.prototype.Dispose = function () {
   this._runHandle = null;
   this.UnloadContent();
 }
+
+Microsoft.Xna.Framework.Input.Keyboard.GetState = function (playerIndex) {
+  var keys = [];
+  return new Microsoft.Xna.Framework.Input.KeyboardState(keys);
+};
+
+Microsoft.Xna.Framework.Input.KeyboardState.prototype._ctor = function (keys) {
+  this.keys = keys;
+};

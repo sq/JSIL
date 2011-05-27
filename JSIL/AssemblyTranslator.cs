@@ -788,8 +788,8 @@ namespace JSIL {
             if (info == null)
                 throw new InvalidOperationException();
 
-            var externalMemberNames = new List<string>();
-            var staticExternalMemberNames = new List<string>();
+            var externalMemberNames = new HashSet<string>();
+            var staticExternalMemberNames = new HashSet<string>();
 
             foreach (var method in typedef.Methods) {
                 // We translate the static constructor explicitly later, and inject field initialization
@@ -996,7 +996,7 @@ namespace JSIL {
             output.Semicolon();
         }
 
-        internal JSFunctionExpression TranslateMethod (DecompilerContext context, MethodReference method, MethodDefinition methodDef, Action<JSFunctionExpression> bodyTransformer = null) {
+        internal JSFunctionExpression TranslateMethodExpression (DecompilerContext context, MethodReference method, MethodDefinition methodDef, Action<JSFunctionExpression> bodyTransformer = null) {
             var oldMethod = context.CurrentMethod;
             try {
                 if (method == null)
@@ -1081,6 +1081,10 @@ namespace JSIL {
                         translator.JSIL,
                         context.CurrentModule.TypeSystem
                     ).Visit(function);
+
+                new IntroduceEnumCasts(
+                    translator.TypeSystem
+                ).Visit(function);
 
                 if (bodyTransformer != null)
                     bodyTransformer(function);
@@ -1204,8 +1208,8 @@ namespace JSIL {
             DecompilerContext context, JavascriptFormatter output, 
             MethodReference methodRef, MethodDefinition method, 
             bool stubbed, 
-            List<string> externalMemberNames,
-            List<string> staticExternalMemberNames,
+            HashSet<string> externalMemberNames,
+            HashSet<string> staticExternalMemberNames,
             Action<JSFunctionExpression> bodyTransformer = null
         ) {
             var methodInfo = GetMemberInformation<Internal.MethodInfo>(method);
@@ -1243,7 +1247,7 @@ namespace JSIL {
 
             output.Token(" = ");
 
-            var function = TranslateMethod(context, methodRef, method, (f) => {
+            var function = TranslateMethodExpression(context, methodRef, method, (f) => {
                 if (bodyTransformer != null)
                     bodyTransformer(f);
 
