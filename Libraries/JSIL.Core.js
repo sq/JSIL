@@ -495,8 +495,14 @@ JSIL.CopyMembers = function (source, target) {
 
   for (var i = 0, l = sf.length; i < l; i++) {
     var fieldName = sf[i][0];
-    if (source.hasOwnProperty(fieldName))
-      target[key] = target[key].MemberwiseClone();
+    var value;
+
+    if (
+      source.hasOwnProperty(fieldName) &&
+      typeof ((value = target[fieldName]).MemberwiseClone) === "function"
+    ) {
+      target[fieldName] = value.MemberwiseClone();
+    }
   }
 }
 

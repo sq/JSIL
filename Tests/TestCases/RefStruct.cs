@@ -5,6 +5,10 @@ public static class Program {
         arg.Value += 1;
     }
 
+    public static void ReplaceArgument (ref CustomType arg) {
+        arg = new CustomType(4);
+    }
+
     public static void Main (string[] args) {
         var a = new CustomType(1);
         CustomType b = a;
@@ -15,6 +19,8 @@ public static class Program {
         b = a;
         Console.WriteLine("a={0}, b={1}", a, b);
         a.Value = 8;
+        Console.WriteLine("a={0}, b={1}", a, b);
+        ReplaceArgument(ref b);
         Console.WriteLine("a={0}, b={1}", a, b);
     }
 }

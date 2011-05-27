@@ -163,7 +163,7 @@ Microsoft.Xna.Framework.Game.prototype._Step = function () {
 
   var failed = true;
   try {
-    var gameTime = JSIL.New(Microsoft.Xna.Framework.GameTime, 0, []);
+    var gameTime = JSIL.New(Microsoft.Xna.Framework.GameTime, "_ctor$0", []);
     this.Update(gameTime);
     this.Draw(gameTime);
     failed = false;

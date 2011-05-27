@@ -25,14 +25,16 @@ namespace JSIL.Transforms {
             if (type == null)
                 return false;
 
-            var typedef = type.Resolve();
+            var typedef = ILBlockTranslator.GetTypeDefinition(type);
 
             if (typedef != null) {
                 if (typedef.IsEnum)
                     return false;
-            }
 
-            return type.IsValueType && !type.IsPrimitive;
+                return typedef.IsValueType && !typedef.IsPrimitive;
+            } else {
+                return type.IsValueType && !type.IsPrimitive;
+            }
         }
 
         protected bool IsCopyNeeded (JSExpression value) {

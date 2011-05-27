@@ -35,6 +35,18 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void RefStruct () {
+            using (var test = new ComparisonTest(@"TestCases\RefStruct.cs"))
+                test.Run();
+        }
+
+        [Test]
+        public void RefClass () {
+            using (var test = new ComparisonTest(@"TestCases\RefClass.cs"))
+                test.Run();
+        }
+
+        [Test]
         public void NBody () {
             using (var test = new ComparisonTest(@"TestCases\NBody.cs")) {
                 test.Run();

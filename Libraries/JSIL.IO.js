@@ -98,18 +98,14 @@ System.IO.BinaryReader.prototype.ReadSByte = function () {
     return byte;
 };
 
-System.IO.BinaryReader.prototype._DecodeFloat = function () {
-  return 0.0;
-};
-
 System.IO.BinaryReader.prototype.ReadSingle = function () {
   var bytes = this.ReadChars(4);
-  return this._DecodeFloat(bytes, 23, 8);
+  return this._decodeFloat(bytes, 23, 8);
 };
 
 System.IO.BinaryReader.prototype.ReadDouble = function () {
   var bytes = this.ReadChars(8);
-  return this._DecodeFloat(bytes, 52, 11);
+  return this._decodeFloat(bytes, 52, 11);
 };
 
 System.IO.BinaryReader.prototype.ReadByte = function () {
@@ -117,4 +113,65 @@ System.IO.BinaryReader.prototype.ReadByte = function () {
 };
 
 System.IO.BinaryReader.prototype.Close = function () {
+};
+
+// Derived from http://blog.vjeux.com/wp-content/uploads/2010/01/binaryReader.js
+
+System.IO.BinaryReader.prototype._shl = function (a, b) {
+  for (
+    ++b; --b;
+    a = ((a %= 0x7fffffff + 1) & 0x40000000) == 0x40000000 ? 
+      a * 2 : (a - 0x40000000) * 2 + 0x7fffffff + 1
+  );
+
+  return a;
+};
+
+System.IO.BinaryReader.prototype._readBits = function (bytes, start, length) {
+  var offsetLeft = (start + length) % 8;
+  var offsetRight = start % 8;
+  var curByte = bytes.length - (start >> 3) - 1;
+  var lastByte = bytes.length + (-(start + length) >> 3);
+  var diff = curByte - lastByte;
+
+  var sum = (bytes[bytes.length - curByte - 1] >> offsetRight) & 
+    ((1 << (diff ? 8 - offsetRight : length)) - 1);
+
+  if (diff && offsetLeft)
+    sum += (bytes[bytes.length - lastByte++ - 1] & ((1 << offsetLeft) - 1)) << (diff-- << 3) - offsetRight; 
+
+  while (diff)
+    sum += this._shl(bytes[bytes.length - lastByte++ - 1], (diff-- << 3) - offsetRight);
+
+  return sum;
+};
+
+System.IO.BinaryReader.prototype._decodeFloat = function (bytes, precisionBits, exponentBits) {
+  var length = precisionBits + exponentBits + 1;
+  if ((length >> 3) > bytes.length)
+    throw new Error("Buffer too small");
+
+  var bias = Math.pow(2, exponentBits - 1) - 1;
+  var signal = this._readBits(bytes, precisionBits + exponentBits, 1);
+  var exponent = this._readBits(bytes, precisionBits, exponentBits);
+  var significand = 0;
+  var divisor = 2;
+  var curByte = 0;
+  do {
+    var byteValue = bytes[++curByte - bytes.length - 1];
+    var startBit = precisionBits % 8 || 8;
+    var mask = 1 << startBit;
+    while (mask >>= 1) {
+      if (byteValue & mask) {
+        significand += 1 / divisor;
+      }
+      divisor *= 2;
+    }
+  } while (precisionBits -= startBit);
+
+  var result = exponent == (bias << 1) + 1 ? significand ? NaN : signal ? -Infinity : +Infinity
+    : (1 + signal * -2) * (exponent || significand ? !exponent ? Math.pow(2, -bias + 1) * significand
+    : Math.pow(2, exponent - bias) * (1 + significand) : 0);
+
+  return result;
 };

@@ -824,7 +824,17 @@ namespace JSIL.Ast {
 
             if (variable != null) {
                 if (variable.IsReference) {
-                    referent = variable.Dereference();
+                    var rv = variable.Dereference();
+
+                    // Since a 'ref' parameter looks just like an implicit reference created by
+                    //  a field load, we need to detect cases where we are erroneously stripping
+                    //  an argument's reference modifier
+                    if (variable.IsParameter) {
+                        if (rv.IsReference != variable.GetParameter().IsReference)
+                            rv = variable.GetParameter();
+                    }
+
+                    referent = rv;
                     return true;
                 }
             }
@@ -866,11 +876,6 @@ namespace JSIL.Ast {
 
             if ((variable != null) && (variable.IsReference)) {
                 materialized = variable.Dereference();
-                return true;
-            }
-
-            if ((variable != null) && EmulateStructAssignment.IsStruct(variable.Type)) {
-                materialized = variable;
                 return true;
             }
 
@@ -1586,6 +1591,10 @@ namespace JSIL.Ast {
             }
         }
 
+        public virtual JSParameter GetParameter () {
+            throw new InvalidOperationException();
+        }
+
         public virtual bool IsThis {
             get {
                 return false;
@@ -1670,6 +1679,10 @@ namespace JSIL.Ast {
                 return true;
             }
         }
+
+        public override JSParameter GetParameter () {
+            return this;
+        }
     }
 
     public class JSExceptionVariable : JSVariable {
@@ -1740,6 +1753,10 @@ namespace JSIL.Ast {
             }
         }
 
+        public override JSParameter GetParameter () {
+            return Referent.GetParameter();
+        }
+
         public override bool IsThis {
             get {
                 return Referent.IsThis;
@@ -1780,6 +1797,10 @@ namespace JSIL.Ast {
             get {
                 return Variables[Identifier].IsParameter;
             }
+        }
+
+        public override JSParameter GetParameter () {
+            return Variables[Identifier].GetParameter();
         }
 
         public override bool IsConstant {
@@ -1847,6 +1868,10 @@ namespace JSIL.Ast {
             get {
                 return true;
             }
+        }
+
+        public override JSParameter GetParameter () {
+            return Referent.GetParameter();
         }
 
         public override bool IsParameter {

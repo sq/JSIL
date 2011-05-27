@@ -119,7 +119,7 @@
     <None Include="TestCases\YieldReturn.cs" />
     <None Include="SimpleTestCases\StructAssignment.cs" />
     <None Include="SimpleTestCases\ReturnStruct.cs" />
-    <None Include="SimpleTestCases\RefStruct.cs" />
+    <None Include="TestCases\RefStruct.cs" />
     <None Include="SimpleTestCases\Decimals.cs" />
     <None Include="TestCases\IntegerArithmetic.cs" />
     <None Include="SimpleTestCases\Initializers.cs" />
@@ -186,6 +186,7 @@
     <None Include="SimpleTestCases\EnumArrayLookup.cs" />
     <None Include="SimpleTestCases\OverloadWithEnum.cs" />
     <None Include="SimpleTestCases\OverloadWithDelegate.cs" />
+    <None Include="TestCases\RefClass.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
