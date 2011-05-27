@@ -291,7 +291,6 @@ namespace JSIL {
                 formatter.Identifier("JSIL.QueueInitializer", null);
                 formatter.LPar();
                 formatter.OpenFunction(null, null);
-                formatter.NewLine();
 
                 init();
 
@@ -802,14 +801,16 @@ namespace JSIL {
                 );
             }
             
-            if (stubbed) {
-            } else {
+            Action initializeOverloadsAndProperties = () => {
                 foreach (var methodGroup in info.MethodGroups)
                     TranslateMethodGroup(context, output, methodGroup);
 
                 foreach (var property in typedef.Properties)
                     TranslateProperty(context, output, property);
-            }
+            };
+
+            if (!stubbed)
+                initializeOverloadsAndProperties();
 
             Func<TypeReference, bool> isInterfaceIgnored = (i) => {
                 var interfaceInfo = GetTypeInformation(i);
@@ -929,6 +930,9 @@ namespace JSIL {
                     return;
                 });
             }
+
+            if (stubbed)
+                initializer.Add(initializeOverloadsAndProperties);
 
             output.NewLine();
 

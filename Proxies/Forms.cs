@@ -6,10 +6,11 @@ namespace JSIL.Proxies {
     [JSProxy(
         "System.Windows.Forms.AccessibleObject",
         JSProxyMemberPolicy.ReplaceDeclared,
-        JSProxyAttributePolicy.ReplaceDeclared,
+        JSProxyAttributePolicy.ReplaceAll,
         JSProxyInterfacePolicy.ReplaceAll,
-        false
+        inheritable: true
     )]
+    [JSIgnore]
     public abstract class AccessibleObjectProxy {
     }
 

@@ -22,13 +22,20 @@
     
     <script type="text/javascript">    
     JSIL.Host.getCanvas = function (desiredWidth, desiredHeight) {
-        return document.getElementById("canvas");
+        var e = document.getElementById("canvas");
+        if (typeof (desiredWidth) === "number")
+          e.width = desiredWidth;
+        if (typeof (desiredHeight) === "number")
+          e.height = desiredHeight;
+        
+        return e;
     };
     JSIL.Host.createCanvas = function (desiredWidth, desiredHeight) {
         var e = document.createElement("canvas");
         e.width = desiredWidth;
         e.height = desiredHeight;
         document.getElementById("images").appendChild(e);
+        
         return e;
     };
     JSIL.Host.logWrite = function (text) {
@@ -49,9 +56,46 @@
         throw new System.Exception("The image '" + key + "' is not in the asset manifest.");
       return allImages[key];
     };
+    JSIL.Host.getHeldKeys = function () {
+      return Array.prototype.slice.call(heldKeys);
+    };
+    JSIL.Host.getMousePosition = function () {
+      return Array.prototype.slice.call(mousePosition);
+    };
+    JSIL.Host.getHeldButtons = function () {
+      return Array.prototype.slice.call(heldButtons);
+    };
     
     var allFiles = {};
     var allImages = {};
+    var heldKeys = [];
+    var heldButtons = [];
+    var mousePosition = [0, 0];
+    
+    window.addEventListener(
+      "keydown", function (evt) {
+        if (Array.prototype.indexOf.call(heldKeys, evt.keyCode) === -1)
+          heldKeys.push(evt.keyCode);        
+      }, true
+    );
+    
+    window.addEventListener(
+      "keyup", function (evt) {
+        var keyCode = evt.keyCode;
+        heldKeys = heldKeys.filter(function (element, index, array) {
+          return element != keyCode;
+        });
+      }, true
+    );
+    
+    window.addEventListener(
+      "mousemove", function (evt) {
+        var canvas = document.getElementById("canvas");
+        
+        mousePosition[0] = evt.clientX - canvas.offsetLeft;
+        mousePosition[1] = evt.clientY - canvas.offsetTop;
+      }, true
+    );
     
     function getShortName (filename) {
       var lastIndex = filename.lastIndexOf("/");

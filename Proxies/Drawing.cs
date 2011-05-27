@@ -25,4 +25,14 @@ namespace JSIL.Proxies {
         [JSExternal]
         public abstract void Save (params AnyType[] values);
     }
+
+    [JSProxy(
+        new[] { "System.Drawing.Size", "System.Drawing.Rectangle", "System.Drawing.Point" }
+    )]
+    public abstract class UnitsProxy {
+        [JSRuntimeDispatch]
+        [JSExternal]
+        public UnitsProxy (params AnyType[] values) {
+        }
+    }
 }
