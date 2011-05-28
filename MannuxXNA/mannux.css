@@ -48,7 +48,8 @@
 	padding: 0px;
 	width: 800px;
 	height: 150px;
-	overflow: scroll;
+	overflow-x: hidden;
+	overflow-y: scroll;
 	position: absolute;
 	left: 2px;
 	top: 604px;

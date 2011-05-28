@@ -29,7 +29,7 @@ JSIL.Host.logWrite = function (text) {
 };
 JSIL.Host.logWriteLine = function (text) {
     if (currentLogLine === null) {
-      logLine = document.createTextNode(text);
+      var logLine = document.createTextNode(text);
       document.getElementById("log").appendChild(logLine);
     } else {
       currentLogLine.textContent += text;
