@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using JSIL.Meta;
 
 public static class Program { 
@@ -18,5 +18,13 @@ public static class Program {
         Console.WriteLine("{0} {1} {2} {3}", e(), f(), f()[0], f() + e());
 
         Console.WriteLine("{0} {1}", e() == e(), g() == h()[0]);
+
+        Func<string> i = () => "öƕœÎĢ×ɤʃ";
+        Func<char> j = () => 'œ';
+        Func<char> k = () => '×';
+
+        Console.WriteLine("{0} {1}", i()[2] == j(), i()[5] == k());
+
+        Console.WriteLine("{0} {1}", (int)(i()[2]), (int)k());
     }
 }

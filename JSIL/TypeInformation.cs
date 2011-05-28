@@ -875,27 +875,40 @@ namespace JSIL.Internal {
             return AddMember(evt);
         }
 
-        static readonly Regex MangledNameRegex = new Regex(@"\<([^>]*)\>([^_]*)__([0-9]*)", RegexOptions.Compiled | RegexOptions.ExplicitCapture);
+        static readonly Regex MangledNameRegex = new Regex(@"\<([^>]*)\>([^_]*)__([0-9]*)", RegexOptions.Compiled);
 
         public static bool IsIgnoredName (string fullName) {
-            if (MangledNameRegex.IsMatch(fullName))
-                return false; 
-            else if (fullName.EndsWith("__BackingField"))
+            if (fullName.EndsWith("__BackingField"))
                 return false;
             else if (fullName.Contains("__DisplayClass"))
                 return false;
-            else if (fullName.Contains("<Module>"))
-                return true;
-            else if (fullName.Contains("__SiteContainer"))
-                return true;
-            else if (fullName.StartsWith("CS$<"))
-                return true;
             else if (fullName.Contains("<PrivateImplementationDetails>"))
                 return true;
             else if (fullName.Contains("Runtime.CompilerServices.CallSite"))
                 return true;
             else if (fullName.Contains("__CachedAnonymousMethodDelegate"))
                 return true;
+            else if (fullName.Contains("<Module>"))
+                return true;
+            else if (fullName.Contains("__SiteContainer"))
+                return true;
+            else if (fullName.StartsWith("CS$<"))
+                return true;
+            else {
+                var m = MangledNameRegex.Match(fullName);
+                if (m.Success) {
+                    switch (m.Groups[2].Value) {
+                        case "b":
+                            // Lambda
+                            return true;
+                        case "d":
+                            // Enumerator
+                            return false;
+                        default:
+                            throw new Exception("Unknown mangled name format");
+                    }
+                }
+            }
 
             return false;
         }

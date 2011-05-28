@@ -3,7 +3,7 @@
 if (typeof (JSIL) === "undefined")
   throw new Error("JSIL.Core required");
 
-var $jsilxna = JSIL.DeclareAssembly("JSIL.XNA");
+var $jsilxna = JSIL.DeclareAssembly("JSIL.XNA4");
 
 JSIL.MakeClass("System.Object", "HTML5ContentManager", true);
 HTML5ContentManager.prototype._ctor = function () {
@@ -324,51 +324,51 @@ Microsoft.Xna.Framework.GameTime.prototype._ctor$2 = function (totalRealTime, el
   Microsoft.Xna.Framework.GameTime.prototype._ctor$1.call(this, totalRealTime, elapsedRealTime, totalGameTime, elapsedGameTime);
 };
 
-Microsoft.Xna.Framework.Graphics.Color.prototype._ctor$1 = function (r, g, b) {
+Microsoft.Xna.Framework.Color.prototype._ctor$1 = function (r, g, b) {
   this.a = 255;
   this.r = r;
   this.g = g;
   this.b = b;
 }
-Microsoft.Xna.Framework.Graphics.Color.prototype._ctor$2 = function (r, g, b, a) {
+Microsoft.Xna.Framework.Color.prototype._ctor$2 = function (r, g, b, a) {
   this.a = a;
   this.r = r;
   this.g = g;
   this.b = b;
 }
-Microsoft.Xna.Framework.Graphics.Color.prototype._ctor$3 = function (r, g, b) {
+Microsoft.Xna.Framework.Color.prototype._ctor$3 = function (r, g, b) {
   this.a = 255;
   this.r = Math.floor(r * 255);
   this.g = Math.floor(g * 255);
   this.b = Math.floor(b * 255);
 }
-Microsoft.Xna.Framework.Graphics.Color.prototype._ctor$4 = function (r, g, b, a) {
+Microsoft.Xna.Framework.Color.prototype._ctor$4 = function (r, g, b, a) {
   this.a = Math.floor(a * 255);
   this.r = Math.floor(r * 255);
   this.g = Math.floor(g * 255);
   this.b = Math.floor(b * 255);
 }
-Microsoft.Xna.Framework.Graphics.Color.prototype._ctor$5 = function (v3) {
-  Microsoft.Xna.Framework.Graphics.Color.prototype._ctor$3.call(this, v3.X, v3.Y, v3.Z);
+Microsoft.Xna.Framework.Color.prototype._ctor$5 = function (v3) {
+  Microsoft.Xna.Framework.Color.prototype._ctor$3.call(this, v3.X, v3.Y, v3.Z);
 }
-Microsoft.Xna.Framework.Graphics.Color.prototype._ctor$6 = function (v4) {
-  Microsoft.Xna.Framework.Graphics.Color.prototype._ctor$4.call(this, v4.X, v4.Y, v4.Z, v4.W);
+Microsoft.Xna.Framework.Color.prototype._ctor$6 = function (v4) {
+  Microsoft.Xna.Framework.Color.prototype._ctor$4.call(this, v4.X, v4.Y, v4.Z, v4.W);
 }
 
-Microsoft.Xna.Framework.Graphics.Color.prototype.get_A = function () {
+Microsoft.Xna.Framework.Color.prototype.get_A = function () {
   return this.a;
 }
-Microsoft.Xna.Framework.Graphics.Color.prototype.get_R = function () {
+Microsoft.Xna.Framework.Color.prototype.get_R = function () {
   return this.r;
 }
-Microsoft.Xna.Framework.Graphics.Color.prototype.get_G = function () {
+Microsoft.Xna.Framework.Color.prototype.get_G = function () {
   return this.g;
 }
-Microsoft.Xna.Framework.Graphics.Color.prototype.get_B = function () {
+Microsoft.Xna.Framework.Color.prototype.get_B = function () {
   return this.b;
 }
 
-Microsoft.Xna.Framework.Graphics.Color.prototype.toCss = function () {
+Microsoft.Xna.Framework.Color.prototype.toCss = function () {
   if (this.A < 255) {
     return System.String.Format(
       "rgba({0}, {1}, {2}, {3})",
@@ -382,8 +382,8 @@ Microsoft.Xna.Framework.Graphics.Color.prototype.toCss = function () {
   }
 }
 
-Microsoft.Xna.Framework.Graphics.Color.prototype.MemberwiseClone = function () {
-  var result = Object.create(Microsoft.Xna.Framework.Graphics.Color.prototype);
+Microsoft.Xna.Framework.Color.prototype.MemberwiseClone = function () {
+  var result = Object.create(Microsoft.Xna.Framework.Color.prototype);
   result.a = this.a;
   result.r = this.r;
   result.g = this.g;
@@ -391,25 +391,25 @@ Microsoft.Xna.Framework.Graphics.Color.prototype.MemberwiseClone = function () {
   return result;
 }
 
-Microsoft.Xna.Framework.Graphics.Color._cctor = function () {
-  var self = Microsoft.Xna.Framework.Graphics.Color;
-  self.black = new Microsoft.Xna.Framework.Graphics.Color(0, 0, 0);
-  self.transparentBlack = new Microsoft.Xna.Framework.Graphics.Color(0, 0, 0, 0);
-  self.white = new Microsoft.Xna.Framework.Graphics.Color(255, 255, 255);
-  self.transparentWhite = new Microsoft.Xna.Framework.Graphics.Color(255, 255, 255, 0);
+Microsoft.Xna.Framework.Color._cctor = function () {
+  var self = Microsoft.Xna.Framework.Color;
+  self.black = new Microsoft.Xna.Framework.Color(0, 0, 0);
+  self.transparentBlack = new Microsoft.Xna.Framework.Color(0, 0, 0, 0);
+  self.white = new Microsoft.Xna.Framework.Color(255, 255, 255);
+  self.transparentWhite = new Microsoft.Xna.Framework.Color(255, 255, 255, 0);
 };
 
-Microsoft.Xna.Framework.Graphics.Color.get_Black = function () {
-  return Microsoft.Xna.Framework.Graphics.Color.black;
+Microsoft.Xna.Framework.Color.get_Black = function () {
+  return Microsoft.Xna.Framework.Color.black;
 };
-Microsoft.Xna.Framework.Graphics.Color.get_TransparentBlack = function () {
-  return Microsoft.Xna.Framework.Graphics.Color.transparentBlack;
+Microsoft.Xna.Framework.Color.get_TransparentBlack = function () {
+  return Microsoft.Xna.Framework.Color.transparentBlack;
 };
-Microsoft.Xna.Framework.Graphics.Color.get_White = function () {
-  return Microsoft.Xna.Framework.Graphics.Color.white;
+Microsoft.Xna.Framework.Color.get_White = function () {
+  return Microsoft.Xna.Framework.Color.white;
 };
-Microsoft.Xna.Framework.Graphics.Color.get_TransparentWhite = function () {
-  return Microsoft.Xna.Framework.Graphics.Color.transparentWhite;
+Microsoft.Xna.Framework.Color.get_TransparentWhite = function () {
+  return Microsoft.Xna.Framework.Color.transparentWhite;
 };
 
 Microsoft.Xna.Framework.Rectangle.prototype._ctor = function (x, y, width, height) {
@@ -447,6 +447,6 @@ Microsoft.Xna.Framework.Graphics.VertexPositionColor.prototype._ctor = function 
 }
 
 JSIL.SealTypes(
-  $jsilxna, "Microsoft.Xna.Framework.Graphics", 
+  $jsilxna, "Microsoft.Xna.Framework", 
   "Color"
 );

@@ -115,8 +115,14 @@
     <None Include="..\Libraries\JSIL.Bootstrap.js">
       <Link>JS Libraries\JSIL.Bootstrap.js</Link>
     </None>
-    <None Include="..\Libraries\JSIL.XNA.js">
-      <Link>JS Libraries\JSIL.XNA.js</Link>
+    <None Include="..\Libraries\JSIL.Browser.js">
+      <Link>JS Libraries\JSIL.Browser.js</Link>
+    </None>
+    <None Include="..\Libraries\JSIL.XNA3.js">
+      <Link>JS Libraries\JSIL.XNA3.js</Link>
+    </None>
+    <None Include="..\Libraries\JSIL.XNA4.js">
+      <Link>JS Libraries\JSIL.XNA4.js</Link>
     </None>
     <None Include="..\Libraries\System.Drawing.js">
       <Link>JS Libraries\System.Drawing.js</Link>

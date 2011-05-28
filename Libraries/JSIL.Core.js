@@ -866,9 +866,15 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
       JSIL.Host.warning("Type ", typeName, " implements an undefined interface.");
       continue __interfaces__;
     } else if (typeof (iface) === "string") {
-      iface = JSIL.ResolveName(
+      var resolved = JSIL.ResolveName(
         type.__Context__ || JSIL.GlobalNamespace, iface
-      ).get();
+      );
+      if (resolved.exists())
+        iface = resolved.get();
+      else {
+        JSIL.Host.warning("Type ", typeName, " implements an undefined interface named '", iface, "'.");
+        continue __interfaces__;
+      }
     }
 
     var ifaceName = JSIL.GetTypeName(iface);

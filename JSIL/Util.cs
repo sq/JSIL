@@ -156,7 +156,7 @@ namespace JSIL.Internal {
                     return @"\n";
                 default: {
                     if (character > 255)
-                        return String.Format(@"\x{0:x4}", (int)character);
+                        return String.Format(@"\u{0:x4}", (int)character);
                     else
                         return String.Format(@"\x{0:x2}", (int)character);
                 }
