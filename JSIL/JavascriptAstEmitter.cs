@@ -775,9 +775,10 @@ namespace JSIL {
                 if (newexp.Arguments.Count > 0) {
                     CommaSeparatedList(newexp.Arguments);
                 }
-                Output.CloseBracket(true);
-
-                Output.RPar();
+                Output.CloseBracket(true, () => {
+                    Output.RPar();
+                    Output.NewLine();
+                });
             } else {
                 if (parens)
                     Output.LPar();

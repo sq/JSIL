@@ -132,15 +132,20 @@ namespace JSIL.Internal {
             }
         }
 
-        public void CloseBracket (bool indent = false) {
+        public void CloseBracket (bool indent = false, Action newline = null) {
             if (indent) {
                 PlainTextOutput.Unindent();
                 PlainTextOutput.WriteLine();
             }
 
             PlainTextOutput.Write("]");
-            if (indent)
-                PlainTextOutput.WriteLine();
+
+            if (indent) {
+                if (newline != null)
+                    newline();
+                else
+                    PlainTextOutput.WriteLine();
+            }
         }
 
         public void OpenBrace () {

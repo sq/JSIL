@@ -826,9 +826,10 @@ namespace JSIL {
                     output.Comma();
                     output.OpenBracket(true);
                     output.CommaSeparatedList(interfaces, ListValueType.TypeReference);
-                    output.CloseBracket(true);
-                    output.RPar();
-                    output.Semicolon();
+                    output.CloseBracket(true, () => {
+                        output.RPar();
+                        output.Semicolon();
+                    });
                 });
             }
 
@@ -874,8 +875,7 @@ namespace JSIL {
                         isFirst = false;
                     }
 
-                    output.CloseBracket(true);
-                    output.Semicolon();
+                    output.CloseBracket(true, output.Semicolon);
                 });
             }
 
@@ -986,9 +986,10 @@ namespace JSIL {
                 isFirst = false;
             }
 
-            output.CloseBracket(true);
-            output.RPar();
-            output.Semicolon();
+            output.CloseBracket(true, () => {
+                output.RPar();
+                output.Semicolon();
+            });
         }
 
         internal JSFunctionExpression TranslateMethodExpression (DecompilerContext context, MethodReference method, MethodDefinition methodDef, Action<JSFunctionExpression> bodyTransformer = null) {
