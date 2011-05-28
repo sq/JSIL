@@ -159,8 +159,8 @@ namespace JSIL.Tests {
                 Assert.IsTrue(generatedJs.Contains("\"remove_D"));
                 Assert.IsTrue(generatedJs.Contains("\"_ctor"));
 
-                Assert.IsTrue(generatedJs.Contains("Program.$lA$gk__BackingField = 0"));
-                Assert.IsTrue(generatedJs.Contains("T.prototype.$lC$gk__BackingField = 0"));
+                Assert.IsTrue(generatedJs.Contains("Program.A$value = 0"));
+                Assert.IsTrue(generatedJs.Contains("T.prototype.C$value = 0"));
             } catch {
                 Console.WriteLine(generatedJs);
                 throw;

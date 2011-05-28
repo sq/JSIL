@@ -190,6 +190,8 @@
     <None Include="SpecialTestCases\StringSwitch.cs" />
     <None Include="TestCases\EnumSwitch.cs" />
     <None Include="TestCases\Chars.cs" />
+    <None Include="SpecialTestCases\DisplayClassFieldNames.cs" />
+    <None Include="SpecialTestCases\EnumeratorClassLocalNames.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

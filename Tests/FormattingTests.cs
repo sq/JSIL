@@ -145,6 +145,44 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void DisplayClassFieldNames () {
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\DisplayClassFieldNames.cs",
+                "a()=x=1, y=y"
+            );
+
+            try {
+                Assert.IsTrue(generatedJs.Contains(".x ="));
+                Assert.IsTrue(generatedJs.Contains(".y ="));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
+        public void EnumeratorClassLocalNames () {
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\EnumeratorClassLocalNames.cs",
+                "0\r\n1\r\n2\r\n3\r\n4\r\n5\r\n6\r\n7\r\n8\r\n9"
+            );
+
+            try {
+                Assert.IsTrue(generatedJs.Contains("this.i"));
+                Assert.IsTrue(generatedJs.Contains("this.$state"));
+                Assert.IsTrue(generatedJs.Contains("this.$current"));
+                Assert.IsFalse(generatedJs.Contains(".$li$g"));
+                Assert.IsFalse(generatedJs.Contains(".$l$g1__state"));
+                Assert.IsFalse(generatedJs.Contains(".$l$g2__current"));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
         public void PrivateNames () {
             using (var test = new ComparisonTest(@"SpecialTestCases\PrivateNames.cs"))
                 test.Run();

@@ -73,7 +73,7 @@ namespace JSIL.Transforms {
         }
 
         protected void TransformParameterIntoReference (JSVariable parameter, JSBlockStatement block) {
-            var newParameter = new JSParameter("_" + parameter.Identifier, parameter.Type);
+            var newParameter = new JSParameter("$" + parameter.Identifier, parameter.Type);
             var newVariable = new JSVariable(parameter.Identifier, new ByReferenceType(parameter.Type));
             var newDeclaration = new JSVariableDeclarationStatement(
                 new JSBinaryOperatorExpression(

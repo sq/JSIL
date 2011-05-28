@@ -604,7 +604,7 @@ namespace JSIL.Internal {
             Interfaces = interfaces.ToArray();
 
             _IsIgnored = module.IsIgnored ||
-                IsIgnoredName(type.FullName) ||
+                IsIgnoredName(type.Name) ||
                 Metadata.HasAttribute("JSIL.Meta.JSIgnore") ||
                 Metadata.HasAttribute("System.Runtime.CompilerServices.UnsafeValueTypeAttribute") ||
                 Metadata.HasAttribute("System.Runtime.CompilerServices.NativeCppClassAttribute");
@@ -875,37 +875,55 @@ namespace JSIL.Internal {
             return AddMember(evt);
         }
 
-        static readonly Regex MangledNameRegex = new Regex(@"\<([^>]*)\>([^_]*)__([0-9]*)", RegexOptions.Compiled);
+        static readonly Regex MangledNameRegex = new Regex(@"\<([^>]*)\>([^_]*)__(.*)", RegexOptions.Compiled);
 
-        public static bool IsIgnoredName (string fullName) {
-            if (fullName.EndsWith("__BackingField"))
+        public static string GetOriginalName (string memberName) {
+            var m = MangledNameRegex.Match(memberName);
+            if (!m.Success)
+                return null;
+
+            var originalName = m.Groups[1].Value;
+            if (String.IsNullOrWhiteSpace(originalName))
+                originalName = String.Format("${0}", m.Groups[3].Value.Trim());
+            if (String.IsNullOrWhiteSpace(originalName))
+                return null;
+
+            if (memberName.Contains("__BackingField"))
+                return String.Format("{0}$value", originalName);
+            else
+                return originalName;
+        }
+
+        public static bool IsIgnoredName (string shortName) {
+            if (shortName.EndsWith("__BackingField"))
                 return false;
-            else if (fullName.Contains("__DisplayClass"))
+            else if (shortName.Contains("__DisplayClass"))
                 return false;
-            else if (fullName.Contains("<PrivateImplementationDetails>"))
+            else if (shortName.Contains("<PrivateImplementationDetails>"))
                 return true;
-            else if (fullName.Contains("Runtime.CompilerServices.CallSite"))
+            else if (shortName.Contains("Runtime.CompilerServices.CallSite"))
                 return true;
-            else if (fullName.Contains("__CachedAnonymousMethodDelegate"))
+            else if (shortName.Contains("__CachedAnonymousMethodDelegate"))
                 return true;
-            else if (fullName.Contains("<Module>"))
+            else if (shortName.Contains("<Module>"))
                 return true;
-            else if (fullName.Contains("__SiteContainer"))
+            else if (shortName.Contains("__SiteContainer"))
                 return true;
-            else if (fullName.StartsWith("CS$<"))
+            else if (shortName.StartsWith("CS$<"))
                 return true;
             else {
-                var m = MangledNameRegex.Match(fullName);
+                var m = MangledNameRegex.Match(shortName);
                 if (m.Success) {
                     switch (m.Groups[2].Value) {
                         case "b":
                             // Lambda
                             return true;
+                        case "c":
+                            // Class
+                            return false;
                         case "d":
                             // Enumerator
                             return false;
-                        default:
-                            throw new Exception("Unknown mangled name format");
                     }
                 }
             }
@@ -1096,7 +1114,7 @@ namespace JSIL.Internal {
             _WritePolicy = JSWritePolicy.Unmodified;
             _InvokePolicy = JSInvokePolicy.Unmodified;
 
-            _IsIgnored = isIgnored || TypeInfo.IsIgnoredName(member.FullName);
+            _IsIgnored = isIgnored || TypeInfo.IsIgnoredName(member.Name);
             IsExternal = isExternal;
             DeclaringType = parent;
 
@@ -1225,9 +1243,19 @@ namespace JSIL.Internal {
     }
 
     public class FieldInfo : MemberInfo<FieldDefinition> {
+        protected readonly string OriginalName;
+
         public FieldInfo (TypeInfo parent, MemberIdentifier identifier, FieldDefinition field, ProxyInfo[] proxies) : base(
             parent, identifier, field, proxies, ILBlockTranslator.IsIgnoredType(field.FieldType)
         ) {
+            OriginalName = TypeInfo.GetOriginalName(Name);
+        }
+
+        protected override string GetName () {
+            if (OriginalName != null)
+                return OriginalName;
+            else
+                return base.GetName();
         }
 
         public override TypeReference ReturnType {
