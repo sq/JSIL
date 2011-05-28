@@ -113,7 +113,7 @@ Microsoft.Xna.Framework.Game.prototype._ctor = function () {
     var deferredCalls = [];
     var runDeferredCalls = function () {
       while (deferredCalls.length > 0) {
-        var callback = deferredCalls.pop();
+        var callback = deferredCalls.shift();
         callback();
       }
     };

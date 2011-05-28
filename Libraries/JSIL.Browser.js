@@ -3,39 +3,43 @@
 var currentLogLine = null;
     
 JSIL.Host.getCanvas = function (desiredWidth, desiredHeight) {
-    var e = document.getElementById("canvas");
-    if (typeof (desiredWidth) === "number")
-      e.width = desiredWidth;
-    if (typeof (desiredHeight) === "number")
-      e.height = desiredHeight;
-    
-    return e;
+  var e = document.getElementById("canvas");
+  if (typeof (desiredWidth) === "number")
+    e.width = desiredWidth;
+  if (typeof (desiredHeight) === "number")
+    e.height = desiredHeight;
+  
+  return e;
 };
 JSIL.Host.createCanvas = function (desiredWidth, desiredHeight) {
-    var e = document.createElement("canvas");
-    e.width = desiredWidth;
-    e.height = desiredHeight;
-    document.getElementById("images").appendChild(e);
-    
-    return e;
+  var e = document.createElement("canvas");
+  e.width = desiredWidth;
+  e.height = desiredHeight;
+  document.getElementById("images").appendChild(e);
+  
+  return e;
 };
 JSIL.Host.logWrite = function (text) {
-    if (currentLogLine === null) {
-      currentLogLine = document.createTextNode(text);
-      document.getElementById("log").appendChild(currentLogLine);
-    } else {
-      currentLogLine.textContent += text;
-    }
+  if (currentLogLine === null) {
+    currentLogLine = document.createTextNode(text);
+    document.getElementById("log").appendChild(currentLogLine);
+  } else {
+    currentLogLine.textContent += text;
+  }
 };
 JSIL.Host.logWriteLine = function (text) {
+  var lines = text.split("\n");
+  for (var i = 0, l = lines.length; i < l; i++) {
+    var line = lines[i];
     if (currentLogLine === null) {
-      var logLine = document.createTextNode(text);
+      var logLine = document.createTextNode(line);
       document.getElementById("log").appendChild(logLine);
     } else {
-      currentLogLine.textContent += text;
+      currentLogLine.textContent += line;
       currentLogLine = null;
     }
     document.getElementById("log").appendChild(document.createElement("br"));
+  }
 };
 JSIL.Host.getFile = function (filename) {
   var key = getShortName(filename);

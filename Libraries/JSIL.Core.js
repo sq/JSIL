@@ -241,7 +241,7 @@ JSIL.Host.runLaterCallback = function () {
   var items = JSIL.Host.pendingRunLaterItems;
 
   while (items.length > 0) {
-    var item = items.pop();
+    var item = items.shift();
     item();
   }
 }
@@ -335,7 +335,7 @@ JSIL.QueueInitializer = function (initializer) {
 
 JSIL.Initialize = function () {
   while (JSIL.PendingInitializers.length > 0) {
-    var initializer = JSIL.PendingInitializers.pop();
+    var initializer = JSIL.PendingInitializers.shift();
     if (typeof (initializer) !== "function")
       JSIL.Host.warning("A non-function was queued as an initializer: ", initializer);
 

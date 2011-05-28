@@ -282,10 +282,40 @@ namespace JSIL {
 
             formatter.DeclareAssembly();
 
+            var sealedTypes = new HashSet<TypeDefinition>();
+
             // Important to clear this because types with the exact same full names can be defined in multiple assemblies
             DeclaredTypes.Clear();
             foreach (var module in assembly.Modules)
-                TranslateModule(context, formatter, module, initializer, stubbed);
+                TranslateModule(context, formatter, module, initializer, sealedTypes, stubbed);
+
+            if (sealedTypes.Count > 0) {
+                var groups = (from st in sealedTypes
+                              let parent = JavascriptFormatter.GetParent(st, null)
+                              group st by parent);
+
+                initializer.Add(() => {
+                    foreach (var g in groups) {
+                        formatter.Identifier("JSIL.SealTypes", null);
+                        formatter.LPar();
+
+                        formatter.Identifier(formatter.PrivateToken);
+                        formatter.Comma();
+                        formatter.Value(g.Key);
+                        formatter.Comma();
+
+                        formatter.NewLine();
+
+                        formatter.CommaSeparatedList(
+                            (from typedef in g select typedef.Name), ListValueType.Primitive
+                        );
+
+                        formatter.NewLine();
+                        formatter.RPar();
+                        formatter.Semicolon();
+                    }
+                });
+            }
 
             foreach (var init in initializer) {
                 formatter.Identifier("JSIL.QueueInitializer", null);
@@ -505,7 +535,7 @@ namespace JSIL {
             return (T)result;
         }
 
-        protected void TranslateModule (DecompilerContext context, JavascriptFormatter output, ModuleDefinition module, List<Action> initializer, bool stubbed) {
+        protected void TranslateModule (DecompilerContext context, JavascriptFormatter output, ModuleDefinition module, List<Action> initializer, HashSet<TypeDefinition> sealedTypes, bool stubbed) {
             var moduleInfo = GetModuleInformation(module);
             if (moduleInfo.IsIgnored)
                 return;
@@ -518,40 +548,9 @@ namespace JSIL {
             foreach (var typedef in module.Types)
                 ForwardDeclareType(context, output, typedef);
 
-            var sealedTypes = new HashSet<TypeDefinition>();
-
             foreach (var typedef in module.Types) {
                 TranslateTypeDefinition(context, output, typedef, initializer, stubbed);
                 SealType(context, output, typedef, sealedTypes);
-            }
-
-            if (sealedTypes.Count > 0) {
-                var groups = (from st in sealedTypes
-                                let parent = JavascriptFormatter.GetParent(st, null)
-                                group st by parent);
-
-                foreach (var g in groups) {
-                    var _ = g;
-                    initializer.Add(() => {
-                        output.Identifier("JSIL.SealTypes", null);
-                        output.LPar();
-
-                        output.Identifier(output.PrivateToken);
-                        output.Comma();
-                        output.Value(_.Key);
-                        output.Comma();
-
-                        output.NewLine();
-
-                        output.CommaSeparatedList(
-                            (from typedef in _ select typedef.Name), ListValueType.Primitive
-                        );
-
-                        output.NewLine();
-                        output.RPar();
-                        output.Semicolon();
-                    });
-                }
             }
         }
 
