@@ -152,15 +152,19 @@ namespace JSIL.Tests {
 
             try {
                 Assert.IsTrue(generatedJs.Contains("\"Main"));
-                Assert.IsTrue(generatedJs.Contains("\"get_A"));
+                Assert.IsTrue(generatedJs.Contains("\"get_B"));
 
-                Assert.IsTrue(generatedJs.Contains("\"B"));
-                Assert.IsTrue(generatedJs.Contains("\"set_C"));
-                Assert.IsTrue(generatedJs.Contains("\"remove_D"));
+                // We still want to generate method bodies for auto properties, since they're compiler generated and only
+                //  contain a single statement anyway
+                Assert.IsTrue(generatedJs.Contains("get_A = function"));
+                Assert.IsTrue(generatedJs.Contains("get_D = function"));
+
+                Assert.IsTrue(generatedJs.Contains("\"set_E"));
+                Assert.IsTrue(generatedJs.Contains("\"remove_F"));
                 Assert.IsTrue(generatedJs.Contains("\"_ctor"));
 
                 Assert.IsTrue(generatedJs.Contains("Program.A$value = 0"));
-                Assert.IsTrue(generatedJs.Contains("T.prototype.C$value = 0"));
+                Assert.IsTrue(generatedJs.Contains("T.prototype.D$value = 0"));
             } catch {
                 Console.WriteLine(generatedJs);
                 throw;

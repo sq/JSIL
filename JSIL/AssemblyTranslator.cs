@@ -826,14 +826,6 @@ namespace JSIL {
                     output.Comma();
                     output.OpenBracket(true);
                     output.CommaSeparatedList(interfaces, ListValueType.TypeReference);
-                    /*
-                    output.CommaSeparatedList(
-                        (from i in interfaces
-                         let id = i.Resolve()
-                         select Util.EscapeIdentifier((id ?? i).FullName, EscapingMode.String)),
-                         ListValueType.Primitive
-                    );
-                     */
                     output.CloseBracket(true);
                     output.RPar();
                     output.Semicolon();
@@ -927,8 +919,11 @@ namespace JSIL {
                 });
             }
 
-            if (stubbed)
+            if (stubbed &&
+                (info.MethodGroups.Count + typedef.Properties.Count) > 0
+            ) {
                 initializer.Add(initializeOverloadsAndProperties);
+            }
 
             output.NewLine();
 
@@ -1223,10 +1218,12 @@ namespace JSIL {
                 if (staticExternalMemberNames == null)
                     throw new ArgumentNullException("staticExternalMemberNames");
 
-                (method.IsStatic ? staticExternalMemberNames : externalMemberNames)
-                    .Add(Util.EscapeIdentifier(methodInfo.GetName(true)));
+                if ((methodInfo.DeclaringProperty == null) || !methodInfo.Member.IsCompilerGenerated()) {
+                    (method.IsStatic ? staticExternalMemberNames : externalMemberNames)
+                        .Add(Util.EscapeIdentifier(methodInfo.GetName(true)));
 
-                return;
+                    return;
+                }
             }
 
             if (methodInfo.IsIgnored)
