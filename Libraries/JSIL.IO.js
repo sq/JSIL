@@ -53,7 +53,7 @@ System.IO.BinaryReader.prototype._ctor$1 = function (stream, encoding) {
   this.m_encoding = encoding;
 };
 
-System.IO.BinaryReader.prototype.ReadChars = function (count) {
+System.IO.BinaryReader.prototype.ReadBytes = function (count) {
   var result = new Array(count);
   for (var i = 0; i < count; i++) {
     result[i] = this.m_stream.ReadByte();
@@ -61,6 +61,15 @@ System.IO.BinaryReader.prototype.ReadChars = function (count) {
 
   return result;
 };
+
+System.IO.BinaryReader.prototype.ReadChars = function (count) {
+  var result = new Array(count);
+  for (var i = 0; i < count; i++) {
+    result[i] = String.fromCharCode(this.m_stream.ReadByte());
+  };
+
+  return result;
+}  
 
 System.IO.BinaryReader.prototype.ReadInt32 = function () {
   var value = this.ReadUInt32();
@@ -99,12 +108,12 @@ System.IO.BinaryReader.prototype.ReadSByte = function () {
 };
 
 System.IO.BinaryReader.prototype.ReadSingle = function () {
-  var bytes = this.ReadChars(4);
+  var bytes = this.ReadBytes(4);
   return this._decodeFloat(bytes, 23, 8);
 };
 
 System.IO.BinaryReader.prototype.ReadDouble = function () {
-  var bytes = this.ReadChars(8);
+  var bytes = this.ReadBytes(8);
   return this._decodeFloat(bytes, 52, 11);
 };
 

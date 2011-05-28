@@ -139,23 +139,47 @@ System.Drawing.Color._cctor = function () {
 };
 
 JSIL.MakeStruct("System.Drawing.Size", true);
-System.Drawing.Size.prototype.Width = 0;
-System.Drawing.Size.prototype.Height = 0;
+System.Drawing.Size.prototype.width = 0;
+System.Drawing.Size.prototype.height = 0;
 System.Drawing.Size.prototype._ctor = function (w, h) {
-  this.Width = w;
-  this.Height = h;
+  this.width = w;
+  this.height = h;
 }
+System.Drawing.Size.prototype.get_Width = function () {
+  return this.width;
+};
+System.Drawing.Size.prototype.get_Height = function () {
+  return this.height;
+};
+System.Drawing.Size.prototype.set_Width = function (value) {
+  this.width = value;
+};
+System.Drawing.Size.prototype.set_Height = function (value) {
+  this.height = value;
+};
 System.Drawing.Size._cctor = function () {
   System.Drawing.Size.Empty = new System.Drawing.Size();
 }
 
 JSIL.MakeStruct("System.Drawing.Point", true);
-System.Drawing.Point.prototype.X = 0;
-System.Drawing.Point.prototype.Y = 0;
+System.Drawing.Point.prototype.x = 0;
+System.Drawing.Point.prototype.y = 0;
 System.Drawing.Point.prototype._ctor = function (x, y) {
-  this.X = x;
-  this.Y = y;
+  this.x = x;
+  this.y = y;
 }
+System.Drawing.Point.prototype.get_X = function () {
+  return this.x;
+};
+System.Drawing.Point.prototype.get_Y = function () {
+  return this.y;
+};
+System.Drawing.Point.prototype.set_X = function (value) {
+  this.x = value;
+};
+System.Drawing.Point.prototype.set_Y = function (value) {
+  this.y = value;
+};
 System.Drawing.Point._cctor = function () {
   System.Drawing.Point.Empty = new System.Drawing.Point();
 }

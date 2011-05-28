@@ -139,16 +139,11 @@ String.prototype.Split = function (separators) {
 };
 
 JSIL.MakeClass("System.Object", "System.String", true);
+System.String.__IsNativeType__ = true;
 System.String.CheckType = function (value) {
   return (typeof (value) === "string") || (
     (typeof (value.text) === "string") && (value.__proto__ === System.String.prototype)
   );
-}
-System.String.prototype._ctor = function (text) {
-  if (typeof (text) === "string")
-    this.text = text;
-  else
-    this.text = String(text);
 }
 System.String.toString = function () {
   return this.text;
@@ -207,6 +202,25 @@ System.String.Format = function (format) {
   };
 
   return format.replace(regex, matcher);
+};
+System.String.prototype._ctor = function (text) {
+  if (typeof (text) === "string")
+    return text;
+  else
+    return String(text);
+}
+System.String.prototype._ctor$0 = function (chars, startIndex, length) {
+  var arr = chars.slice(startIndex, length);
+  return arr.join("");
+};
+System.String.prototype._ctor$1 = function (chars) {
+  return System.String.prototype._ctor$0.call(this, chars, 0, chars.length);
+};
+System.String.prototype._ctor$2 = function (char, length) {
+  var arr = new Array(length);
+  for (var i = 0; i < length; i++)
+    arr[i] = char;
+  return arr.join("");
 };
 
 JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true);

@@ -376,8 +376,13 @@ JSIL.TypeRef.prototype.get = function () {
 };
 
 JSIL.New = function (type, constructorName, args) {
-  var proto = type.prototype;
-  var result = Object.create(proto);
+  if (type.__IsNativeType__ || false) {
+    var ctor = type.prototype[constructorName];
+    return ctor.apply(null, args);
+  } else {
+    var proto = type.prototype;
+    var result = Object.create(proto);
+  }
 
   if ((type.__TypeInitialized__ || false) === false)
     JSIL.InitializeType(type);
@@ -637,6 +642,10 @@ JSIL.ShadowedTypeWarning = function (fullName) {
   // JSIL.Host.warning("Type ", fullName, " is shadowed by another type of the same name.");
 };
 
+JSIL.DuplicateDefinitionWarning = function (fullName) {
+  // JSIL.Host.warning("Type ", fullName, " is defined multiple times.");
+};
+
 JSIL.MakeStaticClass = function (fullName, isPublic) {
   if (typeof (isPublic) === "undefined")
     JSIL.Host.error(new Error("Must specify isPublic"));
@@ -645,7 +654,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic) {
   var localName = resolved.localName;
 
   if (resolved.exists()) {
-    JSIL.Host.warning("Duplicate definition of type ", fullName);
+    JSIL.DuplicateDefinitionWarning(fullName);
     return;
   }
 
@@ -677,7 +686,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic) {
   var localName = resolved.localName;
 
   if (resolved.exists()) {
-    JSIL.Host.warning("Duplicate definition of type ", fullName);
+    JSIL.DuplicateDefinitionWarning(fullName);
     return;
   }
 
@@ -699,6 +708,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic) {
   };
 
   typeObject.__IsArray__ = false;
+  typeObject.__IsNativeType__ = false;
   typeObject.__IsReferenceType__ = isReferenceType;
   typeObject.__Context__ = $private;
   typeObject.__Self__ = typeObject;
@@ -746,7 +756,7 @@ JSIL.MakeInterface = function (fullName, members) {
   var localName = resolved.localName;
 
   if (resolved.exists()) {
-    JSIL.Host.warning("Duplicate definition of interface ", fullName);
+    JSIL.DuplicateDefinitionWarning(fullName);
     return;
   }
 
@@ -774,7 +784,7 @@ JSIL.MakeEnum = function (fullName, members, isFlagsEnum) {
   var localName = resolved.localName;
 
   if (resolved.exists()) {
-    JSIL.Host.warning("Duplicate definition of enum ", fullName);
+    JSIL.DuplicateDefinitionWarning(fullName);
     return;
   }
   
@@ -835,6 +845,7 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
   }
 
   var typeName = JSIL.GetTypeName(type);
+  var missingMembers = [];
 
   var hasOwnPropertyRecursive = function (target, name) {
     while (!target.hasOwnProperty(name)) {
@@ -933,7 +944,7 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
       }
 
       if (!hasShort && !hasQualified) {
-        JSIL.Host.warning("Type ", JSIL.GetTypeName(type), " is missing implementation of interface member ", qualifiedName);
+        missingMembers.push(qualifiedName);
         continue __members__;
       }
 
@@ -952,6 +963,10 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
 
     if (interfaces.indexOf(iface) < 0)
       interfaces.push(iface);
+  }
+
+  if (missingMembers.length > 0) {
+    JSIL.Host.warning("Type ", JSIL.GetTypeName(type), " is missing implementation of interface member(s): ", missingMembers.join(", "));
   }
 };
 
