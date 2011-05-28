@@ -85,9 +85,10 @@ namespace JSIL {
         }
 
         public JSExpression Cast (JSExpression expression, TypeReference targetType) {
-            var currentType = expression.GetExpectedType(TypeSystem);
+            var currentType = ILBlockTranslator.DereferenceType(expression.GetExpectedType(TypeSystem));
+            targetType = ILBlockTranslator.DereferenceType(targetType);
 
-            if (targetType.FullName == "System.Char") {
+            if (targetType.MetadataType == MetadataType.Char) {
                 var result = new JSInvocationExpression(
                     JSDotExpression.New(
                         new JSStringIdentifier("String"),
@@ -98,7 +99,7 @@ namespace JSIL {
                 result.ConstantIfArgumentsAre = true;
                 return result;
             } else if (
-                (currentType.FullName == "System.Char") &&
+                (currentType.MetadataType == MetadataType.Char) &&
                 ILBlockTranslator.IsIntegral(targetType)
             ) {
                 var result = new JSInvocationExpression(

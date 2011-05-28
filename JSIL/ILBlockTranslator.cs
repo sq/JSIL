@@ -1923,10 +1923,18 @@ namespace JSIL {
 
             var translatedArguments = Translate(arguments.ToArray(), method.Parameters);
 
-            return Translate_MethodReplacement(
+            var result = Translate_MethodReplacement(
                 method, thisExpression, invokeTarget, 
                 translatedArguments, false
             );
+
+            if (method.ReturnType.MetadataType != MetadataType.Void) {
+                var expectedType = node.ExpectedType ?? node.InferredType ?? method.ReturnType;
+                if (!TypesAreAssignable(expectedType, result.GetExpectedType(TypeSystem)))
+                    result = Translate_Conv(result, expectedType);
+            }
+
+            return result;
         }
 
         protected bool IsInvalidThisExpression (ILExpression thisNode) {
@@ -1960,11 +1968,19 @@ namespace JSIL {
             if (methodInfo == null)
                 return new JSIgnoredMemberReference(true, null, JSLiteral.New(method.FullName));
 
-            return Translate_MethodReplacement(
+            var result = Translate_MethodReplacement(
                method, thisExpression, new JSDotExpression(
                    thisExpression, new JSMethod(method, methodInfo)
                ), translatedArguments, true
             );
+
+            if (method.ReturnType.MetadataType != MetadataType.Void) {
+                var expectedType = node.ExpectedType ?? node.InferredType ?? method.ReturnType;
+                if (!TypesAreAssignable(expectedType, result.GetExpectedType(TypeSystem)))
+                    result = Translate_Conv(result, expectedType);
+            }
+
+            return result;
         }
 
         protected JSExpression Translate_InvokeCallSiteTarget (ILExpression node, MethodReference method) {
