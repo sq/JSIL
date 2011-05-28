@@ -381,7 +381,7 @@ JSIL.New = function (type, constructorName, args) {
 
   if ((type.__TypeInitialized__ || false) === false)
     JSIL.InitializeType(type);
-
+  
   JSIL.InitializeStructFields(result, type);
 
   if (!type.__IsReferenceType__ && (args.length == 0)) {
@@ -470,7 +470,7 @@ System.RuntimeType.__ShortName__ = null;
 
 JSIL.InitializeStructFields = function (instance, typeObject) {
   var sf = instance.__StructFields__;
-  if (typeof (sf) !== "object")
+  if ((typeof (sf) !== "object") || (sf.length <= 0))
     return;
 
   for (var i = 0, l = sf.length; i < l; i++) {
@@ -1359,6 +1359,15 @@ System.Enum.prototype.toString = function ToString() {
 };
 
 System.Array.prototype = JSIL.MakeProto(System.Object, System.Array, "System.Array", true);
+System.Array.prototype.GetLength = function () {
+  return this.length;
+};
+System.Array.prototype.GetLowerBound = function () {
+  return 0;
+};
+System.Array.prototype.GetUpperBound = function () {
+  return this.length - 1;
+};
 System.Array.__IsArray__ = true;
 System.Array.Types = {};
 System.Array.Of = function (type) {
@@ -1403,60 +1412,73 @@ JSIL.Array.New = function (type, sizeOrInitializer) {
 };
 
 JSIL.MultidimensionalArray = function (dimensions) {
+  if (dimensions.length < 2)
+    throw new Error();
+
   var totalSize = dimensions[0];
   for (var i = 1; i < dimensions.length; i++)
     totalSize *= i;
 
   this._dimensions = dimensions;
-  this._items = new Array(totalSize);
-};
+  var items = this._items = new Array(totalSize);
+
+  switch (dimensions.length) {
+    case 2:
+      var height = this.length0 = dimensions[0];
+      var width = this.length1 = dimensions[1];
+      this.Get = function (y, x) {
+        return items[(y * width) + x];
+      };
+      this.Set = function (y, x, value) {
+        items[(y * width) + x] = value;
+      };
+      this.GetLength = function (i) {
+        if (i == 0)
+          return height;
+        else
+          return width;
+      };
+      this.GetUpperBound = function (i) {
+        if (i == 0)
+          return height - 1;
+        else
+          return width - 1;
+      };
+      break;
+    case 3:
+      var depth = this.length0 = dimensions[0];
+      var height = this.length1 = dimensions[1];
+      var width = this.length2 = dimensions[2];
+      var heightxwidth = height * width;
+
+      this.Get = function (z, y, x) {
+        return items[(z * heightxwidth) + (y * width) + x];      
+      };
+      this.Set = function (z, y, x, value) {
+        items[(z * heightxwidth) + (y * width) + x] = value;
+      };
+      this.GetLength = function (i) {
+        if (i == 0)
+          return depth;
+        else if (i == 1)
+          return height;
+        else
+          return width;
+      };
+      this.GetUpperBound = function (i) {
+        if (i == 0)
+          return depth - 1;
+        else if (i == 1)
+          return height - 1;
+        else
+          return width - 1;
+      };
+      break;
+  }
+}
 JSIL.MultidimensionalArray.prototype = JSIL.CloneObject(System.Array.prototype);
-JSIL.MultidimensionalArray.prototype.GetLength = function (i) {
-  return this._dimensions[i];
-};
 JSIL.MultidimensionalArray.prototype.GetLowerBound = function (i) {
   return 0;
-};
-JSIL.MultidimensionalArray.prototype.GetUpperBound = function (i) {
-  return this._dimensions[i] - 1;
-};
-// This gets a little hairy: In C#, multidimensional array dimensions are presented in reverse order,
-//  like so: var arr = new int[depth, height, width]; arr[z, y, x] = ...;
-JSIL.MultidimensionalArray.prototype._ComputeIndex = function () {
-  var dims = this._dimensions;
-  switch (dims.length) {
-    case 1:
-      return arguments[0];
-    case 2:
-      return (arguments[0] * dims[1]) + arguments[1];
-    case 3:
-      return (arguments[0] * dims[1]) + (arguments[1] * dims[1] * dims[2]) + arguments[2];
-    default:
-      throw new Error("Not implemented");
-  }
-
-  var result = 0;
-  for (var i = 0; i < arguments.length; i++) {
-
-    // Compute the stride for this dimension. For the last dimension, the stride is always one.
-    var stride = 1;
-    for (var j = i + 1; j < arguments.length; j++) {
-      stride *= this._dimensions[j];
-    }
-
-    // arr[z, y, x] == arr[(z * width * height) + (y * width) + (x)]
-    result += (stride * arguments[i]);
-  }
-
-  return result;
-};
-JSIL.MultidimensionalArray.prototype.Get = function () {
-  var index = this._ComputeIndex.apply(this, arguments);
-  return this._items[index];
-};
-JSIL.MultidimensionalArray.prototype.Set = function () {
-  var index = this._ComputeIndex.apply(this, arguments);
-  this._items[index] = arguments[arguments.length - 1];
 };
 JSIL.MultidimensionalArray.New = function (type) {
   var numDimensions = arguments.length - 1;

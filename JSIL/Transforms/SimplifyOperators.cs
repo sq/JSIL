@@ -38,12 +38,16 @@ namespace JSIL.Transforms {
 
         public void VisitNode (JSInvocationExpression ie) {
             var target = ie.Target as JSDotExpression;
+            JSType type = null;
+            JSMethod method = null;
             if (target != null) {
-                var type = target.Target as JSType;
-                var method = target.Member as JSMethod;
+                type = target.Target as JSType;
+                method = target.Member as JSMethod;
+            }
 
+            if (method != null) {
                 if (
-                    (type != null) && (method != null) &&
+                    (type != null) &&
                     ILBlockTranslator.TypesAreEqual(TypeSystem.String, type.Type) &&
                     (method.Method.Name == "Concat") &&
                     (ie.Arguments.All(
@@ -77,7 +81,6 @@ namespace JSIL.Transforms {
                     }
                     return;
                 } else if (
-                    (method != null) &&
                     ILBlockTranslator.IsDelegateType(method.Reference.DeclaringType) &&
                     (method.Method.Name == "Invoke")
                 ) {
@@ -87,7 +90,6 @@ namespace JSIL.Transforms {
                     Visit(newIe);
                     return;
                 } else if (
-                    (method != null) &&
                     (method.Reference.DeclaringType.FullName == "System.Type") &&
                     (method.Method.Name == "GetTypeFromHandle")
                 ) {
@@ -96,6 +98,35 @@ namespace JSIL.Transforms {
 
                     Visit(typeObj);
                     return;
+                } else if (
+                    method.Method.DeclaringType.Definition.FullName == "System.Array" &&
+                    (ie.Arguments.Count == 1)
+                ) {
+                    switch (method.Method.Name) {
+                        case "GetLength":
+                        case "GetUpperBound": {
+                            var index = ie.Arguments[0] as JSLiteral;
+                            if (index != null) {
+                                var newDot = JSDotExpression.New(target.Target, new JSStringIdentifier(
+                                    String.Format("length{0}", Convert.ToInt32(index.Literal)), 
+                                    TypeSystem.Int32
+                                ));
+
+                                if (method.Method.Name == "GetUpperBound") {
+                                    var newExpr = new JSBinaryOperatorExpression(
+                                        JSOperator.Subtract, newDot, JSLiteral.New(1), TypeSystem.Int32
+                                    );
+                                    ParentNode.ReplaceChild(ie, newExpr);
+                                } else {
+                                    ParentNode.ReplaceChild(ie, newDot);
+                                }
+                            }
+                            break;
+                        }
+                        case "GetLowerBound":
+                            ParentNode.ReplaceChild(ie, JSLiteral.New(0));
+                            break;
+                    }
                 }
             }
 
