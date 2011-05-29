@@ -95,6 +95,39 @@ namespace JSIL.Internal {
         }
     }
 
+    public class QualifiedMemberIdentifier {
+        public readonly TypeIdentifier Type;
+        public readonly MemberIdentifier Member;
+
+        public QualifiedMemberIdentifier (TypeIdentifier type, MemberIdentifier member) {
+            Type = type;
+            Member = member;
+        }
+
+        public override int GetHashCode () {
+            return Type.GetHashCode() ^ Member.GetHashCode();
+        }
+
+        public bool Equals (QualifiedMemberIdentifier rhs) {
+            if (!Type.Equals(rhs.Type))
+                return false;
+
+            return Member.Equals(rhs.Member);
+        }
+
+        public override bool Equals (object obj) {
+            var rhs = obj as QualifiedMemberIdentifier;
+            if (rhs != null)
+                return Equals(rhs);
+            else
+                return base.Equals(obj);
+        }
+
+        public override string ToString () {
+            return String.Format("{0} {1}", Type, Member);
+        }
+    }
+
     public class MemberIdentifier {
         public enum MemberType {
             Field,
@@ -112,6 +145,10 @@ namespace JSIL.Internal {
         public readonly IEnumerable<TypeReference> ParameterTypes;
 
         public static readonly IEnumerable<TypeReference> AnyParameterTypes = new TypeReference[0] {};
+
+        public static void ResetProxies () {
+            Proxies.Clear();
+        }
 
         public static MemberIdentifier New (MemberReference mr) {
             var method = mr as MethodReference;

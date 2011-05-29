@@ -771,14 +771,12 @@ namespace JSIL {
                 Output.Value(Util.EscapeIdentifier(newexp.Constructor.Name, EscapingMode.MemberIdentifier));
 
                 Output.Comma();
-                Output.OpenBracket(true);
+                Output.OpenBracket(false);
                 if (newexp.Arguments.Count > 0) {
                     CommaSeparatedList(newexp.Arguments);
                 }
-                Output.CloseBracket(true, () => {
-                    Output.RPar();
-                    Output.NewLine();
-                });
+                Output.CloseBracket();
+                Output.RPar();
             } else {
                 if (parens)
                     Output.LPar();

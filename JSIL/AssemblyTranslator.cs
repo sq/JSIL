@@ -55,6 +55,7 @@ namespace JSIL {
     public class AssemblyTranslator : ITypeInfoSource {
         public const int LargeMethodThreshold = 1024;
 
+        public readonly Dictionary<QualifiedMemberIdentifier, JSFunctionExpression> FunctionCache = new Dictionary<QualifiedMemberIdentifier, JSFunctionExpression>();
         public readonly Dictionary<TypeIdentifier, ProxyInfo> TypeProxies = new Dictionary<TypeIdentifier, ProxyInfo>();
         public readonly Dictionary<TypeIdentifier, TypeInfo> TypeInformation = new Dictionary<TypeIdentifier, TypeInfo>();
         public readonly Dictionary<string, ModuleInfo> ModuleInformation = new Dictionary<string, ModuleInfo>();
@@ -83,6 +84,9 @@ namespace JSIL {
         protected JavascriptAstEmitter AstEmitter;
 
         public AssemblyTranslator () {
+            // Important to avoid preserving the proxy list from previous translations in this process
+            MemberIdentifier.ResetProxies();
+
             AddProxyAssembly(typeof(JSIL.Proxies.ObjectProxy).Assembly, false);
         }
 
@@ -880,41 +884,37 @@ namespace JSIL {
 
             TranslateTypeStaticConstructor(context, output, typedef, info.StaticConstructor, stubbed);
 
-            if (externalMemberNames.Count > 0) {
+            if (externalMemberNames.Count + staticExternalMemberNames.Count > 0) {
                 initializer.Add(() => {
-                    output.Identifier("JSIL.ExternalMembers", null);
-                    output.LPar();
-                    output.Identifier(typedef);
-                    output.Dot();
-                    output.Keyword("prototype");
-                    output.Comma();
-                    output.NewLine();
+                    if (externalMemberNames.Count > 0) {
+                        output.Identifier("JSIL.ExternalMembers", null);
+                        output.LPar();
+                        output.Identifier(typedef);
+                        output.Dot();
+                        output.Keyword("prototype");
+                        output.Comma();
+                        output.NewLine();
 
-                    output.CommaSeparatedList(externalMemberNames, ListValueType.Primitive);
-                    output.NewLine();
+                        output.CommaSeparatedList(externalMemberNames, ListValueType.Primitive);
+                        output.NewLine();
 
-                    output.RPar();
-                    output.Semicolon();
-                    output.NewLine();
-                    return;
-                });
-            }
+                        output.RPar();
+                        output.Semicolon();
+                    }
 
-            if (staticExternalMemberNames.Count > 0) {
-                initializer.Add(() => {
-                    output.Identifier("JSIL.ExternalMembers", null);
-                    output.LPar();
-                    output.Identifier(typedef);
-                    output.Comma();
-                    output.NewLine();
+                    if (staticExternalMemberNames.Count > 0) {
+                        output.Identifier("JSIL.ExternalMembers", null);
+                        output.LPar();
+                        output.Identifier(typedef);
+                        output.Comma();
+                        output.NewLine();
 
-                    output.CommaSeparatedList(staticExternalMemberNames, ListValueType.Primitive);
-                    output.NewLine();
+                        output.CommaSeparatedList(staticExternalMemberNames, ListValueType.Primitive);
+                        output.NewLine();
 
-                    output.RPar();
-                    output.Semicolon();
-                    output.NewLine();
-                    return;
+                        output.RPar();
+                        output.Semicolon();
+                    }
                 });
             }
 
@@ -999,6 +999,14 @@ namespace JSIL {
                 if (methodDef == null)
                     throw new ArgumentNullException("methodDef");
 
+                var identifier = new QualifiedMemberIdentifier(
+                    new TypeIdentifier(methodDef.DeclaringType),
+                    new MemberIdentifier(method)
+                );
+                JSFunctionExpression function = null;
+                if (FunctionCache.TryGetValue(identifier, out function))
+                    return function;
+
                 context.CurrentMethod = methodDef;
                 if (methodDef.Body.Instructions.Count > LargeMethodThreshold)
                     this.StartedDecompilingMethod(method.FullName);
@@ -1014,15 +1022,19 @@ namespace JSIL {
                     if (CouldNotDecompileMethod != null)
                         CouldNotDecompileMethod(method.ToString(), exception);
 
+                    FunctionCache[identifier] = null;
                     return null;
                 }
 
                 var allVariables = ilb.GetSelfAndChildrenRecursive<ILExpression>().Select(e => e.Operand as ILVariable)
                     .Where(v => v != null && !v.IsParameter).Distinct();
 
-                foreach (var v in allVariables)
-                    if (ILBlockTranslator.IsIgnoredType(v.Type))
+                foreach (var v in allVariables) {
+                    if (ILBlockTranslator.IsIgnoredType(v.Type)) {
+                        FunctionCache[identifier] = null;
                         return null;
+                    }
+                }
 
                 NameVariables.AssignNamesToVariables(context, decompiler.Parameters, allVariables, ilb);
 
@@ -1031,10 +1043,12 @@ namespace JSIL {
                 );
                 var body = translator.Translate();
 
-                if (body == null)
+                if (body == null) {
+                    FunctionCache[identifier] = null;
                     return null;
+                }
 
-                var function = new JSFunctionExpression(
+                function = new JSFunctionExpression(
                     methodDef, method,
                     translator.Variables,
                     from p in translator.ParameterNames select translator.Variables[p], 
@@ -1083,6 +1097,8 @@ namespace JSIL {
 
                 if (bodyTransformer != null)
                     bodyTransformer(function);
+
+                FunctionCache[identifier] = function;
 
                 if (methodDef.Body.Instructions.Count > LargeMethodThreshold)
                     this.FinishedDecompilingMethod(method.FullName);
@@ -1245,20 +1261,18 @@ namespace JSIL {
             var function = TranslateMethodExpression(context, methodRef, method, (f) => {
                 if (bodyTransformer != null)
                     bodyTransformer(f);
-
-                AstEmitter.Visit(f);
-                output.Semicolon();
             });
 
-            if (function == null) {
+            if (function != null) {
+                AstEmitter.Visit(function);
+            } else {
                 output.Identifier("JSIL.UntranslatableFunction", null);
                 output.LPar();
                 output.Value(method.FullName);
                 output.RPar();
-                output.Semicolon();
             }
 
-            output.NewLine();
+            output.Semicolon();
         }
 
         protected void TranslateProperty (DecompilerContext context, JavascriptFormatter output, PropertyDefinition property) {

@@ -71,6 +71,7 @@
     <Compile Include="AssemblyTranslator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SpecialIdentifiers.cs" />
+    <Compile Include="Transforms\DataflowAnalyzer.cs" />
     <Compile Include="Transforms\IntroduceEnumCasts.cs" />
     <Compile Include="Transforms\EliminateSingleUseTemporaries.cs" />
     <Compile Include="Transforms\SimplifyOperators.cs" />

@@ -1674,7 +1674,7 @@ namespace JSIL {
                             // Lambda with no closed-over values
 
                             return Translator.TranslateMethodExpression(
-                                Context, constructor, methodDef
+                                Context, methodDef, methodDef
                             );
                         } else if (
                             methodDef.DeclaringType.IsCompilerGenerated() &&
@@ -1685,7 +1685,7 @@ namespace JSIL {
                         ) {
                             // Lambda with closed-over values
                             var function = Translator.TranslateMethodExpression(
-                                Context, constructor, methodDef
+                                Context, methodDef, methodDef
                             );
 
                             if (function != null) {

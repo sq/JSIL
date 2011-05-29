@@ -298,10 +298,12 @@ System.Collections.Generic.List$b1.prototype.Add = function (item) {
   this._size += 1;
 };
 System.Collections.Generic.List$b1.prototype.Remove = function (item) {
-  this._items = this._items.filter(function (element) {
-    return element !== item;
-  });
-  this._size = this._items.length;
+  var index = this._items.indexOf(item);
+  if (index === -1)
+    return false;
+
+  this._items.splice(index, 1);
+  this._size -= 1;
 };
 System.Collections.Generic.List$b1.prototype.Clear = function () {
   this._size = 0;
