@@ -112,6 +112,51 @@ namespace JSIL.Transforms {
                     )                    
                 );
             }
+
+            if (
+                (boe.Left.AllChildrenRecursive.OfType<JSField>().FirstOrDefault() != null) ||
+                (boe.Left.AllChildrenRecursive.OfType<JSProperty>().FirstOrDefault() != null)
+            ) {
+                foreach (var variable in boe.Right.AllChildrenRecursive.OfType<JSVariable>())
+                    State.EscapingVariables.Add(variable);
+            }
+        }
+
+        public void VisitNode (JSField field) {
+            State.StaticReferences.Add(new FunctionAnalysis.StaticReference(
+                StatementIndex, NodeIndex, field.Field.DeclaringType
+            ));
+
+            VisitChildren(field);
+        }
+
+        public void VisitNode (JSProperty property) {
+            State.StaticReferences.Add(new FunctionAnalysis.StaticReference(
+                StatementIndex, NodeIndex, property.Property.DeclaringType
+            ));
+
+            VisitChildren(property);
+        }
+
+        public void VisitNode (JSInvocationExpression ie) {
+            foreach (var argument in ie.Arguments) {
+                foreach (var variable in argument.AllChildrenRecursive.OfType<JSVariable>())
+                    State.EscapingVariables.Add(variable);
+            }
+
+            var target = ie.Target as JSDotExpression;
+            JSType type = null;
+            JSMethod method = null;
+            if (target != null) {
+                type = target.Target as JSType;
+                method = target.Member as JSMethod;
+            }
+
+            State.Invocations.Add(new FunctionAnalysis.Invocation(
+                StatementIndex, NodeIndex, type, method
+            ));
+
+            VisitChildren(ie);
         }
 
         public void VisitNode (JSTryCatchBlock tcb) {
@@ -199,8 +244,6 @@ namespace JSIL.Transforms {
         }
 
         public class Assignment : Item {
-            public readonly int StatementIndex;
-            public readonly int NodeIndex;
             public readonly JSVariable Target;
             public readonly JSExpression NewValue;
             public readonly JSVariable SourceVariable;
@@ -229,8 +272,6 @@ namespace JSIL.Transforms {
         }
 
         public class SideEffect : Item {
-            public readonly int StatementIndex;
-            public readonly int NodeIndex;
             public readonly JSVariable Target;
 
             public SideEffect (int statementIndex, int nodeIndex, JSVariable target = null)
@@ -239,10 +280,33 @@ namespace JSIL.Transforms {
             }
         }
 
+        public class StaticReference : Item {
+            public readonly TypeInfo Type;
+
+            public StaticReference (int statementIndex, int nodeIndex, TypeInfo type)
+                : base(statementIndex, nodeIndex) {
+                Type = type;
+            }
+        }
+
+        public class Invocation : Item {
+            public readonly JSType Type;
+            public readonly JSMethod Method;
+
+            public Invocation (int statementIndex, int nodeIndex, JSType type, JSMethod method) 
+                : base (statementIndex, nodeIndex) {
+                Type = type;
+                Method = method;
+            }
+        }
+
         public readonly JSFunctionExpression Function;
         public readonly List<Access> Accesses = new List<Access>();
         public readonly List<Assignment> Assignments = new List<Assignment>();
         public readonly List<SideEffect> SideEffects = new List<SideEffect>();
+        public readonly HashSet<JSVariable> EscapingVariables = new HashSet<JSVariable>();
+        public readonly List<StaticReference> StaticReferences = new List<StaticReference>();
+        public readonly List<Invocation> Invocations = new List<Invocation>();
 
         public FunctionAnalysis (JSFunctionExpression function) {
             Function = function;
@@ -258,13 +322,18 @@ namespace JSIL.Transforms {
     }
 
     public class FunctionStaticData {
-        public readonly bool HasSideEffects;
+        public readonly bool IsPure;
         public readonly FunctionAnalysis Data;
-        // TODO: public readonly HashSet<JSVariable> EscapingVariables = new HashSet<JSVariable>();
 
         public FunctionStaticData (FunctionAnalysis data) {
             Data = data;
-            HasSideEffects = data.SideEffects.Count > 0;
+            IsPure = (data.SideEffects.Count == 0) &&
+                (data.StaticReferences.Count == 0) &&
+                (data.Invocations.Count == 0);
+
+            Console.WriteLine("{0}: '{1}'", IsPure ? "Pure" : "Impure", data.Function.OriginalMethodReference.FullName);
+            if (data.EscapingVariables.Count > 0)
+                Console.WriteLine("  Escaping variables: {0}", String.Join(", ", (from v in data.EscapingVariables select v.Name).ToArray()));
         }
 
         public IEnumerable<JSVariable> AllVariables {
