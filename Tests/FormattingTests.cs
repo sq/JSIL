@@ -46,10 +46,14 @@ namespace JSIL.Tests {
         public void StringConcat () {
             var generatedJs = GetJavascript(
                 @"SpecialTestCases\StringConcat.cs",
-                "abc\r\nde"
+                "abc\r\nde\r\na,b,5,d"
             );
             try {
-                Assert.IsFalse(generatedJs.Contains("String.Concat"));
+                Assert.AreEqual(
+                    2, 
+                    generatedJs.Split(new String[] { "String.Concat" }, StringSplitOptions.RemoveEmptyEntries).Length
+                );
+                Assert.IsFalse(generatedJs.Contains("WriteLine([\"a\", \"b\", 5, \"d\"])"));
             } catch {
                 Console.WriteLine(generatedJs);
 

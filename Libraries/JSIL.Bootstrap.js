@@ -404,7 +404,7 @@ System.Random.prototype.Next = function (min, max) {
     min = 0;
   }
 
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+  return Math.floor(Math.random() * (max - min)) + min;
 }
 System.Random.prototype.NextDouble = function () {
   return Math.random();

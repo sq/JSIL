@@ -49,26 +49,25 @@ namespace JSIL.Transforms {
                     ILBlockTranslator.TypesAreEqual(TypeSystem.String, type.Type) &&
                     (method.Method.Name == "Concat")
                 ) {
-                    if (
-                        (ie.Arguments.Count > 2) &&
-                        (ie.Arguments.All(
+                    if (ie.Arguments.Count > 2) {
+                        if (ie.Arguments.All(
                             (arg) => ILBlockTranslator.TypesAreEqual(
                                 TypeSystem.String, arg.GetExpectedType(TypeSystem)
                             )
-                        ))
-                    ) {
-                        var boe = JSBinaryOperatorExpression.New(
-                            JSOperator.Add,
-                            ie.Arguments,
-                            TypeSystem.String
-                        );
+                        )) {
+                            var boe = JSBinaryOperatorExpression.New(
+                                JSOperator.Add,
+                                ie.Arguments,
+                                TypeSystem.String
+                            );
 
-                        ParentNode.ReplaceChild(
-                            ie,
-                            boe
-                        );
+                            ParentNode.ReplaceChild(
+                                ie,
+                                boe
+                            );
 
-                        VisitReplacement(boe);
+                            VisitReplacement(boe);
+                        }
                     } else if (
                         ie.Arguments.Count == 2
                     ) {
@@ -99,6 +98,9 @@ namespace JSIL.Transforms {
                         );
 
                         VisitReplacement(boe);
+                    } else if (
+                        ILBlockTranslator.GetTypeDefinition(ie.Arguments[0].GetExpectedType(TypeSystem)).FullName == "System.Array"
+                    ) {
                     } else {
                         var firstArg = ie.Arguments.FirstOrDefault();
 

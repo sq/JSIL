@@ -5,10 +5,11 @@ if (typeof (JSIL) === "undefined")
 
 var $jsilxna = JSIL.DeclareAssembly("JSIL.XNACore");
 
-JSIL.MakeClass("System.Object", "HTML5ContentManager", true);
-HTML5ContentManager.prototype._ctor = function () {
-};
-HTML5ContentManager.prototype.Load = function (assetName) {
+Microsoft.Xna.Framework.Content.ContentManager.prototype._ctor$0 = function (serviceProvider) {
+}
+Microsoft.Xna.Framework.Content.ContentManager.prototype._ctor$1 = function (serviceProvider, rootDirectory) {
+}
+Microsoft.Xna.Framework.Content.ContentManager.prototype.Load = function (assetName) {
   return JSIL.Host.getAsset(assetName);
 };
 
@@ -34,6 +35,10 @@ HTML5FontAsset.prototype._ctor = function (assetName, font) {
   HTML5Asset.prototype._ctor.call(this, assetName);
   this.font = font;
 }
+
+Microsoft.Xna.Framework.Media.MediaPlayer.Play$0 = function (song) {
+  song.sound.play();
+};
 
 Microsoft.Xna.Framework.Vector2.prototype._ctor$0 = function (x, y) {
   this.X = x;
@@ -116,7 +121,7 @@ Microsoft.Xna.Framework.Game.ForceQuit = function () {
 
 Microsoft.Xna.Framework.Game.prototype._runHandle = null;
 Microsoft.Xna.Framework.Game.prototype._ctor = function () {
-  this.content = new HTML5ContentManager();
+  this.content = JSIL.New(Microsoft.Xna.Framework.Content.ContentManager, "_ctor$0", []);
   this._frameDelay = 1000 / 60;
 
   if (typeof (Date.now) === "function")
@@ -319,6 +324,12 @@ Microsoft.Xna.Framework.Rectangle.prototype.get_Right = function () {
 Microsoft.Xna.Framework.Rectangle.prototype.get_Bottom = function () {
   return this.Y + this.Height;
 }
+Microsoft.Xna.Framework.Rectangle.prototype.get_Center = function () {
+  return new Microsoft.Xna.Framework.Point(
+    Math.floor(this.X + (this.Width / 2)),
+    Math.floor(this.Y + (this.Height / 2))
+  );
+}
 
 Microsoft.Xna.Framework.Rectangle.prototype.MemberwiseClone = function () {
   var result = Object.create(Microsoft.Xna.Framework.Rectangle.prototype);
@@ -327,6 +338,14 @@ Microsoft.Xna.Framework.Rectangle.prototype.MemberwiseClone = function () {
   result.Width = this.Width;
   result.Height = this.Height;
   return result;
+}
+
+Microsoft.Xna.Framework.Point.prototype._ctor = function (x, y) {
+  this.X = x;
+  this.Y = y;
+}
+Microsoft.Xna.Framework.Point._cctor = function () {
+  Microsoft.Xna.Framework.Point.Zero = new Microsoft.Xna.Framework.Point();
 }
 
 Microsoft.Xna.Framework.Storage.StorageContainer.get_TitleLocation = function () {
