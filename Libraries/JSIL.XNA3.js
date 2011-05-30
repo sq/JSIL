@@ -5,8 +5,10 @@ if (typeof (JSIL) === "undefined")
 
 var $jsilxna = JSIL.DeclareAssembly("JSIL.XNA3");
 
-Microsoft.Xna.Framework.GraphicsDeviceManager.prototype._ctor = function () {
+Microsoft.Xna.Framework.GraphicsDeviceManager.prototype._ctor = function (game) {
+  this.game = game;
   this.device = new Microsoft.Xna.Framework.Graphics.GraphicsDevice();
+  game.graphicsDeviceService = this;
 };
 
 Microsoft.Xna.Framework.GraphicsDeviceManager.prototype.get_GraphicsDevice = function () {

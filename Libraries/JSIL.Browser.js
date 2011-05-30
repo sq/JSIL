@@ -42,21 +42,30 @@ JSIL.Host.logWriteLine = function (text) {
   }
 };
 JSIL.Host.getFile = function (filename) {
-  var key = getShortName(filename);
-  if (!allFiles.hasOwnProperty(key))
-    throw new System.Exception("The file '" + key + "' is not in the asset manifest.");
-  return allFiles[key];
+  var root = JSIL.Host.getRootDirectory();
+  filename = filename.replace(root, "");
+  
+  while (filename[0] === "/")
+    filename = filename.substr(1);
+  
+  filename = getAssetName(filename);
+  
+  if (!allFiles.hasOwnProperty(filename))
+    throw new System.Exception("The file '" + filename + "' is not in the asset manifest.");
+  
+  return allFiles[filename];
 };
 JSIL.Host.getImage = function (filename) {
-  var key = getShortName(filename);
-  if (!allImages.hasOwnProperty(key))
+  var key = getAssetName(filename);
+  if (!allAssets.hasOwnProperty(key))
     throw new System.Exception("The image '" + key + "' is not in the asset manifest.");
-  return allImages[key];
+  return allAssets[key].image;
 };
 JSIL.Host.getAsset = function (filename) {
-  if (!allAssets.hasOwnProperty(filename))
-    throw new System.Exception("The asset '" + filename + "' is not in the asset manifest.");
-  return allAssets[filename];
+  var key = getAssetName(filename);
+  if (!allAssets.hasOwnProperty(key))
+    throw new System.Exception("The asset '" + key + "' is not in the asset manifest.");
+  return allAssets[key];
 };
 JSIL.Host.getHeldKeys = function () {
   return Array.prototype.slice.call(heldKeys);
@@ -66,6 +75,14 @@ JSIL.Host.getMousePosition = function () {
 };
 JSIL.Host.getHeldButtons = function () {
   return Array.prototype.slice.call(heldButtons);
+};
+JSIL.Host.getRootDirectory = function () {
+  var url = window.location.href;
+  var lastSlash = url.lastIndexOf("/");
+  if (lastSlash === -1)
+    return url;
+  else
+    return url.substr(0, lastSlash);
 };
 JSIL.Host.throwException = function (e) {
   var stack = "";
@@ -80,7 +97,6 @@ JSIL.Host.throwException = function (e) {
 };
 
 var allFiles = {};
-var allImages = {};
 var allAssets = {};
 var heldKeys = [];
 var heldButtons = [];
@@ -126,53 +142,54 @@ window.addEventListener(
   }, true
 );
 
-function getShortName (filename) {
-  var lastIndex = filename.lastIndexOf("/");
+function getAssetName (filename) {
+  var lastIndex = filename.lastIndexOf(".");
   if (lastIndex === -1)
     return filename.toLowerCase();
   
-  return filename.substr(lastIndex + 1).toLowerCase();
+  return filename.substr(0, lastIndex).toLowerCase();
 };
 
-function getAssetName (filename) {
-  filename = getShortName(filename);
-  var lastIndex = filename.lastIndexOf(".");
-  if (lastIndex === -1)
-    return filename;
-  
-  return filename.substr(0, lastIndex);
-};
+var loadedFontCount = 0;
+var fontLoadTimeout = 10000;
 
 var assetLoaders = {
-  "Script": function loadScript (filename, onError, onDoneLoading) {
+  "Library": function loadLibrary (filename, data, onError, onDoneLoading) {
     var e = document.createElement("script");
     e.type = "text/javascript";
     e.addEventListener("error", onError, true);
     e.addEventListener("load", onDoneLoading, true);
-    e.id = "script_" + filename;
-    e.src = filename;
+    e.async = true;
+    e.src = libraryRoot + filename;
     document.getElementById("scripts").appendChild(e);
   },
-  "Image": function loadImage (filename, onError, onDoneLoading) {
+  "Script": function loadScript (filename, data, onError, onDoneLoading) {
+    var e = document.createElement("script");
+    e.type = "text/javascript";
+    e.addEventListener("error", onError, true);
+    e.addEventListener("load", onDoneLoading, true);
+    e.async = true;
+    e.src = scriptRoot + filename;
+    document.getElementById("scripts").appendChild(e);
+  },
+  "Image": function loadImage (filename, data, onError, onDoneLoading) {
     var e = document.createElement("img");
     e.addEventListener("error", onError, true);
     e.addEventListener("load", function () {
-      allImages[getShortName(filename)] = e;
-      allAssets[getAssetName(filename)] = e;
+      allAssets[getAssetName(filename)] = new HTML5ImageAsset(getAssetName(filename), e);
       onDoneLoading();
     }, true);
-    e.id = "image_" + filename;
-    e.src = filename;
+    e.src = contentRoot + filename;
     document.getElementById("images").appendChild(e);
   },
-  "File": function loadBinaryFile (filename, onError, onDoneLoading) {
+  "File": function loadBinaryFile (filename, data, onError, onDoneLoading) {
     var req;
     if (typeof (ActiveXObject) !== "undefined")
       req = new ActiveXObject("MSXML2.XMLHTTP");
     else
       req = new XMLHttpRequest();
     
-    req.open('GET', filename, false);
+    req.open('GET', fileRoot + filename, false);
     if (typeof (req.overrideMimeType) !== "undefined")
       req.overrideMimeType('text/plain; charset=x-user-defined');
             
@@ -193,7 +210,7 @@ var assetLoaders = {
             for (var i = 0, l = text.length; i < l; i++)
               bytes[i] = text.charCodeAt(i) & 0xFF;
         }
-        allFiles[getShortName(filename)] = bytes;
+        allFiles[getAssetName(filename)] = bytes;
         onDoneLoading();
       } else {
         onError(req.statusText || req.status);
@@ -201,7 +218,57 @@ var assetLoaders = {
     };
     
     req.send(null);
-  }
+  },
+  "Font": function loadFont (filename, data, onError, onDoneLoading) {
+    var fontId = "xnafont" + loadedFontCount;
+    loadedFontCount += 1;
+    
+    var ruleText = '@font-face {\n' +
+    '  font-family: "' + fontId + '";\n' +  
+    '  src: url("' + contentRoot + filename + '") format("truetype");\n' +  
+    '}\n';
+    
+    var cssRule = document.createElement("style");    
+    cssRule.type = 'text/css'
+    if (cssRule.styleSheet)
+      cssRule.styleSheet.cssText = ruleText;
+    cssRule.appendChild(document.createTextNode(ruleText));    
+    document.getElementsByTagName("head")[0].appendChild(cssRule);
+    
+    var e = document.createElement("span");
+    e.setAttribute("id", fontId);
+    e.appendChild(document.createTextNode(fontId));
+    
+    // We create the element with a tiny font set first and record the size...
+    e.setAttribute("style", 'font: 1pt sans-serif;');
+    document.getElementById("fonts").appendChild(e);
+    
+    var originalWidth = e.offsetWidth;
+    var originalHeight = e.offsetHeight;
+    var startedLoadingWhen = (new Date()).getTime();
+    
+    var loadedCallback = function () {
+      clearInterval(intervalHandle);
+      allAssets[getAssetName(filename)] = new HTML5FontAsset(getAssetName(filename), fontId);
+      onDoneLoading();
+    };
+    
+    var checkIfLoadedCallback = function () {    
+      var currentWidth = e.offsetWidth;
+      var currentHeight = e.offsetHeight;
+      var now = (new Date()).getTime();
+      if ((currentWidth != originalWidth) || 
+          (currentHeight != originalHeight) ||
+          (now - startedLoadingWhen) > fontLoadTimeout)
+        loadedCallback();
+    };
+    var intervalHandle = setInterval(checkIfLoadedCallback, 100);
+    
+    // Then set up a callback to watch for the size of the element to change, and apply our CSS font.
+    // In practice, the size shouldn't change until the font has loaded.
+    var fontSize = (data || 12) + "pt";
+    e.setAttribute("style", 'font: ' + fontSize + ' "' + fontId + '"');
+  },
 };
 
 function loadNextAsset (assets, i, onDoneLoading, loadDelay) {      
@@ -227,13 +294,14 @@ function loadNextAsset (assets, i, onDoneLoading, loadDelay) {
   
   var assetType = assetSpec[0];
   var assetPath = assetSpec[1];
+  var assetData = assetSpec[2] || null;
   var assetLoader = assetLoaders[assetType];
   
   if (typeof (assetLoader) !== "function") {
     errorCallback("No asset loader registered for type '" + assetType + "'.");
   } else {      
     setTimeout(function () {        
-      assetLoader(assetPath, errorCallback, stepCallback);
+      assetLoader(assetPath, assetData, errorCallback, stepCallback);
     }, loadDelay);
   }
 }

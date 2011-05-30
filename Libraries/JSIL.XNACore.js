@@ -9,13 +9,24 @@ JSIL.MakeClass("System.Object", "HTML5ContentManager", true);
 HTML5ContentManager.prototype._ctor = function () {
 };
 HTML5ContentManager.prototype.Load = function (assetName) {
-  return new HTML5Asset(assetName);
+  return JSIL.Host.getAsset(assetName);
 };
 
 JSIL.MakeClass("System.Object", "HTML5Asset", true);
 HTML5Asset.prototype._ctor = function (assetName) {
   this.name = assetName;
-  this.image = JSIL.Host.getAsset(assetName);
+}
+
+JSIL.MakeClass("HTML5Asset", "HTML5ImageAsset", true);
+HTML5ImageAsset.prototype._ctor = function (assetName, image) {
+  HTML5Asset.prototype._ctor.call(this, assetName);
+  this.image = image;
+}
+
+JSIL.MakeClass("HTML5Asset", "HTML5FontAsset", true);
+HTML5FontAsset.prototype._ctor = function (assetName, font) {
+  HTML5Asset.prototype._ctor.call(this, assetName);
+  this.font = font;
 }
 
 Microsoft.Xna.Framework.Vector2.prototype._ctor$0 = function (x, y) {
@@ -142,6 +153,9 @@ Microsoft.Xna.Framework.Game.prototype.get_Content = function () {
 };
 Microsoft.Xna.Framework.Game.prototype.Initialize = function () {
   this.LoadContent();
+};
+Microsoft.Xna.Framework.Game.prototype.get_GraphicsDevice = function () {
+  return this.graphicsDeviceService.GraphicsDevice;
 };
 Microsoft.Xna.Framework.Game.prototype.LoadContent = function () {
 };
@@ -308,3 +322,7 @@ Microsoft.Xna.Framework.Rectangle.prototype.MemberwiseClone = function () {
   result.Height = this.Height;
   return result;
 }
+
+Microsoft.Xna.Framework.Storage.StorageContainer.get_TitleLocation = function () {
+  return JSIL.Host.getRootDirectory();
+};

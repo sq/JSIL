@@ -581,6 +581,7 @@ namespace JSIL.Internal {
     }
 
     public class TypeInfo {
+        public readonly TypeIdentifier Identifier;
         public readonly TypeDefinition Definition;
         public readonly ITypeInfoSource Source;
         public readonly TypeInfo BaseClass;
@@ -605,7 +606,8 @@ namespace JSIL.Internal {
         protected bool _IsIgnored = false;
         protected bool _MethodGroupsInitialized = false;
 
-        public TypeInfo (ITypeInfoSource source, ModuleInfo module, TypeDefinition type, TypeInfo baseClass) {
+        public TypeInfo (ITypeInfoSource source, ModuleInfo module, TypeDefinition type, TypeInfo baseClass, TypeIdentifier identifier) {
+            Identifier = identifier;
             BaseClass = baseClass;
             Source = source;
             Definition = type;

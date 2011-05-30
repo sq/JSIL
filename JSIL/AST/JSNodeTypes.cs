@@ -236,6 +236,7 @@ namespace JSIL.Ast {
     public class JSFunctionExpression : JSExpression {
         public readonly MethodDefinition OriginalMethod;
         public readonly MethodReference OriginalMethodReference;
+        public readonly QualifiedMemberIdentifier Identifier;
 
         public readonly Dictionary<string, JSVariable> AllVariables;
         // This has to be JSVariable, because 'this' is of type (JSVariableReference<JSThisParameter>) for structs
@@ -244,10 +245,12 @@ namespace JSIL.Ast {
         public readonly JSBlockStatement Body;
 
         public JSFunctionExpression (
-            MethodDefinition originalMethod, MethodReference originalMethodReference, Dictionary<string, JSVariable> allVariables, IEnumerable<JSVariable> parameters, JSBlockStatement body
+            MethodDefinition originalMethod, MethodReference originalMethodReference, QualifiedMemberIdentifier identifier,
+            Dictionary<string, JSVariable> allVariables, IEnumerable<JSVariable> parameters, JSBlockStatement body
         ) {
             OriginalMethod = originalMethod;
             OriginalMethodReference = originalMethodReference;
+            Identifier = identifier;
             AllVariables = allVariables;
             Parameters = parameters;
             Body = body;
@@ -287,6 +290,13 @@ namespace JSIL.Ast {
                     return delegateType;
             } else
                 return typeSystem.Void;
+        }
+
+        public override string ToString () {
+            return String.Format(
+                "function {0} ({1}) {{ ... }}", Identifier.Member,
+                String.Join(", ", (from p in Parameters select p.Name).ToArray())
+            );
         }
     }
 
@@ -957,6 +967,12 @@ namespace JSIL.Ast {
             return true;
         }
 
+        public virtual bool IsStatic {
+            get {
+                return Values.Any((v) => v.IsStatic);
+            }
+        }
+
         public virtual bool IsConstant {
             get {
                 return false;
@@ -965,6 +981,10 @@ namespace JSIL.Ast {
 
         public override bool Equals (object obj) {
             return EqualsImpl(obj, false);
+        }
+
+        public override int GetHashCode () {
+            return 0; // :-(
         }
     }
 
@@ -1552,10 +1572,10 @@ namespace JSIL.Ast {
     }
 
     public abstract class JSIdentifier : JSExpression {
-        public readonly TypeReference Type;
+        protected readonly TypeReference _Type;
 
         public JSIdentifier (TypeReference type = null) {
-            Type = type;
+            _Type = type;
         }
 
         public override bool Equals (object obj) {
@@ -1571,13 +1591,19 @@ namespace JSIL.Ast {
             }
         }
 
+        public virtual TypeReference Type {
+            get {
+                return _Type;
+            }
+        }
+
         public override int GetHashCode () {
             return Identifier.GetHashCode();
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            if (Type != null)
-                return Type;
+            if (_Type != null)
+                return _Type;
             else
                 return base.GetExpectedType(typeSystem);
         }
@@ -1655,6 +1681,12 @@ namespace JSIL.Ast {
             Field = field;
         }
 
+        public override bool IsStatic {
+            get {
+                return Field.IsStatic;
+            }
+        }
+
         public override string Identifier {
             get { return Field.Name; }
         }
@@ -1674,6 +1706,12 @@ namespace JSIL.Ast {
 
             Reference = reference;
             Property = property;
+        }
+
+        public override bool IsStatic {
+            get {
+                return Property.IsStatic;
+            }
         }
 
         public override string Identifier {
@@ -1752,10 +1790,10 @@ namespace JSIL.Ast {
 
     public class JSVariable : JSIdentifier {
         public readonly string Name;
-        protected readonly TypeReference _Type;
         protected readonly bool _IsReference;
 
-        public JSVariable (string name, TypeReference type) {
+        public JSVariable (string name, TypeReference type)
+            : base (type) {
             Name = name;
 
             if (type is ByReferenceType) {
@@ -1764,18 +1802,10 @@ namespace JSIL.Ast {
             } else {
                 _IsReference = false;
             }
-
-            _Type = type;
         }
 
         public override string Identifier {
             get { return Name; }
-        }
-
-        public virtual TypeReference Type {
-            get {
-                return _Type;
-            }
         }
 
         public virtual bool IsReference {
@@ -2131,6 +2161,12 @@ namespace JSIL.Ast {
             }
         }
 
+        public override bool IsStatic {
+            get {
+                return Target.IsStatic || Member.IsStatic;
+            }
+        }
+
         public override bool IsConstant {
             get {
                 return Target.IsConstant && Member.IsConstant;
@@ -2330,6 +2366,24 @@ namespace JSIL.Ast {
             }
         }
 
+        public IEnumerable<KeyValuePair<ParameterDefinition, JSExpression>> Parameters {
+            get {
+                var m = JSMethod;
+                if (m == null) {
+                    foreach (var a in Arguments)
+                        yield return new KeyValuePair<ParameterDefinition, JSExpression>(null, a);
+                } else {
+                    var eParameters = m.Method.Parameters.GetEnumerator();
+                    using (var eArguments = Arguments.GetEnumerator()) {
+                        while (eParameters.MoveNext() && eArguments.MoveNext())
+                            yield return new KeyValuePair<ParameterDefinition, JSExpression>(
+                                eParameters.Current as ParameterDefinition, eArguments.Current
+                            );
+                    }
+                }
+            }
+        }
+
         public override bool IsConstant {
             get {
                 if (ConstantIfArgumentsAre)
@@ -2467,12 +2521,24 @@ namespace JSIL.Ast {
                 Values[1] = value;
             }
         }
+
+        public override bool IsConstant {
+            get {
+                return Values.All((v) => v.IsConstant);
+            }
+        }
     }
 
     public class JSObjectExpression : JSExpression {
         public JSObjectExpression (params JSPairExpression[] pairs) : base(
             pairs
         ) {
+        }
+
+        public override bool IsConstant {
+            get {
+                return Values.All((v) => v.IsConstant);
+            }
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
@@ -2501,7 +2567,7 @@ namespace JSIL.Ast {
 
         public override bool IsConstant {
             get {
-                return Values.All((v) => v.IsConstant);
+                throw new NotImplementedException();
             }
         }
 
@@ -2540,7 +2606,7 @@ namespace JSIL.Ast {
             }
         }
 
-        public JSExpression True{
+        public JSExpression True {
             get {
                 return Values[1];
             }
@@ -2549,6 +2615,18 @@ namespace JSIL.Ast {
         public JSExpression False {
             get {
                 return Values[2];
+            }
+        }
+
+        public override bool IsStatic {
+            get {
+                return Condition.IsStatic || True.IsStatic || False.IsStatic;
+            }
+        }
+
+        public override bool IsConstant {
+            get {
+                return Condition.IsConstant && True.IsConstant && False.IsConstant;
             }
         }
 
@@ -2585,6 +2663,21 @@ namespace JSIL.Ast {
             }
         }
 
+        public override bool IsStatic {
+            get {
+                return Left.IsStatic || Right.IsStatic;
+            }
+        }
+
+        public override bool IsConstant {
+            get {
+                if (Operator is JSAssignmentOperator)
+                    return false;
+
+                return Left.IsConstant && Right.IsConstant;
+            }
+        }
+
         public static JSBinaryOperatorExpression New (JSBinaryOperator op, IList<JSExpression> values, TypeReference expectedType) {
             if (values.Count < 2)
                 throw new ArgumentException();
@@ -2616,6 +2709,21 @@ namespace JSIL.Ast {
         public bool IsPostfix {
             get {
                 return ((JSUnaryOperator)Operator).IsPostfix;
+            }
+        }
+
+        public override bool IsStatic {
+            get {
+                return Expression.IsStatic;
+            }
+        }
+
+        public override bool IsConstant {
+            get {
+                if (Operator is JSUnaryMutationOperator)
+                    return false;
+
+                return Expression.IsConstant;
             }
         }
 
@@ -2667,6 +2775,12 @@ namespace JSIL.Ast {
             }
         }
 
+        public override bool IsStatic {
+            get {
+                return Expression.IsStatic;
+            }
+        }
+
         public override bool IsConstant {
             get {
                 return Expression.IsConstant;
@@ -2692,6 +2806,12 @@ namespace JSIL.Ast {
         public JSExpression Struct {
             get {
                 return Values[0];
+            }
+        }
+
+        public override bool IsStatic {
+            get {
+                return Struct.IsStatic;
             }
         }
 

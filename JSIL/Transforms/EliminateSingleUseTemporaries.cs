@@ -10,13 +10,15 @@ namespace JSIL.Transforms {
         public const int TraceLevel = 0;
 
         public readonly TypeSystem TypeSystem;
+        public readonly IFunctionSource FunctionSource;
         public readonly Dictionary<string, JSVariable> Variables;
         public readonly HashSet<JSVariable> EliminatedVariables = new HashSet<JSVariable>();
 
         protected FunctionStaticData Data = null;
 
-        public EliminateSingleUseTemporaries (TypeSystem typeSystem, Dictionary<string, JSVariable> variables) {
+        public EliminateSingleUseTemporaries (TypeSystem typeSystem, Dictionary<string, JSVariable> variables, IFunctionSource functionSource) {
             TypeSystem = typeSystem;
+            FunctionSource = functionSource;
             Variables = variables;
         }
 
@@ -177,7 +179,7 @@ namespace JSIL.Transforms {
                 bool eliminated = false;
 
                 do {
-                    var nested = new EliminateSingleUseTemporaries(TypeSystem, fn.AllVariables);
+                    var nested = new EliminateSingleUseTemporaries(TypeSystem, fn.AllVariables, FunctionSource);
                     nested.Visit(fn);
                     eliminated = nested.EliminatedVariables.Count > 0;
                 } while (eliminated);
@@ -186,13 +188,17 @@ namespace JSIL.Transforms {
             }
 
             var nullList = new List<int>();
-            Data = new StaticAnalyzer(TypeSystem).Analyze(fn);
+            Data = FunctionSource.GetStaticData(fn);
+            if (Data == null)
+                throw new InvalidOperationException();
 
             VisitChildren(fn);
 
             var d = Data.Data;
+            if (d == null)
+                throw new InvalidOperationException();
 
-            foreach (var v in Data.AllVariables.ToArray()) {
+            foreach (var v in fn.AllVariables.Values.ToArray()) {
                 if (v.IsReference || v.IsThis || v.IsParameter)
                     continue;
 

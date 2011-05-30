@@ -53,9 +53,80 @@ namespace JSIL {
     }
 
     public class AssemblyTranslator : ITypeInfoSource {
+        class FunctionSource : IFunctionSource {
+            public readonly AssemblyTranslator Translator;
+            public readonly DecompilerContext Context;
+
+            public FunctionSource (AssemblyTranslator translator, DecompilerContext context) {
+                Translator = translator;
+                Context = context;
+            }
+
+            public JSFunctionExpression GetExpression (JSMethod method) {
+                if (method == null)
+                    return null;
+
+                var identifier = new QualifiedMemberIdentifier(
+                    method.Method.DeclaringType.Identifier, method.Method.Identifier
+                );
+
+                JSFunctionExpression function = null;
+                if (Translator.FunctionCache.TryGetValue(identifier, out function))
+                    return function;
+
+                return Translator.TranslateMethodExpression(Context, method.Reference, method.Method.Member);
+            }
+
+            public FunctionStaticData GetStaticData (JSFunctionExpression function) {
+                if (function == null)
+                    return null;
+
+                FunctionStaticData data = null;
+                if (Translator.StaticDataCache.TryGetValue(function.Identifier, out data))
+                    return data;
+
+                Translator.StaticDataCache[function.Identifier] = null;
+                var analyzer = new StaticAnalyzer(Context.CurrentModule.TypeSystem, this);
+                data = analyzer.Analyze(function);
+
+                Translator.StaticDataCache[function.Identifier] = data;
+
+                return data;
+            }
+
+            public FunctionStaticData GetStaticData (JSMethod method) {
+                if (method == null)
+                    return null;
+
+                FunctionStaticData data = null;
+                var identifier = new QualifiedMemberIdentifier(method.Method.DeclaringType.Identifier, method.Method.Identifier);
+                if (Translator.StaticDataCache.TryGetValue(identifier, out data))
+                    return data;
+
+                Translator.StaticDataCache[identifier] = null;
+
+                if (method.Method.IsExternal) {
+                    data = new FunctionStaticData(this, method.Method);
+                } else {
+                    var function = GetExpression(method);
+                    if (function != null) {
+                        var analyzer = new StaticAnalyzer(Context.CurrentModule.TypeSystem, this);
+                        data = analyzer.Analyze(function);
+                    } else {
+                        data = new FunctionStaticData(this, method.Method);
+                    }
+                }
+
+                Translator.StaticDataCache[identifier] = data;
+
+                return data;
+            }
+        }
+
         public const int LargeMethodThreshold = 1024;
 
         public readonly Dictionary<QualifiedMemberIdentifier, JSFunctionExpression> FunctionCache = new Dictionary<QualifiedMemberIdentifier, JSFunctionExpression>();
+        public readonly Dictionary<QualifiedMemberIdentifier, FunctionStaticData> StaticDataCache = new Dictionary<QualifiedMemberIdentifier, FunctionStaticData>();
         public readonly Dictionary<TypeIdentifier, ProxyInfo> TypeProxies = new Dictionary<TypeIdentifier, ProxyInfo>();
         public readonly Dictionary<TypeIdentifier, TypeInfo> TypeInformation = new Dictionary<TypeIdentifier, TypeInfo>();
         public readonly Dictionary<string, ModuleInfo> ModuleInformation = new Dictionary<string, ModuleInfo>();
@@ -429,7 +500,7 @@ namespace JSIL {
             if (type.BaseType != null)
                 baseType = GetTypeInformation(type.BaseType);
 
-            var result = new TypeInfo(this, moduleInfo, type, baseType);
+            var result = new TypeInfo(this, moduleInfo, type, baseType, identifier);
             TypeInformation[identifier] = result;
 
             var typesToInitialize = new Dictionary<TypeIdentifier, TypeDefinition>();
@@ -937,8 +1008,6 @@ namespace JSIL {
         }
 
         protected void TranslateMethodGroup (DecompilerContext context, JavascriptFormatter output, MethodGroupInfo methodGroup) {
-            int i = 0;
-
             var methods = (from m in methodGroup.Methods where !m.IsIgnored select m).ToArray();
             if (methods.Length == 0)
                 return;
@@ -970,7 +1039,6 @@ namespace JSIL {
             output.OpenBracket(true);
 
             bool isFirst = true;
-            i = 0;
             foreach (var method in methods) {
                 if (!isFirst) {
                     output.Comma();
@@ -1013,6 +1081,12 @@ namespace JSIL {
                 if (FunctionCache.TryGetValue(identifier, out function))
                     return function;
 
+                FunctionCache[identifier] = null;
+
+                var methodInfo = GetMemberInformation<JSIL.Internal.MethodInfo>(methodDef);
+                if (methodInfo.IsExternal)
+                    return null;
+
                 context.CurrentMethod = methodDef;
                 if (methodDef.Body.Instructions.Count > LargeMethodThreshold)
                     this.StartedDecompilingMethod(method.FullName);
@@ -1028,7 +1102,6 @@ namespace JSIL {
                     if (CouldNotDecompileMethod != null)
                         CouldNotDecompileMethod(method.ToString(), exception);
 
-                    FunctionCache[identifier] = null;
                     return null;
                 }
 
@@ -1037,7 +1110,6 @@ namespace JSIL {
 
                 foreach (var v in allVariables) {
                     if (ILBlockTranslator.IsIgnoredType(v.Type)) {
-                        FunctionCache[identifier] = null;
                         return null;
                     }
                 }
@@ -1050,12 +1122,11 @@ namespace JSIL {
                 var body = translator.Translate();
 
                 if (body == null) {
-                    FunctionCache[identifier] = null;
                     return null;
                 }
 
                 function = new JSFunctionExpression(
-                    methodDef, method,
+                    methodDef, method, identifier,
                     translator.Variables,
                     from p in translator.ParameterNames select translator.Variables[p], 
                     body
@@ -1067,7 +1138,8 @@ namespace JSIL {
                     do {
                         var visitor = new EliminateSingleUseTemporaries(
                             context.CurrentModule.TypeSystem,
-                            translator.Variables
+                            translator.Variables,
+                            new FunctionSource(this, context)
                         );
                         visitor.Visit(function);
                         eliminated = visitor.EliminatedVariables.Count > 0;

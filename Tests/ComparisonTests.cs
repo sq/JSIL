@@ -59,6 +59,12 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void CharSwitch () {
+            using (var test = new ComparisonTest(@"TestCases\CharSwitch.cs"))
+                test.Run();
+        }
+
+        [Test]
         public void RefStruct () {
             using (var test = new ComparisonTest(@"TestCases\RefStruct.cs"))
                 test.Run();

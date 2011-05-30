@@ -194,6 +194,7 @@
     <None Include="SpecialTestCases\EnumeratorClassLocalNames.cs" />
     <None Include="SpecialTestCases\ForLoops.cs" />
     <None Include="SpecialTestCases\DoLoops.cs" />
+    <None Include="TestCases\CharSwitch.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

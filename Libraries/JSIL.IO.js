@@ -5,6 +5,18 @@ if (typeof (JSIL) === "undefined")
   
 JSIL.DeclareAssembly("JSIL.IO");
 
+System.IO.File.Exists = function (filename) {
+  var file = JSIL.Host.getFile(filename);
+  if ((typeof (file) !== "undefined") && (typeof (file.length) === "number"))
+    return true;
+  else
+    return false;
+}
+
+System.IO.Path.Combine = function () {
+  return Array.prototype.slice.call(arguments).join("/");
+}
+
 System.IO.FileStream.prototype._ctor$0 = function () {
   System.IO.Stream.prototype._ctor.call(this);
 }
@@ -25,7 +37,7 @@ System.IO.FileStream.prototype._ctor$1 = function (filename, mode) {
 
 System.IO.FileStream.prototype.ReadByte = function () {
   if ((this._pos < 0) || (this._pos >= this._buffer.length))
-    throw new System.ArgumentOutOfRangeException();
+    return -1;
 
   return this._buffer[this._pos++];
 };
@@ -56,7 +68,11 @@ System.IO.BinaryReader.prototype._ctor$1 = function (stream, encoding) {
 System.IO.BinaryReader.prototype.ReadBytes = function (count) {
   var result = new Array(count);
   for (var i = 0; i < count; i++) {
-    result[i] = this.m_stream.ReadByte();
+    var b = this.m_stream.ReadByte();
+    if (b === -1)
+      return result.slice(0, i - 1);
+
+    result[i] = b;
   };
 
   return result;
@@ -65,7 +81,11 @@ System.IO.BinaryReader.prototype.ReadBytes = function (count) {
 System.IO.BinaryReader.prototype.ReadChars = function (count) {
   var result = new Array(count);
   for (var i = 0; i < count; i++) {
-    result[i] = String.fromCharCode(this.m_stream.ReadByte());
+    var b = this.m_stream.ReadByte();
+    if (b === -1)
+      return result.slice(0, i - 1);
+
+    result[i] = String.fromCharCode(b);
   };
 
   return result;
@@ -183,4 +203,38 @@ System.IO.BinaryReader.prototype._decodeFloat = function (bytes, precisionBits, 
     : Math.pow(2, exponent - bias) * (1 + significand) : 0);
 
   return result;
+};
+
+System.IO.BinaryReader.prototype.IDisposable_Dispose = function () {
+  this.m_stream = null;
+};
+
+System.IO.StreamReader.prototype._ctor$7 = function (filename) {
+  this.stream = new System.IO.FileStream(filename, System.IO.FileMode.Open);
+};
+
+System.IO.StreamReader.prototype.ReadLine = function () {
+  var line = [];
+
+  while (true) {
+    var ch = this.stream.ReadByte();
+    if (ch === -1) {
+      if (line.length == 0)
+        return null;
+
+      break;
+    } else if (ch === 10) {
+      continue;
+    } else if (ch === 13) {
+      break;
+    }
+
+    line.push(ch);
+  };
+
+  return line.join("");
+};
+
+System.IO.StreamReader.prototype.IDisposable_Dispose = function () {
+  this.stream = null;
 };

@@ -9,7 +9,7 @@ namespace JSIL {
     public class CLRSpecialIdentifiers {
         protected readonly TypeSystem TypeSystem;
 
-        public readonly JSIdentifier MemberwiseClone;
+        new public readonly JSIdentifier MemberwiseClone;
 
         public CLRSpecialIdentifiers (TypeSystem typeSystem) {
             TypeSystem = typeSystem;

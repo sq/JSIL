@@ -791,11 +791,16 @@ namespace JSIL {
             return result;
         }
 
-        public JSSwitchCase TranslateNode (ILSwitch.CaseBlock block) {
+        public JSSwitchCase TranslateNode (ILSwitch.CaseBlock block, TypeReference conditionType = null) {
             JSExpression[] values = null;
 
-            if (block.Values != null)
-                values = (from v in block.Values select JSLiteral.New(v)).ToArray();
+            if (block.Values != null) {
+                if ((conditionType != null) && (conditionType.MetadataType == MetadataType.Char)) {
+                    values = (from v in block.Values select JSLiteral.New(Convert.ToChar(v))).ToArray();
+                } else {
+                    values = (from v in block.Values select JSLiteral.New(v)).ToArray();
+                }
+            }
 
             return new JSSwitchCase(
                 values,
@@ -804,14 +809,14 @@ namespace JSIL {
         }
 
         public JSSwitchStatement TranslateNode (ILSwitch swtch) {
-            var result = new JSSwitchStatement(
-                TranslateNode(swtch.Condition)
-            );
+            var condition = TranslateNode(swtch.Condition);
+            var conditionType = condition.GetExpectedType(TypeSystem);
+            var result = new JSSwitchStatement(condition);
 
             Blocks.Push(result);
 
             result.Cases.AddRange(
-                (from cb in swtch.CaseBlocks select TranslateNode(cb))
+                (from cb in swtch.CaseBlocks select TranslateNode(cb, conditionType))
             );
 
             Blocks.Pop();
@@ -829,7 +834,7 @@ namespace JSIL {
                 var pairs = new List<KeyValuePair<JSExpression, JSStatement>>();
                 catchVariable = DeclareVariable(new JSExceptionVariable(TypeSystem));
 
-                bool isFirst = true, foundUniversalCatch = false, openBrace = false;
+                bool foundUniversalCatch = false;
                 foreach (var cb in tcb.CatchBlocks) {
                     JSExpression pairCondition = null;
 
