@@ -32,8 +32,12 @@ namespace JSIL {
             floor = new JSDotExpression(Object("Math"), new JSFakeMethod("floor", TypeSystem.Int64));
         }
 
-        public JSIdentifier call (TypeReference returnType) {
+        public JSFakeMethod call (TypeReference returnType) {
             return new JSFakeMethod("call", returnType);
+        }
+
+        public JSFakeMethod toString () {
+            return new JSFakeMethod("toString", TypeSystem.String);
         }
 
         protected JSIdentifier Object (string name) {

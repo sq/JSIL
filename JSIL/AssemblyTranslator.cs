@@ -1087,7 +1087,7 @@ namespace JSIL {
                 // Temporary elimination makes it possible to simplify more operators, so do it last
                 if (SimplifyOperators)
                     new SimplifyOperators(
-                        translator.JSIL,
+                        translator.JSIL, translator.JS,
                         context.CurrentModule.TypeSystem
                     ).Visit(function);
 

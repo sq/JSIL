@@ -49,10 +49,7 @@ namespace JSIL.Tests {
                 "abc\r\nde"
             );
             try {
-                Assert.AreEqual(
-                    2, 
-                    generatedJs.Split(new string[] { "System.String.Concat" }, StringSplitOptions.RemoveEmptyEntries).Length
-                );
+                Assert.IsFalse(generatedJs.Contains("String.Concat"));
             } catch {
                 Console.WriteLine(generatedJs);
 

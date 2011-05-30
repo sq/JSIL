@@ -12,6 +12,7 @@ namespace JSIL.Transforms {
     public class SimplifyOperators : JSAstVisitor {
         public readonly TypeSystem TypeSystem;
         public readonly JSILIdentifier JSIL;
+        public readonly JSSpecialIdentifiers JS;
 
         public readonly Dictionary<JSBinaryOperator, JSBinaryOperator> InvertedOperators = new Dictionary<JSBinaryOperator, JSBinaryOperator> {
             { JSOperator.LessThan, JSOperator.GreaterThanOrEqual },
@@ -31,8 +32,9 @@ namespace JSIL.Transforms {
             { JSOperator.Subtract, JSOperator.PreDecrement }
         };
 
-        public SimplifyOperators (JSILIdentifier jsil, TypeSystem typeSystem) {
+        public SimplifyOperators (JSILIdentifier jsil, JSSpecialIdentifiers js, TypeSystem typeSystem) {
             JSIL = jsil;
+            JS = js;
             TypeSystem = typeSystem;
         }
 
@@ -49,14 +51,16 @@ namespace JSIL.Transforms {
                 if (
                     (type != null) &&
                     ILBlockTranslator.TypesAreEqual(TypeSystem.String, type.Type) &&
-                    (method.Method.Name == "Concat") &&
-                    (ie.Arguments.All(
-                        (arg) => ILBlockTranslator.TypesAreEqual(
-                            TypeSystem.String, arg.GetExpectedType(TypeSystem)
-                        )
-                    ))
+                    (method.Method.Name == "Concat")
                 ) {
-                    if (ie.Arguments.Count >= 2) {
+                    if (
+                        (ie.Arguments.Count > 2) &&
+                        (ie.Arguments.All(
+                            (arg) => ILBlockTranslator.TypesAreEqual(
+                                TypeSystem.String, arg.GetExpectedType(TypeSystem)
+                            )
+                        ))
+                    ) {
                         var boe = JSBinaryOperatorExpression.New(
                             JSOperator.Add,
                             ie.Arguments,
@@ -68,7 +72,27 @@ namespace JSIL.Transforms {
                             boe
                         );
 
-                        VisitChildren(boe);
+                        Visit(boe);
+                    } else if (
+                        ie.Arguments.Count == 2
+                    ) {
+                        var lhs = ie.Arguments[0];
+                        if (!ILBlockTranslator.TypesAreEqual(TypeSystem.String, lhs.GetExpectedType(TypeSystem)))
+                            lhs = new JSInvocationExpression(JSDotExpression.New(lhs, JS.toString()));
+
+                        var rhs = ie.Arguments[1];
+                        if (!ILBlockTranslator.TypesAreEqual(TypeSystem.String, rhs.GetExpectedType(TypeSystem)))
+                            rhs = new JSInvocationExpression(JSDotExpression.New(rhs, JS.toString()));
+
+                        var boe = new JSBinaryOperatorExpression(
+                            JSOperator.Add, lhs, rhs, TypeSystem.String
+                        );
+
+                        ParentNode.ReplaceChild(
+                            ie, boe
+                        );
+
+                        Visit(boe);
                     } else {
                         var firstArg = ie.Arguments.FirstOrDefault();
 
@@ -77,7 +101,7 @@ namespace JSIL.Transforms {
                         );
 
                         if (firstArg != null)
-                            VisitChildren(firstArg);
+                            Visit(firstArg);
                     }
                     return;
                 } else if (
