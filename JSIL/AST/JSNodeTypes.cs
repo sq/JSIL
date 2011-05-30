@@ -519,6 +519,54 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSDoLoop : JSBlockStatement {
+        protected JSExpression _Condition;
+
+        public JSDoLoop (JSExpression condition, params JSStatement[] body) {
+            _Condition = condition;
+            Statements.AddRange(body);
+        }
+
+        public override bool IsLoop {
+            get {
+                return true;
+            }
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                yield return _Condition;
+
+                foreach (var s in base.Children)
+                    yield return s;
+            }
+        }
+
+        public JSExpression Condition {
+            get {
+                return _Condition;
+            }
+        }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            if (oldChild == null)
+                throw new ArgumentNullException();
+
+            if (_Condition == oldChild)
+                _Condition = (JSExpression)newChild;
+
+            if (newChild is JSStatement)
+                base.ReplaceChild(oldChild, newChild);
+        }
+
+        public override string ToString () {
+            return String.Format(
+                "do {{\r\n{1}\r\n}} while ({0})",
+                _Condition, Util.Indent(base.ToString())
+            );
+        }
+    }
+
     public class JSForLoop : JSBlockStatement {
         protected JSStatement _Initializer, _Increment;
         protected JSExpression _Condition;

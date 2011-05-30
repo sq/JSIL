@@ -197,8 +197,11 @@ namespace JSIL.Transforms {
                 !(enclosingStatement is JSTryCatchBlock) &&
                 !(enclosingStatement is JSVariableDeclarationStatement)
             )) {
-                bool isControlFlow = (enclosingStatement is JSIfStatement) || (enclosingStatement is JSWhileLoop) || 
-                    (enclosingStatement is JSSwitchStatement) || (enclosingStatement is JSForLoop);
+                bool isControlFlow = (enclosingStatement is JSIfStatement) || (enclosingStatement is JSSwitchStatement);
+
+                var enclosingBlock = enclosingStatement as JSBlockStatement;
+                if (enclosingBlock != null)
+                    isControlFlow |= enclosingBlock.IsLoop;
 
                 State.Accesses.Add(
                     new FunctionAnalysis.Access(

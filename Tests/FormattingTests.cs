@@ -201,5 +201,23 @@ namespace JSIL.Tests {
                 throw;
             }
         }
+
+        [Test]
+        public void DoLoops () {
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\DoLoops.cs",
+                "0\r\n1\r\n2\r\n3\r\n4\r\n1"
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("for"));
+                Assert.AreEqual(3, generatedJs.Split(new string[] { "do {" }, StringSplitOptions.RemoveEmptyEntries).Length);
+                Assert.AreEqual(3, generatedJs.Split(new string[] { "} while (" }, StringSplitOptions.RemoveEmptyEntries).Length);
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
     }
 }

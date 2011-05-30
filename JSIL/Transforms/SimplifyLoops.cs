@@ -46,10 +46,10 @@ namespace JSIL.Transforms {
                 }
             }
 
-            var lastInnerStatement = whileLoop.AllChildrenRecursive.OfType<JSExpressionStatement>().LastOrDefault();
-            if (lastInnerStatement != null) {
-                var lastUoe = lastInnerStatement.Expression as JSUnaryOperatorExpression;
-                var lastBoe = lastInnerStatement.Expression as JSBinaryOperatorExpression;
+            var lastExpressionStatement = whileLoop.AllChildrenRecursive.OfType<JSExpressionStatement>().LastOrDefault();
+            if (lastExpressionStatement != null) {
+                var lastUoe = lastExpressionStatement.Expression as JSUnaryOperatorExpression;
+                var lastBoe = lastExpressionStatement.Expression as JSBinaryOperatorExpression;
 
                 if ((lastUoe != null) && (lastUoe.Operator is JSUnaryMutationOperator)) {
                     lastVariable = lastUoe.Expression as JSVariable;
@@ -66,49 +66,79 @@ namespace JSIL.Transforms {
                 }
             }
 
+            var lastIfStatement = whileLoop.AllChildrenRecursive.OfType<JSIfStatement>().LastOrDefault();
+            if (
+                (lastIfStatement != null) && 
+                whileLoop.Condition is JSBooleanLiteral &&
+                ((JSBooleanLiteral)whileLoop.Condition).Value
+            ) {
+                var statements = (from c in lastIfStatement.TrueClause.AllChildrenRecursive
+                                  where (c is JSStatement) && !(c is JSBlockStatement) 
+                                  select c).ToArray();
+
+                var firstEStmt = statements.FirstOrDefault() as JSExpressionStatement;
+
+                if (
+                    (firstEStmt != null) &&
+                    (statements.Length == 1)
+                ) {
+                    var breakExpr = firstEStmt.Expression as JSBreakExpression;
+                    if ((breakExpr != null) && (breakExpr.TargetLabel == whileLoop.Label)) {
+                        whileLoop.ReplaceChildRecursive(lastIfStatement, new JSNullStatement());
+
+                        var doLoop = new JSDoLoop(
+                            new JSUnaryOperatorExpression(JSOperator.LogicalNot, lastIfStatement.Condition),
+                            whileLoop.Statements.ToArray()
+                        );
+                        doLoop.Label = whileLoop.Label;
+
+                        ParentNode.ReplaceChild(whileLoop, doLoop);
+                        VisitChildren(doLoop);
+                        return;
+                    }
+                }
+            }
+
+            bool cantBeFor = false;
+
             if ((initVariable != null) && (lastVariable != null) &&
                 !initVariable.Equals(lastVariable)
             ) {
-
-                VisitChildren(whileLoop);
-                return;
-            }
-
-            if ((initVariable ?? lastVariable) == null) {
-                VisitChildren(whileLoop);
-                return;
-            }
-
-            if (!whileLoop.Condition.AllChildrenRecursive.Any(
+                cantBeFor = true;
+            } else if ((initVariable ?? lastVariable) == null) {
+                cantBeFor = true;
+            } else if (!whileLoop.Condition.AllChildrenRecursive.Any(
                     (n) => (initVariable ?? lastVariable).Equals(n)
-                )
-            ) {
+            )) {
+                cantBeFor = true;
+            }
+
+            if (!cantBeFor) {
+                JSStatement initializer = null, increment = null;
+
+                if (initVariable != null) {
+                    initializer = PreviousSibling as JSStatement;
+
+                    ParentNode.ReplaceChild(PreviousSibling, new JSNullStatement());
+                }
+
+                if (lastVariable != null) {
+                    increment = lastExpressionStatement;
+
+                    whileLoop.ReplaceChildRecursive(lastExpressionStatement, new JSNullStatement());
+                }
+
+                var forLoop = new JSForLoop(
+                    initializer, whileLoop.Condition, increment,
+                    whileLoop.Statements.ToArray()
+                );
+                forLoop.Label = whileLoop.Label;
+
+                ParentNode.ReplaceChild(whileLoop, forLoop);
+                VisitChildren(forLoop);
+            } else {
                 VisitChildren(whileLoop);
-                return;
             }
-
-            JSStatement initializer = null, increment = null;
-
-            if (initVariable != null) {
-                initializer = PreviousSibling as JSStatement;
-
-                ParentNode.ReplaceChild(PreviousSibling, new JSNullStatement());
-            }
-
-            if (lastVariable != null) {
-                increment = lastInnerStatement;
-
-                whileLoop.ReplaceChildRecursive(lastInnerStatement, new JSNullStatement());
-            }
-
-            var forLoop = new JSForLoop(
-                initializer, whileLoop.Condition, increment,
-                whileLoop.Statements.ToArray()
-            );
-            forLoop.Label = whileLoop.Label;
-
-            ParentNode.ReplaceChild(whileLoop, forLoop);
-            VisitChildren(forLoop);
         }
     }
 }

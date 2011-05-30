@@ -16,7 +16,8 @@ namespace JSIL {
         Switch,
         While,
         ForHeader,
-        ForBody
+        ForBody,
+        Do
     }
 
     public class JavascriptAstEmitter : JSAstVisitor {
@@ -649,6 +650,29 @@ namespace JSIL {
             BlockStack.Pop();
         }
 
+        public void VisitNode (JSDoLoop loop) {
+            BlockStack.Push(BlockType.Do);
+            WriteLabel(loop, true);
+
+            Output.Keyword("do");
+            Output.Space();
+            Output.OpenBrace();
+
+            VisitNode((JSBlockStatement)loop, false);
+
+            Output.CloseBrace(false);
+            Output.Space();
+            Output.Keyword("while");
+            Output.Space();
+
+            Output.LPar();
+            Visit(loop.Condition);
+            Output.RPar();
+            Output.Semicolon();
+
+            BlockStack.Pop();
+        }
+
         public void VisitNode (JSReturnExpression ret) {
             Output.Keyword("return");
 
@@ -715,6 +739,8 @@ namespace JSIL {
             if (ParentNode is JSIfStatement)
                 parens = false;
             else if ((ParentNode is JSWhileLoop) && ((JSWhileLoop)ParentNode).Condition == bop)
+                parens = false;
+            else if ((ParentNode is JSDoLoop) && ((JSDoLoop)ParentNode).Condition == bop)
                 parens = false;
             else if (ParentNode is JSForLoop) {
                 var fl = (JSForLoop)ParentNode;
