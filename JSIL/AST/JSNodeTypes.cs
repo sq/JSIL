@@ -669,6 +669,22 @@ namespace JSIL.Ast {
                     yield return Finally;
             }
         }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            if (oldChild == null)
+                throw new ArgumentNullException();
+
+            if (CatchVariable == oldChild)
+                CatchVariable = (JSVariable)newChild;
+
+            if (Catch == oldChild)
+                Catch = (JSStatement)newChild;
+
+            if (Finally == oldChild)
+                Finally = (JSStatement)newChild;
+
+            Body.ReplaceChild(oldChild, newChild);
+        }
     }
 
     public abstract class JSExpression : JSNode {
@@ -1100,6 +1116,12 @@ namespace JSIL.Ast {
             }
         }
 
+        public override bool IsConstant {
+            get {
+                return true;
+            }
+        }
+
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             return;
         }
@@ -1279,7 +1301,7 @@ namespace JSIL.Ast {
             return new JSDefaultValueLiteral(type);
         }
 
-        public static JSNullLiteral Null (TypeReference type) {
+        new public static JSNullLiteral Null (TypeReference type) {
             return new JSNullLiteral(type);
         }
     }
@@ -1599,7 +1621,7 @@ namespace JSIL.Ast {
     }
 
     public class JSType : JSIdentifier {
-        public readonly TypeReference Type;
+        new public readonly TypeReference Type;
 
         public JSType (TypeReference type) {
             Type = type;
@@ -1868,6 +1890,12 @@ namespace JSIL.Ast {
         }
 
         public override bool IsConstant {
+            get {
+                return true;
+            }
+        }
+
+        public override bool IsParameter {
             get {
                 return true;
             }
@@ -2197,41 +2225,133 @@ namespace JSIL.Ast {
     }
 
     public class JSInvocationExpression : JSExpression {
-        public bool ConstantIfArgumentsAre = false;
+        public readonly bool ConstantIfArgumentsAre;
+        public readonly bool ExplicitThis;
 
-        public JSInvocationExpression (JSExpression target, params JSExpression[] arguments)
-            : base ( 
-                (new [] { target }).Concat(arguments).ToArray() 
-            ) {
+        protected JSInvocationExpression (
+            JSExpression type, JSExpression method, 
+            JSExpression thisReference, JSExpression[] arguments,
+            bool explicitThis, bool constantIfArgumentsAre
+        ) : base ( 
+            (new [] { type, method, thisReference }).Concat(arguments ?? new JSExpression[0]).ToArray() 
+        ) {
+            if (type == null)
+                throw new ArgumentNullException("type");
+            if (method == null)
+                throw new ArgumentNullException("method");
+            if (thisReference == null)
+                throw new ArgumentNullException("thisReference");
+
+            ExplicitThis = explicitThis;
+            ConstantIfArgumentsAre = constantIfArgumentsAre;
         }
 
-        public JSExpression Target {
+        public static JSInvocationExpression InvokeMethod (TypeReference type, JSIdentifier method, JSExpression thisReference, JSExpression[] arguments = null, bool constantIfArgumentsAre = false) {
+            return InvokeMethod(new JSType(type), method, thisReference, arguments, constantIfArgumentsAre);
+        }
+
+        public static JSInvocationExpression InvokeMethod (JSType type, JSIdentifier method, JSExpression thisReference, JSExpression[] arguments = null, bool constantIfArgumentsAre = false) {
+            return new JSInvocationExpression(
+                type, method, thisReference, arguments, false, constantIfArgumentsAre
+            );
+        }
+
+        public static JSInvocationExpression InvokeMethod (JSExpression method, JSExpression thisReference, JSExpression[] arguments = null, bool constantIfArgumentsAre = false) {
+            return new JSInvocationExpression(
+                new JSNullExpression(), method, thisReference, arguments, false, constantIfArgumentsAre
+            );
+        }
+
+        public static JSInvocationExpression InvokeBaseMethod (TypeReference type, JSIdentifier method, JSExpression thisReference, JSExpression[] arguments = null, bool constantIfArgumentsAre = false) {
+            return InvokeBaseMethod(new JSType(type), method, thisReference, arguments, constantIfArgumentsAre);
+        }
+
+        public static JSInvocationExpression InvokeBaseMethod (JSType type, JSIdentifier method, JSExpression thisReference, JSExpression[] arguments = null, bool constantIfArgumentsAre = false) {
+            return new JSInvocationExpression(
+                type, method, thisReference, arguments, true, constantIfArgumentsAre
+            );
+        }
+
+        public static JSInvocationExpression InvokeStatic (TypeReference type, JSIdentifier method, JSExpression[] arguments = null, bool constantIfArgumentsAre = false) {
+            return InvokeStatic(new JSType(type), method, arguments, constantIfArgumentsAre);
+        }
+
+        public static JSInvocationExpression InvokeStatic (JSType type, JSIdentifier method, JSExpression[] arguments = null, bool constantIfArgumentsAre = false) {
+            return new JSInvocationExpression(
+                type, method, new JSNullExpression(), arguments, true, constantIfArgumentsAre
+            );
+        }
+
+        public static JSInvocationExpression InvokeStatic (JSExpression method, JSExpression[] arguments = null, bool constantIfArgumentsAre = false) {
+            return new JSInvocationExpression(
+                new JSNullExpression(), method, new JSNullExpression(), arguments, true, constantIfArgumentsAre
+            );
+        }
+
+        public JSExpression Type {
             get {
                 return Values[0];
+            }
+        }
+
+        public JSType JSType {
+            get {
+                return Values[0] as JSType;
+            }
+        }
+
+        public JSExpression Method {
+            get {
+                return Values[1];
+            }
+        }
+
+        public JSMethod JSMethod {
+            get {
+                return Values[1] as JSMethod;
+            }
+        }
+
+        public JSFakeMethod FakeMethod {
+            get {
+                return Values[1] as JSFakeMethod;
+            }
+        }
+
+        public JSExpression ThisReference {
+            get {
+                return Values[2];
+            }
+        }
+
+        public virtual IList<JSExpression> Arguments {
+            get {
+                return Values.Skip(3);
             }
         }
 
         public override bool IsConstant {
             get {
                 if (ConstantIfArgumentsAre)
-                    return Arguments.All((a) => a.IsConstant) || base.IsConstant;
+                    return (Arguments.All((a) => a.IsConstant) && ThisReference.IsConstant) || 
+                        base.IsConstant;
                 else
                     return base.IsConstant;
             }
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            var targetType = Target.GetExpectedType(typeSystem);
+            var targetType = Method.GetExpectedType(typeSystem);
 
-            var targetAbstractMethod = Target.AllChildrenRecursive.OfType<JSIdentifier>()
+            var targetAbstractMethod = Method.AllChildrenRecursive.OfType<JSIdentifier>()
                 .LastOrDefault((i) => {
                     var m = i as JSMethod;
                     var fm = i as JSFakeMethod;
                     return (m != null) || (fm != null);
                 });
 
-            var targetMethod = (Target as JSMethod) ?? (targetAbstractMethod as JSMethod);
-            var targetFakeMethod = (Target as JSFakeMethod) ?? (targetAbstractMethod as JSFakeMethod);
+            var targetMethod = JSMethod ?? (targetAbstractMethod as JSMethod);
+            var targetFakeMethod = FakeMethod ?? (targetAbstractMethod as JSFakeMethod);
 
             if (targetMethod != null)
                 return TypeAnalysis.SubstituteTypeArgs(targetMethod.Reference.ReturnType, targetMethod.Reference);
@@ -2246,6 +2366,41 @@ namespace JSIL.Ast {
             return targetType;
         }
 
+        public override string ToString () {
+            return String.Format(
+                "{0}({1})", 
+                Method, 
+                String.Join(", ", (from a in Arguments select String.Concat(a)).ToArray())
+            );
+        }
+    }
+
+    public class JSDelegateInvocationExpression : JSExpression {
+        public readonly TypeReference ReturnType;
+
+        public JSDelegateInvocationExpression (JSExpression thisReference, TypeReference returnType, params JSExpression[] arguments)
+            : base ( 
+                (new [] { thisReference }).Concat(arguments).ToArray() 
+            ) {
+
+            if (thisReference == null)
+                throw new ArgumentNullException("thisReference");
+            if (returnType == null)
+                throw new ArgumentNullException("returnType");
+
+            ReturnType = returnType;
+        }
+
+        public JSExpression ThisReference {
+            get {
+                return Values[0];
+            }
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {            
+            return ReturnType;
+        }
+
         public virtual IList<JSExpression> Arguments {
             get {
                 return Values.Skip(1);
@@ -2255,45 +2410,7 @@ namespace JSIL.Ast {
         public override string ToString () {
             return String.Format(
                 "{0}:({1})", 
-                Target, 
-                String.Join(", ", (from a in Arguments select String.Concat(a)).ToArray())
-            );
-        }
-    }
-
-    public class JSDelegateInvocationExpression : JSExpression {
-        public JSDelegateInvocationExpression (JSExpression target, JSMethod invokeMethod, params JSExpression[] arguments)
-            : base ( 
-                (new [] { target, invokeMethod }).Concat(arguments).ToArray() 
-            ) {
-        }
-
-        public JSExpression Target {
-            get {
-                return Values[0];
-            }
-        }
-
-        public JSMethod InvokeMethod {
-            get {
-                return (JSMethod)Values[1];
-            }
-        }
-
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {            
-            return TypeAnalysis.SubstituteTypeArgs(InvokeMethod.Reference.ReturnType, InvokeMethod.Reference);
-        }
-
-        public virtual IList<JSExpression> Arguments {
-            get {
-                return Values.Skip(2);
-            }
-        }
-
-        public override string ToString () {
-            return String.Format(
-                "{0}:({1})", 
-                Target, 
+                ThisReference, 
                 String.Join(", ", (from a in Arguments select String.Concat(a)).ToArray())
             );
         }
@@ -2564,6 +2681,34 @@ namespace JSIL.Ast {
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             return NewType;
+        }
+    }
+
+    public class JSStructCopyExpression : JSExpression {
+        public JSStructCopyExpression (JSExpression @struct)
+            : base (@struct) {
+        }
+
+        public JSExpression Struct {
+            get {
+                return Values[0];
+            }
+        }
+
+        public override bool IsConstant {
+            get {
+                return Struct.IsConstant;
+            }
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return Struct.GetExpectedType(typeSystem);
+        }
+
+        public override bool IsNull {
+            get {
+                return Struct.IsNull;
+            }
         }
     }
 

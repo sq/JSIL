@@ -144,13 +144,8 @@ namespace JSIL.Transforms {
                     State.EscapingVariables.Add(variable);
             }
 
-            var target = ie.Target as JSDotExpression;
-            JSType type = null;
-            JSMethod method = null;
-            if (target != null) {
-                type = target.Target as JSType;
-                method = target.Member as JSMethod;
-            }
+            var type = ie.JSType;
+            var method = ie.JSMethod;
 
             State.Invocations.Add(new FunctionAnalysis.Invocation(
                 StatementIndex, NodeIndex, type, method
@@ -325,6 +320,8 @@ namespace JSIL.Transforms {
     }
 
     public class FunctionStaticData {
+        public const bool Tracing = false;
+
         public readonly bool IsPure;
         public readonly FunctionAnalysis Data;
 
@@ -334,9 +331,11 @@ namespace JSIL.Transforms {
                 (data.StaticReferences.Count == 0) &&
                 (data.Invocations.Count == 0);
 
-            Console.WriteLine("{0}: '{1}'", IsPure ? "Pure" : "Impure", data.Function.OriginalMethodReference.FullName);
-            if (data.EscapingVariables.Count > 0)
-                Console.WriteLine("  Escaping variables: {0}", String.Join(", ", (from v in data.EscapingVariables select v.Name).ToArray()));
+            if (Tracing) {
+                Console.WriteLine("{0}: '{1}'", IsPure ? "Pure" : "Impure", data.Function.OriginalMethodReference.FullName);
+                if (data.EscapingVariables.Count > 0)
+                    Console.WriteLine("  Escaping variables: {0}", String.Join(", ", (from v in data.EscapingVariables select v.Name).ToArray()));
+            }
         }
 
         public IEnumerable<JSVariable> AllVariables {

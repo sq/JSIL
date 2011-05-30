@@ -39,13 +39,9 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSInvocationExpression ie) {
-            var target = ie.Target as JSDotExpression;
-            JSType type = null;
-            JSMethod method = null;
-            if (target != null) {
-                type = target.Target as JSType;
-                method = target.Member as JSMethod;
-            }
+            var type = ie.JSType;
+            var method = ie.JSMethod;
+            var thisExpression = ie.ThisReference;
 
             if (method != null) {
                 if (
@@ -77,12 +73,14 @@ namespace JSIL.Transforms {
                         ie.Arguments.Count == 2
                     ) {
                         var lhs = ie.Arguments[0];
-                        if (!ILBlockTranslator.TypesAreEqual(TypeSystem.String, lhs.GetExpectedType(TypeSystem)))
-                            lhs = new JSInvocationExpression(JSDotExpression.New(lhs, JS.toString()));
+                        var lhsType = lhs.GetExpectedType(TypeSystem);
+                        if (!ILBlockTranslator.TypesAreEqual(TypeSystem.String, lhsType))
+                            lhs = JSInvocationExpression.InvokeMethod(lhsType, JS.toString, lhs, null);
 
                         var rhs = ie.Arguments[1];
-                        if (!ILBlockTranslator.TypesAreEqual(TypeSystem.String, rhs.GetExpectedType(TypeSystem)))
-                            rhs = new JSInvocationExpression(JSDotExpression.New(rhs, JS.toString()));
+                        var rhsType = rhs.GetExpectedType(TypeSystem);
+                        if (!ILBlockTranslator.TypesAreEqual(TypeSystem.String, rhsType))
+                            rhs = JSInvocationExpression.InvokeMethod(rhsType, JS.toString, rhs, null);
 
                         var boe = new JSBinaryOperatorExpression(
                             JSOperator.Add, lhs, rhs, TypeSystem.String
@@ -108,7 +106,9 @@ namespace JSIL.Transforms {
                     ILBlockTranslator.IsDelegateType(method.Reference.DeclaringType) &&
                     (method.Method.Name == "Invoke")
                 ) {
-                    var newIe = new JSDelegateInvocationExpression(target.Target, method, ie.Arguments.ToArray());
+                    var newIe = new JSDelegateInvocationExpression(
+                        thisExpression, TypeAnalysis.SubstituteTypeArgs(method.Reference.ReturnType, method.Reference), ie.Arguments.ToArray()
+                    );
                     ParentNode.ReplaceChild(ie, newIe);
 
                     Visit(newIe);
@@ -131,7 +131,7 @@ namespace JSIL.Transforms {
                         case "GetUpperBound": {
                             var index = ie.Arguments[0] as JSLiteral;
                             if (index != null) {
-                                var newDot = JSDotExpression.New(target.Target, new JSStringIdentifier(
+                                var newDot = JSDotExpression.New(thisExpression, new JSStringIdentifier(
                                     String.Format("length{0}", Convert.ToInt32(index.Literal)), 
                                     TypeSystem.Int32
                                 ));
@@ -266,15 +266,12 @@ namespace JSIL.Transforms {
                     (rightType != null) &&
                     (rightType.Member.Identifier == "CollectionInitializer")
                 ) {
-                    var newInvocation = new JSInvocationExpression(
-                        new JSDotExpression(
-                            boe.Left,
-                            new JSStringIdentifier("__Initialize__", boe.Left.GetExpectedType(TypeSystem))
-                        ),
-                        new JSArrayExpression(
+                    var newInvocation = JSInvocationExpression.InvokeMethod(
+                        new JSStringIdentifier("__Initialize__", boe.Left.GetExpectedType(TypeSystem)), 
+                        boe.Left, new [] { new JSArrayExpression(
                             TypeSystem.Object,
                             rightNew.Arguments.ToArray()
-                        )
+                        ) }
                     );
 
                     ParentNode.ReplaceChild(boe, newInvocation);
@@ -292,9 +289,8 @@ namespace JSIL.Transforms {
 
                     return;
                 } else {
-                    var newInvocation = new JSInvocationExpression(
-                        JSIL.CopyMembers,
-                        boe.Right, leftVar
+                    var newInvocation = JSInvocationExpression.InvokeStatic(
+                        JSIL.CopyMembers, new[] { boe.Right, leftVar }
                     );
 
                     ParentNode.ReplaceChild(boe, newInvocation);

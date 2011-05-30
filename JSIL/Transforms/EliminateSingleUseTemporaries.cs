@@ -55,6 +55,9 @@ namespace JSIL.Transforms {
         }
 
         protected bool IsEffectivelyConstant (JSVariable target, JSExpression source) {
+            if (source == null)
+                return true;
+
             // Handle special cases where our interpretation of 'constant' needs to be more flexible
             {
                 var ie = source as JSIndexerExpression;
@@ -90,7 +93,7 @@ namespace JSIL.Transforms {
                 var ie = source as JSInvocationExpression;
                 if (
                     (ie != null) && ie.ConstantIfArgumentsAre &&
-                    IsEffectivelyConstant(target, ie.Target) &&
+                    IsEffectivelyConstant(target, ie.ThisReference) &&
                     ie.Arguments.All((a) => IsEffectivelyConstant(target, a))
                 )
                     return true;

@@ -227,6 +227,14 @@ namespace JSIL {
             Visit(cte.Expression);
         }
 
+        public void VisitNode (JSStructCopyExpression sce) {
+            Visit(sce.Struct);
+            Output.Dot();
+            Output.Identifier("MemberwiseClone");
+            Output.LPar();
+            Output.RPar();
+        }
+
         public void VisitNode (JSIndexerExpression idx) {
             Visit(idx.Target);
             Output.OpenBracket();
@@ -373,11 +381,13 @@ namespace JSIL {
                     Output.Value(imr.Member.Name);
             }
 
-            if (imr.Arguments.Length != 0) {
+            var args = (from a in imr.Arguments where (a != null) && !a.IsNull select a).ToArray();
+
+            if (args.Length != 0) {
                 if (imr.Member != null)
                     Output.Comma();
 
-                CommaSeparatedList(imr.Arguments);
+                CommaSeparatedList(args);
             }
             Output.RPar();
         }
@@ -883,40 +893,47 @@ namespace JSIL {
             Output.CloseBrace();
         }
 
-        protected int CountOfMatchingSubtrees<TNode> (IEnumerable<JSNode> nodes) 
+        protected static int CountOfMatchingSubtrees<TNode> (IEnumerable<JSNode> nodes) 
             where TNode : JSNode {
+            if (nodes == null)
+                return 0;
+
             return (from n in nodes
-                    where n.AllChildrenRecursive.OfType<TNode>().FirstOrDefault() != null
+                    where (n != null) && 
+                          (n.AllChildrenRecursive.OfType<TNode>().FirstOrDefault() != null)
                     select n).Count();
         }
 
-        protected void VisitInvocation (JSExpression target, IList<JSExpression> arguments) {
-            bool needsParens =
-                CountOfMatchingSubtrees<JSFunctionExpression>(new[] { target }) > 0;
-
-            if (needsParens)
-                Output.LPar();
-
-            Visit(target);
-
-            if (needsParens)
-                Output.RPar();
-
-            Output.LPar();
-
-            bool needLineBreak =
-                ((arguments.Count > 1) &&
+        protected static bool ArgumentsNeedLineBreak (IList<JSExpression> arguments) {
+            return ((arguments.Count > 1) &&
                 (
                     (CountOfMatchingSubtrees<JSFunctionExpression>(arguments) > 1) ||
                     (CountOfMatchingSubtrees<JSInvocationExpression>(arguments) > 1) ||
                     (CountOfMatchingSubtrees<JSDelegateInvocationExpression>(arguments) > 1)
                 )) ||
                 (arguments.Count > 4);
+        }
+
+        public void VisitNode (JSDelegateInvocationExpression invocation) {
+            bool needsParens =
+                CountOfMatchingSubtrees<JSFunctionExpression>(new[] { invocation.ThisReference }) > 0;
+
+            if (needsParens)
+                Output.LPar();
+
+            Visit(invocation.ThisReference);
+
+            if (needsParens)
+                Output.RPar();
+
+            Output.LPar();
+
+            bool needLineBreak = ArgumentsNeedLineBreak(invocation.Arguments);
 
             if (needLineBreak)
                 Output.NewLine();
 
-            CommaSeparatedList(arguments, needLineBreak);
+            CommaSeparatedList(invocation.Arguments, needLineBreak);
 
             if (needLineBreak)
                 Output.NewLine();
@@ -924,12 +941,60 @@ namespace JSIL {
             Output.RPar();
         }
 
-        public void VisitNode (JSDelegateInvocationExpression invocation) {
-            VisitInvocation(invocation.Target, invocation.Arguments);
-        }
-
         public void VisitNode (JSInvocationExpression invocation) {
-            VisitInvocation(invocation.Target, invocation.Arguments);
+            bool isStatic = false;
+            if (invocation.ExplicitThis && invocation.ThisReference.IsNull) {
+                isStatic = true;
+
+                if (!invocation.Type.IsNull) {
+                    Visit(invocation.Type);
+                    Output.Dot();
+                }
+
+                Visit(invocation.Method);
+            } else if (invocation.ExplicitThis) {
+                Visit(invocation.Type);
+                Output.Dot();
+                Output.Identifier("prototype");
+                Output.Dot();
+                Visit(invocation.Method);
+                Output.Dot();
+                Output.Identifier("call");
+            } else {
+                bool needsParens =
+                    (CountOfMatchingSubtrees<JSFunctionExpression>(new[] { invocation.ThisReference }) > 0) ||
+                    invocation.ThisReference is JSLiteral;
+
+                if (needsParens)
+                    Output.LPar();
+                Visit(invocation.ThisReference);
+                if (needsParens)
+                    Output.RPar();
+
+                Output.Dot();
+                Visit(invocation.Method);
+            }
+
+            Output.LPar();
+
+            bool needLineBreak = ArgumentsNeedLineBreak(invocation.Arguments);
+
+            if (needLineBreak)
+                Output.NewLine();
+
+            if (invocation.ExplicitThis && !isStatic && !invocation.ThisReference.IsNull) {
+                Visit(invocation.ThisReference);
+
+                if (invocation.Arguments.Count > 0)
+                    Output.Comma();
+            }
+
+            CommaSeparatedList(invocation.Arguments, needLineBreak);
+
+            if (needLineBreak)
+                Output.NewLine();
+
+            Output.RPar();
         }
     }
 }

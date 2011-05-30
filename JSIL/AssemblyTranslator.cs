@@ -547,8 +547,13 @@ namespace JSIL {
 
             context.CurrentModule = module;
 
+            var js = new JSSpecialIdentifiers(context.CurrentModule.TypeSystem);
+            var jsil = new JSILIdentifier(context.CurrentModule.TypeSystem, js);
+
             // Probably should be an argument, not a member variable...
-            AstEmitter = new JavascriptAstEmitter(output, new JSILIdentifier(context.CurrentModule.TypeSystem), context.CurrentModule.TypeSystem, this);
+            AstEmitter = new JavascriptAstEmitter(
+                output, jsil, context.CurrentModule.TypeSystem, this
+            );
 
             foreach (var typedef in module.Types)
                 ForwardDeclareType(context, output, typedef);
@@ -1147,15 +1152,16 @@ namespace JSIL {
                 );
 
             if (field.HasConstant) {
-                return new JSInvocationExpression(
+                return JSInvocationExpression.InvokeStatic(
                     JSDotExpression.New(
-                        new JSStringIdentifier("Object"), new JSStringIdentifier("defineProperty")
-                    ),
-                    target.Target, target.Member.ToLiteral(),
-                    new JSObjectExpression(new JSPairExpression(
-                        JSLiteral.New("value"),
-                        JSLiteral.New(field.Constant as dynamic)
-                    ))
+                        new JSStringIdentifier("Object"), new JSFakeMethod("defineProperty", field.Module.TypeSystem.Void)
+                    ), new[] { 
+                        target.Target, target.Member.ToLiteral(),
+                        new JSObjectExpression(new JSPairExpression(
+                            JSLiteral.New("value"),
+                            JSLiteral.New(field.Constant as dynamic)
+                        ))
+                    }
                 );
             } else {
                 return new JSBinaryOperatorExpression(

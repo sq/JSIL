@@ -66,10 +66,6 @@ namespace JSIL.Transforms {
             return true;
         }
 
-        protected JSInvocationExpression MakeCopy (JSExpression value) {
-            return new JSInvocationExpression(new JSDotExpression(value, CLR.MemberwiseClone));
-        }
-
         public void VisitNode (JSFunctionExpression fn) {
             // Create a new visitor for nested function expressions
             if (Stack.OfType<JSFunctionExpression>().Skip(1).FirstOrDefault() != null) {
@@ -88,7 +84,7 @@ namespace JSIL.Transforms {
             if (IsCopyNeeded(pair.Value)) {
                 if (Tracing)
                     Debug.WriteLine(String.Format("struct copy introduced for object value {0}", pair.Value));
-                pair.Value = MakeCopy(pair.Value);
+                pair.Value = new JSStructCopyExpression(pair.Value);
             }
 
             VisitChildren(pair);
@@ -101,7 +97,7 @@ namespace JSIL.Transforms {
                 if (IsCopyNeeded(argument)) {
                     if (Tracing)
                         Debug.WriteLine(String.Format("struct copy introduced for argument {0}", argument));
-                    invocation.Arguments[i] = MakeCopy(argument);
+                    invocation.Arguments[i] = new JSStructCopyExpression(argument);
                 }
             }
 
@@ -115,7 +111,7 @@ namespace JSIL.Transforms {
                 if (IsCopyNeeded(argument)) {
                     if (Tracing)
                         Debug.WriteLine(String.Format("struct copy introduced for argument {0}", argument));
-                    invocation.Arguments[i] = MakeCopy(argument);
+                    invocation.Arguments[i] = new JSStructCopyExpression(argument);
                 }
             }
 
@@ -131,7 +127,7 @@ namespace JSIL.Transforms {
             if (IsCopyNeeded(boe.Right)) {
                 if (Tracing)
                     Debug.WriteLine(String.Format("struct copy introduced for assignment rhs {0}", boe.Right));
-                boe.Right = MakeCopy(boe.Right);
+                boe.Right = new JSStructCopyExpression(boe.Right);
             }
 
             VisitChildren(boe);

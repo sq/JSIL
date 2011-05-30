@@ -22,22 +22,22 @@ namespace JSIL {
         protected readonly TypeSystem TypeSystem;
 
         public readonly JSIdentifier prototype, eval;
-        public readonly JSDotExpression floor;
+        public readonly JSFakeMethod toString, charCodeAt;
+        public readonly JSDotExpression floor, fromCharCode;
 
         public JSSpecialIdentifiers (TypeSystem typeSystem) {
             TypeSystem = typeSystem;
 
             prototype = Object("prototype");
             eval = new JSFakeMethod("eval", TypeSystem.Object, TypeSystem.String);
+            toString = new JSFakeMethod("toString", TypeSystem.String);
             floor = new JSDotExpression(Object("Math"), new JSFakeMethod("floor", TypeSystem.Int64));
+            fromCharCode = new JSDotExpression(Object("String"), new JSFakeMethod("fromCharCode", TypeSystem.Char, TypeSystem.Int32));
+            charCodeAt = new JSFakeMethod("charCodeAt", TypeSystem.Int32, TypeSystem.Char);
         }
 
         public JSFakeMethod call (TypeReference returnType) {
             return new JSFakeMethod("call", returnType);
-        }
-
-        public JSFakeMethod toString () {
-            return new JSFakeMethod("toString", TypeSystem.String);
         }
 
         protected JSIdentifier Object (string name) {
@@ -47,12 +47,14 @@ namespace JSIL {
 
     public class JSILIdentifier : JSIdentifier {
         public readonly TypeSystem TypeSystem;
+        public readonly JSSpecialIdentifiers JS;
 
         public readonly JSDotExpression GlobalNamespace,
             CopyMembers;
 
-        public JSILIdentifier (TypeSystem typeSystem) {
+        public JSILIdentifier (TypeSystem typeSystem, JSSpecialIdentifiers js) {
             TypeSystem = typeSystem;
+            JS = js;
 
             GlobalNamespace = Dot("GlobalNamespace", TypeSystem.Object);
             CopyMembers = Dot("CopyMembers", TypeSystem.Void);
@@ -71,21 +73,17 @@ namespace JSIL {
         }
 
         public JSInvocationExpression CheckType (JSExpression expression, TypeReference targetType) {
-            var result = new JSInvocationExpression(
+            return JSInvocationExpression.InvokeStatic(
                 Dot("CheckType", TypeSystem.Boolean),
-                expression, new JSType(targetType)
+                new[] { expression, new JSType(targetType) }, true
             );
-            result.ConstantIfArgumentsAre = true;
-            return result;
         }
 
         public JSInvocationExpression TryCast (JSExpression expression, TypeReference targetType) {
-            var result = new JSInvocationExpression(
+            return JSInvocationExpression.InvokeStatic(
                 Dot("TryCast", targetType),
-                expression, new JSType(targetType)
+                new[] { expression, new JSType(targetType) }, true
             );
-            result.ConstantIfArgumentsAre = true;
-            return result;
         }
 
         public JSExpression Cast (JSExpression expression, TypeReference targetType) {
@@ -93,28 +91,12 @@ namespace JSIL {
             targetType = ILBlockTranslator.DereferenceType(targetType);
 
             if (targetType.MetadataType == MetadataType.Char) {
-                var result = new JSInvocationExpression(
-                    JSDotExpression.New(
-                        new JSStringIdentifier("String"),
-                        new JSStringIdentifier("fromCharCode", TypeSystem.Char)
-                    ),
-                    expression
-                );
-                result.ConstantIfArgumentsAre = true;
-                return result;
+                return JSInvocationExpression.InvokeStatic(JS.fromCharCode, new[] { expression }, true);
             } else if (
                 (currentType.MetadataType == MetadataType.Char) &&
                 ILBlockTranslator.IsIntegral(targetType)
             ) {
-                var result = new JSInvocationExpression(
-                    JSDotExpression.New(
-                        expression,
-                        new JSStringIdentifier("charCodeAt", TypeSystem.Char)
-                    ),
-                    JSLiteral.New(0)
-                );
-                result.ConstantIfArgumentsAre = true;
-                return result;
+                return JSInvocationExpression.InvokeMethod(JS.charCodeAt, expression, new[] { JSLiteral.New(0) }, true);
             } else if (
                 ILBlockTranslator.GetTypeDefinition(currentType).IsEnum &&
                 ILBlockTranslator.IsIntegral(targetType)
@@ -123,49 +105,41 @@ namespace JSIL {
                     expression, new JSStringIdentifier("value", targetType)
                 );
             } else {
-                var result = new JSInvocationExpression(
+                return JSInvocationExpression.InvokeStatic(
                     Dot("Cast", targetType),
-                    expression, new JSType(targetType)
+                    new [] { expression, new JSType(targetType) }, true
                 );
-                result.ConstantIfArgumentsAre = true;
-                return result;
             }
         }
 
         public JSInvocationExpression NewArray (TypeReference elementType, JSExpression sizeOrArrayInitializer) {
             var arrayType = new ArrayType(elementType);
 
-            return new JSInvocationExpression(
+            return JSInvocationExpression.InvokeStatic(
                 new JSDotExpression(
-                    Dot("Array", TypeSystem.Object),
+                    Dot("Array", TypeSystem.Object), 
                     new JSFakeMethod("New", arrayType, arrayType)
-                ),
-                new JSType(elementType),
-                sizeOrArrayInitializer
+                ), new [] { new JSType(elementType), sizeOrArrayInitializer }
             );
         }
 
         public JSInvocationExpression NewMultidimensionalArray (TypeReference elementType, JSExpression[] dimensions) {
             var arrayType = new ArrayType(elementType, dimensions.Length);
 
-            return new JSInvocationExpression(
+            return JSInvocationExpression.InvokeStatic(
                 new JSDotExpression(
-                    Dot("MultidimensionalArray", TypeSystem.Object),
+                    Dot("MultidimensionalArray", TypeSystem.Object), 
                     new JSFakeMethod("New", arrayType, TypeSystem.Object, TypeSystem.Object)
-                ),
-                (new JSExpression[] { new JSType(elementType) }.Concat(dimensions)).ToArray()
+                ), new JSExpression[] { new JSType(elementType) }.Concat(dimensions).ToArray()
             );
         }
 
         public JSInvocationExpression NewDelegate (TypeReference delegateType, JSExpression thisReference, JSExpression targetMethod) {
-            return new JSInvocationExpression(
+            return JSInvocationExpression.InvokeStatic(
                 new JSDotExpression(
                     Dot("Delegate", TypeSystem.Object),
                     new JSFakeMethod("New", delegateType, TypeSystem.String, TypeSystem.Object, TypeSystem.Object)
-                ),
-                JSLiteral.New(delegateType),
-                thisReference,
-                targetMethod
+                ), new [] { JSLiteral.New(delegateType), thisReference, targetMethod }, true
             );
         }
 
@@ -195,9 +169,9 @@ namespace JSIL {
         }
 
         public JSInvocationExpression Coalesce (JSExpression left, JSExpression right, TypeReference expectedType) {
-            return new JSInvocationExpression(
+            return JSInvocationExpression.InvokeStatic(
                 Dot("Coalesce", expectedType),
-                left, right
+                new[] { left, right }, true
             );
         }
     }

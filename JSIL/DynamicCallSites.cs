@@ -151,11 +151,8 @@ namespace JSIL {
                 if (returnType == null)
                     returnType = translator.TypeSystem.Void;
 
-                return new JSInvocationExpression(
-                    JSDotExpression.New(
-                        thisArgument,
-                        new JSStringIdentifier(MemberName, returnType)
-                    ),
+                return JSInvocationExpression.InvokeMethod(
+                    new JSStringIdentifier(MemberName, returnType), thisArgument,
                     arguments.Skip(2).ToArray()
                 );
             }
@@ -185,9 +182,9 @@ namespace JSIL {
                 if (returnType == null)
                     returnType = translator.TypeSystem.Void;
 
-                return new JSInvocationExpression(
+                return new JSDelegateInvocationExpression(
                     JSChangeTypeExpression.New(thisArgument, translator.TypeSystem, returnType), 
-                    arguments.Skip(2).ToArray()
+                    returnType, arguments.Skip(2).ToArray()
                 );
             }
         }
