@@ -15,15 +15,6 @@ namespace JSIL.Transforms {
 
         protected FunctionStaticData Data = null;
 
-        /*
-        public readonly Dictionary<JSVariable, JSExpressionStatement> FirstValues = new Dictionary<JSVariable, JSExpressionStatement>();
-        public readonly Dictionary<JSVariable, List<int>> Assignments = new Dictionary<JSVariable, List<int>>();
-        public readonly Dictionary<JSVariable, List<int>> Copies = new Dictionary<JSVariable, List<int>>();
-        public readonly Dictionary<JSVariable, List<int>> Accesses = new Dictionary<JSVariable, List<int>>();
-        public readonly Dictionary<JSVariable, List<int>> Conversions = new Dictionary<JSVariable, List<int>>();
-        public readonly Dictionary<JSVariable, List<int>> ControlFlowAccesses = new Dictionary<JSVariable, List<int>>();
-         */
-
         public EliminateSingleUseTemporaries (TypeSystem typeSystem, Dictionary<string, JSVariable> variables) {
             TypeSystem = typeSystem;
             Variables = variables;
@@ -207,14 +198,23 @@ namespace JSIL.Transforms {
                     continue;
 
                 var assignments = (from a in d.Assignments where v.Equals(a.Target) select a).ToArray();
+                var accesses = (from a in d.Accesses where v.Equals(a.Source) select a).ToArray();
+
                 if (assignments.FirstOrDefault() == null) {
-                    if (TraceLevel >= 2)
-                        Debug.WriteLine(String.Format("Never found an initial assignment for {0}.", v));
+                    if (accesses.Length == 0) {
+                        if (TraceLevel >= 1)
+                            Debug.WriteLine(String.Format("Eliminating {0} because it is never used.", v));
+
+                        EliminatedVariables.Add(v);
+                        EliminateVariable(fn, v, new JSNullExpression());
+                    } else {
+                        if (TraceLevel >= 2)
+                            Debug.WriteLine(String.Format("Never found an initial assignment for {0}.", v));
+                    }
 
                     continue;
                 }
 
-                var accesses = (from a in d.Accesses where v.Equals(a.Source) select a).ToArray();
                 if ((from a in accesses where a.IsControlFlow select a).FirstOrDefault() != null) {
                     if (TraceLevel >= 2)
                         Debug.WriteLine(String.Format("Cannot eliminate {0}; it participates in control flow.", v));
