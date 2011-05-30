@@ -80,8 +80,6 @@ namespace JSIL {
         }
 
         public void VisitNode (JSLabelGroupStatement labelGroup) {
-            Output.NewLine();
-
             var stepLabel = String.Format("__step{0}__", labelGroup.GroupIndex);
             var labelVar = String.Format("__label{0}__", labelGroup.GroupIndex);
             var firstLabel = labelGroup.Statements.First().Label;
@@ -103,7 +101,6 @@ namespace JSIL {
             Output.RPar();
             Output.Space();
             Output.OpenBrace();
-            Output.NewLine();
 
             Output.Keyword("switch");
             Output.Space();
@@ -149,7 +146,6 @@ namespace JSIL {
                     Output.PlainTextFormatter.Unindent();
                 }
 
-                Output.NewLine();
                 Output.Keyword("case");
                 Output.Space();
                 Output.Value(block.Label);
@@ -468,8 +464,6 @@ namespace JSIL {
         }
 
         public void VisitNode (JSSwitchStatement swtch) {
-            Output.NewLine();
-
             BlockStack.Push(BlockType.Switch);
             WriteLabel(swtch, true);
 
@@ -519,7 +513,6 @@ namespace JSIL {
         }
 
         public void VisitNode (JSIfStatement ifs) {
-            Output.NewLine();
             Output.Keyword("if");
             Output.Space();
 
@@ -569,8 +562,6 @@ namespace JSIL {
                 return;
             }
 
-            Output.NewLine();
-
             Output.Keyword("try");
             Output.Space();
             Output.OpenBrace();
@@ -602,8 +593,6 @@ namespace JSIL {
         }
 
         public void VisitNode (JSWhileLoop loop) {
-            Output.NewLine();
-
             BlockStack.Push(BlockType.While);
             WriteLabel(loop, true);
 
@@ -622,10 +611,11 @@ namespace JSIL {
 
         public void VisitNode (JSReturnExpression ret) {
             Output.Keyword("return");
-            Output.Space();
 
-            if (ret.Value != null)
+            if (ret.Value != null) {
+                Output.Space();
                 Visit(ret.Value);
+            }
         }
 
         public void VisitNode (JSThrowExpression ret) {

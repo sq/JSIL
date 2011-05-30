@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using JSIL.Ast;
 using JSIL.Meta;
 using JSIL.Proxy;
+using JSIL.Transforms;
 using Mono.Cecil;
 
 namespace JSIL.Internal {
@@ -1356,6 +1357,8 @@ namespace JSIL.Internal {
         public readonly ParameterDefinition[] Parameters;
         public readonly PropertyInfo Property = null;
         public readonly EventInfo Event = null;
+
+        public FunctionStaticData StaticData = null;
 
         public int? OverloadIndex;
         protected readonly string ShortName;

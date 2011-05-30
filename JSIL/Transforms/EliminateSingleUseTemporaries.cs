@@ -7,17 +7,22 @@ using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class EliminateSingleUseTemporaries : JSAstVisitor {
-        public const int TraceLevel = 0;
+        public const int TraceLevel = 4;
 
         public readonly TypeSystem TypeSystem;
         public readonly Dictionary<string, JSVariable> Variables;
+        public readonly HashSet<JSVariable> EliminatedVariables = new HashSet<JSVariable>();
+
+        protected FunctionStaticData Data = null;
+
+        /*
         public readonly Dictionary<JSVariable, JSExpressionStatement> FirstValues = new Dictionary<JSVariable, JSExpressionStatement>();
         public readonly Dictionary<JSVariable, List<int>> Assignments = new Dictionary<JSVariable, List<int>>();
         public readonly Dictionary<JSVariable, List<int>> Copies = new Dictionary<JSVariable, List<int>>();
         public readonly Dictionary<JSVariable, List<int>> Accesses = new Dictionary<JSVariable, List<int>>();
         public readonly Dictionary<JSVariable, List<int>> Conversions = new Dictionary<JSVariable, List<int>>();
         public readonly Dictionary<JSVariable, List<int>> ControlFlowAccesses = new Dictionary<JSVariable, List<int>>();
-        public readonly HashSet<JSVariable> EliminatedVariables = new HashSet<JSVariable>();
+         */
 
         public EliminateSingleUseTemporaries (TypeSystem typeSystem, Dictionary<string, JSVariable> variables) {
             TypeSystem = typeSystem;
@@ -35,8 +40,24 @@ namespace JSIL.Transforms {
 
             {
                 var replacer = new VariableEliminator(variable, replaceWith);
-                foreach (var fv in FirstValues.Values)
-                    replacer.Visit(fv);
+                var assignments = (from a in Data.Data.Assignments where 
+                                       a.NewValue.AllChildrenRecursive.Any((_n) => variable.Equals(_n))
+                                       select a).ToArray();
+
+                foreach (var a in assignments) {
+                    if (variable.Equals(a.NewValue)) {
+                        Data.Data.Assignments.Remove(a);
+                        Data.Data.Assignments.Add(
+                            new FunctionAnalysis.Assignment(
+                                a.StatementIndex, a.NodeIndex,
+                                a.Target, replaceWith, a.Operator,
+                                a.TargetType, a.SourceType
+                            )
+                        );
+                    } else {
+                        replacer.Visit(a.NewValue);
+                    }
+                }
             }
 
             Variables.Remove(variable.Identifier);
@@ -46,12 +67,13 @@ namespace JSIL.Transforms {
             // Handle special cases where our interpretation of 'constant' needs to be more flexible
             {
                 var ie = source as JSIndexerExpression;
-                if (
-                    (ie != null) &&
-                    IsEffectivelyConstant(target, ie.Target) &&
-                    IsEffectivelyConstant(target, ie.Index)
-                )
-                    return true;
+                if (ie != null) {
+                    if (
+                        IsEffectivelyConstant(target, ie.Target) &&
+                        IsEffectivelyConstant(target, ie.Index)
+                    )
+                        return true;
+                }
             }
 
             {
@@ -91,43 +113,42 @@ namespace JSIL.Transforms {
             if (source.IsConstant)
                 return true;
 
-            List<int> assignments;
+            var d = Data.Data;
 
             // Try to find a spot between the source variable's assignments where all of our
             //  copies and accesses can fit. If we find one, our variable is effectively constant.
             var v = source as JSVariable;
             if (v != null) {
-                if (!Assignments.TryGetValue(v, out assignments))
+                var assignments = (from a in d.Assignments where v.Equals(a.Target) select a).ToArray();
+                if (assignments.Length < 1)
                     return v.IsParameter;
 
-                List<int> targetAssignments;
-                if (!Assignments.TryGetValue(target, out targetAssignments))
+                var targetAssignments = (from a in d.Assignments where v.Equals(a.Target) select a).ToArray();
+                if (targetAssignments.Length < 1)
                     return false;
 
-                List<int> targetAccesses;
-                if (!Accesses.TryGetValue(target, out targetAccesses))
+                var targetAccesses = (from a in d.Accesses where target.Equals(a.Source) select a).ToArray();
+                if (targetAccesses.Length < 1)
                     return false;
 
-                int targetFirstAssigned, targetLastAssigned;
-                if (!GetMinMax(targetAssignments, out targetFirstAssigned, out targetLastAssigned))
-                    return false;
+                var targetFirstAssigned = targetAssignments.FirstOrDefault();
+                var targetLastAssigned = targetAssignments.LastOrDefault();
 
-                int targetFirstAccessed, targetLastAccessed;
-                if (!GetMinMax(targetAccesses, out targetFirstAccessed, out targetLastAccessed))
-                    return false;
+                var targetFirstAccessed = targetAccesses.FirstOrDefault();
+                var targetLastAccessed = targetAccesses.LastOrDefault();
 
                 bool foundAssignmentSlot = false;
 
-                for (int i = 0, c = assignments.Count; i < c; i++) {
-                    int assignment = assignments[i], nextAssignment = int.MaxValue;
+                for (int i = 0, c = assignments.Length; i < c; i++) {
+                    int assignment = assignments[i].StatementIndex, nextAssignment = int.MaxValue;
                     if (i < c - 1)
-                        nextAssignment = assignments[i + 1];
+                        nextAssignment = assignments[i + 1].StatementIndex;
 
                     if (
-                        (targetFirstAssigned >= assignment) &&
-                        (targetFirstAssigned < nextAssignment) &&
-                        (targetFirstAccessed >= assignment) &&
-                        (targetLastAccessed <= nextAssignment)
+                        (targetFirstAssigned.StatementIndex >= assignment) &&
+                        (targetFirstAssigned.StatementIndex < nextAssignment) &&
+                        (targetFirstAccessed.StatementIndex >= assignment) &&
+                        (targetLastAccessed.StatementIndex <= nextAssignment)
                     ) {
                         foundAssignmentSlot = true;
                         break;
@@ -140,23 +161,18 @@ namespace JSIL.Transforms {
                 return true;
             }
 
-            // Attempt to handle the simple case where a variable is assigned a non-constant expression once and then used immediately
-            if (!Assignments.TryGetValue(target, out assignments))
+            // TODO
+            /*
+            var accesses = (from a in d.Accesses where v.Equals(a.Source) select a).ToArray();
+            if (accesses.Length < 1)
                 return false;
 
-            if (assignments.Count != 1)
-                return false;
+            var firstAccess = accesses.FirstOrDefault();
+            var lastAccess = accesses.LastOrDefault();
 
-            List<int> accesses;
-            if (!Accesses.TryGetValue(target, out accesses))
-                return false;
-
-            int firstAccess, lastAccess;
-            if (!GetMinMax(accesses, out firstAccess, out lastAccess))
-                return false;
-
-            if (firstAccess == assignments.First() + 1)
+            if (firstAccess == firstAssignment + 1)
                 return true;
+             */
 
             return false;
         }
@@ -176,10 +192,13 @@ namespace JSIL.Transforms {
             }
 
             var nullList = new List<int>();
+            Data = new StaticAnalyzer(TypeSystem).Analyze(fn);
 
             VisitChildren(fn);
 
-            foreach (var v in FirstValues.Keys.ToArray()) {
+            var d = Data.Data;
+
+            foreach (var v in Data.AllVariables.ToArray()) {
                 if (v.IsReference || v.IsThis || v.IsParameter)
                     continue;
 
@@ -187,51 +206,45 @@ namespace JSIL.Transforms {
                 if (valueType.IsByReference || ILBlockTranslator.IsIgnoredType(valueType))
                     continue;
 
-                List<int> assignments;
-                List<int> accesses, copies, controlFlowAccesses, conversions;
-
-                if (!Assignments.TryGetValue(v, out assignments)) {
+                var assignments = (from a in d.Assignments where v.Equals(a.Target) select a).ToArray();
+                if (assignments.FirstOrDefault() == null) {
                     if (TraceLevel >= 2)
                         Debug.WriteLine(String.Format("Never found an initial assignment for {0}.", v));
 
                     continue;
                 }
 
-                if (ControlFlowAccesses.TryGetValue(v, out controlFlowAccesses) && (controlFlowAccesses.Count > 0)) {
+                var accesses = (from a in d.Accesses where v.Equals(a.Source) select a).ToArray();
+                if ((from a in accesses where a.IsControlFlow select a).FirstOrDefault() != null) {
                     if (TraceLevel >= 2)
                         Debug.WriteLine(String.Format("Cannot eliminate {0}; it participates in control flow.", v));
 
                     continue;
                 }
 
-                if (Conversions.TryGetValue(v, out conversions) && (conversions.Count > 0)) {
+                if ((from a in d.Assignments where v.Equals(a.Target) && a.IsConversion select a).FirstOrDefault() != null) {
                     if (TraceLevel >= 2)
                         Debug.WriteLine(String.Format("Cannot eliminate {0}; it undergoes type conversion.", v));
 
                     continue;
                 }
 
-                if (assignments.Count > 1) {
+                if (assignments.Length > 1) {
                     if (TraceLevel >= 2)
                         Debug.WriteLine(String.Format("Cannot eliminate {0}; it is reassigned.", v));
 
                     continue;
                 }
 
-                if (!Accesses.TryGetValue(v, out accesses))
-                    accesses = nullList;
-
-                if (!Copies.TryGetValue(v, out copies))
-                    copies = nullList;
-
-                if ((copies.Count + accesses.Count) > 1) {
+                var copies = (from a in d.Assignments where v.Equals(a.SourceVariable) select a).ToArray();
+                if ((copies.Length + accesses.Length) > 1) {
                     if (TraceLevel >= 2)
                         Debug.WriteLine(String.Format("Cannot eliminate {0}; it is used multiple times.", v));
 
                     continue;
                 }
 
-                var replacement = FirstValues[v].Expression;
+                var replacement = assignments.First().NewValue;
                 if (replacement.AllChildrenRecursive.Contains(v)) {
                     if (TraceLevel >= 2)
                         Debug.WriteLine(String.Format("Cannot eliminate {0}; it contains a self-reference.", v));
@@ -246,207 +259,37 @@ namespace JSIL.Transforms {
                     continue;
                 }
 
-                FirstValues.Remove(v);
-
                 if (TraceLevel >= 1)
                     Debug.WriteLine(String.Format("Eliminating {0} <- {1}", v, replacement));
 
-                EliminatedVariables.Add(v);
-
                 var transferDataTo = replacement as JSVariable;
                 if (transferDataTo != null) {
-                    foreach (var access in accesses)
-                        AddToList(Accesses, transferDataTo, access);
+                    foreach (var access in accesses) {
+                        d.Accesses.Remove(access);
+                        d.Accesses.Add(new FunctionAnalysis.Access(
+                            access.StatementIndex, access.NodeIndex,
+                            transferDataTo, access.IsControlFlow
+                        ));
+                    }
 
-                    foreach (var copy in copies)
-                        AddToList(Copies, transferDataTo, copy);
+                    foreach (var assignment in assignments) {
+                        d.Assignments.Remove(assignment);
+                        d.Assignments.Add(new FunctionAnalysis.Assignment(
+                            assignment.StatementIndex, assignment.NodeIndex,
+                            transferDataTo, assignment.NewValue, assignment.Operator,
+                            assignment.TargetType, assignment.SourceType
+                            
+                       ));
+                    }
                 }
+
+                Data.Data.Assignments.RemoveAll((a) => v.Equals(a.Target));
+                Data.Data.Accesses.RemoveAll((a) => v.Equals(a.Source));
+
+                EliminatedVariables.Add(v);
 
                 EliminateVariable(fn, v, replacement);
             }
-        }
-
-        protected bool GetMinMax (List<int> indices, out int min, out int max) {
-            min = int.MaxValue;
-            max = int.MinValue;
-
-            if (indices.Count == 0)
-                return false;
-
-            min = indices.Min();
-            max = indices.Max();
-
-            return true;
-        }
-
-        protected bool GetMinMax (List<Tuple<int, int>> intervals, out int min, out int max) {
-            min = int.MaxValue;
-            max = int.MinValue;
-
-            if (intervals.Count == 0)
-                return false;
-
-            min = intervals.Min((t) => Math.Min(t.Item1, t.Item2));
-            max = intervals.Max((t) => Math.Max(t.Item1, t.Item2));
-
-            return true;
-        }
-
-        protected IEnumerable<T> GetEnclosingNodes<T> (Func<T, bool> selector = null, Func<JSNode, bool> halter = null)
-            where T : JSNode {
-
-            foreach (var n in Stack) {
-                var value = n as T;
-
-                if (value != null) {
-                    if ((selector == null) || selector(value))
-                        yield return value;
-                }
-
-                if ((halter != null) && halter(value))
-                    break;
-            }
-        }
-
-        protected IEnumerable<T> GetChildNodes<T> (JSNode root, Func<T, bool> predicate = null)
-            where T : JSNode {
-
-            foreach (var n in root.AllChildrenRecursive) {
-                var value = n as T;
-
-                if (value != null) {
-                    if ((predicate == null) || predicate(value))
-                        yield return value;
-                }
-            }
-        }
-
-        protected void AddToList<T> (Dictionary<JSVariable, List<T>> dict, JSVariable variable, T index) {
-            List<T> list;
-
-            if (!dict.TryGetValue(variable, out list))
-                dict[variable] = list = new List<T>();
-
-            list.Add(index);
-        }
-
-        public void VisitNode (JSUnaryOperatorExpression uoe) {
-            var variable = uoe.Expression as JSVariable;
-
-            VisitChildren(uoe);
-
-            if (
-                (variable != null) && (
-                    (uoe.Operator == JSOperator.PostDecrement) ||
-                    (uoe.Operator == JSOperator.PostIncrement) ||
-                    (uoe.Operator == JSOperator.PreDecrement) ||
-                    (uoe.Operator == JSOperator.PreIncrement)
-                )
-            ) {
-
-                if (TraceLevel >= 3)
-                    Debug.WriteLine(String.Format(
-                        "{0:0000} Reassigns: {1}\r\n{2}",
-                        StatementIndex, variable, uoe
-                    ));
-
-                AddToList(Assignments, variable, StatementIndex);
-            }
-        }
-
-        public void VisitNode (JSBinaryOperatorExpression boe) {
-            var isAssignment = boe.Operator == JSOperator.Assignment;
-            var leftVar = boe.Left as JSVariable;
-            var rightVar = boe.Right as JSVariable;
-
-            VisitChildren(boe);
-
-            if ((leftVar != null) && isAssignment) {
-                bool isFirst = false;
-
-                if (!FirstValues.ContainsKey(leftVar)) {
-                    isFirst = true;
-                    FirstValues.Add(leftVar, new JSExpressionStatement(boe.Right));
-                }
-
-                AddToList(Assignments, leftVar, StatementIndex);
-
-                if (TraceLevel >= 3)
-                    Debug.WriteLine(String.Format(
-                        "{0:0000} {2}: {1}\r\n{3}",
-                        StatementIndex, leftVar, isFirst ? "Assigns" : "Reassigns", boe
-                    ));
-
-                if (rightVar != null) {
-                    AddToList(Copies, rightVar, StatementIndex);
-
-                    if (
-                        !ILBlockTranslator.TypesAreEqual(
-                            leftVar.GetExpectedType(TypeSystem),
-                            rightVar.GetExpectedType(TypeSystem)
-                        )
-                    ) {
-                        AddToList(Conversions, rightVar, StatementIndex);
-
-                        if (TraceLevel >= 3)
-                            Debug.WriteLine(String.Format(
-                                "{0:0000} Converts: {1} into {2}\r\n{3}",
-                                StatementIndex, rightVar, leftVar, boe
-                            ));
-                    } else {
-                        if (TraceLevel >= 3)
-                            Debug.WriteLine(String.Format(
-                                "{0:0000} Copies: {1} into {2}\r\n{3}",
-                                StatementIndex, rightVar, leftVar, boe
-                            ));
-                    }
-                }
-            }
-        }
-
-        public void VisitNode (JSVariable variable) {
-            if (ParentNode is JSFunctionExpression) {
-                // In argument list
-                return;
-            }
-
-            var enclosingStatement = GetEnclosingNodes<JSStatement>().FirstOrDefault();
-            var enclosingAssignmentStatements = GetEnclosingNodes<JSExpressionStatement>(
-                (es) => {
-                    var boe = es.Expression as JSBinaryOperatorExpression;
-                    if (boe == null)
-                        return false;
-
-                    var isAssignment = boe.Operator == JSOperator.Assignment;
-                    var leftIsVariable = boe.Left is JSVariable;
-                    return isAssignment && leftIsVariable && 
-                        (boe.Left.Equals(variable) || boe.Right.Equals(variable));
-                }
-            ).ToArray();
-
-            if ((enclosingAssignmentStatements.Length == 0) && (
-                !(enclosingStatement is JSTryCatchBlock) &&
-                !(enclosingStatement is JSVariableDeclarationStatement)
-            )) {
-                if (TraceLevel >= 3)
-                    Debug.WriteLine(String.Format(
-                        "{0:0000} Accesses: {1}\r\n{2}",
-                        StatementIndex, variable, enclosingStatement
-                    ));
-
-                if ((enclosingStatement is JSIfStatement) || (enclosingStatement is JSWhileLoop) || (enclosingStatement is JSSwitchStatement))
-                    AddToList(ControlFlowAccesses, variable, StatementIndex);
-                else
-                    AddToList(Accesses, variable, StatementIndex);
-            } else {
-                if (TraceLevel >= 4)
-                    Debug.WriteLine(String.Format(
-                        "{0:0000} Ignoring Access: {1}\r\n{2}",
-                        StatementIndex, variable, GetEnclosingNodes<JSStatement>().FirstOrDefault()
-                    ));
-            }
-
-            VisitChildren(variable);
         }
     }
 
