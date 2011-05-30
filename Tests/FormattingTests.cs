@@ -46,7 +46,7 @@ namespace JSIL.Tests {
         public void StringConcat () {
             var generatedJs = GetJavascript(
                 @"SpecialTestCases\StringConcat.cs",
-                "abc\r\nde\r\na,b,5,d"
+                "abc\r\nde\r\nab5d"
             );
             try {
                 Assert.AreEqual(

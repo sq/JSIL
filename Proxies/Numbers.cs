@@ -16,6 +16,13 @@ namespace JSIL.Proxies {
         new public static AnyType Parse (params AnyType[] arguments) {
             throw new InvalidOperationException();
         }
+
+        [JSRuntimeDispatch]
+        [JSExternal]
+        [JSChangeName("toString")]
+        public string ToString (params AnyType[] arguments) {
+            return base.ToString();
+        }
     }
 
     [JSProxy(
@@ -29,6 +36,13 @@ namespace JSIL.Proxies {
         [JSExternal]
         new public static AnyType Parse (params AnyType[] arguments) {
             throw new InvalidOperationException();
+        }
+
+        [JSRuntimeDispatch]
+        [JSExternal]
+        [JSChangeName("toString")]
+        public string ToString (params AnyType[] arguments) {
+            return base.ToString();
         }
     }
 

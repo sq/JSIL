@@ -12,6 +12,7 @@ JSIL.MakeClass("System.ComponentModel.MemberDescriptor", "System.ComponentModel.
 JSIL.MakeClass("System.Object", "System.ComponentModel.TypeConverter", true);
 JSIL.MakeClass("System.ComponentModel.TypeConverter", "System.ComponentModel.ExpandableObjectConverter", true);
 
+JSIL.MakeStruct("System.TimeSpan", true);
 JSIL.MakeStruct("System.Nullable$b1", true);
 JSIL.MakeClass("System.Object", "System.Text.Encoding", true);
 JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true);
@@ -149,10 +150,15 @@ System.String.toString = function () {
   return this.text;
 }
 System.String.Concat = function (firstValue) {
-  var result = String(firstValue);
+  var args = arguments;
+  if (JSIL.IsArray(firstValue)) {
+    args = firstValue;
+  }
 
-  for (var i = 1, l = arguments.length; i < l; i++) {
-    var arg = arguments[i];
+  var result = String(args[0]);
+
+  for (var i = 1, l = args.length; i < l; i++) {
+    var arg = args[i];
     if (typeof (arg) === "string")
       result += arg;
     else
@@ -575,6 +581,65 @@ System.Nullable$b1.prototype.get_Value = function () {
 
 System.Nullable$b1.prototype.GetValueOrDefault = function () {
   return this.value;
+};
+
+System.TimeSpan.SecondInTicks = 10000000;
+System.TimeSpan.MillisecondInTicks = System.TimeSpan.SecondInTicks / 1000;
+
+System.TimeSpan.FromTicks = function (ticks) {
+  var result = Object.create(System.TimeSpan.prototype);
+  result._ticks = Math.floor(ticks);
+  return result;
+};
+
+System.TimeSpan.FromMilliseconds = function (milliseconds) {
+  var result = Object.create(System.TimeSpan.prototype);
+  result._ticks = Math.floor(milliseconds * System.TimeSpan.MillisecondInTicks);
+  return result;
+};
+
+System.TimeSpan.FromSeconds = function (seconds) {
+  var result = Object.create(System.TimeSpan.prototype);
+  result._ticks = Math.floor(seconds * System.TimeSpan.SecondInTicks);
+  return result;
+};
+
+System.TimeSpan.FromMinutes = function (minutes) {
+  var result = Object.create(System.TimeSpan.prototype);
+  result._ticks = Math.floor(minutes * 60 * System.TimeSpan.SecondInTicks);
+  return result;
+};
+
+System.TimeSpan.op_Equality = function (lhs, rhs) {
+  return lhs._ticks === rhs._ticks;
+};
+
+System.TimeSpan.op_Inequality = function (lhs, rhs) {
+  return lhs._ticks !== rhs._ticks;
+};
+
+System.TimeSpan.op_Addition = function (lhs, rhs) {
+  var result = Object.create(System.TimeSpan.prototype);
+  result._ticks = lhs._ticks + rhs._ticks;
+  return result;
+};
+
+System.TimeSpan.op_Subtraction = function (lhs, rhs) {
+  var result = Object.create(System.TimeSpan.prototype);
+  result._ticks = lhs._ticks - rhs._ticks;
+  return result;
+};
+
+System.TimeSpan.prototype.get_Milliseconds = function () {
+  return this._ticks / 10000 % 60;
+};
+
+System.TimeSpan.prototype.get_Seconds = function () {
+  return this._ticks / 10000000 % 60;
+};
+
+System.TimeSpan.prototype.get_Minutes = function () {
+  return this._ticks / 600000000 % 60;
 };
 
 JSIL.QueueInitializer(function () {

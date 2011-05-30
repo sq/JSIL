@@ -40,6 +40,21 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
+        [JSReplacement("Math.round($d)")]
+        public static double Round (double d) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("Math.floor($d)")]
+        public static double Floor (double d) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("Math.ceil($d)")]
+        public static double Ceiling (double d) {
+            throw new InvalidOperationException();
+        }
+
         [JSReplacement("Math.pow($base, $exponent)")]
         public static AnyType Pow (AnyType @base, AnyType exponent) {
             throw new InvalidOperationException();

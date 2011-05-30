@@ -67,7 +67,7 @@ Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.Begin = function () {
 };
 
 Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDraw = function (texture, position, sourceRectangle, color) {
-  if ((typeof (sourceRectangle) === "object") && (sourceRectangle.value !== null)) {
+  if ((sourceRectangle !== null) && (sourceRectangle.value !== null)) {
     var sr = sourceRectangle.value;
     this.device.context.drawImage(
       texture.image, 
@@ -161,6 +161,8 @@ Microsoft.Xna.Framework.Graphics.Color._cctor = function () {
   self.transparentBlack = new Microsoft.Xna.Framework.Graphics.Color(0, 0, 0, 0);
   self.white = new Microsoft.Xna.Framework.Graphics.Color(255, 255, 255);
   self.transparentWhite = new Microsoft.Xna.Framework.Graphics.Color(255, 255, 255, 0);
+  self.yellow = new Microsoft.Xna.Framework.Graphics.Color(255, 255, 0);
+  self.cornflowerBlue = new Microsoft.Xna.Framework.Graphics.Color(100, 149, 237);
 };
 
 Microsoft.Xna.Framework.Graphics.Color.get_Black = function () {
@@ -171,6 +173,12 @@ Microsoft.Xna.Framework.Graphics.Color.get_TransparentBlack = function () {
 };
 Microsoft.Xna.Framework.Graphics.Color.get_White = function () {
   return Microsoft.Xna.Framework.Graphics.Color.white;
+};
+Microsoft.Xna.Framework.Graphics.Color.get_Yellow = function () {
+  return Microsoft.Xna.Framework.Graphics.Color.yellow;
+};
+Microsoft.Xna.Framework.Graphics.Color.get_CornflowerBlue = function () {
+  return Microsoft.Xna.Framework.Graphics.Color.cornflowerBlue;
 };
 Microsoft.Xna.Framework.Graphics.Color.get_TransparentWhite = function () {
   return Microsoft.Xna.Framework.Graphics.Color.transparentWhite;
