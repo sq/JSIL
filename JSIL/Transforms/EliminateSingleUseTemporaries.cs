@@ -222,12 +222,14 @@ namespace JSIL.Transforms {
                     continue;
                 }
 
+                /*
                 if ((from a in d.Assignments where v.Equals(a.Target) && a.IsConversion select a).FirstOrDefault() != null) {
                     if (TraceLevel >= 2)
                         Debug.WriteLine(String.Format("Cannot eliminate {0}; it undergoes type conversion.", v));
 
                     continue;
                 }
+                 */
 
                 if (assignments.Length > 1) {
                     if (TraceLevel >= 2)
