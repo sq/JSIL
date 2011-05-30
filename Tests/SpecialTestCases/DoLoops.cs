@@ -15,5 +15,17 @@ public static class Program {
         } while (i > 1);
 
         Console.WriteLine(i);
+
+        i = 0;
+        do {
+            i += 2;
+
+            if (i % 16 == 0) 
+                break;
+
+            i -= 1;
+        } while (true);
+
+        Console.WriteLine(i);
     }
 }

@@ -46,7 +46,11 @@ namespace JSIL.Transforms {
                 }
             }
 
-            var lastExpressionStatement = whileLoop.AllChildrenRecursive.OfType<JSExpressionStatement>().LastOrDefault();
+            var lastStatement = whileLoop.Statements.LastOrDefault();
+            while (lastStatement.GetType() == typeof(JSBlockStatement))
+                lastStatement = ((JSBlockStatement)lastStatement).Statements.LastOrDefault();
+
+            var lastExpressionStatement = lastStatement as JSExpressionStatement;
             if (lastExpressionStatement != null) {
                 var lastUoe = lastExpressionStatement.Expression as JSUnaryOperatorExpression;
                 var lastBoe = lastExpressionStatement.Expression as JSBinaryOperatorExpression;
@@ -66,23 +70,27 @@ namespace JSIL.Transforms {
                 }
             }
 
-            var lastIfStatement = whileLoop.AllChildrenRecursive.OfType<JSIfStatement>().LastOrDefault();
+            var lastIfStatement = lastStatement as JSIfStatement;
             if (
                 (lastIfStatement != null) && 
                 whileLoop.Condition is JSBooleanLiteral &&
                 ((JSBooleanLiteral)whileLoop.Condition).Value
             ) {
-                var statements = (from c in lastIfStatement.TrueClause.AllChildrenRecursive
-                                  where (c is JSStatement) && !(c is JSBlockStatement) 
-                                  select c).ToArray();
+                var innerStatement = lastIfStatement.TrueClause;
+                while (innerStatement is JSBlockStatement) {
+                    var bs = (JSBlockStatement)innerStatement;
+                    if (bs.Statements.Count != 1) {
+                        innerStatement = null;
+                        break;
+                    }
 
-                var firstEStmt = statements.FirstOrDefault() as JSExpressionStatement;
+                    innerStatement = bs.Statements[0];
+                }
 
-                if (
-                    (firstEStmt != null) &&
-                    (statements.Length == 1)
-                ) {
-                    var breakExpr = firstEStmt.Expression as JSBreakExpression;
+                var eStmt = innerStatement as JSExpressionStatement;
+
+                if (eStmt != null) {
+                    var breakExpr = eStmt.Expression as JSBreakExpression;
                     if ((breakExpr != null) && (breakExpr.TargetLabel == whileLoop.Label)) {
                         whileLoop.ReplaceChildRecursive(lastIfStatement, new JSNullStatement());
 

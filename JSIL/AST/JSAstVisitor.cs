@@ -99,6 +99,22 @@ namespace JSIL.Ast {
         }
 
         /// <summary>
+        /// Visits a node and its children (if any), updating the traversal stack. The current node is replaced by the new node.
+        /// </summary>
+        /// <param name="node">The node to visit.</param>
+        protected void VisitReplacement (JSNode node) {
+            Stack.Pop();
+            Stack.Push(node);
+
+            var visitor = Visitors.Get(node);
+
+            if (visitor != null)
+                visitor(node);
+            else
+                VisitNode(node);
+        }
+
+        /// <summary>
         /// Visits a node and its children (if any), updating the traversal stack.
         /// </summary>
         /// <param name="node">The node to visit.</param>

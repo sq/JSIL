@@ -206,13 +206,15 @@ namespace JSIL.Tests {
         public void DoLoops () {
             var generatedJs = GetJavascript(
                 @"SpecialTestCases\DoLoops.cs",
-                "0\r\n1\r\n2\r\n3\r\n4\r\n1"
+                "0\r\n1\r\n2\r\n3\r\n4\r\n1\r\n16"
             );
 
             try {
                 Assert.IsFalse(generatedJs.Contains("for"));
                 Assert.AreEqual(3, generatedJs.Split(new string[] { "do {" }, StringSplitOptions.RemoveEmptyEntries).Length);
                 Assert.AreEqual(3, generatedJs.Split(new string[] { "} while (" }, StringSplitOptions.RemoveEmptyEntries).Length);
+                Assert.IsTrue(generatedJs.Contains("while (true)"));
+                Assert.IsTrue(generatedJs.Contains("break __loop2__"));
             } catch {
                 Console.WriteLine(generatedJs);
 

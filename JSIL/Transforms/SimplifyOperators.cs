@@ -68,19 +68,27 @@ namespace JSIL.Transforms {
                             boe
                         );
 
-                        Visit(boe);
+                        VisitReplacement(boe);
                     } else if (
                         ie.Arguments.Count == 2
                     ) {
                         var lhs = ie.Arguments[0];
-                        var lhsType = lhs.GetExpectedType(TypeSystem);
-                        if (!ILBlockTranslator.TypesAreEqual(TypeSystem.String, lhsType))
+                        var lhsType = ILBlockTranslator.DereferenceType(lhs.GetExpectedType(TypeSystem));
+                        if (!(
+                            ILBlockTranslator.TypesAreEqual(TypeSystem.String, lhsType) ||
+                            ILBlockTranslator.TypesAreEqual(TypeSystem.Char, lhsType)
+                        )) {
                             lhs = JSInvocationExpression.InvokeMethod(lhsType, JS.toString, lhs, null);
+                        }
 
                         var rhs = ie.Arguments[1];
-                        var rhsType = rhs.GetExpectedType(TypeSystem);
-                        if (!ILBlockTranslator.TypesAreEqual(TypeSystem.String, rhsType))
+                        var rhsType = ILBlockTranslator.DereferenceType(rhs.GetExpectedType(TypeSystem));
+                        if (!(
+                            ILBlockTranslator.TypesAreEqual(TypeSystem.String, rhsType) ||
+                            ILBlockTranslator.TypesAreEqual(TypeSystem.Char, rhsType)
+                        )) {
                             rhs = JSInvocationExpression.InvokeMethod(rhsType, JS.toString, rhs, null);
+                        }
 
                         var boe = new JSBinaryOperatorExpression(
                             JSOperator.Add, lhs, rhs, TypeSystem.String
@@ -90,7 +98,7 @@ namespace JSIL.Transforms {
                             ie, boe
                         );
 
-                        Visit(boe);
+                        VisitReplacement(boe);
                     } else {
                         var firstArg = ie.Arguments.FirstOrDefault();
 
@@ -99,7 +107,7 @@ namespace JSIL.Transforms {
                         );
 
                         if (firstArg != null)
-                            Visit(firstArg);
+                            VisitReplacement(firstArg);
                     }
                     return;
                 } else if (
@@ -111,7 +119,7 @@ namespace JSIL.Transforms {
                     );
                     ParentNode.ReplaceChild(ie, newIe);
 
-                    Visit(newIe);
+                    VisitReplacement(newIe);
                     return;
                 } else if (
                     (method.Reference.DeclaringType.FullName == "System.Type") &&
@@ -120,7 +128,7 @@ namespace JSIL.Transforms {
                     var typeObj = ie.Arguments.FirstOrDefault();
                     ParentNode.ReplaceChild(ie, typeObj);
 
-                    Visit(typeObj);
+                    VisitReplacement(typeObj);
                     return;
                 } else if (
                     method.Method.DeclaringType.Definition.FullName == "System.Array" &&
@@ -166,7 +174,7 @@ namespace JSIL.Transforms {
                         uoe, uoe.Expression
                     );
 
-                    Visit(uoe.Expression);
+                    VisitReplacement(uoe.Expression);
                     return;
                 } else if (uoe.Operator == JSOperator.LogicalNot) {
                     var nestedUoe = uoe.Expression as JSUnaryOperatorExpression;
@@ -181,7 +189,7 @@ namespace JSIL.Transforms {
                         );
 
                         ParentNode.ReplaceChild(uoe, newBoe);
-                        Visit(newBoe);
+                        VisitReplacement(newBoe);
 
                         return;
                     } else if (
@@ -191,7 +199,7 @@ namespace JSIL.Transforms {
                         var nestedExpression = nestedUoe.Expression;
 
                         ParentNode.ReplaceChild(uoe, nestedExpression);
-                        Visit(nestedExpression);
+                        VisitReplacement(nestedExpression);
 
                         return;
                     }
@@ -240,7 +248,7 @@ namespace JSIL.Transforms {
                     );
 
                     ParentNode.ReplaceChild(boe, newUoe);
-                    Visit(newUoe);
+                    VisitReplacement(newUoe);
 
                     return;
                 } else if (
@@ -253,7 +261,7 @@ namespace JSIL.Transforms {
                     );
 
                     ParentNode.ReplaceChild(boe, newBoe);
-                    Visit(newBoe);
+                    VisitReplacement(newBoe);
 
                     return;
                 }
@@ -275,7 +283,7 @@ namespace JSIL.Transforms {
                     );
 
                     ParentNode.ReplaceChild(boe, newInvocation);
-                    Visit(newInvocation);
+                    VisitReplacement(newInvocation);
 
                     return;
                 }
@@ -294,7 +302,7 @@ namespace JSIL.Transforms {
                     );
 
                     ParentNode.ReplaceChild(boe, newInvocation);
-                    Visit(newInvocation);
+                    VisitReplacement(newInvocation);
 
                     return;
                 }

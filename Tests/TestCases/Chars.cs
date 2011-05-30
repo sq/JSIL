@@ -26,5 +26,7 @@ public static class Program {
         Console.WriteLine("{0} {1}", i()[2] == j(), i()[5] == k());
 
         Console.WriteLine("{0} {1}", (int)(i()[2]), (int)k());
+
+        Console.WriteLine("'{0}'", f() + e());
     }
 }

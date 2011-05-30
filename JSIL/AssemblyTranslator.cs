@@ -1090,15 +1090,15 @@ namespace JSIL {
                     translator.ParameterNames
                 ).Visit(function);
 
+                if (SimplifyLoops)
+                    new SimplifyLoops(
+                        context.CurrentModule.TypeSystem
+                    ).Visit(function);
+
                 // Temporary elimination makes it possible to simplify more operators, so do it last
                 if (SimplifyOperators)
                     new SimplifyOperators(
                         translator.JSIL, translator.JS,
-                        context.CurrentModule.TypeSystem
-                    ).Visit(function);
-
-                if (SimplifyLoops)
-                    new SimplifyLoops(
                         context.CurrentModule.TypeSystem
                     ).Visit(function);
 
