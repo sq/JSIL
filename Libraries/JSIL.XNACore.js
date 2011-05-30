@@ -23,6 +23,12 @@ HTML5ImageAsset.prototype._ctor = function (assetName, image) {
   this.image = image;
 }
 
+JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true);
+HTML5SoundAsset.prototype._ctor = function (assetName, sound) {
+  HTML5Asset.prototype._ctor.call(this, assetName);
+  this.sound = sound;
+}
+
 JSIL.MakeClass("HTML5Asset", "HTML5FontAsset", true);
 HTML5FontAsset.prototype._ctor = function (assetName, font) {
   HTML5Asset.prototype._ctor.call(this, assetName);

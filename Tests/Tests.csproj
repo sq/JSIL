@@ -195,6 +195,7 @@
     <None Include="SpecialTestCases\ForLoops.cs" />
     <None Include="SpecialTestCases\DoLoops.cs" />
     <None Include="TestCases\CharSwitch.cs" />
+    <None Include="TestCases\MultiDimStructArrays.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

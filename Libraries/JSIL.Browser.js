@@ -182,6 +182,42 @@ var assetLoaders = {
     e.src = contentRoot + filename;
     document.getElementById("images").appendChild(e);
   },
+  "Sound": function loadImage (filename, data, onError, onDoneLoading) {
+    var e = document.createElement("audio");
+    e.setAttribute("autobuffer", true);
+    e.setAttribute("preload", "auto");
+    if ((data !== null) && data.hasOwnProperty("loop"))
+      e.loop = data.loop;
+    
+    var state = { loaded: false };
+    
+    var loadingCallback = function () {
+      if (state.loaded)
+        return;
+      
+      state.loaded = true;
+      allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), e);
+      onDoneLoading();
+    };
+    
+    e.addEventListener("error", onError, true);
+    e.addEventListener("load", loadingCallback, true);
+    e.addEventListener("canplay", loadingCallback, true);
+    
+    var source = document.createElement("source");
+    if ((data !== null) && data.hasOwnProperty("type"))
+      source.type = data.type;
+    else
+      source.type = "audio/mpeg";    
+    
+    source.src = contentRoot + filename;
+    e.appendChild(source);
+    
+    document.getElementById("sounds").appendChild(e);
+    
+    if (typeof (e.load) === "function")
+      e.load();
+  },
   "File": function loadBinaryFile (filename, data, onError, onDoneLoading) {
     var req;
     if (typeof (ActiveXObject) !== "undefined")

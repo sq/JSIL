@@ -232,7 +232,7 @@ System.IO.StreamReader.prototype.ReadLine = function () {
     line.push(ch);
   };
 
-  return line.join("");
+  return String.fromCharCode.apply(null, line);
 };
 
 System.IO.StreamReader.prototype.IDisposable_Dispose = function () {

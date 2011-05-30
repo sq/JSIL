@@ -427,16 +427,20 @@ namespace JSIL {
             else
                 Output.Identifier(variable.Identifier);
 
-            if (variable.IsReference) {
-                if (variable.IsThis) {
-                    if (JSExpression.DeReferenceType(variable.Type).IsValueType)
-                        return;
-                    else
-                        throw new InvalidOperationException("The this-reference should never be a reference to a non-value type");
-                }
+            if (Stack.OfType<JSVariableDeclarationStatement>().FirstOrDefault() != null) {
+                // Avoid emitting 'var x.value = y'
+            } else {
+                if (variable.IsReference) {
+                    if (variable.IsThis) {
+                        if (JSExpression.DeReferenceType(variable.Type).IsValueType)
+                            return;
+                        else
+                            throw new InvalidOperationException("The this-reference should never be a reference to a non-value type");
+                    }
 
-                Output.Dot();
-                Output.Identifier("value");
+                    Output.Dot();
+                    Output.Identifier("value");
+                }
             }
         }
 

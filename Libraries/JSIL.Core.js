@@ -1441,8 +1441,12 @@ JSIL.MultidimensionalArray = function (dimensions) {
     case 2:
       var height = this.length0 = dimensions[0];
       var width = this.length1 = dimensions[1];
+
       this.Get = function (y, x) {
         return items[(y * width) + x];
+      };
+      this.GetReference = function (y, x) {
+        return new JSIL.MemberReference(items, (y * width) + x);
       };
       this.Set = function (y, x, value) {
         items[(y * width) + x] = value;
@@ -1468,6 +1472,9 @@ JSIL.MultidimensionalArray = function (dimensions) {
 
       this.Get = function (z, y, x) {
         return items[(z * heightxwidth) + (y * width) + x];      
+      };
+      this.GetReference = function (z, y, x) {
+        return new JSIL.MemberReference(items, (z * heightxwidth) + (y * width) + x);
       };
       this.Set = function (z, y, x, value) {
         items[(z * heightxwidth) + (y * width) + x] = value;

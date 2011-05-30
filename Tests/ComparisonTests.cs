@@ -41,6 +41,12 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void MultiDimStructArrays () {
+            using (var test = new ComparisonTest(@"TestCases\MultiDimStructArrays.cs"))
+                test.Run();
+        }
+
+        [Test]
         public void MulticastDelegates () {
             using (var test = new ComparisonTest(@"TestCases\MulticastDelegates.cs"))
                 test.Run();
