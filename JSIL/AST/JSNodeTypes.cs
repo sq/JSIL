@@ -44,6 +44,15 @@ namespace JSIL.Ast {
         }
 
         public abstract void ReplaceChild (JSNode oldChild, JSNode newChild);
+
+        public virtual void ReplaceChildRecursive (JSNode oldChild, JSNode newChild) {
+            ReplaceChild(oldChild, newChild);
+
+            foreach (var child in Children) {
+                if (child != null)
+                    child.ReplaceChildRecursive(oldChild, newChild);
+            }
+        }
     }
 
     public abstract class JSStatement : JSNode {
@@ -66,6 +75,10 @@ namespace JSIL.Ast {
             get {
                 return true;
             }
+        }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            return;
         }
 
         public override string ToString () {
@@ -99,6 +112,12 @@ namespace JSIL.Ast {
 
         public JSBlockStatement (params JSStatement[] statements) {
             Statements = new List<JSStatement>(statements);
+        }
+
+        public virtual bool IsLoop {
+            get {
+                return false;
+            }
         }
 
         public override IEnumerable<JSNode> Children {
@@ -460,6 +479,12 @@ namespace JSIL.Ast {
             Statements.AddRange(body);
         }
 
+        public override bool IsLoop {
+            get {
+                return true;
+            }
+        }
+
         public override IEnumerable<JSNode> Children {
             get {
                 yield return _Condition;
@@ -490,6 +515,83 @@ namespace JSIL.Ast {
             return String.Format(
                 "while ({0}) {{\r\n{1}\r\n}}",
                 _Condition, Util.Indent(base.ToString())
+            );
+        }
+    }
+
+    public class JSForLoop : JSBlockStatement {
+        protected JSStatement _Initializer, _Increment;
+        protected JSExpression _Condition;
+
+        public JSForLoop (JSStatement initializer, JSExpression condition, JSStatement increment, params JSStatement[] body) {
+            _Initializer = initializer;
+            _Condition = condition;
+            _Increment = increment;
+            Statements.AddRange(body);
+        }
+
+        public override bool IsLoop {
+            get {
+                return true;
+            }
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                if (_Initializer != null)
+                    yield return _Initializer;
+
+                if (_Condition != null)
+                    yield return _Condition;
+
+                if (_Increment != null)
+                    yield return _Increment;
+
+                foreach (var s in base.Children)
+                    yield return s;
+            }
+        }
+
+        public JSStatement Initializer {
+            get {
+                return _Initializer;
+            }
+        }
+
+        public JSExpression Condition {
+            get {
+                return _Condition;
+            }
+        }
+
+        public JSStatement Increment {
+            get {
+                return _Increment;
+            }
+        }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            if (oldChild == null)
+                throw new ArgumentNullException();
+
+            if (_Initializer == oldChild)
+                _Initializer = (JSStatement)newChild;
+
+            if (_Condition == oldChild)
+                _Condition = (JSExpression)newChild;
+
+            if (_Increment == oldChild)
+                _Increment = (JSStatement)newChild;
+
+            if (newChild is JSStatement)
+                base.ReplaceChild(oldChild, newChild);
+        }
+
+        public override string ToString () {
+            return String.Format(
+                "for ({0}; {1}; {2}) {{\r\n{3}\r\n}}",
+                _Initializer, _Condition, _Increment,
+                Util.Indent(base.ToString())
             );
         }
     }
@@ -754,6 +856,9 @@ namespace JSIL.Ast {
             if ((oldChild == this) || (newChild == this))
                 throw new InvalidOperationException("Infinite recursion");
 
+            if ((newChild != null) && !(newChild is JSExpression))
+                return;
+
             var expr = (JSExpression)newChild;
 
             for (int i = 0, c = Values.Count; i < c; i++) {
@@ -945,6 +1050,10 @@ namespace JSIL.Ast {
             get {
                 return true;
             }
+        }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            return;
         }
 
         public override string ToString () {

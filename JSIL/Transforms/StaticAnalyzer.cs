@@ -81,12 +81,7 @@ namespace JSIL.Transforms {
             VisitChildren(uoe);
 
             if (
-                (variable != null) && (
-                    (uoe.Operator == JSOperator.PostDecrement) ||
-                    (uoe.Operator == JSOperator.PostIncrement) ||
-                    (uoe.Operator == JSOperator.PreDecrement) ||
-                    (uoe.Operator == JSOperator.PreIncrement)
-                )
+                (variable != null) && (uoe.Operator is JSUnaryMutationOperator)
             ) {
                 State.Assignments.Add(
                     new FunctionAnalysis.Assignment(
@@ -157,7 +152,8 @@ namespace JSIL.Transforms {
                 !(enclosingStatement is JSTryCatchBlock) &&
                 !(enclosingStatement is JSVariableDeclarationStatement)
             )) {
-                bool isControlFlow = (enclosingStatement is JSIfStatement) || (enclosingStatement is JSWhileLoop) || (enclosingStatement is JSSwitchStatement);
+                bool isControlFlow = (enclosingStatement is JSIfStatement) || (enclosingStatement is JSWhileLoop) || 
+                    (enclosingStatement is JSSwitchStatement) || (enclosingStatement is JSForLoop);
 
                 State.Accesses.Add(
                     new FunctionAnalysis.Access(

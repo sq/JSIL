@@ -184,5 +184,22 @@ namespace JSIL.Tests {
             using (var test = new ComparisonTest(@"SpecialTestCases\PrivateNames.cs"))
                 test.Run();
         }
+
+        [Test]
+        public void ForLoops () {
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\ForLoops.cs",
+                "0\r\n1\r\n2\r\n3\r\n4\r\n5\r\n6\r\n7\r\n8\r\n9\r\n5\r\n3\r\n1"
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("while"));
+                Assert.AreEqual(4, generatedJs.Split(new string[] { "for (" }, StringSplitOptions.RemoveEmptyEntries).Length);
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
     }
 }

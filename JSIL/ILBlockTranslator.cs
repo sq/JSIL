@@ -925,7 +925,7 @@ namespace JSIL {
                 condition = JSLiteral.New(true);
 
             var result = new JSWhileLoop(condition);
-            result.Label = String.Format("__while{0}__", UnlabelledBlockCount++);
+            result.Label = String.Format("__loop{0}__", UnlabelledBlockCount++);
             Blocks.Push(result);
 
             var body = TranslateNode(loop.BodyBlock);

@@ -14,7 +14,9 @@ using Mono.Cecil;
 namespace JSIL {
     public enum BlockType {
         Switch,
-        While
+        While,
+        ForHeader,
+        ForBody
     }
 
     public class JavascriptAstEmitter : JSAstVisitor {
@@ -181,7 +183,11 @@ namespace JSIL {
 
             CommaSeparatedList(vars.Declarations);
 
-            Output.Semicolon();
+            if ((BlockStack.Count == 0) ||
+                (BlockStack.Peek() != BlockType.ForHeader)
+            ) {
+                Output.Semicolon();
+            }
         }
 
         public void VisitNode (JSExpressionStatement statement) {
@@ -192,8 +198,12 @@ namespace JSIL {
 
             Visit(statement.Expression);
 
-            if (!isNull)
+            if (!isNull &&
+                ((BlockStack.Count == 0) ||
+                (BlockStack.Peek() != BlockType.ForHeader))
+            ) {
                 Output.Semicolon();
+            }
         }
 
         public void VisitNode (JSDotExpression dot) {
@@ -592,6 +602,36 @@ namespace JSIL {
             Output.CloseBrace();
         }
 
+        public void VisitNode (JSForLoop loop) {
+            BlockStack.Push(BlockType.ForHeader);
+            WriteLabel(loop, true);
+
+            Output.Keyword("for");
+            Output.Space();
+
+            Output.LPar();
+
+            if ((loop.Initializer != null) && !loop.Initializer.IsNull)
+                Visit(loop.Initializer);
+            Output.Semicolon(false);
+
+            Visit(loop.Condition);
+            Output.Semicolon(false);
+
+            if ((loop.Increment != null) && !loop.Increment.IsNull)
+                Visit(loop.Increment);
+
+            Output.RPar();
+            Output.Space();
+
+            BlockStack.Pop();
+            BlockStack.Push(BlockType.ForBody);
+
+            VisitNode((JSBlockStatement)loop, true);
+
+            BlockStack.Pop();
+        }
+
         public void VisitNode (JSWhileLoop loop) {
             BlockStack.Push(BlockType.While);
             WriteLabel(loop, true);
@@ -676,7 +716,16 @@ namespace JSIL {
                 parens = false;
             else if ((ParentNode is JSWhileLoop) && ((JSWhileLoop)ParentNode).Condition == bop)
                 parens = false;
-            else if ((ParentNode is JSSwitchStatement) && ((JSSwitchStatement)ParentNode).Condition == bop)
+            else if (ParentNode is JSForLoop) {
+                var fl = (JSForLoop)ParentNode;
+                if (
+                    (fl.Condition == bop) ||
+                    (fl.Increment.AllChildrenRecursive.Any((n) => bop.Equals(n))) ||
+                    (fl.Initializer.AllChildrenRecursive.Any((n) => bop.Equals(n)))
+                ) {
+                    parens = false;
+                }
+            } else if ((ParentNode is JSSwitchStatement) && ((JSSwitchStatement)ParentNode).Condition == bop)
                 parens = false;
             else if (
                 (ParentNode is JSBinaryOperatorExpression) &&

@@ -67,10 +67,10 @@ namespace JSIL.Ast {
         public static readonly JSLogicalOperator LogicalAnd = new JSLogicalOperator("&&");
         public static readonly JSLogicalOperator LogicalOr = new JSLogicalOperator("||");
 
-        public static readonly JSUnaryOperator PreIncrement = new JSUnaryOperator("++", false);
-        public static readonly JSUnaryOperator PreDecrement = new JSUnaryOperator("--", false);
-        public static readonly JSUnaryOperator PostIncrement = new JSUnaryOperator("++", true);
-        public static readonly JSUnaryOperator PostDecrement = new JSUnaryOperator("--", true);
+        public static readonly JSUnaryOperator PreIncrement = new JSUnaryMutationOperator("++", false);
+        public static readonly JSUnaryOperator PreDecrement = new JSUnaryMutationOperator("--", false);
+        public static readonly JSUnaryOperator PostIncrement = new JSUnaryMutationOperator("++", true);
+        public static readonly JSUnaryOperator PostDecrement = new JSUnaryMutationOperator("--", true);
         public static readonly JSUnaryOperator BitwiseNot = new JSUnaryOperator("~", false);
         public static readonly JSUnaryOperator LogicalNot = new JSUnaryOperator("!", false);
         public static readonly JSUnaryOperator Negation = new JSUnaryOperator("-", false);
@@ -88,6 +88,12 @@ namespace JSIL.Ast {
 
         public override string ToString () {
             return String.Format("{0}", Token);
+        }
+    }
+
+    public class JSUnaryMutationOperator : JSUnaryOperator {
+        public JSUnaryMutationOperator (string token, bool isPostfix)
+            : base(token, isPostfix) {
         }
     }
 

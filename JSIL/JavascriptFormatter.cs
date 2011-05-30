@@ -335,7 +335,14 @@ namespace JSIL.Internal {
         }
 
         public void Semicolon () {
-            PlainTextOutput.WriteLine(";");
+            Semicolon(true);
+        }
+
+        public void Semicolon (bool lineBreak) {
+            if (lineBreak)
+                PlainTextOutput.WriteLine(";");
+            else
+                PlainTextOutput.Write("; ");
         }
 
         public void NewLine () {

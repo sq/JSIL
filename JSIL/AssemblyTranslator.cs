@@ -77,6 +77,7 @@ namespace JSIL {
         public string OutputDirectory = Environment.CurrentDirectory;
 
         public bool EliminateTemporaries = true;
+        public bool SimplifyLoops = true;
         public bool SimplifyOperators = true;
         public bool IncludeDependencies = true;
         public bool UseSymbols = true;
@@ -1088,6 +1089,11 @@ namespace JSIL {
                 if (SimplifyOperators)
                     new SimplifyOperators(
                         translator.JSIL, translator.JS,
+                        context.CurrentModule.TypeSystem
+                    ).Visit(function);
+
+                if (SimplifyLoops)
+                    new SimplifyLoops(
                         context.CurrentModule.TypeSystem
                     ).Visit(function);
 

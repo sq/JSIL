@@ -192,6 +192,7 @@
     <None Include="TestCases\Chars.cs" />
     <None Include="SpecialTestCases\DisplayClassFieldNames.cs" />
     <None Include="SpecialTestCases\EnumeratorClassLocalNames.cs" />
+    <None Include="SpecialTestCases\ForLoops.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
