@@ -82,6 +82,23 @@ Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDraw = function (
 
   this.device.context.save();
 
+  var isTinted = false;
+  var tintOffset = 65535;
+
+  if ((typeof (color) === "object") && (color !== null)) {
+    if ((color.R != 255) || (color.G != 255) || (color.B != 255)) {
+      // tint
+      isTinted = true;
+      this.device.context.shadowColor = color.toCss();
+      this.device.context.shadowBlur = 0;
+      this.device.context.shadowOffsetX = this.device.context.shadowOffsetY = tintOffset;
+      positionX -= tintOffset;
+      positionY -= tintOffset;
+    } else if (color.A != 255) {
+      this.device.context.globalAlpha = color.A / 255;
+    }
+  }
+
   effects = effects || Microsoft.Xna.Framework.Graphics.SpriteEffects.None;
 
   if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) {
@@ -101,29 +118,42 @@ Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDraw = function (
     positionY -= originY;
   }
 
-  if ((sourceRectangle !== null) && (sourceRectangle.value !== null)) {
-    var sr = sourceRectangle.value;
-    if (positionIsRect)
-      this.device.context.drawImage(
-        texture.image, 
-        sr.X, sr.Y, sr.Width, sr.Height,
-        positionX, positionY, position.Width * scaleX, position.Height * scaleY
-      );
-    else
-      this.device.context.drawImage(
-        texture.image, 
-        sr.X, sr.Y, sr.Width, sr.Height,
-        positionX, positionY, sr.Width * scaleX, sr.Height * scaleY
-      );
+  while (true) {    
+    if ((sourceRectangle !== null) && (sourceRectangle.value !== null)) {
+      var sr = sourceRectangle.value;
+      if (positionIsRect)
+        this.device.context.drawImage(
+          texture.image, 
+          sr.X, sr.Y, sr.Width, sr.Height,
+          positionX, positionY, position.Width * scaleX, position.Height * scaleY
+        );
+      else
+        this.device.context.drawImage(
+          texture.image, 
+          sr.X, sr.Y, sr.Width, sr.Height,
+          positionX, positionY, sr.Width * scaleX, sr.Height * scaleY
+        );
 
-  } else if (positionIsRect) {
-    this.device.context.drawImage(
-      texture.image, positionX, positionY, position.Width * scaleX, position.Height * scaleY
-    );
-  } else {
-    this.device.context.drawImage(
-      texture.image, positionX, positionY, texture.Width * scaleX, texture.Height * scaleY
-    );
+    } else if (positionIsRect) {
+      this.device.context.drawImage(
+        texture.image, positionX, positionY, position.Width * scaleX, position.Height * scaleY
+      );
+    } else {
+      this.device.context.drawImage(
+        texture.image, positionX, positionY, texture.Width * scaleX, texture.Height * scaleY
+      );
+    }
+
+    if (isTinted) {
+      isTinted = false;
+      this.device.context.shadowColor = "transparent";
+      // How the hell does Canvas specify a 'xor' blend mode but not multiply? WTF.
+      this.device.context.globalCompositeOperation = "lighter";
+      positionX += tintOffset;
+      positionY += tintOffset;
+    } else {
+      break;
+    }
   }
 
   this.device.context.restore();
@@ -207,15 +237,28 @@ Microsoft.Xna.Framework.Graphics.Color.prototype.MemberwiseClone = function () {
   return result;
 }
 
+$jsilxna.makeColor = function (r, g, b, a) {
+  var result = Object.create(Microsoft.Xna.Framework.Graphics.Color.prototype);
+  result.r = r;
+  result.g = g;
+  result.b = b;
+  if (typeof (a) === "number")
+    result.a = a;
+  else
+    result.a = 255;
+  return result;
+}
+
 Microsoft.Xna.Framework.Graphics.Color._cctor = function () {
   var self = Microsoft.Xna.Framework.Graphics.Color;
-  self.black = new Microsoft.Xna.Framework.Graphics.Color(0, 0, 0);
-  self.transparentBlack = new Microsoft.Xna.Framework.Graphics.Color(0, 0, 0, 0);
-  self.white = new Microsoft.Xna.Framework.Graphics.Color(255, 255, 255);
-  self.transparentWhite = new Microsoft.Xna.Framework.Graphics.Color(255, 255, 255, 0);
-  self.red = new Microsoft.Xna.Framework.Graphics.Color(255, 0, 0);
-  self.yellow = new Microsoft.Xna.Framework.Graphics.Color(255, 255, 0);
-  self.cornflowerBlue = new Microsoft.Xna.Framework.Graphics.Color(100, 149, 237);
+  var makeColor = $jsilxna.makeColor;
+  self.black = makeColor(0, 0, 0);
+  self.transparentBlack = makeColor(0, 0, 0, 0);
+  self.white = makeColor(255, 255, 255);
+  self.transparentWhite = makeColor(255, 255, 255, 0);
+  self.red = makeColor(255, 0, 0);
+  self.yellow = makeColor(255, 255, 0);
+  self.cornflowerBlue = makeColor(100, 149, 237);
 };
 
 Microsoft.Xna.Framework.Graphics.Color.get_Black = function () {

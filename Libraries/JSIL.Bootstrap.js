@@ -644,15 +644,15 @@ System.TimeSpan.op_Subtraction = function (lhs, rhs) {
 };
 
 System.TimeSpan.prototype.get_Milliseconds = function () {
-  return this._ticks / 10000 % 60;
+  return Math.floor(this._ticks / 10000) % 60;
 };
 
 System.TimeSpan.prototype.get_Seconds = function () {
-  return this._ticks / 10000000 % 60;
+  return Math.floor(this._ticks / 10000000) % 60;
 };
 
 System.TimeSpan.prototype.get_Minutes = function () {
-  return this._ticks / 600000000 % 60;
+  return Math.floor(this._ticks / 600000000) % 60;
 };
 
 System.TimeSpan.prototype.get_TotalMilliseconds = function () {

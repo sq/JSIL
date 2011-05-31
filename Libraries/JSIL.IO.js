@@ -31,6 +31,13 @@ System.IO.FileStream.prototype._ctor$1 = function (filename, mode) {
   this._pos = 0;
 };
 
+System.IO.FileStream.prototype.Peek = function () {
+  if ((this._pos < 0) || (this._pos >= this._buffer.length))
+    return -1;
+
+  return this._buffer[this._pos];
+};
+
 System.IO.FileStream.prototype.ReadByte = function () {
   if ((this._pos < 0) || (this._pos >= this._buffer.length))
     return -1;
@@ -215,13 +222,22 @@ System.IO.StreamReader.prototype.ReadLine = function () {
   while (true) {
     var ch = this.stream.ReadByte();
     if (ch === -1) {
-      if (line.length == 0)
+      if (line.length === 0)
         return null;
-
-      break;
-    } else if (ch === 10) {
-      continue;
+      else
+        break;
     } else if (ch === 13) {
+      var next = this.stream.Peek();
+      if (next === 10)
+        continue;
+      else if (next === -1) {
+        if (line.length === 0)
+          return null;
+        else
+          break;
+      } else
+        break;
+    } else if (ch === 10) {
       break;
     }
 
