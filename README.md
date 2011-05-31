@@ -3,7 +3,7 @@ JSIL
 
 JSIL is an open source C# to JavaScript compiler, written in native C#.  
 
-[Click here](http://hildr.luminance.org/JSIL/raytracer.html) to see an example C# application running in your browser.  
+[Click here](http://hildr.luminance.org/Platformer/Platformer.html) to play an XNA game in your browser!
 
 License
 =======

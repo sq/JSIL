@@ -15,8 +15,15 @@
     <div id="sounds"></div>
     <div id="fonts"></div>
     
-    <canvas id="canvas" width="1280" height="720"></canvas><br>
+    <canvas id="canvas" width="1280" height="720">
+    </canvas><br>
     <button id="quitButton" title="Quit Game">X</button>
+    <div id="welcomeMessage">
+      <p>This demo is the XNA 3.1 Platformer Starter Kit, compiled from C# to JavaScript. It should run in any browser that supports HTML5 and a modern version of JavaScript, no plugins required.</p>
+      <p>This demo is known to work in IE9, IE10, Firefox 5, and Chrome 11. Chrome 12 and 13 have numerous bugs that may prevent it from working, but it works sometimes. Opera's JavaScript engine is too old.</p>
+      <p>If you hit a bug in this demo, please let me know <a href="mailto:kevin.gadd@gmail.com">via email</a>. The source code for the C# -> JavaScript compiler is available <a href="https://github.com/kevingadd/JSIL">on GitHub</a>. Bug reports and pull requests are welcomed.</p>
+      <p align="center">To begin playing, click the <b>Load Game</b> button below.</p>
+    </div>
     <button id="loadButton">Load Game</button>
     <div id="loadingProgress">
       <div id="progressBar"></div>
@@ -98,6 +105,10 @@
       ];
             
       function runMain () {
+        try {
+          document.getElementById("welcomeMessage").setAttribute("style", "display: none");
+        } catch (ex) {
+        }
         $asm01.PlatformerStarterKit.Program.Main([]);
       };
     </script>

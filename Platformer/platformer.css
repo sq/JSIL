@@ -7,6 +7,23 @@
 	border: 0px;
 	padding: 0px;
 }
+#welcomeMessage {
+	font-family: Calibri, Tahoma, Verdana, sans-serif;
+	background-color: rgba(32, 32, 32, 1);
+	border-color: black;
+	border-width: 0px;
+	border-radius: 16px;
+	color: white;
+	width: 680px;
+	height: 400px;
+	position: absolute;
+	left: 300px;
+	top: 10px;
+	z-index: 80;
+}
+#welcomeMessage a {
+	color: #BFBFFF;
+}
 #loadButton {
 	width: 200px;
 	height: 40px;
