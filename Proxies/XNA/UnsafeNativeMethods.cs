@@ -10,10 +10,18 @@ namespace JSIL.Proxies {
             "Microsoft.Xna.Framework.GamerServices.UnsafeNativeMethods",
             "Microsoft.Xna.Framework.Media.UnsafeNativeMethods",
             "Microsoft.Xna.Framework.Input.UnsafeNativeMethods",
-            "Microsoft.Xna.Framework.Storage.UnsafeNativeMethods"
+            "Microsoft.Xna.Framework.Storage.UnsafeNativeMethods",
+            "Microsoft.Xna.Framework.Content.NativeMethods",
+            "Microsoft.Xna.Framework.SystemNativeMethods",
+            "Microsoft.Xna.Framework.NativeMethods",
+            "Microsoft.Xna.Framework.NativeMethods.Message",
+            "Microsoft.Xna.Framework.NativeMethods.MinMaxInformation",
+            "Microsoft.Xna.Framework.NativeMethods.MonitorInformation",
+            "Microsoft.Xna.Framework.WindowsGameForm"
         },
         JSProxyMemberPolicy.ReplaceDeclared,
-        JSProxyAttributePolicy.ReplaceDeclared
+        JSProxyAttributePolicy.ReplaceAll,
+        JSProxyInterfacePolicy.ReplaceAll
     )]
     [JSIgnore]
     public abstract class UnsafeNativeMethodsProxy {
