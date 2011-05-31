@@ -1304,10 +1304,10 @@ namespace JSIL {
                     Console.Error.WriteLine(String.Format("Warning: unsupported target variable for stobj: {0}", node.Arguments[0]));
             } else {
                 JSExpression referent;
-                if (!JSReferenceExpression.TryDereference(JSIL, target, out referent))
+                if (!JSReferenceExpression.TryMaterialize(JSIL, target, out referent))
                     Console.Error.WriteLine(String.Format("Warning: unsupported target expression for stobj: {0}", node.Arguments[0]));
                 else
-                    target = referent;
+                    target = new JSDotExpression(referent, new JSStringIdentifier("value", value.GetExpectedType(TypeSystem)));
             }
 
             return new JSBinaryOperatorExpression(
@@ -1548,6 +1548,11 @@ namespace JSIL {
                 return result;
         }
 
+        protected bool IsNumericOrEnum (TypeReference type) {
+            var typedef = GetTypeDefinition(type);
+            return IsNumeric(type) || ((typedef != null) && typedef.IsEnum);
+        }
+
         protected JSExpression Translate_Conv (JSExpression value, TypeReference expectedType) {
             var currentType = value.GetExpectedType(TypeSystem);
 
@@ -1560,9 +1565,7 @@ namespace JSIL {
             if (IsDelegateType(expectedType) && IsDelegateType(currentType))
                 return value;
 
-            if (IsNumeric(currentType) &&
-                IsNumeric(expectedType)
-            ) {
+            if (IsNumericOrEnum(currentType) && IsNumericOrEnum(expectedType)) {
                 if (IsIntegral(expectedType)) {
                     if (IsIntegral(currentType))
                         return value;

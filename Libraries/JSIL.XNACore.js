@@ -12,6 +12,9 @@ Microsoft.Xna.Framework.Content.ContentManager.prototype._ctor$1 = function (ser
 Microsoft.Xna.Framework.Content.ContentManager.prototype.Load = function (assetName) {
   return JSIL.Host.getAsset(assetName);
 };
+Microsoft.Xna.Framework.Content.ContentManager.prototype.Unload = function () {
+  // Unnecessary since we rely on the host to preload our assets.
+};
 
 JSIL.MakeClass("System.Object", "HTML5Asset", true);
 HTML5Asset.prototype._ctor = function (assetName) {
@@ -470,6 +473,9 @@ Microsoft.Xna.Framework.Rectangle.prototype.get_Center = function () {
 }
 Microsoft.Xna.Framework.Rectangle.prototype.Contains$1 = function (value) {
   return this.X <= value.X && value.X < this.X + this.Width && this.Y <= value.Y && value.Y < this.Y + this.Height;
+}
+Microsoft.Xna.Framework.Rectangle.prototype.Intersects$0 = function (value) {
+  return value.X < this.X + this.Width && this.X < value.X + value.Width && value.Y < this.Y + this.Height && this.Y < value.Y + value.Height;
 }
 Microsoft.Xna.Framework.Rectangle.prototype.MemberwiseClone = function () {
   var result = Object.create(Microsoft.Xna.Framework.Rectangle.prototype);
