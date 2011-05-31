@@ -3,7 +3,54 @@
 if (typeof (JSIL) === "undefined")
   throw new Error("JSIL.Core required");
 
-var $jsilxna = JSIL.DeclareAssembly("JSIL.XNACore");
+var $jsilxna = JSIL.DeclareAssembly("JSIL.XNA");
+
+$jsilxna.imageMultipliedCache = {};
+
+$jsilxna.getImageMultiplied = function (image, color) {
+  var key = image.src + color.toCss();
+  if ($jsilxna.imageMultipliedCache.hasOwnProperty(key))
+    return $jsilxna.imageMultipliedCache[key];
+
+  var canvas = document.createElement("canvas");
+  var context = canvas.getContext("2d");
+
+  // Workaround for bug in Firefox's canvas implementation that treats the outside of a canvas as solid white
+  canvas.width = image.naturalWidth + 2;
+  canvas.height = image.naturalHeight + 2;
+
+  context.save();
+  context.clearRect(0, 0, image.naturalWidth + 2, image.naturalHeight + 2);
+  context.globalCompositeAlpha = 1.0;
+  context.drawImage(image, 1, 1);
+
+  var imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+  var rmul = color.R / 255;
+  var gmul = color.G / 255;
+  var bmul = color.B / 255;
+  var amul = color.A / 255;
+  var bytes = imageData.data;
+  var foundPixels = false;
+
+  for (var i = 0, l = image.naturalWidth * image.naturalHeight * 4; i < l; i += 4) {
+    bytes[i] *= rmul;
+    bytes[i + 1] *= gmul;
+    bytes[i + 2] *= bmul;
+    if (bytes[i + 3] > 0)
+      foundPixels = true;
+    bytes[i + 3] *= amul;
+  }
+
+  if (foundPixels) {
+    context.putImageData(imageData, 0, 0);
+    $jsilxna.imageMultipliedCache[key] = canvas;
+  } else {
+    // Workaround for bug in Chrome 12+ which causes getImageData to return pure black. LAME.
+    $jsilxna.imageMultipliedCache[key] = image;
+    return image;
+  }
+  return canvas;
+};
 
 Microsoft.Xna.Framework.Content.ContentManager.prototype._ctor$0 = function (serviceProvider) {
 }
@@ -212,6 +259,9 @@ Microsoft.Xna.Framework.Vector4.prototype.MemberwiseClone = function () {
   return result;
 }
 
+Microsoft.Xna.Framework.GameServiceContainer.prototype._ctor = function () {
+};
+
 Microsoft.Xna.Framework.Game._QuitForced = false;
 Microsoft.Xna.Framework.Game.ForceQuit = function () {
   Microsoft.Xna.Framework.Game._QuitForced = true;
@@ -220,6 +270,7 @@ Microsoft.Xna.Framework.Game.ForceQuit = function () {
 Microsoft.Xna.Framework.Game.prototype._runHandle = null;
 Microsoft.Xna.Framework.Game.prototype._ctor = function () {
   this.content = JSIL.New(Microsoft.Xna.Framework.Content.ContentManager, "_ctor$0", []);
+  this.gameServices = new Microsoft.Xna.Framework.GameServiceContainer();
   this._frameDelay = 1000 / 60;
 
   if (typeof (Date.now) === "function")
@@ -230,6 +281,9 @@ Microsoft.Xna.Framework.Game.prototype._ctor = function () {
 };
 Microsoft.Xna.Framework.Game.prototype.get_Content = function () {
   return this.content;
+};
+Microsoft.Xna.Framework.Game.prototype.get_Services = function () {
+  return this.gameServices;
 };
 Microsoft.Xna.Framework.Game.prototype.Initialize = function () {
   this.LoadContent();

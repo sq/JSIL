@@ -3,7 +3,7 @@
 if (typeof (JSIL) === "undefined")
   throw new Error("JSIL.Core required");
 
-var $jsilxna = JSIL.DeclareAssembly("JSIL.XNA3");
+var $jsilxna = JSIL.DeclareAssembly("JSIL.XNA");
 
 Microsoft.Xna.Framework.GraphicsDeviceManager.prototype._ctor = function (game) {
   this.game = game;
@@ -67,8 +67,10 @@ Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.Begin = function () {
 };
 
 Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDraw = function (texture, position, sourceRectangle, color, rotation, origin, scale, effects) {
+  var image = texture.image;
   var positionIsRect = typeof (position.Width) === "number";
   var scaleX = 1, scaleY = 1, originX = 0, originY = 0;
+  var sourceX = 0, sourceY = 0, sourceW = image.naturalWidth, sourceH = image.naturalHeight;
   var positionX, positionY;
   if (typeof (scale) === "number")
     scaleX = scaleY = scale;
@@ -81,23 +83,6 @@ Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDraw = function (
   positionY = position.Y;
 
   this.device.context.save();
-
-  var isTinted = false;
-  var tintOffset = 65535;
-
-  if ((typeof (color) === "object") && (color !== null)) {
-    if ((color.R != 255) || (color.G != 255) || (color.B != 255)) {
-      // tint
-      isTinted = true;
-      this.device.context.shadowColor = color.toCss();
-      this.device.context.shadowBlur = 0;
-      this.device.context.shadowOffsetX = this.device.context.shadowOffsetY = tintOffset;
-      positionX -= tintOffset;
-      positionY -= tintOffset;
-    } else if (color.A != 255) {
-      this.device.context.globalAlpha = color.A / 255;
-    }
-  }
 
   effects = effects || Microsoft.Xna.Framework.Graphics.SpriteEffects.None;
 
@@ -118,43 +103,41 @@ Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDraw = function (
     positionY -= originY;
   }
 
-  while (true) {    
-    if ((sourceRectangle !== null) && (sourceRectangle.value !== null)) {
-      var sr = sourceRectangle.value;
-      if (positionIsRect)
-        this.device.context.drawImage(
-          texture.image, 
-          sr.X, sr.Y, sr.Width, sr.Height,
-          positionX, positionY, position.Width * scaleX, position.Height * scaleY
-        );
-      else
-        this.device.context.drawImage(
-          texture.image, 
-          sr.X, sr.Y, sr.Width, sr.Height,
-          positionX, positionY, sr.Width * scaleX, sr.Height * scaleY
-        );
+  if ((sourceRectangle !== null) && (sourceRectangle.value !== null)) {
+    var sr = sourceRectangle.value;
+    sourceX = sr.X;
+    sourceY = sr.Y;
+    sourceW = sr.Width;
+    sourceH = sr.Height;
+  }
 
-    } else if (positionIsRect) {
-      this.device.context.drawImage(
-        texture.image, positionX, positionY, position.Width * scaleX, position.Height * scaleY
-      );
-    } else {
-      this.device.context.drawImage(
-        texture.image, positionX, positionY, texture.Width * scaleX, texture.Height * scaleY
-      );
-    }
-
-    if (isTinted) {
-      isTinted = false;
-      this.device.context.shadowColor = "transparent";
-      // How the hell does Canvas specify a 'xor' blend mode but not multiply? WTF.
-      this.device.context.globalCompositeOperation = "lighter";
-      positionX += tintOffset;
-      positionY += tintOffset;
-    } else {
-      break;
+  if ((typeof (color) === "object") && (color !== null)) {
+    if ((color.R != 255) || (color.G != 255) || (color.B != 255)) {
+      var newImage = $jsilxna.getImageMultiplied(image, color);
+      if (newImage === image) {
+        // Broken browser
+      } else {
+        image = newImage;
+        sourceX += 1;
+        sourceY += 1;
+      }
+    } else if (color.A != 255) {
+      this.device.context.globalAlpha = color.A / 255;
     }
   }
+
+  if (positionIsRect)
+    this.device.context.drawImage(
+      image, 
+      sourceX, sourceY, sourceW, sourceH,
+      positionX, positionY, position.Width * scaleX, position.Height * scaleY
+    );
+  else
+    this.device.context.drawImage(
+      image, 
+      sourceX, sourceY, sourceW, sourceH,
+      positionX, positionY, sourceW * scaleX, sourceH * scaleY
+    );
 
   this.device.context.restore();
 };

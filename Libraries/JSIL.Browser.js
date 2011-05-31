@@ -156,6 +156,7 @@ function getAssetName (filename) {
 
 var loadedFontCount = 0;
 var loadingPollInterval = 25;
+var soundLoadTimeout = 2000;
 var fontLoadTimeout = 10000;
 
 var assetLoaders = {
@@ -188,6 +189,8 @@ var assetLoaders = {
     document.getElementById("images").appendChild(e);
   },
   "Sound": function loadImage (filename, data, onError, onDoneLoading) {
+    var startedLoadingWhen = (new Date()).getTime();
+
     var e = document.createElement("audio");
     e.setAttribute("autobuffer", true);
     e.setAttribute("preload", "auto");
@@ -202,29 +205,45 @@ var assetLoaders = {
       if (state.loaded)
         return;
       
-      switch (e.networkState) {
-        case HTMLMediaElement.NETWORK_IDLE:
-        case HTMLMediaElement.NETWORK_LOADED: // Not defined in firefox or IE
-          clearInterval(state.interval);
-          state.loaded = true;
-          allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), e);
-          onDoneLoading();
-          break;
-        case HTMLMediaElement.NETWORK_NO_SOURCE:
-          clearInterval(state.interval);
-          state.loaded = true;
-          allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), null);
-          try {
-            onError("Error " + e.error.code);
-          } catch (ex) {
-            onError("Unknown error");
-          }
-          break;
+      var networkState = e.networkState || 0;
+      var readyState = e.readyState || 0;
+
+      if (
+        (networkState === HTMLMediaElement.NETWORK_IDLE) ||
+        (networkState === HTMLMediaElement.NETWORK_LOADED /* This is in the spec, but no browser defines it? */) ||
+        (readyState === HTMLMediaElement.HAVE_ENOUGH_DATA /* Chrome 12+ breaks networkState, so we have to rely on readyState */) ||
+        (readyState === HTMLMediaElement.HAVE_FUTURE_DATA) ||
+        (readyState === HTMLMediaElement.HAVE_CURRENT_DATA)
+      ) {
+        clearInterval(state.interval);
+        state.loaded = true;
+        allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), e);
+        onDoneLoading();
+      } else if (networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
+        clearInterval(state.interval);
+        state.loaded = true;
+        allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), null);
+        try {
+          onError("Error " + e.error.code);
+        } catch (ex) {
+          onError("Unknown error");
+        }
+      }
+
+      var now = (new Date()).getTime();
+
+      // Workaround for bug in Chrome 12+ where a load stalls indefinitely unless you spam the load method.
+      if ((now - startedLoadingWhen) >= soundLoadTimeout) {
+        JSIL.Host.logWriteLine("A sound file is taking forever to load. Google Chrome 12 and 13 both have a bug that can cause this, so if you're using them... try another browser.");
+
+        clearInterval(state.interval);
+        state.loaded = true;
+        allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), e);
+        onDoneLoading();
       }
     };
     
-    // Events on <audio> elements are inconsistent at best across browsers, so we poll instead. :/
-    
+    // Events on <audio> elements are inconsistent at best across browsers, so we poll instead. :/    
     for (var i = 0; i < data.formats.length; i++) {
       var format = data.formats[i];
       var extension, mimetype = null;

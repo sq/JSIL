@@ -3,7 +3,7 @@
 if (typeof (JSIL) === "undefined")
   throw new Error("JSIL.Core required");
 
-var $jsilxna = JSIL.DeclareAssembly("JSIL.XNA4");
+var $jsilxna = JSIL.DeclareAssembly("JSIL.XNA");
 
 Microsoft.Xna.Framework.GraphicsDeviceManager.prototype._ctor = function () {
   this.device = new Microsoft.Xna.Framework.Graphics.GraphicsDevice();
