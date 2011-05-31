@@ -156,8 +156,8 @@ function getAssetName (filename) {
 
 var loadedFontCount = 0;
 var loadingPollInterval = 25;
-var soundLoadTimeout = 2000;
-var fontLoadTimeout = 10000;
+var soundLoadTimeout = 30000;
+var fontLoadTimeout = 15000;
 
 var assetLoaders = {
   "Library": function loadLibrary (filename, data, onError, onDoneLoading) {
@@ -269,11 +269,7 @@ var assetLoaders = {
     state.interval = setInterval(loadingCallback, loadingPollInterval);
   },
   "File": function loadBinaryFile (filename, data, onError, onDoneLoading) {
-    var req;
-    if (typeof (ActiveXObject) !== "undefined")
-      req = new ActiveXObject("MSXML2.XMLHTTP");
-    else
-      req = new XMLHttpRequest();
+    var req = new XMLHttpRequest();
     
     req.open('GET', fileRoot + filename, false);
     if (typeof (req.overrideMimeType) !== "undefined")
