@@ -66,23 +66,75 @@ Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype._ctor = function (device)
 Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.Begin = function () {
 };
 
-Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDraw = function (texture, position, sourceRectangle, color) {
+Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDraw = function (texture, position, sourceRectangle, color, rotation, origin, scale, effects) {
+  var positionIsRect = typeof (position.Width) === "number";
+  var scaleX = 1, scaleY = 1, originX = 0, originY = 0;
+  var positionX, positionY;
+  if (typeof (scale) === "number")
+    scaleX = scaleY = scale;
+  else if ((typeof (scale) === "object") && (scale !== null) && (typeof (scale.X) === "number")) {
+    scaleX = scale.X;
+    scaleY = scale.Y;
+  }
+
+  positionX = position.X;
+  positionY = position.Y;
+
+  this.device.context.save();
+
+  effects = effects || Microsoft.Xna.Framework.Graphics.SpriteEffects.None;
+
+  if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) {
+    this.device.context.scale(-1, 1);
+    positionX = -positionX;
+  }
+
+  if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) {
+    this.device.context.scale(1, -1);
+    positionY = -positionY;
+  }
+
+  if ((typeof (origin) === "object") && (origin !== null) && (typeof (origin.X) === "number")) {
+    originX = origin.X;
+    positionX -= originX;
+    originY = origin.Y;
+    positionY -= originY;
+  }
+
   if ((sourceRectangle !== null) && (sourceRectangle.value !== null)) {
     var sr = sourceRectangle.value;
+    if (positionIsRect)
+      this.device.context.drawImage(
+        texture.image, 
+        sr.X, sr.Y, sr.Width, sr.Height,
+        positionX, positionY, position.Width * scaleX, position.Height * scaleY
+      );
+    else
+      this.device.context.drawImage(
+        texture.image, 
+        sr.X, sr.Y, sr.Width, sr.Height,
+        positionX, positionY, sr.Width * scaleX, sr.Height * scaleY
+      );
+
+  } else if (positionIsRect) {
     this.device.context.drawImage(
-      texture.image, 
-      sr.X, sr.Y, sr.Width, sr.Height,
-      position.X, position.Y, position.Width, position.Height
-    );
-  } else if (typeof (position.Width) === "number") {
-    this.device.context.drawImage(
-      texture.image, position.X, position.Y, position.Width, position.Height
+      texture.image, positionX, positionY, position.Width * scaleX, position.Height * scaleY
     );
   } else {
     this.device.context.drawImage(
-      texture.image, position.X, position.Y
+      texture.image, positionX, positionY, texture.Width * scaleX, texture.Height * scaleY
     );
   }
+
+  this.device.context.restore();
+};
+
+Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDrawString = function (font, text, position, color) {
+  this.device.context.textBaseline = "top";
+  this.device.context.textAlign = "start";
+  this.device.context.font = font.toCss();
+  this.device.context.fillStyle = color.toCss();
+  this.device.context.fillText(text, position.X, position.Y);
 };
 
 Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.End = function () {
@@ -161,6 +213,7 @@ Microsoft.Xna.Framework.Graphics.Color._cctor = function () {
   self.transparentBlack = new Microsoft.Xna.Framework.Graphics.Color(0, 0, 0, 0);
   self.white = new Microsoft.Xna.Framework.Graphics.Color(255, 255, 255);
   self.transparentWhite = new Microsoft.Xna.Framework.Graphics.Color(255, 255, 255, 0);
+  self.red = new Microsoft.Xna.Framework.Graphics.Color(255, 0, 0);
   self.yellow = new Microsoft.Xna.Framework.Graphics.Color(255, 255, 0);
   self.cornflowerBlue = new Microsoft.Xna.Framework.Graphics.Color(100, 149, 237);
 };
@@ -173,6 +226,9 @@ Microsoft.Xna.Framework.Graphics.Color.get_TransparentBlack = function () {
 };
 Microsoft.Xna.Framework.Graphics.Color.get_White = function () {
   return Microsoft.Xna.Framework.Graphics.Color.white;
+};
+Microsoft.Xna.Framework.Graphics.Color.get_Red = function () {
+  return Microsoft.Xna.Framework.Graphics.Color.red;
 };
 Microsoft.Xna.Framework.Graphics.Color.get_Yellow = function () {
   return Microsoft.Xna.Framework.Graphics.Color.yellow;

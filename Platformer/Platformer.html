@@ -15,7 +15,7 @@
     <div id="sounds"></div>
     <div id="fonts"></div>
     
-    <canvas id="canvas" width="800" height="600"></canvas><br>
+    <canvas id="canvas" width="1280" height="720"></canvas><br>
     <button id="quitButton" title="Quit Game">X</button>
     <button id="loadButton">Load Game</button>
     <div id="loadingProgress">
@@ -91,14 +91,14 @@
         ["Image", "Backgrounds/Layer2_1.png"],
         ["Image", "Backgrounds/Layer2_2.png"],
         ["Font", "Fonts/Hud.ttf", 14],
-        ["Sound", "Sounds/Music.mp3", {"loop": true}],
-        ["Sound", "Sounds/ExitReached.mp3"],
-        ["Sound", "Sounds/GemCollected.mp3"],
-        ["Sound", "Sounds/MonsterKilled.mp3"],
-        ["Sound", "Sounds/PlayerFall.mp3"],
-        ["Sound", "Sounds/PlayerJump.mp3"],
-        ["Sound", "Sounds/PlayerKilled.mp3"],
-        ["Sound", "Sounds/PowerUp.mp3"]
+        ["Sound", "Sounds/Music", {"formats": ['.mp3', '.ogg'], "loop": true}],
+        ["Sound", "Sounds/ExitReached", {"formats": ['.mp3', '.ogg']}],
+        ["Sound", "Sounds/GemCollected", {"formats": ['.mp3', '.ogg']}],
+        ["Sound", "Sounds/MonsterKilled", {"formats": ['.mp3', '.ogg']}],
+        ["Sound", "Sounds/PlayerFall", {"formats": ['.mp3', '.ogg']}],
+        ["Sound", "Sounds/PlayerJump", {"formats": ['.mp3', '.ogg']}],
+        ["Sound", "Sounds/PlayerKilled", {"formats": ['.mp3', '.ogg']}],
+        ["Sound", "Sounds/PowerUp", {"formats": ['.mp3', '.ogg']}]
       ];
             
       function runMain () {

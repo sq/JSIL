@@ -22,6 +22,8 @@ JSIL.MakeClass("HTML5Asset", "HTML5ImageAsset", true);
 HTML5ImageAsset.prototype._ctor = function (assetName, image) {
   HTML5Asset.prototype._ctor.call(this, assetName);
   this.image = image;
+  this.Width = image.naturalWidth;
+  this.Height = image.naturalHeight;
 }
 
 JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true);
@@ -29,15 +31,33 @@ HTML5SoundAsset.prototype._ctor = function (assetName, sound) {
   HTML5Asset.prototype._ctor.call(this, assetName);
   this.sound = sound;
 }
-
-JSIL.MakeClass("HTML5Asset", "HTML5FontAsset", true);
-HTML5FontAsset.prototype._ctor = function (assetName, font) {
-  HTML5Asset.prototype._ctor.call(this, assetName);
-  this.font = font;
+HTML5SoundAsset.prototype.Play$0 = function () {
+  if (this.sound != null) {
+    this.sound.play();
+  }
 }
 
+JSIL.MakeClass("HTML5Asset", "HTML5FontAsset", true);
+HTML5FontAsset.prototype._ctor = function (assetName, id, pointSize, lineHeight) {
+  HTML5Asset.prototype._ctor.call(this, assetName);
+  this.id = id;
+  this.pointSize = pointSize;
+  this.lineHeight = lineHeight;
+  this.canvas = JSIL.Host.getCanvas();
+  this.context = this.canvas.getContext("2d");
+}
+HTML5FontAsset.prototype.toCss = function () {
+  return this.pointSize + 'pt "' + this.id + '"';
+};
+HTML5FontAsset.prototype.MeasureString$0 = function (text) {
+  this.context.font = this.toCss();
+  var metrics = this.context.measureText(text);
+  return new Microsoft.Xna.Framework.Vector2(metrics.width, this.lineHeight);
+};
+
 Microsoft.Xna.Framework.Media.MediaPlayer.Play$0 = function (song) {
-  song.sound.play();
+  if (song !== null)
+    song.Play$0();
 };
 
 Microsoft.Xna.Framework.MathHelper.Clamp = function (value, min, max) {
@@ -83,6 +103,20 @@ Microsoft.Xna.Framework.Vector2.op_Subtraction = function (lhs, rhs) {
   return result;
 }
 
+Microsoft.Xna.Framework.Vector2.op_Division$0 = function (lhs, rhs) {
+  var result = Object.create(Microsoft.Xna.Framework.Vector2.prototype);
+  result.X = lhs.X / rhs.X;
+  result.Y = lhs.Y / rhs.Y;
+  return result;
+}
+
+Microsoft.Xna.Framework.Vector2.op_Division$1 = function (lhs, rhs) {
+  var result = Object.create(Microsoft.Xna.Framework.Vector2.prototype);
+  result.X = lhs.X / rhs;
+  result.Y = lhs.Y / rhs;
+  return result;
+}
+
 Microsoft.Xna.Framework.Vector2.op_Multiply$0 = function (lhs, rhs) {
   var result = Object.create(Microsoft.Xna.Framework.Vector2.prototype);
   result.X = lhs.X * rhs.X;
@@ -95,6 +129,14 @@ Microsoft.Xna.Framework.Vector2.op_Multiply$1 = function (lhs, rhs) {
   result.X = lhs.X * rhs;
   result.Y = lhs.Y * rhs;
   return result;
+}
+
+Microsoft.Xna.Framework.Vector2.op_Equality = function (lhs, rhs) {
+  return (lhs.X === rhs.X) && (lhs.Y === rhs.Y);
+}
+
+Microsoft.Xna.Framework.Vector2.op_Inequality = function (lhs, rhs) {
+  return (lhs.X !== rhs.X) || (lhs.Y !== rhs.Y);
 }
 
 Microsoft.Xna.Framework.Vector2.prototype.LengthSquared = function () {
@@ -180,37 +222,8 @@ Microsoft.Xna.Framework.Game.prototype._ctor = function () {
   if (typeof (Date.now) === "function")
     this._GetNow = Date.now;
 
-  if (
-    (typeof (window) === "object") &&
-    (typeof (window.postMessage) === "function")
-  ) {
-    var w = window;
-    var deferredCalls = [];
-    var runDeferredCalls = function () {
-      while (deferredCalls.length > 0) {
-        var callback = deferredCalls.shift();
-        callback();
-      }
-    };
-    var onMessage = function (evt) {
-      if (evt.data === "xna_rundeferredcalls")
-        runDeferredCalls();
-    };
-    window.addEventListener("message", onMessage, false);
-    this._DeferCall = function (callback, long) {
-      if (long) {
-        setTimeout(callback, 0);
-      } else {
-        var needMessage = deferredCalls.length <= 0;
-        deferredCalls.push(callback);
-        if (needMessage)
-          w.postMessage("xna_rundeferredcalls", "*");
-      }
-    };
-  }
-
   this._gameTime = JSIL.New(Microsoft.Xna.Framework.GameTime, "_ctor$0", []);
-  this._lastFrame = this._nextFrame = this._started = this._GetNow();
+  this._lastFrame = this._nextFrame = this._started = 0;
 };
 Microsoft.Xna.Framework.Game.prototype.get_Content = function () {
   return this.content;
@@ -268,11 +281,21 @@ Microsoft.Xna.Framework.Game.prototype._QueueStep = function () {
 };
 Microsoft.Xna.Framework.Game.prototype._Step = function () {
   var now = this._GetNow();
-  var elapsed = now - this._lastFrame;
-  var total = now - this._started;
+  if (this._lastFrame === 0) {
+    var elapsed = 0;
+    var total = 0;
+    this._started = now;
+  } else {
+    var elapsed = now - this._lastFrame;
+    var total = now - this._started;
+  }
 
   this._lastFrame = now;
   this._nextFrame = now + this._frameDelay;
+
+  // Some of the XNA samples seem to fall over and die if elapsed is too large. :|
+  if (elapsed > this._frameDelay)
+    elapsed = this._frameDelay;
 
   this._gameTime.elapsedRealTime._ticks = this._gameTime.elapsedGameTime._ticks = Math.floor(elapsed * System.TimeSpan.MillisecondInTicks);
   this._gameTime.totalRealTime._ticks = this._gameTime.totalGameTime._ticks = Math.floor(total * System.TimeSpan.MillisecondInTicks);
@@ -335,8 +358,16 @@ Microsoft.Xna.Framework.Input.GamePadState.prototype._ctor = function () {
   this._triggers = new Microsoft.Xna.Framework.Input.GamePadTriggers();
 }
 
+Microsoft.Xna.Framework.Input.GamePadButtons.prototype.get_Back = function () {
+  return false;
+}
+
 Microsoft.Xna.Framework.Input.GamePadState.prototype.get_Buttons = function () {
   return this._buttons;
+}
+
+Microsoft.Xna.Framework.Input.GamePadState.prototype.IsButtonDown = function (button) {
+  return false;
 }
 
 Microsoft.Xna.Framework.Input.GamePadState.prototype.get_ThumbSticks = function () {
@@ -413,10 +444,10 @@ Microsoft.Xna.Framework.GameTime.prototype.get_ElapsedGameTime = function () {
 }
 
 Microsoft.Xna.Framework.Rectangle.prototype._ctor = function (x, y, width, height) {
-  this.X = x;
-  this.Y = y;
-  this.Width = width;
-  this.Height = height;
+  this.X = Math.floor(x);
+  this.Y = Math.floor(y);
+  this.Width = Math.floor(width);
+  this.Height = Math.floor(height);
 }
 
 Microsoft.Xna.Framework.Rectangle.prototype.get_Left = function () {
@@ -437,7 +468,9 @@ Microsoft.Xna.Framework.Rectangle.prototype.get_Center = function () {
     Math.floor(this.Y + (this.Height / 2))
   );
 }
-
+Microsoft.Xna.Framework.Rectangle.prototype.Contains$1 = function (value) {
+  return this.X <= value.X && value.X < this.X + this.Width && this.Y <= value.Y && value.Y < this.Y + this.Height;
+}
 Microsoft.Xna.Framework.Rectangle.prototype.MemberwiseClone = function () {
   var result = Object.create(Microsoft.Xna.Framework.Rectangle.prototype);
   result.X = this.X;
@@ -449,14 +482,17 @@ Microsoft.Xna.Framework.Rectangle.prototype.MemberwiseClone = function () {
 
 
 Microsoft.Xna.Framework.Point.prototype._ctor = function (x, y) {
-  this.X = x;
-  this.Y = y;
+  this.X = Math.floor(x);
+  this.Y = Math.floor(y);
 }
 Microsoft.Xna.Framework.Point._cctor = function () {
-  Microsoft.Xna.Framework.Point.Zero = new Microsoft.Xna.Framework.Point();
+  Microsoft.Xna.Framework.Point._zero = new Microsoft.Xna.Framework.Point();
 }
 Microsoft.Xna.Framework.Point.prototype.Equals$0 = function (rhs) {
   return this.X === rhs.X && this.Y === rhs.Y;
+};
+Microsoft.Xna.Framework.Point.get_Zero = function () {
+  return Microsoft.Xna.Framework.Point._zero;
 };
 Microsoft.Xna.Framework.Point.op_Equality = function (lhs, rhs) {
   return lhs.Equals$0(rhs);

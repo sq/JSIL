@@ -785,7 +785,7 @@ namespace JSIL.Internal {
 
             var methodGroups = (from kvp in Members where kvp.Key.Type == MemberIdentifier.MemberType.Method
                                 let m = (MethodInfo)kvp.Value
-                                where !m.IsIgnored && !m.Metadata.HasAttribute("JSIL.Meta.JSRuntimeDispatch")
+                                where !m.IsIgnored && !m.Metadata.HasAttribute("JSIL.Meta.JSReplacement")
                                 group m by new {
                                     m.Name,
                                     m.IsStatic

@@ -17,9 +17,7 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
-        [JSRuntimeDispatch]
-        [JSExternal]
-        [JSChangeName("toString")]
+        [JSReplacement("($this).toString()")]
         public string ToString (params AnyType[] arguments) {
             return base.ToString();
         }
@@ -38,9 +36,7 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
-        [JSRuntimeDispatch]
-        [JSExternal]
-        [JSChangeName("toString")]
+        [JSReplacement("($this).toString()")]
         public string ToString (params AnyType[] arguments) {
             return base.ToString();
         }

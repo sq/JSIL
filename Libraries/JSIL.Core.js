@@ -779,6 +779,27 @@ JSIL.MakeInterface = function (fullName, members) {
   }
 };
 
+JSIL.MakeEnumValue = function (enumType, value, key) {
+  var obj = new Number(value);
+  if (key !== null)
+    obj.toString = function () {
+      return key;
+    };
+  else
+    obj.toString = function () {
+      return value.toString();
+    }
+
+  obj.GetType = function () {
+    return enumType;
+  };
+
+  obj.value = value;
+  obj.name = key;
+
+  return obj;
+}
+
 JSIL.MakeEnum = function (fullName, members, isFlagsEnum) {
   var resolved = JSIL.ResolveName($private, fullName);
   var localName = resolved.localName;
@@ -802,6 +823,14 @@ JSIL.MakeEnum = function (fullName, members, isFlagsEnum) {
     __ValueToName__: {}
   };
 
+  result.CheckType = function (v) {
+    if (typeof (v.GetType) === "function")
+      if (v.GetType() === result)
+        return true;
+
+    return false;
+  };
+
   for (var key in members) {
     if (!members.hasOwnProperty(key))
       continue;
@@ -809,12 +838,7 @@ JSIL.MakeEnum = function (fullName, members, isFlagsEnum) {
     var value = Math.floor(members[key]);
 
     result.__ValueToName__[value] = key;
-
-    var obj = Object.create(prototype);
-    obj.value = value;
-    obj.name = key;
-
-    result[key] = obj;
+    result[key] = JSIL.MakeEnumValue(result, value, key);
   }
 
   var decl = {
@@ -1008,6 +1032,8 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
     }
 
     return false;
+  } else if (expectedType.IsEnum === true) {
+    return expectedType.CheckType(value);
   }
 
   var ct = expectedType.CheckType;
@@ -1106,7 +1132,9 @@ JSIL.TryCast = function (value, expectedType) {
 };
 
 JSIL.Cast = function (value, expectedType) {
-  if (JSIL.CheckType(value, expectedType)) {
+  if (expectedType.IsEnum) {
+    var result = JSIL.MakeEnumValue(expectedType, value, null);
+  } else if (JSIL.CheckType(value, expectedType)) {
     // If the user is casting to an integral type like Int32, we need to floor the value since JS stores all numbers as double
     if (JSIL.CheckDerivation(expectedType.prototype, Number.prototype) && (expectedType.prototype.__IsIntegral__)) {
       return Math.floor(value);

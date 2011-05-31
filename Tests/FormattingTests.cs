@@ -50,8 +50,8 @@ namespace JSIL.Tests {
             );
             try {
                 Assert.AreEqual(
-                    2, 
-                    generatedJs.Split(new String[] { "String.Concat" }, StringSplitOptions.RemoveEmptyEntries).Length
+                    3,
+                    generatedJs.Split(new String[] { "JSIL.ConcatString" }, StringSplitOptions.RemoveEmptyEntries).Length
                 );
                 Assert.IsFalse(generatedJs.Contains("WriteLine([\"a\", \"b\", 5, \"d\"])"));
             } catch {

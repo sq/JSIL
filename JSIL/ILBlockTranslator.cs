@@ -233,7 +233,7 @@ namespace JSIL {
                     }
 
                     return new JSVerbatimLiteral(
-                        (string)parms[0].Value, argsDict, method.Method.ReturnType
+                        method, (string)parms[0].Value, argsDict, method.Method.ReturnType
                     );
                 }
             }
@@ -252,7 +252,7 @@ namespace JSIL {
                         throw new InvalidOperationException("JSIL.Verbatim.Expression must recieve a string literal as an argument");
 
                     return new JSVerbatimLiteral(
-                        expression.Value, null, null
+                        method, expression.Value, null, null
                     );
                 }
                 case "System.Object JSIL.JSGlobal::get_Item(System.String)": {
@@ -315,7 +315,7 @@ namespace JSIL {
                     argsDict.Add(kvp.Name, kvp.Value);
                 }
 
-                return new JSVerbatimLiteral((string)parms[0].Value, argsDict, propertyInfo.ReturnType);
+                return new JSVerbatimLiteral(method, (string)parms[0].Value, argsDict, propertyInfo.ReturnType);
             }
 
             var thisType = GetTypeDefinition(thisExpression.GetExpectedType(TypeSystem));
@@ -1172,8 +1172,23 @@ namespace JSIL {
             if (!TypesAreAssignable(expectedType, value.GetExpectedType(TypeSystem)))
                 value = Translate_Conv(value, expectedType);
 
+            JSVariable jsv;
+
+            if (RenamedVariables.TryGetValue(variable, out jsv))
+                jsv = new JSIndirectVariable(Variables, jsv.Identifier);
+            else
+                jsv = new JSIndirectVariable(Variables, variable.Name);
+
+            if (jsv.IsReference) {
+                JSExpression materializedValue;
+                if (!JSReferenceExpression.TryMaterialize(JSIL, value, out materializedValue))
+                    Console.Error.WriteLine(String.Format("Cannot store a non-reference into variable {0}: {1}", jsv, value));
+                else
+                    value = materializedValue;
+            }
+
             return new JSBinaryOperatorExpression(
-                JSOperator.Assignment, Translate_Ldloc(node, variable),
+                JSOperator.Assignment, jsv,
                 value,
                 value.GetExpectedType(TypeSystem)
             );
@@ -1269,7 +1284,10 @@ namespace JSIL {
             if (!JSReferenceExpression.TryDereference(JSIL, reference, out referent))
                 Console.Error.WriteLine(String.Format("Warning: unsupported reference type for ldobj: {0}", node.Arguments[0]));
 
-            return reference;
+            if (EmulateStructAssignment.IsStruct(referent.GetExpectedType(TypeSystem)))
+                return reference;
+            else
+                return referent;
         }
 
         protected JSExpression Translate_Ldind (ILExpression node) {
@@ -1277,16 +1295,23 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Stobj (ILExpression node, TypeReference type) {
-            var reference = TranslateNode(node.Arguments[0]);
-            JSExpression referent;
-
-            if (!JSReferenceExpression.TryDereference(JSIL, reference, out referent))
-                Console.Error.WriteLine(String.Format("Warning: unsupported reference type for sdobj: {0}", node.Arguments[0]));
-
+            var target = TranslateNode(node.Arguments[0]);
+            var targetVariable = target as JSVariable;
             var value = TranslateNode(node.Arguments[1]);
 
+            if (targetVariable != null) {
+                if (!targetVariable.IsReference)
+                    Console.Error.WriteLine(String.Format("Warning: unsupported target variable for stobj: {0}", node.Arguments[0]));
+            } else {
+                JSExpression referent;
+                if (!JSReferenceExpression.TryDereference(JSIL, target, out referent))
+                    Console.Error.WriteLine(String.Format("Warning: unsupported target expression for stobj: {0}", node.Arguments[0]));
+                else
+                    target = referent;
+            }
+
             return new JSBinaryOperatorExpression(
-                JSOperator.Assignment, reference, value, node.ExpectedType ?? node.InferredType
+                JSOperator.Assignment, target, value, node.ExpectedType ?? node.InferredType
             );
         }
 
@@ -1295,7 +1320,13 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_AddressOf (ILExpression node) {
-            return JSReferenceExpression.New(TranslateNode(node.Arguments[0]));
+            var referent = TranslateNode(node.Arguments[0]);
+
+            var referentInvocation = referent as JSInvocationExpression;
+            if (referentInvocation != null)
+                return new JSResultReferenceExpression(referentInvocation);
+
+            return JSReferenceExpression.New(referent);
         }
 
         protected JSExpression Translate_Arglist (ILExpression node) {

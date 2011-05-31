@@ -1043,7 +1043,29 @@ namespace JSIL.Ast {
         /// Converts a constructed reference into an actual reference to the expression it refers to, allowing it to be passed to functions.
         /// </summary>
         public static bool TryMaterialize (JSILIdentifier jsil, JSExpression reference, out JSExpression materialized) {
+            var iref = reference as JSResultReferenceExpression;
             var mref = reference as JSMemberReferenceExpression;
+
+            if (iref != null) {
+                var invocation = iref.Referent;
+                var jsm = invocation.JSMethod;
+                if (jsm != null) {
+
+                    // For some reason the compiler sometimes generates 'addressof Array.Get(...)', and then it
+                    //  assigns into that reference later on to fill the array element. This only makes sense because
+                    //  for Array.Get to return a struct via the stack, it has to return a reference to the struct,
+                    //  and that reference happens to point directly into the array storage. Evil!
+                    if (ILBlockTranslator.GetTypeDefinition(jsm.Reference.DeclaringType).FullName == "System.Array") {
+                        materialized = JSInvocationExpression.InvokeMethod(
+                            invocation.JSType, new JSFakeMethod(
+                                "GetReference", new ByReferenceType(jsm.Reference.ReturnType),
+                                (from p in jsm.Reference.Parameters select p.ParameterType).ToArray()
+                            ), invocation.ThisReference, invocation.Arguments.ToArray(), true
+                        );
+                        return true;
+                    }
+                }
+            }
 
             if (mref != null) {
                 var referent = mref.Referent;
@@ -1099,6 +1121,20 @@ namespace JSIL.Ast {
         }
     }
 
+    // Represents a reference to the return value of a method call.
+    public class JSResultReferenceExpression : JSReferenceExpression {
+        public JSResultReferenceExpression (JSInvocationExpression invocation)
+            : base (invocation) {
+        }
+
+        new public JSInvocationExpression Referent {
+            get {
+                return (JSInvocationExpression)base.Referent;
+            }
+        }
+    }
+
+    // Represents a reference to the result of a member reference (typically a JSDotExpression).
     public class JSMemberReferenceExpression : JSReferenceExpression {
         public JSMemberReferenceExpression (JSExpression referent)
             : base(referent) {
@@ -1531,13 +1567,15 @@ namespace JSIL.Ast {
     }
 
     public class JSVerbatimLiteral : JSLiteral {
+        public readonly JSMethod OriginalMethod;
         public readonly TypeReference Type;
         public readonly string Expression;
         public readonly IDictionary<string, JSExpression> Variables;
 
-        public JSVerbatimLiteral (string expression, IDictionary<string, JSExpression> variables, TypeReference type = null)
+        public JSVerbatimLiteral (JSMethod originalMethod, string expression, IDictionary<string, JSExpression> variables, TypeReference type = null)
             : base(GetValues(variables)) {
 
+            OriginalMethod = originalMethod;
             Type = type;
             Expression = expression;
             Variables = variables;
@@ -1568,6 +1606,13 @@ namespace JSIL.Ast {
             }
 
             base.ReplaceChild(oldChild, newChild);
+        }
+
+        public override string ToString () {
+            return String.Format(
+                "Verbatim {0} ({1})", OriginalMethod,
+                String.Join(", ", (from kvp in Variables select String.Format("{0}={1}", kvp.Key, kvp.Value)).ToArray())
+            );
         }
     }
 
@@ -2422,8 +2467,9 @@ namespace JSIL.Ast {
 
         public override string ToString () {
             return String.Format(
-                "{0}({1})", 
+                "{0}(this={1}, args={2})", 
                 Method, 
+                ThisReference,
                 String.Join(", ", (from a in Arguments select String.Concat(a)).ToArray())
             );
         }

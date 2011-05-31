@@ -199,11 +199,11 @@ namespace JSIL.Transforms {
                 throw new InvalidOperationException();
 
             foreach (var v in fn.AllVariables.Values.ToArray()) {
-                if (v.IsReference || v.IsThis || v.IsParameter)
+                if (v.IsThis || v.IsParameter)
                     continue;
 
                 var valueType = v.GetExpectedType(TypeSystem);
-                if (valueType.IsByReference || ILBlockTranslator.IsIgnoredType(valueType))
+                if (ILBlockTranslator.IsIgnoredType(valueType))
                     continue;
 
                 var assignments = (from a in d.Assignments where v.Equals(a.Target) select a).ToArray();

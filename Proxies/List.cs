@@ -15,25 +15,35 @@ namespace JSIL.Proxies {
         interfacePolicy: JSProxyInterfacePolicy.ReplaceNone,
         inheritable: true
     )]
-    public abstract class ListProxy<T> : IEnumerable<T> {
+    public abstract class ListProxy<T> {
         [JSRuntimeDispatch]
         [JSExternal]
         public ListProxy (params AnyType[] values) {
             throw new InvalidOperationException();
         }
 
-        [JSRuntimeDispatch]
+        [JSReplacement("$this.GetEnumerator()")]
         [JSExternal]
         public abstract AnyType GetEnumerator ();
+    }
 
-        [JSRuntimeDispatch]
-        [JSExternal]
+    [JSProxy(
+        new[] {
+            "System.Collections.IEnumerable",
+            "System.Collections.Generic.IEnumerable`1"
+        },
+        memberPolicy: JSProxyMemberPolicy.ReplaceDeclared,
+        attributePolicy: JSProxyAttributePolicy.ReplaceDeclared,
+        interfacePolicy: JSProxyInterfacePolicy.ReplaceNone,
+        inheritable: true
+    )]
+    public abstract class IEnumerableProxy<T> : IEnumerable<T> {
+        [JSReplacement("$this.GetEnumerator()")]
         IEnumerator IEnumerable.GetEnumerator () {
             throw new InvalidOperationException();
         }
 
-        [JSRuntimeDispatch]
-        [JSExternal]
+        [JSReplacement("$this.GetEnumerator()")]
         IEnumerator<T> IEnumerable<T>.GetEnumerator () {
             throw new InvalidOperationException();
         }

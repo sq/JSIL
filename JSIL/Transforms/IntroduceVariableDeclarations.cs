@@ -67,8 +67,7 @@ namespace JSIL.Transforms {
             var leftVar = boe.Left as JSVariable;
 
             if (
-                (leftVar != null) && isAssignment && 
-                !leftVar.IsReference && !leftVar.IsParameter
+                (leftVar != null) && isAssignment && !leftVar.IsParameter
             ) {
                 if (ToDeclare.Contains(leftVar) && !CouldntDeclare.Contains(leftVar)) {
                     var superParent = Stack.Skip(2).FirstOrDefault();

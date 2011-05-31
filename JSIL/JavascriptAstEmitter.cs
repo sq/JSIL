@@ -427,6 +427,16 @@ namespace JSIL {
             else
                 Output.Identifier(variable.Identifier);
 
+            // Don't emit .value when initializing a reference in a declaration.
+            var boe = ParentNode as JSBinaryOperatorExpression;
+            if (
+                (boe != null) && 
+                (boe.Left == variable) && 
+                (Stack.Skip(2).FirstOrDefault() is JSVariableDeclarationStatement)
+            ) {
+                return;
+            }
+
             if (variable.IsReference) {
                 if (variable.IsThis) {
                     if (JSExpression.DeReferenceType(variable.Type).IsValueType)
@@ -963,7 +973,7 @@ namespace JSIL {
             } else {
                 bool needsParens =
                     (CountOfMatchingSubtrees<JSFunctionExpression>(new[] { invocation.ThisReference }) > 0) ||
-                    invocation.ThisReference is JSLiteral;
+                    (CountOfMatchingSubtrees<JSLiteral>(new[] { invocation.ThisReference }) > 0);
 
                 if (needsParens)
                     Output.LPar();

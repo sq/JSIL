@@ -1009,7 +1009,7 @@ namespace JSIL {
 
         protected void TranslateMethodGroup (DecompilerContext context, JavascriptFormatter output, MethodGroupInfo methodGroup) {
             var methods = (from m in methodGroup.Methods where !m.IsIgnored select m).ToArray();
-            if (methods.Length == 0)
+            if (methods.Length < 1)
                 return;
 
             foreach (var method in methods) {
@@ -1175,7 +1175,7 @@ namespace JSIL {
                     ).Visit(function);
 
                 new IntroduceEnumCasts(
-                    translator.TypeSystem
+                    context.CurrentModule.TypeSystem
                 ).Visit(function);
 
                 if (bodyTransformer != null)

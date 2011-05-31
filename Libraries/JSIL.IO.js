@@ -6,11 +6,7 @@ if (typeof (JSIL) === "undefined")
 JSIL.DeclareAssembly("JSIL.IO");
 
 System.IO.File.Exists = function (filename) {
-  var file = JSIL.Host.getFile(filename);
-  if ((typeof (file) !== "undefined") && (typeof (file.length) === "number"))
-    return true;
-  else
-    return false;
+  return JSIL.Host.doesFileExist(filename);
 }
 
 System.IO.Path.Combine = function () {

@@ -103,7 +103,7 @@
     <None Include="SimpleTestCases\MultiDimArrays.cs" />
     <None Include="SimpleTestCases\ArrayOverload.cs" />
     <None Include="SimpleTestCases\VarArgs.cs" />
-    <None Include="SimpleTestCases\Enums.cs" />
+    <None Include="TestCases\Enums.cs" />
     <None Include="SimpleTestCases\ExtensionMethods.cs" />
     <None Include="SpecialTestCases\ChainedElseIf.cs" />
     <None Include="SimpleTestCases\NestedNamespaces.cs" />
@@ -162,7 +162,7 @@
     <None Include="SpecialTestCases\NestedInitialization.cs" />
     <None Include="SimpleTestCases\CollectionInitializers.cs" />
     <None Include="SimpleTestCases\StructThisAssignment.cs" />
-    <None Include="SimpleTestCases\ValueTypeMethods.cs" />
+    <None Include="TestCases\ValueTypeMethods.cs" />
     <None Include="SimpleTestCases\GetType.cs" />
     <None Include="SpecialTestCases\IgnoreInterface.cs" />
     <None Include="SimpleTestCases\InheritedInterfaces.cs" />
@@ -183,8 +183,8 @@
     <None Include="SpecialTestCases\IgnoreDerivedType.cs" />
     <None Include="SpecialTestCases\StubbedMethodBodies.cs" />
     <None Include="SpecialTestCases\ProxiedOperators.cs" />
-    <None Include="SimpleTestCases\EnumArrayLookup.cs" />
-    <None Include="SimpleTestCases\OverloadWithEnum.cs" />
+    <None Include="TestCases\EnumArrayLookup.cs" />
+    <None Include="TestCases\OverloadWithEnum.cs" />
     <None Include="SimpleTestCases\OverloadWithDelegate.cs" />
     <None Include="TestCases\RefClass.cs" />
     <None Include="SpecialTestCases\StringSwitch.cs" />
@@ -196,6 +196,7 @@
     <None Include="SpecialTestCases\DoLoops.cs" />
     <None Include="TestCases\CharSwitch.cs" />
     <None Include="TestCases\MultiDimStructArrays.cs" />
+    <None Include="TestCases\SingleDimStructArrays.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

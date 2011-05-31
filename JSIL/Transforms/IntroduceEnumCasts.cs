@@ -16,26 +16,6 @@ namespace JSIL.Transforms {
             TypeSystem = typeSystem;
         }
 
-        public void VisitNode (JSIndexerExpression ie) {
-            var targetType = ie.Target.GetExpectedType(TypeSystem);
-            var indexType = ie.Index.GetExpectedType(TypeSystem);
-            var expectedType = ie.GetExpectedType(TypeSystem);
-
-            if (!ILBlockTranslator.IsIntegral(indexType)) {
-                var indexTypeDef = ILBlockTranslator.GetTypeDefinition(indexType);
-
-                if (indexTypeDef.IsEnum) {
-                    var cast = new JSDotExpression(
-                        ie.Index, new JSStringIdentifier("value", TypeSystem.Int32)
-                    );
-
-                    ie.ReplaceChild(ie.Index, cast);
-                }
-            }
-
-            VisitChildren(ie);
-        }
-
         public void VisitNode (JSSwitchStatement ss) {
             var conditionType = ss.Condition.GetExpectedType(TypeSystem);
 
@@ -43,8 +23,8 @@ namespace JSIL.Transforms {
                 var indexTypeDef = ILBlockTranslator.GetTypeDefinition(conditionType);
 
                 if (indexTypeDef.IsEnum) {
-                    var cast = new JSDotExpression(
-                        ss.Condition, new JSStringIdentifier("value", TypeSystem.Int32)
+                    var cast = JSInvocationExpression.InvokeStatic(
+                        new JSFakeMethod("Number", TypeSystem.Int32, indexTypeDef), new[] { ss.Condition }, true
                     );
 
                     ss.ReplaceChild(ss.Condition, cast);

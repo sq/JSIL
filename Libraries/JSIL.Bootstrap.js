@@ -149,16 +149,11 @@ System.String.CheckType = function (value) {
 System.String.toString = function () {
   return this.text;
 }
-System.String.Concat = function (firstValue) {
-  var args = arguments;
-  if (JSIL.IsArray(firstValue)) {
-    args = firstValue;
-  }
+JSIL.ConcatString = function (/* ...values */) {
+  var result = String(arguments[0]);
 
-  var result = String(args[0]);
-
-  for (var i = 1, l = args.length; i < l; i++) {
-    var arg = args[i];
+  for (var i = 1, l = arguments.length; i < l; i++) {
+    var arg = arguments[i];
     if (typeof (arg) === "string")
       result += arg;
     else
@@ -166,6 +161,13 @@ System.String.Concat = function (firstValue) {
   }
 
   return result;
+}
+System.String.Concat = function (firstValue) {
+  if (JSIL.IsArray(firstValue) && arguments.length == 1) {
+    return JSIL.ConcatString.apply(null, firstValue);
+  } else {
+    return JSIL.ConcatString(Array.prototype.slice.call(arguments));
+  }
 }
 System.String.Format = function (format) {
   format = String(format);
@@ -308,9 +310,12 @@ System.Collections.Generic.List$b1.prototype.Remove = function (item) {
   if (index === -1)
     return false;
 
+  this.RemoveAt(index);
+};
+System.Collections.Generic.List$b1.prototype.RemoveAt = function (index) {
   this._items.splice(index, 1);
   this._size -= 1;
-};
+}
 System.Collections.Generic.List$b1.prototype.Clear = function () {
   this._size = 0;
 };
@@ -618,6 +623,14 @@ System.TimeSpan.op_Inequality = function (lhs, rhs) {
   return lhs._ticks !== rhs._ticks;
 };
 
+System.TimeSpan.op_GreaterThan = function (lhs, rhs) {
+  return lhs._ticks > rhs._ticks;
+};
+
+System.TimeSpan.op_LessThan = function (lhs, rhs) {
+  return lhs._ticks < rhs._ticks;
+};
+
 System.TimeSpan.op_Addition = function (lhs, rhs) {
   var result = Object.create(System.TimeSpan.prototype);
   result._ticks = lhs._ticks + rhs._ticks;
@@ -640,6 +653,18 @@ System.TimeSpan.prototype.get_Seconds = function () {
 
 System.TimeSpan.prototype.get_Minutes = function () {
   return this._ticks / 600000000 % 60;
+};
+
+System.TimeSpan.prototype.get_TotalMilliseconds = function () {
+  return this._ticks / 10000;
+};
+
+System.TimeSpan.prototype.get_TotalSeconds = function () {
+  return this._ticks / 10000000;
+};
+
+System.TimeSpan.prototype.get_TotalMinutes = function () {
+  return this._ticks / 600000000;
 };
 
 JSIL.QueueInitializer(function () {

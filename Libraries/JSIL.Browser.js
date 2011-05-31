@@ -41,19 +41,23 @@ JSIL.Host.logWriteLine = function (text) {
     document.getElementById("log").appendChild(document.createElement("br"));
   }
 };
-JSIL.Host.getFile = function (filename) {
+JSIL.Host.translateFilename = function (filename) {
   var root = JSIL.Host.getRootDirectory();
   filename = filename.replace(root, "");
   
   while (filename[0] === "/")
     filename = filename.substr(1);
   
-  filename = getAssetName(filename);
-  
-  if (!allFiles.hasOwnProperty(filename))
+  return getAssetName(filename);
+}
+JSIL.Host.doesFileExist = function (filename) {
+  return allFiles.hasOwnProperty(JSIL.Host.translateFilename(filename));
+}
+JSIL.Host.getFile = function (filename) {
+  if (!JSIL.Host.doesFileExist(filename))
     throw new System.Exception("The file '" + filename + "' is not in the asset manifest.");
   
-  return allFiles[filename];
+  return allFiles[JSIL.Host.translateFilename(filename)];
 };
 JSIL.Host.getImage = function (filename) {
   var key = getAssetName(filename);
@@ -151,6 +155,7 @@ function getAssetName (filename) {
 };
 
 var loadedFontCount = 0;
+var loadingPollInterval = 25;
 var fontLoadTimeout = 10000;
 
 var assetLoaders = {
@@ -189,34 +194,60 @@ var assetLoaders = {
     if ((data !== null) && data.hasOwnProperty("loop"))
       e.loop = data.loop;
     
-    var state = { loaded: false };
+    var state = { 
+      loaded: false,
+    };
     
-    var loadingCallback = function () {
+    var loadingCallback = function (evt) {
       if (state.loaded)
         return;
       
-      state.loaded = true;
-      allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), e);
-      onDoneLoading();
+      switch (e.networkState) {
+        case HTMLMediaElement.NETWORK_IDLE:
+        case HTMLMediaElement.NETWORK_LOADED: // Not defined in firefox or IE
+          clearInterval(state.interval);
+          state.loaded = true;
+          allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), e);
+          onDoneLoading();
+          break;
+        case HTMLMediaElement.NETWORK_NO_SOURCE:
+          clearInterval(state.interval);
+          state.loaded = true;
+          allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), null);
+          try {
+            onError("Error " + e.error.code);
+          } catch (ex) {
+            onError("Unknown error");
+          }
+          break;
+      }
     };
     
-    e.addEventListener("error", onError, true);
-    e.addEventListener("load", loadingCallback, true);
-    e.addEventListener("canplay", loadingCallback, true);
+    // Events on <audio> elements are inconsistent at best across browsers, so we poll instead. :/
     
-    var source = document.createElement("source");
-    if ((data !== null) && data.hasOwnProperty("type"))
-      source.type = data.type;
-    else
-      source.type = "audio/mpeg";    
-    
-    source.src = contentRoot + filename;
-    e.appendChild(source);
+    for (var i = 0; i < data.formats.length; i++) {
+      var format = data.formats[i];
+      var extension, mimetype = null;
+      if (typeof (format) === "string")
+        extension = format;
+      else {
+        extension = format.extension;
+        mimetype = format.mimetype;
+      }
+      
+      var source = document.createElement("source");
+      source.src = contentRoot + filename + extension;
+      if (mimetype !== null)
+        source.type = mimetype;
+      e.appendChild(source);
+    }
     
     document.getElementById("sounds").appendChild(e);
     
     if (typeof (e.load) === "function")
       e.load();
+    
+    state.interval = setInterval(loadingCallback, loadingPollInterval);
   },
   "File": function loadBinaryFile (filename, data, onError, onDoneLoading) {
     var req;
@@ -285,7 +316,7 @@ var assetLoaders = {
     
     var loadedCallback = function () {
       clearInterval(intervalHandle);
-      allAssets[getAssetName(filename)] = new HTML5FontAsset(getAssetName(filename), fontId);
+      allAssets[getAssetName(filename)] = new HTML5FontAsset(getAssetName(filename), fontId, (data || 12), e.offsetHeight);
       onDoneLoading();
     };
     
@@ -298,12 +329,12 @@ var assetLoaders = {
           (now - startedLoadingWhen) > fontLoadTimeout)
         loadedCallback();
     };
-    var intervalHandle = setInterval(checkIfLoadedCallback, 100);
+    var intervalHandle = setInterval(checkIfLoadedCallback, loadingPollInterval);
     
     // Then set up a callback to watch for the size of the element to change, and apply our CSS font.
     // In practice, the size shouldn't change until the font has loaded.
-    var fontSize = (data || 12) + "pt";
-    e.setAttribute("style", 'font: ' + fontSize + ' "' + fontId + '"');
+    var pointSize = (data || 12) + "pt";
+    e.setAttribute("style", 'font: ' + pointSize + ' "' + fontId + '"');
   },
 };
 
@@ -324,6 +355,7 @@ function loadNextAsset (assets, i, onDoneLoading, loadDelay) {
   };
   
   var errorCallback = function (e) {
+    allAssets[getAssetName(assetPath)] = null;
     JSIL.Host.logWriteLine("The asset '" + assetSpec + "' could not be loaded:" + String(e));
     stepCallback();
   };

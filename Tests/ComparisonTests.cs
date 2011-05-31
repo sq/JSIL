@@ -41,7 +41,15 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        public void MultiDimStructArrays () {
+        public void ValueTypeMethods () {
+            using (var test = new ComparisonTest(@"TestCases\ValueTypeMethods.cs"))
+                test.Run();
+        }
+
+        [Test]
+        public void StructArrays () {
+            using (var test = new ComparisonTest(@"TestCases\SingleDimStructArrays.cs"))
+                test.Run();
             using (var test = new ComparisonTest(@"TestCases\MultiDimStructArrays.cs"))
                 test.Run();
         }
@@ -56,17 +64,19 @@ namespace JSIL.Tests {
         public void Chars () {
             using (var test = new ComparisonTest(@"TestCases\Chars.cs"))
                 test.Run();
-        }
-
-        [Test]
-        public void EnumSwitch () {
-            using (var test = new ComparisonTest(@"TestCases\EnumSwitch.cs"))
+            using (var test = new ComparisonTest(@"TestCases\CharSwitch.cs"))
                 test.Run();
         }
 
         [Test]
-        public void CharSwitch () {
-            using (var test = new ComparisonTest(@"TestCases\CharSwitch.cs"))
+        public void Enums () {
+            using (var test = new ComparisonTest(@"TestCases\Enums.cs"))
+                test.Run();
+            using (var test = new ComparisonTest(@"TestCases\EnumArrayLookup.cs"))
+                test.Run();
+            using (var test = new ComparisonTest(@"TestCases\EnumSwitch.cs"))
+                test.Run();
+            using (var test = new ComparisonTest(@"TestCases\OverloadWithEnum.cs"))
                 test.Run();
         }
 
