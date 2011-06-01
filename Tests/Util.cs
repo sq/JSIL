@@ -137,7 +137,7 @@ namespace JSIL.Tests {
                 }
         }
 
-        public string RunJavascript (string[] args, out string generatedJavascript, out long elapsed) {
+        public string RunJavascript (string[] args, out string generatedJavascript, out long elapsedTranslation, out long elapsedJs) {
             var tempFilename = Path.GetTempFileName();
             var translator = new JSIL.AssemblyTranslator {
                 IncludeDependencies = false
@@ -147,10 +147,12 @@ namespace JSIL.Tests {
                 translator.StubbedAssemblies.AddRange(StubbedAssemblies);
 
             string translatedJs;
+            var translationStarted = DateTime.UtcNow.Ticks;
             using (var ms = new MemoryStream()) {
                 translator.Translate(GetPathOfAssembly(Assembly), ms);
                 translatedJs = Encoding.ASCII.GetString(ms.GetBuffer(), 0, (int)ms.Length);
             }
+            elapsedTranslation = DateTime.UtcNow.Ticks - translationStarted;
 
             var declaringType = JSIL.Internal.Util.EscapeIdentifier(TestMethod.DeclaringType.FullName, Internal.EscapingMode.TypeIdentifier);
 
@@ -210,12 +212,12 @@ namespace JSIL.Tests {
                 }
 
                 long endedJs = DateTime.UtcNow.Ticks;
-                elapsed = endedJs - startedJs;
+                elapsedJs = endedJs - startedJs;
 
                 if (output[0] != null) {
                     var m = ElapsedRegex.Match(output[0]);
                     if (m.Success) {
-                        elapsed = TimeSpan.FromMilliseconds(
+                        elapsedJs = TimeSpan.FromMilliseconds(
                             double.Parse(m.Groups["elapsed"].Value)
                         ).Ticks;
                         output[0] = output[0].Replace(m.Value, "");
@@ -240,7 +242,7 @@ namespace JSIL.Tests {
             var generatedJs = new string[1];
             var errors = new Exception[2];
             var outputs = new string[2];
-            var elapsed = new long[2];
+            var elapsed = new long[3];
 
             ThreadPool.QueueUserWorkItem((_) => {
                 try {
@@ -253,7 +255,7 @@ namespace JSIL.Tests {
 
             ThreadPool.QueueUserWorkItem((_) => {
                 try {
-                    outputs[1] = RunJavascript(args, out generatedJs[0], out elapsed[1]).Replace("\r", "").Trim();
+                    outputs[1] = RunJavascript(args, out generatedJs[0], out elapsed[1], out elapsed[2]).Replace("\r", "").Trim();
                 } catch (Exception ex) {
                     errors[1] = ex;
                 }
@@ -272,9 +274,10 @@ namespace JSIL.Tests {
                     Assert.AreEqual(outputs[0], outputs[1]);
 
                 Console.WriteLine(
-                    "passed: C# in {0:00.0000}s, JS in {1:00.0000}s",
+                    "passed: C#:{0:00.00}s JSIL:{1:00.00}s JS:{2:00.00}s",
                     TimeSpan.FromTicks(elapsed[0]).TotalSeconds,
-                    TimeSpan.FromTicks(elapsed[1]).TotalSeconds
+                    TimeSpan.FromTicks(elapsed[1]).TotalSeconds,
+                    TimeSpan.FromTicks(elapsed[2]).TotalSeconds
                 );
             } catch {
                 Console.WriteLine("failed");
@@ -299,11 +302,11 @@ namespace JSIL.Tests {
 
     public class GenericTestFixture {
         protected string GetJavascript (string fileName, string expectedText = null) {
-            long elapsed;
+            long elapsed, temp;
             string generatedJs;
 
             using (var test = new ComparisonTest(fileName)) {
-                var output = test.RunJavascript(new string[0], out generatedJs, out elapsed);
+                var output = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed);
 
                 if (expectedText != null)
                     Assert.AreEqual(expectedText, output.Trim());
@@ -313,12 +316,12 @@ namespace JSIL.Tests {
         }
 
         protected string GenericTest (string fileName, string csharpOutput, string javascriptOutput, Regex[] stubbedAssemblies = null) {
-            long elapsed;
+            long elapsed, temp;
             string generatedJs;
 
             using (var test = new ComparisonTest(fileName, stubbedAssemblies)) {
                 var csOutput = test.RunCSharp(new string[0], out elapsed);
-                var jsOutput = test.RunJavascript(new string[0], out generatedJs, out elapsed);
+                var jsOutput = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed);
 
                 Assert.AreEqual(csharpOutput, csOutput.Trim(), "Did not get expected output from C# test");
                 Assert.AreEqual(javascriptOutput, jsOutput.Trim(), "Did not get expected output from JavaScript test");
@@ -328,7 +331,7 @@ namespace JSIL.Tests {
         }
 
         protected string GenericIgnoreTest (string fileName, string workingOutput, string jsErrorSubstring, Regex[] stubbedAssemblies = null) {
-            long elapsed;
+            long elapsed, temp;
             string generatedJs = null;
 
             using (var test = new ComparisonTest(fileName, stubbedAssemblies)) {
@@ -336,7 +339,7 @@ namespace JSIL.Tests {
                 Assert.AreEqual(workingOutput, csOutput.Trim());
 
                 try {
-                    test.RunJavascript(new string[0], out generatedJs, out elapsed);
+                    test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed);
                     Assert.Fail("Expected javascript to throw an exception containing the string \"" + jsErrorSubstring + "\".");
                 } catch (JavaScriptException jse) {
                     if (!jse.ErrorText.Contains(jsErrorSubstring))

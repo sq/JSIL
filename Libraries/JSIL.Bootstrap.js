@@ -355,18 +355,10 @@ System.Collections.Generic.List$b1.Enumerator.prototype._ctor = function (list) 
     this._length = list.Count;
   }
 }
-System.Collections.Generic.List$b1.Enumerator.prototype.MoveNext = function () {
-  return JSIL.ArrayEnumerator.prototype.MoveNext.call(this);
-};
-System.Collections.Generic.List$b1.Enumerator.prototype.Dispose = function () {
-  JSIL.ArrayEnumerator.prototype.Dispose.call(this);
-};
-System.Collections.Generic.List$b1.Enumerator.prototype.Reset = function () {
-  JSIL.ArrayEnumerator.prototype.Reset.call(this);
-};
-System.Collections.Generic.List$b1.Enumerator.prototype.get_Current = function () {
-  return JSIL.ArrayEnumerator.prototype.get_Current.call(this);
-};
+System.Collections.Generic.List$b1.Enumerator.prototype.MoveNext = JSIL.ArrayEnumerator.prototype.MoveNext;
+System.Collections.Generic.List$b1.Enumerator.prototype.Dispose = JSIL.ArrayEnumerator.prototype.Dispose;
+System.Collections.Generic.List$b1.Enumerator.prototype.Reset = JSIL.ArrayEnumerator.prototype.Reset;
+System.Collections.Generic.List$b1.Enumerator.prototype.get_Current = JSIL.ArrayEnumerator.prototype.get_Current;
 
 System.Threading.Interlocked.CompareExchange = function (targetRef, value, comparand, succeeded) {
   var currentValue = targetRef.value;

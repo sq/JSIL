@@ -218,7 +218,8 @@ namespace JSIL.Internal {
 
         protected static void LocateProxy (MemberReference mr) {
             var fullName = mr.DeclaringType.FullName;
-            if (Proxies.ContainsKey(fullName))
+            string[] knownProxies;
+            if (Proxies.TryGetValue(fullName, out knownProxies))
                 return;
 
             var icap = mr.DeclaringType as ICustomAttributeProvider;
@@ -260,8 +261,7 @@ namespace JSIL.Internal {
                 }
             }
 
-            if (proxyTargets != null)
-                Proxies[fullName] = proxyTargets;
+            Proxies[fullName] = proxyTargets;
         }
 
         static IEnumerable<TypeReference> GetParameterTypes (IList<ParameterDefinition> parameters) {
@@ -426,8 +426,8 @@ namespace JSIL.Internal {
 
     public class ProxyInfo {
         public readonly TypeDefinition Definition;
-        public readonly TypeReference[] ProxiedTypes;
-        public readonly string[] ProxiedTypeNames;
+        public readonly HashSet<TypeReference> ProxiedTypes = new HashSet<TypeReference>();
+        public readonly HashSet<string> ProxiedTypeNames = new HashSet<string>();
 
         public readonly TypeReference[] Interfaces;
         public readonly MetadataCollection Metadata;
@@ -448,8 +448,6 @@ namespace JSIL.Internal {
             Metadata = new MetadataCollection(proxyType);
             Interfaces = proxyType.Interfaces.ToArray();
             IsInheritable = true;
-            ProxiedTypes = new TypeReference[0];
-            ProxiedTypeNames = new string[0];
 
             var args = Metadata.GetAttributeParameters("JSIL.Proxy.JSProxy");
             if (args == null)
@@ -468,24 +466,24 @@ namespace JSIL.Internal {
                         InterfacePolicy = (JSProxyInterfacePolicy)arg.Value;
                         break;
                     case "System.Type":
-                        ProxiedTypes = new[] { (TypeReference)arg.Value };
+                        ProxiedTypes.Add((TypeReference)arg.Value);
                         break;
                     case "System.Type[]": {
                         var values = (CustomAttributeArgument[])arg.Value;
-                        ProxiedTypes = new TypeReference[values.Length];
-                        for (var i = 0; i < ProxiedTypes.Length; i++)
-                            ProxiedTypes[i] = (TypeReference)values[i].Value;
+                        for (var i = 0; i < values.Length; i++)
+                            ProxiedTypes.Add((TypeReference)values[i].Value);
                         break;
                     }
                     case "System.Boolean":
                         IsInheritable = (bool)arg.Value;
                         break;
                     case "System.String":
-                        ProxiedTypeNames = new[] { (string)arg.Value };
+                        ProxiedTypeNames.Add((string)arg.Value);
                         break;
                     case "System.String[]": {
                         var values = (CustomAttributeArgument[])arg.Value;
-                        ProxiedTypeNames = (from v in values select (string)v.Value).ToArray();
+                        foreach (var v in values)
+                            ProxiedTypeNames.Add((string)v.Value);
                         break;
                     }
                     default:
@@ -563,17 +561,15 @@ namespace JSIL.Internal {
                     return true;
             }
 
-            foreach (var ptn in ProxiedTypeNames) {
-                bool isMatch;
-                if (inheritable)
-                    isMatch = new[] { type.FullName }.Concat(ILBlockTranslator.AllBaseTypesOf(
-                        ILBlockTranslator.GetTypeDefinition(type)).Select((t) => t.FullName))
-                        .Contains(ptn);
-                else
-                    isMatch = type.FullName == ptn;
-
-                if (isMatch)
+            if (ProxiedTypeNames.Count > 0) {
+                if (ProxiedTypeNames.Contains(type.FullName))
                     return true;
+
+                if (inheritable)
+                    foreach (var baseType in ILBlockTranslator.AllBaseTypesOf(ILBlockTranslator.GetTypeDefinition(type))) {
+                        if (ProxiedTypeNames.Contains(baseType.FullName))
+                            return true;
+                    }
             }
 
             return false;
@@ -603,6 +599,7 @@ namespace JSIL.Internal {
         public readonly bool IsProxy;
         public readonly bool IsDelegate;
 
+        protected bool _FullyInitialized = false;
         protected bool _IsIgnored = false;
         protected bool _MethodGroupsInitialized = false;
 
@@ -773,6 +770,12 @@ namespace JSIL.Internal {
             }
         }
 
+        public bool IsFullyInitialized {
+            get {
+                return _FullyInitialized;
+            }
+        }
+
         public override string ToString () {
             return Definition.FullName;
         }
@@ -785,37 +788,37 @@ namespace JSIL.Internal {
 
             var methodGroups = (from kvp in Members where kvp.Key.Type == MemberIdentifier.MemberType.Method
                                 let m = (MethodInfo)kvp.Value
-                                where !m.IsIgnored && !m.Metadata.HasAttribute("JSIL.Meta.JSReplacement")
                                 group m by new {
-                                    m.Name,
+                                    m.Member.Name,
                                     m.IsStatic
                                 } into mg
+                                where mg.Count() > 1
                                 select mg).ToArray();
 
             foreach (var mg in methodGroups) {
-                var count = mg.Count();
-                if (count > 1) {
-                    int i = 0;
+                var filtered = (from m in mg where !m.IsIgnored && !m.Metadata.HasAttribute("JSIL.Meta.JSReplacement") select m).ToArray();
+                if (filtered.Length <= 1)
+                    continue;
 
-                    var groupName = mg.First().Name;
+                int i = 0;
+                var groupName = mg.First().Name;
 
-                    foreach (var item in mg.OrderBy((m) => m.Member.MetadataToken.ToUInt32())) {
-                        item.OverloadIndex = i;
-                        i += 1;
-                    }
-
-                    MethodGroups.Add(new MethodGroupInfo(
-                        this, mg.ToArray(), groupName
-                    ));
-                } else {
-                    if (mg.Key.Name == ".cctor")
-                        StaticConstructor = mg.First().Member;
+                foreach (var item in mg.OrderBy((m) => m.Member.MetadataToken.ToUInt32())) {
+                    item.OverloadIndex = i;
+                    i += 1;
                 }
+
+                MethodGroups.Add(new MethodGroupInfo(
+                    this, mg.ToArray(), groupName
+                ));
             }
         }
 
         public bool IsIgnored {
             get {
+                if (_FullyInitialized)
+                    return _IsIgnored;
+
                 if (Definition.DeclaringType != null) {
                     var dt = Source.GetExisting(Definition.DeclaringType);
                     if ((dt != null) && dt.IsIgnored)
@@ -1001,6 +1004,10 @@ namespace JSIL.Internal {
 
             result = new MethodInfo(this, identifier, method, Proxies);
             Members.Add(identifier, result);
+
+            if (method.Name == ".cctor")
+                StaticConstructor = method;
+
             return (MethodInfo)result;
         }
 
@@ -1037,11 +1044,12 @@ namespace JSIL.Internal {
             return (EventInfo)result;
         }
 
-        internal bool IsTypeIgnored (ParameterDefinition pd) {
-            return IsTypeIgnored(pd.ParameterType);
+        internal bool IsTypeIgnored (ParameterDefinition pd, out TypeInfo typeInfo) {
+            return IsTypeIgnored(pd.ParameterType, out typeInfo);
         }
 
-        internal bool IsTypeIgnored (TypeReference t) {
+        internal bool IsTypeIgnored (TypeReference t, out TypeInfo typeInfo) {
+            typeInfo = null;
             if (ILBlockTranslator.IsIgnoredType(t))
                 return true;
 
@@ -1050,60 +1058,77 @@ namespace JSIL.Internal {
             else if (t.FullName == "System.Void")
                 return false;
 
-            var typeInfo = Source.GetExisting(t);
+            typeInfo = Source.GetExisting(t);
             if ((typeInfo != null) && typeInfo.IsIgnored)
                 return true;
 
             return false;
         }
+
+        internal void Initialize () {
+            if (_FullyInitialized)
+                return;
+
+            _IsIgnored = IsIgnored;
+            _FullyInitialized = true;
+        }
     }
 
-    public class MetadataCollection {
-        public readonly Dictionary<string, CustomAttribute> CustomAttributes = new Dictionary<string, CustomAttribute>();
+    public class AttributeEntry {
+        public bool Inherited;
+        public string Name;
+        public readonly List<CustomAttribute> Attributes = new List<CustomAttribute>();
+    }
 
+    public class MetadataCollection : Dictionary<string, AttributeEntry> {
         public MetadataCollection (ICustomAttributeProvider target) {
             foreach (var ca in target.CustomAttributes) {
-                var key = ca.AttributeType.FullName;
-
-                CustomAttributes[key] = ca;
+                AttributeEntry existing;
+                if (TryGetValue(ca.AttributeType.FullName, out existing))
+                    existing.Attributes.Add(ca);
+                else
+                    Add(ca.AttributeType.FullName, new AttributeEntry {
+                        Attributes = { ca },
+                        Inherited = false
+                    });
             }
         }
 
         public void Update (MetadataCollection rhs, bool replaceAll) {
             if (replaceAll)
-                CustomAttributes.Clear();
+                Clear();
 
-            foreach (var kvp in rhs.CustomAttributes)
-                CustomAttributes[kvp.Key] = kvp.Value;
+            AttributeEntry existing;
+            foreach (var kvp in rhs) {
+                if (TryGetValue(kvp.Key, out existing)) {
+                    if (existing.Inherited)
+                        Remove(kvp.Key);
+                    else
+                        continue;
+                }
+
+                var inherited = new AttributeEntry {
+                    Inherited = true,
+                };
+                inherited.Attributes.AddRange(kvp.Value.Attributes);
+                Add(kvp.Key, inherited);
+            }
         }
 
-        public bool HasAttribute (TypeReference attributeType) {
-            return HasAttribute(attributeType.FullName);
-        }
-
-        public bool HasAttribute (Type attributeType) {
-            return HasAttribute(attributeType.FullName);
+        public bool HasOwnAttribute (string fullName) {
+            var ae = GetAttribute(fullName);
+            return (ae != null) && (!ae.Inherited);
         }
 
         public bool HasAttribute (string fullName) {
-            var attr = GetAttribute(fullName);
-
-            return attr != null;
+            return ContainsKey(fullName);
         }
 
-        public CustomAttribute GetAttribute (TypeReference attributeType) {
-            return GetAttribute(attributeType.FullName);
-        }
+        public AttributeEntry GetAttribute (string fullName) {
+            AttributeEntry entry;
 
-        public CustomAttribute GetAttribute (Type attributeType) {
-            return GetAttribute(attributeType.FullName);
-        }
-
-        public CustomAttribute GetAttribute (string fullName) {
-            CustomAttribute attr;
-
-            if (CustomAttributes.TryGetValue(fullName, out attr))
-                return attr;
+            if (TryGetValue(fullName, out entry))
+                return entry;
 
             return null;
         }
@@ -1113,7 +1138,7 @@ namespace JSIL.Internal {
             if (attr == null)
                 return null;
 
-            return attr.ConstructorArguments;
+            return attr.Attributes.First().ConstructorArguments;
         }
     }
 
@@ -1146,6 +1171,7 @@ namespace JSIL.Internal {
         protected readonly JSReadPolicy _ReadPolicy;
         protected readonly JSWritePolicy _WritePolicy;
         protected readonly JSInvokePolicy _InvokePolicy;
+        protected bool? _IsReturnIgnored;
 
         public MemberInfo (TypeInfo parent, MemberIdentifier identifier, T member, ProxyInfo[] proxies, bool isIgnored = false, bool isExternal = false) {
             Identifier = identifier;
@@ -1161,8 +1187,7 @@ namespace JSIL.Internal {
             Member = member;
             Metadata = new MetadataCollection(member);
 
-            var ca = member.DeclaringType as ICustomAttributeProvider;
-            if ((ca != null) && (ca.CustomAttributes.Any((p) => p.AttributeType.FullName == "JSIL.Proxy.JSProxy")))
+            if (parent.Metadata.HasOwnAttribute("JSIL.Meta.JSProxy"))
                 IsFromProxy = true;
             else
                 IsFromProxy = false;
@@ -1227,7 +1252,22 @@ namespace JSIL.Internal {
         }
 
         public virtual bool IsIgnored {
-            get { return _IsIgnored | DeclaringType.IsIgnored | DeclaringType.IsTypeIgnored(ReturnType); }
+            get {
+                if (_IsIgnored)
+                    return true;
+                else if (DeclaringType.IsIgnored)
+                    return true;
+
+                if (_IsReturnIgnored.HasValue)
+                    return _IsReturnIgnored.Value;
+                else {
+                    TypeInfo typeInfo;
+                    bool isReturnIgnored = DeclaringType.IsTypeIgnored(ReturnType, out typeInfo);
+                    if ((typeInfo != null) && typeInfo.IsFullyInitialized)
+                        _IsReturnIgnored = isReturnIgnored;
+                    return isReturnIgnored;
+                }
+            }
         }
 
         public string ForcedName {
@@ -1363,6 +1403,7 @@ namespace JSIL.Internal {
         public FunctionStaticData StaticData = null;
 
         public int? OverloadIndex;
+        protected bool? _ParametersIgnored;
         protected readonly string ShortName;
 
         public MethodInfo (TypeInfo parent, MemberIdentifier identifier, MethodDefinition method, ProxyInfo[] proxies) : base (
@@ -1428,7 +1469,32 @@ namespace JSIL.Internal {
                 if ((Property != null) && Property.IsIgnored)
                     return true;
 
-                return base.IsIgnored || Member.Parameters.Any(DeclaringType.IsTypeIgnored);
+                if (base.IsIgnored)
+                    return true;
+
+                bool parametersIgnored;
+                if (_ParametersIgnored.HasValue)
+                    return _ParametersIgnored.Value;
+                else {
+                    bool canStore = true;
+                    TypeInfo typeInfo;
+                    foreach (var p in Member.Parameters) {
+                        bool isIgnored = DeclaringType.IsTypeIgnored(p, out typeInfo);
+                        if ((typeInfo == null) || !typeInfo.IsFullyInitialized)
+                            canStore = false;
+
+                        if (isIgnored) {
+                            if (canStore)
+                                _ParametersIgnored = true;
+                            return true;
+                        }
+                    }
+
+                    if (canStore)
+                        _ParametersIgnored = false;
+                }
+
+                return false;
             }
         }
 

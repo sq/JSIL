@@ -483,8 +483,10 @@ namespace JSIL {
                 }
             }
 
-            foreach (var ti in secondPass.Values)
+            foreach (var ti in secondPass.Values) {
+                ti.Initialize();
                 ti.ConstructMethodGroups();
+            }
 
             if (!TypeInformation.TryGetValue(identifier, out result)) {
                 return null;
@@ -499,6 +501,9 @@ namespace JSIL {
             TypeInfo baseType = null;
             if (type.BaseType != null)
                 baseType = GetTypeInformation(type.BaseType);
+
+            foreach (var iface in type.Interfaces)
+                GetTypeInformation(iface);
 
             var result = new TypeInfo(this, moduleInfo, type, baseType, identifier);
             TypeInformation[identifier] = result;
