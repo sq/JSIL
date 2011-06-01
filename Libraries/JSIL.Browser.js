@@ -271,7 +271,12 @@ var assetLoaders = {
     state.interval = setInterval(loadingCallback, loadingPollInterval);
   },
   "File": function loadBinaryFile (filename, data, onError, onDoneLoading) {
-    var req = new XMLHttpRequest();
+    var req;
+    if ((location.protocol === "file:") && (typeof (ActiveXObject) !== "undefined")) {
+      req = new ActiveXObject("MSXML2.XMLHTTP");
+    } else {
+      req = new XMLHttpRequest();
+    }
     
     req.open('GET', fileRoot + filename, false);
     if (typeof (req.overrideMimeType) !== "undefined")

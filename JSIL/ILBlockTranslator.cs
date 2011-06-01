@@ -27,6 +27,9 @@ namespace JSIL {
 
         protected readonly Dictionary<ILVariable, JSVariable> RenamedVariables = new Dictionary<ILVariable, JSVariable>();
 
+        // Yuck :(
+        static readonly Dictionary<Tuple<string, string>, bool> TypeAssignabilityCache = new Dictionary<Tuple<string, string>, bool>();
+
         public readonly JSILIdentifier JSIL;
         public readonly JSSpecialIdentifiers JS;
         public readonly CLRSpecialIdentifiers CLR;
@@ -508,18 +511,11 @@ namespace JSIL {
             return false;
         }
 
-        // Yuck :(
-        static readonly Dictionary<Tuple<string, string>, bool> TypeEqualityCache = new Dictionary<Tuple<string, string>, bool>();
-        static readonly Dictionary<Tuple<string, string>, bool> TypeAssignabilityCache = new Dictionary<Tuple<string, string>, bool>();
-
         public static bool TypesAreEqual (TypeReference target, TypeReference source) {
             if ((target == null) || (source == null))
                 return (target == source);
 
             bool result;
-            var cacheKey = new Tuple<string, string>(target.FullName, source.FullName);
-            if (TypeEqualityCache.TryGetValue(cacheKey, out result))
-                return result;
 
             if (target.IsByReference != source.IsByReference)
                 result = false;
@@ -547,7 +543,6 @@ namespace JSIL {
                     result = false;
             }
 
-            TypeEqualityCache[cacheKey] = result;
             return result;
         }
 
@@ -585,9 +580,7 @@ namespace JSIL {
                 return true;
 
             var cacheKey = new Tuple<string, string>(target.FullName, source.FullName);
-            if (TypeEqualityCache.TryGetValue(cacheKey, out result) && result == true)
-                return true;
-            else if (TypeAssignabilityCache.TryGetValue(cacheKey, out result))
+            if (TypeAssignabilityCache.TryGetValue(cacheKey, out result))
                 return result;
 
             var dSource = GetTypeDefinition(source);
