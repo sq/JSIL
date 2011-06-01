@@ -224,10 +224,10 @@ System.String.prototype._ctor$0 = function (chars, startIndex, length) {
 System.String.prototype._ctor$1 = function (chars) {
   return System.String.prototype._ctor$0.call(this, chars, 0, chars.length);
 };
-System.String.prototype._ctor$2 = function (char, length) {
+System.String.prototype._ctor$2 = function (ch, length) {
   var arr = new Array(length);
   for (var i = 0; i < length; i++)
-    arr[i] = char;
+    arr[i] = ch;
   return arr.join("");
 };
 

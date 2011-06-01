@@ -55,7 +55,7 @@ if (JSIL.HostType.IsBrowser) {
   JSIL.OverloadedMethod(System.Drawing.Bitmap.prototype, "_ctor", [
     ["_ctor$0", [System.String]], 
     ["_ctor$1", [System.String, System.Boolean]], 
-    ["_ctor$7", [System.Int32, System.Int32]],
+    ["_ctor$7", [System.Int32, System.Int32]]
   ]);
 
   System.Drawing.Bitmap.prototype.SetPixel = function (x, y, color) {

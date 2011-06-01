@@ -123,11 +123,11 @@ System.IO.BinaryReader.prototype.ReadUInt16 = function () {
 };
 
 System.IO.BinaryReader.prototype.ReadSByte = function () {
-  var byte = this.m_stream.ReadByte();
-  if (byte > 127)
-    return byte - 256;
+  var byt = this.m_stream.ReadByte();
+  if (byt > 127)
+    return byt - 256;
   else
-    return byte;
+    return byt;
 };
 
 System.IO.BinaryReader.prototype.ReadSingle = function () {

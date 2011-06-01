@@ -1590,7 +1590,7 @@ JSIL.MakeDelegateType = function (fullName, localName) {
 
       return false;
     },
-    IsEnum: false,
+    IsEnum: false
   };
 
   prototype.__Self__ = result;

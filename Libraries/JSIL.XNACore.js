@@ -307,7 +307,7 @@ Microsoft.Xna.Framework.Game.prototype.Run = function () {
 Microsoft.Xna.Framework.Game.prototype._GetNow = function () {
   return (new Date()).getTime();
 };
-Microsoft.Xna.Framework.Game.prototype._DeferCall = function (callback, long) {
+Microsoft.Xna.Framework.Game.prototype._DeferCall = function (callback, lng) {
   setTimeout(callback, 0);
 };
 Microsoft.Xna.Framework.Game.prototype._QueueStep = function () {
