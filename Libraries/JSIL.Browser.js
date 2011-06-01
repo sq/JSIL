@@ -115,6 +115,7 @@ var keyMappings = {
 
 window.addEventListener(
   "keydown", function (evt) {
+    evt.preventDefault();
     var keyCode = evt.keyCode;
     var codes = keyMappings[keyCode] || [keyCode];        
     
@@ -128,6 +129,7 @@ window.addEventListener(
 
 window.addEventListener(
   "keyup", function (evt) {
+    evt.preventDefault();
     var keyCode = evt.keyCode;
     var codes = keyMappings[keyCode] || [keyCode];        
     

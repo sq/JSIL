@@ -15,6 +15,12 @@ namespace JSIL.Proxies {
         public static AnyType FromArgb (params AnyType[] values) {
             throw new InvalidOperationException();
         }
+
+        [JSRuntimeDispatch]
+        [JSExternal]
+        public ColorProxy (params AnyType[] values) {
+            throw new InvalidOperationException();
+        }
     }
 
     [JSProxy(

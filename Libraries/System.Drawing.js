@@ -91,33 +91,64 @@ if (JSIL.HostType.IsBrowser) {
 }
 
 JSIL.MakeStruct("System.Drawing.Color", true);
-System.Drawing.Color.prototype.A = 0;
-System.Drawing.Color.prototype.R = 0;
-System.Drawing.Color.prototype.G = 0;
-System.Drawing.Color.prototype.B = 0;
-System.Drawing.Color.prototype.Name = null;
+System.Drawing.Color.prototype.a = 0;
+System.Drawing.Color.prototype.r = 0;
+System.Drawing.Color.prototype.g = 0;
+System.Drawing.Color.prototype.b = 0;
+System.Drawing.Color.prototype.name = null;
 System.Drawing.Color.prototype._ctor = function (a, r, g, b, name) {
-  this.A = a;
-  this.R = r;
-  this.G = g;
-  this.B = b;
-  this.Name = name;
+  this.a = a;
+  this.r = r;
+  this.g = g;
+  this.b = b;
+  this.name = name;
 }
 System.Drawing.Color.prototype.toString = function () {
-  if ((typeof (this.Name) != "undefined") && (this.Name != null))
-    return this.Name;
+  if ((typeof (this.name) != "undefined") && (this.name != null))
+    return this.name;
   else
-    return System.String.Format("Color({0}, {1}, {2}, {3})", this.A, this.R, this.G, this.B);
+    return System.String.Format("Color({0}, {1}, {2}, {3})", this.a, this.r, this.g, this.b);
+}
+System.Drawing.Color.prototype.get_A = function () {
+  return this.a;
+}
+System.Drawing.Color.prototype.get_R = function () {
+  return this.r;
+}
+System.Drawing.Color.prototype.get_G = function () {
+  return this.g;
+}
+System.Drawing.Color.prototype.get_B = function () {
+  return this.b;
+}
+System.Drawing.Color.prototype.set_A = function (value) {
+  this.name = null;
+  this.a = value;
+}
+System.Drawing.Color.prototype.set_R = function (value) {
+  this.name = null;
+  this.r = value;
+}
+System.Drawing.Color.prototype.set_G = function (value) {
+  this.name = null;
+  this.g = value;
+}
+System.Drawing.Color.prototype.set_B = function (value) {
+  this.name = null;
+  this.b = value;
+}
+System.Drawing.Color.prototype.get_Name = function () {
+  return this.name;
 }
 System.Drawing.Color.prototype.MemberwiseClone = function () {
-  if ((typeof (this.Name) != "undefined") && (this.Name != null)) {
+  if ((typeof (this.name) != "undefined") && (this.name != null)) {
     return this;
   } else {
     var result = Object.create(System.Drawing.Color.prototype);
-    result.A = this.A;
-    result.R = this.R;
-    result.G = this.G;
-    result.B = this.B;
+    result.a = this.a;
+    result.r = this.r;
+    result.g = this.g;
+    result.b = this.b;
     return result;
   }
 }
@@ -130,12 +161,27 @@ System.Drawing.Color.FromArgb = function () {
     throw new Error("Expected (r, g, b) or (a, r, g, b)");
   }
 };
+System.Drawing.Color.get_Black = function () {
+  return System.Drawing.Color.black;
+};
+System.Drawing.Color.get_White = function () {
+  return System.Drawing.Color.white;
+};
+System.Drawing.Color.get_OldLace = function () {
+  return System.Drawing.Color.oldLace;
+};
+System.Drawing.Color.get_BlueViolet = function () {
+  return System.Drawing.Color.blueViolet;
+};
+System.Drawing.Color.get_Aquamarine = function () {
+  return System.Drawing.Color.aquamarine;
+};
 System.Drawing.Color._cctor = function () {
-  System.Drawing.Color.Black = new System.Drawing.Color(0xFF, 0x0, 0x0, 0x0, "Black");
-  System.Drawing.Color.White = new System.Drawing.Color(0xFF, 0xFF, 0xFF, 0xFF, "White");
-  System.Drawing.Color.OldLace = new System.Drawing.Color(0xFF, 0xFD, 0xF5, 0xE6, "OldLace");
-  System.Drawing.Color.BlueViolet = new System.Drawing.Color(0xFF, 0x8A, 0x2B, 0xE2, "BlueViolet");
-  System.Drawing.Color.Aquamarine = new System.Drawing.Color(0xFF, 0x7F, 0xFF, 0xD4, "Aquamarine");
+  System.Drawing.Color.black = new System.Drawing.Color(0xFF, 0x0, 0x0, 0x0, "Black");
+  System.Drawing.Color.white = new System.Drawing.Color(0xFF, 0xFF, 0xFF, 0xFF, "White");
+  System.Drawing.Color.oldLace = new System.Drawing.Color(0xFF, 0xFD, 0xF5, 0xE6, "OldLace");
+  System.Drawing.Color.blueViolet = new System.Drawing.Color(0xFF, 0x8A, 0x2B, 0xE2, "BlueViolet");
+  System.Drawing.Color.aquamarine = new System.Drawing.Color(0xFF, 0x7F, 0xFF, 0xD4, "Aquamarine");
 };
 
 JSIL.MakeStruct("System.Drawing.Size", true);
