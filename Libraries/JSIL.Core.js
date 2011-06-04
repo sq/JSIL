@@ -1284,6 +1284,46 @@ JSIL.OverloadedMethod = function (type, name, overloads) {
   return result;
 };
 
+JSIL.OverloadedGenericMethod = function (type, name, overloads) {
+  if (overloads.length < 1)
+    return type[name] = null;
+  else if (overloads.length < 2) {
+    var overload = overloads[0][0];
+    if (typeof (overload) === "function")
+      return type[name] = overload;
+    else
+      return type[name] = type[overload];
+  }
+
+  for (var i = 0; i < overloads.length; i++) {
+    if (overloads[i][0] === name)
+      throw new Error("Recursive definition of overloaded generic method " + JSIL.GetTypeName(type) + "." + name);
+  }
+
+  var result = function () {
+    var genericArguments = Array.prototype.slice.call(arguments);
+
+    return function () {
+      var invokeArguments = Array.prototype.slice.call(arguments);
+      var method = JSIL.FindOverload(type, invokeArguments, overloads);
+
+      if (method === null)
+        throw new Error("No overload of '" + name + "<" + genericArguments.join(", ") + ">' matching the argument list '" + String(invokeArguments) + "' could be found.");
+      else
+        return method.apply(this, genericArguments).apply(this, invokeArguments);
+    };
+  };
+
+  Object.defineProperty(
+    type, name, {
+      configurable: true,
+      enumerable: true,
+      value: result
+    }
+  );
+  return result;
+};
+
 JSIL.MakeClass(Object, "System.Object", true);
 System.Object.CheckType = function (value) {
   return true;
@@ -1330,6 +1370,15 @@ System.Object.prototype.GetType = function () {
 System.Object.prototype.toString = function ToString() {
   return JSIL.GetTypeName(this);
 };
+
+JSIL.MakeClass(Object, "JSIL.AnyType", true);
+JSIL.AnyType.CheckType = function (value) {
+  return true;
+}
+JSIL.MakeClass(Object, "JSIL.AnyValueType", true);
+JSIL.AnyValueType.CheckType = function (value) {
+  return true;
+}
 
 JSIL.MakeClass("System.Object", "JSIL.Reference", true);
 JSIL.MakeClass("JSIL.Reference", "JSIL.Variable", true);

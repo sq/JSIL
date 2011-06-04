@@ -1029,7 +1029,9 @@ namespace JSIL {
                 }
             }
 
-            output.Identifier("JSIL.OverloadedMethod", null);
+            output.Identifier(
+                (methods.First().IsGeneric) ? "JSIL.OverloadedGenericMethod" : "JSIL.OverloadedMethod", null
+            );
             output.LPar();
 
             output.Identifier(methodGroup.DeclaringType.Definition);
@@ -1056,7 +1058,7 @@ namespace JSIL {
 
                 output.OpenBracket();
                 output.CommaSeparatedList(
-                    from p in method.Member.Parameters select p.ParameterType
+                    from p in method.Member.Parameters select p.ParameterType, ListValueType.TypeIdentifier
                 );
                 output.CloseBracket();
 

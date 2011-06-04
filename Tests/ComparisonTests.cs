@@ -52,6 +52,10 @@ namespace JSIL.Tests {
                 test.Run();
             using (var test = new ComparisonTest(@"TestCases\NestedGenericMethodCalls.cs"))
                 test.Run();
+            using (var test = new ComparisonTest(@"TestCases\OverloadWithGeneric.cs"))
+                test.Run();
+            using (var test = new ComparisonTest(@"TestCases\OverloadWithMultipleGeneric.cs"))
+                test.Run();
         }
 
         [Test]

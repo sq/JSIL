@@ -357,7 +357,7 @@ System.Collections.Generic.List$b1.Enumerator.prototype.Dispose = JSIL.ArrayEnum
 System.Collections.Generic.List$b1.Enumerator.prototype.Reset = JSIL.ArrayEnumerator.prototype.Reset;
 System.Collections.Generic.List$b1.Enumerator.prototype.get_Current = JSIL.ArrayEnumerator.prototype.get_Current;
 
-System.Threading.Interlocked.CompareExchange = JSIL.GenericMethod(
+System.Threading.Interlocked.CompareExchange$b1 = JSIL.GenericMethod(
   ["T"], 
   function (T, targetRef, value, comparand, succeeded) {
     var currentValue = targetRef.value;

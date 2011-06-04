@@ -209,6 +209,13 @@ namespace JSIL.Transforms {
                 var assignments = (from a in d.Assignments where v.Equals(a.Target) select a).ToArray();
                 var accesses = (from a in d.Accesses where v.Equals(a.Source) select a).ToArray();
 
+                if (d.VariablesPassedByRef.Contains(v.Name)) {
+                    if (TraceLevel >= 2)
+                        Debug.WriteLine(String.Format("Cannot eliminate {0}; it is passed by reference.", v));
+
+                    continue;
+                }
+
                 if (assignments.FirstOrDefault() == null) {
                     if (accesses.Length == 0) {
                         if (TraceLevel >= 1)

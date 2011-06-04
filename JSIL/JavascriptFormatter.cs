@@ -17,7 +17,8 @@ namespace JSIL.Internal {
         Primitive,
         Identifier,
         Raw,
-        TypeReference
+        TypeReference,
+        TypeIdentifier
     }
 
     public class JavascriptFormatter {
@@ -68,6 +69,8 @@ namespace JSIL.Internal {
                     Value(value as dynamic);
                 else if (valueType == ListValueType.Identifier)
                     Identifier(value as dynamic);
+                else if (valueType == ListValueType.TypeIdentifier)
+                    TypeIdentifier(value as dynamic, false, true);
                 else if (valueType == ListValueType.TypeReference)
                     TypeReference(value as dynamic);
                 else
@@ -91,6 +94,8 @@ namespace JSIL.Internal {
                     Value(kvp.Key as dynamic);
                 else if (keyType == ListValueType.Identifier)
                     Identifier(kvp.Key as dynamic);
+                else if (keyType == ListValueType.TypeIdentifier)
+                    TypeIdentifier(kvp.Key as dynamic, false, true);
                 else if (keyType == ListValueType.TypeReference)
                     TypeReference(kvp.Key as dynamic);
                 else
@@ -102,6 +107,8 @@ namespace JSIL.Internal {
                     Value(kvp.Value as dynamic);
                 else if (valueType == ListValueType.Identifier)
                     Identifier(kvp.Value as dynamic);
+                else if (valueType == ListValueType.TypeIdentifier)
+                    TypeIdentifier(kvp.Value as dynamic, false, true);
                 else if (valueType == ListValueType.TypeReference)
                     TypeReference(kvp.Value as dynamic);
                 else
@@ -230,27 +237,32 @@ namespace JSIL.Internal {
             }
         }
 
-        public void Identifier (TypeReference type, bool includeParens = false) {
+        public void Identifier (TypeReference type, bool includeParens = false, bool replaceGenerics = false) {
             if (type.FullName == "JSIL.Proxy.AnyType")
-                Identifier("System.Object", null);
+                Identifier("JSIL.AnyType", null);
             else
-                TypeIdentifier(type as dynamic, includeParens);
+                TypeIdentifier(type as dynamic, includeParens, replaceGenerics);
         }
 
-        protected void TypeIdentifier (TypeInfo type, bool includeParens) {
-            TypeIdentifier(type.Definition as dynamic, includeParens);
+        protected void TypeIdentifier (TypeInfo type, bool includeParens, bool replaceGenerics) {
+            TypeIdentifier(type.Definition as dynamic, includeParens, replaceGenerics);
         }
 
-        protected void TypeIdentifier (TypeReference type, bool includeParens) {
+        protected void TypeIdentifier (TypeReference type, bool includeParens, bool replaceGenerics) {
+            if (type.FullName == "JSIL.Proxy.AnyType") {
+                Identifier("JSIL.AnyType", null);
+                return;
+            }
+
             if (type.IsGenericParameter) {
-                Identifier(type.FullName);
-
-                /*
-                if (type.IsValueType)
-                    Identifier("System.ValueType", null);
-                else
-                    Identifier("System.Object", null);
-                 */
+                if (replaceGenerics) {
+                    if (type.IsValueType)
+                        Identifier("JSIL.AnyValueType", null);
+                    else
+                        Identifier("JSIL.AnyType", null);
+                } else {
+                    Identifier(type.FullName);
+                }
             } else {
                 var typedef = type.Resolve();
                 if ((typedef != null) && (typedef.Module.Assembly == Assembly) && !typedef.IsPublic) {
@@ -264,13 +276,13 @@ namespace JSIL.Internal {
             }
         }
 
-        protected void TypeIdentifier (ByReferenceType type, bool includeParens) {
+        protected void TypeIdentifier (ByReferenceType type, bool includeParens, bool replaceGenerics) {
             if (includeParens)
                 LPar();
 
             Identifier("JSIL.Reference.Of", null);
             LPar();
-            Identifier(type.ElementType);
+            TypeIdentifier(type.ElementType as dynamic, false, replaceGenerics);
             RPar();
 
             if (includeParens) {
@@ -279,13 +291,13 @@ namespace JSIL.Internal {
             }
         }
 
-        protected void TypeIdentifier (ArrayType type, bool includeParens) {
+        protected void TypeIdentifier (ArrayType type, bool includeParens, bool replaceGenerics) {
             if (includeParens)
                 LPar();
 
             Identifier("System.Array.Of", null);
             LPar();
-            Identifier(type.ElementType);
+            TypeIdentifier(type.ElementType as dynamic, false, replaceGenerics);
             RPar();
 
             if (includeParens) {
@@ -294,20 +306,20 @@ namespace JSIL.Internal {
             }
         }
 
-        protected void TypeIdentifier (OptionalModifierType modopt, bool includeParens) {
-            Identifier(modopt.ElementType as dynamic, includeParens);
+        protected void TypeIdentifier (OptionalModifierType modopt, bool includeParens, bool replaceGenerics) {
+            Identifier(modopt.ElementType as dynamic, includeParens, replaceGenerics);
         }
 
-        protected void TypeIdentifier (RequiredModifierType modreq, bool includeParens) {
-            Identifier(modreq.ElementType as dynamic, includeParens);
+        protected void TypeIdentifier (RequiredModifierType modreq, bool includeParens, bool replaceGenerics) {
+            Identifier(modreq.ElementType as dynamic, includeParens, replaceGenerics);
         }
 
-        protected void TypeIdentifier (PointerType ptr, bool includeParens) {
-            Identifier(ptr.ElementType as dynamic, includeParens);
+        protected void TypeIdentifier (PointerType ptr, bool includeParens, bool replaceGenerics) {
+            Identifier(ptr.ElementType as dynamic, includeParens, replaceGenerics);
         }
 
-        protected void TypeIdentifier (GenericInstanceType type, bool includeParens) {
-            Identifier(type.ElementType as dynamic, includeParens);
+        protected void TypeIdentifier (GenericInstanceType type, bool includeParens, bool replaceGenerics) {
+            Identifier(type.ElementType as dynamic, includeParens, replaceGenerics);
         }
 
         public void Identifier (MethodReference method, bool fullyQualified = true) {

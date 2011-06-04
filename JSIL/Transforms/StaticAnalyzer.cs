@@ -227,6 +227,9 @@ namespace JSIL.Transforms {
                 // Ignored because it is not an actual access
             }
 
+            if ((ParentNode is JSPassByReferenceExpression) || (ParentNode is JSReferenceExpression))
+                State.VariablesPassedByRef.Add(variable.Name);
+
             VisitChildren(variable);
         }
     }
@@ -323,6 +326,7 @@ namespace JSIL.Transforms {
         public readonly List<Access> Accesses = new List<Access>();
         public readonly List<Assignment> Assignments = new List<Assignment>();
         public readonly List<SideEffect> SideEffects = new List<SideEffect>();
+        public readonly HashSet<string> VariablesPassedByRef = new HashSet<string>();
         public readonly HashSet<string> ModifiedVariables = new HashSet<string>();
         public readonly HashSet<string> EscapingVariables = new HashSet<string>();
         public readonly List<StaticReference> StaticReferences = new List<StaticReference>();

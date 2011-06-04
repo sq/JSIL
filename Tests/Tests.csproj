@@ -198,6 +198,8 @@
     <None Include="TestCases\MultiDimStructArrays.cs" />
     <None Include="TestCases\SingleDimStructArrays.cs" />
     <None Include="TestCases\GenericMethods.cs" />
+    <None Include="TestCases\OverloadWithGeneric.cs" />
+    <None Include="TestCases\OverloadWithMultipleGeneric.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

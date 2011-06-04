@@ -144,6 +144,7 @@ namespace JSIL.Internal {
         public readonly TypeReference ReturnType;
         public readonly int ParameterCount;
         public readonly IEnumerable<TypeReference> ParameterTypes;
+        public readonly int GenericArgumentCount;
 
         public static readonly IEnumerable<TypeReference> AnyParameterTypes = new TypeReference[0] {};
 
@@ -175,6 +176,14 @@ namespace JSIL.Internal {
             ReturnType = mr.ReturnType;
             ParameterCount = mr.Parameters.Count;
             ParameterTypes = GetParameterTypes(mr.Parameters);
+
+            if (mr is GenericInstanceMethod)
+                GenericArgumentCount = ((GenericInstanceMethod)mr).GenericArguments.Count;
+            else if (mr.HasGenericParameters)
+                GenericArgumentCount = mr.GenericParameters.Count;
+            else
+                GenericArgumentCount = 0;
+
             LocateProxy(mr);
         }
 
@@ -183,6 +192,7 @@ namespace JSIL.Internal {
             Name = pr.Name;
             ReturnType = pr.PropertyType;
             ParameterCount = 0;
+            GenericArgumentCount = 0;
             ParameterTypes = null;
             LocateProxy(pr);
 
@@ -203,6 +213,7 @@ namespace JSIL.Internal {
             Name = fr.Name;
             ReturnType = fr.FieldType;
             ParameterCount = 0;
+            GenericArgumentCount = 0;
             ParameterTypes = null;
             LocateProxy(fr);
         }
@@ -212,6 +223,7 @@ namespace JSIL.Internal {
             Name = er.Name;
             ReturnType = er.EventType;
             ParameterCount = 0;
+            GenericArgumentCount = 0;
             ParameterTypes = null;
             LocateProxy(er);
         }
@@ -363,6 +375,9 @@ namespace JSIL.Internal {
             if (!TypesAreEqual(ReturnType, rhs.ReturnType))
                 return false;
 
+            if (GenericArgumentCount != rhs.GenericArgumentCount)
+                return false;
+
             if ((ParameterTypes == AnyParameterTypes) || (rhs.ParameterTypes == AnyParameterTypes)) {
             } else if ((ParameterTypes == null) || (rhs.ParameterTypes == null)) {
                 if (ParameterTypes != rhs.ParameterTypes)
@@ -400,14 +415,19 @@ namespace JSIL.Internal {
         }
 
         public override string ToString () {
+            var name = Name;
+
+            if (GenericArgumentCount != 0)
+                name = String.Format("{0}`{1}", name, GenericArgumentCount);
+
             if (ParameterTypes != null)
                 return String.Format(
-                    "{0} {1} ( {2} )", ReturnType, Name,
+                    "{0} {1} ( {2} )", ReturnType, name,
                     String.Join(", ", (from p in ParameterTypes select p.ToString()).ToArray())
                 );
             else
                 return String.Format(
-                    "{0} {1}", ReturnType, Name
+                    "{0} {1}", ReturnType, name
                 );
         }
     }
@@ -790,6 +810,7 @@ namespace JSIL.Internal {
                                 let m = (MethodInfo)kvp.Value
                                 group m by new {
                                     m.Member.Name,
+                                    m.Member.GenericParameters.Count,
                                     m.IsStatic
                                 } into mg
                                 where mg.Count() > 1
@@ -1399,6 +1420,7 @@ namespace JSIL.Internal {
         public readonly ParameterDefinition[] Parameters;
         public readonly PropertyInfo Property = null;
         public readonly EventInfo Event = null;
+        public readonly bool IsGeneric;
 
         public FunctionStaticData StaticData = null;
 
@@ -1414,6 +1436,7 @@ namespace JSIL.Internal {
         ) {
             ShortName = GetShortName(method);
             Parameters = method.Parameters.ToArray();
+            IsGeneric = method.HasGenericParameters;
         }
 
         public MethodInfo (TypeInfo parent, MemberIdentifier identifier, MethodDefinition method, ProxyInfo[] proxies, PropertyInfo property) : base (
@@ -1425,6 +1448,7 @@ namespace JSIL.Internal {
             Property = property;
             ShortName = GetShortName(method);
             Parameters = method.Parameters.ToArray();
+            IsGeneric = method.HasGenericParameters;
         }
 
         public MethodInfo (TypeInfo parent, MemberIdentifier identifier, MethodDefinition method, ProxyInfo[] proxies, EventInfo evt) : base(
@@ -1436,6 +1460,7 @@ namespace JSIL.Internal {
             Event = evt;
             ShortName = GetShortName(method);
             Parameters = method.Parameters.ToArray();
+            IsGeneric = method.HasGenericParameters;
         }
 
         protected override string GetName () {
@@ -1453,6 +1478,9 @@ namespace JSIL.Internal {
                 result = ForcedName ?? String.Format("{0}.{1}", over.DeclaringType.Name, ShortName);
             else
                 result = ForcedName ?? ShortName;
+
+            if (Member.HasGenericParameters)
+                result = String.Format("{0}`{1}", result, Member.GenericParameters.Count);
 
             if (OverloadIndex.HasValue) {
                 if (nameMangling.GetValueOrDefault(!Metadata.HasAttribute("JSIL.Meta.JSRuntimeDispatch")))
