@@ -56,9 +56,12 @@ Microsoft.Xna.Framework.Content.ContentManager.prototype._ctor$0 = function (ser
 }
 Microsoft.Xna.Framework.Content.ContentManager.prototype._ctor$1 = function (serviceProvider, rootDirectory) {
 }
-Microsoft.Xna.Framework.Content.ContentManager.prototype.Load = function (assetName) {
-  return JSIL.Host.getAsset(assetName);
-};
+Microsoft.Xna.Framework.Content.ContentManager.prototype.Load$b1 = JSIL.GenericMethod(
+  ["T"],
+  function (T, assetName) {
+    return JSIL.Host.getAsset(assetName);
+  }
+);
 Microsoft.Xna.Framework.Content.ContentManager.prototype.Unload = function () {
   // Unnecessary since we rely on the host to preload our assets.
 };
