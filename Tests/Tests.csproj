@@ -197,6 +197,7 @@
     <None Include="TestCases\CharSwitch.cs" />
     <None Include="TestCases\MultiDimStructArrays.cs" />
     <None Include="TestCases\SingleDimStructArrays.cs" />
+    <None Include="TestCases\GenericMethods.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

@@ -47,6 +47,14 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void Generics () {
+            using (var test = new ComparisonTest(@"TestCases\GenericMethods.cs"))
+                test.Run();
+            using (var test = new ComparisonTest(@"TestCases\NestedGenericMethodCalls.cs"))
+                test.Run();
+        }
+
+        [Test]
         public void StructArrays () {
             using (var test = new ComparisonTest(@"TestCases\SingleDimStructArrays.cs"))
                 test.Run();
@@ -96,7 +104,7 @@ namespace JSIL.Tests {
         public void NBody () {
             using (var test = new ComparisonTest(@"TestCases\NBody.cs")) {
                 test.Run();
-                test.Run("50000");
+                test.Run("150000");
             }
         }
 

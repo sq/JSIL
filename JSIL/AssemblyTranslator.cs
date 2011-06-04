@@ -1130,10 +1130,17 @@ namespace JSIL {
                     return null;
                 }
 
+                var parameters = from p in translator.ParameterNames select translator.Variables[p];
+
+                if (method.HasGenericParameters) {
+                    var type = new TypeReference("System", "Type", context.CurrentModule.TypeSystem.Object.Module, context.CurrentModule.TypeSystem.Object.Scope);
+                    parameters = (from gp in method.GenericParameters select new JSVariable(gp.Name, type)).Concat(parameters);
+                }
+
                 function = new JSFunctionExpression(
                     methodDef, method, identifier,
                     translator.Variables,
-                    from p in translator.ParameterNames select translator.Variables[p], 
+                    parameters, 
                     body
                 );
 
@@ -1347,6 +1354,19 @@ namespace JSIL {
 
             output.Token(" = ");
 
+            if (method.HasGenericParameters) {
+                output.Identifier("JSIL.GenericMethod", null);
+                output.LPar();
+                output.NewLine();
+                output.OpenBracket();
+
+                output.CommaSeparatedList((from p in method.GenericParameters select p.Name), ListValueType.Primitive);
+
+                output.CloseBracket();
+                output.Comma();
+                output.NewLine();
+            }
+
             var function = TranslateMethodExpression(context, methodRef, method, (f) => {
                 if (bodyTransformer != null)
                     bodyTransformer(f);
@@ -1358,6 +1378,11 @@ namespace JSIL {
                 output.Identifier("JSIL.UntranslatableFunction", null);
                 output.LPar();
                 output.Value(method.FullName);
+                output.RPar();
+            }
+
+            if (method.HasGenericParameters) {
+                output.NewLine();
                 output.RPar();
             }
 

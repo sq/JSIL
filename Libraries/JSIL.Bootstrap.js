@@ -146,9 +146,6 @@ System.String.CheckType = function (value) {
     (typeof (value.text) === "string") && (value.__proto__ === System.String.prototype)
   );
 }
-System.String.toString = function () {
-  return this.text;
-}
 JSIL.ConcatString = function (/* ...values */) {
   var result = String(arguments[0]);
 
@@ -360,21 +357,24 @@ System.Collections.Generic.List$b1.Enumerator.prototype.Dispose = JSIL.ArrayEnum
 System.Collections.Generic.List$b1.Enumerator.prototype.Reset = JSIL.ArrayEnumerator.prototype.Reset;
 System.Collections.Generic.List$b1.Enumerator.prototype.get_Current = JSIL.ArrayEnumerator.prototype.get_Current;
 
-System.Threading.Interlocked.CompareExchange = function (targetRef, value, comparand, succeeded) {
-  var currentValue = targetRef.value;
-  if (currentValue === comparand) {
-    targetRef.value = value;
-    if (typeof (succeeded) != "undefined")
-      succeeded.value = true;
+System.Threading.Interlocked.CompareExchange = JSIL.GenericMethod(
+  ["T"], 
+  function (T, targetRef, value, comparand, succeeded) {
+    var currentValue = targetRef.value;
+    if (currentValue === comparand) {
+      targetRef.value = value;
+      if (typeof (succeeded) != "undefined")
+        succeeded.value = true;
 
-    return comparand;
-  } else {
-    if (typeof (succeeded) != "undefined")
-      succeeded.value = false;
+      return comparand;
+    } else {
+      if (typeof (succeeded) != "undefined")
+        succeeded.value = false;
 
-    return currentValue;
+      return currentValue;
+    }
   }
-};
+);
 
 System.Threading.Monitor.Enter = function (obj, lockTaken) {
   var current = (obj.__LockCount__ || 0);
@@ -434,74 +434,66 @@ System.Char.CheckType = function (value) {
 }
 System.Char.prototype = JSIL.MakeProto(String, System.Char, "System.Char", false);
 
-System.Byte = function () {};
+JSIL.MakeNumericType(Number, "System.Byte", true);
 System.Byte.CheckType = function (value) {
   return (typeof (value) === "number") && (value >= 0) && (value <= 255);
 }
-JSIL.MakeNumericType(Number, "System.Byte", true);
 
-System.UInt16 = function () {};
+JSIL.MakeNumericType(Number, "System.UInt16", true);
 System.UInt16.CheckType = function (value) {
   return (typeof (value) === "number") && (value >= 0);
 }
-JSIL.MakeNumericType(Number, "System.UInt16", true);
 System.UInt16.MaxValue = 65535;
 System.UInt16.Parse = function (text) {
   return Math.abs(parseInt(text, 10));
 };
 
-System.Int16 = function () {};
+JSIL.MakeNumericType(Number, "System.Int16", true);
 System.Int16.CheckType = function (value) {
   return (typeof (value) === "number");
 }
-JSIL.MakeNumericType(Number, "System.Int16", true);
 System.Int16.MaxValue = 32767;
 System.Int16.Parse = function (text) {
   return Math.abs(parseInt(text, 10));
 };
 
-System.UInt32 = function () {};
+JSIL.MakeNumericType(Number, "System.UInt32", true);
 System.UInt32.CheckType = function (value) {
   return (typeof (value) === "number") && (value >= 0);
 }
-JSIL.MakeNumericType(Number, "System.UInt32", true);
 System.UInt32.MaxValue = 4294967295;
 System.UInt32.Parse = function (text) {
   return Math.abs(parseInt(text, 10));
 };
 
-System.Int32 = function () {};
+JSIL.MakeNumericType(Number, "System.Int32", true);
 System.Int32.CheckType = function (value) {
   return (typeof (value) === "number");
 }
-JSIL.MakeNumericType(Number, "System.Int32", true);
 System.Int32.MaxValue = 2147483647;
 System.Int32.Parse = function (text) {
   return parseInt(text, 10);
 };
 
-System.Int64 = function () {};
+JSIL.MakeNumericType(Number, "System.Int64", true);
 System.Int64.CheckType = function (value) {
   return (typeof (value) === "number");
 }
-JSIL.MakeNumericType(Number, "System.Int64", true);
 System.Int64.Parse = function (text) {
   return parseInt(text, 10);
 };
 
-System.Single = function () {}
+JSIL.MakeNumericType(Number, "System.Single", false);
 System.Single.CheckType = function (value) {
   return (typeof (value) === "number");
 }
 System.Single.IsNaN = isNaN;
-JSIL.MakeNumericType(Number, "System.Single", false);
 
-System.Double = function () {}
+JSIL.MakeNumericType(Number, "System.Double", false);
 System.Double.CheckType = function (value) {
   return (typeof (value) === "number");
 }
 System.Double.IsNaN = isNaN;
-JSIL.MakeNumericType(Number, "System.Double", false);
 
 JSIL.MakeStruct("System.Decimal", true);
 System.Decimal.CheckType = function (value) {

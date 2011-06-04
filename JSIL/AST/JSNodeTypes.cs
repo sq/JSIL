@@ -850,7 +850,17 @@ namespace JSIL.Ast {
                 result.Parameters.Any(IsOpenGenericType))
                 throw new AbortTranslation(String.Format("Failed to resolve generic method '{0}'.", method));
 
-            return result;
+            if (method is GenericInstanceMethod) {
+                var gim = (GenericInstanceMethod)method;
+                var resultGim = new GenericInstanceMethod(result);
+
+                foreach (var ga in gim.GenericArguments)
+                    resultGim.GenericArguments.Add(TypeAnalysis.SubstituteTypeArgs(ga, method));
+
+                return resultGim;
+            } else {
+                return result;
+            }
         }
 
         public static TypeReference ConstructDelegateType (MethodReference method, TypeSystem typeSystem) {
@@ -1775,10 +1785,11 @@ namespace JSIL.Ast {
     }
 
     public class JSMethod : JSIdentifier {
+        public readonly IEnumerable<TypeReference> GenericArguments;
         public readonly MethodReference Reference;
         public readonly MethodInfo Method;
 
-        public JSMethod (MethodReference reference, MethodInfo method) {
+        public JSMethod (MethodReference reference, MethodInfo method, IEnumerable<TypeReference> genericArguments = null) {
             if ((reference == null) || (method == null))
                 throw new ArgumentNullException();
 
@@ -1790,6 +1801,14 @@ namespace JSIL.Ast {
 
             Reference = reference;
             Method = method;
+
+            if (genericArguments == null) {
+                var gim = Reference as GenericInstanceMethod;
+                if (gim != null)
+                    genericArguments = gim.GenericArguments;
+            }
+
+            GenericArguments = genericArguments;
         }
 
         public override string Identifier {
@@ -2369,6 +2388,16 @@ namespace JSIL.Ast {
             );
         }
 
+        public IEnumerable<TypeReference> GenericArguments {
+            get {
+                var jsm = JSMethod;
+                if (jsm != null)
+                    return jsm.GenericArguments;
+
+                return null;
+            }
+        }
+
         public JSExpression Type {
             get {
                 return Values[0];
@@ -2478,7 +2507,9 @@ namespace JSIL.Ast {
     public class JSDelegateInvocationExpression : JSExpression {
         public readonly TypeReference ReturnType;
 
-        public JSDelegateInvocationExpression (JSExpression thisReference, TypeReference returnType, params JSExpression[] arguments)
+        public JSDelegateInvocationExpression (
+            JSExpression thisReference, TypeReference returnType, JSExpression[] arguments
+        )
             : base ( 
                 (new [] { thisReference }).Concat(arguments).ToArray() 
             ) {

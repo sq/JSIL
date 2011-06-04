@@ -244,6 +244,13 @@ namespace JSIL {
 
         public void VisitNode (JSMethod method) {
             Output.Identifier(method.Method.Name);
+
+            var ga = method.GenericArguments;
+            if (ga != null) {
+                Output.LPar();
+                Output.CommaSeparatedList(ga, ListValueType.Identifier);
+                Output.RPar();
+            }
         }
 
         public void VisitNode (JSIdentifier identifier) {

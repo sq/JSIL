@@ -469,10 +469,10 @@ JSIL.MakeProperty = function (parent, name, getter, setter) {
 };
 
 JSIL.MakeNumericType = function (baseType, typeName, isIntegral) {
+  JSIL.MakeType(baseType, typeName, false, true);
   var resolved = JSIL.ResolveName(JSIL.GlobalNamespace, typeName);
-  var prototype = JSIL.MakeProto(baseType, resolved.get(), typeName, false);
-  prototype.__IsIntegral__ = isIntegral;
-  resolved.get().prototype = prototype;
+  resolved.get().__IsIntegral__ = isIntegral;
+  resolved.get().prototype.__IsIntegral__ = isIntegral;
 };
 
 JSIL.TypeObjectPrototype = function () {
@@ -560,7 +560,7 @@ JSIL.InitializeType = function (type) {
       Object.defineProperty(newPrototype, k, Object.getOwnPropertyDescriptor(type.prototype, k));
     }
 
-    JSIL.Host.logWriteLine("Replacing prototype");
+    JSIL.Host.logWriteLine("Warning: Replacing prototype of type '" + JSIL.GetTypeName(type) + "'");
     type.prototype = newPrototype;
   }
 
@@ -737,7 +737,9 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic) {
   typeObject.__ShortName__ = localName;
   typeObject.__LockCount__ = 0;
   typeObject.Of = JSIL.TypeObjectPrototype.prototype.Of;
-  typeObject.toString = JSIL.TypeObjectPrototype.prototype.toString;
+  typeObject.toString = function () {
+    return fullName;
+  };
 
   typeObject.prototype = JSIL.MakeProto(baseType, typeObject, fullName, false);
   typeObject.prototype.__ShortName__ = localName;
@@ -840,6 +842,7 @@ JSIL.MakeEnum = function (fullName, members, isFlagsEnum) {
     prototype: prototype,
     __BaseType__: enumType,
     __FullName__: fullName, 
+    Name: fullName,
     IsEnum: true,
     __ValueToName__: {}
   };
@@ -1177,6 +1180,38 @@ JSIL.Dynamic.Cast = function (value, expectedType) {
   return value;
 };
 
+JSIL.FakeGenericMethod = function (argumentNames, body) {
+  var result = function () {
+  };
+};
+
+JSIL.GenericMethod = function (argumentNames, body) {
+  var result = function () {
+    if (arguments.length !== argumentNames.length)
+      throw new Error("Invalid number of generic arguments for method");
+
+    var outerThis = this;
+    var genericArguments = arguments;
+
+    return function () {
+      var invokeArguments = [];
+      for (var i = 0, l = genericArguments.length; i < l; i++)
+        invokeArguments.push(genericArguments[i]);
+      for (var i = 0, l = arguments.length; i < l; i++)
+        invokeArguments.push(arguments[i]);
+
+      return body.apply(outerThis, invokeArguments);
+    };
+  };
+
+  result.__IsGenericMethod__ = true;
+  result.toString = function () {
+    return "<Unbound Generic Method>";
+  };
+
+  return result;
+};
+
 JSIL.FindOverload = function (prototype, args, overloads) {
   var l = args.length;
 
@@ -1320,6 +1355,9 @@ JSIL.Reference.Of = function (type) {
         isRightType = true;
       return isReference && isRightType;
     };
+    compositeType.toString = function () {
+      return typeName;
+    };
     compositeType.prototype = JSIL.MakeProto(JSIL.Reference, compositeType, typeName, true);
     compositeType.__FullName__ = typeName;
     JSIL.Reference.Types[elementName] = compositeType;
@@ -1447,6 +1485,9 @@ System.Array.Of = function (type) {
     compositeType.__FullName__ = typeName;
     compositeType.__IsArray__ = true;
     compositeType.prototype = JSIL.MakeProto(System.Array, compositeType, typeName, true);
+    compositeType.toString = function () {
+      return typeName;
+    };
     System.Array.Types[elementName] = compositeType;
   }
 

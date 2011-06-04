@@ -243,11 +243,14 @@ namespace JSIL.Internal {
 
         protected void TypeIdentifier (TypeReference type, bool includeParens) {
             if (type.IsGenericParameter) {
-                Comment(type.FullName);
+                Identifier(type.FullName);
+
+                /*
                 if (type.IsValueType)
                     Identifier("System.ValueType", null);
                 else
                     Identifier("System.Object", null);
+                 */
             } else {
                 var typedef = type.Resolve();
                 if ((typedef != null) && (typedef.Module.Assembly == Assembly) && !typedef.IsPublic) {
