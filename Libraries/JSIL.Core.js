@@ -364,15 +364,17 @@ JSIL.Initialize = function () {
   }
 };
 
-JSIL.TypeRef = function (context, name) {
+JSIL.TypeRef = function (context, name, genericArguments) {
   if (arguments.length === 1) {
     this.context = null;
     this.typeName = null;
+    this.genericArguments = null;
     this.cachedReference = arguments[0];
   } else {
     if (typeof (name) === "string") {
       this.context = context;
       this.typeName = name;
+      this.genericArguments = genericArguments || [];
       this.cachedReference = null;
     } else {
       JSIL.Host.error(new Error("Invalid type reference"), context, name);
@@ -393,7 +395,21 @@ JSIL.TypeRef.prototype.get = function () {
   if (!result.exists())
     throw new Error("The name '" + this.typeName + "' does not exist.");
 
-  return this.cachedReference = result.get();
+  this.cachedReference = result.get();
+
+  if (this.genericArguments.length > 0) {
+    var ga = this.genericArguments;
+    for (var i = 0, l = ga.length; i < l; i++) {
+      var arg = ga[i];
+
+      if (typeof (arg) === "string")
+        ga[i] = arg = new JSIL.TypeRef(this.context, arg).get();
+    }
+
+    this.cachedReference = this.cachedReference.Of.apply(this.cachedReference, ga);
+  }
+
+  return this.cachedReference;
 };
 
 JSIL.New = function (type, constructorName, args) {

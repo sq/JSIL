@@ -211,7 +211,29 @@ namespace JSIL.Internal {
 
         public void TypeReference (TypeReference type) {
             var typeDef = ILBlockTranslator.GetTypeDefinition(type);
-            Value(Util.EscapeIdentifier((typeDef ?? type).FullName, EscapingMode.String));
+            var identifier = Util.EscapeIdentifier((typeDef ?? type).FullName, EscapingMode.String);
+            var git = type as GenericInstanceType;
+
+            if (git != null) {
+                Keyword("new");
+                Space();
+                Identifier("JSIL.TypeRef", null);
+                LPar();
+
+                Identifier(PrivateToken, null);
+                Comma();
+
+                Value(identifier);
+                Comma();
+
+                OpenBracket();
+                CommaSeparatedList(git.GenericArguments, ListValueType.TypeReference);
+                CloseBracket();
+
+                RPar();
+            } else {
+                Value(identifier);                
+            }
         }
 
         public void TypeReference (TypeInfo type) {
