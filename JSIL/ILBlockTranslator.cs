@@ -283,11 +283,11 @@ namespace JSIL {
             JSExpression result = Translate_PropertyCall(thisExpression, method, arguments, @virtual, @static);
             if (result == null) {
                 if (@static)
-                    result = JSInvocationExpression.InvokeStatic(method.Method.DeclaringType.Definition, method, arguments);
+                    result = JSInvocationExpression.InvokeStatic(method.Reference.DeclaringType, method, arguments);
                 else if (explicitThis)
-                    result = JSInvocationExpression.InvokeBaseMethod(method.Method.DeclaringType.Definition, method, thisExpression, arguments);
+                    result = JSInvocationExpression.InvokeBaseMethod(method.Reference.DeclaringType, method, thisExpression, arguments);
                 else
-                    result = JSInvocationExpression.InvokeMethod(method.Method.DeclaringType.Definition, method, thisExpression, arguments);
+                    result = JSInvocationExpression.InvokeMethod(method.Reference.DeclaringType, method, thisExpression, arguments);
             }
 
             if (CopyOnReturn(method.Method.ReturnType))

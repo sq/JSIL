@@ -201,6 +201,7 @@
     <None Include="TestCases\OverloadWithGeneric.cs" />
     <None Include="TestCases\OverloadWithMultipleGeneric.cs" />
     <None Include="TestCases\GenericClasses.cs" />
+    <None Include="TestCases\GenericStaticMethods.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

@@ -58,6 +58,8 @@ namespace JSIL.Tests {
                 test.Run();
             using (var test = new ComparisonTest(@"TestCases\GenericClasses.cs"))
                 test.Run();
+            using (var test = new ComparisonTest(@"TestCases\GenericStaticMethods.cs"))
+                test.Run();
         }
 
         [Test]

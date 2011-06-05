@@ -806,6 +806,15 @@ namespace JSIL {
                 output.Comma();
                 output.Value(typedef.IsPublic);
 
+                if (typedef.HasGenericParameters) {
+                    output.Comma();
+                    output.OpenBracket();
+                    output.CommaSeparatedList(
+                        (from p in typedef.GenericParameters select p.Name), ListValueType.Primitive
+                    );
+                    output.CloseBracket();
+                }
+
                 output.RPar();
                 output.Semicolon();
             } else {

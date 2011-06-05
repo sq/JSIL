@@ -731,7 +731,7 @@ JSIL.DuplicateDefinitionWarning = function (fullName) {
   // JSIL.Host.warning("Type ", fullName, " is defined multiple times.");
 };
 
-JSIL.MakeStaticClass = function (fullName, isPublic) {
+JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments) {
   if (typeof (isPublic) === "undefined")
     JSIL.Host.error(new Error("Must specify isPublic"));
 
@@ -750,6 +750,8 @@ JSIL.MakeStaticClass = function (fullName, isPublic) {
   typeObject.__FullName__ = fullName;
   typeObject.__ShortName__ = localName;
   typeObject.__IsStatic__ = true;
+  typeObject.__GenericArguments__ = genericArguments || [];
+  typeObject.Of = JSIL.TypeObjectPrototype.Of.bind(typeObject);
 
   resolved.set(typeObject);
 
