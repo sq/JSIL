@@ -648,6 +648,13 @@ namespace JSIL {
             output.Value(Util.EscapeIdentifier(iface.FullName, EscapingMode.String));
             output.Comma();
 
+            output.OpenBracket();
+            output.CommaSeparatedList(
+                (from p in iface.GenericParameters select p.Name), ListValueType.Primitive
+            );
+            output.CloseBracket();
+            output.Comma();
+
             output.OpenBrace();
 
             bool isFirst = true;
@@ -816,6 +823,15 @@ namespace JSIL {
                 output.Value(Util.EscapeIdentifier(typedef.FullName, EscapingMode.String));
                 output.Comma();
                 output.Value(typedef.IsPublic);
+
+                if (typedef.HasGenericParameters) {
+                    output.Comma();
+                    output.OpenBracket();
+                    output.CommaSeparatedList(
+                        (from p in typedef.GenericParameters select p.Name), ListValueType.Primitive
+                    );
+                    output.CloseBracket();
+                }
 
                 output.RPar();
                 output.Semicolon();

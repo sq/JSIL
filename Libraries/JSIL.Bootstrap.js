@@ -13,7 +13,7 @@ JSIL.MakeClass("System.Object", "System.ComponentModel.TypeConverter", true);
 JSIL.MakeClass("System.ComponentModel.TypeConverter", "System.ComponentModel.ExpandableObjectConverter", true);
 
 JSIL.MakeStruct("System.TimeSpan", true);
-JSIL.MakeStruct("System.Nullable$b1", true);
+JSIL.MakeStruct("System.Nullable$b1", true, ["T"]);
 JSIL.MakeClass("System.Object", "System.Text.Encoding", true);
 JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true);
 
@@ -102,6 +102,16 @@ JSIL.MulticastDelegate.New = function (delegates) {
   Object.seal(result);
   return result;
 };
+
+System.Action = JSIL.MakeDelegateType("System.Action", "Action");
+System.Action$b1 = JSIL.MakeDelegateType("System.Action`1", "Action`1");
+System.Action$b2 = JSIL.MakeDelegateType("System.Action`2", "Action`2");
+System.Action$b3 = JSIL.MakeDelegateType("System.Action`3", "Action`3");
+
+System.Func = JSIL.MakeDelegateType("System.Func", "Func");
+System.Func$b1 = JSIL.MakeDelegateType("System.Func`1", "Func`1");
+System.Func$b2 = JSIL.MakeDelegateType("System.Func`2", "Func`2");
+System.Func$b3 = JSIL.MakeDelegateType("System.Func`3", "Func`3");
 
 JSIL.MakeClass(Error, "System.Exception", true);
 System.Exception.prototype._Message = null;
@@ -278,10 +288,7 @@ JSIL.MakeProperty(
   System.Threading.Thread.get_CurrentThread, null
 );
 
-JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true);
-System.Collections.Generic.List$b1.Of = function (T) {
-  return System.Collections.Generic.List$b1;
-};
+JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"]);
 System.Collections.Generic.List$b1.prototype._ctor = function (sizeOrInitializer) {
   var size = Number(sizeOrInitializer);
 
@@ -326,7 +333,7 @@ System.Collections.Generic.List$b1.prototype.get_Capacity = function () {
   return this._items.length;
 };
 System.Collections.Generic.List$b1.prototype.GetEnumerator = function () {
-  return new System.Collections.Generic.List$b1.Enumerator(this);
+  return new (System.Collections.Generic.List$b1.Enumerator.Of(this.T)) (this);
 };
 JSIL.MakeProperty(
   System.Collections.Generic.List$b1.prototype, "Count", 
@@ -339,10 +346,7 @@ JSIL.ImplementInterfaces(System.Collections.Generic.List$b1, [
 System.Collections.ArrayList = System.Collections.Generic.List$b1.Of(System.Object);
 
 // TODO: This type is actually a struct in the CLR
-JSIL.MakeClass("JSIL.ArrayEnumerator", "System.Collections.Generic.List`1/Enumerator", true);
-System.Collections.Generic.List$b1.Enumerator.Of = function (T) {
-  return System.Collections.Generic.List$b1.Enumerator;
-};
+JSIL.MakeClass("JSIL.ArrayEnumerator", "System.Collections.Generic.List`1/Enumerator", true, ["T"]);
 System.Collections.Generic.List$b1.Enumerator.prototype._array = null;
 System.Collections.Generic.List$b1.Enumerator.prototype._length = 0;
 System.Collections.Generic.List$b1.Enumerator.prototype._index = -1;

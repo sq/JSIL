@@ -255,12 +255,19 @@ namespace JSIL.Internal {
             }
 
             if (type.IsGenericParameter) {
+                var gp = (GenericParameter)type;
+
                 if (replaceGenerics) {
                     if (type.IsValueType)
                         Identifier("JSIL.AnyValueType", null);
                     else
                         Identifier("JSIL.AnyType", null);
                 } else {
+                    if (gp.Owner is TypeReference) {
+                        Keyword("this");
+                        Dot();
+                    }
+
                     Identifier(type.FullName);
                 }
             } else {
@@ -319,7 +326,21 @@ namespace JSIL.Internal {
         }
 
         protected void TypeIdentifier (GenericInstanceType type, bool includeParens, bool replaceGenerics) {
+            if (includeParens)
+                LPar();
+
             Identifier(type.ElementType as dynamic, includeParens, replaceGenerics);
+
+            Dot();
+            Identifier("Of", null);
+            LPar();
+            CommaSeparatedList(type.GenericArguments, ListValueType.TypeIdentifier);
+            RPar();
+
+            if (includeParens) {
+                RPar();
+                Space();
+            }
         }
 
         public void Identifier (MethodReference method, bool fullyQualified = true) {

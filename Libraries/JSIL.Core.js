@@ -420,6 +420,9 @@ JSIL.New = function (type, constructorName, args) {
 }
 
 JSIL.CloneObject = function (obj) {
+  if ((typeof (obj) === "undefined") || (obj === null))
+    throw new Error("Cloning a non-object");
+
   return Object.create(obj);
 };
 
@@ -475,16 +478,77 @@ JSIL.MakeNumericType = function (baseType, typeName, isIntegral) {
   resolved.get().prototype.__IsIntegral__ = isIntegral;
 };
 
-JSIL.TypeObjectPrototype = function () {
-};
-JSIL.TypeObjectPrototype.prototype.toString = function () {
+JSIL.TypeObjectPrototype = {};
+JSIL.TypeObjectPrototype.__GenericArguments__ = [];
+JSIL.TypeObjectPrototype.toString = function () {
   return JSIL.GetTypeName(this);
 };
-JSIL.TypeObjectPrototype.prototype.Of = function (T) {
-  return this.__Self__;
+JSIL.TypeObjectPrototype.Of = function () {
+  var self = this;
+  var ga = this.__GenericArguments__;
+  var ofCache = this.__OfCache__;
+  var typeArguments = Array.prototype.slice.call(arguments);
+  var cacheKey = typeArguments.join(",");
+
+  if ((typeof (ofCache) === "undefined") || (ofCache === null))
+    this.__OfCache__ = ofCache = [];
+
+  if (arguments.length != ga.length)
+    throw new Error("Invalid number of generic arguments for type '" + JSIL.GetTypeName(this) + "' (got " + arguments.length + ", expected " + ga.length + ")");
+
+  // If we do not return the same exact closed type instance from every call to Of(...), derivation checks will fail
+  if (ofCache.hasOwnProperty(cacheKey))
+    return ofCache[cacheKey];
+
+  var result = function () {
+    var ctorArguments = Array.prototype.slice.call(arguments);
+    return Function.prototype.apply.call(self, this, ctorArguments);
+  };
+
+  var makeIndirectGetter = function (key) {
+    return function () {
+      return self[key];
+    };
+  };
+
+  var ignoredNames = [
+    "__Self__", "prototype", "Of"
+  ];
+
+  for (var k in this) {
+    if (ignoredNames.indexOf(k) !== -1)
+      continue;
+
+    Object.defineProperty(
+      result, k, {
+        configurable: false,
+        enumerable: true,
+        get: makeIndirectGetter(k)
+      }
+    );
+  }
+
+  result.__Self__ = result;
+  result.prototype = Object.create(this.prototype);
+  result.prototype.__BaseType__ = result;
+
+  for (var i = 0, l = arguments.length; i < l; i++) {
+    var key = ga[i];
+
+    var decl = {
+      configurable: false,
+      enumerable: true,
+      value: arguments[i]
+    };
+    Object.defineProperty(result, key, decl);
+    Object.defineProperty(result.prototype, key, decl);
+  }
+
+  ofCache[cacheKey] = result;
+  return result;
 };
 
-System.RuntimeType = new JSIL.TypeObjectPrototype();
+System.RuntimeType = Object.create(JSIL.TypeObjectPrototype);
 System.RuntimeType.prototype = {}; // Fixes mscorlib translation generating members for RuntimeType
 System.RuntimeType.__IsReferenceType__ = true;
 System.RuntimeType.IsInterface = false;
@@ -699,7 +763,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic) {
   }
 }
 
-JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic) {
+JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, genericArguments) {
   if (typeof (isPublic) === "undefined")
     JSIL.Host.error(new Error("Must specify isPublic"));
 
@@ -736,7 +800,8 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic) {
   typeObject.__FullName__ = fullName;
   typeObject.__ShortName__ = localName;
   typeObject.__LockCount__ = 0;
-  typeObject.Of = JSIL.TypeObjectPrototype.prototype.Of;
+  typeObject.__GenericArguments__ = genericArguments || [];
+  typeObject.Of = JSIL.TypeObjectPrototype.Of.bind(typeObject);
   typeObject.toString = function () {
     return fullName;
   };
@@ -766,15 +831,15 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic) {
   }
 };
 
-JSIL.MakeClass = function (baseType, fullName, isPublic) {
-  JSIL.MakeType(baseType, fullName, true, isPublic);
+JSIL.MakeClass = function (baseType, fullName, isPublic, genericArguments) {
+  JSIL.MakeType(baseType, fullName, true, isPublic, genericArguments);
 };
 
-JSIL.MakeStruct = function (fullName, isPublic) {
-  JSIL.MakeType("System.ValueType", fullName, false, isPublic);
+JSIL.MakeStruct = function (fullName, isPublic, genericArguments) {
+  JSIL.MakeType("System.ValueType", fullName, false, isPublic, genericArguments);
 };
 
-JSIL.MakeInterface = function (fullName, members) {
+JSIL.MakeInterface = function (fullName, genericArguments, members) {
   var resolved = JSIL.ResolveName($private, fullName);
   var localName = resolved.localName;
 
@@ -789,7 +854,11 @@ JSIL.MakeInterface = function (fullName, members) {
   typeObject.__Members__ = members;
   typeObject.__ShortName__ = localName;
   typeObject.__FullName__ = fullName;
+  typeObject.__GenericArguments__ = genericArguments || [];
   typeObject.IsInterface = true;
+  typeObject.Of = function () {
+    return typeObject;
+  };
   typeObject.prototype = JSIL.CloneObject(JSIL.Interface.prototype);
 
   resolved.set(typeObject);
@@ -1188,7 +1257,7 @@ JSIL.FakeGenericMethod = function (argumentNames, body) {
 JSIL.GenericMethod = function (argumentNames, body) {
   var result = function () {
     if (arguments.length !== argumentNames.length)
-      throw new Error("Invalid number of generic arguments for method");
+      throw new Error("Invalid number of generic arguments for method (got " + arguments.length + ", expected " + argumentNames.length + ")");
 
     var outerThis = this;
     var genericArguments = arguments;
@@ -1461,28 +1530,28 @@ JSIL.Interface.prototype.Of = function (T) {
   return this;
 };
 
-JSIL.MakeInterface("System.IDisposable", {
+JSIL.MakeInterface("System.IDisposable", [], {
   "Dispose": Function
 });
-JSIL.MakeInterface("System.IEquatable`1", {
+JSIL.MakeInterface("System.IEquatable`1", ["T"], {
   "Equals": Function
 });
 
-JSIL.MakeInterface("System.Collections.IEnumerator", {
+JSIL.MakeInterface("System.Collections.IEnumerator", [], {
   "MoveNext": Function,
   "get_Current": Function,
   "Reset": Function,
   "Current": Property
 });
-JSIL.MakeInterface("System.Collections.IEnumerable", {
+JSIL.MakeInterface("System.Collections.IEnumerable", [], {
   "GetEnumerator": Function
 });
 
-JSIL.MakeInterface("System.Collections.Generic.IEnumerator`1", {
+JSIL.MakeInterface("System.Collections.Generic.IEnumerator`1", ["T"], {
   "get_Current": Function,
   "Current": Property
 });
-JSIL.MakeInterface("System.Collections.Generic.IEnumerable`1", {
+JSIL.MakeInterface("System.Collections.Generic.IEnumerable`1", ["T"], {
   "GetEnumerator": Function
 });
 
@@ -1680,7 +1749,11 @@ JSIL.MakeDelegateType = function (fullName, localName) {
 
       return false;
     },
-    IsEnum: false
+    IsEnum: false,
+  };
+
+  result.Of = function () {
+    return result;
   };
 
   prototype.__Self__ = result;
