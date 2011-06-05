@@ -364,6 +364,16 @@ JSIL.Initialize = function () {
   }
 };
 
+JSIL.GenericParameter = function (name) {
+  this.name = name;
+};
+JSIL.GenericParameter.prototype.get = function (context) {
+  return context[this.name];
+};
+JSIL.GenericParameter.prototype.toString = function () {
+  return "<Generic Parameter " + this.name + ">";
+};
+
 JSIL.TypeRef = function (context, name, genericArguments) {
   if (arguments.length === 1) {
     this.context = null;

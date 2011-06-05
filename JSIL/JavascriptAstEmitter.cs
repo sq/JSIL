@@ -475,6 +475,9 @@ namespace JSIL {
         }
 
         public void VisitNode (JSFunctionExpression function) {
+            var oldCurrentMethod = Output.CurrentMethod;
+            Output.CurrentMethod = function.OriginalMethodReference;
+
             Output.OpenFunction(
                 null,
                 (o) => {
@@ -499,6 +502,7 @@ namespace JSIL {
             Visit(function.Body);
 
             Output.CloseBrace(false);
+            Output.CurrentMethod = oldCurrentMethod;
         }
 
         public void VisitNode (JSSwitchStatement swtch) {

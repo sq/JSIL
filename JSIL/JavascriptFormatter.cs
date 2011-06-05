@@ -29,6 +29,8 @@ namespace JSIL.Internal {
         public readonly AssemblyDefinition Assembly;
         public readonly string PrivateToken;
 
+        public MethodReference CurrentMethod = null;
+
         protected static int NextAssemblyId = 1;
         protected readonly HashSet<string> DeclaredNamespaces = new HashSet<string>();
 
@@ -214,7 +216,14 @@ namespace JSIL.Internal {
             var identifier = Util.EscapeIdentifier((typeDef ?? type).FullName, EscapingMode.String);
             var git = type as GenericInstanceType;
 
-            if (git != null) {
+            if (type is GenericParameter) {
+                Keyword("new");
+                Space();
+                Identifier("JSIL.GenericParameter", null);
+                LPar();
+                Value(identifier);
+                RPar();
+            } else if (git != null) {
                 Keyword("new");
                 Space();
                 Identifier("JSIL.TypeRef", null);
@@ -232,7 +241,7 @@ namespace JSIL.Internal {
 
                 RPar();
             } else {
-                Value(identifier);                
+                Value(identifier);
             }
         }
 
@@ -279,7 +288,19 @@ namespace JSIL.Internal {
             if (type.IsGenericParameter) {
                 var gp = (GenericParameter)type;
 
-                if (replaceGenerics) {
+                if (
+                    (CurrentMethod != null) &&
+                    ((CurrentMethod.Equals(gp.Owner)) ||
+                     (CurrentMethod.DeclaringType.Equals(gp.Owner))
+                    )
+                ) {
+                    if (gp.Owner is TypeReference) {
+                        Keyword("this");
+                        Dot();
+                    }
+
+                    Identifier(type.FullName);
+                } else if (replaceGenerics) {
                     if (type.IsValueType)
                         Identifier("JSIL.AnyValueType", null);
                     else

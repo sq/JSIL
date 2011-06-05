@@ -846,9 +846,11 @@ namespace JSIL.Ast {
             result.CallingConvention = method.CallingConvention;
             result.DeclaringType = method.DeclaringType;
 
+            /*
             if (IsOpenGenericType(result.ReturnType) ||
                 result.Parameters.Any(IsOpenGenericType))
                 throw new AbortTranslation(String.Format("Failed to resolve generic method '{0}'.", method));
+             */
 
             if (method is GenericInstanceMethod) {
                 var gim = (GenericInstanceMethod)method;
@@ -1792,12 +1794,6 @@ namespace JSIL.Ast {
         public JSMethod (MethodReference reference, MethodInfo method, IEnumerable<TypeReference> genericArguments = null) {
             if ((reference == null) || (method == null))
                 throw new ArgumentNullException();
-
-            if (
-                IsOpenGenericType(reference.ReturnType) || reference.Parameters.Any(IsOpenGenericType)
-            ) {
-                throw new AbortTranslation("Unbound generic type in invocation");
-            }
 
             Reference = reference;
             Method = method;
