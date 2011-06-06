@@ -1,0 +1,112 @@
+div#introduction {
+}
+
+div#changelog {
+	position: relative;
+	height: 26em;
+}
+
+div#changelog-entries {
+	position: absolute;
+	left: 0.25em;
+	top: 3em;
+	right: 6px;
+	bottom: 6px;
+	overflow-x: hidden;
+	overflow-y: auto;
+}
+
+div.changelog-entry {
+	position: relative;
+	height: 3em;
+	width: 100%;
+	padding: 0px;
+	margin: 0px;
+	margin-bottom: 0.4em;
+	float: left;
+	clear: left;
+}
+
+img.author-image {
+	position: absolute;
+	top: 0.1em;
+	left: 0.1em;
+	width: 2.8em;
+	bottom: 0.1em;
+}
+
+div.changelog-entry div.header {
+	position: absolute;
+	top: 0em;
+	left: 3.1em;
+	right: 0em;
+	height: 0.8em;
+}
+
+div.message {
+	position: absolute;
+	top: 0.9em;
+	left: 3.1em;
+	right: 0em;
+	bottom: 0em;
+	overflow: hidden;
+	padding-left: 3px;
+	padding-right: 3px;
+}
+
+div.message .text {
+	font-family: Consolas, monospace;
+	font-size: 0.8em;
+	text-overflow: ellipsis;
+	word-wrap: break-word;
+	white-space: pre-line;
+}
+
+div.changelog-entry .author {
+	position: absolute;
+	left: 0em;
+	width: 9em;
+	font-size: 0.8em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+div.changelog-entry .datetime {
+	position: absolute;
+	left: 10em;
+	font-size: 0.8em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+div.changelog-entry .datetime .time {
+	margin-left: 0.5em;
+}
+
+div#changelog-loading-placeholder {
+	position: absolute;
+	top: 4em;
+	bottom: 0px;
+	right: 0px;
+	left: 0px;
+	font-style: italic;
+	text-align: center;
+}
+
+a#view-on-github {
+	position: absolute;
+	top: 0.5em;
+	right: 0.5em;
+	font-size: 0.5em;
+}
+
+div#demos ul {
+	-moz-column-count: 2;
+	-moz-column-gap: 2em;
+	-webkit-column-count: 2;
+	-webkit-column-gap: 2em;
+	column-count: 2;
+	column-gap: 2em;
+	list-style-type: circle;
+	list-style-position: inside;
+}

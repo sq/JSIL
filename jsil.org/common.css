@@ -1,0 +1,139 @@
+body {
+	font-family: Calibri, Tahoma, Verdana, sans-serif;
+	font-size: 12pt;
+	font-weight: normal;
+	margin: 2px;
+	padding: 0px;
+	background-color: #F4FFF9;
+	color: #002821;
+}
+
+h1, h2, h3, h4, h5, h6 {
+	font-family: Calibri, Tahoma, Verdana, sans-serif;
+	font-weight: bold;
+}
+
+a {
+	color: #AD4E00;
+	border-radius: 6px;
+	border-top-right-radius: 2px;
+	border-bottom-left-radius: 2px;
+	border-width: 1px;
+	border-top-width: 0px;
+	border-bottom-width: 1px;
+	border-color: transparent;
+	border-style: solid;
+	padding-left: 2px;
+	padding-right: 2px;
+	background-color: rgba(255, 229, 209, 0.2);
+	text-decoration: none;
+}
+
+a:visited {
+	color: #5B2A00;
+}
+
+a:hover {
+	background-color: rgba(255, 229, 209, 0.75);
+	border-color: #C68D61;
+	color: #703200;
+}
+
+em {
+	font-style: italic;
+}
+
+tt {
+	font-family: Consolas, monospace;
+}
+
+h1 {
+	font-size: 2.8em;
+	margin-top: 0.1em;
+	margin-bottom: 0.025em;
+}
+
+h2 {
+	font-size: 2em;
+	margin-top: 0.1em;
+	margin-bottom: 0.025em;
+}
+
+h3 {
+	font-size: 1.2em;
+	margin-top: 0.2em;
+	margin-bottom: 0.05em;
+}
+
+p {
+	line-height: 1.2em;
+	text-align: justify;
+	text-justify: inter-word;
+}
+
+a, ul, ol {
+	line-height: 1.2em;
+}
+
+ol {
+	list-style-type: decimal;
+	list-style-position: inside;
+	padding-left: 0.4em;
+}
+
+.rounded-box {
+	border-radius: 16px;
+	border-top-right-radius: 4px;
+	border-bottom-left-radius: 4px;
+	border-style: solid;
+	border-width: 1px;
+	border-top-width: 0px;
+	border-color: rgb(20, 137, 116);
+	background: rgba(20, 137, 116, 0.20);
+	background: -ms-linear-gradient(
+		90deg, rgba(20, 137, 116, 0.05), rgba(20, 137, 116, 0.25)
+	);
+	background: -webkit-gradient(
+		linear,
+		left bottom,
+		left top,
+		color-stop(0.01, rgba(20, 137, 116, 0.05)),
+		color-stop(0.99, rgba(20, 137, 116, 0.25))
+	);
+	background: -moz-linear-gradient(
+		center bottom,
+		rgba(20, 137, 116, 0.05) 1%,
+		rgba(20, 137, 116, 0.25) 99%
+	);
+	padding: 0.4em;
+}
+
+.left-box {
+	width: 31em;
+	margin-left: 0em;
+	margin-top: 1em;
+	margin-right: 1em;
+	float: left;
+	clear: left;
+}
+
+.right-box {
+	width: 31em;
+	margin-left: 0em;
+	margin-top: 1em;
+	margin-right: 0em;
+	float: left;
+	clear: right;
+}
+
+div#content-box {
+	padding: 0px;
+	max-width: 66em;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.aside {
+	font-size: 0.75em;
+	font-style: italic;
+}
