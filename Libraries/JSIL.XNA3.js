@@ -199,15 +199,16 @@ Microsoft.Xna.Framework.Graphics.Color.prototype.get_B = function () {
 
 Microsoft.Xna.Framework.Graphics.Color.prototype.toCss = function () {
   if (this.A < 255) {
-    return System.String.Format(
-      "rgba({0}, {1}, {2}, {3})",
-      this.R, this.G, this.B, this.A / 255.0
-    );
+    return "rgba(" + this.R + 
+      "," + this.G +
+      "," + this.B +
+      "," + this.A / 255.0 +
+    ")";    
   } else {
-    return System.String.Format(
-      "rgb({0}, {1}, {2})",
-      this.R, this.G, this.B
-    );
+    return "rgb(" + this.R + 
+      "," + this.G +
+      "," + this.B +
+    ")";    
   }
 }
 

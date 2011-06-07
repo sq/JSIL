@@ -214,7 +214,7 @@ namespace JSIL.Tests {
             );
 
             try {
-                Assert.IsFalse(generatedJs.Contains("for"));
+                Assert.IsFalse(generatedJs.Contains("for ("));
                 Assert.AreEqual(3, generatedJs.Split(new string[] { "do {" }, StringSplitOptions.RemoveEmptyEntries).Length);
                 Assert.AreEqual(3, generatedJs.Split(new string[] { "} while (" }, StringSplitOptions.RemoveEmptyEntries).Length);
                 Assert.IsTrue(generatedJs.Contains("while (true)"));
