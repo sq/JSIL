@@ -38,6 +38,29 @@ function loadChangelog () {
   });
 }
 
+function loadNewSample () {
+  var h = window.location.hash || "";
+  if (h.length > 1) {
+    var url = h.substr(1);
+    
+    if ($("#codesample").attr("src") != url) {
+      $("#codesample").attr("src", url);
+    }
+  }
+}
+
 function onLoad () {
+  window.addEventListener("hashchange", loadNewSample, false);
+  
+  $("ul#sample_list li a").each(function () {
+    var link = $(this);
+    link.click(function (evt) {
+      evt.preventDefault();
+      var sampleUrl = link.attr("href");
+      window.location.hash = "#" + sampleUrl;
+    });
+  });
+  
   loadChangelog();
+  loadNewSample();
 }

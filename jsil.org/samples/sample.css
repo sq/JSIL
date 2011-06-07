@@ -1,0 +1,26 @@
+body {
+	margin: 0px;
+	padding: 0px;
+	overflow: hidden;
+}
+
+.gist, .gist-data {
+	background-color: transparent !important;
+}
+
+.gist-meta {
+	font-size: 0.7em !important;
+}
+
+#csharp, #javascript {
+	position: absolute;
+	width: 50%;
+}
+
+#csharp {
+	left: 0em;
+}
+
+#javascript {
+	right: 0em;
+}

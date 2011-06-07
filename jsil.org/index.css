@@ -1,4 +1,16 @@
+body {
+	background-image: url(images/jsil_256px.png);
+	background-repeat: no-repeat;
+	background-attachment: fixed;
+	background-position: bottom right;
+}
+
 div#introduction {
+}
+
+img#logo {
+	margin-bottom: -0.1em;
+	margin-right: 0.1em;
 }
 
 div#changelog {
@@ -109,4 +121,23 @@ div#demos ul {
 	column-gap: 2em;
 	list-style-type: circle;
 	list-style-position: inside;
+}
+
+ul#sample_list {
+	-moz-column-count: 3;
+	-moz-column-gap: 1em;
+	-webkit-column-count: 3;
+	-webkit-column-gap: 1em;
+	column-count: 3;
+	column-gap: 1em;
+	list-style-type: circle;
+	list-style-position: inside;
+}
+
+iframe#codesample {
+	margin-top: 0.5em;
+	margin-bottom: 0em;
+	width: 100%;
+	overflow: hidden;
+	height: 0em;
 }

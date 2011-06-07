@@ -8,28 +8,30 @@
   </head>
   <body onLoad="onLoad()">
     <div id="content-box">
-      <div id="introduction" class="rounded-box left-box">
-        <h1>JSIL</h1>
+      <div id="introduction" class="rounded-box">
+        <h1><img src="images/jsil_48px.png" id="logo">JSIL</h1>
         <p>JSIL is a compiler that transforms .NET applications and libraries from their native executable format - <a href="http://en.wikipedia.org/wiki/Common_Intermediate_Language">CIL bytecode</a> - into standards-compliant, cross-browser JavaScript. You can take this JavaScript and run it in a web browser or any other modern JavaScript runtime. Unlike other cross-compiler tools targeting JavaScript, JSIL produces readable, easy-to-debug JavaScript that resembles the code a developer might write by hand, while still maintaining the behavior and structure of the original .NET code.</p>
       </div>
-      <div id="aboutauthor" class="rounded-box right-box">
-        <h2>About the Author</h2>
-        <p>Kevin Gadd is a rampaging malcontent from Northern California. He works on the Performance team at Mozilla, occasionally blogs <a href="http://www.luminance.org/">on his website</a>, and complains incessantly about first-world problems on <a href="http://www.twitter.com/antumbral">Twitter</a>. You can find the unreadable source code he was unwise enough to upload <a href="http://www.github.com/kevingadd/">on GitHub</a>.
-      </div>
-      <div id="demos" class="rounded-box right-box">
+      <div id="demos" class="rounded-box">
         <h2>Demos</h2>
         <ul>
           <li><a href="http://hildr.luminance.org/Platformer/Platformer.html">XNA 3.1 Platformer Starter Kit</a></li>
           <li><a href="http://hildr.luminance.org/Raytracer/Raytracer.html">Raytracer</a></li>
         </ul>
       </div>
-      <div id="changelog" class="rounded-box left-box">
-        <h2>Changelog <a href="https://github.com/kevingadd/JSIL/commits/master" id="view-on-github">View on GitHub</a></h2>
-        <div id="changelog-loading-placeholder">Loading...</div>
-        <div id="changelog-entries" style="display: none">
-        </div>
-      </div>      
-      <div id="gettingstarted" class="rounded-box right-box">
+      <div id="codesamples" class="rounded-box">
+        <h2>Code Samples</h2>
+        <ul id="sample_list">
+          <li><a href="samples/foreach.html"><tt>for each</tt></a></li>
+          <li><a href="samples/multicastdelegates.html"><tt>MulticastDelegate</tt>s</a></li>
+          <li><a href="samples/refparameters.html"><tt>ref</tt> parameters</a></li>
+          <li><a href="samples/verbatim.html"><tt>Verbatim</tt> JavaScript</a></li>
+          <li><a href="samples/closures.html">Closures</a></li>
+          <li><a href="samples/multidimarrays.html">Multidimensional <tt>Array</tt>s</a></li>
+        </ul>
+        <iframe id="codesample" allowtransparency="true" frameborder="0" sandbox="allow-same-origin allow-scripts" src="about:blank"></iframe>
+      </div>
+      <div id="gettingstarted" class="rounded-box">
         <h2>Getting Started</h2>
         <h3>Use JSIL</h3>
         <ol>
@@ -51,6 +53,16 @@
         <h3>Complain about JSIL</h3>
         <p>Not everybody has time to write code! That's okay. You can <a href="https://github.com/kevingadd/JSIL/issues">report issues</a>, or just talk about JSIL on Twitter or something. It's cool!</p>
       </div>
+      <div id="changelog" class="rounded-box">
+        <h2>Changelog <a href="https://github.com/kevingadd/JSIL/commits/master" id="view-on-github">View on GitHub</a></h2>
+        <div id="changelog-loading-placeholder">Loading...</div>
+        <div id="changelog-entries" style="display: none">
+        </div>
+      </div>      
+      <div id="aboutauthor" class="rounded-box">
+        <h2>About the Author</h2>
+        <p>Kevin Gadd is a rampaging malcontent from Northern California. He works on the Performance team at Mozilla, occasionally blogs <a href="http://www.luminance.org/">on his website</a>, and complains incessantly about first-world problems on <a href="http://www.twitter.com/antumbral">Twitter</a>. You can find the unreadable source code he was unwise enough to upload <a href="http://www.github.com/kevingadd/">on GitHub</a>.
+      </div>
     </div>
     
     <div class="changelog-entry" id="changelog-entry-template" style="display: none">
@@ -58,6 +70,8 @@
       <div class="header"><a class="author">Author</a><a class="datetime"><span class="date">Date</span> <span class="time">Time</span></a></div>
       <div class="message"><span class="text">Message</span></div>
     </div>
+    
+    <div id="footer">Logo by the impeccable <a href="http://bryneshrimp.com/">John Flynn</a></div>
     
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js" type="text/javascript"></script>
     <script src="md5-min.js" type="text/javascript"></script>
