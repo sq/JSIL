@@ -1511,7 +1511,7 @@ namespace JSIL {
             targetType = JSExpression.SubstituteTypeArgs(targetType, ThisMethodReference);
 
             var targetInfo = TypeInfo.Get(targetType);
-            if (targetInfo.IsIgnored)
+            if ((targetInfo != null) && targetInfo.IsIgnored)
                 return new JSNullLiteral(targetType);
             else
                 return JSIL.TryCast(firstArg, targetType);

@@ -207,6 +207,7 @@
     <None Include="TestCases\GenericStructs.cs" />
     <None Include="TestCases\GenericArgumentFromTypePassedToMethod.cs" />
     <None Include="TestCases\GenericArgumentFromTypeReturnedByMethod.cs" />
+    <None Include="TestCases\GenericTypeCasts.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

@@ -838,7 +838,7 @@ namespace JSIL.Ast {
 
             if (gp != null) {
                 if (gp.Owner.GenericParameterType == GenericParameterType.Method) {
-                    if (!(member is MethodReference))
+                    if (!(member is GenericInstanceMethod))
                         return type;
                 }
             }
@@ -1801,10 +1801,12 @@ namespace JSIL.Ast {
             ReturnType = returnType;
             ParameterTypes = parameterTypes;
 
+            /*
             if (IsOpenGenericType(ReturnType))
                 throw new Exception("Open generic return type");
             else if (parameterTypes.Any(IsOpenGenericType))
                 throw new Exception("Open generic parameter type");
+             */
 
             /*
             if (ReturnType.IsGenericParameter || parameterTypes.Any((p) => p.IsGenericParameter))
