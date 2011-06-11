@@ -823,13 +823,17 @@ namespace JSIL.Ast {
             return false;
         }
 
+        public static TypeReference SubstituteTypeArgs (TypeReference type, MemberReference member) {
+            return TypeAnalysis.SubstituteTypeArgs(type, member);
+        }
+
         public static MethodReference ResolveGenericMethod (MethodReference method) {
             if (!IsOpenGenericType(method.ReturnType) &&
                 !method.Parameters.Any(IsOpenGenericType))
                 return method;
 
             TypeReference returnType;
-            returnType = TypeAnalysis.SubstituteTypeArgs(method.ReturnType, method);
+            returnType = SubstituteTypeArgs(method.ReturnType, method);
 
             var result = new MethodReference(
                 method.Name, returnType, method.DeclaringType
@@ -838,7 +842,7 @@ namespace JSIL.Ast {
             foreach (var parameter in method.Parameters)
                 result.Parameters.Add(new ParameterDefinition(
                     parameter.Name, parameter.Attributes,
-                    TypeAnalysis.SubstituteTypeArgs(parameter.ParameterType, method)
+                    SubstituteTypeArgs(parameter.ParameterType, method)
                 ));
 
             result.HasThis = method.HasThis;
@@ -856,8 +860,18 @@ namespace JSIL.Ast {
                 var gim = (GenericInstanceMethod)method;
                 var resultGim = new GenericInstanceMethod(result);
 
-                foreach (var ga in gim.GenericArguments)
-                    resultGim.GenericArguments.Add(TypeAnalysis.SubstituteTypeArgs(ga, method));
+                foreach (var ga in gim.GenericArguments) {
+                    var gp = ga as GenericParameter;
+
+                    if (gp != null) {
+                        if (gp.Owner.GenericParameterType == GenericParameterType.Method)
+                            resultGim.GenericArguments.Add(SubstituteTypeArgs(gp, method));
+                        else
+                            resultGim.GenericArguments.Add(gp);
+                    } else {
+                        resultGim.GenericArguments.Add(ga);
+                    }
+                }
 
                 return resultGim;
             } else {
@@ -870,9 +884,9 @@ namespace JSIL.Ast {
 
             try {
                 return ConstructDelegateType(
-                    TypeAnalysis.SubstituteTypeArgs(method.ReturnType, method),
+                    SubstituteTypeArgs(method.ReturnType, method),
                     (from p in method.Parameters
-                     select TypeAnalysis.SubstituteTypeArgs(p.ParameterType, method)),
+                     select SubstituteTypeArgs(p.ParameterType, method)),
                      typeSystem
                 );
             } catch (OpenGenericTypeException) {
@@ -1749,7 +1763,7 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return TypeAnalysis.SubstituteTypeArgs(Field.ReturnType, Reference);
+            return SubstituteTypeArgs(Field.ReturnType, Reference);
         }
     }
 
@@ -1776,7 +1790,7 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return TypeAnalysis.SubstituteTypeArgs(Property.ReturnType, Reference);
+            return SubstituteTypeArgs(Property.ReturnType, Reference);
         }
 
         public override bool IsConstant {
@@ -2478,7 +2492,7 @@ namespace JSIL.Ast {
             var targetFakeMethod = FakeMethod ?? (targetAbstractMethod as JSFakeMethod);
 
             if (targetMethod != null)
-                return TypeAnalysis.SubstituteTypeArgs(targetMethod.Reference.ReturnType, targetMethod.Reference);
+                return SubstituteTypeArgs(targetMethod.Reference.ReturnType, targetMethod.Reference);
             else if (targetFakeMethod != null)
                 return targetFakeMethod.ReturnType;
 

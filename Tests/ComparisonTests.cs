@@ -48,6 +48,8 @@ namespace JSIL.Tests {
 
         [Test]
         public void Generics () {
+            using (var test = new ComparisonTest(@"TestCases\OpenGenericVariables.cs"))
+                test.Run();
             using (var test = new ComparisonTest(@"TestCases\GenericStructs.cs"))
                 test.Run();
             using (var test = new ComparisonTest(@"TestCases\InheritOpenGenericClass.cs"))

@@ -941,7 +941,7 @@ namespace JSIL {
                 var value = TranslateNode(node.Arguments[0].Arguments[0]);
                 var targetType = (TypeReference)node.Arguments[0].Operand;
                 try {
-                    targetType = TypeAnalysis.SubstituteTypeArgs(targetType, ThisMethodReference);
+                    targetType = JSExpression.SubstituteTypeArgs(targetType, ThisMethodReference);
                 } catch (OpenGenericTypeException) {
                     throw new AbortTranslation(String.Format("Cast value to open generic type '{0}'", targetType));
                 }
@@ -1494,7 +1494,7 @@ namespace JSIL {
 
         protected JSExpression Translate_Castclass (ILExpression node, TypeReference targetType) {
             try {
-                targetType = TypeAnalysis.SubstituteTypeArgs(targetType, ThisMethodReference);
+                targetType = JSExpression.SubstituteTypeArgs(targetType, ThisMethodReference);
             } catch (OpenGenericTypeException) {
                 throw new AbortTranslation(String.Format("Cast object to open generic type '{0}'", targetType));
             }
@@ -1513,7 +1513,7 @@ namespace JSIL {
         protected JSExpression Translate_Isinst (ILExpression node, TypeReference targetType) {
             var firstArg = TranslateNode(node.Arguments[0]);
             try {
-                targetType = TypeAnalysis.SubstituteTypeArgs(targetType, ThisMethodReference);
+                targetType = JSExpression.SubstituteTypeArgs(targetType, ThisMethodReference);
             } catch (OpenGenericTypeException) {
                 throw new AbortTranslation(String.Format("Compared type of value with open generic type '{0}'", targetType));
             }
@@ -1528,7 +1528,7 @@ namespace JSIL {
         protected JSExpression Translate_Unbox_Any (ILExpression node, TypeReference targetType) {
             var value = TranslateNode(node.Arguments[0]);
             try {
-                targetType = TypeAnalysis.SubstituteTypeArgs(targetType, ThisMethodReference);
+                targetType = JSExpression.SubstituteTypeArgs(targetType, ThisMethodReference);
             } catch (OpenGenericTypeException) {
                 throw new AbortTranslation(String.Format("Attempted to unbox an open generic type or method: {0}", targetType));
             }
@@ -1550,7 +1550,7 @@ namespace JSIL {
             var currentType = value.GetExpectedType(TypeSystem);
 
             try {
-                expectedType = TypeAnalysis.SubstituteTypeArgs(expectedType, ThisMethodReference);
+                expectedType = JSExpression.SubstituteTypeArgs(expectedType, ThisMethodReference);
             } catch (OpenGenericTypeException) {
                 throw new AbortTranslation(String.Format("Cast value to open generic type '{0}'", expectedType));
             }
