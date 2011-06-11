@@ -354,6 +354,16 @@ namespace JSIL.Ast {
                 yield return Body;
             }
         }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            var jse = newChild as JSExpression;
+
+            if (jse != null) {
+                for (var i = 0; i < Values.Length; i++)
+                    if (oldChild.Equals(Values[i]))
+                        Values[i] = jse;
+            }
+        }
     }
 
     public class JSSwitchStatement : JSStatement {
