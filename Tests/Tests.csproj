@@ -204,6 +204,7 @@
     <None Include="TestCases\GenericStaticMethods.cs" />
     <None Include="TestCases\InheritGenericClass.cs" />
     <None Include="TestCases\InheritOpenGenericClass.cs" />
+    <None Include="TestCases\GenericStructs.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
