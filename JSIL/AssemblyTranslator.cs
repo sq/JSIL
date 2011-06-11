@@ -209,7 +209,8 @@ namespace JSIL {
         }
 
         public void AddProxyAssembly (Assembly assembly, bool includeDependencies) {
-            var path = new Uri(assembly.CodeBase).AbsolutePath.Replace("/", "\\");
+            var uri = new Uri(assembly.CodeBase);
+            var path = Uri.UnescapeDataString(uri.AbsolutePath);
             AddProxyAssembly(path, includeDependencies);
         }
 

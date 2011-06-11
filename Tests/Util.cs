@@ -30,7 +30,7 @@ namespace JSIL.Tests {
         //  since the assemblies would have remained locked and undeletable 
         //  due to being loaded
         static CSharpUtil () {
-            TempPath = Path.Combine(Path.GetTempPath(), "JSILTests");
+            TempPath = Path.Combine(Path.GetTempPath(), "JSIL Tests");
             if (!Directory.Exists(TempPath))
                 Directory.CreateDirectory(TempPath);
 
@@ -90,7 +90,8 @@ namespace JSIL.Tests {
         public readonly MethodInfo TestMethod;
 
         static string GetPathOfAssembly (Assembly assembly) {
-            return new Uri(assembly.CodeBase).AbsolutePath.Replace("/", "\\");
+            var uri = new Uri(assembly.CodeBase);
+            return Uri.UnescapeDataString(uri.AbsolutePath);
         }
 
         static ComparisonTest () {

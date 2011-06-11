@@ -23,6 +23,8 @@ body {
 	left: 300px;
 	top: 10px;
 	z-index: 80;
+	padding: 8px;
+	margin: -8px;
 }
 #welcomeMessage a {
 	color: #BFBFFF;
