@@ -208,6 +208,7 @@
     <None Include="TestCases\GenericArgumentFromTypePassedToMethod.cs" />
     <None Include="TestCases\GenericArgumentFromTypeReturnedByMethod.cs" />
     <None Include="TestCases\GenericTypeCasts.cs" />
+    <None Include="SpecialTestCases\FlagsEnumsWithZeroValues.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

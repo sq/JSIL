@@ -1370,11 +1370,20 @@ namespace JSIL {
             if ((typeInfo != null) && (typeInfo.EnumMembers.Count > 0)) {
                 EnumMemberInfo[] enumMembers = null;
                 if (typeInfo.IsFlagsEnum) {
-                    enumMembers = (
-                        from em in typeInfo.EnumMembers.Values
-                        where (value & em.Value) == em.Value
-                        select em
-                    ).ToArray();
+                    if (value == 0) {
+                        enumMembers = (
+                            from em in typeInfo.EnumMembers.Values
+                            where em.Value == 0
+                            select em
+                        ).Take(1).ToArray();
+                    } else {
+                        enumMembers = (
+                            from em in typeInfo.EnumMembers.Values
+                            where (em.Value != 0) &&
+                                ((value & em.Value) == em.Value)
+                            select em
+                        ).ToArray();
+                    }
                 } else {
                     EnumMemberInfo em;
                     if (typeInfo.ValueToEnumMember.TryGetValue(value, out em))

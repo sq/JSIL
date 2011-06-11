@@ -323,6 +323,9 @@ namespace JSIL {
         public void VisitNode (JSEnumLiteral enm) {
             bool isFirst = true;
 
+            if (enm.Names.Length > 1)
+                Output.LPar();
+
             foreach (var name in enm.Names) {
                 if (!isFirst)
                     Output.Token(" | ");
@@ -333,6 +336,9 @@ namespace JSIL {
 
                 isFirst = false;
             }
+
+            if (enm.Names.Length > 1)
+                Output.RPar();
         }
 
         public void VisitNode (JSNullLiteral nil) {

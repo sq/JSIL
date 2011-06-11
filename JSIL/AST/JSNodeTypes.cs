@@ -1515,7 +1515,7 @@ namespace JSIL.Ast {
             : base(rawValue) {
 
             EnumType = members.First().DeclaringType;
-            Names = (from m in members select m.Name).ToArray();
+            Names = (from m in members select m.Name).OrderBy((s) => s).ToArray();
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {

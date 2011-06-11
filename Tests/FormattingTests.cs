@@ -207,6 +207,24 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void FlagsEnumsWithZeroValues () {
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\FlagsEnumsWithZeroValues.cs",
+                "B A\r\nB 0"
+            );
+            try {
+                Assert.IsFalse(generatedJs.Contains("| $asm01.Program.SimpleEnum.E"));
+                Assert.IsFalse(generatedJs.Contains("| $asm01.Program.SimpleEnum.A"));
+                Assert.IsFalse(generatedJs.Contains("$asm01.Program.SimpleEnum.E |"));
+                Assert.IsFalse(generatedJs.Contains("$asm01.Program.SimpleEnum.A |"));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
         public void DoLoops () {
             var generatedJs = GetJavascript(
                 @"SpecialTestCases\DoLoops.cs",
