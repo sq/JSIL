@@ -205,7 +205,8 @@
     <None Include="TestCases\InheritGenericClass.cs" />
     <None Include="TestCases\InheritOpenGenericClass.cs" />
     <None Include="TestCases\GenericStructs.cs" />
-    <None Include="TestCases\OpenGenericVariables.cs" />
+    <None Include="TestCases\GenericArgumentFromTypePassedToMethod.cs" />
+    <None Include="TestCases\GenericArgumentFromTypeReturnedByMethod.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

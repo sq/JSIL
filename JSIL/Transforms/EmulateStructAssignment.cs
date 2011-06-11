@@ -28,9 +28,8 @@ namespace JSIL.Transforms {
             MetadataType etype = type.MetadataType;
 
             type = ILBlockTranslator.DereferenceType(type);
-            var typedef = ILBlockTranslator.GetTypeDefinition(type);
 
-            if ((typedef != null) && typedef.IsEnum)
+            if (ILBlockTranslator.IsEnum(type))
                 return false;
 
             return etype == MetadataType.ValueType;

@@ -19,16 +19,15 @@ namespace JSIL.Transforms {
         public void VisitNode (JSSwitchStatement ss) {
             var conditionType = ss.Condition.GetExpectedType(TypeSystem);
 
-            if (!ILBlockTranslator.IsIntegral(conditionType)) {
-                var indexTypeDef = ILBlockTranslator.GetTypeDefinition(conditionType);
+            if (
+                !ILBlockTranslator.IsIntegral(conditionType) &&
+                ILBlockTranslator.IsEnum(conditionType)
+            ) {
+                var cast = JSInvocationExpression.InvokeStatic(
+                    new JSFakeMethod("Number", TypeSystem.Int32, conditionType), new[] { ss.Condition }, true
+                );
 
-                if (indexTypeDef.IsEnum) {
-                    var cast = JSInvocationExpression.InvokeStatic(
-                        new JSFakeMethod("Number", TypeSystem.Int32, indexTypeDef), new[] { ss.Condition }, true
-                    );
-
-                    ss.ReplaceChild(ss.Condition, cast);
-                }
+                ss.ReplaceChild(ss.Condition, cast);
             }
 
             VisitChildren(ss);

@@ -471,6 +471,11 @@ namespace JSIL {
             }
         }
 
+        public static bool IsEnum (TypeReference type) {
+            var typedef = GetTypeDefinition(type);
+            return (typedef != null) && (typedef.IsEnum);
+        }
+
         public static bool IsBoolean (TypeReference type) {
             type = DereferenceType(type);
             return type.MetadataType == MetadataType.Boolean;
@@ -940,11 +945,7 @@ namespace JSIL {
                 //  because there's no IL opcode for != and the IL isinst opcode returns object, not bool
                 var value = TranslateNode(node.Arguments[0].Arguments[0]);
                 var targetType = (TypeReference)node.Arguments[0].Operand;
-                try {
-                    targetType = JSExpression.SubstituteTypeArgs(targetType, ThisMethodReference);
-                } catch (OpenGenericTypeException) {
-                    throw new AbortTranslation(String.Format("Cast value to open generic type '{0}'", targetType));
-                }
+                targetType = JSExpression.SubstituteTypeArgs(targetType, ThisMethodReference);
 
                 var targetInfo = TypeInfo.Get(targetType);
 
@@ -1339,7 +1340,6 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldftn (ILExpression node, MethodReference method) {
-            method = JSExpression.ResolveGenericMethod(method);
             var methodInfo = TypeInfo.GetMethod(method);
             if (methodInfo == null)
                 return new JSIgnoredMemberReference(true, null, new JSStringLiteral(method.FullName));
@@ -1493,11 +1493,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Castclass (ILExpression node, TypeReference targetType) {
-            try {
-                targetType = JSExpression.SubstituteTypeArgs(targetType, ThisMethodReference);
-            } catch (OpenGenericTypeException) {
-                throw new AbortTranslation(String.Format("Cast object to open generic type '{0}'", targetType));
-            }
+            targetType = JSExpression.SubstituteTypeArgs(targetType, ThisMethodReference);
 
             if (IsDelegateType(targetType) && IsDelegateType(node.ExpectedType ?? node.InferredType)) {
                 // TODO: We treat all delegate types as equivalent, so we can skip these casts for now
@@ -1512,11 +1508,7 @@ namespace JSIL {
 
         protected JSExpression Translate_Isinst (ILExpression node, TypeReference targetType) {
             var firstArg = TranslateNode(node.Arguments[0]);
-            try {
-                targetType = JSExpression.SubstituteTypeArgs(targetType, ThisMethodReference);
-            } catch (OpenGenericTypeException) {
-                throw new AbortTranslation(String.Format("Compared type of value with open generic type '{0}'", targetType));
-            }
+            targetType = JSExpression.SubstituteTypeArgs(targetType, ThisMethodReference);
 
             var targetInfo = TypeInfo.Get(targetType);
             if (targetInfo.IsIgnored)
@@ -1527,11 +1519,7 @@ namespace JSIL {
 
         protected JSExpression Translate_Unbox_Any (ILExpression node, TypeReference targetType) {
             var value = TranslateNode(node.Arguments[0]);
-            try {
-                targetType = JSExpression.SubstituteTypeArgs(targetType, ThisMethodReference);
-            } catch (OpenGenericTypeException) {
-                throw new AbortTranslation(String.Format("Attempted to unbox an open generic type or method: {0}", targetType));
-            }
+            targetType = JSExpression.SubstituteTypeArgs(targetType, ThisMethodReference);
 
             var result = JSIL.Cast(value, targetType);
 
@@ -1549,11 +1537,7 @@ namespace JSIL {
         protected JSExpression Translate_Conv (JSExpression value, TypeReference expectedType) {
             var currentType = value.GetExpectedType(TypeSystem);
 
-            try {
-                expectedType = JSExpression.SubstituteTypeArgs(expectedType, ThisMethodReference);
-            } catch (OpenGenericTypeException) {
-                throw new AbortTranslation(String.Format("Cast value to open generic type '{0}'", expectedType));
-            }
+            expectedType = JSExpression.SubstituteTypeArgs(expectedType, ThisMethodReference);
 
             if (IsDelegateType(expectedType) && IsDelegateType(currentType))
                 return value;
@@ -1671,7 +1655,6 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Newobj (ILExpression node, MethodReference constructor) {
-            constructor = JSExpression.ResolveGenericMethod(constructor);
             var arguments = Translate(node.Arguments);
 
             if (IsDelegateType(constructor.DeclaringType)) {
@@ -1864,7 +1847,6 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldtoken (ILExpression node, MethodReference method) {
-            method = JSExpression.ResolveGenericMethod(method);
             var methodInfo = TypeInfo.GetMethod(method);
             return new JSMethod(method, methodInfo);
         }
@@ -1875,8 +1857,6 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Call (ILExpression node, MethodReference method) {
-            method = JSExpression.ResolveGenericMethod(method);
-
             var methodInfo = TypeInfo.GetMethod(method);
             if (methodInfo == null)
                 return new JSIgnoredMemberReference(true, null, JSLiteral.New(method.FullName));
@@ -1956,8 +1936,6 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Callvirt (ILExpression node, MethodReference method) {
-            method = JSExpression.ResolveGenericMethod(method);
-
             var firstArg = node.Arguments[0];
             var translated = TranslateNode(firstArg);
             JSExpression thisExpression;

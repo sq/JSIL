@@ -824,74 +824,25 @@ namespace JSIL.Ast {
         }
 
         public static TypeReference SubstituteTypeArgs (TypeReference type, MemberReference member) {
+            var gp = (type as GenericParameter);
+
+            if (gp != null) {
+                if (gp.Owner.GenericParameterType == GenericParameterType.Method) {
+                    if (!(member is MethodReference))
+                        return type;
+                }
+            }
+
             return TypeAnalysis.SubstituteTypeArgs(type, member);
         }
 
-        public static MethodReference ResolveGenericMethod (MethodReference method) {
-            if (!IsOpenGenericType(method.ReturnType) &&
-                !method.Parameters.Any(IsOpenGenericType))
-                return method;
-
-            TypeReference returnType;
-            returnType = SubstituteTypeArgs(method.ReturnType, method);
-
-            var result = new MethodReference(
-                method.Name, returnType, method.DeclaringType
-            );
-
-            foreach (var parameter in method.Parameters)
-                result.Parameters.Add(new ParameterDefinition(
-                    parameter.Name, parameter.Attributes,
-                    SubstituteTypeArgs(parameter.ParameterType, method)
-                ));
-
-            result.HasThis = method.HasThis;
-            result.ExplicitThis = method.ExplicitThis;
-            result.CallingConvention = method.CallingConvention;
-            result.DeclaringType = method.DeclaringType;
-
-            /*
-            if (IsOpenGenericType(result.ReturnType) ||
-                result.Parameters.Any(IsOpenGenericType))
-                throw new AbortTranslation(String.Format("Failed to resolve generic method '{0}'.", method));
-             */
-
-            if (method is GenericInstanceMethod) {
-                var gim = (GenericInstanceMethod)method;
-                var resultGim = new GenericInstanceMethod(result);
-
-                foreach (var ga in gim.GenericArguments) {
-                    var gp = ga as GenericParameter;
-
-                    if (gp != null) {
-                        if (gp.Owner.GenericParameterType == GenericParameterType.Method)
-                            resultGim.GenericArguments.Add(SubstituteTypeArgs(gp, method));
-                        else
-                            resultGim.GenericArguments.Add(gp);
-                    } else {
-                        resultGim.GenericArguments.Add(ga);
-                    }
-                }
-
-                return resultGim;
-            } else {
-                return result;
-            }
-        }
-
         public static TypeReference ConstructDelegateType (MethodReference method, TypeSystem typeSystem) {
-            method = ResolveGenericMethod(method);
-
-            try {
-                return ConstructDelegateType(
-                    SubstituteTypeArgs(method.ReturnType, method),
-                    (from p in method.Parameters
-                     select SubstituteTypeArgs(p.ParameterType, method)),
-                     typeSystem
-                );
-            } catch (OpenGenericTypeException) {
-                throw;
-            }
+            return ConstructDelegateType(
+                SubstituteTypeArgs(method.ReturnType, method),
+                (from p in method.Parameters
+                    select SubstituteTypeArgs(p.ParameterType, method)),
+                    typeSystem
+            );
         }
 
         public static TypeReference ConstructDelegateType (TypeReference returnType, IEnumerable<TypeReference> parameterTypes, TypeSystem typeSystem) {
@@ -1841,9 +1792,9 @@ namespace JSIL.Ast {
             ParameterTypes = parameterTypes;
 
             if (IsOpenGenericType(ReturnType))
-                throw new OpenGenericTypeException("Open generic return type");
+                throw new Exception("Open generic return type");
             else if (parameterTypes.Any(IsOpenGenericType))
-                throw new OpenGenericTypeException("Open generic parameter type");
+                throw new Exception("Open generic parameter type");
 
             /*
             if (ReturnType.IsGenericParameter || parameterTypes.Any((p) => p.IsGenericParameter))

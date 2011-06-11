@@ -98,7 +98,7 @@ namespace JSIL {
             ) {
                 return JSInvocationExpression.InvokeMethod(JS.charCodeAt, expression, new[] { JSLiteral.New(0) }, true);
             } else if (
-                ILBlockTranslator.GetTypeDefinition(currentType).IsEnum &&
+                ILBlockTranslator.IsEnum(currentType) &&
                 ILBlockTranslator.IsIntegral(targetType)
             ) {
                 return new JSDotExpression(

@@ -48,7 +48,9 @@ namespace JSIL.Tests {
 
         [Test]
         public void Generics () {
-            using (var test = new ComparisonTest(@"TestCases\OpenGenericVariables.cs"))
+            using (var test = new ComparisonTest(@"TestCases\GenericArgumentFromTypeReturnedByMethod.cs"))
+                test.Run();
+            using (var test = new ComparisonTest(@"TestCases\GenericArgumentFromTypePassedToMethod.cs"))
                 test.Run();
             using (var test = new ComparisonTest(@"TestCases\GenericStructs.cs"))
                 test.Run();
@@ -94,11 +96,11 @@ namespace JSIL.Tests {
 
         [Test]
         public void Enums () {
+            using (var test = new ComparisonTest(@"TestCases\EnumSwitch.cs"))
+                test.Run();
             using (var test = new ComparisonTest(@"TestCases\Enums.cs"))
                 test.Run();
             using (var test = new ComparisonTest(@"TestCases\EnumArrayLookup.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\EnumSwitch.cs"))
                 test.Run();
             using (var test = new ComparisonTest(@"TestCases\OverloadWithEnum.cs"))
                 test.Run();
