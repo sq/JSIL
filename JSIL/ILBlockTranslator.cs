@@ -100,15 +100,18 @@ namespace JSIL {
             return new JSUntranslatableStatement(node.GetType().Name);
         }
 
-        public JSExpression[] Translate (IList<ILExpression> values, IList<ParameterDefinition> parameters) {
+        public JSExpression[] Translate (IList<ILExpression> values, IList<ParameterDefinition> parameters, bool hasThis) {
             var result = new List<JSExpression>();
             ParameterDefinition parameter;
 
             for (int i = 0, c = values.Count; i < c; i++) {
                 var value = values[i];
 
-                var parameterIndex = i + Math.Max(0, (values.Count - parameters.Count));
-                if (parameterIndex < parameters.Count)
+                var parameterIndex = i;
+                if (hasThis)
+                    parameterIndex -= 1;
+
+                if ((parameterIndex < parameters.Count) && (parameterIndex >= 0))
                     parameter = parameters[parameterIndex];
                 else
                     parameter = null;
@@ -1870,7 +1873,7 @@ namespace JSIL {
 
             var declaringTypeDef = GetTypeDefinition(declaringType);
 
-            var arguments = Translate(node.Arguments, method.Parameters);
+            var arguments = Translate(node.Arguments, method.Parameters, method.HasThis);
             JSExpression thisExpression;
 
             bool explicitThis = false;
@@ -1951,7 +1954,7 @@ namespace JSIL {
                 thisExpression = translated;
             }
 
-            var translatedArguments = Translate(node.Arguments.Skip(1), method.Parameters);
+            var translatedArguments = Translate(node.Arguments, method.Parameters, method.HasThis).Skip(1).ToArray();
             var methodInfo = TypeInfo.GetMethod(method);
 
             if (methodInfo == null)

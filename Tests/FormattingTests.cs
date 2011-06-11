@@ -184,6 +184,24 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void RefParametersOnInstanceMethods () {
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\RefParametersOnInstanceMethods.cs",
+                ".B = 0, i = 0\r\n.B = 1, i = 1\r\n.B = 3, i = 2"
+            );
+
+            try {
+                Assert.IsTrue(generatedJs.Contains("ref */ i"));
+                Assert.IsFalse(generatedJs.ToLower().Contains("unmaterialized"));
+                Assert.IsTrue(generatedJs.Contains("instance.Method("));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
         public void PrivateNames () {
             using (var test = new ComparisonTest(@"SpecialTestCases\PrivateNames.cs"))
                 test.Run();
