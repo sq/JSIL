@@ -444,7 +444,7 @@ namespace JSIL.Internal {
         public ModuleInfo (ModuleDefinition module) {
             Metadata = new MetadataCollection(module);
 
-            IsIgnored = TypeInfo.IsIgnoredName(module.FullyQualifiedName) ||
+            IsIgnored = TypeInfo.IsIgnoredName(module.FullyQualifiedName, false) ||
                 Metadata.HasAttribute("JSIL.Meta.JSIgnore");
         }
     }
@@ -666,7 +666,7 @@ namespace JSIL.Internal {
             Interfaces = interfaces.ToArray();
 
             _IsIgnored = module.IsIgnored ||
-                IsIgnoredName(type.Name) ||
+                IsIgnoredName(type.Name, false) ||
                 Metadata.HasAttribute("JSIL.Meta.JSIgnore") ||
                 Metadata.HasAttribute("System.Runtime.CompilerServices.UnsafeValueTypeAttribute") ||
                 Metadata.HasAttribute("System.Runtime.CompilerServices.NativeCppClassAttribute");
@@ -963,7 +963,7 @@ namespace JSIL.Internal {
                 return originalName;
         }
 
-        public static bool IsIgnoredName (string shortName) {
+        public static bool IsIgnoredName (string shortName, bool isField) {
             if (shortName.EndsWith("__BackingField"))
                 return false;
             else if (shortName.Contains("__DisplayClass"))
@@ -972,13 +972,13 @@ namespace JSIL.Internal {
                 return true;
             else if (shortName.Contains("Runtime.CompilerServices.CallSite"))
                 return true;
-            else if (shortName.Contains("__CachedAnonymousMethodDelegate"))
-                return true;
             else if (shortName.Contains("<Module>"))
                 return true;
             else if (shortName.Contains("__SiteContainer"))
                 return true;
-            else if (shortName.StartsWith("CS$<"))
+            else if (shortName.Contains("__CachedAnonymousMethodDelegate") && !isField)
+                return true;
+            else if (shortName.StartsWith("CS$<") && !isField)
                 return true;
             else {
                 var m = MangledNameRegex.Match(shortName);
@@ -1206,7 +1206,7 @@ namespace JSIL.Internal {
             _WritePolicy = JSWritePolicy.Unmodified;
             _InvokePolicy = JSInvokePolicy.Unmodified;
 
-            _IsIgnored = isIgnored || TypeInfo.IsIgnoredName(member.Name);
+            _IsIgnored = isIgnored || TypeInfo.IsIgnoredName(member.Name, member is FieldReference);
             IsExternal = isExternal;
             DeclaringType = parent;
 
