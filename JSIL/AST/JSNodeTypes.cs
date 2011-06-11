@@ -838,7 +838,20 @@ namespace JSIL.Ast {
 
             if (gp != null) {
                 if (gp.Owner.GenericParameterType == GenericParameterType.Method) {
+                    var ownerIdentifier = new MemberIdentifier(gp.Owner as MethodReference);
+                    var memberIdentifier = new MemberIdentifier(member as dynamic);
+
+                    if (!ownerIdentifier.Equals(memberIdentifier))
+                        return type;
+
                     if (!(member is GenericInstanceMethod))
+                        return type;
+                } else {
+                    var declaringType = member.DeclaringType;
+                    var ownerIdentifier = new TypeIdentifier(gp.Owner as TypeReference);
+                    var typeIdentifier = new TypeIdentifier(declaringType);
+
+                    if (!ownerIdentifier.Equals(typeIdentifier))
                         return type;
                 }
             }
@@ -848,10 +861,9 @@ namespace JSIL.Ast {
 
         public static TypeReference ConstructDelegateType (MethodReference method, TypeSystem typeSystem) {
             return ConstructDelegateType(
-                SubstituteTypeArgs(method.ReturnType, method),
-                (from p in method.Parameters
-                    select SubstituteTypeArgs(p.ParameterType, method)),
-                    typeSystem
+                method.ReturnType,
+                (from p in method.Parameters select p.ParameterType),
+                typeSystem
             );
         }
 
@@ -1724,7 +1736,7 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return SubstituteTypeArgs(Field.ReturnType, Reference);
+            return Field.ReturnType;
         }
     }
 
@@ -1751,7 +1763,7 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return SubstituteTypeArgs(Property.ReturnType, Reference);
+            return Property.ReturnType;
         }
 
         public override bool IsConstant {

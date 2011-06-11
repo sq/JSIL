@@ -117,7 +117,7 @@ namespace JSIL.Transforms {
                     (method.Method.Name == "Invoke")
                 ) {
                     var newIe = new JSDelegateInvocationExpression(
-                        thisExpression, JSExpression.SubstituteTypeArgs(method.Reference.ReturnType, method.Reference), ie.Arguments.ToArray()
+                        thisExpression, ie.GetExpectedType(TypeSystem), ie.Arguments.ToArray()
                     );
                     ParentNode.ReplaceChild(ie, newIe);
 

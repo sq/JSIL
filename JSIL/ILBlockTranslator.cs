@@ -945,7 +945,6 @@ namespace JSIL {
                 //  because there's no IL opcode for != and the IL isinst opcode returns object, not bool
                 var value = TranslateNode(node.Arguments[0].Arguments[0]);
                 var targetType = (TypeReference)node.Arguments[0].Operand;
-                targetType = JSExpression.SubstituteTypeArgs(targetType, ThisMethodReference);
 
                 var targetInfo = TypeInfo.Get(targetType);
 
@@ -1493,8 +1492,6 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Castclass (ILExpression node, TypeReference targetType) {
-            targetType = JSExpression.SubstituteTypeArgs(targetType, ThisMethodReference);
-
             if (IsDelegateType(targetType) && IsDelegateType(node.ExpectedType ?? node.InferredType)) {
                 // TODO: We treat all delegate types as equivalent, so we can skip these casts for now
                 return TranslateNode(node.Arguments[0]);
@@ -1508,7 +1505,6 @@ namespace JSIL {
 
         protected JSExpression Translate_Isinst (ILExpression node, TypeReference targetType) {
             var firstArg = TranslateNode(node.Arguments[0]);
-            targetType = JSExpression.SubstituteTypeArgs(targetType, ThisMethodReference);
 
             var targetInfo = TypeInfo.Get(targetType);
             if ((targetInfo != null) && targetInfo.IsIgnored)
@@ -1519,7 +1515,6 @@ namespace JSIL {
 
         protected JSExpression Translate_Unbox_Any (ILExpression node, TypeReference targetType) {
             var value = TranslateNode(node.Arguments[0]);
-            targetType = JSExpression.SubstituteTypeArgs(targetType, ThisMethodReference);
 
             var result = JSIL.Cast(value, targetType);
 
@@ -1536,8 +1531,6 @@ namespace JSIL {
 
         protected JSExpression Translate_Conv (JSExpression value, TypeReference expectedType) {
             var currentType = value.GetExpectedType(TypeSystem);
-
-            expectedType = JSExpression.SubstituteTypeArgs(expectedType, ThisMethodReference);
 
             if (IsDelegateType(expectedType) && IsDelegateType(currentType))
                 return value;
