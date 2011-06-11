@@ -109,13 +109,11 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        public void RefStruct () {
+        public void Refs () {
             using (var test = new ComparisonTest(@"TestCases\RefStruct.cs"))
                 test.Run();
-        }
-
-        [Test]
-        public void RefClass () {
+            using (var test = new ComparisonTest(@"TestCases\StructPropertyThis.cs"))
+                test.Run();
             using (var test = new ComparisonTest(@"TestCases\RefClass.cs"))
                 test.Run();
         }

@@ -32,7 +32,11 @@ namespace JSIL.Transforms {
             if (ILBlockTranslator.IsEnum(type))
                 return false;
 
-            return etype == MetadataType.ValueType;
+            var git = type as GenericInstanceType;
+            if (git != null)
+                return git.IsValueType;
+
+            return (etype == MetadataType.ValueType);
         }
 
         protected bool IsCopyNeeded (JSExpression value) {

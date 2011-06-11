@@ -991,6 +991,9 @@ namespace JSIL.Ast {
     public class JSReferenceExpression : JSExpression {
         protected JSReferenceExpression (JSExpression referent)
             : base (referent) {
+
+            if (referent is JSResultReferenceExpression)
+                throw new InvalidOperationException();
         }
 
         /// <summary>
@@ -998,6 +1001,7 @@ namespace JSIL.Ast {
         /// </summary>
         public static bool TryDereference (JSILIdentifier jsil, JSExpression reference, out JSExpression referent) {
             var variable = reference as JSVariable;
+            var rre = reference as JSResultReferenceExpression;
             var refe = reference as JSReferenceExpression;
             var boe = reference as JSBinaryOperatorExpression;
 
@@ -1028,7 +1032,17 @@ namespace JSIL.Ast {
                     return true;
                 }
             }
-            
+
+            if (rre != null) {
+                if (rre.Depth == 1) {
+                    referent = rre.Referent;
+                    return true;
+                } else {
+                    referent = rre.Dereference();
+                    return true;
+                }
+            }
+
             if (refe == null) {
                 referent = null;
                 return false;
@@ -1097,9 +1111,15 @@ namespace JSIL.Ast {
 
         public static JSExpression New (JSExpression referent) {
             var variable = referent as JSVariable;
+            var invocation = referent as JSInvocationExpression;
+            var rre = referent as JSResultReferenceExpression;
 
             if ((variable != null) && (variable.IsReference)) {
                 return variable;
+            } else if (invocation != null) {
+                return new JSResultReferenceExpression(invocation, 1);
+            } else if (rre != null) {
+                return rre.Reference();
             } else {
                 return new JSReferenceExpression(referent);
             }
@@ -1122,14 +1142,41 @@ namespace JSIL.Ast {
 
     // Represents a reference to the return value of a method call.
     public class JSResultReferenceExpression : JSReferenceExpression {
-        public JSResultReferenceExpression (JSInvocationExpression invocation)
+        public readonly int Depth;
+
+        public JSResultReferenceExpression (JSInvocationExpression invocation, int depth = 1)
             : base (invocation) {
+                Depth = depth;
         }
 
         new public JSInvocationExpression Referent {
             get {
                 return (JSInvocationExpression)base.Referent;
             }
+        }
+
+        internal JSResultReferenceExpression Dereference () {
+            if (Depth <= 1)
+                throw new InvalidOperationException();
+            else
+                return new JSResultReferenceExpression(Referent, Depth - 1);
+        }
+
+        internal JSExpression Reference () {
+            return new JSResultReferenceExpression(Referent, Depth + 1);
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            var result = Referent.GetExpectedType(typeSystem);
+
+            for (var i = 0; i < Depth; i++)
+                result = new ByReferenceType(result);
+
+            return result;
+        }
+
+        public override string ToString () {
+            return String.Format("{0}({1})", new String('&', Depth), Referent);
         }
     }
 

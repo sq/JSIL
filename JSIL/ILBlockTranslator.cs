@@ -157,7 +157,7 @@ namespace JSIL {
         }
 
         protected static bool CopyOnReturn (TypeReference type) {
-            return EmulateStructAssignment.IsStruct(type) || type.IsValueType;
+            return EmulateStructAssignment.IsStruct(type);
         }
 
         protected void CommaSeparatedList (IEnumerable<ILExpression> values) {
@@ -293,9 +293,6 @@ namespace JSIL {
                     result = JSInvocationExpression.InvokeMethod(method.Reference.DeclaringType, method, thisExpression, arguments);
             }
 
-            if (CopyOnReturn(method.Method.ReturnType))
-                result = JSReferenceExpression.New(result);
-
             return result;
         }
 
@@ -414,6 +411,19 @@ namespace JSIL {
                 return typeRef.ResolveOrThrow();
         }
 
+        public static TypeReference FullyDereferenceType (TypeReference type, out int depth) {
+            depth = 0;
+
+            var brt = type as ByReferenceType;
+            while (brt != null) {
+                depth += 1;
+                type = brt.ElementType;
+                brt = type as ByReferenceType;
+            }
+
+            return type;
+        }
+
         public static TypeReference DereferenceType (TypeReference type, bool dereferencePointers = false) {
             var brt = type as ByReferenceType;
             if (brt != null)
@@ -527,7 +537,11 @@ namespace JSIL {
 
             bool result;
 
-            if (target.IsByReference != source.IsByReference)
+            int targetDepth, sourceDepth;
+            FullyDereferenceType(target, out targetDepth);
+            FullyDereferenceType(source, out sourceDepth);
+
+            if ((target.IsByReference != source.IsByReference) || (targetDepth != sourceDepth))
                 result = false;
             else if (target.IsPointer != source.IsPointer)
                 result = false;
@@ -576,8 +590,11 @@ namespace JSIL {
             if (target.FullName == "System.Object")
                 return true;
 
-            if (TypesAreEqual(DereferenceType(target), DereferenceType(source)))
-                return true;
+            int targetDepth, sourceDepth;
+            if (TypesAreEqual(FullyDereferenceType(target, out targetDepth), FullyDereferenceType(source, out sourceDepth))) {
+                if (targetDepth == sourceDepth)
+                    return true;
+            }
 
             // Complex hack necessary because System.Array and T[] do not implement IEnumerable<T>
             var targetGit = target as GenericInstanceType;
@@ -1546,6 +1563,37 @@ namespace JSIL {
         protected JSExpression Translate_Conv (JSExpression value, TypeReference expectedType) {
             var currentType = value.GetExpectedType(TypeSystem);
 
+            if (TypesAreEqual(expectedType, currentType))
+                return value;
+
+            int currentDepth, expectedDepth;
+            var currentDerefed = FullyDereferenceType(currentType, out currentDepth);
+            var expectedDerefed = FullyDereferenceType(expectedType, out expectedDepth);
+
+            // Handle assigning a value of type 'T&&' to a variable of type 'T&', etc.
+            // 'AreTypesAssignable' will return false, because the types are not equivalent, but no cast is necessary.
+            if (TypesAreEqual(expectedDerefed, currentDerefed)) {
+                if (currentDepth > expectedDepth) {
+                    // If the current expression has more levels of reference than the target type, we must dereference
+                    //  the current expression one or more times to strip off the reference levels.
+                    var result = value;
+                    JSExpression dereferenced;
+
+                    while (currentDepth > expectedDepth) {
+                        bool ok = JSReferenceExpression.TryDereference(JSIL, result, out dereferenced);
+                        if (!ok)
+                            break;
+
+                        currentDepth -= 1;
+                        result = dereferenced;
+                    }
+
+                    return result;
+                } else {
+                    return value;
+                }
+            }
+
             if (IsDelegateType(expectedType) && IsDelegateType(currentType))
                 return value;
 
@@ -1928,6 +1976,9 @@ namespace JSIL {
                     result = Translate_Conv(result, expectedType);
             }
 
+            if (CopyOnReturn(result.GetExpectedType(TypeSystem)))
+                result = JSReferenceExpression.New(result);
+
             return result;
         }
 
@@ -1970,6 +2021,9 @@ namespace JSIL {
                     result = Translate_Conv(result, expectedType);
             }
 
+            if (CopyOnReturn(result.GetExpectedType(TypeSystem)))
+                result = JSReferenceExpression.New(result);
+
             return result;
         }
 
@@ -2010,7 +2064,9 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_CallGetter (ILExpression node, MethodReference getter) {
-            return Translate_Call(node, getter);
+            var result = Translate_Call(node, getter);
+
+            return result;
         }
 
         protected JSExpression Translate_CallSetter (ILExpression node, MethodReference setter) {
@@ -2018,7 +2074,9 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_CallvirtGetter (ILExpression node, MethodReference getter) {
-            return Translate_Callvirt(node, getter);
+            var result = Translate_Callvirt(node, getter);
+
+            return result;
         }
 
         protected JSExpression Translate_CallvirtSetter (ILExpression node, MethodReference setter) {
