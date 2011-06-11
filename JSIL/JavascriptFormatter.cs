@@ -398,7 +398,12 @@ namespace JSIL.Internal {
             }
 
             var info = TypeInfo.GetMethod(method);
-            Identifier(info.Name);
+            if (info != null) {
+                Identifier(info.Name);
+            } else {
+                Debugger.Break();
+                Identifier(method.Name);
+            }
         }
 
         public void Keyword (string keyword) {

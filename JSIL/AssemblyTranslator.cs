@@ -575,7 +575,7 @@ namespace JSIL {
 
             IMemberInfo result;
             if (!typeInfo.Members.TryGetValue(identifier, out result)) {
-                Console.Error.WriteLine("Warning: member not defined: {0}", member.FullName);
+                // Console.Error.WriteLine("Warning: member not defined: {0}", member.FullName);
                 return null;
             }
 
@@ -617,7 +617,7 @@ namespace JSIL {
 
             IMemberInfo result;
             if (!typeInformation.Members.TryGetValue(identifier, out result)) {
-                Console.Error.WriteLine("Warning: member not defined: {0}", member.FullName);
+                // Console.Error.WriteLine("Warning: member not defined: {0}", member.FullName);
                 return null;
             }
 
@@ -1271,14 +1271,20 @@ namespace JSIL {
                 );
 
             if (field.HasConstant) {
+                JSLiteral constant;
+                if (field.Constant == null) {
+                    constant = JSLiteral.Null(field.FieldType);
+                } else {
+                    constant = JSLiteral.New(field.Constant as dynamic);
+                }
+
                 return JSInvocationExpression.InvokeStatic(
                     JSDotExpression.New(
                         new JSStringIdentifier("Object"), new JSFakeMethod("defineProperty", field.Module.TypeSystem.Void)
                     ), new[] { 
                         target.Target, target.Member.ToLiteral(),
                         new JSObjectExpression(new JSPairExpression(
-                            JSLiteral.New("value"),
-                            JSLiteral.New(field.Constant as dynamic)
+                            JSLiteral.New("value"), constant                            
                         ))
                     }
                 );

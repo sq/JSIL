@@ -47,7 +47,7 @@ namespace JSIL.Transforms {
             }
 
             var lastStatement = whileLoop.Statements.LastOrDefault();
-            while (lastStatement.GetType() == typeof(JSBlockStatement))
+            while ((lastStatement != null) && (lastStatement.GetType() == typeof(JSBlockStatement)))
                 lastStatement = ((JSBlockStatement)lastStatement).Statements.LastOrDefault();
 
             var lastExpressionStatement = lastStatement as JSExpressionStatement;

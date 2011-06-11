@@ -41,7 +41,12 @@ namespace JSIL.Internal {
 
         public TypeIdentifier (TypeDefinition type)
             : this ((TypeReference)type) {
-            Assembly = type.Module.Assembly.FullName;
+
+            var asm = type.Module.Assembly;
+            if (asm != null)
+                Assembly = asm.FullName;
+            else
+                Assembly = null;
         }
 
         public TypeIdentifier (TypeReference type) {

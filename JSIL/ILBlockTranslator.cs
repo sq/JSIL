@@ -500,6 +500,8 @@ namespace JSIL {
             type = DereferenceType(type);
 
             var typedef = GetTypeDefinition(type);
+            if (typedef == null)
+                return false;
             if (typedef.FullName == "System.Delegate")
                 return true;
 
@@ -948,7 +950,7 @@ namespace JSIL {
 
                 var targetInfo = TypeInfo.Get(targetType);
 
-                if (targetInfo.IsIgnored)
+                if ((targetInfo != null) && targetInfo.IsIgnored)
                     return JSLiteral.New(false);
                 else
                     return JSIL.CheckType(
