@@ -55,5 +55,15 @@ namespace JSIL.Proxies {
         public static int IndexOf (AnyType[] array, AnyType value, int startIndex) {
             throw new InvalidOperationException();
         }
+
+        [JSReplacement("Array.prototype.indexOf.call($array, $value)")]
+        public static int IndexOf<T> (T[] array, T value) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("Array.prototype.indexOf.call($array, $value, $startIndex)")]
+        public static int IndexOf<T> (T[] array, T value, int startIndex) {
+            throw new InvalidOperationException();
+        }
     }
 }

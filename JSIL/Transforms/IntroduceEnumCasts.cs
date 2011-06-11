@@ -16,6 +16,23 @@ namespace JSIL.Transforms {
             TypeSystem = typeSystem;
         }
 
+        public void VisitNode (JSIndexerExpression ie) {
+            var indexType = ie.Index.GetExpectedType(TypeSystem);
+
+            if (
+                !ILBlockTranslator.IsIntegral(indexType) &&
+                ILBlockTranslator.IsEnum(indexType)
+            ) {
+                var cast = JSInvocationExpression.InvokeStatic(
+                    new JSFakeMethod("Number", TypeSystem.Int32, indexType), new[] { ie.Index }, true
+                );
+
+                ie.ReplaceChild(ie.Index, cast);
+            }
+
+            VisitChildren(ie);
+        }
+
         public void VisitNode (JSSwitchStatement ss) {
             var conditionType = ss.Condition.GetExpectedType(TypeSystem);
 
