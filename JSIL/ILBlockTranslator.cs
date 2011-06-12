@@ -920,8 +920,13 @@ namespace JSIL {
                 finallyBlock = TranslateNode(tcb.FinallyBlock);
 
             if (tcb.FaultBlock != null) {
-                Console.Error.WriteLine("Warning: Fault blocks are not translatable.");
-                body.Statements.Add(new JSUntranslatableStatement("Fault Block"));
+                if (catchBlock != null)
+                    throw new Exception("A try block cannot have both a catch block and a fault block");
+
+                catchVariable = DeclareVariable(new JSExceptionVariable(TypeSystem));
+                catchBlock = new JSBlockStatement(TranslateBlock(tcb.FaultBlock.Body));
+
+                catchBlock.Statements.Add(new JSExpressionStatement(new JSThrowExpression(catchVariable)));
             }
 
             return new JSTryCatchBlock(

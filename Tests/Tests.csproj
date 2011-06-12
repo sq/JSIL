@@ -211,6 +211,7 @@
     <None Include="SpecialTestCases\FlagsEnumsWithZeroValues.cs" />
     <None Include="SpecialTestCases\RefParametersOnInstanceMethods.cs" />
     <None Include="TestCases\StructPropertyThis.cs" />
+    <None Include="TestCases\FaultBlock.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

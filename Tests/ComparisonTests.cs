@@ -193,6 +193,12 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void FaultBlock () {
+            using (var test = new ComparisonTest(@"TestCases\FaultBlock.cs"))
+                test.Run();
+        }
+
+        [Test]
         public void Switch () {
             using (var test = new ComparisonTest(@"TestCases\Switch.cs"))
                 test.Run();

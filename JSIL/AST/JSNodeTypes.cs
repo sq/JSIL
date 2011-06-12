@@ -314,7 +314,7 @@ namespace JSIL.Ast {
     }
 
     public class JSThrowExpression : JSExpression {
-        public JSThrowExpression (JSExpression exception = null)
+        public JSThrowExpression (JSExpression exception)
             : base (exception) {
         }
 
