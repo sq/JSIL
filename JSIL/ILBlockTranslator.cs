@@ -1304,7 +1304,7 @@ namespace JSIL {
             if (!JSReferenceExpression.TryDereference(JSIL, reference, out referent))
                 Console.Error.WriteLine(String.Format("Warning: unsupported reference type for ldobj: {0}", node.Arguments[0]));
 
-            if (EmulateStructAssignment.IsStruct(referent.GetExpectedType(TypeSystem)))
+            if ((referent != null) && EmulateStructAssignment.IsStruct(referent.GetExpectedType(TypeSystem)))
                 return reference;
             else
                 return referent;
