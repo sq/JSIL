@@ -48,8 +48,9 @@
     <None Include="FailingTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />
     <Compile Include="DependencyTests.cs" />
+    <None Include="FailingTestCases\StaticArrayInitializer.cs" />
     <Compile Include="FormattingTests.cs" />
-    <Compile Include="FailingTestCases\Arrays.cs" />
+    <None Include="FailingTestCases\Arrays.cs" />
     <Compile Include="FailingTests.cs" />
     <Compile Include="MetadataTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -212,6 +213,8 @@
     <None Include="SpecialTestCases\RefParametersOnInstanceMethods.cs" />
     <None Include="TestCases\StructPropertyThis.cs" />
     <None Include="TestCases\FaultBlock.cs" />
+    <None Include="SpecialTestCases\ReplaceMethodBody.cs" />
+    <None Include="TestCases\GenericInnerClasses.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

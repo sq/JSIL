@@ -563,7 +563,3 @@ Microsoft.Xna.Framework.Point.op_Equality = function (lhs, rhs) {
 Microsoft.Xna.Framework.Point.op_Inequality = function (lhs, rhs) {
   return lhs.X !== rhs.X || lhs.Y !== rhs.Y;
 };
-
-Microsoft.Xna.Framework.Storage.StorageContainer.get_TitleLocation = function () {
-  return JSIL.Host.getRootDirectory();
-};

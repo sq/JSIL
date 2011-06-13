@@ -7,3 +7,6 @@
 [submodule "Examples/Mannux-xna"]
 	path = Examples/Mannux-xna
 	url = git@github.com:kevingadd/XnaMannux.git
+[submodule "Examples/PlatformerStarterKit"]
+	path = Examples/PlatformerStarterKit
+	url = git@github.com:kevingadd/PlatformerStarterKit.git

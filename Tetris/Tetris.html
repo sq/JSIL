@@ -1,7 +1,7 @@
 <!DOCTYPE html> 
 <html>
   <head>
-    <title>Tetris</title>
+    <title>XNA4 Tetris Game</title>
     <link rel="stylesheet" href="tetris.css">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
   </head>
@@ -10,42 +10,71 @@
     <script src="../Libraries/JSIL.Bootstrap.js" type="text/javascript"></script>
     
     <!-- workaround for chromium bug -->
-    <div id="scripts" style="display: none"></div>
-    <div id="images" style="display: none"></div>
+    <div id="scripts"></div>
+    <div id="images"></div>
+    <div id="sounds"></div>
+    <div id="fonts"></div>
     
-    <canvas id="canvas" width="800" height="600"></canvas><br>
+    <canvas id="canvas" width="1280" height="720">
+    </canvas><br>
     <button id="quitButton" title="Quit Game">X</button>
-    <button id="loadButton">Load Tetris</button>
+    <div id="welcomeMessage">
+      <p align="center"><a href="http://jsil.org/"><img src="http://jsil.org/images/jsil_48px.png" alt="JSIL logo" border="0"></a></p>
+      <p>This demo is a simple XNA 4.0 game, compiled from C# to JavaScript using <A href="http://jsil.org/">JSIL, my open-source C# to JavaScript compiler</a>. It should run in any browser that supports HTML5 and a modern version of JavaScript, no plugins required.</p>
+      <p align="center">To begin playing, click the <b>Load Game</b> button below.</p>
+    </div>
+    <button id="loadButton">Load Game</button>
     <div id="loadingProgress">
       <div id="progressBar"></div>
     </div>
-    <div id="log"></div>
+    <div id="log"><center><i>Left/right arrows to move piece. Up to rotate piece. Space to drop piece.</i></center><br></div>
     
     <script type="text/javascript">
+      var scriptRoot = "";
+      var libraryRoot = "../Libraries/";
+      var fileRoot = "";
+      var contentRoot = "Content/";
+      
       var assetsToLoad = [
-        ["Script", "../Libraries/System.Drawing.js"],
         ["Script", "mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
         ["Script", "System.Xml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
         ["Script", "System.Data.SqlXml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
         ["Script", "System.Configuration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a.js"],
         ["Script", "System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
         ["Script", "System.Core, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
-        ["Script", "System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a.js"],
-        ["Script", "System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
         ["Script", "Microsoft.Xna.Framework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=842cf8be1de50553.js"],
         ["Script", "Microsoft.Xna.Framework.Game, Version=4.0.0.0, Culture=neutral, PublicKeyToken=842cf8be1de50553.js"],
         ["Script", "Microsoft.Xna.Framework.Graphics, Version=4.0.0.0, Culture=neutral, PublicKeyToken=842cf8be1de50553.js"],
-        ["Script", "../Libraries/System.Windows.js"],
-        ["Script", "../Libraries/JSIL.XNACore.js"],
-        ["Script", "../Libraries/JSIL.XNA4.js"],
-        ["Script", "../Libraries/JSIL.IO.js"],
+        ["Library", "JSIL.XNACore.js"],
+        ["Library", "JSIL.XNA4.js"],
         ["Script", "tetris, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null.js"],
+        ["Image", "Images/blanksprite.png"],
+        ["Image", "Images/blocksprite.png"],
+        ["Image", "Images/menusprite.png"],
+        ["Image", "Images/shadowsprite.png"],
+        ["Font", "Fonts/font.ttf", 14]
       ];
-      
+            
       function runMain () {
-        tetris.Program.Main([]);
+        try {
+          document.getElementById("welcomeMessage").setAttribute("style", "display: none");
+        } catch (ex) {
+        }
+        $asm01.tetris.Program.Main([]);
       };
     </script>
     <script src="../Libraries/JSIL.Browser.js" type="text/javascript"></script>
+    <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-6375004-2']);
+    _gaq.push(['_setDomainName', '.luminance.org']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+    </script>
   </body>
 </html>

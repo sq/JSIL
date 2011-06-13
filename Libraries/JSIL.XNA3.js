@@ -267,6 +267,10 @@ Microsoft.Xna.Framework.Graphics.Color.get_TransparentWhite = function () {
   return Microsoft.Xna.Framework.Graphics.Color.transparentWhite;
 };
 
+Microsoft.Xna.Framework.Storage.StorageContainer.get_TitleLocation = function () {
+  return JSIL.Host.getRootDirectory();
+};
+
 JSIL.SealTypes(
   $jsilxna, "Microsoft.Xna.Framework.Graphics", 
   "Color"

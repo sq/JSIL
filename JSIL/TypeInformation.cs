@@ -663,6 +663,9 @@ namespace JSIL.Internal {
                 }
             }
 
+            if (Metadata.HasAttribute("JSIL.Proxy.JSProxy") && !IsProxy)
+                Metadata.Remove("JSIL.Proxy.JSProxy");
+
             Interfaces = interfaces.ToArray();
 
             _IsIgnored = module.IsIgnored ||
@@ -901,7 +904,7 @@ namespace JSIL.Internal {
             if (BeforeAddProxyMember(proxy, method, out result))
                 return result;
 
-            return AddMember(method);
+            return AddMember(method, true);
         }
 
         protected IMemberInfo AddProxyMember (ProxyInfo proxy, MethodDefinition method, PropertyInfo owningProperty) {
@@ -909,7 +912,7 @@ namespace JSIL.Internal {
             if (BeforeAddProxyMember(proxy, method, out result, owningProperty.Member))
                 return result;
 
-            return AddMember(method, owningProperty);
+            return AddMember(method, owningProperty, true);
         }
 
         protected IMemberInfo AddProxyMember (ProxyInfo proxy, MethodDefinition method, EventInfo owningEvent) {
@@ -917,7 +920,7 @@ namespace JSIL.Internal {
             if (BeforeAddProxyMember(proxy, method, out result, owningEvent.Member))
                 return result;
 
-            return AddMember(method, owningEvent);
+            return AddMember(method, owningEvent, true);
         }
 
         protected IMemberInfo AddProxyMember (ProxyInfo proxy, FieldDefinition field) {
@@ -933,7 +936,7 @@ namespace JSIL.Internal {
             if (BeforeAddProxyMember(proxy, property, out result))
                 return result;
 
-            return AddMember(property);
+            return AddMember(property, true);
         }
 
         protected IMemberInfo AddProxyMember (ProxyInfo proxy, EventDefinition evt) {
@@ -941,7 +944,7 @@ namespace JSIL.Internal {
             if (BeforeAddProxyMember(proxy, evt, out result))
                 return result;
 
-            return AddMember(evt);
+            return AddMember(evt, true);
         }
 
         static readonly Regex MangledNameRegex = new Regex(@"\<([^>]*)\>([^_]*)__(.*)", RegexOptions.Compiled);
@@ -1000,35 +1003,35 @@ namespace JSIL.Internal {
             return false;
         }
 
-        protected MethodInfo AddMember (MethodDefinition method, PropertyInfo property) {
+        protected MethodInfo AddMember (MethodDefinition method, PropertyInfo property, bool isFromProxy = false) {
             IMemberInfo result;
             var identifier = new MemberIdentifier(method);
             if (Members.TryGetValue(identifier, out result))
                 return (MethodInfo)result;
 
-            result = new MethodInfo(this, identifier, method, Proxies, property);
+            result = new MethodInfo(this, identifier, method, Proxies, property, isFromProxy);
             Members.Add(identifier, result);
             return (MethodInfo)result;
         }
 
-        protected MethodInfo AddMember (MethodDefinition method, EventInfo evt) {
+        protected MethodInfo AddMember (MethodDefinition method, EventInfo evt, bool isFromProxy = false) {
             IMemberInfo result;
             var identifier = new MemberIdentifier(method);
             if (Members.TryGetValue(identifier, out result))
                 return (MethodInfo)result;
 
-            result = new MethodInfo(this, identifier, method, Proxies, evt);
+            result = new MethodInfo(this, identifier, method, Proxies, evt, isFromProxy);
             Members.Add(identifier, result);
             return (MethodInfo)result;
         }
 
-        protected MethodInfo AddMember (MethodDefinition method) {
+        protected MethodInfo AddMember (MethodDefinition method, bool isFromProxy = false) {
             IMemberInfo result;
             var identifier = new MemberIdentifier(method);
             if (Members.TryGetValue(identifier, out result))
                 return (MethodInfo)result;
 
-            result = new MethodInfo(this, identifier, method, Proxies);
+            result = new MethodInfo(this, identifier, method, Proxies, isFromProxy);
             Members.Add(identifier, result);
 
             if (method.Name == ".cctor")
@@ -1048,24 +1051,24 @@ namespace JSIL.Internal {
             return (FieldInfo)result;
         }
 
-        protected PropertyInfo AddMember (PropertyDefinition property) {
+        protected PropertyInfo AddMember (PropertyDefinition property, bool isFromProxy = false) {
             IMemberInfo result;
             var identifier = new MemberIdentifier(property);
             if (Members.TryGetValue(identifier, out result))
                 return (PropertyInfo)result;
 
-            result = new PropertyInfo(this, identifier, property, Proxies);
+            result = new PropertyInfo(this, identifier, property, Proxies, isFromProxy);
             Members.Add(identifier, result);
             return (PropertyInfo)result;
         }
 
-        protected EventInfo AddMember (EventDefinition evt) {
+        protected EventInfo AddMember (EventDefinition evt, bool isFromProxy = false) {
             IMemberInfo result;
             var identifier = new MemberIdentifier(evt);
             if (Members.TryGetValue(identifier, out result))
                 return (EventInfo)result;
 
-            result = new EventInfo(this, identifier, evt, Proxies);
+            result = new EventInfo(this, identifier, evt, Proxies, isFromProxy);
             Members.Add(identifier, result);
             return (EventInfo)result;
         }
@@ -1199,7 +1202,11 @@ namespace JSIL.Internal {
         protected readonly JSInvokePolicy _InvokePolicy;
         protected bool? _IsReturnIgnored;
 
-        public MemberInfo (TypeInfo parent, MemberIdentifier identifier, T member, ProxyInfo[] proxies, bool isIgnored = false, bool isExternal = false) {
+        public MemberInfo (
+            TypeInfo parent, MemberIdentifier identifier, 
+            T member, ProxyInfo[] proxies, 
+            bool isIgnored, bool isExternal, bool isFromProxy
+        ) {
             Identifier = identifier;
 
             _ReadPolicy = JSReadPolicy.Unmodified;
@@ -1208,15 +1215,11 @@ namespace JSIL.Internal {
 
             _IsIgnored = isIgnored || TypeInfo.IsIgnoredName(member.Name, member is FieldReference);
             IsExternal = isExternal;
+            IsFromProxy = isFromProxy;
             DeclaringType = parent;
 
             Member = member;
             Metadata = new MetadataCollection(member);
-
-            if (parent.Metadata.HasOwnAttribute("JSIL.Meta.JSProxy"))
-                IsFromProxy = true;
-            else
-                IsFromProxy = false;
 
             if (proxies != null)
             foreach (var proxy in proxies) {
@@ -1351,8 +1354,12 @@ namespace JSIL.Internal {
     public class FieldInfo : MemberInfo<FieldDefinition> {
         protected readonly string OriginalName;
 
-        public FieldInfo (TypeInfo parent, MemberIdentifier identifier, FieldDefinition field, ProxyInfo[] proxies) : base(
-            parent, identifier, field, proxies, ILBlockTranslator.IsIgnoredType(field.FieldType)
+        public FieldInfo (
+            TypeInfo parent, MemberIdentifier identifier, 
+            FieldDefinition field, ProxyInfo[] proxies
+        ) : base(
+            parent, identifier, field, proxies, 
+            ILBlockTranslator.IsIgnoredType(field.FieldType), false, false
         ) {
             OriginalName = TypeInfo.GetOriginalName(Name);
         }
@@ -1376,8 +1383,12 @@ namespace JSIL.Internal {
     public class PropertyInfo : MemberInfo<PropertyDefinition> {
         protected readonly string ShortName;
 
-        public PropertyInfo (TypeInfo parent, MemberIdentifier identifier, PropertyDefinition property, ProxyInfo[] proxies) : base(
-            parent, identifier, property, proxies, ILBlockTranslator.IsIgnoredType(property.PropertyType)
+        public PropertyInfo (
+            TypeInfo parent, MemberIdentifier identifier, 
+            PropertyDefinition property, ProxyInfo[] proxies, bool isFromProxy
+        ) : base(
+            parent, identifier, property, proxies, 
+            ILBlockTranslator.IsIgnoredType(property.PropertyType), false, isFromProxy
         ) {
             ShortName = GetShortName(property);
         }
@@ -1407,8 +1418,11 @@ namespace JSIL.Internal {
     }
 
     public class EventInfo : MemberInfo<EventDefinition> {
-        public EventInfo (TypeInfo parent, MemberIdentifier identifier, EventDefinition evt, ProxyInfo[] proxies) : base(
-            parent, identifier, evt, proxies, false
+        public EventInfo (
+            TypeInfo parent, MemberIdentifier identifier, 
+            EventDefinition evt, ProxyInfo[] proxies, bool isFromProxy
+        ) : base(
+            parent, identifier, evt, proxies, false, false, isFromProxy
         ) {
         }
 
@@ -1433,22 +1447,31 @@ namespace JSIL.Internal {
         protected bool? _ParametersIgnored;
         protected readonly string ShortName;
 
-        public MethodInfo (TypeInfo parent, MemberIdentifier identifier, MethodDefinition method, ProxyInfo[] proxies) : base (
+        public MethodInfo (
+            TypeInfo parent, MemberIdentifier identifier, 
+            MethodDefinition method, ProxyInfo[] proxies, bool isFromProxy
+        ) : base (
             parent, identifier, method, proxies,
             ILBlockTranslator.IsIgnoredType(method.ReturnType) || 
                 method.Parameters.Any((p) => ILBlockTranslator.IsIgnoredType(p.ParameterType)),
-            method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall || method.IsPInvokeImpl
+            method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall || method.IsPInvokeImpl,
+            isFromProxy
         ) {
             ShortName = GetShortName(method);
             Parameters = method.Parameters.ToArray();
             IsGeneric = method.HasGenericParameters;
         }
 
-        public MethodInfo (TypeInfo parent, MemberIdentifier identifier, MethodDefinition method, ProxyInfo[] proxies, PropertyInfo property) : base (
+        public MethodInfo (
+            TypeInfo parent, MemberIdentifier identifier, 
+            MethodDefinition method, ProxyInfo[] proxies, 
+            PropertyInfo property, bool isFromProxy
+        ) : base (
             parent, identifier, method, proxies,
             ILBlockTranslator.IsIgnoredType(method.ReturnType) || 
                 method.Parameters.Any((p) => ILBlockTranslator.IsIgnoredType(p.ParameterType)),
-            method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall || method.IsPInvokeImpl
+            method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall || method.IsPInvokeImpl,
+            isFromProxy
         ) {
             Property = property;
             ShortName = GetShortName(method);
@@ -1456,11 +1479,16 @@ namespace JSIL.Internal {
             IsGeneric = method.HasGenericParameters;
         }
 
-        public MethodInfo (TypeInfo parent, MemberIdentifier identifier, MethodDefinition method, ProxyInfo[] proxies, EventInfo evt) : base(
+        public MethodInfo (
+            TypeInfo parent, MemberIdentifier identifier, 
+            MethodDefinition method, ProxyInfo[] proxies, 
+            EventInfo evt, bool isFromProxy
+        ) : base(
             parent, identifier, method, proxies,
             ILBlockTranslator.IsIgnoredType(method.ReturnType) ||
                 method.Parameters.Any((p) => ILBlockTranslator.IsIgnoredType(p.ParameterType)),
-            method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall || method.IsPInvokeImpl
+            method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall || method.IsPInvokeImpl,
+            isFromProxy
         ) {
             Event = evt;
             ShortName = GetShortName(method);

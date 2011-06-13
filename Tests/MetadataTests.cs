@@ -117,6 +117,20 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void ReplaceMethodBodyWithProxyMethodBody () {
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\ReplaceMethodBody.cs",
+                "ProxiedClass.ProxiedMethod",
+                "ProxiedClassProxy.ProxiedMethod"
+            );
+
+            Assert.IsFalse(
+                generatedJs.Contains("\"ProxiedClass.ProxiedMethod"),
+                "Replaced methods should not have their body emitted"
+            );
+        }
+
+        [Test]
         public void MethodsContainingActualUnsafeCodeIgnored () {
             GenericTest(
                 @"SpecialTestCases\IgnoreUnsafeCode.cs",

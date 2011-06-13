@@ -944,6 +944,10 @@ JSIL.MakeEnum = function (fullName, members, isFlagsEnum) {
     __ValueToName__: {}
   };
 
+  result.Of = function () {
+    return result;
+  }
+
   result.CheckType = function (v) {
     if (typeof (v.GetType) === "function")
       if (v.GetType() === result)

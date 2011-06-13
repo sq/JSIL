@@ -1127,6 +1127,10 @@ namespace JSIL {
                 if (methodInfo.IsExternal)
                     return null;
 
+                var bodyDef = methodDef;
+                if (methodInfo.IsFromProxy && methodInfo.Member.HasBody)
+                    bodyDef = methodInfo.Member;
+
                 context.CurrentMethod = methodDef;
                 if (methodDef.Body.Instructions.Count > LargeMethodThreshold)
                     this.StartedDecompilingMethod(method.FullName);
@@ -1136,11 +1140,11 @@ namespace JSIL {
                 var optimizer = new ILAstOptimizer();
 
                 try {
-                    ilb = new ILBlock(decompiler.Build(methodDef, true));
+                    ilb = new ILBlock(decompiler.Build(bodyDef, true));
                     optimizer.Optimize(context, ilb);
                 } catch (Exception exception) {
                     if (CouldNotDecompileMethod != null)
-                        CouldNotDecompileMethod(method.ToString(), exception);
+                        CouldNotDecompileMethod(bodyDef.FullName, exception);
 
                     return null;
                 }
@@ -1344,7 +1348,7 @@ namespace JSIL {
                 var typeInfo = GetTypeInformation(typedef);
                 typeInfo.StaticConstructor = fakeCctor;
                 var identifier = MemberIdentifier.New(fakeCctor);
-                typeInfo.Members[identifier] = new Internal.MethodInfo(typeInfo, identifier, fakeCctor, new ProxyInfo[0]);
+                typeInfo.Members[identifier] = new Internal.MethodInfo(typeInfo, identifier, fakeCctor, new ProxyInfo[0], false);
 
                 TranslateMethod(context, output, fakeCctor, fakeCctor, false, null, null, fixupCctor);
             }
@@ -1362,8 +1366,12 @@ namespace JSIL {
             if (methodInfo == null)
                 return;
 
-            if (methodInfo.IsExternal || stubbed) {
-                if (methodInfo.Metadata.HasAttribute("JSIL.Meta.JSReplacement"))
+            bool isReplaced = methodInfo.Metadata.HasAttribute("JSIL.Meta.JSReplacement");
+            bool methodIsProxied = (methodInfo.IsFromProxy && methodInfo.Member.HasBody) && 
+                !methodInfo.IsExternal && !isReplaced;
+
+            if (methodInfo.IsExternal || (stubbed && !methodIsProxied)) {
+                if (isReplaced)
                     return;
 
                 if (externalMemberNames == null)
@@ -1383,6 +1391,11 @@ namespace JSIL {
                 return;
             if (!method.HasBody)
                 return;
+
+            if (methodIsProxied) {
+                output.Comment("Implementation from {0}", methodInfo.Member.DeclaringType.FullName);
+                output.NewLine();
+            }
 
             output.Identifier(method.DeclaringType);
             if (!method.IsStatic) {
