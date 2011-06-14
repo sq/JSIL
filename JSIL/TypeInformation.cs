@@ -833,15 +833,15 @@ namespace JSIL.Internal {
                     continue;
 
                 int i = 0;
-                var groupName = mg.First().Name;
+                var groupName = filtered.First().Name;
 
-                foreach (var item in mg.OrderBy((m) => m.Member.MetadataToken.ToUInt32())) {
+                foreach (var item in filtered.OrderBy((m) => m.Member.MetadataToken.ToUInt32())) {
                     item.OverloadIndex = i;
                     i += 1;
                 }
 
                 MethodGroups.Add(new MethodGroupInfo(
-                    this, mg.ToArray(), groupName
+                    this, filtered.ToArray(), groupName
                 ));
             }
         }
