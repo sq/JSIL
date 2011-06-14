@@ -77,7 +77,23 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        public void StructArrays () {
+        public void Structs () {
+            using (var test = new ComparisonTest(@"TestCases\StructArrayLiteral.cs"))
+                test.Run();
+            using (var test = new ComparisonTest(@"TestCases\StructAssignment.cs"))
+                test.Run();
+            using (var test = new ComparisonTest(@"TestCases\StructDefaults.cs"))
+                test.Run();
+            using (var test = new ComparisonTest(@"TestCases\StructFields.cs"))
+                test.Run();
+            using (var test = new ComparisonTest(@"TestCases\StructInitializers.cs"))
+                test.Run();
+            using (var test = new ComparisonTest(@"TestCases\StructProperties.cs"))
+                test.Run();
+            using (var test = new ComparisonTest(@"TestCases\StructPropertyThis.cs"))
+                test.Run();
+            using (var test = new ComparisonTest(@"TestCases\StructThisAssignment.cs"))
+                test.Run();
             using (var test = new ComparisonTest(@"TestCases\SingleDimStructArrays.cs"))
                 test.Run();
             using (var test = new ComparisonTest(@"TestCases\MultiDimStructArrays.cs"))

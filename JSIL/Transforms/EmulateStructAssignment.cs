@@ -25,9 +25,8 @@ namespace JSIL.Transforms {
             if (type == null)
                 return false;
 
-            MetadataType etype = type.MetadataType;
-
             type = ILBlockTranslator.DereferenceType(type);
+            MetadataType etype = type.MetadataType;
 
             if (ILBlockTranslator.IsEnum(type))
                 return false;

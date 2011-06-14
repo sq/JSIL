@@ -18,10 +18,10 @@ body {
 	border-radius: 16px;
 	color: white;
 	width: 680px;
-	height: 400px;
+	height: 320px;
 	position: absolute;
-	left: 300px;
-	top: 10px;
+	left: 172px;
+	top: 130px;
 	z-index: 80;
 	padding: 8px;
 	margin: -8px;
@@ -33,15 +33,15 @@ body {
 	width: 200px;
 	height: 40px;
 	position: absolute;	
-	left: 539px;
-	top: 339px;
+	left: 412px;
+	top: 364px;
 	z-index: 90;
 }
 #quitButton {
 	width: 32px;
 	height: 32px;
 	position: absolute;	
-	left: 1284px;
+	left: 1026px;
 	top: 2px;
 }
 #loadingProgress {
@@ -51,8 +51,8 @@ body {
 	width: 200px;
 	height: 40px;
 	position: absolute;	
-	left: 539px;
-	top: 339px;
+	left: 412px;
+	top: 364px;
 	z-index: 99;
 }
 #progressBar {
@@ -68,13 +68,13 @@ body {
 	margin: 0px;
 	border: 0px;
 	padding: 0px;
-	width: 1280px;
+	width: 1024px;
 	height: 150px;
 	overflow-x: hidden;
 	overflow-y: scroll;
 	position: absolute;
 	left: 2px;
-	top: 724px;
+	top: 772px;
 }
 #images, #scripts, #sounds {
 	display: none;

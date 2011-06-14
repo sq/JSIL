@@ -33,25 +33,6 @@ Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype._ctor = function (device)
 Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.Begin = function () {
 };
 
-Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDraw = function (texture, position, sourceRectangle, color) {
-  if ((typeof (sourceRectangle) === "object") && (sourceRectangle.value !== null)) {
-    var sr = sourceRectangle.value;
-    this.device.context.drawImage(
-      texture.image, 
-      sr.X, sr.Y, sr.Width, sr.Height,
-      position.X, position.Y, position.Width, position.Height
-    );
-  } else if (typeof (position.Width) === "number") {
-    this.device.context.drawImage(
-      texture.image, position.X, position.Y, position.Width, position.Height
-    );
-  } else {
-    this.device.context.drawImage(
-      texture.image, position.X, position.Y
-    );
-  }
-};
-
 Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.End = function () {
 };
 

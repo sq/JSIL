@@ -1663,7 +1663,15 @@ JSIL.Array.New = function (type, sizeOrInitializer) {
     for (var i = 0; i < sizeOrInitializer.length; i++)
       result[i] = sizeOrInitializer[i];
   } else {
-    var result = new Array(Number(sizeOrInitializer));
+    var size = Number(sizeOrInitializer);
+    var result = new Array(size);
+
+    var defaultValue = null;
+    if (type.__IsIntegral__)
+      defaultValue = 0;
+
+    for (var i = 0; i < size; i++)
+      result[i] = defaultValue;
   }
 
   /* Even worse, doing this deoptimizes all uses of the array in TraceMonkey. AUGH
@@ -1685,7 +1693,7 @@ JSIL.Array.ShallowCopy = function (destination, source) {
     destination[i] = source[i];
 };
 
-JSIL.MultidimensionalArray = function (dimensions) {
+JSIL.MultidimensionalArray = function (type, dimensions) {
   if (dimensions.length < 2)
     throw new Error();
 
@@ -1696,6 +1704,13 @@ JSIL.MultidimensionalArray = function (dimensions) {
   this._dimensions = dimensions;
   var items = this._items = new Array(totalSize);
   this.length = totalSize;
+
+  var defaultValue = null;
+  if (type.__IsIntegral__)
+    defaultValue = 0;
+
+  for (var i = 0; i < totalSize; i++)
+    items[i] = defaultValue;
 
   switch (dimensions.length) {
     case 2:
@@ -1771,7 +1786,7 @@ JSIL.MultidimensionalArray.New = function (type) {
 
   var dimensions = Array.prototype.slice.call(arguments, 1);
 
-  return new JSIL.MultidimensionalArray(dimensions);
+  return new JSIL.MultidimensionalArray(type, dimensions);
 };
 
 JSIL.MakeDelegateType = function (fullName, localName) {

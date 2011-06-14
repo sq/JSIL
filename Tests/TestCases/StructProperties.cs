@@ -19,6 +19,7 @@ public static class Program {
         var a = A;
         a.Field = 1;
         a.Property = 2;
+        Console.WriteLine("A.Field = {0}, A.Property = {1}", A.Field, A.Property);
         A = a;
         Console.WriteLine("A.Field = {0}, A.Property = {1}", A.Field, A.Property);
     }

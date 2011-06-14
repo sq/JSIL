@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>JSIL.Proxies.XNA</RootNamespace>
-    <AssemblyName>JSIL.Proxies.XNA</AssemblyName>
+    <AssemblyName>JSIL.Proxies.XNA3</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile>Client</TargetFrameworkProfile>

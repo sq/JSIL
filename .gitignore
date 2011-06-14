@@ -23,3 +23,14 @@ Tests/TestCases/*.js
 Tests/SimpleTestCases/*.js
 Tests/SpecialTestCases/*.js
 Tests/FailingTestCases/*.js
+/Proxies/XNA4/bin
+/Proxies/XNA4/obj
+/Proxies/XNA3/obj
+/Proxies/XNA3/bin
+/MannuxXNA/Content
+/Platformer/Content
+/Tetris/Content
+/MannuxXNA/*.js
+/Platformer/*.js
+/Tetris/*.js
+/Raytracer/*.js

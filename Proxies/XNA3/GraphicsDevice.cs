@@ -17,7 +17,7 @@ namespace JSIL.Proxies {
         [JSReplacement("$this.InternalClear($color)")]
         public abstract void Clear (ClearOptions options, Color color, float depth, int stencil);
 
-        [JSReplacement("$this.InternalClear($color)")]
+        [JSIgnore]
         public abstract void Clear (ClearOptions options, Vector4 color, float depth, int stencil);
 
         [JSIgnore]

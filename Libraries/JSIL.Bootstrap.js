@@ -311,13 +311,18 @@ System.Collections.Generic.List$b1.prototype.Add = function (item) {
   this._size += 1;
 };
 System.Collections.Generic.List$b1.prototype.AddRange = function (items) {
-  for (var i = 0, l = items.length; i < l; i++) {
-    if (this._size >= this._items.length) {
-      this._items.push(items[i]);
-    } else {
-      this._items[this._size] = items[i];
+  var e = items.IEnumerable_GetEnumerator();
+  try {
+    while (e.MoveNext()) {
+      if (this._size >= this._items.length) {
+        this._items.push(e.Current);
+      } else {
+        this._items[this._size] = e.Current;
+      }
+      this._size += 1;
     }
-    this._size += 1;
+  } finally {
+    e.IDisposable_Dispose();
   }
 };
 System.Collections.Generic.List$b1.prototype.Remove = function (item) {
@@ -642,6 +647,10 @@ System.TimeSpan.op_Subtraction = function (lhs, rhs) {
   return result;
 };
 
+System.TimeSpan.prototype.get_Ticks = function () {
+  return this._ticks;
+};
+
 System.TimeSpan.prototype.get_Milliseconds = function () {
   return Math.floor(this._ticks / 10000) % 60;
 };
@@ -651,7 +660,15 @@ System.TimeSpan.prototype.get_Seconds = function () {
 };
 
 System.TimeSpan.prototype.get_Minutes = function () {
-  return Math.floor(this._ticks / 600000000) % 60;
+  return Math.floor((this._ticks / 10000000) / 60) % 60;
+};
+
+System.TimeSpan.prototype.get_Hours = function () {
+  return Math.floor((this._ticks / 10000000) / (60 * 60)) % 24;
+};
+
+System.TimeSpan.prototype.get_Days = function () {
+  return Math.floor((this._ticks / 10000000) / (60 * 60 * 24));
 };
 
 System.TimeSpan.prototype.get_TotalMilliseconds = function () {
@@ -674,6 +691,14 @@ System.Collections.Generic.Dictionary$b2.prototype._ctor$0 = function () {
 
 System.Collections.Generic.Dictionary$b2.prototype._ctor$1 = function (count) {
   this._dict = {};
+};
+
+System.Collections.Generic.Dictionary$b2.prototype.get_Item = function (key) {
+  return this._dict[String(key)];
+};
+
+System.Collections.Generic.Dictionary$b2.prototype.set_Item = function (key, value) {
+  this._dict[String(key)] = value;
 };
 
 JSIL.MakeStaticClass("System.Linq.Enumerable", true);

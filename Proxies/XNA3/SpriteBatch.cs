@@ -38,5 +38,11 @@ namespace JSIL.Proxies {
 
         [JSReplacement("$this.InternalDrawString($font, $text, $position, $color)")]
         public abstract void DrawString (SpriteFont font, string text, Vector2 position, Color color);
+
+        [JSReplacement("$this.InternalDrawString($font, $text, $position, $color)")]
+        public abstract void DrawString (SpriteFont font, string text, Vector2 position, Color color, float rotation, Vector2 origin, Vector2 scale, SpriteEffects effects, float layerDepth);
+
+        [JSReplacement("$this.InternalDrawString($font, $text, $position, $color)")]
+        public abstract void DrawString (SpriteFont font, string text, Vector2 position, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth);
     }
 }

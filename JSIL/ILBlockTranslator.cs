@@ -1229,13 +1229,21 @@ namespace JSIL {
             if (CopyOnReturn(field.FieldType))
                 result = JSReferenceExpression.New(result);
 
-            // TODO: When returning a value type we should be returning it by reference, but doing that would break Ldflda.
             return result;
         }
 
         protected JSExpression Translate_Ldsflda (ILExpression node, FieldReference field) {
+            var fieldInfo = TypeInfo.GetField(field);
+            if (fieldInfo == null)
+                return new JSIgnoredMemberReference(true, null, JSLiteral.New(field.FullName));
+            else if (IsIgnoredType(field.FieldType) || fieldInfo.IsIgnored)
+                return new JSIgnoredMemberReference(true, fieldInfo);
+
             return new JSMemberReferenceExpression(
-                Translate_Ldsfld(node, field)
+                new JSDotExpression(
+                    new JSType(field.DeclaringType),
+                    new JSField(field, fieldInfo)
+                )
             );
         }
 
@@ -1294,7 +1302,27 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldflda (ILExpression node, FieldReference field) {
-            return new JSMemberReferenceExpression(Translate_Ldfld(node, field));
+            var firstArg = node.Arguments[0];
+            var translated = TranslateNode(firstArg);
+
+            var fieldInfo = TypeInfo.GetField(field);
+            if (IsIgnoredType(field.FieldType) || (fieldInfo == null) || fieldInfo.IsIgnored)
+                return new JSIgnoredMemberReference(true, fieldInfo, translated);
+
+            JSExpression thisExpression;
+            if (IsInvalidThisExpression(firstArg)) {
+                if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression)) {
+                    Console.Error.WriteLine("Warning: Accessing {0} without a reference as this.", field.FullName);
+                    thisExpression = translated;
+                }
+            } else {
+                thisExpression = translated;
+            }
+
+            return new JSMemberReferenceExpression(new JSDotExpression(
+                thisExpression,
+                new JSField(field, fieldInfo)
+            ));
         }
 
         protected JSExpression Translate_Ldobj (ILExpression node, TypeReference type) {

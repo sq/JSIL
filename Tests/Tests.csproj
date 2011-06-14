@@ -91,7 +91,7 @@
     <None Include="SimpleTestCases\CustomOperators.cs" />
     <None Include="SimpleTestCases\BasicLoops.cs" />
     <None Include="SimpleTestCases\UsingBlocks.cs" />
-    <None Include="SimpleTestCases\StructDefaults.cs" />
+    <None Include="TestCases\StructDefaults.cs" />
     <None Include="SimpleTestCases\NamespacedTypes.cs" />
     <None Include="SimpleTestCases\InitFieldsInMain.cs" />
     <None Include="SimpleTestCases\OverloadedMethods.cs" />
@@ -118,7 +118,7 @@
     <None Include="SimpleTestCases\CustomEnumerator.cs" />
     <None Include="SimpleTestCases\OverloadWithRefArray.cs" />
     <None Include="TestCases\YieldReturn.cs" />
-    <None Include="SimpleTestCases\StructAssignment.cs" />
+    <None Include="TestCases\StructAssignment.cs" />
     <None Include="SimpleTestCases\ReturnStruct.cs" />
     <None Include="TestCases\RefStruct.cs" />
     <None Include="SimpleTestCases\Decimals.cs" />
@@ -155,14 +155,14 @@
     <None Include="TestCases\InterleavedTemporaries.cs" />
     <None Include="TestCases\IndirectInterleavedTemporaries.cs" />
     <None Include="SpecialTestCases\PrivateNames.cs" />
-    <None Include="SimpleTestCases\StructProperties.cs" />
-    <None Include="SimpleTestCases\StructInitializers.cs" />
+    <None Include="TestCases\StructProperties.cs" />
+    <None Include="TestCases\StructInitializers.cs" />
     <None Include="SimpleTestCases\InitializerOnSubStruct.cs" />
     <None Include="SimpleTestCases\SelfTypedFields.cs" />
     <None Include="SimpleTestCases\LockTypeObject.cs" />
     <None Include="SpecialTestCases\NestedInitialization.cs" />
     <None Include="SimpleTestCases\CollectionInitializers.cs" />
-    <None Include="SimpleTestCases\StructThisAssignment.cs" />
+    <None Include="TestCases\StructThisAssignment.cs" />
     <None Include="TestCases\ValueTypeMethods.cs" />
     <None Include="SimpleTestCases\GetType.cs" />
     <None Include="SpecialTestCases\IgnoreInterface.cs" />
@@ -173,7 +173,7 @@
     <None Include="SimpleTestCases\ComplexRefOverload.cs" />
     <None Include="SpecialTestCases\IgnoreParameterType.cs" />
     <None Include="TestCases\NestedGenericMethodCalls.cs" />
-    <None Include="SimpleTestCases\StructArrayLiteral.cs" />
+    <None Include="TestCases\StructArrayLiteral.cs" />
     <None Include="SimpleTestCases\VirtualBaseProperties.cs" />
     <None Include="SpecialTestCases\SingleUseExceptionTemporaries.cs" />
     <None Include="TestCases\LambdaRefParameters.cs" />
@@ -215,6 +215,8 @@
     <None Include="TestCases\FaultBlock.cs" />
     <None Include="SpecialTestCases\ReplaceMethodBody.cs" />
     <None Include="TestCases\GenericInnerClasses.cs" />
+    <None Include="TestCases\StructFields.cs" />
+    <None Include="SimpleTestCases\ArrayDefaultValues.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
