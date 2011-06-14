@@ -86,93 +86,13 @@ Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDraw = function (
 Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.End = function () {
 };
 
-Microsoft.Xna.Framework.Color.prototype._ctor$1 = function (r, g, b) {
-  this.a = 255;
-  this.r = r;
-  this.g = g;
-  this.b = b;
-}
-Microsoft.Xna.Framework.Color.prototype._ctor$2 = function (r, g, b, a) {
-  this.a = a;
-  this.r = r;
-  this.g = g;
-  this.b = b;
-}
-Microsoft.Xna.Framework.Color.prototype._ctor$3 = function (r, g, b) {
-  this.a = 255;
-  this.r = Math.floor(r * 255);
-  this.g = Math.floor(g * 255);
-  this.b = Math.floor(b * 255);
-}
-Microsoft.Xna.Framework.Color.prototype._ctor$4 = function (r, g, b, a) {
-  this.a = Math.floor(a * 255);
-  this.r = Math.floor(r * 255);
-  this.g = Math.floor(g * 255);
-  this.b = Math.floor(b * 255);
-}
-Microsoft.Xna.Framework.Color.prototype._ctor$5 = function (v3) {
-  Microsoft.Xna.Framework.Color.prototype._ctor$3.call(this, v3.X, v3.Y, v3.Z);
-}
-Microsoft.Xna.Framework.Color.prototype._ctor$6 = function (v4) {
-  Microsoft.Xna.Framework.Color.prototype._ctor$4.call(this, v4.X, v4.Y, v4.Z, v4.W);
-}
+JSIL.CopyObjectValues(
+  $jsilxna.Color, Microsoft.Xna.Framework.Color
+);
 
-Microsoft.Xna.Framework.Color.prototype.get_A = function () {
-  return this.a;
-}
-Microsoft.Xna.Framework.Color.prototype.get_R = function () {
-  return this.r;
-}
-Microsoft.Xna.Framework.Color.prototype.get_G = function () {
-  return this.g;
-}
-Microsoft.Xna.Framework.Color.prototype.get_B = function () {
-  return this.b;
-}
-
-Microsoft.Xna.Framework.Color.prototype.toCss = function () {
-  if (this.A < 255) {
-    return System.String.Format(
-      "rgba({0}, {1}, {2}, {3})",
-      this.R, this.G, this.B, this.A / 255.0
-    );
-  } else {
-    return System.String.Format(
-      "rgb({0}, {1}, {2})",
-      this.R, this.G, this.B
-    );
-  }
-}
-
-Microsoft.Xna.Framework.Color.prototype.MemberwiseClone = function () {
-  var result = Object.create(Microsoft.Xna.Framework.Color.prototype);
-  result.a = this.a;
-  result.r = this.r;
-  result.g = this.g;
-  result.b = this.b;
-  return result;
-}
-
-Microsoft.Xna.Framework.Color._cctor = function () {
-  var self = Microsoft.Xna.Framework.Color;
-  self.black = new Microsoft.Xna.Framework.Color(0, 0, 0);
-  self.transparentBlack = new Microsoft.Xna.Framework.Color(0, 0, 0, 0);
-  self.white = new Microsoft.Xna.Framework.Color(255, 255, 255);
-  self.transparentWhite = new Microsoft.Xna.Framework.Color(255, 255, 255, 0);
-};
-
-Microsoft.Xna.Framework.Color.get_Black = function () {
-  return Microsoft.Xna.Framework.Color.black;
-};
-Microsoft.Xna.Framework.Color.get_TransparentBlack = function () {
-  return Microsoft.Xna.Framework.Color.transparentBlack;
-};
-Microsoft.Xna.Framework.Color.get_White = function () {
-  return Microsoft.Xna.Framework.Color.white;
-};
-Microsoft.Xna.Framework.Color.get_TransparentWhite = function () {
-  return Microsoft.Xna.Framework.Color.transparentWhite;
-};
+JSIL.CopyObjectValues(
+  $jsilxna.ColorPrototype, Microsoft.Xna.Framework.Color.prototype
+);
 
 JSIL.SealTypes(
   $jsilxna, "Microsoft.Xna.Framework", 

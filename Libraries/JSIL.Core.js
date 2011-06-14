@@ -599,6 +599,15 @@ JSIL.InitializeStructFields = function (instance, typeObject) {
   }
 };
 
+JSIL.CopyObjectValues = function (source, target) {
+  for (var k in source) {
+    if (!source.hasOwnProperty(k))
+      continue;
+
+    target[k] = source[k];
+  }
+}
+
 JSIL.CopyMembers = function (source, target) {
   var sf = source.__StructFields__;
   if (typeof (sf) != "object")

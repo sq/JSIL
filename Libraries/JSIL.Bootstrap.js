@@ -6,6 +6,7 @@ if (typeof (JSIL) === "undefined")
 JSIL.DeclareAssembly("JSIL.Core");
 
 JSIL.DeclareNamespace("System.ComponentModel");
+JSIL.DeclareNamespace("System.Linq");
 
 JSIL.MakeClass("System.Object", "System.ComponentModel.MemberDescriptor", true);
 JSIL.MakeClass("System.ComponentModel.MemberDescriptor", "System.ComponentModel.PropertyDescriptor", true);
@@ -308,6 +309,16 @@ System.Collections.Generic.List$b1.prototype.Add = function (item) {
     this._items[this._size] = item;
   }
   this._size += 1;
+};
+System.Collections.Generic.List$b1.prototype.AddRange = function (items) {
+  for (var i = 0, l = items.length; i < l; i++) {
+    if (this._size >= this._items.length) {
+      this._items.push(items[i]);
+    } else {
+      this._items[this._size] = items[i];
+    }
+    this._size += 1;
+  }
 };
 System.Collections.Generic.List$b1.prototype.Remove = function (item) {
   var index = this._items.indexOf(item);
@@ -654,6 +665,33 @@ System.TimeSpan.prototype.get_TotalSeconds = function () {
 System.TimeSpan.prototype.get_TotalMinutes = function () {
   return this._ticks / 600000000;
 };
+
+JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary$b2", true, ["TKey", "TValue"]);
+
+System.Collections.Generic.Dictionary$b2.prototype._ctor$0 = function () {
+  this._dict = {};
+};
+
+System.Collections.Generic.Dictionary$b2.prototype._ctor$1 = function (count) {
+  this._dict = {};
+};
+
+JSIL.MakeStaticClass("System.Linq.Enumerable", true);
+
+System.Linq.Enumerable.Count$b1$0 = JSIL.GenericMethod(
+  ["T"], 
+  function (T, enumerable) {
+    var e = enumerable.IEnumerable$b1_GetEnumerator();
+    var result = 0;
+    try {
+      while (e.MoveNext())
+        result += 1;
+    } finally {
+      e.IDisposable_Dispose();
+    }
+    return result;
+  }
+);
 
 JSIL.QueueInitializer(function () {
   // Can't use a cctor since these types already have them

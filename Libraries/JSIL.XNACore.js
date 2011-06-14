@@ -543,7 +543,6 @@ Microsoft.Xna.Framework.Rectangle.prototype.MemberwiseClone = function () {
   return result;
 }
 
-
 Microsoft.Xna.Framework.Point.prototype._ctor = function (x, y) {
   this.X = Math.floor(x);
   this.Y = Math.floor(y);
@@ -562,4 +561,123 @@ Microsoft.Xna.Framework.Point.op_Equality = function (lhs, rhs) {
 };
 Microsoft.Xna.Framework.Point.op_Inequality = function (lhs, rhs) {
   return lhs.X !== rhs.X || lhs.Y !== rhs.Y;
+};
+
+$jsilxna.makeColor = function (proto, r, g, b, a) {
+  var result = Object.create(proto);
+  result.r = r;
+  result.g = g;
+  result.b = b;
+  if (typeof (a) === "number")
+    result.a = a;
+  else
+    result.a = 255;
+  return result;
+}
+
+$jsilxna.Color = {
+  _cctor : function () {
+    var self = this;
+    var proto = this.prototype;
+    var makeColor = $jsilxna.makeColor;
+    self.black = makeColor(proto, 0, 0, 0);
+    self.transparentBlack = makeColor(proto, 0, 0, 0, 0);
+    self.white = makeColor(proto, 255, 255, 255);
+    self.transparentWhite = makeColor(proto, 255, 255, 255, 0);
+    self.red = makeColor(proto, 255, 0, 0);
+    self.yellow = makeColor(proto, 255, 255, 0);
+    self.cornflowerBlue = makeColor(proto, 100, 149, 237);
+  },
+
+  get_Black : function () {
+    return this.black;
+  },
+  get_TransparentBlack : function () {
+    return this.transparentBlack;
+  },
+  get_White : function () {
+    return this.white;
+  },
+  get_Red : function () {
+    return this.red;
+  },
+  get_Yellow : function () {
+    return this.yellow;
+  },
+  get_CornflowerBlue : function () {
+    return this.cornflowerBlue;
+  },
+  get_TransparentWhite : function () {
+    return this.transparentWhite;
+  }
+};
+
+$jsilxna.ColorPrototype = {
+  _ctor$1 : function (r, g, b) {
+    this.a = 255;
+    this.r = r;
+    this.g = g;
+    this.b = b;
+  },
+  _ctor$2 : function (r, g, b, a) {
+    this.a = a;
+    this.r = r;
+    this.g = g;
+    this.b = b;
+  },
+  _ctor$3 : function (r, g, b) {
+    this.a = 255;
+    this.r = Math.floor(r * 255);
+    this.g = Math.floor(g * 255);
+    this.b = Math.floor(b * 255);
+  },
+  _ctor$4 : function (r, g, b, a) {
+    this.a = Math.floor(a * 255);
+    this.r = Math.floor(r * 255);
+    this.g = Math.floor(g * 255);
+    this.b = Math.floor(b * 255);
+  },
+  _ctor$5 : function (v3) {
+    this._ctor$3(v3.X, v3.Y, v3.Z);
+  },
+  _ctor$6 : function (v4) {
+    this._ctor$4(v4.X, v4.Y, v4.Z, v4.W);
+  },
+
+  get_A : function () {
+    return this.a;
+  },
+  get_R : function () {
+    return this.r;
+  },
+  get_G : function () {
+    return this.g;
+  },
+  get_B : function () {
+    return this.b;
+  },
+
+  toCss : function () {
+    if (this.A < 255) {
+      return "rgba(" + this.R + 
+        "," + this.G +
+        "," + this.B +
+        "," + this.A / 255.0 +
+      ")";    
+    } else {
+      return "rgb(" + this.R + 
+        "," + this.G +
+        "," + this.B +
+      ")";    
+    }
+  },
+
+  MemberwiseClone : function () {
+    var result = Object.create(Object.getPrototypeOf(this));
+    result.a = this.a;
+    result.r = this.r;
+    result.g = this.g;
+    result.b = this.b;
+    return result;
+  }
 };
