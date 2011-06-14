@@ -795,6 +795,19 @@ Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDraw = function (
     sourceH = sr.Height;
   }
 
+  if (sourceX < 0) {
+    sourceW += sourceX;
+    sourceX = 0;
+  }
+  if (sourceY < 0) {
+    sourceH += sourceY;
+    sourceY = 0;
+  }
+  if (sourceW > image.naturalWidth - sourceX)
+    sourceW = image.naturalWidth - sourceX;
+  if (sourceH > image.naturalHeight - sourceY)
+    sourceH = image.naturalHeight - sourceY;
+
   if ((typeof (color) === "object") && (color !== null)) {
     if ((color.R != 255) || (color.G != 255) || (color.B != 255)) {
       var newImage = $jsilxna.getImageMultiplied(image, color);
@@ -810,18 +823,37 @@ Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDraw = function (
     }
   }
 
-  if (positionIsRect)
+  var destW, destH;
+
+  if (positionIsRect) {
+    destW = position.Width * scaleX;
+    destH = position.Height * scaleY;
+  } else {
+    destW = sourceW * scaleX;
+    destH = sourceH * scaleY;
+  }
+
+  // Negative width/height cause an exception in Firefox
+  if (destW < 0) {
+    this.device.context.scale(-1, 1);
+    positionX = -positionX;
+    destW = -destW;
+  }
+  if (destH < 0) {
+    this.device.context.scale(1, -1);
+    positionY = -positionY;
+    destH = -destH;
+  }
+
+  try {
     this.device.context.drawImage(
       image, 
       sourceX, sourceY, sourceW, sourceH,
-      positionX, positionY, position.Width * scaleX, position.Height * scaleY
+      positionX, positionY, destW, destH
     );
-  else
-    this.device.context.drawImage(
-      image, 
-      sourceX, sourceY, sourceW, sourceH,
-      positionX, positionY, sourceW * scaleX, sourceH * scaleY
-    );
+  } catch (e) {
+    throw e;
+  }
 
   this.device.context.restore();
 };
