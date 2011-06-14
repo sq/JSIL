@@ -1703,7 +1703,14 @@ JSIL.MultidimensionalArray = function (type, dimensions) {
 
   this._dimensions = dimensions;
   var items = this._items = new Array(totalSize);
-  this.length = totalSize;
+
+  Object.defineProperty(
+    this, "length", {
+      value: totalSize,
+      configurable: true,
+      enumerable: true
+    }
+  );
 
   var defaultValue = null;
   if (type.__IsIntegral__)

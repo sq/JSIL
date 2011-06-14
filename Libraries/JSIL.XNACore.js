@@ -24,7 +24,7 @@ $jsilxna.getImageMultiplied = function (image, color) {
   context.globalCompositeAlpha = 1.0;
   context.drawImage(image, 1, 1);
 
-  var imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+  var imageData = context.getImageData(1, 1, image.naturalWidth, image.naturalHeight);
   var rmul = color.R / 255;
   var gmul = color.G / 255;
   var bmul = color.B / 255;
@@ -42,7 +42,7 @@ $jsilxna.getImageMultiplied = function (image, color) {
   }
 
   if (foundPixels) {
-    context.putImageData(imageData, 0, 0);
+    context.putImageData(imageData, 1, 1);
     $jsilxna.imageMultipliedCache[key] = canvas;
   } else {
     // Workaround for bug in Chrome 12+ which causes getImageData to return pure black. LAME.
