@@ -174,5 +174,14 @@ namespace JSIL {
                 new[] { left, right }, true
             );
         }
+
+        public JSInvocationExpression ShallowCopy (JSExpression array, JSExpression initializer, TypeReference arrayType) {
+            return JSInvocationExpression.InvokeStatic(
+                new JSDotExpression(
+                    Dot("Array", TypeSystem.Object),
+                    new JSFakeMethod("ShallowCopy", TypeSystem.Void, arrayType, arrayType)
+                ), new[] { array, initializer }
+            );
+        }
     }
 }

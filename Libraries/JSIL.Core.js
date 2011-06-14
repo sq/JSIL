@@ -1666,16 +1666,27 @@ JSIL.Array.New = function (type, sizeOrInitializer) {
   return result;
 };
 
+JSIL.Array.ShallowCopy = function (destination, source) {
+  if (Array.isArray(destination)) {
+  } else if (Array.isArray(destination._items)) {
+    destination = destination._items;
+  }
+
+  for (var i = 0, l = Math.min(source.length, destination.length); i < l; i++)
+    destination[i] = source[i];
+};
+
 JSIL.MultidimensionalArray = function (dimensions) {
   if (dimensions.length < 2)
     throw new Error();
 
   var totalSize = dimensions[0];
   for (var i = 1; i < dimensions.length; i++)
-    totalSize *= i;
+    totalSize *= dimensions[i];
 
   this._dimensions = dimensions;
   var items = this._items = new Array(totalSize);
+  this.length = totalSize;
 
   switch (dimensions.length) {
     case 2:

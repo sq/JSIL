@@ -133,6 +133,19 @@ namespace JSIL.Transforms {
                     VisitReplacement(typeObj);
                     return;
                 } else if (
+                    (method.Reference.DeclaringType.Name == "RuntimeHelpers") &&
+                    (method.Method.Name == "InitializeArray")
+                ) {
+                    var array = ie.Arguments[0];
+                    var arrayType = array.GetExpectedType(TypeSystem);
+                    var field = ie.Arguments[1].AllChildrenRecursive.OfType<JSField>().First();
+                    var initializer = JSArrayExpression.UnpackArrayInitializer(arrayType, field.Field.Member.InitialValue);
+
+                    var copy = JSIL.ShallowCopy(array, initializer, arrayType); 
+                    ParentNode.ReplaceChild(ie, copy);
+                    VisitReplacement(copy);
+                    return;
+                } else if (
                     method.Method.DeclaringType.Definition.FullName == "System.Array" &&
                     (ie.Arguments.Count == 1)
                 ) {

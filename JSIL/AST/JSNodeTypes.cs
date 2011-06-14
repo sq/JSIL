@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using ICSharpCode.Decompiler.ILAst;
 using JSIL.Internal;
@@ -2605,6 +2607,57 @@ namespace JSIL.Ast {
             get {
                 return Values.All((v) => v.IsConstant);
             }
+        }
+
+        private static JSExpression[] DecodeValues<T> (int totalBytes, Func<T> getNextValue) {
+            var result = new JSExpression[totalBytes / Marshal.SizeOf(typeof(T))];
+            for (var i = 0; i < result.Length; i++)
+                result[i] = JSLiteral.New(getNextValue() as dynamic);
+            return result;
+        }
+
+        public static JSExpression UnpackArrayInitializer (TypeReference arrayType, byte[] data) {
+            var elementType = ILBlockTranslator.DereferenceType(arrayType).GetElementType();
+            JSExpression[] values;
+
+            using (var ms = new MemoryStream(data, false))
+            using (var br = new BinaryReader(ms))
+            switch (elementType.FullName) {
+                case "System.Byte":
+                    values = DecodeValues(data.Length, br.ReadByte);
+                break;
+                case "System.UInt16":
+                    values = DecodeValues(data.Length, br.ReadUInt16);
+                break;
+                case "System.UInt32":
+                    values = DecodeValues(data.Length, br.ReadUInt32);
+                break;
+                case "System.UInt64":
+                    values = DecodeValues(data.Length, br.ReadUInt64);
+                break;
+                case "System.SByte":
+                    values = DecodeValues(data.Length, br.ReadSByte);
+                break;
+                case "System.Int16":
+                    values = DecodeValues(data.Length, br.ReadInt16);
+                break;
+                case "System.Int32":
+                    values = DecodeValues(data.Length, br.ReadInt32);
+                break;
+                case "System.Int64":
+                    values = DecodeValues(data.Length, br.ReadInt64);
+                break;
+                case "System.Single":
+                    values = DecodeValues(data.Length, br.ReadSingle);
+                break;
+                case "System.Double":
+                    values = DecodeValues(data.Length, br.ReadDouble);
+                break;
+                default:
+                    return new JSUntranslatableExpression(String.Format("Array initializers with element type '{0}' not implemented", elementType.FullName));
+            }
+
+            return new JSArrayExpression(elementType, values);
         }
     }
 
