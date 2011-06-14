@@ -5,37 +5,6 @@ if (typeof (JSIL) === "undefined")
 
 var $jsilxna = JSIL.DeclareAssembly("JSIL.XNA");
 
-Microsoft.Xna.Framework.GraphicsDeviceManager.prototype._ctor = function () {
-  this.device = new Microsoft.Xna.Framework.Graphics.GraphicsDevice();
-};
-
-Microsoft.Xna.Framework.GraphicsDeviceManager.prototype.get_GraphicsDevice = function () {
-  return this.device;
-};
-
-Microsoft.Xna.Framework.Graphics.GraphicsDevice.prototype._ctor = function () {
-  this.canvas = JSIL.Host.getCanvas();
-  this.context = this.canvas.getContext("2d");
-  this.viewport = new Microsoft.Xna.Framework.Graphics.Viewport();
-  this.viewport.Width = this.canvas.clientWidth || this.canvas.width;
-  this.viewport.Height = this.canvas.clientHeight || this.canvas.height;
-};
-
-Microsoft.Xna.Framework.Graphics.GraphicsDevice.prototype.get_Viewport = function () {
-  return this.viewport;
-};
-
-Microsoft.Xna.Framework.Graphics.GraphicsDevice.prototype.set_Viewport = function (newViewport) {
-  this.viewport = newViewport;
-  this.canvas = JSIL.Host.getCanvas(this.viewport.Width, this.viewport.Height);
-  this.context = this.canvas.getContext("2d");
-};
-
-Microsoft.Xna.Framework.Graphics.GraphicsDevice.prototype.InternalClear = function (color) {
-  this.context.fillStyle = color.toCss();
-  this.context.fillRect(0, 0, this.viewport.Width, this.viewport.Height);
-};
-
 Microsoft.Xna.Framework.Graphics.GraphicsDevice.prototype.DrawUserPrimitives = function (primitiveType, vertices, vertexOffset, primitiveCount) {
   switch (primitiveType) {
     case Microsoft.Xna.Framework.Graphics.PrimitiveType.LineList:

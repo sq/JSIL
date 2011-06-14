@@ -825,7 +825,10 @@ namespace JSIL.Internal {
                                 select mg).ToArray();
 
             foreach (var mg in methodGroups) {
-                var filtered = (from m in mg where !m.IsIgnored && !m.Metadata.HasAttribute("JSIL.Meta.JSReplacement") select m).ToArray();
+                var filtered = (from m in mg where !m.IsIgnored && 
+                                    !m.Metadata.HasAttribute("JSIL.Meta.JSReplacement") && 
+                                    !m.Metadata.HasAttribute("JSIL.Meta.JSChangeName")
+                                select m).ToArray();
                 if (filtered.Length <= 1)
                     continue;
 
@@ -1196,7 +1199,6 @@ namespace JSIL.Internal {
         public readonly bool IsExternal;
         internal readonly bool IsFromProxy;
         protected readonly bool _IsIgnored;
-        protected readonly string _ForcedName;
         protected readonly JSReadPolicy _ReadPolicy;
         protected readonly JSWritePolicy _WritePolicy;
         protected readonly JSInvokePolicy _InvokePolicy;
@@ -1265,7 +1267,7 @@ namespace JSIL.Internal {
         }
 
         protected virtual string GetName () {
-            return ForcedName ?? Member.Name;
+            return ChangedName ?? Member.Name;
         }
 
         bool IMemberInfo.IsFromProxy {
@@ -1299,11 +1301,8 @@ namespace JSIL.Internal {
             }
         }
 
-        public string ForcedName {
+        public string ChangedName {
             get {
-                if (_ForcedName != null)
-                    return _ForcedName;
-
                 var parms = Metadata.GetAttributeParameters("JSIL.Meta.JSChangeName");
                 if (parms != null)
                     return (string)parms[0].Value;
@@ -1399,11 +1398,11 @@ namespace JSIL.Internal {
             var over = (Member.GetMethod ?? Member.SetMethod).Overrides.FirstOrDefault();
 
             if ((declType != null) && declType.IsInterface)
-                result = ForcedName ?? String.Format("{0}.{1}", declType.Name, ShortName);
+                result = ChangedName ?? String.Format("{0}.{1}", declType.Name, ShortName);
             else if (over != null)
-                result = ForcedName ?? String.Format("{0}.{1}", over.DeclaringType.Name, ShortName);
+                result = ChangedName ?? String.Format("{0}.{1}", over.DeclaringType.Name, ShortName);
             else
-                result = ForcedName ?? ShortName;
+                result = ChangedName ?? ShortName;
 
             return result;
         }
@@ -1505,12 +1504,16 @@ namespace JSIL.Internal {
             var declType = Member.DeclaringType.Resolve();
             var over = Member.Overrides.FirstOrDefault();
 
+            var cn = ChangedName;
+            if (cn != null)
+                return cn;
+
             if ((declType != null) && declType.IsInterface)
-                result = ForcedName ?? String.Format("{0}.{1}", declType.Name, ShortName);
+                result = String.Format("{0}.{1}", declType.Name, ShortName);
             else if (over != null)
-                result = ForcedName ?? String.Format("{0}.{1}", over.DeclaringType.Name, ShortName);
+                result = String.Format("{0}.{1}", over.DeclaringType.Name, ShortName);
             else
-                result = ForcedName ?? ShortName;
+                result = ShortName;
 
             if (Member.HasGenericParameters)
                 result = String.Format("{0}`{1}", result, Member.GenericParameters.Count);

@@ -16,6 +16,7 @@ namespace JSIL.Proxies {
 
         [JSChangeName("toString")]
         [JSNeverReplace]
+        [JSRuntimeDispatch]
         new abstract public string ToString ();
     }
 }

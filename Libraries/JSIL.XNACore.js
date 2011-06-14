@@ -586,6 +586,11 @@ $jsilxna.Color = {
     self.transparentWhite = makeColor(proto, 255, 255, 255, 0);
     self.red = makeColor(proto, 255, 0, 0);
     self.yellow = makeColor(proto, 255, 255, 0);
+    self.orange = makeColor(proto, 255, 165, 0); 
+    self.green = makeColor(proto, 0, 128, 0);
+    self.cyan = makeColor(proto, 0, 255, 255);
+    self.blue = makeColor(proto, 0, 0, 255);
+    self.purple = makeColor(proto, 128, 0, 128); 
     self.cornflowerBlue = makeColor(proto, 100, 149, 237);
   },
 
@@ -598,18 +603,33 @@ $jsilxna.Color = {
   get_White : function () {
     return this.white;
   },
+  get_TransparentWhite : function () {
+    return this.transparentWhite;
+  },
   get_Red : function () {
     return this.red;
+  },
+  get_Orange : function () {
+    return this.orange;
   },
   get_Yellow : function () {
     return this.yellow;
   },
+  get_Green : function () {
+    return this.green;
+  },
+  get_Cyan : function () {
+    return this.cyan;
+  },
+  get_Blue : function () {
+    return this.blue;
+  },
   get_CornflowerBlue : function () {
     return this.cornflowerBlue;
   },
-  get_TransparentWhite : function () {
-    return this.transparentWhite;
-  }
+  get_Purple : function () {
+    return this.purple;
+  },
 };
 
 $jsilxna.ColorPrototype = {
@@ -681,3 +701,38 @@ $jsilxna.ColorPrototype = {
     return result;
   }
 };
+
+Microsoft.Xna.Framework.GraphicsDeviceManager.prototype._ctor = function (game) {
+  this.game = game;
+  this.device = new Microsoft.Xna.Framework.Graphics.GraphicsDevice();
+  game.graphicsDeviceService = this;
+  game.graphicsDeviceManager = this;
+};
+
+Microsoft.Xna.Framework.GraphicsDeviceManager.prototype.get_GraphicsDevice = function () {
+  return this.device;
+};
+
+Microsoft.Xna.Framework.Graphics.GraphicsDevice.prototype._ctor = function () {
+  this.canvas = JSIL.Host.getCanvas();
+  this.context = this.canvas.getContext("2d");
+  this.viewport = new Microsoft.Xna.Framework.Graphics.Viewport();
+  this.viewport.Width = this.canvas.clientWidth || this.canvas.width;
+  this.viewport.Height = this.canvas.clientHeight || this.canvas.height;
+};
+
+Microsoft.Xna.Framework.Graphics.GraphicsDevice.prototype.get_Viewport = function () {
+  return this.viewport;
+};
+
+Microsoft.Xna.Framework.Graphics.GraphicsDevice.prototype.set_Viewport = function (newViewport) {
+  this.viewport = newViewport;
+  this.canvas = JSIL.Host.getCanvas(this.viewport.Width, this.viewport.Height);
+  this.context = this.canvas.getContext("2d");
+};
+
+Microsoft.Xna.Framework.Graphics.GraphicsDevice.prototype.InternalClear = function (color) {
+  this.context.fillStyle = color.toCss();
+  this.context.fillRect(0, 0, this.viewport.Width, this.viewport.Height);
+};
+
