@@ -7,7 +7,7 @@ using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class EliminateSingleUseTemporaries : JSAstVisitor {
-        public const int TraceLevel = 0;
+        public static int TraceLevel = 0;
 
         public readonly TypeSystem TypeSystem;
         public readonly IFunctionSource FunctionSource;
@@ -34,6 +34,7 @@ namespace JSIL.Transforms {
             {
                 var replacer = new VariableEliminator(variable, replaceWith);
                 var assignments = (from a in Data.Data.Assignments where 
+                                       variable.Equals(a.NewValue) ||
                                        a.NewValue.AllChildrenRecursive.Any((_n) => variable.Equals(_n))
                                        select a).ToArray();
 
@@ -57,8 +58,8 @@ namespace JSIL.Transforms {
         }
 
         protected bool IsEffectivelyConstant (JSVariable target, JSExpression source) {
-            if (source == null)
-                return true;
+            if ((source == null) || (source.IsNull))
+                return false;
 
             // Handle special cases where our interpretation of 'constant' needs to be more flexible
             {

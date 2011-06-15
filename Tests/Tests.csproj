@@ -217,6 +217,7 @@
     <None Include="TestCases\GenericInnerClasses.cs" />
     <None Include="TestCases\StructFields.cs" />
     <None Include="SimpleTestCases\ArrayDefaultValues.cs" />
+    <None Include="TestCases\DirectTemporaryAssignment.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

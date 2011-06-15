@@ -229,14 +229,12 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        public void InterleavedTemporaries () {
+        public void Temporaries () {
             using (var test = new ComparisonTest(@"TestCases\InterleavedTemporaries.cs"))
                 test.Run();
-        }
-
-        [Test]
-        public void IndirectInterleavedTemporaries () {
             using (var test = new ComparisonTest(@"TestCases\IndirectInterleavedTemporaries.cs"))
+                test.Run();
+            using (var test = new ComparisonTest(@"TestCases\DirectTemporaryAssignment.cs"))
                 test.Run();
         }
     }

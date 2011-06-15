@@ -2244,7 +2244,11 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return Member.GetExpectedType(typeSystem);
+            var result = Member.GetExpectedType(typeSystem);
+            if (result == null)
+                throw new ArgumentNullException();
+
+            return result;
         }
 
         public JSExpression Target {
@@ -2375,6 +2379,8 @@ namespace JSIL.Ast {
                 throw new ArgumentNullException("method");
             if (thisReference == null)
                 throw new ArgumentNullException("thisReference");
+            if ((arguments != null) && arguments.Any((a) => a == null))
+                throw new ArgumentNullException("arguments");
 
             ExplicitThis = explicitThis;
             ConstantIfArgumentsAre = constantIfArgumentsAre;

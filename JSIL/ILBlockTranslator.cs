@@ -124,13 +124,22 @@ namespace JSIL {
                     result.Add(translated);
             }
 
+
+            if (result.Any((je) => je == null))
+                throw new InvalidOperationException();
+
             return result.ToArray();
         }
 
         public JSExpression[] Translate (IEnumerable<ILExpression> values) {
-            return (
+            var result = (
                 from value in values select TranslateNode(value)
             ).ToArray();
+
+            if (result.Any((je) => je == null))
+                throw new InvalidOperationException();
+
+            return result;
         }
 
         public static JSVariable[] Translate (IEnumerable<ParameterDefinition> parameters) {
@@ -1273,7 +1282,9 @@ namespace JSIL {
             JSExpression thisExpression;
             if (IsInvalidThisExpression(firstArg)) {
                 if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression)) {
-                    Console.Error.WriteLine("Warning: Accessing {0} without a reference as this.", field.FullName);
+                    if (!translated.IsNull)
+                        Console.Error.WriteLine("Warning: Accessing {0} without a reference as this.", field.FullName);
+
                     thisExpression = translated;
                 }
             } else {
@@ -1312,7 +1323,9 @@ namespace JSIL {
             JSExpression thisExpression;
             if (IsInvalidThisExpression(firstArg)) {
                 if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression)) {
-                    Console.Error.WriteLine("Warning: Accessing {0} without a reference as this.", field.FullName);
+                    if (!translated.IsNull)
+                        Console.Error.WriteLine("Warning: Accessing {0} without a reference as this.", field.FullName);
+
                     thisExpression = translated;
                 }
             } else {
@@ -1329,13 +1342,20 @@ namespace JSIL {
             var reference = TranslateNode(node.Arguments[0]);
             JSExpression referent;
 
+            if (reference == null)
+                throw new InvalidOperationException();
+
             if (!JSReferenceExpression.TryDereference(JSIL, reference, out referent))
                 Console.Error.WriteLine(String.Format("Warning: unsupported reference type for ldobj: {0}", node.Arguments[0]));
 
             if ((referent != null) && EmulateStructAssignment.IsStruct(referent.GetExpectedType(TypeSystem)))
                 return reference;
-            else
-                return referent;
+            else {
+                if (referent != null)
+                    return referent;
+                else
+                    return new JSUntranslatableExpression(node);
+            }
         }
 
         protected JSExpression Translate_Ldind (ILExpression node) {
@@ -1488,12 +1508,16 @@ namespace JSIL {
             if (arg.IsNull)
                 return arg;
 
-            var argType = GetTypeDefinition(arg.GetExpectedType(TypeSystem));
-            var lengthProp = (from p in argType.Properties where p.Name == "Length" select p).FirstOrDefault();
+            var argType = arg.GetExpectedType(TypeSystem);
+            var argTypeDef = GetTypeDefinition(argType);
+            PropertyDefinition lengthProp = null;
+            if (argTypeDef != null)
+                lengthProp = (from p in argTypeDef.Properties where p.Name == "Length" select p).FirstOrDefault();
+
             if (lengthProp == null)
                 return new JSUntranslatableExpression(String.Format("Retrieving the length of a type with no length property: {0}", argType.FullName));
-
-            return Translate_CallGetter(node, lengthProp.GetMethod);
+            else
+                return Translate_CallGetter(node, lengthProp.GetMethod);
         }
 
         protected JSExpression Translate_Ldelem (ILExpression node, TypeReference elementType) {
@@ -1778,7 +1802,7 @@ namespace JSIL {
                                 Context, methodDef, methodDef
                             );
 
-                            if (function != null) {
+                            if ((function != null) && (function.AllVariables.ContainsKey("this"))) {
                                 new VariableEliminator(
                                     function.AllVariables["this"],
                                     thisArg
@@ -1966,8 +1990,12 @@ namespace JSIL {
                 var firstArgType = DereferenceType(firstArg.ExpectedType);
 
                 if (IsInvalidThisExpression(firstArg)) {
-                    if (!JSReferenceExpression.TryDereference(JSIL, arguments[0], out thisExpression))
-                        throw new InvalidOperationException("this-expression for method invocation on value type must be a reference");
+                    if (!JSReferenceExpression.TryDereference(JSIL, arguments[0], out thisExpression)) {
+                        if (arguments[0].IsNull)
+                            thisExpression = arguments[0];
+                        else
+                            throw new InvalidOperationException("this-expression for method invocation on value type must be a reference");
+                    }
                 } else {
                     thisExpression = arguments[0];
                 }
@@ -2032,8 +2060,12 @@ namespace JSIL {
             JSExpression thisExpression;
 
             if (IsInvalidThisExpression(firstArg)) {
-                if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression))
-                    throw new InvalidOperationException("this-expression for method invocation on value type must be a reference");
+                if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression)) {
+                    if (translated.IsNull)
+                        thisExpression = translated;
+                    else
+                        throw new InvalidOperationException("this-expression for method invocation on value type must be a reference");
+                }
             } else {
                 thisExpression = translated;
             }
@@ -2076,10 +2108,10 @@ namespace JSIL {
 
             if (ldcallsite.Code == ILCode.Ldloc) {
                 if (!DynamicCallSites.Get((ILVariable)ldcallsite.Operand, out callSite))
-                    throw new InvalidOperationException("Invalid call site invocation");
+                    return new JSUntranslatableExpression(node);
             } else if (ldcallsite.Code == ILCode.GetCallSite) {
                 if (!DynamicCallSites.Get((FieldReference)ldcallsite.Operand, out callSite))
-                    throw new InvalidOperationException("Invalid call site invocation");
+                    return new JSUntranslatableExpression(node);
             } else {
                 throw new NotImplementedException("Unknown call site pattern");
             }
