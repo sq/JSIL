@@ -27,10 +27,10 @@ Tests/FailingTestCases/*.js
 /Proxies/XNA4/obj
 /Proxies/XNA3/obj
 /Proxies/XNA3/bin
-/MannuxXNA/Content
+/Mannux/Content
 /Platformer/Content
 /Tetris/Content
-/MannuxXNA/*.js
+/Mannux/*.js
 /Platformer/*.js
 /Tetris/*.js
 /Raytracer/*.js

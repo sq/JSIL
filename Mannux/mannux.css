@@ -1,3 +1,6 @@
+body {
+	overflow: hidden;
+}
 #canvas {
 	background-color: black;
 	position: absolute;
@@ -7,12 +10,31 @@
 	border: 0px;
 	padding: 0px;
 }
+#welcomeMessage {
+	font-family: Calibri, Tahoma, Verdana, sans-serif;
+	background-color: rgba(32, 32, 32, 1);
+	border-color: black;
+	border-width: 0px;
+	border-radius: 16px;
+	color: white;
+	width: 680px;
+	height: 300px;
+	position: absolute;
+	left: 60px;
+	top: 50px;
+	z-index: 80;
+	padding: 8px;
+	margin: -8px;
+}
+#welcomeMessage a {
+	color: #BFBFFF;
+}
 #loadButton {
 	width: 200px;
 	height: 40px;
 	position: absolute;	
-	left: 299px;
-	top: 279px;
+	left: 300px;
+	top: 280px;
 	z-index: 90;
 }
 #quitButton {
@@ -27,16 +49,16 @@
 	border: 3px solid white;
 	border-radius: 6px;
 	width: 200px;
-	height: 30px;
+	height: 40px;
 	position: absolute;	
-	left: 299px;
-	top: 284px;
+	left: 300px;
+	top: 280px;
 	z-index: 99;
 }
 #progressBar {
 	background-color: white;
 	border: 1px solid white;
-	height: 30px;
+	height: 40px;
 	margin: -1px;
 	padding: 0px;
 }
@@ -53,4 +75,17 @@
 	position: absolute;
 	left: 2px;
 	top: 604px;
+}
+#images, #scripts, #sounds {
+	display: none;
+}
+#fonts {
+	position: absolute;
+	z-index: -99;
+	left: 2px;
+	top: 2px;
+	width: 16px;
+	height: 16px;
+	background-color: white;
+	color: black;
 }
