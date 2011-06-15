@@ -36,6 +36,15 @@ namespace JSIL.Compiler {
             }
         }
 
+        static void ApplyDefaults (AssemblyTranslator translator) {
+            Console.Error.WriteLine("// Applying default settings. To suppress, use --nodefaults.");
+
+            translator.StubbedAssemblies.Add(new Regex(@"mscorlib,"));
+            translator.StubbedAssemblies.Add(new Regex(@"System.*"));
+            translator.StubbedAssemblies.Add(new Regex(@"Microsoft.*"));
+            translator.StubbedAssemblies.Add(new Regex(@"Accessibility,"));
+        }
+
         static void Main (string[] arguments) {
             var translator = new AssemblyTranslator();
             translator.StartedLoadingAssembly += (fn) => {
@@ -48,7 +57,7 @@ namespace JSIL.Compiler {
                     Console.Error.WriteLine("// Translating {0}...", fn);
             };
             translator.CouldNotLoadSymbols += (fn, ex) => {
-                Console.Error.WriteLine("// Could not load symbols for module {0}: {1}", fn, ex.Message);
+                Console.Error.WriteLine("// No symbols: {0}", ex.Message);
             };
             translator.CouldNotResolveAssembly += (fn, ex) => {
                 Console.Error.WriteLine("// Could not load module {0}: {1}", fn, ex.Message);
@@ -64,11 +73,16 @@ namespace JSIL.Compiler {
             };
 
             var filenames = new HashSet<string>(arguments);
+            bool includeDefaults = true;
 
             foreach (var filename in arguments) {
                 if (filename.StartsWith("-")) {
                     filenames.Remove(filename);
-                    ParseOption(translator, filename);
+                    if (filename == "--nodefaults") {
+                        includeDefaults = false;
+                    } else {
+                        ParseOption(translator, filename);
+                    }
                 }
             }
 
@@ -79,10 +93,12 @@ namespace JSIL.Compiler {
                 Console.WriteLine("Options:");
                 Console.WriteLine("--out:<folder>");
                 Console.WriteLine("  Specifies the directory into which the generated javascript should be written.");
-                Console.WriteLine("--proxy:<assembly>");
-                Console.WriteLine("  Specifies the location of a proxy assembly that contains type information for other assemblies.");
                 Console.WriteLine("--nodeps");
                 Console.WriteLine("  Disables translating dependencies.");
+                Console.WriteLine("--nodefaults");
+                Console.WriteLine("  Disables the built-in default stub list. Use this if you actually want to translate huge Microsoft assemblies like mscorlib.");
+                Console.WriteLine("--proxy:<assembly>");
+                Console.WriteLine("  Specifies the location of a proxy assembly that contains type information for other assemblies.");
                 Console.WriteLine("--ignore:<regex>");
                 Console.WriteLine("  Specifies a regular expression filter used to ignore certain dependencies.");
                 Console.WriteLine("--stub:<regex>");
@@ -90,9 +106,11 @@ namespace JSIL.Compiler {
                 return;
             }
 
-            foreach (var filename in filenames) {
+            if (includeDefaults)
+                ApplyDefaults(translator);
+
+            foreach (var filename in filenames)
                 translator.Translate(filename);
-            }
         }
     }
 }

@@ -264,7 +264,7 @@ namespace JSIL {
                         };
 
                         if (StartedLoadingAssembly != null)
-                            StartedLoadingAssembly(reference.FullName);
+                            StartedLoadingAssembly(reference.Name);
 
                         AssemblyDefinition refAssembly = null;
                         assemblyNames.Add(reference.FullName);
@@ -275,7 +275,7 @@ namespace JSIL {
                                 try {
                                     refAssembly = readerParameters.AssemblyResolver.Resolve(reference, GetReaderParameters(false, path));
                                     if (CouldNotLoadSymbols != null)
-                                        CouldNotLoadSymbols(reference.FullName, ex);
+                                        CouldNotLoadSymbols(reference.Name, ex);
                                 } catch (Exception ex2) {
                                     if (CouldNotResolveAssembly != null)
                                         CouldNotResolveAssembly(reference.FullName, ex2);
