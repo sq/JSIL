@@ -99,8 +99,8 @@ HTML5FontAsset.prototype._ctor = function (assetName, id, pointSize, lineHeight)
   this.canvas = JSIL.Host.getCanvas();
   this.context = this.canvas.getContext("2d");
 }
-HTML5FontAsset.prototype.toCss = function () {
-  return this.pointSize + 'pt "' + this.id + '"';
+HTML5FontAsset.prototype.toCss = function (scale) {
+  return (this.pointSize * (scale || 1)) + 'pt "' + this.id + '"';
 };
 HTML5FontAsset.prototype.MeasureString$0 = function (text) {
   this.context.font = this.toCss();
@@ -858,10 +858,25 @@ Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDraw = function (
   this.device.context.restore();
 };
 
-Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDrawString = function (font, text, position, color) {
+Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDrawString = function (font, text, position, color, scale, effects) {
+  var positionX = position.X;
+  var positionY = position.Y;
+
+  effects = effects || Microsoft.Xna.Framework.Graphics.SpriteEffects.None;
+
+  if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) {
+    this.device.context.scale(-1, 1);
+    positionX = -positionX;
+  }
+
+  if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) {
+    this.device.context.scale(1, -1);
+    positionY = -positionY;
+  }
+
   this.device.context.textBaseline = "top";
   this.device.context.textAlign = "start";
-  this.device.context.font = font.toCss();
+  this.device.context.font = font.toCss(scale || 1);
   this.device.context.fillStyle = color.toCss();
-  this.device.context.fillText(text, position.X, position.Y);
+  this.device.context.fillText(text, positionX, positionY);
 };
