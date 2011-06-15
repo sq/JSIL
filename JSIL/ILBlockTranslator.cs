@@ -242,6 +242,7 @@ namespace JSIL {
                 if (parms != null) {
                     var argsDict = new Dictionary<string, JSExpression>();
                     argsDict["this"] = thisExpression;
+                    argsDict["typeof(this)"] = new JSType(thisExpression.GetExpectedType(TypeSystem));
 
                     foreach (var kvp in methodInfo.Parameters.Zip(arguments, (p, v) => new { p.Name, Value = v })) {
                         argsDict.Add(kvp.Name, kvp.Value);
@@ -322,6 +323,7 @@ namespace JSIL {
             if (parms != null) {
                 var argsDict = new Dictionary<string, JSExpression>();
                 argsDict["this"] = thisExpression;
+                argsDict["typeof(this)"] = new JSType(thisExpression.GetExpectedType(TypeSystem));
 
                 foreach (var kvp in method.Method.Parameters.Zip(arguments, (p, v) => new { p.Name, Value = v })) {
                     argsDict.Add(kvp.Name, kvp.Value);

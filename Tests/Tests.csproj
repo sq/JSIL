@@ -48,7 +48,6 @@
     <None Include="FailingTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />
     <Compile Include="DependencyTests.cs" />
-    <None Include="FailingTestCases\StaticArrayInitializer.cs" />
     <Compile Include="FormattingTests.cs" />
     <None Include="FailingTestCases\Arrays.cs" />
     <Compile Include="FailingTests.cs" />

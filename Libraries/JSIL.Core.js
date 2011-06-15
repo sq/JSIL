@@ -950,6 +950,7 @@ JSIL.MakeEnum = function (fullName, members, isFlagsEnum) {
     __FullName__: fullName, 
     Name: fullName,
     IsEnum: true,
+    __IsFlagsEnum__: isFlagsEnum,
     __ValueToName__: {}
   };
 
@@ -1609,6 +1610,8 @@ System.Enum.Parse = function (type, value) {
     else
       return type[name];
   }
+};
+System.Enum.ToString = function (type, value) {
 };
 System.Enum.prototype = JSIL.MakeProto(System.Object, System.Enum, "System.Enum", false);
 System.Enum.prototype.toString = function ToString() {
