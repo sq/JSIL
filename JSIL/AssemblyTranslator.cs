@@ -162,7 +162,8 @@ namespace JSIL {
             AddProxyAssembly(typeof(JSIL.Proxies.ObjectProxy).Assembly, false);
         }
 
-        protected static ReaderParameters GetReaderParameters (bool useSymbols, string mainAssemblyPath = null) {
+        protected virtual ReaderParameters GetReaderParameters(bool useSymbols, string mainAssemblyPath = null)
+        {
             var readerParameters = new ReaderParameters {
                 ReadingMode = ReadingMode.Deferred,
                 ReadSymbols = useSymbols
