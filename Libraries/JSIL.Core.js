@@ -497,6 +497,16 @@ JSIL.MakeProperty = function (parent, name, getter, setter) {
   Object.defineProperty(parent, name, descriptor);
 };
 
+JSIL.MakeGenericProperty = function (parent, name, getter, setter) {
+  var props;
+  if (parent.hasOwnProperty("__GenericProperties__")) {
+    props = parent.__GenericProperties__;
+  } else {
+    props = parent.__GenericProperties__ = [];
+  }
+  props.push([name, getter, setter]);
+};
+
 JSIL.MakeNumericType = function (baseType, typeName, isIntegral) {
   JSIL.MakeType(baseType, typeName, false, true);
   var resolved = JSIL.ResolveName(JSIL.GlobalNamespace, typeName);
@@ -570,9 +580,26 @@ JSIL.TypeObjectPrototype.Of = function () {
     Object.defineProperty(result.prototype, key, decl);
   }
 
+  JSIL.InstantiateGenericProperties(result);
+
   ofCache[cacheKey] = result;
   return result;
 };
+
+JSIL.InstantiateGenericProperties = function (obj) {
+  var target = obj;
+
+  while (obj !== null) {
+    var gps = obj.__GenericProperties__ || [];
+
+    for (var i = 0, l = gps.length; i < l; i++) {
+      var gp = gps[i];
+      JSIL.MakeProperty(target, gp[0], gp[1], gp[2]);
+    }
+
+    obj = Object.getPrototypeOf(obj);
+  }
+}
 
 System.RuntimeType = Object.create(JSIL.TypeObjectPrototype);
 System.RuntimeType.prototype = {}; // Fixes mscorlib translation generating members for RuntimeType
@@ -782,7 +809,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments) {
   typeObject.GetType = function () {
     return typeObject;
   };
-  typeObject.__FullName__ = fullName;
+  typeObject.FullName = typeObject.__FullName__ = fullName;
   typeObject.__ShortName__ = localName;
   typeObject.__IsStatic__ = true;
   typeObject.__GenericArguments__ = genericArguments || [];
@@ -834,7 +861,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
   typeObject.__IsReferenceType__ = isReferenceType;
   typeObject.__Context__ = $private;
   typeObject.__Self__ = typeObject;
-  typeObject.__FullName__ = fullName;
+  typeObject.FullName = typeObject.__FullName__ = fullName;
   typeObject.__ShortName__ = localName;
   typeObject.__LockCount__ = 0;
   typeObject.__GenericArguments__ = genericArguments || [];
@@ -887,10 +914,10 @@ JSIL.MakeInterface = function (fullName, genericArguments, members) {
 
   var typeObject = function() {
     throw new Error("Cannot construct an instance of an interface");
-  }
+  };
   typeObject.__Members__ = members;
   typeObject.__ShortName__ = localName;
-  typeObject.__FullName__ = fullName;
+  typeObject.FullName = typeObject.__FullName__ = fullName;
   typeObject.__GenericArguments__ = genericArguments || [];
   typeObject.IsInterface = true;
   typeObject.Of = function () {
@@ -948,7 +975,8 @@ JSIL.MakeEnum = function (fullName, members, isFlagsEnum) {
     prototype: prototype,
     __BaseType__: enumType,
     __FullName__: fullName, 
-    Name: fullName,
+    FullName: fullName,
+    Name: localName,
     IsEnum: true,
     __IsFlagsEnum__: isFlagsEnum,
     __ValueToName__: {}
@@ -1519,7 +1547,7 @@ JSIL.Reference.Of = function (type) {
       return typeName;
     };
     compositeType.prototype = JSIL.MakeProto(JSIL.Reference, compositeType, typeName, true);
-    compositeType.__FullName__ = typeName;
+    compositeType.FullName = compositeType.__FullName__ = typeName;
     JSIL.Reference.Types[elementName] = compositeType;
   }
 
@@ -1644,7 +1672,7 @@ System.Array.Of = function (type) {
   if (typeof (compositeType) === "undefined") {
     var typeName = elementName + "[]";
     compositeType = JSIL.CloneObject(System.Array);
-    compositeType.__FullName__ = typeName;
+    compositeType.FullName = compositeType.__FullName__ = typeName;
     compositeType.__IsArray__ = true;
     compositeType.prototype = JSIL.MakeProto(System.Array, compositeType, typeName, true);
     compositeType.toString = function () {
@@ -1807,7 +1835,7 @@ JSIL.MakeDelegateType = function (fullName, localName) {
   var prototype = JSIL.CloneObject(delegateType.prototype);
   prototype.__BaseType__ = delegateType;
   prototype.__ShortName__ = localName;
-  prototype.__FullName__ = fullName;
+  prototype.FullName = prototype.__FullName__ = fullName;
 
   var result = {
     prototype: prototype,

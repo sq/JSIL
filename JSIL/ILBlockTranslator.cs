@@ -335,6 +335,11 @@ namespace JSIL {
             var thisType = GetTypeDefinition(thisExpression.GetExpectedType(TypeSystem));
             Func<JSExpression> generate = () => {
                 var actualThis = @static ? new JSType(method.Method.DeclaringType.Definition) : thisExpression;
+
+                if ((method.Reference.DeclaringType is GenericInstanceType) && !method.Reference.HasThis) {
+                    actualThis = new JSType(method.Reference.DeclaringType);
+                }
+
                 if ((propertyInfo.Member.GetMethod != null) && (method.Method.Member.Name == propertyInfo.Member.GetMethod.Name)) {
                     return new JSDotExpression(
                         actualThis, new JSProperty(method.Reference, propertyInfo)
@@ -1678,6 +1683,11 @@ namespace JSIL {
                         return value;
                     }
                 }
+
+                // Never cast AnyType to another type since the implication is that the proxy author will ensure the correct
+                //  type is returned.
+                if (currentType.FullName == "JSIL.Proxy.AnyType")
+                    return value;
 
                 return JSIL.Cast(value, expectedType);
             } else

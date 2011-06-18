@@ -48,6 +48,8 @@ namespace JSIL.Tests {
 
         [Test]
         public void Generics () {
+            using (var test = new ComparisonTest(@"TestCases\GenericStaticProperties.cs"))
+                test.Run();
             using (var test = new ComparisonTest(@"TestCases\GenericInnerClasses.cs"))
                 test.Run();
             using (var test = new ComparisonTest(@"TestCases\GenericTypeCasts.cs"))

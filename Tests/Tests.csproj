@@ -44,9 +44,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="AnalysisTestCases\ReturnStructArgument.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="FailingTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />
+    <Compile Include="AnalysisTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <Compile Include="FormattingTests.cs" />
     <None Include="FailingTestCases\Arrays.cs" />
@@ -217,6 +219,7 @@
     <None Include="TestCases\StructFields.cs" />
     <None Include="SimpleTestCases\ArrayDefaultValues.cs" />
     <None Include="TestCases\DirectTemporaryAssignment.cs" />
+    <None Include="TestCases\GenericStaticProperties.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
@@ -234,6 +237,7 @@
       <Name>Mono.Cecil</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
