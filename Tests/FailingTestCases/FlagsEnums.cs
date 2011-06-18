@@ -11,8 +11,21 @@ public static class Program {
     public const FlagsEnum E = FlagsEnum.A | FlagsEnum.C;
 
     public static void Main (string[] args) {
-        Console.WriteLine("'{0}' '{1}' '{2}'", FlagsEnum.A, FlagsEnum.A | FlagsEnum.B | FlagsEnum.C, E);
-        Console.WriteLine("{0} {1}", (int)FlagsEnum.A, (int)E);
-        Console.WriteLine("'{0}' '{1}'", Enum.Parse(typeof(FlagsEnum), "C"), Enum.Parse(typeof(FlagsEnum), "7"));
+        Console.WriteLine(
+            "'{0}' '{1}' '{2}'", 
+            FlagsEnum.A, 
+            FlagsEnum.A | FlagsEnum.B | FlagsEnum.C, 
+            E
+        );
+        Console.WriteLine(
+            "{0} {1}", 
+            (int)FlagsEnum.A, (int)E
+        );
+        Console.WriteLine(
+            "'{0}' '{1}' '{2}'", 
+            Enum.Parse(typeof(FlagsEnum), "C"), 
+            Enum.Parse(typeof(FlagsEnum), "7"), 
+            Enum.Parse(typeof(FlagsEnum), "A, C")
+        );
     }
 }

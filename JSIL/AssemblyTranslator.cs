@@ -1449,13 +1449,17 @@ namespace JSIL {
             if ((propertyInfo == null) || propertyInfo.IsIgnored)
                 return;
 
-            output.Identifier("JSIL.MakeProperty", null);
+            var isStatic = (property.SetMethod ?? property.GetMethod).IsStatic;
+
+            if (property.DeclaringType.HasGenericParameters && isStatic)
+                output.Identifier("JSIL.MakeGenericProperty", null);
+            else
+                output.Identifier("JSIL.MakeProperty", null);
+
             output.LPar();
 
-            var isStatic = !(property.SetMethod ?? property.GetMethod).IsStatic;
-
             output.Identifier(property.DeclaringType);
-            if (isStatic) {
+            if (!isStatic) {
                 output.Dot();
                 output.Keyword("prototype");
             }
@@ -1468,7 +1472,7 @@ namespace JSIL {
 
             if (property.GetMethod != null) {
                 output.Identifier(property.DeclaringType);
-                if (isStatic) {
+                if (!isStatic) {
                     output.Dot();
                     output.Keyword("prototype");
                 }
@@ -1482,7 +1486,7 @@ namespace JSIL {
 
             if (property.SetMethod != null) {
                 output.Identifier(property.DeclaringType);
-                if (isStatic) {
+                if (!isStatic) {
                     output.Dot();
                     output.Keyword("prototype");
                 }

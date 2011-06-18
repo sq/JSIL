@@ -1812,7 +1812,10 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return Property.ReturnType;
+            if (Property.ReturnType.IsGenericParameter)
+                return SubstituteTypeArgs(Property.ReturnType, Reference);
+            else
+                return Property.ReturnType;
         }
 
         public override bool IsConstant {
