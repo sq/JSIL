@@ -162,7 +162,8 @@ namespace JSIL {
             AddProxyAssembly(typeof(JSIL.Proxies.ObjectProxy).Assembly, false);
         }
 
-        protected virtual ReaderParameters GetReaderParameters (bool useSymbols, string mainAssemblyPath = null) {
+        protected virtual ReaderParameters GetReaderParameters(bool useSymbols, string mainAssemblyPath = null)
+        {
             var readerParameters = new ReaderParameters {
                 ReadingMode = ReadingMode.Deferred,
                 ReadSymbols = useSymbols
@@ -320,6 +321,7 @@ namespace JSIL {
 
                     using (outputStream = File.OpenWrite(outputPath))
                         Translate(assembly, outputStream);
+
                 }
             } else {
                 foreach (var assembly in assemblies)
@@ -327,7 +329,29 @@ namespace JSIL {
             }
         }
 
+        private void ExtractResourcesFromAssembly(AssemblyDefinition assembly)
+        {
+            if (!assembly.MainModule.HasResources) return;
+            var resourceDirectory = Path.Combine(OutputDirectory, assembly.Name.Name);
+
+            if (!Directory.Exists(resourceDirectory))
+                Directory.CreateDirectory(resourceDirectory);
+
+            var resources = assembly.Modules
+                .SelectMany(x => x.Resources)
+                .OfType<EmbeddedResource>()
+                .ToArray();
+
+            foreach(var resource in resources)
+            {
+                var data = resource.GetResourceData();
+                var path = Path.Combine(resourceDirectory, resource.Name);
+                File.WriteAllBytes(path, data);
+            }
+        }
+
         internal void Translate (AssemblyDefinition assembly, Stream outputStream) {
+            ExtractResourcesFromAssembly(assembly);
             var context = new DecompilerContext(assembly.MainModule);
 
             context.Settings.YieldReturn = false;
