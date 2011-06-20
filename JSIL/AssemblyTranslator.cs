@@ -321,10 +321,34 @@ namespace JSIL {
 
                     using (outputStream = File.OpenWrite(outputPath))
                         Translate(assembly, outputStream);
+
+                    ExtractResourcesFromAssembly(assembly);
+
                 }
             } else {
                 foreach (var assembly in assemblies)
                     Translate(assembly, outputStream);
+            }
+        }
+
+        private void ExtractResourcesFromAssembly(AssemblyDefinition assembly)
+        {
+            if (!assembly.MainModule.HasResources) return;
+            var resourceDirectory = Path.Combine(OutputDirectory, assembly.Name.Name);
+
+            if (!Directory.Exists(resourceDirectory))
+                Directory.CreateDirectory(resourceDirectory);
+
+            var resources = assembly.Modules
+                .SelectMany(x => x.Resources)
+                .OfType<EmbeddedResource>()
+                .ToArray();
+
+            foreach(var resource in resources)
+            {
+                var data = resource.GetResourceData();
+                var path = Path.Combine(resourceDirectory, resource.Name);
+                File.WriteAllBytes(path, data);
             }
         }
 
