@@ -322,8 +322,6 @@ namespace JSIL {
                     using (outputStream = File.OpenWrite(outputPath))
                         Translate(assembly, outputStream);
 
-                    ExtractResourcesFromAssembly(assembly);
-
                 }
             } else {
                 foreach (var assembly in assemblies)
@@ -353,6 +351,7 @@ namespace JSIL {
         }
 
         internal void Translate (AssemblyDefinition assembly, Stream outputStream) {
+            ExtractResourcesFromAssembly(assembly);
             var context = new DecompilerContext(assembly.MainModule);
 
             context.Settings.YieldReturn = false;
