@@ -11,6 +11,7 @@ using ICSharpCode.NRefactory.CSharp;
 using JSIL.Ast;
 using JSIL.Internal;
 using Mono.Cecil;
+using System.Globalization;
 
 namespace JSIL.Internal {
     public enum ListValueType {
@@ -465,7 +466,7 @@ namespace JSIL.Internal {
         }
 
         public void Value (double value) {
-            PlainTextOutput.Write(value.ToString("R"));
+            PlainTextOutput.Write(value.ToString("R", CultureInfo.InvariantCulture));
         }
 
         public void Value (TypeReference type) {
