@@ -11,6 +11,7 @@ using System.Diagnostics;
 using System.Runtime.Serialization.Json;
 using System.Threading;
 using NUnit.Framework;
+using System.Globalization;
 
 namespace JSIL.Tests {
     public class JavaScriptException : Exception {
@@ -262,6 +263,7 @@ namespace JSIL.Tests {
             var elapsed = new long[3];
 
             ThreadPool.QueueUserWorkItem((_) => {
+                Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
                 try {
                     outputs[0] = RunCSharp(args, out elapsed[0]).Replace("\r", "").Trim();
                 } catch (Exception ex) {
