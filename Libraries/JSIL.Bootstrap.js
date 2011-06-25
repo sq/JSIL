@@ -683,6 +683,9 @@ System.TimeSpan.prototype.get_TotalMinutes = function () {
   return this._ticks / 600000000;
 };
 
+JSIL.MakeClass("System.Object", "System.EventArgs", false);
+System.EventArgs.prototype._ctor = function () { };
+
 JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary$b2", true, ["TKey", "TValue"]);
 
 System.Collections.Generic.Dictionary$b2.prototype._ctor$0 = function () {
@@ -699,6 +702,10 @@ System.Collections.Generic.Dictionary$b2.prototype.get_Item = function (key) {
 
 System.Collections.Generic.Dictionary$b2.prototype.set_Item = function (key, value) {
   this._dict[String(key)] = value;
+};
+
+System.Collections.Generic.Dictionary$b2.prototype.ContainsKey = function (key) {
+  return this._dict.hasOwnProperty(key);
 };
 
 JSIL.MakeStaticClass("System.Linq.Enumerable", true);
