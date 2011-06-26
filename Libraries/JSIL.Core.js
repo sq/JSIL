@@ -547,6 +547,13 @@ JSIL.TypeObjectPrototype.Of = function () {
     };
   };
 
+   // Obviously this is not correct
+   var makeIndirectSetter = function (key) {
+    return function (value) {
+      self[key] = value;
+    };
+  };
+
   var ignoredNames = [
     "__Self__", "prototype", "Of"
   ];
@@ -559,7 +566,8 @@ JSIL.TypeObjectPrototype.Of = function () {
       result, k, {
         configurable: false,
         enumerable: true,
-        get: makeIndirectGetter(k)
+        get: makeIndirectGetter(k),
+        set: makeIndirectSetter(k)
       }
     );
   }
@@ -1295,6 +1303,7 @@ JSIL.TryCast = function (value, expectedType) {
 };
 
 JSIL.Cast = function (value, expectedType) {
+    if(!value) return null;
   if (expectedType.IsEnum) {
     var result = JSIL.MakeEnumValue(expectedType, value, null);
   } else if (JSIL.CheckType(value, expectedType)) {
