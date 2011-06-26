@@ -24,10 +24,10 @@ Tests/*Cases/*.js
 /Proxies/XNA4/obj
 /Proxies/XNA3/obj
 /Proxies/XNA3/bin
-/Mannux/Content
-/Platformer/Content
-/Tetris/Content
-/Mannux/*.js
-/Platformer/*.js
-/Tetris/*.js
-/Raytracer/*.js
+/jsil.org/demos/Mannux/Content
+/jsil.org/demos/Platformer/Content
+/jsil.org/demos/Tetris/Content
+/jsil.org/demos/Mannux/*.js
+/jsil.org/demos/Platformer/*.js
+/jsil.org/demos/Tetris/*.js
+/jsil.org/demos/Raytracer/*.js
