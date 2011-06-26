@@ -1173,7 +1173,7 @@ namespace JSIL {
 
                 if (method.HasGenericParameters) {
                     var type = new TypeReference("System", "Type", context.CurrentModule.TypeSystem.Object.Module, context.CurrentModule.TypeSystem.Object.Scope);
-                    parameters = (from gp in method.GenericParameters select new JSVariable(gp.Name, type)).Concat(parameters);
+                    parameters = (from gp in method.GenericParameters select new JSVariable(gp.Name, type, method)).Concat(parameters);
                 }
 
                 function = new JSFunctionExpression(

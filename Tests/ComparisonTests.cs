@@ -142,7 +142,7 @@ namespace JSIL.Tests {
         public void NBody () {
             using (var test = new ComparisonTest(@"TestCases\NBody.cs")) {
                 test.Run();
-                test.Run("150000");
+                test.Run("300000");
             }
         }
 
@@ -184,6 +184,9 @@ namespace JSIL.Tests {
 
         [Test]
         public void LambdaTests () {
+            using (var test = new ComparisonTest(@"TestCases\LambdasUsingThis.cs"))
+                test.Run();
+
             using (var test = new ComparisonTest(@"TestCases\Lambdas.cs"))
                 test.Run();
 

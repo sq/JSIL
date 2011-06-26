@@ -38,9 +38,11 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSFunctionExpression fn) {
+            /*
             // Do not analyze nested function expressions
             if (Stack.OfType<JSFunctionExpression>().Skip(1).FirstOrDefault() != null)
                 return;
+             */
 
             VisitChildren(fn);
         }

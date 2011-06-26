@@ -7,7 +7,7 @@ using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class EliminateSingleUseTemporaries : JSAstVisitor {
-        public static int TraceLevel = 0;
+        public static int TraceLevel = 1;
 
         public readonly TypeSystem TypeSystem;
         public readonly IFunctionSource FunctionSource;
@@ -223,7 +223,7 @@ namespace JSIL.Transforms {
                             Debug.WriteLine(String.Format("Eliminating {0} because it is never used.", v));
 
                         EliminatedVariables.Add(v);
-                        EliminateVariable(fn, v, new JSNullExpression());
+                        EliminateVariable(fn, v, new JSEliminatedVariable(v));
                     } else {
                         if (TraceLevel >= 2)
                             Debug.WriteLine(String.Format("Never found an initial assignment for {0}.", v));

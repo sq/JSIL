@@ -1277,6 +1277,14 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSEliminatedVariable : JSNullExpression {
+        public readonly JSVariable Variable;
+
+        public JSEliminatedVariable (JSVariable v) {
+            Variable = v;
+        }
+    }
+
     public class JSIgnoredMemberReference : JSNullExpression {
         public readonly bool ThrowError;
         public readonly IMemberInfo Member;
@@ -1454,6 +1462,16 @@ namespace JSIL.Ast {
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             return Value;
+        }
+
+        public override bool Equals (object obj) {
+            var rhs = obj as JSDefaultValueLiteral;
+
+            if (rhs != null) {
+                return ILBlockTranslator.TypesAreEqual(Value, rhs.Value);
+            } else {
+                return base.Equals(obj);
+            }
         }
     }
 
@@ -1890,10 +1908,14 @@ namespace JSIL.Ast {
     }
 
     public class JSVariable : JSIdentifier {
+        public readonly MethodReference Function;
+
         public readonly string Name;
         protected readonly bool _IsReference;
 
-        public JSVariable (string name, TypeReference type)
+        public JSExpression DefaultValue;
+
+        public JSVariable (string name, TypeReference type, MethodReference function, JSExpression defaultValue = null)
             : base (type) {
             Name = name;
 
@@ -1903,6 +1925,13 @@ namespace JSIL.Ast {
             } else {
                 _IsReference = false;
             }
+
+            Function = function;
+
+            if (defaultValue != null)
+                DefaultValue = defaultValue;
+            else
+                DefaultValue = new JSDefaultValueLiteral(type);
         }
 
         public override string Identifier {
@@ -1931,21 +1960,21 @@ namespace JSIL.Ast {
             }
         }
 
-        public static JSVariable New (ILVariable variable) {
-            return new JSVariable(variable.Name, variable.Type);
+        public static JSVariable New (ILVariable variable, MethodReference function) {
+            return new JSVariable(variable.Name, variable.Type, function);
         }
 
-        public static JSVariable New (ParameterReference parameter) {
-            return new JSParameter(parameter.Name, parameter.ParameterType);
+        public static JSVariable New (ParameterReference parameter, MethodReference function) {
+            return new JSParameter(parameter.Name, parameter.ParameterType, function);
         }
 
         public virtual JSVariable Reference () {
-            return new JSVariableReference(this);
+            return new JSVariableReference(this, Function);
         }
 
         public virtual JSVariable Dereference () {
             if (IsReference)
-                return new JSVariableDereference(this);
+                return new JSVariableDereference(this, Function);
             else
                 throw new InvalidOperationException();
         }
@@ -1968,14 +1997,19 @@ namespace JSIL.Ast {
         }
 
         public override string ToString () {
+            var defaultValueText = "";
+
+            if (!DefaultValue.IsNull)
+                defaultValueText = String.Format(" = {0}", DefaultValue.ToString());
+
             if (IsReference)
-                return String.Format("<ref {0} {1}>", Type, Identifier);
+                return String.Format("<ref {0} {1}{2}>", Type, Identifier, defaultValueText);
             else if (IsThis)
                 return String.Format("<this {0}>", Type);
             else if (IsParameter)
                 return String.Format("<parameter {0} {1}>", Type, Identifier);
             else
-                return String.Format("<var {0} {1}>", Type, Identifier);
+                return String.Format("<var {0} {1}{2}>", Type, Identifier, defaultValueText);
         }
 
         public override bool Equals (object obj) {
@@ -1997,11 +2031,25 @@ namespace JSIL.Ast {
 
             return EqualsImpl(obj, true);
         }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            if (newChild == this)
+                throw new InvalidOperationException("Direct cycle formed by replacement");
+
+            if (DefaultValue == oldChild)
+                DefaultValue = (JSExpression)newChild;
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                yield return DefaultValue;
+            }
+        }
     }
 
     public class JSParameter : JSVariable {
-        internal JSParameter (string name, TypeReference type)
-            : base(name, type) {
+        internal JSParameter (string name, TypeReference type, MethodReference function)
+            : base(name, type, function) {
         }
 
         public override bool IsParameter {
@@ -2016,8 +2064,12 @@ namespace JSIL.Ast {
     }
 
     public class JSExceptionVariable : JSVariable {
-        public JSExceptionVariable (TypeSystem typeSystem) :
-            base("$exception", new TypeReference("System", "Exception", typeSystem.Object.Module, typeSystem.Object.Scope)) {
+        public JSExceptionVariable (TypeSystem typeSystem, MethodReference function) :
+            base(
+                "$exception", 
+                new TypeReference("System", "Exception", typeSystem.Object.Module, typeSystem.Object.Scope), 
+                function
+            ) {
         }
 
         public override bool IsConstant {
@@ -2034,8 +2086,8 @@ namespace JSIL.Ast {
     }
 
     public class JSThisParameter : JSParameter {
-        public JSThisParameter (TypeReference type) : 
-            base("this", type) {
+        public JSThisParameter (TypeReference type, MethodReference function) : 
+            base("this", type, function) {
         }
 
         public override bool IsThis {
@@ -2050,19 +2102,19 @@ namespace JSIL.Ast {
             }
         }
 
-        public static JSVariable New (TypeReference type) {
+        public static JSVariable New (TypeReference type, MethodReference function) {
             if (type.IsValueType)
-                return new JSVariableReference(new JSThisParameter(type));
+                return new JSVariableReference(new JSThisParameter(type, function), function);
             else
-                return new JSThisParameter(type);
+                return new JSThisParameter(type, function);
         }
     }
 
     public class JSVariableDereference : JSVariable {
         public readonly JSVariable Referent;
 
-        public JSVariableDereference (JSVariable referent)
-            : base(referent.Identifier, null) {
+        public JSVariableDereference (JSVariable referent, MethodReference function)
+            : base(referent.Identifier, null, function) {
 
             Referent = referent;
         }
@@ -2107,8 +2159,8 @@ namespace JSIL.Ast {
     public class JSIndirectVariable : JSVariable {
         public readonly IDictionary<string, JSVariable> Variables;
 
-        public JSIndirectVariable (IDictionary<string, JSVariable> variables, string identifier)
-            : base(identifier, null) {
+        public JSIndirectVariable (IDictionary<string, JSVariable> variables, string identifier, MethodReference function)
+            : base(identifier, null, function) {
 
             Variables = variables;
         }
@@ -2184,8 +2236,8 @@ namespace JSIL.Ast {
     public class JSVariableReference : JSVariable {
         public readonly JSVariable Referent;
 
-        public JSVariableReference (JSVariable referent)
-            : base(referent.Identifier, null) {
+        public JSVariableReference (JSVariable referent, MethodReference function)
+            : base(referent.Identifier, null, function) {
 
             Referent = referent;
         }

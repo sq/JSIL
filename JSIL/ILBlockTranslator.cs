@@ -51,20 +51,20 @@ namespace JSIL {
             CLR = new CLRSpecialIdentifiers(TypeSystem);
 
             if (methodReference.HasThis)
-                Variables.Add("this", JSThisParameter.New(methodReference.DeclaringType));
+                Variables.Add("this", JSThisParameter.New(methodReference.DeclaringType, methodReference));
 
             foreach (var parameter in parameters) {
                 if ((parameter.Name == "this") && (parameter.OriginalParameter.Index == -1))
                     continue;
 
                 ParameterNames.Add(parameter.Name);
-                Variables.Add(parameter.Name, new JSParameter(parameter.Name, parameter.Type));
+                Variables.Add(parameter.Name, new JSParameter(parameter.Name, parameter.Type, methodReference));
             }
 
             foreach (var variable in allVariables) {
-                var v = JSVariable.New(variable);
+                var v = JSVariable.New(variable, methodReference);
                 if (Variables.ContainsKey(v.Identifier)) {
-                    v = new JSVariable(variable.OriginalVariable.Name, variable.Type);
+                    v = new JSVariable(variable.OriginalVariable.Name, variable.Type, methodReference);
                     RenamedVariables[variable] = v;
                     Variables.Add(v.Identifier, v);
                 } else {
@@ -142,14 +142,14 @@ namespace JSIL {
             return result;
         }
 
-        public static JSVariable[] Translate (IEnumerable<ParameterDefinition> parameters) {
+        public static JSVariable[] Translate (IEnumerable<ParameterDefinition> parameters, MethodReference function) {
             return (
-                from p in parameters select JSVariable.New(p)
+                from p in parameters select JSVariable.New(p, function)
             ).ToArray();
         }
 
-        protected JSVariable DeclareVariable (ILVariable variable) {
-            return DeclareVariable(JSVariable.New(variable));
+        protected JSVariable DeclareVariable (ILVariable variable, MethodReference function) {
+            return DeclareVariable(JSVariable.New(variable, function));
         }
 
         protected JSVariable DeclareVariable (JSVariable variable) {
@@ -157,11 +157,14 @@ namespace JSIL {
             if (Variables.TryGetValue(variable.Identifier, out existing)) {
                 if (!TypesAreEqual(variable.Type, existing.Type))
                     throw new InvalidOperationException("A variable with that name is already declared in this scope, with a different type.");
+                if (!variable.DefaultValue.Equals(existing.DefaultValue))
+                    throw new InvalidOperationException("A variable with that name is already declared in this scope, with a different default value.");
 
                 return existing;
             }
 
             Variables[variable.Identifier] = variable;
+
             return variable;
         }
 
@@ -290,7 +293,7 @@ namespace JSIL {
                     return new JSStringIdentifier(expression.Value, TypeSystem.Object);
                 }
                 case "System.Object JSIL.Builtins::get_This()":
-                    return new JSIndirectVariable(Variables, "this");
+                    return new JSIndirectVariable(Variables, "this", ThisMethodReference);
             }
 
             JSExpression result = Translate_PropertyCall(thisExpression, method, arguments, @virtual, @static);
@@ -868,7 +871,7 @@ namespace JSIL {
 
             if (tcb.CatchBlocks.Count > 0) {
                 var pairs = new List<KeyValuePair<JSExpression, JSStatement>>();
-                catchVariable = DeclareVariable(new JSExceptionVariable(TypeSystem));
+                catchVariable = DeclareVariable(new JSExceptionVariable(TypeSystem, ThisMethodReference));
 
                 bool foundUniversalCatch = false;
                 foreach (var cb in tcb.CatchBlocks) {
@@ -902,7 +905,7 @@ namespace JSIL {
                     var pairBody = TranslateBlock(cb.Body);
 
                     if (cb.ExceptionVariable != null) {
-                        var excVariable = DeclareVariable(cb.ExceptionVariable);
+                        var excVariable = DeclareVariable(cb.ExceptionVariable, ThisMethodReference);
 
                         pairBody.Statements.Insert(
                             0, new JSVariableDeclarationStatement(new JSBinaryOperatorExpression(
@@ -939,7 +942,7 @@ namespace JSIL {
                 if (catchBlock != null)
                     throw new Exception("A try block cannot have both a catch block and a fault block");
 
-                catchVariable = DeclareVariable(new JSExceptionVariable(TypeSystem));
+                catchVariable = DeclareVariable(new JSExceptionVariable(TypeSystem, ThisMethodReference));
                 catchBlock = new JSBlockStatement(TranslateBlock(tcb.FaultBlock.Body));
 
                 catchBlock.Statements.Add(new JSExpressionStatement(new JSThrowExpression(catchVariable)));
@@ -1178,9 +1181,9 @@ namespace JSIL {
             JSVariable renamed;
 
             if (RenamedVariables.TryGetValue(variable, out renamed))
-                result = new JSIndirectVariable(Variables, renamed.Identifier);
+                result = new JSIndirectVariable(Variables, renamed.Identifier, ThisMethodReference);
             else
-                result = new JSIndirectVariable(Variables, variable.Name);
+                result = new JSIndirectVariable(Variables, variable.Name, ThisMethodReference);
 
             var expectedType = node.ExpectedType ?? node.InferredType ?? variable.Type;
             if (!TypesAreAssignable(expectedType, variable.Type))
@@ -1211,9 +1214,9 @@ namespace JSIL {
             JSVariable jsv;
 
             if (RenamedVariables.TryGetValue(variable, out jsv))
-                jsv = new JSIndirectVariable(Variables, jsv.Identifier);
+                jsv = new JSIndirectVariable(Variables, jsv.Identifier, ThisMethodReference);
             else
-                jsv = new JSIndirectVariable(Variables, variable.Name);
+                jsv = new JSIndirectVariable(Variables, variable.Name, ThisMethodReference);
 
             if (jsv.IsReference) {
                 JSExpression materializedValue;
@@ -1793,15 +1796,39 @@ namespace JSIL {
 
                     if (methodMember != null) {
                         var methodDef = methodMember.Method.Member;
+                        var function = Translator.TranslateMethodExpression(
+                            Context, methodDef, methodDef
+                        );
+
+                        var thisArgVar = thisArg as JSVariable;
+
+                        if ((thisArgVar != null) && thisArgVar.IsThis) {
+                            var outerThis = DeclareVariable(new JSVariable(
+                                "$outer_this", thisArgVar.Type, ThisMethodReference, 
+                                new JSThisParameter(thisArgVar.Type, ThisMethodReference)
+                            ));
+
+                            new VariableEliminator(
+                                thisArgVar,
+                                outerThis
+                            ).Visit(function);
+
+                            thisArg = thisArgVar = outerThis;
+                        } else if (methodDef.HasThis && function.AllVariables.ContainsKey("this")) {
+                            new VariableEliminator(
+                                function.AllVariables["this"],
+                                thisArg
+                            ).Visit(function);
+                            function.AllVariables.Remove("this");
+                        }
+
                         if (
                             methodDef.IsPrivate && 
                             methodDef.IsCompilerGenerated()
                         ) {
-                            // Lambda with no closed-over values
+                            // Lambda with no closed-over locals
 
-                            return Translator.TranslateMethodExpression(
-                                Context, methodDef, methodDef
-                            );
+                            return function;
                         } else if (
                             methodDef.DeclaringType.IsCompilerGenerated() &&
                             TypesAreEqual(
@@ -1809,19 +1836,8 @@ namespace JSIL {
                                 methodDef.DeclaringType
                             )
                         ) {
-                            // Lambda with closed-over values
-                            var function = Translator.TranslateMethodExpression(
-                                Context, methodDef, methodDef
-                            );
+                            // Lambda with closed-over locals
 
-                            if ((function != null) && (function.AllVariables.ContainsKey("this"))) {
-                                new VariableEliminator(
-                                    function.AllVariables["this"],
-                                    thisArg
-                                ).Visit(function);
-                                function.AllVariables.Remove("this");
-                            }
-                                
                             return function;
                         }
                     }
