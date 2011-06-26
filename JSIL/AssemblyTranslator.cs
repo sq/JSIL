@@ -211,6 +211,9 @@ namespace JSIL {
         public void AddProxyAssembly (Assembly assembly, bool includeDependencies) {
             var uri = new Uri(assembly.CodeBase);
             var path = Uri.UnescapeDataString(uri.AbsolutePath);
+            if (String.IsNullOrWhiteSpace(path))
+                path = assembly.Location;
+
             AddProxyAssembly(path, includeDependencies);
         }
 
@@ -219,6 +222,9 @@ namespace JSIL {
         }
 
         protected AssemblyDefinition[] LoadAssembly (string path, bool useSymbols, bool includeDependencies) {
+            if (String.IsNullOrWhiteSpace(path))
+                throw new InvalidDataException("Path was empty.");
+
             var readerParameters = GetReaderParameters(useSymbols, path);
 
             if (StartedLoadingAssembly != null)

@@ -91,7 +91,11 @@ namespace JSIL.Tests {
 
         static string GetPathOfAssembly (Assembly assembly) {
             var uri = new Uri(assembly.CodeBase);
-            return Uri.UnescapeDataString(uri.AbsolutePath);
+            var result = Uri.UnescapeDataString(uri.AbsolutePath);
+            if (String.IsNullOrWhiteSpace(result))
+                result = assembly.Location;
+
+            return result;
         }
 
         static ComparisonTest () {
