@@ -29,6 +29,19 @@ namespace JSIL.Tests {
             }
         }
 
+        
+        [Test]
+        public void StaticInitializersInGenericTypesSettingStaticFields()
+        {
+            using (var test = new ComparisonTest(@"TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs"))
+            {
+                test.Run();
+            }
+        }
+
+
+        
+
         [Test]
         public void BinaryTrees () {
             using (var test = new ComparisonTest(@"TestCases\BinaryTrees.cs")) {
