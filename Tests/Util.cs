@@ -84,6 +84,7 @@ namespace JSIL.Tests {
         public static readonly string JSShellPath;
         public static readonly string CoreJSPath, BootstrapJSPath;
 
+        public readonly TypeInfoProvider TypeInfo;
         public readonly Regex[] StubbedAssemblies;
         public readonly string Filename;
         public readonly Assembly Assembly;
@@ -108,7 +109,7 @@ namespace JSIL.Tests {
             BootstrapJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.Bootstrap.js"));
         }
 
-        public ComparisonTest (string filename, Regex[] stubbedAssemblies = null) {
+        public ComparisonTest (string filename, Regex[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null) {
             Filename = Path.Combine(TestSourceFolder, filename);
 
             var sourceCode = File.ReadAllText(Filename);
@@ -117,6 +118,7 @@ namespace JSIL.Tests {
             TestMethod = Assembly.GetType("Program").GetMethod("Main");
 
             StubbedAssemblies = stubbedAssemblies;
+            TypeInfo = typeInfo;
         }
 
         public void Dispose () {
@@ -144,7 +146,7 @@ namespace JSIL.Tests {
 
         public string RunJavascript (string[] args, out string generatedJavascript, out long elapsedTranslation, out long elapsedJs) {
             var tempFilename = Path.GetTempFileName();
-            var translator = new JSIL.AssemblyTranslator {
+            var translator = new JSIL.AssemblyTranslator(TypeInfo) {
                 IncludeDependencies = false
             };
 
@@ -154,8 +156,18 @@ namespace JSIL.Tests {
             string translatedJs;
             var translationStarted = DateTime.UtcNow.Ticks;
             using (var ms = new MemoryStream()) {
-                translator.Translate(GetPathOfAssembly(Assembly), ms);
+                var assemblies = translator.Translate(
+                    GetPathOfAssembly(Assembly), ms, 
+                    TypeInfo == null
+                );
                 translatedJs = Encoding.ASCII.GetString(ms.GetBuffer(), 0, (int)ms.Length);
+
+                // If we're using a preconstructed type information provider, we need to remove the type information
+                //  from the assembly we just translated
+                if (TypeInfo != null) {
+                    Assert.AreEqual(1, assemblies.Length);
+                    TypeInfo.Remove(assemblies);
+                }
             }
             elapsedTranslation = DateTime.UtcNow.Ticks - translationStarted;
 
@@ -306,6 +318,20 @@ namespace JSIL.Tests {
     }
 
     public class GenericTestFixture {
+        protected TypeInfoProvider MakeDefaultProvider () {
+            // Construct a type info provider with default proxies loaded (kind of a hack)
+            return (new AssemblyTranslator(null)).TypeInfoProvider;
+        }
+
+        protected void RunComparisonTests (string[] filenames, Regex[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null) {
+            foreach (var filename in filenames) {
+                Debug.WriteLine(String.Format("// {0}", filename));
+
+                using (var test = new ComparisonTest(filename, stubbedAssemblies, typeInfo))
+                    test.Run();
+            }
+        }
+
         protected string GetJavascript (string fileName, string expectedText = null) {
             long elapsed, temp;
             string generatedJs;

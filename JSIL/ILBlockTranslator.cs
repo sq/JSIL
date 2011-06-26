@@ -75,7 +75,7 @@ namespace JSIL {
 
         public ITypeInfoSource TypeInfo {
             get {
-                return Translator;
+                return Translator.TypeInfoProvider;
             }
         }
 
@@ -559,6 +559,14 @@ namespace JSIL {
             int targetDepth, sourceDepth;
             FullyDereferenceType(target, out targetDepth);
             FullyDereferenceType(source, out sourceDepth);
+
+            var targetGit = target as GenericInstanceType;
+            var sourceGit = source as GenericInstanceType;
+
+            if ((targetGit != null) && TypesAreEqual(targetGit.ElementType, source))
+                return true;
+            if ((sourceGit != null) && TypesAreEqual(target, sourceGit.ElementType))
+                return true;
 
             if ((target.IsByReference != source.IsByReference) || (targetDepth != sourceDepth))
                 result = false;
@@ -1839,6 +1847,8 @@ namespace JSIL {
                             // Lambda with closed-over locals
 
                             return function;
+                        } else {
+                            Debugger.Break();
                         }
                     }
                 }

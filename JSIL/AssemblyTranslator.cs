@@ -52,7 +52,7 @@ namespace JSIL {
         }
     }
 
-    public class AssemblyTranslator : ITypeInfoSource {
+    public class AssemblyTranslator {
         class FunctionSource : IFunctionSource {
             public readonly AssemblyTranslator Translator;
             public readonly DecompilerContext Context;
@@ -127,9 +127,9 @@ namespace JSIL {
 
         public readonly Dictionary<QualifiedMemberIdentifier, JSFunctionExpression> FunctionCache = new Dictionary<QualifiedMemberIdentifier, JSFunctionExpression>();
         public readonly Dictionary<QualifiedMemberIdentifier, FunctionStaticData> StaticDataCache = new Dictionary<QualifiedMemberIdentifier, FunctionStaticData>();
-        public readonly Dictionary<TypeIdentifier, ProxyInfo> TypeProxies = new Dictionary<TypeIdentifier, ProxyInfo>();
-        public readonly Dictionary<TypeIdentifier, TypeInfo> TypeInformation = new Dictionary<TypeIdentifier, TypeInfo>();
-        public readonly Dictionary<string, ModuleInfo> ModuleInformation = new Dictionary<string, ModuleInfo>();
+
+        public readonly TypeInfoProvider TypeInfoProvider;
+
         public readonly HashSet<string> GeneratedFiles = new HashSet<string>();
         public readonly List<Regex> IgnoredAssemblies = new List<Regex>();
         public readonly List<Regex> StubbedAssemblies = new List<Regex>();
@@ -155,11 +155,16 @@ namespace JSIL {
 
         protected JavascriptAstEmitter AstEmitter;
 
-        public AssemblyTranslator () {
+        public AssemblyTranslator (TypeInfoProvider typeInfoProvider = null) {
             // Important to avoid preserving the proxy list from previous translations in this process
             MemberIdentifier.ResetProxies();
 
-            AddProxyAssembly(typeof(JSIL.Proxies.ObjectProxy).Assembly, false);
+            if (typeInfoProvider != null) {
+                TypeInfoProvider = typeInfoProvider;
+            } else {
+                TypeInfoProvider = new JSIL.TypeInfoProvider();
+                AddProxyAssembly(typeof(JSIL.Proxies.ObjectProxy).Assembly, false);
+            }
         }
 
         protected virtual ReaderParameters GetReaderParameters (bool useSymbols, string mainAssemblyPath = null) {
@@ -180,32 +185,10 @@ namespace JSIL {
             return readerParameters;
         }
 
-        public void AddProxyAssemblies (AssemblyDefinition[] assemblies) {
-            foreach (var asm in assemblies) {
-                foreach (var module in asm.Modules) {
-                    foreach (var type in module.Types) {
-                        bool isProxyType = false;
-
-                        foreach (var ca in type.CustomAttributes) {
-                            if (ca.AttributeType.FullName == "JSIL.Proxy.JSProxy") {
-                                isProxyType = true;
-                                break;
-                            }
-                        }
-
-                        if (isProxyType) {
-                            var identifier = new TypeIdentifier(type);
-                            TypeProxies.Add(identifier, new ProxyInfo(type));
-                        }
-                    }
-                }
-            }
-        }
-
         public void AddProxyAssembly (string path, bool includeDependencies) {
             var assemblies = LoadAssembly(path, UseSymbols, includeDependencies);
 
-            AddProxyAssemblies(assemblies);
+            TypeInfoProvider.AddProxyAssemblies(assemblies);
         }
 
         public void AddProxyAssembly (Assembly assembly, bool includeDependencies) {
@@ -304,13 +287,11 @@ namespace JSIL {
             return result.ToArray();
         }
 
-        public void Translate (string assemblyPath, Stream outputStream = null) {
-            if (GeneratedFiles.Contains(assemblyPath))
-                return;
-
+        public AssemblyDefinition[] Translate (string assemblyPath, Stream outputStream = null, bool scanForProxies = true) {
             var assemblies = LoadAssembly(assemblyPath);
 
-            AddProxyAssemblies(assemblies);
+            if (scanForProxies)
+                TypeInfoProvider.AddProxyAssemblies(assemblies);
 
             GeneratedFiles.Add(assemblyPath);
 
@@ -331,9 +312,11 @@ namespace JSIL {
                 foreach (var assembly in assemblies)
                     Translate(assembly, outputStream);
             }
+
+            return assemblies;
         }
 
-        internal void Translate (AssemblyDefinition assembly, Stream outputStream) {
+        public void Translate (AssemblyDefinition assembly, Stream outputStream) {
             var context = new DecompilerContext(assembly.MainModule);
 
             context.Settings.YieldReturn = false;
@@ -356,7 +339,7 @@ namespace JSIL {
 
             var initializer = new List<Action>();
             var tw = new StreamWriter(outputStream, Encoding.ASCII);
-            var formatter = new JavascriptFormatter(tw, this, assembly);
+            var formatter = new JavascriptFormatter(tw, this.TypeInfoProvider, assembly);
 
             var version = Assembly.GetExecutingAssembly().GetName().Version;
             formatter.Comment(
@@ -422,216 +405,8 @@ namespace JSIL {
             tw.Flush();
         }
 
-        public ModuleInfo GetModuleInformation (ModuleDefinition module) {
-            if (module == null)
-                throw new ArgumentNullException("module");
-
-            var fullName = module.FullyQualifiedName;
-
-            ModuleInfo result;
-            if (!ModuleInformation.TryGetValue(fullName, out result))
-                ModuleInformation[fullName] = result = new ModuleInfo(module);
-
-            return result;
-        }
-
-        public TypeInfo GetTypeInformation (TypeReference type) {
-            if (type == null)
-                throw new ArgumentNullException("type");
-
-            // TODO: Enable this once it's fixed in ILSpy upstream
-            /*
-            if (type.DeclaringType != null)
-                type = TypeAnalysis.SubstituteTypeArgs(type, type.DeclaringType);
-             */
-
-            var identifier = new TypeIdentifier(type);
-
-            var fullName = type.FullName;
-
-            var typesToInitialize = new Dictionary<TypeIdentifier, TypeDefinition>();
-            var secondPass = new Dictionary<TypeIdentifier, TypeInfo>();
-
-            TypeInfo result;
-            if (!TypeInformation.TryGetValue(identifier, out result)) {
-                var typedef = ILBlockTranslator.GetTypeDefinition(type);
-                if (typedef == null)
-                    return null;
-
-                identifier = new TypeIdentifier(typedef);
-                typesToInitialize.Add(identifier, typedef);
-            }
-
-            // We must construct type information in two passes, so that method group construction
-            //  behaves correctly and ignores all the right methods.
-            // The first pass walks all the way through the type graph (starting with the current type),
-            //  ensuring we have type information for all the types in the graph. We do this iteratively
-            //  to avoid overflowing the stack.
-            // After we have type information for all the types in the graph, we then walk over all
-            //  the types again, and construct their method groups, since we have the necessary
-            //  information to determine which methods are ignored.
-            while (typesToInitialize.Count > 0) {
-                var kvp = typesToInitialize.First();
-                typesToInitialize.Remove(kvp.Key);
-
-                if (TypeInformation.ContainsKey(kvp.Key))
-                    continue;
-                else if (kvp.Value == null) {
-                    TypeInformation[kvp.Key] = null;
-                    continue;
-                }
-
-                var moreTypes = ConstructTypeInformation(kvp.Key, kvp.Value);
-
-                TypeInfo temp;
-                if (TypeInformation.TryGetValue(kvp.Key, out temp))
-                    secondPass.Add(kvp.Key, temp);
-
-                foreach (var more in moreTypes) {
-                    if (typesToInitialize.ContainsKey(more.Key))
-                        continue;
-                    else if (TypeInformation.ContainsKey(more.Key))
-                        continue;
-
-                    typesToInitialize.Add(more.Key, more.Value);
-                }
-            }
-
-            foreach (var ti in secondPass.Values) {
-                ti.Initialize();
-                ti.ConstructMethodGroups();
-            }
-
-            if (!TypeInformation.TryGetValue(identifier, out result)) {
-                return null;
-            }
-
-            return result;
-        }
-
-        protected Dictionary<TypeIdentifier, TypeDefinition> ConstructTypeInformation (TypeIdentifier identifier, TypeDefinition type) {
-            var moduleInfo = GetModuleInformation(type.Module);
-
-            TypeInfo baseType = null;
-            if (type.BaseType != null)
-                baseType = GetTypeInformation(type.BaseType);
-
-            foreach (var iface in type.Interfaces)
-                GetTypeInformation(iface);
-
-            var result = new TypeInfo(this, moduleInfo, type, baseType, identifier);
-            TypeInformation[identifier] = result;
-
-            var typesToInitialize = new Dictionary<TypeIdentifier, TypeDefinition>();
-            Action<TypeReference> addType = (tr) => {
-                if (tr == null)
-                    return;
-
-                var _identifier = new TypeIdentifier(tr);
-                if (_identifier.Equals(identifier))
-                    return;
-                else if (TypeInformation.ContainsKey(_identifier))
-                    return;
-                else if (typesToInitialize.ContainsKey(_identifier))
-                    return;
-
-                var td = ILBlockTranslator.GetTypeDefinition(tr);
-                if (td == null)
-                    return;
-
-                _identifier = new TypeIdentifier(td);
-                if (typesToInitialize.ContainsKey(_identifier))
-                    return;
-
-                typesToInitialize.Add(_identifier, td);
-            };
-
-            foreach (var member in result.Members.Values) {
-                addType(member.ReturnType);
-
-                var method = member as Internal.MethodInfo;
-                if (method != null) {
-                    foreach (var p in method.Member.Parameters)
-                        addType(p.ParameterType);
-                }
-            }
-
-            return typesToInitialize;
-        }
-
-        ProxyInfo[] ITypeInfoSource.GetProxies (TypeReference type) {
-            var result = new List<ProxyInfo>();
-
-            foreach (var p in TypeProxies.Values) {
-                if (p.IsMatch(type, null))
-                    result.Add(p);
-            }
-
-            return result.Distinct().ToArray();
-        }
-
-        IMemberInfo ITypeInfoSource.Get (MemberReference member) {
-            var typeInfo = GetTypeInformation(member.DeclaringType);
-            if (typeInfo == null) {
-                Console.Error.WriteLine("Warning: type not loaded: {0}", member.DeclaringType.FullName);
-                return null;
-            }
-
-            var identifier = MemberIdentifier.New(member);
-
-            IMemberInfo result;
-            if (!typeInfo.Members.TryGetValue(identifier, out result)) {
-                // Console.Error.WriteLine("Warning: member not defined: {0}", member.FullName);
-                return null;
-            }
-
-            return result;
-        }
-
-        ModuleInfo ITypeInfoSource.Get (ModuleDefinition module) {
-            return GetModuleInformation(module);
-        }
-
-        TypeInfo ITypeInfoSource.Get (TypeReference type) {
-            return GetTypeInformation(type);
-        }
-
-        TypeInfo ITypeInfoSource.GetExisting (TypeReference type) {
-            if (type == null)
-                throw new ArgumentNullException("type");
-
-            // TODO: Enable this once it's fixed upstream
-            /*
-            if (type.DeclaringType != null)
-                type = TypeAnalysis.SubstituteTypeArgs(type, type.DeclaringType);
-             */
-
-            var identifier = new TypeIdentifier(type);
-
-            TypeInfo result;
-            if (!TypeInformation.TryGetValue(identifier, out result))
-                return null;
-
-            return result;
-        }
-
-        protected T GetMemberInformation<T> (MemberReference member)
-            where T : class, Internal.IMemberInfo
-        {
-            var typeInformation = GetTypeInformation(member.DeclaringType);
-            var identifier = MemberIdentifier.New(member);
-
-            IMemberInfo result;
-            if (!typeInformation.Members.TryGetValue(identifier, out result)) {
-                // Console.Error.WriteLine("Warning: member not defined: {0}", member.FullName);
-                return null;
-            }
-
-            return (T)result;
-        }
-
         protected void TranslateModule (DecompilerContext context, JavascriptFormatter output, ModuleDefinition module, List<Action> initializer, HashSet<TypeDefinition> sealedTypes, bool stubbed) {
-            var moduleInfo = GetModuleInformation(module);
+            var moduleInfo = TypeInfoProvider.GetModuleInformation(module);
             if (moduleInfo.IsIgnored)
                 return;
 
@@ -642,7 +417,7 @@ namespace JSIL {
 
             // Probably should be an argument, not a member variable...
             AstEmitter = new JavascriptAstEmitter(
-                output, jsil, context.CurrentModule.TypeSystem, this
+                output, jsil, context.CurrentModule.TypeSystem, this.TypeInfoProvider
             );
 
             foreach (var typedef in module.Types)
@@ -673,7 +448,7 @@ namespace JSIL {
 
             bool isFirst = true;
             foreach (var m in iface.Methods) {
-                var methodInfo = this.GetMethod(m);
+                var methodInfo = TypeInfoProvider.GetMethod(m);
                 if ((methodInfo != null) && methodInfo.IsIgnored)
                     continue;
 
@@ -690,7 +465,7 @@ namespace JSIL {
             }
 
             foreach (var p in iface.Properties) {
-                var propertyInfo = this.GetProperty(p);
+                var propertyInfo = TypeInfoProvider.GetProperty(p);
                 if ((propertyInfo != null) && propertyInfo.IsIgnored)
                     continue;
 
@@ -723,7 +498,7 @@ namespace JSIL {
             output.Comma();
             output.OpenBrace();
 
-            var typeInformation = GetTypeInformation(enm);
+            var typeInformation = TypeInfoProvider.GetTypeInformation(enm);
             if (typeInformation == null)
                 throw new InvalidOperationException();
 
@@ -764,7 +539,7 @@ namespace JSIL {
         }
 
         protected void ForwardDeclareType (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef) {
-            var typeInfo = GetTypeInformation(typedef);
+            var typeInfo = TypeInfoProvider.GetTypeInformation(typedef);
             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
                 return;
 
@@ -869,7 +644,7 @@ namespace JSIL {
         }
 
         protected void SealType (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef, HashSet<TypeDefinition> sealedTypes) {
-            var typeInfo = GetTypeInformation(typedef);
+            var typeInfo = TypeInfoProvider.GetTypeInformation(typedef);
             if ((typeInfo == null) || typeInfo.IsIgnored)
                 return;
 
@@ -888,7 +663,7 @@ namespace JSIL {
         }
 
         protected void TranslateTypeDefinition (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef, List<Action> initializer, bool stubbed) {
-            var typeInfo = GetTypeInformation(typedef);
+            var typeInfo = TypeInfoProvider.GetTypeInformation(typedef);
             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
                 return;
 
@@ -901,7 +676,7 @@ namespace JSIL {
             else if (typeInfo.IsDelegate)
                 return;
 
-            var info = GetTypeInformation(typedef);
+            var info = TypeInfoProvider.GetTypeInformation(typedef);
             if (info == null)
                 throw new InvalidOperationException();
 
@@ -931,7 +706,7 @@ namespace JSIL {
                 initializeOverloadsAndProperties();
 
             Func<TypeReference, bool> isInterfaceIgnored = (i) => {
-                var interfaceInfo = GetTypeInformation(i);
+                var interfaceInfo = TypeInfoProvider.GetTypeInformation(i);
                 if (interfaceInfo != null)
                     return interfaceInfo.IsIgnored;
                 else
@@ -1129,7 +904,7 @@ namespace JSIL {
 
                 FunctionCache[identifier] = null;
 
-                var methodInfo = GetMemberInformation<JSIL.Internal.MethodInfo>(methodDef);
+                var methodInfo = TypeInfoProvider.GetMemberInformation<JSIL.Internal.MethodInfo>(methodDef);
                 if (methodInfo.IsExternal)
                     return null;
 
@@ -1210,7 +985,7 @@ namespace JSIL {
 
                 new IntroduceVariableDeclarations(
                     translator.Variables,
-                    this
+                    this.TypeInfoProvider
                 ).Visit(function);
 
                 new IntroduceVariableReferences(
@@ -1267,7 +1042,7 @@ namespace JSIL {
 
         protected JSExpression TranslateField (FieldDefinition field) {
             JSDotExpression target;
-            var fieldInfo = GetMemberInformation<Internal.FieldInfo>(field);
+            var fieldInfo = TypeInfoProvider.GetMemberInformation<Internal.FieldInfo>(field);
             if ((fieldInfo == null) || fieldInfo.IsIgnored)
                 return null;
             
@@ -1351,7 +1126,7 @@ namespace JSIL {
                 var fakeCctor = new MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static, typeSystem.Void);
                 fakeCctor.DeclaringType = typedef;
 
-                var typeInfo = GetTypeInformation(typedef);
+                var typeInfo = TypeInfoProvider.GetTypeInformation(typedef);
                 typeInfo.StaticConstructor = fakeCctor;
                 var identifier = MemberIdentifier.New(fakeCctor);
                 typeInfo.Members[identifier] = new Internal.MethodInfo(typeInfo, identifier, fakeCctor, new ProxyInfo[0], false);
@@ -1368,7 +1143,7 @@ namespace JSIL {
             HashSet<string> staticExternalMemberNames,
             Action<JSFunctionExpression> bodyTransformer = null
         ) {
-            var methodInfo = GetMemberInformation<Internal.MethodInfo>(method);
+            var methodInfo = TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
             if (methodInfo == null)
                 return;
 
@@ -1450,7 +1225,7 @@ namespace JSIL {
         }
 
         protected void TranslateProperty (DecompilerContext context, JavascriptFormatter output, PropertyDefinition property) {
-            var propertyInfo = GetMemberInformation<Internal.PropertyInfo>(property);
+            var propertyInfo = TypeInfoProvider.GetMemberInformation<Internal.PropertyInfo>(property);
             if ((propertyInfo == null) || propertyInfo.IsIgnored)
                 return;
 

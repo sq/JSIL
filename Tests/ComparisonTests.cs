@@ -48,58 +48,44 @@ namespace JSIL.Tests {
 
         [Test]
         public void Generics () {
-            using (var test = new ComparisonTest(@"TestCases\GenericStaticProperties.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\GenericInnerClasses.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\GenericTypeCasts.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\GenericArgumentFromTypeReturnedByMethod.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\GenericArgumentFromTypePassedToMethod.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\GenericStructs.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\InheritOpenGenericClass.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\InheritGenericClass.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\GenericMethods.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\NestedGenericMethodCalls.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\OverloadWithGeneric.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\OverloadWithMultipleGeneric.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\GenericClasses.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\GenericStaticMethods.cs"))
-                test.Run();
+            RunComparisonTests(
+                new[] { 
+                    @"TestCases\GenericStaticProperties.cs",
+                    @"TestCases\GenericInnerClasses.cs",
+                    @"TestCases\GenericTypeCasts.cs",
+                    @"TestCases\GenericArgumentFromTypeReturnedByMethod.cs",
+                    @"TestCases\GenericArgumentFromTypePassedToMethod.cs",
+                    @"TestCases\GenericStructs.cs",
+                    @"TestCases\InheritOpenGenericClass.cs",
+                    @"TestCases\InheritGenericClass.cs",
+                    @"TestCases\GenericMethods.cs",
+                    @"TestCases\NestedGenericMethodCalls.cs",
+                    @"TestCases\OverloadWithGeneric.cs",
+                    @"TestCases\OverloadWithMultipleGeneric.cs",
+                    @"TestCases\GenericClasses.cs",
+                    @"TestCases\GenericStaticMethods.cs"
+                }
+            );
         }
 
         [Test]
         public void Structs () {
-            using (var test = new ComparisonTest(@"TestCases\StructArrayLiteral.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\StructAssignment.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\StructDefaults.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\StructFields.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\StructInitializers.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\StructProperties.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\StructPropertyThis.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\StructThisAssignment.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\SingleDimStructArrays.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\MultiDimStructArrays.cs"))
-                test.Run();
+            var defaultProvider = MakeDefaultProvider();
+
+            RunComparisonTests(
+                new[] { 
+                    @"TestCases\StructArrayLiteral.cs",
+                    @"TestCases\StructAssignment.cs",
+                    @"TestCases\StructDefaults.cs",
+                    @"TestCases\StructFields.cs",
+                    @"TestCases\StructInitializers.cs",
+                    @"TestCases\StructProperties.cs",
+                    @"TestCases\StructPropertyThis.cs",
+                    @"TestCases\StructThisAssignment.cs",
+                    @"TestCases\SingleDimStructArrays.cs",
+                    @"TestCases\MultiDimStructArrays.cs"
+                }, null, defaultProvider
+            );
         }
 
         [Test]
@@ -118,14 +104,16 @@ namespace JSIL.Tests {
 
         [Test]
         public void Enums () {
-            using (var test = new ComparisonTest(@"TestCases\EnumSwitch.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\Enums.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\EnumArrayLookup.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\OverloadWithEnum.cs"))
-                test.Run();
+            var defaultProvider = MakeDefaultProvider();
+
+            RunComparisonTests(
+                new[] { 
+                    @"TestCases\EnumSwitch.cs",
+                    @"TestCases\Enums.cs",
+                    @"TestCases\EnumArrayLookup.cs",
+                    @"TestCases\OverloadWithEnum.cs"
+                }, null, defaultProvider
+            );
         }
 
         [Test]
@@ -156,6 +144,7 @@ namespace JSIL.Tests {
 
         [Test]
         public void AllSimpleTests () {
+            var defaultProvider = MakeDefaultProvider();
             var simpleTests = Directory.GetFiles(
                 Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "SimpleTestCases")), 
                 "*.cs"
@@ -166,7 +155,8 @@ namespace JSIL.Tests {
                 Console.Write("// {0} ... ", Path.GetFileName(filename));
 
                 try {
-                    using (var test = new ComparisonTest(filename))
+                    // We reuse the same type info provider for all the tests in this folder so they run faster
+                    using (var test = new ComparisonTest(filename, null, defaultProvider))
                         test.Run();
                 } catch (Exception ex) {
                     failureList.Add(Path.GetFileNameWithoutExtension(filename));
@@ -184,23 +174,18 @@ namespace JSIL.Tests {
 
         [Test]
         public void LambdaTests () {
-            using (var test = new ComparisonTest(@"TestCases\LambdasUsingThis.cs"))
-                test.Run();
+            var defaultProvider = MakeDefaultProvider();
 
-            using (var test = new ComparisonTest(@"TestCases\Lambdas.cs"))
-                test.Run();
-
-            using (var test = new ComparisonTest(@"TestCases\LambdasUsingLocals.cs"))
-                test.Run();
-
-            using (var test = new ComparisonTest(@"TestCases\DelegatesReturningDelegates.cs"))
-                test.Run();
-
-            using (var test = new ComparisonTest(@"TestCases\NestedGenericMethodCalls.cs"))
-                test.Run();
-
-            using (var test = new ComparisonTest(@"TestCases\LambdaRefParameters.cs"))
-                test.Run();
+            RunComparisonTests(
+                new[] { 
+                    @"TestCases\LambdasUsingThis.cs",
+                    @"TestCases\Lambdas.cs",
+                    @"TestCases\LambdasUsingLocals.cs",
+                    @"TestCases\DelegatesReturningDelegates.cs",
+                    @"TestCases\NestedGenericMethodCalls.cs",
+                    @"TestCases\LambdaRefParameters.cs"
+                }, null, defaultProvider
+            );
         }
 
         [Test]
