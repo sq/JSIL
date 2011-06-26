@@ -21,6 +21,15 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void CastingFromNull()
+        {
+            using (var test = new ComparisonTest(@"TestCases\CastingFromNull.cs"))
+            {
+                test.Run();
+            }
+        }
+
+        [Test]
         public void BinaryTrees () {
             using (var test = new ComparisonTest(@"TestCases\BinaryTrees.cs")) {
                 test.Run();
