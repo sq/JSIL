@@ -280,6 +280,14 @@ namespace JSIL.Internal {
             TypeIdentifier(type.Definition as dynamic, includeParens, replaceGenerics);
         }
 
+        protected bool EmitThisForParameter (GenericParameter gp) {
+            var tr = gp.Owner as TypeReference;
+            if (tr != null)
+                return true;
+
+            return false;
+        }
+
         protected void TypeIdentifier (TypeReference type, bool includeParens, bool replaceGenerics) {
             if (type.FullName == "JSIL.Proxy.AnyType") {
                 Identifier("JSIL.AnyType", null);
@@ -295,7 +303,7 @@ namespace JSIL.Internal {
                      (CurrentMethod.DeclaringType.Equals(gp.Owner))
                     )
                 ) {
-                    if (gp.Owner is TypeReference) {
+                    if (EmitThisForParameter(gp)) {
                         Keyword("this");
                         Dot();
                     }
@@ -307,7 +315,7 @@ namespace JSIL.Internal {
                     else
                         Identifier("JSIL.AnyType", null);
                 } else {
-                    if (gp.Owner is TypeReference) {
+                    if (EmitThisForParameter(gp)) {
                         Keyword("this");
                         Dot();
                     }

@@ -434,6 +434,10 @@ namespace JSIL {
             Output.Identifier(type.Type, IncludeTypeParens.Peek());
         }
 
+        public void VisitNode (JSEliminatedVariable variable) {
+            throw new InvalidOperationException("A variable was eliminated despite being in use.");
+        }
+
         public void VisitNode (JSVariable variable) {
             if (variable.IsThis)
                 Output.Keyword("this");
@@ -852,7 +856,8 @@ namespace JSIL {
         }
 
         public void VisitNode (JSNewExpression newexp) {
-            bool parens = Stack.Skip(1).FirstOrDefault() is JSDotExpression;
+            var outer = Stack.Skip(1).FirstOrDefault();
+            bool parens = (outer is JSDotExpression) || (outer is JSInvocationExpression);
 
             if (
                 (newexp.Constructor != null) && 
@@ -990,7 +995,8 @@ namespace JSIL {
             } else {
                 bool needsParens =
                     (CountOfMatchingSubtrees<JSFunctionExpression>(new[] { invocation.ThisReference }) > 0) ||
-                    (CountOfMatchingSubtrees<JSLiteral>(new[] { invocation.ThisReference }) > 0);
+                    (CountOfMatchingSubtrees<JSIntegerLiteral>(new[] { invocation.ThisReference }) > 0) ||
+                    (CountOfMatchingSubtrees<JSNumberLiteral>(new[] { invocation.ThisReference }) > 0);
 
                 if (needsParens)
                     Output.LPar();

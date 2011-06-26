@@ -220,6 +220,7 @@
     <None Include="SimpleTestCases\ArrayDefaultValues.cs" />
     <None Include="TestCases\DirectTemporaryAssignment.cs" />
     <None Include="TestCases\GenericStaticProperties.cs" />
+    <None Include="TestCases\LambdasUsingThis.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>

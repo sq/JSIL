@@ -73,8 +73,8 @@ namespace JSIL.Transforms {
         }
 
         protected void TransformParameterIntoReference (JSVariable parameter, JSBlockStatement block) {
-            var newParameter = new JSParameter("$" + parameter.Identifier, parameter.Type);
-            var newVariable = new JSVariable(parameter.Identifier, new ByReferenceType(parameter.Type));
+            var newParameter = new JSParameter("$" + parameter.Identifier, parameter.Type, parameter.Function);
+            var newVariable = new JSVariable(parameter.Identifier, new ByReferenceType(parameter.Type), parameter.Function);
             var newDeclaration = new JSVariableDeclarationStatement(
                 new JSBinaryOperatorExpression(
                     JSOperator.Assignment,
@@ -106,7 +106,7 @@ namespace JSIL.Transforms {
                 JSOperator.Assignment,
                 // We have to use a constructed ref to the variable here, otherwise
                 //  the declaration will look like 'var x.value = foo'
-                new JSVariable(variable.Identifier, variable.Type),
+                new JSVariable(variable.Identifier, variable.Type, variable.Function),
                 JSIL.NewReference(oldDeclaration.Right), 
                 newVariable.Type
             );
