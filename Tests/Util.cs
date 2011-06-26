@@ -263,11 +263,14 @@ namespace JSIL.Tests {
             var elapsed = new long[3];
 
             ThreadPool.QueueUserWorkItem((_) => {
-                Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+                var oldCulture = Thread.CurrentThread.CurrentCulture;
                 try {
+                    Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
                     outputs[0] = RunCSharp(args, out elapsed[0]).Replace("\r", "").Trim();
                 } catch (Exception ex) {
                     errors[0] = ex;
+                } finally {
+                    Thread.CurrentThread.CurrentCulture = oldCulture;
                 }
                 signals[0].Set();
             });

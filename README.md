@@ -19,9 +19,12 @@ JSIL depends upon the following open source libraries:
  * Mono.Cecil: MIT/X11 (thanks to Jb Evain)
  * ICSharpCode.Decompiler: MIT/X11 (developed as part of ILSpy)
  
- Assorted code and test case contributions by:
- * Michael Greene
- * Rob Ashton
- * And probably other people I forgot.
+Logo by [John Flynn](http://www.bryneshrimp.com).
  
- Logo by [John Flynn](http://www.bryneshrimp.com).
+Assorted code and test case contributions by:
+ 
+[Michael Greene](https://github.com/euphoria)
+
+[Rob Ashton](https://github.com/robashton)
+ 
+[markusjohnsson](https://github.com/markusjohnsson)
