@@ -15,6 +15,7 @@ public class SomeGenericClass<T>
 
     static SomeGenericClass()
     {
+        Console.WriteLine("cctor");
         InitializedValue = 100;
     }
 }

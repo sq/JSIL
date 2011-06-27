@@ -658,11 +658,10 @@ namespace JSIL {
             foreach (var nestedTypedef in typedef.NestedTypes)
                 SealType(context, output, nestedTypedef, sealedTypes);
 
-            if (typeInfo.StaticConstructor != null) {
-                // Generic types will be initialized the first time Of(T) is called with a specific set of types
-                if (typedef.HasGenericParameters)
-                    return;
-
+            if (
+                (typeInfo.StaticConstructor != null) ||
+                (typedef.BaseType is GenericInstanceType)
+            ) {
                 sealedTypes.Add(typedef);
             }
         }

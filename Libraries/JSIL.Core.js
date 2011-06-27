@@ -58,7 +58,7 @@ JSIL.DeclareAssembly = function (assemblyName) {
 JSIL.DeclareAssembly("JSIL.Core");
 
 JSIL.EscapeName = function (name) {
-  return name.replace("`", "$b").replace(".", "_");
+  return name.replace("`", "$b").replace(".", "_").replace("<", "$l").replace(">", "$g");
 };
 
 JSIL.SplitRegex = new RegExp("[\.\/\+]");
@@ -463,7 +463,11 @@ JSIL.MakeProto = function (baseType, target, typeName, isReferenceType) {
 
   var baseTypeInstance = null;
   try {
-    baseTypeInstance = baseType.get();
+    // If we call .Of on the base type before it's got all its static members defined, the resulting
+    //  closed type will be missing static members.
+    var ga = baseType.genericArguments || [];
+    if (ga.length == 0)
+      baseTypeInstance = baseType.get();
   } catch (e) {
     baseTypeInstance = null;
   }
@@ -514,12 +518,34 @@ JSIL.MakeNumericType = function (baseType, typeName, isIntegral) {
   resolved.get().prototype.__IsIntegral__ = isIntegral;
 };
 
+JSIL.MakeIndirectProperty = function (target, key, source) {
+  var getter = function () {
+    return source[key];
+  };
+
+  var setter = function (value) {
+    // Remove the indirect property
+    delete target[key];
+    // Set on result instead of self so that the value is unique to this specialized type instance
+    target[key] = value;
+  };
+
+  Object.defineProperty(target, key, {
+    configurable: true,
+    enumerable: true,
+    get: getter,
+    set: setter
+  });
+}
+
 JSIL.TypeObjectPrototype = {};
 JSIL.TypeObjectPrototype.__GenericArguments__ = [];
 JSIL.TypeObjectPrototype.toString = function () {
   return JSIL.GetTypeName(this);
 };
 JSIL.TypeObjectPrototype.Of = function () {
+  // This whole function would be 100x simpler if you could provide a prototype when constructing a function. Javascript sucks so much.
+
   var self = this;
   var ga = this.__GenericArguments__;
   var ofCache = this.__OfCache__;
@@ -533,8 +559,10 @@ JSIL.TypeObjectPrototype.Of = function () {
     throw new Error("Invalid number of generic arguments for type '" + JSIL.GetTypeName(this) + "' (got " + arguments.length + ", expected " + ga.length + ")");
 
   // If we do not return the same exact closed type instance from every call to Of(...), derivation checks will fail
-  if (ofCache.hasOwnProperty(cacheKey))
-    return ofCache[cacheKey];
+  if (ofCache.hasOwnProperty(cacheKey)) {
+    var result = ofCache[cacheKey];
+    return result;
+  }
 
   var result = function () {
     var ctorArguments = Array.prototype.slice.call(arguments);
@@ -544,43 +572,30 @@ JSIL.TypeObjectPrototype.Of = function () {
   // Prevents recursion when Of is called indirectly during initialization of the new closed type
   ofCache[cacheKey] = result;
 
-  var makeIndirectGetter = function (key) {
-    return function () {
-      return self[key];
-    };
-  };
-
-  var makeIndirectSetter = function (key) {
-    return function (value) {
-      // Remove the indirect property
-      delete result[key];
-      // Set on result instead of self so that the value is unique to this specialized type instance
-      result[key] = value;
-    };
-  };
-
   var ignoredNames = [
-    "__Self__", "__TypeInitialized__", "prototype", "Of"
+    "__Self__", "__TypeInitialized__", "__IsClosed__", 
+    "prototype", "Of", "toString", "__FullName__"
   ];
 
   for (var k in this) {
     if (ignoredNames.indexOf(k) !== -1)
       continue;
 
-    Object.defineProperty(
-      result, k, {
-        configurable: true,
-        enumerable: true,
-        get: makeIndirectGetter(k),
-        set: makeIndirectSetter(k)
-      }
-    );
+    JSIL.MakeIndirectProperty(result, k, self);
   }
 
+  var fullName = this.__FullName__ + "<" + Array.prototype.join.call(arguments, ", ") + ">";
+  result.__FullName__ = fullName;
+  result.toString = function () {
+    return fullName;
+  };
   result.__Self__ = result;
-  result.__TypeInitialized__ = false;
+  result.__IsClosed__ = true;
   result.prototype = Object.create(this.prototype);
-  result.prototype.__BaseType__ = result;
+
+  // This is important: It's possible for recursion to cause the initializer to run while we're defining properties.
+  // We prevent this from happening by forcing the initialized state to true.
+  result.__TypeInitialized__ = true;
 
   for (var i = 0, l = arguments.length; i < l; i++) {
     var key = ga[i];
@@ -595,7 +610,11 @@ JSIL.TypeObjectPrototype.Of = function () {
   }
 
   JSIL.InstantiateGenericProperties(result);
-  JSIL.InitializeType(result);
+
+  // Force the initialized state back to false and, if the outer type is initialized, initialize the inner type.
+  result.__TypeInitialized__ = false;
+  if (this.__TypeInitialized__)
+    JSIL.InitializeType(result);
 
   return result;
 };
@@ -678,8 +697,9 @@ JSIL.InitializeType = function (type) {
   if (typeof (type) === "undefined")
     throw new Error("Type is null");
 
-  if (type.__TypeInitialized__ || false)
+  if (type.__TypeInitialized__ || false) {
     return;
+  }
 
   // Not entirely correct, but prevents recursive type initialization
   type.__TypeInitialized__ = true;
@@ -688,27 +708,75 @@ JSIL.InitializeType = function (type) {
     (typeof (type.prototype) !== "undefined") &&
     (typeof (type.prototype.__DeferredBaseType__) !== "undefined")
   ) {
-    var baseType = type.prototype.__DeferredBaseType__.get();
+    // The type was defined before its base class existed, so as a result, its prototype does
+    //  not actually derive from the base class's prototype. We must simulate derivation by copying
+    //  any missing members.
+    var baseRef = type.prototype.__DeferredBaseType__;
+    var baseType = baseRef.get();
     type.prototype.__BaseType__ = baseType;
     JSIL.InitializeType(baseType);
 
-    var newPrototype = Object.create(baseType.prototype || Object);
-    for (var k in type.prototype) {
-      if (!type.prototype.hasOwnProperty(k))
-        continue;
+    var src = baseType.prototype;
+    var indirectKeys = [];
 
-      Object.defineProperty(newPrototype, k, Object.getOwnPropertyDescriptor(type.prototype, k));
+    // Scan through the original prototype chain to build a list of keys we need to transplant
+    //  onto the new prototype object.
+    while (src !== null) {
+      for (var k in src) {
+        if (!src.hasOwnProperty(k))
+          continue;
+        else if (indirectKeys.indexOf(k) !== -1)
+          continue;
+
+        indirectKeys.push(k);
+      }
+
+      src = Object.getPrototypeOf(src);
     }
 
-    JSIL.Host.logWriteLine("Warning: Replacing prototype of type '" + JSIL.GetTypeName(type) + "'");
-    type.prototype = newPrototype;
+    // Make indirect copies of all the keys from the original prototype chain.
+    // These copies will hold the same value as the original prototype until assigned new values.
+    for (var i = 0, l = indirectKeys.length; i < l; i++) {
+      var k = indirectKeys[i];
+
+      // If the prototype has a member of this name already, we shouldn't replace it with an indirect copy.
+      // Note that hasOwnProperty isn't enough here. Not entirely sure why.
+      if (
+        type.prototype.hasOwnProperty(k) || 
+        (typeof (type.prototype[k]) !== "undefined")
+      ) {
+        continue;
+      }
+
+      JSIL.MakeIndirectProperty(type.prototype, k, baseType.prototype);
+    }
+
+    // JSIL.Host.logWriteLine("Warning: Replacing prototype of type '" + JSIL.GetTypeName(type) + "'");
   }
 
-  if (typeof (type._cctor) !== "undefined") {
+  // print("init " + type + "; closed=" + type.__IsClosed__ + ", _cctor=" + type._cctor);
+  if (type.__IsClosed__ && (typeof (type._cctor) == "function")) {
     try {
       type._cctor();
     } catch (e) {
       JSIL.Host.error(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(type));
+    }
+  }
+
+  if (
+    (typeof (type.prototype) !== "undefined") &&
+    (typeof (type.prototype.__BaseType__) !== "undefined")
+  ) {
+    JSIL.InitializeType(type.prototype.__BaseType__);
+  }
+
+  if (typeof (type.__OfCache__) !== "undefined") {
+    var oc = type.__OfCache__;
+    for (var k in oc) {
+      if (!oc.hasOwnProperty(k))
+        continue;
+
+      JSIL.InitializeType(oc[k]);
     }
   }
 };
@@ -770,8 +838,10 @@ JSIL.SealTypes = function (privateRoot, namespaceName /*, ...names */) {
 
   function sealIt (ns, name) {
     var type = ns[name];
-    if (typeof (type) === "undefined")
+    if (typeof (type) === "undefined") {
+      JSIL.Host.logWriteLine("Warning: sealing undefined member '" + name + "'.");
       return;
+    }
 
     var cctor = type._cctor;
     if (typeof (cctor) !== "function")
@@ -790,12 +860,14 @@ JSIL.SealTypes = function (privateRoot, namespaceName /*, ...names */) {
     });
   };
 
-  for (var i = 1, l = arguments.length; i < l; i++) {
+  for (var i = 2, l = arguments.length; i < l; i++) {
+    var name = JSIL.EscapeName(arguments[i]);
+
     if (publicNamespace !== null)
-      sealIt(publicNamespace, arguments[i]);
+      sealIt(publicNamespace, name);
 
     if (privateNamespace !== null)
-      sealIt(privateNamespace, arguments[i]);    
+      sealIt(privateNamespace, name);
   }
 }
 
@@ -826,8 +898,15 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments) {
   typeObject.FullName = typeObject.__FullName__ = fullName;
   typeObject.__ShortName__ = localName;
   typeObject.__IsStatic__ = true;
+  typeObject.__TypeInitialized__ = false;
+
   typeObject.__GenericArguments__ = genericArguments || [];
-  typeObject.Of = JSIL.TypeObjectPrototype.Of.bind(typeObject);
+  if (typeObject.__GenericArguments__.length > 0) {
+    typeObject.Of = JSIL.TypeObjectPrototype.Of.bind(typeObject);
+    typeObject.__IsClosed__ = false;
+  } else {
+    typeObject.__IsClosed__ = true;
+  }
 
   resolved.set(typeObject);
 
@@ -871,6 +950,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
   };
 
   typeObject.__IsArray__ = false;
+  typeObject.__TypeInitialized__ = false;
   typeObject.__IsNativeType__ = false;
   typeObject.__IsReferenceType__ = isReferenceType;
   typeObject.__Context__ = $private;
@@ -878,8 +958,15 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
   typeObject.FullName = typeObject.__FullName__ = fullName;
   typeObject.__ShortName__ = localName;
   typeObject.__LockCount__ = 0;
+
   typeObject.__GenericArguments__ = genericArguments || [];
-  typeObject.Of = JSIL.TypeObjectPrototype.Of.bind(typeObject);
+  if (typeObject.__GenericArguments__.length > 0) {
+    typeObject.Of = JSIL.TypeObjectPrototype.Of.bind(typeObject);
+    typeObject.__IsClosed__ = false;
+  } else {
+    typeObject.__IsClosed__ = true;
+  }
+
   typeObject.toString = function () {
     return fullName;
   };

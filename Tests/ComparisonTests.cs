@@ -65,15 +65,16 @@ namespace JSIL.Tests {
                     @"TestCases\GenericArgumentFromTypeReturnedByMethod.cs",
                     @"TestCases\GenericArgumentFromTypePassedToMethod.cs",
                     @"TestCases\GenericStructs.cs",
-                    @"TestCases\InheritOpenGenericClass.cs",
                     @"TestCases\InheritGenericClass.cs",
+                    @"TestCases\InheritOpenGenericClass.cs",
                     @"TestCases\GenericMethods.cs",
                     @"TestCases\NestedGenericMethodCalls.cs",
                     @"TestCases\OverloadWithGeneric.cs",
                     @"TestCases\OverloadWithMultipleGeneric.cs",
                     @"TestCases\GenericClasses.cs",
                     @"TestCases\GenericStaticMethods.cs",
-                    @"TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs"
+                    @"TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs",
+                    @"TestCases\GenericStaticConstructorOrdering.cs"
                 }
             );
         }
@@ -200,6 +201,8 @@ namespace JSIL.Tests {
 
         [Test]
         public void StaticConstructors () {
+            using (var test = new ComparisonTest(@"TestCases\GenericStaticConstructorOrdering.cs"))
+                test.Run();
             using (var test = new ComparisonTest(@"TestCases\StaticConstructorOrdering.cs"))
                 test.Run();
             using (var test = new ComparisonTest(@"TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs"))
