@@ -541,14 +541,26 @@ JSIL.TypeObjectPrototype.Of = function () {
     return Function.prototype.apply.call(self, this, ctorArguments);
   };
 
+  // Prevents recursion when Of is called indirectly during initialization of the new closed type
+  ofCache[cacheKey] = result;
+
   var makeIndirectGetter = function (key) {
     return function () {
       return self[key];
     };
   };
 
+  var makeIndirectSetter = function (key) {
+    return function (value) {
+      // Remove the indirect property
+      delete result[key];
+      // Set on result instead of self so that the value is unique to this specialized type instance
+      result[key] = value;
+    };
+  };
+
   var ignoredNames = [
-    "__Self__", "prototype", "Of"
+    "__Self__", "__TypeInitialized__", "prototype", "Of"
   ];
 
   for (var k in this) {
@@ -557,14 +569,16 @@ JSIL.TypeObjectPrototype.Of = function () {
 
     Object.defineProperty(
       result, k, {
-        configurable: false,
+        configurable: true,
         enumerable: true,
-        get: makeIndirectGetter(k)
+        get: makeIndirectGetter(k),
+        set: makeIndirectSetter(k)
       }
     );
   }
 
   result.__Self__ = result;
+  result.__TypeInitialized__ = false;
   result.prototype = Object.create(this.prototype);
   result.prototype.__BaseType__ = result;
 
@@ -581,8 +595,8 @@ JSIL.TypeObjectPrototype.Of = function () {
   }
 
   JSIL.InstantiateGenericProperties(result);
+  JSIL.InitializeType(result);
 
-  ofCache[cacheKey] = result;
   return result;
 };
 

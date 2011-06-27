@@ -29,19 +29,6 @@ namespace JSIL.Tests {
             }
         }
 
-        
-        [Test]
-        public void StaticInitializersInGenericTypesSettingStaticFields()
-        {
-            using (var test = new ComparisonTest(@"TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs"))
-            {
-                test.Run();
-            }
-        }
-
-
-        
-
         [Test]
         public void BinaryTrees () {
             using (var test = new ComparisonTest(@"TestCases\BinaryTrees.cs")) {
@@ -85,7 +72,8 @@ namespace JSIL.Tests {
                     @"TestCases\OverloadWithGeneric.cs",
                     @"TestCases\OverloadWithMultipleGeneric.cs",
                     @"TestCases\GenericClasses.cs",
-                    @"TestCases\GenericStaticMethods.cs"
+                    @"TestCases\GenericStaticMethods.cs",
+                    @"TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs"
                 }
             );
         }
@@ -213,6 +201,8 @@ namespace JSIL.Tests {
         [Test]
         public void StaticConstructors () {
             using (var test = new ComparisonTest(@"TestCases\StaticConstructorOrdering.cs"))
+                test.Run();
+            using (var test = new ComparisonTest(@"TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs"))
                 test.Run();
         }
 

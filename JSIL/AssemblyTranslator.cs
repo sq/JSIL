@@ -658,8 +658,13 @@ namespace JSIL {
             foreach (var nestedTypedef in typedef.NestedTypes)
                 SealType(context, output, nestedTypedef, sealedTypes);
 
-            if (typeInfo.StaticConstructor != null)
+            if (typeInfo.StaticConstructor != null) {
+                // Generic types will be initialized the first time Of(T) is called with a specific set of types
+                if (typedef.HasGenericParameters)
+                    return;
+
                 sealedTypes.Add(typedef);
+            }
         }
 
         protected void TranslateTypeDefinition (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef, List<Action> initializer, bool stubbed) {
