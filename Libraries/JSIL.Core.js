@@ -1295,7 +1295,10 @@ JSIL.TryCast = function (value, expectedType) {
 };
 
 JSIL.Cast = function (value, expectedType) {
-    if(!value) return null;
+  if (value === null) 
+    return null;
+
+
   if (expectedType.IsEnum) {
     var result = JSIL.MakeEnumValue(expectedType, value, null);
   } else if (JSIL.CheckType(value, expectedType)) {

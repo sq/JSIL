@@ -198,6 +198,12 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void StaticConstructors () {
+            using (var test = new ComparisonTest(@"TestCases\StaticConstructorOrdering.cs"))
+                test.Run();
+        }
+
+        [Test]
         public void Goto () {
             using (var test = new ComparisonTest(@"TestCases\Goto.cs"))
                 test.Run();

@@ -221,6 +221,7 @@
     <None Include="TestCases\DirectTemporaryAssignment.cs" />
     <None Include="TestCases\GenericStaticProperties.cs" />
     <None Include="TestCases\LambdasUsingThis.cs" />
+    <None Include="TestCases\StaticConstructorOrdering.cs" />
     <None Include="TestCases\CastingFromNull.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
