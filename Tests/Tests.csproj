@@ -223,6 +223,7 @@
     <None Include="TestCases\LambdasUsingThis.cs" />
     <None Include="TestCases\StaticConstructorOrdering.cs" />
     <None Include="TestCases\CastingFromNull.cs" />
+    <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
