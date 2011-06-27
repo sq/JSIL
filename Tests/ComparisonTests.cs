@@ -40,6 +40,17 @@ namespace JSIL.Tests {
         }
 
 
+
+        [Test]
+        public void StaticInitializersInInheritedClasses()
+        {
+            using (var test = new ComparisonTest(@"TestCases\StaticInitializersInInheritedClasses.cs"))
+            {
+                test.Run();
+            }
+        }
+
+
         
 
         [Test]
