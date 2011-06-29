@@ -227,6 +227,7 @@
     <None Include="TestCases\StaticArrayInitializer.cs" />
     <None Include="TestCases\TernaryArithmetic.cs" />
     <None Include="SpecialTestCases\OuterThisDelegateNew.cs" />
+    <None Include="SimpleTestCases\NullableDefaults.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

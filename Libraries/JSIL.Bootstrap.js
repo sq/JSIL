@@ -574,8 +574,10 @@ System.Text.ASCIIEncoding.prototype._ctor = function () {
   System.Text.Encoding.prototype._ctor.call(this, arguments);
 };
 
+System.Nullable$b1.prototype.value = null;
+
 System.Nullable$b1.prototype._ctor = function (value) {
-    this.value = value || null;
+  this.value = value;
 };
 
 System.Nullable$b1.prototype.get_HasValue = function () {
@@ -596,11 +598,21 @@ JSIL.MakeProperty(
 
 JSIL.MakeProperty(
   System.Nullable$b1.prototype, "Value",
-System.Nullable$b1.prototype.get_Value, null
+  System.Nullable$b1.prototype.get_Value, null
 );
 
-System.Nullable$b1.prototype.GetValueOrDefault = function () {
-  return this.value;
+System.Nullable$b1.prototype.GetValueOrDefault$0 = function () {
+  if (this.value === null) {
+    if (this.T.__IsNumeric__) {
+      return 0;
+    } else if (this.T.__IsReferenceType__) {
+      return null;
+    } else {
+      return new (this.T)();
+    }
+  } else {
+    return this.value;
+  }
 };
 
 System.TimeSpan.SecondInTicks = 10000000;

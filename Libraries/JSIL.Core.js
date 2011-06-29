@@ -514,6 +514,8 @@ JSIL.MakeGenericProperty = function (parent, name, getter, setter) {
 JSIL.MakeNumericType = function (baseType, typeName, isIntegral) {
   JSIL.MakeType(baseType, typeName, false, true);
   var resolved = JSIL.ResolveName(JSIL.GlobalNamespace, typeName);
+  resolved.get().__IsNumeric__ = true;
+  resolved.get().prototype.__IsNumeric__ = true;
   resolved.get().__IsIntegral__ = isIntegral;
   resolved.get().prototype.__IsIntegral__ = isIntegral;
 };
@@ -1803,7 +1805,7 @@ JSIL.Array.New = function (type, sizeOrInitializer) {
     var result = new Array(size);
 
     var defaultValue = null;
-    if (type.__IsIntegral__)
+    if (type.__IsNumeric__)
       defaultValue = 0;
 
     for (var i = 0; i < size; i++)
@@ -1858,7 +1860,7 @@ JSIL.MultidimensionalArray = function (type, dimensions, initializer) {
   );
 
   var defaultValue = null;
-  if (type.__IsIntegral__)
+  if (type.__IsNumeric__)
     defaultValue = 0;
 
   if (JSIL.IsArray(initializer)) {
