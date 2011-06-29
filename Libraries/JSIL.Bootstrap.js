@@ -177,6 +177,7 @@ System.String.Concat = function (firstValue) {
     return JSIL.ConcatString(Array.prototype.slice.call(arguments));
   }
 }
+System.String.Empty = '';
 System.String.Format = function (format) {
   format = String(format);
 
