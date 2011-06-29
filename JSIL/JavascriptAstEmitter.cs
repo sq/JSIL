@@ -844,15 +844,17 @@ namespace JSIL {
         }
 
         public void VisitNode (JSTernaryOperatorExpression ternary) {
+            Output.LPar();
+
             Visit(ternary.Condition);
 
             Output.Token(" ? ");
-
             Visit(ternary.True);
 
             Output.Token(" : ");
-
             Visit(ternary.False);
+
+            Output.RPar();
         }
 
         public void VisitNode (JSNewExpression newexp) {

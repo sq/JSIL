@@ -238,8 +238,10 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        public void IntegerArithmetic () {
+        public void Arithmetic () {
             using (var test = new ComparisonTest(@"TestCases\IntegerArithmetic.cs"))
+                test.Run();
+            using (var test = new ComparisonTest(@"TestCases\TernaryArithmetic.cs"))
                 test.Run();
         }
 
