@@ -1823,15 +1823,24 @@ JSIL.Array.ShallowCopy = function (destination, source) {
   if (Array.isArray(destination)) {
   } else if (Array.isArray(destination._items)) {
     destination = destination._items;
+  } else {
+    throw new Error("Destination must be an array");
+  }
+
+  if (Array.isArray(source)) {
+  } else if (Array.isArray(source._items)) {
+    source = source._items;
+  } else {
+    throw new Error("Source must be an array");
   }
 
   for (var i = 0, l = Math.min(source.length, destination.length); i < l; i++)
     destination[i] = source[i];
 };
 
-JSIL.MultidimensionalArray = function (type, dimensions) {
+JSIL.MultidimensionalArray = function (type, dimensions, initializer) {
   if (dimensions.length < 2)
-    throw new Error();
+    throw new Error("Must have at least two dimensions: " + String(dimensions));
 
   var totalSize = dimensions[0];
   for (var i = 1; i < dimensions.length; i++)
@@ -1852,8 +1861,12 @@ JSIL.MultidimensionalArray = function (type, dimensions) {
   if (type.__IsIntegral__)
     defaultValue = 0;
 
-  for (var i = 0; i < totalSize; i++)
-    items[i] = defaultValue;
+  if (JSIL.IsArray(initializer)) {
+    JSIL.Array.ShallowCopy(items, initializer);
+  } else {
+    for (var i = 0; i < totalSize; i++)
+      items[i] = defaultValue;
+  }
 
   switch (dimensions.length) {
     case 2:
@@ -1921,15 +1934,25 @@ JSIL.MultidimensionalArray.prototype.GetLowerBound = function (i) {
   return 0;
 };
 JSIL.MultidimensionalArray.New = function (type) {
+  var initializer = arguments[arguments.length - 1];
   var numDimensions = arguments.length - 1;
+
+  if (JSIL.IsArray(initializer))
+    numDimensions -= 1;
+  else
+    initializer = null;
+
   if (numDimensions < 1)
     throw new Error("Must provide at least one dimension");
-  else if (numDimensions == 1)
+  else if ((numDimensions == 1) && (initializer === null))
     return System.Array.New(type, arguments[1]);
 
-  var dimensions = Array.prototype.slice.call(arguments, 1);
+  var dimensions = Array.prototype.slice.call(arguments, 1, 1 + numDimensions);
 
-  return new JSIL.MultidimensionalArray(type, dimensions);
+  if (initializer != null)
+    return new JSIL.MultidimensionalArray(type, dimensions, initializer);
+  else
+    return new JSIL.MultidimensionalArray(type, dimensions);
 };
 
 JSIL.MakeDelegateType = function (fullName, localName) {

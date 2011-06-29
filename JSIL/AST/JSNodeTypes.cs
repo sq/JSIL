@@ -1999,7 +1999,7 @@ namespace JSIL.Ast {
         public override string ToString () {
             var defaultValueText = "";
 
-            if (!DefaultValue.IsNull)
+            if (!DefaultValue.IsNull && !(DefaultValue is JSDefaultValueLiteral))
                 defaultValueText = String.Format(" = {0}", DefaultValue.ToString());
 
             if (IsReference)

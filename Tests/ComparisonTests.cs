@@ -24,9 +24,7 @@ namespace JSIL.Tests {
         public void CastingFromNull()
         {
             using (var test = new ComparisonTest(@"TestCases\CastingFromNull.cs"))
-            {
                 test.Run();
-            }
         }
 
         [Test]
@@ -230,6 +228,12 @@ namespace JSIL.Tests {
         [Test]
         public void Switch () {
             using (var test = new ComparisonTest(@"TestCases\Switch.cs"))
+                test.Run();
+        }
+
+        [Test]
+        public void StaticArrays () {
+            using (var test = new ComparisonTest(@"TestCases\StaticArrayInitializer.cs"))
                 test.Run();
         }
 

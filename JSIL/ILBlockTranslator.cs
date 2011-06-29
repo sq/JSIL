@@ -1883,17 +1883,45 @@ namespace JSIL {
             );
         }
 
+        public static JSExpression[] GetArrayDimensions (TypeReference arrayType) {
+            var at = arrayType as ArrayType;
+            if (at == null)
+                return null;
+
+            var result = new List<JSExpression>();
+            for (var i = 0; i < at.Dimensions.Count; i++) {
+                var dim = at.Dimensions[i];
+                if (dim.IsSized)
+                    result.Add(JSLiteral.New(dim.UpperBound.Value));
+                else
+                    return null;
+            }
+
+            return result.ToArray();
+        }
+
         protected JSExpression Translate_InitArray (ILExpression node, TypeReference elementType) {
             var initializer = new JSArrayExpression(elementType, Translate(node.Arguments));
+            var at = elementType as ArrayType;
+            int rank = 0;
+            if (at != null)
+                rank = at.Rank;
 
             if (TypesAreEqual(
                 TypeSystem.Object, elementType
-            ))
+            ) && rank < 2)
                 return initializer;
-            else
-                return JSIL.NewArray(
-                    elementType, initializer
-                );
+            else {
+                if (rank > 1) {
+                    return JSIL.NewMultidimensionalArray(
+                        elementType, GetArrayDimensions(at), initializer
+                    );
+                } else {
+                    return JSIL.NewArray(
+                        elementType, initializer
+                    );
+                }
+            }
         }
 
         protected JSExpression Translate_InitializedObject (ILExpression node) {
