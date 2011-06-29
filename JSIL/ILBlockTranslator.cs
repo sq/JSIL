@@ -1804,51 +1804,46 @@ namespace JSIL {
 
                     if (methodMember != null) {
                         var methodDef = methodMember.Method.Member;
-                        var function = Translator.TranslateMethodExpression(
-                            Context, methodDef, methodDef
-                        );
 
-                        var thisArgVar = thisArg as JSVariable;
+                        bool emitInline = (
+                                methodDef.IsPrivate && 
+                                methodDef.IsCompilerGenerated()
+                            ) || (
+                                methodDef.DeclaringType.IsCompilerGenerated() &&
+                                TypesAreEqual(
+                                    thisArg.GetExpectedType(TypeSystem),
+                                    methodDef.DeclaringType
+                                )
+                            );
 
-                        if ((thisArgVar != null) && thisArgVar.IsThis) {
-                            var outerThis = DeclareVariable(new JSVariable(
-                                "$outer_this", thisArgVar.Type, ThisMethodReference, 
-                                new JSThisParameter(thisArgVar.Type, ThisMethodReference)
-                            ));
+                        if (emitInline) {
+                            var function = Translator.TranslateMethodExpression(
+                                Context, methodDef, methodDef
+                            );
 
-                            new VariableEliminator(
-                                thisArgVar,
-                                outerThis
-                            ).Visit(function);
+                            var thisArgVar = thisArg as JSVariable;
 
-                            thisArg = thisArgVar = outerThis;
-                        } else if (methodDef.HasThis && function.AllVariables.ContainsKey("this")) {
-                            new VariableEliminator(
-                                function.AllVariables["this"],
-                                thisArg
-                            ).Visit(function);
-                            function.AllVariables.Remove("this");
-                        }
+                            if ((thisArgVar != null) && thisArgVar.IsThis) {
+                                var outerThis = DeclareVariable(new JSVariable(
+                                    "$outer_this", thisArgVar.Type, ThisMethodReference, 
+                                    new JSThisParameter(thisArgVar.Type, ThisMethodReference)
+                                ));
 
-                        if (
-                            methodDef.IsPrivate && 
-                            methodDef.IsCompilerGenerated()
-                        ) {
-                            // Lambda with no closed-over locals
+                                new VariableEliminator(
+                                    thisArgVar,
+                                    outerThis
+                                ).Visit(function);
 
-                            return function;
-                        } else if (
-                            methodDef.DeclaringType.IsCompilerGenerated() &&
-                            TypesAreEqual(
-                                thisArg.GetExpectedType(TypeSystem),
-                                methodDef.DeclaringType
-                            )
-                        ) {
-                            // Lambda with closed-over locals
+                                thisArg = thisArgVar = outerThis;
+                            } else if (methodDef.HasThis && function.AllVariables.ContainsKey("this")) {
+                                new VariableEliminator(
+                                    function.AllVariables["this"],
+                                    thisArg
+                                ).Visit(function);
+                                function.AllVariables.Remove("this");
+                            }
 
                             return function;
-                        } else {
-                            Debugger.Break();
                         }
                     }
                 }

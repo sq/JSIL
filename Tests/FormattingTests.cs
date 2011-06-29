@@ -225,6 +225,22 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void OuterThisNotUsedForDelegateNew () {
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\OuterThisDelegateNew.cs",
+                "PrintNumber(1)\r\nMyClass.PrintNumber(2)"
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("outer_this"));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
         public void FlagsEnumsWithZeroValues () {
             var generatedJs = GetJavascript(
                 @"SpecialTestCases\FlagsEnumsWithZeroValues.cs",
