@@ -575,7 +575,7 @@ System.Text.ASCIIEncoding.prototype._ctor = function () {
 };
 
 System.Nullable$b1.prototype._ctor = function (value) {
-  this.value = value;
+    this.value = value || null;
 };
 
 System.Nullable$b1.prototype.get_HasValue = function () {
@@ -588,6 +588,16 @@ System.Nullable$b1.prototype.get_Value = function () {
 
   return this.value;
 };
+
+JSIL.MakeProperty(
+  System.Nullable$b1.prototype, "HasValue",
+  System.Nullable$b1.prototype.get_HasValue, null
+);
+
+JSIL.MakeProperty(
+  System.Nullable$b1.prototype, "Value",
+System.Nullable$b1.prototype.get_Value, null
+);
 
 System.Nullable$b1.prototype.GetValueOrDefault = function () {
   return this.value;
