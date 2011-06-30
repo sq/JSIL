@@ -9,32 +9,34 @@ using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public interface IFunctionSource {
-        JSFunctionExpression GetExpression (JSMethod method);
-        FunctionStaticData GetStaticData (JSFunctionExpression function);
-        FunctionStaticData GetStaticData (JSMethod method);
+        JSFunctionExpression GetExpression (QualifiedMemberIdentifier method);
+        FunctionAnalysis1stPass GetFirstPass (QualifiedMemberIdentifier method);
+        FunctionAnalysis2ndPass GetSecondPass (QualifiedMemberIdentifier method);
     }
 
     public class StaticAnalyzer : JSAstVisitor {
         public readonly TypeSystem TypeSystem;
         public readonly IFunctionSource FunctionSource;
 
-        protected FunctionAnalysis State;
+        protected FunctionAnalysis1stPass State;
 
         public StaticAnalyzer (TypeSystem typeSystem, IFunctionSource functionSource) {
             TypeSystem = typeSystem;
             FunctionSource = functionSource;
         }
 
-        public FunctionStaticData Analyze (JSFunctionExpression function) {
-            State = new FunctionAnalysis(function);
+        public FunctionAnalysis1stPass FirstPass (JSFunctionExpression function) {
+            State = new FunctionAnalysis1stPass(function);
 
             Visit(function);
 
-            State.Accesses.Sort(FunctionAnalysis.ItemComparer);
-            State.Assignments.Sort(FunctionAnalysis.ItemComparer);
-            State.SideEffects.Sort(FunctionAnalysis.ItemComparer);
+            State.Accesses.Sort(FunctionAnalysis1stPass.ItemComparer);
+            State.Assignments.Sort(FunctionAnalysis1stPass.ItemComparer);
+            State.SideEffects.Sort(FunctionAnalysis1stPass.ItemComparer);
 
-            return new FunctionStaticData(FunctionSource, State);
+            var result = State;
+            State = null;
+            return result;
         }
 
         public void VisitNode (JSFunctionExpression fn) {
@@ -94,7 +96,7 @@ namespace JSIL.Transforms {
                 (variable != null) && (uoe.Operator is JSUnaryMutationOperator)
             ) {
                 State.Assignments.Add(
-                    new FunctionAnalysis.Assignment(
+                    new FunctionAnalysis1stPass.Assignment(
                         StatementIndex, NodeIndex, 
                         variable, uoe, uoe.Operator,
                         variable.GetExpectedType(TypeSystem), uoe.GetExpectedType(TypeSystem)
@@ -114,7 +116,7 @@ namespace JSIL.Transforms {
                 var rightType = boe.Right.GetExpectedType(TypeSystem);
 
                 State.Assignments.Add(
-                    new FunctionAnalysis.Assignment(
+                    new FunctionAnalysis1stPass.Assignment(
                         StatementIndex, NodeIndex,
                         leftVar, boe.Right, boe.Operator, 
                         leftType, rightType
@@ -140,11 +142,11 @@ namespace JSIL.Transforms {
 
             if (dot.IsStatic) {
                 if (field != null) {
-                    State.StaticReferences.Add(new FunctionAnalysis.StaticReference(
+                    State.StaticReferences.Add(new FunctionAnalysis1stPass.StaticReference(
                         StatementIndex, NodeIndex, field.Field.DeclaringType
                     ));
                 } else if (property != null) {
-                    State.StaticReferences.Add(new FunctionAnalysis.StaticReference(
+                    State.StaticReferences.Add(new FunctionAnalysis1stPass.StaticReference(
                         StatementIndex, NodeIndex, property.Property.DeclaringType
                     ));
                 }
@@ -168,7 +170,7 @@ namespace JSIL.Transforms {
             var type = ie.JSType;
             var method = ie.JSMethod;
 
-            State.Invocations.Add(new FunctionAnalysis.Invocation(
+            State.Invocations.Add(new FunctionAnalysis1stPass.Invocation(
                 StatementIndex, NodeIndex, type, method, variables
             ));
 
@@ -178,7 +180,7 @@ namespace JSIL.Transforms {
         public void VisitNode (JSTryCatchBlock tcb) {
             if (tcb.CatchVariable != null) {
                 State.Assignments.Add(
-                    new FunctionAnalysis.Assignment(
+                    new FunctionAnalysis1stPass.Assignment(
                         StatementIndex, NodeIndex,
                         tcb.CatchVariable, new JSNullExpression(), JSOperator.Assignment,
                         tcb.CatchVariable.Type, tcb.CatchVariable.Type
@@ -220,7 +222,7 @@ namespace JSIL.Transforms {
                     isControlFlow |= enclosingBlock.IsLoop;
 
                 State.Accesses.Add(
-                    new FunctionAnalysis.Access(
+                    new FunctionAnalysis1stPass.Access(
                         StatementIndex, NodeIndex,
                         variable, isControlFlow
                     )
@@ -236,7 +238,7 @@ namespace JSIL.Transforms {
         }
     }
 
-    public class FunctionAnalysis {
+    public class FunctionAnalysis1stPass {
         public class Item {
             public readonly int StatementIndex;
             public readonly int NodeIndex;
@@ -334,7 +336,7 @@ namespace JSIL.Transforms {
         public readonly List<StaticReference> StaticReferences = new List<StaticReference>();
         public readonly List<Invocation> Invocations = new List<Invocation>();
 
-        public FunctionAnalysis (JSFunctionExpression function) {
+        public FunctionAnalysis1stPass (JSFunctionExpression function) {
             Function = function;
         }
 
@@ -347,7 +349,7 @@ namespace JSIL.Transforms {
         }
     }
 
-    public class FunctionStaticData {
+    public class FunctionAnalysis2ndPass {
         public const bool Tracing = false;
 
         protected readonly bool _IsPure;
@@ -356,9 +358,9 @@ namespace JSIL.Transforms {
         public readonly HashSet<string> EscapingVariables = new HashSet<string>();
 
         public readonly IFunctionSource FunctionSource;
-        public readonly FunctionAnalysis Data;
+        public readonly FunctionAnalysis1stPass Data;
 
-        public FunctionStaticData (IFunctionSource functionSource, FunctionAnalysis data) {
+        public FunctionAnalysis2ndPass (IFunctionSource functionSource, FunctionAnalysis1stPass data) {
             FunctionSource = functionSource;
             Data = data;
             _IsPure = (data.SideEffects.Count == 0) &&
@@ -367,7 +369,7 @@ namespace JSIL.Transforms {
             Trace(data.Function.OriginalMethodReference.FullName);
         }
 
-        public FunctionStaticData (IFunctionSource functionSource, MethodInfo method) {
+        public FunctionAnalysis2ndPass (IFunctionSource functionSource, MethodInfo method) {
             if (!method.IsExternal)
                 throw new InvalidOperationException();
 
@@ -398,11 +400,11 @@ namespace JSIL.Transforms {
                     return _IsPure;
 
                 foreach (var i in Data.Invocations) {
-                    var sd = FunctionSource.GetStaticData(i.Method);
-                    if (sd == null)
+                    var secondPass = FunctionSource.GetSecondPass(i.Method.QualifiedIdentifier);
+                    if (secondPass == null)
                         return false;
 
-                    if (!sd.IsPure)
+                    if (!secondPass.IsPure)
                         return false;
                 }
 

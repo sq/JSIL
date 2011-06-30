@@ -1868,6 +1868,14 @@ namespace JSIL.Ast {
             get { return Method.Name; }
         }
 
+        public QualifiedMemberIdentifier QualifiedIdentifier {
+            get {
+                return new QualifiedMemberIdentifier(
+                    Method.DeclaringType.Identifier, Method.Identifier
+                );
+            }
+        }
+
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             return ConstructDelegateType(Reference, typeSystem);
         }

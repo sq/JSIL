@@ -14,7 +14,7 @@ namespace JSIL.Transforms {
         public readonly Dictionary<string, JSVariable> Variables;
         public readonly HashSet<JSVariable> EliminatedVariables = new HashSet<JSVariable>();
 
-        protected FunctionStaticData Data = null;
+        protected FunctionAnalysis1stPass FirstPass = null;
 
         public EliminateSingleUseTemporaries (TypeSystem typeSystem, Dictionary<string, JSVariable> variables, IFunctionSource functionSource) {
             TypeSystem = typeSystem;
@@ -33,16 +33,16 @@ namespace JSIL.Transforms {
 
             {
                 var replacer = new VariableEliminator(variable, replaceWith);
-                var assignments = (from a in Data.Data.Assignments where 
+                var assignments = (from a in FirstPass.Assignments where 
                                        variable.Equals(a.NewValue) ||
                                        a.NewValue.AllChildrenRecursive.Any((_n) => variable.Equals(_n))
                                        select a).ToArray();
 
                 foreach (var a in assignments) {
                     if (variable.Equals(a.NewValue)) {
-                        Data.Data.Assignments.Remove(a);
-                        Data.Data.Assignments.Add(
-                            new FunctionAnalysis.Assignment(
+                        FirstPass.Assignments.Remove(a);
+                        FirstPass.Assignments.Add(
+                            new FunctionAnalysis1stPass.Assignment(
                                 a.StatementIndex, a.NodeIndex,
                                 a.Target, replaceWith, a.Operator,
                                 a.TargetType, a.SourceType
@@ -110,21 +110,19 @@ namespace JSIL.Transforms {
             if (source.IsConstant)
                 return true;
 
-            var d = Data.Data;
-
             // Try to find a spot between the source variable's assignments where all of our
             //  copies and accesses can fit. If we find one, our variable is effectively constant.
             var v = source as JSVariable;
             if (v != null) {
-                var assignments = (from a in d.Assignments where v.Equals(a.Target) select a).ToArray();
+                var assignments = (from a in FirstPass.Assignments where v.Equals(a.Target) select a).ToArray();
                 if (assignments.Length < 1)
                     return v.IsParameter;
 
-                var targetAssignments = (from a in d.Assignments where v.Equals(a.Target) select a).ToArray();
+                var targetAssignments = (from a in FirstPass.Assignments where v.Equals(a.Target) select a).ToArray();
                 if (targetAssignments.Length < 1)
                     return false;
 
-                var targetAccesses = (from a in d.Accesses where target.Equals(a.Source) select a).ToArray();
+                var targetAccesses = (from a in FirstPass.Accesses where target.Equals(a.Source) select a).ToArray();
                 if (targetAccesses.Length < 1)
                     return false;
 
@@ -160,7 +158,7 @@ namespace JSIL.Transforms {
 
             // TODO
             /*
-            var accesses = (from a in d.Accesses where v.Equals(a.Source) select a).ToArray();
+            var accesses = (from a in FirstPass.Accesses where v.Equals(a.Source) select a).ToArray();
             if (accesses.Length < 1)
                 return false;
 
@@ -189,15 +187,11 @@ namespace JSIL.Transforms {
             }
 
             var nullList = new List<int>();
-            Data = FunctionSource.GetStaticData(fn);
-            if (Data == null)
+            FirstPass = FunctionSource.GetFirstPass(fn.Identifier);
+            if (FirstPass == null)
                 throw new InvalidOperationException();
 
             VisitChildren(fn);
-
-            var d = Data.Data;
-            if (d == null)
-                throw new InvalidOperationException();
 
             foreach (var v in fn.AllVariables.Values.ToArray()) {
                 if (v.IsThis || v.IsParameter)
@@ -207,10 +201,10 @@ namespace JSIL.Transforms {
                 if (ILBlockTranslator.IsIgnoredType(valueType))
                     continue;
 
-                var assignments = (from a in d.Assignments where v.Equals(a.Target) select a).ToArray();
-                var accesses = (from a in d.Accesses where v.Equals(a.Source) select a).ToArray();
+                var assignments = (from a in FirstPass.Assignments where v.Equals(a.Target) select a).ToArray();
+                var accesses = (from a in FirstPass.Accesses where v.Equals(a.Source) select a).ToArray();
 
-                if (d.VariablesPassedByRef.Contains(v.Name)) {
+                if (FirstPass.VariablesPassedByRef.Contains(v.Name)) {
                     if (TraceLevel >= 2)
                         Debug.WriteLine(String.Format("Cannot eliminate {0}; it is passed by reference.", v));
 
@@ -240,7 +234,7 @@ namespace JSIL.Transforms {
                 }
 
                 /*
-                if ((from a in d.Assignments where v.Equals(a.Target) && a.IsConversion select a).FirstOrDefault() != null) {
+                if ((from a in FirstPass.Assignments where v.Equals(a.Target) && a.IsConversion select a).FirstOrDefault() != null) {
                     if (TraceLevel >= 2)
                         Debug.WriteLine(String.Format("Cannot eliminate {0}; it undergoes type conversion.", v));
 
@@ -255,7 +249,7 @@ namespace JSIL.Transforms {
                     continue;
                 }
 
-                var copies = (from a in d.Assignments where v.Equals(a.SourceVariable) select a).ToArray();
+                var copies = (from a in FirstPass.Assignments where v.Equals(a.SourceVariable) select a).ToArray();
                 if ((copies.Length + accesses.Length) > 1) {
                     if (TraceLevel >= 2)
                         Debug.WriteLine(String.Format("Cannot eliminate {0}; it is used multiple times.", v));
@@ -284,16 +278,16 @@ namespace JSIL.Transforms {
                 var transferDataTo = replacement as JSVariable;
                 if (transferDataTo != null) {
                     foreach (var access in accesses) {
-                        d.Accesses.Remove(access);
-                        d.Accesses.Add(new FunctionAnalysis.Access(
+                        FirstPass.Accesses.Remove(access);
+                        FirstPass.Accesses.Add(new FunctionAnalysis1stPass.Access(
                             access.StatementIndex, access.NodeIndex,
                             transferDataTo, access.IsControlFlow
                         ));
                     }
 
                     foreach (var assignment in assignments) {
-                        d.Assignments.Remove(assignment);
-                        d.Assignments.Add(new FunctionAnalysis.Assignment(
+                        FirstPass.Assignments.Remove(assignment);
+                        FirstPass.Assignments.Add(new FunctionAnalysis1stPass.Assignment(
                             assignment.StatementIndex, assignment.NodeIndex,
                             transferDataTo, assignment.NewValue, assignment.Operator,
                             assignment.TargetType, assignment.SourceType
@@ -302,8 +296,8 @@ namespace JSIL.Transforms {
                     }
                 }
 
-                Data.Data.Assignments.RemoveAll((a) => v.Equals(a.Target));
-                Data.Data.Accesses.RemoveAll((a) => v.Equals(a.Source));
+                FirstPass.Assignments.RemoveAll((a) => v.Equals(a.Target));
+                FirstPass.Accesses.RemoveAll((a) => v.Equals(a.Source));
 
                 EliminatedVariables.Add(v);
 

@@ -1440,8 +1440,6 @@ namespace JSIL.Internal {
         public readonly EventInfo Event = null;
         public readonly bool IsGeneric;
 
-        public FunctionStaticData StaticData = null;
-
         public int? OverloadIndex;
         protected bool? _ParametersIgnored;
         protected readonly string ShortName;
