@@ -1817,9 +1817,12 @@ namespace JSIL {
                             );
 
                         if (emitInline) {
-                            var function = Translator.TranslateMethodExpression(
-                                Context, methodDef, methodDef
-                            );
+                            JSFunctionExpression function;
+                            // It's possible that the method we're using wasn't initially translated/analyzed because it's
+                            //  a compiler-generated method or part of a compiler generated type
+                            if (!Translator.FunctionCache.TryGetExpression(methodMember.QualifiedIdentifier, out function)) {
+                                function = Translator.TranslateMethodExpression(Context, methodDef, methodDef);
+                            }
 
                             var thisArgVar = thisArg as JSVariable;
 

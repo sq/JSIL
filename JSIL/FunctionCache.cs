@@ -104,5 +104,19 @@ namespace JSIL {
 
             return result;
         }
+
+        internal void CreateNull (
+            MethodDefinition methodDef, MethodReference method, 
+            QualifiedMemberIdentifier identifier
+        ) {
+            var entry = new Entry {
+                Identifier = identifier,
+                Definition = methodDef,
+                Reference = method,
+                Expression = null
+            };
+
+            Cache.Add(identifier, entry);
+        }
     }
 }

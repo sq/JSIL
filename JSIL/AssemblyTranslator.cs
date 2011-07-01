@@ -264,7 +264,14 @@ namespace JSIL {
 
                 context.CurrentModule = module;
 
-                foreach (var td in module.Types) {
+                var allTypes = new Queue<TypeDefinition>(module.Types);
+
+                while (allTypes.Count > 0) {
+                    var td = allTypes.Dequeue();
+
+                    foreach (var nt in td.NestedTypes)
+                        allTypes.Enqueue(nt);
+
                     if (!ShouldTranslateMethods(td))
                         continue;
 
@@ -278,7 +285,7 @@ namespace JSIL {
                         if (!m.HasBody)
                             continue;
 
-                        // TranslateMethodExpression(context, m, m);
+                        TranslateMethodExpression(context, m, m);
                     }
                 }
             }
@@ -854,7 +861,7 @@ namespace JSIL {
             });
         }
 
-        internal JSFunctionExpression TranslateMethodExpression (DecompilerContext context, MethodReference method, MethodDefinition methodDef, Action<JSFunctionExpression> bodyTransformer = null) {
+        internal JSFunctionExpression TranslateMethodExpression (DecompilerContext context, MethodReference method, MethodDefinition methodDef) {
             var oldMethod = context.CurrentMethod;
             try {
                 if (method == null)
@@ -868,14 +875,14 @@ namespace JSIL {
                 );
                 JSFunctionExpression function = null;
 
-                if (bodyTransformer == null) {
-                    if (FunctionCache.TryGetExpression(identifier, out function))
-                        return function;
-                }
+                if (FunctionCache.TryGetExpression(identifier, out function))
+                    return function;
 
                 var methodInfo = TypeInfoProvider.GetMemberInformation<JSIL.Internal.MethodInfo>(methodDef);
-                if (methodInfo.IsExternal)
+                if (methodInfo.IsExternal) {
+                    FunctionCache.CreateNull(methodDef, method, identifier);
                     return null;
+                }
 
                 var bodyDef = methodDef;
                 if (methodInfo.IsFromProxy && methodInfo.Member.HasBody)
@@ -896,6 +903,7 @@ namespace JSIL {
                     if (CouldNotDecompileMethod != null)
                         CouldNotDecompileMethod(bodyDef.FullName, exception);
 
+                    FunctionCache.CreateNull(methodDef, method, identifier);
                     return null;
                 }
 
@@ -904,6 +912,7 @@ namespace JSIL {
 
                 foreach (var v in allVariables) {
                     if (ILBlockTranslator.IsIgnoredType(v.Type)) {
+                        FunctionCache.CreateNull(methodDef, method, identifier);
                         return null;
                     }
                 }
@@ -917,6 +926,7 @@ namespace JSIL {
                 var body = translator.Translate();
 
                 if (body == null) {
+                    FunctionCache.CreateNull(methodDef, method, identifier);
                     return null;
                 }
 
@@ -933,9 +943,6 @@ namespace JSIL {
                 );
 
                 OptimizeFunction(context, translator, function);
-
-                if (bodyTransformer != null)
-                    bodyTransformer(function);
 
                 if (methodDef.Body.Instructions.Count > LargeMethodThreshold)
                     this.FinishedDecompilingMethod(method.FullName);
@@ -1100,6 +1107,9 @@ namespace JSIL {
                 var identifier = MemberIdentifier.New(fakeCctor);
                 typeInfo.Members[identifier] = new Internal.MethodInfo(typeInfo, identifier, fakeCctor, new ProxyInfo[0], false);
 
+                // Generate the fake constructor, since it wasn't created during the analysis pass
+                TranslateMethodExpression(context, fakeCctor, fakeCctor);
+
                 TranslateMethod(context, output, fakeCctor, fakeCctor, false, null, null, fixupCctor);
             }
         }
@@ -1171,10 +1181,14 @@ namespace JSIL {
                 output.NewLine();
             }
 
-            var function = TranslateMethodExpression(context, methodRef, method, (f) => {
-                if (bodyTransformer != null)
-                    bodyTransformer(f);
-            });
+            JSFunctionExpression function;
+            function = FunctionCache.GetExpression(new QualifiedMemberIdentifier(
+                methodInfo.DeclaringType.Identifier,
+                methodInfo.Identifier
+            ));
+
+            if (bodyTransformer != null)
+                bodyTransformer(function);
 
             if (function != null) {
                 AstEmitter.Visit(function);
