@@ -63,11 +63,12 @@ namespace JSIL {
         public readonly List<Regex> StubbedAssemblies = new List<Regex>();
         public readonly HashSet<string> DeclaredTypes = new HashSet<string>();
 
-        public event Action<string> StartedLoadingAssembly;
-        public event Action<string, bool> StartedDecompilingAssembly;
+        public event Action<string, ProgressReporter> LoadingAssembly;
 
-        public event Action<string> StartedDecompilingMethod;
-        public event Action<string> FinishedDecompilingMethod;
+        public event Action<ProgressReporter> Decompiling;
+        public event Action<ProgressReporter> Optimizing;
+        public event Action<ProgressReporter> Writing;
+        public event Action<string, ProgressReporter> DecompilingMethod;
 
         public event Action<string, Exception> CouldNotLoadSymbols;
         public event Action<string, Exception> CouldNotResolveAssembly;
@@ -138,8 +139,9 @@ namespace JSIL {
 
             var readerParameters = GetReaderParameters(useSymbols, path);
 
-            if (StartedLoadingAssembly != null)
-                StartedLoadingAssembly(path);
+            var pr = new ProgressReporter();
+            if (LoadingAssembly != null)
+                LoadingAssembly(path, pr);
 
             var assembly = AssemblyDefinition.ReadAssembly(
                 path, readerParameters
@@ -180,8 +182,9 @@ namespace JSIL {
                             SymbolReaderProvider = new PdbReaderProvider()
                         };
 
-                        if (StartedLoadingAssembly != null)
-                            StartedLoadingAssembly(reference.Name);
+                        var pr2 = new ProgressReporter();
+                        if (LoadingAssembly != null)
+                            LoadingAssembly(reference.Name, pr2);
 
                         AssemblyDefinition refAssembly = null;
                         assemblyNames.Add(reference.FullName);
@@ -208,10 +211,13 @@ namespace JSIL {
                             foreach (var refModule in refAssembly.Modules)
                                 modulesToVisit.Enqueue(refModule);
                         }
+
+                        pr2.OnFinished();
                     }
                 }
             }
 
+            pr.OnFinished();
             return result.ToArray();
         }
 
@@ -232,14 +238,23 @@ namespace JSIL {
             context.Settings.FullyQualifyAmbiguousTypeNames = true;
             context.Settings.ForEachStatement = false;
 
-            foreach (var assembly in assemblies)
-                Analyze(context, assembly);
+            var pr = new ProgressReporter();
+            if (Decompiling != null)
+                Decompiling(pr);
+
+            for (int i = 0; i < assemblies.Length; i++) {
+                pr.OnProgressChanged(i, assemblies.Length);
+                Analyze(context, assemblies[i]);
+            }
+
+            pr.OnFinished();
+
+            OptimizeAll();
+
+            Action<AssemblyDefinition> handler;
 
             if (outputStream == null) {
-                if (!Directory.Exists(OutputDirectory))
-                    Directory.CreateDirectory(OutputDirectory);
-
-                foreach (var assembly in assemblies) {
+                handler = (assembly) => {
                     var outputPath = Path.Combine(OutputDirectory, assembly.Name + ".js");
 
                     if (File.Exists(outputPath))
@@ -247,22 +262,53 @@ namespace JSIL {
 
                     using (outputStream = File.OpenWrite(outputPath))
                         Translate(context, assembly, outputStream);
-                }
+                };
+
+                if (!Directory.Exists(OutputDirectory))
+                    Directory.CreateDirectory(OutputDirectory);
             } else {
-                foreach (var assembly in assemblies)
+                handler = (assembly) =>
                     Translate(context, assembly, outputStream);
             }
+
+            pr = new ProgressReporter();
+            if (Writing != null)
+                Writing(pr);
+
+            for (int i = 0; i < assemblies.Length; i++) {
+                pr.OnProgressChanged(i, assemblies.Length);
+                handler(assemblies[i]);
+            }
+
+            pr.OnFinished();
 
             return assemblies;
         }
 
+        protected void OptimizeAll () {
+            var pr = new ProgressReporter();
+            if (Optimizing != null)
+                Optimizing(pr);
+
+            int i = 0, c = FunctionCache.Cache.Count;
+            foreach (var e in FunctionCache.Cache.Values) {
+                pr.OnProgressChanged(i++, c);
+                OptimizeFunction(e.SpecialIdentifiers, e.ParameterNames, e.Variables, e.Expression);
+            }
+
+            pr.OnFinished();
+        }
+
         protected void Analyze (DecompilerContext context, AssemblyDefinition assembly) {
+            if (IsStubbed(assembly))
+                return;
+
+            var allMethods = new Queue<MethodDefinition>();
+
             foreach (var module in assembly.Modules) {
                 var moduleInfo = TypeInfoProvider.GetModuleInformation(module);
                 if (moduleInfo.IsIgnored)
                     continue;
-
-                context.CurrentModule = module;
 
                 var allTypes = new Queue<TypeDefinition>(module.Types);
 
@@ -275,8 +321,6 @@ namespace JSIL {
                     if (!ShouldTranslateMethods(td))
                         continue;
 
-                    context.CurrentType = td;
-
                     foreach (var m in td.Methods) {
                         var methodInfo = TypeInfoProvider.GetMethod(m);
 
@@ -285,23 +329,34 @@ namespace JSIL {
                         if (!m.HasBody)
                             continue;
 
-                        TranslateMethodExpression(context, m, m);
+                        allMethods.Enqueue(m);
                     }
                 }
             }
+
+            foreach (var m in allMethods) {
+                context.CurrentModule = m.Module;
+                context.CurrentType = m.DeclaringType;
+                context.CurrentMethod = m;
+
+                TranslateMethodExpression(context, m, m);
+            }
         }
 
-        protected void Translate (DecompilerContext context, AssemblyDefinition assembly, Stream outputStream) {
+        protected bool IsStubbed (AssemblyDefinition assembly) {
             bool stubbed = false;
             foreach (var sa in StubbedAssemblies) {
                 if (sa.IsMatch(assembly.FullName)) {
-                    stubbed = true;
+                    return true;
                     break;
                 }
             }
 
-            if (StartedDecompilingAssembly != null)
-                StartedDecompilingAssembly(assembly.MainModule.FullyQualifiedName, stubbed);
+            return false;
+        }
+
+        protected void Translate (DecompilerContext context, AssemblyDefinition assembly, Stream outputStream) {
+            bool stubbed = IsStubbed(assembly);
 
             var initializer = new List<Action>();
             var tw = new StreamWriter(outputStream, Encoding.ASCII);
@@ -869,16 +924,16 @@ namespace JSIL {
                 if (methodDef == null)
                     throw new ArgumentNullException("methodDef");
 
+                var methodInfo = TypeInfoProvider.GetMemberInformation<JSIL.Internal.MethodInfo>(methodDef);
+
                 var identifier = new QualifiedMemberIdentifier(
-                    new TypeIdentifier(methodDef.DeclaringType),
-                    new MemberIdentifier(method)
+                    methodInfo.DeclaringType.Identifier, methodInfo.Identifier
                 );
                 JSFunctionExpression function = null;
 
                 if (FunctionCache.TryGetExpression(identifier, out function))
                     return function;
 
-                var methodInfo = TypeInfoProvider.GetMemberInformation<JSIL.Internal.MethodInfo>(methodDef);
                 if (methodInfo.IsExternal) {
                     FunctionCache.CreateNull(methodDef, method, identifier);
                     return null;
@@ -888,9 +943,11 @@ namespace JSIL {
                 if (methodInfo.IsFromProxy && methodInfo.Member.HasBody)
                     bodyDef = methodInfo.Member;
 
+                var pr = new ProgressReporter();
+
                 context.CurrentMethod = methodDef;
-                if (methodDef.Body.Instructions.Count > LargeMethodThreshold)
-                    this.StartedDecompilingMethod(method.FullName);
+                if ((methodDef.Body.Instructions.Count > LargeMethodThreshold) && (this.DecompilingMethod != null))
+                    this.DecompilingMethod(method.FullName, pr);
 
                 ILBlock ilb;
                 var decompiler = new ILAstBuilder();
@@ -904,6 +961,7 @@ namespace JSIL {
                         CouldNotDecompileMethod(bodyDef.FullName, exception);
 
                     FunctionCache.CreateNull(methodDef, method, identifier);
+                    pr.OnFinished();
                     return null;
                 }
 
@@ -913,6 +971,7 @@ namespace JSIL {
                 foreach (var v in allVariables) {
                     if (ILBlockTranslator.IsIgnoredType(v.Type)) {
                         FunctionCache.CreateNull(methodDef, method, identifier);
+                        pr.OnFinished();
                         return null;
                     }
                 }
@@ -927,6 +986,7 @@ namespace JSIL {
 
                 if (body == null) {
                     FunctionCache.CreateNull(methodDef, method, identifier);
+                    pr.OnFinished();
                     return null;
                 }
 
@@ -942,25 +1002,23 @@ namespace JSIL {
                     translator, parameters, body
                 );
 
-                OptimizeFunction(context, translator, function);
-
-                if (methodDef.Body.Instructions.Count > LargeMethodThreshold)
-                    this.FinishedDecompilingMethod(method.FullName);
-
+                pr.OnFinished();
                 return function;
             } finally {
                 context.CurrentMethod = oldMethod;
             }
         }
 
-        private void OptimizeFunction (DecompilerContext context, ILBlockTranslator translator, JSFunctionExpression function) {
+        private void OptimizeFunction (
+            SpecialIdentifiers si, HashSet<string> parameterNames,
+            Dictionary<string, JSVariable> variables, JSFunctionExpression function
+        ) {
             // Run elimination repeatedly, since eliminating one variable may make it possible to eliminate others
             if (EliminateTemporaries) {
                 bool eliminated;
                 do {
                     var visitor = new EliminateSingleUseTemporaries(
-                        context.CurrentModule.TypeSystem,
-                        translator.Variables, FunctionCache
+                        si.TypeSystem, variables, FunctionCache
                     );
                     visitor.Visit(function);
                     eliminated = visitor.EliminatedVariables.Count > 0;
@@ -968,35 +1026,34 @@ namespace JSIL {
             }
 
             new EmulateStructAssignment(
-                context.CurrentModule.TypeSystem,
-                translator.CLR
+                si.TypeSystem,
+                si.CLR
             ).Visit(function);
 
             new IntroduceVariableDeclarations(
-                translator.Variables,
+                variables,
                 TypeInfoProvider
             ).Visit(function);
 
             new IntroduceVariableReferences(
-                translator.JSIL,
-                translator.Variables,
-                translator.ParameterNames
+                si.JSIL,
+                variables,
+                parameterNames
             ).Visit(function);
 
             if (SimplifyLoops)
                 new SimplifyLoops(
-                    context.CurrentModule.TypeSystem
+                    si.TypeSystem
                 ).Visit(function);
 
             // Temporary elimination makes it possible to simplify more operators, so do it last
             if (SimplifyOperators)
                 new SimplifyOperators(
-                    translator.JSIL, translator.JS,
-                    context.CurrentModule.TypeSystem
+                    si.JSIL, si.JS, si.TypeSystem
                 ).Visit(function);
 
             new IntroduceEnumCasts(
-                context.CurrentModule.TypeSystem
+                si.TypeSystem
             ).Visit(function);
         }
 
@@ -1105,7 +1162,10 @@ namespace JSIL {
                 var typeInfo = TypeInfoProvider.GetTypeInformation(typedef);
                 typeInfo.StaticConstructor = fakeCctor;
                 var identifier = MemberIdentifier.New(fakeCctor);
-                typeInfo.Members[identifier] = new Internal.MethodInfo(typeInfo, identifier, fakeCctor, new ProxyInfo[0], false);
+
+                typeInfo.Members[identifier] = new Internal.MethodInfo(
+                    typeInfo, identifier, fakeCctor, new ProxyInfo[0], false
+                );
 
                 // Generate the fake constructor, since it wasn't created during the analysis pass
                 TranslateMethodExpression(context, fakeCctor, fakeCctor);
@@ -1155,6 +1215,8 @@ namespace JSIL {
             if (methodIsProxied) {
                 output.Comment("Implementation from {0}", methodInfo.Member.DeclaringType.FullName);
                 output.NewLine();
+            } else if (stubbed) {
+                return;
             }
 
             output.Identifier(method.DeclaringType);

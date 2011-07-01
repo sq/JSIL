@@ -14,6 +14,10 @@ namespace JSIL {
             public MethodDefinition Definition;
             public MethodReference Reference;
 
+            public SpecialIdentifiers SpecialIdentifiers;
+            public HashSet<string> ParameterNames;
+            public Dictionary<string, JSVariable> Variables;
+
             public JSFunctionExpression Expression;
             public FunctionAnalysis1stPass FirstPass;
             public FunctionAnalysis2ndPass SecondPass;
@@ -97,7 +101,10 @@ namespace JSIL {
                 Identifier = identifier,
                 Definition = methodDef,
                 Reference = method,
-                Expression = result
+                Expression = result,
+                Variables = translator.Variables,
+                ParameterNames = translator.ParameterNames,
+                SpecialIdentifiers = translator.SpecialIdentifiers
             };
 
             Cache.Add(identifier, entry);

@@ -189,4 +189,18 @@ namespace JSIL {
             );
         }
     }
+
+    public class SpecialIdentifiers {
+        public readonly TypeSystem TypeSystem;
+        public readonly JSSpecialIdentifiers JS;
+        public readonly CLRSpecialIdentifiers CLR;
+        public readonly JSILIdentifier JSIL;
+
+        public SpecialIdentifiers (TypeSystem typeSystem) {
+            TypeSystem = typeSystem;
+            JS = new JSSpecialIdentifiers(typeSystem);
+            CLR = new CLRSpecialIdentifiers(typeSystem);
+            JSIL = new JSILIdentifier(typeSystem, JS);
+        }
+    }
 }

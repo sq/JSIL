@@ -30,9 +30,7 @@ namespace JSIL {
         // Yuck :(
         static readonly Dictionary<Tuple<string, string>, bool> TypeAssignabilityCache = new Dictionary<Tuple<string, string>, bool>();
 
-        public readonly JSILIdentifier JSIL;
-        public readonly JSSpecialIdentifiers JS;
-        public readonly CLRSpecialIdentifiers CLR;
+        public readonly SpecialIdentifiers SpecialIdentifiers;
 
         protected int LabelledBlockCount = 0;
         protected int UnlabelledBlockCount = 0;
@@ -46,9 +44,7 @@ namespace JSIL {
             ThisMethod = methodDefinition;
             Block = ilb;
 
-            JS = new JSSpecialIdentifiers(TypeSystem);
-            JSIL = new JSILIdentifier(TypeSystem, JS);
-            CLR = new CLRSpecialIdentifiers(TypeSystem);
+            SpecialIdentifiers = new JSIL.SpecialIdentifiers(TypeSystem);
 
             if (methodReference.HasThis)
                 Variables.Add("this", JSThisParameter.New(methodReference.DeclaringType, methodReference));
@@ -70,6 +66,18 @@ namespace JSIL {
                 } else {
                     Variables.Add(v.Identifier, v);
                 }
+            }
+        }
+
+        protected JSSpecialIdentifiers JS {
+            get {
+                return SpecialIdentifiers.JS;
+            }
+        }
+
+        protected JSILIdentifier JSIL {
+            get {
+                return SpecialIdentifiers.JSIL;
             }
         }
 
