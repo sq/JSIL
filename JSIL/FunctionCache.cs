@@ -21,6 +21,17 @@ namespace JSIL {
 
         public readonly Dictionary<QualifiedMemberIdentifier, Entry> Cache = new Dictionary<QualifiedMemberIdentifier, Entry>();
 
+        public bool TryGetExpression (QualifiedMemberIdentifier method, out JSFunctionExpression function) {
+            Entry entry;
+            if (!Cache.TryGetValue(method, out entry)) {
+                function = null;
+                return false;
+            }
+
+            function = entry.Expression;
+            return true;
+        }
+
         public JSFunctionExpression GetExpression (QualifiedMemberIdentifier method) {
             Entry entry;
             if (!Cache.TryGetValue(method, out entry))
@@ -47,13 +58,27 @@ namespace JSIL {
             if (!Cache.TryGetValue(method, out entry))
                 throw new KeyNotFoundException("No cache entry for method '" + method + "'.");
 
-            if (entry.FirstPass == null)
-                throw new InvalidOperationException("First pass not complete");
-
             if (entry.SecondPass == null)
-                entry.SecondPass = new FunctionAnalysis2ndPass(this, entry.FirstPass);
+                entry.SecondPass = new FunctionAnalysis2ndPass(this, GetFirstPass(method));
 
             return entry.SecondPass;
+        }
+
+        public void InvalidateFirstPass (QualifiedMemberIdentifier method) {
+            Entry entry;
+            if (!Cache.TryGetValue(method, out entry))
+                throw new KeyNotFoundException("No cache entry for method '" + method + "'.");
+
+            entry.FirstPass = null;
+            entry.SecondPass = null;
+        }
+
+        public void InvalidateSecondPass (QualifiedMemberIdentifier method) {
+            Entry entry;
+            if (!Cache.TryGetValue(method, out entry))
+                throw new KeyNotFoundException("No cache entry for method '" + method + "'.");
+
+            entry.SecondPass = null;
         }
 
         internal JSFunctionExpression Create (
@@ -74,6 +99,7 @@ namespace JSIL {
                 Reference = method,
                 Expression = result
             };
+
             Cache.Add(identifier, entry);
 
             return result;

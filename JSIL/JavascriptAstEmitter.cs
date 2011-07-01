@@ -27,6 +27,7 @@ namespace JSIL {
         public readonly TypeSystem TypeSystem;
         public readonly JSILIdentifier JSIL;
 
+        protected readonly Stack<JSExpression> ThisReplacementStack = new Stack<JSExpression>();
         protected readonly Stack<bool> IncludeTypeParens = new Stack<bool>();
         protected readonly Stack<Func<string, bool>> GotoStack = new Stack<Func<string, bool>>();
         protected readonly Stack<BlockType> BlockStack = new Stack<BlockType>();
@@ -435,13 +436,23 @@ namespace JSIL {
         }
 
         public void VisitNode (JSEliminatedVariable variable) {
-            throw new InvalidOperationException("A variable was eliminated despite being in use.");
+            throw new InvalidOperationException(String.Format("'{0}' was eliminated despite being in use.", variable.Variable));
         }
 
         public void VisitNode (JSVariable variable) {
-            if (variable.IsThis)
-                Output.Keyword("this");
-            else
+            if (variable.IsThis) {
+                if (ThisReplacementStack.Count > 0) {
+                    var thisRef = ThisReplacementStack.Peek();
+                    if (thisRef != null)
+                        Visit(thisRef);
+                    else
+                        Debugger.Break();
+
+                    return;
+                } else {
+                    Output.Keyword("this");
+                }
+            } else
                 Output.Identifier(variable.Identifier);
 
             // Don't emit .value when initializing a reference in a declaration.
@@ -482,6 +493,14 @@ namespace JSIL {
 
         public void VisitNode (JSReferenceExpression reference) {
             Visit(reference.Referent);
+        }
+
+        public void VisitNode (JSLambda lambda) {
+            ThisReplacementStack.Push(lambda.This);
+
+            Visit(lambda.Value);
+
+            ThisReplacementStack.Pop();
         }
 
         public void VisitNode (JSFunctionExpression function) {

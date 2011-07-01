@@ -302,6 +302,50 @@ namespace JSIL.Ast {
         }
     }
 
+    // Represents a copy of another JSFunctionExpression with one or more parameters replaced
+    public class JSLambda : JSLiteralBase<JSFunctionExpression> {
+        public readonly JSExpression This;
+
+        public JSLambda (JSFunctionExpression function, JSExpression @this)
+            : base(function) {
+            if (@this == null)
+                throw new ArgumentNullException("this");
+
+            This = @this;
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return Value.GetExpectedType(typeSystem);
+        }
+
+        public override bool IsConstant {
+            get {
+                return Value.IsConstant;
+            }
+        }
+
+        public override bool IsNull {
+            get {
+                return Value.IsNull;
+            }
+        }
+
+        public override bool IsStatic {
+            get {
+                return Value.IsStatic;
+            }
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                if (This != null)
+                    yield return This;
+
+                yield return Value;
+            }
+        }
+    }
+
     // Technically, the following expressions should be statements. But in ILAst, they're expressions...
     public class JSReturnExpression : JSExpression {
         public JSReturnExpression (JSExpression value = null)

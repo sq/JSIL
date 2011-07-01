@@ -223,6 +223,18 @@ namespace JSIL {
 
             GeneratedFiles.Add(assemblyPath);
 
+            var context = new DecompilerContext(assemblies.First().MainModule);
+
+            context.Settings.YieldReturn = false;
+            context.Settings.AnonymousMethods = true;
+            context.Settings.QueryExpressions = false;
+            context.Settings.LockStatement = false;
+            context.Settings.FullyQualifyAmbiguousTypeNames = true;
+            context.Settings.ForEachStatement = false;
+
+            foreach (var assembly in assemblies)
+                Analyze(context, assembly);
+
             if (outputStream == null) {
                 if (!Directory.Exists(OutputDirectory))
                     Directory.CreateDirectory(OutputDirectory);
@@ -234,26 +246,45 @@ namespace JSIL {
                         File.Delete(outputPath);
 
                     using (outputStream = File.OpenWrite(outputPath))
-                        Translate(assembly, outputStream);
+                        Translate(context, assembly, outputStream);
                 }
             } else {
                 foreach (var assembly in assemblies)
-                    Translate(assembly, outputStream);
+                    Translate(context, assembly, outputStream);
             }
 
             return assemblies;
         }
 
-        public void Translate (AssemblyDefinition assembly, Stream outputStream) {
-            var context = new DecompilerContext(assembly.MainModule);
+        protected void Analyze (DecompilerContext context, AssemblyDefinition assembly) {
+            foreach (var module in assembly.Modules) {
+                var moduleInfo = TypeInfoProvider.GetModuleInformation(module);
+                if (moduleInfo.IsIgnored)
+                    continue;
 
-            context.Settings.YieldReturn = false;
-            context.Settings.AnonymousMethods = true;
-            context.Settings.QueryExpressions = false;
-            context.Settings.LockStatement = false;
-            context.Settings.FullyQualifyAmbiguousTypeNames = true;
-            context.Settings.ForEachStatement = false;
+                context.CurrentModule = module;
 
+                foreach (var td in module.Types) {
+                    if (!ShouldTranslateMethods(td))
+                        continue;
+
+                    context.CurrentType = td;
+
+                    foreach (var m in td.Methods) {
+                        var methodInfo = TypeInfoProvider.GetMethod(m);
+
+                        if ((methodInfo == null) || methodInfo.IsIgnored)
+                            continue;
+                        if (!m.HasBody)
+                            continue;
+
+                        // TranslateMethodExpression(context, m, m);
+                    }
+                }
+            }
+        }
+
+        protected void Translate (DecompilerContext context, AssemblyDefinition assembly, Stream outputStream) {
             bool stubbed = false;
             foreach (var sa in StubbedAssemblies) {
                 if (sa.IsMatch(assembly.FullName)) {
@@ -287,6 +318,7 @@ namespace JSIL {
 
             // Important to clear this because types with the exact same full names can be defined in multiple assemblies
             DeclaredTypes.Clear();
+
             foreach (var module in assembly.Modules)
                 TranslateModule(context, formatter, module, initializer, sealedTypes, stubbed);
 
@@ -594,23 +626,27 @@ namespace JSIL {
             }
         }
 
-        protected void TranslateTypeDefinition (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef, List<Action> initializer, bool stubbed) {
+        protected bool ShouldTranslateMethods (TypeDefinition typedef) {
             var typeInfo = TypeInfoProvider.GetTypeInformation(typedef);
             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
+                return false;
+
+            if (typedef.IsInterface)
+                return false;
+            else if (typedef.IsEnum)
+                return false;
+            else if (typeInfo.IsDelegate)
+                return false;
+
+            return true;
+        }
+
+        protected void TranslateTypeDefinition (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef, List<Action> initializer, bool stubbed) {
+            var typeInfo = TypeInfoProvider.GetTypeInformation(typedef);
+            if (!ShouldTranslateMethods(typedef))
                 return;
 
             context.CurrentType = typedef;
-
-            if (typedef.IsInterface)
-                return;
-            else if (typedef.IsEnum)
-                return;
-            else if (typeInfo.IsDelegate)
-                return;
-
-            var info = TypeInfoProvider.GetTypeInformation(typedef);
-            if (info == null)
-                throw new InvalidOperationException();
 
             var externalMemberNames = new HashSet<string>();
             var staticExternalMemberNames = new HashSet<string>();
@@ -627,7 +663,7 @@ namespace JSIL {
             }
             
             Action initializeOverloadsAndProperties = () => {
-                foreach (var methodGroup in info.MethodGroups)
+                foreach (var methodGroup in typeInfo.MethodGroups)
                     TranslateMethodGroup(context, output, methodGroup);
 
                 foreach (var property in typedef.Properties)
@@ -710,7 +746,7 @@ namespace JSIL {
                 });
             }
 
-            TranslateTypeStaticConstructor(context, output, typedef, info.StaticConstructor, stubbed);
+            TranslateTypeStaticConstructor(context, output, typedef, typeInfo.StaticConstructor, stubbed);
 
             if (externalMemberNames.Count + staticExternalMemberNames.Count > 0) {
                 initializer.Add(() => {
@@ -747,7 +783,7 @@ namespace JSIL {
             }
 
             if (stubbed &&
-                (info.MethodGroups.Count + typedef.Properties.Count) > 0
+                (typeInfo.MethodGroups.Count + typedef.Properties.Count) > 0
             ) {
                 initializer.Add(initializeOverloadsAndProperties);
             }
@@ -831,6 +867,11 @@ namespace JSIL {
                     new MemberIdentifier(method)
                 );
                 JSFunctionExpression function = null;
+
+                if (bodyTransformer == null) {
+                    if (FunctionCache.TryGetExpression(identifier, out function))
+                        return function;
+                }
 
                 var methodInfo = TypeInfoProvider.GetMemberInformation<JSIL.Internal.MethodInfo>(methodDef);
                 if (methodInfo.IsExternal)

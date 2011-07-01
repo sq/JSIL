@@ -12,6 +12,8 @@ namespace JSIL.Transforms {
         JSFunctionExpression GetExpression (QualifiedMemberIdentifier method);
         FunctionAnalysis1stPass GetFirstPass (QualifiedMemberIdentifier method);
         FunctionAnalysis2ndPass GetSecondPass (QualifiedMemberIdentifier method);
+        void InvalidateFirstPass (QualifiedMemberIdentifier method);
+        void InvalidateSecondPass (QualifiedMemberIdentifier method);
     }
 
     public class StaticAnalyzer : JSAstVisitor {

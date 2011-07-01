@@ -1829,21 +1829,12 @@ namespace JSIL {
                                     new JSThisParameter(thisArgVar.Type, ThisMethodReference)
                                 ));
 
-                                new VariableEliminator(
-                                    thisArgVar,
-                                    outerThis
-                                ).Visit(function);
-
                                 thisArg = thisArgVar = outerThis;
-                            } else if (methodDef.HasThis && function.AllVariables.ContainsKey("this")) {
-                                new VariableEliminator(
-                                    function.AllVariables["this"],
-                                    thisArg
-                                ).Visit(function);
-                                function.AllVariables.Remove("this");
-                            }
+                            }// else if (methodDef.HasThis && function.AllVariables.ContainsKey("this")) {
 
-                            return function;
+                            return new JSLambda(
+                                function, thisArg
+                            );
                         }
                     }
                 }
