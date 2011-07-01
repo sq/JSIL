@@ -67,6 +67,7 @@
     <Compile Include="AST\JSAstVisitor.cs" />
     <Compile Include="AST\JSOperators.cs" />
     <Compile Include="AST\JSNodeTypes.cs" />
+    <Compile Include="CILSupport.cs" />
     <Compile Include="FunctionCache.cs" />
     <Compile Include="DynamicCallSites.cs" />
     <Compile Include="JavascriptAstEmitter.cs" />
@@ -104,6 +105,10 @@
     <ProjectReference Include="..\Upstream\ILSpy\Mono.Cecil\Mono.Cecil.csproj">
       <Project>{D68133BD-1E63-496E-9EDE-4FBDBF77B486}</Project>
       <Name>Mono.Cecil</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Upstream\ILSpy\Mono.Cecil\symbols\mdb\Mono.Cecil.Mdb.csproj">
+      <Project>{8559DD7F-A16F-46D0-A05A-9139FAEBA8FD}</Project>
+      <Name>Mono.Cecil.Mdb</Name>
     </ProjectReference>
     <ProjectReference Include="..\Upstream\ILSpy\Mono.Cecil\symbols\pdb\Mono.Cecil.Pdb.csproj">
       <Project>{63E6915C-7EA4-4D76-AB28-0D7191EEA626}</Project>

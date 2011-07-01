@@ -16,44 +16,13 @@ using JSIL.Transforms;
 using Mono.Cecil;
 using ICSharpCode.Decompiler;
 using Mono.Cecil.Pdb;
+using Mono.Cecil.Cil;
 
 namespace JSIL {
-    public class AssemblyResolver : BaseAssemblyResolver {
-        public readonly Dictionary<string, AssemblyDefinition> Cache = new Dictionary<string, AssemblyDefinition>();
-
-        public AssemblyResolver (IEnumerable<string> dirs) {
-            foreach (var dir in dirs)
-                AddSearchDirectory(dir);
-        }
-
-        public override AssemblyDefinition Resolve (AssemblyNameReference name) {
-            if (name == null)
-                throw new ArgumentNullException("name");
-
-            AssemblyDefinition assembly;
-            if (Cache.TryGetValue(name.FullName, out assembly))
-                return assembly;
-
-            assembly = base.Resolve(name);
-            Cache[name.FullName] = assembly;
-
-            return assembly;
-        }
-
-        protected void RegisterAssembly (AssemblyDefinition assembly) {
-            if (assembly == null)
-                throw new ArgumentNullException("assembly");
-
-            var name = assembly.Name.FullName;
-            if (Cache.ContainsKey(name))
-                return;
-
-            Cache[name] = assembly;
-        }
-    }
-
     public class AssemblyTranslator {
         public const int LargeMethodThreshold = 1024;
+
+        public readonly SymbolProvider SymbolProvider = new SymbolProvider();
 
         public readonly FunctionCache FunctionCache = new FunctionCache();
         public readonly TypeInfoProvider TypeInfoProvider;
@@ -109,7 +78,7 @@ namespace JSIL {
             }
 
             if (useSymbols)
-                readerParameters.SymbolReaderProvider = new PdbReaderProvider();
+                readerParameters.SymbolReaderProvider = SymbolProvider;
 
             return readerParameters;
         }
@@ -179,7 +148,7 @@ namespace JSIL {
                         var childParameters = new ReaderParameters {
                             ReadingMode = ReadingMode.Deferred,
                             ReadSymbols = true,
-                            SymbolReaderProvider = new PdbReaderProvider()
+                            SymbolReaderProvider = SymbolProvider
                         };
 
                         var pr2 = new ProgressReporter();

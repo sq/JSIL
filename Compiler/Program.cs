@@ -53,8 +53,14 @@ namespace JSIL.Compiler {
             translator.Decompiling += (progress) => {
                 Console.Error.Write("// Decompiling ");
 
+                var previous = new int[1] { 0 };
+
                 progress.ProgressChanged += (s, p, max) => {
-                    Console.Error.Write(".");
+                    var current = p * 20 / max;
+                    if (current != previous[0]) {
+                        previous[0] = current;
+                        Console.Error.Write(".");
+                    }
                 };
 
                 progress.Finished += (s, e) => {
@@ -64,8 +70,14 @@ namespace JSIL.Compiler {
             translator.Optimizing += (progress) => {
                 Console.Error.Write("// Optimizing ");
 
+                var previous = new int[1] { 0 };
+
                 progress.ProgressChanged += (s, p, max) => {
-                    Console.Error.Write(".");
+                    var current = p * 20 / max;
+                    if (current != previous[0]) {
+                        previous[0] = current;
+                        Console.Error.Write(".");
+                    }
                 };
 
                 progress.Finished += (s, e) => {
@@ -75,8 +87,14 @@ namespace JSIL.Compiler {
             translator.Writing += (progress) => {
                 Console.Error.Write("// Writing JS ");
 
+                var previous = new int[1] { 0 };
+
                 progress.ProgressChanged += (s, p, max) => {
-                    Console.Error.Write(".");
+                    var current = p * 20 / max;
+                    if (current != previous[0]) {
+                        previous[0] = current;
+                        Console.Error.Write(".");
+                    }
                 };
 
                 progress.Finished += (s, e) => {
@@ -84,7 +102,7 @@ namespace JSIL.Compiler {
                 };
             };
             translator.CouldNotLoadSymbols += (fn, ex) => {
-                Console.Error.WriteLine("// No symbols: {0}", ex.Message);
+                Console.Error.WriteLine("// {0}", ex.Message);
             };
             translator.CouldNotResolveAssembly += (fn, ex) => {
                 Console.Error.WriteLine("// Could not load module {0}: {1}", fn, ex.Message);

@@ -434,8 +434,8 @@ namespace JSIL {
                 return new TypeReference(ts.Object.Namespace, "Array", ts.Object.Module, ts.Object.Scope).ResolveOrThrow();
             else if (IsIgnoredType(typeRef))
                 return null;
-            else
-                return typeRef.ResolveOrThrow();
+            else 
+                return typeRef.Resolve();
         }
 
         public static TypeReference FullyDereferenceType (TypeReference type, out int depth) {

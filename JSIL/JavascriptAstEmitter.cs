@@ -953,7 +953,8 @@ namespace JSIL {
 
             return (from n in nodes
                     where (n != null) && 
-                          (n.AllChildrenRecursive.OfType<TNode>().FirstOrDefault() != null)
+                          ((n is TNode) ||
+                          (n.AllChildrenRecursive.OfType<TNode>().FirstOrDefault() != null))
                     select n).Count();
         }
 
