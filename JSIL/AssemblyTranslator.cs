@@ -305,8 +305,7 @@ namespace JSIL {
         }
 
         protected void Analyze (DecompilerContext context, AssemblyDefinition assembly) {
-            if (IsStubbed(assembly))
-                return;
+            bool isStubbed = IsStubbed(assembly);
 
             var allMethods = new Queue<MethodDefinition>();
 
@@ -333,6 +332,14 @@ namespace JSIL {
                             continue;
                         if (!m.HasBody)
                             continue;
+
+                        var isProperty = (methodInfo.DeclaringProperty != null);
+
+                        if (isStubbed && !isProperty)
+                            continue;
+                        if (isStubbed && isProperty)
+                            if (!methodInfo.Member.IsCompilerGenerated())
+                                continue;
 
                         allMethods.Enqueue(m);
                     }
@@ -1204,7 +1211,9 @@ namespace JSIL {
                 if (staticExternalMemberNames == null)
                     throw new ArgumentNullException("staticExternalMemberNames");
 
-                if ((methodInfo.DeclaringProperty == null) || !methodInfo.Member.IsCompilerGenerated()) {
+                var isProperty = methodInfo.DeclaringProperty != null;
+
+                if (!isProperty || !methodInfo.Member.IsCompilerGenerated()) {
                     (method.IsStatic ? staticExternalMemberNames : externalMemberNames)
                         .Add(Util.EscapeIdentifier(methodInfo.GetName(true)));
 
@@ -1220,8 +1229,6 @@ namespace JSIL {
             if (methodIsProxied) {
                 output.Comment("Implementation from {0}", methodInfo.Member.DeclaringType.FullName);
                 output.NewLine();
-            } else if (stubbed) {
-                return;
             }
 
             output.Identifier(method.DeclaringType);
