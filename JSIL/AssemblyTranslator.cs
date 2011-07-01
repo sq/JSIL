@@ -292,6 +292,11 @@ namespace JSIL {
 
             int i = 0, c = FunctionCache.Cache.Count;
             foreach (var e in FunctionCache.Cache.Values) {
+                if (e.Expression == null) {
+                    i++;
+                    continue;
+                }
+
                 pr.OnProgressChanged(i++, c);
                 OptimizeFunction(e.SpecialIdentifiers, e.ParameterNames, e.Variables, e.Expression);
             }
