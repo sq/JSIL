@@ -324,6 +324,10 @@ Microsoft.Xna.Framework.Game.prototype._QueueStep = function () {
     mozRequestAnimationFrame(stepCallback);
   } else if (typeof (webkitRequestAnimationFrame) !== "undefined") {
     webkitRequestAnimationFrame(stepCallback);
+  } else if (false && (typeof (msRequestAnimationFrame) !== "undefined")) {
+    // The version of msRequestAnimationFrame in the current IE Platform Preview has a bug that
+    //  causes it to sometimes never invoke the callback. As a result, we can't currently rely on it.
+    msRequestAnimationFrame(stepCallback, JSIL.Host.getCanvas());
   } else {
     var shouldStepCallback = function () {
       var now = self._GetNow();
