@@ -1013,6 +1013,11 @@ namespace JSIL.Internal {
                 return (MethodInfo)result;
 
             result = new MethodInfo(this, identifier, method, Proxies, property, isFromProxy);
+            if (property.Member.GetMethod == method)
+                property.Getter = (MethodInfo)result;
+            else if (property.Member.SetMethod == method)
+                property.Setter = (MethodInfo)result;
+
             Members.Add(identifier, result);
             return (MethodInfo)result;
         }
@@ -1380,6 +1385,7 @@ namespace JSIL.Internal {
     }
 
     public class PropertyInfo : MemberInfo<PropertyDefinition> {
+        public MethodInfo Getter, Setter;
         protected readonly string ShortName;
 
         public PropertyInfo (

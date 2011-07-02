@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using JSIL.Ast;
+using JSIL.Internal;
 using Mono.Cecil;
 
 namespace JSIL.Transforms {
@@ -22,7 +23,7 @@ namespace JSIL.Transforms {
             Variables = variables;
         }
 
-        protected void EliminateVariable (JSNode context, JSVariable variable, JSExpression replaceWith) {
+        protected void EliminateVariable (JSNode context, JSVariable variable, JSExpression replaceWith, QualifiedMemberIdentifier method) {
             {
                 var replacer = new VariableEliminator(
                     variable,
@@ -35,12 +36,13 @@ namespace JSIL.Transforms {
                 var replacer = new VariableEliminator(variable, replaceWith);
                 var assignments = (from a in FirstPass.Assignments where 
                                        variable.Equals(a.NewValue) ||
-                                       a.NewValue.AllChildrenRecursive.Any((_n) => variable.Equals(_n))
+                                       a.NewValue.SelfAndChildrenRecursive.Any((_n) => variable.Equals(_n))
                                        select a).ToArray();
 
                 foreach (var a in assignments) {
                     if (variable.Equals(a.NewValue)) {
                         FirstPass.Assignments.Remove(a);
+
                         FirstPass.Assignments.Add(
                             new FunctionAnalysis1stPass.Assignment(
                                 a.StatementIndex, a.NodeIndex,
@@ -55,6 +57,7 @@ namespace JSIL.Transforms {
             }
 
             Variables.Remove(variable.Identifier);
+            FunctionSource.InvalidateFirstPass(method);
         }
 
         protected bool IsEffectivelyConstant (JSVariable target, JSExpression source) {
@@ -100,6 +103,18 @@ namespace JSIL.Transforms {
                     ie.Arguments.All((a) => IsEffectivelyConstant(target, a))
                 )
                     return true;
+
+                if ((ie != null) && (ie.JSMethod != null)) {
+                    var sa = FunctionSource.GetSecondPass(ie.JSMethod);
+                    if (sa != null) {
+                        if (sa.IsPure) {
+                            if (ie.Arguments.All((a) => IsEffectivelyConstant(target, a)))
+                                return true;
+                            else
+                                return false;
+                        }
+                    }
+                }
             }
 
             if ((source is JSUnaryOperatorExpression) || (source is JSBinaryOperatorExpression)) {
@@ -156,19 +171,6 @@ namespace JSIL.Transforms {
                 return true;
             }
 
-            // TODO
-            /*
-            var accesses = (from a in FirstPass.Accesses where v.Equals(a.Source) select a).ToArray();
-            if (accesses.Length < 1)
-                return false;
-
-            var firstAccess = accesses.FirstOrDefault();
-            var lastAccess = accesses.LastOrDefault();
-
-            if (firstAccess == firstAssignment + 1)
-                return true;
-             */
-
             return false;
         }
 
@@ -217,7 +219,7 @@ namespace JSIL.Transforms {
                             Debug.WriteLine(String.Format("Eliminating {0} because it is never used.", v));
 
                         EliminatedVariables.Add(v);
-                        EliminateVariable(fn, v, new JSEliminatedVariable(v));
+                        EliminateVariable(fn, v, new JSEliminatedVariable(v), fn.Identifier);
                     } else {
                         if (TraceLevel >= 2)
                             Debug.WriteLine(String.Format("Never found an initial assignment for {0}.", v));
@@ -232,15 +234,6 @@ namespace JSIL.Transforms {
 
                     continue;
                 }
-
-                /*
-                if ((from a in FirstPass.Assignments where v.Equals(a.Target) && a.IsConversion select a).FirstOrDefault() != null) {
-                    if (TraceLevel >= 2)
-                        Debug.WriteLine(String.Format("Cannot eliminate {0}; it undergoes type conversion.", v));
-
-                    continue;
-                }
-                 */
 
                 if (assignments.Length > 1) {
                     if (TraceLevel >= 2)
@@ -258,7 +251,7 @@ namespace JSIL.Transforms {
                 }
 
                 var replacement = assignments.First().NewValue;
-                if (replacement.AllChildrenRecursive.Contains(v)) {
+                if (replacement.SelfAndChildrenRecursive.Contains(v)) {
                     if (TraceLevel >= 2)
                         Debug.WriteLine(String.Format("Cannot eliminate {0}; it contains a self-reference.", v));
 
@@ -290,8 +283,7 @@ namespace JSIL.Transforms {
                         FirstPass.Assignments.Add(new FunctionAnalysis1stPass.Assignment(
                             assignment.StatementIndex, assignment.NodeIndex,
                             transferDataTo, assignment.NewValue, assignment.Operator,
-                            assignment.TargetType, assignment.SourceType
-                            
+                            assignment.TargetType, assignment.SourceType                            
                        ));
                     }
                 }
@@ -301,7 +293,7 @@ namespace JSIL.Transforms {
 
                 EliminatedVariables.Add(v);
 
-                EliminateVariable(fn, v, replacement);
+                EliminateVariable(fn, v, replacement, fn.Identifier);
             }
         }
     }

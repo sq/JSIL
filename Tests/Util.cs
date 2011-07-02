@@ -359,8 +359,13 @@ namespace JSIL.Tests {
                 var csOutput = test.RunCSharp(new string[0], out elapsed);
                 var jsOutput = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed);
 
-                Assert.AreEqual(csharpOutput, csOutput.Trim(), "Did not get expected output from C# test");
-                Assert.AreEqual(javascriptOutput, jsOutput.Trim(), "Did not get expected output from JavaScript test");
+                try {
+                    Assert.AreEqual(csharpOutput, csOutput.Trim(), "Did not get expected output from C# test");
+                    Assert.AreEqual(javascriptOutput, jsOutput.Trim(), "Did not get expected output from JavaScript test");
+                } catch {
+                    Console.Error.WriteLine("// Generated JS: \r\n{0}", generatedJs);
+                    throw;
+                }
             }
 
             return generatedJs;

@@ -21,6 +21,15 @@ namespace JSIL.Ast {
             }
         }
 
+        public IEnumerable<JSNode> SelfAndChildrenRecursive {
+            get {
+                yield return this;
+
+                foreach (var ch in AllChildrenRecursive)
+                    yield return ch;
+            }
+        }
+
         public IEnumerable<JSNode> AllChildrenRecursive {
             get {
                 foreach (var child in Children) {
@@ -1197,7 +1206,11 @@ namespace JSIL.Ast {
 
         new public JSInvocationExpression Referent {
             get {
-                return (JSInvocationExpression)base.Referent;
+                var sce = base.Referent as JSStructCopyExpression;
+                if (sce != null)
+                    return (JSInvocationExpression)sce.Struct;
+                else
+                    return (JSInvocationExpression)base.Referent;
             }
         }
 
@@ -2387,6 +2400,18 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSPropertyAccess : JSDotExpression {
+        public JSPropertyAccess (JSExpression thisReference, JSProperty property)
+            : base(thisReference, property) {
+        }
+
+        public JSProperty Property {
+            get {
+                return (JSProperty)Values[1];
+            }
+        }
+    }
+
     public class JSIndexerExpression : JSExpression {
         public TypeReference ElementType;
 
@@ -2596,10 +2621,21 @@ namespace JSIL.Ast {
                 } else {
                     var eParameters = m.Method.Parameters.GetEnumerator();
                     using (var eArguments = Arguments.GetEnumerator()) {
-                        while (eParameters.MoveNext() && eArguments.MoveNext())
+                        ParameterDefinition currentParameter, lastParameter = null;
+
+                        while (eArguments.MoveNext()) {
+                            if (eParameters.MoveNext()) {
+                                currentParameter = eParameters.Current as ParameterDefinition;
+                            } else {
+                                currentParameter = lastParameter;
+                            }
+
                             yield return new KeyValuePair<ParameterDefinition, JSExpression>(
-                                eParameters.Current as ParameterDefinition, eArguments.Current
+                                currentParameter, eArguments.Current
                             );
+
+                            lastParameter = currentParameter;
+                        }
                     }
                 }
             }
@@ -2618,7 +2654,7 @@ namespace JSIL.Ast {
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             var targetType = Method.GetExpectedType(typeSystem);
 
-            var targetAbstractMethod = Method.AllChildrenRecursive.OfType<JSIdentifier>()
+            var targetAbstractMethod = Method.SelfAndChildrenRecursive.OfType<JSIdentifier>()
                 .LastOrDefault((i) => {
                     var m = i as JSMethod;
                     var fm = i as JSFakeMethod;

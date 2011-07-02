@@ -45,6 +45,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="AnalysisTestCases\ReturnStructArgument.cs" />
+    <None Include="AnalysisTestCases\PureStructOperator.cs" />
+    <None Include="AnalysisTestCases\FieldAssignmentDetection.cs" />
+    <None Include="AnalysisTestCases\IncrementArgumentField.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="FailingTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />

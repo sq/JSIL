@@ -806,8 +806,8 @@ namespace JSIL {
                 var fl = (JSForLoop)ParentNode;
                 if (
                     (fl.Condition == bop) ||
-                    (fl.Increment.AllChildrenRecursive.Any((n) => bop.Equals(n))) ||
-                    (fl.Initializer.AllChildrenRecursive.Any((n) => bop.Equals(n)))
+                    (fl.Increment.SelfAndChildrenRecursive.Any((n) => bop.Equals(n))) ||
+                    (fl.Initializer.SelfAndChildrenRecursive.Any((n) => bop.Equals(n)))
                 ) {
                     parens = false;
                 }

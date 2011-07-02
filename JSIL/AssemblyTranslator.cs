@@ -259,14 +259,18 @@ namespace JSIL {
             if (Optimizing != null)
                 Optimizing(pr);
 
-            int i = 0, c = FunctionCache.Cache.Count;
-            foreach (var e in FunctionCache.Cache.Values) {
+            int i = 0;
+            while (FunctionCache.OptimizationQueue.Count > 0) {
+                var id = FunctionCache.OptimizationQueue.First();
+                FunctionCache.OptimizationQueue.Remove(id);
+
+                var e = FunctionCache.Cache[id];
                 if (e.Expression == null) {
                     i++;
                     continue;
                 }
 
-                pr.OnProgressChanged(i++, c);
+                pr.OnProgressChanged(i++, i + FunctionCache.OptimizationQueue.Count);
                 OptimizeFunction(e.SpecialIdentifiers, e.ParameterNames, e.Variables, e.Expression);
             }
 
@@ -916,7 +920,7 @@ namespace JSIL {
                     return function;
 
                 if (methodInfo.IsExternal) {
-                    FunctionCache.CreateNull(methodDef, method, identifier);
+                    FunctionCache.CreateNull(methodInfo, method, identifier);
                     return null;
                 }
 
@@ -941,7 +945,7 @@ namespace JSIL {
                     if (CouldNotDecompileMethod != null)
                         CouldNotDecompileMethod(bodyDef.FullName, exception);
 
-                    FunctionCache.CreateNull(methodDef, method, identifier);
+                    FunctionCache.CreateNull(methodInfo, method, identifier);
                     pr.OnFinished();
                     return null;
                 }
@@ -951,7 +955,7 @@ namespace JSIL {
 
                 foreach (var v in allVariables) {
                     if (ILBlockTranslator.IsIgnoredType(v.Type)) {
-                        FunctionCache.CreateNull(methodDef, method, identifier);
+                        FunctionCache.CreateNull(methodInfo, method, identifier);
                         pr.OnFinished();
                         return null;
                     }
@@ -966,7 +970,7 @@ namespace JSIL {
                 var body = translator.Translate();
 
                 if (body == null) {
-                    FunctionCache.CreateNull(methodDef, method, identifier);
+                    FunctionCache.CreateNull(methodInfo, method, identifier);
                     pr.OnFinished();
                     return null;
                 }
@@ -979,7 +983,7 @@ namespace JSIL {
                 }
 
                 function = FunctionCache.Create(
-                    methodDef, method, identifier, 
+                    methodInfo, methodDef, method, identifier, 
                     translator, parameters, body
                 );
 
@@ -1008,6 +1012,7 @@ namespace JSIL {
 
             new EmulateStructAssignment(
                 si.TypeSystem,
+                FunctionCache,
                 si.CLR
             ).Visit(function);
 

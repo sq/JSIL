@@ -8,10 +8,18 @@ using JSIL.Transforms;
 using Mono.Cecil;
 
 namespace JSIL {
+    public interface IFunctionSource {
+        JSFunctionExpression GetExpression (QualifiedMemberIdentifier method);
+        FunctionAnalysis1stPass GetFirstPass (QualifiedMemberIdentifier method);
+        FunctionAnalysis2ndPass GetSecondPass (JSMethod method);
+        void InvalidateFirstPass (QualifiedMemberIdentifier method);
+        void InvalidateSecondPass (QualifiedMemberIdentifier method);
+    }
+
     public class FunctionCache : IFunctionSource {
         public class Entry {
             public QualifiedMemberIdentifier Identifier;
-            public MethodDefinition Definition;
+            public MethodInfo Info;
             public MethodReference Reference;
 
             public SpecialIdentifiers SpecialIdentifiers;
@@ -21,8 +29,15 @@ namespace JSIL {
             public JSFunctionExpression Expression;
             public FunctionAnalysis1stPass FirstPass;
             public FunctionAnalysis2ndPass SecondPass;
+
+            public MethodDefinition Definition {
+                get {
+                    return Info.Member;
+                }
+            }
         }
 
+        public readonly HashSet<QualifiedMemberIdentifier> OptimizationQueue = new HashSet<QualifiedMemberIdentifier>();
         public readonly Dictionary<QualifiedMemberIdentifier, Entry> Cache = new Dictionary<QualifiedMemberIdentifier, Entry>();
 
         public bool TryGetExpression (QualifiedMemberIdentifier method, out JSFunctionExpression function) {
@@ -49,6 +64,9 @@ namespace JSIL {
             if (!Cache.TryGetValue(method, out entry))
                 throw new KeyNotFoundException("No cache entry for method '" + method + "'.");
 
+            if (entry.Expression == null)
+                return null;
+
             if (entry.FirstPass == null) {
                 var analyzer = new StaticAnalyzer(entry.Definition.Module.TypeSystem, this);
                 entry.FirstPass = analyzer.FirstPass(entry.Expression);
@@ -57,13 +75,30 @@ namespace JSIL {
             return entry.FirstPass;
         }
 
-        public FunctionAnalysis2ndPass GetSecondPass (QualifiedMemberIdentifier method) {
-            Entry entry;
-            if (!Cache.TryGetValue(method, out entry))
-                throw new KeyNotFoundException("No cache entry for method '" + method + "'.");
+        public FunctionAnalysis2ndPass GetSecondPass (JSMethod method) {
+            var id = method.QualifiedIdentifier;
 
-            if (entry.SecondPass == null)
-                entry.SecondPass = new FunctionAnalysis2ndPass(this, GetFirstPass(method));
+            Entry entry;
+            if (!Cache.TryGetValue(id, out entry)) {
+                entry = new Entry {
+                    Info = method.Method,
+                    Reference = method.Reference, 
+                    Identifier = id,
+                    ParameterNames = new HashSet<string>(from p in method.Method.Parameters select p.Name),
+                    SecondPass = new FunctionAnalysis2ndPass(this, method.Method)
+                };
+                Cache.Add(id, entry);
+                OptimizationQueue.Add(id);
+
+                return entry.SecondPass;
+            }
+
+            if (entry.SecondPass == null) {
+                if (entry.Expression == null)
+                    return null;
+                else
+                    entry.SecondPass = new FunctionAnalysis2ndPass(this, GetFirstPass(id));
+            }
 
             return entry.SecondPass;
         }
@@ -86,7 +121,7 @@ namespace JSIL {
         }
 
         internal JSFunctionExpression Create (
-            MethodDefinition methodDef, MethodReference method, 
+            MethodInfo info, MethodDefinition methodDef, MethodReference method, 
             QualifiedMemberIdentifier identifier, ILBlockTranslator translator, 
             IEnumerable<JSVariable> parameters, JSBlockStatement body
         ) {
@@ -99,7 +134,7 @@ namespace JSIL {
 
             var entry = new Entry {
                 Identifier = identifier,
-                Definition = methodDef,
+                Info = info,
                 Reference = method,
                 Expression = result,
                 Variables = translator.Variables,
@@ -108,17 +143,18 @@ namespace JSIL {
             };
 
             Cache.Add(identifier, entry);
+            OptimizationQueue.Add(identifier);
 
             return result;
         }
 
         internal void CreateNull (
-            MethodDefinition methodDef, MethodReference method, 
+            MethodInfo info, MethodReference method, 
             QualifiedMemberIdentifier identifier
         ) {
             var entry = new Entry {
                 Identifier = identifier,
-                Definition = methodDef,
+                Info = info,
                 Reference = method,
                 Expression = null
             };

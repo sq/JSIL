@@ -352,7 +352,7 @@ namespace JSIL {
                 }
 
                 if ((propertyInfo.Member.GetMethod != null) && (method.Method.Member.Name == propertyInfo.Member.GetMethod.Name)) {
-                    return new JSDotExpression(
+                    return new JSPropertyAccess(
                         actualThis, new JSProperty(method.Reference, propertyInfo)
                     );
                 } else {
@@ -361,7 +361,7 @@ namespace JSIL {
 
                     return new JSBinaryOperatorExpression(
                         JSOperator.Assignment,
-                        new JSDotExpression(
+                        new JSPropertyAccess(
                             actualThis, new JSProperty(method.Reference, propertyInfo)
                         ),
                         arguments[0], propertyInfo.ReturnType

@@ -138,7 +138,7 @@ namespace JSIL.Transforms {
                 ) {
                     var array = ie.Arguments[0];
                     var arrayType = array.GetExpectedType(TypeSystem);
-                    var field = ie.Arguments[1].AllChildrenRecursive.OfType<JSField>().First();
+                    var field = ie.Arguments[1].SelfAndChildrenRecursive.OfType<JSField>().First();
                     var initializer = JSArrayExpression.UnpackArrayInitializer(arrayType, field.Field.Member.InitialValue);
 
                     var copy = JSIL.ShallowCopy(array, initializer, arrayType); 
