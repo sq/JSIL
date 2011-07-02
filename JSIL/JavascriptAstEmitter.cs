@@ -505,7 +505,7 @@ namespace JSIL {
 
         public void VisitNode (JSFunctionExpression function) {
             var oldCurrentMethod = Output.CurrentMethod;
-            Output.CurrentMethod = function.OriginalMethodReference;
+            Output.CurrentMethod = function.Method.Reference;
 
             Output.OpenFunction(
                 null,

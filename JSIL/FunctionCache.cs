@@ -138,7 +138,7 @@ namespace JSIL {
             IEnumerable<JSVariable> parameters, JSBlockStatement body
         ) {
             var result = new JSFunctionExpression(
-                methodDef, method, identifier,
+                new JSMethod(method, info),
                 translator.Variables,
                 parameters,
                 body

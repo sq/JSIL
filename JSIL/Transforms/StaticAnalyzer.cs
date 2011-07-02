@@ -446,7 +446,7 @@ namespace JSIL.Transforms {
             EscapingVariables = Data.EscapingVariables;
             ResultVariable = Data.ResultVariable;
 
-            Trace(data.Function.OriginalMethodReference.FullName);
+            Trace(data.Function.Method.Reference.FullName);
         }
 
         public FunctionAnalysis2ndPass (IFunctionSource functionSource, MethodInfo method) {

@@ -132,12 +132,6 @@ namespace JSIL.Transforms {
             }
 
             VisitChildren(invocation);
-
-            var returnType = invocation.GetExpectedType(TypeSystem);
-            /*
-            if (IsStruct(returnType))
-                ParentNode.ReplaceChild(invocation, new JSStructCopyExpression(invocation));
-             */
         }
 
         public void VisitNode (JSDelegateInvocationExpression invocation) {
@@ -152,12 +146,6 @@ namespace JSIL.Transforms {
             }
 
             VisitChildren(invocation);
-
-            var returnType = invocation.GetExpectedType(TypeSystem);
-            /*
-            if (IsStruct(returnType))
-                ParentNode.ReplaceChild(invocation, new JSStructCopyExpression(invocation));
-             */
         }
 
         public void VisitNode (JSBinaryOperatorExpression boe) {

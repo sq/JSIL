@@ -189,7 +189,7 @@ namespace JSIL.Transforms {
             }
 
             var nullList = new List<int>();
-            FirstPass = FunctionSource.GetFirstPass(fn.Identifier);
+            FirstPass = FunctionSource.GetFirstPass(fn.Method.QualifiedIdentifier);
             if (FirstPass == null)
                 throw new InvalidOperationException();
 
@@ -219,7 +219,7 @@ namespace JSIL.Transforms {
                             Debug.WriteLine(String.Format("Eliminating {0} because it is never used.", v));
 
                         EliminatedVariables.Add(v);
-                        EliminateVariable(fn, v, new JSEliminatedVariable(v), fn.Identifier);
+                        EliminateVariable(fn, v, new JSEliminatedVariable(v), fn.Method.QualifiedIdentifier);
                     } else {
                         if (TraceLevel >= 2)
                             Debug.WriteLine(String.Format("Never found an initial assignment for {0}.", v));
@@ -293,7 +293,7 @@ namespace JSIL.Transforms {
 
                 EliminatedVariables.Add(v);
 
-                EliminateVariable(fn, v, replacement, fn.Identifier);
+                EliminateVariable(fn, v, replacement, fn.Method.QualifiedIdentifier);
             }
         }
     }

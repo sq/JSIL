@@ -245,9 +245,7 @@ namespace JSIL.Ast {
     }
 
     public class JSFunctionExpression : JSExpression {
-        public readonly MethodDefinition OriginalMethod;
-        public readonly MethodReference OriginalMethodReference;
-        public readonly QualifiedMemberIdentifier Identifier;
+        public readonly JSMethod Method;
 
         public readonly Dictionary<string, JSVariable> AllVariables;
         // This has to be JSVariable, because 'this' is of type (JSVariableReference<JSThisParameter>) for structs
@@ -256,12 +254,10 @@ namespace JSIL.Ast {
         public readonly JSBlockStatement Body;
 
         public JSFunctionExpression (
-            MethodDefinition originalMethod, MethodReference originalMethodReference, QualifiedMemberIdentifier identifier,
-            Dictionary<string, JSVariable> allVariables, IEnumerable<JSVariable> parameters, JSBlockStatement body
+            JSMethod method, Dictionary<string, JSVariable> allVariables, 
+            IEnumerable<JSVariable> parameters, JSBlockStatement body
         ) {
-            OriginalMethod = originalMethod;
-            OriginalMethodReference = originalMethodReference;
-            Identifier = identifier;
+            Method = method;
             AllVariables = allVariables;
             Parameters = parameters;
             Body = body;
@@ -279,7 +275,7 @@ namespace JSIL.Ast {
         public override bool Equals (object obj) {
             var rhs = obj as JSFunctionExpression;
             if (rhs != null) {
-                if (!Object.Equals(OriginalMethod, rhs.OriginalMethod))
+                if (!Object.Equals(Method, rhs.Method))
                     return false;
                 if (!Object.Equals(AllVariables, rhs.AllVariables))
                     return false;
@@ -293,10 +289,10 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            if (OriginalMethod != null) {
-                var delegateType = ConstructDelegateType(OriginalMethodReference, typeSystem);
+            if (Method != null) {
+                var delegateType = ConstructDelegateType(Method.Reference, typeSystem);
                 if (delegateType == null)
-                    return OriginalMethod.ReturnType;
+                    return Method.Reference.ReturnType;
                 else
                     return delegateType;
             } else
@@ -305,7 +301,7 @@ namespace JSIL.Ast {
 
         public override string ToString () {
             return String.Format(
-                "function {0} ({1}) {{ ... }}", Identifier.Member,
+                "function {0} ({1}) {{ ... }}", Method.Method.Member,
                 String.Join(", ", (from p in Parameters select p.Name).ToArray())
             );
         }
