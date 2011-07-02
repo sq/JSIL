@@ -46,6 +46,7 @@ namespace JSIL {
         public string OutputDirectory = Environment.CurrentDirectory;
 
         public bool EliminateTemporaries = true;
+        public bool OptimizeStructCopies = true;
         public bool SimplifyLoops = true;
         public bool SimplifyOperators = true;
         public bool IncludeDependencies = true;
@@ -1013,7 +1014,8 @@ namespace JSIL {
             new EmulateStructAssignment(
                 si.TypeSystem,
                 FunctionCache,
-                si.CLR
+                si.CLR,
+                OptimizeStructCopies
             ).Visit(function);
 
             new IntroduceVariableDeclarations(

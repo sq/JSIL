@@ -14,13 +14,15 @@ namespace JSIL.Transforms {
         public readonly CLRSpecialIdentifiers CLR;
         public readonly IFunctionSource FunctionSource;
         public readonly TypeSystem TypeSystem;
+        public readonly bool OptimizeCopies;
 
         protected readonly Dictionary<string, int> ReferenceCounts = new Dictionary<string, int>();
 
-        public EmulateStructAssignment (TypeSystem typeSystem, IFunctionSource functionSource, CLRSpecialIdentifiers clr) {
+        public EmulateStructAssignment (TypeSystem typeSystem, IFunctionSource functionSource, CLRSpecialIdentifiers clr, bool optimizeCopies) {
             TypeSystem = typeSystem;
             FunctionSource = functionSource;
             CLR = clr;
+            OptimizeCopies = optimizeCopies;
         }
 
         public static bool IsStruct (TypeReference type) {
@@ -76,7 +78,7 @@ namespace JSIL.Transforms {
         public void VisitNode (JSFunctionExpression fn) {
             // Create a new visitor for nested function expressions
             if (Stack.OfType<JSFunctionExpression>().Skip(1).FirstOrDefault() != null) {
-                var nested = new EmulateStructAssignment(TypeSystem, FunctionSource, CLR);
+                var nested = new EmulateStructAssignment(TypeSystem, FunctionSource, CLR, OptimizeCopies);
                 nested.Visit(fn);
                 return;
             }

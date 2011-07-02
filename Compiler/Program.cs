@@ -11,7 +11,7 @@ namespace JSIL.Compiler {
         static void ParseOption (AssemblyTranslator translator, string option) {
             var m = Regex.Match(option, "-(-?)(?'key'[a-zA-Z]*)([=:](?'value'.*))?", RegexOptions.ExplicitCapture);
             if (m.Success) {
-                switch (m.Groups["key"].Value) {
+                switch (m.Groups["key"].Value.ToLower()) {
                     case "out":
                     case "o":
                         translator.OutputDirectory = Path.GetFullPath(m.Groups["value"].Value);
@@ -31,6 +31,18 @@ namespace JSIL.Compiler {
                     case "proxy":
                     case "p":
                         translator.AddProxyAssembly(Path.GetFullPath(m.Groups["value"].Value), false);
+                        break;
+                    case "os":
+                        translator.OptimizeStructCopies = false;
+                        break;
+                    case "oo":
+                        translator.SimplifyOperators = false;
+                        break;
+                    case "ol":
+                        translator.SimplifyLoops = false;
+                        break;
+                    case "ot":
+                        translator.EliminateTemporaries = false;
                         break;
                 }
             }
@@ -136,6 +148,14 @@ namespace JSIL.Compiler {
                 Console.WriteLine("  Disables translating dependencies.");
                 Console.WriteLine("--nodefaults");
                 Console.WriteLine("  Disables the built-in default stub list. Use this if you actually want to translate huge Microsoft assemblies like mscorlib.");
+                Console.WriteLine("--oS");
+                Console.WriteLine("  Disables struct copy optimizations");
+                Console.WriteLine("--oO");
+                Console.WriteLine("  Disables operator optimizations");
+                Console.WriteLine("--oL");
+                Console.WriteLine("  Disables loop optimizations");
+                Console.WriteLine("--oT");
+                Console.WriteLine("  Disables temporary variable elimination");
                 Console.WriteLine("--proxy:<assembly>");
                 Console.WriteLine("  Specifies the location of a proxy assembly that contains type information for other assemblies.");
                 Console.WriteLine("--ignore:<regex>");
