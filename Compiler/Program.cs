@@ -60,7 +60,7 @@ namespace JSIL.Compiler {
         static void Main (string[] arguments) {
             var translator = new AssemblyTranslator();
             translator.LoadingAssembly += (fn, progress) => {
-                Console.Error.WriteLine("// Loading {0}...", fn);
+                Console.Error.WriteLine("// Loading {0}. ", fn);
             };
             translator.Decompiling += (progress) => {
                 Console.Error.Write("// Decompiling ");
@@ -140,7 +140,9 @@ namespace JSIL.Compiler {
             if (filenames.Count == 0) {
                 var asmName = Assembly.GetExecutingAssembly().GetName();
                 Console.WriteLine("==== JSILc v{0}.{1}.{2} ====", asmName.Version.Major, asmName.Version.Minor, asmName.Version.Revision);
-                Console.WriteLine("Usage: JSILc [options] assembly [assembly]");
+                Console.WriteLine("Usage: JSILc [options] ...");
+                Console.WriteLine("Specify one or more compiled assemblies (dll/exe) to translate them. Symbols will be loaded if they exist in the same directory.");
+                Console.WriteLine("You can also specify Visual Studio solution files (sln) to build them and automatically translate their output(s).");
                 Console.WriteLine("Options:");
                 Console.WriteLine("--out:<folder>");
                 Console.WriteLine("  Specifies the directory into which the generated javascript should be written.");
@@ -168,8 +170,26 @@ namespace JSIL.Compiler {
             if (includeDefaults)
                 ApplyDefaults(translator);
 
-            foreach (var filename in filenames)
-                translator.Translate(filename);
+            while (filenames.Count > 0) {
+                var filename = filenames.First();
+                filenames.Remove(filename);
+
+                var extension = Path.GetExtension(filename);
+                switch (extension.ToLower()) {
+                    case ".exe":
+                    case ".dll":
+                        translator.Translate(filename);
+                        break;
+                    case ".sln":
+                        foreach (var resultFilename in SolutionBuilder.Build(filename)) {
+                            filenames.Add(resultFilename);
+                        }
+                        break;
+                    default:
+                        Console.Error.WriteLine("// Don't know what to do with file '{0}'.", filename);
+                        break;
+                }
+            }
         }
     }
 }
