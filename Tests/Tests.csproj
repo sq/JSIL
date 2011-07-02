@@ -48,6 +48,7 @@
     <None Include="AnalysisTestCases\PureStructOperator.cs" />
     <None Include="AnalysisTestCases\FieldAssignmentDetection.cs" />
     <None Include="AnalysisTestCases\IncrementArgumentField.cs" />
+    <None Include="AnalysisTestCases\NestedReturn.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="FailingTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />

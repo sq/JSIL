@@ -56,8 +56,6 @@ namespace JSIL.Transforms {
 
             if (
                 (value is JSLiteral) ||
-                (value is JSInvocationExpression) ||
-                (value is JSDelegateInvocationExpression) ||
                 (value is JSNewExpression) ||
                 (value is JSPassByReferenceExpression)
             ) {
@@ -136,8 +134,10 @@ namespace JSIL.Transforms {
             VisitChildren(invocation);
 
             var returnType = invocation.GetExpectedType(TypeSystem);
+            /*
             if (IsStruct(returnType))
                 ParentNode.ReplaceChild(invocation, new JSStructCopyExpression(invocation));
+             */
         }
 
         public void VisitNode (JSDelegateInvocationExpression invocation) {
@@ -154,8 +154,10 @@ namespace JSIL.Transforms {
             VisitChildren(invocation);
 
             var returnType = invocation.GetExpectedType(TypeSystem);
+            /*
             if (IsStruct(returnType))
                 ParentNode.ReplaceChild(invocation, new JSStructCopyExpression(invocation));
+             */
         }
 
         public void VisitNode (JSBinaryOperatorExpression boe) {
