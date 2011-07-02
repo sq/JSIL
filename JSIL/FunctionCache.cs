@@ -29,6 +29,7 @@ namespace JSIL {
             public JSFunctionExpression Expression;
             public FunctionAnalysis1stPass FirstPass;
             public FunctionAnalysis2ndPass SecondPass;
+            public bool InProgress;
 
             public MethodDefinition Definition {
                 get {
@@ -67,9 +68,17 @@ namespace JSIL {
             if (entry.Expression == null)
                 return null;
 
+            if (entry.InProgress)
+                return null;
+
             if (entry.FirstPass == null) {
-                var analyzer = new StaticAnalyzer(entry.Definition.Module.TypeSystem, this);
-                entry.FirstPass = analyzer.FirstPass(entry.Expression);
+                entry.InProgress = true;
+                try {
+                    var analyzer = new StaticAnalyzer(entry.Definition.Module.TypeSystem, this);
+                    entry.FirstPass = analyzer.FirstPass(entry.Expression);
+                } finally {
+                    entry.InProgress = false;
+                }
             }
 
             return entry.FirstPass;
@@ -94,6 +103,9 @@ namespace JSIL {
             }
 
             if (entry.SecondPass == null) {
+                if (entry.InProgress)
+                    return null;
+
                 if (entry.Expression == null)
                     return null;
                 else
