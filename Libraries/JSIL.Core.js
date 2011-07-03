@@ -55,7 +55,8 @@ JSIL.DeclareAssembly = function (assemblyName) {
   return JSIL.PrivateNamespaces[assemblyName] = $private = result;
 };
 
-JSIL.DeclareAssembly("JSIL.Core");
+var $jsilcore = JSIL.DeclareAssembly("JSIL.Core");
+$jsilcore.nextTypeId = 0;
 
 JSIL.EscapeName = function (name) {
   return name.replace("`", "$b").replace(".", "_").replace("<", "$l").replace(">", "$g");
@@ -551,8 +552,10 @@ JSIL.TypeObjectPrototype.Of = function () {
   var self = this;
   var ga = this.__GenericArguments__;
   var ofCache = this.__OfCache__;
-  var typeArguments = Array.prototype.slice.call(arguments);
-  var cacheKey = typeArguments.join(",");
+  var cacheKey = arguments[0].__TypeId__;
+
+  for (var i = 1, l = arguments.length; i < l; i++)
+    cacheKey += "," + arguments[i].__TypeId__;
 
   if ((typeof (ofCache) === "undefined") || (ofCache === null))
     this.__OfCache__ = ofCache = [];
@@ -561,12 +564,12 @@ JSIL.TypeObjectPrototype.Of = function () {
     throw new Error("Invalid number of generic arguments for type '" + JSIL.GetTypeName(this) + "' (got " + arguments.length + ", expected " + ga.length + ")");
 
   // If we do not return the same exact closed type instance from every call to Of(...), derivation checks will fail
-  if (ofCache.hasOwnProperty(cacheKey)) {
-    var result = ofCache[cacheKey];
-    return result;
-  }
+  var result = ofCache[cacheKey] || null;
 
-  var result = function () {
+  if (result !== null)
+    return result;
+
+  result = function () {
     var ctorArguments = Array.prototype.slice.call(arguments);
     return Function.prototype.apply.call(self, this, ctorArguments);
   };
@@ -587,6 +590,7 @@ JSIL.TypeObjectPrototype.Of = function () {
   }
 
   var fullName = this.__FullName__ + "<" + Array.prototype.join.call(arguments, ", ") + ">";
+  result.__TypeId__ = ++$jsilcore.nextTypeId;
   result.__FullName__ = fullName;
   result.toString = function () {
     return fullName;
@@ -898,6 +902,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments) {
     return typeObject;
   };
   typeObject.FullName = typeObject.__FullName__ = fullName;
+  typeObject.__TypeId__ = ++$jsilcore.nextTypeId;
   typeObject.__ShortName__ = localName;
   typeObject.__IsStatic__ = true;
   typeObject.__TypeInitialized__ = false;
@@ -951,6 +956,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
       this._ctor.apply(this, args);
   };
 
+  typeObject.__TypeId__ = ++$jsilcore.nextTypeId;
   typeObject.__IsArray__ = false;
   typeObject.__TypeInitialized__ = false;
   typeObject.__IsNativeType__ = false;
@@ -1018,6 +1024,7 @@ JSIL.MakeInterface = function (fullName, genericArguments, members) {
   var typeObject = function() {
     throw new Error("Cannot construct an instance of an interface");
   };
+  typeObject.__TypeId__ = ++$jsilcore.nextTypeId;
   typeObject.__Members__ = members;
   typeObject.__ShortName__ = localName;
   typeObject.FullName = typeObject.__FullName__ = fullName;
@@ -1081,6 +1088,7 @@ JSIL.MakeEnum = function (fullName, members, isFlagsEnum) {
     FullName: fullName,
     Name: localName,
     IsEnum: true,
+    __TypeId__: ++$jsilcore.nextTypeId,
     __IsFlagsEnum__: isFlagsEnum,
     __ValueToName__: {}
   };
@@ -1655,6 +1663,7 @@ JSIL.Reference.Of = function (type) {
     };
     compositeType.prototype = JSIL.MakeProto(JSIL.Reference, compositeType, typeName, true);
     compositeType.FullName = compositeType.__FullName__ = typeName;
+    compositeType.__TypeId__ = ++$jsilcore.nextTypeId;
     JSIL.Reference.Types[elementName] = compositeType;
   }
 
@@ -1780,6 +1789,7 @@ System.Array.Of = function (type) {
     var typeName = elementName + "[]";
     compositeType = JSIL.CloneObject(System.Array);
     compositeType.FullName = compositeType.__FullName__ = typeName;
+    compositeType.__TypeId__ = ++$jsilcore.nextTypeId;
     compositeType.__IsArray__ = true;
     compositeType.prototype = JSIL.MakeProto(System.Array, compositeType, typeName, true);
     compositeType.toString = function () {
@@ -1969,6 +1979,7 @@ JSIL.MakeDelegateType = function (fullName, localName) {
 
   var result = {
     prototype: prototype,
+    __TypeId__: ++$jsilcore.nextTypeId,
     __BaseType__: delegateType,
     __FullName__: fullName,
     CheckType: function (value) {
