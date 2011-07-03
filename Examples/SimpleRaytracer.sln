@@ -1,0 +1,17 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleRaytracer", "SimpleRaytracer.csproj", "{6810793E-50FB-4D79-88F6-209B3BC20325}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6810793E-50FB-4D79-88F6-209B3BC20325}.Release|x86.ActiveCfg = Release|x86
+		{6810793E-50FB-4D79-88F6-209B3BC20325}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

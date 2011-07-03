@@ -910,15 +910,11 @@ Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDraw = function (
     destH = -destH;
   }
 
-  try {
-    this.device.context.drawImage(
-      image, 
-      sourceX, sourceY, sourceW, sourceH,
-      positionX, positionY, destW, destH
-    );
-  } catch (e) {
-    throw e;
-  }
+  this.device.context.drawImage(
+    image, 
+    sourceX, sourceY, sourceW, sourceH,
+    positionX, positionY, destW, destH
+  );
 
   if (needRestore)
     this.device.context.restore();
