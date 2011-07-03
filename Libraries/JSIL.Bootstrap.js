@@ -575,6 +575,16 @@ System.Text.ASCIIEncoding.prototype._ctor = function () {
 };
 
 System.Nullable$b1.prototype.value = null;
+System.Nullable$b1.CheckType = function (value) {
+  if (value === null)
+    return true;
+
+  if (typeof (this.T) === "object") {
+    return JSIL.CheckType(value, this.T);
+  } else {
+    return true;
+  }
+};
 
 System.Nullable$b1.prototype._ctor = function (value) {
   this.value = value;

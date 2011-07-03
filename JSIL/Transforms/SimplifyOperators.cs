@@ -46,6 +46,55 @@ namespace JSIL.Transforms {
             if (method != null) {
                 if (
                     (type != null) &&
+                    (type.Type.FullName.StartsWith("System.Nullable"))
+                ) {
+                    var t = (type.Type as GenericInstanceType).GenericArguments[0];
+                    var @null = JSLiteral.Null(t);
+                    var @default = new JSDefaultValueLiteral(t);
+
+                    switch (method.Method.Member.Name) {
+                        case ".ctor":
+                            JSExpression value;
+                            if (ie.Arguments.Count == 0) {
+                                value = @null;
+                            } else {
+                                value = ie.Arguments[0];
+                            }
+
+                            var boe = new JSBinaryOperatorExpression(
+                                JSOperator.Assignment, ie.ThisReference, value, type.Type                                
+                            );
+                            ParentNode.ReplaceChild(ie, boe);
+                            VisitReplacement(boe);
+
+                            break;
+                        case "GetValueOrDefault":
+                            var isNull = new JSBinaryOperatorExpression(
+                                JSOperator.Equal, ie.ThisReference, @null, TypeSystem.Boolean
+                            );
+
+                            JSTernaryOperatorExpression ternary;
+                            if (ie.Arguments.Count == 0) {
+                                ternary = new JSTernaryOperatorExpression(
+                                    isNull, @default, ie.ThisReference, type.Type
+                                );
+                            } else {
+                                ternary = new JSTernaryOperatorExpression(
+                                    isNull, ie.Arguments[0], ie.ThisReference, type.Type
+                                );
+                            }
+
+                            ParentNode.ReplaceChild(ie, ternary);
+                            VisitReplacement(ternary);
+
+                            break;
+                        default:
+                            throw new NotImplementedException(method.Method.Member.FullName);
+                    }
+
+                    return;
+                } else if (
+                    (type != null) &&
                     ILBlockTranslator.TypesAreEqual(TypeSystem.String, type.Type) &&
                     (method.Method.Name == "Concat")
                 ) {
@@ -178,6 +227,36 @@ namespace JSIL.Transforms {
             }
 
             VisitChildren(ie);
+        }
+
+        public void VisitNode (JSPropertyAccess pa) {
+            var targetType = pa.Target.GetExpectedType(TypeSystem);
+
+            if (targetType.FullName.StartsWith("System.Nullable")) {
+                var @null = JSLiteral.Null(targetType);
+
+                switch (pa.Property.Property.Member.Name) {
+                    case "HasValue":
+                        var replacement = new JSBinaryOperatorExpression(
+                            JSOperator.NotEqual, pa.Target, @null, TypeSystem.Boolean
+                        );
+                        ParentNode.ReplaceChild(pa, replacement);
+                        VisitReplacement(replacement);
+
+                        break;
+                    case "Value":
+                        ParentNode.ReplaceChild(pa, pa.Target);
+                        VisitReplacement(pa.Target);
+
+                        break;
+                    default:
+                        throw new NotImplementedException(pa.Property.Property.Member.FullName);
+                }
+
+                return;
+            }
+
+            VisitChildren(pa);
         }
 
         public void VisitNode (JSUnaryOperatorExpression uoe) {
@@ -324,6 +403,41 @@ namespace JSIL.Transforms {
             }
 
             VisitChildren(boe);
+        }
+
+        public void VisitNode (JSDefaultValueLiteral dvl) {
+            var expectedType = dvl.GetExpectedType(TypeSystem);
+            if (
+                (expectedType != null) &&
+                expectedType.FullName.StartsWith("System.Nullable")
+            ) {
+                ParentNode.ReplaceChild(
+                    dvl, JSLiteral.Null(expectedType)
+                );
+            } else {
+                VisitChildren(dvl);
+            }
+        }
+
+        public void VisitNode (JSNewExpression ne) {
+            var expectedType = ne.GetExpectedType(TypeSystem);
+            if (
+                (expectedType != null) &&
+                expectedType.FullName.StartsWith("System.Nullable")
+            ) {
+                if (ne.Arguments.Count == 0) {
+                    ParentNode.ReplaceChild(
+                        ne, JSLiteral.Null(expectedType)
+                    );
+                } else {
+                    ParentNode.ReplaceChild(
+                        ne, ne.Arguments[0]
+                    );
+                    VisitReplacement(ne.Arguments[0]);
+                }
+            } else {
+                VisitChildren(ne);
+            }
         }
     }
 }

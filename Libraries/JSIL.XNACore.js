@@ -95,7 +95,7 @@ HTML5SoundAsset.prototype._ctor = function (assetName, sound) {
   this.sound = sound;
 }
 HTML5SoundAsset.prototype.Play$0 = function () {
-  if (this.sound != null) {
+  if (this.sound !== null) {
     this.sound.play();
   }
 }
@@ -839,12 +839,11 @@ Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDraw = function (
     positionY -= originY;
   }
 
-  if ((sourceRectangle !== null) && (sourceRectangle.value !== null)) {
-    var sr = sourceRectangle.value;
-    sourceX = sr.X;
-    sourceY = sr.Y;
-    sourceW = sr.Width;
-    sourceH = sr.Height;
+  if (sourceRectangle !== null) {
+    sourceX = sourceRectangle.X;
+    sourceY = sourceRectangle.Y;
+    sourceW = sourceRectangle.Width;
+    sourceH = sourceRectangle.Height;
   }
 
   if (sourceX < 0) {

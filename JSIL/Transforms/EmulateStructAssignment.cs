@@ -54,6 +54,9 @@ namespace JSIL.Transforms {
             if (!IsStruct(valueType))
                 return false;
 
+            if (valueType.FullName.StartsWith("System.Nullable"))
+                return false;
+
             if (
                 (value is JSLiteral) ||
                 (value is JSNewExpression) ||
