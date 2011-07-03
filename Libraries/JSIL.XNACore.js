@@ -5,12 +5,32 @@ if (typeof (JSIL) === "undefined")
 
 var $jsilxna = JSIL.DeclareAssembly("JSIL.XNA");
 
-$jsilxna.imageMultipliedCache = {};
+$jsilxna.nextImageId = 0;
+$jsilxna.multipliedImageCache = {};
+
+$jsilxna.getCachedMultipliedImage = function (image, color) {
+  var imageId = image.getAttribute("__imageId") || null;
+  if (imageId === null)
+    image.setAttribute("__imageId", imageId = new String($jsilxna.nextImageId++));
+
+  var key = imageId + color.toCss(255);
+  var result = $jsilxna.multipliedImageCache[key] || null;
+  return result;
+};
+
+$jsilxna.setCachedMultipliedImage = function (image, color, value) {
+  var imageId = image.getAttribute("__imageId") || null;
+  if (imageId === null)
+    image.setAttribute("__imageId", imageId = new String($jsilxna.nextImageId++));
+
+  var key = imageId + color.toCss(255);
+  $jsilxna.multipliedImageCache[key] = value;
+};
 
 $jsilxna.getImageMultiplied = function (image, color) {
-  var key = image.src + color.toCss();
-  if ($jsilxna.imageMultipliedCache.hasOwnProperty(key))
-    return $jsilxna.imageMultipliedCache[key];
+  var cached = $jsilxna.getCachedMultipliedImage(image, color);
+  if (cached !== null)
+    return cached;
 
   var canvas = document.createElement("canvas");
   var context = canvas.getContext("2d");
@@ -20,35 +40,25 @@ $jsilxna.getImageMultiplied = function (image, color) {
   canvas.height = image.naturalHeight + 2;
 
   context.save();
-  context.clearRect(0, 0, image.naturalWidth + 2, image.naturalHeight + 2);
+  context.globalCompositeOperation = "copy";
   context.globalCompositeAlpha = 1.0;
+  context.clearRect(0, 0, image.naturalWidth + 2, image.naturalHeight + 2);
   context.drawImage(image, 1, 1);
 
   var imageData = context.getImageData(1, 1, image.naturalWidth, image.naturalHeight);
-  var rmul = color.R / 255;
-  var gmul = color.G / 255;
-  var bmul = color.B / 255;
-  var amul = color.A / 255;
+  var rmul = color.r / 255;
+  var gmul = color.g / 255;
+  var bmul = color.b / 255;
   var bytes = imageData.data;
-  var foundPixels = false;
 
   for (var i = 0, l = image.naturalWidth * image.naturalHeight * 4; i < l; i += 4) {
     bytes[i] *= rmul;
     bytes[i + 1] *= gmul;
     bytes[i + 2] *= bmul;
-    if (bytes[i + 3] > 0)
-      foundPixels = true;
-    bytes[i + 3] *= amul;
   }
 
-  if (foundPixels) {
-    context.putImageData(imageData, 1, 1);
-    $jsilxna.imageMultipliedCache[key] = canvas;
-  } else {
-    // Workaround for bug in Chrome 12+ which causes getImageData to return pure black. LAME.
-    $jsilxna.imageMultipliedCache[key] = image;
-    return image;
-  }
+  context.putImageData(imageData, 1, 1);
+  $jsilxna.setCachedMultipliedImage(image, color, canvas);
   return canvas;
 };
 
@@ -91,6 +101,7 @@ HTML5SoundAsset.prototype.Play$0 = function () {
 }
 
 JSIL.MakeClass("HTML5Asset", "HTML5FontAsset", true);
+HTML5FontAsset.prototype._cachedCss = null;
 HTML5FontAsset.prototype._ctor = function (assetName, id, pointSize, lineHeight) {
   HTML5Asset.prototype._ctor.call(this, assetName);
   this.id = id;
@@ -100,7 +111,13 @@ HTML5FontAsset.prototype._ctor = function (assetName, id, pointSize, lineHeight)
   this.context = this.canvas.getContext("2d");
 }
 HTML5FontAsset.prototype.toCss = function (scale) {
-  return (this.pointSize * (scale || 1)) + 'pt "' + this.id + '"';
+  scale = (scale || 1.0);
+  if ((this._cachedCss != null) && (this._cachedScale === scale)) {
+    return this._cachedScale;
+  } else {
+    this._cachedScale = scale;
+    return this._cachedCss = (this.pointSize * scale) + 'pt "' + this.id + '"';
+  }
 };
 HTML5FontAsset.prototype.MeasureString$0 = function (text) {
   this.context.font = this.toCss();
@@ -642,10 +659,10 @@ $jsilxna.Color = {
 
   op_Multiply : function (color, multiplier) {
     var result = Object.create(Object.getPrototypeOf(color));
-    result.a = Math.floor(this.a * multiplier);
-    result.r = Math.floor(this.r * multiplier);
-    result.g = Math.floor(this.g * multiplier);
-    result.b = Math.floor(this.b * multiplier);
+    result.a = Math.floor(color.a * multiplier);
+    result.r = Math.floor(color.r * multiplier);
+    result.g = Math.floor(color.g * multiplier);
+    result.b = Math.floor(color.b * multiplier);
     return result;    
   },
 };
@@ -694,19 +711,43 @@ $jsilxna.ColorPrototype = {
   get_B : function () {
     return this.b;
   },
+  set_A : function (value) {
+    this.a = value;
+    this._cachedCss = null;
+  },
+  set_R : function (value) {
+    this.r = value;
+    this._cachedCss = null;
+  },
+  set_G : function (value) {
+    this.g = value;
+    this._cachedCss = null;
+  },
+  set_B : function (value) {
+    this.b = value;
+    this._cachedCss = null;
+  },
 
-  toCss : function () {
-    if (this.A < 255) {
-      return "rgba(" + this.R + 
-        "," + this.G +
-        "," + this.B +
-        "," + this.A / 255.0 +
+  _cachedCss : null,
+  toCss : function (alpha) {
+    if ((this._cachedCss != null) && (this._cachedAlpha == alpha)) {
+      return this._cachedCss;
+    }
+
+    var a = alpha || this.a;
+    if (a < 255) {
+      this._cachedAlpha = a;
+      return this._cachedCss = "rgba(" + this.r + 
+        "," + this.g +
+        "," + this.b +
+        "," + a +
       ")";    
     } else {
-      return "rgb(" + this.R + 
-        "," + this.G +
-        "," + this.B +
-      ")";    
+      this._cachedAlpha = a;
+      return this._cachedCss = "rgb(" + this.r + 
+        "," + this.g +
+        "," + this.b +
+      ")";
     }
   },
 
@@ -755,10 +796,11 @@ Microsoft.Xna.Framework.Graphics.GraphicsDevice.prototype.InternalClear = functi
 };
 
 Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDraw = function (texture, position, sourceRectangle, color, rotation, origin, scale, effects) {
+  var needRestore = false;
   var image = texture.image;
   var positionIsRect = typeof (position.Width) === "number";
   var scaleX = 1, scaleY = 1, originX = 0, originY = 0;
-  var sourceX = 0, sourceY = 0, sourceW = image.naturalWidth, sourceH = image.naturalHeight;
+  var sourceX = 0, sourceY = 0, sourceW = texture.Width, sourceH = texture.Height;
   var positionX, positionY;
   if (typeof (scale) === "number")
     scaleX = scaleY = scale;
@@ -770,16 +812,22 @@ Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDraw = function (
   positionX = position.X;
   positionY = position.Y;
 
-  this.device.context.save();
-
   effects = effects || Microsoft.Xna.Framework.Graphics.SpriteEffects.None;
 
   if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) {
+    if (!needRestore)    
+      this.device.context.save();
+    needRestore = true;
+
     this.device.context.scale(-1, 1);
     positionX = -positionX;
   }
 
   if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) {
+    if (!needRestore)    
+      this.device.context.save();
+    needRestore = true;
+
     this.device.context.scale(1, -1);
     positionY = -positionY;
   }
@@ -807,13 +855,13 @@ Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDraw = function (
     sourceH += sourceY;
     sourceY = 0;
   }
-  if (sourceW > image.naturalWidth - sourceX)
-    sourceW = image.naturalWidth - sourceX;
-  if (sourceH > image.naturalHeight - sourceY)
-    sourceH = image.naturalHeight - sourceY;
+  if (sourceW > texture.Width - sourceX)
+    sourceW = texture.Width - sourceX;
+  if (sourceH > texture.Height - sourceY)
+    sourceH = texture.Height - sourceY;
 
   if ((typeof (color) === "object") && (color !== null)) {
-    if ((color.R != 255) || (color.G != 255) || (color.B != 255)) {
+    if ((color.r < 255) || (color.g < 255) || (color.b < 255)) {
       var newImage = $jsilxna.getImageMultiplied(image, color);
       if (newImage === image) {
         // Broken browser
@@ -822,8 +870,14 @@ Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDraw = function (
         sourceX += 1;
         sourceY += 1;
       }
-    } else if (color.A != 255) {
-      this.device.context.globalAlpha = color.A / 255;
+    }
+    
+    if (color.a < 255) {
+      if (!needRestore)    
+        this.device.context.save();
+      needRestore = true;
+
+      this.device.context.globalAlpha = color.a / 255;
     }
   }
 
@@ -839,11 +893,19 @@ Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDraw = function (
 
   // Negative width/height cause an exception in Firefox
   if (destW < 0) {
+    if (!needRestore)    
+      this.device.context.save();
+    needRestore = true;
+
     this.device.context.scale(-1, 1);
     positionX = -positionX;
     destW = -destW;
   }
   if (destH < 0) {
+    if (!needRestore)    
+      this.device.context.save();
+    needRestore = true;
+
     this.device.context.scale(1, -1);
     positionY = -positionY;
     destH = -destH;
@@ -859,28 +921,41 @@ Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDraw = function (
     throw e;
   }
 
-  this.device.context.restore();
+  if (needRestore)
+    this.device.context.restore();
 };
 
 Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDrawString = function (font, text, position, color, scale, effects) {
+  var needRestore = false;
   var positionX = position.X;
   var positionY = position.Y;
 
   effects = effects || Microsoft.Xna.Framework.Graphics.SpriteEffects.None;
 
   if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) {
+    if (!needRestore)    
+      this.device.context.save();
+    needRestore = true;
+
     this.device.context.scale(-1, 1);
     positionX = -positionX;
   }
 
   if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) {
+    if (!needRestore)    
+      this.device.context.save();
+    needRestore = true;
+
     this.device.context.scale(1, -1);
     positionY = -positionY;
   }
 
   this.device.context.textBaseline = "top";
   this.device.context.textAlign = "start";
-  this.device.context.font = font.toCss(scale || 1);
+  this.device.context.font = font.toCss(scale || 1.0);
   this.device.context.fillStyle = color.toCss();
   this.device.context.fillText(text, positionX, positionY);
+
+  if (needRestore)
+    this.device.context.restore();
 };
