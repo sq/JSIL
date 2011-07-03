@@ -878,7 +878,11 @@ namespace JSIL {
 
         public void VisitNode (JSNewExpression newexp) {
             var outer = Stack.Skip(1).FirstOrDefault();
-            bool parens = (outer is JSDotExpression) || (outer is JSInvocationExpression);
+            var outerInvocation = outer as JSInvocationExpression;
+            var outerDot = outer as JSDotExpression;
+
+            bool parens = ((outerDot != null) && (outerDot.Target == newexp)) ||
+                ((outerInvocation != null) && (outerInvocation.ThisReference == newexp));
 
             if (
                 (newexp.Constructor != null) && 

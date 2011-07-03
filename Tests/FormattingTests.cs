@@ -163,6 +163,23 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void NewParentheses () {
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\NewParentheses.cs",
+                "CustomType"
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("(new CustomType"));
+                Assert.IsTrue(generatedJs.Contains("new CustomType()"));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
         public void EnumeratorClassLocalNames () {
             var generatedJs = GetJavascript(
                 @"SpecialTestCases\EnumeratorClassLocalNames.cs",
