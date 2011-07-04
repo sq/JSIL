@@ -1581,7 +1581,10 @@ JSIL.OverloadedGenericMethod = function (type, name, overloads) {
 JSIL.MakeClass(Object, "System.Object", true);
 System.Object.CheckType = function (value) {
   return true;
-}
+};
+System.Object.prototype.Equals = function (rhs) {
+  return this === rhs;
+};
 System.Object.prototype.MemberwiseClone = function () {
   var result = Object.create(Object.getPrototypeOf(this));
 
@@ -1709,6 +1712,33 @@ JSIL.CollectionInitializer.prototype.Apply = function (target) {
 };
 
 JSIL.MakeClass("System.Object", "System.ValueType", true);
+System.ValueType.prototype.Equals = function (rhs) {
+  if (this === rhs)
+    return true;
+
+  if ((rhs === null) || (rhs === undefined))
+    return false;
+
+  for (var key in this) {
+    if (!this.hasOwnProperty(key))
+      continue;
+
+    var valueLhs = this[key];
+    var valueRhs = rhs[key];
+
+    if ((valueLhs === null) || (valueLhs === undefined)) {
+      if (valueLhs !== valueRhs)
+        return false;
+    } else if (typeof (valueLhs.Equals) === "function") {
+      if (!valueLhs.Equals(valueRhs))
+        return false;
+    } else if (valueLhs !== valueRhs) {
+      return false;
+    }
+  }
+
+  return true;
+};
 
 JSIL.Interface = function () { };
 JSIL.Interface.prototype = JSIL.MakeProto(Object, JSIL.Interface, "JSIL.Interface", true);

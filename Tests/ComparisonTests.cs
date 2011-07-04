@@ -83,9 +83,11 @@ namespace JSIL.Tests {
 
             RunComparisonTests(
                 new[] { 
+                    @"TestCases\ReturnStruct.cs",
                     @"TestCases\StructArrayLiteral.cs",
                     @"TestCases\StructAssignment.cs",
                     @"TestCases\StructDefaults.cs",
+                    @"TestCases\StructEquals.cs",
                     @"TestCases\StructFields.cs",
                     @"TestCases\StructInitializers.cs",
                     @"TestCases\StructProperties.cs",

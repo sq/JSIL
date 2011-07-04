@@ -35,8 +35,16 @@ namespace JSIL {
 
                     foreach (var type in module.Types) {
                         var identifier = new TypeIdentifier(type);
+
                         TypeProxies.Remove(identifier);
                         TypeInformation.Remove(identifier);
+
+                        foreach (var nt in type.NestedTypes) {
+                            var ni = new TypeIdentifier(nt);
+
+                            TypeProxies.Remove(ni);
+                            TypeInformation.Remove(ni);
+                        }
                     }
                 }
             }

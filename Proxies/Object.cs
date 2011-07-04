@@ -4,10 +4,13 @@ using JSIL.Proxy;
 
 namespace JSIL.Proxies {
     [JSProxy(
-        typeof(Object)
+        typeof(Object),
+        memberPolicy: JSProxyMemberPolicy.ReplaceDeclared,
+        attributePolicy: JSProxyAttributePolicy.ReplaceDeclared
     )]
     public abstract class ObjectProxy {
         [JSReplacement("JSIL.GetType($this)")]
+        [JSIsPure]
         new abstract public Type GetType ();
 
         [JSExternal]
@@ -18,5 +21,10 @@ namespace JSIL.Proxies {
         [JSNeverReplace]
         [JSRuntimeDispatch]
         new abstract public string ToString ();
+
+        [JSExternal]
+        [JSIsPure]
+        [JSNeverReplace]
+        new abstract public bool Equals (object obj);
     }
 }

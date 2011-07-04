@@ -462,8 +462,10 @@ namespace JSIL.Transforms {
                     if (s != null)
                         ModifiedVariables.Add(s);
                 }
-            } else {
+            } else if (!_IsPure) {
                 ModifiedVariables = new HashSet<string>(from p in method.Parameters select p.Name);
+            } else {
+                ModifiedVariables = new HashSet<string>();
             }
 
             parms = method.Metadata.GetAttributeParameters("JSIL.Meta.JSEscapingArguments");
@@ -474,8 +476,10 @@ namespace JSIL.Transforms {
                     if (s != null)
                         EscapingVariables.Add(s);
                 }
-            } else {
+            } else if (!_IsPure) {
                 EscapingVariables = new HashSet<string>(from p in method.Parameters select p.Name);
+            } else {
+                EscapingVariables = new HashSet<string>();
             }
 
             ResultVariable = null;

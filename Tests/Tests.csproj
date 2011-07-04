@@ -124,7 +124,7 @@
     <None Include="SimpleTestCases\OverloadWithRefArray.cs" />
     <None Include="TestCases\YieldReturn.cs" />
     <None Include="TestCases\StructAssignment.cs" />
-    <None Include="SimpleTestCases\ReturnStruct.cs" />
+    <None Include="TestCases\ReturnStruct.cs" />
     <None Include="TestCases\RefStruct.cs" />
     <None Include="SimpleTestCases\Decimals.cs" />
     <None Include="TestCases\IntegerArithmetic.cs" />
@@ -233,6 +233,8 @@
     <None Include="SpecialTestCases\OuterThisDelegateNew.cs" />
     <None Include="SimpleTestCases\Nullables.cs" />
     <None Include="SpecialTestCases\NewParentheses.cs" />
+    <None Include="TestCases\StructEquals.cs" />
+    <None Include="SimpleTestCases\ClassEquals.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
