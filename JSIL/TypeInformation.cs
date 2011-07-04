@@ -243,12 +243,16 @@ namespace JSIL.Internal {
             if (icap == null)
                 return;
 
-            var metadata = new MetadataCollection(icap);
-            if (!metadata.HasAttribute("JSIL.Proxy.JSProxy"))
+            var proxyAttribute = icap.CustomAttributes.Where(
+                (ca) => (ca.AttributeType.Name == "JSProxy") &&
+                    (ca.AttributeType.Namespace == "JSIL.Proxy")
+            ).FirstOrDefault();
+
+            if (proxyAttribute == null)
                 return;
 
             string[] proxyTargets = null;
-            var args = metadata.GetAttributeParameters("JSIL.Proxy.JSProxy");
+            var args = proxyAttribute.ConstructorArguments;
 
             foreach (var arg in args) {
                 switch (arg.Type.FullName) {
