@@ -559,7 +559,9 @@ namespace JSIL {
         }
 
         public static bool TypesAreEqual (TypeReference target, TypeReference source) {
-            if ((target == null) || (source == null))
+            if (target == source)
+                return true;
+            else if ((target == null) || (source == null))
                 return (target == source);
 
             bool result;
@@ -589,6 +591,14 @@ namespace JSIL {
             else if (target.IsPinned != source.IsPinned)
                 result = false;
             else {
+                if (
+                    (target.Name == source.Name) &&
+                    (target.Namespace == source.Namespace) &&
+                    (target.Module == source.Module) &&
+                    TypesAreEqual(target.DeclaringType, source.DeclaringType)
+                )
+                    return true;
+
                 var dTarget = GetTypeDefinition(target);
                 var dSource = GetTypeDefinition(source);
 
@@ -596,7 +606,10 @@ namespace JSIL {
                     result = true;
                 else if (Object.Equals(target, source))
                     result = true;
-                else if (String.Equals(target.FullName, source.FullName))
+                else if (
+                    (dTarget != null) && (dSource != null) &&
+                    (dTarget.FullName == dSource.FullName)
+                )
                     result = true;
                 else
                     result = false;

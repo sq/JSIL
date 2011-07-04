@@ -129,12 +129,15 @@ namespace JSIL.Tests {
 
         [Test]
         public void Refs () {
-            using (var test = new ComparisonTest(@"TestCases\RefStruct.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\StructPropertyThis.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\RefClass.cs"))
-                test.Run();
+            var defaultProvider = MakeDefaultProvider();
+
+            RunComparisonTests(
+                new[] { 
+                    @"TestCases\RefStruct.cs",
+                    @"TestCases\StructPropertyThis.cs",
+                    @"TestCases\RefClass.cs"
+                }, null, defaultProvider
+            );
         }
 
         [Test]
@@ -184,12 +187,15 @@ namespace JSIL.Tests {
 
         [Test]
         public void StaticConstructors () {
-            using (var test = new ComparisonTest(@"TestCases\GenericStaticConstructorOrdering.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\StaticConstructorOrdering.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs"))
-                test.Run();
+            var defaultProvider = MakeDefaultProvider();
+
+            RunComparisonTests(
+                new[] { 
+                    @"TestCases\GenericStaticConstructorOrdering.cs",
+                    @"TestCases\StaticConstructorOrdering.cs",
+                    @"TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs"
+                }, null, defaultProvider
+            );
         }
 
         [Test]
@@ -232,12 +238,15 @@ namespace JSIL.Tests {
 
         [Test]
         public void Temporaries () {
-            using (var test = new ComparisonTest(@"TestCases\InterleavedTemporaries.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\IndirectInterleavedTemporaries.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\DirectTemporaryAssignment.cs"))
-                test.Run();
+            var defaultProvider = MakeDefaultProvider();
+
+            RunComparisonTests(
+                new[] { 
+                    @"TestCases\InterleavedTemporaries.cs",
+                    @"TestCases\IndirectInterleavedTemporaries.cs",
+                    @"TestCases\DirectTemporaryAssignment.cs"
+                }, null, defaultProvider
+            );
         }
     }
 }

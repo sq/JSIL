@@ -75,15 +75,31 @@ namespace JSIL {
             return result;
         }
 
+        private void EnqueueType (Dictionary<TypeIdentifier, TypeDefinition> queue, TypeReference typeReference) {
+            var identifier = new TypeIdentifier(typeReference);
+
+            if (queue.ContainsKey(identifier))
+                return;
+
+            TypeInfo result;
+            if (!TypeInformation.TryGetValue(identifier, out result)) {
+                var typedef = ILBlockTranslator.GetTypeDefinition(typeReference);
+                if (typedef == null)
+                    return;
+
+                queue.Add(identifier, typedef);
+
+                if (typedef.BaseType != null)
+                    EnqueueType(queue, typedef.BaseType);
+
+                foreach (var iface in typedef.Interfaces)
+                    EnqueueType(queue, iface);
+            }
+        }
+
         public TypeInfo GetTypeInformation (TypeReference type) {
             if (type == null)
                 throw new ArgumentNullException("type");
-
-            // TODO: Enable this once it's fixed in ILSpy upstream
-            /*
-            if (type.DeclaringType != null)
-                type = TypeAnalysis.SubstituteTypeArgs(type, type.DeclaringType);
-             */
 
             var identifier = new TypeIdentifier(type);
 
@@ -92,15 +108,7 @@ namespace JSIL {
             var typesToInitialize = new Dictionary<TypeIdentifier, TypeDefinition>();
             var secondPass = new Dictionary<TypeIdentifier, TypeInfo>();
 
-            TypeInfo result;
-            if (!TypeInformation.TryGetValue(identifier, out result)) {
-                var typedef = ILBlockTranslator.GetTypeDefinition(type);
-                if (typedef == null)
-                    return null;
-
-                identifier = new TypeIdentifier(typedef);
-                typesToInitialize.Add(identifier, typedef);
-            }
+            EnqueueType(typesToInitialize, type);
 
             // We must construct type information in two passes, so that method group construction
             //  behaves correctly and ignores all the right methods.
@@ -142,11 +150,11 @@ namespace JSIL {
                 ti.ConstructMethodGroups();
             }
 
-            if (!TypeInformation.TryGetValue(identifier, out result)) {
+            TypeInfo result;
+            if (!TypeInformation.TryGetValue(identifier, out result))
                 return null;
-            }
-
-            return result;
+            else
+                return result;
         }
 
         protected Dictionary<TypeIdentifier, TypeDefinition> ConstructTypeInformation (TypeIdentifier identifier, TypeDefinition type) {
@@ -155,9 +163,6 @@ namespace JSIL {
             TypeInfo baseType = null;
             if (type.BaseType != null)
                 baseType = GetTypeInformation(type.BaseType);
-
-            foreach (var iface in type.Interfaces)
-                GetTypeInformation(iface);
 
             var result = new TypeInfo(this, moduleInfo, type, baseType, identifier);
             TypeInformation[identifier] = result;
