@@ -158,26 +158,9 @@ namespace JSIL.Tests {
                 Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "SimpleTestCases")), 
                 "*.cs"
             );
-            var failureList = new List<string>();
 
-            foreach (var filename in simpleTests) {
-                Console.Write("// {0} ... ", Path.GetFileName(filename));
-
-                try {
-                    // We reuse the same type info provider for all the tests in this folder so they run faster
-                    using (var test = new ComparisonTest(filename, null, defaultProvider))
-                        test.Run();
-                } catch (Exception ex) {
-                    failureList.Add(Path.GetFileNameWithoutExtension(filename));
-                    if (ex.Message == "JS test failed")
-                        Debug.WriteLine(ex.InnerException);
-                    else
-                        Debug.WriteLine(ex);
-                }
-            }
-
-            Assert.AreEqual(0, failureList.Count, 
-                String.Format("{0} test(s) failed:\r\n{1}", failureList.Count, String.Join("\r\n", failureList.ToArray()))
+            RunComparisonTests(
+                simpleTests, null, defaultProvider
             );
         }
 

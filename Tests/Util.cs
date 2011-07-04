@@ -12,6 +12,7 @@ using System.Runtime.Serialization.Json;
 using System.Threading;
 using NUnit.Framework;
 using System.Globalization;
+using Microsoft.Win32;
 
 namespace JSIL.Tests {
     public class JavaScriptException : Exception {
@@ -328,13 +329,87 @@ namespace JSIL.Tests {
             return (new AssemblyTranslator(null)).TypeInfoProvider;
         }
 
-        protected void RunComparisonTests (string[] filenames, Regex[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null) {
-            foreach (var filename in filenames) {
-                Debug.WriteLine(String.Format("// {0}", filename));
+        protected void RunComparisonTests (
+            string[] filenames, Regex[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null
+        ) {
+            const string keyName = @"Software\Squared\JSIL\Tests\PreviousFailures";
 
-                using (var test = new ComparisonTest(filename, stubbedAssemblies, typeInfo))
-                    test.Run();
+            StackFrame callingTest = null;
+            for (int i = 1; i < 10; i++) {
+                callingTest = new StackFrame(i);
+                var method = callingTest.GetMethod();
+                if ((method != null) && method.GetCustomAttributes(true).Any(
+                    (ca) => ca.GetType().FullName == "NUnit.Framework.TestAttribute"
+                )) {
+                    break;
+                } else {
+                    callingTest = null;
+                }
             }
+
+            var previousFailures = new HashSet<string>();
+            MethodBase callingMethod = null;
+            if ((callingTest != null) && ((callingMethod = callingTest.GetMethod()) != null)) {
+                try {
+                    using (var rk = Registry.CurrentUser.CreateSubKey(keyName)) {
+                        var names = rk.GetValue(callingMethod.Name) as string;
+                        if (names != null) {
+                            foreach (var name in names.Split(',')) {
+                                previousFailures.Add(name);
+                            }
+                        }
+                    }
+                } catch (Exception ex) {
+                    Console.WriteLine("Warning: Could not open registry key: {0}", ex);
+                }
+            }
+
+            var failureList = new List<string>();
+            var sortedFilenames = new List<string>(filenames);
+            sortedFilenames.Sort(
+                (lhs, rhs) => {
+                    var lhsShort = Path.GetFileNameWithoutExtension(lhs);
+                    var rhsShort = Path.GetFileNameWithoutExtension(rhs);
+
+                    int result =
+                        (previousFailures.Contains(lhsShort) ? 0 : 1).CompareTo(
+                            previousFailures.Contains(rhsShort) ? 0 : 1
+                        );
+
+                    if (result == 0)
+                        result = lhsShort.CompareTo(rhsShort);
+
+                    return result;
+                }
+            );
+
+            foreach (var filename in sortedFilenames) {
+                Console.Write("// {0} ... ", Path.GetFileName(filename));
+
+                try {
+                    using (var test = new ComparisonTest(filename, stubbedAssemblies, typeInfo))
+                        test.Run();
+                } catch (Exception ex) {
+                    failureList.Add(Path.GetFileNameWithoutExtension(filename));
+                    if (ex.Message == "JS test failed")
+                        Debug.WriteLine(ex.InnerException);
+                    else
+                        Debug.WriteLine(ex);
+                }
+            }
+
+            if (callingMethod != null) {
+                try {
+                    using (var rk = Registry.CurrentUser.CreateSubKey(keyName))
+                        rk.SetValue(callingMethod.Name, String.Join(",", failureList.ToArray()));
+                } catch (Exception ex) {
+                    Console.WriteLine("Warning: Could not open registry key: {0}", ex);
+                }
+            }
+
+            Assert.AreEqual(0, failureList.Count,
+                String.Format("{0} test(s) failed:\r\n{1}", failureList.Count, String.Join("\r\n", failureList.ToArray()))
+            );
         }
 
         protected string GetJavascript (string fileName, string expectedText = null) {
