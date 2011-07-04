@@ -428,9 +428,7 @@ namespace JSIL {
                 }
             } while (unwrapped);
 
-            if (JSExpression.IsOpenGenericType(typeRef))
-                return typeRef.Resolve();
-            else if (typeRef is ArrayType)
+            if (typeRef is ArrayType)
                 return new TypeReference(ts.Object.Namespace, "Array", ts.Object.Module, ts.Object.Scope).ResolveOrThrow();
             else if (IsIgnoredType(typeRef))
                 return null;

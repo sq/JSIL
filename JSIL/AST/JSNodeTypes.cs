@@ -852,38 +852,6 @@ namespace JSIL.Ast {
             return type;
         }
 
-        public static bool IsOpenGenericType (ParameterDefinition pd) {
-            return IsOpenGenericType(pd.ParameterType);
-        }
-
-        public static bool IsOpenGenericType (TypeReference type) {
-            type = DeReferenceType(type);
-
-            if (type.IsGenericParameter)
-                return true;
-
-            foreach (var gp in type.GenericParameters)
-                if (IsOpenGenericType(gp))
-                    return true;
-
-            var git = type as GenericInstanceType;
-            if (git != null) {
-                foreach (var ga in git.GenericArguments)
-                    if (IsOpenGenericType(ga))
-                        return true;
-            }
-
-            var modopt = type as OptionalModifierType;
-            if (modopt != null)
-                return IsOpenGenericType(modopt.ElementType);
-
-            var modreq = type as RequiredModifierType;
-            if (modreq != null)
-                return IsOpenGenericType(modreq.ElementType);
-
-            return false;
-        }
-
         public static TypeReference SubstituteTypeArgs (TypeReference type, MemberReference member) {
             var gp = (type as GenericParameter);
 
