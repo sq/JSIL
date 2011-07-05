@@ -278,6 +278,10 @@ JSIL.ImplementInterfaces(JSIL.ArrayEnumerator, [
 ]);
 
 JSIL.MakeClass("System.Object", "System.Threading.Thread", true);
+System.Threading.Thread._cctor2 = function () {
+  // This type already has a cctor, so we add a second one.
+  System.Threading.Thread._currentThread = new System.Threading.Thread();
+};
 System.Threading.Thread.prototype._ctor = function () {
 };
 System.Threading.Thread.get_CurrentThread = function () {
@@ -569,6 +573,10 @@ System.Text.Encoding.get_ASCII = function () {
 System.Text.Encoding.prototype._ctor = function () {
   System.Object.prototype._ctor.call(this, arguments);
 };
+System.Text.Encoding._cctor2 = function () {
+  // This type already has a cctor so we add a second one.
+  System.Text.Encoding.asciiEncoding = new System.Text.ASCIIEncoding();
+};
 
 System.Text.ASCIIEncoding.prototype._ctor = function () {
   System.Text.Encoding.prototype._ctor.call(this, arguments);
@@ -757,11 +765,3 @@ System.Linq.Enumerable.Count$b1$0 = JSIL.GenericMethod(
     return result;
   }
 );
-
-JSIL.QueueInitializer(function () {
-  // Can't use a cctor since these types already have them
-
-  System.Threading.Thread._currentThread = new System.Threading.Thread();
-
-  System.Text.Encoding.asciiEncoding = new System.Text.ASCIIEncoding();
-});

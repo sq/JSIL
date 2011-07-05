@@ -29,7 +29,6 @@ if (typeof (Function.prototype.bind) !== "function") {
 }
 
 JSIL.GlobalNamespace = this;
-JSIL.PendingInitializers = [];
 
 JSIL.PrivateNamespaces = {};
 var $private = null;
@@ -92,6 +91,12 @@ JSIL.ResolvedName.prototype.exists = function () {
 }
 JSIL.ResolvedName.prototype.get = function () {
   return this.parent[this.key];
+}
+JSIL.ResolvedName.prototype.del = function () {
+  try {
+    delete this.parent[this.key];
+  } catch (e) {
+  }
 }
 JSIL.ResolvedName.prototype.set = function (value) {
   this.parent[this.key] = value;
@@ -276,11 +281,6 @@ JSIL.Host.runLater = function (action) {
     JSIL.Host.pendingRunLaterItems.push(action);
     if (needEnqueue)
       setTimeout(JSIL.Host.runLaterCallback, 0);
-  } else {
-    if (!JSIL.Host.warnedAboutRunLater) {
-      JSIL.Host.warnedAboutRunLater = true;
-      JSIL.Host.warning("JSIL.Host.runLater is not implemented. Deferred callbacks will never run.");
-    }
   }
 };
 
@@ -351,18 +351,19 @@ JSIL.ExternalMembers = function (namespace/*, ...memberNames */) {
   }
 }
 
-JSIL.QueueInitializer = function (initializer) {
-  JSIL.PendingInitializers.push(initializer);
+JSIL.QueueTypeInitializer = function (type, initializer) {
+  if (type.__TypeInitialized__) {
+    initializer(type);
+  } else {
+    type.__Initializers__.push(initializer);
+  }
 };
 
 JSIL.Initialize = function () {
-  while (JSIL.PendingInitializers.length > 0) {
-    var initializer = JSIL.PendingInitializers.shift();
-    if (typeof (initializer) !== "function")
-      JSIL.Host.warning("A non-function was queued as an initializer: ", initializer);
-
-    initializer();
-  }
+  // Seal all registered names so that their static constructors run on use
+  var arn = JSIL.AllRegisteredNames;
+  for (var i = 0, l = arn.length; i < l; i++)
+    arn[i].sealed = true;
 };
 
 JSIL.GenericParameter = function (name) {
@@ -451,6 +452,75 @@ JSIL.CloneObject = function (obj) {
     throw new Error("Cloning a non-object");
 
   return Object.create(obj);
+};
+
+JSIL.AllRegisteredNames = [];
+JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initializer) {
+  var privateName = JSIL.ResolveName(privateNamespace, name);
+  if (isPublic)
+    var publicName = JSIL.ResolveName(JSIL.GlobalNamespace, name);
+
+  var localName = privateName.localName;
+
+  if (privateName.exists()) {
+    JSIL.DuplicateDefinitionWarning(name);
+    return;
+  }
+
+  var state = {
+    creator: creator,
+    initializer: initializer,
+    sealed: false
+  };
+  JSIL.AllRegisteredNames.push(state);
+
+  var getter = function () {
+    var result;
+
+    if (typeof (state.creator) === "function") {
+      var cf = state.creator;
+      delete state.creator;
+
+      state.value = result = cf();      
+    } else {
+      result = state.value;
+    }
+
+    if (typeof (state.initializer) === "function") {
+      var ifn = state.initializer;
+      delete state.initializer;
+
+      ifn(result);
+    }
+
+    if (state.sealed) {
+      state.sealed = false;
+
+      JSIL.InitializeType(result);
+
+      JSIL.Host.runLater(function () {
+        privateName.del();
+        privateName.set(result);
+
+        if (isPublic) {
+          publicName.del();
+          publicName.set(result);
+        }
+      });
+    }
+
+    return result;
+  };
+
+  var decl = {
+    enumerable: true,
+    configurable: true,
+    get: getter
+  };
+  privateName.define(decl);
+
+  if (isPublic)
+    publicName.define(decl);
 };
 
 JSIL.MakeProto = function (baseType, target, typeName, isReferenceType) {
@@ -703,9 +773,8 @@ JSIL.InitializeType = function (type) {
   if (typeof (type) === "undefined")
     throw new Error("Type is null");
 
-  if (type.__TypeInitialized__ || false) {
+  if (type.__TypeInitialized__ || false)
     return;
-  }
 
   // Not entirely correct, but prevents recursive type initialization
   type.__TypeInitialized__ = true;
@@ -760,12 +829,28 @@ JSIL.InitializeType = function (type) {
     // JSIL.Host.logWriteLine("Warning: Replacing prototype of type '" + JSIL.GetTypeName(type) + "'");
   }
 
-  // print("init " + type + "; closed=" + type.__IsClosed__ + ", _cctor=" + type._cctor);
-  if (type.__IsClosed__ && (typeof (type._cctor) == "function")) {
-    try {
-      type._cctor();
-    } catch (e) {
-      JSIL.Host.error(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(type));
+  var ti = type.__Initializers__ || [];
+  while (ti.length > 0) {
+    var initializer = ti.unshift();
+    if (typeof (initializer) === "function")
+      initializer(type);
+  };
+
+  if (type.__IsClosed__) {
+    if (typeof (type._cctor) == "function") {
+      try {
+        type._cctor();
+      } catch (e) {
+        JSIL.Host.error(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(type));
+      }
+    }
+
+    if (typeof (type._cctor2) == "function") {
+      try {
+        type._cctor2();
+      } catch (e) {
+        JSIL.Host.error(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(type));
+      }
     }
   }
 
@@ -787,96 +872,6 @@ JSIL.InitializeType = function (type) {
   }
 };
 
-JSIL.MakeSealedTypeGetter = function (type, unseal) {
-  var state = {
-    sealed: true
-  };
-
-  return function () {
-    if (!state.sealed)
-      return type;
-
-    state.sealed = false;
-
-    JSIL.InitializeType(type);
-    JSIL.Host.runLater(unseal);
-
-    return type;
-  };
-};
-
-JSIL.MakeUnsealer = function (ns, name, type) {
-  return function () {
-    // Workaround for chromium bug
-    try {
-      delete ns[name];
-    } catch (e) {
-    }
-
-    Object.defineProperty(ns, name, {
-      configurable: true,
-      enumerable: true,
-      value: type
-    });
-  };
-};
-
-// Replaces a class with a property getter that, upon first access,
-//  runs the class's static constructor (if any).
-JSIL.SealTypes = function (privateRoot, namespaceName /*, ...names */) {
-  var publicNamespace, privateNamespace;
-  if (namespaceName !== null) {
-    publicNamespace = JSIL.ResolveName(JSIL.GlobalNamespace, namespaceName);
-    if (publicNamespace.exists())
-      publicNamespace = publicNamespace.get();
-    else
-      publicNamespace = null;
-
-    privateNamespace = JSIL.ResolveName(privateRoot, namespaceName);
-    if (privateNamespace.exists())
-      privateNamespace = privateNamespace.get();
-    else
-      privateNamespace = null;
-  } else {
-    publicNamespace = JSIL.GlobalNamespace;
-    privateNamespace = privateRoot;
-  }
-
-  function sealIt (ns, name) {
-    var type = ns[name];
-    if (typeof (type) === "undefined") {
-      JSIL.Host.logWriteLine("Warning: sealing undefined member '" + name + "'.");
-      return;
-    }
-
-    var cctor = type._cctor;
-    if (typeof (cctor) !== "function")
-      return;
-
-    // Workaround for chromium bug
-    try {
-      delete ns[name];
-    } catch (e) {
-    }
-
-    Object.defineProperty(ns, name, {
-      configurable: true,
-      enumerable: true,
-      get: JSIL.MakeSealedTypeGetter(type, JSIL.MakeUnsealer(ns, name, type))
-    });
-  };
-
-  for (var i = 2, l = arguments.length; i < l; i++) {
-    var name = JSIL.EscapeName(arguments[i]);
-
-    if (publicNamespace !== null)
-      sealIt(publicNamespace, name);
-
-    if (privateNamespace !== null)
-      sealIt(privateNamespace, name);
-  }
-}
-
 JSIL.ShadowedTypeWarning = function (fullName) {
   // JSIL.Host.warning("Type ", fullName, " is shadowed by another type of the same name.");
 };
@@ -885,7 +880,7 @@ JSIL.DuplicateDefinitionWarning = function (fullName) {
   // JSIL.Host.warning("Type ", fullName, " is defined multiple times.");
 };
 
-JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments) {
+JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializer) {
   if (typeof (isPublic) === "undefined")
     JSIL.Host.error(new Error("Must specify isPublic"));
 
@@ -905,6 +900,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments) {
   typeObject.__TypeId__ = ++$jsilcore.nextTypeId;
   typeObject.__ShortName__ = localName;
   typeObject.__IsStatic__ = true;
+  typeObject.__Initializers__ = [];
   typeObject.__TypeInitialized__ = false;
 
   typeObject.__GenericArguments__ = genericArguments || [];
@@ -915,19 +911,10 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments) {
     typeObject.__IsClosed__ = true;
   }
 
-  resolved.set(typeObject);
-
-  if (isPublic) {
-    resolved = JSIL.ResolveName(JSIL.GlobalNamespace, fullName);
-    if (!resolved.exists()) {
-      resolved.set(typeObject);
-    } else {
-      JSIL.ShadowedTypeWarning(fullName);
-    }
-  }
+  JSIL.RegisterName(fullName, $private, isPublic, function () { return typeObject; }, initializer);
 }
 
-JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, genericArguments) {
+JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, genericArguments, initializer) {
   if (typeof (isPublic) === "undefined")
     JSIL.Host.error(new Error("Must specify isPublic"));
 
@@ -958,6 +945,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
 
   typeObject.__TypeId__ = ++$jsilcore.nextTypeId;
   typeObject.__IsArray__ = false;
+  typeObject.__Initializers__ = [];
   typeObject.__TypeInitialized__ = false;
   typeObject.__IsNativeType__ = false;
   typeObject.__IsReferenceType__ = isReferenceType;
@@ -986,30 +974,15 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     return typeObject;
   };
 
-  var decl = {
-    configurable: true,
-    enumerable: true,
-    value: typeObject
-  };
-
-  resolved.define(decl);
-
-  if (isPublic) {
-    resolved = JSIL.ResolveName(JSIL.GlobalNamespace, fullName);
-    if (!resolved.exists()) {
-      resolved.define(decl);
-    } else {
-      JSIL.ShadowedTypeWarning(fullName);
-    }
-  }
+  JSIL.RegisterName(fullName, $private, isPublic, function () { return typeObject; }, initializer);
 };
 
-JSIL.MakeClass = function (baseType, fullName, isPublic, genericArguments) {
-  JSIL.MakeType(baseType, fullName, true, isPublic, genericArguments);
+JSIL.MakeClass = function (baseType, fullName, isPublic, genericArguments, initializer) {
+  JSIL.MakeType(baseType, fullName, true, isPublic, genericArguments, initializer);
 };
 
-JSIL.MakeStruct = function (fullName, isPublic, genericArguments) {
-  JSIL.MakeType("System.ValueType", fullName, false, isPublic, genericArguments);
+JSIL.MakeStruct = function (fullName, isPublic, genericArguments, initializer) {
+  JSIL.MakeType("System.ValueType", fullName, false, isPublic, genericArguments, initializer);
 };
 
 JSIL.MakeInterface = function (fullName, genericArguments, members) {
@@ -1466,7 +1439,7 @@ JSIL.GenericMethod = function (argumentNames, body) {
   return result;
 };
 
-JSIL.FindOverload = function (prototype, args, overloads) {
+JSIL.FindOverload = function (prototype, args, name, overloads) {
   var l = args.length;
 
   find_overload:
@@ -1485,7 +1458,7 @@ JSIL.FindOverload = function (prototype, args, overloads) {
       }
     }
 
-    var overloadName = overloads[i][0];
+    var overloadName = name + "$" + String(overloads[i][0]);
     var overloadMethod;
 
     if (typeof (overloadName) === "function") {
@@ -1520,7 +1493,7 @@ JSIL.OverloadedMethod = function (type, name, overloads) {
 
   var result = function () {
     var args = Array.prototype.slice.call(arguments);
-    var method = JSIL.FindOverload(type, args, overloads);
+    var method = JSIL.FindOverload(type, args, name, overloads);
 
     if (method === null)
       throw new Error("No overload of '" + name + "' matching the argument list '" + String(args) + "' could be found.");
@@ -1559,7 +1532,7 @@ JSIL.OverloadedGenericMethod = function (type, name, overloads) {
 
     return function () {
       var invokeArguments = Array.prototype.slice.call(arguments);
-      var method = JSIL.FindOverload(type, invokeArguments, overloads);
+      var method = JSIL.FindOverload(type, invokeArguments, name, overloads);
 
       if (method === null)
         throw new Error("No overload of '" + name + "<" + genericArguments.join(", ") + ">' matching the argument list '" + String(invokeArguments) + "' could be found.");
@@ -1578,64 +1551,67 @@ JSIL.OverloadedGenericMethod = function (type, name, overloads) {
   return result;
 };
 
-JSIL.MakeClass(Object, "System.Object", true);
-System.Object.CheckType = function (value) {
-  return true;
-};
-System.Object.prototype.Equals = function (rhs) {
-  return this === rhs;
-};
-System.Object.prototype.MemberwiseClone = function () {
-  var result = Object.create(Object.getPrototypeOf(this));
+JSIL.MakeClass(Object, "System.Object", true, [], function ($) {
+  $.CheckType = function (value) {
+    return true;
+  };
+  $.prototype.Equals = function (rhs) {
+    return this === rhs;
+  };
+  $.prototype.MemberwiseClone = function () {
+    var result = Object.create(Object.getPrototypeOf(this));
 
-  JSIL.CopyMembers(this, result);
-  return result;
-};
-System.Object.prototype.__Initialize__ = function (initializer) {
-  if (JSIL.IsArray(initializer)) {
-    JSIL.CollectionInitializer.prototype.Apply.call(initializer, this);
-    return this;
-  } else if (JSIL.CheckType(initializer, JSIL.CollectionInitializer)) {
-    initializer.Apply(this);
-    return this;
-  }
-
-  for (var key in initializer) {
-    if (!initializer.hasOwnProperty(key))
-      continue;
-
-    var value = initializer[key];
-
-    if (JSIL.CheckType(value, JSIL.CollectionInitializer)) {
-      value.Apply(this[key]);
-    } else {
-      this[key] = value;
+    JSIL.CopyMembers(this, result);
+    return result;
+  };
+  $.prototype.__Initialize__ = function (initializer) {
+    if (JSIL.IsArray(initializer)) {
+      JSIL.CollectionInitializer.prototype.Apply.call(initializer, this);
+      return this;
+    } else if (JSIL.CheckType(initializer, JSIL.CollectionInitializer)) {
+      initializer.Apply(this);
+      return this;
     }
-  }
 
-  return this;
-};
-System.Object.CheckType = function (value) {
-  return (typeof (value) === "object");
-};
-System.Object.prototype.__LockCount__ = 0;
-System.Object.prototype.__StructFields__ = [];
-System.Object.prototype._ctor = function () {};
-System.Object.prototype.GetType = function () {
-  return System.Object;
-};
-System.Object.prototype.toString = function ToString() {
-  return JSIL.GetTypeName(this);
-};
+    for (var key in initializer) {
+      if (!initializer.hasOwnProperty(key))
+        continue;
 
-JSIL.MakeClass(Object, "JSIL.AnyType", true);
-JSIL.AnyType.CheckType = function (value) {
-  return true;
-}
-JSIL.MakeClass(Object, "JSIL.AnyValueType", true);
-JSIL.AnyValueType.CheckType = function (value) {
-  return true;
-}
+      var value = initializer[key];
+
+      if (JSIL.CheckType(value, JSIL.CollectionInitializer)) {
+        value.Apply(this[key]);
+      } else {
+        this[key] = value;
+      }
+    }
+
+    return this;
+  };
+  $.CheckType = function (value) {
+    return (typeof (value) === "object");
+  };
+  $.prototype.__LockCount__ = 0;
+  $.prototype.__StructFields__ = [];
+  $.prototype._ctor = function () {};
+  $.prototype.GetType = function () {
+    return System.Object;
+  };
+  $.prototype.toString = function ToString() {
+    return JSIL.GetTypeName(this);
+  };
+});
+
+JSIL.MakeClass("System.Object", "JSIL.AnyType", true, [], function ($) {
+  $.CheckType = function (value) {
+    return true;
+  };
+});
+JSIL.MakeClass("System.Object", "JSIL.AnyValueType", true, [], function ($) {
+  $.CheckType = function (value) {
+    return true;
+  };
+});
 
 JSIL.MakeClass("System.Object", "JSIL.Reference", true);
 JSIL.MakeClass("JSIL.Reference", "JSIL.Variable", true);
