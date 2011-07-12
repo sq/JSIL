@@ -27,6 +27,7 @@ namespace JSIL {
         public readonly TypeSystem TypeSystem;
         public readonly JSILIdentifier JSIL;
 
+        protected readonly Stack<JSExpression> ThisReplacementStack = new Stack<JSExpression>();
         protected readonly Stack<bool> IncludeTypeParens = new Stack<bool>();
         protected readonly Stack<Func<string, bool>> GotoStack = new Stack<Func<string, bool>>();
         protected readonly Stack<BlockType> BlockStack = new Stack<BlockType>();
@@ -435,13 +436,23 @@ namespace JSIL {
         }
 
         public void VisitNode (JSEliminatedVariable variable) {
-            throw new InvalidOperationException("A variable was eliminated despite being in use.");
+            throw new InvalidOperationException(String.Format("'{0}' was eliminated despite being in use.", variable.Variable));
         }
 
         public void VisitNode (JSVariable variable) {
-            if (variable.IsThis)
-                Output.Keyword("this");
-            else
+            if (variable.IsThis) {
+                if (ThisReplacementStack.Count > 0) {
+                    var thisRef = ThisReplacementStack.Peek();
+                    if (thisRef != null)
+                        Visit(thisRef);
+                    else
+                        Debugger.Break();
+
+                    return;
+                } else {
+                    Output.Keyword("this");
+                }
+            } else
                 Output.Identifier(variable.Identifier);
 
             // Don't emit .value when initializing a reference in a declaration.
@@ -484,9 +495,17 @@ namespace JSIL {
             Visit(reference.Referent);
         }
 
+        public void VisitNode (JSLambda lambda) {
+            ThisReplacementStack.Push(lambda.This);
+
+            Visit(lambda.Value);
+
+            ThisReplacementStack.Pop();
+        }
+
         public void VisitNode (JSFunctionExpression function) {
             var oldCurrentMethod = Output.CurrentMethod;
-            Output.CurrentMethod = function.OriginalMethodReference;
+            Output.CurrentMethod = function.Method.Reference;
 
             Output.OpenFunction(
                 null,
@@ -787,8 +806,8 @@ namespace JSIL {
                 var fl = (JSForLoop)ParentNode;
                 if (
                     (fl.Condition == bop) ||
-                    (fl.Increment.AllChildrenRecursive.Any((n) => bop.Equals(n))) ||
-                    (fl.Initializer.AllChildrenRecursive.Any((n) => bop.Equals(n)))
+                    (fl.Increment.SelfAndChildrenRecursive.Any((n) => bop.Equals(n))) ||
+                    (fl.Initializer.SelfAndChildrenRecursive.Any((n) => bop.Equals(n)))
                 ) {
                     parens = false;
                 }
@@ -844,20 +863,26 @@ namespace JSIL {
         }
 
         public void VisitNode (JSTernaryOperatorExpression ternary) {
+            Output.LPar();
+
             Visit(ternary.Condition);
 
             Output.Token(" ? ");
-
             Visit(ternary.True);
 
             Output.Token(" : ");
-
             Visit(ternary.False);
+
+            Output.RPar();
         }
 
         public void VisitNode (JSNewExpression newexp) {
             var outer = Stack.Skip(1).FirstOrDefault();
-            bool parens = (outer is JSDotExpression) || (outer is JSInvocationExpression);
+            var outerInvocation = outer as JSInvocationExpression;
+            var outerDot = outer as JSDotExpression;
+
+            bool parens = ((outerDot != null) && (outerDot.Target == newexp)) ||
+                ((outerInvocation != null) && (outerInvocation.ThisReference == newexp));
 
             if (
                 (newexp.Constructor != null) && 
@@ -932,7 +957,8 @@ namespace JSIL {
 
             return (from n in nodes
                     where (n != null) && 
-                          (n.AllChildrenRecursive.OfType<TNode>().FirstOrDefault() != null)
+                          ((n is TNode) ||
+                          (n.AllChildrenRecursive.OfType<TNode>().FirstOrDefault() != null))
                     select n).Count();
         }
 

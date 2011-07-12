@@ -379,7 +379,7 @@ namespace JSIL {
             }
 
             public override JSExpression Translate (ILBlockTranslator translator, JSExpression[] arguments) {
-                return translator.JSIL.Cast(
+                return translator.SpecialIdentifiers.JSIL.Cast(
                     arguments[1],
                     TargetType
                 );

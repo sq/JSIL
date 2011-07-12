@@ -61,7 +61,7 @@ namespace JSIL.Transforms {
                     lastVariable = lastBoe.Left as JSVariable;
                     if (
                         (lastVariable != null) &&
-                        !lastBoe.Right.AllChildrenRecursive.Any(
+                        !lastBoe.Right.SelfAndChildrenRecursive.Any(
                             (n) => lastVariable.Equals(n)
                         )
                     ) {
@@ -115,7 +115,7 @@ namespace JSIL.Transforms {
                 cantBeFor = true;
             } else if ((initVariable ?? lastVariable) == null) {
                 cantBeFor = true;
-            } else if (!whileLoop.Condition.AllChildrenRecursive.Any(
+            } else if (!whileLoop.Condition.SelfAndChildrenRecursive.Any(
                     (n) => (initVariable ?? lastVariable).Equals(n)
             )) {
                 cantBeFor = true;

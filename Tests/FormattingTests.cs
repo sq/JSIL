@@ -163,6 +163,23 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void NewParentheses () {
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\NewParentheses.cs",
+                "CustomType"
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("(new CustomType"));
+                Assert.IsTrue(generatedJs.Contains("new CustomType()"));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
         public void EnumeratorClassLocalNames () {
             var generatedJs = GetJavascript(
                 @"SpecialTestCases\EnumeratorClassLocalNames.cs",
@@ -217,6 +234,22 @@ namespace JSIL.Tests {
             try {
                 Assert.IsFalse(generatedJs.Contains("while"));
                 Assert.AreEqual(4, generatedJs.Split(new string[] { "for (" }, StringSplitOptions.RemoveEmptyEntries).Length);
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
+        public void OuterThisNotUsedForDelegateNew () {
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\OuterThisDelegateNew.cs",
+                "PrintNumber(1)\r\nMyClass.PrintNumber(2)"
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("outer_this"));
             } catch {
                 Console.WriteLine(generatedJs);
 

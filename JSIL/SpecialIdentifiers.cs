@@ -119,18 +119,22 @@ namespace JSIL {
                 new JSDotExpression(
                     Dot("Array", TypeSystem.Object), 
                     new JSFakeMethod("New", arrayType, arrayType)
-                ), new [] { new JSType(elementType), sizeOrArrayInitializer }
+                ), new [] { new JSType(elementType), sizeOrArrayInitializer }, 
+                true
             );
         }
 
-        public JSInvocationExpression NewMultidimensionalArray (TypeReference elementType, JSExpression[] dimensions) {
+        public JSInvocationExpression NewMultidimensionalArray (TypeReference elementType, JSExpression[] dimensions, JSExpression initializer = null) {
             var arrayType = new ArrayType(elementType, dimensions.Length);
+            var arguments = new JSExpression[] { new JSType(elementType) }.Concat(dimensions);
+            if (initializer != null)
+                arguments = arguments.Concat(new[] { initializer });
 
             return JSInvocationExpression.InvokeStatic(
                 new JSDotExpression(
                     Dot("MultidimensionalArray", TypeSystem.Object), 
                     new JSFakeMethod("New", arrayType, TypeSystem.Object, TypeSystem.Object)
-                ), new JSExpression[] { new JSType(elementType) }.Concat(dimensions).ToArray()
+                ), arguments.ToArray(), true
             );
         }
 
@@ -139,7 +143,8 @@ namespace JSIL {
                 new JSDotExpression(
                     Dot("Delegate", TypeSystem.Object),
                     new JSFakeMethod("New", delegateType, TypeSystem.String, TypeSystem.Object, TypeSystem.Object)
-                ), new [] { JSLiteral.New(delegateType), thisReference, targetMethod }, true
+                ), new [] { JSLiteral.New(delegateType), thisReference, targetMethod },
+                true
             );
         }
 
@@ -182,6 +187,20 @@ namespace JSIL {
                     new JSFakeMethod("ShallowCopy", TypeSystem.Void, arrayType, arrayType)
                 ), new[] { array, initializer }
             );
+        }
+    }
+
+    public class SpecialIdentifiers {
+        public readonly TypeSystem TypeSystem;
+        public readonly JSSpecialIdentifiers JS;
+        public readonly CLRSpecialIdentifiers CLR;
+        public readonly JSILIdentifier JSIL;
+
+        public SpecialIdentifiers (TypeSystem typeSystem) {
+            TypeSystem = typeSystem;
+            JS = new JSSpecialIdentifiers(typeSystem);
+            CLR = new CLRSpecialIdentifiers(typeSystem);
+            JSIL = new JSILIdentifier(typeSystem, JS);
         }
     }
 }

@@ -30,9 +30,7 @@ namespace JSIL {
         // Yuck :(
         static readonly Dictionary<Tuple<string, string>, bool> TypeAssignabilityCache = new Dictionary<Tuple<string, string>, bool>();
 
-        public readonly JSILIdentifier JSIL;
-        public readonly JSSpecialIdentifiers JS;
-        public readonly CLRSpecialIdentifiers CLR;
+        public readonly SpecialIdentifiers SpecialIdentifiers;
 
         protected int LabelledBlockCount = 0;
         protected int UnlabelledBlockCount = 0;
@@ -46,9 +44,7 @@ namespace JSIL {
             ThisMethod = methodDefinition;
             Block = ilb;
 
-            JS = new JSSpecialIdentifiers(TypeSystem);
-            JSIL = new JSILIdentifier(TypeSystem, JS);
-            CLR = new CLRSpecialIdentifiers(TypeSystem);
+            SpecialIdentifiers = new JSIL.SpecialIdentifiers(TypeSystem);
 
             if (methodReference.HasThis)
                 Variables.Add("this", JSThisParameter.New(methodReference.DeclaringType, methodReference));
@@ -70,6 +66,18 @@ namespace JSIL {
                 } else {
                     Variables.Add(v.Identifier, v);
                 }
+            }
+        }
+
+        protected JSSpecialIdentifiers JS {
+            get {
+                return SpecialIdentifiers.JS;
+            }
+        }
+
+        protected JSILIdentifier JSIL {
+            get {
+                return SpecialIdentifiers.JSIL;
             }
         }
 
@@ -344,7 +352,7 @@ namespace JSIL {
                 }
 
                 if ((propertyInfo.Member.GetMethod != null) && (method.Method.Member.Name == propertyInfo.Member.GetMethod.Name)) {
-                    return new JSDotExpression(
+                    return new JSPropertyAccess(
                         actualThis, new JSProperty(method.Reference, propertyInfo)
                     );
                 } else {
@@ -353,7 +361,7 @@ namespace JSIL {
 
                     return new JSBinaryOperatorExpression(
                         JSOperator.Assignment,
-                        new JSDotExpression(
+                        new JSPropertyAccess(
                             actualThis, new JSProperty(method.Reference, propertyInfo)
                         ),
                         arguments[0], propertyInfo.ReturnType
@@ -420,14 +428,12 @@ namespace JSIL {
                 }
             } while (unwrapped);
 
-            if (JSExpression.IsOpenGenericType(typeRef))
-                return typeRef.Resolve();
-            else if (typeRef is ArrayType)
+            if (typeRef is ArrayType)
                 return new TypeReference(ts.Object.Namespace, "Array", ts.Object.Module, ts.Object.Scope).ResolveOrThrow();
             else if (IsIgnoredType(typeRef))
                 return null;
-            else
-                return typeRef.ResolveOrThrow();
+            else 
+                return typeRef.Resolve();
         }
 
         public static TypeReference FullyDereferenceType (TypeReference type, out int depth) {
@@ -551,7 +557,9 @@ namespace JSIL {
         }
 
         public static bool TypesAreEqual (TypeReference target, TypeReference source) {
-            if ((target == null) || (source == null))
+            if (target == source)
+                return true;
+            else if ((target == null) || (source == null))
                 return (target == source);
 
             bool result;
@@ -581,6 +589,14 @@ namespace JSIL {
             else if (target.IsPinned != source.IsPinned)
                 result = false;
             else {
+                if (
+                    (target.Name == source.Name) &&
+                    (target.Namespace == source.Namespace) &&
+                    (target.Module == source.Module) &&
+                    TypesAreEqual(target.DeclaringType, source.DeclaringType)
+                )
+                    return true;
+
                 var dTarget = GetTypeDefinition(target);
                 var dSource = GetTypeDefinition(source);
 
@@ -588,7 +604,10 @@ namespace JSIL {
                     result = true;
                 else if (Object.Equals(target, source))
                     result = true;
-                else if (String.Equals(target.FullName, source.FullName))
+                else if (
+                    (dTarget != null) && (dSource != null) &&
+                    (dTarget.FullName == dSource.FullName)
+                )
                     result = true;
                 else
                     result = false;
@@ -1804,51 +1823,40 @@ namespace JSIL {
 
                     if (methodMember != null) {
                         var methodDef = methodMember.Method.Member;
-                        var function = Translator.TranslateMethodExpression(
-                            Context, methodDef, methodDef
-                        );
 
-                        var thisArgVar = thisArg as JSVariable;
+                        bool emitInline = (
+                                methodDef.IsPrivate && 
+                                methodDef.IsCompilerGenerated()
+                            ) || (
+                                methodDef.DeclaringType.IsCompilerGenerated() &&
+                                TypesAreEqual(
+                                    thisArg.GetExpectedType(TypeSystem),
+                                    methodDef.DeclaringType
+                                )
+                            );
 
-                        if ((thisArgVar != null) && thisArgVar.IsThis) {
-                            var outerThis = DeclareVariable(new JSVariable(
-                                "$outer_this", thisArgVar.Type, ThisMethodReference, 
-                                new JSThisParameter(thisArgVar.Type, ThisMethodReference)
-                            ));
+                        if (emitInline) {
+                            JSFunctionExpression function;
+                            // It's possible that the method we're using wasn't initially translated/analyzed because it's
+                            //  a compiler-generated method or part of a compiler generated type
+                            if (!Translator.FunctionCache.TryGetExpression(methodMember.QualifiedIdentifier, out function)) {
+                                function = Translator.TranslateMethodExpression(Context, methodDef, methodDef);
+                            }
 
-                            new VariableEliminator(
-                                thisArgVar,
-                                outerThis
-                            ).Visit(function);
+                            var thisArgVar = thisArg as JSVariable;
 
-                            thisArg = thisArgVar = outerThis;
-                        } else if (methodDef.HasThis && function.AllVariables.ContainsKey("this")) {
-                            new VariableEliminator(
-                                function.AllVariables["this"],
-                                thisArg
-                            ).Visit(function);
-                            function.AllVariables.Remove("this");
-                        }
+                            if ((thisArgVar != null) && thisArgVar.IsThis) {
+                                var outerThis = DeclareVariable(new JSVariable(
+                                    "$outer_this", thisArgVar.Type, ThisMethodReference, 
+                                    new JSThisParameter(thisArgVar.Type, ThisMethodReference)
+                                ));
 
-                        if (
-                            methodDef.IsPrivate && 
-                            methodDef.IsCompilerGenerated()
-                        ) {
-                            // Lambda with no closed-over locals
+                                thisArg = thisArgVar = outerThis;
+                            }// else if (methodDef.HasThis && function.AllVariables.ContainsKey("this")) {
 
-                            return function;
-                        } else if (
-                            methodDef.DeclaringType.IsCompilerGenerated() &&
-                            TypesAreEqual(
-                                thisArg.GetExpectedType(TypeSystem),
-                                methodDef.DeclaringType
-                            )
-                        ) {
-                            // Lambda with closed-over locals
-
-                            return function;
-                        } else {
-                            Debugger.Break();
+                            return new JSLambda(
+                                function, thisArg
+                            );
                         }
                     }
                 }
@@ -1883,17 +1891,45 @@ namespace JSIL {
             );
         }
 
+        public static JSExpression[] GetArrayDimensions (TypeReference arrayType) {
+            var at = arrayType as ArrayType;
+            if (at == null)
+                return null;
+
+            var result = new List<JSExpression>();
+            for (var i = 0; i < at.Dimensions.Count; i++) {
+                var dim = at.Dimensions[i];
+                if (dim.IsSized)
+                    result.Add(JSLiteral.New(dim.UpperBound.Value));
+                else
+                    return null;
+            }
+
+            return result.ToArray();
+        }
+
         protected JSExpression Translate_InitArray (ILExpression node, TypeReference elementType) {
             var initializer = new JSArrayExpression(elementType, Translate(node.Arguments));
+            var at = elementType as ArrayType;
+            int rank = 0;
+            if (at != null)
+                rank = at.Rank;
 
             if (TypesAreEqual(
                 TypeSystem.Object, elementType
-            ))
+            ) && rank < 2)
                 return initializer;
-            else
-                return JSIL.NewArray(
-                    elementType, initializer
-                );
+            else {
+                if (rank > 1) {
+                    return JSIL.NewMultidimensionalArray(
+                        elementType, GetArrayDimensions(at), initializer
+                    );
+                } else {
+                    return JSIL.NewArray(
+                        elementType, initializer
+                    );
+                }
+            }
         }
 
         protected JSExpression Translate_InitializedObject (ILExpression node) {

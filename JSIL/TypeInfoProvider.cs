@@ -35,8 +35,16 @@ namespace JSIL {
 
                     foreach (var type in module.Types) {
                         var identifier = new TypeIdentifier(type);
+
                         TypeProxies.Remove(identifier);
                         TypeInformation.Remove(identifier);
+
+                        foreach (var nt in type.NestedTypes) {
+                            var ni = new TypeIdentifier(nt);
+
+                            TypeProxies.Remove(ni);
+                            TypeInformation.Remove(ni);
+                        }
                     }
                 }
             }
@@ -67,32 +75,46 @@ namespace JSIL {
             return result;
         }
 
+        private void EnqueueType (OrderedDictionary<TypeIdentifier, TypeDefinition> queue, TypeReference typeReference, LinkedListNode<TypeIdentifier> before = null) {
+            var identifier = new TypeIdentifier(typeReference);
+
+            if (TypeInformation.ContainsKey(identifier))
+                return;
+            else if (queue.ContainsKey(identifier))
+                return;
+
+            TypeInfo result;
+            if (!TypeInformation.TryGetValue(identifier, out result)) {
+                var typedef = ILBlockTranslator.GetTypeDefinition(typeReference);
+                if (typedef == null)
+                    return;
+
+                LinkedListNode<TypeIdentifier> before2;
+                if (before != null)
+                    before2 = queue.EnqueueBefore(before, identifier, typedef);
+                else
+                    before2 = queue.Enqueue(identifier, typedef);
+
+                if (typedef.BaseType != null)
+                    EnqueueType(queue, typedef.BaseType, before2);
+
+                foreach (var iface in typedef.Interfaces)
+                    EnqueueType(queue, iface, before2);
+            }
+        }
+
         public TypeInfo GetTypeInformation (TypeReference type) {
             if (type == null)
                 throw new ArgumentNullException("type");
-
-            // TODO: Enable this once it's fixed in ILSpy upstream
-            /*
-            if (type.DeclaringType != null)
-                type = TypeAnalysis.SubstituteTypeArgs(type, type.DeclaringType);
-             */
 
             var identifier = new TypeIdentifier(type);
 
             var fullName = type.FullName;
 
-            var typesToInitialize = new Dictionary<TypeIdentifier, TypeDefinition>();
+            var typesToInitialize = new OrderedDictionary<TypeIdentifier, TypeDefinition>();
             var secondPass = new Dictionary<TypeIdentifier, TypeInfo>();
 
-            TypeInfo result;
-            if (!TypeInformation.TryGetValue(identifier, out result)) {
-                var typedef = ILBlockTranslator.GetTypeDefinition(type);
-                if (typedef == null)
-                    return null;
-
-                identifier = new TypeIdentifier(typedef);
-                typesToInitialize.Add(identifier, typedef);
-            }
+            EnqueueType(typesToInitialize, type);
 
             // We must construct type information in two passes, so that method group construction
             //  behaves correctly and ignores all the right methods.
@@ -103,7 +125,7 @@ namespace JSIL {
             //  the types again, and construct their method groups, since we have the necessary
             //  information to determine which methods are ignored.
             while (typesToInitialize.Count > 0) {
-                var kvp = typesToInitialize.First();
+                var kvp = typesToInitialize.First;
                 typesToInitialize.Remove(kvp.Key);
 
                 if (TypeInformation.ContainsKey(kvp.Key))
@@ -119,14 +141,8 @@ namespace JSIL {
                 if (TypeInformation.TryGetValue(kvp.Key, out temp))
                     secondPass.Add(kvp.Key, temp);
 
-                foreach (var more in moreTypes) {
-                    if (typesToInitialize.ContainsKey(more.Key))
-                        continue;
-                    else if (TypeInformation.ContainsKey(more.Key))
-                        continue;
-
-                    typesToInitialize.Add(more.Key, more.Value);
-                }
+                foreach (var more in moreTypes)
+                    EnqueueType(typesToInitialize, more.Value);
             }
 
             foreach (var ti in secondPass.Values) {
@@ -134,11 +150,11 @@ namespace JSIL {
                 ti.ConstructMethodGroups();
             }
 
-            if (!TypeInformation.TryGetValue(identifier, out result)) {
+            TypeInfo result;
+            if (!TypeInformation.TryGetValue(identifier, out result))
                 return null;
-            }
-
-            return result;
+            else
+                return result;
         }
 
         protected Dictionary<TypeIdentifier, TypeDefinition> ConstructTypeInformation (TypeIdentifier identifier, TypeDefinition type) {
@@ -147,9 +163,6 @@ namespace JSIL {
             TypeInfo baseType = null;
             if (type.BaseType != null)
                 baseType = GetTypeInformation(type.BaseType);
-
-            foreach (var iface in type.Interfaces)
-                GetTypeInformation(iface);
 
             var result = new TypeInfo(this, moduleInfo, type, baseType, identifier);
             TypeInformation[identifier] = result;
@@ -232,12 +245,6 @@ namespace JSIL {
             if (type == null)
                 throw new ArgumentNullException("type");
 
-            // TODO: Enable this once it's fixed upstream
-            /*
-            if (type.DeclaringType != null)
-                type = TypeAnalysis.SubstituteTypeArgs(type, type.DeclaringType);
-             */
-
             var identifier = new TypeIdentifier(type);
 
             TypeInfo result;
@@ -259,6 +266,69 @@ namespace JSIL {
             }
 
             return (T)result;
+        }
+    }
+
+    public class OrderedDictionary<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>> {
+        protected readonly Dictionary<TKey, TValue> Dictionary = new Dictionary<TKey, TValue>();
+        protected readonly LinkedList<TKey> LinkedList = new LinkedList<TKey>();
+
+        public int Count {
+            get {
+                return Dictionary.Count;
+            }
+        }
+
+        public void Clear () {
+            Dictionary.Clear();
+            LinkedList.Clear();
+        }
+
+        public bool ContainsKey (TKey key) {
+            return Dictionary.ContainsKey(key);
+        }
+
+        public bool Remove (TKey key) {
+            if (Dictionary.Remove(key)) {
+                LinkedList.Remove(key);
+                return true;
+            }
+
+            return false;
+        }
+
+        public LinkedListNode<TKey> EnqueueBefore (LinkedListNode<TKey> before, TKey key, TValue value) {
+            Dictionary.Add(key, value);
+            return LinkedList.AddBefore(before, key);
+        }
+
+        public LinkedListNode<TKey> Enqueue (TKey key, TValue value) {
+            Dictionary.Add(key, value);
+            return LinkedList.AddLast(key);
+        }
+
+        public KeyValuePair<TKey, TValue> First {
+            get {
+                var node = LinkedList.First;
+                return new KeyValuePair<TKey, TValue>(node.Value, Dictionary[node.Value]);
+            }
+        }
+
+        public KeyValuePair<TKey, TValue> Last {
+            get {
+                var node = LinkedList.Last;
+                return new KeyValuePair<TKey, TValue>(node.Value, Dictionary[node.Value]);
+            }
+        }
+
+        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator () {
+            foreach (var key in LinkedList)
+                yield return new KeyValuePair<TKey, TValue>(key, Dictionary[key]);
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator () {
+            foreach (var key in LinkedList)
+                yield return new KeyValuePair<TKey, TValue>(key, Dictionary[key]);
         }
     }
 }

@@ -12,7 +12,7 @@ System.Windows.Forms.Control.prototype.SetStyle = function (styles, newState) {
 };
 
 System.Windows.Forms.Control.prototype._ctor = function () {
-  this._controls = new System.Collections.Generic.List$b1();
+  this._controls = new (System.Collections.Generic.List$b1.Of(System.Object)) ();
 };
 
 System.Windows.Forms.Control.prototype.get_Controls = function () {
@@ -42,7 +42,7 @@ System.Windows.Forms.Form.prototype._ctor = function () {
 };
 
 System.Windows.Forms.StatusBar.prototype._ctor = function () {
-  this._panels = new System.Collections.Generic.List$b1();
+  this._panels = new (System.Collections.Generic.List$b1.Of(System.Object)) ();
 };
 
 System.Windows.Forms.StatusBar.prototype.get_Panels = function () {
@@ -50,7 +50,7 @@ System.Windows.Forms.StatusBar.prototype.get_Panels = function () {
 };
 
 System.Windows.Forms.TabControl.prototype._ctor = function () {
-  this._tabPages = new System.Collections.Generic.List$b1();
+  this._tabPages = new (System.Collections.Generic.List$b1.Of(System.Object)) ();
 };
 
 System.Windows.Forms.TabControl.prototype.get_TabPages = function () {

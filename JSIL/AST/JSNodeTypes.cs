@@ -21,6 +21,15 @@ namespace JSIL.Ast {
             }
         }
 
+        public IEnumerable<JSNode> SelfAndChildrenRecursive {
+            get {
+                yield return this;
+
+                foreach (var ch in AllChildrenRecursive)
+                    yield return ch;
+            }
+        }
+
         public IEnumerable<JSNode> AllChildrenRecursive {
             get {
                 foreach (var child in Children) {
@@ -236,9 +245,7 @@ namespace JSIL.Ast {
     }
 
     public class JSFunctionExpression : JSExpression {
-        public readonly MethodDefinition OriginalMethod;
-        public readonly MethodReference OriginalMethodReference;
-        public readonly QualifiedMemberIdentifier Identifier;
+        public readonly JSMethod Method;
 
         public readonly Dictionary<string, JSVariable> AllVariables;
         // This has to be JSVariable, because 'this' is of type (JSVariableReference<JSThisParameter>) for structs
@@ -247,12 +254,10 @@ namespace JSIL.Ast {
         public readonly JSBlockStatement Body;
 
         public JSFunctionExpression (
-            MethodDefinition originalMethod, MethodReference originalMethodReference, QualifiedMemberIdentifier identifier,
-            Dictionary<string, JSVariable> allVariables, IEnumerable<JSVariable> parameters, JSBlockStatement body
+            JSMethod method, Dictionary<string, JSVariable> allVariables, 
+            IEnumerable<JSVariable> parameters, JSBlockStatement body
         ) {
-            OriginalMethod = originalMethod;
-            OriginalMethodReference = originalMethodReference;
-            Identifier = identifier;
+            Method = method;
             AllVariables = allVariables;
             Parameters = parameters;
             Body = body;
@@ -270,7 +275,7 @@ namespace JSIL.Ast {
         public override bool Equals (object obj) {
             var rhs = obj as JSFunctionExpression;
             if (rhs != null) {
-                if (!Object.Equals(OriginalMethod, rhs.OriginalMethod))
+                if (!Object.Equals(Method, rhs.Method))
                     return false;
                 if (!Object.Equals(AllVariables, rhs.AllVariables))
                     return false;
@@ -284,10 +289,10 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            if (OriginalMethod != null) {
-                var delegateType = ConstructDelegateType(OriginalMethodReference, typeSystem);
+            if (Method != null) {
+                var delegateType = ConstructDelegateType(Method.Reference, typeSystem);
                 if (delegateType == null)
-                    return OriginalMethod.ReturnType;
+                    return Method.Reference.ReturnType;
                 else
                     return delegateType;
             } else
@@ -296,9 +301,53 @@ namespace JSIL.Ast {
 
         public override string ToString () {
             return String.Format(
-                "function {0} ({1}) {{ ... }}", Identifier.Member,
+                "function {0} ({1}) {{ ... }}", Method.Method.Member,
                 String.Join(", ", (from p in Parameters select p.Name).ToArray())
             );
+        }
+    }
+
+    // Represents a copy of another JSFunctionExpression with one or more parameters replaced
+    public class JSLambda : JSLiteralBase<JSFunctionExpression> {
+        public readonly JSExpression This;
+
+        public JSLambda (JSFunctionExpression function, JSExpression @this)
+            : base(function) {
+            if (@this == null)
+                throw new ArgumentNullException("this");
+
+            This = @this;
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return Value.GetExpectedType(typeSystem);
+        }
+
+        public override bool IsConstant {
+            get {
+                return Value.IsConstant;
+            }
+        }
+
+        public override bool IsNull {
+            get {
+                return Value.IsNull;
+            }
+        }
+
+        public override bool IsStatic {
+            get {
+                return Value.IsStatic;
+            }
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                if (This != null)
+                    yield return This;
+
+                yield return Value;
+            }
         }
     }
 
@@ -803,38 +852,6 @@ namespace JSIL.Ast {
             return type;
         }
 
-        public static bool IsOpenGenericType (ParameterDefinition pd) {
-            return IsOpenGenericType(pd.ParameterType);
-        }
-
-        public static bool IsOpenGenericType (TypeReference type) {
-            type = DeReferenceType(type);
-
-            if (type.IsGenericParameter)
-                return true;
-
-            foreach (var gp in type.GenericParameters)
-                if (IsOpenGenericType(gp))
-                    return true;
-
-            var git = type as GenericInstanceType;
-            if (git != null) {
-                foreach (var ga in git.GenericArguments)
-                    if (IsOpenGenericType(ga))
-                        return true;
-            }
-
-            var modopt = type as OptionalModifierType;
-            if (modopt != null)
-                return IsOpenGenericType(modopt.ElementType);
-
-            var modreq = type as RequiredModifierType;
-            if (modreq != null)
-                return IsOpenGenericType(modreq.ElementType);
-
-            return false;
-        }
-
         public static TypeReference SubstituteTypeArgs (TypeReference type, MemberReference member) {
             var gp = (type as GenericParameter);
 
@@ -1153,7 +1170,11 @@ namespace JSIL.Ast {
 
         new public JSInvocationExpression Referent {
             get {
-                return (JSInvocationExpression)base.Referent;
+                var sce = base.Referent as JSStructCopyExpression;
+                if (sce != null)
+                    return (JSInvocationExpression)sce.Struct;
+                else
+                    return (JSInvocationExpression)base.Referent;
             }
         }
 
@@ -1868,6 +1889,14 @@ namespace JSIL.Ast {
             get { return Method.Name; }
         }
 
+        public QualifiedMemberIdentifier QualifiedIdentifier {
+            get {
+                return new QualifiedMemberIdentifier(
+                    Method.DeclaringType.Identifier, Method.Identifier
+                );
+            }
+        }
+
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             return ConstructDelegateType(Reference, typeSystem);
         }
@@ -1999,7 +2028,7 @@ namespace JSIL.Ast {
         public override string ToString () {
             var defaultValueText = "";
 
-            if (!DefaultValue.IsNull)
+            if (!DefaultValue.IsNull && !(DefaultValue is JSDefaultValueLiteral))
                 defaultValueText = String.Format(" = {0}", DefaultValue.ToString());
 
             if (IsReference)
@@ -2335,6 +2364,18 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSPropertyAccess : JSDotExpression {
+        public JSPropertyAccess (JSExpression thisReference, JSProperty property)
+            : base(thisReference, property) {
+        }
+
+        public JSProperty Property {
+            get {
+                return (JSProperty)Values[1];
+            }
+        }
+    }
+
     public class JSIndexerExpression : JSExpression {
         public TypeReference ElementType;
 
@@ -2544,10 +2585,21 @@ namespace JSIL.Ast {
                 } else {
                     var eParameters = m.Method.Parameters.GetEnumerator();
                     using (var eArguments = Arguments.GetEnumerator()) {
-                        while (eParameters.MoveNext() && eArguments.MoveNext())
+                        ParameterDefinition currentParameter, lastParameter = null;
+
+                        while (eArguments.MoveNext()) {
+                            if (eParameters.MoveNext()) {
+                                currentParameter = eParameters.Current as ParameterDefinition;
+                            } else {
+                                currentParameter = lastParameter;
+                            }
+
                             yield return new KeyValuePair<ParameterDefinition, JSExpression>(
-                                eParameters.Current as ParameterDefinition, eArguments.Current
+                                currentParameter, eArguments.Current
                             );
+
+                            lastParameter = currentParameter;
+                        }
                     }
                 }
             }
@@ -2566,7 +2618,7 @@ namespace JSIL.Ast {
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             var targetType = Method.GetExpectedType(typeSystem);
 
-            var targetAbstractMethod = Method.AllChildrenRecursive.OfType<JSIdentifier>()
+            var targetAbstractMethod = Method.SelfAndChildrenRecursive.OfType<JSIdentifier>()
                 .LastOrDefault((i) => {
                     var m = i as JSMethod;
                     var fm = i as JSFakeMethod;

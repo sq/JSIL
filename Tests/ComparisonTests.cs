@@ -21,6 +21,13 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void CastingFromNull()
+        {
+            using (var test = new ComparisonTest(@"TestCases\CastingFromNull.cs"))
+                test.Run();
+        }
+
+        [Test]
         public void BinaryTrees () {
             using (var test = new ComparisonTest(@"TestCases\BinaryTrees.cs")) {
                 test.Run();
@@ -56,14 +63,16 @@ namespace JSIL.Tests {
                     @"TestCases\GenericArgumentFromTypeReturnedByMethod.cs",
                     @"TestCases\GenericArgumentFromTypePassedToMethod.cs",
                     @"TestCases\GenericStructs.cs",
-                    @"TestCases\InheritOpenGenericClass.cs",
                     @"TestCases\InheritGenericClass.cs",
+                    @"TestCases\InheritOpenGenericClass.cs",
                     @"TestCases\GenericMethods.cs",
                     @"TestCases\NestedGenericMethodCalls.cs",
                     @"TestCases\OverloadWithGeneric.cs",
                     @"TestCases\OverloadWithMultipleGeneric.cs",
                     @"TestCases\GenericClasses.cs",
-                    @"TestCases\GenericStaticMethods.cs"
+                    @"TestCases\GenericStaticMethods.cs",
+                    @"TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs",
+                    @"TestCases\GenericStaticConstructorOrdering.cs"
                 }
             );
         }
@@ -74,9 +83,11 @@ namespace JSIL.Tests {
 
             RunComparisonTests(
                 new[] { 
+                    @"TestCases\ReturnStruct.cs",
                     @"TestCases\StructArrayLiteral.cs",
                     @"TestCases\StructAssignment.cs",
                     @"TestCases\StructDefaults.cs",
+                    @"TestCases\StructEquals.cs",
                     @"TestCases\StructFields.cs",
                     @"TestCases\StructInitializers.cs",
                     @"TestCases\StructProperties.cs",
@@ -118,12 +129,15 @@ namespace JSIL.Tests {
 
         [Test]
         public void Refs () {
-            using (var test = new ComparisonTest(@"TestCases\RefStruct.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\StructPropertyThis.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\RefClass.cs"))
-                test.Run();
+            var defaultProvider = MakeDefaultProvider();
+
+            RunComparisonTests(
+                new[] { 
+                    @"TestCases\RefStruct.cs",
+                    @"TestCases\StructPropertyThis.cs",
+                    @"TestCases\RefClass.cs"
+                }, null, defaultProvider
+            );
         }
 
         [Test]
@@ -149,26 +163,9 @@ namespace JSIL.Tests {
                 Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "SimpleTestCases")), 
                 "*.cs"
             );
-            var failureList = new List<string>();
 
-            foreach (var filename in simpleTests) {
-                Console.Write("// {0} ... ", Path.GetFileName(filename));
-
-                try {
-                    // We reuse the same type info provider for all the tests in this folder so they run faster
-                    using (var test = new ComparisonTest(filename, null, defaultProvider))
-                        test.Run();
-                } catch (Exception ex) {
-                    failureList.Add(Path.GetFileNameWithoutExtension(filename));
-                    if (ex.Message == "JS test failed")
-                        Debug.WriteLine(ex.InnerException);
-                    else
-                        Debug.WriteLine(ex);
-                }
-            }
-
-            Assert.AreEqual(0, failureList.Count, 
-                String.Format("{0} test(s) failed:\r\n{1}", failureList.Count, String.Join("\r\n", failureList.ToArray()))
+            RunComparisonTests(
+                simpleTests, null, defaultProvider
             );
         }
 
@@ -184,6 +181,19 @@ namespace JSIL.Tests {
                     @"TestCases\DelegatesReturningDelegates.cs",
                     @"TestCases\NestedGenericMethodCalls.cs",
                     @"TestCases\LambdaRefParameters.cs"
+                }, null, defaultProvider
+            );
+        }
+
+        [Test]
+        public void StaticConstructors () {
+            var defaultProvider = MakeDefaultProvider();
+
+            RunComparisonTests(
+                new[] { 
+                    @"TestCases\GenericStaticConstructorOrdering.cs",
+                    @"TestCases\StaticConstructorOrdering.cs",
+                    @"TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs"
                 }, null, defaultProvider
             );
         }
@@ -213,19 +223,30 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        public void IntegerArithmetic () {
+        public void StaticArrays () {
+            using (var test = new ComparisonTest(@"TestCases\StaticArrayInitializer.cs"))
+                test.Run();
+        }
+
+        [Test]
+        public void Arithmetic () {
             using (var test = new ComparisonTest(@"TestCases\IntegerArithmetic.cs"))
+                test.Run();
+            using (var test = new ComparisonTest(@"TestCases\TernaryArithmetic.cs"))
                 test.Run();
         }
 
         [Test]
         public void Temporaries () {
-            using (var test = new ComparisonTest(@"TestCases\InterleavedTemporaries.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\IndirectInterleavedTemporaries.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\DirectTemporaryAssignment.cs"))
-                test.Run();
+            var defaultProvider = MakeDefaultProvider();
+
+            RunComparisonTests(
+                new[] { 
+                    @"TestCases\InterleavedTemporaries.cs",
+                    @"TestCases\IndirectInterleavedTemporaries.cs",
+                    @"TestCases\DirectTemporaryAssignment.cs"
+                }, null, defaultProvider
+            );
         }
     }
 }

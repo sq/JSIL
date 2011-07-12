@@ -12,13 +12,17 @@ namespace JSIL.Transforms {
         public const bool Tracing = false;
 
         public readonly CLRSpecialIdentifiers CLR;
+        public readonly IFunctionSource FunctionSource;
         public readonly TypeSystem TypeSystem;
+        public readonly bool OptimizeCopies;
 
         protected readonly Dictionary<string, int> ReferenceCounts = new Dictionary<string, int>();
 
-        public EmulateStructAssignment (TypeSystem typeSystem, CLRSpecialIdentifiers clr) {
+        public EmulateStructAssignment (TypeSystem typeSystem, IFunctionSource functionSource, CLRSpecialIdentifiers clr, bool optimizeCopies) {
             TypeSystem = typeSystem;
+            FunctionSource = functionSource;
             CLR = clr;
+            OptimizeCopies = optimizeCopies;
         }
 
         public static bool IsStruct (TypeReference type) {
@@ -42,15 +46,19 @@ namespace JSIL.Transforms {
             if ((value == null) || (value.IsNull))
                 return false;
 
+            while (value is JSReferenceExpression)
+                value = ((JSReferenceExpression)value).Referent;
+
             var valueType = value.GetExpectedType(TypeSystem);
 
             if (!IsStruct(valueType))
                 return false;
 
+            if (valueType.FullName.StartsWith("System.Nullable"))
+                return false;
+
             if (
                 (value is JSLiteral) ||
-                (value is JSInvocationExpression) ||
-                (value is JSDelegateInvocationExpression) ||
                 (value is JSNewExpression) ||
                 (value is JSPassByReferenceExpression)
             ) {
@@ -71,7 +79,7 @@ namespace JSIL.Transforms {
         public void VisitNode (JSFunctionExpression fn) {
             // Create a new visitor for nested function expressions
             if (Stack.OfType<JSFunctionExpression>().Skip(1).FirstOrDefault() != null) {
-                var nested = new EmulateStructAssignment(TypeSystem, CLR);
+                var nested = new EmulateStructAssignment(TypeSystem, FunctionSource, CLR, OptimizeCopies);
                 nested.Visit(fn);
                 return;
             }
@@ -93,13 +101,36 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSInvocationExpression invocation) {
-            for (int i = 0, c = invocation.Arguments.Count; i < c; i++) {
-                var argument = invocation.Arguments[i];
+            FunctionAnalysis2ndPass sa = null;
+
+            if (invocation.JSMethod != null)
+                sa = FunctionSource.GetSecondPass(invocation.JSMethod);
+
+            var parms = invocation.Parameters.ToArray();
+
+            for (int i = 0, c = parms.Length; i < c; i++) {
+                var pd = parms[i].Key;
+                var argument = parms[i].Value;
 
                 if (IsCopyNeeded(argument)) {
-                    if (Tracing)
-                        Debug.WriteLine(String.Format("struct copy introduced for argument {0}", argument));
-                    invocation.Arguments[i] = new JSStructCopyExpression(argument);
+                    bool modified = true, escapes = true, isResult = false;
+
+                    if ((sa != null) && (pd != null)) {
+                        var varName = pd.Name;
+                        modified = sa.ModifiedVariables.Contains(varName);
+                        escapes = sa.EscapingVariables.Contains(varName);
+                        isResult = sa.ResultVariable == varName;
+                    }
+
+                    if (modified || (escapes && !isResult)) {
+                        if (Tracing)
+                            Debug.WriteLine(String.Format("struct copy introduced for argument {0}", argument));
+
+                        invocation.Arguments[i] = new JSStructCopyExpression(argument);
+                    } else {
+                        if (Tracing)
+                            Debug.WriteLine(String.Format("struct copy elided for argument {0}", argument));
+                    }
                 }
             }
 

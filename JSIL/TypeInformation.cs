@@ -243,12 +243,16 @@ namespace JSIL.Internal {
             if (icap == null)
                 return;
 
-            var metadata = new MetadataCollection(icap);
-            if (!metadata.HasAttribute("JSIL.Proxy.JSProxy"))
+            var proxyAttribute = icap.CustomAttributes.Where(
+                (ca) => (ca.AttributeType.Name == "JSProxy") &&
+                    (ca.AttributeType.Namespace == "JSIL.Proxy")
+            ).FirstOrDefault();
+
+            if (proxyAttribute == null)
                 return;
 
             string[] proxyTargets = null;
-            var args = metadata.GetAttributeParameters("JSIL.Proxy.JSProxy");
+            var args = proxyAttribute.ConstructorArguments;
 
             foreach (var arg in args) {
                 switch (arg.Type.FullName) {
@@ -1013,6 +1017,11 @@ namespace JSIL.Internal {
                 return (MethodInfo)result;
 
             result = new MethodInfo(this, identifier, method, Proxies, property, isFromProxy);
+            if (property.Member.GetMethod == method)
+                property.Getter = (MethodInfo)result;
+            else if (property.Member.SetMethod == method)
+                property.Setter = (MethodInfo)result;
+
             Members.Add(identifier, result);
             return (MethodInfo)result;
         }
@@ -1380,6 +1389,7 @@ namespace JSIL.Internal {
     }
 
     public class PropertyInfo : MemberInfo<PropertyDefinition> {
+        public MethodInfo Getter, Setter;
         protected readonly string ShortName;
 
         public PropertyInfo (
@@ -1439,8 +1449,6 @@ namespace JSIL.Internal {
         public readonly PropertyInfo Property = null;
         public readonly EventInfo Event = null;
         public readonly bool IsGeneric;
-
-        public FunctionStaticData StaticData = null;
 
         public int? OverloadIndex;
         protected bool? _ParametersIgnored;
