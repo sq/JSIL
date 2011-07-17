@@ -1,6 +1,7 @@
 
 *.user
 *.suo
+*.docstates
 _ReSharper.*
 *.ReSharper
 Compiler/obj
