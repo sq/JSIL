@@ -688,6 +688,22 @@ System.TimeSpan.op_Subtraction = function (lhs, rhs) {
   return result;
 };
 
+System.TimeSpan.prototype._ctor$0 = function (ticks) {
+  this._ticks = ticks;
+};
+
+System.TimeSpan.prototype._ctor$1 = function (hours, minutes, seconds) {
+  this._ticks = 10000 * (1000 * (seconds + 60 * (minutes + 60 * hours)));
+};
+
+System.TimeSpan.prototype._ctor$2 = function (days, hours, minutes, seconds) {
+  this._ticks = 10000 * (1000 * (seconds + 60 * (minutes + 60 * (hours + 24 * days))));
+};
+
+System.TimeSpan.prototype._ctor$3 = function (days, hours, minutes, seconds, milliseconds) {
+  this._ticks = 10000 * (milliseconds + 1000 * (seconds + 60 * (minutes + 60 * (hours + 24 * days))));
+};
+
 System.TimeSpan.prototype.get_Ticks = function () {
   return this._ticks;
 };
@@ -723,6 +739,33 @@ System.TimeSpan.prototype.get_TotalSeconds = function () {
 System.TimeSpan.prototype.get_TotalMinutes = function () {
   return this._ticks / 600000000;
 };
+
+JSIL.MakeProperty(System.TimeSpan.prototype, "Ticks",
+  System.TimeSpan.prototype.get_Ticks);
+
+JSIL.MakeProperty(System.TimeSpan.prototype, "Milliseconds",
+  System.TimeSpan.prototype.get_Milliseconds);
+
+JSIL.MakeProperty(System.TimeSpan.prototype, "TotalMilliseconds",
+  System.TimeSpan.prototype.get_TotalMilliseconds);
+
+JSIL.MakeProperty(System.TimeSpan.prototype, "Seconds",
+  System.TimeSpan.prototype.get_Seconds);
+
+JSIL.MakeProperty(System.TimeSpan.prototype, "Minutes",
+  System.TimeSpan.prototype.get_Minutes);
+
+JSIL.MakeProperty(System.TimeSpan.prototype, "Hours",
+  System.TimeSpan.prototype.get_Hours);
+
+JSIL.MakeProperty(System.TimeSpan.prototype, "Days",
+  System.TimeSpan.prototype.get_Days);
+
+JSIL.MakeProperty(System.TimeSpan.prototype, "TotalSeconds",
+  System.TimeSpan.prototype.get_TotalSeconds);
+
+JSIL.MakeProperty(System.TimeSpan.prototype, "TotalMinutes",
+  System.TimeSpan.prototype.get_TotalMinutes);
 
 JSIL.MakeClass("System.Object", "System.EventArgs", false);
 System.EventArgs.prototype._ctor = function () { };
