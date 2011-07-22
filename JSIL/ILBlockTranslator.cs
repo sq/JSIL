@@ -1939,8 +1939,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_InitCollection (ILExpression node) {
-            TypeReference inferredType = null;
-            var values = new List<JSExpression>();
+            var values = new List<JSArrayExpression>();
 
             for (var i = 1; i < node.Arguments.Count; i++) {
                 var translated = TranslateNode(node.Arguments[i]);
@@ -1950,18 +1949,13 @@ namespace JSIL {
 
                 var invocation = (JSInvocationExpression)translated;
 
-                var valueType = invocation.Arguments[0].GetExpectedType(TypeSystem);
-
-                if (inferredType == null)
-                    inferredType = valueType;
-                else if (inferredType.FullName != valueType.FullName)
-                    Console.Error.WriteLine("Mixed-type collection initializers not supported: {0}", node);
-
-                values.Add(invocation.Arguments[0]);
+                // each JSArrayExpression added to values contains the arguments
+                // to the Add method which is called by CollectionInitializer.Apply
+                values.Add(new JSArrayExpression(TypeSystem.Object, invocation.Arguments.ToArray()));
             }
 
             var initializer = JSIL.NewCollectionInitializer(
-                new JSArrayExpression(inferredType, values.ToArray())
+                values
             );
 
             return new JSBinaryOperatorExpression(
