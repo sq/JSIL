@@ -166,10 +166,10 @@ namespace JSIL {
             );
         }
 
-        public JSNewExpression NewCollectionInitializer (JSArrayExpression values) {
+        public JSNewExpression NewCollectionInitializer (IEnumerable<JSArrayExpression> values) {
             return new JSNewExpression(
                 Dot("CollectionInitializer", TypeSystem.Object),
-                null, values.Values.ToArray()
+                null, values.ToArray()
             );
         }
 
