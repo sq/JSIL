@@ -699,7 +699,7 @@ namespace JSIL {
                     output.OpenBracket();
                     output.Value(sf.Name);
                     output.Comma();
-                    output.Identifier(sf.FieldType);
+                    output.TypeReference(sf.FieldType);
                     output.CloseBracket();
 
                     isFirst = false;
