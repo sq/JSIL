@@ -41,14 +41,9 @@ Microsoft.Xna.Framework.Storage.StorageContainer.get_TitleLocation = function ()
 };
 
 JSIL.CopyObjectValues(
-  $jsilxna.Color, Microsoft.Xna.Framework.Graphics.Color
+  $jsilxna.Color, JSIL.GetTypeByName("Microsoft.Xna.Framework.Graphics.Color")
 );
 
 JSIL.CopyObjectValues(
-  $jsilxna.ColorPrototype, Microsoft.Xna.Framework.Graphics.Color.prototype
-);
-
-JSIL.SealTypes(
-  $jsilxna, "Microsoft.Xna.Framework.Graphics", 
-  "Color"
+  $jsilxna.ColorPrototype, JSIL.GetTypeByName("Microsoft.Xna.Framework.Graphics.Color").prototype
 );

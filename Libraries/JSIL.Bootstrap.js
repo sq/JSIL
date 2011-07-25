@@ -365,6 +365,7 @@ JSIL.ImplementInterfaces(System.Collections.Generic.List$b1, [
 ]);
 
 System.Collections.ArrayList = System.Collections.Generic.List$b1.Of(System.Object);
+JSIL.DefineTypeName("System.Collections.ArrayList", function () { return System.Collections.ArrayList; });
 
 // TODO: This type is actually a struct in the CLR
 JSIL.MakeClass("JSIL.ArrayEnumerator", "System.Collections.Generic.List`1/Enumerator", true, ["T"]);

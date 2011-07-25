@@ -37,14 +37,9 @@ Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.End = function () {
 };
 
 JSIL.CopyObjectValues(
-  $jsilxna.Color, Microsoft.Xna.Framework.Color
+  $jsilxna.Color, JSIL.GetTypeByName("Microsoft.Xna.Framework.Color")
 );
 
 JSIL.CopyObjectValues(
-  $jsilxna.ColorPrototype, Microsoft.Xna.Framework.Color.prototype
-);
-
-JSIL.SealTypes(
-  $jsilxna, "Microsoft.Xna.Framework", 
-  "Color"
+  $jsilxna.ColorPrototype, JSIL.GetTypeByName("Microsoft.Xna.Framework.Color").prototype
 );

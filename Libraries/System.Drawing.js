@@ -295,8 +295,3 @@ System.Drawing.Rectangle.prototype.MemberwiseClone = function () {
   result.height = this.height;
   return result;
 }
-
-JSIL.SealTypes(
-  $jsildrawing, "System.Drawing", 
-  "Size", "Color", "Point", "Rectangle"
-);

@@ -600,14 +600,6 @@ namespace JSIL {
 
             output.NewLine();
 
-            foreach (var nestedTypeDef in typedef.NestedTypes) {
-                if (nestedTypeDef.IsEnum || nestedTypeDef.IsInterface)
-                    continue;
-
-                if (!DeclaredTypes.Contains(nestedTypeDef.FullName))
-                    DeclareType(context, output, nestedTypeDef, stubbed);
-            }
-
             output.CloseBrace(false);
 
             output.RPar();
@@ -615,9 +607,8 @@ namespace JSIL {
             output.NewLine();
 
             foreach (var nestedTypeDef in typedef.NestedTypes) {
-                if (nestedTypeDef.IsEnum || nestedTypeDef.IsInterface)
-                    if (!DeclaredTypes.Contains(nestedTypeDef.FullName))
-                        DeclareType(context, output, nestedTypeDef, stubbed);
+                if (!DeclaredTypes.Contains(nestedTypeDef.FullName))
+                    DeclareType(context, output, nestedTypeDef, stubbed);
             }
         }
 
