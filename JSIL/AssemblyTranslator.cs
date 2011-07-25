@@ -722,7 +722,7 @@ namespace JSIL {
             if (externalMemberNames.Count > 0) {
                 output.Identifier("JSIL.ExternalMembers", null);
                 output.LPar();
-                output.Identifier(typedef);
+                output.Identifier("$", null);
                 output.Dot();
                 output.Keyword("prototype");
                 output.Comma();
@@ -738,7 +738,7 @@ namespace JSIL {
             if (staticExternalMemberNames.Count > 0) {
                 output.Identifier("JSIL.ExternalMembers", null);
                 output.LPar();
-                output.Identifier(typedef);
+                output.Identifier("$", null);
                 output.Comma();
                 output.NewLine();
 
@@ -759,7 +759,7 @@ namespace JSIL {
             if (interfaces.Length > 0) {
                 output.Identifier("JSIL.ImplementInterfaces", null);
                 output.LPar();
-                output.Identifier(typedef);
+                output.Identifier("$", null);
                 output.Comma();
                 output.OpenBracket(true);
                 output.CommaSeparatedList(interfaces, ListValueType.TypeReference);
@@ -804,7 +804,7 @@ namespace JSIL {
 
                 output.OpenBracket();
                 output.CommaSeparatedList(
-                    from p in method.Member.Parameters select p.ParameterType, ListValueType.TypeIdentifier
+                    from p in method.Member.Parameters select p.ParameterType, ListValueType.TypeReference
                 );
                 output.CloseBracket();
 

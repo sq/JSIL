@@ -405,7 +405,7 @@ namespace JSIL {
             }
         }
 
-        public static TypeDefinition GetTypeDefinition (TypeReference typeRef) {
+        public static TypeDefinition GetTypeDefinition (TypeReference typeRef, bool resolveTypedArrays = true) {
             if (typeRef == null)
                 return null;
 
@@ -428,7 +428,7 @@ namespace JSIL {
                 }
             } while (unwrapped);
 
-            if (typeRef is ArrayType)
+            if (resolveTypedArrays && (typeRef is ArrayType))
                 return new TypeReference(ts.Object.Namespace, "Array", ts.Object.Module, ts.Object.Scope).ResolveOrThrow();
             else if (IsIgnoredType(typeRef))
                 return null;

@@ -56,6 +56,7 @@ JSIL.DeclareAssembly = function (assemblyName) {
 
 var $jsilcore = JSIL.DeclareAssembly("JSIL.Core");
 $jsilcore.nextTypeId = 0;
+$jsilcore.typesByName = {};
 
 JSIL.EscapeName = function (name) {
   return name.replace("`", "$b").replace(".", "_").replace("<", "$l").replace(">", "$g");
@@ -139,6 +140,26 @@ JSIL.ResolveName = function (root, name) {
     current, name.substr(0, name.length - (localName.length + 1)), 
     JSIL.EscapeName(localName), localName
   );
+};
+
+// Must not be used to construct type or interact with members. Only to get a reference to the type for access to type information.
+JSIL.GetTypeByName = function (name) {
+  var typeFunction = $jsilcore.typesByName[name];
+  if (typeof (typeFunction) !== "function")
+    throw new Error("Type '" + name + "' has not been defined.");
+
+  return typeFunction();
+};
+
+JSIL.DefineTypeName = function (name, getter) {
+  if (typeof (getter) !== "function")
+    throw new Error("Definition for type name '" + name + "' is not a function");
+
+  var existing = $jsilcore.typesByName[name];
+  if (typeof (existing) === "function")
+    throw new Error("Type '" + name + "' has already been defined.");
+
+  $jsilcore.typesByName[name] = getter;
 };
 
 JSIL.DeclareNamespace = function (name, sealed) {
@@ -370,6 +391,11 @@ JSIL.GenericParameter = function (name) {
   this.name = name;
 };
 JSIL.GenericParameter.prototype.get = function (context) {
+  if (typeof (context) !== "object") {
+    // throw new Error("No context provided when resolving generic parameter '" + this.name + "'");
+    return JSIL.AnyType;
+  }
+
   return context[this.name];
 };
 JSIL.GenericParameter.prototype.toString = function () {
@@ -521,13 +547,15 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
 
   if (isPublic)
     publicName.define(decl);
+
+  JSIL.DefineTypeName(name, getter);
 };
 
 JSIL.MakeProto = function (baseType, target, typeName, isReferenceType) {
   if (typeof (baseType) === "undefined") {
     throw new Error("The base type of '" + typeName + "' is not defined");
   } else if (typeof (baseType) === "string") {
-    baseType = new JSIL.TypeRef($private, baseType);
+    baseType = new JSIL.TypeRef(JSIL.GetTypeByName(baseType));
   } else if (Object.getPrototypeOf(baseType) !== JSIL.TypeRef.prototype) {
     baseType = new JSIL.TypeRef(baseType);
   }
@@ -719,6 +747,7 @@ System.RuntimeType.__TypeInitialized__ = false;
 System.RuntimeType.__LockCount__ = 0;
 System.RuntimeType.__FullName__ = null;
 System.RuntimeType.__ShortName__ = null;
+JSIL.DefineTypeName("System.RuntimeType", function () { return System.RuntimeType; });
 
 JSIL.InitializeStructFields = function (instance, typeObject) {
   var sf = instance.__StructFields__;
@@ -1008,6 +1037,8 @@ JSIL.MakeInterface = function (fullName, genericArguments, members) {
   };
   typeObject.prototype = JSIL.CloneObject(JSIL.Interface.prototype);
 
+  JSIL.DefineTypeName(fullName, function () { return typeObject; });
+
   resolved.set(typeObject);
 
   resolved = JSIL.ResolveName(JSIL.GlobalNamespace, fullName);
@@ -1065,6 +1096,8 @@ JSIL.MakeEnum = function (fullName, members, isFlagsEnum) {
     __IsFlagsEnum__: isFlagsEnum,
     __ValueToName__: {}
   };
+
+  JSIL.DefineTypeName(fullName, function () { return result; });
 
   result.Of = function () {
     return result;
@@ -1475,7 +1508,39 @@ JSIL.FindOverload = function (prototype, args, name, overloads) {
   return null;
 };
 
-JSIL.OverloadedMethod = function (type, name, overloads) {
+JSIL.MakeOverloadResolver = function (raw) {
+  var state = [null];
+
+  return function (self) {
+    if (state[0] !== null)
+      return state[0];
+
+    var resolved = new Array();
+    for (var i = 0, l = raw.length; i < l; i++) {      
+      var names = raw[i][1];
+      var types = new Array(names.length);
+
+      for (var j = 0, m = names.length; j < m; j++) {
+        var name = names[j];
+
+        if (typeof (name) === "string")
+          types[j] = JSIL.GetTypeByName(name);
+        else if (typeof (name.get) === "function")
+          types[j] = name.get(self);
+        else
+          throw new Error("Invalid argument type for overload: " + String(name));
+      }
+
+      resolved[i] = new Array(
+        raw[i][0], types
+      );
+    }
+
+    return state[0] = resolved;
+  };
+};
+
+JSIL.OverloadedMethodCore = function (type, name, overloads, dispatcher) {
   if (overloads.length < 1)
     return type[name] = null;
   else if (overloads.length < 2) {
@@ -1491,9 +1556,21 @@ JSIL.OverloadedMethod = function (type, name, overloads) {
       throw new Error("Recursive definition of overloaded method " + JSIL.GetTypeName(type) + "." + name);
   }
 
+  Object.defineProperty(
+    type, name, {
+      configurable: true,
+      enumerable: true,
+      value: dispatcher
+    }
+  );
+};
+
+JSIL.OverloadedMethod = function (type, name, overloads) {
+  var r = JSIL.MakeOverloadResolver(overloads);
+
   var result = function () {
     var args = Array.prototype.slice.call(arguments);
-    var method = JSIL.FindOverload(type, args, name, overloads);
+    var method = JSIL.FindOverload(type, args, name, r(this));
 
     if (method === null)
       throw new Error("No overload of '" + name + "' matching the argument list '" + String(args) + "' could be found.");
@@ -1501,38 +1578,18 @@ JSIL.OverloadedMethod = function (type, name, overloads) {
       return method.apply(this, args);
   };
 
-  Object.defineProperty(
-    type, name, {
-      configurable: true,
-      enumerable: true,
-      value: result
-    }
-  );
-  return result;
+  JSIL.OverloadedMethodCore(type, name, overloads, result);
 };
 
 JSIL.OverloadedGenericMethod = function (type, name, overloads) {
-  if (overloads.length < 1)
-    return type[name] = null;
-  else if (overloads.length < 2) {
-    var overload = overloads[0][0];
-    if (typeof (overload) === "function")
-      return type[name] = overload;
-    else
-      return type[name] = type[overload];
-  }
-
-  for (var i = 0; i < overloads.length; i++) {
-    if (overloads[i][0] === name)
-      throw new Error("Recursive definition of overloaded generic method " + JSIL.GetTypeName(type) + "." + name);
-  }
+  var r = JSIL.MakeOverloadResolver(overloads);
 
   var result = function () {
     var genericArguments = Array.prototype.slice.call(arguments);
 
     return function () {
       var invokeArguments = Array.prototype.slice.call(arguments);
-      var method = JSIL.FindOverload(type, invokeArguments, name, overloads);
+      var method = JSIL.FindOverload(type, invokeArguments, name, r(this));
 
       if (method === null)
         throw new Error("No overload of '" + name + "<" + genericArguments.join(", ") + ">' matching the argument list '" + String(invokeArguments) + "' could be found.");
@@ -1541,14 +1598,7 @@ JSIL.OverloadedGenericMethod = function (type, name, overloads) {
     };
   };
 
-  Object.defineProperty(
-    type, name, {
-      configurable: true,
-      enumerable: true,
-      value: result
-    }
-  );
-  return result;
+  JSIL.OverloadedMethodCore(type, name, overloads, result);
 };
 
 JSIL.MakeClass(Object, "System.Object", true, [], function ($) {
@@ -1763,7 +1813,7 @@ System.Enum.Parse = function (type, value) {
 };
 System.Enum.ToString = function (type, value) {
 };
-System.Enum.prototype = JSIL.MakeProto(System.Object, System.Enum, "System.Enum", false);
+System.Enum.prototype = JSIL.MakeProto("System.Object", System.Enum, "System.Enum", false);
 System.Enum.prototype.toString = function ToString() {
   if (typeof (this.name) === "undefined") {
     return this.value.toString();
@@ -1772,7 +1822,7 @@ System.Enum.prototype.toString = function ToString() {
   }
 };
 
-System.Array.prototype = JSIL.MakeProto(System.Object, System.Array, "System.Array", true);
+System.Array.prototype = JSIL.MakeProto("System.Object", System.Array, "System.Array", true);
 System.Array.prototype.GetLength = function () {
   return this.length;
 };
@@ -1797,7 +1847,7 @@ System.Array.Of = function (type) {
     compositeType.FullName = compositeType.__FullName__ = typeName;
     compositeType.__TypeId__ = ++$jsilcore.nextTypeId;
     compositeType.__IsArray__ = true;
-    compositeType.prototype = JSIL.MakeProto(System.Array, compositeType, typeName, true);
+    compositeType.prototype = JSIL.MakeProto("System.Array", compositeType, typeName, true);
     compositeType.toString = function () {
       return typeName;
     };
@@ -1809,6 +1859,7 @@ System.Array.Of = function (type) {
 System.Array.CheckType = function (value) {
   return JSIL.IsArray(value);
 }
+JSIL.DefineTypeName("System.Array", function () { return System.Array; });
 
 JSIL.Array.New = function (type, sizeOrInitializer) {
   if (Array.isArray(sizeOrInitializer)) {

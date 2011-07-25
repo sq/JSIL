@@ -213,11 +213,19 @@ namespace JSIL.Internal {
         }
 
         public void TypeReference (TypeReference type) {
-            var typeDef = ILBlockTranslator.GetTypeDefinition(type);
+            var isReference = type is ByReferenceType;
+            var originalType = type;
+            type = ILBlockTranslator.DereferenceType(type);
+            var typeDef = ILBlockTranslator.GetTypeDefinition(type, false);
             var identifier = Util.EscapeIdentifier((typeDef ?? type).FullName, EscapingMode.String);
             var git = type as GenericInstanceType;
+            var at = type as ArrayType;
 
-            if (type is GenericParameter) {
+            if (isReference) {
+                Value("JSIL.Reference");
+                Space();
+                Comment("{0}", originalType);
+            } else if (type is GenericParameter) {
                 Keyword("new");
                 Space();
                 Identifier("JSIL.GenericParameter", null);
@@ -230,17 +238,35 @@ namespace JSIL.Internal {
                 Identifier("JSIL.TypeRef", null);
                 LPar();
 
-                Identifier(PrivateToken, null);
-                Comma();
+                // if (git != null) {
+                    Identifier(PrivateToken, null);
+                    Comma();
 
-                Value(identifier);
-                Comma();
+                    Value(identifier);
+                    Comma();
 
-                OpenBracket();
-                CommaSeparatedList(git.GenericArguments, ListValueType.TypeReference);
-                CloseBracket();
+                    OpenBracket();
+                    CommaSeparatedList(git.GenericArguments, ListValueType.TypeReference);
+                    CloseBracket();
+                    /*
+                } else if (at != null) {
+                    Identifier("JSIL.GlobalNamespace", null);
+                    Comma();
+
+                    Value("System.Array");
+                    Comma();
+
+                    OpenBracket();
+                    TypeReference(at.ElementType);
+                    CloseBracket();
+                }
+                     */
 
                 RPar();
+            } else if (at != null) {
+                Value("System.Array");
+                Space();
+                Comment("{0}", originalType);
             } else {
                 Value(identifier);
             }
