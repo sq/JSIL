@@ -993,12 +993,9 @@ namespace JSIL {
 
                 return JSInvocationExpression.InvokeStatic(
                     JSDotExpression.New(
-                        new JSStringIdentifier("Object"), new JSFakeMethod("defineProperty", field.Module.TypeSystem.Void)
+                        new JSStringIdentifier("JSIL"), new JSFakeMethod("MakeConstant", field.Module.TypeSystem.Void)
                     ), new[] { 
-                        target.Target, target.Member.ToLiteral(),
-                        new JSObjectExpression(new JSPairExpression(
-                            JSLiteral.New("value"), constant                            
-                        ))
+                        target.Target, target.Member.ToLiteral(), constant                            
                     }
                 );
             } else {

@@ -586,6 +586,16 @@ JSIL.MakeProto = function (baseType, target, typeName, isReferenceType) {
   return prototype;
 };
 
+JSIL.MakeConstant = function (parent, name, value) {
+  var descriptor = {
+    configurable: true,
+    enumerable: true,
+    value: value
+  };
+
+  Object.defineProperty(parent, name, descriptor);
+};
+
 JSIL.MakeProperty = function (parent, name, getter, setter) {
   var descriptor = {
     configurable: true,
