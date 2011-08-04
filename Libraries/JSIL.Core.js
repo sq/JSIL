@@ -552,32 +552,29 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
 };
 
 JSIL.MakeProto = function (baseType, target, typeName, isReferenceType) {
+  var baseTypeInstance = null;
+
   if (typeof (baseType) === "undefined") {
     throw new Error("The base type of '" + typeName + "' is not defined");
   } else if (typeof (baseType) === "string") {
-    baseType = new JSIL.TypeRef(JSIL.GetTypeByName(baseType));
-  } else if (Object.getPrototypeOf(baseType) !== JSIL.TypeRef.prototype) {
-    baseType = new JSIL.TypeRef(baseType);
-  }
-
-  var baseTypeInstance = null;
-  try {
-    // If we call .Of on the base type before it's got all its static members defined, the resulting
-    //  closed type will be missing static members.
-    var ga = baseType.genericArguments || [];
-    if (ga.length == 0)
+    baseTypeInstance = JSIL.GetTypeByName(baseType);
+  } else if (
+    typeof (baseType) === "object"
+  ) {
+    if (Object.getPrototypeOf(baseType) === JSIL.TypeRef.prototype)
       baseTypeInstance = baseType.get();
-  } catch (e) {
-    baseTypeInstance = null;
+    else
+      baseTypeInstance = baseType;
+  } else if (
+    typeof (baseType) === "function"
+  ) {
+    baseTypeInstance = baseType;
+  } else {
+    throw new Error("Invalid base type: " + String(baseType));
   }
 
-  if (baseTypeInstance === null) {
-    var prototype = {};
-    prototype.__DeferredBaseType__ = baseType;
-  } else {
-    var prototype = JSIL.CloneObject(baseTypeInstance.prototype);
-    prototype.__BaseType__ = baseTypeInstance;
-  }
+  var prototype = JSIL.CloneObject(baseTypeInstance.prototype);
+  prototype.__BaseType__ = baseTypeInstance;
 
   prototype.__ShortName__ = JSIL.GetLocalName(typeName);
   prototype.__FullName__ = typeName;
@@ -823,56 +820,6 @@ JSIL.InitializeType = function (type) {
   // Not entirely correct, but prevents recursive type initialization
   type.__TypeInitialized__ = true;
 
-  if (
-    (typeof (type.prototype) !== "undefined") &&
-    (typeof (type.prototype.__DeferredBaseType__) !== "undefined")
-  ) {
-    // The type was defined before its base class existed, so as a result, its prototype does
-    //  not actually derive from the base class's prototype. We must simulate derivation by copying
-    //  any missing members.
-    var baseRef = type.prototype.__DeferredBaseType__;
-    var baseType = baseRef.get();
-    type.prototype.__BaseType__ = baseType;
-    JSIL.InitializeType(baseType);
-
-    var src = baseType.prototype;
-    var indirectKeys = [];
-
-    // Scan through the original prototype chain to build a list of keys we need to transplant
-    //  onto the new prototype object.
-    while (src !== null) {
-      for (var k in src) {
-        if (!src.hasOwnProperty(k))
-          continue;
-        else if (indirectKeys.indexOf(k) !== -1)
-          continue;
-
-        indirectKeys.push(k);
-      }
-
-      src = Object.getPrototypeOf(src);
-    }
-
-    // Make indirect copies of all the keys from the original prototype chain.
-    // These copies will hold the same value as the original prototype until assigned new values.
-    for (var i = 0, l = indirectKeys.length; i < l; i++) {
-      var k = indirectKeys[i];
-
-      // If the prototype has a member of this name already, we shouldn't replace it with an indirect copy.
-      // Note that hasOwnProperty isn't enough here. Not entirely sure why.
-      if (
-        type.prototype.hasOwnProperty(k) || 
-        (typeof (type.prototype[k]) !== "undefined")
-      ) {
-        continue;
-      }
-
-      JSIL.MakeIndirectProperty(type.prototype, k, baseType.prototype);
-    }
-
-    // JSIL.Host.logWriteLine("Warning: Replacing prototype of type '" + JSIL.GetTypeName(type) + "'");
-  }
-
   var ti = type.__Initializers__ || [];
   while (ti.length > 0) {
     var initializer = ti.unshift();
@@ -898,13 +845,6 @@ JSIL.InitializeType = function (type) {
     }
   }
 
-  if (
-    (typeof (type.prototype) !== "undefined") &&
-    (typeof (type.prototype.__BaseType__) !== "undefined")
-  ) {
-    JSIL.InitializeType(type.prototype.__BaseType__);
-  }
-
   if (typeof (type.__OfCache__) !== "undefined") {
     var oc = type.__OfCache__;
     for (var k in oc) {
@@ -913,6 +853,13 @@ JSIL.InitializeType = function (type) {
 
       JSIL.InitializeType(oc[k]);
     }
+  }
+
+  if (
+    (typeof (type.prototype) !== "undefined") &&
+    (typeof (type.prototype.__BaseType__) !== "undefined")
+  ) {
+    JSIL.InitializeType(type.prototype.__BaseType__);
   }
 };
 
@@ -970,55 +917,67 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     return;
   }
 
-  var typeObject = function () {
-    if ((typeObject.__TypeInitialized__ || false) === false)
-      JSIL.InitializeType(typeObject);
+  var createTypeObject = function () {
+    var typeObject = function () {
+      if ((typeObject.__TypeInitialized__ || false) === false)
+        JSIL.InitializeType(typeObject);
 
-    JSIL.InitializeStructFields(this, typeObject);
+      JSIL.InitializeStructFields(this, typeObject);
 
-    var args = arguments;
-    if (args === null)
-      args = [];
+      var args = arguments;
+      if (args === null)
+        args = [];
 
-    if (!typeObject.__IsReferenceType__ && (args.length == 0))
-      return;
+      if (!typeObject.__IsReferenceType__ && (args.length == 0))
+        return;
 
-    if (typeof (this._ctor) != "undefined")
-      this._ctor.apply(this, args);
-  };
+      if (typeof (this._ctor) != "undefined")
+        this._ctor.apply(this, args);
+    };
 
-  typeObject.__TypeId__ = ++$jsilcore.nextTypeId;
-  typeObject.__IsArray__ = false;
-  typeObject.__Initializers__ = [];
-  typeObject.__TypeInitialized__ = false;
-  typeObject.__IsNativeType__ = false;
-  typeObject.__IsReferenceType__ = isReferenceType;
-  typeObject.__Context__ = $private;
-  typeObject.__Self__ = typeObject;
-  typeObject.FullName = typeObject.__FullName__ = fullName;
-  typeObject.__ShortName__ = localName;
-  typeObject.__LockCount__ = 0;
+    typeObject.__TypeId__ = ++$jsilcore.nextTypeId;
+    typeObject.__IsArray__ = false;
+    typeObject.__Initializers__ = [];
+    typeObject.__TypeInitialized__ = false;
+    typeObject.__IsNativeType__ = false;
+    typeObject.__IsReferenceType__ = isReferenceType;
+    typeObject.__Context__ = $private;
+    typeObject.__Self__ = typeObject;
+    typeObject.FullName = typeObject.__FullName__ = fullName;
+    typeObject.__ShortName__ = localName;
+    typeObject.__LockCount__ = 0;
 
-  typeObject.__GenericArguments__ = genericArguments || [];
-  if (typeObject.__GenericArguments__.length > 0) {
-    typeObject.Of = JSIL.TypeObjectPrototype.Of.bind(typeObject);
-    typeObject.__IsClosed__ = false;
-  } else {
-    typeObject.__IsClosed__ = true;
-  }
+    typeObject.__GenericArguments__ = genericArguments || [];
+    if (typeObject.__GenericArguments__.length > 0) {
+      typeObject.Of = JSIL.TypeObjectPrototype.Of.bind(typeObject);
+      typeObject.__IsClosed__ = false;
+    } else {
+      typeObject.__IsClosed__ = true;
+    }
 
-  typeObject.toString = function () {
-    return fullName;
-  };
+    typeObject.toString = function () {
+      return fullName;
+    };
 
-  typeObject.prototype = JSIL.MakeProto(baseType, typeObject, fullName, false);
-  typeObject.prototype.__ShortName__ = localName;
-  typeObject.prototype.__Interfaces__ = [];
-  typeObject.prototype.GetType = function () {
+    typeObject.prototype = JSIL.MakeProto(baseType, typeObject, fullName, false);
+    typeObject.prototype.__ShortName__ = localName;
+    typeObject.prototype.__Interfaces__ = [];
+    typeObject.prototype.GetType = function () {
+      return typeObject;
+    };
+
     return typeObject;
   };
 
-  JSIL.RegisterName(fullName, $private, isPublic, function () { return typeObject; }, initializer);
+  var state = [null];
+  var getTypeObject = function () {
+    if (state[0] === null)
+      state[0] = createTypeObject();
+
+    return state[0];
+  };
+
+  JSIL.RegisterName(fullName, $private, isPublic, getTypeObject, initializer);
 };
 
 JSIL.MakeClass = function (baseType, fullName, isPublic, genericArguments, initializer) {
