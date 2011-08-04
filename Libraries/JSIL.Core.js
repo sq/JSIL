@@ -875,13 +875,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   if (typeof (isPublic) === "undefined")
     JSIL.Host.error(new Error("Must specify isPublic"));
 
-  var resolved = JSIL.ResolveName($private, fullName);
-  var localName = resolved.localName;
-
-  if (resolved.exists()) {
-    JSIL.DuplicateDefinitionWarning(fullName);
-    return;
-  }
+  var localName = JSIL.GetLocalName(fullName);
 
   var typeObject = JSIL.CloneObject(System.RuntimeType);
   typeObject.GetType = function () {
@@ -909,13 +903,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
   if (typeof (isPublic) === "undefined")
     JSIL.Host.error(new Error("Must specify isPublic"));
 
-  var resolved = JSIL.ResolveName($private, fullName);
-  var localName = resolved.localName;
-
-  if (resolved.exists()) {
-    JSIL.DuplicateDefinitionWarning(fullName);
-    return;
-  }
+  var localName = JSIL.GetLocalName(fullName);
 
   var createTypeObject = function () {
     var typeObject = function () {
@@ -989,13 +977,7 @@ JSIL.MakeStruct = function (fullName, isPublic, genericArguments, initializer) {
 };
 
 JSIL.MakeInterface = function (fullName, genericArguments, members) {
-  var resolved = JSIL.ResolveName($private, fullName);
-  var localName = resolved.localName;
-
-  if (resolved.exists()) {
-    JSIL.DuplicateDefinitionWarning(fullName);
-    return;
-  }
+  var localName = JSIL.GetLocalName(fullName);
 
   var typeObject = function() {
     throw new Error("Cannot construct an instance of an interface");
@@ -1011,16 +993,7 @@ JSIL.MakeInterface = function (fullName, genericArguments, members) {
   };
   typeObject.prototype = JSIL.CloneObject(JSIL.Interface.prototype);
 
-  JSIL.DefineTypeName(fullName, function () { return typeObject; });
-
-  resolved.set(typeObject);
-
-  resolved = JSIL.ResolveName(JSIL.GlobalNamespace, fullName);
-  if (!resolved.exists()) {
-    resolved.set(typeObject);
-  } else {
-    JSIL.ShadowedTypeWarning(fullName);
-  }
+  JSIL.RegisterName(fullName, $private, true, function () { return typeObject; });
 };
 
 JSIL.MakeEnumValue = function (enumType, value, key) {
@@ -1045,13 +1018,7 @@ JSIL.MakeEnumValue = function (enumType, value, key) {
 }
 
 JSIL.MakeEnum = function (fullName, members, isFlagsEnum) {
-  var resolved = JSIL.ResolveName($private, fullName);
-  var localName = resolved.localName;
-
-  if (resolved.exists()) {
-    JSIL.DuplicateDefinitionWarning(fullName);
-    return;
-  }
+  var localName = JSIL.GetLocalName(fullName);
   
   var enumType = System.Enum;
   var prototype = JSIL.CloneObject(enumType.prototype);
@@ -1070,8 +1037,6 @@ JSIL.MakeEnum = function (fullName, members, isFlagsEnum) {
     __IsFlagsEnum__: isFlagsEnum,
     __ValueToName__: {}
   };
-
-  JSIL.DefineTypeName(fullName, function () { return result; });
 
   result.Of = function () {
     return result;
@@ -1095,19 +1060,7 @@ JSIL.MakeEnum = function (fullName, members, isFlagsEnum) {
     result[key] = JSIL.MakeEnumValue(result, value, key);
   }
 
-  var decl = {
-    configurable: true,
-    enumerable: true,
-    value: result
-  };
-  resolved.define(decl);
-
-  resolved = JSIL.ResolveName(JSIL.GlobalNamespace, fullName);
-  if (!resolved.exists()) {
-    resolved.define(decl);
-  } else {
-    JSIL.ShadowedTypeWarning(fullName);
-  }
+  JSIL.RegisterName(fullName, $private, true, function () { return result; });
 };
 
 JSIL.MakeInterfaceMemberGetter = function (thisReference, name) {
