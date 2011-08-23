@@ -353,26 +353,71 @@ JSIL.MakeExternalMemberStub = function (namespaceName, memberName, inheritedMemb
   return result;
 }
 
-JSIL.ExternalMembers = function (namespace/*, ...memberNames */) {
+JSIL.ExternalMembers = function (namespace, isInstance /*, ...memberNames */) {
   if (typeof (namespace) === "undefined") {
     JSIL.Host.error(new Error("External members declared in undefined namespace"));
     return;
-  } 
+  }
   
   var namespaceName = JSIL.GetTypeName(namespace);
-  for (var i = 1, l = arguments.length; i < l; i++) {
+  var impl = JSIL.AllImplementedExternals[namespaceName];
+
+  var prefix = isInstance ? "instance_" : "";
+
+  if (isInstance) {
+    namespace = namespace.prototype;
+    if (typeof (namespace) === "undefined") {
+      JSIL.Host.error(new Error("External instance members declared in namespace with no prototype"));
+      return;
+    }
+  }
+
+  if (typeof (impl) !== "object")
+    impl = {};
+
+  for (var i = 2, l = arguments.length; i < l; i++) {
     var memberName = arguments[i];
     var memberValue = namespace[memberName];
 
-    if (!namespace.hasOwnProperty(memberName)) {
+    if (Object.hasOwnProperty(impl, prefix + memberName)) {
       Object.defineProperty(
         namespace, memberName, {
-          enumerable: true,
-          configurable: true,
-          value: JSIL.MakeExternalMemberStub(namespaceName, memberName, memberValue)
+          enumerable: true, configurable: true,
+          value: impl[prefix + memberName]
         }
       );
+    } else {
+      if (!namespace.hasOwnProperty(memberName)) {
+        Object.defineProperty(
+          namespace, memberName, {
+            enumerable: true,
+            configurable: true,
+            value: JSIL.MakeExternalMemberStub(namespaceName, memberName, memberValue)
+          }
+        );
+      }
     }
+  }
+}
+
+JSIL.ImplementExternals = function (namespaceName, isInstance, externals) {
+  if (typeof (namespaceName) !== "string") {
+    JSIL.Host.error(new Error("ImplementExternals expected name of namespace"));
+    return;
+  }
+  
+  var obj = JSIL.AllImplementedExternals[namespaceName];
+  if (typeof (obj) !== "object") {
+    JSIL.AllImplementedExternals[namespaceName] = obj = {};
+  }
+
+  var prefix = isInstance ? "instance_" : "";
+
+  for (var k in externals) {
+    if (!Object.hasOwnProperty(externals, k))
+      continue;
+
+    obj[prefix + k] = externals[k];
   }
 }
 
@@ -485,6 +530,8 @@ JSIL.CloneObject = function (obj) {
 };
 
 JSIL.AllRegisteredNames = [];
+JSIL.AllImplementedExternals = {};
+
 JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initializer) {
   var privateName = JSIL.ResolveName(privateNamespace, name);
   if (isPublic)

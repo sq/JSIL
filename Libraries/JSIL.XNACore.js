@@ -529,65 +529,77 @@ Microsoft.Xna.Framework.GameTime.prototype.get_ElapsedGameTime = function () {
   return this.elapsedGameTime;
 }
 
-Microsoft.Xna.Framework.Rectangle.prototype._ctor = function (x, y, width, height) {
-  this.X = Math.floor(x);
-  this.Y = Math.floor(y);
-  this.Width = Math.floor(width);
-  this.Height = Math.floor(height);
-}
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Rectangle", true, {
+    _ctor: function (x, y, width, height) {
+      this.X = Math.floor(x);
+      this.Y = Math.floor(y);
+      this.Width = Math.floor(width);
+      this.Height = Math.floor(height);
+    },
+    get_Left: function () {
+      return this.X;
+    },
+    get_Top: function () {
+      return this.Y;
+    },
+    get_Right: function () {
+      return this.X + this.Width;
+    },
+    get_Bottom: function () {
+      return this.Y + this.Height;
+    },
+    get_Center: function () {
+      return new Microsoft.Xna.Framework.Point(
+        Math.floor(this.X + (this.Width / 2)),
+        Math.floor(this.Y + (this.Height / 2))
+      );
+    },
+    Contains$1: function (value) {
+      return this.X <= value.X && value.X < this.X + this.Width && this.Y <= value.Y && value.Y < this.Y + this.Height;
+    },
+    Intersects$0: function (value) {
+      return value.X < this.X + this.Width && this.X < value.X + value.Width && value.Y < this.Y + this.Height && this.Y < value.Y + value.Height;
+    },
+    MemberwiseClone: function () {
+      var result = Object.create(Microsoft.Xna.Framework.Rectangle.prototype);
+      result.X = this.X;
+      result.Y = this.Y;
+      result.Width = this.Width;
+      result.Height = this.Height;
+      return result;
+    }
+  }
+);
 
-Microsoft.Xna.Framework.Rectangle.prototype.get_Left = function () {
-  return this.X;
-}
-Microsoft.Xna.Framework.Rectangle.prototype.get_Top = function () {
-  return this.Y;
-}
-Microsoft.Xna.Framework.Rectangle.prototype.get_Right = function () {
-  return this.X + this.Width;
-}
-Microsoft.Xna.Framework.Rectangle.prototype.get_Bottom = function () {
-  return this.Y + this.Height;
-}
-Microsoft.Xna.Framework.Rectangle.prototype.get_Center = function () {
-  return new Microsoft.Xna.Framework.Point(
-    Math.floor(this.X + (this.Width / 2)),
-    Math.floor(this.Y + (this.Height / 2))
-  );
-}
-Microsoft.Xna.Framework.Rectangle.prototype.Contains$1 = function (value) {
-  return this.X <= value.X && value.X < this.X + this.Width && this.Y <= value.Y && value.Y < this.Y + this.Height;
-}
-Microsoft.Xna.Framework.Rectangle.prototype.Intersects$0 = function (value) {
-  return value.X < this.X + this.Width && this.X < value.X + value.Width && value.Y < this.Y + this.Height && this.Y < value.Y + value.Height;
-}
-Microsoft.Xna.Framework.Rectangle.prototype.MemberwiseClone = function () {
-  var result = Object.create(Microsoft.Xna.Framework.Rectangle.prototype);
-  result.X = this.X;
-  result.Y = this.Y;
-  result.Width = this.Width;
-  result.Height = this.Height;
-  return result;
-}
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Point", false, {
+    _cctor: function () {
+      Microsoft.Xna.Framework.Point._zero = new Microsoft.Xna.Framework.Point();
+    },
+    get_Zero: function () {
+      return Microsoft.Xna.Framework.Point._zero;
+    },
+    op_Equality: function (lhs, rhs) {
+      return lhs.Equals$0(rhs);
+    },
+    op_Inequality: function (lhs, rhs) {
+      return lhs.X !== rhs.X || lhs.Y !== rhs.Y;
+    }
+  }
+);
 
-Microsoft.Xna.Framework.Point.prototype._ctor = function (x, y) {
-  this.X = Math.floor(x);
-  this.Y = Math.floor(y);
-}
-Microsoft.Xna.Framework.Point._cctor = function () {
-  Microsoft.Xna.Framework.Point._zero = new Microsoft.Xna.Framework.Point();
-}
-Microsoft.Xna.Framework.Point.prototype.Equals$0 = function (rhs) {
-  return this.X === rhs.X && this.Y === rhs.Y;
-};
-Microsoft.Xna.Framework.Point.get_Zero = function () {
-  return Microsoft.Xna.Framework.Point._zero;
-};
-Microsoft.Xna.Framework.Point.op_Equality = function (lhs, rhs) {
-  return lhs.Equals$0(rhs);
-};
-Microsoft.Xna.Framework.Point.op_Inequality = function (lhs, rhs) {
-  return lhs.X !== rhs.X || lhs.Y !== rhs.Y;
-};
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Point", true, {
+    _ctor: function (x, y) {
+      this.X = Math.floor(x);
+      this.Y = Math.floor(y);
+    },
+    Equals$0: function (rhs) {
+      return this.X === rhs.X && this.Y === rhs.Y;
+    }
+  }
+);
 
 $jsilxna.makeColor = function (proto, r, g, b, a) {
   var result = Object.create(proto);
@@ -664,7 +676,7 @@ $jsilxna.Color = {
     result.g = Math.floor(color.g * multiplier);
     result.b = Math.floor(color.b * multiplier);
     return result;    
-  },
+  }
 };
 
 $jsilxna.ColorPrototype = {
@@ -761,196 +773,248 @@ $jsilxna.ColorPrototype = {
   }
 };
 
-Microsoft.Xna.Framework.GraphicsDeviceManager.prototype._ctor = function (game) {
-  this.game = game;
-  this.device = new Microsoft.Xna.Framework.Graphics.GraphicsDevice();
-  game.graphicsDeviceService = this;
-  game.graphicsDeviceManager = this;
-};
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.GraphicsDeviceManager", true, {
+    _ctor: function (game) {
+      this.game = game;
+      this.device = new Microsoft.Xna.Framework.Graphics.GraphicsDevice();
+      game.graphicsDeviceService = this;
+      game.graphicsDeviceManager = this;
+    },
 
-Microsoft.Xna.Framework.GraphicsDeviceManager.prototype.get_GraphicsDevice = function () {
-  return this.device;
-};
-
-Microsoft.Xna.Framework.Graphics.GraphicsDevice.prototype._ctor = function () {
-  this.canvas = JSIL.Host.getCanvas();
-  this.context = this.canvas.getContext("2d");
-  this.viewport = new Microsoft.Xna.Framework.Graphics.Viewport();
-  this.viewport.Width = this.canvas.clientWidth || this.canvas.width;
-  this.viewport.Height = this.canvas.clientHeight || this.canvas.height;
-};
-
-Microsoft.Xna.Framework.Graphics.GraphicsDevice.prototype.get_Viewport = function () {
-  return this.viewport;
-};
-
-Microsoft.Xna.Framework.Graphics.GraphicsDevice.prototype.set_Viewport = function (newViewport) {
-  this.viewport = newViewport;
-  this.canvas = JSIL.Host.getCanvas(this.viewport.Width, this.viewport.Height);
-  this.context = this.canvas.getContext("2d");
-};
-
-Microsoft.Xna.Framework.Graphics.GraphicsDevice.prototype.InternalClear = function (color) {
-  this.context.fillStyle = color.toCss();
-  this.context.fillRect(0, 0, this.viewport.Width, this.viewport.Height);
-};
-
-Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDraw = function (texture, position, sourceRectangle, color, rotation, origin, scale, effects) {
-  var needRestore = false;
-  var image = texture.image;
-  var positionIsRect = typeof (position.Width) === "number";
-  var scaleX = 1, scaleY = 1, originX = 0, originY = 0;
-  var sourceX = 0, sourceY = 0, sourceW = texture.Width, sourceH = texture.Height;
-  var positionX, positionY;
-  if (typeof (scale) === "number")
-    scaleX = scaleY = scale;
-  else if ((typeof (scale) === "object") && (scale !== null) && (typeof (scale.X) === "number")) {
-    scaleX = scale.X;
-    scaleY = scale.Y;
+    get_GraphicsDevice: function () {
+      return this.device;
+    }
   }
+);
 
-  positionX = position.X;
-  positionY = position.Y;
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Graphics.SpriteBatch", true, {
+    _ctor: function (device) {
+      this.device = device;
+    },
 
-  effects = effects || Microsoft.Xna.Framework.Graphics.SpriteEffects.None;
+    Begin: function () {
+    },
 
-  if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) {
-    if (!needRestore)    
-      this.device.context.save();
-    needRestore = true;
+    End: function () {
+    },
 
-    this.device.context.scale(-1, 1);
-    positionX = -positionX;
-  }
+    _ctor: function () {
+      this.canvas = JSIL.Host.getCanvas();
+      this.context = this.canvas.getContext("2d");
+      this.viewport = new Microsoft.Xna.Framework.Graphics.Viewport();
+      this.viewport.Width = this.canvas.clientWidth || this.canvas.width;
+      this.viewport.Height = this.canvas.clientHeight || this.canvas.height;
+    },
 
-  if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) {
-    if (!needRestore)    
-      this.device.context.save();
-    needRestore = true;
+    get_Viewport: function () {
+      return this.viewport;
+    },
 
-    this.device.context.scale(1, -1);
-    positionY = -positionY;
-  }
+    set_Viewport: function (newViewport) {
+      this.viewport = newViewport;
+      this.canvas = JSIL.Host.getCanvas(this.viewport.Width, this.viewport.Height);
+      this.context = this.canvas.getContext("2d");
+    },
 
-  if ((typeof (origin) === "object") && (origin !== null) && (typeof (origin.X) === "number")) {
-    originX = origin.X;
-    positionX -= originX;
-    originY = origin.Y;
-    positionY -= originY;
-  }
+    InternalClear: function (color) {
+      this.context.fillStyle = color.toCss();
+      this.context.fillRect(0, 0, this.viewport.Width, this.viewport.Height);
+    },
 
-  if (sourceRectangle !== null) {
-    sourceX = sourceRectangle.X;
-    sourceY = sourceRectangle.Y;
-    sourceW = sourceRectangle.Width;
-    sourceH = sourceRectangle.Height;
-  }
+    InternalDraw: function (texture, position, sourceRectangle, color, rotation, origin, scale, effects) {
+      var needRestore = false;
+      var image = texture.image;
+      var positionIsRect = typeof (position.Width) === "number";
+      var scaleX = 1, scaleY = 1, originX = 0, originY = 0;
+      var sourceX = 0, sourceY = 0, sourceW = texture.Width, sourceH = texture.Height;
+      var positionX, positionY;
+      if (typeof (scale) === "number")
+        scaleX = scaleY = scale;
+      else if ((typeof (scale) === "object") && (scale !== null) && (typeof (scale.X) === "number")) {
+        scaleX = scale.X;
+        scaleY = scale.Y;
+      }
 
-  if (sourceX < 0) {
-    sourceW += sourceX;
-    sourceX = 0;
-  }
-  if (sourceY < 0) {
-    sourceH += sourceY;
-    sourceY = 0;
-  }
-  if (sourceW > texture.Width - sourceX)
-    sourceW = texture.Width - sourceX;
-  if (sourceH > texture.Height - sourceY)
-    sourceH = texture.Height - sourceY;
+      positionX = position.X;
+      positionY = position.Y;
 
-  if ((typeof (color) === "object") && (color !== null)) {
-    if ((color.r < 255) || (color.g < 255) || (color.b < 255)) {
-      var newImage = $jsilxna.getImageMultiplied(image, color);
-      if (newImage === image) {
-        // Broken browser
+      effects = effects || Microsoft.Xna.Framework.Graphics.SpriteEffects.None;
+
+      if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) {
+        if (!needRestore)    
+          this.device.context.save();
+        needRestore = true;
+
+        this.device.context.scale(-1, 1);
+        positionX = -positionX;
+      }
+
+      if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) {
+        if (!needRestore)    
+          this.device.context.save();
+        needRestore = true;
+
+        this.device.context.scale(1, -1);
+        positionY = -positionY;
+      }
+
+      if ((typeof (origin) === "object") && (origin !== null) && (typeof (origin.X) === "number")) {
+        originX = origin.X;
+        positionX -= originX;
+        originY = origin.Y;
+        positionY -= originY;
+      }
+
+      if (sourceRectangle !== null) {
+        sourceX = sourceRectangle.X;
+        sourceY = sourceRectangle.Y;
+        sourceW = sourceRectangle.Width;
+        sourceH = sourceRectangle.Height;
+      }
+
+      if (sourceX < 0) {
+        sourceW += sourceX;
+        sourceX = 0;
+      }
+      if (sourceY < 0) {
+        sourceH += sourceY;
+        sourceY = 0;
+      }
+      if (sourceW > texture.Width - sourceX)
+        sourceW = texture.Width - sourceX;
+      if (sourceH > texture.Height - sourceY)
+        sourceH = texture.Height - sourceY;
+
+      if ((typeof (color) === "object") && (color !== null)) {
+        if ((color.r < 255) || (color.g < 255) || (color.b < 255)) {
+          var newImage = $jsilxna.getImageMultiplied(image, color);
+          if (newImage === image) {
+            // Broken browser
+          } else {
+            image = newImage;
+            sourceX += 1;
+            sourceY += 1;
+          }
+        }
+    
+        if (color.a < 255) {
+          if (!needRestore)    
+            this.device.context.save();
+          needRestore = true;
+
+          this.device.context.globalAlpha = color.a / 255;
+        }
+      }
+
+      var destW, destH;
+
+      if (positionIsRect) {
+        destW = position.Width * scaleX;
+        destH = position.Height * scaleY;
       } else {
-        image = newImage;
-        sourceX += 1;
-        sourceY += 1;
+        destW = sourceW * scaleX;
+        destH = sourceH * scaleY;
+      }
+
+      // Negative width/height cause an exception in Firefox
+      if (destW < 0) {
+        if (!needRestore)    
+          this.device.context.save();
+        needRestore = true;
+
+        this.device.context.scale(-1, 1);
+        positionX = -positionX;
+        destW = -destW;
+      }
+      if (destH < 0) {
+        if (!needRestore)    
+          this.device.context.save();
+        needRestore = true;
+
+        this.device.context.scale(1, -1);
+        positionY = -positionY;
+        destH = -destH;
+      }
+
+      this.device.context.drawImage(
+        image, 
+        sourceX, sourceY, sourceW, sourceH,
+        positionX, positionY, destW, destH
+      );
+
+      if (needRestore)
+        this.device.context.restore();
+    },
+
+    InternalDrawString: function (font, text, position, color, scale, effects) {
+      var needRestore = false;
+      var positionX = position.X;
+      var positionY = position.Y;
+
+      effects = effects || Microsoft.Xna.Framework.Graphics.SpriteEffects.None;
+
+      if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) {
+        if (!needRestore)    
+          this.device.context.save();
+        needRestore = true;
+
+        this.device.context.scale(-1, 1);
+        positionX = -positionX;
+      }
+
+      if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) {
+        if (!needRestore)    
+          this.device.context.save();
+        needRestore = true;
+
+        this.device.context.scale(1, -1);
+        positionY = -positionY;
+      }
+
+      this.device.context.textBaseline = "top";
+      this.device.context.textAlign = "start";
+      this.device.context.font = font.toCss(scale || 1.0);
+      this.device.context.fillStyle = color.toCss();
+      this.device.context.fillText(text, positionX, positionY);
+
+      if (needRestore)
+        this.device.context.restore();
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Storage.StorageContainer", false, {
+    get_TitleLocation: function () {
+      return JSIL.Host.getRootDirectory();
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Graphics.GraphicsDevice", true, {
+    DrawUserPrimitives: function (primitiveType, vertices, vertexOffset, primitiveCount) {
+      switch (primitiveType) {
+        case Microsoft.Xna.Framework.Graphics.PrimitiveType.LineList:
+          for (var i = 0; i < primitiveCount; i++) {
+            var j = i * 2;
+            this.context.lineWidth = 2;
+            this.context.strokeStyle = vertices[j].Color.toCss();
+            this.context.beginPath();
+            this.context.moveTo(vertices[j].Position.X, vertices[j].Position.Y);
+            this.context.lineTo(vertices[j + 1].Position.X, vertices[j + 1].Position.Y);
+            this.context.closePath();
+            this.context.stroke();
+          }
+
+          break;
+        default:
+          JSIL.Host.error(new Error("The primitive type " + primitiveType.toString() + " is not implemented."));
+          return;
       }
     }
-    
-    if (color.a < 255) {
-      if (!needRestore)    
-        this.device.context.save();
-      needRestore = true;
 
-      this.device.context.globalAlpha = color.a / 255;
-    }
   }
-
-  var destW, destH;
-
-  if (positionIsRect) {
-    destW = position.Width * scaleX;
-    destH = position.Height * scaleY;
-  } else {
-    destW = sourceW * scaleX;
-    destH = sourceH * scaleY;
-  }
-
-  // Negative width/height cause an exception in Firefox
-  if (destW < 0) {
-    if (!needRestore)    
-      this.device.context.save();
-    needRestore = true;
-
-    this.device.context.scale(-1, 1);
-    positionX = -positionX;
-    destW = -destW;
-  }
-  if (destH < 0) {
-    if (!needRestore)    
-      this.device.context.save();
-    needRestore = true;
-
-    this.device.context.scale(1, -1);
-    positionY = -positionY;
-    destH = -destH;
-  }
-
-  this.device.context.drawImage(
-    image, 
-    sourceX, sourceY, sourceW, sourceH,
-    positionX, positionY, destW, destH
-  );
-
-  if (needRestore)
-    this.device.context.restore();
-};
-
-Microsoft.Xna.Framework.Graphics.SpriteBatch.prototype.InternalDrawString = function (font, text, position, color, scale, effects) {
-  var needRestore = false;
-  var positionX = position.X;
-  var positionY = position.Y;
-
-  effects = effects || Microsoft.Xna.Framework.Graphics.SpriteEffects.None;
-
-  if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) {
-    if (!needRestore)    
-      this.device.context.save();
-    needRestore = true;
-
-    this.device.context.scale(-1, 1);
-    positionX = -positionX;
-  }
-
-  if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) {
-    if (!needRestore)    
-      this.device.context.save();
-    needRestore = true;
-
-    this.device.context.scale(1, -1);
-    positionY = -positionY;
-  }
-
-  this.device.context.textBaseline = "top";
-  this.device.context.textAlign = "start";
-  this.device.context.font = font.toCss(scale || 1.0);
-  this.device.context.fillStyle = color.toCss();
-  this.device.context.fillText(text, positionX, positionY);
-
-  if (needRestore)
-    this.device.context.restore();
-};
+);

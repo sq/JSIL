@@ -714,8 +714,8 @@ namespace JSIL {
                 output.Identifier("JSIL.ExternalMembers", null);
                 output.LPar();
                 output.Identifier("$", null);
-                output.Dot();
-                output.Keyword("prototype");
+                output.Comma();
+                output.Value(true);
                 output.Comma();
                 output.NewLine();
 
@@ -730,6 +730,8 @@ namespace JSIL {
                 output.Identifier("JSIL.ExternalMembers", null);
                 output.LPar();
                 output.Identifier("$", null);
+                output.Comma();
+                output.Value(false);
                 output.Comma();
                 output.NewLine();
 

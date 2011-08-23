@@ -10,84 +10,88 @@ JSIL.DeclareNamespace("System.Drawing");
 JSIL.MakeClass("System.Object", "System.Drawing.Bitmap", true);
 
 if (JSIL.HostType.IsBrowser) {
-  System.Drawing.Bitmap.prototype._ctor$0 = function (filename) {
-    System.Drawing.Image.prototype._ctor.call(this);
+  JSIL.ImplementExternals(
+    "System.Drawing.Bitmap", true, {
+      _ctor$0: function (filename) {
+        System.Drawing.Image.prototype._ctor.call(this);
 
-    this.image = JSIL.Host.getImage(filename);
+        this.image = JSIL.Host.getImage(filename);
 
-    this.canvas = JSIL.Host.createCanvas(this.image.naturalWidth, this.image.naturalHeight);
-    this.context = this.canvas.getContext('2d');
-    this.context.globalCompositeOperation = "copy";
+        this.canvas = JSIL.Host.createCanvas(this.image.naturalWidth, this.image.naturalHeight);
+        this.context = this.canvas.getContext('2d');
+        this.context.globalCompositeOperation = "copy";
 
-    this.context.drawImage(this.image, 0, 0);
-    /*
-    try {
-      this.buffer = this.context.getImageData(0, 0, this.image.naturalWidth, this.image.naturalHeight);
-    } catch (e) {
-      JSIL.Host.warning("Failed to read image pixels for '" + filename + "'", e);
-      this.buffer = this.context.createImageData(this.image.naturalWidth, this.image.naturalHeight);
+        this.context.drawImage(this.image, 0, 0);
+        /*
+        try {
+          this.buffer = this.context.getImageData(0, 0, this.image.naturalWidth, this.image.naturalHeight);
+        } catch (e) {
+          JSIL.Host.warning("Failed to read image pixels for '" + filename + "'", e);
+          this.buffer = this.context.createImageData(this.image.naturalWidth, this.image.naturalHeight);
+        }
+        */
+        this.buffer = null;
+      },
+      _ctor$1: function (filename, b) {
+        System.Drawing.Bitmap.prototype._ctor$0.call(this, filename);
+      },
+      _ctor$7: function (width, height) {
+        System.Drawing.Image.prototype._ctor.call(this);
+
+        this.canvas = JSIL.Host.getCanvas(width, height);
+        this.context = this.canvas.getContext('2d');
+        this.context.globalCompositeOperation = "copy";
+
+        this.buffer = this.context.createImageData(width, height);
+        this.context.putImageData(this.buffer, 0, 0);
+
+        this.setPixelCount = 0;
+        this.flushInterval = width - 1;
+      },
+      _SetupContext: function (width, height) {
+      },
+      SetPixel: function (x, y, color) {
+        var index = ((y * this.buffer.width) + x) * 4;
+        var data = this.buffer.data;
+        data[index] = color.R;
+        data[index + 1] = color.G;
+        data[index + 2] = color.B;
+        data[index + 3] = 255;
+
+        if (this.setPixelCount++ >= this.flushInterval) {
+          this.setPixelCount = 0;
+          this.context.putImageData(this.buffer, 0, 0);
+        }
+      },
+      Save: function (filename) {
+        this.context.putImageData(this.buffer, 0, 0);
+      }
     }
-    */
-    this.buffer = null;
-  };
-
-  System.Drawing.Bitmap.prototype._ctor$1 = function (filename, b) {
-    System.Drawing.Bitmap.prototype._ctor$0.call(this, filename);
-  };
-
-  System.Drawing.Bitmap.prototype._ctor$7 = function (width, height) {
-    System.Drawing.Image.prototype._ctor.call(this);
-
-    this.canvas = JSIL.Host.getCanvas(width, height);
-    this.context = this.canvas.getContext('2d');
-    this.context.globalCompositeOperation = "copy";
-
-    this.buffer = this.context.createImageData(width, height);
-    this.context.putImageData(this.buffer, 0, 0);
-
-    this.setPixelCount = 0;
-    this.flushInterval = width - 1;
-  }
-
-  System.Drawing.Bitmap.prototype._SetupContext = function (width, height) {
-  };
+  );
 
   JSIL.OverloadedMethod(System.Drawing.Bitmap.prototype, "_ctor", [
     ["_ctor$0", [System.String]], 
     ["_ctor$1", [System.String, System.Boolean]], 
     ["_ctor$7", [System.Int32, System.Int32]]
   ]);
-
-  System.Drawing.Bitmap.prototype.SetPixel = function (x, y, color) {
-    var index = ((y * this.buffer.width) + x) * 4;
-    var data = this.buffer.data;
-    data[index] = color.R;
-    data[index + 1] = color.G;
-    data[index + 2] = color.B;
-    data[index + 3] = 255;
-
-    if (this.setPixelCount++ >= this.flushInterval) {
-      this.setPixelCount = 0;
-      this.context.putImageData(this.buffer, 0, 0);
-    }
-  }
-  System.Drawing.Bitmap.prototype.Save = function (filename) {
-    this.context.putImageData(this.buffer, 0, 0);
-  } 
 } else {
-  System.Drawing.Bitmap.prototype._ctor = function (width, height) {
-    this.Width = width;
-    this.Height = height;
-    this.Pixels = new Array(width * height);
-  }
-  System.Drawing.Bitmap.prototype.SetPixel = function (x, y, color) {
-    if ((x < 0) || (y < 0) || (x >= this.Width) || (y >= this.Height))
-      throw new Error("Coordinates out of bounds");
+  JSIL.ImplementExternals(
+    "System.Drawing.Bitmap", true, {
+      _ctor: function (width, height) {
+        this.Width = width;
+        this.Height = height;
+        this.Pixels = new Array(width * height);
+      },
+      SetPixel: function (x, y, color) {
+        if ((x < 0) || (y < 0) || (x >= this.Width) || (y >= this.Height))
+          throw new Error("Coordinates out of bounds");
 
-    this.Pixels[(y * this.Width) + x] = color;
-  }
-  System.Drawing.Bitmap.prototype.Save = function (filename) {
-  }
+        this.Pixels[(y * this.Width) + x] = color;
+      },
+      Save: function (filename) {
+      }
+    }
+  );
 }
 
 JSIL.MakeStruct("System.Drawing.Color", true);
@@ -208,90 +212,107 @@ System.Drawing.Size._cctor = function () {
 }
 
 JSIL.MakeStruct("System.Drawing.Point", true);
+JSIL.ImplementExternals(
+  "System.Drawing.Point", false, {
+    _cctor: function () {
+      System.Drawing.Point.Empty = new System.Drawing.Point();
+    }
+  }
+);
+JSIL.ImplementExternals(
+  "System.Drawing.Point", true, {
+    _ctor: function (x, y) {
+      this.x = x;
+      this.y = y;
+    },
+    get_X: function () {
+      return this.x;
+    },
+    get_Y: function () {
+      return this.y;
+    },
+    set_X: function (value) {
+      this.x = value;
+    },
+    set_Y: function (value) {
+      this.y = value;
+    }
+  }
+);
 System.Drawing.Point.prototype.x = 0;
 System.Drawing.Point.prototype.y = 0;
-System.Drawing.Point.prototype._ctor = function (x, y) {
-  this.x = x;
-  this.y = y;
-}
-System.Drawing.Point.prototype.get_X = function () {
-  return this.x;
-};
-System.Drawing.Point.prototype.get_Y = function () {
-  return this.y;
-};
-System.Drawing.Point.prototype.set_X = function (value) {
-  this.x = value;
-};
-System.Drawing.Point.prototype.set_Y = function (value) {
-  this.y = value;
-};
-System.Drawing.Point._cctor = function () {
-  System.Drawing.Point.Empty = new System.Drawing.Point();
-}
 
 JSIL.MakeStruct("System.Drawing.Rectangle", true);
-System.Drawing.Rectangle.prototype.X = 0;
-System.Drawing.Rectangle.prototype.Y = 0;
-System.Drawing.Rectangle.prototype.Width = 0;
-System.Drawing.Rectangle.prototype.Height = 0;
-System.Drawing.Rectangle.prototype._ctor = function (x, y, w, h) {
-  if ((typeof (x) === "object") && (typeof (y) === "object")) {
-    this.x = x.X;
-    this.y = x.Y;
-    this.width = y.Width;
-    this.height = y.Height;
-  } else {
-    this.x = x;
-    this.y = y;
-    this.width = w;
-    this.height = h;
+JSIL.ImplementExternals(
+  "System.Drawing.Rectangle", false, {
+    _cctor: function () {
+      System.Drawing.Rectangle.Empty = new System.Drawing.Rectangle();
+    }
   }
-}
-System.Drawing.Rectangle.prototype.get_X = function () {
-  return this.x;
-}
-System.Drawing.Rectangle.prototype.get_Y = function () {
-  return this.y;
-}
-System.Drawing.Rectangle.prototype.set_X = function (value) {
-  this.x = value;
-}
-System.Drawing.Rectangle.prototype.set_Y = function (value) {
-  this.y = value;
-}
-System.Drawing.Rectangle.prototype.get_Width = function () {
-  return this.width;
-}
-System.Drawing.Rectangle.prototype.get_Height = function () {
-  return this.height;
-}
-System.Drawing.Rectangle.prototype.set_Width = function (value) {
-  this.width = value;
-}
-System.Drawing.Rectangle.prototype.set_Height = function (value) {
-  this.height = value;
-}
-System.Drawing.Rectangle.prototype.get_Left = function () {
-  return this.x;
-}
-System.Drawing.Rectangle.prototype.get_Top = function () {
-  return this.y;
-}
-System.Drawing.Rectangle.prototype.get_Right = function () {
-  return this.x + this.width;
-}
-System.Drawing.Rectangle.prototype.get_Bottom = function () {
-  return this.y + this.height;
-}
-System.Drawing.Rectangle._cctor = function () {
-  System.Drawing.Rectangle.Empty = new System.Drawing.Rectangle();
-}
-System.Drawing.Rectangle.prototype.MemberwiseClone = function () {
-  var result = Object.create(System.Drawing.Rectangle.prototype);
-  result.x = this.x;
-  result.y = this.y;
-  result.width = this.width;
-  result.height = this.height;
-  return result;
-}
+);
+JSIL.ImplementExternals(
+  "System.Drawing.Rectangle", true, {
+    _ctor: function (x, y, w, h) {
+      if ((typeof (x) === "object") && (typeof (y) === "object")) {
+        this.x = x.X;
+        this.y = x.Y;
+        this.width = y.Width;
+        this.height = y.Height;
+      } else {
+        this.x = x;
+        this.y = y;
+        this.width = w;
+        this.height = h;
+      }
+    },
+    get_X: function () {
+      return this.x;
+    },
+    get_Y: function () {
+      return this.y;
+    },
+    set_X: function (value) {
+      this.x = value;
+    },
+    set_Y: function (value) {
+      this.y = value;
+    },
+    get_Width: function () {
+      return this.width;
+    },
+    get_Height: function () {
+      return this.height;
+    },
+    set_Width: function (value) {
+      this.width = value;
+    },
+    set_Height: function (value) {
+      this.height = value;
+    },
+    get_Left: function () {
+      return this.x;
+    },
+    get_Top: function () {
+      return this.y;
+    },
+    get_Right: function () {
+      return this.x + this.width;
+    },
+    get_Bottom: function () {
+      return this.y + this.height;
+    },
+    MemberwiseClone: function () {
+      var result = Object.create(System.Drawing.Rectangle.prototype);
+      result.x = this.x;
+      result.y = this.y;
+      result.width = this.width;
+      result.height = this.height;
+      return result;
+    }
+  }
+);
+
+System.Drawing.Rectangle.prototype.x = 0;
+System.Drawing.Rectangle.prototype.y = 0;
+System.Drawing.Rectangle.prototype.width = 0;
+System.Drawing.Rectangle.prototype.height = 0;
