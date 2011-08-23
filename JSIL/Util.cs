@@ -50,7 +50,7 @@ namespace JSIL.Internal {
                             if (escapingMode == EscapingMode.MemberIdentifier)
                                 sb.Append("_");
                             else if (escapingMode == EscapingMode.TypeIdentifier)
-                                sb.Append(".");
+                                sb.Append("_");
                             else
                                 sb.Append("/");
                         break;
@@ -58,7 +58,7 @@ namespace JSIL.Internal {
                             if (escapingMode == EscapingMode.MemberIdentifier)
                                 sb.Append("_");
                             else if (escapingMode == EscapingMode.TypeIdentifier)
-                                sb.Append(".");
+                                sb.Append("_");
                             else
                                 sb.Append("+");
                         break;

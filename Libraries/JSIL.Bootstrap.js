@@ -354,7 +354,7 @@ System.Collections.Generic.List$b1.prototype.get_Capacity = function () {
   return this._items.length;
 };
 System.Collections.Generic.List$b1.prototype.GetEnumerator = function () {
-  return new (System.Collections.Generic.List$b1.Enumerator.Of(this.T)) (this);
+  return new (System.Collections.Generic.List$b1_Enumerator.Of(this.T)) (this);
 };
 JSIL.MakeProperty(
   System.Collections.Generic.List$b1.prototype, "Count", 
@@ -369,19 +369,19 @@ JSIL.DefineTypeName("System.Collections.ArrayList", function () { return System.
 
 // TODO: This type is actually a struct in the CLR
 JSIL.MakeClass("JSIL.ArrayEnumerator", "System.Collections.Generic.List`1/Enumerator", true, ["T"]);
-System.Collections.Generic.List$b1.Enumerator.prototype._array = null;
-System.Collections.Generic.List$b1.Enumerator.prototype._length = 0;
-System.Collections.Generic.List$b1.Enumerator.prototype._index = -1;
-System.Collections.Generic.List$b1.Enumerator.prototype._ctor = function (list) {
+System.Collections.Generic.List$b1_Enumerator.prototype._array = null;
+System.Collections.Generic.List$b1_Enumerator.prototype._length = 0;
+System.Collections.Generic.List$b1_Enumerator.prototype._index = -1;
+System.Collections.Generic.List$b1_Enumerator.prototype._ctor = function (list) {
   if (typeof (list) != "undefined") {
     this._array = list._items;
     this._length = list.Count;
   }
 }
-System.Collections.Generic.List$b1.Enumerator.prototype.MoveNext = JSIL.ArrayEnumerator.prototype.MoveNext;
-System.Collections.Generic.List$b1.Enumerator.prototype.Dispose = JSIL.ArrayEnumerator.prototype.Dispose;
-System.Collections.Generic.List$b1.Enumerator.prototype.Reset = JSIL.ArrayEnumerator.prototype.Reset;
-System.Collections.Generic.List$b1.Enumerator.prototype.get_Current = JSIL.ArrayEnumerator.prototype.get_Current;
+System.Collections.Generic.List$b1_Enumerator.prototype.MoveNext = JSIL.ArrayEnumerator.prototype.MoveNext;
+System.Collections.Generic.List$b1_Enumerator.prototype.Dispose = JSIL.ArrayEnumerator.prototype.Dispose;
+System.Collections.Generic.List$b1_Enumerator.prototype.Reset = JSIL.ArrayEnumerator.prototype.Reset;
+System.Collections.Generic.List$b1_Enumerator.prototype.get_Current = JSIL.ArrayEnumerator.prototype.get_Current;
 
 System.Threading.Interlocked.CompareExchange$b1 = JSIL.GenericMethod(
   ["T"], 

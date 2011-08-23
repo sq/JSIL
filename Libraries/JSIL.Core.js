@@ -59,10 +59,14 @@ $jsilcore.nextTypeId = 0;
 $jsilcore.typesByName = {};
 
 JSIL.EscapeName = function (name) {
-  return name.replace("`", "$b").replace(".", "_").replace("<", "$l").replace(">", "$g");
+  var underscoreRe = /[\.\/\+]/g;
+  var caretRe = /\`/g;
+  var ltRe = /\</g;
+  var gtRe = /\>/g;
+  return name.replace(caretRe, "$$b").replace(underscoreRe, "_").replace(ltRe, "$$l").replace(gtRe, "$$g");
 };
 
-JSIL.SplitRegex = new RegExp("[\.\/\+]");
+JSIL.SplitRegex = new RegExp("[\.]");
 
 JSIL.GetParentName = function (name) {
   var parts = JSIL.SplitName(name);
