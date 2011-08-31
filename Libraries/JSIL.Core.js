@@ -534,7 +534,7 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
 
   var localName = privateName.localName;
 
-  if (privateName.exists()) {
+  if (privateName.exists() || (isPublic && publicName.exists())) {
     JSIL.DuplicateDefinitionWarning(name);
     return;
   }
@@ -910,11 +910,11 @@ JSIL.InitializeType = function (type) {
 };
 
 JSIL.ShadowedTypeWarning = function (fullName) {
-  // JSIL.Host.warning("Type ", fullName, " is shadowed by another type of the same name.");
+  JSIL.Host.error(new Error("Type " + fullName + " is shadowed by another type of the same name."));
 };
 
 JSIL.DuplicateDefinitionWarning = function (fullName) {
-  // JSIL.Host.warning("Type ", fullName, " is defined multiple times.");
+  JSIL.Host.error(new Error("Type " + fullName + " is defined multiple times."));
 };
 
 JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializer) {
