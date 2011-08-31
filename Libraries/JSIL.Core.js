@@ -1523,6 +1523,8 @@ JSIL.MakeOverloadResolver = function (raw) {
           types[j] = JSIL.GetTypeByName(name);
         else if (typeof (name.get) === "function")
           types[j] = name.get(self);
+        else if (typeof (name) === "function")
+          types[j] = name;
         else
           throw new Error("Invalid argument type for overload: " + String(name));
       }
