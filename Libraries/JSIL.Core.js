@@ -362,7 +362,7 @@ JSIL.ExternalMembers = function (namespace, isInstance /*, ...memberNames */) {
   var namespaceName = JSIL.GetTypeName(namespace);
   var impl = JSIL.AllImplementedExternals[namespaceName];
 
-  var prefix = isInstance ? "instance_" : "";
+  var prefix = isInstance ? "instance$" : "";
 
   if (isInstance) {
     namespace = namespace.prototype;
@@ -379,7 +379,7 @@ JSIL.ExternalMembers = function (namespace, isInstance /*, ...memberNames */) {
     var memberName = arguments[i];
     var memberValue = namespace[memberName];
 
-    if (Object.hasOwnProperty(impl, prefix + memberName)) {
+    if (impl.hasOwnProperty(prefix + memberName)) {
       Object.defineProperty(
         namespace, memberName, {
           enumerable: true, configurable: true,
@@ -411,10 +411,10 @@ JSIL.ImplementExternals = function (namespaceName, isInstance, externals) {
     JSIL.AllImplementedExternals[namespaceName] = obj = {};
   }
 
-  var prefix = isInstance ? "instance_" : "";
+  var prefix = isInstance ? "instance$" : "";
 
   for (var k in externals) {
-    if (!Object.hasOwnProperty(externals, k))
+    if (!externals.hasOwnProperty(k))
       continue;
 
     obj[prefix + k] = externals[k];
@@ -1004,6 +1004,24 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.prototype.GetType = function () {
       return typeObject;
     };
+
+    var externals = JSIL.AllImplementedExternals[fullName];
+    var instancePrefix = "instance$";
+    for (var k in externals) {
+      if (!externals.hasOwnProperty(k))
+        continue;
+
+      var value = externals[k];
+      var key = k;
+      var target = typeObject;
+
+      if (k.indexOf(instancePrefix) === 0) {
+        key = k.replace(instancePrefix, "");
+        target = target.prototype;
+      }
+
+      target[key] = value;
+    }
 
     return typeObject;
   };

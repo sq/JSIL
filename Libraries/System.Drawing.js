@@ -189,32 +189,42 @@ System.Drawing.Color._cctor = function () {
 };
 
 JSIL.MakeStruct("System.Drawing.Size", true);
-System.Drawing.Size.prototype.width = 0;
-System.Drawing.Size.prototype.height = 0;
-System.Drawing.Size.prototype._ctor = function (w, h) {
-  this.width = w;
-  this.height = h;
-}
-System.Drawing.Size.prototype.get_Width = function () {
-  return this.width;
-};
-System.Drawing.Size.prototype.get_Height = function () {
-  return this.height;
-};
-System.Drawing.Size.prototype.set_Width = function (value) {
-  this.width = value;
-};
-System.Drawing.Size.prototype.set_Height = function (value) {
-  this.height = value;
-};
-System.Drawing.Size._cctor = function () {
-  System.Drawing.Size.Empty = new System.Drawing.Size();
-}
+JSIL.ImplementExternals(
+  "System.Drawing.Size", true, {
+    _ctor: function (w, h) {
+      this.width = w;
+      this.height = h;
+    },
+    get_Width: function () {
+      return this.width;
+    },
+    get_Height: function () {
+      return this.height;
+    },
+    set_Width: function (value) {
+      this.width = value;
+    },
+    set_Height: function (value) {
+      this.height = value;
+    }
+  }
+);
+JSIL.ImplementExternals(
+  "System.Drawing.Size", false, {
+    _cctor: function () {
+      System.Drawing.Size.prototype.width = 0;
+      System.Drawing.Size.prototype.height = 0;
+      System.Drawing.Size.Empty = new System.Drawing.Size();
+    }
+  }
+);
 
 JSIL.MakeStruct("System.Drawing.Point", true);
 JSIL.ImplementExternals(
   "System.Drawing.Point", false, {
     _cctor: function () {
+      System.Drawing.Point.prototype.x = 0;
+      System.Drawing.Point.prototype.y = 0;
       System.Drawing.Point.Empty = new System.Drawing.Point();
     }
   }
@@ -239,8 +249,6 @@ JSIL.ImplementExternals(
     }
   }
 );
-System.Drawing.Point.prototype.x = 0;
-System.Drawing.Point.prototype.y = 0;
 
 JSIL.MakeStruct("System.Drawing.Rectangle", true);
 JSIL.ImplementExternals(

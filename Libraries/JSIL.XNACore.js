@@ -62,19 +62,23 @@ $jsilxna.getImageMultiplied = function (image, color) {
   return canvas;
 };
 
-Microsoft.Xna.Framework.Content.ContentManager.prototype._ctor$0 = function (serviceProvider) {
-}
-Microsoft.Xna.Framework.Content.ContentManager.prototype._ctor$1 = function (serviceProvider, rootDirectory) {
-}
-Microsoft.Xna.Framework.Content.ContentManager.prototype.Load$b1 = JSIL.GenericMethod(
-  ["T"],
-  function (T, assetName) {
-    return JSIL.Host.getAsset(assetName);
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Content.ContentManager", true, {
+    _ctor$0: function (serviceProvider) {
+    },
+    _ctor$1: function (serviceProvider, rootDirectory) {
+    },
+    Load$b1: JSIL.GenericMethod(
+      ["T"],
+      function (T, assetName) {
+        return JSIL.Host.getAsset(assetName);
+      }
+    ),
+    Unload: function () {
+      // Unnecessary since we rely on the host to preload our assets.
+    }
   }
 );
-Microsoft.Xna.Framework.Content.ContentManager.prototype.Unload = function () {
-  // Unnecessary since we rely on the host to preload our assets.
-};
 
 JSIL.MakeClass("System.Object", "HTML5Asset", true);
 HTML5Asset.prototype._ctor = function (assetName) {
@@ -125,10 +129,14 @@ HTML5FontAsset.prototype.MeasureString$0 = function (text) {
   return new Microsoft.Xna.Framework.Vector2(metrics.width, this.lineHeight);
 };
 
-Microsoft.Xna.Framework.Media.MediaPlayer.Play$0 = function (song) {
-  if (song !== null)
-    song.Play$0();
-};
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Media.MediaPlayer", false, {
+    Play$0: function (song) {
+      if (song !== null)
+        song.Play$0();
+    }
+  }
+);
 
 Microsoft.Xna.Framework.MathHelper.Clamp = function (value, min, max) {
   if (value <= min)
@@ -282,127 +290,136 @@ Microsoft.Xna.Framework.Vector4.prototype.MemberwiseClone = function () {
 Microsoft.Xna.Framework.GameServiceContainer.prototype._ctor = function () {
 };
 
-Microsoft.Xna.Framework.Game._QuitForced = false;
-Microsoft.Xna.Framework.Game.ForceQuit = function () {
-  Microsoft.Xna.Framework.Game._QuitForced = true;
-};
-
-Microsoft.Xna.Framework.Game.prototype._runHandle = null;
-Microsoft.Xna.Framework.Game.prototype._ctor = function () {
-  this.content = JSIL.New(Microsoft.Xna.Framework.Content.ContentManager, "_ctor$0", []);
-  this.gameServices = new Microsoft.Xna.Framework.GameServiceContainer();
-  this._frameDelay = 1000 / 60;
-
-  if (typeof (Date.now) === "function")
-    this._GetNow = Date.now;
-
-  this._gameTime = JSIL.New(Microsoft.Xna.Framework.GameTime, "_ctor$0", []);
-  this._lastFrame = this._nextFrame = this._started = 0;
-};
-Microsoft.Xna.Framework.Game.prototype.get_Content = function () {
-  return this.content;
-};
-Microsoft.Xna.Framework.Game.prototype.get_Services = function () {
-  return this.gameServices;
-};
-Microsoft.Xna.Framework.Game.prototype.Initialize = function () {
-  this.LoadContent();
-};
-Microsoft.Xna.Framework.Game.prototype.get_GraphicsDevice = function () {
-  return this.graphicsDeviceService.GraphicsDevice;
-};
-Microsoft.Xna.Framework.Game.prototype.LoadContent = function () {
-};
-Microsoft.Xna.Framework.Game.prototype.UnloadContent = function () {
-};
-Microsoft.Xna.Framework.Game.prototype.Draw = function (gameTime) {
-};
-Microsoft.Xna.Framework.Game.prototype.Update = function (gameTime) {
-};
-Microsoft.Xna.Framework.Game.prototype.Run = function () {
-  Microsoft.Xna.Framework.Game._QuitForced = false;
-  this.Initialize();
-  this._QueueStep();
-};
-Microsoft.Xna.Framework.Game.prototype._GetNow = function () {
-  return (new Date()).getTime();
-};
-Microsoft.Xna.Framework.Game.prototype._DeferCall = function (callback, lng) {
-  setTimeout(callback, 0);
-};
-Microsoft.Xna.Framework.Game.prototype._QueueStep = function () {
-  if (Microsoft.Xna.Framework.Game._QuitForced)
-    return;
-
-  var self = this;
-  var stepCallback = self._Step.bind(self);
-
-  if (typeof (mozRequestAnimationFrame) !== "undefined") {
-    mozRequestAnimationFrame(stepCallback);
-  } else if (typeof (webkitRequestAnimationFrame) !== "undefined") {
-    webkitRequestAnimationFrame(stepCallback);
-  } else if (false && (typeof (msRequestAnimationFrame) !== "undefined")) {
-    // The version of msRequestAnimationFrame in the current IE Platform Preview has a bug that
-    //  causes it to sometimes never invoke the callback. As a result, we can't currently rely on it.
-    msRequestAnimationFrame(stepCallback, JSIL.Host.getCanvas());
-  } else {
-    var shouldStepCallback = function () {
-      var now = self._GetNow();
-      var delay = self._nextFrame - now;
-
-      if (delay <= 0)
-        stepCallback();
-      else
-        self._DeferCall(shouldStepCallback, delay >= 5);
-    };
-
-    // It's important that we use setTimeout at least once after every frame in order to let the browser pump messages
-    this._DeferCall(shouldStepCallback, true);
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Game", false, {
+    _QuitForced: false,
+    ForceQuit: function () {
+      Microsoft.Xna.Framework.Game._QuitForced = true;
+    }
   }
-};
-Microsoft.Xna.Framework.Game.prototype._Step = function () {
-  var now = this._GetNow();
-  if (this._lastFrame === 0) {
-    var elapsed = 0;
-    var total = 0;
-    this._started = now;
-  } else {
-    var elapsed = now - this._lastFrame;
-    var total = now - this._started;
-  }
+);
 
-  this._lastFrame = now;
-  this._nextFrame = now + this._frameDelay;
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Game", true, {
+    _runHandle: null,
+    _ctor: function () {
+      this.content = JSIL.New(Microsoft.Xna.Framework.Content.ContentManager, "_ctor$0", []);
+      this.gameServices = new Microsoft.Xna.Framework.GameServiceContainer();
+      this._frameDelay = 1000 / 60;
 
-  // Some of the XNA samples seem to fall over and die if elapsed is too large. :|
-  if (elapsed > this._frameDelay)
-    elapsed = this._frameDelay;
+      if (typeof (Date.now) === "function")
+        this._GetNow = Date.now;
 
-  this._gameTime.elapsedRealTime._ticks = this._gameTime.elapsedGameTime._ticks = Math.floor(elapsed * System.TimeSpan.MillisecondInTicks);
-  this._gameTime.totalRealTime._ticks = this._gameTime.totalGameTime._ticks = Math.floor(total * System.TimeSpan.MillisecondInTicks);
-
-  var failed = true;
-  try {
-    this.Update(this._gameTime);
-    this.Draw(this._gameTime);
-    failed = false;
-  } finally {
-    if (failed || Microsoft.Xna.Framework.Game._QuitForced)
-      this.Exit();
-    else
+      this._gameTime = JSIL.New(Microsoft.Xna.Framework.GameTime, "_ctor$0", []);
+      this._lastFrame = this._nextFrame = this._started = 0;
+    },
+    get_Content: function () {
+      return this.content;
+    },
+    get_Services: function () {
+      return this.gameServices;
+    },
+    Initialize: function () {
+      this.LoadContent();
+    },
+    get_GraphicsDevice: function () {
+      return this.graphicsDeviceService.GraphicsDevice;
+    },
+    LoadContent: function () {
+    },
+    UnloadContent: function () {
+    },
+    Draw: function (gameTime) {
+    },
+    Update: function (gameTime) {
+    },
+    Run: function () {
+      Microsoft.Xna.Framework.Game._QuitForced = false;
+      this.Initialize();
       this._QueueStep();
-  }
-};
-Microsoft.Xna.Framework.Game.prototype.Exit = function () {
-  this.Dispose();
-}
-Microsoft.Xna.Framework.Game.prototype.Dispose = function () {
-  if (this._runHandle !== null)
-    window.clearInterval(this._runHandle);
+    },
+    _GetNow: function () {
+      return (new Date()).getTime();
+    },
+    _DeferCall: function (callback, lng) {
+      setTimeout(callback, 0);
+    },
+    _QueueStep: function () {
+      if (Microsoft.Xna.Framework.Game._QuitForced)
+        return;
 
-  this._runHandle = null;
-  this.UnloadContent();
-}
+      var self = this;
+      var stepCallback = self._Step.bind(self);
+
+      if (typeof (mozRequestAnimationFrame) !== "undefined") {
+        mozRequestAnimationFrame(stepCallback);
+      } else if (typeof (webkitRequestAnimationFrame) !== "undefined") {
+        webkitRequestAnimationFrame(stepCallback);
+      } else if (false && (typeof (msRequestAnimationFrame) !== "undefined")) {
+        // The version of msRequestAnimationFrame in the current IE Platform Preview has a bug that
+        //  causes it to sometimes never invoke the callback. As a result, we can't currently rely on it.
+        msRequestAnimationFrame(stepCallback, JSIL.Host.getCanvas());
+      } else {
+        var shouldStepCallback = function () {
+          var now = self._GetNow();
+          var delay = self._nextFrame - now;
+
+          if (delay <= 0)
+            stepCallback();
+          else
+            self._DeferCall(shouldStepCallback, delay >= 5);
+        };
+
+        // It's important that we use setTimeout at least once after every frame in order to let the browser pump messages
+        this._DeferCall(shouldStepCallback, true);
+      }
+    },
+    _Step: function () {
+      var now = this._GetNow();
+      if (this._lastFrame === 0) {
+        var elapsed = 0;
+        var total = 0;
+        this._started = now;
+      } else {
+        var elapsed = now - this._lastFrame;
+        var total = now - this._started;
+      }
+
+      this._lastFrame = now;
+      this._nextFrame = now + this._frameDelay;
+
+      // Some of the XNA samples seem to fall over and die if elapsed is too large. :|
+      if (elapsed > this._frameDelay)
+        elapsed = this._frameDelay;
+
+      this._gameTime.elapsedRealTime._ticks = this._gameTime.elapsedGameTime._ticks = Math.floor(elapsed * System.TimeSpan.MillisecondInTicks);
+      this._gameTime.totalRealTime._ticks = this._gameTime.totalGameTime._ticks = Math.floor(total * System.TimeSpan.MillisecondInTicks);
+
+      var failed = true;
+      try {
+        this.Update(this._gameTime);
+        this.Draw(this._gameTime);
+        failed = false;
+      } finally {
+        if (failed || Microsoft.Xna.Framework.Game._QuitForced)
+          this.Exit();
+        else
+          this._QueueStep();
+      }
+    },
+    Exit: function () {
+      this.Dispose();
+    },
+    Dispose: function () {
+      if (this._runHandle !== null)
+        window.clearInterval(this._runHandle);
+
+      this._runHandle = null;
+      this.UnloadContent();
+    }
+  }
+);
+
 
 Microsoft.Xna.Framework.Input.Keyboard.GetState = function (playerIndex) {
   var keys = JSIL.Host.getHeldKeys();
