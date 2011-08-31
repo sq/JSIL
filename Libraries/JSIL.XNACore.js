@@ -138,157 +138,280 @@ JSIL.ImplementExternals(
   }
 );
 
-Microsoft.Xna.Framework.MathHelper.Clamp = function (value, min, max) {
-  if (value <= min)
-    return min;
-  else if (value >= max)
-    return max;
-  else
-    return value;
-};
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.MathHelper", false, {
+    Clamp: function (value, min, max) {
+      if (value <= min)
+        return min;
+      else if (value >= max)
+        return max;
+      else
+        return value;
+    }
+  }
+);
 
-Microsoft.Xna.Framework.Vector2.get_Zero = function () {
-  return Object.create(Microsoft.Xna.Framework.Vector2.prototype);
-};
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Vector2", false, {
+    get_Zero: function () {
+      return Object.create(Microsoft.Xna.Framework.Vector2.prototype);
+    },
+    op_Addition: function (lhs, rhs) {
+      var result = Object.create(Microsoft.Xna.Framework.Vector2.prototype);
+      result.X = lhs.X + rhs.X;
+      result.Y = lhs.Y + rhs.Y;
+      return result;
+    },
+    op_Subtraction: function (lhs, rhs) {
+      var result = Object.create(Microsoft.Xna.Framework.Vector2.prototype);
+      result.X = lhs.X - rhs.X;
+      result.Y = lhs.Y - rhs.Y;
+      return result;
+    },
+    op_Division$0: function (lhs, rhs) {
+      var result = Object.create(Microsoft.Xna.Framework.Vector2.prototype);
+      result.X = lhs.X / rhs.X;
+      result.Y = lhs.Y / rhs.Y;
+      return result;
+    },
+    op_Division$1: function (lhs, rhs) {
+      var result = Object.create(Microsoft.Xna.Framework.Vector2.prototype);
+      result.X = lhs.X / rhs;
+      result.Y = lhs.Y / rhs;
+      return result;
+    },
+    op_Multiply$0: function (lhs, rhs) {
+      var result = Object.create(Microsoft.Xna.Framework.Vector2.prototype);
+      result.X = lhs.X * rhs.X;
+      result.Y = lhs.Y * rhs.Y;
+      return result;
+    },
+    op_Multiply$1: function (lhs, rhs) {
+      var result = Object.create(Microsoft.Xna.Framework.Vector2.prototype);
+      result.X = lhs.X * rhs;
+      result.Y = lhs.Y * rhs;
+      return result;
+    },
+    op_Equality: function (lhs, rhs) {
+      return (lhs.X === rhs.X) && (lhs.Y === rhs.Y);
+    },
+    op_Inequality: function (lhs, rhs) {
+      return (lhs.X !== rhs.X) || (lhs.Y !== rhs.Y);
+    }
+  }
+);
 
-Microsoft.Xna.Framework.Vector2.prototype._ctor$0 = function (x, y) {
-  this.X = x;
-  this.Y = y;
-};
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Vector2", true, {
+    _ctor$0: function (x, y) {
+      this.X = x;
+      this.Y = y;
+    },
+    _ctor$1: function (value) {
+      this.X = this.Y = value;
+    },
+    MemberwiseClone: function () {
+      var result = Object.create(Microsoft.Xna.Framework.Vector2.prototype);
+      result.X = this.X;
+      result.Y = this.Y;
+      return result;
+    },
+    LengthSquared: function () {
+      return (this.X * this.X) + (this.Y * this.Y);
+    }
+  }
+);
 
-Microsoft.Xna.Framework.Vector2.prototype._ctor$1 = function (value) {
-  this.X = this.Y = value;
-};
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Vector3", false, {
+    get_Zero: function () {
+      return Object.create(Microsoft.Xna.Framework.Vector3.prototype);
+    },
+    op_Addition: function (lhs, rhs) {
+      var result = Object.create(Microsoft.Xna.Framework.Vector3.prototype);
+      result.X = lhs.X + rhs.X;
+      result.Y = lhs.Y + rhs.Y;
+      result.Z = lhs.Z + rhs.Z;
+      return result;
+    },
+    op_Subtraction: function (lhs, rhs) {
+      var result = Object.create(Microsoft.Xna.Framework.Vector3.prototype);
+      result.X = lhs.X - rhs.X;
+      result.Y = lhs.Y - rhs.Y;
+      result.Z = lhs.Z - rhs.Z;
+      return result;
+    },
+    op_Division$0: function (lhs, rhs) {
+      var result = Object.create(Microsoft.Xna.Framework.Vector3.prototype);
+      result.X = lhs.X / rhs.X;
+      result.Y = lhs.Y / rhs.Y;
+      result.Z = lhs.Z / rhs.Z;
+      return result;
+    },
+    op_Division$1: function (lhs, rhs) {
+      var result = Object.create(Microsoft.Xna.Framework.Vector3.prototype);
+      result.X = lhs.X / rhs;
+      result.Y = lhs.Y / rhs;
+      result.Z = lhs.Z / rhs;
+      return result;
+    },
+    op_Multiply$0: function (lhs, rhs) {
+      var result = Object.create(Microsoft.Xna.Framework.Vector3.prototype);
+      result.X = lhs.X * rhs.X;
+      result.Y = lhs.Y * rhs.Y;
+      result.Z = lhs.Z * rhs.Z;
+      return result;
+    },
+    op_Multiply$1: function (lhs, rhs) {
+      var result = Object.create(Microsoft.Xna.Framework.Vector3.prototype);
+      result.X = lhs.X * rhs;
+      result.Y = lhs.Y * rhs;
+      result.Z = lhs.Z * rhs;
+      return result;
+    },
+    op_Equality: function (lhs, rhs) {
+      return (lhs.X === rhs.X) && (lhs.Y === rhs.Y) && (lhs.Z === rhs.Z);
+    },
+    op_Inequality: function (lhs, rhs) {
+      return (lhs.X !== rhs.X) || (lhs.Y !== rhs.Y) || (lhs.Z !== rhs.Z);
+    }
+  }
+);
 
-Microsoft.Xna.Framework.Vector2.prototype.MemberwiseClone = function () {
-  var result = Object.create(Microsoft.Xna.Framework.Vector2.prototype);
-  result.X = this.X;
-  result.Y = this.Y;
-  return result;
-}
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Vector3", true, {
+    _ctor$0: function (x, y, z) {
+      this.X = x;
+      this.Y = y;
+      this.Z = z;
+    },
+    _ctor$1: function (value) {
+      this.X = this.Y = this.Z = value;
+    },
+    _ctor$2: function (xy, z) {
+      this.X = xy.X;
+      this.Y = xy.Y;
+      this.Z = z;
+    },
+    MemberwiseClone: function () {
+      var result = Object.create(Microsoft.Xna.Framework.Vector3.prototype);
+      result.X = this.X;
+      result.Y = this.Y;
+      result.Z = this.Z;
+      return result;
+    },
+    LengthSquared: function () {
+      return (this.X * this.X) + (this.Y * this.Y) + (this.Z * this.Z);
+    }
+  }
+);
 
-Microsoft.Xna.Framework.Vector2.op_Addition = function (lhs, rhs) {
-  var result = Object.create(Microsoft.Xna.Framework.Vector2.prototype);
-  result.X = lhs.X + rhs.X;
-  result.Y = lhs.Y + rhs.Y;
-  return result;
-}
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Vector4", false, {
+    get_Zero: function () {
+      return Object.create(Microsoft.Xna.Framework.Vector4.prototype);
+    },
+    op_Addition: function (lhs, rhs) {
+      var result = Object.create(Microsoft.Xna.Framework.Vector4.prototype);
+      result.X = lhs.X + rhs.X;
+      result.Y = lhs.Y + rhs.Y;
+      result.Z = lhs.Z + rhs.Z;
+      result.W = lhs.W + rhs.W;
+      return result;
+    },
+    op_Subtraction: function (lhs, rhs) {
+      var result = Object.create(Microsoft.Xna.Framework.Vector4.prototype);
+      result.X = lhs.X - rhs.X;
+      result.Y = lhs.Y - rhs.Y;
+      result.Z = lhs.Z - rhs.Z;
+      result.W = lhs.W - rhs.W;
+      return result;
+    },
+    op_Division$0: function (lhs, rhs) {
+      var result = Object.create(Microsoft.Xna.Framework.Vector4.prototype);
+      result.X = lhs.X / rhs.X;
+      result.Y = lhs.Y / rhs.Y;
+      result.Z = lhs.Z / rhs.Z;
+      result.W = lhs.W / rhs.W;
+      return result;
+    },
+    op_Division$1: function (lhs, rhs) {
+      var result = Object.create(Microsoft.Xna.Framework.Vector4.prototype);
+      result.X = lhs.X / rhs;
+      result.Y = lhs.Y / rhs;
+      result.Z = lhs.Z / rhs;
+      result.W = lhs.W / rhs;
+      return result;
+    },
+    op_Multiply$0: function (lhs, rhs) {
+      var result = Object.create(Microsoft.Xna.Framework.Vector4.prototype);
+      result.X = lhs.X * rhs.X;
+      result.Y = lhs.Y * rhs.Y;
+      result.Z = lhs.Z * rhs.Z;
+      result.W = lhs.W * rhs.W;
+      return result;
+    },
+    op_Multiply$1: function (lhs, rhs) {
+      var result = Object.create(Microsoft.Xna.Framework.Vector4.prototype);
+      result.X = lhs.X * rhs;
+      result.Y = lhs.Y * rhs;
+      result.Z = lhs.Z * rhs;
+      result.W = lhs.W * rhs;
+      return result;
+    },
+    op_Equality: function (lhs, rhs) {
+      return (lhs.X === rhs.X) && (lhs.Y === rhs.Y) && 
+             (lhs.Z === rhs.Z) && (lhs.W === rhs.W);
+    },
+    op_Inequality: function (lhs, rhs) {
+      return (lhs.X !== rhs.X) || (lhs.Y !== rhs.Y) || 
+             (lhs.Z !== rhs.Z) || (lhs.W !== rhs.W);
+    }
+  }
+);
 
-Microsoft.Xna.Framework.Vector2.op_Subtraction = function (lhs, rhs) {
-  var result = Object.create(Microsoft.Xna.Framework.Vector2.prototype);
-  result.X = lhs.X - rhs.X;
-  result.Y = lhs.Y - rhs.Y;
-  return result;
-}
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Vector4", true, {
+    _ctor$0: function (x, y, z, w) {
+      this.X = x;
+      this.Y = y;
+      this.Z = z;
+      this.W = w;
+    },
+    _ctor$1: function (xy, z, w) {
+      this.X = xy.X;
+      this.Y = xy.Y;
+      this.Z = z;
+      this.W = w;
+    },
+    _ctor$2: function (xyz, w) {
+      this.X = xyz.X;
+      this.Y = xyz.Y;
+      this.Z = xyz.Z;
+      this.W = w;
+    },
+    _ctor$3: function (value) {
+      this.X = this.Y = this.Z = this.W = value;
+    },
+    MemberwiseClone: function () {
+      var result = Object.create(Microsoft.Xna.Framework.Vector4.prototype);
+      result.X = this.X;
+      result.Y = this.Y;
+      result.Z = this.Z;
+      return result;
+    },
+    LengthSquared: function () {
+      return (this.X * this.X) + (this.Y * this.Y) + (this.Z * this.Z);
+    }
+  }
+);
 
-Microsoft.Xna.Framework.Vector2.op_Division$0 = function (lhs, rhs) {
-  var result = Object.create(Microsoft.Xna.Framework.Vector2.prototype);
-  result.X = lhs.X / rhs.X;
-  result.Y = lhs.Y / rhs.Y;
-  return result;
-}
-
-Microsoft.Xna.Framework.Vector2.op_Division$1 = function (lhs, rhs) {
-  var result = Object.create(Microsoft.Xna.Framework.Vector2.prototype);
-  result.X = lhs.X / rhs;
-  result.Y = lhs.Y / rhs;
-  return result;
-}
-
-Microsoft.Xna.Framework.Vector2.op_Multiply$0 = function (lhs, rhs) {
-  var result = Object.create(Microsoft.Xna.Framework.Vector2.prototype);
-  result.X = lhs.X * rhs.X;
-  result.Y = lhs.Y * rhs.Y;
-  return result;
-}
-
-Microsoft.Xna.Framework.Vector2.op_Multiply$1 = function (lhs, rhs) {
-  var result = Object.create(Microsoft.Xna.Framework.Vector2.prototype);
-  result.X = lhs.X * rhs;
-  result.Y = lhs.Y * rhs;
-  return result;
-}
-
-Microsoft.Xna.Framework.Vector2.op_Equality = function (lhs, rhs) {
-  return (lhs.X === rhs.X) && (lhs.Y === rhs.Y);
-}
-
-Microsoft.Xna.Framework.Vector2.op_Inequality = function (lhs, rhs) {
-  return (lhs.X !== rhs.X) || (lhs.Y !== rhs.Y);
-}
-
-Microsoft.Xna.Framework.Vector2.prototype.LengthSquared = function () {
-  return (this.X * this.X) + (this.Y * this.Y);
-}
-
-Microsoft.Xna.Framework.Vector3.get_Zero = function () {
-  return Object.create(Microsoft.Xna.Framework.Vector3.prototype);
-};
-
-Microsoft.Xna.Framework.Vector3.prototype._ctor$0 = function (x, y, z) {
-  this.X = x;
-  this.Y = y;
-  this.Z = z;
-};
-
-Microsoft.Xna.Framework.Vector3.prototype._ctor$1 = function (value) {
-  this.X = this.Y = this.Z = value;
-};
-
-Microsoft.Xna.Framework.Vector3.prototype._ctor$2 = function (xy, z) {
-  this.X = xy.X;
-  this.Y = xy.Y;
-  this.Z = z;
-};
-
-Microsoft.Xna.Framework.Vector3.prototype.MemberwiseClone = function () {
-  var result = Object.create(Microsoft.Xna.Framework.Vector3.prototype);
-  result.X = this.X;
-  result.Y = this.Y;
-  result.Z = this.Z;
-  return result;
-}
-
-Microsoft.Xna.Framework.Vector4.get_Zero = function () {
-  return Object.create(Microsoft.Xna.Framework.Vector4.prototype);
-};
-
-Microsoft.Xna.Framework.Vector4.prototype._ctor$0 = function (x, y, z, w) {
-  this.X = x;
-  this.Y = y;
-  this.Z = z;
-  this.W = w;
-};
-
-Microsoft.Xna.Framework.Vector4.prototype._ctor$1 = function (xy, z, w) {
-  this.X = xy.X;
-  this.Y = xy.Y;
-  this.Z = z;
-  this.W = w;
-};
-
-Microsoft.Xna.Framework.Vector4.prototype._ctor$2 = function (xyz, w) {
-  this.X = xyz.X;
-  this.Y = xyz.Y;
-  this.Z = xyz.Z;
-  this.W = w;
-};
-
-Microsoft.Xna.Framework.Vector4.prototype._ctor$3 = function (value) {
-  this.X = this.Y = this.Z = this.W = value;
-};
-
-Microsoft.Xna.Framework.Vector4.prototype.MemberwiseClone = function () {
-  var result = Object.create(Microsoft.Xna.Framework.Vector4.prototype);
-  result.X = this.X;
-  result.Y = this.Y;
-  result.Z = this.Z;
-  result.W = this.W;
-  return result;
-}
-
-Microsoft.Xna.Framework.GameServiceContainer.prototype._ctor = function () {
-};
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.GameServiceContainer", true, {
+    _ctor: function () {
+    }
+  }
+);
 
 JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Game", false, {
@@ -489,62 +612,70 @@ Microsoft.Xna.Framework.Input.MouseState.prototype._ctor = function (position, b
   this.buttons = buttons;
 };
 
-Microsoft.Xna.Framework.GraphicsDeviceManager.prototype._ctor = function () {
-  this.device = new Microsoft.Xna.Framework.Graphics.GraphicsDevice();
-};
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.GraphicsDeviceManager", true, {
+    _ctor: function () {
+      this.device = new Microsoft.Xna.Framework.Graphics.GraphicsDevice();
+    },
+    get_GraphicsDevice: function () {
+      return this.device;
+    }
+  }
+);
 
-Microsoft.Xna.Framework.GraphicsDeviceManager.prototype.get_GraphicsDevice = function () {
-  return this.device;
-};
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Graphics.Viewport", true, {
+    get_Width: function () {
+      return this._width;
+    },
+    get_Height: function () {
+      return this._height;
+    },
+    set_Width: function (value) {
+      this._width = value;
+    },
+    set_Height: function (value) {
+      this._height = value;
+    },
+    get_TitleSafeArea: function () {
+      return new Microsoft.Xna.Framework.Rectangle(0, 0, this._width, this._height);
+    }
+  }
+);
 
-Microsoft.Xna.Framework.Graphics.Viewport.prototype.get_Width = function () {
-  return this._width;
-}
-Microsoft.Xna.Framework.Graphics.Viewport.prototype.get_Height = function () {
-  return this._height;
-}
-Microsoft.Xna.Framework.Graphics.Viewport.prototype.set_Width = function (value) {
-  this._width = value;
-}
-Microsoft.Xna.Framework.Graphics.Viewport.prototype.set_Height = function (value) {
-  this._height = value;
-}
-Microsoft.Xna.Framework.Graphics.Viewport.prototype.get_TitleSafeArea = function () {
-  return new Microsoft.Xna.Framework.Rectangle(0, 0, this._width, this._height);
-}
-
-Microsoft.Xna.Framework.GameTime.prototype._ctor$0 = function () {
-  this.totalRealTime = new System.TimeSpan();
-  this.elapsedRealTime = new System.TimeSpan();
-  this.totalGameTime = new System.TimeSpan();
-  this.elapsedGameTime = new System.TimeSpan();
-  this.isRunningSlowly = false;
-};
-
-Microsoft.Xna.Framework.GameTime.prototype._ctor$1 = function (totalRealTime, elapsedRealTime, totalGameTime, elapsedGameTime, isRunningSlowly) {
-  this.totalRealTime = totalRealTime;
-  this.elapsedRealTime = elapsedRealTime;
-  this.totalGameTime = totalGameTime;
-  this.elapsedGameTime = elapsedGameTime;
-  this.isRunningSlowly = isRunningSlowly;
-};
-
-Microsoft.Xna.Framework.GameTime.prototype._ctor$2 = function (totalRealTime, elapsedRealTime, totalGameTime, elapsedGameTime) {
-  Microsoft.Xna.Framework.GameTime.prototype._ctor$1.call(this, totalRealTime, elapsedRealTime, totalGameTime, elapsedGameTime, false);
-};
-
-Microsoft.Xna.Framework.GameTime.prototype.get_TotalRealTime = function () {
-  return this.totalRealTime;
-}
-Microsoft.Xna.Framework.GameTime.prototype.get_TotalGameTime = function () {
-  return this.totalGameTime;
-}
-Microsoft.Xna.Framework.GameTime.prototype.get_ElapsedRealTime = function () {
-  return this.elapsedRealTime;
-}
-Microsoft.Xna.Framework.GameTime.prototype.get_ElapsedGameTime = function () {
-  return this.elapsedGameTime;
-}
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.GameTime", true, {
+    _ctor$0: function () {
+      this.totalRealTime = new System.TimeSpan();
+      this.elapsedRealTime = new System.TimeSpan();
+      this.totalGameTime = new System.TimeSpan();
+      this.elapsedGameTime = new System.TimeSpan();
+      this.isRunningSlowly = false;
+    },
+    _ctor$1: function (totalRealTime, elapsedRealTime, totalGameTime, elapsedGameTime, isRunningSlowly) {
+      this.totalRealTime = totalRealTime;
+      this.elapsedRealTime = elapsedRealTime;
+      this.totalGameTime = totalGameTime;
+      this.elapsedGameTime = elapsedGameTime;
+      this.isRunningSlowly = isRunningSlowly;
+    },
+    _ctor$2: function (totalRealTime, elapsedRealTime, totalGameTime, elapsedGameTime) {
+      Microsoft.Xna.Framework.GameTime.prototype._ctor$1.call(this, totalRealTime, elapsedRealTime, totalGameTime, elapsedGameTime, false);
+    },
+    get_TotalRealTime: function () {
+      return this.totalRealTime;
+    },
+    get_TotalGameTime: function () {
+      return this.totalGameTime;
+    },
+    get_ElapsedRealTime: function () {
+      return this.elapsedRealTime;
+    },
+    get_ElapsedGameTime: function () {
+      return this.elapsedGameTime;
+    }
+  }
+);
 
 JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Rectangle", true, {
