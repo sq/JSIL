@@ -380,22 +380,9 @@ JSIL.ExternalMembers = function (namespace, isInstance /*, ...memberNames */) {
     var memberValue = namespace[memberName];
 
     if (impl.hasOwnProperty(prefix + memberName)) {
-      Object.defineProperty(
-        namespace, memberName, {
-          enumerable: true, configurable: true,
-          value: impl[prefix + memberName]
-        }
-      );
-    } else {
-      if (!namespace.hasOwnProperty(memberName)) {
-        Object.defineProperty(
-          namespace, memberName, {
-            enumerable: true,
-            configurable: true,
-            value: JSIL.MakeExternalMemberStub(namespaceName, memberName, memberValue)
-          }
-        );
-      }
+      namespace[memberName] = impl[prefix + memberName];
+    } else if (!namespace.hasOwnProperty(memberName)) {
+      namespace[memberName] = JSIL.MakeExternalMemberStub(namespaceName, memberName, memberValue);
     }
   }
 }
@@ -405,8 +392,16 @@ JSIL.ImplementExternals = function (namespaceName, isInstance, externals) {
     JSIL.Host.error(new Error("ImplementExternals expected name of namespace"));
     return;
   }
+
+  if (namespaceName.indexOf("FileStream") >= 0)
+    JSIL.Host.logWriteLine("");
   
   var obj = JSIL.AllImplementedExternals[namespaceName];
+  if (obj === "initialized") {
+    JSIL.Host.error(new Error("Type '" + namespaceName + "' already initialized"));
+    return;
+  }
+
   if (typeof (obj) !== "object") {
     JSIL.AllImplementedExternals[namespaceName] = obj = {};
   }
@@ -1005,6 +1000,9 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
       return typeObject;
     };
 
+    if (fullName.indexOf("FileStream") >= 0)
+      JSIL.Host.logWriteLine("");
+
     var externals = JSIL.AllImplementedExternals[fullName];
     var instancePrefix = "instance$";
     for (var k in externals) {
@@ -1020,8 +1018,13 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
         target = target.prototype;
       }
 
+      if (target.hasOwnProperty(key))
+        delete target[key];
+
       target[key] = value;
     }
+
+    JSIL.AllImplementedExternals[fullName] = "initialized";
 
     return typeObject;
   };

@@ -260,6 +260,10 @@ JSIL.ImplementExternals(
 );
 JSIL.ImplementExternals(
   "System.Drawing.Rectangle", true, {
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
     _ctor: function (x, y, w, h) {
       if ((typeof (x) === "object") && (typeof (y) === "object")) {
         this.x = x.X;
@@ -319,8 +323,3 @@ JSIL.ImplementExternals(
     }
   }
 );
-
-System.Drawing.Rectangle.prototype.x = 0;
-System.Drawing.Rectangle.prototype.y = 0;
-System.Drawing.Rectangle.prototype.width = 0;
-System.Drawing.Rectangle.prototype.height = 0;
