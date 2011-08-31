@@ -543,74 +543,98 @@ JSIL.ImplementExternals(
   }
 );
 
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Input.Keyboard", false, {
+    GetState: function (playerIndex) {
+      var keys = JSIL.Host.getHeldKeys();
+      return new Microsoft.Xna.Framework.Input.KeyboardState(keys);
+    }
+  }
+);
 
-Microsoft.Xna.Framework.Input.Keyboard.GetState = function (playerIndex) {
-  var keys = JSIL.Host.getHeldKeys();
-  return new Microsoft.Xna.Framework.Input.KeyboardState(keys);
-};
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Input.KeyboardState", true, {
+    keys: [],
+    _ctor: function (keys) {
+      // Note that these keys should be represented as raw integral key codes, not enumeration members
+      this.keys = keys;
+    },
+    IsKeyDown: function (key) {
+      return Array.prototype.indexOf.call(this.keys, key.value) !== -1;
+    },
+    IsKeyUp: function (key) {
+      return Array.prototype.indexOf.call(this.keys, key.value) === -1;
+    }
+  }
+);
 
-Microsoft.Xna.Framework.Input.KeyboardState.prototype.keys = [];
-Microsoft.Xna.Framework.Input.KeyboardState.prototype._ctor = function (keys) {
-  // Note that these keys should be represented as raw integral key codes, not enumeration members
-  this.keys = keys;
-};
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Input.Mouse", false, {
+    GetState: function (playerIndex) {
+      var buttons = JSIL.Host.getHeldButtons();
+      var position = JSIL.Host.getMousePosition();
+      return new Microsoft.Xna.Framework.Input.MouseState(position, buttons);
+    }
+  }
+);
 
-Microsoft.Xna.Framework.Input.KeyboardState.prototype.IsKeyDown = function (key) {
-  return Array.prototype.indexOf.call(this.keys, key.value) !== -1;
-};
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Input.MouseState", true, {
+    _ctor: function (position, buttons) {
+      this.position = position;
+      this.buttons = buttons;
+    }
+  }
+);
 
-Microsoft.Xna.Framework.Input.KeyboardState.prototype.IsKeyUp = function (key) {
-  return Array.prototype.indexOf.call(this.keys, key.value) === -1;
-};
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Input.GamePad", false, {
+    GetState: function (playerIndex) {
+      return new Microsoft.Xna.Framework.Input.GamePadState();
+    }
+  }
+);
 
-Microsoft.Xna.Framework.Input.Mouse.GetState = function (playerIndex) {
-  var buttons = JSIL.Host.getHeldButtons();
-  var position = JSIL.Host.getMousePosition();
-  return new Microsoft.Xna.Framework.Input.MouseState(position, buttons);
-};
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Input.GamePadState", true, {
+    _ctor: function () {
+      this._buttons = new Microsoft.Xna.Framework.Input.GamePadButtons();
+      this._thumbs = new Microsoft.Xna.Framework.Input.GamePadThumbSticks();
+      this._triggers = new Microsoft.Xna.Framework.Input.GamePadTriggers();
+    },
+    get_Buttons: function () {
+      return this._buttons;
+    },
+    IsButtonDown: function (button) {
+      return false;
+    },
+    get_ThumbSticks: function () {
+      return this._thumbs;
+    },
+    get_Triggers: function () {
+      return this._triggers;
+    }
+  }
+);
 
-Microsoft.Xna.Framework.Input.GamePad.GetState = function (playerIndex) {
-  return new Microsoft.Xna.Framework.Input.GamePadState();
-};
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Input.GamePadButtons", true, {
+    get_Back: function () {
+      return false;
+    }
+  }
+);
 
-Microsoft.Xna.Framework.Input.GamePadState.prototype._ctor = function () {
-  this._buttons = new Microsoft.Xna.Framework.Input.GamePadButtons();
-  this._thumbs = new Microsoft.Xna.Framework.Input.GamePadThumbSticks();
-  this._triggers = new Microsoft.Xna.Framework.Input.GamePadTriggers();
-}
-
-Microsoft.Xna.Framework.Input.GamePadButtons.prototype.get_Back = function () {
-  return false;
-}
-
-Microsoft.Xna.Framework.Input.GamePadState.prototype.get_Buttons = function () {
-  return this._buttons;
-}
-
-Microsoft.Xna.Framework.Input.GamePadState.prototype.IsButtonDown = function (button) {
-  return false;
-}
-
-Microsoft.Xna.Framework.Input.GamePadState.prototype.get_ThumbSticks = function () {
-  return this._thumbs;
-}
-
-Microsoft.Xna.Framework.Input.GamePadState.prototype.get_Triggers = function () {
-  return this._triggers;
-}
-
-Microsoft.Xna.Framework.Input.GamePadThumbSticks.prototype.get_Left = function () {
-  return this._left;
-}
-
-Microsoft.Xna.Framework.Input.GamePadThumbSticks.prototype.get_Right = function () {
-  return this._right;
-}
-
-Microsoft.Xna.Framework.Input.MouseState.prototype._ctor = function (position, buttons) {
-  this.position = position;
-  this.buttons = buttons;
-};
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Input.GamePadThumbSticks", true, {
+    get_Left: function () {
+      return this._left;
+    },
+    get_Right: function () {
+      return this._right;
+    }
+  }
+);
 
 JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.GraphicsDeviceManager", true, {
@@ -948,29 +972,6 @@ JSIL.ImplementExternals(
     End: function () {
     },
 
-    _ctor: function () {
-      this.canvas = JSIL.Host.getCanvas();
-      this.context = this.canvas.getContext("2d");
-      this.viewport = new Microsoft.Xna.Framework.Graphics.Viewport();
-      this.viewport.Width = this.canvas.clientWidth || this.canvas.width;
-      this.viewport.Height = this.canvas.clientHeight || this.canvas.height;
-    },
-
-    get_Viewport: function () {
-      return this.viewport;
-    },
-
-    set_Viewport: function (newViewport) {
-      this.viewport = newViewport;
-      this.canvas = JSIL.Host.getCanvas(this.viewport.Width, this.viewport.Height);
-      this.context = this.canvas.getContext("2d");
-    },
-
-    InternalClear: function (color) {
-      this.context.fillStyle = color.toCss();
-      this.context.fillRect(0, 0, this.viewport.Width, this.viewport.Height);
-    },
-
     InternalDraw: function (texture, position, sourceRectangle, color, rotation, origin, scale, effects) {
       var needRestore = false;
       var image = texture.image;
@@ -1143,6 +1144,25 @@ JSIL.ImplementExternals(
 
 JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Graphics.GraphicsDevice", true, {
+    _ctor: function () {
+      this.canvas = JSIL.Host.getCanvas();
+      this.context = this.canvas.getContext("2d");
+      this.viewport = new Microsoft.Xna.Framework.Graphics.Viewport();
+      this.viewport.Width = this.canvas.clientWidth || this.canvas.width;
+      this.viewport.Height = this.canvas.clientHeight || this.canvas.height;
+    },
+    get_Viewport: function () {
+      return this.viewport;
+    },
+    set_Viewport: function (newViewport) {
+      this.viewport = newViewport;
+      this.canvas = JSIL.Host.getCanvas(this.viewport.Width, this.viewport.Height);
+      this.context = this.canvas.getContext("2d");
+    },
+    InternalClear: function (color) {
+      this.context.fillStyle = color.toCss();
+      this.context.fillRect(0, 0, this.viewport.Width, this.viewport.Height);
+    },
     DrawUserPrimitives: function (primitiveType, vertices, vertexOffset, primitiveCount) {
       switch (primitiveType) {
         case Microsoft.Xna.Framework.Graphics.PrimitiveType.LineList:

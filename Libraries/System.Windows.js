@@ -5,54 +5,60 @@ if (typeof (JSIL) === "undefined")
   
 JSIL.DeclareAssembly("JSIL.Windows");
 
-System.Windows.Forms.Control.prototype.clientWidth = 16;
-System.Windows.Forms.Control.prototype.clientHeight = 16;
+JSIL.ImplementExternals(
+  "System.Windows.Forms.Control", true, {
+    clientWidth: 16,
+    clientHeight: 16,
+    SetStyle: function (styles, newState) {
+    },
+    _ctor: function () {
+      this._controls = new (System.Collections.Generic.List$b1.Of(System.Object)) ();
+    },
+    get_Controls: function () {
+      return this._controls;
+    },
+    get_ClientSize: function () {
+      return new System.Drawing.Size(this.clientWidth, this.clientHeight);
+    },
+    set_ClientSize: function (size) {
+      this.clientWidth = size.Width;
+      this.clientHeight = size.Height;
+    },
+    add_Paint: function (handler) {
+    },
+    Show: function () {
+    },
+    Refresh: function () {
+    }
+  }
+);
 
-System.Windows.Forms.Control.prototype.SetStyle = function (styles, newState) {
-};
+JSIL.ImplementExternals(
+  "System.Windows.Forms.Form", true, {
+    _ctor: function () {
+      System.Windows.Forms.Control.prototype._ctor.call(this);
+    }
+  }
+);
 
-System.Windows.Forms.Control.prototype._ctor = function () {
-  this._controls = new (System.Collections.Generic.List$b1.Of(System.Object)) ();
-};
+JSIL.ImplementExternals(
+  "System.Windows.Forms.StatusBar", true, {
+    _ctor: function () {
+      this._panels = new (System.Collections.Generic.List$b1.Of(System.Object)) ();
+    },
+    get_Panels: function () {
+      return this._panels;
+    }
+  }
+);
 
-System.Windows.Forms.Control.prototype.get_Controls = function () {
-  return this._controls;
-};
-
-System.Windows.Forms.Control.prototype.get_ClientSize = function () {
-  return new System.Drawing.Size(this.clientWidth, this.clientHeight);
-};
-
-System.Windows.Forms.Control.prototype.set_ClientSize = function (size) {
-  this.clientWidth = size.Width;
-  this.clientHeight = size.Height;
-};
-
-System.Windows.Forms.Control.prototype.add_Paint = function (handler) {
-};
-
-System.Windows.Forms.Control.prototype.Show = function () {
-};
-
-System.Windows.Forms.Control.prototype.Refresh = function () {
-};
-
-System.Windows.Forms.Form.prototype._ctor = function () {
-  System.Windows.Forms.Control.prototype._ctor.call(this);
-};
-
-System.Windows.Forms.StatusBar.prototype._ctor = function () {
-  this._panels = new (System.Collections.Generic.List$b1.Of(System.Object)) ();
-};
-
-System.Windows.Forms.StatusBar.prototype.get_Panels = function () {
-  return this._panels;
-};
-
-System.Windows.Forms.TabControl.prototype._ctor = function () {
-  this._tabPages = new (System.Collections.Generic.List$b1.Of(System.Object)) ();
-};
-
-System.Windows.Forms.TabControl.prototype.get_TabPages = function () {
-  return this._tabPages;
-};
+JSIL.ImplementExternals(
+  "System.Windows.Forms.TabControl", true, {
+    _ctor: function () {
+      this._tabPages = new (System.Collections.Generic.List$b1.Of(System.Object)) ();
+    },
+    get_TabPages: function () {
+      return this._tabPages;
+    }
+  }
+);
