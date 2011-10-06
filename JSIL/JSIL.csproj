@@ -114,6 +114,10 @@
       <Project>{63E6915C-7EA4-4D76-AB28-0D7191EEA626}</Project>
       <Name>Mono.Cecil.Pdb</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Upstream\ILSpy\NRefactory\ICSharpCode.NRefactory.CSharp\ICSharpCode.NRefactory.CSharp.csproj">
+      <Project>{53DCA265-3C3C-42F9-B647-F72BA678122B}</Project>
+      <Name>ICSharpCode.NRefactory.CSharp</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Upstream\ILSpy\NRefactory\ICSharpCode.NRefactory\ICSharpCode.NRefactory.csproj">
       <Project>{3B2A5653-EC97-4001-BB9B-D90F1AF2C371}</Project>
       <Name>ICSharpCode.NRefactory</Name>

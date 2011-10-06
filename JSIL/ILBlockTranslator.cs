@@ -1003,6 +1003,24 @@ namespace JSIL {
         // MSIL Instructions
         //
 
+        protected JSExpression Translate_NullableOf (ILExpression node) {
+            var inner = TranslateNode(node.Arguments[0]);
+            var innerType = inner.GetExpectedType(TypeSystem);
+
+            var nullableType = new TypeReference("System", "Nullable`1", TypeSystem.Object.Module, TypeSystem.Object.Scope);
+            var nullableGenericType = new GenericInstanceType(nullableType);
+            nullableGenericType.GenericArguments.Add(innerType);
+
+            return JSChangeTypeExpression.New(inner, TypeSystem, nullableGenericType);
+        }
+
+        protected JSExpression Translate_ValueOf (ILExpression node) {
+            var inner = TranslateNode(node.Arguments[0]);
+            var innerType = (GenericInstanceType)inner.GetExpectedType(TypeSystem);
+
+            return JSChangeTypeExpression.New(inner, TypeSystem, innerType.GenericArguments.First());
+        }
+
         protected JSExpression Translate_Clt (ILExpression node) {
             return Translate_BinaryOp(node, JSOperator.LessThan);
         }
@@ -1034,6 +1052,18 @@ namespace JSIL {
 
         protected JSExpression Translate_Ceq (ILExpression node) {
             return Translate_EqualityComparison(node, true);
+        }
+
+        protected JSExpression Translate_Cne (ILExpression node) {
+            return Translate_EqualityComparison(node, false);
+        }
+
+        protected JSExpression Translate_Cle (ILExpression node) {
+            return Translate_BinaryOp(node, JSOperator.LessThanOrEqual);
+        }
+
+        protected JSExpression Translate_Cge (ILExpression node) {
+            return Translate_BinaryOp(node, JSOperator.GreaterThanOrEqual);
         }
 
         protected JSBinaryOperatorExpression Translate_CompoundAssignment (ILExpression node) {
