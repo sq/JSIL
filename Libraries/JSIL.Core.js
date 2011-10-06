@@ -1794,7 +1794,7 @@ JSIL.CollectionInitializer.prototype.Apply = function (target) {
     values = this;
 
   for (var i = 0, l = values.length; i < l; i++)
-    target.Add(values[i]);
+    target.Add.apply(target, values[i]);
 };
 
 JSIL.MakeClass("System.Object", "System.ValueType", true);
