@@ -849,7 +849,7 @@ namespace JSIL {
                 var optimizer = new ILAstOptimizer();
 
                 try {
-                    ilb = new ILBlock(decompiler.Build(bodyDef, true));
+                    ilb = new ILBlock(decompiler.Build(bodyDef, true, context));
                     optimizer.Optimize(context, ilb);
                 } catch (Exception exception) {
                     if (CouldNotDecompileMethod != null)
