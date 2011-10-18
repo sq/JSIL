@@ -28,6 +28,342 @@ if (typeof (Function.prototype.bind) !== "function") {
   };
 }
 
+
+// Domain Public by Eric Wendelin http://eriwen.com/ (2008)
+// Luke Smith http://lucassmith.name/ (2008)
+// Loic Dachary <loic@dachary.org> (2008)
+// Johan Euphrosine <proppy@aminche.com> (2008)
+// Oyvind Sean Kinsey http://kinsey.no/blog (2010)
+// Victor Homyakov <victor-homyakov@users.sourceforge.net> (2010)
+
+/**
+* Main function giving a function stack trace with a forced or passed in Error
+*
+* @cfg {Error} e The error to create a stacktrace from (optional)
+* @cfg {Boolean} guess If we should try to resolve the names of anonymous functions
+* @return {Array} of Strings with functions, lines, files, and arguments where possible
+*/
+function printStackTrace(options) {
+    options = options || {guess: true};
+    var ex = options.e || null, guess = !!options.guess;
+    var p = new printStackTrace.implementation(), result = p.run(ex);
+    return (guess) ? p.guessAnonymousFunctions(result) : result;
+}
+
+printStackTrace.implementation = function() {
+};
+
+printStackTrace.implementation.prototype = {
+    run: function(ex) {
+        ex = ex || this.createException();
+        // Do not use the stored mode: different exceptions in Chrome
+        // may or may not have arguments or stack
+        var mode = this.mode(ex);
+        // Use either the stored mode, or resolve it
+        //var mode = this._mode || this.mode(ex);
+        if (mode === 'other') {
+            return this.other(arguments.callee);
+        } else {
+            return this[mode](ex);
+        }
+    },
+
+    createException: function() {
+        try {
+            this.undef();
+            return null;
+        } catch (e) {
+            return e;
+        }
+    },
+
+    /**
+* @return {String} mode of operation for the environment in question.
+*/
+    mode: function(e) {
+        if (e['arguments'] && e.stack) {
+            return (this._mode = 'chrome');
+        } else if (e.message && typeof window !== 'undefined' && window.opera) {
+            return (this._mode = e.stacktrace ? 'opera10' : 'opera');
+        } else if (e.stack) {
+            return (this._mode = 'firefox');
+        }
+        return (this._mode = 'other');
+    },
+
+    /**
+* Given a context, function name, and callback function, overwrite it so that it calls
+* printStackTrace() first with a callback and then runs the rest of the body.
+*
+* @param {Object} context of execution (e.g. window)
+* @param {String} functionName to instrument
+* @param {Function} function to call with a stack trace on invocation
+*/
+    instrumentFunction: function(context, functionName, callback) {
+        context = context || window;
+        var original = context[functionName];
+        context[functionName] = function instrumented() {
+            callback.call(this, printStackTrace().slice(4));
+            return context[functionName]._instrumented.apply(this, arguments);
+        };
+        context[functionName]._instrumented = original;
+    },
+
+    /**
+* Given a context and function name of a function that has been
+* instrumented, revert the function to it's original (non-instrumented)
+* state.
+*
+* @param {Object} context of execution (e.g. window)
+* @param {String} functionName to de-instrument
+*/
+    deinstrumentFunction: function(context, functionName) {
+        if (context[functionName].constructor === Function &&
+                context[functionName]._instrumented &&
+                context[functionName]._instrumented.constructor === Function) {
+            context[functionName] = context[functionName]._instrumented;
+        }
+    },
+
+    /**
+* Given an Error object, return a formatted Array based on Chrome's stack string.
+*
+* @param e - Error object to inspect
+* @return Array<String> of function calls, files and line numbers
+*/
+    chrome: function(e) {
+        var stack = (e.stack + '\n').replace(/^\S[^\(]+?[\n$]/gm, '').
+          replace(/^\s+at\s+/gm, '').
+          replace(/^([^\(]+?)([\n$])/gm, '{anonymous}()@$1$2').
+          replace(/^Object.<anonymous>\s*\(([^\)]+)\)/gm, '{anonymous}()@$1').split('\n');
+        stack.pop();
+        return stack;
+    },
+
+    /**
+* Given an Error object, return a formatted Array based on Firefox's stack string.
+*
+* @param e - Error object to inspect
+* @return Array<String> of function calls, files and line numbers
+*/
+    firefox: function(e) {
+        return e.stack.replace(/(?:\n@:0)?\s+$/m, '').replace(/^\(/gm, '{anonymous}(').split('\n');
+    },
+
+    /**
+* Given an Error object, return a formatted Array based on Opera 10's stacktrace string.
+*
+* @param e - Error object to inspect
+* @return Array<String> of function calls, files and line numbers
+*/
+    opera10: function(e) {
+        var stack = e.stacktrace;
+        var lines = stack.split('\n'), ANON = '{anonymous}', lineRE = /.*line (\d+), column (\d+) in ((<anonymous function\:?\s*(\S+))|([^\(]+)\([^\)]*\))(?: in )?(.*)\s*$/i, i, j, len;
+        for (i = 2, j = 0, len = lines.length; i < len - 2; i++) {
+            if (lineRE.test(lines[i])) {
+                var location = RegExp.$6 + ':' + RegExp.$1 + ':' + RegExp.$2;
+                var fnName = RegExp.$3;
+                fnName = fnName.replace(/<anonymous function\:?\s?(\S+)?>/g, ANON);
+                lines[j++] = fnName + '@' + location;
+            }
+        }
+
+        lines.splice(j, lines.length - j);
+        return lines;
+    },
+
+    // Opera 7.x-9.x only!
+    opera: function(e) {
+        var lines = e.message.split('\n'), ANON = '{anonymous}', lineRE = /Line\s+(\d+).*script\s+(http\S+)(?:.*in\s+function\s+(\S+))?/i, i, j, len;
+
+        for (i = 4, j = 0, len = lines.length; i < len; i += 2) {
+            //TODO: RegExp.exec() would probably be cleaner here
+            if (lineRE.test(lines[i])) {
+                lines[j++] = (RegExp.$3 ? RegExp.$3 + '()@' + RegExp.$2 + RegExp.$1 : ANON + '()@' + RegExp.$2 + ':' + RegExp.$1) + ' -- ' + lines[i + 1].replace(/^\s+/, '');
+            }
+        }
+
+        lines.splice(j, lines.length - j);
+        return lines;
+    },
+
+    // Safari, IE, and others
+    other: function(curr) {
+        var ANON = '{anonymous}', fnRE = /function\s*([\w\-$]+)?\s*\(/i, stack = [], fn, args, maxStackSize = 10;
+        while (curr && stack.length < maxStackSize) {
+            fn = fnRE.test(curr.toString()) ? RegExp.$1 || ANON : ANON;
+            args = Array.prototype.slice.call(curr['arguments'] || []);
+            stack[stack.length] = fn + '(' + this.stringifyArguments(args) + ')';
+            curr = curr.caller;
+        }
+        return stack;
+    },
+
+    /**
+* Given arguments array as a String, subsituting type names for non-string types.
+*
+* @param {Arguments} object
+* @return {Array} of Strings with stringified arguments
+*/
+    stringifyArguments: function(args) {
+        var slice = Array.prototype.slice;
+        for (var i = 0; i < args.length; ++i) {
+            var arg = args[i];
+            if (arg === undefined) {
+                args[i] = 'undefined';
+            } else if (arg === null) {
+                args[i] = 'null';
+            } else if (arg.constructor) {
+                if (arg.constructor === Array) {
+                    if (arg.length < 3) {
+                        args[i] = '[' + this.stringifyArguments(arg) + ']';
+                    } else {
+                        args[i] = '[' + this.stringifyArguments(slice.call(arg, 0, 1)) + '...' + this.stringifyArguments(slice.call(arg, -1)) + ']';
+                    }
+                } else if (arg.constructor === Object) {
+                    args[i] = '#object';
+                } else if (arg.constructor === Function) {
+                    args[i] = '#function';
+                } else if (arg.constructor === String) {
+                    args[i] = '"' + arg + '"';
+                }
+            }
+        }
+        return args.join(',');
+    },
+
+    sourceCache: {},
+
+    /**
+* @return the text from a given URL.
+*/
+    ajax: function(url) {
+        var req = this.createXMLHTTPObject();
+        if (!req) {
+            return;
+        }
+        req.open('GET', url, false);
+        req.setRequestHeader('User-Agent', 'XMLHTTP/1.0');
+        req.send('');
+        return req.responseText;
+    },
+
+    /**
+* Try XHR methods in order and store XHR factory.
+*
+* @return <Function> XHR function or equivalent
+*/
+    createXMLHTTPObject: function() {
+        var xmlhttp, XMLHttpFactories = [
+            function() {
+                return new XMLHttpRequest();
+            }, function() {
+                return new ActiveXObject('Msxml2.XMLHTTP');
+            }, function() {
+                return new ActiveXObject('Msxml3.XMLHTTP');
+            }, function() {
+                return new ActiveXObject('Microsoft.XMLHTTP');
+            }
+        ];
+        for (var i = 0; i < XMLHttpFactories.length; i++) {
+            try {
+                xmlhttp = XMLHttpFactories[i]();
+                // Use memoization to cache the factory
+                this.createXMLHTTPObject = XMLHttpFactories[i];
+                return xmlhttp;
+            } catch (e) {
+            }
+        }
+    },
+
+    /**
+* Given a URL, check if it is in the same domain (so we can get the source
+* via Ajax).
+*
+* @param url <String> source url
+* @return False if we need a cross-domain request
+*/
+    isSameDomain: function(url) {
+        return url.indexOf(location.hostname) !== -1;
+    },
+
+    /**
+* Get source code from given URL if in the same domain.
+*
+* @param url <String> JS source URL
+* @return <Array> Array of source code lines
+*/
+    getSource: function(url) {
+        if (!(url in this.sourceCache)) {
+            this.sourceCache[url] = this.ajax(url).split('\n');
+        }
+        return this.sourceCache[url];
+    },
+
+    guessAnonymousFunctions: function(stack) {
+        for (var i = 0; i < stack.length; ++i) {
+            var reStack = /\{anonymous\}\(.*\)@(\w+:\/\/([\-\w\.\/]+)+(:\d+)?[^:]+):(\d+):?(\d+)?/;
+            var frame = stack[i], m = reStack.exec(frame);
+            if (m) {
+                var file = m[1], lineno = m[4], charno = m[7] || 0; //m[7] is character position in Chrome
+                if (file && this.isSameDomain(file) && lineno) {
+                    var functionName = this.guessAnonymousFunction(file, lineno, charno);
+                    stack[i] = frame.replace('{anonymous}', functionName);
+                }
+            }
+        }
+        return stack;
+    },
+
+    guessAnonymousFunction: function(url, lineNo, charNo) {
+        var ret;
+        try {
+            ret = this.findFunctionName(this.getSource(url), lineNo);
+        } catch (e) {
+            ret = 'getSource failed with url: ' + url + ', exception: ' + e.toString();
+        }
+        return ret;
+    },
+
+    findFunctionName: function(source, lineNo) {
+        // FIXME findFunctionName fails for compressed source
+        // (more than one function on the same line)
+        // TODO use captured args
+        // function {name}({args}) m[1]=name m[2]=args
+        var reFunctionDeclaration = /function\s+([^(]*?)\s*\(([^)]*)\)/;
+        // {name} = function ({args}) TODO args capture
+        // /['"]?([0-9A-Za-z_]+)['"]?\s*[:=]\s*function(?:[^(]*)/
+        var reFunctionExpression = /['"]?([0-9A-Za-z_]+)['"]?\s*[:=]\s*function\b/;
+        // {name} = eval()
+        var reFunctionEvaluation = /['"]?([0-9A-Za-z_]+)['"]?\s*[:=]\s*(?:eval|new Function)\b/;
+        // Walk backwards in the source lines until we find
+        // the line which matches one of the patterns above
+        var code = "", line, maxLines = 10, m;
+        for (var i = 0; i < maxLines; ++i) {
+            // FIXME lineNo is 1-based, source[] is 0-based
+            line = source[lineNo - i];
+            if (line) {
+                code = line + code;
+                m = reFunctionExpression.exec(code);
+                if (m && m[1]) {
+                    return m[1];
+                }
+                m = reFunctionDeclaration.exec(code);
+                if (m && m[1]) {
+                    //return m[1] + "(" + (m[2] || "") + ")";
+                    return m[1];
+                }
+                m = reFunctionEvaluation.exec(code);
+                if (m && m[1]) {
+                    return m[1];
+                }
+            }
+        }
+        return '(?)';
+    }
+};
+
+
 JSIL.GlobalNamespace = this;
 
 JSIL.PrivateNamespaces = {};
@@ -261,8 +597,8 @@ JSIL.Host.logWrite = function (text) {
   if (typeof (console) !== "undefined")
     Function.prototype.apply.call(console.log, console, arguments);
   else if (JSIL.HostType.IsBrowser)
-    window.alert(text);
-  else
+    return;
+  else if (typeof (putstr) === "function")
     putstr(text);
 };
 
@@ -270,8 +606,8 @@ JSIL.Host.logWriteLine = function (text) {
   if (typeof (console) !== "undefined")
     Function.prototype.apply.call(console.log, console, arguments);
   else if (JSIL.HostType.IsBrowser)
-    window.alert(text);
-  else
+    return;
+  else if (typeof (print) === "function")
     print(text);
 };
 
@@ -402,14 +738,30 @@ JSIL.ExternalMembers = function (namespace, isInstance /*, ...memberNames */) {
   for (var i = 2, l = arguments.length; i < l; i++) {
     var memberName = arguments[i];
     var memberValue = namespace[memberName];
+    var newValue = undefined;
 
     if (impl.hasOwnProperty(prefix + memberName)) {
-      namespace[memberName] = impl[prefix + memberName];
+      newValue = impl[prefix + memberName];
     } else if (!namespace.hasOwnProperty(memberName)) {
-      namespace[memberName] = JSIL.MakeExternalMemberStub(namespaceName, memberName, memberValue);
+      newValue = JSIL.MakeExternalMemberStub(namespaceName, memberName, memberValue);
+    }
+
+    if (newValue !== undefined) {
+      try {
+        delete namespace[memberName];
+      } catch (e) {
+      }
+
+      try {
+        namespace[memberName] = newValue;
+      } catch (e) {
+        Object.defineProperty(namespace, memberName, {
+          value: newValue, enumerable: true, configurable: true
+        });
+      }
     }
   }
-}
+};
 
 JSIL.ImplementExternals = function (namespaceName, isInstance, externals) {
   if (typeof (namespaceName) !== "string") {
@@ -438,7 +790,7 @@ JSIL.ImplementExternals = function (namespaceName, isInstance, externals) {
 
     obj[prefix + k] = externals[k];
   }
-}
+};
 
 JSIL.QueueTypeInitializer = function (type, initializer) {
   if (type.__TypeInitialized__) {
@@ -449,10 +801,14 @@ JSIL.QueueTypeInitializer = function (type, initializer) {
 };
 
 JSIL.Initialize = function () {
+  JSIL.Host.logWriteLine("==== Initializing ====");
+
   // Seal all registered names so that their static constructors run on use
   var arn = JSIL.AllRegisteredNames;
   for (var i = 0, l = arn.length; i < l; i++)
     arn[i].sealed = true;
+
+  JSIL.Host.logWriteLine("==== Initialized  ====");
 };
 
 JSIL.GenericParameter = function (name) {
@@ -539,7 +895,7 @@ JSIL.New = function (type, constructorName, args) {
   }
 
   return result;
-}
+};
 
 JSIL.CloneObject = function (obj) {
   if ((typeof (obj) === "undefined") || (obj === null))
@@ -703,7 +1059,10 @@ JSIL.MakeIndirectProperty = function (target, key, source) {
 
   var setter = function (value) {
     // Remove the indirect property
-    delete target[key];
+    try {
+      delete target[key];
+    } catch (e) {
+    }
     // Set on result instead of self so that the value is unique to this specialized type instance
     target[key] = value;
   };
@@ -858,7 +1217,7 @@ JSIL.CopyObjectValues = function (source, target) {
 
     target[k] = source[k];
   }
-}
+};
 
 JSIL.CopyMembers = function (source, target) {
   var sf = source.__StructFields__;
@@ -883,7 +1242,7 @@ JSIL.CopyMembers = function (source, target) {
       target[fieldName] = value.MemberwiseClone();
     }
   }
-}
+};
 
 JSIL.InitializeType = function (type) {
   if (typeof (type) === "undefined")
@@ -943,7 +1302,14 @@ JSIL.ShadowedTypeWarning = function (fullName) {
 };
 
 JSIL.DuplicateDefinitionWarning = function (fullName, isPublic) {
+  var stack = printStackTrace();
+  var stackText = "  " + stack.join("\r\n  ");
+
   JSIL.Host.error(new Error((isPublic ? "Public" : "Private") + " type " + fullName + " is defined multiple times."));
+};
+
+JSIL.GetFunctionName = function (fn) {
+  return fn.name || fn.__name__ || "unknown";
 };
 
 JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializer) {
@@ -973,8 +1339,11 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   }
 
   var creator = function () {
+    JSIL.Host.logWriteLine("==   Initializing " + fullName);
+
     var externals = JSIL.AllImplementedExternals[fullName];
     var instancePrefix = "instance$";
+
     for (var k in externals) {
       if (!externals.hasOwnProperty(k))
         continue;
@@ -988,8 +1357,10 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
         target = target.prototype;
       }
 
-      if (target.hasOwnProperty(key))
+      try {
         delete target[key];
+      } catch (e) {
+      }
 
       target[key] = value;
     }
@@ -999,8 +1370,24 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
     return typeObject;
   };
 
+  if (creator) {
+    try {
+      creator.name = fullName + ".__creator__";
+    } catch (e) {
+    }
+    creator.__name__ = fullName + ".__creator__";
+  }
+
+  if (initializer) {
+    try {
+      initializer.name = fullName + ".__initializer__";
+    } catch (e) {
+    }
+    initializer.__name__ = fullName + ".__initializer__";
+  }
+
   JSIL.RegisterName(fullName, assembly, isPublic, creator, initializer);
-}
+};
 
 JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, genericArguments, initializer) {
   if (typeof (isPublic) === "undefined")
@@ -1063,6 +1450,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
 
     var externals = JSIL.AllImplementedExternals[fullName];
     var instancePrefix = "instance$";
+
     for (var k in externals) {
       if (!externals.hasOwnProperty(k))
         continue;
@@ -1076,8 +1464,10 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
         target = target.prototype;
       }
 
-      if (target.hasOwnProperty(key))
+      try {
         delete target[key];
+      } catch (e) {
+      }
 
       target[key] = value;
     }
@@ -1089,11 +1479,29 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
 
   var state = [null];
   var getTypeObject = function () {
-    if (state[0] === null)
+    if (state[0] === null) {
+      JSIL.Host.logWriteLine("==   Initializing " + fullName);
       state[0] = createTypeObject();
+    }
 
     return state[0];
   };
+
+  if (getTypeObject) {
+    try {
+      getTypeObject.name = fullName + ".__creator__";
+    } catch (e) {
+    }
+    getTypeObject.__name__ = fullName + ".__creator__";
+  }
+
+  if (initializer) {
+    try {
+      initializer.name = fullName + ".__initializer__";
+    } catch (e) {
+    }
+    initializer.__name__ = fullName + ".__initializer__";
+  }
 
   JSIL.RegisterName(fullName, assembly, isPublic, getTypeObject, initializer);
 };

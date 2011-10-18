@@ -415,7 +415,6 @@ JSIL.ImplementExternals(
 
 JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Game", false, {
-    _QuitForced: false,
     ForceQuit: function () {
       Microsoft.Xna.Framework.Game._QuitForced = true;
     }
@@ -424,15 +423,18 @@ JSIL.ImplementExternals(
 
 JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Game", true, {
-    _runHandle: null,
     _ctor: function () {
       this.content = JSIL.New(Microsoft.Xna.Framework.Content.ContentManager, "_ctor$0", []);
       this.gameServices = new Microsoft.Xna.Framework.GameServiceContainer();
       this._frameDelay = 1000 / 60;
 
-      if (typeof (Date.now) === "function")
-        this._GetNow = Date.now;
+      if (typeof (Date.now) === "function") {
+        Object.defineProperty(this, "_GetNow", {
+          configurable: true, enumerable: true, value: Date.now
+        });
+      }
 
+      this._runHandle = null;
       this._gameTime = JSIL.New(Microsoft.Xna.Framework.GameTime, "_ctor$0", []);
       this._lastFrame = this._nextFrame = this._started = 0;
     },
