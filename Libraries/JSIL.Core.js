@@ -914,8 +914,13 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
 
   var localName = privateName.localName;
 
-  if (privateName.exists() || (isPublic && publicName.exists())) {
+  if (isPublic && publicName.exists()) {
     JSIL.DuplicateDefinitionWarning(name, isPublic);
+    return;
+  }
+
+  if (privateName.exists()) {
+    JSIL.DuplicateDefinitionWarning(name, false, privateNamespace);
     return;
   }
 
@@ -1301,11 +1306,14 @@ JSIL.ShadowedTypeWarning = function (fullName) {
   JSIL.Host.error(new Error("Type " + fullName + " is shadowed by another type of the same name."));
 };
 
-JSIL.DuplicateDefinitionWarning = function (fullName, isPublic) {
-  var stack = printStackTrace();
-  var stackText = "  " + stack.join("\r\n  ");
+JSIL.DuplicateDefinitionWarning = function (fullName, isPublic, inAssembly) {
+  var message = (isPublic ? "Public" : "Private") + " type '" + fullName + "' is already defined";
+  if (inAssembly)
+   message += " in assembly '" + inAssembly + "'.";
+  else
+   message += ".";
 
-  JSIL.Host.error(new Error((isPublic ? "Public" : "Private") + " type " + fullName + " is defined multiple times."));
+  JSIL.Host.error(new Error(message));
 };
 
 JSIL.GetFunctionName = function (fn) {
@@ -1514,7 +1522,7 @@ JSIL.MakeStruct = function (fullName, isPublic, genericArguments, initializer) {
   JSIL.MakeType("System.ValueType", fullName, false, isPublic, genericArguments, initializer);
 };
 
-JSIL.MakeInterface = function (fullName, genericArguments, members) {
+JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members) {
   var localName = JSIL.GetLocalName(fullName);
 
   var typeObject = function() {
@@ -1531,7 +1539,7 @@ JSIL.MakeInterface = function (fullName, genericArguments, members) {
   };
   typeObject.prototype = JSIL.CloneObject(JSIL.Interface.prototype);
 
-  JSIL.RegisterName(fullName, $private, true, function () { return typeObject; });
+  JSIL.RegisterName(fullName, $private, isPublic, function () { return typeObject; });
 };
 
 JSIL.MakeEnumValue = function (enumType, value, key) {
@@ -2240,28 +2248,28 @@ JSIL.Interface.prototype.Of = function (T) {
   return this;
 };
 
-JSIL.MakeInterface("System.IDisposable", [], {
+JSIL.MakeInterface("System.IDisposable", true, [], {
   "Dispose": Function
 });
-JSIL.MakeInterface("System.IEquatable`1", ["T"], {
+JSIL.MakeInterface("System.IEquatable`1", true, ["T"], {
   "Equals": Function
 });
 
-JSIL.MakeInterface("System.Collections.IEnumerator", [], {
+JSIL.MakeInterface("System.Collections.IEnumerator", true, [], {
   "MoveNext": Function,
   "get_Current": Function,
   "Reset": Function,
   "Current": Property
 });
-JSIL.MakeInterface("System.Collections.IEnumerable", [], {
+JSIL.MakeInterface("System.Collections.IEnumerable", true, [], {
   "GetEnumerator": Function
 });
 
-JSIL.MakeInterface("System.Collections.Generic.IEnumerator`1", ["T"], {
+JSIL.MakeInterface("System.Collections.Generic.IEnumerator`1", true, ["T"], {
   "get_Current": Function,
   "Current": Property
 });
-JSIL.MakeInterface("System.Collections.Generic.IEnumerable`1", ["T"], {
+JSIL.MakeInterface("System.Collections.Generic.IEnumerable`1", true, ["T"], {
   "GetEnumerator": Function
 });
 

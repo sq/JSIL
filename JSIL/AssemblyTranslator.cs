@@ -399,6 +399,9 @@ namespace JSIL {
             output.Value(Util.EscapeIdentifier(iface.FullName, EscapingMode.String));
             output.Comma();
 
+            output.Value(iface.IsPublic);
+            output.Comma();
+
             output.OpenBracket();
             output.CommaSeparatedList(
                 (from p in iface.GenericParameters select p.Name), ListValueType.Primitive
