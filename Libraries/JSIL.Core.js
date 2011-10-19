@@ -915,12 +915,12 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
   var localName = privateName.localName;
 
   if (isPublic && publicName.exists()) {
-    JSIL.DuplicateDefinitionWarning(name, isPublic);
+    JSIL.DuplicateDefinitionWarning(name, isPublic, publicName.get().__CallStack__);
     return;
   }
 
   if (privateName.exists()) {
-    JSIL.DuplicateDefinitionWarning(name, false, privateNamespace);
+    JSIL.DuplicateDefinitionWarning(name, false, privateName.get().__CallStack__, privateNamespace);
     return;
   }
 
@@ -1306,12 +1306,15 @@ JSIL.ShadowedTypeWarning = function (fullName) {
   JSIL.Host.error(new Error("Type " + fullName + " is shadowed by another type of the same name."));
 };
 
-JSIL.DuplicateDefinitionWarning = function (fullName, isPublic, inAssembly) {
+JSIL.DuplicateDefinitionWarning = function (fullName, isPublic, definedWhere, inAssembly) {
   var message = (isPublic ? "Public" : "Private") + " type '" + fullName + "' is already defined";
   if (inAssembly)
-   message += " in assembly '" + inAssembly + "'.";
-  else
-   message += ".";
+    message += " in assembly '" + inAssembly + "'";
+
+  if (definedWhere) {
+    message += ".\r\nPreviously defined at:\r\n  ";
+    message += definedWhere.join("\r\n  ");
+  }
 
   JSIL.Host.error(new Error(message));
 };
@@ -1326,6 +1329,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
 
   var assembly = $private;
   var localName = JSIL.GetLocalName(fullName);
+  var stack = printStackTrace();
 
   var typeObject = JSIL.CloneObject(System.RuntimeType);
   typeObject.GetType = function () {
@@ -1333,6 +1337,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   };
   typeObject.FullName = typeObject.__FullName__ = fullName;
   typeObject.__TypeId__ = ++JSIL.$NextTypeId;
+  typeObject.__CallStack__ = stack;
   typeObject.__ShortName__ = localName;
   typeObject.__IsStatic__ = true;
   typeObject.__Initializers__ = [];
@@ -1404,6 +1409,8 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
   var assembly = $private;
   var localName = JSIL.GetLocalName(fullName);
 
+  var stack = printStackTrace();
+
   var createTypeObject = function () {
     var typeObject = function () {
       if ((typeObject.__TypeInitialized__ || false) === false)
@@ -1423,6 +1430,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     };
 
     typeObject.__TypeId__ = ++JSIL.$NextTypeId;
+    typeObject.__CallStack__ = stack;
     typeObject.__IsArray__ = false;
     typeObject.__Initializers__ = [];
     typeObject.__TypeInitialized__ = false;
@@ -1524,11 +1532,13 @@ JSIL.MakeStruct = function (fullName, isPublic, genericArguments, initializer) {
 
 JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members) {
   var localName = JSIL.GetLocalName(fullName);
+  var stack = printStackTrace();
 
   var typeObject = function() {
     throw new Error("Cannot construct an instance of an interface");
   };
   typeObject.__TypeId__ = ++JSIL.$NextTypeId;
+  typeObject.__CallStack__ = stack;
   typeObject.__Members__ = members;
   typeObject.__ShortName__ = localName;
   typeObject.FullName = typeObject.__FullName__ = fullName;
@@ -1565,6 +1575,7 @@ JSIL.MakeEnumValue = function (enumType, value, key) {
 
 JSIL.MakeEnum = function (fullName, members, isFlagsEnum) {
   var localName = JSIL.GetLocalName(fullName);
+  var stack = printStackTrace();
   
   var enumType = System.Enum;
   var prototype = JSIL.CloneObject(enumType.prototype);
@@ -1574,6 +1585,7 @@ JSIL.MakeEnum = function (fullName, members, isFlagsEnum) {
 
   var result = {
     prototype: prototype,
+    __CallStack__: stack,
     __BaseType__: enumType,
     __FullName__: fullName, 
     FullName: fullName,
