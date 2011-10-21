@@ -359,6 +359,10 @@ namespace JSIL {
                 formatter.NewLine();
             }
 
+            foreach (var module in assembly.Modules)
+                foreach (var anr in module.AssemblyReferences)
+                    formatter.AddAssemblyReference(anr.FullName);
+
             formatter.DeclareAssembly();
 
             var sealedTypes = new HashSet<TypeDefinition>();

@@ -206,30 +206,31 @@ printStackTrace.implementation.prototype = {
 * @return {Array} of Strings with stringified arguments
 */
     stringifyArguments: function(args) {
+        var result = [];
         var slice = Array.prototype.slice;
         for (var i = 0; i < args.length; ++i) {
             var arg = args[i];
             if (arg === undefined) {
-                args[i] = 'undefined';
+                result[i] = 'undefined';
             } else if (arg === null) {
-                args[i] = 'null';
+                result[i] = 'null';
             } else if (arg.constructor) {
                 if (arg.constructor === Array) {
                     if (arg.length < 3) {
-                        args[i] = '[' + this.stringifyArguments(arg) + ']';
+                        result[i] = '[' + this.stringifyArguments(arg) + ']';
                     } else {
-                        args[i] = '[' + this.stringifyArguments(slice.call(arg, 0, 1)) + '...' + this.stringifyArguments(slice.call(arg, -1)) + ']';
+                        result[i] = '[' + this.stringifyArguments(slice.call(arg, 0, 1)) + '...' + this.stringifyArguments(slice.call(arg, -1)) + ']';
                     }
                 } else if (arg.constructor === Object) {
-                    args[i] = '#object';
+                    result[i] = '#object';
                 } else if (arg.constructor === Function) {
-                    args[i] = '#function';
+                    result[i] = '#function';
                 } else if (arg.constructor === String) {
-                    args[i] = '"' + arg + '"';
+                    result[i] = '"' + arg + '"';
                 }
             }
         }
-        return args.join(',');
+        return result.join(',');
     },
 
     sourceCache: {},
@@ -370,9 +371,16 @@ JSIL.PrivateNamespaces = {};
 var $private = null;
 
 JSIL.DeclareAssembly = function (assemblyName) {
+  var result = JSIL.GetAssembly(assemblyName);
+
+  $private = result;
+  return result;
+};
+
+JSIL.GetAssembly = function (assemblyName) {
   var existing = JSIL.PrivateNamespaces[assemblyName];
   if (typeof (existing) !== "undefined")
-    return $private = existing;
+    return existing;
 
   // Create a new private global namespace for the new assembly
   var result = Object.create(JSIL.GlobalNamespace);
@@ -397,8 +405,23 @@ JSIL.DeclareAssembly = function (assemblyName) {
   } catch (e) {
   }
 
-  return JSIL.PrivateNamespaces[assemblyName] = $private = result;
+  JSIL.PrivateNamespaces[assemblyName] = result;
+  return result;
 };
+
+JSIL.AssemblyCollection = function (initializer) {
+  var result = {};
+
+  for (var k in initializer) {
+    if (!initializer.hasOwnProperty(k))
+      continue;
+
+    result[k] = JSIL.GetAssembly(initializer[k]);
+  }
+
+  return result;
+};
+
 
 var $jsilcore = JSIL.DeclareAssembly("JSIL.Core");
 JSIL.$NextTypeId = 0;
@@ -768,9 +791,6 @@ JSIL.ImplementExternals = function (namespaceName, isInstance, externals) {
     JSIL.Host.error(new Error("ImplementExternals expected name of namespace"));
     return;
   }
-
-  if (namespaceName.indexOf("FileStream") >= 0)
-    JSIL.Host.logWriteLine("");
   
   var obj = JSIL.AllImplementedExternals[namespaceName];
   if (obj === "initialized") {
@@ -801,14 +821,10 @@ JSIL.QueueTypeInitializer = function (type, initializer) {
 };
 
 JSIL.Initialize = function () {
-  JSIL.Host.logWriteLine("==== Initializing ====");
-
   // Seal all registered names so that their static constructors run on use
   var arn = JSIL.AllRegisteredNames;
   for (var i = 0, l = arn.length; i < l; i++)
     arn[i].sealed = true;
-
-  JSIL.Host.logWriteLine("==== Initialized  ====");
 };
 
 JSIL.GenericParameter = function (name) {
@@ -1352,8 +1368,6 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   }
 
   var creator = function () {
-    JSIL.Host.logWriteLine("==   Initializing " + fullName);
-
     var externals = JSIL.AllImplementedExternals[fullName];
     var instancePrefix = "instance$";
 
@@ -1461,9 +1475,6 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
       return typeObject;
     };
 
-    if (fullName.indexOf("FileStream") >= 0)
-      JSIL.Host.logWriteLine("");
-
     var externals = JSIL.AllImplementedExternals[fullName];
     var instancePrefix = "instance$";
 
@@ -1496,7 +1507,6 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
   var state = [null];
   var getTypeObject = function () {
     if (state[0] === null) {
-      JSIL.Host.logWriteLine("==   Initializing " + fullName);
       state[0] = createTypeObject();
     }
 

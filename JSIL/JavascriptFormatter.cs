@@ -29,11 +29,13 @@ namespace JSIL.Internal {
         public readonly ITypeInfoSource TypeInfo;
         public readonly AssemblyDefinition Assembly;
         public readonly string PrivateToken;
+        public readonly string RefToken;
 
         public MethodReference CurrentMethod = null;
 
         protected static int NextAssemblyId = 1;
         protected readonly HashSet<string> DeclaredNamespaces = new HashSet<string>();
+        protected readonly Dictionary<string, Int32> ReferenceIDs = new Dictionary<string, int>();
 
         public JavascriptFormatter (TextWriter output, ITypeInfoSource typeInfo, AssemblyDefinition assembly) {
             Output = output;
@@ -41,7 +43,29 @@ namespace JSIL.Internal {
             PlainTextFormatter = new TextOutputFormatter(PlainTextOutput);
             TypeInfo = typeInfo;
             Assembly = assembly;
+            RefToken = String.Format("$refs{0:X2}", NextAssemblyId);
             PrivateToken = String.Format("$asm{0:X2}", NextAssemblyId++);
+        }
+
+        public Int32 AddAssemblyReference (string fullName) {
+            Int32 refId;
+
+            if (!ReferenceIDs.TryGetValue(fullName, out refId))
+                ReferenceIDs[fullName] = refId = ReferenceIDs.Count;
+
+            return refId;
+        }
+
+        public void AssemblyReference (AssemblyDefinition assembly) {
+            if (!ReferenceIDs.ContainsKey(assembly.FullName))
+                throw new Exception("Assembly '" + assembly.FullName + "' not found in the references collection for this module.");
+
+            var refId = ReferenceIDs[assembly.FullName];
+
+            Identifier(RefToken, null);
+            OpenBracket();
+            Value(refId);
+            CloseBracket();
         }
 
         public void LPar () {
@@ -350,9 +374,14 @@ namespace JSIL.Internal {
                 }
             } else {
                 var typedef = type.Resolve();
-                if ((typedef != null) && (typedef.Module.Assembly == Assembly) && !typedef.IsPublic) {
-                    PlainTextOutput.Write(PrivateToken);
-                    PlainTextOutput.Write(".");
+                if (typedef != null) {
+                    if (typedef.Module.Assembly.FullName == Assembly.FullName) {
+                        PlainTextOutput.Write(PrivateToken);
+                        PlainTextOutput.Write(".");
+                    } else {
+                        AssemblyReference(typedef.Module.Assembly);
+                        PlainTextOutput.Write(".");
+                    }
                 }
 
                 PlainTextOutput.Write(Util.EscapeIdentifier(
@@ -560,6 +589,28 @@ namespace JSIL.Internal {
             Identifier("JSIL.DeclareAssembly", null);
             LPar();
             Value(Assembly.FullName);
+            RPar();
+            Semicolon();
+
+            Keyword("var");
+            Space();
+            Identifier(RefToken);
+            Token(" = ");
+            Keyword("new");
+            Space();
+            Identifier("JSIL.AssemblyCollection", null);
+            LPar();
+            OpenBrace();
+
+            foreach (var kvp in ReferenceIDs) {
+                Value(kvp.Value);
+                Token(": ");
+                Value(kvp.Key);
+                Comma();
+                NewLine();
+            }
+
+            CloseBrace(false);
             RPar();
             Semicolon();
         }

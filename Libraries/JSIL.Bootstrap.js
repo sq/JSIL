@@ -444,21 +444,21 @@ System.Math = {
   Min: Math.min
 };
 
+JSIL.MakeNumericType(Boolean, "System.Boolean", true);
 System.Boolean = function (b) {
   return b;
 }
 System.Boolean.CheckType = function (value) {
   return (value === false) || (value === true);
 }
-System.Boolean.prototype = JSIL.MakeProto(Boolean, System.Boolean, "System.Boolean", false);
 
+JSIL.MakeNumericType(String, "System.Char", true);
 System.Char = function (ch) {
   return ch;
 };
 System.Char.CheckType = function (value) {
   return (typeof (value) === "string") && (value.length == 1);
 }
-System.Char.prototype = JSIL.MakeProto(String, System.Char, "System.Char", false);
 
 JSIL.MakeNumericType(Number, "System.Byte", true);
 System.Byte.CheckType = function (value) {
