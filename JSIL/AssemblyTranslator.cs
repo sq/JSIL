@@ -341,6 +341,47 @@ namespace JSIL {
             return false;
         }
 
+        protected void CollectAssemblyReferences (AssemblyDefinition assembly, JavascriptFormatter formatter) {
+            var refType = (Action<TypeReference>)( (tr) => {
+                formatter.AddAssemblyReference(tr.Module.Assembly.FullName);
+
+                if (tr.HasGenericParameters) {
+                    foreach (var gp in tr.GenericParameters) {
+                        formatter.AddAssemblyReference(gp.Module.Assembly.FullName);
+                    }
+                }
+
+                var td = tr.Resolve();
+                if (td != null) {
+                    if (td.BaseType != null)
+                        formatter.AddAssemblyReference(td.BaseType.Module.Assembly.FullName);
+
+                    foreach (var iface in td.Interfaces) {
+                        formatter.AddAssemblyReference(iface.Module.Assembly.FullName);
+                    }
+                }
+            } );
+
+            foreach (var module in assembly.Modules) {
+                foreach (var anr in module.AssemblyReferences)
+                    formatter.AddAssemblyReference(anr.FullName);
+
+                var types = new List<TypeReference>();
+                types.AddRange(module.Types);
+
+                while (types.Count > 0) {
+                    var tr = types[types.Count - 1];
+                    types.RemoveAt(types.Count - 1);
+
+                    refType(tr);
+
+                    var td = tr.Resolve();
+                    if ((td != null) && (td.NestedTypes.Count > 0))
+                        types.AddRange(td.NestedTypes);
+                }
+            }
+        }
+
         protected void Translate (DecompilerContext context, AssemblyDefinition assembly, Stream outputStream) {
             bool stubbed = IsStubbed(assembly);
 
@@ -359,9 +400,7 @@ namespace JSIL {
                 formatter.NewLine();
             }
 
-            foreach (var module in assembly.Modules)
-                foreach (var anr in module.AssemblyReferences)
-                    formatter.AddAssemblyReference(anr.FullName);
+            CollectAssemblyReferences(assembly, formatter);
 
             formatter.DeclareAssembly();
 

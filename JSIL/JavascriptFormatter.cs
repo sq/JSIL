@@ -56,11 +56,24 @@ namespace JSIL.Internal {
             return refId;
         }
 
-        public void AssemblyReference (AssemblyDefinition assembly) {
-            if (!ReferenceIDs.ContainsKey(assembly.FullName))
-                throw new Exception("Assembly '" + assembly.FullName + "' not found in the references collection for this module.");
+        public void AssemblyReference (TypeReference type) {
+            string key = GetContainingAssemblyName(type);
 
-            var refId = ReferenceIDs[assembly.FullName];
+            if (!ReferenceIDs.ContainsKey(key)) {
+                // In cases where two versions of mscorlib have been loaded (this can happen if you use a 2.0/3.5 proxies module when translating a 4.0 application)
+                //  we must attempt to fixup a mscorlib reference to point at a different version of mscorlib.
+                if (key.StartsWith("mscorlib,")) {
+                    var newKey = (from k in ReferenceIDs.Keys where k.StartsWith("mscorlib") select k).FirstOrDefault();
+                    if (newKey != null)
+                        key = newKey;
+                    else
+                        throw new Exception("mscorlib not found in the references collection for this module.");
+                } else {
+                    throw new Exception("Assembly '" + key + "' not found in the references collection for this module.");
+                }
+            }
+
+            var refId = ReferenceIDs[key];
 
             Identifier(RefToken, null);
             OpenBracket();
@@ -236,7 +249,31 @@ namespace JSIL.Internal {
                 return fullname.Substring(0, index);
         }
 
+        public static string GetContainingAssemblyName (TypeReference tr) {
+            var scope = tr.Scope;
+            switch (scope.MetadataScopeType) {
+                case MetadataScopeType.AssemblyNameReference:
+                    return ((AssemblyNameReference)scope).FullName;
+                case MetadataScopeType.ModuleReference:
+                    throw new NotImplementedException();
+                case MetadataScopeType.ModuleDefinition:
+                    return ((ModuleDefinition)scope).Assembly.FullName;
+            }
+
+            return tr.Module.Assembly.FullName;
+        }
+
         public void TypeReference (TypeReference type) {
+            if (type.FullName == "JSIL.Proxy.AnyType") {
+                Value("JSIL.AnyType");
+                return;
+            } else if (type.FullName == "JSIL.Proxy.AnyType[]") {
+                Value("System.Array");
+                Space();
+                Comment("AnyType[]");
+                return;
+            }
+
             var isReference = type is ByReferenceType;
             var originalType = type;
             type = ILBlockTranslator.DereferenceType(type);
@@ -256,35 +293,23 @@ namespace JSIL.Internal {
                 LPar();
                 Value(identifier);
                 RPar();
-            } else if (git != null) {
+            } else if ((git != null) || (type.Module.Assembly.FullName != Assembly.FullName)) {
                 Keyword("new");
                 Space();
                 Identifier("JSIL.TypeRef", null);
                 LPar();
 
-                // if (git != null) {
-                    Identifier(PrivateToken, null);
-                    Comma();
+                AssemblyReference(type);
+                Comma();
 
-                    Value(identifier);
-                    Comma();
+                Value(identifier);
 
+                if (git != null) {
+                    Comma();
                     OpenBracket();
                     CommaSeparatedList(git.GenericArguments, ListValueType.TypeReference);
                     CloseBracket();
-                    /*
-                } else if (at != null) {
-                    Identifier("JSIL.GlobalNamespace", null);
-                    Comma();
-
-                    Value("System.Array");
-                    Comma();
-
-                    OpenBracket();
-                    TypeReference(at.ElementType);
-                    CloseBracket();
                 }
-                     */
 
                 RPar();
             } else if (at != null) {
@@ -379,7 +404,7 @@ namespace JSIL.Internal {
                         PlainTextOutput.Write(PrivateToken);
                         PlainTextOutput.Write(".");
                     } else {
-                        AssemblyReference(typedef.Module.Assembly);
+                        AssemblyReference(typedef);
                         PlainTextOutput.Write(".");
                     }
                 }
