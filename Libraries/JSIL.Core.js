@@ -454,14 +454,18 @@ JSIL.SplitName = function (name) {
   return name.split(JSIL.SplitRegex);
 };
 
-JSIL.ResolvedName = function (parent, parentName, key, localName) {
+JSIL.ResolvedName = function (parent, parentName, key, localName, allowInheritance) {
   this.parent = parent;
   this.parentName = parentName;
   this.key = key;
   this.localName = localName;
+  this.allowInheritance = allowInheritance;
 }
 JSIL.ResolvedName.prototype.exists = function () {
-  return typeof(this.parent[this.key]) !== "undefined";
+  if (this.allowInheritance)
+    return typeof(this.parent[this.key]) !== "undefined";
+  else
+    return this.parent.hasOwnProperty(this.key);
 }
 JSIL.ResolvedName.prototype.get = function () {
   return this.parent[this.key];
@@ -479,30 +483,38 @@ JSIL.ResolvedName.prototype.define = function (declaration) {
   Object.defineProperty(this.parent, this.key, declaration);
 }
 
-JSIL.ResolveName = function (root, name) {
+JSIL.ResolveName = function (root, name, allowInheritance) {
   var parts = JSIL.SplitName(name);
   var current = root;
 
   if (typeof (root) === "undefined")
     throw new Error("Invalid search root");
 
+  var makeError = function (_key, _current) {
+    var namespaceName;
+    if (_current === JSIL.GlobalNamespace)
+      namespaceName = "<global>";
+    else {
+      try {
+        namespaceName = _current.toString();
+      } catch (e) {
+        namespaceName = "<unknown>";
+      }
+    }
+
+    return new Error("Could not find the name '" + _key + "' in the namespace '" + namespaceName + "'.");
+  };
+
   for (var i = 0, l = parts.length - 1; i < l; i++) {
     var key = JSIL.EscapeName(parts[i]);
     var next = current[key];
 
-    if (typeof (next) === "undefined") {
-      var namespaceName;
-      if (current === JSIL.GlobalNamespace)
-        namespaceName = "<global>";
-      else {
-        try {
-          namespaceName = current.toString();
-        } catch (e) {
-          namespaceName = "<unknown>";
-        }
-      }
-
-      throw new Error("Could not find the name '" + key + "' in the namespace '" + namespaceName + "'.");
+    if (allowInheritance) {
+      if (typeof (next) === "undefined")
+        throw makeError(key, current);
+    } else {
+      if (!current.hasOwnProperty(key))
+        throw makeError(key, current);
     }
 
     current = next;
@@ -511,7 +523,7 @@ JSIL.ResolveName = function (root, name) {
   var localName = parts[parts.length - 1];
   return new JSIL.ResolvedName(
     current, name.substr(0, name.length - (localName.length + 1)), 
-    JSIL.EscapeName(localName), localName
+    JSIL.EscapeName(localName), localName, allowInheritance
   );
 };
 
@@ -553,7 +565,7 @@ JSIL.DeclareNamespace = function (name, sealed) {
   if (typeof (sealed) === "undefined")
     sealed = true;
 
-  var resolved = JSIL.ResolveName(JSIL.GlobalNamespace, name);
+  var resolved = JSIL.ResolveName(JSIL.GlobalNamespace, name, true);
   if (!resolved.exists())
     resolved.define({
       enumerable: true,
@@ -566,7 +578,7 @@ JSIL.DeclareNamespace = function (name, sealed) {
       }
     });
 
-  var resolved = JSIL.ResolveName($private, name);
+  var resolved = JSIL.ResolveName($private, name, false);
   if (!resolved.exists())
     resolved.define({
       enumerable: true,
@@ -597,6 +609,7 @@ JSIL.DeclareNamespace("System.Environment", false);
 JSIL.DeclareNamespace("System.Runtime", false);
 JSIL.DeclareNamespace("System.Runtime.InteropServices", false);
 
+JSIL.DeclareNamespace("JSIL");
 JSIL.DeclareNamespace("JSIL.Array");
 JSIL.DeclareNamespace("JSIL.Delegate");
 JSIL.DeclareNamespace("JSIL.MulticastDelegate");
@@ -869,7 +882,7 @@ JSIL.TypeRef.prototype.get = function () {
   if (this.cachedReference !== null)
     return this.cachedReference;
 
-  var result = JSIL.ResolveName(this.context, this.typeName);
+  var result = JSIL.ResolveName(this.context, this.typeName, true);
   if (!result.exists())
     throw new Error("The name '" + this.typeName + "' does not exist.");
 
@@ -924,9 +937,9 @@ JSIL.AllRegisteredNames = [];
 JSIL.AllImplementedExternals = {};
 
 JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initializer) {
-  var privateName = JSIL.ResolveName(privateNamespace, name);
+  var privateName = JSIL.ResolveName(privateNamespace, name, false);
   if (isPublic)
-    var publicName = JSIL.ResolveName(JSIL.GlobalNamespace, name);
+    var publicName = JSIL.ResolveName(JSIL.GlobalNamespace, name, true);
 
   var localName = privateName.localName;
 
@@ -1066,7 +1079,7 @@ JSIL.MakeGenericProperty = function (parent, name, getter, setter) {
 
 JSIL.MakeNumericType = function (baseType, typeName, isIntegral) {
   JSIL.MakeType(baseType, typeName, false, true);
-  var resolved = JSIL.ResolveName(JSIL.GlobalNamespace, typeName);
+  var resolved = JSIL.ResolveName(JSIL.GlobalNamespace, typeName, true);
   resolved.get().__IsNumeric__ = true;
   resolved.get().prototype.__IsNumeric__ = true;
   resolved.get().__IsIntegral__ = isIntegral;
@@ -1583,7 +1596,7 @@ JSIL.MakeEnumValue = function (enumType, value, key) {
   return obj;
 }
 
-JSIL.MakeEnum = function (fullName, members, isFlagsEnum) {
+JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
   var localName = JSIL.GetLocalName(fullName);
   var stack = printStackTrace();
   
@@ -1628,7 +1641,7 @@ JSIL.MakeEnum = function (fullName, members, isFlagsEnum) {
     result[key] = JSIL.MakeEnumValue(result, value, key);
   }
 
-  JSIL.RegisterName(fullName, $private, true, function () { return result; });
+  JSIL.RegisterName(fullName, $private, isPublic, function () { return result; });
 };
 
 JSIL.MakeInterfaceMemberGetter = function (thisReference, name) {
@@ -1677,7 +1690,7 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
       continue __interfaces__;
     } else if (typeof (iface) === "string") {
       var resolved = JSIL.ResolveName(
-        type.__Context__ || JSIL.GlobalNamespace, iface
+        type.__Context__ || JSIL.GlobalNamespace, iface, true
       );
       if (resolved.exists())
         iface = resolved.get();
@@ -2582,8 +2595,8 @@ JSIL.MakeDelegate = function (fullName) {
     value: result
   };
 
-  var resolvedPrivate = JSIL.ResolveName($private, fullName);    
-  var resolved = JSIL.ResolveName(JSIL.GlobalNamespace, fullName);
+  var resolvedPrivate = JSIL.ResolveName($private, fullName, false);    
+  var resolved = JSIL.ResolveName(JSIL.GlobalNamespace, fullName, true);
 
   if (!resolved.exists()) {
     resolved.define(decl);

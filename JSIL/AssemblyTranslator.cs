@@ -465,6 +465,10 @@ namespace JSIL {
 
             output.Value(Util.EscapeIdentifier(enm.FullName, EscapingMode.String));
             output.Comma();
+
+            output.Value(enm.IsPublic);
+            output.Comma();
+
             output.OpenBrace();
 
             var typeInformation = TypeInfoProvider.GetTypeInformation(enm);

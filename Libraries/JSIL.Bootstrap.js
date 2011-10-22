@@ -445,17 +445,11 @@ System.Math = {
 };
 
 JSIL.MakeNumericType(Boolean, "System.Boolean", true);
-System.Boolean = function (b) {
-  return b;
-}
 System.Boolean.CheckType = function (value) {
   return (value === false) || (value === true);
 }
 
 JSIL.MakeNumericType(String, "System.Char", true);
-System.Char = function (ch) {
-  return ch;
-};
 System.Char.CheckType = function (value) {
   return (typeof (value) === "string") && (value.length == 1);
 }
@@ -767,9 +761,6 @@ JSIL.MakeProperty(System.TimeSpan.prototype, "TotalSeconds",
 
 JSIL.MakeProperty(System.TimeSpan.prototype, "TotalMinutes",
   System.TimeSpan.prototype.get_TotalMinutes);
-
-JSIL.MakeClass("System.Object", "System.EventArgs", false);
-System.EventArgs.prototype._ctor = function () { };
 
 JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary$b2", true, ["TKey", "TValue"]);
 

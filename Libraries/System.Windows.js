@@ -5,6 +5,8 @@ if (typeof (JSIL) === "undefined")
   
 JSIL.DeclareAssembly("JSIL.Windows");
 
+JSIL.DeclareNamespace("JSIL");
+
 JSIL.ImplementExternals(
   "System.Windows.Forms.Control", true, {
     clientWidth: 16,

@@ -34,11 +34,13 @@ namespace JSIL.Tests {
             );
 
             Console.WriteLine(generatedJs);
-            Assert.IsFalse(generatedJs.Contains(
-                @"Program.ReturnArgument(a.MemberwiseClone())"
+            Assert.IsFalse(Regex.IsMatch(
+                generatedJs,
+                @"(\$asm([0-9])*).Program.ReturnArgument\(a.MemberwiseClone\(\)\)"
             ));
-            Assert.IsTrue(generatedJs.Contains(
-                @"b = Program.ReturnArgument(a).MemberwiseClone();"
+            Assert.IsTrue(Regex.IsMatch(
+                generatedJs,
+                @"b = (\$asm([0-9])*).Program.ReturnArgument\(a\).MemberwiseClone\(\);"
             ));
         }
 
@@ -91,8 +93,9 @@ namespace JSIL.Tests {
             );
 
             Console.WriteLine(generatedJs);
-            Assert.IsTrue(generatedJs.Contains(
-                @"b = Program.ReturnArgument(Program.ReturnIncrementedArgument(Program.ReturnArgument(a).MemberwiseClone())).MemberwiseClone()"
+            Assert.IsTrue(Regex.IsMatch(
+                generatedJs,
+                @"b = (\$asm([0-9])*).Program.ReturnArgument\((\$asm([0-9])*).Program.ReturnIncrementedArgument\((\$asm([0-9])*).Program.ReturnArgument\(a\).MemberwiseClone\(\)\)\).MemberwiseClone\(\)"
             ));
         }
     }

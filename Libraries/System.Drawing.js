@@ -5,9 +5,10 @@ if (typeof (JSIL) === "undefined")
   
 var $jsildrawing = JSIL.DeclareAssembly("JSIL.Drawing");
 
+JSIL.DeclareNamespace("System");
 JSIL.DeclareNamespace("System.Drawing");
 
-JSIL.MakeClass("System.Object", "System.Drawing.Bitmap", true);
+// JSIL.MakeClass("System.Object", "System.Drawing.Bitmap", true);
 
 if (JSIL.HostType.IsBrowser) {
   JSIL.ImplementExternals(
@@ -69,11 +70,13 @@ if (JSIL.HostType.IsBrowser) {
     }
   );
 
+  /*
   JSIL.OverloadedMethod(System.Drawing.Bitmap.prototype, "_ctor", [
     [0, [System.String]], 
     [1, [System.String, System.Boolean]], 
     [7, [System.Int32, System.Int32]]
   ]);
+  */
 } else {
   JSIL.ImplementExternals(
     "System.Drawing.Bitmap", true, {
@@ -188,7 +191,7 @@ System.Drawing.Color._cctor = function () {
   System.Drawing.Color.aquamarine = new System.Drawing.Color(0xFF, 0x7F, 0xFF, 0xD4, "Aquamarine");
 };
 
-JSIL.MakeStruct("System.Drawing.Size", true);
+// JSIL.MakeStruct("System.Drawing.Size", true);
 JSIL.ImplementExternals(
   "System.Drawing.Size", true, {
     _ctor: function (w, h) {
@@ -219,7 +222,7 @@ JSIL.ImplementExternals(
   }
 );
 
-JSIL.MakeStruct("System.Drawing.Point", true);
+// JSIL.MakeStruct("System.Drawing.Point", true);
 JSIL.ImplementExternals(
   "System.Drawing.Point", false, {
     _cctor: function () {
@@ -250,7 +253,7 @@ JSIL.ImplementExternals(
   }
 );
 
-JSIL.MakeStruct("System.Drawing.Rectangle", true);
+// JSIL.MakeStruct("System.Drawing.Rectangle", true);
 JSIL.ImplementExternals(
   "System.Drawing.Rectangle", false, {
     _cctor: function () {

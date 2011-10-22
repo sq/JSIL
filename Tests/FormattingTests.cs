@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 
 namespace JSIL.Tests {
@@ -136,8 +137,14 @@ namespace JSIL.Tests {
             );
 
             try {
-                Assert.IsFalse(generatedJs.Contains("!!Program.P"));
-                Assert.IsTrue(generatedJs.Contains("!Program.P"));
+                Assert.IsFalse(Regex.IsMatch(
+                    generatedJs,
+                    @"!!(\$asm([0-9])*).Program.P"
+                ));
+                Assert.IsTrue(Regex.IsMatch(
+                    generatedJs, 
+                    @"!(\$asm([0-9])*).Program.P"
+                ));
             } catch {
                 Console.WriteLine(generatedJs);
 
@@ -170,8 +177,14 @@ namespace JSIL.Tests {
             );
 
             try {
-                Assert.IsFalse(generatedJs.Contains("(new CustomType"));
-                Assert.IsTrue(generatedJs.Contains("new CustomType()"));
+                Assert.IsFalse(Regex.IsMatch(
+                    generatedJs, 
+                    @"\(new (\$asm([0-9])*).CustomType"
+                ));
+                Assert.IsTrue(Regex.IsMatch(
+                    generatedJs, 
+                    @"new (\$asm([0-9])*).CustomType\(\)"
+                ));
             } catch {
                 Console.WriteLine(generatedJs);
 
