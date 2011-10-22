@@ -3,7 +3,7 @@
 if (typeof (JSIL) === "undefined")
   throw new Error("JSIL.Core is required");
   
-JSIL.DeclareAssembly("JSIL.Core");
+var $jsilcore = JSIL.DeclareAssembly("JSIL.Core");
 
 JSIL.DeclareNamespace("System.ComponentModel");
 JSIL.DeclareNamespace("System.Linq");
@@ -364,8 +364,7 @@ JSIL.ImplementInterfaces(System.Collections.Generic.List$b1, [
   System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
 ]);
 
-System.Collections.ArrayList = System.Collections.Generic.List$b1.Of(System.Object);
-JSIL.DefineTypeName("System.Collections.ArrayList", function () { return System.Collections.ArrayList; }, true);
+JSIL.MakeClass(new JSIL.TypeRef($jsilcore, "System.Collections.Generic.List$b1", [System.Object]), "System.Collections.ArrayList", true);
 
 // TODO: This type is actually a struct in the CLR
 JSIL.MakeClass("JSIL.ArrayEnumerator", "System.Collections.Generic.List`1/Enumerator", true, ["T"]);

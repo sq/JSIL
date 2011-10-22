@@ -548,10 +548,13 @@ JSIL.DefineTypeName = function (name, getter, isPublic) {
 
   if (isPublic) {
     var existing = JSIL.$PublicTypes[name];
-    if (typeof (existing) === "function")
-      throw new Error("Type '" + name + "' has already been defined.");
-
-    JSIL.$PublicTypes[name] = getter;
+    if (typeof (existing) === "function") {
+      JSIL.$PublicTypes[name] = function () {
+        throw new Error("Type '" + name + "' has multiple public definitions. You must access it through a specific assembly.");
+      };
+    } else {
+      JSIL.$PublicTypes[name] = getter;
+    }
   }
 
   var existing = $private.typesByName[name];
@@ -943,11 +946,6 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
 
   var localName = privateName.localName;
 
-  if (isPublic && publicName.exists()) {
-    JSIL.DuplicateDefinitionWarning(name, isPublic, publicName.get().__CallStack__);
-    return;
-  }
-
   if (privateName.exists()) {
     JSIL.DuplicateDefinitionWarning(name, false, privateName.get().__CallStack__, privateNamespace);
     return;
@@ -956,7 +954,8 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
   var state = {
     creator: creator,
     initializer: initializer,
-    sealed: false
+    sealed: false,
+    value: null
   };
   JSIL.AllRegisteredNames.push(state);
 
@@ -967,9 +966,16 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
       var cf = state.creator;
       delete state.creator;
 
-      state.value = result = cf();      
+      result = cf();
+      if ((result === null) || ((typeof (result) !== "object") && (typeof (result) !== "function")))
+        throw new Error("Invalid result from type creator");
+
+      state.value = result;
     } else {
       result = state.value;
+
+      if ((result === null) || ((typeof (result) !== "object") && (typeof (result) !== "function")))
+        throw new Error("Type not properly created");
     }
 
     if (typeof (state.initializer) === "function") {

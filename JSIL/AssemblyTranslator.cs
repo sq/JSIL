@@ -516,6 +516,10 @@ namespace JSIL {
             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
                 return;
 
+            // Basic type translation/definition logic does not work for System.Object. The definition from JSIL.Core must be used.
+            if (typedef.FullName == "System.Object")
+                return;
+
             if (DeclaredTypes.Contains(typedef.FullName)) {
                 Debug.WriteLine("Cycle in type references detected: {0}", typedef);
                 return;

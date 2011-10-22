@@ -139,11 +139,11 @@ namespace JSIL.Tests {
             try {
                 Assert.IsFalse(Regex.IsMatch(
                     generatedJs,
-                    @"!!(\$asm([0-9])*).Program.P"
+                    @"!!(\$asm([0-9A-F])*).Program.P"
                 ));
                 Assert.IsTrue(Regex.IsMatch(
                     generatedJs, 
-                    @"!(\$asm([0-9])*).Program.P"
+                    @"!(\$asm([0-9A-F])*).Program.P"
                 ));
             } catch {
                 Console.WriteLine(generatedJs);
@@ -179,11 +179,11 @@ namespace JSIL.Tests {
             try {
                 Assert.IsFalse(Regex.IsMatch(
                     generatedJs, 
-                    @"\(new (\$asm([0-9])*).CustomType"
+                    @"\(new (\$asm([0-9A-F])*).CustomType"
                 ));
                 Assert.IsTrue(Regex.IsMatch(
                     generatedJs, 
-                    @"new (\$asm([0-9])*).CustomType\(\)"
+                    @"new (\$asm([0-9A-F])*).CustomType\(\)"
                 ));
             } catch {
                 Console.WriteLine(generatedJs);
