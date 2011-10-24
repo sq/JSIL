@@ -1704,6 +1704,8 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
         JSIL.Host.warning("Type ", typeName, " implements an undefined interface named '", iface, "'.");
         continue __interfaces__;
       }
+    } else if ((typeof (iface) === "object") && (typeof (iface.get) === "function")) {
+      iface = iface.get();
     }
 
     var ifaceName = JSIL.GetTypeName(iface);
