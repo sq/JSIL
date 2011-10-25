@@ -20,7 +20,21 @@ namespace JSIL {
                 AssemblyIDs[assemblyFullName] = result;
             }
 
+            return FormatID(result);
+        }
+
+        protected string FormatID (Int32 result) {
             return String.Format("$asm{0:X2}", result);
+        }
+
+        public IEnumerable<KeyValuePair<string, string>> Entries {
+            get {
+                return
+                    (from kvp in AssemblyIDs orderby kvp.Value 
+                     select new KeyValuePair<string, string>(
+                         FormatID(kvp.Value), kvp.Key
+                    ));
+            }
         }
     }
 }

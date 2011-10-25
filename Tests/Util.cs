@@ -150,20 +150,18 @@ namespace JSIL.Tests {
 
             string translatedJs;
             var translationStarted = DateTime.UtcNow.Ticks;
-            using (var ms = new MemoryStream()) {
-                var assemblies = translator.Translate(
-                    Util.GetPathOfAssembly(Assembly), ms, 
-                    TypeInfo == null
-                );
-                translatedJs = Encoding.ASCII.GetString(ms.GetBuffer(), 0, (int)ms.Length);
+            var result = translator.Translate(
+                Util.GetPathOfAssembly(Assembly), TypeInfo == null
+            );
+            translatedJs = result.WriteToString();
 
-                // If we're using a preconstructed type information provider, we need to remove the type information
-                //  from the assembly we just translated
-                if (TypeInfo != null) {
-                    Assert.AreEqual(1, assemblies.Length);
-                    TypeInfo.Remove(assemblies);
-                }
+            // If we're using a preconstructed type information provider, we need to remove the type information
+            //  from the assembly we just translated
+            if (TypeInfo != null) {
+                Assert.AreEqual(1, result.Assemblies.Count);
+                TypeInfo.Remove(result.Assemblies.ToArray());
             }
+
             elapsedTranslation = DateTime.UtcNow.Ticks - translationStarted;
 
             var declaringType = JSIL.Internal.Util.EscapeIdentifier(TestMethod.DeclaringType.FullName, Internal.EscapingMode.TypeIdentifier);

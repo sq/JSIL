@@ -409,19 +409,6 @@ JSIL.GetAssembly = function (assemblyName) {
   return result;
 };
 
-JSIL.AssemblyCollection = function (initializer) {
-  var result = {};
-
-  for (var k in initializer) {
-    if (!initializer.hasOwnProperty(k))
-      continue;
-
-    result[k] = JSIL.GetAssembly(initializer[k]);
-  }
-
-  return result;
-};
-
 
 var $jsilcore = JSIL.DeclareAssembly("JSIL.Core");
 JSIL.$NextTypeId = 0;

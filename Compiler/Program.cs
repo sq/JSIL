@@ -12,10 +12,6 @@ namespace JSIL.Compiler {
             var m = Regex.Match(option, "-(-?)(?'key'[a-zA-Z]*)([=:](?'value'.*))?", RegexOptions.ExplicitCapture);
             if (m.Success) {
                 switch (m.Groups["key"].Value.ToLower()) {
-                    case "out":
-                    case "o":
-                        translator.OutputDirectory = Path.GetFullPath(m.Groups["value"].Value);
-                        break;
                     case "nodeps":
                     case "nd":
                         translator.IncludeDependencies = false;
@@ -60,13 +56,14 @@ namespace JSIL.Compiler {
         static void Main (string[] arguments) {
             var filenames = new HashSet<string>(arguments);
             var frameworkVersion = FrameworkVersion.V40;
+            var outputDirectory = Environment.CurrentDirectory;
             bool includeDefaults = true;
 
             foreach (var filename in filenames.ToArray()) {
                 if (filename.StartsWith("-")) {
                     if (filename == "--nodefaults") {
                         includeDefaults = false;
-                    } else if (filename.StartsWith("--fv") || filename.StartsWith("--frameworkVersion")) {
+                    } else if (filename.StartsWith("--fv:") || filename.StartsWith("--frameworkVersion:")) {
                         switch (filename.Split(':')[1]) {
                             case "4.0":
                             case "4":
@@ -81,6 +78,8 @@ namespace JSIL.Compiler {
                                 frameworkVersion = FrameworkVersion.V35;
                                 break;
                         }
+                    } else if (filename.StartsWith("--o:") || filename.StartsWith("--out:")) {
+                        outputDirectory = filename.Split(new char[] {':'}, 2)[1];
                     } else {
                         continue;
                     }
@@ -138,7 +137,7 @@ namespace JSIL.Compiler {
                 };
             };
             translator.Writing += (progress) => {
-                Console.Error.Write("// Writing JS ");
+                Console.Error.Write("// Generating JS ");
 
                 var previous = new int[1] { 0 };
 
@@ -215,7 +214,10 @@ namespace JSIL.Compiler {
                 switch (extension.ToLower()) {
                     case ".exe":
                     case ".dll":
-                        translator.Translate(filename);
+                        var result = translator.Translate(filename);
+                        Console.Error.Write("// Saving to disk ... ");
+                        result.WriteToDirectory(outputDirectory);
+                        Console.Error.WriteLine("done");
                         break;
                     case ".sln":
                         foreach (var resultFilename in SolutionBuilder.Build(filename)) {

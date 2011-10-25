@@ -86,6 +86,7 @@
     <Compile Include="Transforms\IntroduceVariableReferences.cs" />
     <Compile Include="Transforms\EmulateStructAssignment.cs" />
     <Compile Include="Transforms\IntroduceVariableDeclarations.cs" />
+    <Compile Include="TranslationResult.cs" />
     <Compile Include="TypeInfoProvider.cs" />
     <Compile Include="TypeInformation.cs" />
     <Compile Include="Util.cs" />
