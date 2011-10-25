@@ -942,34 +942,53 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
     creator: creator,
     initializer: initializer,
     sealed: false,
-    value: null
+    value: null,
+    constructing: false,
+    name: name
   };
   JSIL.AllRegisteredNames.push(state);
 
   var getter = function () {
     var result;
 
+    if (state.constructing)
+      throw new Error("Recursive construction of type '" + name + "' detected.");
+
     if (typeof (state.creator) === "function") {
+      state.constructing = true;
       var cf = state.creator;
-      delete state.creator;
 
-      result = cf();
-      if ((result === null) || ((typeof (result) !== "object") && (typeof (result) !== "function")))
-        throw new Error("Invalid result from type creator");
+      try {
+        result = cf();
+        if ((result === null) || ((typeof (result) !== "object") && (typeof (result) !== "function")))
+          throw new Error("Invalid result from type creator");
 
-      state.value = result;
+        state.value = result;
+      } catch (exc) {
+        JSIL.Host.error(exc);
+      } finally {
+        delete state.creator;
+        state.constructing = false;
+      }
     } else {
       result = state.value;
 
       if ((result === null) || ((typeof (result) !== "object") && (typeof (result) !== "function")))
-        throw new Error("Type not properly created");
+        throw new Error("Type initialization failed");
     }
 
     if (typeof (state.initializer) === "function") {
       var ifn = state.initializer;
-      delete state.initializer;
+      state.constructing = true;
 
-      ifn(result);
+      try {
+        ifn(result);
+      } catch (exc) {
+        JSIL.Host.error(exc);
+      } finally {
+        delete state.initializer;
+        state.constructing = false;
+      }
     }
 
     if (state.sealed) {
