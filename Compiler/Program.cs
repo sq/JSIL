@@ -58,7 +58,48 @@ namespace JSIL.Compiler {
         }
 
         static void Main (string[] arguments) {
-            var translator = new AssemblyTranslator();
+            var filenames = new HashSet<string>(arguments);
+            var frameworkVersion = FrameworkVersion.V40;
+            bool includeDefaults = true;
+
+            foreach (var filename in filenames.ToArray()) {
+                if (filename.StartsWith("-")) {
+                    if (filename == "--nodefaults") {
+                        includeDefaults = false;
+                    } else if (filename.StartsWith("--fv") || filename.StartsWith("--frameworkVersion")) {
+                        switch (filename.Split(':')[1]) {
+                            case "4.0":
+                            case "4":
+                                frameworkVersion = FrameworkVersion.V40;
+                                break;
+                            case "3.5":
+                            case "2.0":
+                            case "2":
+                            case "1.1":
+                            case "1.0":
+                            case "1":
+                                frameworkVersion = FrameworkVersion.V35;
+                                break;
+                        }
+                    } else {
+                        continue;
+                    }
+
+                    filenames.Remove(filename);
+                }
+            }
+
+            switch (frameworkVersion) {
+                case FrameworkVersion.V35:
+                    Console.Out.WriteLine("// Using .NET Framework 3.5 proxies.");
+                break;
+                case FrameworkVersion.V40:
+                    Console.Out.WriteLine("// Using .NET Framework 4.0 proxies.");
+                break;
+            }
+
+            var translator = new AssemblyTranslator(frameworkVersion);
+
             translator.LoadingAssembly += (fn, progress) => {
                 Console.Error.WriteLine("// Loading {0}. ", fn);
             };
@@ -123,17 +164,11 @@ namespace JSIL.Compiler {
                 Console.Error.WriteLine("// Could not decompile method {0}: {1}", fn, ex.Message);
             };
 
-            var filenames = new HashSet<string>(arguments);
-            bool includeDefaults = true;
-
-            foreach (var filename in arguments) {
+            foreach (var filename in filenames.ToArray()) {
                 if (filename.StartsWith("-")) {
+                    ParseOption(translator, filename);
+
                     filenames.Remove(filename);
-                    if (filename == "--nodefaults") {
-                        includeDefaults = false;
-                    } else {
-                        ParseOption(translator, filename);
-                    }
                 }
             }
 
@@ -144,6 +179,8 @@ namespace JSIL.Compiler {
                 Console.WriteLine("Specify one or more compiled assemblies (dll/exe) to translate them. Symbols will be loaded if they exist in the same directory.");
                 Console.WriteLine("You can also specify Visual Studio solution files (sln) to build them and automatically translate their output(s).");
                 Console.WriteLine("Options:");
+                Console.WriteLine("--fv:<version>");
+                Console.WriteLine("  Specifies the version of the .NET framework libraries to use. Valid options are '3.5' and '4.0'. The default is '4.0'.");
                 Console.WriteLine("--out:<folder>");
                 Console.WriteLine("  Specifies the directory into which the generated javascript should be written.");
                 Console.WriteLine("--nodeps");

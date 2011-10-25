@@ -12,6 +12,7 @@ using JSIL.Ast;
 using JSIL.Internal;
 using Mono.Cecil;
 using System.Globalization;
+using JSIL;
 
 namespace JSIL.Internal {
     public enum ListValueType {
@@ -26,59 +27,29 @@ namespace JSIL.Internal {
         public readonly TextWriter Output;
         public readonly PlainTextOutput PlainTextOutput;
         public readonly TextOutputFormatter PlainTextFormatter;
+        public readonly AssemblyManifest Manifest;
         public readonly ITypeInfoSource TypeInfo;
         public readonly AssemblyDefinition Assembly;
         public readonly string PrivateToken;
-        public readonly string RefToken;
 
         public MethodReference CurrentMethod = null;
 
-        protected static int NextAssemblyId = 1;
         protected readonly HashSet<string> DeclaredNamespaces = new HashSet<string>();
-        protected readonly Dictionary<string, Int32> ReferenceIDs = new Dictionary<string, int>();
 
-        public JavascriptFormatter (TextWriter output, ITypeInfoSource typeInfo, AssemblyDefinition assembly) {
+        public JavascriptFormatter (TextWriter output, ITypeInfoSource typeInfo, AssemblyManifest manifest, AssemblyDefinition assembly) {
             Output = output;
             PlainTextOutput = new PlainTextOutput(Output);
             PlainTextFormatter = new TextOutputFormatter(PlainTextOutput);
             TypeInfo = typeInfo;
+            Manifest = manifest;
             Assembly = assembly;
-            RefToken = String.Format("$refs{0:X2}", NextAssemblyId);
-            PrivateToken = String.Format("$asm{0:X2}", NextAssemblyId++);
-        }
-
-        public Int32 AddAssemblyReference (string fullName) {
-            Int32 refId;
-
-            if (!ReferenceIDs.TryGetValue(fullName, out refId))
-                ReferenceIDs[fullName] = refId = ReferenceIDs.Count;
-
-            return refId;
+            PrivateToken = Manifest.GetPrivateToken(assembly);
         }
 
         public void AssemblyReference (TypeReference type) {
             string key = GetContainingAssemblyName(type);
 
-            if (!ReferenceIDs.ContainsKey(key)) {
-                // In cases where two versions of mscorlib have been loaded (this can happen if you use a 2.0/3.5 proxies module when translating a 4.0 application)
-                //  we must attempt to fixup a mscorlib reference to point at a different version of mscorlib.
-                if (key.StartsWith("mscorlib,")) {
-                    var newKey = (from k in ReferenceIDs.Keys where k.StartsWith("mscorlib") select k).FirstOrDefault();
-                    if (newKey != null)
-                        key = newKey;
-                    else
-                        throw new Exception("mscorlib not found in the references collection for this module.");
-                } else {
-                    throw new Exception("Assembly '" + key + "' not found in the references collection for this module.");
-                }
-            }
-
-            var refId = ReferenceIDs[key];
-
-            Identifier(RefToken, null);
-            OpenBracket();
-            Value(refId);
-            CloseBracket();
+            Identifier(Manifest.GetPrivateToken(key), null);
         }
 
         public void LPar () {
@@ -614,28 +585,6 @@ namespace JSIL.Internal {
             Identifier("JSIL.DeclareAssembly", null);
             LPar();
             Value(Assembly.FullName);
-            RPar();
-            Semicolon();
-
-            Keyword("var");
-            Space();
-            Identifier(RefToken);
-            Token(" = ");
-            Keyword("new");
-            Space();
-            Identifier("JSIL.AssemblyCollection", null);
-            LPar();
-            OpenBrace();
-
-            foreach (var kvp in ReferenceIDs) {
-                Value(kvp.Value);
-                Token(": ");
-                Value(kvp.Key);
-                Comma();
-                NewLine();
-            }
-
-            CloseBrace(false);
             RPar();
             Semicolon();
         }

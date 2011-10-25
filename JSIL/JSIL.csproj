@@ -64,6 +64,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AssemblyManifest.cs" />
     <Compile Include="AST\JSAstVisitor.cs" />
     <Compile Include="AST\JSOperators.cs" />
     <Compile Include="AST\JSNodeTypes.cs" />
@@ -94,9 +95,13 @@
       <Project>{37C67C73-1F58-49B8-A39E-768AC88C2447}</Project>
       <Name>Meta</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Proxies\Proxies.csproj">
+    <ProjectReference Include="..\Proxies\Proxies.3.5.csproj">
       <Project>{12DBCC9A-50FE-43B1-BAD1-8029D4AD60C8}</Project>
-      <Name>Proxies</Name>
+      <Name>Proxies.3.5</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Proxies\Proxies.4.0.csproj">
+      <Project>{12DBCC9A-50FE-43B1-BAD1-8029D4AD60C9}</Project>
+      <Name>Proxies.4.0</Name>
     </ProjectReference>
     <ProjectReference Include="..\Upstream\ILSpy\ICSharpCode.Decompiler\ICSharpCode.Decompiler.csproj">
       <Project>{984CC812-9470-4A13-AFF9-CC44068D666C}</Project>

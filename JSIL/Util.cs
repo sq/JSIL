@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using ICSharpCode.NRefactory.CSharp;
@@ -30,6 +31,15 @@ namespace JSIL.Internal {
         };
 
         public static Regex ValidIdentifier = new Regex("$[A-Za-z_$]([A-Za-z_$0-9]*)^", RegexOptions.Compiled);
+
+        public static string GetPathOfAssembly (Assembly assembly) {
+            var uri = new Uri(assembly.CodeBase);
+            var result = Uri.UnescapeDataString(uri.AbsolutePath);
+            if (String.IsNullOrWhiteSpace(result))
+                result = assembly.Location;
+
+            return result;
+        }
 
         public static string EscapeIdentifier (string identifier, EscapingMode escapingMode = EscapingMode.MemberIdentifier) {
             string result = identifier;

@@ -19,6 +19,11 @@ using Mono.Cecil.Pdb;
 using Mono.Cecil.Cil;
 
 namespace JSIL {
+    public enum FrameworkVersion {
+        V35,
+        V40
+    }
+
     public class AssemblyTranslator {
         public const int LargeMethodThreshold = 1024;
 
@@ -54,7 +59,10 @@ namespace JSIL {
 
         protected JavascriptAstEmitter AstEmitter;
 
-        public AssemblyTranslator (TypeInfoProvider typeInfoProvider = null) {
+        public AssemblyTranslator (
+            FrameworkVersion frameworkVersion = FrameworkVersion.V40, 
+            TypeInfoProvider typeInfoProvider = null
+        ) {
             // Important to avoid preserving the proxy list from previous translations in this process
             MemberIdentifier.ResetProxies();
 
@@ -62,7 +70,19 @@ namespace JSIL {
                 TypeInfoProvider = typeInfoProvider;
             } else {
                 TypeInfoProvider = new JSIL.TypeInfoProvider();
-                AddProxyAssembly(typeof(JSIL.Proxies.ObjectProxy).Assembly, false);
+
+                var ar = new AssemblyResolver(new string[] { 
+                    Path.GetDirectoryName(Util.GetPathOfAssembly(Assembly.GetExecutingAssembly())) 
+                });
+
+                switch (frameworkVersion) {
+                    case FrameworkVersion.V35:
+                        TypeInfoProvider.AddProxyAssemblies(ar.Resolve("JSIL.Proxies.3.5"));
+                    break;
+                    case FrameworkVersion.V40:
+                        TypeInfoProvider.AddProxyAssemblies(ar.Resolve("JSIL.Proxies.4.0"));
+                    break;
+                }
             }
         }
 
@@ -91,10 +111,7 @@ namespace JSIL {
         }
 
         public void AddProxyAssembly (Assembly assembly, bool includeDependencies) {
-            var uri = new Uri(assembly.CodeBase);
-            var path = Uri.UnescapeDataString(uri.AbsolutePath);
-            if (String.IsNullOrWhiteSpace(path))
-                path = assembly.Location;
+            var path = Util.GetPathOfAssembly(assembly);
 
             AddProxyAssembly(path, includeDependencies);
         }
@@ -341,52 +358,12 @@ namespace JSIL {
             return false;
         }
 
-        protected void CollectAssemblyReferences (AssemblyDefinition assembly, JavascriptFormatter formatter) {
-            var refType = (Action<TypeReference>)( (tr) => {
-                formatter.AddAssemblyReference(tr.Module.Assembly.FullName);
-
-                if (tr.HasGenericParameters) {
-                    foreach (var gp in tr.GenericParameters) {
-                        formatter.AddAssemblyReference(gp.Module.Assembly.FullName);
-                    }
-                }
-
-                var td = tr.Resolve();
-                if (td != null) {
-                    if (td.BaseType != null)
-                        formatter.AddAssemblyReference(td.BaseType.Module.Assembly.FullName);
-
-                    foreach (var iface in td.Interfaces) {
-                        formatter.AddAssemblyReference(iface.Module.Assembly.FullName);
-                    }
-                }
-            } );
-
-            foreach (var module in assembly.Modules) {
-                foreach (var anr in module.AssemblyReferences)
-                    formatter.AddAssemblyReference(anr.FullName);
-
-                var types = new List<TypeReference>();
-                types.AddRange(module.Types);
-
-                while (types.Count > 0) {
-                    var tr = types[types.Count - 1];
-                    types.RemoveAt(types.Count - 1);
-
-                    refType(tr);
-
-                    var td = tr.Resolve();
-                    if ((td != null) && (td.NestedTypes.Count > 0))
-                        types.AddRange(td.NestedTypes);
-                }
-            }
-        }
-
         protected void Translate (DecompilerContext context, AssemblyDefinition assembly, Stream outputStream) {
             bool stubbed = IsStubbed(assembly);
 
+            var manifest = new AssemblyManifest();
             var tw = new StreamWriter(outputStream, Encoding.ASCII);
-            var formatter = new JavascriptFormatter(tw, this.TypeInfoProvider, assembly);
+            var formatter = new JavascriptFormatter(tw, this.TypeInfoProvider, manifest, assembly);
 
             var version = Assembly.GetExecutingAssembly().GetName().Version;
             formatter.Comment(
@@ -399,8 +376,6 @@ namespace JSIL {
                 formatter.Comment("Generating type stubs only");
                 formatter.NewLine();
             }
-
-            CollectAssemblyReferences(assembly, formatter);
 
             formatter.DeclareAssembly();
 

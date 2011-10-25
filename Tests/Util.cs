@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using JSIL.Internal;
 using Microsoft.CSharp;
 using System.CodeDom.Compiler;
 using System.IO;
@@ -13,6 +14,7 @@ using System.Threading;
 using NUnit.Framework;
 using System.Globalization;
 using Microsoft.Win32;
+using MethodInfo = System.Reflection.MethodInfo;
 
 namespace JSIL.Tests {
     public class JavaScriptException : Exception {
@@ -92,18 +94,9 @@ namespace JSIL.Tests {
         public readonly Assembly Assembly;
         public readonly MethodInfo TestMethod;
 
-        static string GetPathOfAssembly (Assembly assembly) {
-            var uri = new Uri(assembly.CodeBase);
-            var result = Uri.UnescapeDataString(uri.AbsolutePath);
-            if (String.IsNullOrWhiteSpace(result))
-                result = assembly.Location;
-
-            return result;
-        }
-
         static ComparisonTest () {
             var testAssembly = typeof(ComparisonTest).Assembly;
-            var assemblyPath = Path.GetDirectoryName(GetPathOfAssembly(testAssembly));
+            var assemblyPath = Path.GetDirectoryName(Util.GetPathOfAssembly(testAssembly));
 
             TestSourceFolder = Path.GetFullPath(Path.Combine(assemblyPath, @"..\"));
             JSShellPath = Path.GetFullPath(Path.Combine(assemblyPath, @"..\..\Upstream\SpiderMonkey\js.exe"));
@@ -148,7 +141,7 @@ namespace JSIL.Tests {
 
         public string RunJavascript (string[] args, out string generatedJavascript, out long elapsedTranslation, out long elapsedJs) {
             var tempFilename = Path.GetTempFileName();
-            var translator = new JSIL.AssemblyTranslator(TypeInfo) {
+            var translator = new JSIL.AssemblyTranslator(FrameworkVersion.V40, TypeInfo) {
                 IncludeDependencies = false
             };
 
@@ -159,7 +152,7 @@ namespace JSIL.Tests {
             var translationStarted = DateTime.UtcNow.Ticks;
             using (var ms = new MemoryStream()) {
                 var assemblies = translator.Translate(
-                    GetPathOfAssembly(Assembly), ms, 
+                    Util.GetPathOfAssembly(Assembly), ms, 
                     TypeInfo == null
                 );
                 translatedJs = Encoding.ASCII.GetString(ms.GetBuffer(), 0, (int)ms.Length);
@@ -326,7 +319,7 @@ namespace JSIL.Tests {
     public class GenericTestFixture {
         protected TypeInfoProvider MakeDefaultProvider () {
             // Construct a type info provider with default proxies loaded (kind of a hack)
-            return (new AssemblyTranslator(null)).TypeInfoProvider;
+            return (new AssemblyTranslator()).TypeInfoProvider;
         }
 
         protected void RunComparisonTests (
