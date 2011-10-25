@@ -618,7 +618,20 @@ namespace JSIL {
                 output.LPar();
 
                 if (baseClass == null) {
-                    output.Keyword("Object");
+                    if (typedef.FullName != "System.Object")
+                        throw new InvalidDataException("Type without base class that isn't System.Object.");
+
+                    output.Identifier("$jsilcore");
+                    output.Dot();
+                    output.Identifier("System");
+                    output.Dot();
+                    output.Identifier("Object");
+                } else if (typedef.FullName == "System.ValueType") {
+                    output.Identifier("$jsilcore");
+                    output.Dot();
+                    output.Identifier("System");
+                    output.Dot();
+                    output.Identifier("ValueType");
                 } else {
                     output.TypeReference(baseClass);
                 }

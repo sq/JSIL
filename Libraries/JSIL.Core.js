@@ -748,6 +748,10 @@ JSIL.ExternalMembers = function (namespace, isInstance /*, ...memberNames */) {
   var namespaceName = JSIL.GetTypeName(namespace);
   var impl = JSIL.AllImplementedExternals[namespaceName];
 
+  if (namespaceName.indexOf("System.TimeSpan") >= 0) {
+    JSIL.Host.warning("farts");
+  }
+
   var prefix = isInstance ? "instance$" : "";
 
   if (isInstance) {
@@ -796,13 +800,13 @@ JSIL.ImplementExternals = function (namespaceName, isInstance, externals) {
   }
   
   var obj = JSIL.AllImplementedExternals[namespaceName];
-  if (obj === "initialized") {
-    JSIL.Host.error(new Error("Type '" + namespaceName + "' already initialized"));
-    return;
-  }
-
   if (typeof (obj) !== "object") {
     JSIL.AllImplementedExternals[namespaceName] = obj = {};
+  }
+
+  if (obj.__IsInitialized__) {
+    JSIL.Host.error(new Error("Type '" + namespaceName + "' already initialized"));
+    return;
   }
 
   var prefix = isInstance ? "instance$" : "";
@@ -1364,6 +1368,40 @@ JSIL.GetFunctionName = function (fn) {
   return fn.name || fn.__name__ || "unknown";
 };
 
+JSIL.ApplyExternals = function (typeObject, fullName) {
+  var externals = JSIL.AllImplementedExternals[fullName];
+  var instancePrefix = "instance$";
+
+  for (var k in externals) {
+    if (!externals.hasOwnProperty(k))
+      continue;
+
+    var value = externals[k];
+    var key = k;
+    var target = typeObject;
+
+    if (k.indexOf(instancePrefix) === 0) {
+      key = k.replace(instancePrefix, "");
+      target = target.prototype;
+    }
+
+    try {
+      delete target[key];
+    } catch (e) {
+    }
+
+    target[key] = value;
+  }
+
+  if (externals) {
+    externals.__IsInitialized__ = true;
+  } else {
+    JSIL.AllImplementedExternals[fullName] = {
+      __IsInitialized__: true
+    };
+  }
+};
+
 JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializer) {
   if (typeof (isPublic) === "undefined")
     JSIL.Host.error(new Error("Must specify isPublic"));
@@ -1393,31 +1431,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   }
 
   var creator = function () {
-    var externals = JSIL.AllImplementedExternals[fullName];
-    var instancePrefix = "instance$";
-
-    for (var k in externals) {
-      if (!externals.hasOwnProperty(k))
-        continue;
-
-      var value = externals[k];
-      var key = k;
-      var target = typeObject;
-
-      if (k.indexOf(instancePrefix) === 0) {
-        key = k.replace(instancePrefix, "");
-        target = target.prototype;
-      }
-
-      try {
-        delete target[key];
-      } catch (e) {
-      }
-
-      target[key] = value;
-    }
-
-    JSIL.AllImplementedExternals[fullName] = "initialized";
+    JSIL.ApplyExternals(typeObject, fullName);
 
     return typeObject;
   };
@@ -1500,31 +1514,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
       return typeObject;
     };
 
-    var externals = JSIL.AllImplementedExternals[fullName];
-    var instancePrefix = "instance$";
-
-    for (var k in externals) {
-      if (!externals.hasOwnProperty(k))
-        continue;
-
-      var value = externals[k];
-      var key = k;
-      var target = typeObject;
-
-      if (k.indexOf(instancePrefix) === 0) {
-        key = k.replace(instancePrefix, "");
-        target = target.prototype;
-      }
-
-      try {
-        delete target[key];
-      } catch (e) {
-      }
-
-      target[key] = value;
-    }
-
-    JSIL.AllImplementedExternals[fullName] = "initialized";
+    JSIL.ApplyExternals(typeObject, fullName);
 
     return typeObject;
   };

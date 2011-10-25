@@ -14,7 +14,7 @@ JSIL.MakeClass("System.Object", "System.ComponentModel.TypeConverter", true);
 JSIL.MakeClass("System.ComponentModel.TypeConverter", "System.ComponentModel.ExpandableObjectConverter", true);
 
 JSIL.MakeStruct("System.ValueType", "System.TimeSpan", true);
-JSIL.MakeStruct("System.ValueType", "System.Nullable$b1", true, ["T"]);
+//JSIL.MakeStruct("System.ValueType", "System.Nullable$b1", true, ["T"]);
 JSIL.MakeClass("System.Object", "System.Text.Encoding", true);
 JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true);
 
@@ -576,6 +576,7 @@ System.Text.ASCIIEncoding.prototype._ctor = function () {
   System.Text.Encoding.prototype._ctor.call(this, arguments);
 };
 
+/*
 System.Nullable$b1.prototype.value = null;
 System.Nullable$b1.CheckType = function (value) {
   if (value === null)
@@ -626,113 +627,120 @@ System.Nullable$b1.prototype.GetValueOrDefault$0 = function () {
     return this.value;
   }
 };
+*/
 
-System.TimeSpan.SecondInTicks = 10000000;
-System.TimeSpan.MillisecondInTicks = System.TimeSpan.SecondInTicks / 1000;
+JSIL.ImplementExternals(
+  "System.TimeSpan", false, {
+    FromTicks: function (ticks) {
+      var result = Object.create(System.TimeSpan.prototype);
+      result._ticks = Math.floor(ticks);
+      return result;
+    },
 
-System.TimeSpan.FromTicks = function (ticks) {
-  var result = Object.create(System.TimeSpan.prototype);
-  result._ticks = Math.floor(ticks);
-  return result;
-};
+    FromMilliseconds: function (milliseconds) {
+      var result = Object.create(System.TimeSpan.prototype);
+      result._ticks = Math.floor(milliseconds * 10000);
+      return result;
+    },
 
-System.TimeSpan.FromMilliseconds = function (milliseconds) {
-  var result = Object.create(System.TimeSpan.prototype);
-  result._ticks = Math.floor(milliseconds * System.TimeSpan.MillisecondInTicks);
-  return result;
-};
+    FromSeconds: function (seconds) {
+      var result = Object.create(System.TimeSpan.prototype);
+      result._ticks = Math.floor(seconds * 10000000);
+      return result;
+    },
 
-System.TimeSpan.FromSeconds = function (seconds) {
-  var result = Object.create(System.TimeSpan.prototype);
-  result._ticks = Math.floor(seconds * System.TimeSpan.SecondInTicks);
-  return result;
-};
+    FromMinutes: function (minutes) {
+      var result = Object.create(System.TimeSpan.prototype);
+      result._ticks = Math.floor(minutes * 60 * 10000000);
+      return result;
+    },
 
-System.TimeSpan.FromMinutes = function (minutes) {
-  var result = Object.create(System.TimeSpan.prototype);
-  result._ticks = Math.floor(minutes * 60 * System.TimeSpan.SecondInTicks);
-  return result;
-};
+    op_Equality: function (lhs, rhs) {
+      return lhs._ticks === rhs._ticks;
+    },
 
-System.TimeSpan.op_Equality = function (lhs, rhs) {
-  return lhs._ticks === rhs._ticks;
-};
+    op_Inequality: function (lhs, rhs) {
+      return lhs._ticks !== rhs._ticks;
+    },
 
-System.TimeSpan.op_Inequality = function (lhs, rhs) {
-  return lhs._ticks !== rhs._ticks;
-};
+    op_GreaterThan: function (lhs, rhs) {
+      return lhs._ticks > rhs._ticks;
+    },
 
-System.TimeSpan.op_GreaterThan = function (lhs, rhs) {
-  return lhs._ticks > rhs._ticks;
-};
+    op_LessThan: function (lhs, rhs) {
+      return lhs._ticks < rhs._ticks;
+    },
 
-System.TimeSpan.op_LessThan = function (lhs, rhs) {
-  return lhs._ticks < rhs._ticks;
-};
+    op_Addition: function (lhs, rhs) {
+      var result = Object.create(System.TimeSpan.prototype);
+      result._ticks = lhs._ticks + rhs._ticks;
+      return result;
+    },
 
-System.TimeSpan.op_Addition = function (lhs, rhs) {
-  var result = Object.create(System.TimeSpan.prototype);
-  result._ticks = lhs._ticks + rhs._ticks;
-  return result;
-};
+    op_Subtraction: function (lhs, rhs) {
+      var result = Object.create(System.TimeSpan.prototype);
+      result._ticks = lhs._ticks - rhs._ticks;
+      return result;
+    }
+  }
+);
 
-System.TimeSpan.op_Subtraction = function (lhs, rhs) {
-  var result = Object.create(System.TimeSpan.prototype);
-  result._ticks = lhs._ticks - rhs._ticks;
-  return result;
-};
+JSIL.ImplementExternals(
+  "System.TimeSpan", true, {
+    _ctor$0: function (ticks) {
+      this._ticks = ticks;
+    },
 
-System.TimeSpan.prototype._ctor$0 = function (ticks) {
-  this._ticks = ticks;
-};
+    _ctor$1: function (hours, minutes, seconds) {
+      this._ticks = 10000 * (1000 * (seconds + 60 * (minutes + 60 * hours)));
+    },
 
-System.TimeSpan.prototype._ctor$1 = function (hours, minutes, seconds) {
-  this._ticks = 10000 * (1000 * (seconds + 60 * (minutes + 60 * hours)));
-};
+    _ctor$2: function (days, hours, minutes, seconds) {
+      this._ticks = 10000 * (1000 * (seconds + 60 * (minutes + 60 * (hours + 24 * days))));
+    },
 
-System.TimeSpan.prototype._ctor$2 = function (days, hours, minutes, seconds) {
-  this._ticks = 10000 * (1000 * (seconds + 60 * (minutes + 60 * (hours + 24 * days))));
-};
+    _ctor$3: function (days, hours, minutes, seconds, milliseconds) {
+      this._ticks = 10000 * (milliseconds + 1000 * (seconds + 60 * (minutes + 60 * (hours + 24 * days))));
+    },
 
-System.TimeSpan.prototype._ctor$3 = function (days, hours, minutes, seconds, milliseconds) {
-  this._ticks = 10000 * (milliseconds + 1000 * (seconds + 60 * (minutes + 60 * (hours + 24 * days))));
-};
+    get_Ticks: function () {
+      return this._ticks;
+    },
 
-System.TimeSpan.prototype.get_Ticks = function () {
-  return this._ticks;
-};
+    get_Milliseconds: function () {
+      return Math.floor(this._ticks / 10000) % 60;
+    },
 
-System.TimeSpan.prototype.get_Milliseconds = function () {
-  return Math.floor(this._ticks / 10000) % 60;
-};
+    get_Seconds: function () {
+      return Math.floor(this._ticks / 10000000) % 60;
+    },
 
-System.TimeSpan.prototype.get_Seconds = function () {
-  return Math.floor(this._ticks / 10000000) % 60;
-};
+    get_Minutes: function () {
+      return Math.floor((this._ticks / 10000000) / 60) % 60;
+    },
 
-System.TimeSpan.prototype.get_Minutes = function () {
-  return Math.floor((this._ticks / 10000000) / 60) % 60;
-};
+    get_Hours: function () {
+      return Math.floor((this._ticks / 10000000) / (60 * 60)) % 24;
+    },
 
-System.TimeSpan.prototype.get_Hours = function () {
-  return Math.floor((this._ticks / 10000000) / (60 * 60)) % 24;
-};
+    get_Days: function () {
+      return Math.floor((this._ticks / 10000000) / (60 * 60 * 24));
+    },
 
-System.TimeSpan.prototype.get_Days = function () {
-  return Math.floor((this._ticks / 10000000) / (60 * 60 * 24));
-};
+    get_TotalMilliseconds: function () {
+      return this._ticks / 10000;
+    },
 
-System.TimeSpan.prototype.get_TotalMilliseconds = function () {
-  return this._ticks / 10000;
-};
+    get_TotalSeconds: function () {
+      return this._ticks / 10000000;
+    },
 
-System.TimeSpan.prototype.get_TotalSeconds = function () {
-  return this._ticks / 10000000;
-};
+    get_TotalMinutes: function () {
+      return this._ticks / 600000000;
+    }
+  }
+);
 
-System.TimeSpan.prototype.get_TotalMinutes = function () {
-  return this._ticks / 600000000;
-};
 
 JSIL.MakeProperty(System.TimeSpan.prototype, "Ticks",
   System.TimeSpan.prototype.get_Ticks);
