@@ -264,7 +264,7 @@ namespace JSIL.Internal {
                 LPar();
                 Value(identifier);
                 RPar();
-            } else if ((git != null) || (type.Module.Assembly.FullName != Assembly.FullName)) {
+            } else if ((git != null) || (GetContainingAssemblyName(type) != Assembly.FullName)) {
                 Keyword("new");
                 Space();
                 Identifier("JSIL.TypeRef", null);
@@ -371,7 +371,7 @@ namespace JSIL.Internal {
             } else {
                 var typedef = type.Resolve();
                 if (typedef != null) {
-                    if (typedef.Module.Assembly.FullName == Assembly.FullName) {
+                    if (GetContainingAssemblyName(typedef) == Assembly.FullName) {
                         PlainTextOutput.Write(PrivateToken);
                         PlainTextOutput.Write(".");
                     } else {
