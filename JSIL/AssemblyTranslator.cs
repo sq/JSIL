@@ -551,10 +551,6 @@ namespace JSIL {
             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
                 return;
 
-            // Basic type translation/definition logic does not work for System.Object. The definition from JSIL.Core must be used.
-            if (typedef.FullName == "System.Object")
-                return;
-
             if (DeclaredTypes.Contains(typedef.FullName)) {
                 Debug.WriteLine("Cycle in type references detected: {0}", typedef);
                 return;
@@ -583,10 +579,8 @@ namespace JSIL {
                     DeclareType(context, output, declaringType, IsStubbed(declaringType.Module.Assembly));
             }
 
-            var baseClass = typedef.Module.TypeSystem.Object;
-            if (typedef.BaseType != null) {
-                baseClass = typedef.BaseType;
-
+            var baseClass = typedef.BaseType;
+            if (baseClass != null) {
                 var resolved = baseClass.Resolve();
                 if (
                     (resolved != null) &&
@@ -623,7 +617,12 @@ namespace JSIL {
 
                 output.LPar();
                 if (!typedef.IsValueType) {
-                    output.TypeReference(baseClass);
+                    if (baseClass == null) {
+                        output.Keyword("Object");
+                    } else {
+                        output.TypeReference(baseClass);
+                    }
+
                     output.Comma();
                 }
 
