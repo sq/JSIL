@@ -272,6 +272,7 @@ var assetLoaders = {
   },
   "File": function loadBinaryFile (filename, data, onError, onDoneLoading) {
     var req;
+    var state = [false];
     if ((location.protocol === "file:") && (typeof (ActiveXObject) !== "undefined")) {
       req = new ActiveXObject("MSXML2.XMLHTTP");
     } else {
@@ -285,7 +286,11 @@ var assetLoaders = {
     req.onreadystatechange = function (evt) {
       if (req.readyState != 4)
         return;
+
+      if (state[0])
+        return;
     
+      state[0] = true;
       if (req.status <= 299) {
         var bytes;
         if (
@@ -303,10 +308,16 @@ var assetLoaders = {
         onDoneLoading();
       } else {
         onError(req.statusText || req.status);
+        return;
       }
     };
     
-    req.send(null);
+    try {
+      req.send(null);
+    } catch (exc) {
+      state[0] = true;
+      onError(exc);
+    }
   },
   "Font": function loadFont (filename, data, onError, onDoneLoading) {
     var fontId = "xnafont" + loadedFontCount;
