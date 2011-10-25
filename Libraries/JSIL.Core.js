@@ -866,7 +866,7 @@ JSIL.TypeRef.prototype.toString = function () {
   if (this.typeName === null)
     return JSIL.GetTypeName(this.cachedReference);
   else
-    return "<TypeRef " + this.typeName + ">";
+    return this.typeName;
 };
 JSIL.TypeRef.prototype.get = function () {
   if (this.cachedReference !== null)
@@ -1561,8 +1561,8 @@ JSIL.MakeClass = function (baseType, fullName, isPublic, genericArguments, initi
   JSIL.MakeType(baseType, fullName, true, isPublic, genericArguments, initializer);
 };
 
-JSIL.MakeStruct = function (fullName, isPublic, genericArguments, initializer) {
-  JSIL.MakeType("System.ValueType", fullName, false, isPublic, genericArguments, initializer);
+JSIL.MakeStruct = function (baseType, fullName, isPublic, genericArguments, initializer) {
+  JSIL.MakeType(baseType, fullName, false, isPublic, genericArguments, initializer);
 };
 
 JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members) {

@@ -616,15 +616,14 @@ namespace JSIL {
                     output.Identifier("JSIL.MakeClass", null);
 
                 output.LPar();
-                if (!typedef.IsValueType) {
-                    if (baseClass == null) {
-                        output.Keyword("Object");
-                    } else {
-                        output.TypeReference(baseClass);
-                    }
 
-                    output.Comma();
+                if (baseClass == null) {
+                    output.Keyword("Object");
+                } else {
+                    output.TypeReference(baseClass);
                 }
+
+                output.Comma();
 
                 output.Value(Util.EscapeIdentifier(typedef.FullName, EscapingMode.String));
                 output.Comma();

@@ -97,7 +97,7 @@ if (JSIL.HostType.IsBrowser) {
   );
 }
 
-JSIL.MakeStruct("System.Drawing.Color", true);
+JSIL.MakeStruct("System.ValueType", "System.Drawing.Color", true);
 System.Drawing.Color.prototype.a = 0;
 System.Drawing.Color.prototype.r = 0;
 System.Drawing.Color.prototype.g = 0;
@@ -191,7 +191,7 @@ System.Drawing.Color._cctor = function () {
   System.Drawing.Color.aquamarine = new System.Drawing.Color(0xFF, 0x7F, 0xFF, 0xD4, "Aquamarine");
 };
 
-// JSIL.MakeStruct("System.Drawing.Size", true);
+// JSIL.MakeStruct("System.ValueType", "System.Drawing.Size", true);
 JSIL.ImplementExternals(
   "System.Drawing.Size", true, {
     _ctor: function (w, h) {
@@ -222,7 +222,7 @@ JSIL.ImplementExternals(
   }
 );
 
-// JSIL.MakeStruct("System.Drawing.Point", true);
+// JSIL.MakeStruct("System.ValueType", "System.Drawing.Point", true);
 JSIL.ImplementExternals(
   "System.Drawing.Point", false, {
     _cctor: function () {
@@ -253,7 +253,7 @@ JSIL.ImplementExternals(
   }
 );
 
-// JSIL.MakeStruct("System.Drawing.Rectangle", true);
+// JSIL.MakeStruct("System.ValueType", "System.Drawing.Rectangle", true);
 JSIL.ImplementExternals(
   "System.Drawing.Rectangle", false, {
     _cctor: function () {

@@ -13,8 +13,8 @@ JSIL.MakeClass("System.ComponentModel.MemberDescriptor", "System.ComponentModel.
 JSIL.MakeClass("System.Object", "System.ComponentModel.TypeConverter", true);
 JSIL.MakeClass("System.ComponentModel.TypeConverter", "System.ComponentModel.ExpandableObjectConverter", true);
 
-JSIL.MakeStruct("System.TimeSpan", true);
-JSIL.MakeStruct("System.Nullable$b1", true, ["T"]);
+JSIL.MakeStruct("System.ValueType", "System.TimeSpan", true);
+JSIL.MakeStruct("System.ValueType", "System.Nullable$b1", true, ["T"]);
 JSIL.MakeClass("System.Object", "System.Text.Encoding", true);
 JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true);
 
@@ -514,7 +514,7 @@ System.Double.CheckType = function (value) {
 }
 System.Double.IsNaN = isNaN;
 
-JSIL.MakeStruct("System.Decimal", true);
+JSIL.MakeStruct("System.ValueType", "System.Decimal", true);
 System.Decimal.CheckType = function (value) {
   return (typeof (value) === "number") || 
     JSIL.CheckType(value, System.Decimal, true);
