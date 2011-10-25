@@ -1,0 +1,21 @@
+bullet.png
+8
+8 
+0
+0
+8
+8
+8
+8
+
+format: 
+png filename
+width
+height
+hot x
+hot y
+hot w
+hot h
+frames/row
+number of frames
+

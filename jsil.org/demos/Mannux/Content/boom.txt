@@ -1,0 +1,21 @@
+boom.png
+16 
+16 
+0
+0
+16
+16
+7
+7
+
+format: 
+png filename
+width
+height
+hot x
+hot y
+hot w
+hot h
+frames/row
+number of frames
+

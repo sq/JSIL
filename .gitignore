@@ -24,7 +24,6 @@ Tests/*Cases/*.js
 /Proxies/XNA4/obj
 /Proxies/XNA3/obj
 /Proxies/XNA3/bin
-/jsil.org/demos/Mannux/Content
 /jsil.org/demos/Mannux/*.js
 /jsil.org/demos/Platformer/*.js
 /jsil.org/demos/Tetris/*.js

@@ -1,0 +1,21 @@
+ripper.png 
+16 
+32 
+0
+0
+16
+20
+4
+4
+
+format: 
+png filename
+width
+height
+hot x
+hot y
+hot w
+hot h
+frames/row
+number of frames
+
