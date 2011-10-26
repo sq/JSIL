@@ -1316,7 +1316,7 @@ JSIL.InitializeType = function (type) {
       try {
         type._cctor();
       } catch (e) {
-        JSIL.Host.error(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(type));
+        JSIL.Host.error(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(type) + ": ");
       }
     }
 
@@ -1324,7 +1324,7 @@ JSIL.InitializeType = function (type) {
       try {
         type._cctor2();
       } catch (e) {
-        JSIL.Host.error(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(type));
+        JSIL.Host.error(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(type) + ": ");
       }
     }
   }

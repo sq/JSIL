@@ -15,8 +15,6 @@ JSIL.MakeClass("System.ComponentModel.TypeConverter", "System.ComponentModel.Exp
 
 JSIL.MakeStruct("System.ValueType", "System.TimeSpan", true);
 //JSIL.MakeStruct("System.ValueType", "System.Nullable$b1", true, ["T"]);
-JSIL.MakeClass("System.Object", "System.Text.Encoding", true);
-JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true);
 
 System.Delegate.prototype = JSIL.MakeProto(Function, System.Delegate, "System.Delegate", true);
 System.Delegate.prototype.Invoke = function () {
@@ -169,14 +167,14 @@ JSIL.ConcatString = function (/* ...values */) {
   }
 
   return result;
-}
+};
 System.String.Concat = function (firstValue) {
   if (JSIL.IsArray(firstValue) && arguments.length == 1) {
     return JSIL.ConcatString.apply(null, firstValue);
   } else {
     return JSIL.ConcatString(Array.prototype.slice.call(arguments));
   }
-}
+};
 System.String.Empty = '';
 System.String.Format = function (format) {
   format = String(format);
@@ -240,42 +238,43 @@ System.String.prototype._ctor$2 = function (ch, length) {
   return arr.join("");
 };
 
-JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true);
-JSIL.ArrayEnumerator.prototype._ctor = function (array) {
-  this._array = array;
-  this._length = array.length;
-  this._index = -1;
-}
-JSIL.ArrayEnumerator.prototype.Reset = function () {
-  if (this._array === null)
-    throw new Error("Enumerator is disposed or not initialized");
+JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, [], function ($) {
+  $.prototype._ctor = function (array) {
+    this._array = array;
+    this._length = array.length;
+    this._index = -1;
+  };
+  $.prototype.Reset = function () {
+    if (this._array === null)
+      throw new Error("Enumerator is disposed or not initialized");
 
-  this._index = -1;
-}
-JSIL.ArrayEnumerator.prototype.MoveNext = function () {
-  if (this._index >= this._length)
-    return false;
+    this._index = -1;
+  };
+  $.prototype.MoveNext = function () {
+    if (this._index >= this._length)
+      return false;
 
-  this._index += 1;
-  return (this._index < this._length);
-};
-JSIL.ArrayEnumerator.prototype.Dispose = function () {
-  this._array = null;
-  this._index = 0;
-  this._length = -1;
-}
-JSIL.ArrayEnumerator.prototype.get_Current = function () {
-  return this._array[this._index];
-};
-Object.defineProperty(
-    JSIL.ArrayEnumerator.prototype, "Current", { 
-      get: JSIL.ArrayEnumerator.prototype.get_Current,
-      configurable: true
-    }
-);
-JSIL.ImplementInterfaces(JSIL.ArrayEnumerator, [
-  System.IDisposable, System.Collections.IEnumerator, System.Collections.Generic.IEnumerator$b1
-]);
+    this._index += 1;
+    return (this._index < this._length);
+  };
+  $.prototype.Dispose = function () {
+    this._array = null;
+    this._index = 0;
+    this._length = -1;
+  };
+  $.prototype.get_Current = function () {
+    return this._array[this._index];
+  };
+  Object.defineProperty(
+      $.prototype, "Current", { 
+        get: $.prototype.get_Current,
+        configurable: true
+      }
+  );
+  JSIL.ImplementInterfaces($, [
+    System.IDisposable, System.Collections.IEnumerator, System.Collections.Generic.IEnumerator$b1
+  ]);
+});
 
 JSIL.MakeClass("System.Object", "System.Threading.Thread", true);
 System.Threading.Thread._cctor2 = function () {
@@ -294,93 +293,106 @@ JSIL.MakeProperty(
   System.Threading.Thread.get_CurrentThread, null
 );
 
-JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"]);
-System.Collections.Generic.List$b1.prototype._ctor = function (sizeOrInitializer) {
-  var size = Number(sizeOrInitializer);
+JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"], function ($) {
+  JSIL.MakeProperty(
+    $.prototype, "Count", 
+    $.prototype.get_Count, null
+  );
+  JSIL.ImplementInterfaces($, [
+    System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
+  ]);
+});
 
-  if (isNaN(size)) {
-    this._items = new Array();
-    this._items.push.apply(this._items, sizeOrInitializer);
-    this._size = this._items.length;
-  } else {
-    this._items = new Array(size);
-    this._size = size;
-  }
-};
-System.Collections.Generic.List$b1.prototype.Add = function (item) {
-  if (this._size >= this._items.length) {
-    this._items.push(item);
-  } else {
-    this._items[this._size] = item;
-  }
-  this._size += 1;
-};
-System.Collections.Generic.List$b1.prototype.AddRange = function (items) {
-  var e = items.IEnumerable_GetEnumerator();
-  try {
-    while (e.MoveNext()) {
-      if (this._size >= this._items.length) {
-        this._items.push(e.Current);
-      } else {
-        this._items[this._size] = e.Current;
-      }
-      this._size += 1;
+$jsilcore.$ListExternals = {
+  _ctor: function (sizeOrInitializer) {
+    var size = Number(sizeOrInitializer);
+
+    if (isNaN(size)) {
+      this._items = new Array();
+      this._items.push.apply(this._items, sizeOrInitializer);
+      this._size = this._items.length;
+    } else {
+      this._items = new Array(size);
+      this._size = size;
     }
-  } finally {
-    e.IDisposable_Dispose();
+  },
+  Add: function (item) {
+    if (this._size >= this._items.length) {
+      this._items.push(item);
+    } else {
+      this._items[this._size] = item;
+    }
+    this._size += 1;
+  },
+  AddRange: function (items) {
+    var e = items.IEnumerable_GetEnumerator();
+    try {
+      while (e.MoveNext()) {
+        if (this._size >= this._items.length) {
+          this._items.push(e.Current);
+        } else {
+          this._items[this._size] = e.Current;
+        }
+        this._size += 1;
+      }
+    } finally {
+      e.IDisposable_Dispose();
+    }
+  },
+  Remove: function (item) {
+    var index = this._items.indexOf(item);
+    if (index === -1)
+      return false;
+
+    this.RemoveAt(index);
+  },
+  RemoveAt: function (index) {
+    this._items.splice(index, 1);
+    this._size -= 1;
+  },
+  Clear: function () {
+    this._size = 0;
+  },
+  get_Item: function (index) {
+    return this._items[index];
+  },
+  get_Count: function () {
+    return this._size;
+  },
+  get_Capacity: function () {
+    return this._items.length;
+  },
+  GetEnumerator: function () {
+    // Detect whether we are a List<T> or an ArrayList.
+    var elementType = this.T;
+    if (typeof (elementType) === "undefined")
+      elementType = System.Object;
+
+    return new (System.Collections.Generic.List$b1_Enumerator.Of(elementType)) (this);
   }
 };
-System.Collections.Generic.List$b1.prototype.Remove = function (item) {
-  var index = this._items.indexOf(item);
-  if (index === -1)
-    return false;
 
-  this.RemoveAt(index);
-};
-System.Collections.Generic.List$b1.prototype.RemoveAt = function (index) {
-  this._items.splice(index, 1);
-  this._size -= 1;
-}
-System.Collections.Generic.List$b1.prototype.Clear = function () {
-  this._size = 0;
-};
-System.Collections.Generic.List$b1.prototype.get_Item = function (index) {
-  return this._items[index];
-};
-System.Collections.Generic.List$b1.prototype.get_Count = function () {
-  return this._size;
-};
-System.Collections.Generic.List$b1.prototype.get_Capacity = function () {
-  return this._items.length;
-};
-System.Collections.Generic.List$b1.prototype.GetEnumerator = function () {
-  return new (System.Collections.Generic.List$b1_Enumerator.Of(this.T)) (this);
-};
-JSIL.MakeProperty(
-  System.Collections.Generic.List$b1.prototype, "Count", 
-  System.Collections.Generic.List$b1.prototype.get_Count, null
-);
-JSIL.ImplementInterfaces(System.Collections.Generic.List$b1, [
-  System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
-]);
+JSIL.ImplementExternals("System.Collections.Generic.List`1", true, $jsilcore.$ListExternals);
 
-JSIL.MakeClass(new JSIL.TypeRef($jsilcore, "System.Collections.Generic.List$b1", [System.Object]), "System.Collections.ArrayList", true);
+// Lazy way of sharing method implementations between ArrayList and List<T>.
+JSIL.ImplementExternals("System.Collections.ArrayList", true, $jsilcore.$ListExternals);
 
 // TODO: This type is actually a struct in the CLR
-JSIL.MakeClass("JSIL.ArrayEnumerator", "System.Collections.Generic.List`1/Enumerator", true, ["T"]);
-System.Collections.Generic.List$b1_Enumerator.prototype._array = null;
-System.Collections.Generic.List$b1_Enumerator.prototype._length = 0;
-System.Collections.Generic.List$b1_Enumerator.prototype._index = -1;
-System.Collections.Generic.List$b1_Enumerator.prototype._ctor = function (list) {
-  if (typeof (list) != "undefined") {
-    this._array = list._items;
-    this._length = list.Count;
-  }
-}
-System.Collections.Generic.List$b1_Enumerator.prototype.MoveNext = JSIL.ArrayEnumerator.prototype.MoveNext;
-System.Collections.Generic.List$b1_Enumerator.prototype.Dispose = JSIL.ArrayEnumerator.prototype.Dispose;
-System.Collections.Generic.List$b1_Enumerator.prototype.Reset = JSIL.ArrayEnumerator.prototype.Reset;
-System.Collections.Generic.List$b1_Enumerator.prototype.get_Current = JSIL.ArrayEnumerator.prototype.get_Current;
+JSIL.MakeClass("JSIL.ArrayEnumerator", "System.Collections.Generic.List`1/Enumerator", true, ["T"], function ($) {
+  $.prototype._array = null;
+  $.prototype._length = 0;
+  $.prototype._index = -1;
+  $.prototype._ctor = function (list) {
+    if (typeof (list) != "undefined") {
+      this._array = list._items;
+      this._length = list.Count;
+    }
+  };
+  $.prototype.MoveNext = JSIL.ArrayEnumerator.prototype.MoveNext;
+  $.prototype.Dispose = JSIL.ArrayEnumerator.prototype.Dispose;
+  $.prototype.Reset = JSIL.ArrayEnumerator.prototype.Reset;
+  $.prototype.get_Current = JSIL.ArrayEnumerator.prototype.get_Current;
+});
 
 System.Threading.Interlocked.CompareExchange$b1 = JSIL.GenericMethod(
   ["T"], 
@@ -560,21 +572,26 @@ System.Environment.nativeGetTickCount = function () {
   return t.getTime();
 };
 
-System.Text.Encoding.get_ASCII = function () {
-  return System.Text.Encoding.asciiEncoding;
-};
+JSIL.MakeClass("System.Object", "System.Text.Encoding", true, [], function ($) {
+  $.prototype._ctor = function () {
+    System.Object.prototype._ctor.call(this, arguments);
+  };
+});
+JSIL.ImplementExternals("System.Text.Encoding", false, {
+  _cctor2: function () {
+    // This type already has a cctor so we add a second one.
+    System.Text.Encoding.asciiEncoding = new System.Text.ASCIIEncoding();
+  },
+  get_ASCII: function () {
+    return System.Text.Encoding.asciiEncoding;
+  }
+});
 
-System.Text.Encoding.prototype._ctor = function () {
-  System.Object.prototype._ctor.call(this, arguments);
-};
-System.Text.Encoding._cctor2 = function () {
-  // This type already has a cctor so we add a second one.
-  System.Text.Encoding.asciiEncoding = new System.Text.ASCIIEncoding();
-};
-
-System.Text.ASCIIEncoding.prototype._ctor = function () {
-  System.Text.Encoding.prototype._ctor.call(this, arguments);
-};
+JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true, [], function ($) {
+  $.prototype._ctor = function () {
+    System.Text.Encoding.prototype._ctor.call(this, arguments);
+  };
+});
 
 /*
 System.Nullable$b1.prototype.value = null;
