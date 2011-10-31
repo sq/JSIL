@@ -774,6 +774,9 @@ namespace JSIL {
 
             TranslateTypeStaticConstructor(context, output, typedef, typeInfo.StaticConstructor, stubbed);
 
+            if (typedef.FullName == "System.Array")
+                staticExternalMemberNames.Add("Of");
+
             if (externalMemberNames.Count > 0) {
                 output.Identifier("JSIL.ExternalMembers", null);
                 output.LPar();
@@ -783,7 +786,7 @@ namespace JSIL {
                 output.Comma();
                 output.NewLine();
 
-                output.CommaSeparatedList(externalMemberNames, ListValueType.Primitive);
+                output.CommaSeparatedList(externalMemberNames.OrderBy((n) => n), ListValueType.Primitive);
                 output.NewLine();
 
                 output.RPar();
@@ -799,7 +802,7 @@ namespace JSIL {
                 output.Comma();
                 output.NewLine();
 
-                output.CommaSeparatedList(staticExternalMemberNames, ListValueType.Primitive);
+                output.CommaSeparatedList(staticExternalMemberNames.OrderBy((n) => n), ListValueType.Primitive);
                 output.NewLine();
 
                 output.RPar();

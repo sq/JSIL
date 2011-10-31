@@ -2336,6 +2336,12 @@ System.Enum.prototype.toString = function ToString() {
   }
 };
 
+JSIL.ImplementExternals("System.Enum", false, {
+  CheckType: System.Enum.CheckType
+});
+
+$jsilcore.SystemArray = System.Array;
+
 System.Array.prototype = JSIL.MakeProto("System.Object", System.Array, "System.Array", true, $private);
 System.Array.prototype.GetLength = function () {
   return this.length;
@@ -2352,28 +2358,34 @@ System.Array.Of = function (type) {
   if (typeof (type) === "undefined")
     throw new Error("Attempting to create an array of an undefined type");
 
+  var tsa = $jsilcore.SystemArray;
   var elementName = JSIL.GetTypeName(type);
-  var compositeType = System.Array.Types[elementName];
+  var compositeType = tsa.Types[elementName];
 
   if (typeof (compositeType) === "undefined") {
     var typeName = elementName + "[]";
-    compositeType = JSIL.CloneObject(System.Array);
+    compositeType = JSIL.CloneObject(tsa);
     compositeType.FullName = compositeType.__FullName__ = typeName;
     compositeType.__TypeId__ = ++JSIL.$NextTypeId;
     compositeType.__IsArray__ = true;
-    compositeType.prototype = JSIL.MakeProto("System.Array", compositeType, typeName, true, type.__Context__);
+    compositeType.prototype = JSIL.MakeProto(tsa, compositeType, typeName, true, type.__Context__);
     compositeType.toString = function () {
       return typeName;
     };
-    System.Array.Types[elementName] = compositeType;
+    tsa.Types[elementName] = compositeType;
   }
 
   return compositeType;
 };
 System.Array.CheckType = function (value) {
   return JSIL.IsArray(value);
-}
-JSIL.DefineTypeName("System.Array", function () { return System.Array; }, true);
+};
+JSIL.DefineTypeName("System.Array", function () { return $jsilcore.SystemArray; }, true);
+
+JSIL.ImplementExternals("System.Array", false, {
+  Of: System.Array.Of,
+  CheckType: System.Array.CheckType
+});
 
 JSIL.Array.New = function (type, sizeOrInitializer) {
   if (Array.isArray(sizeOrInitializer)) {
