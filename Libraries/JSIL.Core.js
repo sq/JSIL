@@ -589,7 +589,6 @@ JSIL.DeclareNamespace("System.Array", false);
 JSIL.DeclareNamespace("System.Delegate", false);
 JSIL.DeclareNamespace("System.MulticastDelegate", false);
 JSIL.DeclareNamespace("System.Enum", false);
-JSIL.DeclareNamespace("System.Console", false);
 JSIL.DeclareNamespace("System.Text");
 JSIL.DeclareNamespace("System.Threading");
 JSIL.DeclareNamespace("System.Threading.Interlocked", false);

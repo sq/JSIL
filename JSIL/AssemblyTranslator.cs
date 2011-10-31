@@ -600,7 +600,7 @@ namespace JSIL {
                 output.Identifier("JSIL.MakeStaticClass", null);
                 output.LPar();
 
-                output.Value(Util.EscapeIdentifier(typedef.FullName, EscapingMode.String));
+                output.Value(typedef.FullName);
                 output.Comma();
                 output.Value(typedef.IsPublic);
 
@@ -641,7 +641,7 @@ namespace JSIL {
 
                 output.Comma();
 
-                output.Value(Util.EscapeIdentifier(typedef.FullName, EscapingMode.String));
+                output.Value(typedef.FullName);
                 output.Comma();
                 output.Value(typedef.IsPublic);
 

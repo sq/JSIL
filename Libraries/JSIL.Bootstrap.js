@@ -13,9 +13,6 @@ JSIL.MakeClass("System.ComponentModel.MemberDescriptor", "System.ComponentModel.
 JSIL.MakeClass("System.Object", "System.ComponentModel.TypeConverter", true);
 JSIL.MakeClass("System.ComponentModel.TypeConverter", "System.ComponentModel.ExpandableObjectConverter", true);
 
-JSIL.MakeStruct("System.ValueType", "System.TimeSpan", true);
-//JSIL.MakeStruct("System.ValueType", "System.Nullable$b1", true, ["T"]);
-
 System.Delegate.prototype = JSIL.MakeProto(Function, System.Delegate, "System.Delegate", true);
 System.Delegate.prototype.Invoke = function () {
   return this.__method__.apply(this.__object__, arguments);
@@ -112,34 +109,47 @@ System.Func$b1 = JSIL.MakeDelegateType("System.Func`1", "Func`1");
 System.Func$b2 = JSIL.MakeDelegateType("System.Func`2", "Func`2");
 System.Func$b3 = JSIL.MakeDelegateType("System.Func`3", "Func`3");
 
-JSIL.MakeClass(Error, "System.Exception", true);
-System.Exception.prototype._Message = null;
-System.Exception.prototype._ctor = function (message) {
-  if (typeof (message) != "undefined")
-    this._Message = String(message);
-}
-System.Exception.prototype.get_Message = function () {  
-  if ((typeof (this._Message) === "undefined") || (this._Message === null))
-    return System.String.Format("Exception of type '{0}' was thrown.", JSIL.GetTypeName(this));
-  else
-    return this._Message;
-}
-JSIL.MakeProperty(System.Exception.prototype, "Message", 
-  System.Exception.prototype.get_Message, null);
-System.Exception.prototype.toString = function () {
-  var message = this.Message;
-  return System.String.Format("{0}: {1}", JSIL.GetTypeName(this), message);
-};
+JSIL.MakeClass(Error, "System.Exception", true, [], function ($) {
+  $.prototype._Message = null;
+  $.prototype._ctor = function (message) {
+    if (typeof (message) != "undefined")
+      this._Message = String(message);
+  };
+  $.prototype.get_Message = function () {  
+    if ((typeof (this._Message) === "undefined") || (this._Message === null))
+      return System.String.Format("Exception of type '{0}' was thrown.", JSIL.GetTypeName(this));
+    else
+      return this._Message;
+  };
+
+  JSIL.MakeProperty($.prototype, "Message", 
+    $.prototype.get_Message, null);
+
+  $.prototype.toString = function () {
+    var message = this.Message;
+    return System.String.Format("{0}: {1}", JSIL.GetTypeName(this), message);
+  };
+});
 
 JSIL.MakeClass("System.Exception", "System.InvalidCastException", true);
 JSIL.MakeClass("System.Exception", "System.InvalidOperationException", true);
 
-System.Console.WriteLine = function () {
-  JSIL.Host.logWriteLine(System.String.Format.apply(null, arguments));
-};
-System.Console.Write = function () {
-  JSIL.Host.logWrite(System.String.Format.apply(null, arguments));
-};
+JSIL.MakeClass("System.Object", "System.Console", true, [], function ($) {
+  JSIL.ExternalMembers($, false, 
+    "Write", "WriteLine"
+  );
+});
+
+JSIL.ImplementExternals(
+  "System.Console", false, {
+    WriteLine: function () {
+      JSIL.Host.logWriteLine(System.String.Format.apply(null, arguments));
+    },
+    Write: function () {
+      JSIL.Host.logWrite(System.String.Format.apply(null, arguments));
+    }
+  }
+);
 
 String.prototype.Split = function (separators) {
   if (separators.length > 1)
@@ -148,13 +158,93 @@ String.prototype.Split = function (separators) {
   return this.split(separators[0]);
 };
 
-JSIL.MakeClass("System.Object", "System.String", true);
-System.String.__IsNativeType__ = true;
-System.String.CheckType = function (value) {
-  return (typeof (value) === "string") || (
-    (typeof (value.text) === "string") && (value.__proto__ === System.String.prototype)
-  );
-}
+JSIL.MakeClass("System.Object", "System.String", true, [], function ($) {
+  $.__IsNativeType__ = true;
+});
+
+JSIL.ImplementExternals(
+  "System.String", false, {
+    CheckType: function (value) {
+      return (typeof (value) === "string") || (
+        (typeof (value.text) === "string") && (value.__proto__ === prototype)
+      );
+    },
+    Concat: function (firstValue) {
+      if (JSIL.IsArray(firstValue) && arguments.length == 1) {
+        return JSIL.ConcatString.apply(null, firstValue);
+      } else {
+        return JSIL.ConcatString(Array.prototype.slice.call(arguments));
+      }
+    },
+    Format: function (format) {
+      format = String(format);
+
+      var regex = new RegExp("{([0-9]*)(?::([^}]*))?}", "g");
+      var match = null;
+
+      var values = Array.prototype.slice.call(arguments, 1);
+
+      if ((values.length == 1) && JSIL.IsArray(values[0]))
+        values = values[0];
+
+      var matcher = function (match, index, valueFormat, offset, str) {
+        index = parseInt(index);
+
+        var value = values[index];
+
+        if (valueFormat) {
+
+          switch (valueFormat[0]) {
+            case 'f':
+            case 'F':
+              var digits = parseInt(valueFormat.substr(1));
+              return parseFloat(value).toFixed(digits);
+
+            default:
+              throw new Error("Unsupported format string: " + valueFormat);
+          }
+        } else {
+
+          if (typeof (value) === "boolean") {
+            if (value)
+              return "True";
+            else
+              return "False";
+          } else {
+            return String(value);
+          }
+        }
+      };
+
+      return format.replace(regex, matcher);
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.String", true, {
+    _ctor: function (text) {
+      if (typeof (text) === "string")
+        return text;
+      else
+        return String(text);
+    },
+    _ctor$0: function (chars, startIndex, length) {
+      var arr = chars.slice(startIndex, length);
+      return arr.join("");
+    },
+    _ctor$1: function (chars) {
+      return _ctor$0.call(this, chars, 0, chars.length);
+    },
+    _ctor$2: function (ch, length) {
+      var arr = new Array(length);
+      for (var i = 0; i < length; i++)
+        arr[i] = ch;
+      return arr.join("");
+    }
+  }
+);
+
 JSIL.ConcatString = function (/* ...values */) {
   var result = String(arguments[0]);
 
@@ -168,75 +258,7 @@ JSIL.ConcatString = function (/* ...values */) {
 
   return result;
 };
-System.String.Concat = function (firstValue) {
-  if (JSIL.IsArray(firstValue) && arguments.length == 1) {
-    return JSIL.ConcatString.apply(null, firstValue);
-  } else {
-    return JSIL.ConcatString(Array.prototype.slice.call(arguments));
-  }
-};
 System.String.Empty = '';
-System.String.Format = function (format) {
-  format = String(format);
-
-  var regex = new RegExp("{([0-9]*)(?::([^}]*))?}", "g");
-  var match = null;
-
-  var values = Array.prototype.slice.call(arguments, 1);
-
-  if ((values.length == 1) && JSIL.IsArray(values[0]))
-    values = values[0];
-
-  var matcher = function (match, index, valueFormat, offset, str) {
-    index = parseInt(index);
-
-    var value = values[index];
-
-    if (valueFormat) {
-
-      switch (valueFormat[0]) {
-        case 'f':
-        case 'F':
-          var digits = parseInt(valueFormat.substr(1));
-          return parseFloat(value).toFixed(digits);
-
-        default:
-          throw new Error("Unsupported format string: " + valueFormat);
-      }
-    } else {
-
-      if (typeof (value) === "boolean") {
-        if (value)
-          return "True";
-        else
-          return "False";
-      } else {
-        return String(value);
-      }
-    }
-  };
-
-  return format.replace(regex, matcher);
-};
-System.String.prototype._ctor = function (text) {
-  if (typeof (text) === "string")
-    return text;
-  else
-    return String(text);
-}
-System.String.prototype._ctor$0 = function (chars, startIndex, length) {
-  var arr = chars.slice(startIndex, length);
-  return arr.join("");
-};
-System.String.prototype._ctor$1 = function (chars) {
-  return System.String.prototype._ctor$0.call(this, chars, 0, chars.length);
-};
-System.String.prototype._ctor$2 = function (ch, length) {
-  var arr = new Array(length);
-  for (var i = 0; i < length; i++)
-    arr[i] = ch;
-  return arr.join("");
-};
 
 JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, [], function ($) {
   $.prototype._ctor = function (array) {
@@ -292,16 +314,6 @@ JSIL.MakeProperty(
   System.Threading.Thread, "CurrentThread", 
   System.Threading.Thread.get_CurrentThread, null
 );
-
-JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"], function ($) {
-  JSIL.MakeProperty(
-    $.prototype, "Count", 
-    $.prototype.get_Count, null
-  );
-  JSIL.ImplementInterfaces($, [
-    System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
-  ]);
-});
 
 $jsilcore.$ListExternals = {
   _ctor: function (sizeOrInitializer) {
@@ -376,6 +388,22 @@ JSIL.ImplementExternals("System.Collections.Generic.List`1", true, $jsilcore.$Li
 
 // Lazy way of sharing method implementations between ArrayList and List<T>.
 JSIL.ImplementExternals("System.Collections.ArrayList", true, $jsilcore.$ListExternals);
+
+JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"], function ($) {
+  JSIL.ExternalMembers($, true, 
+    "_ctor", "Add", "AddRange", "Remove", "RemoveAt", "Clear", 
+    "get_Item", "get_Count", "get_Capacity", "GetEnumerator"
+  );
+
+  JSIL.MakeProperty(
+    $.prototype, "Count", 
+    $.prototype.get_Count, null
+  );
+
+  JSIL.ImplementInterfaces($, [
+    System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
+  ]);
+});
 
 // TODO: This type is actually a struct in the CLR
 JSIL.MakeClass("JSIL.ArrayEnumerator", "System.Collections.Generic.List`1/Enumerator", true, ["T"], function ($) {
@@ -593,58 +621,39 @@ JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true, [], fu
   };
 });
 
-/*
-System.Nullable$b1.prototype.value = null;
-System.Nullable$b1.CheckType = function (value) {
-  if (value === null)
-    return true;
+JSIL.MakeStruct("System.ValueType", "System.TimeSpan", true, [], function ($) {
+    JSIL.ExternalMembers($, true, 
+      "get_Ticks", "get_Milliseconds", "get_TotalMilliseconds", "get_Seconds",
+      "get_Minutes", "get_Hours", "get_Days", "get_TotalSeconds", "get_TotalMinutes"
+    );
 
-  if (typeof (this.T) === "object") {
-    return JSIL.CheckType(value, this.T);
-  } else {
-    return true;
-  }
-};
+    JSIL.MakeProperty($.prototype, "Ticks",
+      $.prototype.get_Ticks);
 
-System.Nullable$b1.prototype._ctor = function (value) {
-  this.value = value;
-};
+    JSIL.MakeProperty($.prototype, "Milliseconds",
+      $.prototype.get_Milliseconds);
 
-System.Nullable$b1.prototype.get_HasValue = function () {
-  return (this.value !== null);
-};
+    JSIL.MakeProperty($.prototype, "TotalMilliseconds",
+      $.prototype.get_TotalMilliseconds);
 
-System.Nullable$b1.prototype.get_Value = function () {
-  if (this.value === null)
-    throw new System.NullReferenceException();
+    JSIL.MakeProperty($.prototype, "Seconds",
+      $.prototype.get_Seconds);
 
-  return this.value;
-};
+    JSIL.MakeProperty($.prototype, "Minutes",
+      $.prototype.get_Minutes);
 
-JSIL.MakeProperty(
-  System.Nullable$b1.prototype, "HasValue",
-  System.Nullable$b1.prototype.get_HasValue, null
-);
+    JSIL.MakeProperty($.prototype, "Hours",
+      $.prototype.get_Hours);
 
-JSIL.MakeProperty(
-  System.Nullable$b1.prototype, "Value",
-  System.Nullable$b1.prototype.get_Value, null
-);
+    JSIL.MakeProperty($.prototype, "Days",
+      $.prototype.get_Days);
 
-System.Nullable$b1.prototype.GetValueOrDefault$0 = function () {
-  if (this.value === null) {
-    if (this.T.__IsNumeric__) {
-      return 0;
-    } else if (this.T.__IsReferenceType__) {
-      return null;
-    } else {
-      return new (this.T)();
-    }
-  } else {
-    return this.value;
-  }
-};
-*/
+    JSIL.MakeProperty($.prototype, "TotalSeconds",
+      $.prototype.get_TotalSeconds);
+
+    JSIL.MakeProperty($.prototype, "TotalMinutes",
+      $.prototype.get_TotalMinutes);
+});
 
 JSIL.ImplementExternals(
   "System.TimeSpan", false, {
@@ -757,34 +766,6 @@ JSIL.ImplementExternals(
     }
   }
 );
-
-
-JSIL.MakeProperty(System.TimeSpan.prototype, "Ticks",
-  System.TimeSpan.prototype.get_Ticks);
-
-JSIL.MakeProperty(System.TimeSpan.prototype, "Milliseconds",
-  System.TimeSpan.prototype.get_Milliseconds);
-
-JSIL.MakeProperty(System.TimeSpan.prototype, "TotalMilliseconds",
-  System.TimeSpan.prototype.get_TotalMilliseconds);
-
-JSIL.MakeProperty(System.TimeSpan.prototype, "Seconds",
-  System.TimeSpan.prototype.get_Seconds);
-
-JSIL.MakeProperty(System.TimeSpan.prototype, "Minutes",
-  System.TimeSpan.prototype.get_Minutes);
-
-JSIL.MakeProperty(System.TimeSpan.prototype, "Hours",
-  System.TimeSpan.prototype.get_Hours);
-
-JSIL.MakeProperty(System.TimeSpan.prototype, "Days",
-  System.TimeSpan.prototype.get_Days);
-
-JSIL.MakeProperty(System.TimeSpan.prototype, "TotalSeconds",
-  System.TimeSpan.prototype.get_TotalSeconds);
-
-JSIL.MakeProperty(System.TimeSpan.prototype, "TotalMinutes",
-  System.TimeSpan.prototype.get_TotalMinutes);
 
 JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary$b2", true, ["TKey", "TValue"]);
 
