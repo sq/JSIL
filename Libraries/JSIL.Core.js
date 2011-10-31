@@ -2078,8 +2078,8 @@ JSIL.OverloadedMethodCore = function (type, name, overloads, dispatcher) {
   );
 };
 
-JSIL.OverloadedMethod = function (type, name, overloads) {
-  var assembly = $private;
+JSIL.OverloadedMethod = function (type, name, overloads, _assembly) {
+  var assembly = _assembly || $private;
   var r = JSIL.MakeOverloadResolver(overloads, assembly);
 
   var result = function () {
@@ -2095,8 +2095,9 @@ JSIL.OverloadedMethod = function (type, name, overloads) {
   JSIL.OverloadedMethodCore(type, name, overloads, result);
 };
 
-JSIL.OverloadedGenericMethod = function (type, name, overloads) {
-  var r = JSIL.MakeOverloadResolver(overloads);
+JSIL.OverloadedGenericMethod = function (type, name, overloads, _assembly) {
+  var assembly = _assembly || $private;
+  var r = JSIL.MakeOverloadResolver(overloads, assembly);
 
   var result = function () {
     var genericArguments = Array.prototype.slice.call(arguments);

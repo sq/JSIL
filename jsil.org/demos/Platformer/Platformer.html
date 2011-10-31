@@ -8,6 +8,7 @@
   <body onload="onLoad()">
     <script src="../Libraries/JSIL.Core.js" type="text/javascript"></script>
     <script src="../Libraries/JSIL.Bootstrap.js" type="text/javascript"></script>
+    <script src="manifest.js" type="text/javascript"></script>
     
     <!-- workaround for chromium bug -->
     <div id="scripts"></div>
@@ -110,7 +111,7 @@
           document.getElementById("welcomeMessage").setAttribute("style", "display: none");
         } catch (ex) {
         }
-        $asm01.PlatformerStarterKit.Program.Main([]);
+        JSIL.GetAssembly("PlatformerStarterKit, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null").PlatformerStarterKit.Program.Main([]);
       };
     </script>
     <script src="../Libraries/JSIL.Browser.js" type="text/javascript"></script>

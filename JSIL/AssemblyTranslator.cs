@@ -932,7 +932,8 @@ namespace JSIL {
 
                 output.OpenBracket();
                 output.CommaSeparatedList(
-                    from p in method.Member.Parameters select p.ParameterType, ListValueType.TypeReference
+                    from p in method.Member.Parameters select p.ParameterType, 
+                    ListValueType.TypeReference
                 );
                 output.CloseBracket();
 
@@ -941,6 +942,8 @@ namespace JSIL {
             }
 
             output.CloseBracket(true, () => {
+                output.Comma();
+                output.Identifier(output.PrivateToken);
                 output.RPar();
                 output.Semicolon();
             });
