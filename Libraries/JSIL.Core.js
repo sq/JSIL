@@ -62,7 +62,7 @@ printStackTrace.implementation.prototype = {
         // Use either the stored mode, or resolve it
         //var mode = this._mode || this.mode(ex);
         if (mode === 'other') {
-            return this.other(arguments.callee);
+            return "unknown";
         } else {
             return this[mode](ex);
         }

@@ -706,10 +706,10 @@ JSIL.ImplementExternals(
 JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Rectangle", true, {
     _ctor: function (x, y, width, height) {
-      this.X = Math.floor(x);
-      this.Y = Math.floor(y);
-      this.Width = Math.floor(width);
-      this.Height = Math.floor(height);
+      this.X = x;
+      this.Y = y;
+      this.Width = width;
+      this.Height = height;
     },
     get_Left: function () {
       return this.X;
@@ -766,8 +766,8 @@ JSIL.ImplementExternals(
 JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Point", true, {
     _ctor: function (x, y) {
-      this.X = Math.floor(x);
-      this.Y = Math.floor(y);
+      this.X = x;
+      this.Y = y;
     },
     Equals$0: function (rhs) {
       return this.X === rhs.X && this.Y === rhs.Y;
