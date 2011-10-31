@@ -2116,55 +2116,70 @@ JSIL.OverloadedGenericMethod = function (type, name, overloads) {
 };
 
 JSIL.MakeClass(Object, "System.Object", true, [], function ($) {
-  $.CheckType = function (value) {
-    return true;
-  };
-  $.prototype.Equals = function (rhs) {
-    return this === rhs;
-  };
-  $.prototype.MemberwiseClone = function () {
-    var result = Object.create(Object.getPrototypeOf(this));
-
-    JSIL.CopyMembers(this, result);
-    return result;
-  };
-  $.prototype.__Initialize__ = function (initializer) {
-    if (JSIL.IsArray(initializer)) {
-      JSIL.CollectionInitializer.prototype.Apply.call(initializer, this);
-      return this;
-    } else if (JSIL.CheckType(initializer, JSIL.CollectionInitializer)) {
-      initializer.Apply(this);
-      return this;
-    }
-
-    for (var key in initializer) {
-      if (!initializer.hasOwnProperty(key))
-        continue;
-
-      var value = initializer[key];
-
-      if (JSIL.CheckType(value, JSIL.CollectionInitializer)) {
-        value.Apply(this[key]);
-      } else {
-        this[key] = value;
-      }
-    }
-
-    return this;
-  };
-  $.CheckType = function (value) {
-    return (typeof (value) === "object");
-  };
   $.prototype.__LockCount__ = 0;
   $.prototype.__StructFields__ = [];
-  $.prototype._ctor = function () {};
-  $.prototype.GetType = function () {
-    return System.Object;
-  };
-  $.prototype.toString = function ToString() {
-    return JSIL.GetTypeName(this);
-  };
+
+  JSIL.ExternalMembers($, true, 
+    "Equals", "MemberwiseClone", "__Initialize__", 
+    "_ctor", "GetType", "toString"
+  );
+  JSIL.ExternalMembers($, false,
+    "CheckType"
+  );
 });
+
+JSIL.ImplementExternals(
+  "System.Object", false, {
+    CheckType: function (value) {
+      return (typeof (value) === "object");
+    }
+  }
+);
+JSIL.ImplementExternals(
+  "System.Object", true, {
+    Equals: function (rhs) {
+      return this === rhs;
+    },
+    MemberwiseClone: function () {
+      var result = Object.create(Object.getPrototypeOf(this));
+
+      JSIL.CopyMembers(this, result);
+      return result;
+    },
+    __Initialize__: function (initializer) {
+      if (JSIL.IsArray(initializer)) {
+        JSIL.CollectionInitializer.prototype.Apply.call(initializer, this);
+        return this;
+      } else if (JSIL.CheckType(initializer, JSIL.CollectionInitializer)) {
+        initializer.Apply(this);
+        return this;
+      }
+
+      for (var key in initializer) {
+        if (!initializer.hasOwnProperty(key))
+          continue;
+
+        var value = initializer[key];
+
+        if (JSIL.CheckType(value, JSIL.CollectionInitializer)) {
+          value.Apply(this[key]);
+        } else {
+          this[key] = value;
+        }
+      }
+
+      return this;
+    },
+    _ctor: function () {
+    },
+    GetType: function () {
+      return System.Object;
+    },
+    toString: function ToString() {
+      return JSIL.GetTypeName(this);
+    }
+  }
+);
 
 JSIL.MakeClass("System.Object", "JSIL.AnyType", true, [], function ($) {
   $.CheckType = function (value) {

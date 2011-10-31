@@ -767,41 +767,45 @@ JSIL.ImplementExternals(
   }
 );
 
-JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary$b2", true, ["TKey", "TValue"]);
+JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary`2", true, ["TKey", "TValue"]);
 
-System.Collections.Generic.Dictionary$b2.prototype._ctor$0 = function () {
-  this._dict = {};
-};
-
-System.Collections.Generic.Dictionary$b2.prototype._ctor$1 = function (count) {
-  this._dict = {};
-};
-
-System.Collections.Generic.Dictionary$b2.prototype.get_Item = function (key) {
-  return this._dict[String(key)];
-};
-
-System.Collections.Generic.Dictionary$b2.prototype.set_Item = function (key, value) {
-  this._dict[String(key)] = value;
-};
-
-System.Collections.Generic.Dictionary$b2.prototype.ContainsKey = function (key) {
-  return this._dict.hasOwnProperty(key);
-};
+JSIL.ImplementExternals(
+  "System.Collections.Generic.Dictionary`2", true, {
+    _ctor$0: function () {
+      this._dict = {};
+    },
+    _ctor$1: function (count) {
+      this._dict = {};
+    },
+    get_Item: function (key) {
+      return this._dict[String(key)];
+    },
+    set_Item: function (key, value) {
+      this._dict[String(key)] = value;
+    },
+    ContainsKey: function (key) {
+      return this._dict.hasOwnProperty(key);
+    }
+  }
+);
 
 JSIL.MakeStaticClass("System.Linq.Enumerable", true);
 
-System.Linq.Enumerable.Count$b1$0 = JSIL.GenericMethod(
-  ["T"], 
-  function (T, enumerable) {
-    var e = enumerable.IEnumerable$b1_GetEnumerator();
-    var result = 0;
-    try {
-      while (e.MoveNext())
-        result += 1;
-    } finally {
-      e.IDisposable_Dispose();
-    }
-    return result;
+JSIL.ImplementExternals(
+  "System.Linq.Enumerable", false, {
+    Count$b1$0: JSIL.GenericMethod(
+      ["T"], 
+      function (T, enumerable) {
+        var e = enumerable.IEnumerable$b1_GetEnumerator();
+        var result = 0;
+        try {
+          while (e.MoveNext())
+            result += 1;
+        } finally {
+          e.IDisposable_Dispose();
+        }
+        return result;
+      }
+    )
   }
 );

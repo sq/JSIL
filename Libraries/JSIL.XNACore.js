@@ -80,7 +80,7 @@ JSIL.ImplementExternals(
   }
 );
 
-JSIL.MakeClass("System.Object", "HTML5Asset", true);
+JSIL.MakeClass($jsilcore.System.Object, "HTML5Asset", true);
 HTML5Asset.prototype._ctor = function (assetName) {
   this.name = assetName;
 }
@@ -517,8 +517,10 @@ JSIL.ImplementExternals(
       if (elapsed > this._frameDelay)
         elapsed = this._frameDelay;
 
-      this._gameTime.elapsedRealTime._ticks = this._gameTime.elapsedGameTime._ticks = Math.floor(elapsed * System.TimeSpan.MillisecondInTicks);
-      this._gameTime.totalRealTime._ticks = this._gameTime.totalGameTime._ticks = Math.floor(total * System.TimeSpan.MillisecondInTicks);
+      var millisecondInTicks = 10000;
+
+      this._gameTime.elapsedRealTime._ticks = this._gameTime.elapsedGameTime._ticks = Math.floor(elapsed * millisecondInTicks);
+      this._gameTime.totalRealTime._ticks = this._gameTime.totalGameTime._ticks = Math.floor(total * millisecondInTicks);
 
       var failed = true;
       try {
