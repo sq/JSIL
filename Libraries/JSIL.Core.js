@@ -748,10 +748,6 @@ JSIL.ExternalMembers = function (namespace, isInstance /*, ...memberNames */) {
   var namespaceName = JSIL.GetTypeName(namespace);
   var impl = JSIL.AllImplementedExternals[namespaceName];
 
-  if (namespaceName.indexOf("System.TimeSpan") >= 0) {
-    JSIL.Host.warning("farts");
-  }
-
   var prefix = isInstance ? "instance$" : "";
 
   if (isInstance) {
@@ -2578,7 +2574,7 @@ JSIL.MakeDelegateType = function (fullName, localName) {
 
       return false;
     },
-    IsEnum: false,
+    IsEnum: false
   };
 
   result.Of = function () {
@@ -2590,31 +2586,18 @@ JSIL.MakeDelegateType = function (fullName, localName) {
   return result;
 }
 
-JSIL.MakeDelegate = function (fullName) {
+JSIL.MakeDelegate = function (fullName, isPublic) {
+  var assembly = $private;
+
   try {
     delete JSIL.Delegate.Types[fullName];
   } catch (e) {
   }
 
   var result = JSIL.MakeDelegateType(fullName);
-  var decl = {
-    configurable: true,
-    enumerable: true,
-    value: result
-  };
 
-  var resolvedPrivate = JSIL.ResolveName($private, fullName, false);    
-  var resolved = JSIL.ResolveName(JSIL.GlobalNamespace, fullName, true);
-
-  if (!resolved.exists()) {
-    resolved.define(decl);
-  } else {
-    JSIL.ShadowedTypeWarning(fullName);
-  }
-
-  if (!resolvedPrivate.exists())
-    resolvedPrivate.define(decl);
-
+  JSIL.RegisterName(fullName, assembly, isPublic, function () { return result; });
+  
   return result;
 };
 

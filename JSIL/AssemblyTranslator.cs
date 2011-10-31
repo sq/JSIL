@@ -540,6 +540,9 @@ namespace JSIL {
             output.LPar();
 
             output.Value(Util.EscapeIdentifier(del.FullName, EscapingMode.String));
+            output.Comma();
+
+            output.Value(del.IsPublic);
 
             output.RPar();
             output.Semicolon();
