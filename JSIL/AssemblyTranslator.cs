@@ -691,6 +691,71 @@ namespace JSIL {
             return true;
         }
 
+        protected void TranslatePrimitiveDefinition (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef, bool stubbed) {
+            bool isIntegral = false;
+            bool isNumeric = false;
+
+            switch (typedef.FullName) {
+                case "System.Boolean":
+                    isIntegral = true;
+                    isNumeric = true;
+                    break;
+                case "System.Char":
+                    isIntegral = true;
+                    isNumeric = true;
+                    break;
+                case "System.Byte":
+                case "System.SByte":
+                case "System.UInt16":
+                case "System.Int16":
+                case "System.UInt32":
+                case "System.Int32":
+                case "System.UInt64":
+                case "System.Int64":
+                    isIntegral = true;
+                    isNumeric = true;
+                    break;
+                case "System.Single":
+                case "System.Double":
+                case "System.Decimal":
+                    isIntegral = false;
+                    isNumeric = true;
+                    break;
+            }
+
+            output.Identifier("$", null);
+            output.Dot();
+            output.Identifier("__IsIntegral__");
+            output.Token(" = ");
+            output.Value(isIntegral);
+            output.Semicolon(true);
+
+            output.Identifier("$", null);
+            output.Dot();
+            output.Keyword("prototype");
+            output.Dot();
+            output.Identifier("__IsIntegral__");
+            output.Token(" = ");
+            output.Value(isIntegral);
+            output.Semicolon(true);
+
+            output.Identifier("$", null);
+            output.Dot();
+            output.Identifier("__IsNumeric__");
+            output.Token(" = ");
+            output.Value(isNumeric);
+            output.Semicolon(true);
+
+            output.Identifier("$", null);
+            output.Dot();
+            output.Keyword("prototype");
+            output.Dot();
+            output.Identifier("__IsNumeric__");
+            output.Token(" = ");
+            output.Value(isNumeric);
+            output.Semicolon(true);
+        }
+
         protected void TranslateTypeDefinition (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef, bool stubbed) {
             var typeInfo = TypeInfoProvider.GetTypeInformation(typedef);
             if (!ShouldTranslateMethods(typedef))
@@ -711,7 +776,10 @@ namespace JSIL {
                     stubbed, externalMemberNames, staticExternalMemberNames
                 );
             }
-            
+
+            if (typedef.IsPrimitive)
+                TranslatePrimitiveDefinition(context, output, typedef, stubbed);
+
             Action initializeOverloadsAndProperties = () => {
                 foreach (var methodGroup in typeInfo.MethodGroups)
                     TranslateMethodGroup(context, output, methodGroup);

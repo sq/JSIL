@@ -160,6 +160,13 @@ String.prototype.Split = function (separators) {
 
 JSIL.MakeClass("System.Object", "System.String", true, [], function ($) {
   $.__IsNativeType__ = true;
+
+  JSIL.ExternalMembers($, false, 
+    "Concat", "Format"
+  );
+  JSIL.ExternalMembers($, true,
+    "_ctor", "_ctor$0", "_ctor$1", "_ctor$2"
+  );
 });
 
 JSIL.ImplementExternals(
@@ -460,28 +467,41 @@ System.Threading.Monitor.Exit = function (obj) {
   obj.__LockCount__ = current - 1;
 };
 
-JSIL.MakeClass("System.Object", "System.Random", true);
-System.Random.prototype._ctor = function () {
-}
-System.Random.prototype.Next = function (min, max) {
-  if (typeof (min) === "undefined") {
-    min = 0;
-    max = Int32.MaxValue;
-  } else if (typeof (max) === "undefined") {
-    max = min;
-    min = 0;
+JSIL.MakeClass("System.Object", "System.Random", true, [], function ($) {
+  JSIL.ExternalMembers($, true,
+    "_ctor", "Next", "NextDouble"
+  );
+});
+
+JSIL.ImplementExternals("System.Random", true, {
+  _ctor: function () {
+  },
+  Next: function (min, max) {
+    if (typeof (min) === "undefined") {
+      min = 0;
+      max = Int32.MaxValue;
+    } else if (typeof (max) === "undefined") {
+      max = min;
+      min = 0;
+    }
+
+    return Math.floor(Math.random() * (max - min)) + min;
+  },
+  NextDouble: Math.random
+});
+
+JSIL.ImplementExternals(
+  "System.Math", false, {
+    Max: Math.max,
+    Min: Math.min
   }
+);
 
-  return Math.floor(Math.random() * (max - min)) + min;
-}
-System.Random.prototype.NextDouble = function () {
-  return Math.random();
-}
-
-System.Math = {
-  Max: Math.max,
-  Min: Math.min
-};
+JSIL.MakeStaticClass("System.Math", true, function ($) {
+  JSIL.ExternalMembers($, false, 
+    "Min", "Max"
+  );
+});
 
 JSIL.ImplementExternals(
   "System.Boolean", false, {
