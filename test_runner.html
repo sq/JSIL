@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>JSIL Test Runner</title>
+    <style>
+      body, button, input {
+        font-family: Calibri, Tahoma, Verdana, sans-serif;
+        font-size: 14pt;
+      }
+      
+      label {
+        font-weight: bold;
+        display: inline-block;
+        width: 10em;
+      }
+      
+      input[type="text"] {
+        width: 20em;
+      }
+      
+      button {
+        width: 10em;
+      }
+    </style>
+  </head>
+  <body onload="onLoad()">
+    <script src="Libraries/JSIL.Core.js" type="text/javascript"></script>
+    <script src="Libraries/JSIL.Bootstrap.js" type="text/javascript"></script>
+    
+    <label for="scriptname">Test Script To Run:</label> <input type="text" name="scriptname" id="scriptname" value="Tests/SimpleTestCases/If.js"></input><br>
+    <button id="runscript" name="runscript">Run</button>
+    
+    <hr>
+    
+    <div id="loadedscripts"></div>
+    
+    <script type="text/javascript">
+      var _started = Date.now();
+    
+      function print (text) {
+        console.log(text);
+      }
+    
+      function timeout (t) {
+        // no-op
+      }
+      
+      function elapsed (t) {
+        return Date.now() - _started;
+      }
+    
+      function runScript () {
+        var scriptname = document.getElementById("scriptname").value;
+        
+        var onError = function () {
+          alert("Failed to load script.");
+        };
+        
+        var elt = document.createElement("script");
+        elt.type = "text/javascript";
+        elt.addEventListener("error", onError, true);
+        elt.async = true;
+        
+        var container = document.getElementById("loadedscripts");
+        container.innerHTML = "";
+        container.appendChild(elt);
+        
+        elt.src = scriptname;
+      }
+      
+      function onLoad () {
+        document.getElementById("runscript").addEventListener("click", runScript, true);
+      }
+    </script>
+  </body>
+</html>

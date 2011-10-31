@@ -519,14 +519,14 @@ JSIL.GetTypeByName = function (name, assembly) {
   if (assembly !== undefined) {
     var typeFunction = assembly.typesByName[name];
     if (typeof (typeFunction) === "function")
-      return typeFunction();
+      return typeFunction(false);
   }
 
   var typeFunction = JSIL.$PublicTypes[name];
   if (typeof (typeFunction) !== "function")
     throw new Error("Type '" + name + "' has not been defined.");
 
-  return typeFunction();
+  return typeFunction(false);
 };
 
 JSIL.DefineTypeName = function (name, getter, isPublic) {
@@ -952,7 +952,7 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
   };
   JSIL.AllRegisteredNames.push(state);
 
-  var getter = function () {
+  var getter = function (unseal) {
     var result;
 
     if (state.constructing)
@@ -995,7 +995,11 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
       }
     }
 
-    if (state.sealed) {
+    if (typeof (unseal) !== "boolean") {
+      unseal = true;
+    }
+
+    if (state.sealed && unseal) {
       state.sealed = false;
 
       JSIL.InitializeType(result);
