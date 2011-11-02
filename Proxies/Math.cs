@@ -34,9 +34,14 @@ namespace JSIL.Proxies {
         public static double Cos (double d) {
             throw new InvalidOperationException();
         }
-
+        
         [JSReplacement("Math.sin($d)")]
         public static double Sin (double d) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("Math.tan($d)")]
+        public static double Tan (double d) {
             throw new InvalidOperationException();
         }
 
