@@ -1,0 +1,21 @@
+{
+  "ApplyDefaults": true,
+  "IncludeDependencies": true,
+  "FrameworkVersion": "3.5",
+  "OutputDirectory": "."
+  "Assemblies": {
+    "IgnoredRegexes": [
+    ],
+    "StubbedRegexes": [
+    ],
+    "Proxies": [
+      "JSIL.Proxies.XNA3.dll"
+    ]
+  },
+  "Optimizer": {
+    "OptimizeStructCopies": true,
+    "SimplifyOperators": true,
+    "SimplifyLoops": true,
+    "EliminateTemporaries": true
+  },
+}

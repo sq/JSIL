@@ -78,6 +78,7 @@
     <Compile Include="Progress.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SpecialIdentifiers.cs" />
+    <Compile Include="Transforms\ReplaceMethodCalls.cs" />
     <Compile Include="Transforms\IntroduceEnumCasts.cs" />
     <Compile Include="Transforms\SimplifyLoops.cs" />
     <Compile Include="Transforms\StaticAnalyzer.cs" />

@@ -1087,6 +1087,10 @@ namespace JSIL {
                     si.JSIL, si.JS, si.TypeSystem
                 ).Visit(function);
 
+            new ReplaceMethodCalls(
+                si.JSIL, si.JS, si.TypeSystem
+            ).Visit(function);
+
             new IntroduceEnumCasts(
                 si.TypeSystem
             ).Visit(function);

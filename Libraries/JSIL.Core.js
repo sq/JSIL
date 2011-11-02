@@ -1172,7 +1172,7 @@ JSIL.TypeObjectPrototype.Of = function () {
     JSIL.MakeIndirectProperty(result, k, self);
   }
 
-  var fullName = this.__FullName__ + "<" + Array.prototype.join.call(arguments, ", ") + ">";
+  var fullName = this.__FullName__ + "[" + Array.prototype.join.call(arguments, ", ") + "]";
   result.__TypeId__ = ++JSIL.$NextTypeId;
   result.__FullName__ = fullName;
   result.toString = function () {
@@ -2659,4 +2659,4 @@ JSIL.Delegate.New = function (typeName, object, method) {
 
   Object.seal(result);
   return result;
-}
+};

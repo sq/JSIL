@@ -849,7 +849,11 @@ JSIL.ImplementExternals(
   }
 );
 
-JSIL.MakeStaticClass("System.Linq.Enumerable", true);
+JSIL.MakeStaticClass("System.Linq.Enumerable", true, [], function ($) {
+  JSIL.ExternalMembers($, false, 
+    "Count$b1$0"
+  );
+});
 
 JSIL.ImplementExternals(
   "System.Linq.Enumerable", false, {
@@ -869,3 +873,24 @@ JSIL.ImplementExternals(
     )
   }
 );
+
+JSIL.MakeStaticClass("System.Nullable", true, [], function ($) {
+  JSIL.ExternalMembers($, false, 
+    "GetUnderlyingType"
+  );
+});
+
+JSIL.ImplementExternals(
+  "System.Nullable", false, {
+    GetUnderlyingType: function (nullableType) {   
+      if (JSIL.GetTypeName(nullableType).indexOf("System.Nullable`1") !== 0) {
+        return null;
+      } else {
+        return nullableType.T;
+      }
+    }
+  }
+);
+
+JSIL.MakeStruct("System.ValueType", "System.Nullable`1", true, ["T"], function ($) {
+});

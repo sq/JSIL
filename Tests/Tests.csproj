@@ -237,6 +237,7 @@
     <None Include="SimpleTestCases\ClassEquals.cs" />
     <None Include="SimpleTestCases\CollectionAndObjectInitializers.cs" />
     <None Include="FailingTestCases\HideBaseMethod.cs" />
+    <None Include="SimpleTestCases\GetUnderlyingType.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

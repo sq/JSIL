@@ -9,7 +9,6 @@ namespace JSIL.Proxies {
         attributePolicy: JSProxyAttributePolicy.ReplaceDeclared
     )]
     public abstract class ObjectProxy {
-        [JSReplacement("JSIL.GetType($this)")]
         [JSIsPure]
         new abstract public Type GetType ();
 
