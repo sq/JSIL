@@ -185,7 +185,7 @@ namespace JSIL.Tests {
             try {
                 // throw new Exception();
 
-                var psi = new ProcessStartInfo(JSShellPath, String.Format("-w -j -m -f \"{0}\" -f \"{1}\" -f \"{2}\"", CoreJSPath, BootstrapJSPath, tempFilename)) {
+                var psi = new ProcessStartInfo(JSShellPath, String.Format("-j -m -n -f \"{0}\" -f \"{1}\" -f \"{2}\"", CoreJSPath, BootstrapJSPath, tempFilename)) {
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,
