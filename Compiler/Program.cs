@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Web.Script.Serialization;
 using JSIL.Translator;
 
 namespace JSIL.Compiler {
@@ -13,8 +14,8 @@ namespace JSIL.Compiler {
             Console.Error.WriteLine("// Applying default settings. To suppress, use --nodefaults.");
 
             configuration.Assemblies.Stubbed.Add(@"mscorlib,");
-            configuration.Assemblies.Stubbed.Add(@"System\..*");
-            configuration.Assemblies.Stubbed.Add(@"Microsoft\..*");
+            configuration.Assemblies.Stubbed.Add(@"System.*");
+            configuration.Assemblies.Stubbed.Add(@"Microsoft.*");
             configuration.Assemblies.Stubbed.Add(@"Accessibility,");
         }
 
@@ -56,10 +57,7 @@ namespace JSIL.Compiler {
             return result;
         }
 
-        static void Main (string[] arguments) {
-            List<string> filenames;
-            var configuration = ParseCommandLine(arguments, out filenames);
-
+        static AssemblyTranslator CreateTranslator (Configuration configuration) {
             var translator = new AssemblyTranslator(configuration);
 
             translator.LoadingAssembly += (fn, progress) => {
@@ -126,6 +124,13 @@ namespace JSIL.Compiler {
                 Console.Error.WriteLine("// Could not decompile method {0}: {1}", fn, ex.Message);
             };
 
+            return translator;
+        }
+
+        static void Main (string[] arguments) {
+            List<string> filenames;
+            var configuration = ParseCommandLine(arguments, out filenames);
+
             if (filenames.Count == 0) {
                 var asmName = Assembly.GetExecutingAssembly().GetName();
                 Console.WriteLine("==== JSILc v{0}.{1}.{2} ====", asmName.Version.Major, asmName.Version.Minor, asmName.Version.Revision);
@@ -159,6 +164,20 @@ namespace JSIL.Compiler {
                 return;
             }
 
+            foreach (var filename in filenames.ToArray()) {
+                var extension = Path.GetExtension(filename);
+                switch (extension.ToLower()) {
+                    case ".sln":
+                        foreach (var resultFilename in SolutionBuilder.Build(filename)) {
+                            filenames.Add(resultFilename);
+                        }
+                        break;
+                    case ".jsilconfig":
+                        break;
+                }
+            }
+
+            var translator = CreateTranslator(configuration);
             while (filenames.Count > 0) {
                 var filename = filenames.First();
                 filenames.Remove(filename);
@@ -173,9 +192,7 @@ namespace JSIL.Compiler {
                         Console.Error.WriteLine("done");
                         break;
                     case ".sln":
-                        foreach (var resultFilename in SolutionBuilder.Build(filename)) {
-                            filenames.Add(resultFilename);
-                        }
+                    case ".jsilconfig":
                         break;
                     default:
                         Console.Error.WriteLine("// Don't know what to do with file '{0}'.", filename);
