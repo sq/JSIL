@@ -13,30 +13,22 @@ using ICSharpCode.NRefactory.CSharp;
 using JSIL.Ast;
 using JSIL.Internal;
 using JSIL.Transforms;
+using JSIL.Translator;
 using Mono.Cecil;
 using ICSharpCode.Decompiler;
 using Mono.Cecil.Pdb;
 using Mono.Cecil.Cil;
 
 namespace JSIL {
-    public enum FrameworkVersion {
-        V35,
-        V40
-    }
-
     public class AssemblyTranslator {
         public const int LargeMethodThreshold = 1024;
 
-        public readonly SymbolProvider SymbolProvider = new SymbolProvider();
-
-        public readonly FunctionCache FunctionCache = new FunctionCache();
-        public readonly AssemblyManifest Manifest = new AssemblyManifest();
+        public readonly Configuration Configuration;
         public readonly TypeInfoProvider TypeInfoProvider;
 
-        public readonly HashSet<string> GeneratedFiles = new HashSet<string>();
-        public readonly List<Regex> IgnoredAssemblies = new List<Regex>();
-        public readonly List<Regex> StubbedAssemblies = new List<Regex>();
-        public readonly HashSet<string> DeclaredTypes = new HashSet<string>();
+        public readonly SymbolProvider SymbolProvider = new SymbolProvider();
+        public readonly FunctionCache FunctionCache = new FunctionCache();
+        public readonly AssemblyManifest Manifest = new AssemblyManifest();
 
         public event Action<string, ProgressReporter> LoadingAssembly;
 
@@ -49,43 +41,43 @@ namespace JSIL {
         public event Action<string, Exception> CouldNotResolveAssembly;
         public event Action<string, Exception> CouldNotDecompileMethod;
 
-        public bool EliminateTemporaries = true;
-        public bool OptimizeStructCopies = true;
-        public bool SimplifyLoops = true;
-        public bool SimplifyOperators = true;
-        public bool IncludeDependencies = true;
-        public bool UseSymbols = true;
-
+        protected readonly HashSet<string> DeclaredTypes = new HashSet<string>();
         protected JavascriptAstEmitter AstEmitter;
 
         public AssemblyTranslator (
-            FrameworkVersion frameworkVersion = FrameworkVersion.V40, 
+            Configuration configuration,
             TypeInfoProvider typeInfoProvider = null
         ) {
+            Configuration = configuration;
             // Important to avoid preserving the proxy list from previous translations in this process
             MemberIdentifier.ResetProxies();
 
             if (typeInfoProvider != null) {
                 TypeInfoProvider = typeInfoProvider;
+
+                if (configuration.Assemblies.Proxies.Count > 0)
+                    throw new InvalidOperationException("Cannot reuse an existing type provider if explicitly loading proxies");
             } else {
                 TypeInfoProvider = new JSIL.TypeInfoProvider();
 
                 Assembly proxyAssembly = null;
                 var proxyPath = Path.GetDirectoryName(Util.GetPathOfAssembly(Assembly.GetExecutingAssembly()));
 
-                switch (frameworkVersion) {
-                    case FrameworkVersion.V35:
-                        proxyAssembly = Assembly.LoadFile(Path.Combine(proxyPath, "JSIL.Proxies.3.5.dll"));
-                    break;
-                    case FrameworkVersion.V40:
-                        proxyAssembly = Assembly.LoadFile(Path.Combine(proxyPath, "JSIL.Proxies.4.0.dll"));
-                    break;
+                if (configuration.FrameworkVersion <= 3.5) {
+                    proxyAssembly = Assembly.LoadFile(Path.Combine(proxyPath, "JSIL.Proxies.3.5.dll"));
+                } else if (configuration.FrameworkVersion == 4.0) {
+                    proxyAssembly = Assembly.LoadFile(Path.Combine(proxyPath, "JSIL.Proxies.4.0.dll"));
+                } else {
+                    throw new ArgumentOutOfRangeException("FrameworkVersion", "Framework version not supported");
                 }
 
                 if (proxyAssembly == null)
                     throw new InvalidOperationException("No core proxy assembly was loaded.");
 
-                AddProxyAssembly(proxyAssembly, false);
+                AddProxyAssembly(proxyAssembly);
+
+                foreach (var fn in configuration.Assemblies.Proxies)
+                    AddProxyAssembly(fn);
             }
         }
 
@@ -108,20 +100,20 @@ namespace JSIL {
             return readerParameters;
         }
 
-        public void AddProxyAssembly (string path, bool includeDependencies) {
-            var assemblies = LoadAssembly(path, UseSymbols, includeDependencies);
+        public void AddProxyAssembly (string path) {
+            var assemblies = LoadAssembly(path, Configuration.UseSymbols, false);
 
             TypeInfoProvider.AddProxyAssemblies(assemblies);
         }
 
-        public void AddProxyAssembly (Assembly assembly, bool includeDependencies) {
+        public void AddProxyAssembly (Assembly assembly) {
             var path = Util.GetPathOfAssembly(assembly);
 
-            AddProxyAssembly(path, includeDependencies);
+            AddProxyAssembly(path);
         }
 
         public AssemblyDefinition[] LoadAssembly (string path) {
-            return LoadAssembly(path, UseSymbols, IncludeDependencies);
+            return LoadAssembly(path, Configuration.UseSymbols, Configuration.IncludeDependencies);
         }
 
         protected AssemblyDefinition[] LoadAssembly (string path, bool useSymbols, bool includeDependencies) {
@@ -155,8 +147,8 @@ namespace JSIL {
 
                     foreach (var reference in module.AssemblyReferences) {
                         bool ignored = false;
-                        foreach (var ia in IgnoredAssemblies) {
-                            if (ia.IsMatch(reference.FullName)) {
+                        foreach (var ia in Configuration.Assemblies.Ignored) {
+                            if (Regex.IsMatch(reference.FullName, ia, RegexOptions.IgnoreCase)) {
                                 ignored = true;
                                 break;
                             }
@@ -218,8 +210,6 @@ namespace JSIL {
 
             if (scanForProxies)
                 TypeInfoProvider.AddProxyAssemblies(assemblies);
-
-            GeneratedFiles.Add(assemblyPath);
 
             var context = new DecompilerContext(assemblies.First().MainModule);
 
@@ -366,8 +356,8 @@ namespace JSIL {
 
         protected bool IsStubbed (AssemblyDefinition assembly) {
             bool stubbed = false;
-            foreach (var sa in StubbedAssemblies) {
-                if (sa.IsMatch(assembly.FullName)) {
+            foreach (var sa in Configuration.Assemblies.Stubbed) {
+                if (Regex.IsMatch(assembly.FullName, sa, RegexOptions.IgnoreCase)) {
                     return true;
                     break;
                 }
@@ -1047,7 +1037,7 @@ namespace JSIL {
             Dictionary<string, JSVariable> variables, JSFunctionExpression function
         ) {
             // Run elimination repeatedly, since eliminating one variable may make it possible to eliminate others
-            if (EliminateTemporaries) {
+            if (Configuration.Optimizer.EliminateTemporaries) {
                 bool eliminated;
                 do {
                     var visitor = new EliminateSingleUseTemporaries(
@@ -1062,7 +1052,7 @@ namespace JSIL {
                 si.TypeSystem,
                 FunctionCache,
                 si.CLR,
-                OptimizeStructCopies
+                Configuration.Optimizer.EliminateStructCopies
             ).Visit(function);
 
             new IntroduceVariableDeclarations(
@@ -1076,13 +1066,13 @@ namespace JSIL {
                 parameterNames
             ).Visit(function);
 
-            if (SimplifyLoops)
+            if (Configuration.Optimizer.SimplifyLoops)
                 new SimplifyLoops(
                     si.TypeSystem
                 ).Visit(function);
 
             // Temporary elimination makes it possible to simplify more operators, so do it last
-            if (SimplifyOperators)
+            if (Configuration.Optimizer.SimplifyOperators)
                 new SimplifyOperators(
                     si.JSIL, si.JS, si.TypeSystem
                 ).Visit(function);

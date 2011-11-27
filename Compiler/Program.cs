@@ -5,99 +5,62 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using JSIL.Translator;
 
 namespace JSIL.Compiler {
     class Program {
-        static void ParseOption (AssemblyTranslator translator, string option) {
-            var m = Regex.Match(option, "-(-?)(?'key'[a-zA-Z]*)([=:](?'value'.*))?", RegexOptions.ExplicitCapture);
-            if (m.Success) {
-                switch (m.Groups["key"].Value.ToLower()) {
-                    case "nodeps":
-                    case "nd":
-                        translator.IncludeDependencies = false;
-                        break;
-                    case "ignore":
-                    case "i":
-                        translator.IgnoredAssemblies.Add(new Regex(m.Groups["value"].Value, RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture));
-                        break;
-                    case "stub":
-                    case "s":
-                        translator.StubbedAssemblies.Add(new Regex(m.Groups["value"].Value, RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture));
-                        break;
-                    case "proxy":
-                    case "p":
-                        translator.AddProxyAssembly(Path.GetFullPath(m.Groups["value"].Value), false);
-                        break;
-                    case "os":
-                        translator.OptimizeStructCopies = false;
-                        break;
-                    case "oo":
-                        translator.SimplifyOperators = false;
-                        break;
-                    case "ol":
-                        translator.SimplifyLoops = false;
-                        break;
-                    case "ot":
-                        translator.EliminateTemporaries = false;
-                        break;
-                }
-            }
-        }
-
-        static void ApplyDefaults (AssemblyTranslator translator) {
+        static void ApplyDefaults (Configuration configuration) {
             Console.Error.WriteLine("// Applying default settings. To suppress, use --nodefaults.");
 
-            translator.StubbedAssemblies.Add(new Regex(@"mscorlib,"));
-            translator.StubbedAssemblies.Add(new Regex(@"System.*"));
-            translator.StubbedAssemblies.Add(new Regex(@"Microsoft.*"));
-            translator.StubbedAssemblies.Add(new Regex(@"Accessibility,"));
+            configuration.Assemblies.Stubbed.Add(@"mscorlib,");
+            configuration.Assemblies.Stubbed.Add(@"System\..*");
+            configuration.Assemblies.Stubbed.Add(@"Microsoft\..*");
+            configuration.Assemblies.Stubbed.Add(@"Accessibility,");
+        }
+
+        // Removes parsed elements from the input list
+        static Configuration ParseCommandLine (IEnumerable<string> arguments, out List<string> filenames) {
+            var result = new Configuration();
+            var includeDefaults = new [] { true };
+
+            var os = new Mono.Options.OptionSet {
+                {"o=|out=", "Specifies the output directory for generated javascript and manifests.",
+                    (string path) => result.OutputDirectory = Path.GetFullPath(path) },
+                {"p=|proxy=", "Loads a type proxy assembly to provide type information for the translator.",
+                    (string name) => result.Assemblies.Proxies.Add(Path.GetFullPath(name)) },
+                {"i=|ignore=", "Specifies a regular expression pattern for assembly names that should be ignored during the translation process.",
+                    (string regex) => result.Assemblies.Ignored.Add(regex) },
+                {"s=|stub=", "Specifies a regular expression pattern for assembly names that should be stubbed during the translation process. Stubbing forces all methods to be externals.",
+                    (string regex) => result.Assemblies.Stubbed.Add(regex) },
+                {"nd|nodeps", "Suppresses the automatic loading and translation of assembly dependencies.",
+                    (bool b) => result.IncludeDependencies = !b},
+                {"nodefaults", "Suppresses the default list of stubbed assemblies.",
+                    (bool b) => includeDefaults[0] = !b},
+                {"os", "Suppresses struct copy elimination.",
+                    (bool b) => result.Optimizer.EliminateStructCopies = !b},
+                {"ot", "Suppresses temporary local variable elimination.",
+                    (bool b) => result.Optimizer.EliminateTemporaries = !b},
+                {"oo", "Suppresses simplification of operator expressions and special method calls.",
+                    (bool b) => result.Optimizer.SimplifyOperators = !b},
+                {"ol", "Suppresses simplification of loop blocks.",
+                    (bool b) => result.Optimizer.SimplifyLoops = !b},
+                {"fv=|frameworkVersion=", "Specifies the version of the .NET framework proxies to use. This ensures that correct type information is provided (as 3.5 and 4.0 use different standard libraries). Accepted values are '3.5' and '4.0'. Default: '4.0'",
+                    (string fv) => result.FrameworkVersion = double.Parse(fv)}
+            };
+
+            filenames = os.Parse(arguments);
+
+            if (includeDefaults[0])
+                ApplyDefaults(result);
+
+            return result;
         }
 
         static void Main (string[] arguments) {
-            var filenames = new HashSet<string>(arguments);
-            var frameworkVersion = FrameworkVersion.V40;
-            var outputDirectory = Environment.CurrentDirectory;
-            bool includeDefaults = true;
+            List<string> filenames;
+            var configuration = ParseCommandLine(arguments, out filenames);
 
-            foreach (var filename in filenames.ToArray()) {
-                if (filename.StartsWith("-")) {
-                    if (filename == "--nodefaults") {
-                        includeDefaults = false;
-                    } else if (filename.StartsWith("--fv:") || filename.StartsWith("--frameworkVersion:")) {
-                        switch (filename.Split(':')[1]) {
-                            case "4.0":
-                            case "4":
-                                frameworkVersion = FrameworkVersion.V40;
-                                break;
-                            case "3.5":
-                            case "2.0":
-                            case "2":
-                            case "1.1":
-                            case "1.0":
-                            case "1":
-                                frameworkVersion = FrameworkVersion.V35;
-                                break;
-                        }
-                    } else if (filename.StartsWith("--o:") || filename.StartsWith("--out:")) {
-                        outputDirectory = filename.Split(new char[] {':'}, 2)[1];
-                    } else {
-                        continue;
-                    }
-
-                    filenames.Remove(filename);
-                }
-            }
-
-            switch (frameworkVersion) {
-                case FrameworkVersion.V35:
-                    Console.Out.WriteLine("// Using .NET Framework 3.5 proxies.");
-                break;
-                case FrameworkVersion.V40:
-                    Console.Out.WriteLine("// Using .NET Framework 4.0 proxies.");
-                break;
-            }
-
-            var translator = new AssemblyTranslator(frameworkVersion);
+            var translator = new AssemblyTranslator(configuration);
 
             translator.LoadingAssembly += (fn, progress) => {
                 Console.Error.WriteLine("// Loading {0}. ", fn);
@@ -163,20 +126,13 @@ namespace JSIL.Compiler {
                 Console.Error.WriteLine("// Could not decompile method {0}: {1}", fn, ex.Message);
             };
 
-            foreach (var filename in filenames.ToArray()) {
-                if (filename.StartsWith("-")) {
-                    ParseOption(translator, filename);
-
-                    filenames.Remove(filename);
-                }
-            }
-
             if (filenames.Count == 0) {
                 var asmName = Assembly.GetExecutingAssembly().GetName();
                 Console.WriteLine("==== JSILc v{0}.{1}.{2} ====", asmName.Version.Major, asmName.Version.Minor, asmName.Version.Revision);
                 Console.WriteLine("Usage: JSILc [options] ...");
                 Console.WriteLine("Specify one or more compiled assemblies (dll/exe) to translate them. Symbols will be loaded if they exist in the same directory.");
                 Console.WriteLine("You can also specify Visual Studio solution files (sln) to build them and automatically translate their output(s).");
+                Console.WriteLine("Specify the path of a .jsilconfig file to load settings from it.");
                 Console.WriteLine("Options:");
                 Console.WriteLine("--fv:<version>");
                 Console.WriteLine("  Specifies the version of the .NET framework libraries to use. Valid options are '3.5' and '4.0'. The default is '4.0'.");
@@ -203,9 +159,6 @@ namespace JSIL.Compiler {
                 return;
             }
 
-            if (includeDefaults)
-                ApplyDefaults(translator);
-
             while (filenames.Count > 0) {
                 var filename = filenames.First();
                 filenames.Remove(filename);
@@ -216,7 +169,7 @@ namespace JSIL.Compiler {
                     case ".dll":
                         var result = translator.Translate(filename);
                         Console.Error.Write("// Saving to disk ... ");
-                        result.WriteToDirectory(outputDirectory);
+                        result.WriteToDirectory(configuration.OutputDirectory);
                         Console.Error.WriteLine("done");
                         break;
                     case ".sln":

@@ -17,7 +17,8 @@ namespace JSIL.Proxies {
             "Microsoft.Xna.Framework.NativeMethods.Message",
             "Microsoft.Xna.Framework.NativeMethods.MinMaxInformation",
             "Microsoft.Xna.Framework.NativeMethods.MonitorInformation",
-            "Microsoft.Xna.Framework.WindowsGameForm"
+            "Microsoft.Xna.Framework.WindowsGameForm",
+            "Microsoft.Win32.UnsafeNativeMethods"
         },
         JSProxyMemberPolicy.ReplaceDeclared,
         JSProxyAttributePolicy.ReplaceAll,

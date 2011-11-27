@@ -25,17 +25,19 @@ public static class Program {
     }
 }", out temporaryFiles);
 
-            var translator = new AssemblyTranslator {
-                UseSymbols = true,
-                IncludeDependencies = false
-            };
+            var translator = new AssemblyTranslator(
+                new Translator.Configuration {
+                    IncludeDependencies = false
+                }
+            );
 
             var assemblyDefinition = translator.LoadAssembly(assembly.Location);
 
-            translator = new AssemblyTranslator {
-                UseSymbols = true,
-                IncludeDependencies = true
-            };
+            translator = new AssemblyTranslator(
+                new Translator.Configuration {
+                    IncludeDependencies = true
+                }
+            );
 
             var assemblyPlusDependencies = translator.LoadAssembly(assembly.Location);
 

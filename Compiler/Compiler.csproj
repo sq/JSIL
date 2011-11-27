@@ -73,7 +73,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Configuration.cs" />
+    <Compile Include="..\Upstream\Options.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="SolutionBuilder.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

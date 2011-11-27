@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using JSIL.Internal;
+using JSIL.Translator;
 using Microsoft.CSharp;
 using System.CodeDom.Compiler;
 using System.IO;
@@ -89,7 +90,7 @@ namespace JSIL.Tests {
         public static readonly string CoreJSPath, BootstrapJSPath;
 
         public readonly TypeInfoProvider TypeInfo;
-        public readonly Regex[] StubbedAssemblies;
+        public readonly string[] StubbedAssemblies;
         public readonly string Filename;
         public readonly Assembly Assembly;
         public readonly MethodInfo TestMethod;
@@ -104,7 +105,7 @@ namespace JSIL.Tests {
             BootstrapJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.Bootstrap.js"));
         }
 
-        public ComparisonTest (string filename, Regex[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null) {
+        public ComparisonTest (string filename, string[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null) {
             Filename = Path.Combine(TestSourceFolder, filename);
 
             var sourceCode = File.ReadAllText(Filename);
@@ -139,14 +140,22 @@ namespace JSIL.Tests {
                 }
         }
 
+        public static Configuration MakeDefaultConfiguration () {
+            return new Configuration {
+                FrameworkVersion = 4.0,
+                IncludeDependencies = false,
+                ApplyDefaults = false,
+            };
+        }
+
         public string RunJavascript (string[] args, out string generatedJavascript, out long elapsedTranslation, out long elapsedJs) {
             var tempFilename = Path.GetTempFileName();
-            var translator = new JSIL.AssemblyTranslator(FrameworkVersion.V40, TypeInfo) {
-                IncludeDependencies = false
-            };
+            var configuration = MakeDefaultConfiguration();
 
             if (StubbedAssemblies != null)
-                translator.StubbedAssemblies.AddRange(StubbedAssemblies);
+                configuration.Assemblies.Stubbed.AddRange(StubbedAssemblies);
+
+            var translator = new JSIL.AssemblyTranslator(configuration, TypeInfo);
 
             string translatedJs;
             var translationStarted = DateTime.UtcNow.Ticks;
@@ -317,11 +326,11 @@ namespace JSIL.Tests {
     public class GenericTestFixture {
         protected TypeInfoProvider MakeDefaultProvider () {
             // Construct a type info provider with default proxies loaded (kind of a hack)
-            return (new AssemblyTranslator()).TypeInfoProvider;
+            return (new AssemblyTranslator(ComparisonTest.MakeDefaultConfiguration())).TypeInfoProvider;
         }
 
         protected void RunComparisonTests (
-            string[] filenames, Regex[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null
+            string[] filenames, string[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null
         ) {
             const string keyName = @"Software\Squared\JSIL\Tests\PreviousFailures";
 
@@ -417,7 +426,7 @@ namespace JSIL.Tests {
             return generatedJs;
         }
 
-        protected string GenericTest (string fileName, string csharpOutput, string javascriptOutput, Regex[] stubbedAssemblies = null) {
+        protected string GenericTest (string fileName, string csharpOutput, string javascriptOutput, string[] stubbedAssemblies = null) {
             long elapsed, temp;
             string generatedJs;
 
@@ -437,7 +446,7 @@ namespace JSIL.Tests {
             return generatedJs;
         }
 
-        protected string GenericIgnoreTest (string fileName, string workingOutput, string jsErrorSubstring, Regex[] stubbedAssemblies = null) {
+        protected string GenericIgnoreTest (string fileName, string workingOutput, string jsErrorSubstring, string[] stubbedAssemblies = null) {
             long elapsed, temp;
             string generatedJs = null;
 

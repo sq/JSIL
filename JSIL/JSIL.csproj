@@ -69,6 +69,7 @@
     <Compile Include="AST\JSOperators.cs" />
     <Compile Include="AST\JSNodeTypes.cs" />
     <Compile Include="CILSupport.cs" />
+    <Compile Include="Configuration.cs" />
     <Compile Include="FunctionCache.cs" />
     <Compile Include="DynamicCallSites.cs" />
     <Compile Include="JavascriptAstEmitter.cs" />

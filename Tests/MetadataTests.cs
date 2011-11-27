@@ -161,7 +161,7 @@ namespace JSIL.Tests {
                 @"SpecialTestCases\StubbedMethodBodies.cs",
                 "",
                 "The external method 'Main' of type 'Program'",
-                new [] { new Regex(".*") }
+                new [] { ".*" }
             );
 
             try {
