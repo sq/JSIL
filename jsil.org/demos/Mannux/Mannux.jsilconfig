@@ -1,20 +1,9 @@
 {
-  "ApplyDefaults": true,
-  "IncludeDependencies": true,
-  "UseSymbols": true,
   "FrameworkVersion": 3.5,
-  "OutputDirectory": "%configpath%"
+  "OutputDirectory": "%configpath%",
   "Assemblies": {
-    "Ignored": [],
-    "Stubbed": [],
     "Proxies": [
       "JSIL.Proxies.XNA3.dll"
     ]
-  },
-  "Optimizer": {
-    "EliminateStructCopies": true,
-    "SimplifyOperators": true,
-    "SimplifyLoops": true,
-    "EliminateTemporaries": true
-  },
+  }
 }

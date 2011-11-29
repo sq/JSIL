@@ -19,56 +19,111 @@ namespace JSIL.Compiler {
             configuration.Assemblies.Stubbed.Add(@"Accessibility,");
         }
 
-        static Configuration ParseCommandLine (IEnumerable<string> arguments, out List<string> filenames) {
-            var result = new Configuration();
-
-            var os = new Mono.Options.OptionSet {
-                {"o=|out=", "Specifies the output directory for generated javascript and manifests.",
-                    (string path) => result.OutputDirectory = Path.GetFullPath(path) },
-                "Solution Builder options",
-                {"configuration=", "When building one or more solution files, specifies the build configuration to use (like 'Debug').",
-                    (string v) => result.SolutionBuilder.Configuration = v },
-                {"platform=", "When building one or more solution files, specifies the build platform to use (like 'x86').",
-                    (string v) => result.SolutionBuilder.Platform = v },
-                "Assembly options",
-                {"p=|proxy=", "Loads a type proxy assembly to provide type information for the translator.",
-                    (string name) => result.Assemblies.Proxies.Add(Path.GetFullPath(name)) },
-                {"i=|ignore=", "Specifies a regular expression pattern for assembly names that should be ignored during the translation process.",
-                    (string regex) => result.Assemblies.Ignored.Add(regex) },
-                {"s=|stub=", "Specifies a regular expression pattern for assembly names that should be stubbed during the translation process. Stubbing forces all methods to be externals.",
-                    (string regex) => result.Assemblies.Stubbed.Add(regex) },
-                {"nd|nodeps", "Suppresses the automatic loading and translation of assembly dependencies.",
-                    (bool b) => result.IncludeDependencies = !b},
-                {"nodefaults", "Suppresses the default list of stubbed assemblies.",
-                    (bool b) => result.ApplyDefaults = !b},
-                {"fv=|frameworkVersion=", "Specifies the version of the .NET framework proxies to use. This ensures that correct type information is provided (as 3.5 and 4.0 use different standard libraries). Accepted values are '3.5' and '4.0'. Default: '4.0'",
-                    (string fv) => result.FrameworkVersion = double.Parse(fv)},
-                "Optimizer options",
-                {"os", "Suppresses struct copy elimination.",
-                    (bool b) => result.Optimizer.EliminateStructCopies = !b},
-                {"ot", "Suppresses temporary local variable elimination.",
-                    (bool b) => result.Optimizer.EliminateTemporaries = !b},
-                {"oo", "Suppresses simplification of operator expressions and special method calls.",
-                    (bool b) => result.Optimizer.SimplifyOperators = !b},
-                {"ol", "Suppresses simplification of loop blocks.",
-                    (bool b) => result.Optimizer.SimplifyLoops = !b},
-            };
-
-            filenames = os.Parse(arguments);
-
-            if (filenames.Count == 0) {
-                var asmName = Assembly.GetExecutingAssembly().GetName();
-                Console.WriteLine("==== JSILc v{0}.{1}.{2} ====", asmName.Version.Major, asmName.Version.Minor, asmName.Version.Revision);
-                Console.WriteLine("Specify one or more compiled assemblies (dll/exe) to translate them. Symbols will be loaded if they exist in the same directory.");
-                Console.WriteLine("You can also specify Visual Studio solution files (sln) to build them and automatically translate their output(s).");
-                Console.WriteLine("Specify the path of a .jsilconfig file to load settings from it.");
-
-                os.WriteOptionDescriptions(Console.Out);
-
-                return null;
+        static Configuration LoadConfiguration (string filename) {
+            var jss = new JavaScriptSerializer();
+            try {
+                var json = File.ReadAllText(filename);
+                var result = jss.Deserialize<Configuration>(json);
+                return result;
+            } catch (Exception ex) {
+                Console.Error.WriteLine("Error reading '{0}': {1}", filename, ex);
+                throw;
             }
+        }
+
+        static Configuration MergeConfigurations (Configuration baseConfiguration, params Configuration[] toMerge) {
+            var result = baseConfiguration.Clone();
+
+            foreach (var m in toMerge)
+                m.MergeInto(result);
 
             return result;
+        }
+
+        static void ParseCommandLine (IEnumerable<string> arguments, List<KeyValuePair<Configuration, IEnumerable<string>>> buildGroups) {
+            var baseConfig = new Configuration();
+            List<string> filenames;
+
+            {
+                var os = new Mono.Options.OptionSet {
+                    {"o=|out=", "Specifies the output directory for generated javascript and manifests.",
+                        (string path) => baseConfig.OutputDirectory = Path.GetFullPath(path) },
+                    "Solution Builder options",
+                    {"configuration=", "When building one or more solution files, specifies the build configuration to use (like 'Debug').",
+                        (string v) => baseConfig.SolutionBuilder.Configuration = v },
+                    {"platform=", "When building one or more solution files, specifies the build platform to use (like 'x86').",
+                        (string v) => baseConfig.SolutionBuilder.Platform = v },
+                    "Assembly options",
+                    {"p=|proxy=", "Loads a type proxy assembly to provide type information for the translator.",
+                        (string name) => baseConfig.Assemblies.Proxies.Add(Path.GetFullPath(name)) },
+                    {"i=|ignore=", "Specifies a regular expression pattern for assembly names that should be ignored during the translation process.",
+                        (string regex) => baseConfig.Assemblies.Ignored.Add(regex) },
+                    {"s=|stub=", "Specifies a regular expression pattern for assembly names that should be stubbed during the translation process. Stubbing forces all methods to be externals.",
+                        (string regex) => baseConfig.Assemblies.Stubbed.Add(regex) },
+                    {"nd|nodeps", "Suppresses the automatic loading and translation of assembly dependencies.",
+                        (bool b) => baseConfig.IncludeDependencies = !b},
+                    {"nodefaults", "Suppresses the default list of stubbed assemblies.",
+                        (bool b) => baseConfig.ApplyDefaults = !b},
+                    {"nolocal", "Disables using local proxy types from translated assemblies.",
+                        (bool b) => baseConfig.UseLocalProxies = !b},
+                    {"fv=|frameworkVersion=", "Specifies the version of the .NET framework proxies to use. This ensures that correct type information is provided (as 3.5 and 4.0 use different standard libraries). Accepted values are '3.5' and '4.0'. Default: '4.0'",
+                        (string fv) => baseConfig.FrameworkVersion = double.Parse(fv)},
+                    "Optimizer options",
+                    {"os", "Suppresses struct copy elimination.",
+                        (bool b) => baseConfig.Optimizer.EliminateStructCopies = !b},
+                    {"ot", "Suppresses temporary local variable elimination.",
+                        (bool b) => baseConfig.Optimizer.EliminateTemporaries = !b},
+                    {"oo", "Suppresses simplification of operator expressions and special method calls.",
+                        (bool b) => baseConfig.Optimizer.SimplifyOperators = !b},
+                    {"ol", "Suppresses simplification of loop blocks.",
+                        (bool b) => baseConfig.Optimizer.SimplifyLoops = !b},
+                };
+
+                filenames = os.Parse(arguments);
+
+                if (filenames.Count == 0) {
+                    var asmName = Assembly.GetExecutingAssembly().GetName();
+                    Console.WriteLine("==== JSILc v{0}.{1}.{2} ====", asmName.Version.Major, asmName.Version.Minor, asmName.Version.Revision);
+                    Console.WriteLine("Specify one or more compiled assemblies (dll/exe) to translate them. Symbols will be loaded if they exist in the same directory.");
+                    Console.WriteLine("You can also specify Visual Studio solution files (sln) to build them and automatically translate their output(s).");
+                    Console.WriteLine("Specify the path of a .jsilconfig file to load settings from it.");
+
+                    os.WriteOptionDescriptions(Console.Out);
+
+                    return;
+                }
+            }
+
+            baseConfig = MergeConfigurations(
+                baseConfig,
+                (from fn in filenames
+                 where Path.GetExtension(fn) == ".jsilconfig"
+                 select LoadConfiguration(fn)).ToArray()
+            );
+
+            foreach (var solution in
+                     (from fn in filenames where Path.GetExtension(fn) == ".sln" select fn)
+                    ) {
+
+                var config = MergeConfigurations(baseConfig);
+                var outputs = SolutionBuilder.Build(
+                    solution,
+                    config.SolutionBuilder.Configuration,
+                    config.SolutionBuilder.Platform
+                );
+
+                buildGroups.Add(new KeyValuePair<Configuration, IEnumerable<string>>(
+                    config, outputs
+                ));
+            }
+
+            var mainGroup = (from fn in filenames
+                             where
+                                 (new[] { ".exe", ".dll" }.Contains(Path.GetExtension(fn)))
+                             select fn);
+            buildGroups.Add(new KeyValuePair<Configuration, IEnumerable<string>>(
+                baseConfig, mainGroup
+            ));
         }
 
         static Action<ProgressReporter> MakeProgressHandler (string description) {
@@ -131,52 +186,21 @@ namespace JSIL.Compiler {
         }
 
         static void Main (string[] arguments) {
-            List<string> filenames;
-            var configuration = ParseCommandLine(arguments, out filenames);
+            var buildGroups = new List<KeyValuePair<Configuration, IEnumerable<string>>>();
 
-            if (configuration == null)
+            ParseCommandLine(arguments, buildGroups);
+
+            if (buildGroups.Count < 1)
                 return;
 
-            foreach (var filename in filenames.ToArray()) {
-                var extension = Path.GetExtension(filename);
-                switch (extension.ToLower()) {
-                    case ".sln":
-                        foreach (var resultFilename in SolutionBuilder.Build(
-                            filename, 
-                            configuration.SolutionBuilder.Configuration, 
-                            configuration.SolutionBuilder.Platform)
-                        ) {
-                            filenames.Add(resultFilename);
-                        }
-                        break;
-                }
-            }
+            foreach (var kvp in buildGroups) {
+                if (kvp.Key.ApplyDefaults.GetValueOrDefault(true))
+                    ApplyDefaults(kvp.Key);
 
-            if (configuration.ApplyDefaults)
-                ApplyDefaults(configuration);
-
-            var translator = CreateTranslator(configuration);
-            while (filenames.Count > 0) {
-                var filename = filenames.First();
-                filenames.Remove(filename);
-
-                var extension = Path.GetExtension(filename);
-                switch (extension.ToLower()) {
-                    case ".exe":
-                    case ".dll":
-                        var result = translator.Translate(filename);
-                        Console.Error.Write("// Saving to disk ... ");
-                        result.WriteToDirectory(configuration.OutputDirectory);
-                        Console.Error.WriteLine("done");
-                        break;
-
-                    case ".sln":
-                    case ".jsilconfig":
-                        break;
-
-                    default:
-                        Console.Error.WriteLine("// Don't know what to do with file '{0}'.", filename);
-                        break;
+                var translator = CreateTranslator(kvp.Key);
+                foreach (var filename in kvp.Value) {
+                    var outputs = translator.Translate(filename, kvp.Key.UseLocalProxies.GetValueOrDefault(true));
+                    outputs.WriteToDirectory(kvp.Key.OutputDirectory);
                 }
             }
         }

@@ -63,10 +63,10 @@ namespace JSIL {
                 Assembly proxyAssembly = null;
                 var proxyPath = Path.GetDirectoryName(Util.GetPathOfAssembly(Assembly.GetExecutingAssembly()));
 
-                if (configuration.FrameworkVersion <= 3.5) {
-                    proxyAssembly = Assembly.LoadFile(Path.Combine(proxyPath, "JSIL.Proxies.3.5.dll"));
-                } else if (configuration.FrameworkVersion == 4.0) {
+                if (!configuration.FrameworkVersion.HasValue || configuration.FrameworkVersion == 4.0) {
                     proxyAssembly = Assembly.LoadFile(Path.Combine(proxyPath, "JSIL.Proxies.4.0.dll"));
+                } else if (configuration.FrameworkVersion <= 3.5) {
+                    proxyAssembly = Assembly.LoadFile(Path.Combine(proxyPath, "JSIL.Proxies.3.5.dll"));
                 } else {
                     throw new ArgumentOutOfRangeException("FrameworkVersion", "Framework version not supported");
                 }
@@ -101,7 +101,7 @@ namespace JSIL {
         }
 
         public void AddProxyAssembly (string path) {
-            var assemblies = LoadAssembly(path, Configuration.UseSymbols, false);
+            var assemblies = LoadAssembly(path, Configuration.UseSymbols.GetValueOrDefault(true), false);
 
             TypeInfoProvider.AddProxyAssemblies(assemblies);
         }
@@ -113,7 +113,11 @@ namespace JSIL {
         }
 
         public AssemblyDefinition[] LoadAssembly (string path) {
-            return LoadAssembly(path, Configuration.UseSymbols, Configuration.IncludeDependencies);
+            return LoadAssembly(
+                path, 
+                Configuration.UseSymbols.GetValueOrDefault(true), 
+                Configuration.IncludeDependencies.GetValueOrDefault(true)
+            );
         }
 
         protected AssemblyDefinition AssemblyLoadErrorWrapper<T> (
@@ -1059,7 +1063,7 @@ namespace JSIL {
             Dictionary<string, JSVariable> variables, JSFunctionExpression function
         ) {
             // Run elimination repeatedly, since eliminating one variable may make it possible to eliminate others
-            if (Configuration.Optimizer.EliminateTemporaries) {
+            if (Configuration.Optimizer.EliminateTemporaries.GetValueOrDefault(true)) {
                 bool eliminated;
                 do {
                     var visitor = new EliminateSingleUseTemporaries(
@@ -1074,7 +1078,7 @@ namespace JSIL {
                 si.TypeSystem,
                 FunctionCache,
                 si.CLR,
-                Configuration.Optimizer.EliminateStructCopies
+                Configuration.Optimizer.EliminateStructCopies.GetValueOrDefault(true)
             ).Visit(function);
 
             new IntroduceVariableDeclarations(
@@ -1088,13 +1092,13 @@ namespace JSIL {
                 parameterNames
             ).Visit(function);
 
-            if (Configuration.Optimizer.SimplifyLoops)
+            if (Configuration.Optimizer.SimplifyLoops.GetValueOrDefault(true))
                 new SimplifyLoops(
                     si.TypeSystem
                 ).Visit(function);
 
             // Temporary elimination makes it possible to simplify more operators, so do it last
-            if (Configuration.Optimizer.SimplifyOperators)
+            if (Configuration.Optimizer.SimplifyOperators.GetValueOrDefault(true))
                 new SimplifyOperators(
                     si.JSIL, si.JS, si.TypeSystem
                 ).Visit(function);
