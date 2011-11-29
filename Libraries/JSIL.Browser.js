@@ -372,8 +372,14 @@ var assetLoaders = {
 };
 
 function loadNextAsset (assets, i, onDoneLoading, loadDelay) {      
-  var w = (i * document.getElementById("loadingProgress").clientWidth) / (assets.length + 1);
-  document.getElementById("progressBar").style.width = w.toString() + "px";
+  var w = 0;
+  var loadingProgress = document.getElementById("loadingProgress");
+  var progressBar = document.getElementById("progressBar");
+  
+  if (loadingProgress)
+    w = (i * loadingProgress.clientWidth) / (assets.length + 1);
+  if (progressBar)
+    progressBar.style.width = w.toString() + "px";
   
   if (i >= assets.length) {
     setTimeout(onDoneLoading, loadDelay);
@@ -412,9 +418,17 @@ function loadAssets (assets, onDoneLoading) {
 }
 
 function beginLoading () {
-  document.getElementById("progressBar").style.width = "0px";
-  document.getElementById("loadButton").style.display = "none";
-  document.getElementById("loadingProgress").style.display = "";
+  var progressBar = document.getElementById("progressBar");
+  var loadButton = document.getElementById("loadButton");
+  var quitButton = document.getElementById("quitButton");
+  var loadingProgress = document.getElementById("loadingProgress");
+  
+  if (progressBar)
+    progressBar.style.width = "0px";
+  if (loadButton)
+    loadButton.style.display = "none";
+  if (loadingProgress)
+    loadingProgress.style.display = "";
   
   JSIL.Host.logWrite("Loading data ... ");
   loadAssets(assetsToLoad, function () {
@@ -422,12 +436,14 @@ function beginLoading () {
     try {
       JSIL.Initialize();
       
-      document.getElementById("quitButton").style.display = "";
+      if (quitButton)
+        quitButton.style.display = "";
       
       runMain();
       // Main doesn't block since we're using the browser's event loop          
     } finally {
-      document.getElementById("loadingProgress").style.display = "none";
+      if (loadingProgress)
+        loadingProgress.style.display = "none";
     }
   });
 }
@@ -438,14 +454,27 @@ function quitGame () {
 }
 
 function onLoad () {
-  document.getElementById("log").value = "";
-  document.getElementById("quitButton").style.display = "none";
-  document.getElementById("loadingProgress").style.display = "none";
+  var log = document.getElementById("log");
+  var loadButton = document.getElementById("loadButton");
+  var quitButton = document.getElementById("quitButton");
+  var loadingProgress = document.getElementById("loadingProgress");
+  
+  if (log)
+    log.value = "";
+  
+  if (quitButton) {
+    quitButton.style.display = "none";
+    quitButton.addEventListener(
+      "click", quitGame, true
+    );
+  }
+  
+  if (loadButton) {
+    loadButton.addEventListener(
+      "click", beginLoading, true
+    );
+  }
+  
+  if (loadingProgress)
+    loadingProgress.style.display = "none";
 }
-    
-document.getElementById("quitButton").addEventListener(
-  "click", quitGame, true
-);
-document.getElementById("loadButton").addEventListener(
-  "click", beginLoading, true
-);
