@@ -1507,7 +1507,10 @@ namespace JSIL {
                 typeInfo = TypeInfo.Get(expressionType);
             }
 
-            if ((typeInfo != null) && (typeInfo.EnumMembers.Count > 0)) {
+            if (
+                (typeInfo != null) && 
+                (typeInfo.EnumMembers != null) && (typeInfo.EnumMembers.Count > 0)
+            ) {
                 EnumMemberInfo[] enumMembers = null;
                 if (typeInfo.IsFlagsEnum) {
                     if (value == 0) {

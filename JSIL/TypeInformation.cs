@@ -631,9 +631,9 @@ namespace JSIL.Internal {
         public readonly HashSet<MethodGroupInfo> MethodGroups = new HashSet<MethodGroupInfo>();
 
         public readonly bool IsFlagsEnum;
-        public readonly Dictionary<long, EnumMemberInfo> ValueToEnumMember = new Dictionary<long, EnumMemberInfo>();
-        public readonly Dictionary<string, EnumMemberInfo> EnumMembers = new Dictionary<string, EnumMemberInfo>();
-        public readonly Dictionary<MemberIdentifier, IMemberInfo> Members = new Dictionary<MemberIdentifier, IMemberInfo>();
+        public readonly Dictionary<long, EnumMemberInfo> ValueToEnumMember;
+        public readonly Dictionary<string, EnumMemberInfo> EnumMembers;
+        public readonly Dictionary<MemberIdentifier, IMemberInfo> Members;
         public readonly bool IsProxy;
         public readonly bool IsDelegate;
 
@@ -706,6 +706,11 @@ namespace JSIL.Internal {
             if (baseClass != null)
                 _IsIgnored |= baseClass.IsIgnored;
 
+            {
+                var capacity = type.Fields.Count + type.Properties.Count + type.Events.Count + type.Methods.Count;
+                Members = new Dictionary<MemberIdentifier, IMemberInfo>(capacity);
+            }
+
             foreach (var field in type.Fields)
                 AddMember(field);
 
@@ -738,6 +743,10 @@ namespace JSIL.Internal {
 
             if (type.IsEnum) {
                 long enumValue = 0;
+
+                var capacity = type.Fields.Count;
+                ValueToEnumMember = new Dictionary<long, EnumMemberInfo>(capacity);
+                EnumMembers = new Dictionary<string, EnumMemberInfo>(capacity);
 
                 foreach (var field in type.Fields) {
                     // Skip 'value__'
