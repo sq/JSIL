@@ -201,7 +201,7 @@ JSIL.ImplementExternals(
 
       return result;
     },
-    IDisposable_Dispose: function () {
+    Dispose: function () {
       this.m_stream = null;
     }
   }
@@ -242,7 +242,7 @@ JSIL.ImplementExternals(
 
       return String.fromCharCode.apply(null, line);
     },
-    IDisposable_Dispose: function () {
+    Dispose: function () {
       this.stream = null;
     }
   }
