@@ -83,7 +83,7 @@ namespace JSIL {
 
         protected virtual ReaderParameters GetReaderParameters (bool useSymbols, string mainAssemblyPath = null) {
             var readerParameters = new ReaderParameters {
-                ReadingMode = ReadingMode.Deferred,
+                ReadingMode = ReadingMode.Immediate,
                 ReadSymbols = useSymbols
             };
 

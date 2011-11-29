@@ -211,7 +211,13 @@ namespace JSIL.Ast {
 
         protected JSNode ParentNode {
             get {
-                return Stack.Skip(1).FirstOrDefault();
+                using (var e = Stack.GetEnumerator()) {
+                    if (e.MoveNext())
+                        if (e.MoveNext())
+                            return e.Current;
+
+                    return null;
+                }
             }
         }
     }

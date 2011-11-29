@@ -12,6 +12,7 @@ namespace JSIL {
         public readonly Dictionary<TypeIdentifier, ProxyInfo> TypeProxies = new Dictionary<TypeIdentifier, ProxyInfo>();
         public readonly Dictionary<TypeIdentifier, TypeInfo> TypeInformation = new Dictionary<TypeIdentifier, TypeInfo>();
         public readonly Dictionary<string, ModuleInfo> ModuleInformation = new Dictionary<string, ModuleInfo>();
+        public readonly Dictionary<string, HashSet<ProxyInfo>> DirectProxiesByTypeName = new Dictionary<string, HashSet<ProxyInfo>>();
 
         protected IEnumerable<TypeDefinition> ProxyTypesFromAssembly (AssemblyDefinition assembly) {
             foreach (var module in assembly.Modules) {
@@ -51,14 +52,34 @@ namespace JSIL {
         }
 
         public void AddProxyAssemblies (params AssemblyDefinition[] assemblies) {
+            HashSet<ProxyInfo> pl;
+
             foreach (var asm in assemblies) {
                 if (Assemblies.Contains(asm))
                     continue;
                 else
                     Assemblies.Add(asm);
 
-                foreach (var proxyType in ProxyTypesFromAssembly(asm))
-                    TypeProxies.Add(new TypeIdentifier(proxyType), new ProxyInfo(proxyType));
+                foreach (var proxyType in ProxyTypesFromAssembly(asm)) {
+                    var proxyInfo = new ProxyInfo(proxyType);
+                    TypeProxies.Add(new TypeIdentifier(proxyType), proxyInfo);
+
+                    foreach (var typeref in proxyInfo.ProxiedTypes) {
+                        var name = typeref.FullName;
+
+                        if (!DirectProxiesByTypeName.TryGetValue(name, out pl))
+                            DirectProxiesByTypeName[name] = pl = new HashSet<ProxyInfo>();
+
+                        pl.Add(proxyInfo);
+                    }
+
+                    foreach (var name in proxyInfo.ProxiedTypeNames) {
+                        if (!DirectProxiesByTypeName.TryGetValue(name, out pl))
+                            DirectProxiesByTypeName[name] = pl = new HashSet<ProxyInfo>();
+
+                        pl.Add(proxyInfo);
+                    }
+                }
             }
         }
 
@@ -204,15 +225,31 @@ namespace JSIL {
             return typesToInitialize;
         }
 
-        ProxyInfo[] ITypeInfoSource.GetProxies (TypeReference type) {
-            var result = new List<ProxyInfo>();
+        ProxyInfo[] ITypeInfoSource.GetProxies (TypeDefinition type) {
+            var result = new HashSet<ProxyInfo>();
+            bool isInherited = false;
 
-            foreach (var p in TypeProxies.Values) {
-                if (p.IsMatch(type, null))
-                    result.Add(p);
+            while (type != null) {
+                HashSet<ProxyInfo> candidates;
+                if (DirectProxiesByTypeName.TryGetValue(type.FullName, out candidates)) {
+                    foreach (var candidate in candidates) {
+                        if (isInherited && !candidate.IsInheritable)
+                            continue;
+
+                        if (candidate.IsMatch(type, null))
+                            result.Add(candidate);
+                    }
+                }
+
+                if (type.BaseType != null)
+                    type = type.BaseType.Resolve();
+                else
+                    break;
+
+                isInherited = true;
             }
 
-            return result.Distinct().ToArray();
+            return result.ToArray();
         }
 
         IMemberInfo ITypeInfoSource.Get (MemberReference member) {

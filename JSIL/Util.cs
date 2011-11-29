@@ -30,7 +30,10 @@ namespace JSIL.Internal {
             "const", "true", "false", "null"
         };
 
-        public static Regex ValidIdentifier = new Regex("$[A-Za-z_$]([A-Za-z_$0-9]*)^", RegexOptions.Compiled);
+        public static Regex ValidIdentifier = new Regex(
+            "$[A-Za-z_$]([A-Za-z_$0-9]*)^", 
+            RegexOptions.Compiled | RegexOptions.ExplicitCapture
+        );
 
         public static string GetPathOfAssembly (Assembly assembly) {
             var uri = new Uri(assembly.CodeBase);
@@ -42,104 +45,130 @@ namespace JSIL.Internal {
         }
 
         public static string EscapeIdentifier (string identifier, EscapingMode escapingMode = EscapingMode.MemberIdentifier) {
+            bool isEscaped = false;
             string result = identifier;
 
-            if (!ValidIdentifier.IsMatch(identifier)) {
-                var sb = new StringBuilder();
-                for (int i = 0, l = identifier.Length; i < l; i++) {
-                    var ch = identifier[i];
+            var sb = new StringBuilder();
+            for (int i = 0, l = identifier.Length; i < l; i++) {
+                var ch = identifier[i];
 
-                    switch (ch) {
-                        case '.':
-                            if (escapingMode != EscapingMode.MemberIdentifier)
-                                sb.Append(".");
-                            else
-                                sb.Append("_");
-                        break;
-                        case '/':
-                            if (escapingMode == EscapingMode.MemberIdentifier)
-                                sb.Append("_");
-                            else if (escapingMode == EscapingMode.TypeIdentifier)
-                                sb.Append("_");
-                            else
-                                sb.Append("/");
-                        break;
-                        case '+':
-                            if (escapingMode == EscapingMode.MemberIdentifier)
-                                sb.Append("_");
-                            else if (escapingMode == EscapingMode.TypeIdentifier)
-                                sb.Append("_");
-                            else
-                                sb.Append("+");
-                        break;
-                        case '`':
-                            sb.Append("$b");
-                        break;
-                        case '~':
-                            sb.Append("$t");
-                        break;
-                        case ':':
-                            sb.Append("$c");
-                        break;
-                        case '<':
-                            sb.Append("$l");
-                        break;
-                        case '>':
-                            sb.Append("$g");
-                        break;
-                        case '(':
-                            sb.Append("$lp");
-                        break;
-                        case ')':
-                            sb.Append("$rp");
-                        break;
-                        case '{':
-                            sb.Append("$lc");
-                        break;
-                        case '}':
-                            sb.Append("$rc");
-                        break;
-                        case '[':
-                            sb.Append("$lb");
-                        break;
-                        case ']':
-                            sb.Append("$rb");
-                        break;
-                        case '@':
-                            sb.Append("$at");
-                        break;
-                        case '-':
-                            sb.Append("$da");
-                        break;
-                        case '=':
-                            sb.Append("$eq");
-                        break;
-                        case ' ':
-                            sb.Append("$sp");
-                        break;
-                        case '?':
-                            sb.Append("$qu");
-                        break;
-                        case '!':
-                            sb.Append("$ex");
-                        break;
-                        case '*':
-                            sb.Append("$as");
-                        break;
-                        case '&':
-                            sb.Append("$am");
-                        break;
-                        default:
-                            if ((ch <= 32) || (ch >= 127))
-                                sb.AppendFormat("${0:x}", ch);
-                            else
-                                sb.Append(ch);
-                        break;
-                    }
+                switch (ch) {
+                    case '.':
+                        if (escapingMode != EscapingMode.MemberIdentifier)
+                            sb.Append(".");
+                        else {
+                            sb.Append("_");
+                            isEscaped = true;
+                        }
+                    break;
+                    case '/':
+                        if (escapingMode == EscapingMode.MemberIdentifier) {
+                            sb.Append("_");
+                            isEscaped = true;
+                        } else if (escapingMode == EscapingMode.TypeIdentifier) {
+                            sb.Append("_");
+                            isEscaped = true;
+                        } else
+                            sb.Append("/");
+                    break;
+                    case '+':
+                        if (escapingMode == EscapingMode.MemberIdentifier) {
+                            sb.Append("_");
+                            isEscaped = true;
+                        } else if (escapingMode == EscapingMode.TypeIdentifier) {
+                            sb.Append("_");
+                            isEscaped = true;
+                        } else
+                            sb.Append("+");
+                    break;
+                    case '`':
+                        sb.Append("$b");
+                        isEscaped = true;
+                    break;
+                    case '~':
+                        sb.Append("$t");
+                        isEscaped = true;
+                    break;
+                    case ':':
+                        sb.Append("$c");
+                        isEscaped = true;
+                    break;
+                    case '<':
+                        sb.Append("$l");
+                        isEscaped = true;
+                    break;
+                    case '>':
+                        sb.Append("$g");
+                        isEscaped = true;
+                    break;
+                    case '(':
+                        sb.Append("$lp");
+                        isEscaped = true;
+                    break;
+                    case ')':
+                        sb.Append("$rp");
+                        isEscaped = true;
+                    break;
+                    case '{':
+                        sb.Append("$lc");
+                        isEscaped = true;
+                    break;
+                    case '}':
+                        sb.Append("$rc");
+                        isEscaped = true;
+                    break;
+                    case '[':
+                        sb.Append("$lb");
+                        isEscaped = true;
+                    break;
+                    case ']':
+                        sb.Append("$rb");
+                        isEscaped = true;
+                    break;
+                    case '@':
+                        sb.Append("$at");
+                        isEscaped = true;
+                    break;
+                    case '-':
+                        sb.Append("$da");
+                        isEscaped = true;
+                    break;
+                    case '=':
+                        sb.Append("$eq");
+                        isEscaped = true;
+                    break;
+                    case ' ':
+                        sb.Append("$sp");
+                        isEscaped = true;
+                    break;
+                    case '?':
+                        sb.Append("$qu");
+                        isEscaped = true;
+                    break;
+                    case '!':
+                        sb.Append("$ex");
+                        isEscaped = true;
+                    break;
+                    case '*':
+                        sb.Append("$as");
+                        isEscaped = true;
+                    break;
+                    case '&':
+                        sb.Append("$am");
+                        isEscaped = true;
+                    break;
+                    default:
+                        if ((ch <= 32) || (ch >= 127)) {
+                            sb.AppendFormat("${0:x}", ch);
+                            isEscaped = true;
+                        } else
+                            sb.Append(ch);
+                    break;
                 }
-
-                result = sb.ToString();
             }
+
+            if (isEscaped)
+                result = sb.ToString();
 
             bool isReservedWord = ReservedWords.Contains(result);
             if (isReservedWord)
@@ -177,10 +206,10 @@ namespace JSIL.Internal {
             if (text == null)
                 return "null";
 
-            bool containsSingle = text.Contains('\'');
-            bool containsDouble = text.Contains('"');
-
             if (quoteCharacter == null) {
+                bool containsSingle = text.Contains("\'");
+                bool containsDouble = text.Contains("\"");
+
                 if (containsDouble && !containsSingle)
                     quoteCharacter = '\'';
                 else

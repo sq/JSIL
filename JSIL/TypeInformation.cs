@@ -16,7 +16,7 @@ namespace JSIL.Internal {
         TypeInfo GetExisting (TypeReference type);
         IMemberInfo Get (MemberReference member);
 
-        ProxyInfo[] GetProxies (TypeReference type);
+        ProxyInfo[] GetProxies (TypeDefinition type);
     }
 
     public static class TypeInfoSourceExtensions {
@@ -52,14 +52,19 @@ namespace JSIL.Internal {
         public TypeIdentifier (TypeReference type) {
             Assembly = null;
             Namespace = type.Namespace;
-            if (type.DeclaringType != null)
-                DeclaringTypeName = type.DeclaringType.FullName;
+            Name = type.Name;
+
+            var declaringType = type.DeclaringType;
+            if (declaringType != null)
+                DeclaringTypeName = declaringType.FullName;
             else
                 DeclaringTypeName = null;
-            Name = type.Name;
         }
 
         public bool Equals (TypeIdentifier rhs) {
+            if (this == rhs)
+                return true;
+
             if (!String.Equals(Name, rhs.Name))
                 return false;
 
@@ -298,20 +303,21 @@ namespace JSIL.Internal {
                     return AnyParameterTypes;
             }
 
-            return (from p in parameters select p.ParameterType);
+            return (from p in parameters select p.ParameterType).ToArray();
         }
 
         static bool IsAnyType (TypeReference t) {
             if (t == null)
                 return false;
 
-            return (t.Name == "AnyType" && t.Namespace == "JSIL.Proxy") ||
-                (JSExpression.DeReferenceType(t).IsGenericParameter);
+            return (t.Name == "AnyType" && t.Namespace == "JSIL.Proxy") || (t.IsGenericParameter);
         }
 
         bool TypesAreEqual (TypeReference lhs, TypeReference rhs) {
-            if (lhs == null || rhs == null)
-                return (lhs == rhs);
+            if (lhs == rhs)
+                return true;
+            else if (lhs == null || rhs == null)
+                return false;
 
             var lhsReference = lhs as ByReferenceType;
             var rhsReference = rhs as ByReferenceType;
@@ -375,6 +381,9 @@ namespace JSIL.Internal {
         }
 
         public bool Equals (MemberIdentifier rhs) {
+            if (this == rhs)
+                return true;
+
             if (Type != rhs.Type)
                 return false;
 
