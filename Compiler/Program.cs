@@ -71,65 +71,54 @@ namespace JSIL.Compiler {
             return result;
         }
 
+        static Action<ProgressReporter> MakeProgressHandler (string description) {
+            const int scale = 20;
+
+            return (progress) => {
+                Console.Error.Write("// {0} ", description);
+
+                var previous = new int[1] { 0 };
+
+                progress.ProgressChanged += (s, p, max) => {
+                    var current = p * scale / max;
+                    var delta = current - previous[0];
+                    if (delta > 0) {
+                        previous[0] = current;
+
+                        for (var i = 0; i < delta; i++)
+                            Console.Error.Write(".");
+                    }
+                };
+
+                progress.Finished += (s, e) => {
+                    var delta = scale - previous[0];
+                    for (var i = 0; i < delta; i++)
+                        Console.Error.Write(".");
+
+                    Console.Error.WriteLine(" done");
+                };
+            };
+        }
+
         static AssemblyTranslator CreateTranslator (Configuration configuration) {
             var translator = new AssemblyTranslator(configuration);
 
+            translator.Decompiling += MakeProgressHandler("Decompiling   ");
+            translator.Optimizing += MakeProgressHandler ("Optimizing    ");
+            translator.Writing += MakeProgressHandler    ("Generating JS ");
+
+            var indentLevel = new int[1] { 0 };
+
             translator.LoadingAssembly += (fn, progress) => {
-                Console.Error.WriteLine("// Loading {0}. ", fn);
-            };
-            translator.Decompiling += (progress) => {
-                Console.Error.Write("// Decompiling ");
-
-                var previous = new int[1] { 0 };
+                Console.Error.Write("// Loading {0} ...", fn);
 
                 progress.ProgressChanged += (s, p, max) => {
-                    var current = p * 20 / max;
-                    if (current != previous[0]) {
-                        previous[0] = current;
-                        Console.Error.Write(".");
-                    }
-                };
-
-                progress.Finished += (s, e) => {
-                    Console.Error.WriteLine(" done");
-                };
-            };
-            translator.Optimizing += (progress) => {
-                Console.Error.Write("// Optimizing ");
-
-                var previous = new int[1] { 0 };
-
-                progress.ProgressChanged += (s, p, max) => {
-                    var current = p * 20 / max;
-                    if (current != previous[0]) {
-                        previous[0] = current;
-                        Console.Error.Write(".");
-                    }
-                };
-
-                progress.Finished += (s, e) => {
-                    Console.Error.WriteLine(" done");
-                };
-            };
-            translator.Writing += (progress) => {
-                Console.Error.Write("// Generating JS ");
-
-                var previous = new int[1] { 0 };
-
-                progress.ProgressChanged += (s, p, max) => {
-                    var current = p * 20 / max;
-                    if (current != previous[0]) {
-                        previous[0] = current;
-                        Console.Error.Write(".");
-                    }
-                };
-
-                progress.Finished += (s, e) => {
-                    Console.Error.WriteLine(" done");
+                    if (p == 1)
+                        Console.Error.WriteLine(" done.");
                 };
             };
             translator.CouldNotLoadSymbols += (fn, ex) => {
-                Console.Error.WriteLine("// {0}", ex.Message);
+                Console.Error.Write(" (no symbols)");
             };
             translator.CouldNotResolveAssembly += (fn, ex) => {
                 Console.Error.WriteLine("// Could not load module {0}: {1}", fn, ex.Message);

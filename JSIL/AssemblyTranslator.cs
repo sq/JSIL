@@ -116,6 +116,34 @@ namespace JSIL {
             return LoadAssembly(path, Configuration.UseSymbols, Configuration.IncludeDependencies);
         }
 
+        protected AssemblyDefinition AssemblyLoadErrorWrapper<T> (
+            Func<T, ReaderParameters, AssemblyDefinition> loader,
+            T arg1, ReaderParameters readerParameters, 
+            bool useSymbols, string mainAssemblyPath
+        ) {
+            AssemblyDefinition result = null;
+
+            try {
+                result = loader(arg1, readerParameters);
+            } catch (Exception ex) {
+                if (useSymbols) {
+                    try {
+                        result = loader(arg1, GetReaderParameters(false, mainAssemblyPath));
+                        if (CouldNotLoadSymbols != null)
+                            CouldNotLoadSymbols(arg1.ToString(), ex);
+                    } catch (Exception ex2) {
+                        if (CouldNotResolveAssembly != null)
+                            CouldNotResolveAssembly(arg1.ToString(), ex2);
+                    }
+                } else {
+                    if (CouldNotResolveAssembly != null)
+                        CouldNotResolveAssembly(arg1.ToString(), ex);
+                }
+            }
+
+            return result;
+        }
+
         protected AssemblyDefinition[] LoadAssembly (string path, bool useSymbols, bool includeDependencies) {
             if (String.IsNullOrWhiteSpace(path))
                 throw new InvalidDataException("Path was empty.");
@@ -126,12 +154,16 @@ namespace JSIL {
             if (LoadingAssembly != null)
                 LoadingAssembly(path, pr);
 
-            var assembly = AssemblyDefinition.ReadAssembly(
-                path, readerParameters
+            var assembly = AssemblyLoadErrorWrapper(
+                AssemblyDefinition.ReadAssembly,
+                path, readerParameters, 
+                useSymbols, path
             );
 
             var result = new List<AssemblyDefinition>();
             result.Add(assembly);
+
+            pr.OnProgressChanged(1, 2);
 
             if (includeDependencies) {
                 var modulesToVisit = new Queue<ModuleDefinition>(assembly.Modules);
@@ -171,23 +203,13 @@ namespace JSIL {
 
                         AssemblyDefinition refAssembly = null;
                         assemblyNames.Add(reference.FullName);
-                        try {
-                            refAssembly = readerParameters.AssemblyResolver.Resolve(reference, readerParameters);
-                        } catch (Exception ex) {
-                            if (useSymbols) {
-                                try {
-                                    refAssembly = readerParameters.AssemblyResolver.Resolve(reference, GetReaderParameters(false, path));
-                                    if (CouldNotLoadSymbols != null)
-                                        CouldNotLoadSymbols(reference.Name, ex);
-                                } catch (Exception ex2) {
-                                    if (CouldNotResolveAssembly != null)
-                                        CouldNotResolveAssembly(reference.FullName, ex2);
-                                }
-                            } else {
-                                if (CouldNotResolveAssembly != null)
-                                    CouldNotResolveAssembly(reference.FullName, ex);
-                            }
-                        }
+                        refAssembly = AssemblyLoadErrorWrapper(
+                            readerParameters.AssemblyResolver.Resolve, 
+                            reference, readerParameters,
+                            useSymbols, path
+                        );
+
+                        pr2.OnProgressChanged(1, 2);
 
                         if (refAssembly != null) {
                             result.Add(refAssembly);
