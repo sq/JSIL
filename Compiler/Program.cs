@@ -24,6 +24,10 @@ namespace JSIL.Compiler {
             try {
                 var json = File.ReadAllText(filename);
                 var result = jss.Deserialize<Configuration>(json);
+
+                result.OutputDirectory = result.OutputDirectory
+                    .Replace("%configpath%", Path.GetDirectoryName(Path.GetFullPath(filename)));
+
                 return result;
             } catch (Exception ex) {
                 Console.Error.WriteLine("Error reading '{0}': {1}", filename, ex);
@@ -46,36 +50,60 @@ namespace JSIL.Compiler {
 
             {
                 var os = new Mono.Options.OptionSet {
-                    {"o=|out=", "Specifies the output directory for generated javascript and manifests.",
+                    {"o=|out=", 
+                        "Specifies the output directory for generated javascript and manifests. " +
+                        "You can use '%configpath%' in jsilconfig files to refer to the directory containing the configuration file, and '%assemblypath%' to refer to the directory containing the assembly being translated.",
                         (string path) => baseConfig.OutputDirectory = Path.GetFullPath(path) },
+
                     "Solution Builder options",
-                    {"configuration=", "When building one or more solution files, specifies the build configuration to use (like 'Debug').",
+                    {"configuration=", 
+                        "When building one or more solution files, specifies the build configuration to use (like 'Debug').",
                         (string v) => baseConfig.SolutionBuilder.Configuration = v },
-                    {"platform=", "When building one or more solution files, specifies the build platform to use (like 'x86').",
+                    {"platform=", 
+                        "When building one or more solution files, specifies the build platform to use (like 'x86').",
                         (string v) => baseConfig.SolutionBuilder.Platform = v },
+                    {"nac|noautoconfig", 
+                        "Suppresses automatic loading of same-named .jsilconfig files located next to solution files.",
+                        (bool b) => baseConfig.SolutionBuilder.AutoLoadConfigFiles = !b },
+
                     "Assembly options",
-                    {"p=|proxy=", "Loads a type proxy assembly to provide type information for the translator.",
+                    {"p=|proxy=", 
+                        "Loads a type proxy assembly to provide type information for the translator.",
                         (string name) => baseConfig.Assemblies.Proxies.Add(Path.GetFullPath(name)) },
-                    {"i=|ignore=", "Specifies a regular expression pattern for assembly names that should be ignored during the translation process.",
+                    {"i=|ignore=", 
+                        "Specifies a regular expression pattern for assembly names that should be ignored during the translation process.",
                         (string regex) => baseConfig.Assemblies.Ignored.Add(regex) },
-                    {"s=|stub=", "Specifies a regular expression pattern for assembly names that should be stubbed during the translation process. Stubbing forces all methods to be externals.",
+                    {"s=|stub=", 
+                        "Specifies a regular expression pattern for assembly names that should be stubbed during the translation process. " +
+                        "Stubbing forces all methods to be externals.",
                         (string regex) => baseConfig.Assemblies.Stubbed.Add(regex) },
-                    {"nd|nodeps", "Suppresses the automatic loading and translation of assembly dependencies.",
+                    {"nd|nodeps", 
+                        "Suppresses the automatic loading and translation of assembly dependencies.",
                         (bool b) => baseConfig.IncludeDependencies = !b},
-                    {"nodefaults", "Suppresses the default list of stubbed assemblies.",
+                    {"nodefaults", 
+                        "Suppresses the default list of stubbed assemblies.",
                         (bool b) => baseConfig.ApplyDefaults = !b},
-                    {"nolocal", "Disables using local proxy types from translated assemblies.",
+                    {"nolocal", 
+                        "Disables using local proxy types from translated assemblies.",
                         (bool b) => baseConfig.UseLocalProxies = !b},
-                    {"fv=|frameworkVersion=", "Specifies the version of the .NET framework proxies to use. This ensures that correct type information is provided (as 3.5 and 4.0 use different standard libraries). Accepted values are '3.5' and '4.0'. Default: '4.0'",
+                    {"fv=|frameworkVersion=", 
+                        "Specifies the version of the .NET framework proxies to use. " +
+                        "This ensures that correct type information is provided (as 3.5 and 4.0 use different standard libraries). " +
+                        "Accepted values are '3.5' and '4.0'. Default: '4.0'",
                         (string fv) => baseConfig.FrameworkVersion = double.Parse(fv)},
+
                     "Optimizer options",
-                    {"os", "Suppresses struct copy elimination.",
+                    {"os", 
+                        "Suppresses struct copy elimination.",
                         (bool b) => baseConfig.Optimizer.EliminateStructCopies = !b},
-                    {"ot", "Suppresses temporary local variable elimination.",
+                    {"ot", 
+                        "Suppresses temporary local variable elimination.",
                         (bool b) => baseConfig.Optimizer.EliminateTemporaries = !b},
-                    {"oo", "Suppresses simplification of operator expressions and special method calls.",
+                    {"oo", 
+                        "Suppresses simplification of operator expressions and special method calls.",
                         (bool b) => baseConfig.Optimizer.SimplifyOperators = !b},
-                    {"ol", "Suppresses simplification of loop blocks.",
+                    {"ol", 
+                        "Suppresses simplification of loop blocks.",
                         (bool b) => baseConfig.Optimizer.SimplifyLoops = !b},
                 };
 
@@ -120,10 +148,12 @@ namespace JSIL.Compiler {
             var mainGroup = (from fn in filenames
                              where
                                  (new[] { ".exe", ".dll" }.Contains(Path.GetExtension(fn)))
-                             select fn);
-            buildGroups.Add(new KeyValuePair<Configuration, IEnumerable<string>>(
-                baseConfig, mainGroup
-            ));
+                             select fn).ToArray();
+
+            if (mainGroup.Length > 0)
+                buildGroups.Add(new KeyValuePair<Configuration, IEnumerable<string>>(
+                    baseConfig, mainGroup
+                ));
         }
 
         static Action<ProgressReporter> MakeProgressHandler (string description) {
@@ -150,7 +180,7 @@ namespace JSIL.Compiler {
                     for (var i = 0; i < delta; i++)
                         Console.Error.Write(".");
 
-                    Console.Error.WriteLine(" done");
+                    Console.Error.WriteLine(" done.");
                 };
             };
         }
@@ -200,7 +230,12 @@ namespace JSIL.Compiler {
                 var translator = CreateTranslator(kvp.Key);
                 foreach (var filename in kvp.Value) {
                     var outputs = translator.Translate(filename, kvp.Key.UseLocalProxies.GetValueOrDefault(true));
-                    outputs.WriteToDirectory(kvp.Key.OutputDirectory);
+                    var outputDir = kvp.Key.OutputDirectory
+                        .Replace("%assemblypath%", Path.GetDirectoryName(Path.GetFullPath(filename)));
+
+                    Console.Error.WriteLine("Saving to {0} ...", outputDir);
+                    outputs.WriteToDirectory(outputDir);
+                    Console.Error.WriteLine(" done.");
                 }
             }
         }
