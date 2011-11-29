@@ -29,7 +29,8 @@ namespace JSIL.Compiler {
                 var result = jss.Deserialize<Configuration>(json);
 
                 result.OutputDirectory = result.OutputDirectory
-                    .Replace("%configpath%", Path.GetDirectoryName(Path.GetFullPath(filename)));
+                    .Replace("%configpath%", Path.GetDirectoryName(Path.GetFullPath(filename)))
+                    .Replace("/", "\\");
 
                 Console.Error.WriteLine("// Applied settings from '{0}'.", ShortenPath(filename));
 
@@ -138,9 +139,15 @@ namespace JSIL.Compiler {
                      (from fn in filenames where Path.GetExtension(fn) == ".sln" select fn)
                     ) {
 
-                var config = MergeConfigurations(
-                    baseConfig
+                var solutionConfigPath = Path.Combine(
+                    Path.GetDirectoryName(solution),
+                    String.Format("{0}.jsilconfig", Path.GetFileName(solution))
                 );
+                var solutionConfig = File.Exists(solutionConfigPath) 
+                    ? new Configuration[] { LoadConfiguration(solutionConfigPath) } 
+                    : new Configuration[] {};
+
+                var config = MergeConfigurations(baseConfig, solutionConfig);
                 var outputs = SolutionBuilder.Build(
                     solution,
                     config.SolutionBuilder.Configuration,
@@ -235,15 +242,24 @@ namespace JSIL.Compiler {
                 if (config.ApplyDefaults.GetValueOrDefault(true))
                     config = MergeConfigurations(LoadConfiguration("defaults.jsilconfig"), config);
 
-                var translator = CreateTranslator(config);
                 foreach (var filename in kvp.Value) {
-                    var outputs = translator.Translate(filename, config.UseLocalProxies.GetValueOrDefault(true));
-                    var outputDir = config.OutputDirectory
+                    var fileConfigPath = Path.Combine(
+                        Path.GetDirectoryName(filename),
+                        String.Format("{0}.jsilconfig", Path.GetFileName(filename))
+                    );
+                    var fileConfig = File.Exists(fileConfigPath)
+                        ? new Configuration[] { LoadConfiguration(fileConfigPath) }
+                        : new Configuration[] { };
+                    var localConfig = MergeConfigurations(config, fileConfig);
+
+                    var translator = CreateTranslator(localConfig);
+                    var outputs = translator.Translate(filename, localConfig.UseLocalProxies.GetValueOrDefault(true));
+                    var outputDir = localConfig.OutputDirectory
                         .Replace("%assemblypath%", Path.GetDirectoryName(Path.GetFullPath(filename)));
 
                     Console.Error.Write("// Saving to '{0}' ...", ShortenPath(outputDir) + "\\");
 
-                    EmitLog(outputDir, config, filename, outputs);
+                    EmitLog(outputDir, localConfig, filename, outputs);
 
                     outputs.WriteToDirectory(outputDir);
 

@@ -30,3 +30,4 @@ Tests/*Cases/*.js
 /jsil.org/demos/Raytracer/*.js
 /jsil.org/demos/Libraries
 *.jsillog
+/Examples/obj
