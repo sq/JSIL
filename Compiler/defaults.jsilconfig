@@ -1,0 +1,11 @@
+﻿{
+  "OutputDirectory": "%assemblypath%",
+  "Assemblies": {
+    "Stubbed": [
+      "mscorlib,",
+      "System.*",
+      "Microsoft.*",
+      "Accessibility,"
+    ]
+  }
+}

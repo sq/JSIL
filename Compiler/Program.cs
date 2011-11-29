@@ -10,13 +10,16 @@ using JSIL.Translator;
 
 namespace JSIL.Compiler {
     class Program {
-        static void ApplyDefaults (Configuration configuration) {
-            Console.Error.WriteLine("// Applying default settings. To suppress, use --nodefaults.");
+        public static string ShortenPath (string path) {
+            var cwd = new Uri(Environment.CurrentDirectory);
 
-            configuration.Assemblies.Stubbed.Add(@"mscorlib,");
-            configuration.Assemblies.Stubbed.Add(@"System.*");
-            configuration.Assemblies.Stubbed.Add(@"Microsoft.*");
-            configuration.Assemblies.Stubbed.Add(@"Accessibility,");
+            Uri pathUri;
+            if (Uri.TryCreate(path, UriKind.Absolute, out pathUri)) {
+                var relativeUri = cwd.MakeRelativeUri(pathUri);
+                return Uri.UnescapeDataString(relativeUri.ToString()).Replace("/", "\\");
+            }
+
+            return path;
         }
 
         static Configuration LoadConfiguration (string filename) {
@@ -28,9 +31,11 @@ namespace JSIL.Compiler {
                 result.OutputDirectory = result.OutputDirectory
                     .Replace("%configpath%", Path.GetDirectoryName(Path.GetFullPath(filename)));
 
+                Console.Error.WriteLine("// Applied settings from '{0}'.", ShortenPath(filename));
+
                 return result;
             } catch (Exception ex) {
-                Console.Error.WriteLine("Error reading '{0}': {1}", filename, ex);
+                Console.Error.WriteLine("// Error reading '{0}': {1}", filename, ex);
                 throw;
             }
         }
@@ -54,6 +59,9 @@ namespace JSIL.Compiler {
                         "Specifies the output directory for generated javascript and manifests. " +
                         "You can use '%configpath%' in jsilconfig files to refer to the directory containing the configuration file, and '%assemblypath%' to refer to the directory containing the assembly being translated.",
                         (string path) => baseConfig.OutputDirectory = Path.GetFullPath(path) },
+                    {"nac|noautoconfig", 
+                        "Suppresses automatic loading of same-named .jsilconfig files located next to solutions and/or assemblies.",
+                        (bool b) => baseConfig.AutoLoadConfigFiles = !b },
 
                     "Solution Builder options",
                     {"configuration=", 
@@ -62,9 +70,6 @@ namespace JSIL.Compiler {
                     {"platform=", 
                         "When building one or more solution files, specifies the build platform to use (like 'x86').",
                         (string v) => baseConfig.SolutionBuilder.Platform = v },
-                    {"nac|noautoconfig", 
-                        "Suppresses automatic loading of same-named .jsilconfig files located next to solution files.",
-                        (bool b) => baseConfig.SolutionBuilder.AutoLoadConfigFiles = !b },
 
                     "Assembly options",
                     {"p=|proxy=", 
@@ -133,7 +138,9 @@ namespace JSIL.Compiler {
                      (from fn in filenames where Path.GetExtension(fn) == ".sln" select fn)
                     ) {
 
-                var config = MergeConfigurations(baseConfig);
+                var config = MergeConfigurations(
+                    baseConfig
+                );
                 var outputs = SolutionBuilder.Build(
                     solution,
                     config.SolutionBuilder.Configuration,
@@ -195,7 +202,7 @@ namespace JSIL.Compiler {
             var indentLevel = new int[1] { 0 };
 
             translator.LoadingAssembly += (fn, progress) => {
-                Console.Error.Write("// Loading {0} ...", fn);
+                Console.Error.Write("// Loading '{0}' ...", ShortenPath(fn));
 
                 progress.ProgressChanged += (s, p, max) => {
                     if (p == 1)
@@ -224,20 +231,41 @@ namespace JSIL.Compiler {
                 return;
 
             foreach (var kvp in buildGroups) {
-                if (kvp.Key.ApplyDefaults.GetValueOrDefault(true))
-                    ApplyDefaults(kvp.Key);
+                var config = kvp.Key;
+                if (config.ApplyDefaults.GetValueOrDefault(true))
+                    config = MergeConfigurations(LoadConfiguration("defaults.jsilconfig"), config);
 
-                var translator = CreateTranslator(kvp.Key);
+                var translator = CreateTranslator(config);
                 foreach (var filename in kvp.Value) {
-                    var outputs = translator.Translate(filename, kvp.Key.UseLocalProxies.GetValueOrDefault(true));
-                    var outputDir = kvp.Key.OutputDirectory
+                    var outputs = translator.Translate(filename, config.UseLocalProxies.GetValueOrDefault(true));
+                    var outputDir = config.OutputDirectory
                         .Replace("%assemblypath%", Path.GetDirectoryName(Path.GetFullPath(filename)));
 
-                    Console.Error.WriteLine("Saving to {0} ...", outputDir);
+                    Console.Error.Write("// Saving to '{0}' ...", ShortenPath(outputDir) + "\\");
+
+                    EmitLog(outputDir, config, filename, outputs);
+
                     outputs.WriteToDirectory(outputDir);
+
                     Console.Error.WriteLine(" done.");
                 }
             }
+        }
+
+        static void EmitLog (string logPath, Configuration configuration, string inputFile, TranslationResult outputs) {
+            var logText = new StringBuilder();
+            var asmName = Assembly.GetExecutingAssembly().GetName();
+            logText.AppendLine(String.Format("// JSILc v{0}.{1}.{2}", asmName.Version.Major, asmName.Version.Minor, asmName.Version.Revision));
+            logText.AppendLine(String.Format("// The following settings were used when translating '{0}':", inputFile));
+            logText.AppendLine((new JavaScriptSerializer()).Serialize(configuration));
+            logText.AppendLine("// The following outputs were produced:");
+            foreach (var kvp2 in outputs.Files)
+                logText.AppendLine(kvp2.Key);
+
+            File.WriteAllText(
+                Path.Combine(logPath, String.Format("{0}.jsillog", Path.GetFileName(inputFile))),
+                logText.ToString()
+            );
         }
     }
 }

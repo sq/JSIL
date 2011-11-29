@@ -29,3 +29,4 @@ Tests/*Cases/*.js
 /jsil.org/demos/Tetris/*.js
 /jsil.org/demos/Raytracer/*.js
 /jsil.org/demos/Libraries
+*.jsillog

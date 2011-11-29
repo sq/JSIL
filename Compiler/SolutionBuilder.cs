@@ -15,9 +15,9 @@ namespace JSIL.Compiler {
             string configString = String.Format("{0}|{1}", buildConfiguration ?? "<default>", buildPlatform ?? "<default>");
 
             if ((buildConfiguration ?? buildPlatform) != null)
-                Console.Error.Write("// Building '{0}' ({1}) ...", Path.GetFileName(solutionFile), configString);
+                Console.Error.Write("// Building '{0}' ({1}) ...", Program.ShortenPath(solutionFile), configString);
             else
-                Console.Error.Write("// Building '{0}' ...", Path.GetFileName(solutionFile));
+                Console.Error.Write("// Building '{0}' ...", Program.ShortenPath(solutionFile));
 
             var pc = new ProjectCollection();
             var parms = new BuildParameters(pc);
