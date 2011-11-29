@@ -29,7 +29,6 @@ namespace JSIL.Translator {
         public readonly AssemblyConfiguration Assemblies = new AssemblyConfiguration();
         public readonly OptimizerConfiguration Optimizer = new OptimizerConfiguration();
 
-        public string OutputDirectory = Environment.CurrentDirectory;
         public double FrameworkVersion = 4.0;
     }
 }

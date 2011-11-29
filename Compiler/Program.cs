@@ -19,14 +19,18 @@ namespace JSIL.Compiler {
             configuration.Assemblies.Stubbed.Add(@"Accessibility,");
         }
 
-        // Removes parsed elements from the input list
         static Configuration ParseCommandLine (IEnumerable<string> arguments, out List<string> filenames) {
             var result = new Configuration();
-            var includeDefaults = new [] { true };
 
             var os = new Mono.Options.OptionSet {
                 {"o=|out=", "Specifies the output directory for generated javascript and manifests.",
                     (string path) => result.OutputDirectory = Path.GetFullPath(path) },
+                "Solution Builder options",
+                {"configuration=", "When building one or more solution files, specifies the build configuration to use (like 'Debug').",
+                    (string v) => result.SolutionBuilder.Configuration = v },
+                {"platform=", "When building one or more solution files, specifies the build platform to use (like 'x86').",
+                    (string v) => result.SolutionBuilder.Platform = v },
+                "Assembly options",
                 {"p=|proxy=", "Loads a type proxy assembly to provide type information for the translator.",
                     (string name) => result.Assemblies.Proxies.Add(Path.GetFullPath(name)) },
                 {"i=|ignore=", "Specifies a regular expression pattern for assembly names that should be ignored during the translation process.",
@@ -36,7 +40,10 @@ namespace JSIL.Compiler {
                 {"nd|nodeps", "Suppresses the automatic loading and translation of assembly dependencies.",
                     (bool b) => result.IncludeDependencies = !b},
                 {"nodefaults", "Suppresses the default list of stubbed assemblies.",
-                    (bool b) => includeDefaults[0] = !b},
+                    (bool b) => result.ApplyDefaults = !b},
+                {"fv=|frameworkVersion=", "Specifies the version of the .NET framework proxies to use. This ensures that correct type information is provided (as 3.5 and 4.0 use different standard libraries). Accepted values are '3.5' and '4.0'. Default: '4.0'",
+                    (string fv) => result.FrameworkVersion = double.Parse(fv)},
+                "Optimizer options",
                 {"os", "Suppresses struct copy elimination.",
                     (bool b) => result.Optimizer.EliminateStructCopies = !b},
                 {"ot", "Suppresses temporary local variable elimination.",
@@ -45,14 +52,21 @@ namespace JSIL.Compiler {
                     (bool b) => result.Optimizer.SimplifyOperators = !b},
                 {"ol", "Suppresses simplification of loop blocks.",
                     (bool b) => result.Optimizer.SimplifyLoops = !b},
-                {"fv=|frameworkVersion=", "Specifies the version of the .NET framework proxies to use. This ensures that correct type information is provided (as 3.5 and 4.0 use different standard libraries). Accepted values are '3.5' and '4.0'. Default: '4.0'",
-                    (string fv) => result.FrameworkVersion = double.Parse(fv)}
             };
 
             filenames = os.Parse(arguments);
 
-            if (includeDefaults[0])
-                ApplyDefaults(result);
+            if (filenames.Count == 0) {
+                var asmName = Assembly.GetExecutingAssembly().GetName();
+                Console.WriteLine("==== JSILc v{0}.{1}.{2} ====", asmName.Version.Major, asmName.Version.Minor, asmName.Version.Revision);
+                Console.WriteLine("Specify one or more compiled assemblies (dll/exe) to translate them. Symbols will be loaded if they exist in the same directory.");
+                Console.WriteLine("You can also specify Visual Studio solution files (sln) to build them and automatically translate their output(s).");
+                Console.WriteLine("Specify the path of a .jsilconfig file to load settings from it.");
+
+                os.WriteOptionDescriptions(Console.Out);
+
+                return null;
+            }
 
             return result;
         }
@@ -131,51 +145,26 @@ namespace JSIL.Compiler {
             List<string> filenames;
             var configuration = ParseCommandLine(arguments, out filenames);
 
-            if (filenames.Count == 0) {
-                var asmName = Assembly.GetExecutingAssembly().GetName();
-                Console.WriteLine("==== JSILc v{0}.{1}.{2} ====", asmName.Version.Major, asmName.Version.Minor, asmName.Version.Revision);
-                Console.WriteLine("Usage: JSILc [options] ...");
-                Console.WriteLine("Specify one or more compiled assemblies (dll/exe) to translate them. Symbols will be loaded if they exist in the same directory.");
-                Console.WriteLine("You can also specify Visual Studio solution files (sln) to build them and automatically translate their output(s).");
-                Console.WriteLine("Specify the path of a .jsilconfig file to load settings from it.");
-                Console.WriteLine("Options:");
-                Console.WriteLine("--fv:<version>");
-                Console.WriteLine("  Specifies the version of the .NET framework libraries to use. Valid options are '3.5' and '4.0'. The default is '4.0'.");
-                Console.WriteLine("--out:<folder>");
-                Console.WriteLine("  Specifies the directory into which the generated javascript should be written.");
-                Console.WriteLine("--nodeps");
-                Console.WriteLine("  Disables translating dependencies.");
-                Console.WriteLine("--nodefaults");
-                Console.WriteLine("  Disables the built-in default stub list. Use this if you actually want to translate huge Microsoft assemblies like mscorlib.");
-                Console.WriteLine("--oS");
-                Console.WriteLine("  Disables struct copy optimizations");
-                Console.WriteLine("--oO");
-                Console.WriteLine("  Disables operator optimizations");
-                Console.WriteLine("--oL");
-                Console.WriteLine("  Disables loop optimizations");
-                Console.WriteLine("--oT");
-                Console.WriteLine("  Disables temporary variable elimination");
-                Console.WriteLine("--proxy:<assembly>");
-                Console.WriteLine("  Specifies the location of a proxy assembly that contains type information for other assemblies.");
-                Console.WriteLine("--ignore:<regex>");
-                Console.WriteLine("  Specifies a regular expression filter used to ignore certain dependencies.");
-                Console.WriteLine("--stub:<regex>");
-                Console.WriteLine("  Specifies a regular expression filter used to specify that certain dependencies should only be generated as stubs.");
+            if (configuration == null)
                 return;
-            }
 
             foreach (var filename in filenames.ToArray()) {
                 var extension = Path.GetExtension(filename);
                 switch (extension.ToLower()) {
                     case ".sln":
-                        foreach (var resultFilename in SolutionBuilder.Build(filename)) {
+                        foreach (var resultFilename in SolutionBuilder.Build(
+                            filename, 
+                            configuration.SolutionBuilder.Configuration, 
+                            configuration.SolutionBuilder.Platform)
+                        ) {
                             filenames.Add(resultFilename);
                         }
                         break;
-                    case ".jsilconfig":
-                        break;
                 }
             }
+
+            if (configuration.ApplyDefaults)
+                ApplyDefaults(configuration);
 
             var translator = CreateTranslator(configuration);
             while (filenames.Count > 0) {
@@ -191,9 +180,11 @@ namespace JSIL.Compiler {
                         result.WriteToDirectory(configuration.OutputDirectory);
                         Console.Error.WriteLine("done");
                         break;
+
                     case ".sln":
                     case ".jsilconfig":
                         break;
+
                     default:
                         Console.Error.WriteLine("// Don't know what to do with file '{0}'.", filename);
                         break;

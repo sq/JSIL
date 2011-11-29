@@ -74,6 +74,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\Upstream\Options.cs" />
+    <Compile Include="Configuration.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="SolutionBuilder.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
