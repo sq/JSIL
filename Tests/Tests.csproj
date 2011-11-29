@@ -238,6 +238,8 @@
     <None Include="SimpleTestCases\CollectionAndObjectInitializers.cs" />
     <None Include="FailingTestCases\HideBaseMethod.cs" />
     <None Include="SimpleTestCases\GetUnderlyingType.cs" />
+    <None Include="SpecialTestCases\ProxiedMethodInheritance.cs" />
+    <None Include="SpecialTestCases\ProxiedMethodInheritance2.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
