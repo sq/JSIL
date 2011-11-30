@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -38,12 +39,17 @@ namespace JSIL {
             }
         }
 
-        public readonly HashSet<QualifiedMemberIdentifier> OptimizationQueue = new HashSet<QualifiedMemberIdentifier>();
-        public readonly Dictionary<QualifiedMemberIdentifier, Entry> Cache = new Dictionary<QualifiedMemberIdentifier, Entry>();
+        public readonly ConcurrentHashQueue<QualifiedMemberIdentifier> OptimizationQueue;
+        protected readonly ConcurrentCache<QualifiedMemberIdentifier, Entry> Cache;
+
+        public FunctionCache () {
+            Cache = new ConcurrentCache<QualifiedMemberIdentifier, Entry>(Environment.ProcessorCount, 4096);
+            OptimizationQueue = new ConcurrentHashQueue<QualifiedMemberIdentifier>(Environment.ProcessorCount, 4096);
+        }
 
         public bool TryGetExpression (QualifiedMemberIdentifier method, out JSFunctionExpression function) {
             Entry entry;
-            if (!Cache.TryGetValue(method, out entry)) {
+            if (!Cache.TryGet(method, out entry)) {
                 function = null;
                 return false;
             }
@@ -52,18 +58,20 @@ namespace JSIL {
             return true;
         }
 
-        public JSFunctionExpression GetExpression (QualifiedMemberIdentifier method) {
+        public Entry GetCacheEntry (QualifiedMemberIdentifier method) {
             Entry entry;
-            if (!Cache.TryGetValue(method, out entry))
+            if (!Cache.TryGet(method, out entry))
                 throw new KeyNotFoundException("No cache entry for method '" + method + "'.");
 
-            return entry.Expression;
+            return entry;
+        }
+
+        public JSFunctionExpression GetExpression (QualifiedMemberIdentifier method) {
+            return GetCacheEntry(method).Expression;
         }
 
         public FunctionAnalysis1stPass GetFirstPass (QualifiedMemberIdentifier method) {
-            Entry entry;
-            if (!Cache.TryGetValue(method, out entry))
-                throw new KeyNotFoundException("No cache entry for method '" + method + "'.");
+            Entry entry = GetCacheEntry(method);
 
             if (entry.Expression == null)
                 return null;
@@ -87,20 +95,19 @@ namespace JSIL {
         public FunctionAnalysis2ndPass GetSecondPass (JSMethod method) {
             var id = method.QualifiedIdentifier;
 
-            Entry entry;
-            if (!Cache.TryGetValue(id, out entry)) {
-                entry = new Entry {
-                    Info = method.Method,
-                    Reference = method.Reference, 
-                    Identifier = id,
-                    ParameterNames = new HashSet<string>(from p in method.Method.Parameters select p.Name),
-                    SecondPass = new FunctionAnalysis2ndPass(this, method.Method)
-                };
-                Cache.Add(id, entry);
-                OptimizationQueue.Add(id);
+            Entry entry = Cache.GetOrCreate(
+                id, () => {
+                    OptimizationQueue.TryEnqueue(id);
 
-                return entry.SecondPass;
-            }
+                    return new Entry {
+                        Info = method.Method,
+                        Reference = method.Reference, 
+                        Identifier = id,
+                        ParameterNames = new HashSet<string>(from p in method.Method.Parameters select p.Name),
+                        SecondPass = new FunctionAnalysis2ndPass(this, method.Method)
+                    };
+                }
+            );
 
             if (entry.SecondPass == null) {
                 if (entry.InProgress)
@@ -117,7 +124,7 @@ namespace JSIL {
 
         public void InvalidateFirstPass (QualifiedMemberIdentifier method) {
             Entry entry;
-            if (!Cache.TryGetValue(method, out entry))
+            if (!Cache.TryGet(method, out entry))
                 throw new KeyNotFoundException("No cache entry for method '" + method + "'.");
 
             entry.FirstPass = null;
@@ -126,7 +133,7 @@ namespace JSIL {
 
         public void InvalidateSecondPass (QualifiedMemberIdentifier method) {
             Entry entry;
-            if (!Cache.TryGetValue(method, out entry))
+            if (!Cache.TryGet(method, out entry))
                 throw new KeyNotFoundException("No cache entry for method '" + method + "'.");
 
             entry.SecondPass = null;
@@ -137,41 +144,40 @@ namespace JSIL {
             QualifiedMemberIdentifier identifier, ILBlockTranslator translator, 
             IEnumerable<JSVariable> parameters, JSBlockStatement body
         ) {
-            var result = new JSFunctionExpression(
-                new JSMethod(method, info),
-                translator.Variables,
-                parameters,
-                body
-            );
+            return Cache.GetOrCreate(identifier, () => {
+                var result = new JSFunctionExpression(
+                    new JSMethod(method, info),
+                    translator.Variables,
+                    parameters,
+                    body
+                );
 
-            var entry = new Entry {
-                Identifier = identifier,
-                Info = info,
-                Reference = method,
-                Expression = result,
-                Variables = translator.Variables,
-                ParameterNames = translator.ParameterNames,
-                SpecialIdentifiers = translator.SpecialIdentifiers
-            };
+                OptimizationQueue.TryEnqueue(identifier);
 
-            Cache.Add(identifier, entry);
-            OptimizationQueue.Add(identifier);
-
-            return result;
+                return new Entry {
+                    Identifier = identifier,
+                    Info = info,
+                    Reference = method,
+                    Expression = result,
+                    Variables = translator.Variables,
+                    ParameterNames = translator.ParameterNames,
+                    SpecialIdentifiers = translator.SpecialIdentifiers
+                };
+            }).Expression;
         }
 
         internal void CreateNull (
             MethodInfo info, MethodReference method, 
             QualifiedMemberIdentifier identifier
         ) {
-            var entry = new Entry {
-                Identifier = identifier,
-                Info = info,
-                Reference = method,
-                Expression = null
-            };
-
-            Cache.Add(identifier, entry);
+            Cache.TryCreate(identifier, () => {
+                return new Entry {
+                    Identifier = identifier,
+                    Info = info,
+                    Reference = method,
+                    Expression = null
+                };
+            });
         }
     }
 }

@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using ICSharpCode.NRefactory.CSharp;
 using Mono.Cecil;
 
@@ -319,6 +321,133 @@ namespace JSIL.Internal {
                 (from l in text.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries)
                  select "    " + l).ToArray()
             );
+        }
+    }
+
+    public class ConcurrentHashQueue<TValue> {
+        protected readonly ConcurrentDictionary<TValue, bool> Dictionary;
+        protected readonly ConcurrentQueue<TValue> Queue;
+
+        public ConcurrentHashQueue () {
+            Queue = new ConcurrentQueue<TValue>();
+            Dictionary = new ConcurrentDictionary<TValue, bool>();
+        }
+
+        public ConcurrentHashQueue (int concurrencyLevel, int capacity) {
+            Queue = new ConcurrentQueue<TValue>();
+            Dictionary = new ConcurrentDictionary<TValue, bool>(concurrencyLevel, capacity);
+        }
+
+        public bool TryEnqueue (TValue value) {
+            if (Dictionary.TryAdd(value, false)) {
+                Queue.Enqueue(value);
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool TryDequeue (out TValue value) {
+            bool temp;
+
+            if (Queue.TryDequeue(out value)) {
+                Dictionary.TryRemove(value, out temp);
+                return true;
+            }
+
+            return false;
+        }
+
+        public int Count {
+            get {
+                return Math.Min(Dictionary.Count, Queue.Count);
+            }
+        }
+    }
+
+    public class ConcurrentCache<TKey, TValue> {
+        protected readonly ConcurrentDictionary<TKey, TValue> Storage;
+        protected readonly ConcurrentDictionary<TKey, ManualResetEventSlim> Signals;
+
+        public ConcurrentCache () {
+            Storage = new ConcurrentDictionary<TKey, TValue>();
+            Signals = new ConcurrentDictionary<TKey, ManualResetEventSlim>();
+        }
+
+        public ConcurrentCache (int concurrencyLevel, int capacity) {
+            Storage = new ConcurrentDictionary<TKey, TValue>(concurrencyLevel, capacity);
+            Signals = new ConcurrentDictionary<TKey, ManualResetEventSlim>(concurrencyLevel, concurrencyLevel);
+        }
+
+        public ConcurrentCache (int concurrencyLevel, int capacity, IEqualityComparer<TKey> comparer) {
+            Storage = new ConcurrentDictionary<TKey, TValue>(concurrencyLevel, capacity, comparer);
+            Signals = new ConcurrentDictionary<TKey, ManualResetEventSlim>(concurrencyLevel, concurrencyLevel, comparer);
+        }
+
+        public bool MightContainKey (TKey key) {
+            return Storage.ContainsKey(key) || Signals.ContainsKey(key);
+        }
+
+        public bool ContainsKey (TKey key) {
+            return Storage.ContainsKey(key);
+        }
+
+        public bool TryGet (TKey key, out TValue result) {
+            ManualResetEventSlim signal;
+
+            while (Signals.TryGetValue(key, out signal))
+                signal.Wait();
+
+            return Storage.TryGetValue(key, out result);
+        }
+
+        public bool TryCreate (TKey key, Func<TValue> creator) {
+            ManualResetEventSlim signal;
+
+            if (Storage.ContainsKey(key))
+                return false;
+
+            if (Signals.TryAdd(key, signal = new ManualResetEventSlim(false))) {
+                try {
+                    if (Storage.ContainsKey(key))
+                        return false;
+
+                    var result = creator();
+
+                    if (!Storage.TryAdd(key, result))
+                        throw new InvalidOperationException("Cache entry was created by someone else while construction lock was held");
+
+                    return true;
+                } finally {
+                    Signals.TryRemove(key, out signal);
+                    signal.Set();
+                }
+            }
+
+            return false;
+        }
+
+        public TValue GetOrCreate (TKey key, Func<TValue> creator) {
+            while (true) {
+                ManualResetEventSlim signal;
+                while (Signals.TryGetValue(key, out signal))
+                    signal.Wait();
+
+                TValue result;
+                if (Storage.TryGetValue(key, out result))
+                    return result;
+
+                TryCreate(key, creator);
+            }
+        }
+
+        public bool TryRemove (TKey key) {
+            ManualResetEventSlim signal;
+            while (Signals.TryGetValue(key, out signal))
+                signal.Wait();
+
+            TValue temp;
+            return Storage.TryRemove(key, out temp);
         }
     }
 }

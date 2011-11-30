@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -236,14 +237,8 @@ namespace JSIL {
             return result.ToArray();
         }
 
-        public TranslationResult Translate (string assemblyPath, bool scanForProxies = true) {
-            var result = new TranslationResult();
-            var assemblies = LoadAssembly(assemblyPath);
-
-            if (scanForProxies)
-                TypeInfoProvider.AddProxyAssemblies(assemblies);
-
-            var context = new DecompilerContext(assemblies.First().MainModule);
+        protected DecompilerContext MakeDecompilerContext (ModuleDefinition module) {
+            var context = new DecompilerContext(module);
 
             context.Settings.YieldReturn = false;
             context.Settings.AnonymousMethods = true;
@@ -252,13 +247,23 @@ namespace JSIL {
             context.Settings.FullyQualifyAmbiguousTypeNames = true;
             context.Settings.ForEachStatement = false;
 
+            return context;
+        }
+
+        public TranslationResult Translate (string assemblyPath, bool scanForProxies = true) {
+            var result = new TranslationResult();
+            var assemblies = LoadAssembly(assemblyPath);
+
+            if (scanForProxies)
+                TypeInfoProvider.AddProxyAssemblies(assemblies);
+
             var pr = new ProgressReporter();
             if (Decompiling != null)
                 Decompiling(pr);
 
             for (int i = 0; i < assemblies.Length; i++) {
                 pr.OnProgressChanged(i, assemblies.Length);
-                Analyze(context, assemblies[i]);
+                Analyze(assemblies[i]);
             }
 
             pr.OnFinished();
@@ -271,6 +276,7 @@ namespace JSIL {
                 var outputPath = assembly.Name + ".js";
 
                 using (var outputStream = new MemoryStream()) {
+                    var context = MakeDecompilerContext(assembly.MainModule);
                     Translate(context, assembly, outputStream);
 
                     result.Files[outputPath] = new ArraySegment<byte>(
@@ -318,11 +324,9 @@ namespace JSIL {
                 Optimizing(pr);
 
             int i = 0;
-            while (FunctionCache.OptimizationQueue.Count > 0) {
-                var id = FunctionCache.OptimizationQueue.First();
-                FunctionCache.OptimizationQueue.Remove(id);
-
-                var e = FunctionCache.Cache[id];
+            QualifiedMemberIdentifier id;
+            while (FunctionCache.OptimizationQueue.TryDequeue(out id)) {
+                var e = FunctionCache.GetCacheEntry(id);
                 if (e.Expression == null) {
                     i++;
                     continue;
@@ -335,55 +339,76 @@ namespace JSIL {
             pr.OnFinished();
         }
 
-        protected void Analyze (DecompilerContext context, AssemblyDefinition assembly) {
+        protected void Analyze (AssemblyDefinition assembly) {
             bool isStubbed = IsStubbed(assembly);
 
-            var allMethods = new Queue<MethodDefinition>();
+            var allMethods = new ConcurrentBag<MethodDefinition>();
+            var allTypes = new List<TypeDefinition>();
 
             foreach (var module in assembly.Modules) {
                 var moduleInfo = TypeInfoProvider.GetModuleInformation(module);
                 if (moduleInfo.IsIgnored)
                     continue;
 
-                var allTypes = new Queue<TypeDefinition>(module.Types);
+                allTypes.AddRange(module.Types);
+            }
 
-                while (allTypes.Count > 0) {
-                    var td = allTypes.Dequeue();
+            while (allTypes.Count > 0) {
+                var types = allTypes.ToArray();
+                allTypes.Clear();
 
-                    foreach (var nt in td.NestedTypes)
-                        allTypes.Enqueue(nt);
+                Parallel.For(
+                    0, types.Length, (i) => {
+                        var type = types[i];
 
-                    if (!ShouldTranslateMethods(td))
-                        continue;
+                        lock (allTypes)
+                            allTypes.AddRange(type.NestedTypes);
 
-                    foreach (var m in td.Methods) {
-                        var methodInfo = TypeInfoProvider.GetMethod(m);
+                        if (!ShouldTranslateMethods(type))
+                            return;
 
-                        if ((methodInfo == null) || methodInfo.IsIgnored)
-                            continue;
-                        if (!m.HasBody)
-                            continue;
+                        var methods = (from m in type.Methods
+                                    select m);
 
-                        var isProperty = (methodInfo.DeclaringProperty != null);
-
-                        if (isStubbed && !isProperty)
-                            continue;
-                        if (isStubbed && isProperty)
-                            if (!methodInfo.Member.IsCompilerGenerated())
+                        foreach (var m in type.Methods) {
+                            if (!m.HasBody)
                                 continue;
 
-                        allMethods.Enqueue(m);
+                            var mi = TypeInfoProvider.GetMethod(m);
+
+                            if ((mi == null) || (mi.IsIgnored))
+                                continue;
+
+                            if (isStubbed) {
+                                var isProperty = mi.DeclaringProperty != null;
+
+                                if (!(isProperty && m.IsCompilerGenerated()))
+                                    continue;
+                            }
+
+                            allMethods.Add(m);
+                        }
                     }
-                }
+                );
             }
 
-            foreach (var m in allMethods) {
-                context.CurrentModule = m.Module;
-                context.CurrentType = m.DeclaringType;
-                context.CurrentMethod = m;
+            Parallel.For(0, allMethods.Count,
+                () => MakeDecompilerContext(assembly.MainModule),
+                (i, loopState, ctx) => {
+                    MethodDefinition m;
+                    if (!allMethods.TryTake(out m))
+                        throw new InvalidOperationException("Method collection mutated during analysis");
 
-                TranslateMethodExpression(context, m, m);
-            }
+                    ctx.CurrentModule = m.Module;
+                    ctx.CurrentType = m.DeclaringType;
+                    ctx.CurrentMethod = m;
+
+                    TranslateMethodExpression(ctx, m, m);
+
+                    return ctx;
+                },
+                (ctx) => {}
+            );
         }
 
         protected bool IsStubbed (AssemblyDefinition assembly) {
