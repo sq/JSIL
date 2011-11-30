@@ -1170,8 +1170,13 @@ namespace JSIL.Internal {
         public readonly List<CustomAttribute> Attributes = new List<CustomAttribute>();
     }
 
-    public class MetadataCollection : Dictionary<string, AttributeEntry> {
-        public MetadataCollection (ICustomAttributeProvider target) : base (8) {
+    public class MetadataCollection {
+        protected Dictionary<string, AttributeEntry> Attributes = null;
+
+        public MetadataCollection (ICustomAttributeProvider target) {
+            if (target.CustomAttributes.Count == 0)
+                return;
+
             foreach (var ca in target.CustomAttributes) {
                 AttributeEntry existing;
                 if (TryGetValue(ca.AttributeType.FullName, out existing))
@@ -1184,24 +1189,54 @@ namespace JSIL.Internal {
             }
         }
 
+        public void Add (string name, AttributeEntry entry) {
+            if (Attributes == null)
+                Attributes = new Dictionary<string, AttributeEntry>();
+
+            Attributes.Add(name, entry);
+        }
+
+        public bool TryGetValue (string name, out AttributeEntry entry) {
+            if (Attributes == null) {
+                entry = null;
+                return false;
+            }
+
+            return Attributes.TryGetValue(name, out entry);
+        }
+
+        public bool Remove (string key) {
+            if (Attributes != null)
+                return Attributes.Remove(key);
+
+            return false;
+        }
+
+        public void Clear () {
+            if (Attributes != null)
+                Attributes.Clear();
+        }
+
         public void Update (MetadataCollection rhs, bool replaceAll) {
             if (replaceAll)
                 Clear();
 
             AttributeEntry existing;
-            foreach (var kvp in rhs) {
-                if (TryGetValue(kvp.Key, out existing)) {
-                    if (existing.Inherited)
-                        Remove(kvp.Key);
-                    else
-                        continue;
-                }
+            if (rhs.Attributes != null) {
+                foreach (var kvp in rhs.Attributes) {
+                    if (TryGetValue(kvp.Key, out existing)) {
+                        if (existing.Inherited)
+                            Remove(kvp.Key);
+                        else
+                            continue;
+                    }
 
-                var inherited = new AttributeEntry {
-                    Inherited = true,
-                };
-                inherited.Attributes.AddRange(kvp.Value.Attributes);
-                Add(kvp.Key, inherited);
+                    var inherited = new AttributeEntry {
+                        Inherited = true,
+                    };
+                    inherited.Attributes.AddRange(kvp.Value.Attributes);
+                    Add(kvp.Key, inherited);
+                }
             }
         }
 
@@ -1211,7 +1246,10 @@ namespace JSIL.Internal {
         }
 
         public bool HasAttribute (string fullName) {
-            return ContainsKey(fullName);
+            if (Attributes != null)
+                return Attributes.ContainsKey(fullName);
+
+            return false;
         }
 
         public AttributeEntry GetAttribute (string fullName) {
@@ -1228,7 +1266,7 @@ namespace JSIL.Internal {
             if (attr == null)
                 return null;
 
-            return attr.Attributes.First().ConstructorArguments;
+            return attr.Attributes[0].ConstructorArguments;
         }
     }
 
