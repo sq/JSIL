@@ -702,22 +702,6 @@ namespace JSIL.Internal {
                 Metadata.HasAttribute("System.Runtime.CompilerServices.UnsafeValueTypeAttribute") ||
                 Metadata.HasAttribute("System.Runtime.CompilerServices.NativeCppClassAttribute");
 
-            // Microsoft assemblies often contain global, private classes with these names that collide in the generated JS
-            if (
-                (type.DeclaringType == null) &&
-                String.IsNullOrWhiteSpace(type.Namespace) &&
-                (
-                    (type.Name == "ThisAssembly") ||
-                    (type.Name == "FXAssembly") ||
-                    (type.Name == "AssemblyRef")
-                ) &&
-                type.IsSealed &&
-                type.IsAbstract &&
-                !type.IsPublic
-            ) {
-                _IsIgnored = true;
-            }
-
             if (baseClass != null)
                 _IsIgnored |= baseClass.IsIgnored;
 

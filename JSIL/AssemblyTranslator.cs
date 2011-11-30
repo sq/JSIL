@@ -278,27 +278,26 @@ namespace JSIL {
             if (Writing != null)
                 Writing(pr);
 
-            Action<AssemblyDefinition> handler = (assembly) => {
-                var outputPath = assembly.Name + ".js";
-
-                using (var outputStream = new MemoryStream()) {
-                    var context = MakeDecompilerContext(assembly.MainModule);
-                    Translate(context, assembly, outputStream);
-
-                    result.Files[outputPath] = new ArraySegment<byte>(
-                        outputStream.GetBuffer(), 0, (int)outputStream.Length
-                    );
-                }
-
-                lock (result.Assemblies)
-                    result.Assemblies.Add(assembly);
-
-                pr.OnProgressChanged(result.Assemblies.Count, assemblies.Length);
-            };
-
             var parallelOptions = GetParallelOptions();
             Parallel.For(
-                0, assemblies.Length, parallelOptions, (i) => handler(assemblies[i])
+                0, assemblies.Length, parallelOptions, (i) =>  {
+                    var assembly = assemblies[i];
+                    var outputPath = assembly.Name + ".js";
+
+                    using (var outputStream = new MemoryStream()) {
+                        var context = MakeDecompilerContext(assembly.MainModule);
+                        Translate(context, assembly, outputStream);
+
+                        result.Files[outputPath] = new ArraySegment<byte>(
+                            outputStream.GetBuffer(), 0, (int)outputStream.Length
+                        );
+                    }
+
+                    lock (result.Assemblies)
+                        result.Assemblies.Add(assembly);
+
+                    pr.OnProgressChanged(result.Assemblies.Count, assemblies.Length);
+                }
             );
 
             pr.OnFinished();
