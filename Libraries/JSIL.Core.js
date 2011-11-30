@@ -1263,7 +1263,7 @@ JSIL.MakeStructFieldInitializer = function (typeObject) {
     var fieldName = sf[i][0];
     var fieldType = sf[i][1];
 
-    body[i] = "target." + fieldName + " = new types[" + i.toString() + "]";
+    body[i] = "target['" + fieldName + "'] = new (types[" + i.toString() + "]);";
 
     if (typeof (fieldType) === "string")
       types[i] = JSIL.GetTypeByName(fieldType, typeObject.__Context__);
