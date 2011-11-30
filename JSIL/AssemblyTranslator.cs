@@ -43,7 +43,6 @@ namespace JSIL {
         public event Action<string, Exception> CouldNotResolveAssembly;
         public event Action<string, Exception> CouldNotDecompileMethod;
 
-        protected readonly HashSet<string> DeclaredTypes = new HashSet<string>();
         protected JavascriptAstEmitter AstEmitter;
 
         public AssemblyTranslator (
@@ -448,17 +447,18 @@ namespace JSIL {
             formatter.DeclareAssembly();
 
             var sealedTypes = new HashSet<TypeDefinition>();
-
-            // Important to clear this because types with the exact same full names can be defined in multiple assemblies
-            DeclaredTypes.Clear();
+            var declaredTypes = new HashSet<TypeDefinition>();
 
             foreach (var module in assembly.Modules)
-                TranslateModule(context, formatter, module, sealedTypes, stubbed);
+                TranslateModule(context, formatter, module, sealedTypes, declaredTypes, stubbed);
 
             tw.Flush();
         }
 
-        protected void TranslateModule (DecompilerContext context, JavascriptFormatter output, ModuleDefinition module, HashSet<TypeDefinition> sealedTypes, bool stubbed) {
+        protected void TranslateModule (
+            DecompilerContext context, JavascriptFormatter output, ModuleDefinition module, 
+            HashSet<TypeDefinition> sealedTypes, HashSet<TypeDefinition> declaredTypes, bool stubbed
+        ) {
             var moduleInfo = TypeInfoProvider.GetModuleInformation(module);
             if (moduleInfo.IsIgnored)
                 return;
@@ -474,7 +474,7 @@ namespace JSIL {
             );
 
             foreach (var typedef in module.Types)
-                DeclareType(context, output, typedef, stubbed);
+                DeclareType(context, output, typedef, declaredTypes, stubbed);
         }
 
         protected void TranslateInterface (DecompilerContext context, JavascriptFormatter output, TypeDefinition iface) {
@@ -596,21 +596,19 @@ namespace JSIL {
             output.NewLine();
         }
 
-        protected void DeclareType (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef, bool stubbed) {
+        protected void DeclareType (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef, HashSet<TypeDefinition> declaredTypes, bool stubbed) {
             var typeInfo = TypeInfoProvider.GetTypeInformation(typedef);
             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
                 return;
 
-            if (DeclaredTypes.Contains(typedef.FullName)) {
-                Debug.WriteLine("Cycle in type references detected: {0}", typedef);
+            if (declaredTypes.Contains(typedef))
                 return;
-            }
 
             context.CurrentType = typedef;
 
             output.DeclareNamespace(typedef.Namespace);
 
-            DeclaredTypes.Add(typedef.FullName);
+            declaredTypes.Add(typedef);
 
             if (typedef.IsInterface) {
                 TranslateInterface(context, output, typedef);
@@ -624,20 +622,17 @@ namespace JSIL {
             }
 
             var declaringType = typedef.DeclaringType;
-            if (declaringType != null) {
-                if (!DeclaredTypes.Contains(declaringType.FullName))
-                    DeclareType(context, output, declaringType, IsStubbed(declaringType.Module.Assembly));
-            }
+            if (declaringType != null)
+                DeclareType(context, output, declaringType, declaredTypes, IsStubbed(declaringType.Module.Assembly));
 
             var baseClass = typedef.BaseType;
             if (baseClass != null) {
                 var resolved = baseClass.Resolve();
                 if (
                     (resolved != null) &&
-                    !DeclaredTypes.Contains(resolved.FullName) &&
                     (resolved.Module.Assembly == typedef.Module.Assembly)
                 ) {
-                    DeclareType(context, output, resolved, IsStubbed(resolved.Module.Assembly));
+                    DeclareType(context, output, resolved, declaredTypes, IsStubbed(resolved.Module.Assembly));
                 }
             }
 
@@ -717,10 +712,8 @@ namespace JSIL {
             output.Semicolon();
             output.NewLine();
 
-            foreach (var nestedTypeDef in typedef.NestedTypes) {
-                if (!DeclaredTypes.Contains(nestedTypeDef.FullName))
-                    DeclareType(context, output, nestedTypeDef, stubbed);
-            }
+            foreach (var nestedTypeDef in typedef.NestedTypes)
+                DeclareType(context, output, nestedTypeDef, declaredTypes, stubbed);
         }
 
         protected bool ShouldTranslateMethods (TypeDefinition typedef) {
