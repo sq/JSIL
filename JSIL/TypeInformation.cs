@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -147,7 +148,7 @@ namespace JSIL.Internal {
             Event = 3,
         }
 
-        public static readonly Dictionary<string, string[]> Proxies = new Dictionary<string, string[]>();
+        public static readonly ConcurrentDictionary<string, string[]> Proxies = new ConcurrentDictionary<string, string[]>();
 
         public readonly MemberType Type;
         public readonly string Name;
