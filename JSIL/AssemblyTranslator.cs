@@ -43,8 +43,6 @@ namespace JSIL {
         public event Action<string, Exception> CouldNotResolveAssembly;
         public event Action<string, Exception> CouldNotDecompileMethod;
 
-        protected JavascriptAstEmitter AstEmitter;
-
         public AssemblyTranslator (
             Configuration configuration,
             TypeInfoProvider typeInfoProvider = null
@@ -276,9 +274,11 @@ namespace JSIL {
 
             OptimizeAll();
 
-            Action<AssemblyDefinition> handler;
+            pr = new ProgressReporter();
+            if (Writing != null)
+                Writing(pr);
 
-            handler = (assembly) => {
+            Action<AssemblyDefinition> handler = (assembly) => {
                 var outputPath = assembly.Name + ".js";
 
                 using (var outputStream = new MemoryStream()) {
@@ -290,17 +290,16 @@ namespace JSIL {
                     );
                 }
 
-                result.Assemblies.Add(assembly);
+                lock (result.Assemblies)
+                    result.Assemblies.Add(assembly);
+
+                pr.OnProgressChanged(result.Assemblies.Count, assemblies.Length);
             };
 
-            pr = new ProgressReporter();
-            if (Writing != null)
-                Writing(pr);
-
-            for (int i = 0; i < assemblies.Length; i++) {
-                pr.OnProgressChanged(i, assemblies.Length);
-                handler(assemblies[i]);
-            }
+            var parallelOptions = GetParallelOptions();
+            Parallel.For(
+                0, assemblies.Length, parallelOptions, (i) => handler(assemblies[i])
+            );
 
             pr.OnFinished();
 
@@ -478,12 +477,12 @@ namespace JSIL {
             var jsil = new JSILIdentifier(context.CurrentModule.TypeSystem, js);
 
             // Probably should be an argument, not a member variable...
-            AstEmitter = new JavascriptAstEmitter(
+            var astEmitter = new JavascriptAstEmitter(
                 output, jsil, context.CurrentModule.TypeSystem, this.TypeInfoProvider
             );
 
             foreach (var typedef in module.Types)
-                DeclareType(context, output, typedef, declaredTypes, stubbed);
+                DeclareType(context, typedef, astEmitter, output, declaredTypes, stubbed);
         }
 
         protected void TranslateInterface (DecompilerContext context, JavascriptFormatter output, TypeDefinition iface) {
@@ -605,7 +604,7 @@ namespace JSIL {
             output.NewLine();
         }
 
-        protected void DeclareType (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef, HashSet<TypeDefinition> declaredTypes, bool stubbed) {
+        protected void DeclareType (DecompilerContext context, TypeDefinition typedef, JavascriptAstEmitter astEmitter, JavascriptFormatter output, HashSet<TypeDefinition> declaredTypes, bool stubbed) {
             var typeInfo = TypeInfoProvider.GetTypeInformation(typedef);
             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
                 return;
@@ -632,7 +631,7 @@ namespace JSIL {
 
             var declaringType = typedef.DeclaringType;
             if (declaringType != null)
-                DeclareType(context, output, declaringType, declaredTypes, IsStubbed(declaringType.Module.Assembly));
+                DeclareType(context, declaringType, astEmitter, output, declaredTypes, IsStubbed(declaringType.Module.Assembly));
 
             var baseClass = typedef.BaseType;
             if (baseClass != null) {
@@ -641,7 +640,7 @@ namespace JSIL {
                     (resolved != null) &&
                     (resolved.Module.Assembly == typedef.Module.Assembly)
                 ) {
-                    DeclareType(context, output, resolved, declaredTypes, IsStubbed(resolved.Module.Assembly));
+                    DeclareType(context, resolved, astEmitter, output, declaredTypes, IsStubbed(resolved.Module.Assembly));
                 }
             }
 
@@ -711,7 +710,7 @@ namespace JSIL {
                 f.Identifier("$");
             });
 
-            TranslateTypeDefinition(context, output, typedef, stubbed);
+            TranslateTypeDefinition(context, typedef, astEmitter, output, stubbed);
 
             output.NewLine();
 
@@ -722,7 +721,7 @@ namespace JSIL {
             output.NewLine();
 
             foreach (var nestedTypeDef in typedef.NestedTypes)
-                DeclareType(context, output, nestedTypeDef, declaredTypes, stubbed);
+                DeclareType(context, nestedTypeDef, astEmitter, output, declaredTypes, stubbed);
         }
 
         protected bool ShouldTranslateMethods (TypeDefinition typedef) {
@@ -805,7 +804,7 @@ namespace JSIL {
             output.Semicolon(true);
         }
 
-        protected void TranslateTypeDefinition (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef, bool stubbed) {
+        protected void TranslateTypeDefinition (DecompilerContext context, TypeDefinition typedef, JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed) {
             var typeInfo = TypeInfoProvider.GetTypeInformation(typedef);
             if (!ShouldTranslateMethods(typedef))
                 return;
@@ -821,7 +820,7 @@ namespace JSIL {
                     continue;
 
                 TranslateMethod(
-                    context, output, method, method, 
+                    context, method, method, astEmitter, output, 
                     stubbed, externalMemberNames, staticExternalMemberNames
                 );
             }
@@ -889,7 +888,7 @@ namespace JSIL {
                 output.CloseBracket(true, output.Semicolon);
             }
 
-            TranslateTypeStaticConstructor(context, output, typedef, typeInfo.StaticConstructor, stubbed);
+            TranslateTypeStaticConstructor(context, typedef, astEmitter, output, typeInfo.StaticConstructor, stubbed);
 
             if (typedef.FullName == "System.Array")
                 staticExternalMemberNames.Add("Of");
@@ -1200,7 +1199,11 @@ namespace JSIL {
             }
         }
 
-        protected void TranslateTypeStaticConstructor (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef, MethodDefinition cctor, bool stubbed) {
+        protected void TranslateTypeStaticConstructor (
+            DecompilerContext context, TypeDefinition typedef, 
+            JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
+            MethodDefinition cctor, bool stubbed
+        ) {
             var typeSystem = context.CurrentModule.TypeSystem;
             var fieldsToEmit =
                 (from f in typedef.Fields
@@ -1235,11 +1238,11 @@ namespace JSIL {
 
                 var expr = TranslateField(f);
                 if (expr != null)
-                    AstEmitter.Visit(new JSExpressionStatement(expr));
+                    astEmitter.Visit(new JSExpressionStatement(expr));
             }
 
             if ((cctor != null) && !stubbed) {
-                TranslateMethod(context, output, cctor, cctor, false, null, null, fixupCctor);
+                TranslateMethod(context, cctor, cctor, astEmitter, output, false, null, null, fixupCctor);
             } else if (fieldsToEmit.Length > 0) {
                 var fakeCctor = new MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static, typeSystem.Void);
                 fakeCctor.DeclaringType = typedef;
@@ -1255,14 +1258,13 @@ namespace JSIL {
                 // Generate the fake constructor, since it wasn't created during the analysis pass
                 TranslateMethodExpression(context, fakeCctor, fakeCctor);
 
-                TranslateMethod(context, output, fakeCctor, fakeCctor, false, null, null, fixupCctor);
+                TranslateMethod(context, fakeCctor, fakeCctor, astEmitter, output, false, null, null, fixupCctor);
             }
         }
 
         protected void TranslateMethod (
-            DecompilerContext context, JavascriptFormatter output, 
-            MethodReference methodRef, MethodDefinition method, 
-            bool stubbed, 
+            DecompilerContext context, MethodReference methodRef, MethodDefinition method,
+            JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed, 
             HashSet<string> externalMemberNames,
             HashSet<string> staticExternalMemberNames,
             Action<JSFunctionExpression> bodyTransformer = null
@@ -1338,7 +1340,7 @@ namespace JSIL {
                 bodyTransformer(function);
 
             if (function != null) {
-                AstEmitter.Visit(function);
+                astEmitter.Visit(function);
             } else {
                 output.Identifier("JSIL.UntranslatableFunction", null);
                 output.LPar();

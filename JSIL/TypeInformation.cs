@@ -140,11 +140,11 @@ namespace JSIL.Internal {
     }
 
     public class MemberIdentifier {
-        public enum MemberType {
-            Field,
-            Property,
-            Event,
-            Method,
+        public enum MemberType : byte {
+            Field = 0,
+            Method = 1,
+            Property = 2,
+            Event = 3,
         }
 
         public static readonly Dictionary<string, string[]> Proxies = new Dictionary<string, string[]>();
@@ -155,6 +155,8 @@ namespace JSIL.Internal {
         public readonly int ParameterCount;
         public readonly IEnumerable<TypeReference> ParameterTypes;
         public readonly int GenericArgumentCount;
+
+        protected readonly int HashCode;
 
         public static readonly IEnumerable<TypeReference> AnyParameterTypes = new TypeReference[0] {};
 
@@ -195,6 +197,8 @@ namespace JSIL.Internal {
                 GenericArgumentCount = 0;
 
             LocateProxy(mr);
+
+            HashCode = Type.GetHashCode() ^ Name.GetHashCode();
         }
 
         public MemberIdentifier (PropertyReference pr) {
@@ -216,6 +220,8 @@ namespace JSIL.Internal {
                     ParameterTypes = (from p in pd.SetMethod.Parameters select p.ParameterType).Take(ParameterCount);
                 }
             }
+
+            HashCode = Type.GetHashCode() ^ Name.GetHashCode();
         }
 
         public MemberIdentifier (FieldReference fr) {
@@ -226,6 +232,8 @@ namespace JSIL.Internal {
             GenericArgumentCount = 0;
             ParameterTypes = null;
             LocateProxy(fr);
+
+            HashCode = Type.GetHashCode() ^ Name.GetHashCode();
         }
 
         public MemberIdentifier (EventReference er) {
@@ -236,6 +244,8 @@ namespace JSIL.Internal {
             GenericArgumentCount = 0;
             ParameterTypes = null;
             LocateProxy(er);
+
+            HashCode = Type.GetHashCode() ^ Name.GetHashCode();
         }
 
         protected static void LocateProxy (MemberReference mr) {
@@ -429,7 +439,7 @@ namespace JSIL.Internal {
         }
 
         public override int GetHashCode () {
-            return Type.GetHashCode() ^ Name.GetHashCode();
+            return HashCode;
         }
 
         public override string ToString () {
@@ -973,6 +983,11 @@ namespace JSIL.Internal {
         }
 
         static readonly Regex MangledNameRegex = new Regex(@"\<([^>]*)\>([^_]*)__(.*)", RegexOptions.Compiled);
+        static readonly Regex IgnoredKeywordRegex = new Regex(
+            @"__BackingField|CS\$\<|__DisplayClass|\<PrivateImplementationDetails\>|" +
+            @"Runtime\.CompilerServices\.CallSite|\<Module\>|__SiteContainer|" +
+            @"__CachedAnonymousMethodDelegate", RegexOptions.Compiled
+        );
 
         public static string GetOriginalName (string memberName) {
             var m = MangledNameRegex.Match(memberName);
@@ -985,43 +1000,54 @@ namespace JSIL.Internal {
             if (String.IsNullOrWhiteSpace(originalName))
                 return null;
 
-            if (memberName.Contains("__BackingField"))
+            if (memberName.EndsWith("__BackingField", StringComparison.Ordinal))
                 return String.Format("{0}$value", originalName);
             else
                 return originalName;
         }
 
         public static bool IsIgnoredName (string shortName, bool isField) {
-            if (shortName.EndsWith("__BackingField"))
-                return false;
-            else if (shortName.Contains("__DisplayClass"))
-                return false;
-            else if (shortName.Contains("<PrivateImplementationDetails>"))
-                return true;
-            else if (shortName.Contains("Runtime.CompilerServices.CallSite"))
-                return true;
-            else if (shortName.Contains("<Module>"))
-                return true;
-            else if (shortName.Contains("__SiteContainer"))
-                return true;
-            else if (shortName.Contains("__CachedAnonymousMethodDelegate") && !isField)
-                return true;
-            else if (shortName.StartsWith("CS$<") && !isField)
-                return true;
-            else {
-                var m = MangledNameRegex.Match(shortName);
-                if (m.Success) {
-                    switch (m.Groups[2].Value) {
-                        case "b":
-                            // Lambda
+            foreach (Match m2 in IgnoredKeywordRegex.Matches(shortName)) {
+                if (m2.Success) {
+                    switch (m2.Value) {
+                        case "__BackingField":
+                            return false;
+                        case "__DisplayClass":
+                            return false;
+                        case "CS$<":
+                            if (!isField)
+                                return true;
+
+                            break;
+                        case "<PrivateImplementationDetails>":
                             return true;
-                        case "c":
-                            // Class
-                            return false;
-                        case "d":
-                            // Enumerator
-                            return false;
+                        case "Runtime.CompilerServices.CallSite":
+                            return true;
+                        case "<Module>":
+                            return true;
+                        case "__SiteContainer":
+                            return true;
+                        case "__CachedAnonymousMethodDelegate":
+                            if (isField)
+                                return true;
+
+                            break;
                     }
+                }
+            }
+
+            var m = MangledNameRegex.Match(shortName);
+            if (m.Success) {
+                switch (m.Groups[2].Value) {
+                    case "b":
+                        // Lambda
+                        return true;
+                    case "c":
+                        // Class
+                        return false;
+                    case "d":
+                        // Enumerator
+                        return false;
                 }
             }
 
