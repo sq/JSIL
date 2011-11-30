@@ -288,9 +288,12 @@ namespace JSIL {
                         var context = MakeDecompilerContext(assembly.MainModule);
                         Translate(context, assembly, outputStream);
 
-                        result.Files[outputPath] = new ArraySegment<byte>(
+                        var segment = new ArraySegment<byte>(
                             outputStream.GetBuffer(), 0, (int)outputStream.Length
                         );
+
+                        lock (result.Files)
+                            result.Files[outputPath] = segment;
                     }
 
                     lock (result.Assemblies)
