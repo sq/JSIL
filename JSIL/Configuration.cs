@@ -42,6 +42,7 @@ namespace JSIL.Translator {
         public bool? ApplyDefaults;
         public bool? IncludeDependencies;
         public bool? UseSymbols;
+        public bool? UseThreads;
 
         public double? FrameworkVersion;
 
@@ -55,6 +56,8 @@ namespace JSIL.Translator {
                 result.IncludeDependencies = IncludeDependencies;
             if (UseSymbols.HasValue)
                 result.UseSymbols = UseSymbols;
+            if (UseThreads.HasValue)
+                result.UseThreads = UseThreads;
             if (FrameworkVersion.HasValue)
                 result.FrameworkVersion = FrameworkVersion;
 

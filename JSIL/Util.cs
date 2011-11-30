@@ -365,7 +365,7 @@ namespace JSIL.Internal {
         }
     }
 
-    public class ConcurrentCache<TKey, TValue> {
+    public class ConcurrentCache<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>> {
         protected readonly ConcurrentDictionary<TKey, TValue> Storage;
         protected readonly ConcurrentDictionary<TKey, ManualResetEventSlim> Signals;
 
@@ -448,6 +448,14 @@ namespace JSIL.Internal {
 
             TValue temp;
             return Storage.TryRemove(key, out temp);
+        }
+
+        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator () {
+            return Storage.GetEnumerator();
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator () {
+            return Storage.GetEnumerator();
         }
     }
 }

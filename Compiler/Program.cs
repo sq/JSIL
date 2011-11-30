@@ -63,6 +63,9 @@ namespace JSIL.Compiler {
                     {"nac|noautoconfig", 
                         "Suppresses automatic loading of same-named .jsilconfig files located next to solutions and/or assemblies.",
                         (bool b) => baseConfig.AutoLoadConfigFiles = !b },
+                    {"nt|nothreads",
+                        "Suppresses use of multiple threads to speed up the translation process.",
+                        (bool b) => baseConfig.UseThreads = !b },
 
                     "Solution Builder options",
                     {"configuration=", 

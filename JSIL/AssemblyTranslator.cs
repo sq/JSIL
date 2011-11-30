@@ -149,6 +149,12 @@ namespace JSIL {
             return result;
         }
 
+        protected ParallelOptions GetParallelOptions () {
+            return new ParallelOptions {
+                MaxDegreeOfParallelism = Configuration.UseThreads.GetValueOrDefault(true) ? -1 : 1
+            };
+        }
+
         protected AssemblyDefinition[] LoadAssembly (string path, bool useSymbols, bool includeDependencies) {
             if (String.IsNullOrWhiteSpace(path))
                 throw new InvalidDataException("Path was empty.");
@@ -168,6 +174,7 @@ namespace JSIL {
                 AssemblyLoaded(path);
 
             if (includeDependencies) {
+                var parallelOptions = GetParallelOptions();
                 var modulesToVisit = new List<ModuleDefinition>(assembly.Modules);
                 var assembliesToLoad = new List<AssemblyNameReference>();
                 var visitedModules = new HashSet<string>();
@@ -201,7 +208,7 @@ namespace JSIL {
                     modulesToVisit.Clear();
 
                     Parallel.For(
-                        0, assembliesToLoad.Count, (i) => {
+                        0, assembliesToLoad.Count, parallelOptions, (i) => {
                             var anr = assembliesToLoad[i];
 
                             var childParameters = new ReaderParameters {
@@ -341,6 +348,7 @@ namespace JSIL {
         protected void Analyze (AssemblyDefinition assembly) {
             bool isStubbed = IsStubbed(assembly);
 
+            var parallelOptions = GetParallelOptions();
             var allMethods = new ConcurrentBag<MethodDefinition>();
             var allTypes = new List<TypeDefinition>();
 
@@ -357,7 +365,7 @@ namespace JSIL {
                 allTypes.Clear();
 
                 Parallel.For(
-                    0, types.Length, (i) => {
+                    0, types.Length, parallelOptions, (i) => {
                         var type = types[i];
 
                         lock (allTypes)
@@ -391,7 +399,8 @@ namespace JSIL {
                 );
             }
 
-            Parallel.For(0, allMethods.Count,
+            Parallel.For(
+                0, allMethods.Count, parallelOptions,
                 () => MakeDecompilerContext(assembly.MainModule),
                 (i, loopState, ctx) => {
                     MethodDefinition m;

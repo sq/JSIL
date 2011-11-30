@@ -2,23 +2,23 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using JSIL.Internal;
 using Mono.Cecil;
 
 namespace JSIL {
     public class AssemblyManifest {
-        protected readonly Dictionary<string, Int32> AssemblyIDs = new Dictionary<string, int>();
+        protected int NextID = 0;
+        protected readonly ConcurrentCache<string, Int32> AssemblyIDs = new ConcurrentCache<string,int>();
 
         public string GetPrivateToken (AssemblyDefinition assembly) {
             return GetPrivateToken(assembly.FullName);
         }
 
         public string GetPrivateToken (string assemblyFullName) {
-            Int32 result;
-
-            if (!AssemblyIDs.TryGetValue(assemblyFullName, out result)) {
-                result = AssemblyIDs.Count;
-                AssemblyIDs[assemblyFullName] = result;
-            }
+            Int32 result = AssemblyIDs.GetOrCreate(
+                assemblyFullName, () => Interlocked.Increment(ref NextID)
+            );
 
             return FormatID(result);
         }
