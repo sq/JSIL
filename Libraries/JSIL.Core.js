@@ -1389,7 +1389,17 @@ JSIL.ApplyExternals = function (typeObject, fullName) {
     } catch (e) {
     }
 
-    target[key] = value;
+    try {
+      target[key] = value;
+    } catch (e) {
+      Object.defineProperty(
+        target, key, {
+          enumerable: true,
+          configurable: true,
+          value: value
+        }
+      );
+    }
   }
 
   if (externals) {
@@ -2091,6 +2101,9 @@ JSIL.OverloadedMethod = function (type, name, overloads, _assembly) {
     else
       return method.apply(this, args);
   };
+
+  result.__MethodName__ = name;
+  result.__MethodOverloads__ = overloads;
 
   JSIL.OverloadedMethodCore(type, name, overloads, result);
 };

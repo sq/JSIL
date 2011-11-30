@@ -247,3 +247,12 @@ JSIL.ImplementExternals(
     }
   }
 );
+
+JSIL.ImplementExternals(
+  "System.IO.TextReader", true, {
+    Dispose$0: function () {
+    },
+    Dispose$1: function (b) {
+    }
+  }
+);
