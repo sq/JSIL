@@ -208,16 +208,10 @@ namespace JSIL.Compiler {
 
             var indentLevel = new int[1] { 0 };
 
-            translator.LoadingAssembly += (fn, progress) => {
-                Console.Error.Write("// Loading '{0}' ...", ShortenPath(fn));
-
-                progress.ProgressChanged += (s, p, max) => {
-                    if (p == 1)
-                        Console.Error.WriteLine(" done.");
-                };
+            translator.AssemblyLoaded += (fn) => {
+                Console.Error.WriteLine("// Loaded {0}", ShortenPath(fn));
             };
             translator.CouldNotLoadSymbols += (fn, ex) => {
-                Console.Error.Write(" (no symbols)");
             };
             translator.CouldNotResolveAssembly += (fn, ex) => {
                 Console.Error.WriteLine("// Could not load module {0}: {1}", fn, ex.Message);

@@ -128,7 +128,10 @@ namespace JSIL {
             if (type == null)
                 throw new ArgumentNullException("type");
 
+            TypeInfo result;
             var identifier = new TypeIdentifier(type);
+            if (TypeInformation.TryGetValue(identifier, out result))
+                return result;
 
             var fullName = type.FullName;
 
@@ -158,9 +161,8 @@ namespace JSIL {
 
                 var moreTypes = ConstructTypeInformation(kvp.Key, kvp.Value);
 
-                TypeInfo temp;
-                if (TypeInformation.TryGetValue(kvp.Key, out temp))
-                    secondPass.Add(kvp.Key, temp);
+                if (TypeInformation.TryGetValue(kvp.Key, out result))
+                    secondPass.Add(kvp.Key, result);
 
                 foreach (var more in moreTypes)
                     EnqueueType(typesToInitialize, more.Value);
@@ -171,7 +173,6 @@ namespace JSIL {
                 ti.ConstructMethodGroups();
             }
 
-            TypeInfo result;
             if (!TypeInformation.TryGetValue(identifier, out result))
                 return null;
             else

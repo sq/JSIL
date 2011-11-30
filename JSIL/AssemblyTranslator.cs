@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using ICSharpCode.Decompiler.Ast;
 using ICSharpCode.Decompiler.Ast.Transforms;
 using ICSharpCode.Decompiler.ILAst;
@@ -30,7 +31,7 @@ namespace JSIL {
         public readonly FunctionCache FunctionCache = new FunctionCache();
         public readonly AssemblyManifest Manifest = new AssemblyManifest();
 
-        public event Action<string, ProgressReporter> LoadingAssembly;
+        public event Action<string> AssemblyLoaded;
 
         public event Action<ProgressReporter> Decompiling;
         public event Action<ProgressReporter> Optimizing;
@@ -154,10 +155,6 @@ namespace JSIL {
 
             var readerParameters = GetReaderParameters(useSymbols, path);
 
-            var pr = new ProgressReporter();
-            if (LoadingAssembly != null)
-                LoadingAssembly(path, pr);
-
             var assembly = AssemblyLoadErrorWrapper(
                 AssemblyDefinition.ReadAssembly,
                 path, readerParameters, 
@@ -167,66 +164,75 @@ namespace JSIL {
             var result = new List<AssemblyDefinition>();
             result.Add(assembly);
 
-            pr.OnProgressChanged(1, 2);
+            if (AssemblyLoaded != null)
+                AssemblyLoaded(path);
 
             if (includeDependencies) {
-                var modulesToVisit = new Queue<ModuleDefinition>(assembly.Modules);
+                var modulesToVisit = new List<ModuleDefinition>(assembly.Modules);
+                var assembliesToLoad = new List<AssemblyNameReference>();
                 var visitedModules = new HashSet<string>();
-
                 var assemblyNames = new HashSet<string>();
-                while (modulesToVisit.Count > 0) {
-                    var module = modulesToVisit.Dequeue();
-                    if (visitedModules.Contains(module.FullyQualifiedName))
-                        continue;
 
-                    visitedModules.Add(module.FullyQualifiedName);
+                while ((modulesToVisit.Count > 0) || (assembliesToLoad.Count > 0)) {
+                    foreach (var module in modulesToVisit) {
+                        if (visitedModules.Contains(module.FullyQualifiedName))
+                            continue;
 
-                    foreach (var reference in module.AssemblyReferences) {
-                        bool ignored = false;
-                        foreach (var ia in Configuration.Assemblies.Ignored) {
-                            if (Regex.IsMatch(reference.FullName, ia, RegexOptions.IgnoreCase)) {
-                                ignored = true;
-                                break;
+                        visitedModules.Add(module.FullyQualifiedName);
+
+                        foreach (var reference in module.AssemblyReferences) {
+                            bool ignored = false;
+                            foreach (var ia in Configuration.Assemblies.Ignored) {
+                                if (Regex.IsMatch(reference.FullName, ia, RegexOptions.IgnoreCase)) {
+                                    ignored = true;
+                                    break;
+                                }
+                            }
+
+                            if (ignored)
+                                continue;
+                            if (assemblyNames.Contains(reference.FullName))
+                                continue;
+
+                            assemblyNames.Add(reference.FullName);
+                            assembliesToLoad.Add(reference);
+                        }
+                    }
+                    modulesToVisit.Clear();
+
+                    Parallel.For(
+                        0, assembliesToLoad.Count, (i) => {
+                            var anr = assembliesToLoad[i];
+
+                            var childParameters = new ReaderParameters {
+                                ReadingMode = ReadingMode.Deferred,
+                                ReadSymbols = true,
+                                SymbolReaderProvider = SymbolProvider
+                            };
+
+                            AssemblyDefinition refAssembly = null;
+                            refAssembly = AssemblyLoadErrorWrapper(
+                                readerParameters.AssemblyResolver.Resolve,
+                                anr, readerParameters,
+                                useSymbols, path
+                            );
+
+                            if (AssemblyLoaded != null)
+                                AssemblyLoaded(refAssembly.MainModule.FullyQualifiedName);
+
+                            if (refAssembly != null) {
+                                lock (result)
+                                    result.Add(refAssembly);
+
+                                lock (modulesToVisit)
+                                    modulesToVisit.AddRange(refAssembly.Modules);
                             }
                         }
-
-                        if (ignored)
-                            continue;
-                        if (assemblyNames.Contains(reference.FullName))
-                            continue;
-
-                        var childParameters = new ReaderParameters {
-                            ReadingMode = ReadingMode.Deferred,
-                            ReadSymbols = true,
-                            SymbolReaderProvider = SymbolProvider
-                        };
-
-                        var pr2 = new ProgressReporter();
-                        if (LoadingAssembly != null)
-                            LoadingAssembly(reference.Name, pr2);
-
-                        AssemblyDefinition refAssembly = null;
-                        assemblyNames.Add(reference.FullName);
-                        refAssembly = AssemblyLoadErrorWrapper(
-                            readerParameters.AssemblyResolver.Resolve, 
-                            reference, readerParameters,
-                            useSymbols, path
-                        );
-
-                        pr2.OnProgressChanged(1, 2);
-
-                        if (refAssembly != null) {
-                            result.Add(refAssembly);
-                            foreach (var refModule in refAssembly.Modules)
-                                modulesToVisit.Enqueue(refModule);
-                        }
-
-                        pr2.OnFinished();
-                    }
+                    );
+                    assembliesToLoad.Clear();
                 }
             }
 
-            pr.OnFinished();
             return result.ToArray();
         }
 

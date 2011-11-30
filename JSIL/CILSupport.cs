@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Mono.Cecil.Mdb;
@@ -11,7 +12,7 @@ using Mono.Cecil.Pdb;
 
 namespace JSIL.Internal {
     public class AssemblyResolver : BaseAssemblyResolver {
-        public readonly Dictionary<string, AssemblyDefinition> Cache = new Dictionary<string, AssemblyDefinition>();
+        protected readonly Dictionary<string, AssemblyDefinition> Cache = new Dictionary<string, AssemblyDefinition>();
 
         public AssemblyResolver (IEnumerable<string> dirs) {
             foreach (var dir in dirs)
@@ -23,21 +24,30 @@ namespace JSIL.Internal {
                 throw new ArgumentNullException("name");
 
             AssemblyDefinition assembly;
-            if (Cache.TryGetValue(name.FullName, out assembly))
-                return assembly;
+            bool keyExists;
 
-            /*
-            if (name.FullName.StartsWith("mscorlib")) {
-                assembly = ModuleDefinition.ReadModule(
-                    @"C:\Program Files (x86)\Mono-2.10.2\lib\mono\4.0\mscorlib.dll",
-                    parameters
-                ).Assembly;
-            } else {
-             */
-                assembly = base.Resolve(name, parameters);
-            // }
+            lock (Cache)
+                keyExists = Cache.ContainsKey(name.FullName);
 
-            Cache[name.FullName] = assembly;
+            if (keyExists) {
+                while (true) {
+                    lock (Cache)
+                        assembly = Cache[name.FullName];
+
+                    if (assembly != null)
+                        return assembly;
+
+                    Monitor.Wait(Cache);
+                }
+            }
+
+            assembly = base.Resolve(name, parameters);
+
+            lock (Cache) {
+                Cache[name.FullName] = assembly;
+
+                Monitor.PulseAll(Cache);
+            }
 
             return assembly;
         }
@@ -47,10 +57,13 @@ namespace JSIL.Internal {
                 throw new ArgumentNullException("assembly");
 
             var name = assembly.Name.FullName;
-            if (Cache.ContainsKey(name))
-                return;
 
-            Cache[name] = assembly;
+            lock (Cache) {
+                if (Cache.ContainsKey(name))
+                    return;
+
+                Cache[name] = assembly;
+            }
         }
     }
 
