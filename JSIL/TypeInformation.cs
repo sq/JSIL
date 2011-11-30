@@ -153,31 +153,31 @@ namespace JSIL.Internal {
         public readonly string Name;
         public readonly TypeReference ReturnType;
         public readonly int ParameterCount;
-        public readonly IEnumerable<TypeReference> ParameterTypes;
+        public readonly TypeReference[] ParameterTypes;
         public readonly int GenericArgumentCount;
 
         protected readonly int HashCode;
 
-        public static readonly IEnumerable<TypeReference> AnyParameterTypes = new TypeReference[0] {};
+        public static readonly TypeReference[] AnyParameterTypes = new TypeReference[] {};
 
         public static void ResetProxies () {
             Proxies.Clear();
         }
 
         public static MemberIdentifier New (MemberReference mr) {
-            var method = mr as MethodReference;
-            var property = mr as PropertyReference;
-            var evt = mr as EventReference;
-            var field = mr as FieldReference;
+            MethodReference method;
+            PropertyReference property;
+            EventReference evt;
+            FieldReference field;
 
-            if (method != null)
+            if ((method = mr as MethodReference) != null)
                 return new MemberIdentifier(method);
-            else if (property != null)
-                return new MemberIdentifier(property);
-            else if (evt != null)
-                return new MemberIdentifier(evt);
-            else if (field != null)
+            else if ((field = mr as FieldReference) != null)
                 return new MemberIdentifier(field);
+            else if ((property = mr as PropertyReference) != null)
+                return new MemberIdentifier(property);
+            else if ((evt = mr as EventReference) != null)
+                return new MemberIdentifier(evt);
             else
                 throw new NotImplementedException();
         }
@@ -214,10 +214,10 @@ namespace JSIL.Internal {
             if (pd != null) {
                 if (pd.GetMethod != null) {
                     ParameterCount = pd.GetMethod.Parameters.Count;
-                    ParameterTypes = (from p in pd.GetMethod.Parameters select p.ParameterType);
+                    ParameterTypes = (from p in pd.GetMethod.Parameters select p.ParameterType).ToArray();
                 } else if (pd.SetMethod != null) {
                     ParameterCount = pd.SetMethod.Parameters.Count - 1;
-                    ParameterTypes = (from p in pd.SetMethod.Parameters select p.ParameterType).Take(ParameterCount);
+                    ParameterTypes = (from p in pd.SetMethod.Parameters select p.ParameterType).Take(ParameterCount).ToArray();
                 }
             }
 
@@ -258,10 +258,14 @@ namespace JSIL.Internal {
             if (icap == null)
                 return;
 
-            var proxyAttribute = icap.CustomAttributes.Where(
-                (ca) => (ca.AttributeType.Name == "JSProxy") &&
-                    (ca.AttributeType.Namespace == "JSIL.Proxy")
-            ).FirstOrDefault();
+            CustomAttribute proxyAttribute = null;
+            for (int i = 0, c = icap.CustomAttributes.Count; i < c; i++) {
+                var ca = icap.CustomAttributes[i];
+                if ((ca.AttributeType.Name == "JSProxy") && (ca.AttributeType.Namespace == "JSIL.Proxy")) {
+                    proxyAttribute = ca;
+                    break;
+                }
+            }
 
             if (proxyAttribute == null)
                 return;
@@ -300,20 +304,28 @@ namespace JSIL.Internal {
             Proxies[fullName] = proxyTargets;
         }
 
-        static IEnumerable<TypeReference> GetParameterTypes (IList<ParameterDefinition> parameters) {
-            if (
-                (parameters.Count == 1) && 
-                (from ca in parameters[0].CustomAttributes 
-                 where ca.AttributeType.FullName == "System.ParamArrayAttribute" 
-                 select ca).Count() == 1
-            ) {
-                var t = JSExpression.DeReferenceType(parameters[0].ParameterType);
-                var at = t as ArrayType;
-                if ((at != null) && IsAnyType(at.ElementType))
-                    return AnyParameterTypes;
+        static TypeReference[] GetParameterTypes (IList<ParameterDefinition> parameters) {
+            if (parameters.Count == 1) {
+                var p = parameters[0];
+                for (int c = p.CustomAttributes.Count, i = 0; i < c; i++) {
+                    var ca = p.CustomAttributes[i];
+                    if ((ca.AttributeType.Name == "ParamArrayAttribute") && (ca.AttributeType.Namespace == "System")) {
+                        var t = JSExpression.DeReferenceType(parameters[0].ParameterType);
+                        var at = t as ArrayType;
+                        if ((at != null) && IsAnyType(at.ElementType))
+                            return AnyParameterTypes;
+                    }
+                }
             }
 
-            return (from p in parameters select p.ParameterType).ToArray();
+            {
+                int c = parameters.Count;
+                var result = new TypeReference[c];
+                for (int i = 0; i < c; i++) {
+                    result[i] = parameters[i].ParameterType;
+                }
+                return result;
+            }
         }
 
         static bool IsAnyType (TypeReference t) {
@@ -414,15 +426,8 @@ namespace JSIL.Internal {
                 if (ParameterCount != rhs.ParameterCount)
                     return false;
 
-                using (var eLeft = ParameterTypes.GetEnumerator())
-                using (var eRight = rhs.ParameterTypes.GetEnumerator()) {
-                    bool left, right;
-                    while ((left = eLeft.MoveNext()) & (right = eRight.MoveNext())) {
-                        if (!TypesAreEqual(eLeft.Current, eRight.Current))
-                            return false;
-                    }
-
-                    if (left != right)
+                for (int i = 0, c = ParameterCount; i < c; i++) {
+                    if (!TypesAreEqual(ParameterTypes[i], rhs.ParameterTypes[i]))
                         return false;
                 }
             }
@@ -1166,7 +1171,7 @@ namespace JSIL.Internal {
     }
 
     public class MetadataCollection : Dictionary<string, AttributeEntry> {
-        public MetadataCollection (ICustomAttributeProvider target) {
+        public MetadataCollection (ICustomAttributeProvider target) : base (8) {
             foreach (var ca in target.CustomAttributes) {
                 AttributeEntry existing;
                 if (TryGetValue(ca.AttributeType.FullName, out existing))
