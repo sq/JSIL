@@ -384,6 +384,11 @@ namespace JSIL.Internal {
             Signals = new ConcurrentDictionary<TKey, ManualResetEventSlim>(concurrencyLevel, concurrencyLevel, comparer);
         }
 
+        public void Clear () {
+            Signals.Clear();
+            Storage.Clear();
+        }
+
         public bool MightContainKey (TKey key) {
             return Storage.ContainsKey(key) || Signals.ContainsKey(key);
         }

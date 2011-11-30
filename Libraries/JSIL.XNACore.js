@@ -83,7 +83,7 @@ JSIL.ImplementExternals(
 JSIL.MakeClass($jsilcore.System.Object, "HTML5Asset", true);
 HTML5Asset.prototype._ctor = function (assetName) {
   this.name = assetName;
-}
+};
 
 JSIL.MakeClass("HTML5Asset", "HTML5ImageAsset", true);
 HTML5ImageAsset.prototype._ctor = function (assetName, image) {
@@ -91,18 +91,18 @@ HTML5ImageAsset.prototype._ctor = function (assetName, image) {
   this.image = image;
   this.Width = image.naturalWidth;
   this.Height = image.naturalHeight;
-}
+};
 
 JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true);
 HTML5SoundAsset.prototype._ctor = function (assetName, sound) {
   HTML5Asset.prototype._ctor.call(this, assetName);
   this.sound = sound;
-}
+};
 HTML5SoundAsset.prototype.Play$0 = function () {
   if (this.sound !== null) {
     this.sound.play();
   }
-}
+};
 
 JSIL.MakeClass("HTML5Asset", "HTML5FontAsset", true);
 HTML5FontAsset.prototype._cachedCss = null;
@@ -113,7 +113,7 @@ HTML5FontAsset.prototype._ctor = function (assetName, id, pointSize, lineHeight)
   this.lineHeight = lineHeight;
   this.canvas = JSIL.Host.getCanvas();
   this.context = this.canvas.getContext("2d");
-}
+};
 HTML5FontAsset.prototype.toCss = function (scale) {
   scale = (scale || 1.0);
   if ((this._cachedCss != null) && (this._cachedScale === scale)) {

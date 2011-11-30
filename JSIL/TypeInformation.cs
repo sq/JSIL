@@ -148,7 +148,7 @@ namespace JSIL.Internal {
             Event = 3,
         }
 
-        public static readonly ConcurrentDictionary<string, string[]> Proxies = new ConcurrentDictionary<string, string[]>();
+        public static readonly ConcurrentCache<string, string[]> Proxies = new ConcurrentCache<string, string[]>();
 
         public readonly MemberType Type;
         public readonly string Name;
@@ -251,58 +251,57 @@ namespace JSIL.Internal {
 
         protected static void LocateProxy (MemberReference mr) {
             var fullName = mr.DeclaringType.FullName;
-            string[] knownProxies;
-            if (Proxies.TryGetValue(fullName, out knownProxies))
-                return;
 
-            var icap = mr.DeclaringType as ICustomAttributeProvider;
-            if (icap == null)
-                return;
+            Proxies.TryCreate(fullName, () => {
+                var icap = mr.DeclaringType as ICustomAttributeProvider;
+                if (icap == null)
+                    return null;
 
-            CustomAttribute proxyAttribute = null;
-            for (int i = 0, c = icap.CustomAttributes.Count; i < c; i++) {
-                var ca = icap.CustomAttributes[i];
-                if ((ca.AttributeType.Name == "JSProxy") && (ca.AttributeType.Namespace == "JSIL.Proxy")) {
-                    proxyAttribute = ca;
-                    break;
-                }
-            }
-
-            if (proxyAttribute == null)
-                return;
-
-            string[] proxyTargets = null;
-            var args = proxyAttribute.ConstructorArguments;
-
-            foreach (var arg in args) {
-                switch (arg.Type.FullName) {
-                    case "System.Type":
-                        proxyTargets = new string[] { ((TypeReference)arg.Value).FullName };
-
-                        break;
-                    case "System.Type[]": {
-                        var values = (CustomAttributeArgument[])arg.Value;
-                        proxyTargets = new string[values.Length];
-                        for (var i = 0; i < proxyTargets.Length; i++)
-                            proxyTargets[i] = ((TypeReference)values[i].Value).FullName;
-
-                        break;
-                    }
-                    case "System.String": {
-                        proxyTargets = new string[] { (string)arg.Value };
-
-                        break;
-                    }
-                    case "System.String[]": {
-                        var values = (CustomAttributeArgument[])arg.Value;
-                        proxyTargets = (from v in values select (string)v.Value).ToArray();
-
+                CustomAttribute proxyAttribute = null;
+                for (int i = 0, c = icap.CustomAttributes.Count; i < c; i++) {
+                    var ca = icap.CustomAttributes[i];
+                    if ((ca.AttributeType.Name == "JSProxy") && (ca.AttributeType.Namespace == "JSIL.Proxy")) {
+                        proxyAttribute = ca;
                         break;
                     }
                 }
-            }
 
-            Proxies[fullName] = proxyTargets;
+                if (proxyAttribute == null)
+                    return null;
+
+                string[] proxyTargets = null;
+                var args = proxyAttribute.ConstructorArguments;
+
+                foreach (var arg in args) {
+                    switch (arg.Type.FullName) {
+                        case "System.Type":
+                            proxyTargets = new string[] { ((TypeReference)arg.Value).FullName };
+
+                            break;
+                        case "System.Type[]": {
+                            var values = (CustomAttributeArgument[])arg.Value;
+                            proxyTargets = new string[values.Length];
+                            for (var i = 0; i < proxyTargets.Length; i++)
+                                proxyTargets[i] = ((TypeReference)values[i].Value).FullName;
+
+                            break;
+                        }
+                        case "System.String": {
+                            proxyTargets = new string[] { (string)arg.Value };
+
+                            break;
+                        }
+                        case "System.String[]": {
+                            var values = (CustomAttributeArgument[])arg.Value;
+                            proxyTargets = (from v in values select (string)v.Value).ToArray();
+
+                            break;
+                        }
+                    }
+                }
+
+                return proxyTargets;
+            });
         }
 
         static TypeReference[] GetParameterTypes (IList<ParameterDefinition> parameters) {
@@ -384,13 +383,13 @@ namespace JSIL.Internal {
 
             string[] proxyTargets;
             if (
-                Proxies.TryGetValue(lhs.FullName, out proxyTargets) &&
+                Proxies.TryGet(lhs.FullName, out proxyTargets) &&
                 (proxyTargets != null) &&
                 proxyTargets.Contains(rhs.FullName)
             ) {
                 return true;
             } else if (
-                Proxies.TryGetValue(rhs.FullName, out proxyTargets) &&
+                Proxies.TryGet(rhs.FullName, out proxyTargets) &&
                 (proxyTargets != null) &&
                 proxyTargets.Contains(lhs.FullName)
             ) {
