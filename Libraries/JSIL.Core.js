@@ -1238,8 +1238,7 @@ JSIL.InstantiateGenericProperties = function (obj) {
 };
 
 ( function () {
-  var runtimeType = 
-  runtimeType = Object.create(JSIL.TypeObjectPrototype);
+  var runtimeType = Object.create(JSIL.TypeObjectPrototype);
   runtimeType.prototype = {}; // Fixes mscorlib translation generating members for RuntimeType
   runtimeType.__IsReferenceType__ = true;
   runtimeType.IsInterface = false;
@@ -1253,24 +1252,40 @@ JSIL.InstantiateGenericProperties = function (obj) {
   System.RuntimeType = runtimeType;
 } )();
 
-JSIL.InitializeStructFields = function (instance, typeObject) {
-  var sf = instance.__StructFields__;
+JSIL.MakeStructFieldInitializer = function (typeObject) {
+  var sf = typeObject.prototype.__StructFields__;
   if ((typeof (sf) !== "object") || (sf.length <= 0))
-    return;
-
+    return null;
+  
+  var body = [];
+  var types = [];
   for (var i = 0, l = sf.length; i < l; i++) {
     var fieldName = sf[i][0];
     var fieldType = sf[i][1];
 
-    if (typeof (fieldType) === "string")
-      fieldType = JSIL.GetTypeByName(fieldType, typeObject.__Context__);
-    else if (typeof (fieldType.get) === "function")
-      fieldType = fieldType.get();
+    body[i] = "target." + fieldName + " = new types[" + i.toString() + "]";
 
-    if (typeof (fieldType) === "function") {
-      instance[fieldName] = new fieldType();
-    }
+    if (typeof (fieldType) === "string")
+      types[i] = JSIL.GetTypeByName(fieldType, typeObject.__Context__);
+    else if (typeof (fieldType.get) === "function")
+      types[i] = fieldType.get();
   }
+
+  var rawFunction = new Function("types", "target", body.join("\r\n"));
+  var boundFunction = rawFunction.bind(null, types);
+  boundFunction.__Type__ == typeObject;
+
+  return boundFunction;
+};
+
+JSIL.InitializeStructFields = function (instance, typeObject) {
+  var sfi = typeObject.prototype.__StructFieldInitializer__;
+  if (typeof (sfi) === "undefined")
+    typeObject.prototype.__StructFieldInitializer__ = sfi = JSIL.MakeStructFieldInitializer(typeObject);
+  if (sfi === null)
+    return;
+
+  sfi(instance);
 };
 
 JSIL.CopyObjectValues = function (source, target) {
