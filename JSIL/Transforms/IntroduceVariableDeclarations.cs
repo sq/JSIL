@@ -9,6 +9,7 @@ using JSIL.Internal;
 namespace JSIL.Transforms {
     public class IntroduceVariableDeclarations : JSAstVisitor {
         public readonly HashSet<JSVariable> ToDeclare = new HashSet<JSVariable>();
+        public readonly HashSet<JSVariable> SeenAlready = new HashSet<JSVariable>();
         public readonly HashSet<JSVariable> CouldntDeclare = new HashSet<JSVariable>();
 
         public readonly IDictionary<string, JSVariable> Variables;
@@ -62,6 +63,12 @@ namespace JSIL.Transforms {
                 );
         }
 
+        public void VisitNode (JSVariable v) {
+            SeenAlready.Add(v);
+
+            VisitChildren(v);
+        }
+
         public void VisitNode (JSBinaryOperatorExpression boe) {
             var isAssignment = boe.Operator == JSOperator.Assignment;
             var leftVar = boe.Left as JSVariable;
@@ -69,7 +76,7 @@ namespace JSIL.Transforms {
             if (
                 (leftVar != null) && isAssignment && !leftVar.IsParameter
             ) {
-                if (ToDeclare.Contains(leftVar) && !CouldntDeclare.Contains(leftVar)) {
+                if (ToDeclare.Contains(leftVar) && !CouldntDeclare.Contains(leftVar) && !SeenAlready.Contains(leftVar)) {
                     var superParent = Stack.Skip(2).FirstOrDefault();
                     if ((superParent != null) && (ParentNode is JSStatement)) {
                         ToDeclare.Remove(leftVar);

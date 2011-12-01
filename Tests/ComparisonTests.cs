@@ -94,7 +94,8 @@ namespace JSIL.Tests {
                     @"TestCases\StructPropertyThis.cs",
                     @"TestCases\StructThisAssignment.cs",
                     @"TestCases\SingleDimStructArrays.cs",
-                    @"TestCases\MultiDimStructArrays.cs"
+                    @"TestCases\MultiDimStructArrays.cs",
+                    @"TestCases\StructLateDeclaration.cs" // This test demonstrates a bug in IntroduceVariableDeclarations
                 }, null, defaultProvider
             );
         }
