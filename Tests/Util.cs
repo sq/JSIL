@@ -144,7 +144,7 @@ namespace JSIL.Tests {
             return new Configuration {
                 FrameworkVersion = 4.0,
                 IncludeDependencies = false,
-                ApplyDefaults = false,
+                ApplyDefaults = false
             };
         }
 

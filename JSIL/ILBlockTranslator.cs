@@ -1067,8 +1067,13 @@ namespace JSIL {
         }
 
         protected JSBinaryOperatorExpression Translate_CompoundAssignment (ILExpression node) {
-            JSAssignmentOperator op;
-            var translated = (JSBinaryOperatorExpression)TranslateNode(node.Arguments[0]);
+            JSAssignmentOperator op = null;
+            var translated = TranslateNode(node.Arguments[0]);
+            if (translated is JSResultReferenceExpression)
+                translated = ((JSResultReferenceExpression)translated).Referent;
+
+            var boe = translated as JSBinaryOperatorExpression;
+            var invocation = translated as JSInvocationExpression;
 
             switch (node.Arguments[0].Code) {
                 case ILCode.Add:
@@ -1080,12 +1085,6 @@ namespace JSIL {
                 case ILCode.Mul:
                     op = JSOperator.MultiplyAssignment;
                     break;
-                // We can't emit the /= operator since its semantics differ from C#'s
-                case ILCode.Div:
-                    return new JSBinaryOperatorExpression(
-                        JSOperator.Assignment, translated.Left, 
-                        translated, translated.ExpectedType
-                    );
                 case ILCode.Rem:
                     op = JSOperator.RemainderAssignment;
                     break;
@@ -1107,13 +1106,29 @@ namespace JSIL {
                 case ILCode.Xor:
                     op = JSOperator.BitwiseXorAssignment;
                     break;
-                default:
-                    return null;
             }
 
-            return new JSBinaryOperatorExpression(
-                op, translated.Left, translated.Right, translated.ExpectedType
-            );
+            if (boe != null) {
+                if (op != null) {
+                    return new JSBinaryOperatorExpression(
+                        op, boe.Left, boe.Right, boe.ExpectedType
+                    );
+                } else {
+                    // Unimplemented compound operators, and operators with semantics that don't match JS, must be emitted normally
+                    return new JSBinaryOperatorExpression(
+                        JSOperator.Assignment, boe.Left,
+                        boe, boe.ExpectedType
+                    );
+                }
+            } else if ((invocation != null) && (invocation.Arguments[0] is JSReferenceExpression)) {
+                // Some compound expressions involving structs produce a call instruction instead of a binary expression
+                return new JSBinaryOperatorExpression(
+                    JSOperator.Assignment, invocation.Arguments[0],
+                    invocation, invocation.GetExpectedType(TypeSystem)
+                );
+            } else {
+                throw new NotImplementedException(String.Format("Compound assignments of this type not supported: '{0}'", node));
+            }
         }
 
         protected JSTernaryOperatorExpression Translate_TernaryOp (ILExpression node) {

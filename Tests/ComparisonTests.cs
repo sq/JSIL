@@ -86,6 +86,7 @@ namespace JSIL.Tests {
                     @"TestCases\ReturnStruct.cs",
                     @"TestCases\StructArrayLiteral.cs",
                     @"TestCases\StructAssignment.cs",
+                    @"TestCases\StructCompoundAssignment.cs",
                     @"TestCases\StructDefaults.cs",
                     @"TestCases\StructEquals.cs",
                     @"TestCases\StructFields.cs",
