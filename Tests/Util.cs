@@ -414,10 +414,15 @@ namespace JSIL.Tests {
 
         protected string GetJavascript (string fileName, string expectedText = null) {
             long elapsed, temp;
-            string generatedJs;
+            string generatedJs = null, output;
 
             using (var test = new ComparisonTest(fileName)) {
-                var output = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed);
+                try {
+                    output = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed);
+                } catch {
+                    Console.Error.WriteLine("// Generated JS: \r\n{0}", generatedJs);
+                    throw;
+                }
 
                 if (expectedText != null)
                     Assert.AreEqual(expectedText, output.Trim());
