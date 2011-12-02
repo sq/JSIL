@@ -308,16 +308,18 @@ namespace JSIL.Ast {
         }
     }
 
-    // Represents a copy of another JSFunctionExpression with one or more parameters replaced
+    // Represents a copy of another JSFunctionExpression with the this-reference replaced
     public class JSLambda : JSLiteralBase<JSFunctionExpression> {
         public readonly JSExpression This;
+        public readonly bool UseBind;
 
-        public JSLambda (JSFunctionExpression function, JSExpression @this)
+        public JSLambda (JSFunctionExpression function, JSExpression @this, bool useBind)
             : base(function) {
             if (@this == null)
                 throw new ArgumentNullException("this");
 
             This = @this;
+            UseBind = useBind;
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {

@@ -244,6 +244,7 @@
     <None Include="TestCases\StructCompoundAssignment.cs" />
     <None Include="FailingTestCases\RecursiveArrayInitializer.cs" />
     <None Include="SimpleTestCases\DictionaryInitializer.cs" />
+    <None Include="SimpleTestCases\NestedLambdas.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

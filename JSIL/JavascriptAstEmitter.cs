@@ -496,11 +496,20 @@ namespace JSIL {
         }
 
         public void VisitNode (JSLambda lambda) {
-            ThisReplacementStack.Push(lambda.This);
+            if (!lambda.UseBind)
+                ThisReplacementStack.Push(lambda.This);
 
             Visit(lambda.Value);
 
-            ThisReplacementStack.Pop();
+            if (lambda.UseBind) {
+                Output.Dot();
+                Output.Keyword("bind");
+                Output.LPar();
+                Visit(lambda.This);
+                Output.RPar();
+            } else {
+                ThisReplacementStack.Pop();
+            }
         }
 
         public void VisitNode (JSFunctionExpression function) {

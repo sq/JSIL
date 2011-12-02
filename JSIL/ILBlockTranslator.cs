@@ -1856,63 +1856,74 @@ namespace JSIL {
             return new JSGotoExpression(targetLabel.Name);
         }
 
+        protected JSExpression Translate_Newobj_Delegate (ILExpression node, MethodReference constructor, JSExpression[] arguments) {
+            var thisArg = arguments[0];
+            var methodRef = arguments[1];
+
+            var methodDot = methodRef as JSDotExpression;
+
+            // Detect compiler-generated lambda methods
+            if (methodDot != null) {
+                var methodMember = methodDot.Member as JSMethod;
+
+                if (methodMember != null) {
+                    var methodDef = methodMember.Method.Member;
+
+                    bool compilerGenerated = methodDef.IsCompilerGeneratedOrIsInCompilerGeneratedClass();
+                    bool emitInline = (
+                            methodDef.IsPrivate && compilerGenerated
+                        ) || (
+                            compilerGenerated &&
+                            TypesAreEqual(
+                                thisArg.GetExpectedType(TypeSystem),
+                                methodDef.DeclaringType
+                            )
+                        );
+
+                    if (emitInline) {
+                        JSFunctionExpression function;
+                        // It's possible that the method we're using wasn't initially translated/analyzed because it's
+                        //  a compiler-generated method or part of a compiler generated type
+                        if (!Translator.FunctionCache.TryGetExpression(methodMember.QualifiedIdentifier, out function)) {
+                            function = Translator.TranslateMethodExpression(Context, methodDef, methodDef);
+                        }
+
+                        var thisArgVar = thisArg as JSVariable;
+
+                        // If the closure references the outer 'this' variable, we need to explicitly bind it to the
+                        //  closure's local 'this' reference (by setting useBind to true to use Function.bind).
+                        // It is also possible for the this-reference to be a variable with a name that collides with
+                        //  the name of a local variable within the closure. The solution in this case is the same:
+                        //  we make it the closure's local 'this' reference using Function.bind.
+                        if (
+                            (thisArgVar != null) &&
+                            (thisArgVar.IsThis || function.AllVariables.ContainsKey(thisArgVar.Name))
+                        ) {
+                            return new JSLambda(function, thisArgVar, true);
+                        } else {
+                            return new JSLambda(
+                                function, thisArg, !(
+                                    thisArg.IsNull || thisArg is JSNullLiteral
+                                )
+                            );
+                        }
+                    } else if (methodMember.Method.IsIgnored) {
+                        throw new InvalidOperationException("Ignored method not emitted inline");
+                    }
+                }
+            }
+
+            return JSIL.NewDelegate(
+                constructor.DeclaringType,
+                thisArg, methodRef
+            );
+        }
+
         protected JSExpression Translate_Newobj (ILExpression node, MethodReference constructor) {
             var arguments = Translate(node.Arguments);
 
             if (IsDelegateType(constructor.DeclaringType)) {
-                var thisArg = arguments[0];
-                var methodRef = arguments[1];
-
-                var methodDot = methodRef as JSDotExpression;
-
-                // Detect compiler-generated lambda methods
-                if (methodDot != null) {
-                    var methodMember = methodDot.Member as JSMethod;
-
-                    if (methodMember != null) {
-                        var methodDef = methodMember.Method.Member;
-
-                        bool emitInline = (
-                                methodDef.IsPrivate && 
-                                methodDef.IsCompilerGenerated()
-                            ) || (
-                                methodDef.DeclaringType.IsCompilerGenerated() &&
-                                TypesAreEqual(
-                                    thisArg.GetExpectedType(TypeSystem),
-                                    methodDef.DeclaringType
-                                )
-                            );
-
-                        if (emitInline) {
-                            JSFunctionExpression function;
-                            // It's possible that the method we're using wasn't initially translated/analyzed because it's
-                            //  a compiler-generated method or part of a compiler generated type
-                            if (!Translator.FunctionCache.TryGetExpression(methodMember.QualifiedIdentifier, out function)) {
-                                function = Translator.TranslateMethodExpression(Context, methodDef, methodDef);
-                            }
-
-                            var thisArgVar = thisArg as JSVariable;
-
-                            if ((thisArgVar != null) && thisArgVar.IsThis) {
-                                var outerThis = DeclareVariable(new JSVariable(
-                                    "$outer_this", thisArgVar.Type, ThisMethodReference, 
-                                    new JSThisParameter(thisArgVar.Type, ThisMethodReference)
-                                ));
-
-                                thisArg = thisArgVar = outerThis;
-                            }// else if (methodDef.HasThis && function.AllVariables.ContainsKey("this")) {
-
-                            return new JSLambda(
-                                function, thisArg
-                            );
-                        }
-                    }
-                }
-
-                return JSIL.NewDelegate(
-                    constructor.DeclaringType,
-                    thisArg, methodRef
-                );
+                return Translate_Newobj_Delegate(node, constructor, arguments);
             } else if (constructor.DeclaringType.IsArray) {
                 return JSIL.NewMultidimensionalArray(
                     constructor.DeclaringType.GetElementType(), arguments
