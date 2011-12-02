@@ -2526,27 +2526,41 @@ JSIL.MultidimensionalArray = function (type, dimensions, initializer) {
       var height = this.length0 = dimensions[0];
       var width = this.length1 = dimensions[1];
 
-      this.Get = function (y, x) {
-        return items[(y * width) + x];
-      };
-      this.GetReference = function (y, x) {
-        return new JSIL.MemberReference(items, (y * width) + x);
-      };
-      this.Set = function (y, x, value) {
-        items[(y * width) + x] = value;
-      };
-      this.GetLength = function (i) {
-        if (i == 0)
-          return height;
-        else
-          return width;
-      };
-      this.GetUpperBound = function (i) {
-        if (i == 0)
-          return height - 1;
-        else
-          return width - 1;
-      };
+      Object.defineProperty(
+        this, "Get", {
+          configurable: true, enumerable: true, value: function Get (y, x) {
+            return items[(y * width) + x];
+          }
+        }
+      );
+      Object.defineProperty(
+        this, "GetReference", {
+          configurable: true, enumerable: true, value: function GetReference (y, x) {
+            return new JSIL.MemberReference(items, (y * width) + x);
+          }
+        }
+      );
+      Object.defineProperty(
+        this, "Set", {
+          configurable: true, enumerable: true, value: function Set (y, x, value) {
+            items[(y * width) + x] = value;
+          }
+        }
+      );
+      Object.defineProperty(
+        this, "GetLength", {
+          configurable: true, enumerable: true, value: function GetLength (i) {
+            return dimensions[i];
+          }
+        }
+      );
+      Object.defineProperty(
+        this, "GetUpperBound", {
+          configurable: true, enumerable: true, value: function GetUpperBound (i) {
+            return dimensions[i] - 1;
+          }
+        }
+      );
       break;
     case 3:
       var depth = this.length0 = dimensions[0];
@@ -2554,31 +2568,41 @@ JSIL.MultidimensionalArray = function (type, dimensions, initializer) {
       var width = this.length2 = dimensions[2];
       var heightxwidth = height * width;
 
-      this.Get = function (z, y, x) {
-        return items[(z * heightxwidth) + (y * width) + x];      
-      };
-      this.GetReference = function (z, y, x) {
-        return new JSIL.MemberReference(items, (z * heightxwidth) + (y * width) + x);
-      };
-      this.Set = function (z, y, x, value) {
-        items[(z * heightxwidth) + (y * width) + x] = value;
-      };
-      this.GetLength = function (i) {
-        if (i == 0)
-          return depth;
-        else if (i == 1)
-          return height;
-        else
-          return width;
-      };
-      this.GetUpperBound = function (i) {
-        if (i == 0)
-          return depth - 1;
-        else if (i == 1)
-          return height - 1;
-        else
-          return width - 1;
-      };
+      Object.defineProperty(
+        this, "Get", {
+          configurable: true, enumerable: true, value: function Get (z, y, x) {
+            return items[(z * heightxwidth) + (y * width) + x];      
+          }
+        }
+      );
+      Object.defineProperty(
+        this, "GetReference", {
+          configurable: true, enumerable: true, value: function GetReference (z, y, x) {
+            return new JSIL.MemberReference(items, (z * heightxwidth) + (y * width) + x);
+          }
+        }
+      );
+      Object.defineProperty(
+        this, "Set", {
+          configurable: true, enumerable: true, value: function Set (z, y, x, value) {
+            items[(z * heightxwidth) + (y * width) + x] = value;
+          }
+        }
+      );
+      Object.defineProperty(
+        this, "GetLength", {
+          configurable: true, enumerable: true, value: function GetLength (i) {
+            return dimensions[i];
+          }
+        }
+      );
+      Object.defineProperty(
+        this, "GetUpperBound", {
+          configurable: true, enumerable: true, value: function GetUpperBound (i) {
+            return dimensions[i] - 1;
+          }
+        }
+      );
       break;
   }
 }

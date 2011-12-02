@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using ICSharpCode.Decompiler.Ast;
 using ICSharpCode.Decompiler.Ast.Transforms;
@@ -23,7 +24,7 @@ using Mono.Cecil.Cil;
 
 namespace JSIL {
     public class AssemblyTranslator {
-        public const int LargeMethodThreshold = 1024;
+        public const int LargeMethodThreshold = 20 * 1024;
 
         public readonly Configuration Configuration;
         public readonly TypeInfoProvider TypeInfoProvider;
@@ -257,6 +258,7 @@ namespace JSIL {
         public TranslationResult Translate (string assemblyPath, bool scanForProxies = true) {
             var result = new TranslationResult();
             var assemblies = LoadAssembly(assemblyPath);
+            var parallelOptions = GetParallelOptions();
 
             if (scanForProxies)
                 TypeInfoProvider.AddProxyAssemblies(assemblies);
@@ -265,9 +267,35 @@ namespace JSIL {
             if (Decompiling != null)
                 Decompiling(pr);
 
+            var methodsToAnalyze = new ConcurrentBag<MethodDefinition>();
             for (int i = 0; i < assemblies.Length; i++) {
-                pr.OnProgressChanged(i, assemblies.Length);
-                Analyze(assemblies[i]);
+                pr.OnProgressChanged(i, assemblies.Length * 2);
+                GetMethodsToAnalyze(assemblies[i], methodsToAnalyze);
+            }
+
+            {
+                int i = 0, mc = methodsToAnalyze.Count;
+                Parallel.For(
+                    0, methodsToAnalyze.Count, parallelOptions,
+                    () => MakeDecompilerContext(assemblies[0].MainModule),
+                    (_, loopState, ctx) => {
+                        MethodDefinition m;
+                        if (!methodsToAnalyze.TryTake(out m))
+                            throw new InvalidOperationException("Method collection mutated during analysis");
+
+                        ctx.CurrentModule = m.Module;
+                        ctx.CurrentType = m.DeclaringType;
+                        ctx.CurrentMethod = m;
+
+                        TranslateMethodExpression(ctx, m, m);
+
+                        var j = Interlocked.Increment(ref i);
+                        pr.OnProgressChanged(mc + j, mc * 2);
+
+                        return ctx;
+                    },
+                    (ctx) => { }
+                );
             }
 
             pr.OnFinished();
@@ -278,9 +306,8 @@ namespace JSIL {
             if (Writing != null)
                 Writing(pr);
 
-            var parallelOptions = GetParallelOptions();
             Parallel.For(
-                0, assemblies.Length, parallelOptions, (i) =>  {
+                0, assemblies.Length, parallelOptions, (i) => {
                     var assembly = assemblies[i];
                     var outputPath = assembly.Name + ".js";
 
@@ -318,7 +345,7 @@ namespace JSIL {
 
                 tw.Flush();
                 result.Manifest = new ArraySegment<byte>(
-                    ms.GetBuffer(), 0, (int) ms.Length
+                    ms.GetBuffer(), 0, (int)ms.Length
                 );
             }
 
@@ -346,11 +373,10 @@ namespace JSIL {
             pr.OnFinished();
         }
 
-        protected void Analyze (AssemblyDefinition assembly) {
+        protected void GetMethodsToAnalyze (AssemblyDefinition assembly, ConcurrentBag<MethodDefinition> allMethods) {
             bool isStubbed = IsStubbed(assembly);
 
             var parallelOptions = GetParallelOptions();
-            var allMethods = new ConcurrentBag<MethodDefinition>();
             var allTypes = new List<TypeDefinition>();
 
             foreach (var module in assembly.Modules) {
@@ -399,25 +425,6 @@ namespace JSIL {
                     }
                 );
             }
-
-            Parallel.For(
-                0, allMethods.Count, parallelOptions,
-                () => MakeDecompilerContext(assembly.MainModule),
-                (i, loopState, ctx) => {
-                    MethodDefinition m;
-                    if (!allMethods.TryTake(out m))
-                        throw new InvalidOperationException("Method collection mutated during analysis");
-
-                    ctx.CurrentModule = m.Module;
-                    ctx.CurrentType = m.DeclaringType;
-                    ctx.CurrentMethod = m;
-
-                    TranslateMethodExpression(ctx, m, m);
-
-                    return ctx;
-                },
-                (ctx) => {}
-            );
         }
 
         protected bool IsStubbed (AssemblyDefinition assembly) {
@@ -1029,7 +1036,7 @@ namespace JSIL {
                 var pr = new ProgressReporter();
 
                 context.CurrentMethod = methodDef;
-                if ((methodDef.Body.Instructions.Count > LargeMethodThreshold) && (this.DecompilingMethod != null))
+                if ((methodDef.Body.CodeSize > LargeMethodThreshold) && (this.DecompilingMethod != null))
                     this.DecompilingMethod(method.FullName, pr);
 
                 ILBlock ilb;

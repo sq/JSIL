@@ -174,7 +174,7 @@ namespace JSIL.Compiler {
         }
 
         static Action<ProgressReporter> MakeProgressHandler (string description) {
-            const int scale = 20;
+            const int scale = 40;
 
             return (progress) => {
                 Console.Error.Write("// {0} ", description);
