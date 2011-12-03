@@ -44,6 +44,23 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void BigStringSwitch () {
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\BigStringSwitch.cs",
+                ""
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains(".TryGetValue"));
+                Assert.IsTrue(generatedJs.Contains("switch (text)"));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
         public void StringConcat () {
             var generatedJs = GetJavascript(
                 @"SpecialTestCases\StringConcat.cs",

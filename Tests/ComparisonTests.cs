@@ -21,8 +21,15 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        public void CastingFromNull()
-        {
+        public void BigStringSwitch () {
+            using (var test = new ComparisonTest(@"SpecialTestCases\BigStringSwitch.cs")) {
+                test.Run();
+                test.Run("howdy", "hello", "world", "what", "why", "who", "where", "when");
+            }
+        }
+
+        [Test]
+        public void CastingFromNull() {
             using (var test = new ComparisonTest(@"TestCases\CastingFromNull.cs"))
                 test.Run();
         }
