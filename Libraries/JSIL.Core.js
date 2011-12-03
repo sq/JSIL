@@ -44,10 +44,10 @@ if (typeof (Function.prototype.bind) !== "function") {
 * @return {Array} of Strings with functions, lines, files, and arguments where possible
 */
 function printStackTrace(options) {
-    options = options || {guess: true};
-    var ex = options.e || null, guess = !!options.guess;
+    options = options || {guess: false};
+    var ex = options.e || null;
     var p = new printStackTrace.implementation(), result = p.run(ex);
-    return (guess) ? p.guessAnonymousFunctions(result) : result;
+    return result;
 }
 
 printStackTrace.implementation = function() {
@@ -231,136 +231,6 @@ printStackTrace.implementation.prototype = {
             }
         }
         return result.join(',');
-    },
-
-    sourceCache: {},
-
-    /**
-* @return the text from a given URL.
-*/
-    ajax: function(url) {
-        var req = this.createXMLHTTPObject();
-        if (!req) {
-            return;
-        }
-        req.open('GET', url, false);
-        req.setRequestHeader('User-Agent', 'XMLHTTP/1.0');
-        req.send('');
-        return req.responseText;
-    },
-
-    /**
-* Try XHR methods in order and store XHR factory.
-*
-* @return <Function> XHR function or equivalent
-*/
-    createXMLHTTPObject: function() {
-        var xmlhttp, XMLHttpFactories = [
-            function() {
-                return new XMLHttpRequest();
-            }, function() {
-                return new ActiveXObject('Msxml2.XMLHTTP');
-            }, function() {
-                return new ActiveXObject('Msxml3.XMLHTTP');
-            }, function() {
-                return new ActiveXObject('Microsoft.XMLHTTP');
-            }
-        ];
-        for (var i = 0; i < XMLHttpFactories.length; i++) {
-            try {
-                xmlhttp = XMLHttpFactories[i]();
-                // Use memoization to cache the factory
-                this.createXMLHTTPObject = XMLHttpFactories[i];
-                return xmlhttp;
-            } catch (e) {
-            }
-        }
-    },
-
-    /**
-* Given a URL, check if it is in the same domain (so we can get the source
-* via Ajax).
-*
-* @param url <String> source url
-* @return False if we need a cross-domain request
-*/
-    isSameDomain: function(url) {
-        return url.indexOf(location.hostname) !== -1;
-    },
-
-    /**
-* Get source code from given URL if in the same domain.
-*
-* @param url <String> JS source URL
-* @return <Array> Array of source code lines
-*/
-    getSource: function(url) {
-        if (!(url in this.sourceCache)) {
-            this.sourceCache[url] = this.ajax(url).split('\n');
-        }
-        return this.sourceCache[url];
-    },
-
-    guessAnonymousFunctions: function(stack) {
-        for (var i = 0; i < stack.length; ++i) {
-            var reStack = /\{anonymous\}\(.*\)@(\w+:\/\/([\-\w\.\/]+)+(:\d+)?[^:]+):(\d+):?(\d+)?/;
-            var frame = stack[i], m = reStack.exec(frame);
-            if (m) {
-                var file = m[1], lineno = m[4], charno = m[7] || 0; //m[7] is character position in Chrome
-                if (file && this.isSameDomain(file) && lineno) {
-                    var functionName = this.guessAnonymousFunction(file, lineno, charno);
-                    stack[i] = frame.replace('{anonymous}', functionName);
-                }
-            }
-        }
-        return stack;
-    },
-
-    guessAnonymousFunction: function(url, lineNo, charNo) {
-        var ret;
-        try {
-            ret = this.findFunctionName(this.getSource(url), lineNo);
-        } catch (e) {
-            ret = 'getSource failed with url: ' + url + ', exception: ' + e.toString();
-        }
-        return ret;
-    },
-
-    findFunctionName: function(source, lineNo) {
-        // FIXME findFunctionName fails for compressed source
-        // (more than one function on the same line)
-        // TODO use captured args
-        // function {name}({args}) m[1]=name m[2]=args
-        var reFunctionDeclaration = /function\s+([^(]*?)\s*\(([^)]*)\)/;
-        // {name} = function ({args}) TODO args capture
-        // /['"]?([0-9A-Za-z_]+)['"]?\s*[:=]\s*function(?:[^(]*)/
-        var reFunctionExpression = /['"]?([0-9A-Za-z_]+)['"]?\s*[:=]\s*function\b/;
-        // {name} = eval()
-        var reFunctionEvaluation = /['"]?([0-9A-Za-z_]+)['"]?\s*[:=]\s*(?:eval|new Function)\b/;
-        // Walk backwards in the source lines until we find
-        // the line which matches one of the patterns above
-        var code = "", line, maxLines = 10, m;
-        for (var i = 0; i < maxLines; ++i) {
-            // FIXME lineNo is 1-based, source[] is 0-based
-            line = source[lineNo - i];
-            if (line) {
-                code = line + code;
-                m = reFunctionExpression.exec(code);
-                if (m && m[1]) {
-                    return m[1];
-                }
-                m = reFunctionDeclaration.exec(code);
-                if (m && m[1]) {
-                    //return m[1] + "(" + (m[2] || "") + ")";
-                    return m[1];
-                }
-                m = reFunctionEvaluation.exec(code);
-                if (m && m[1]) {
-                    return m[1];
-                }
-            }
-        }
-        return '(?)';
     }
 };
 
