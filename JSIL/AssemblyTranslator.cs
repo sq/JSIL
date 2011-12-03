@@ -625,9 +625,25 @@ namespace JSIL {
 
             context.CurrentType = typedef;
 
-            output.DeclareNamespace(typedef.Namespace);
-
             declaredTypes.Add(typedef);
+
+            // type has a JS replacement, we can't correctly emit a stub or definition for it.
+            // We do want to process nested types and the type definition, though.
+            if (typeInfo.Replacement != null) {
+                TranslateTypeDefinition(
+                    context, typedef, astEmitter, output, stubbed,
+                    (o) => o.Token(typeInfo.Replacement)
+                );
+
+                output.NewLine();
+
+                foreach (var nestedTypeDef in typedef.NestedTypes)
+                    DeclareType(context, nestedTypeDef, astEmitter, output, declaredTypes, stubbed);
+
+                return;
+            }
+
+            output.DeclareNamespace(typedef.Namespace);
 
             if (typeInfo.IsExternal) {
                 output.Identifier("JSIL.MakeExternalType", null);
@@ -735,7 +751,10 @@ namespace JSIL {
                 f.Identifier("$");
             });
 
-            TranslateTypeDefinition(context, typedef, astEmitter, output, stubbed);
+            TranslateTypeDefinition(
+                context, typedef, astEmitter, output, stubbed,
+                (o) => o.Identifier("$", null)
+            );
 
             output.NewLine();
 
@@ -764,7 +783,10 @@ namespace JSIL {
             return true;
         }
 
-        protected void TranslatePrimitiveDefinition (DecompilerContext context, JavascriptFormatter output, TypeDefinition typedef, bool stubbed) {
+        protected void TranslatePrimitiveDefinition (
+            DecompilerContext context, JavascriptFormatter output,
+            TypeDefinition typedef, bool stubbed, Action<JavascriptFormatter> dollar
+        ) {
             bool isIntegral = false;
             bool isNumeric = false;
 
@@ -796,14 +818,14 @@ namespace JSIL {
                     break;
             }
 
-            output.Identifier("$", null);
+            dollar(output);
             output.Dot();
             output.Identifier("__IsIntegral__");
             output.Token(" = ");
             output.Value(isIntegral);
             output.Semicolon(true);
 
-            output.Identifier("$", null);
+            dollar(output);
             output.Dot();
             output.Keyword("prototype");
             output.Dot();
@@ -812,14 +834,14 @@ namespace JSIL {
             output.Value(isIntegral);
             output.Semicolon(true);
 
-            output.Identifier("$", null);
+            dollar(output);
             output.Dot();
             output.Identifier("__IsNumeric__");
             output.Token(" = ");
             output.Value(isNumeric);
             output.Semicolon(true);
 
-            output.Identifier("$", null);
+            dollar(output);
             output.Dot();
             output.Keyword("prototype");
             output.Dot();
@@ -829,7 +851,11 @@ namespace JSIL {
             output.Semicolon(true);
         }
 
-        protected void TranslateTypeDefinition (DecompilerContext context, TypeDefinition typedef, JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed) {
+        protected void TranslateTypeDefinition (
+            DecompilerContext context, TypeDefinition typedef, 
+            JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
+            bool stubbed, Action<JavascriptFormatter> dollar
+        ) {
             var typeInfo = TypeInfoProvider.GetTypeInformation(typedef);
             if (!ShouldTranslateMethods(typedef))
                 return;
@@ -846,19 +872,19 @@ namespace JSIL {
 
                 TranslateMethod(
                     context, method, method, astEmitter, output, 
-                    stubbed, externalMemberNames, staticExternalMemberNames
+                    stubbed, externalMemberNames, staticExternalMemberNames, dollar
                 );
             }
 
             if (typedef.IsPrimitive)
-                TranslatePrimitiveDefinition(context, output, typedef, stubbed);
+                TranslatePrimitiveDefinition(context, output, typedef, stubbed, dollar);
 
             Action initializeOverloadsAndProperties = () => {
                 foreach (var methodGroup in typeInfo.MethodGroups)
-                    TranslateMethodGroup(context, output, methodGroup);
+                    TranslateMethodGroup(context, output, methodGroup, dollar);
 
                 foreach (var property in typedef.Properties)
-                    TranslateProperty(context, output, property);
+                    TranslateProperty(context, output, property, dollar);
             };
 
             Func<TypeReference, bool> isInterfaceIgnored = (i) => {
@@ -886,7 +912,7 @@ namespace JSIL {
                 select field).ToArray();
 
             if (structFields.Length > 0) {
-                output.Identifier("$", null);
+                dollar(output);
                 output.Dot();
                 output.Identifier("prototype");
                 output.Dot();
@@ -913,7 +939,7 @@ namespace JSIL {
                 output.CloseBracket(true, output.Semicolon);
             }
 
-            TranslateTypeStaticConstructor(context, typedef, astEmitter, output, typeInfo.StaticConstructor, stubbed);
+            TranslateTypeStaticConstructor(context, typedef, astEmitter, output, typeInfo.StaticConstructor, stubbed, dollar);
 
             if (typedef.FullName == "System.Array")
                 staticExternalMemberNames.Add("Of");
@@ -921,7 +947,7 @@ namespace JSIL {
             if (externalMemberNames.Count > 0) {
                 output.Identifier("JSIL.ExternalMembers", null);
                 output.LPar();
-                output.Identifier("$", null);
+                dollar(output);
                 output.Comma();
                 output.Value(true);
                 output.Comma();
@@ -937,7 +963,7 @@ namespace JSIL {
             if (staticExternalMemberNames.Count > 0) {
                 output.Identifier("JSIL.ExternalMembers", null);
                 output.LPar();
-                output.Identifier("$", null);
+                dollar(output);
                 output.Comma();
                 output.Value(false);
                 output.Comma();
@@ -960,7 +986,7 @@ namespace JSIL {
             if (interfaces.Length > 0) {
                 output.Identifier("JSIL.ImplementInterfaces", null);
                 output.LPar();
-                output.Identifier("$", null);
+                dollar(output);
                 output.Comma();
                 output.OpenBracket(true);
                 output.CommaSeparatedList(interfaces, ListValueType.TypeReference);
@@ -971,7 +997,10 @@ namespace JSIL {
             }
         }
 
-        protected void TranslateMethodGroup (DecompilerContext context, JavascriptFormatter output, MethodGroupInfo methodGroup) {
+        protected void TranslateMethodGroup (
+            DecompilerContext context, JavascriptFormatter output,
+            MethodGroupInfo methodGroup, Action<JavascriptFormatter> dollar
+        ) {
             var methods = (from m in methodGroup.Methods where !m.IsIgnored select m).ToArray();
             if (methods.Length < 1)
                 return;
@@ -981,7 +1010,7 @@ namespace JSIL {
             );
             output.LPar();
 
-            output.Identifier("$", null);
+            dollar(output);
             if (!methodGroup.IsStatic) {
                 output.Dot();
                 output.Keyword("prototype");
@@ -1185,7 +1214,9 @@ namespace JSIL {
             return true;
         }
 
-        protected JSExpression TranslateField (FieldDefinition field) {
+        protected JSExpression TranslateField (
+            FieldDefinition field, Action<JavascriptFormatter> dollar
+        ) {
             JSDotExpression target;
             var fieldInfo = TypeInfoProvider.GetMemberInformation<Internal.FieldInfo>(field);
             if ((fieldInfo == null) || fieldInfo.IsIgnored || fieldInfo.IsExternal)
@@ -1193,11 +1224,11 @@ namespace JSIL {
             
             if (field.IsStatic)
                 target = JSDotExpression.New(
-                    new JSStringIdentifier("$", field.DeclaringType), new JSField(field, fieldInfo)
+                    new JSRawOutputIdentifier(dollar, field.DeclaringType), new JSField(field, fieldInfo)
                 );
             else
                 target = JSDotExpression.New(
-                    new JSStringIdentifier("$", field.DeclaringType), new JSStringIdentifier("prototype"), new JSField(field, fieldInfo)
+                    new JSRawOutputIdentifier(dollar, field.DeclaringType), new JSStringIdentifier("prototype"), new JSField(field, fieldInfo)
                 );
 
             if (field.HasConstant) {
@@ -1227,7 +1258,7 @@ namespace JSIL {
         protected void TranslateTypeStaticConstructor (
             DecompilerContext context, TypeDefinition typedef, 
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
-            MethodDefinition cctor, bool stubbed
+            MethodDefinition cctor, bool stubbed, Action<JavascriptFormatter> dollar
         ) {
             var typeSystem = context.CurrentModule.TypeSystem;
             var staticFields = 
@@ -1276,7 +1307,7 @@ namespace JSIL {
 
                 // Generate field initializations that were not generated by the compiler
                 foreach (var field in fieldsToEmit) {
-                    var expr = TranslateField(field);
+                    var expr = TranslateField(field, dollar);
 
                     if (expr != null) {
                         var stmt = new JSExpressionStatement(expr);
@@ -1302,13 +1333,13 @@ namespace JSIL {
                 if ((fi != null) && (fi.IsIgnored || fi.IsExternal))
                     continue;
 
-                var expr = TranslateField(f);
+                var expr = TranslateField(f, dollar);
                 if (expr != null)
                     astEmitter.Visit(new JSExpressionStatement(expr));
             }
 
             if ((cctor != null) && !stubbed) {
-                TranslateMethod(context, cctor, cctor, astEmitter, output, false, null, null, fixupCctor);
+                TranslateMethod(context, cctor, cctor, astEmitter, output, false, null, null, dollar, fixupCctor);
             } else if (fieldsToEmit.Length > 0) {
                 var fakeCctor = new MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static, typeSystem.Void);
                 fakeCctor.DeclaringType = typedef;
@@ -1324,7 +1355,7 @@ namespace JSIL {
                 // Generate the fake constructor, since it wasn't created during the analysis pass
                 TranslateMethodExpression(context, fakeCctor, fakeCctor);
 
-                TranslateMethod(context, fakeCctor, fakeCctor, astEmitter, output, false, null, null, fixupCctor);
+                TranslateMethod(context, fakeCctor, fakeCctor, astEmitter, output, false, null, null, dollar, fixupCctor);
             }
         }
 
@@ -1333,6 +1364,7 @@ namespace JSIL {
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed, 
             HashSet<string> externalMemberNames,
             HashSet<string> staticExternalMemberNames,
+            Action<JavascriptFormatter> dollar,
             Action<JSFunctionExpression> bodyTransformer = null
         ) {
             var methodInfo = TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
@@ -1375,7 +1407,7 @@ namespace JSIL {
                 output.NewLine();
             }
 
-            output.Identifier("$", null);
+            dollar(output);
             if (!method.IsStatic) {
                 output.Dot();
                 output.Keyword("prototype");
@@ -1425,7 +1457,10 @@ namespace JSIL {
             output.Semicolon();
         }
 
-        protected void TranslateProperty (DecompilerContext context, JavascriptFormatter output, PropertyDefinition property) {
+        protected void TranslateProperty (
+            DecompilerContext context, JavascriptFormatter output,
+            PropertyDefinition property, Action<JavascriptFormatter> dollar
+        ) {
             var propertyInfo = TypeInfoProvider.GetMemberInformation<Internal.PropertyInfo>(property);
             if ((propertyInfo == null) || propertyInfo.IsIgnored || propertyInfo.IsExternal)
                 return;
@@ -1439,7 +1474,7 @@ namespace JSIL {
 
             output.LPar();
 
-            output.Identifier("$", null);
+            dollar(output);
             if (!isStatic) {
                 output.Dot();
                 output.Keyword("prototype");
@@ -1452,7 +1487,7 @@ namespace JSIL {
             output.NewLine();
 
             if (property.GetMethod != null) {
-                output.Identifier("$", null);
+                dollar(output);
                 if (!isStatic) {
                     output.Dot();
                     output.Keyword("prototype");
@@ -1466,7 +1501,7 @@ namespace JSIL {
             output.Comma();
 
             if (property.SetMethod != null) {
-                output.Identifier("$", null);
+                dollar(output);
                 if (!isStatic) {
                     output.Dot();
                     output.Keyword("prototype");

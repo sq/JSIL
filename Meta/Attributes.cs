@@ -57,8 +57,9 @@ namespace JSIL.Meta {
     /// To refer to a parameter within the replacement expression, prefix the parameter name with a dollar sign - the this-reference becomes $this, for example.
     /// </summary>
     [AttributeUsage(
-        AttributeTargets.Method | AttributeTargets.Field |
-        AttributeTargets.Property | AttributeTargets.Constructor
+        AttributeTargets.Method | AttributeTargets.Constructor |
+        AttributeTargets.Property | AttributeTargets.Class | 
+        AttributeTargets.Struct
     )]
     public class JSReplacement : Attribute {
         public JSReplacement (string expression) {

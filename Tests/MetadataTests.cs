@@ -354,5 +354,32 @@ namespace JSIL.Tests {
             Assert.IsTrue(generatedJs.Contains("MakeExternalType(\"MyClass\""));
             Assert.IsTrue(generatedJs.Contains("MyClass."));
         }
+
+        [Test]
+        public void ReplaceExternalClass () {
+            var generatedJs = GenericIgnoreTest(
+                @"SpecialTestCases\ReplaceExternalClass.cs",
+                "MyClass", "ReferenceError: UnqualifiedTypeName is not defined"
+            );
+
+            Assert.IsTrue(generatedJs.Contains("UnqualifiedTypeName"));
+            Assert.IsFalse(generatedJs.Contains("MyClass"));
+        }
+
+        [Test]
+        public void ReplaceNonExternalClass () {
+            var generatedJs = GenericIgnoreTest(
+                @"SpecialTestCases\ReplaceNonExternalClass.cs",
+                "MyClass", "ReferenceError: UnqualifiedTypeName is not defined"
+            );
+
+            Assert.IsTrue(generatedJs.Contains("UnqualifiedTypeName"));
+            Assert.IsTrue(generatedJs.Contains("UnqualifiedTypeName.GetString"));
+            Assert.IsTrue(generatedJs.Contains("UnqualifiedTypeName.get_StringProperty"));
+            Assert.IsTrue(generatedJs.Contains("UnqualifiedTypeName.set_StringProperty"));
+            Assert.IsTrue(generatedJs.Contains("UnqualifiedTypeName.StringField"));
+            Assert.IsTrue(generatedJs.Contains("return \"MyClass\""));
+            Assert.IsFalse(generatedJs.Contains("MyClass."));
+        }
     }
 }

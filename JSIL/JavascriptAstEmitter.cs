@@ -258,6 +258,10 @@ namespace JSIL {
             Output.Identifier(identifier.Identifier);
         }
 
+        public void VisitNode (JSRawOutputIdentifier identifier) {
+            identifier.Emitter(Output);
+        }
+
         public void VisitNode (JSCharLiteral ch) {
             Output.Value(ch.Value);
         }

@@ -1775,6 +1775,19 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSRawOutputIdentifier : JSIdentifier {
+        public readonly Action<JavascriptFormatter> Emitter;
+
+        public JSRawOutputIdentifier (Action<JavascriptFormatter> emitter, TypeReference type = null)
+            : base(type) {
+            Emitter = emitter;
+        }
+
+        public override string Identifier {
+            get { return Emitter.ToString(); }
+        }
+    }
+
     public class JSNamespace : JSStringIdentifier {
         public JSNamespace (string name)
             : base(name) {

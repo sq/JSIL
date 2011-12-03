@@ -366,6 +366,12 @@ namespace JSIL.Internal {
                     Identifier(type.FullName);
                 }
             } else {
+                var info = TypeInfo.Get(type);
+                if (info.Replacement != null) {
+                    PlainTextOutput.Write(info.Replacement);
+                    return;
+                }
+
                 var typedef = type.Resolve();
                 if (typedef != null) {
                     if (GetContainingAssemblyName(typedef) == Assembly.FullName) {
@@ -377,7 +383,6 @@ namespace JSIL.Internal {
                     }
                 }
 
-                var info = TypeInfo.Get(type);
                 PlainTextOutput.Write(Util.EscapeIdentifier(
                     info.FullName, EscapingMode.TypeIdentifier
                 ));

@@ -258,6 +258,8 @@
     <None Include="SpecialTestCases\ExternalProperty.cs" />
     <None Include="SpecialTestCases\ExternalStaticClass.cs" />
     <None Include="SpecialTestCases\ExternalPropertyGetter.cs" />
+    <None Include="SpecialTestCases\ReplaceExternalClass.cs" />
+    <None Include="SpecialTestCases\ReplaceNonExternalClass.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

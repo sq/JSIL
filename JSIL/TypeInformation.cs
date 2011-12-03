@@ -652,6 +652,7 @@ namespace JSIL.Internal {
         public readonly Dictionary<MemberIdentifier, IMemberInfo> Members;
         public readonly bool IsProxy;
         public readonly bool IsDelegate;
+        public readonly string Replacement;
 
         protected string _FullName = null;
         protected bool _FullyInitialized = false;
@@ -712,6 +713,12 @@ namespace JSIL.Internal {
                 Metadata.HasAttribute("System.Runtime.CompilerServices.NativeCppClassAttribute");
 
             _IsExternal = Metadata.HasAttribute("JSIL.Meta.JSExternal");
+
+            if (Metadata.HasAttribute("JSIL.Meta.JSReplacement")) {
+                Replacement = (string)Metadata.GetAttributeParameters("JSIL.Meta.JSReplacement")[0].Value;
+            } else {
+                Replacement = null;
+            }
 
             if (baseClass != null)
                 _IsIgnored |= baseClass.IsIgnored;
