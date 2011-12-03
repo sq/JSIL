@@ -18,13 +18,14 @@ JSIL depends upon the following open source libraries:
 
  * Mono.Cecil: MIT/X11 (thanks to Jb Evain)
  * ICSharpCode.Decompiler: MIT/X11 (developed as part of ILSpy)
+ * Mono.Options: MIT/X11 (Jonathan Pryor & Federico Di Gregorio)
+ * printStackTrace: Public Domain (Eric Wendelin and others)
+
+The Upstream folder also contains:
+
+ * Win32 build of the Spidermonkey command-line JavaScript shell. It is built from sources provided by the Mozilla project (http://www.mozilla.org/). This build is used for running JavaScript automated tests.
+ * A specific version of the NUnit.Framework assembly, used by the automated tests. This ensures that they compile correctly regardless of which version of NUnit you have installed.
  
 Logo by [John Flynn](http://www.bryneshrimp.com).
  
-Assorted code and test case contributions by:
- 
-[Michael Greene](https://github.com/euphoria)
-
-[Rob Ashton](https://github.com/robashton)
- 
-[markusjohnsson](https://github.com/markusjohnsson)
+Assorted code and test case contributions by the various contributors on the GitHub project page - already too many to list here.
