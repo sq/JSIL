@@ -432,7 +432,9 @@ namespace JSIL {
         }
 
         public void VisitNode (JSType type) {
-            Output.Identifier(type.Type, IncludeTypeParens.Peek());
+            Output.Identifier(
+                type.Type, IncludeTypeParens.Peek()
+            );
         }
 
         public void VisitNode (JSEliminatedVariable variable) {

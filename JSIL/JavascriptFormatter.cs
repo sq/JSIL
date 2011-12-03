@@ -211,15 +211,6 @@ namespace JSIL.Internal {
             OpenBrace();
         }
 
-        public static string GetParent (TypeReference type, string defaultParent = "JSIL.GlobalNamespace") {
-            var fullname = type.FullName;
-            var index = fullname.LastIndexOfAny(new char[] { '.', '+', '/' });
-            if (index < 0)
-                return defaultParent;
-            else
-                return fullname.Substring(0, index);
-        }
-
         public static string GetContainingAssemblyName (TypeReference tr) {
             var scope = tr.Scope;
             switch (scope.MetadataScopeType) {
@@ -249,7 +240,13 @@ namespace JSIL.Internal {
             var originalType = type;
             type = ILBlockTranslator.DereferenceType(type);
             var typeDef = ILBlockTranslator.GetTypeDefinition(type, false);
-            var identifier = Util.EscapeIdentifier((typeDef ?? type).FullName, EscapingMode.String);
+            var typeInfo = TypeInfo.Get(type);
+            var identifier = Util.EscapeIdentifier(
+                (typeInfo != null) ? typeInfo.FullName 
+                    : (typeDef != null) ? typeDef.FullName 
+                        : type.FullName
+                , EscapingMode.String
+            );
             var git = type as GenericInstanceType;
             var at = type as ArrayType;
 
@@ -380,8 +377,9 @@ namespace JSIL.Internal {
                     }
                 }
 
+                var info = TypeInfo.Get(type);
                 PlainTextOutput.Write(Util.EscapeIdentifier(
-                    type.FullName, EscapingMode.TypeIdentifier
+                    info.FullName, EscapingMode.TypeIdentifier
                 ));
             }
         }
@@ -524,15 +522,16 @@ namespace JSIL.Internal {
             Value(GetNameOfType(type as dynamic));
         }
 
-        protected static string GetNameOfType (TypeReference type) {
-            return type.FullName;
+        protected string GetNameOfType (TypeReference type) {
+            var info = TypeInfo.Get(type);
+            return info.FullName;
         }
 
-        protected static string GetNameOfType (ArrayType type) {
+        protected string GetNameOfType (ArrayType type) {
             return GetNameOfType(type.ElementType as dynamic) + "[]";
         }
 
-        protected static string GetNameOfType (GenericInstanceType type) {
+        protected string GetNameOfType (GenericInstanceType type) {
             return String.Format("{0}[{1}]",
                 GetNameOfType(type.ElementType as dynamic),
                 String.Join(", ", (from ga in type.GenericArguments

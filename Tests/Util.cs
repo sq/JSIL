@@ -433,13 +433,14 @@ namespace JSIL.Tests {
 
         protected string GenericTest (string fileName, string csharpOutput, string javascriptOutput, string[] stubbedAssemblies = null) {
             long elapsed, temp;
-            string generatedJs;
+            string generatedJs = null;
 
             using (var test = new ComparisonTest(fileName, stubbedAssemblies)) {
                 var csOutput = test.RunCSharp(new string[0], out elapsed);
-                var jsOutput = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed);
 
                 try {
+                    var jsOutput = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed);
+
                     Assert.AreEqual(csharpOutput, csOutput.Trim(), "Did not get expected output from C# test");
                     Assert.AreEqual(javascriptOutput, jsOutput.Trim(), "Did not get expected output from JavaScript test");
                 } catch {

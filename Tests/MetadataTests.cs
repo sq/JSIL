@@ -199,5 +199,89 @@ namespace JSIL.Tests {
                 throw;
             }
         }
+
+        [Test]
+        public void RenameMethod () {
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\RenameMethod.cs",
+                "Method",
+                "Method"
+            );
+
+            Assert.IsFalse(generatedJs.Contains("Program.Method"));
+            Assert.IsTrue(generatedJs.Contains("Program.RenamedMethod"));
+        }
+
+        [Test]
+        public void RenameField () {
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\RenameField.cs",
+                "Field",
+                "Field"
+            );
+
+            Assert.IsFalse(generatedJs.Contains("Program.Field"));
+            Assert.IsTrue(generatedJs.Contains("Program.RenamedField"));
+        }
+
+        [Test]
+        public void RenameProperty () {
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\RenameProperty.cs",
+                "Property",
+                "Property"
+            );
+
+            Assert.IsFalse(generatedJs.Contains("Program.Property"));
+            Assert.IsTrue(generatedJs.Contains("Program.RenamedProperty"));
+        }
+
+        [Test]
+        public void RenameEnum () {
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\RenameEnum.cs",
+                "A B MyEnum",
+                "A B RenamedEnum"
+            );
+
+            Assert.IsFalse(generatedJs.Contains("MyEnum"));
+            Assert.IsTrue(generatedJs.Contains("RenamedEnum"));
+        }
+
+        [Test]
+        public void RenameClass () {
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\RenameClass.cs",
+                "MyClass MyClass",
+                "MyClass RenamedClass"
+            );
+
+            Assert.IsFalse(generatedJs.Contains(".MyClass()"));
+            Assert.IsTrue(generatedJs.Contains(".RenamedClass()"));
+        }
+
+        [Test]
+        public void RenameStruct () {
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\RenameStruct.cs",
+                "MyStruct MyStruct",
+                "MyStruct RenamedStruct"
+            );
+
+            Assert.IsFalse(generatedJs.Contains(".MyStruct()"));
+            Assert.IsTrue(generatedJs.Contains(".RenamedStruct()"));
+        }
+
+        [Test]
+        public void RenameStaticClass () {
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\RenameStaticClass.cs",
+                "MyClass MyClass",
+                "MyClass RenamedClass"
+            );
+
+            Assert.IsFalse(generatedJs.Contains(".MyClass."));
+            Assert.IsTrue(generatedJs.Contains(".RenamedClass."));
+        }
     }
 }

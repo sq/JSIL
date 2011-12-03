@@ -366,31 +366,43 @@ namespace JSIL.Internal {
     }
 
     public class ConcurrentCache<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>> {
+        protected class ConstructionState {
+            public readonly ManualResetEventSlim Signal = new ManualResetEventSlim(false);
+            public readonly Thread ConstructingThread = Thread.CurrentThread;
+
+            public void Wait () {
+                if (ConstructingThread == Thread.CurrentThread)
+                    throw new InvalidOperationException("Recursive construction of cache entry");
+
+                Signal.Wait();
+            }
+        }
+
         protected readonly ConcurrentDictionary<TKey, TValue> Storage;
-        protected readonly ConcurrentDictionary<TKey, ManualResetEventSlim> Signals;
+        protected readonly ConcurrentDictionary<TKey, ConstructionState> States;
 
         public ConcurrentCache () {
             Storage = new ConcurrentDictionary<TKey, TValue>();
-            Signals = new ConcurrentDictionary<TKey, ManualResetEventSlim>();
+            States = new ConcurrentDictionary<TKey, ConstructionState>();
         }
 
         public ConcurrentCache (int concurrencyLevel, int capacity) {
             Storage = new ConcurrentDictionary<TKey, TValue>(concurrencyLevel, capacity);
-            Signals = new ConcurrentDictionary<TKey, ManualResetEventSlim>(concurrencyLevel, concurrencyLevel);
+            States = new ConcurrentDictionary<TKey, ConstructionState>(concurrencyLevel, concurrencyLevel);
         }
 
         public ConcurrentCache (int concurrencyLevel, int capacity, IEqualityComparer<TKey> comparer) {
             Storage = new ConcurrentDictionary<TKey, TValue>(concurrencyLevel, capacity, comparer);
-            Signals = new ConcurrentDictionary<TKey, ManualResetEventSlim>(concurrencyLevel, concurrencyLevel, comparer);
+            States = new ConcurrentDictionary<TKey, ConstructionState>(concurrencyLevel, concurrencyLevel, comparer);
         }
 
         public void Clear () {
-            Signals.Clear();
+            States.Clear();
             Storage.Clear();
         }
 
         public bool MightContainKey (TKey key) {
-            return Storage.ContainsKey(key) || Signals.ContainsKey(key);
+            return Storage.ContainsKey(key) || States.ContainsKey(key);
         }
 
         public bool ContainsKey (TKey key) {
@@ -398,21 +410,21 @@ namespace JSIL.Internal {
         }
 
         public bool TryGet (TKey key, out TValue result) {
-            ManualResetEventSlim signal;
+            ConstructionState state;
 
-            while (Signals.TryGetValue(key, out signal))
-                signal.Wait();
+            while (States.TryGetValue(key, out state))
+                state.Wait();
 
             return Storage.TryGetValue(key, out result);
         }
 
         public bool TryCreate (TKey key, Func<TValue> creator) {
-            ManualResetEventSlim signal;
+            ConstructionState state;
 
             if (Storage.ContainsKey(key))
                 return false;
 
-            if (Signals.TryAdd(key, signal = new ManualResetEventSlim(false))) {
+            if (States.TryAdd(key, state = new ConstructionState())) {
                 try {
                     if (Storage.ContainsKey(key))
                         return false;
@@ -424,8 +436,8 @@ namespace JSIL.Internal {
 
                     return true;
                 } finally {
-                    Signals.TryRemove(key, out signal);
-                    signal.Set();
+                    States.TryRemove(key, out state);
+                    state.Signal.Set();
                 }
             }
 
@@ -434,9 +446,10 @@ namespace JSIL.Internal {
 
         public TValue GetOrCreate (TKey key, Func<TValue> creator) {
             while (true) {
-                ManualResetEventSlim signal;
-                while (Signals.TryGetValue(key, out signal))
-                    signal.Wait();
+                ConstructionState state;
+
+                while (States.TryGetValue(key, out state))
+                    state.Wait();
 
                 TValue result;
                 if (Storage.TryGetValue(key, out result))
@@ -447,9 +460,10 @@ namespace JSIL.Internal {
         }
 
         public bool TryRemove (TKey key) {
-            ManualResetEventSlim signal;
-            while (Signals.TryGetValue(key, out signal))
-                signal.Wait();
+            ConstructionState state;
+
+            while (States.TryGetValue(key, out state))
+                state.Wait();
 
             TValue temp;
             return Storage.TryRemove(key, out temp);

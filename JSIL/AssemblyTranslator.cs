@@ -558,11 +558,13 @@ namespace JSIL {
         }
 
         protected void TranslateEnum (DecompilerContext context, JavascriptFormatter output, TypeDefinition enm) {
+            var typeInfo = TypeInfoProvider.GetTypeInformation(enm);
+
             output.Identifier("JSIL.MakeEnum", null);
             output.LPar();
             output.NewLine();
 
-            output.Value(Util.EscapeIdentifier(enm.FullName, EscapingMode.String));
+            output.Value(Util.EscapeIdentifier(typeInfo.FullName, EscapingMode.String));
             output.Comma();
 
             output.Value(enm.IsPublic);
@@ -659,7 +661,7 @@ namespace JSIL {
                 output.Identifier("JSIL.MakeStaticClass", null);
                 output.LPar();
 
-                output.Value(typedef.FullName);
+                output.Value(typeInfo.FullName);
                 output.Comma();
                 output.Value(typedef.IsPublic);
 
@@ -700,7 +702,7 @@ namespace JSIL {
 
                 output.Comma();
 
-                output.Value(typedef.FullName);
+                output.Value(typeInfo.FullName);
                 output.Comma();
                 output.Value(typedef.IsPublic);
 
@@ -1311,7 +1313,7 @@ namespace JSIL {
                 return;
 
             if (methodIsProxied) {
-                output.Comment("Implementation from {0}", methodInfo.Member.DeclaringType.FullName);
+                output.Comment("Implementation from {0}", methodInfo.DeclaringType.FullName);
                 output.NewLine();
             }
 

@@ -1494,7 +1494,7 @@ JSIL.MakeEnumValue = function (enumType, value, key) {
   else
     obj.toString = function () {
       return value.toString();
-    }
+    };
 
   obj.GetType = function () {
     return enumType;
@@ -1504,7 +1504,7 @@ JSIL.MakeEnumValue = function (enumType, value, key) {
   obj.name = key;
 
   return obj;
-}
+};
 
 JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
   var localName = JSIL.GetLocalName(fullName);
@@ -1529,9 +1529,13 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     __ValueToName__: {}
   };
 
+  result.toString = function () {
+    return localName;
+  };
+
   result.Of = function () {
     return result;
-  }
+  };
 
   result.CheckType = function (v) {
     if (typeof (v.GetType) === "function")

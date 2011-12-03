@@ -119,6 +119,9 @@ namespace JSIL {
                 else
                     before2 = queue.Enqueue(identifier, typedef);
 
+                if (typedef.DeclaringType != null)
+                    EnqueueType(queue, typedef.DeclaringType, before2);
+
                 if (typedef.BaseType != null)
                     EnqueueType(queue, typedef.BaseType, before2);
 
@@ -184,11 +187,20 @@ namespace JSIL {
         protected TypeInfo ConstructTypeInformation (TypeIdentifier identifier, TypeDefinition type, Dictionary<TypeIdentifier, TypeDefinition> moreTypes) {
             var moduleInfo = GetModuleInformation(type.Module);
 
-            TypeInfo baseType = null;
-            if (type.BaseType != null)
-                baseType = GetTypeInformation(type.BaseType);
+            TypeInfo baseType = null, declaringType = null;
+            if (type.BaseType != null) {
+                baseType = GetExisting(type.BaseType);
+                if (baseType == null)
+                    throw new InvalidOperationException("Missing type info for base type");
+            }
 
-            var result = new TypeInfo(this, moduleInfo, type, baseType, identifier);
+            if (type.DeclaringType != null) {
+                declaringType = GetExisting(type.DeclaringType);
+                if (declaringType == null)
+                    throw new InvalidOperationException("Missing type info for declaring type");
+            }
+
+            var result = new TypeInfo(this, moduleInfo, type, declaringType, baseType, identifier);
 
             Action<TypeReference> addType = (tr) => {
                 if (tr == null)
@@ -280,7 +292,7 @@ namespace JSIL {
             return GetTypeInformation(type);
         }
 
-        TypeInfo ITypeInfoSource.GetExisting (TypeReference type) {
+        public TypeInfo GetExisting (TypeReference type) {
             if (type == null)
                 throw new ArgumentNullException("type");
 

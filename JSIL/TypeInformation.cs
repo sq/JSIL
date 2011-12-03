@@ -633,6 +633,7 @@ namespace JSIL.Internal {
         public readonly TypeIdentifier Identifier;
         public readonly TypeDefinition Definition;
         public readonly ITypeInfoSource Source;
+        public readonly TypeInfo DeclaringType;
         public readonly TypeInfo BaseClass;
 
         public readonly TypeInfo[] Interfaces;
@@ -652,12 +653,14 @@ namespace JSIL.Internal {
         public readonly bool IsProxy;
         public readonly bool IsDelegate;
 
+        protected string _FullName = null;
         protected bool _FullyInitialized = false;
         protected bool _IsIgnored = false;
         protected bool _MethodGroupsInitialized = false;
 
-        public TypeInfo (ITypeInfoSource source, ModuleInfo module, TypeDefinition type, TypeInfo baseClass, TypeIdentifier identifier) {
+        public TypeInfo (ITypeInfoSource source, ModuleInfo module, TypeDefinition type, TypeInfo declaringType, TypeInfo baseClass, TypeIdentifier identifier) {
             Identifier = identifier;
+            DeclaringType = declaringType;
             BaseClass = baseClass;
             Source = source;
             Definition = type;
@@ -675,8 +678,11 @@ namespace JSIL.Internal {
             );
 
             var interfaces = new HashSet<TypeInfo>(
-                from i in type.Interfaces select source.Get(i)
+                from i in type.Interfaces select source.GetExisting(i)
             );
+
+            if (interfaces.Any((ii) => ii == null))
+                throw new InvalidOperationException("Missing type info for one or more interfaces");
 
             foreach (var proxy in Proxies) {
                 Metadata.Update(proxy.Metadata, proxy.AttributePolicy == JSProxyAttributePolicy.ReplaceAll);
@@ -686,8 +692,10 @@ namespace JSIL.Internal {
                     if (proxy.InterfacePolicy == JSProxyInterfacePolicy.ReplaceAll)
                         interfaces.Clear();
 
-                    foreach (var i in proxy.Interfaces)
-                        interfaces.Add(source.Get(i));
+                    foreach (var i in proxy.Interfaces) {
+                        var ii = source.Get(i);
+                        interfaces.Add(ii);
+                    }
                 }
             }
 
@@ -822,6 +830,16 @@ namespace JSIL.Internal {
         public bool IsFullyInitialized {
             get {
                 return _FullyInitialized;
+            }
+        }
+
+        public string ChangedName {
+            get {
+                var parms = Metadata.GetAttributeParameters("JSIL.Meta.JSChangeName");
+                if (parms != null)
+                    return (string)parms[0].Value;
+
+                return null;
             }
         }
 
@@ -995,6 +1013,27 @@ namespace JSIL.Internal {
                 return originalName;
         }
 
+        public string Name {
+            get {
+                return ChangedName ?? Definition.Name;
+            }
+        }
+
+        public string FullName {
+            get {
+                if (_FullName != null)
+                    return _FullName;
+
+                if (DeclaringType != null)
+                    return _FullName = DeclaringType.FullName + "/" + Name;
+
+                if (string.IsNullOrEmpty(Definition.Namespace))
+                    return _FullName = Name;
+
+                return _FullName = Definition.Namespace + "." + Name;
+            }
+        }
+
         public static bool IsIgnoredName (string shortName, bool isField) {
             foreach (Match m2 in IgnoredKeywordRegex.Matches(shortName)) {
                 if (m2.Success) {
@@ -1154,7 +1193,7 @@ namespace JSIL.Internal {
         public readonly List<CustomAttribute> Attributes = new List<CustomAttribute>();
     }
 
-    public class MetadataCollection {
+    public class MetadataCollection : IEnumerable<KeyValuePair<string, AttributeEntry>> {
         protected Dictionary<string, AttributeEntry> Attributes = null;
 
         public MetadataCollection (ICustomAttributeProvider target) {
@@ -1251,6 +1290,14 @@ namespace JSIL.Internal {
                 return null;
 
             return attr.Attributes[0].ConstructorArguments;
+        }
+
+        public IEnumerator<KeyValuePair<string, AttributeEntry>> GetEnumerator () {
+            return Attributes.GetEnumerator();
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator () {
+            return Attributes.GetEnumerator();
         }
     }
 
@@ -1674,13 +1721,11 @@ namespace JSIL.Internal {
 
     public class EnumMemberInfo {
         public readonly TypeReference DeclaringType;
-        public readonly string FullName;
         public readonly string Name;
         public readonly long Value;
 
         public EnumMemberInfo (TypeDefinition type, string name, long value) {
             DeclaringType = type;
-            FullName = type.FullName + "." + name;
             Name = name;
             Value = value;
         }

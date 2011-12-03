@@ -70,7 +70,8 @@ namespace JSIL.Meta {
     /// </summary>
     [AttributeUsage(
         AttributeTargets.Method | AttributeTargets.Field |
-        AttributeTargets.Property
+        AttributeTargets.Property | AttributeTargets.Class | 
+        AttributeTargets.Struct | AttributeTargets.Enum
     )]
     public class JSChangeName : Attribute {
         public JSChangeName (string newName) {
@@ -88,12 +89,12 @@ namespace JSIL.Meta {
     }
 
     /// <summary>
-    /// Specifies that this method is implemented externally and should not be generated when translating code to JavaScript
-    ///  (but does not prevent use of the method like <see cref="JSIgnore"/> does.)
+    /// Specifies that this method or type is implemented externally and should not be generated when translating code to JavaScript
+    ///  (but does not prevent use of the method/type like <see cref="JSIgnore"/> does.)
     /// </summary>
     [AttributeUsage(
         AttributeTargets.Method | AttributeTargets.Constructor |
-        AttributeTargets.Property                
+        AttributeTargets.Property 
     )]
     public class JSExternal : Attribute {
     }
