@@ -454,18 +454,27 @@ namespace JSIL.Tests {
 
         protected string GenericIgnoreTest (string fileName, string workingOutput, string jsErrorSubstring, string[] stubbedAssemblies = null) {
             long elapsed, temp;
-            string generatedJs = null;
+            string generatedJs = null, jsOutput = null;
 
             using (var test = new ComparisonTest(fileName, stubbedAssemblies)) {
                 var csOutput = test.RunCSharp(new string[0], out elapsed);
                 Assert.AreEqual(workingOutput, csOutput.Trim());
 
                 try {
-                    test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed);
+                    jsOutput = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed);
                     Assert.Fail("Expected javascript to throw an exception containing the string \"" + jsErrorSubstring + "\".");
                 } catch (JavaScriptException jse) {
-                    if (!jse.ErrorText.Contains(jsErrorSubstring))
+                    if (!jse.ErrorText.Contains(jsErrorSubstring)) {
+                        Console.Error.WriteLine("// Generated JS: \r\n{0}", generatedJs);
+                        if (jsOutput != null)
+                            Console.Error.WriteLine("// JS output: \r\n{0}", jsOutput);
                         throw;
+                    }
+                } catch {
+                    Console.Error.WriteLine("// Generated JS: \r\n{0}", generatedJs);
+                    if (jsOutput != null)
+                        Console.Error.WriteLine("// JS output: \r\n{0}", jsOutput);
+                    throw;
                 }
 
             }

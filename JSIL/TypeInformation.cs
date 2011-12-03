@@ -656,6 +656,7 @@ namespace JSIL.Internal {
         protected string _FullName = null;
         protected bool _FullyInitialized = false;
         protected bool _IsIgnored = false;
+        protected bool _IsExternal = false;
         protected bool _MethodGroupsInitialized = false;
 
         public TypeInfo (ITypeInfoSource source, ModuleInfo module, TypeDefinition type, TypeInfo declaringType, TypeInfo baseClass, TypeIdentifier identifier) {
@@ -709,6 +710,8 @@ namespace JSIL.Internal {
                 Metadata.HasAttribute("JSIL.Meta.JSIgnore") ||
                 Metadata.HasAttribute("System.Runtime.CompilerServices.UnsafeValueTypeAttribute") ||
                 Metadata.HasAttribute("System.Runtime.CompilerServices.NativeCppClassAttribute");
+
+            _IsExternal = Metadata.HasAttribute("JSIL.Meta.JSExternal");
 
             if (baseClass != null)
                 _IsIgnored |= baseClass.IsIgnored;
@@ -897,6 +900,21 @@ namespace JSIL.Internal {
                 }
 
                 return _IsIgnored;
+            }
+        }
+
+        public bool IsExternal {
+            get {
+                if (_FullyInitialized)
+                    return _IsExternal;
+
+                if (Definition.DeclaringType != null) {
+                    var dt = Source.GetExisting(Definition.DeclaringType);
+                    if ((dt != null) && dt.IsExternal)
+                        return true;
+                }
+
+                return _IsExternal;
             }
         }
 
@@ -1595,7 +1613,8 @@ namespace JSIL.Internal {
             parent, identifier, method, proxies,
             ILBlockTranslator.IsIgnoredType(method.ReturnType) || 
                 method.Parameters.Any((p) => ILBlockTranslator.IsIgnoredType(p.ParameterType)),
-            method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall || method.IsPInvokeImpl,
+            method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || 
+                method.IsInternalCall || method.IsPInvokeImpl || property.IsExternal,
             isFromProxy
         ) {
             Property = property;

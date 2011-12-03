@@ -252,6 +252,12 @@
     <None Include="SpecialTestCases\RenameStruct.cs" />
     <None Include="SpecialTestCases\RenameStaticClass.cs" />
     <None Include="SpecialTestCases\RenameField.cs" />
+    <None Include="SpecialTestCases\ExternalClass.cs" />
+    <None Include="SpecialTestCases\ExternalField.cs" />
+    <None Include="SpecialTestCases\ExternalMethod.cs" />
+    <None Include="SpecialTestCases\ExternalProperty.cs" />
+    <None Include="SpecialTestCases\ExternalStaticClass.cs" />
+    <None Include="SpecialTestCases\ExternalPropertyGetter.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

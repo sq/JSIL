@@ -1103,6 +1103,42 @@ JSIL.ApplyExternals = function (typeObject, fullName) {
   }
 };
 
+JSIL.MakeExternalType = function (fullName, isPublic) {
+  if (typeof (isPublic) === "undefined")
+    JSIL.Host.error(new Error("Must specify isPublic"));
+
+  var assembly = $private;
+
+  var state = {
+    hasValue: false
+  };
+  var getter = function () {
+    if (state.hasValue)
+      return state.value;
+    else
+      JSIL.Host.error(new Error("The external type '" + fullName + "' has not been implemented."));
+  };
+  var setter = function (newValue) {
+    state.value = newValue;
+    state.hasValue = true;
+  };
+  var definition = { 
+    get: getter, set: setter, 
+    configurable: true, enumerable: true 
+  };
+
+  var privateName = JSIL.ResolveName(assembly, fullName, false);
+  if (!privateName.exists())
+    privateName.define(definition);
+
+  if (isPublic) {
+    var publicName = JSIL.ResolveName(JSIL.GlobalNamespace, fullName, true);
+
+    if (!publicName.exists())
+      publicName.define(definition);
+  }
+};
+
 JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializer) {
   if (typeof (isPublic) === "undefined")
     JSIL.Host.error(new Error("Must specify isPublic"));
