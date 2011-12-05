@@ -1148,17 +1148,20 @@ namespace JSIL {
             SpecialIdentifiers si, HashSet<string> parameterNames,
             Dictionary<string, JSVariable> variables, JSFunctionExpression function
         ) {
-            // Run elimination repeatedly, since eliminating one variable may make it possible to eliminate others
-            if (Configuration.Optimizer.EliminateTemporaries.GetValueOrDefault(true)) {
-                bool eliminated;
-                do {
-                    var visitor = new EliminateSingleUseTemporaries(
-                        si.TypeSystem, variables, FunctionCache
-                    );
-                    visitor.Visit(function);
-                    eliminated = visitor.EliminatedVariables.Count > 0;
-                } while (eliminated);
-            }
+            Action temporaryEliminationPass = () => {
+                if (Configuration.Optimizer.EliminateTemporaries.GetValueOrDefault(true)) {
+                    bool eliminated;
+                    do {
+                        var visitor = new EliminateSingleUseTemporaries(
+                            si.TypeSystem, variables, FunctionCache
+                        );
+                        visitor.Visit(function);
+                        eliminated = visitor.EliminatedVariables.Count > 0;
+                    } while (eliminated);
+                }
+            };
+
+            temporaryEliminationPass();
 
             new EmulateStructAssignment(
                 si.TypeSystem,
@@ -1183,7 +1186,7 @@ namespace JSIL {
                     si.TypeSystem
                 ).Visit(function);
 
-            // Temporary elimination makes it possible to simplify more operators, so do it last
+            // Temporary elimination makes it possible to simplify more operators, so do it later
             if (Configuration.Optimizer.SimplifyOperators.GetValueOrDefault(true))
                 new SimplifyOperators(
                     si.JSIL, si.JS, si.TypeSystem
@@ -1196,6 +1199,12 @@ namespace JSIL {
             new IntroduceEnumCasts(
                 si.TypeSystem
             ).Visit(function);
+
+            new DeoptimizeSwitchStatements(
+                si.TypeSystem
+            ).Visit(function);
+
+            temporaryEliminationPass();
         }
 
         protected static bool NeedsStaticConstructor (TypeReference type) {

@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using ICSharpCode.NRefactory.CSharp;
+using JSIL.Ast;
 using Mono.Cecil;
 
 namespace JSIL.Internal {
@@ -304,6 +305,27 @@ namespace JSIL.Internal {
             System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator () {
                 return (List as IEnumerable<T>).Skip(Offset).GetEnumerator();
             }
+        }
+
+        public static JSStatement[] CollectLabelledStatements (this JSNode parent, string label) {
+            var result = new List<JSStatement>();
+            bool collecting = false;
+
+            foreach (var stmt in parent.Children.OfType<JSStatement>()) {
+                var lbl = stmt as JSLabelStatement;
+
+                if ((stmt != null) && (stmt.Label != null)) {
+                    collecting = stmt.Label == label;
+                } else if (lbl != null) {
+                    collecting = lbl.Label == label;
+                    continue;
+                }
+
+                if (collecting)
+                    result.Add(stmt);
+            }
+
+            return result.ToArray();
         }
 
         public static IList<T> Skip<T> (this IList<T> list, int offset) {

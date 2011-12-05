@@ -72,6 +72,13 @@ namespace JSIL.Ast {
 
         public string Label = null;
 
+        protected string PrependLabel (string text) {
+            if (Label == null)
+                return text;
+
+            return String.Format("{0}: {1}", Label, text);
+        }
+
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
                 throw new ArgumentNullException();
@@ -94,7 +101,7 @@ namespace JSIL.Ast {
         }
 
         public override string ToString () {
-            return "<Null>";
+            return PrependLabel("<Null>");
         }
     }
 
@@ -142,8 +149,9 @@ namespace JSIL.Ast {
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
                 throw new ArgumentNullException();
-
-            var stmt = (JSStatement)newChild;
+            var stmt = newChild as JSStatement;
+            if (stmt == null)
+                return;
 
             for (int i = 0, c = Statements.Count; i < c; i++) {
                 if (Statements[i] == oldChild)
@@ -157,7 +165,7 @@ namespace JSIL.Ast {
             foreach (var stmt in Statements)
                 sb.AppendLine(String.Concat(stmt));
 
-            return sb.ToString();
+            return PrependLabel(sb.ToString());
         }
     }
 
@@ -200,10 +208,10 @@ namespace JSIL.Ast {
         }
 
         public override string ToString () {
-            return String.Format(
+            return PrependLabel(String.Format(
                 "var {0}",
                 String.Join(", ", (from d in Declarations select String.Concat(d)).ToArray())
-            );
+            ));
         }
     }
 
@@ -241,7 +249,7 @@ namespace JSIL.Ast {
         }
 
         public override string ToString () {
-            return String.Format("~ {0}", _Expression);
+            return PrependLabel(String.Format("~ {0}", _Expression));
         }
     }
 
@@ -382,11 +390,17 @@ namespace JSIL.Ast {
     public class JSBreakExpression : JSExpression {
         public string TargetLabel;
 
+        public override string ToString () {
+            return String.Format("break {0}", TargetLabel);
+        }
     }
 
     public class JSContinueExpression : JSExpression {
         public string TargetLabel;
 
+        public override string ToString () {
+            return String.Format("continue {0}", TargetLabel);
+        }
     }
 
     public class JSSwitchCase : JSStatement {
@@ -417,6 +431,22 @@ namespace JSIL.Ast {
                     if (oldChild.Equals(Values[i]))
                         Values[i] = jse;
             }
+        }
+
+        public override string ToString () {
+            if (Values != null)
+                return String.Format(
+                    "{0} {{\r\n{1}\r\n}}",
+                    String.Join(
+                        Environment.NewLine, (
+                            from v in Values select String.Format("case {0}:", v)
+                        ).ToArray()
+                    ), Util.Indent(Body)
+                );
+            else
+                return String.Format(
+                    "default: {{\r\n{0}\r\n}}", Util.Indent(Body)
+                );
         }
     }
 
@@ -459,6 +489,15 @@ namespace JSIL.Ast {
                         Cases[i] = cse;
                 }
             }
+        }
+
+        public override string ToString () {
+            return String.Format(
+                "switch ({0}) {{\r\n{1}\r\n}}",
+                Condition, Util.Indent(
+                    String.Join(Environment.NewLine, (from c in Cases select c.ToString()).ToArray())
+                )
+            );
         }
     }
 
@@ -1363,6 +1402,18 @@ namespace JSIL.Ast {
 
             base.ReplaceChild(oldChild, newChild);
         }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            var field = Member as FieldInfo;
+            if (field != null)
+                return field.ReturnType;
+
+            var property = Member as PropertyInfo;
+            if (property != null)
+                return property.ReturnType;
+
+            return base.GetExpectedType(typeSystem);
+        }
     }
 
     public abstract class JSLiteral : JSExpression {
@@ -2035,10 +2086,7 @@ namespace JSIL.Ast {
         }
 
         public override int GetHashCode () {
-            if (Type != null)
-                return Identifier.GetHashCode() ^ Type.GetHashCode();
-            else
-                return Identifier.GetHashCode();
+            return Identifier.GetHashCode();
         }
 
         public override string ToString () {

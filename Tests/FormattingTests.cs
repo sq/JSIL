@@ -53,6 +53,7 @@ namespace JSIL.Tests {
             try {
                 Assert.IsFalse(generatedJs.Contains(".TryGetValue"));
                 Assert.IsTrue(generatedJs.Contains("switch (text)"));
+                Assert.IsTrue(generatedJs.Contains("case \"howdy\""));
             } catch {
                 Console.WriteLine(generatedJs);
 
