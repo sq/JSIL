@@ -236,8 +236,10 @@ namespace JSIL {
             )
                 return new JSUntranslatableExpression(node);
 
+            var finalType = node.ExpectedType ?? node.InferredType;
+
             return new JSBinaryOperatorExpression(
-                op, lhs, rhs, node.ExpectedType ?? node.InferredType
+                op, lhs, rhs, finalType
             );
         }
 

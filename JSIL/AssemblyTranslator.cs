@@ -1160,6 +1160,10 @@ namespace JSIL {
                 } while (eliminated);
             }
 
+            new EmulateInt64(
+                si.TypeSystem
+            ).Visit(function);
+
             new EmulateStructAssignment(
                 si.TypeSystem,
                 FunctionCache,

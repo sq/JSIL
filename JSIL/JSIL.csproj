@@ -79,6 +79,7 @@
     <Compile Include="Progress.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SpecialIdentifiers.cs" />
+    <Compile Include="Transforms\EmulateInt64.cs" />
     <Compile Include="Transforms\ReplaceMethodCalls.cs" />
     <Compile Include="Transforms\IntroduceEnumCasts.cs" />
     <Compile Include="Transforms\SimplifyLoops.cs" />
@@ -164,6 +165,9 @@
   <ItemGroup>
     <Content Include="..\Libraries\JSIL.XNACore.js">
       <Link>JS Libraries\JSIL.XNACore.js</Link>
+    </Content>
+    <Content Include="..\Libraries\long.js">
+      <Link>JS Libraries\long.js</Link>
     </Content>
     <Content Include="jsil.ico" />
   </ItemGroup>

@@ -236,6 +236,7 @@
     <None Include="TestCases\StructEquals.cs" />
     <None Include="SimpleTestCases\ClassEquals.cs" />
     <None Include="SimpleTestCases\CollectionAndObjectInitializers.cs" />
+    <None Include="SimpleTestCases\Int64.cs" />
     <None Include="FailingTestCases\HideBaseMethod.cs" />
     <None Include="SimpleTestCases\GetUnderlyingType.cs" />
     <None Include="SpecialTestCases\ProxiedMethodInheritance.cs" />

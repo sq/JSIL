@@ -87,7 +87,7 @@ namespace JSIL.Tests {
 
         public static readonly string TestSourceFolder;
         public static readonly string JSShellPath;
-        public static readonly string CoreJSPath, BootstrapJSPath;
+        public static readonly string CoreJSPath, BootstrapJSPath, LongJSPath;
 
         public readonly TypeInfoProvider TypeInfo;
         public readonly string[] StubbedAssemblies;
@@ -102,6 +102,7 @@ namespace JSIL.Tests {
             TestSourceFolder = Path.GetFullPath(Path.Combine(assemblyPath, @"..\"));
             JSShellPath = Path.GetFullPath(Path.Combine(assemblyPath, @"..\..\Upstream\SpiderMonkey\js.exe"));
             CoreJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.Core.js"));
+            LongJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\long.js"));
             BootstrapJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.Bootstrap.js"));
         }
 
@@ -194,7 +195,7 @@ namespace JSIL.Tests {
             try {
                 // throw new Exception();
 
-                var psi = new ProcessStartInfo(JSShellPath, String.Format("-j -m -n -f \"{0}\" -f \"{1}\" -f \"{2}\"", CoreJSPath, BootstrapJSPath, tempFilename)) {
+                var psi = new ProcessStartInfo(JSShellPath, String.Format("-j -m -n -f \"{0}\" -f \"{1}\" -f \"{2}\" -f \"{3}\"", CoreJSPath, BootstrapJSPath, LongJSPath, tempFilename)) {
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,
