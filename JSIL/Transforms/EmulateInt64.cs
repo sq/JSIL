@@ -4,7 +4,7 @@ using Mono.Cecil;
 
 namespace JSIL.Transforms
 {
-    public class EmulateInt64: JSAstVisitor
+    public class EmulateInt64 : JSAstVisitor
     {
         public readonly TypeSystem TypeSystem;
 
@@ -19,7 +19,8 @@ namespace JSIL.Transforms
             {
                 JSExpression expression;
 
-                if (Math.Abs(literal.Value) >= int.MaxValue / 2)
+                if (literal.Value >= int.MaxValue / 2 ||
+                    literal.Value <= int.MinValue / 2)
                 {
                     // TODO: use constructor instead of fromString
 
@@ -44,6 +45,19 @@ namespace JSIL.Transforms
         {
             var leftType = boe.Left.GetExpectedType(TypeSystem);
             var rightType = boe.Right.GetExpectedType(TypeSystem);
+
+            if (boe.GetExpectedType(TypeSystem) == TypeSystem.Int64 &&
+                leftType != TypeSystem.Int64 && rightType != TypeSystem.Int64)
+            {
+                var replacement = JSInvocationExpression
+                    .InvokeStatic(
+                        new JSFakeMethod("goog.math.Long.fromNumber", TypeSystem.Int64, TypeSystem.Double),
+                        new[] { boe });
+
+                ParentNode.ReplaceChild(boe, replacement);
+                VisitChildren(boe);
+                return;
+            }
 
             if ((leftType == TypeSystem.Int64 || rightType == TypeSystem.Int64)
                 && leftType.IsPrimitive && rightType.IsPrimitive)
@@ -78,11 +92,23 @@ namespace JSIL.Transforms
                 return expression;
             }
 
-            if (type == TypeSystem.Int16 || type == TypeSystem.Int32)
+            if (type == TypeSystem.Int16 ||
+                type == TypeSystem.Int32 ||
+                type == TypeSystem.UInt16 ||
+                type == TypeSystem.UInt32 ||
+                type == TypeSystem.Char)
             {
                 return JSInvocationExpression
                     .InvokeStatic(
                         new JSFakeMethod("goog.math.Long.fromInt", TypeSystem.Int64, type),
+                        new[] { expression });
+            }
+
+            if (type == TypeSystem.UInt64 || type == TypeSystem.Double || type == TypeSystem.Single)
+            {
+                return JSInvocationExpression
+                    .InvokeStatic(
+                        new JSFakeMethod("goog.math.Long.fromNumber", TypeSystem.Int64, type),
                         new[] { expression });
             }
 
