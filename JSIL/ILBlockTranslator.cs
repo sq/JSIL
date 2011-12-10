@@ -1918,15 +1918,13 @@ namespace JSIL {
                             (thisArgVar.IsThis || function.AllVariables.ContainsKey(thisArgVar.Name))
                         ) {
                             return new JSLambda(function, thisArgVar, true);
-                        } else {
-                            return new JSLambda(
-                                function, thisArg, !(
-                                    thisArg.IsNull || thisArg is JSNullLiteral
-                                )
-                            );
                         }
-                    } else if (methodMember.Method.IsIgnored) {
-                        throw new InvalidOperationException("Ignored method not emitted inline");
+
+                        return new JSLambda(
+                            function, thisArg, !(
+                                thisArg.IsNull || thisArg is JSNullLiteral
+                            )
+                        );
                     }
                 }
             }
