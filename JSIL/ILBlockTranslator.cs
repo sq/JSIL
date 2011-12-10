@@ -382,29 +382,6 @@ namespace JSIL {
             return generate();
         }
 
-        protected JSExpression Translate_EqualityComparison (ILExpression node, bool checkEqual) {
-            if (
-                (node.Arguments[0].ExpectedType.FullName == "System.Boolean") &&
-                (node.Arguments[1].ExpectedType.FullName == "System.Boolean") &&
-                (node.Arguments[1].Code.ToString().Contains("Ldc_"))
-            ) {
-                // Comparison against boolean constant
-                bool comparand = Convert.ToInt64(node.Arguments[1].Operand) != 0;
-
-                // TODO: This produces '!(x > y)' when 'x <= y' would be preferable.
-                //  This should be easy to fix once javascript output is done via AST construction.
-                if (comparand != checkEqual)
-                    return new JSUnaryOperatorExpression(
-                        JSOperator.LogicalNot, TranslateNode(node.Arguments[0])
-                    );
-                else
-                    return TranslateNode(node.Arguments[0]);
-
-            } else {
-                return Translate_BinaryOp(node, checkEqual ? JSOperator.Equal : JSOperator.NotEqual);
-            }
-        }
-
         public static TypeDefinition GetTypeDefinition (TypeReference typeRef, bool resolveTypedArrays = true) {
             if (typeRef == null)
                 return null;
@@ -1021,12 +998,23 @@ namespace JSIL {
             return JSChangeTypeExpression.New(inner, TypeSystem, innerType.GenericArguments.First());
         }
 
-        protected JSExpression Translate_Clt (ILExpression node) {
-            return Translate_BinaryOp(node, JSOperator.LessThan);
-        }
-
-        protected JSExpression Translate_Cgt (ILExpression node) {
+        protected JSExpression Translate_ComparisonOperator (ILExpression node, JSBinaryOperator op) {
             if (
+                (node.Arguments[0].ExpectedType.FullName == "System.Boolean") &&
+                (node.Arguments[1].ExpectedType.FullName == "System.Boolean") &&
+                (node.Arguments[1].Code.ToString().Contains("Ldc_"))
+            ) {
+                // Comparison against boolean constant
+                bool comparand = Convert.ToInt64(node.Arguments[1].Operand) != 0;
+                bool checkEquality = (op == JSOperator.Equal);
+
+                if (comparand != checkEquality)
+                    return new JSUnaryOperatorExpression(
+                        JSOperator.LogicalNot, TranslateNode(node.Arguments[0])
+                    );
+                else
+                    return TranslateNode(node.Arguments[0]);
+            } else if (
                 (!node.Arguments[0].ExpectedType.IsValueType) &&
                 (!node.Arguments[1].ExpectedType.IsValueType) &&
                 (node.Arguments[0].ExpectedType == node.Arguments[1].ExpectedType) &&
@@ -1035,35 +1023,63 @@ namespace JSIL {
                 // The C# expression 'x is y' translates into roughly '(x is y) > null' in IL, 
                 //  because there's no IL opcode for != and the IL isinst opcode returns object, not bool
                 var value = TranslateNode(node.Arguments[0].Arguments[0]);
+                var nullLiteral = TranslateNode(node.Arguments[1]) as JSNullLiteral;
                 var targetType = (TypeReference)node.Arguments[0].Operand;
 
                 var targetInfo = TypeInfo.Get(targetType);
+                JSExpression checkTypeResult;
 
                 if ((targetInfo != null) && targetInfo.IsIgnored)
-                    return JSLiteral.New(false);
+                    checkTypeResult = JSLiteral.New(false);
                 else
-                    return JSIL.CheckType(
+                    checkTypeResult = JSIL.CheckType(
                         value, targetType
                     );
-            } else {
-                return Translate_BinaryOp(node, JSOperator.GreaterThan);
+
+                if (nullLiteral != null) {
+                    if (
+                        (op == JSOperator.Equal) ||
+                        (op == JSOperator.LessThanOrEqual) ||
+                        (op == JSOperator.LessThan)
+                    ) {
+                        return new JSUnaryOperatorExpression(
+                            JSOperator.LogicalNot, checkTypeResult, TypeSystem.Boolean
+                        );
+                    } else if (
+                        (op == JSOperator.GreaterThan)
+                    ) {
+                        return checkTypeResult;
+                    } else {
+                        return new JSUntranslatableExpression(node);
+                    }
+                }
             }
+
+            return Translate_BinaryOp(node, op);
+        }
+
+        protected JSExpression Translate_Clt (ILExpression node) {
+            return Translate_ComparisonOperator(node, JSOperator.LessThan);
+        }
+
+        protected JSExpression Translate_Cgt (ILExpression node) {
+            return Translate_ComparisonOperator(node, JSOperator.GreaterThan);
         }
 
         protected JSExpression Translate_Ceq (ILExpression node) {
-            return Translate_EqualityComparison(node, true);
+            return Translate_ComparisonOperator(node, JSOperator.Equal);
         }
 
         protected JSExpression Translate_Cne (ILExpression node) {
-            return Translate_EqualityComparison(node, false);
+            return Translate_ComparisonOperator(node, JSOperator.NotEqual);
         }
 
         protected JSExpression Translate_Cle (ILExpression node) {
-            return Translate_BinaryOp(node, JSOperator.LessThanOrEqual);
+            return Translate_ComparisonOperator(node, JSOperator.LessThanOrEqual);
         }
 
         protected JSExpression Translate_Cge (ILExpression node) {
-            return Translate_BinaryOp(node, JSOperator.GreaterThanOrEqual);
+            return Translate_ComparisonOperator(node, JSOperator.GreaterThanOrEqual);
         }
 
         protected JSBinaryOperatorExpression Translate_CompoundAssignment (ILExpression node) {
