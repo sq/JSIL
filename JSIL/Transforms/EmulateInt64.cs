@@ -42,20 +42,24 @@ namespace JSIL.Transforms
 
         public void VisitNode(JSBinaryOperatorExpression boe)
         {
-            // TODO: shouldn't really depend on the expected type of the expression.. right?
-            if (boe.GetExpectedType(TypeSystem) == TypeSystem.Int64)
+            var leftType = boe.Left.GetExpectedType(TypeSystem);
+            var rightType = boe.Right.GetExpectedType(TypeSystem);
+
+            if ((leftType == TypeSystem.Int64 || rightType == TypeSystem.Int64)
+                && leftType.IsPrimitive && rightType.IsPrimitive)
             {
                 var verb = GetVerb(boe.Operator);
                 if (verb != null)
                 {
-                    var left = GetLeft(boe.Left);
+                    var left = GetExpression(boe.Left);
+                    var right = GetExpression(boe.Right);
 
                     var invoke = JSInvocationExpression
                         .InvokeMethod(
                             TypeSystem.Int64,
                             new JSFakeMethod(verb, TypeSystem.Int64, TypeSystem.Int64, TypeSystem.Int64),
-                            left, new[] { boe.Right });
-                    
+                            left, new[] { right });
+
                     ParentNode.ReplaceChild(boe, invoke);
                     VisitReplacement(invoke);
                     return;
@@ -65,7 +69,7 @@ namespace JSIL.Transforms
             VisitChildren(boe);
         }
 
-        private JSExpression GetLeft(JSExpression expression)
+        private JSExpression GetExpression(JSExpression expression)
         {
             var type = expression.GetExpectedType(TypeSystem);
 
@@ -74,12 +78,12 @@ namespace JSIL.Transforms
                 return expression;
             }
 
-            if (type == TypeSystem.Int16 || type == TypeSystem.Int32 )
+            if (type == TypeSystem.Int16 || type == TypeSystem.Int32)
             {
                 return JSInvocationExpression
                     .InvokeStatic(
                         new JSFakeMethod("goog.math.Long.fromInt", TypeSystem.Int64, type),
-                        new [] { expression });
+                        new[] { expression });
             }
 
             throw new NotImplementedException();

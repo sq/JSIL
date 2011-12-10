@@ -22,6 +22,11 @@ public static class Program
         int z = 2;
         Console.WriteLine(((long)z) * x);
 
+        // check JS to see if this uses long operations or not
+        int a = 5;
+        int b = 6;
+        long w = a - b;
+        Console.WriteLine(w);
 
         //object box = x;
         //Console.WriteLine(x * (long)box);
