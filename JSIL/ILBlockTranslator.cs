@@ -1878,6 +1878,8 @@ namespace JSIL {
                                 thisArg.GetExpectedType(TypeSystem),
                                 methodDef.DeclaringType
                             )
+                        ) || (
+                            methodMember.Method.IsIgnored
                         );
 
                     if (emitInline) {
