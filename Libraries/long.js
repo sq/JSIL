@@ -23,8 +23,6 @@ goog = { math: {} };
 
 //goog.provide('goog.math.Long');
 
-
-
 /**
 * Constructs a 64-bit two's-complement integer, given its low and high 32-bit
 * values as *signed* integers.  See the from* functions below for more
@@ -80,6 +78,7 @@ goog.math.Long.IntCache_ = {};
 * @param {number} value The 32-bit integer in question.
 * @return {!goog.math.Long} The corresponding Long value.
 */
+goog_math_Long_fromInt =
 goog.math.Long.fromInt = function (value) {
     if (-128 <= value && value < 128) {
         var cachedObj = goog.math.Long.IntCache_[value];

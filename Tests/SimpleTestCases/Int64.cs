@@ -19,7 +19,11 @@ public static class Program
         Console.WriteLine(y << 3);
         Console.WriteLine(2 * x + 3 * y / 7);
 
-        //object z = x;
-        //Console.WriteLine(x * (long)z);
+        int z = 2;
+        Console.WriteLine(((long)z) * x);
+
+
+        //object box = x;
+        //Console.WriteLine(x * (long)box);
     }
 }
