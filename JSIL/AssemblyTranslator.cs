@@ -1183,7 +1183,7 @@ namespace JSIL {
 
             if (Configuration.Optimizer.SimplifyLoops.GetValueOrDefault(true))
                 new SimplifyLoops(
-                    si.TypeSystem
+                    si.TypeSystem, false
                 ).Visit(function);
 
             // Temporary elimination makes it possible to simplify more operators, so do it later
@@ -1200,9 +1200,17 @@ namespace JSIL {
                 si.TypeSystem
             ).Visit(function);
 
-            new DeoptimizeSwitchStatements(
+            var dss = new DeoptimizeSwitchStatements(
                 si.TypeSystem
-            ).Visit(function);
+            );
+            dss.Visit(function);
+
+            new CollapseNulls().Visit(function);
+
+            if (Configuration.Optimizer.SimplifyLoops.GetValueOrDefault(true))
+                new SimplifyLoops(
+                    si.TypeSystem, true
+                ).Visit(function);
 
             temporaryEliminationPass();
         }

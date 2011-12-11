@@ -11,9 +11,11 @@ using Mono.Cecil;
 namespace JSIL.Transforms {
     public class SimplifyLoops : JSAstVisitor {
         public readonly TypeSystem TypeSystem;
+        public readonly bool PostSwitchTransform;
 
-        public SimplifyLoops (TypeSystem typeSystem) {
+        public SimplifyLoops (TypeSystem typeSystem, bool postSwitchTransform) {
             TypeSystem = typeSystem;
+            PostSwitchTransform = postSwitchTransform;
         }
 
         public void VisitNode (JSWhileLoop whileLoop) {
@@ -118,6 +120,13 @@ namespace JSIL.Transforms {
             } else if (!whileLoop.Condition.SelfAndChildrenRecursive.Any(
                     (n) => (initVariable ?? lastVariable).Equals(n)
             )) {
+                cantBeFor = true;
+            } else if (
+                !PostSwitchTransform && (
+                    (lastStatement is JSSwitchStatement) ||
+                    (lastStatement is JSLabelGroupStatement)
+                )
+            ) {
                 cantBeFor = true;
             }
 

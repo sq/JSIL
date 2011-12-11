@@ -21,14 +21,6 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        public void BigStringSwitch () {
-            using (var test = new ComparisonTest(@"SpecialTestCases\BigStringSwitch.cs")) {
-                test.Run();
-                test.Run("howdy", "hello", "world", "what", "why", "who", "where", "when");
-            }
-        }
-
-        [Test]
         public void CastingFromNull() {
             using (var test = new ComparisonTest(@"TestCases\CastingFromNull.cs"))
                 test.Run();
@@ -228,9 +220,20 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        public void Switch () {
+        public void SwitchStatements () {
             using (var test = new ComparisonTest(@"TestCases\Switch.cs"))
                 test.Run();
+
+            using (var test = new ComparisonTest(@"TestCases\ComplexSwitch.cs"))
+                test.Run();
+
+            using (var test = new ComparisonTest(@"TestCases\CharSwitch.cs"))
+                test.Run();
+
+            using (var test = new ComparisonTest(@"SpecialTestCases\BigStringSwitch.cs")) {
+                test.Run();
+                test.Run("howdy", "hello", "world", "what", "why", "who", "where", "when");
+            }
         }
 
         [Test]

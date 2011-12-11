@@ -263,6 +263,7 @@
     <None Include="SimpleTestCases\IsOperator.cs" />
     <None Include="TestCases\RefParameterInitializedInConditional.cs" />
     <None Include="SpecialTestCases\BigStringSwitch.cs" />
+    <None Include="TestCases\ComplexSwitch.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

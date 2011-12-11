@@ -105,7 +105,7 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSGotoExpression : JSNullExpression {
+    public class JSGotoExpression : JSExpression {
         public readonly string TargetLabel;
 
         public JSGotoExpression (string targetLabel) {
@@ -174,22 +174,74 @@ namespace JSIL.Ast {
         }
 
         public override string ToString () {
+            return ToString(true);
+        }
+
+        protected string ToString (bool prependLabel) {
             var sb = new StringBuilder();
 
             foreach (var stmt in Statements)
                 sb.AppendLine(String.Concat(stmt));
 
-            return PrependLabel(sb.ToString());
+            if (prependLabel)
+                return PrependLabel(sb.ToString());
+            else
+                return sb.ToString();
         }
     }
 
-    public class JSLabelGroupStatement : JSBlockStatement {
+    public class JSLabelGroupStatement : JSStatement {
         public readonly int GroupIndex;
+        public readonly OrderedDictionary<string, JSStatement> Labels = new OrderedDictionary<string, JSStatement>();
 
-        public JSLabelGroupStatement (int index, params JSBlockStatement[] labelledBlocks) {
+        public JSLabelGroupStatement (int index, params JSStatement[] labels) {
             GroupIndex = index;
 
-            Statements.AddRange(labelledBlocks);
+            foreach (var lb in labels)
+                Labels.Enqueue(lb.Label, lb);
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                return (from l in Labels select l.Value).ToArray();
+            }
+        }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            if (oldChild == null)
+                throw new ArgumentNullException();
+            var stmt = newChild as JSStatement;
+            if (stmt == null)
+                return;
+
+            foreach (var kvp in Labels.ToArray()) {
+                if (kvp.Value == oldChild) {
+                    if (stmt.Label == kvp.Key)
+                        Labels.Replace(kvp.Key, stmt);
+                    else {
+                        Labels.Remove(kvp.Key);
+
+                        if (!stmt.IsNull)
+                            Add(stmt);
+                    }
+                }
+            }
+        }
+
+        public override string ToString () {
+            var sb = new StringBuilder();
+
+            foreach (var kvp in Labels)
+                sb.AppendLine(String.Concat(kvp.Value));
+
+            return PrependLabel(sb.ToString());
+        }
+
+        public void Add (JSStatement statement) {
+            if (statement.Label == null)
+                throw new InvalidOperationException("Cannot add an unlabeled statement to a label group");
+
+            Labels.Enqueue(statement.Label, statement);
         }
     }
 
@@ -639,10 +691,10 @@ namespace JSIL.Ast {
         }
 
         public override string ToString () {
-            return String.Format(
+            return PrependLabel(String.Format(
                 "while ({0}) {{\r\n{1}\r\n}}",
-                _Condition, Util.Indent(base.ToString())
-            );
+                _Condition, Util.Indent(base.ToString(false))
+            ));
         }
     }
 
@@ -687,10 +739,10 @@ namespace JSIL.Ast {
         }
 
         public override string ToString () {
-            return String.Format(
+            return PrependLabel(String.Format(
                 "do {{\r\n{1}\r\n}} while ({0})",
-                _Condition, Util.Indent(base.ToString())
-            );
+                _Condition, Util.Indent(base.ToString(false))
+            ));
         }
     }
 
@@ -763,11 +815,11 @@ namespace JSIL.Ast {
         }
 
         public override string ToString () {
-            return String.Format(
+            return PrependLabel(String.Format(
                 "for ({0}; {1}; {2}) {{\r\n{3}\r\n}}",
                 _Initializer, _Condition, _Increment,
-                Util.Indent(base.ToString())
-            );
+                Util.Indent(base.ToString(false))
+            ));
         }
     }
 
@@ -1362,17 +1414,12 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSIgnoredMemberReference : JSNullExpression {
+    public class JSIgnoredMemberReference : JSExpression {
         public readonly bool ThrowError;
         public readonly IMemberInfo Member;
         public readonly JSExpression[] Arguments;
 
         public JSIgnoredMemberReference (bool throwError, IMemberInfo member, params JSExpression[] arguments) {
-            /*
-            if ((member == null) && ((arguments == null) || (arguments.Length == 0)))
-                throw new ArgumentNullException();
-             */
-
             ThrowError = throwError;
             Member = member;
             Arguments = arguments;
@@ -1387,8 +1434,7 @@ namespace JSIL.Ast {
 
         public override IEnumerable<JSNode> Children {
             get {
-                foreach (var arg in Arguments)
-                    yield return arg;
+                yield break;
             }
         }
 
@@ -1410,11 +1456,6 @@ namespace JSIL.Ast {
         }
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
-            for (int i = 0; i < Arguments.Length; i++)
-                if (Arguments[i] == oldChild)
-                    Arguments[i] = (JSExpression)newChild;
-
-            base.ReplaceChild(oldChild, newChild);
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
@@ -1426,7 +1467,11 @@ namespace JSIL.Ast {
             if (property != null)
                 return property.ReturnType;
 
-            return base.GetExpectedType(typeSystem);
+            var method = Member as MethodInfo;
+            if (method != null)
+                return JSExpression.ConstructDelegateType(method.Member, typeSystem);
+
+            return typeSystem.Void;
         }
     }
 

@@ -666,19 +666,22 @@ namespace JSIL {
 
         protected JSBlockStatement TranslateBlock (IEnumerable<ILNode> children) {
             JSBlockStatement result, currentBlock;
+            JSLabelGroupStatement labelGroup = null;
 
             // TODO: Fix this heuristic by building a flow graph at the beginning of method translation
             if (children.Any(
                 n => ContainsLabels(n)
             )) {
                 var index = LabelledBlockCount++;
-                result = new JSLabelGroupStatement(index);
+                labelGroup = new JSLabelGroupStatement(index);
+                result = new JSBlockStatement(labelGroup);
 
                 currentBlock = new JSBlockStatement();
                 currentBlock.Label = String.Format("__entry{0}__", index);
-                result.Statements.Add(currentBlock);
+                labelGroup.Add(currentBlock);
             } else {
                 currentBlock = result = new JSBlockStatement();
+                labelGroup = null;
             }
 
             foreach (var node in children) {
@@ -690,7 +693,10 @@ namespace JSIL {
                     currentBlock = new JSBlockStatement {
                         Label = label.Name
                     };
-                    result.Statements.Add(currentBlock);
+                    if (labelGroup != null)
+                        labelGroup.Add(currentBlock);
+                    else
+                        result.Statements.Add(currentBlock);
 
                     continue;
                 } else if (isGoto) {

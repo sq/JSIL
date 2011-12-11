@@ -51,6 +51,7 @@ namespace JSIL.Transforms {
             new VariableComparer()
         );
 
+        public int SwitchStatementsDeoptimized = 0;
         public readonly TypeSystem TypeSystem;
 
         public DeoptimizeSwitchStatements (TypeSystem typeSystem) {
@@ -171,23 +172,36 @@ namespace JSIL.Transforms {
                         if (theGoto != null) {
                             // Climb up the stack to find the scope containing the default block
                             var labelName = indexLookup.Goto.TargetLabel;
-                            var labelScope = Stack.Where(
-                                (n) => n.Children.OfType<JSStatement>().Any(
-                                    (c) => c.Label == labelName
+                            var labelScope = Stack.SkipWhile(
+                                (n) => (
+                                    n == ss
                                 )
-                            ).First();
+                            ).OfType<JSLabelGroupStatement>().First();
                                     
-                            var defaultCaseBody = labelScope.CollectLabelledStatements(labelName);
+                            var defaultCase = labelScope.Labels[labelName];
+                            var defaultCaseBody = defaultCase.Children.OfType<JSStatement>().ToArray();
 
-                            foreach (var node in defaultCaseBody) {
-                                if (node.Label == labelName)
-                                    node.Label = null;
-
-                                ParentNode.ReplaceChild(node, new JSNullStatement());
-                                body.Statements.Add(node);
-                            }
-
+                            body.Statements.AddRange(defaultCaseBody);
                             body.ReplaceChildRecursive(theGoto, new JSNullExpression());
+                            body.Statements.Add(new JSExpressionStatement(new JSBreakExpression()));
+                            labelScope.ReplaceChild(defaultCase, new JSNullStatement());
+
+                            var exitGoto = body.AllChildrenRecursive.OfType<JSGotoExpression>().LastOrDefault();
+                            if (exitGoto != null) {
+                                var exitLabel = exitGoto.TargetLabel;
+                                var exitBlock = labelScope.Labels[exitLabel];
+                                labelScope.ReplaceChild(exitBlock, new JSNullStatement());
+                                body.ReplaceChildRecursive(exitGoto, new JSNullExpression());
+
+                                var switchBlock = labelScope.Children.Where(
+                                    (b) => b.Children.Contains(ss)
+                                ).OfType<JSBlockStatement>().FirstOrDefault();
+                                if (switchBlock != null) {
+                                    switchBlock.Statements.AddRange(
+                                        exitBlock.Children.OfType<JSStatement>()
+                                    );
+                                }
+                            }
                         }
                     } else {
                         values = (from v in cse.Values
@@ -204,7 +218,9 @@ namespace JSIL.Transforms {
                 var newSwitch = new JSSwitchStatement(
                     indexLookup.SwitchVariable, switchCases.ToArray()
                 );
-                
+
+                SwitchStatementsDeoptimized += 1;
+
                 ParentNode.ReplaceChild(ss, newSwitch);
 
                 var outVar = indexLookup.OutputVariable;

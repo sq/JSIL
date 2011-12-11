@@ -307,27 +307,6 @@ namespace JSIL.Internal {
             }
         }
 
-        public static JSStatement[] CollectLabelledStatements (this JSNode parent, string label) {
-            var result = new List<JSStatement>();
-            bool collecting = false;
-
-            foreach (var stmt in parent.Children.OfType<JSStatement>()) {
-                var lbl = stmt as JSLabelStatement;
-
-                if ((stmt != null) && (stmt.Label != null)) {
-                    collecting = stmt.Label == label;
-                } else if (lbl != null) {
-                    collecting = lbl.Label == label;
-                    continue;
-                }
-
-                if (collecting)
-                    result.Add(stmt);
-            }
-
-            return result.ToArray();
-        }
-
         public static IList<T> Skip<T> (this IList<T> list, int offset) {
             return new ListSkipAdapter<T>(list, offset);
         }

@@ -330,6 +330,12 @@ namespace JSIL {
             }
         }
 
+        public TValue this [TKey key] { 
+            get { 
+                return Dictionary[key];
+            }
+        }
+
         public void Clear () {
             Dictionary.Clear();
             LinkedList.Clear();
@@ -380,6 +386,15 @@ namespace JSIL {
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator () {
             foreach (var key in LinkedList)
                 yield return new KeyValuePair<TKey, TValue>(key, Dictionary[key]);
+        }
+
+        public bool Replace (TKey key, TValue newValue) {
+            if (ContainsKey(key)) {
+                Dictionary[key] = newValue;
+                return true;
+            }
+
+            return false;
         }
     }
 }

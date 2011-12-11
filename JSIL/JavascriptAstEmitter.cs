@@ -86,7 +86,7 @@ namespace JSIL {
         public void VisitNode (JSLabelGroupStatement labelGroup) {
             var stepLabel = String.Format("__step{0}__", labelGroup.GroupIndex);
             var labelVar = String.Format("__label{0}__", labelGroup.GroupIndex);
-            var firstLabel = labelGroup.Statements.First().Label;
+            var firstLabel = labelGroup.Labels.First().Key;
 
             Output.Keyword("var");
             Output.Space();
@@ -119,9 +119,7 @@ namespace JSIL {
             bool isFirst = true;
             Func<string, bool> emitGoto = (labelName) => {
                 if (labelName != null) {
-                    if (!labelGroup.Statements.Any(
-                        (l) => l.Label == labelName
-                    ))
+                    if (!labelGroup.Labels.ContainsKey(labelName))
                         return false;
 
                     Output.Identifier(labelVar);
@@ -140,9 +138,9 @@ namespace JSIL {
 
             GotoStack.Push(emitGoto);
 
-            foreach (var block in labelGroup.Statements) {
+            foreach (var kvp in labelGroup.Labels) {
                 if (!isFirst) {
-                    emitGoto(block.Label);
+                    emitGoto(kvp.Key);
 
                     Output.Keyword("break");
                     Output.Semicolon();
@@ -152,12 +150,12 @@ namespace JSIL {
 
                 Output.Keyword("case");
                 Output.Space();
-                Output.Value(block.Label);
+                Output.Value(kvp.Key);
                 Output.Token(":");
                 Output.PlainTextFormatter.Indent();
                 Output.NewLine();
 
-                Visit(block);
+                Visit(kvp.Value);
 
                 isFirst = false;
             }
