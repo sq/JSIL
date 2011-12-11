@@ -142,6 +142,8 @@ namespace JSIL.Tests {
 
             RunComparisonTests(
                 new[] { 
+                    @"TestCases\RefParameters.cs",
+                    @"TestCases\RefParameterInitializedInConditional.cs",
                     @"TestCases\RefStruct.cs",
                     @"TestCases\StructPropertyThis.cs",
                     @"TestCases\RefClass.cs"

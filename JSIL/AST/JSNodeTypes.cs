@@ -159,6 +159,20 @@ namespace JSIL.Ast {
             }
         }
 
+        public bool InsertNearChildRecursive (JSStatement relativeTo, JSStatement newChild, int offset = 0) {
+            for (int i = 0, c = Statements.Count; i < c; i++) {
+                if (
+                    (Statements[i] == relativeTo) || 
+                    Statements[i].AllChildrenRecursive.Any((n) => n == relativeTo)
+                ) {
+                    Statements.Insert(i + offset, newChild);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public override string ToString () {
             var sb = new StringBuilder();
 
