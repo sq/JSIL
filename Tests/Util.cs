@@ -111,7 +111,13 @@ namespace JSIL.Tests {
             var sourceCode = File.ReadAllText(Filename);
             Assembly = CSharpUtil.Compile(sourceCode, out TemporaryFiles);
 
-            TestMethod = Assembly.GetType("Program").GetMethod("Main");
+            var program = Assembly.GetType("Program");
+            if (program == null)
+                throw new Exception("Test missing 'Program' main class");
+
+            TestMethod = program.GetMethod("Main");
+            if (TestMethod == null)
+                throw new Exception("Test missing 'Main' method of 'Program' main class");
 
             StubbedAssemblies = stubbedAssemblies;
             TypeInfo = typeInfo;

@@ -81,7 +81,7 @@
     <None Include="SimpleTestCases\DynamicPropertyGetAndCall.cs" />
     <None Include="SimpleTestCases\DynamicPropertySet.cs" />
     <None Include="SimpleTestCases\Fields.cs" />
-    <None Include="SimpleTestCases\RefParameters.cs" />
+    <None Include="TestCases\RefParameters.cs" />
     <None Include="SimpleTestCases\OutParameters.cs" />
     <None Include="SimpleTestCases\AbstractMethods.cs" />
     <None Include="SimpleTestCases\InheritedMethods.cs" />
@@ -261,6 +261,7 @@
     <None Include="SpecialTestCases\ReplaceExternalClass.cs" />
     <None Include="SpecialTestCases\ReplaceNonExternalClass.cs" />
     <None Include="SimpleTestCases\IsOperator.cs" />
+    <None Include="TestCases\RefParameterInitializedInConditional.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
