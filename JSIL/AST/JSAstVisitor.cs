@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using JSIL.Internal;
 using Microsoft.CSharp.RuntimeBinder;
+using MethodInfo = System.Reflection.MethodInfo;
 
 namespace JSIL.Ast {
     public abstract class JSAstVisitor {
@@ -14,31 +17,40 @@ namespace JSIL.Ast {
         protected JSNode PreviousSibling = null;
         protected JSNode NextSibling = null;
 
+        public delegate void NodeVisitor (JSAstVisitor @this, JSNode node);
+        public delegate void NodeVisitor<TVisitor, TNode> (TVisitor @this, TNode node)
+            where TVisitor : JSAstVisitor
+            where TNode : JSNode;
+
         protected readonly VisitorCache Visitors;
 
         protected JSAstVisitor () {
-            Visitors = new VisitorCache(this);
+            Visitors = VisitorCache.Get(this);
         }
 
         protected class VisitorCache {
-            protected class Adapter<T> where T : JSNode {
-                public readonly Action<T> Method;
+            protected class Adapter<TVisitor, TNode> 
+                where TVisitor : JSAstVisitor
+                where TNode : JSNode {
+                public readonly NodeVisitor<TVisitor, TNode> Method;
 
-                public Adapter (Action<T> method) {
+                public Adapter (NodeVisitor<TVisitor, TNode> method) {
                     Method = method;
                 }
 
-                public void Visit (JSNode node) {
-                    Method((T)node);
+                public void Visit (JSAstVisitor @this, JSNode node) {
+                    Method((TVisitor)@this, (TNode)node);
                 }
             }
 
-            public readonly Dictionary<Type, Action<JSNode>> Methods = new Dictionary<Type, Action<JSNode>>();
-            public readonly Dictionary<Type, Action<JSNode>> Cache = new Dictionary<Type, Action<JSNode>>();
+            protected static ConcurrentCache<Type, VisitorCache> VisitorCaches = new ConcurrentCache<Type, VisitorCache>(); 
+
+            protected readonly Dictionary<Type, NodeVisitor> Methods = new Dictionary<Type, NodeVisitor>();
+            protected readonly ConcurrentCache<Type, NodeVisitor> Cache = new ConcurrentCache<Type, NodeVisitor>();
             public readonly Type VisitorType;
 
-            public VisitorCache (JSAstVisitor target) {
-                VisitorType = target.GetType();
+            protected VisitorCache (Type visitorType) {
+                VisitorType = visitorType;
 
                 foreach (var m in VisitorType.GetMethods()) {
                     if (m.Name != "VisitNode")
@@ -50,51 +62,57 @@ namespace JSIL.Ast {
 
                     var nodeType = parameters[0].ParameterType;
 
-                    Methods.Add(nodeType, MakeVisitorAdapter(m, nodeType, target));
+                    Methods.Add(nodeType, MakeVisitorAdapter(m, visitorType, nodeType));
                 }
             }
 
-            protected static Action<JSNode> MakeVisitorAdapter (MethodInfo method, Type nodeType, JSAstVisitor target) {
-                var tAdapterUnbound = typeof(Adapter<>);
-                var tAdapter = tAdapterUnbound.MakeGenericType(nodeType);
-                var tVisitorMethodUnbound = typeof(Action<>);
-                var tVisitorMethod = tVisitorMethodUnbound.MakeGenericType(nodeType);
-                var tAdapterMethod = typeof(Action<JSNode>);
+            public static VisitorCache Get (JSAstVisitor visitor) {
+                var visitorType = visitor.GetType();
 
-                var visitorMethod = Delegate.CreateDelegate(tVisitorMethod, target, method);
+                return VisitorCaches.GetOrCreate(
+                    visitorType, () => new VisitorCache(visitorType)
+                );
+            }
+
+            protected static NodeVisitor MakeVisitorAdapter (MethodInfo method, Type visitorType, Type nodeType) {
+                var tAdapterUnbound = typeof(Adapter<,>);
+                var tAdapter = tAdapterUnbound.MakeGenericType(visitorType, nodeType);
+                var tVisitorMethodUnbound = typeof(NodeVisitor<,>);
+                var tVisitorMethod = tVisitorMethodUnbound.MakeGenericType(visitorType, nodeType);
+                var tAdapterMethod = typeof(NodeVisitor);
+
+                var visitorMethod = Delegate.CreateDelegate(tVisitorMethod, method, true);
 
                 var adapter = tAdapter.GetConstructor(new[] { 
-                        tVisitorMethod
-                    }).Invoke(new object[] { visitorMethod });
+                    tVisitorMethod
+                }).Invoke(new object[] { visitorMethod });
 
                 var adapterMethod = adapter.GetType().GetMethod("Visit", BindingFlags.Public | BindingFlags.Instance);
                 var result = Delegate.CreateDelegate(tAdapterMethod, adapter, adapterMethod);
 
-                return (Action<JSNode>)result;
+                return (NodeVisitor)result;
             }
 
-            public Action<JSNode> Get (JSNode node) {
+            public NodeVisitor Get (JSNode node) {
                 if (node == null)
                     return null;
 
                 var nodeType = node.GetType();
                 var currentType = nodeType;
-                Action<JSNode> result;
 
-                if (Cache.TryGetValue(nodeType, out result))
-                    return result;
+                return Cache.GetOrCreate(
+                    nodeType, () => {
+                        while (currentType != null) {
+                            NodeVisitor result;
+                            if (Methods.TryGetValue(currentType, out result))
+                                return result;
 
-                while (currentType != null) {
-                    if (Methods.TryGetValue(currentType, out result)) {
-                        Cache[nodeType] = result;
-                        return result;
+                            currentType = currentType.BaseType;
+                        }
+
+                        return null;
                     }
-
-                    currentType = currentType.BaseType;
-                }
-
-                Cache[nodeType] = null;
-                return null;
+                );
             }
         }
 
@@ -109,7 +127,7 @@ namespace JSIL.Ast {
             var visitor = Visitors.Get(node);
 
             if (visitor != null)
-                visitor(node);
+                visitor(this, node);
             else
                 VisitNode(node);
         }
@@ -141,7 +159,7 @@ namespace JSIL.Ast {
                 var visitor = Visitors.Get(node);
 
                 if (visitor != null)
-                    visitor(node);
+                    visitor(this, node);
                 else
                     VisitNode(node);
             } finally {
