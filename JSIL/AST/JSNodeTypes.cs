@@ -474,6 +474,9 @@ namespace JSIL.Ast {
         public readonly JSBlockStatement Body;
 
         public JSSwitchCase (JSExpression[] values, JSBlockStatement body) {
+            if ((values != null) && (values.Length == 0))
+                values = null;
+
             Values = values;
             Body = body;
         }
@@ -490,6 +493,9 @@ namespace JSIL.Ast {
         }
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            if (Values == null)
+                return;
+
             var jse = newChild as JSExpression;
 
             if (jse != null) {

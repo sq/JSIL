@@ -44,6 +44,23 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void SwitchWithMultipleDefaults () {
+            var generatedJs = GetJavascript(
+                @"TestCases\ComplexSwitch.cs",
+                "zero\r\none\r\ntwo or three\r\ntwo or three"
+            );
+            try {
+                Assert.IsFalse(generatedJs.Contains("__ = \"IL_"));
+                Assert.IsFalse(generatedJs.Contains("case 1:"));
+                Assert.IsTrue(generatedJs.Contains("default:"));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
         public void BigStringSwitch () {
             var generatedJs = GetJavascript(
                 @"SpecialTestCases\BigStringSwitch.cs",
