@@ -37,5 +37,11 @@ public static class Program
 
         //object box = x;
         //Console.WriteLine(x * (long)box);
+
+        var n = 634590720000000000L;
+        var m = 864000000000L;
+        Console.WriteLine(n);
+        Console.WriteLine(m);
+        Console.WriteLine(1 + (int)(n / m));
     }
 }

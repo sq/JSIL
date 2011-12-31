@@ -74,6 +74,15 @@ namespace JSIL.Transforms
                             new JSFakeMethod(verb, TypeSystem.Int64, TypeSystem.Int64, TypeSystem.Int64),
                             left, new[] { right });
 
+                    if (boe.GetExpectedType(TypeSystem) == TypeSystem.Int32)
+                    {
+                        invoke = JSInvocationExpression
+                            .InvokeMethod(
+                                TypeSystem.Int64,
+                                new JSFakeMethod("toInt", TypeSystem.Int32),
+                                invoke);
+                    }
+
                     ParentNode.ReplaceChild(boe, invoke);
                     VisitReplacement(invoke);
                     return;
