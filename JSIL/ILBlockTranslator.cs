@@ -1742,7 +1742,30 @@ namespace JSIL {
                 return value;
 
             if (IsNumericOrEnum(currentType) && IsNumericOrEnum(expectedType)) {
-                if (IsIntegral(expectedType)) {
+
+                if (currentType == TypeSystem.Int64) {
+                    if (IsIntegral(expectedType)) {
+                        return JSInvocationExpression
+                            .InvokeMethod(TypeSystem.Int64, new JSFakeMethod("toInt", TypeSystem.Int32), value);
+                    }
+                    else {
+                        return JSInvocationExpression
+                            .InvokeMethod(TypeSystem.Int64, new JSFakeMethod("toNumber", TypeSystem.Int32), value);
+                    }
+                }
+                else if (expectedType == TypeSystem.Int64) {
+                    if (IsIntegral(currentType)) {
+                        return JSInvocationExpression.InvokeStatic(
+                            JSAstBuilder.StringIdentifier("goog").Dot("math").Dot("Long").FakeMethod("fromInt", TypeSystem.Int64).GetExpression(),
+                            new[] { value });
+                    }
+                    else { 
+                        return JSInvocationExpression.InvokeStatic(
+                            JSAstBuilder.StringIdentifier("goog").Dot("math").Dot("Long").FakeMethod("fromNumber", TypeSystem.Int64).GetExpression(),
+                            new[] { value });
+                    }
+                }
+                else if (IsIntegral(expectedType)) {
                     if (IsIntegral(currentType))
                         return value;
                     else

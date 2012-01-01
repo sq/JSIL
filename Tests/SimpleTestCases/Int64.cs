@@ -9,6 +9,9 @@ public class Program
 
     public static void Main(string[] args)
     {
+        var x = 100000000000L;
+        var y = 10000053450L;
+
         // litterals
         Console.WriteLine(0L);
         Console.WriteLine(1000000000000L);
@@ -22,27 +25,27 @@ public class Program
         Console.WriteLine(new Program().TEST_NORMAL_FIELD);
 
         // addition
-        Console.WriteLine(1000000000000L + 100000000000L);
+        Console.WriteLine(1000000000000L + x);
         Console.WriteLine(1L + 0L);
-        Console.WriteLine(1L + 100000000000L);
-        Console.WriteLine(1L + -100000000000L);
+        Console.WriteLine(1L + x);
+        //Console.WriteLine(1L + -x);
         Console.WriteLine(1 + 0L);
-        Console.WriteLine(1 + 100000000000L);
-        Console.WriteLine(1 + -100000000000L);
+        Console.WriteLine(1 + x);
+        //Console.WriteLine(1 + -x);
 
         // subtraction
-        Console.WriteLine(1000000000000L - 100000000000L);
+        Console.WriteLine(1000000000000L - x);
         Console.WriteLine(1L - 0L);
-        Console.WriteLine(1L - 100000000000L);
-        Console.WriteLine(1L - -100000000000L);
+        Console.WriteLine(1L - x);
+        //Console.WriteLine(1L - -x);
         Console.WriteLine(1 - 0L);
-        Console.WriteLine(1 - 100000000000L);
-        Console.WriteLine(1 - -100000000000L);
+        Console.WriteLine(1 - x);
+        //Console.WriteLine(1 - -x);
 
-        var x = 100000000000L;
-        var y = 10000053450L;
+        // conversion
+        Console.WriteLine(((long)Math.Round(40.1d)) * x);
 
-        Console.WriteLine(-x);
+        //Console.WriteLine(-x);
         Console.WriteLine(x);
         Console.WriteLine(y);
         Console.WriteLine(x + y);
@@ -59,12 +62,6 @@ public class Program
         int z = 2;
         Console.WriteLine(((long)z) * x);
 
-        // check JS to see if this uses long operations or not
-        int a = 5;
-        int b = 6;
-        long w = a - b;
-        Console.WriteLine(w);
-
         int days = 100, hours = 20, minutes = 1, seconds = 1, milliseconds = 20;
         int hrssec = (hours * 3600); // break point at (Int32.MaxValue - 596523)
         int minsec = (minutes * 60);
@@ -80,5 +77,6 @@ public class Program
         Console.WriteLine(n);
         Console.WriteLine(m);
         Console.WriteLine(1 + (int)(n / m));
+
     }
 }
