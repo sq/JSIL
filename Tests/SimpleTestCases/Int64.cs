@@ -1,11 +1,48 @@
 ﻿using System;
 
-public static class Program
+public class Program
 {
+    public const long TEST_CONST = 1000L;
+    public readonly long TEST_READONLY_FIELD = 2000L;
+    public static long TEST_STATIC_FIELD = 3000L;
+    public long TEST_NORMAL_FIELD = 4000L;
+
     public static void Main(string[] args)
     {
+        // litterals
+        Console.WriteLine(0L);
+        Console.WriteLine(1000000000000L);
+        Console.WriteLine(long.MaxValue);
+        Console.WriteLine(long.MinValue);
+
+        // fields
+        Console.WriteLine(TEST_CONST);
+        Console.WriteLine(new Program().TEST_READONLY_FIELD);
+        Console.WriteLine(TEST_STATIC_FIELD);
+        Console.WriteLine(new Program().TEST_NORMAL_FIELD);
+
+        // addition
+        Console.WriteLine(1000000000000L + 100000000000L);
+        Console.WriteLine(1L + 0L);
+        Console.WriteLine(1L + 100000000000L);
+        Console.WriteLine(1L + -100000000000L);
+        Console.WriteLine(1 + 0L);
+        Console.WriteLine(1 + 100000000000L);
+        Console.WriteLine(1 + -100000000000L);
+
+        // subtraction
+        Console.WriteLine(1000000000000L - 100000000000L);
+        Console.WriteLine(1L - 0L);
+        Console.WriteLine(1L - 100000000000L);
+        Console.WriteLine(1L - -100000000000L);
+        Console.WriteLine(1 - 0L);
+        Console.WriteLine(1 - 100000000000L);
+        Console.WriteLine(1 - -100000000000L);
+
         var x = 100000000000L;
         var y = 10000053450L;
+
+        Console.WriteLine(-x);
         Console.WriteLine(x);
         Console.WriteLine(y);
         Console.WriteLine(x + y);
