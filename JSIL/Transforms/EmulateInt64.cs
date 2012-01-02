@@ -95,10 +95,10 @@ namespace JSIL.Transforms
 
                 JSIdentifier method;
 
-                //if (expectedType == TypeSystem.Boolean)
-                //    method = new JSFakeMethod(verb, TypeSystem.Boolean, TypeSystem.Int64, TypeSystem.Int64);
-                //else 
-                method = new JSFakeMethod(verb, TypeSystem.Int64, TypeSystem.Int64, TypeSystem.Int64);
+                if (expectedType == TypeSystem.Boolean)
+                    method = new JSFakeMethod(verb, TypeSystem.Boolean, TypeSystem.Int64, TypeSystem.Int64);
+                else 
+                    method = new JSFakeMethod(verb, TypeSystem.Int64, TypeSystem.Int64, TypeSystem.Int64);
 
                 var left = GetExpression(boe.Left);
                 var right = GetExpression(boe.Right);
@@ -147,9 +147,7 @@ namespace JSIL.Transforms
             }
 
             return JSInvocationExpression
-                .InvokeStatic(
-                    conversionMethod.GetExpression(),
-                    new[] { expression });
+                .InvokeStatic(conversionMethod.GetExpression(), new[] { expression });
         }
 
         private bool IsLesserIntegral(TypeReference type)
@@ -175,6 +173,14 @@ namespace JSIL.Transforms
                 case "&": return "and";
                 case "<<": return "shiftLeft";
                 case ">>": return "shiftRight";
+
+                case "===": return "equals";
+                case "!==": return "notEquals";
+                case "<": return "lessThan";
+                case "<=": return "lessThanOrEqual";
+                case ">": return "greaterThan";
+                case ">=": return "greaterThanOrEqual";
+
                 default:
                     return null;
             }
