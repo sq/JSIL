@@ -50,60 +50,76 @@ namespace JSIL.Transforms
             var leftType = boe.Left.GetExpectedType(TypeSystem);
             var rightType = boe.Right.GetExpectedType(TypeSystem);
 
-            TypeReference type;
+            var int64 = TypeSystem.Int64;
 
+            TypeReference expectedType;
             try
             {
                 // GetExpectedType can throw NoExpectedTypeException
                 // Shouldn't it return null or something like a NoType instead?
-                type = boe.GetExpectedType(TypeSystem);
+                expectedType = boe.GetExpectedType(TypeSystem);
             }
             catch (NoExpectedTypeException)
             {
-                type = null;
+                expectedType = null;
             }
 
-            if (type == TypeSystem.Int64 &&
-                leftType != TypeSystem.Int64 && rightType != TypeSystem.Int64)
+            if (boe.Operator.Token == "=" || (leftType != int64 && rightType != int64 && expectedType != int64))
             {
-                var replacement = JSInvocationExpression.InvokeStatic(fromNumber, new[] { boe });
+                // we have nothing to do
 
+                VisitChildren(boe);
+
+                return; // just to make sure
+            }
+            else if (leftType != int64 && rightType != int64)
+            {
+                // expectedType is int64, but not the operands -> convert 
+
+                var replacement = JSInvocationExpression.InvokeStatic(fromNumber, new[] { boe });
                 ParentNode.ReplaceChild(boe, replacement);
                 VisitChildren(boe);
-                return;
             }
-
-            if ((leftType == TypeSystem.Int64 || rightType == TypeSystem.Int64)
-                && leftType.IsPrimitive && rightType.IsPrimitive)
+            else if ((leftType == int64 || rightType == int64) &&
+                     (leftType.IsPrimitive && rightType.IsPrimitive))
             {
                 var verb = GetVerb(boe.Operator);
-                if (verb != null)
+
+                if (verb == null)
                 {
-                    var left = GetExpression(boe.Left);
-                    var right = GetExpression(boe.Right);
+                    throw new NotImplementedException();
 
-                    var invoke = JSInvocationExpression
-                        .InvokeMethod(
-                            TypeSystem.Int64,
-                            new JSFakeMethod(verb, TypeSystem.Int64, TypeSystem.Int64, TypeSystem.Int64),
-                            left, new[] { right });
-
-                    if (type == TypeSystem.Int32)
-                    {
-                        invoke = JSInvocationExpression
-                            .InvokeMethod(
-                                TypeSystem.Int64,
-                                new JSFakeMethod("toInt", TypeSystem.Int32),
-                                invoke);
-                    }
-
-                    ParentNode.ReplaceChild(boe, invoke);
-                    VisitReplacement(invoke);
-                    return;
+                    //VisitChildren(boe);
+                    //return;
                 }
-            }
 
-            VisitChildren(boe);
+                JSIdentifier method;
+
+                //if (expectedType == TypeSystem.Boolean)
+                //    method = new JSFakeMethod(verb, TypeSystem.Boolean, TypeSystem.Int64, TypeSystem.Int64);
+                //else 
+                method = new JSFakeMethod(verb, TypeSystem.Int64, TypeSystem.Int64, TypeSystem.Int64);
+
+                var left = GetExpression(boe.Left);
+                var right = GetExpression(boe.Right);
+
+                var replacement = JSInvocationExpression
+                    .InvokeMethod(TypeSystem.Int64, method, left, new[] { right });
+
+                // TODO: investigate why this is still needed
+                if (IsLesserIntegral(expectedType))
+                {
+                    replacement = JSInvocationExpression
+                        .InvokeMethod(TypeSystem.Int64, new JSFakeMethod("toInt", expectedType), replacement);
+                }
+
+                ParentNode.ReplaceChild(boe, replacement);
+                VisitReplacement(replacement);
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
         }
 
         private JSExpression GetExpression(JSExpression expression)
@@ -115,27 +131,35 @@ namespace JSIL.Transforms
                 return expression;
             }
 
-            if (type == TypeSystem.Int16 ||
+            JSAstBuilder conversionMethod = null;
+
+            if (IsLesserIntegral(type))
+            {
+                conversionMethod = googMathLong.FakeMethod("fromInt", TypeSystem.Int64, type);
+            }
+            else if (type == TypeSystem.UInt64 || type == TypeSystem.Double || type == TypeSystem.Single)
+            {
+                conversionMethod = googMathLong.FakeMethod("fromNumber", TypeSystem.Int64, type);
+            }
+            else
+            {
+                // TODO: missing case?
+            }
+
+            return JSInvocationExpression
+                .InvokeStatic(
+                    conversionMethod.GetExpression(),
+                    new[] { expression });
+        }
+
+        private bool IsLesserIntegral(TypeReference type)
+        {
+            return
+                type == TypeSystem.Int16 ||
                 type == TypeSystem.Int32 ||
                 type == TypeSystem.UInt16 ||
                 type == TypeSystem.UInt32 ||
-                type == TypeSystem.Char)
-            {
-                return JSInvocationExpression
-                    .InvokeStatic(
-                        googMathLong.FakeMethod("fromInt", TypeSystem.Int64, type).GetExpression(),
-                        new[] { expression });
-            }
-
-            if (type == TypeSystem.UInt64 || type == TypeSystem.Double || type == TypeSystem.Single)
-            {
-                return JSInvocationExpression
-                    .InvokeStatic(
-                        googMathLong.FakeMethod("fromNumber", TypeSystem.Int64, type).GetExpression(),
-                        new[] { expression });
-            }
-
-            throw new NotImplementedException();
+                type == TypeSystem.Char;
         }
 
         private string GetVerb(JSBinaryOperator op)

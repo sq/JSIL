@@ -45,6 +45,16 @@ public class Program
         // conversion
         Console.WriteLine(((long)Math.Round(40.1d)) * x);
 
+        // comparison
+        //Console.WriteLine(x == y);
+        //Console.WriteLine(x == x);
+        //Console.WriteLine(x != y);
+        //Console.WriteLine(x != x);
+        //Console.WriteLine(x < y);
+        //Console.WriteLine(x <= x);
+        //Console.WriteLine(x > y);
+        //Console.WriteLine(x >= x);
+
         //Console.WriteLine(-x);
         Console.WriteLine(x);
         Console.WriteLine(y);
