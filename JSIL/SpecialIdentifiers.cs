@@ -31,7 +31,7 @@ namespace JSIL {
             prototype = Object("prototype");
             eval = new JSFakeMethod("eval", TypeSystem.Object, TypeSystem.String);
             toString = new JSFakeMethod("toString", TypeSystem.String);
-            floor = new JSDotExpression(Object("Math"), new JSFakeMethod("floor", TypeSystem.Int64));
+            floor = new JSDotExpression(Object("Math"), new JSFakeMethod("floor", TypeSystem.Int32));
             fromCharCode = new JSDotExpression(Object("String"), new JSFakeMethod("fromCharCode", TypeSystem.Char, TypeSystem.Int32));
             charCodeAt = new JSFakeMethod("charCodeAt", TypeSystem.Int32, TypeSystem.Char);
         }

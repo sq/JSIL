@@ -78,5 +78,12 @@ public class Program
         Console.WriteLine(m);
         Console.WriteLine(1 + (int)(n / m));
 
+        Console.WriteLine(div(123, 333));
     }
+
+    public static int div(int x, int y)
+    {
+        return (int)Math.Floor((double)x / (double)y);
+    }
+
 }

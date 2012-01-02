@@ -1750,18 +1750,18 @@ namespace JSIL {
                     }
                     else {
                         return JSInvocationExpression
-                            .InvokeMethod(TypeSystem.Int64, new JSFakeMethod("toNumber", TypeSystem.Int32), value);
+                            .InvokeMethod(TypeSystem.Int64, new JSFakeMethod("toNumber", TypeSystem.Double), value);
                     }
                 }
                 else if (expectedType == TypeSystem.Int64) {
                     if (IsIntegral(currentType)) {
                         return JSInvocationExpression.InvokeStatic(
-                            JSAstBuilder.StringIdentifier("goog").Dot("math").Dot("Long").FakeMethod("fromInt", TypeSystem.Int64).GetExpression(),
+                            JSAstBuilder.StringIdentifier("goog").Dot("math").Dot("Long").FakeMethod("fromInt", TypeSystem.Int64, currentType).GetExpression(),
                             new[] { value });
                     }
                     else { 
                         return JSInvocationExpression.InvokeStatic(
-                            JSAstBuilder.StringIdentifier("goog").Dot("math").Dot("Long").FakeMethod("fromNumber", TypeSystem.Int64).GetExpression(),
+                            JSAstBuilder.StringIdentifier("goog").Dot("math").Dot("Long").FakeMethod("fromNumber", TypeSystem.Int64, currentType).GetExpression(),
                             new[] { value });
                     }
                 }
