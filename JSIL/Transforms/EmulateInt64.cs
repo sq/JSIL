@@ -1,11 +1,14 @@
 ﻿using System;
 using JSIL.Ast;
 using Mono.Cecil;
+using System.Diagnostics;
 
 namespace JSIL.Transforms
 {
     public class EmulateInt64 : JSAstVisitor
     {
+        public const bool Tracing = true;
+
         private readonly TypeSystem TypeSystem;
 
         public readonly JSAstBuilder googMathLong;
@@ -80,24 +83,26 @@ namespace JSIL.Transforms
                 ParentNode.ReplaceChild(boe, replacement);
                 VisitChildren(boe);
             }
-            else if ((leftType == int64 || rightType == int64) &&
-                     (leftType.IsPrimitive && rightType.IsPrimitive))
+            else if (leftType == int64 || rightType == int64)
             {
                 var verb = GetVerb(boe.Operator);
 
                 if (verb == null)
                 {
-                    throw new NotImplementedException();
+                    if (Tracing)
+                        Debug.WriteLine("Operator not yet supported: " + boe.Operator.Token);
 
-                    //VisitChildren(boe);
-                    //return;
+                    // TODO: this should probably generate an error
+
+                    VisitChildren(boe);
+                    return;
                 }
 
                 JSIdentifier method;
 
                 if (expectedType == TypeSystem.Boolean)
                     method = new JSFakeMethod(verb, TypeSystem.Boolean, TypeSystem.Int64, TypeSystem.Int64);
-                else 
+                else
                     method = new JSFakeMethod(verb, TypeSystem.Int64, TypeSystem.Int64, TypeSystem.Int64);
 
                 var left = GetExpression(boe.Left);
@@ -118,7 +123,7 @@ namespace JSIL.Transforms
             }
             else
             {
-                throw new NotImplementedException();
+                throw new NotSupportedException("Coult not translate expression: " + boe);
             }
         }
 
@@ -143,7 +148,12 @@ namespace JSIL.Transforms
             }
             else
             {
-                // TODO: missing case?
+                // TODO: handle cases like these, for example pass-by-ref
+
+                if (Tracing)
+                    Debug.WriteLine("Operand type not supported in Int64 emulation: {0}", type);
+
+                return expression;
             }
 
             return JSInvocationExpression
@@ -172,7 +182,9 @@ namespace JSIL.Transforms
                 case "|": return "or";
                 case "&": return "and";
                 case "<<": return "shiftLeft";
-                case ">>": return "shiftRight";
+                case ">>":
+                case ">>>":
+                    return "shiftRight";
 
                 case "===": return "equals";
                 case "!==": return "notEquals";
