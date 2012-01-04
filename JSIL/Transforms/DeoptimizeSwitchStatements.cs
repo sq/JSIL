@@ -150,6 +150,14 @@ namespace JSIL.Transforms {
                 .Where((ge) => ge.TargetLabel == targetLabel);
         }
 
+        protected void KillGotos (
+            JSNode parentNode, string labelName
+        ) {
+            var deadGotos = FindGotos(parentNode, labelName).ToArray();
+            foreach (var dg in deadGotos)
+                parentNode.ReplaceChildRecursive(dg, new JSNullExpression());
+        }
+
         protected FoldLabelResult FoldLabelIntoBlock (
             JSSwitchStatement switchStatement, string labelName, JSBlockStatement block
         ) {
@@ -174,9 +182,7 @@ namespace JSIL.Transforms {
             var defaultCase = result.LabelScope.Labels[labelName];
             var defaultCaseBody = defaultCase.Children.OfType<JSStatement>().ToArray();
 
-            var deadGotos = FindGotos(block, labelName).ToArray();
-            foreach (var dg in deadGotos)
-                block.ReplaceChildRecursive(dg, new JSNullExpression());
+            KillGotos(ParentNode, labelName);
 
             result.LabelScope.ReplaceChild(defaultCase, new JSNullStatement());
 
@@ -195,9 +201,7 @@ namespace JSIL.Transforms {
 
             var exitLabel = flr.ExitGoto.TargetLabel;
             var exitBlock = flr.LabelScope.Labels[exitLabel];
-            exitBlock.Label = null;
             flr.LabelScope.Labels.Remove(exitLabel);
-            flr.Block.ReplaceChildRecursive(flr.ExitGoto, new JSNullExpression());
 
             return exitBlock;
         }
@@ -276,6 +280,9 @@ namespace JSIL.Transforms {
                 }
 
                 if (exitBlock != null) {
+                    KillGotos(ParentNode, exitBlock.Label);
+                    exitBlock.Label = null;
+
                     var newBlock = new JSBlockStatement();
                     newBlock.Statements.Add(newSwitch);
                     newBlock.Statements.Add(exitBlock);
@@ -306,15 +313,7 @@ namespace JSIL.Transforms {
                 }
             }
 
-            if (exitBlock != null) {
-                var newBlock = new JSBlockStatement();
-                newBlock.Statements.Add(ss);
-                newBlock.Statements.Add(exitBlock);
-                ParentNode.ReplaceChild(ss, newBlock);
-                VisitReplacement(newBlock);
-            } else {
-                VisitChildren(ss);
-            }
+            VisitChildren(ss);
         }
     }
 }

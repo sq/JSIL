@@ -367,15 +367,7 @@ namespace JSIL {
                 }
             }
 
-            Console.Error.WriteLine("Warning: Untranslatable goto encountered: " + go);
-
-            Output.Identifier("JSIL.UntranslatableInstruction", null);
-            Output.LPar();
-            Output.Value("goto");
-            Output.Comma();
-            Output.Value(go.TargetLabel);
-            Output.RPar();
-            Output.Semicolon();
+            throw new InvalidOperationException("Untranslatable goto encountered targeting label " + go.TargetLabel);
         }
 
         public void VisitNode (JSUntranslatableStatement us) {
