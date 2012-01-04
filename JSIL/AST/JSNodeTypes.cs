@@ -422,7 +422,8 @@ namespace JSIL.Ast {
                 if (This != null)
                     yield return This;
 
-                yield return Value;
+                // We never want to recurse into the function pointed to by a lambda when doing tree traversal.
+                // yield return Value;
             }
         }
     }
