@@ -334,7 +334,7 @@ namespace JSIL.Tests {
             );
 
             try {
-                Assert.IsFalse(generatedJs.Contains("for ("));
+                Assert.IsFalse(generatedJs.Contains("for ("), "A for loop failed conversion to a do-loop");
                 Assert.AreEqual(3, generatedJs.Split(new string[] { "do {" }, StringSplitOptions.RemoveEmptyEntries).Length);
                 Assert.AreEqual(3, generatedJs.Split(new string[] { "} while (" }, StringSplitOptions.RemoveEmptyEntries).Length);
                 Assert.IsTrue(generatedJs.Contains("while (true)"));
@@ -354,7 +354,7 @@ namespace JSIL.Tests {
             );
 
             try {
-                Assert.IsFalse(generatedJs.Contains("JSIL.UntranslatableInstruction"));
+                Assert.IsFalse(generatedJs.Contains("JSIL.UntranslatableInstruction"), "A goto failed translation");
             } catch {
                 Console.WriteLine(generatedJs);
 
@@ -370,7 +370,13 @@ namespace JSIL.Tests {
             );
 
             try {
-                Assert.IsFalse(generatedJs.Contains("JSIL.UntranslatableInstruction"));
+                Assert.IsFalse(generatedJs.Contains("JSIL.UntranslatableInstruction"), "A goto failed translation");
+                var m = Regex.Match(
+                    generatedJs,
+                    @"if \(this.i \>\= this.count\) \{[^}]*\} else \{"
+                );
+                Assert.IsTrue((m != null) && m.Success);
+                Assert.IsTrue(m.Value.Contains("continue $labelgroup0;"), "If block true clause left empty when hoisting out label");
             } catch {
                 Console.WriteLine(generatedJs);
 

@@ -303,10 +303,6 @@ namespace JSIL.Transforms {
                         foreach (var ec in extraCases)
                             ss.Cases.Remove(ec);
                     }
-
-                    var flr = FoldLabelIntoBlock(ss, defaultGoto.TargetLabel, defaultCase.Body);
-                    if (flr != null)
-                        exitBlock = EliminateExitGoto(flr);
                 }
             }
 

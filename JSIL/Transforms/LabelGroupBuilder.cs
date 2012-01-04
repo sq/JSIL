@@ -169,7 +169,10 @@ namespace JSIL.Transforms {
             foreach (var l in Labels.Values) {
                 l.EnsureLabelGroupExists(LabelGroups);
 
-                l.EnclosingBlock.Block.ReplaceChildRecursive(l.LabelledStatement, new JSNullStatement());
+                var replacementGoto = new JSExpressionStatement(
+                    new JSGotoExpression(l.LabelledStatement.Label)
+                );
+                l.EnclosingBlock.Block.ReplaceChildRecursive(l.LabelledStatement, replacementGoto);
                 l.LabelGroup.Add(l.LabelledStatement);
             }
         }

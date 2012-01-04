@@ -176,7 +176,7 @@ namespace JSIL {
                 Output.Space();
                 Output.Identifier(stepLabel);
                 Output.Semicolon();
-                }
+            }
 
             Output.PlainTextFormatter.Unindent();
 
