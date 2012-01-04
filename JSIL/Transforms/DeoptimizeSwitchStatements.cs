@@ -187,25 +187,23 @@ namespace JSIL.Transforms {
             return result;
         }
 
-        protected void EliminateExitGoto (
+        protected JSStatement EliminateExitGoto (
             FoldLabelResult flr
         ) {
+            if (flr.ExitGoto == null)
+                return null;
+
             var exitLabel = flr.ExitGoto.TargetLabel;
             var exitBlock = flr.LabelScope.Labels[exitLabel];
-            flr.LabelScope.ReplaceChild(exitBlock, new JSNullStatement());
+            exitBlock.Label = null;
+            flr.LabelScope.Labels.Remove(exitLabel);
             flr.Block.ReplaceChildRecursive(flr.ExitGoto, new JSNullExpression());
 
-            var switchBlock = flr.LabelScope.Children.Where(
-                (b) => b.Children.Contains(flr.SwitchStatement)
-            ).OfType<JSBlockStatement>().FirstOrDefault();
-            if (switchBlock != null) {
-                switchBlock.Statements.AddRange(
-                    exitBlock.Children.OfType<JSStatement>()
-                );
-            }
+            return exitBlock;
         }
 
         public void VisitNode (JSSwitchStatement ss) {
+            JSStatement exitBlock = null;
             IndexLookup indexLookup;
             Initializer initializer;
             NullCheck nullCheck;
@@ -238,7 +236,7 @@ namespace JSIL.Transforms {
                         if (theGoto != null) {
                             var flr = FoldLabelIntoBlock(ss, indexLookup.Goto.TargetLabel, body);
                             if (flr != null)
-                                EliminateExitGoto(flr);
+                                exitBlock = EliminateExitGoto(flr);
                         }
                     } else {
                         values = (from v in cse.Values
@@ -277,7 +275,15 @@ namespace JSIL.Transforms {
                     fn.AllVariables.Remove(outVar.Identifier);
                 }
 
-                VisitReplacement(newSwitch);
+                if (exitBlock != null) {
+                    var newBlock = new JSBlockStatement();
+                    newBlock.Statements.Add(newSwitch);
+                    newBlock.Statements.Add(exitBlock);
+                    ParentNode.ReplaceChild(newSwitch, newBlock);
+                    VisitReplacement(newBlock);
+                } else {
+                    VisitReplacement(newSwitch);
+                }
                 return;
             }
 
@@ -300,11 +306,19 @@ namespace JSIL.Transforms {
 
                     var flr = FoldLabelIntoBlock(ss, defaultGoto.TargetLabel, defaultCase.Body);
                     if (flr != null)
-                        EliminateExitGoto(flr);
+                        exitBlock = EliminateExitGoto(flr);
                 }
             }
-            
-            VisitChildren(ss);
+
+            if (exitBlock != null) {
+                var newBlock = new JSBlockStatement();
+                newBlock.Statements.Add(ss);
+                newBlock.Statements.Add(exitBlock);
+                ParentNode.ReplaceChild(ss, newBlock);
+                VisitReplacement(newBlock);
+            } else {
+                VisitChildren(ss);
+            }
         }
     }
 }

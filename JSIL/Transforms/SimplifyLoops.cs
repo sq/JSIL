@@ -93,14 +93,14 @@ namespace JSIL.Transforms {
 
                 if (eStmt != null) {
                     var breakExpr = eStmt.Expression as JSBreakExpression;
-                    if ((breakExpr != null) && (breakExpr.TargetLabel == whileLoop.Label)) {
+                    if ((breakExpr != null) && (breakExpr.TargetLoop == whileLoop.Index)) {
                         whileLoop.ReplaceChildRecursive(lastIfStatement, new JSNullStatement());
 
                         var doLoop = new JSDoLoop(
                             new JSUnaryOperatorExpression(JSOperator.LogicalNot, lastIfStatement.Condition),
                             whileLoop.Statements.ToArray()
                         );
-                        doLoop.Label = whileLoop.Label;
+                        doLoop.Index = whileLoop.Index;
 
                         ParentNode.ReplaceChild(whileLoop, doLoop);
                         VisitChildren(doLoop);
@@ -149,7 +149,7 @@ namespace JSIL.Transforms {
                     initializer, whileLoop.Condition, increment,
                     whileLoop.Statements.ToArray()
                 );
-                forLoop.Label = whileLoop.Label;
+                forLoop.Index = whileLoop.Index;
 
                 ParentNode.ReplaceChild(whileLoop, forLoop);
                 VisitChildren(forLoop);

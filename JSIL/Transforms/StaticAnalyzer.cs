@@ -283,7 +283,7 @@ namespace JSIL.Transforms {
 
                 var enclosingBlock = enclosingStatement as JSBlockStatement;
                 if (enclosingBlock != null)
-                    isControlFlow |= enclosingBlock.IsLoop;
+                    isControlFlow |= enclosingBlock is JSLoopStatement;
 
                 State.Accesses.Add(
                     new FunctionAnalysis1stPass.Access(

@@ -338,7 +338,7 @@ namespace JSIL.Tests {
                 Assert.AreEqual(3, generatedJs.Split(new string[] { "do {" }, StringSplitOptions.RemoveEmptyEntries).Length);
                 Assert.AreEqual(3, generatedJs.Split(new string[] { "} while (" }, StringSplitOptions.RemoveEmptyEntries).Length);
                 Assert.IsTrue(generatedJs.Contains("while (true)"));
-                Assert.IsTrue(generatedJs.Contains("break __loop2__"));
+                Assert.IsTrue(generatedJs.Contains("break $loop2"));
             } catch {
                 Console.WriteLine(generatedJs);
 

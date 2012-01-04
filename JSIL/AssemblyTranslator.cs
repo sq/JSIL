@@ -1161,6 +1161,10 @@ namespace JSIL {
                 }
             };
 
+            var la = new LabelAnalyzer();
+            la.Visit(function);
+            la.BuildLabelGroups();
+
             temporaryEliminationPass();
 
             new EmulateStructAssignment(
@@ -1213,6 +1217,10 @@ namespace JSIL {
                 ).Visit(function);
 
             temporaryEliminationPass();
+
+            var lnd = new LoopNameDetector();
+            lnd.Visit(function);
+            lnd.EliminateUnusedLoopNames();
         }
 
         protected static bool NeedsStaticConstructor (TypeReference type) {

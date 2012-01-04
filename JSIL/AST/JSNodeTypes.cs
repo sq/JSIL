@@ -72,7 +72,7 @@ namespace JSIL.Ast {
 
         public string Label = null;
 
-        protected string PrependLabel (string text) {
+        protected virtual string PrependLabel (string text) {
             if (Label == null)
                 return text;
 
@@ -133,12 +133,6 @@ namespace JSIL.Ast {
             Statements = new List<JSStatement>(statements);
         }
 
-        public virtual bool IsLoop {
-            get {
-                return false;
-            }
-        }
-
         public override IEnumerable<JSNode> Children {
             get {
                 for (int i = 0, c = Statements.Count; i < c; i++)
@@ -187,6 +181,17 @@ namespace JSIL.Ast {
                 return PrependLabel(sb.ToString());
             else
                 return sb.ToString();
+        }
+    }
+
+    public abstract class JSLoopStatement : JSBlockStatement {
+        public int? Index;
+
+        protected override string PrependLabel (string text) {
+            if (!Index.HasValue)
+                return text;
+
+            return String.Format("$loop{0}: {1}", Index.Value, text);
         }
     }
 
@@ -278,12 +283,6 @@ namespace JSIL.Ast {
                 "var {0}",
                 String.Join(", ", (from d in Declarations select String.Concat(d)).ToArray())
             ));
-        }
-    }
-
-    public class JSLabelStatement : JSStatement {
-        public JSLabelStatement (string name) {
-            Label = name;
         }
     }
 
@@ -454,18 +453,24 @@ namespace JSIL.Ast {
     }
 
     public class JSBreakExpression : JSExpression {
-        public string TargetLabel;
+        public int? TargetLoop;
 
         public override string ToString () {
-            return String.Format("break {0}", TargetLabel);
+            if (TargetLoop.HasValue)
+                return String.Format("break $loop{0}", TargetLoop);
+            else
+                return "break";
         }
     }
 
     public class JSContinueExpression : JSExpression {
-        public string TargetLabel;
+        public int? TargetLoop;
 
         public override string ToString () {
-            return String.Format("continue {0}", TargetLabel);
+            if (TargetLoop.HasValue)
+                return String.Format("continue $loop{0}", TargetLoop);
+            else
+                return "continue";
         }
     }
 
@@ -656,18 +661,12 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSWhileLoop : JSBlockStatement {
+    public class JSWhileLoop : JSLoopStatement {
         protected JSExpression _Condition;
 
         public JSWhileLoop (JSExpression condition, params JSStatement[] body) {
             _Condition = condition;
             Statements.AddRange(body);
-        }
-
-        public override bool IsLoop {
-            get {
-                return true;
-            }
         }
 
         public override IEnumerable<JSNode> Children {
@@ -704,18 +703,12 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSDoLoop : JSBlockStatement {
+    public class JSDoLoop : JSLoopStatement {
         protected JSExpression _Condition;
 
         public JSDoLoop (JSExpression condition, params JSStatement[] body) {
             _Condition = condition;
             Statements.AddRange(body);
-        }
-
-        public override bool IsLoop {
-            get {
-                return true;
-            }
         }
 
         public override IEnumerable<JSNode> Children {
@@ -752,7 +745,7 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSForLoop : JSBlockStatement {
+    public class JSForLoop : JSLoopStatement {
         protected JSStatement _Initializer, _Increment;
         protected JSExpression _Condition;
 
@@ -761,12 +754,6 @@ namespace JSIL.Ast {
             _Condition = condition;
             _Increment = increment;
             Statements.AddRange(body);
-        }
-
-        public override bool IsLoop {
-            get {
-                return true;
-            }
         }
 
         public override IEnumerable<JSNode> Children {

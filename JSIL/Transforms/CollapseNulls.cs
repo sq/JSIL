@@ -42,11 +42,10 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSContinueExpression cont) {
-            var parentLoop = Stack.OfType<JSBlockStatement>()
-                .Where((b) => b.IsLoop).FirstOrDefault();
+            var parentLoop = Stack.OfType<JSLoopStatement>().FirstOrDefault();
             if (
                 (parentLoop != null) &&
-                (cont.TargetLabel == parentLoop.Label)
+                (cont.TargetLoop == parentLoop.Index)
             ) {
                 if (
                     Stack.Skip(1).TakeWhile((s) => s != parentLoop)

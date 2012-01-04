@@ -32,7 +32,6 @@ namespace JSIL {
 
         public readonly SpecialIdentifiers SpecialIdentifiers;
 
-        protected int LabelledBlockCount = 0;
         protected int UnlabelledBlockCount = 0;
 
         protected readonly Stack<JSStatement> Blocks = new Stack<JSStatement>();
@@ -666,23 +665,8 @@ namespace JSIL {
 
         protected JSBlockStatement TranslateBlock (IEnumerable<ILNode> children) {
             JSBlockStatement result, currentBlock;
-            JSLabelGroupStatement labelGroup = null;
 
-            // TODO: Fix this heuristic by building a flow graph at the beginning of method translation
-            if (children.Any(
-                n => ContainsLabels(n)
-            )) {
-                var index = LabelledBlockCount++;
-                labelGroup = new JSLabelGroupStatement(index);
-                result = new JSBlockStatement(labelGroup);
-
-                currentBlock = new JSBlockStatement();
-                currentBlock.Label = String.Format("__entry{0}__", index);
-                labelGroup.Add(currentBlock);
-            } else {
-                currentBlock = result = new JSBlockStatement();
-                labelGroup = null;
-            }
+            currentBlock = result = new JSBlockStatement();
 
             foreach (var node in children) {
                 var label = node as ILLabel;
@@ -693,10 +677,8 @@ namespace JSIL {
                     currentBlock = new JSBlockStatement {
                         Label = label.Name
                     };
-                    if (labelGroup != null)
-                        labelGroup.Add(currentBlock);
-                    else
-                        result.Statements.Add(currentBlock);
+
+                    result.Statements.Add(currentBlock);
 
                     continue;
                 } else if (isGoto) {
@@ -971,7 +953,7 @@ namespace JSIL {
                 condition = JSLiteral.New(true);
 
             var result = new JSWhileLoop(condition);
-            result.Label = String.Format("__loop{0}__", UnlabelledBlockCount++);
+            result.Index = UnlabelledBlockCount++;
             Blocks.Push(result);
 
             var body = TranslateNode(loop.BodyBlock);
@@ -1243,8 +1225,13 @@ namespace JSIL {
         protected JSBreakExpression Translate_LoopOrSwitchBreak (ILExpression node) {
             var result = new JSBreakExpression();
 
-            if (Blocks.Count > 0)
-                result.TargetLabel = Blocks.Peek().Label;
+            if (Blocks.Count > 0) {
+                var theLoop = Blocks.Peek() as JSLoopStatement;
+                if (theLoop != null)
+                    result.TargetLoop = theLoop.Index.Value;
+                else if (!(Blocks.Peek() is JSSwitchStatement))
+                    throw new NotImplementedException("Invalid break statement");
+            }
 
             return result;
         }
@@ -1252,8 +1239,13 @@ namespace JSIL {
         protected JSContinueExpression Translate_LoopContinue (ILExpression node) {
             var result = new JSContinueExpression();
 
-            if (Blocks.Count > 0)
-                result.TargetLabel = Blocks.Peek().Label;
+            if (Blocks.Count > 0) {
+                var theLoop = Blocks.Peek() as JSLoopStatement;
+                if (theLoop != null)
+                    result.TargetLoop = theLoop.Index.Value;
+                else
+                    throw new NotImplementedException("Invalid continue statement");
+            }
 
             return result;
         }

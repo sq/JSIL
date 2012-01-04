@@ -84,8 +84,8 @@ namespace JSIL {
         }
 
         public void VisitNode (JSLabelGroupStatement labelGroup) {
-            var stepLabel = String.Format("__step{0}__", labelGroup.GroupIndex);
-            var labelVar = String.Format("__label{0}__", labelGroup.GroupIndex);
+            var stepLabel = String.Format("$labelgroup{0}", labelGroup.GroupIndex);
+            var labelVar = String.Format("$label{0}", labelGroup.GroupIndex);
             var firstLabel = labelGroup.Labels.First().Key;
 
             Output.Keyword("var");
@@ -138,12 +138,11 @@ namespace JSIL {
 
             GotoStack.Push(emitGoto);
 
-            foreach (var kvp in labelGroup.Labels) {
-                if (!isFirst) {
-                    emitGoto(kvp.Key);
+            bool needsTrailingBreak = true;
 
-                    Output.Keyword("break");
-                    Output.Semicolon();
+            foreach (var kvp in labelGroup.Labels) {
+                if (!isFirst && needsTrailingBreak) {
+                    emitGoto(kvp.Key);
 
                     Output.PlainTextFormatter.Unindent();
                 }
@@ -157,15 +156,27 @@ namespace JSIL {
 
                 Visit(kvp.Value);
 
+                var lastStatement = kvp.Value.Children.LastOrDefault() as JSExpressionStatement;
+                if (
+                    (lastStatement != null) &&
+                    ((lastStatement.Expression is JSContinueExpression) || (lastStatement.Expression is JSBreakExpression))
+                ) {
+                    needsTrailingBreak = false;
+                } else {
+                    needsTrailingBreak = true;
+                }
+
                 isFirst = false;
             }
 
             GotoStack.Pop();
 
-            Output.Keyword("break");
-            Output.Space();
-            Output.Identifier(stepLabel);
-            Output.Semicolon();
+            if (needsTrailingBreak) {
+                Output.Keyword("break");
+                Output.Space();
+                Output.Identifier(stepLabel);
+                Output.Semicolon();
+                }
 
             Output.PlainTextFormatter.Unindent();
 
@@ -549,7 +560,7 @@ namespace JSIL {
 
         public void VisitNode (JSSwitchStatement swtch) {
             BlockStack.Push(BlockType.Switch);
-            WriteLabel(swtch, true);
+            WriteLabel(swtch);
 
             Output.Keyword("switch");
             Output.Space();
@@ -583,17 +594,14 @@ namespace JSIL {
             BlockStack.Pop();
         }
 
-        protected void WriteLabel (JSStatement stmt, bool generateLabels) {
-            if (String.IsNullOrWhiteSpace(stmt.Label)) {
-                if (!generateLabels)
-                    return;
-            } else {
-                Output.Label(stmt.Label);
-            }
+        protected void WriteLoopLabel (JSLoopStatement loop) {
+            if (loop.Index.HasValue)
+                Output.Label(String.Format("$loop{0}", loop.Index.Value));
         }
 
-        public void VisitNode (JSLabelStatement label) {
-            WriteLabel(label, false);
+        protected void WriteLabel (JSStatement stmt) {
+            if (!String.IsNullOrWhiteSpace(stmt.Label))
+                Output.Label(stmt.Label);
         }
 
         public void VisitNode (JSIfStatement ifs) {
@@ -678,7 +686,7 @@ namespace JSIL {
 
         public void VisitNode (JSForLoop loop) {
             BlockStack.Push(BlockType.ForHeader);
-            WriteLabel(loop, true);
+            WriteLoopLabel(loop);
 
             Output.Keyword("for");
             Output.Space();
@@ -708,7 +716,7 @@ namespace JSIL {
 
         public void VisitNode (JSWhileLoop loop) {
             BlockStack.Push(BlockType.While);
-            WriteLabel(loop, true);
+            WriteLoopLabel(loop);
 
             Output.Keyword("while");
             Output.Space();
@@ -725,7 +733,7 @@ namespace JSIL {
 
         public void VisitNode (JSDoLoop loop) {
             BlockStack.Push(BlockType.Do);
-            WriteLabel(loop, true);
+            WriteLoopLabel(loop);
 
             Output.Keyword("do");
             Output.Space();
@@ -762,10 +770,10 @@ namespace JSIL {
         }
 
         public void VisitNode (JSBreakExpression brk) {
-            if (!String.IsNullOrWhiteSpace(brk.TargetLabel)) {
+            if (brk.TargetLoop.HasValue) {
                 Output.Keyword("break");
                 Output.Space();
-                Output.Identifier(brk.TargetLabel);
+                Output.Identifier(String.Format("$loop{0}", brk.TargetLoop.Value));
                 return;
             }
 
@@ -778,16 +786,16 @@ namespace JSIL {
                     Output.Keyword("break");
                     break;
                 default:
-                    Debugger.Break();
+                    throw new NotImplementedException("Invalid break statement");
                     break;
             }
         }
 
         public void VisitNode (JSContinueExpression cont) {
-            if (!String.IsNullOrWhiteSpace(cont.TargetLabel)) {
+            if (cont.TargetLoop.HasValue) {
                 Output.Keyword("continue");
                 Output.Space();
-                Output.Identifier(cont.TargetLabel);
+                Output.Identifier(String.Format("$loop{0}", cont.TargetLoop.Value));
             } else if (GotoStack.Count > 0) {
                 GotoStack.Peek()(null);
             } else {
