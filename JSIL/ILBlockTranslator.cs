@@ -1229,8 +1229,6 @@ namespace JSIL {
                 var theLoop = Blocks.Peek() as JSLoopStatement;
                 if (theLoop != null)
                     result.TargetLoop = theLoop.Index.Value;
-                else if (!(Blocks.Peek() is JSSwitchStatement))
-                    throw new NotImplementedException("Invalid break statement");
             }
 
             return result;
@@ -1243,8 +1241,6 @@ namespace JSIL {
                 var theLoop = Blocks.Peek() as JSLoopStatement;
                 if (theLoop != null)
                     result.TargetLoop = theLoop.Index.Value;
-                else
-                    throw new NotImplementedException("Invalid continue statement");
             }
 
             return result;
@@ -1902,6 +1898,10 @@ namespace JSIL {
                         //  a compiler-generated method or part of a compiler generated type
                         if (!Translator.FunctionCache.TryGetExpression(methodMember.QualifiedIdentifier, out function)) {
                             function = Translator.TranslateMethodExpression(Context, methodDef, methodDef);
+                        }
+
+                        if (function == null) {
+                            return new JSUntranslatableExpression(node);
                         }
 
                         var thisArgVar = thisArg as JSVariable;

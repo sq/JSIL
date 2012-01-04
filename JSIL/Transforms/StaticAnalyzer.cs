@@ -428,6 +428,8 @@ namespace JSIL.Transforms {
         public const bool Tracing = false;
 
         protected readonly bool _IsPure;
+        protected bool? _CachedIsPure = false;
+        protected bool _ComputingPurity = false;
 
         public readonly HashSet<string> ModifiedVariables;
         public readonly HashSet<string> EscapingVariables;
@@ -487,24 +489,43 @@ namespace JSIL.Transforms {
             Trace(method.Member.FullName);
         }
 
+        protected bool DetermineIfPure () {
+            foreach (var i in Data.Invocations) {
+                if (i.Method == null)
+                    return false;
+
+                var secondPass = FunctionSource.GetSecondPass(i.Method);
+                if (secondPass == null)
+                    return false;
+
+                if (!secondPass.IsPure)
+                    return false;
+            }
+
+            return _IsPure;
+        }
+
         public bool IsPure {
             get {
                 if (Data == null)
                     return _IsPure;
 
-                foreach (var i in Data.Invocations) {
-                    if (i.Method == null)
-                        return false;
+                // If accessed recursively, always return false
+                if (_ComputingPurity)
+                    return false;
 
-                    var secondPass = FunctionSource.GetSecondPass(i.Method);
-                    if (secondPass == null)
-                        return false;
+                try {
+                    _ComputingPurity = true;
 
-                    if (!secondPass.IsPure)
-                        return false;
+                    if (_CachedIsPure.HasValue)
+                        return _CachedIsPure.Value;
+
+                    _CachedIsPure = DetermineIfPure();
+                    return _CachedIsPure.Value;
+                } finally {
+                    _ComputingPurity = false;
                 }
 
-                return _IsPure;
             }
         }
 
