@@ -12,7 +12,7 @@ using Mono.Cecil.Pdb;
 
 namespace JSIL.Internal {
     public class AssemblyResolver : BaseAssemblyResolver {
-        protected readonly Dictionary<string, AssemblyDefinition> Cache = new Dictionary<string, AssemblyDefinition>();
+        protected readonly ConcurrentCache<string, AssemblyDefinition> Cache = new ConcurrentCache<string, AssemblyDefinition>();
 
         public AssemblyResolver (IEnumerable<string> dirs) {
             foreach (var dir in dirs)
@@ -23,33 +23,7 @@ namespace JSIL.Internal {
             if (name == null)
                 throw new ArgumentNullException("name");
 
-            AssemblyDefinition assembly;
-            bool keyExists;
-
-            lock (Cache)
-                keyExists = Cache.ContainsKey(name.FullName);
-
-            if (keyExists) {
-                while (true) {
-                    lock (Cache)
-                        assembly = Cache[name.FullName];
-
-                    if (assembly != null)
-                        return assembly;
-
-                    Monitor.Wait(Cache);
-                }
-            }
-
-            assembly = base.Resolve(name, parameters);
-
-            lock (Cache) {
-                Cache[name.FullName] = assembly;
-
-                Monitor.PulseAll(Cache);
-            }
-
-            return assembly;
+            return Cache.GetOrCreate(name.FullName, () => base.Resolve(name, parameters));
         }
 
         protected void RegisterAssembly (AssemblyDefinition assembly) {
@@ -58,12 +32,7 @@ namespace JSIL.Internal {
 
             var name = assembly.Name.FullName;
 
-            lock (Cache) {
-                if (Cache.ContainsKey(name))
-                    return;
-
-                Cache[name] = assembly;
-            }
+            Cache.TryCreate(name, () => assembly);
         }
     }
 
