@@ -345,5 +345,21 @@ namespace JSIL.Tests {
                 throw;
             }
         }
+
+        [Test]
+        public void UntranslatableGotos () {
+            var generatedJs = GetJavascript(
+                @"TestCases\UntranslatableGotoOutParameters.cs",
+                ": null"
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("JSIL.UntranslatableInstruction"));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
     }
 }
