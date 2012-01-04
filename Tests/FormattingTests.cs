@@ -361,5 +361,21 @@ namespace JSIL.Tests {
                 throw;
             }
         }
+
+        [Test]
+        public void UntranslatableGotos2 () {
+            var generatedJs = GetJavascript(
+                @"TestCases\RepeatIterator.cs",
+                "a\r\na\r\na\r\na\r\na"
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("JSIL.UntranslatableInstruction"));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
     }
 }
