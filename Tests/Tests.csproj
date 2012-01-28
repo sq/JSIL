@@ -269,6 +269,7 @@
     <None Include="SimpleTestCases\StringEquals.cs" />
     <None Include="TestCases\CharArrayLookup.cs" />
     <None Include="TestCases\CharArithmetic.cs" />
+    <None Include="TestCases\ContinueInsideSwitch.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

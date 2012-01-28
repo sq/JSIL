@@ -227,14 +227,16 @@ namespace JSIL.Tests {
 
         [Test]
         public void SwitchStatements () {
-            using (var test = new ComparisonTest(@"TestCases\Switch.cs"))
-                test.Run();
+            var defaultProvider = MakeDefaultProvider();
 
-            using (var test = new ComparisonTest(@"TestCases\ComplexSwitch.cs"))
-                test.Run();
-
-            using (var test = new ComparisonTest(@"TestCases\CharSwitch.cs"))
-                test.Run();
+            RunComparisonTests(
+                new[] { 
+                    @"TestCases\Switch.cs",
+                    @"TestCases\ComplexSwitch.cs",
+                    @"TestCases\CharSwitch.cs",
+                    @"TestCases\ContinueInsideSwitch.cs",
+                }, null, defaultProvider
+            );
 
             using (var test = new ComparisonTest(@"SpecialTestCases\BigStringSwitch.cs")) {
                 test.Run();
