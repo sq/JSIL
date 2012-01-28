@@ -138,76 +138,12 @@ namespace JSIL.Transforms {
             VisitChildren(ifs);
         }
 
-        protected class FoldLabelResult {
-            public JSLabelGroupStatement LabelScope;
-            public JSGotoExpression ExitGoto;
-            public JSSwitchStatement SwitchStatement;
-            public JSBlockStatement Block;
-        }
-
         protected IEnumerable<JSGotoExpression> FindGotos (JSNode context, string targetLabel) {
             return context.AllChildrenRecursive.OfType<JSGotoExpression>()
                 .Where((ge) => ge.TargetLabel == targetLabel);
         }
 
-        protected void KillGotos (
-            JSNode parentNode, string labelName
-        ) {
-            var deadGotos = FindGotos(parentNode, labelName).ToArray();
-            foreach (var dg in deadGotos)
-                parentNode.ReplaceChildRecursive(dg, new JSNullExpression());
-        }
-
-        protected FoldLabelResult FoldLabelIntoBlock (
-            JSSwitchStatement switchStatement, string labelName, JSBlockStatement block
-        ) {
-            var result = new FoldLabelResult {
-                Block = block,
-                SwitchStatement = switchStatement
-            };
-
-            // Climb up the stack to find the scope containing the default block
-            result.LabelScope = Stack.SkipWhile(
-                (n) => (
-                    n == switchStatement
-                )
-            ).OfType<JSLabelGroupStatement>().Where(
-                (lgs) => lgs.Labels.ContainsKey(labelName)
-            ).FirstOrDefault();
-
-            // Detect invalid gotos
-            if (result.LabelScope == null)
-                return null;
-
-            var defaultCase = result.LabelScope.Labels[labelName];
-            var defaultCaseBody = defaultCase.Children.OfType<JSStatement>().ToArray();
-
-            KillGotos(ParentNode, labelName);
-
-            result.LabelScope.ReplaceChild(defaultCase, new JSNullStatement());
-
-            block.Statements.AddRange(defaultCaseBody);
-            block.Statements.Add(new JSExpressionStatement(new JSBreakExpression()));
-
-            result.ExitGoto = block.AllChildrenRecursive.OfType<JSGotoExpression>().LastOrDefault();
-            return result;
-        }
-
-        protected JSStatement EliminateExitGoto (
-            FoldLabelResult flr
-        ) {
-            if (flr.ExitGoto == null)
-                return null;
-
-            var exitLabel = flr.ExitGoto.TargetLabel;
-            var exitBlock = flr.LabelScope.Labels[exitLabel];
-            flr.LabelScope.Labels.Remove(exitLabel);
-
-            return exitBlock;
-        }
-
         public void VisitNode (JSSwitchStatement ss) {
-            JSStatement exitBlock = null;
             IndexLookup indexLookup;
             Initializer initializer;
             NullCheck nullCheck;
@@ -233,15 +169,6 @@ namespace JSIL.Transforms {
                     if (cse.Values == null) {
                         values = null;
                         body = new JSBlockStatement(body.Statements.ToArray());
-                        
-                        // Locate the goto within this block that jumps to the default block
-                        var theGoto = FindGotos(body, indexLookup.Goto.TargetLabel).FirstOrDefault();
-
-                        if (theGoto != null) {
-                            var flr = FoldLabelIntoBlock(ss, indexLookup.Goto.TargetLabel, body);
-                            if (flr != null)
-                                exitBlock = EliminateExitGoto(flr);
-                        }
                     } else {
                         values = (from v in cse.Values
                          let il = v as JSIntegerLiteral
@@ -279,38 +206,7 @@ namespace JSIL.Transforms {
                     fn.AllVariables.Remove(outVar.Identifier);
                 }
 
-                if (exitBlock != null) {
-                    KillGotos(ParentNode, exitBlock.Label);
-                    exitBlock.Label = null;
-
-                    var newBlock = new JSBlockStatement();
-                    newBlock.Statements.Add(newSwitch);
-                    newBlock.Statements.Add(exitBlock);
-                    ParentNode.ReplaceChild(newSwitch, newBlock);
-                    VisitReplacement(newBlock);
-                } else {
-                    VisitReplacement(newSwitch);
-                }
-                return;
-            }
-
-            // Detect switch statements with multiple default cases
-            var defaultCase = (from cse in ss.Cases where (cse.Values == null) select cse).FirstOrDefault();
-            if (defaultCase != null) {
-                var defaultGotos = defaultCase.AllChildrenRecursive.OfType<JSGotoExpression>().ToArray();
-                if (defaultGotos.Length == 1) {
-                    var defaultGoto = defaultGotos[0];
-                    var extraCases = (from cse in ss.Cases
-                                      where cse.Values != null
-                                      let caseGotos = FindGotos(cse.Body, defaultGoto.TargetLabel).ToArray()
-                                      where caseGotos.Length == 1
-                                      select cse).ToArray();
-
-                    if (extraCases.Length > 0) {
-                        foreach (var ec in extraCases)
-                            ss.Cases.Remove(ec);
-                    }
-                }
+                VisitReplacement(newSwitch);
             }
 
             VisitChildren(ss);
