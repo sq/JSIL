@@ -108,10 +108,16 @@ namespace JSIL.Tests {
 
         [Test]
         public void Chars () {
-            using (var test = new ComparisonTest(@"TestCases\Chars.cs"))
-                test.Run();
-            using (var test = new ComparisonTest(@"TestCases\CharSwitch.cs"))
-                test.Run();
+            var defaultProvider = MakeDefaultProvider();
+
+            RunComparisonTests(
+                new[] { 
+                    @"TestCases\CharSwitch.cs",
+                    @"TestCases\Chars.cs",
+                    @"TestCases\CharArrayLookup.cs",
+                    @"TestCases\CharArithmetic.cs",
+                }, null, defaultProvider
+            );
         }
 
         [Test]

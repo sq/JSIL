@@ -1200,6 +1200,10 @@ namespace JSIL {
                 si.JSIL, si.JS, si.TypeSystem
             ).Visit(function);
 
+            new IntroduceCharCasts(
+                si.TypeSystem, si.JS
+            ).Visit(function);
+
             new IntroduceEnumCasts(
                 si.TypeSystem
             ).Visit(function);

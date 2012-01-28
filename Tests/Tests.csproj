@@ -267,6 +267,8 @@
     <None Include="TestCases\UntranslatableGotoOutParameters.cs" />
     <None Include="TestCases\RepeatIterator.cs" />
     <None Include="SimpleTestCases\StringEquals.cs" />
+    <None Include="TestCases\CharArrayLookup.cs" />
+    <None Include="TestCases\CharArithmetic.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
