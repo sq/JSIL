@@ -151,6 +151,16 @@ JSIL.ImplementExternals(
   }
 );
 
+// Unfortunately, without access to sandboxed natives, we have to extend the actual prototype for String :(
+
+String.prototype.Equals = function (rhs) {
+  if ((typeof (this) === "string") && (typeof (rhs) === "string")) {
+    return this == rhs;
+  } else {
+    return this === rhs;
+  }
+};
+
 String.prototype.Split = function (separators) {
   if (separators.length > 1)
     throw new Error("Split cannot handle more than one separator");
