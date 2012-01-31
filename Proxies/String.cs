@@ -69,7 +69,7 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("$lhs + String.fromCharCode($ch)")]
+        [JSReplacement("$lhs + $ch")]
         [JSIsPure]
         new public static string Concat (string lhs, char ch) {
             throw new InvalidOperationException();

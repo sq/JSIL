@@ -116,6 +116,7 @@ namespace JSIL.Tests {
                     @"TestCases\Chars.cs",
                     @"TestCases\CharArrayLookup.cs",
                     @"TestCases\CharArithmetic.cs",
+                    @"TestCases\CharConcat.cs",
                 }, null, defaultProvider
             );
         }
