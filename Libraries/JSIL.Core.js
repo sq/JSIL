@@ -2166,12 +2166,16 @@ JSIL.Array.New = function (type, sizeOrInitializer) {
     var size = Number(sizeOrInitializer);
     var result = new Array(size);
 
-    var defaultValue = null;
-    if (type.__IsNumeric__)
-      defaultValue = 0;
-
-    for (var i = 0; i < size; i++)
-      result[i] = defaultValue;
+    if (type.__IsReferenceType__) {
+      for (var i = 0; i < size; i++)
+        result[i] = null;
+    } else if (type.__IsNumeric__) {
+      for (var i = 0; i < size; i++)
+        result[i] = 0;
+    } else {
+      for (var i = 0; i < size; i++)
+        result[i] = new type();
+    }
   }
 
   /* Even worse, doing this deoptimizes all uses of the array in TraceMonkey. AUGH
