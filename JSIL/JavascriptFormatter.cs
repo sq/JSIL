@@ -527,8 +527,15 @@ namespace JSIL.Internal {
             Value(GetNameOfType(type as dynamic));
         }
 
+        protected string GetNameOfType (GenericParameter gp) {
+            return gp.Name;
+        }
+
         protected string GetNameOfType (TypeReference type) {
             var info = TypeInfo.Get(type);
+            if (info == null)
+                throw new InvalidOperationException("No type information for type " + type);
+
             return info.FullName;
         }
 
