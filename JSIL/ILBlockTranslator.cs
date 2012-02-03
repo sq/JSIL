@@ -1680,7 +1680,7 @@ namespace JSIL {
                 return TranslateNode(node.Arguments[0]);
             }
 
-            return JSIL.Cast(
+            return JSCastExpression.New(
                 TranslateNode(node.Arguments[0]),
                 targetType
             );
@@ -1699,7 +1699,7 @@ namespace JSIL {
         protected JSExpression Translate_Unbox_Any (ILExpression node, TypeReference targetType) {
             var value = TranslateNode(node.Arguments[0]);
 
-            var result = JSIL.Cast(value, targetType);
+            var result = JSCastExpression.New(value, targetType);
 
             if (CopyOnReturn(targetType))
                 return JSReferenceExpression.New(result);
@@ -1777,7 +1777,7 @@ namespace JSIL {
                 if (currentType.FullName == "JSIL.Proxy.AnyType")
                     return value;
 
-                return JSIL.Cast(value, expectedType);
+                return JSCastExpression.New(value, expectedType);
             } else
                 return value;
         }

@@ -93,29 +93,10 @@ namespace JSIL {
         }
 
         public JSExpression Cast (JSExpression expression, TypeReference targetType) {
-            var currentType = ILBlockTranslator.DereferenceType(expression.GetExpectedType(TypeSystem));
-            targetType = ILBlockTranslator.DereferenceType(targetType);
-
-            if (targetType.MetadataType == MetadataType.Char) {
-                return JSInvocationExpression.InvokeStatic(JS.fromCharCode, new[] { expression }, true);
-            } else if (
-                (currentType.MetadataType == MetadataType.Char) &&
-                ILBlockTranslator.IsIntegral(targetType)
-            ) {
-                return JSInvocationExpression.InvokeMethod(JS.charCodeAt, expression, new[] { JSLiteral.New(0) }, true);
-            } else if (
-                ILBlockTranslator.IsEnum(currentType) &&
-                ILBlockTranslator.IsIntegral(targetType)
-            ) {
-                return new JSDotExpression(
-                    expression, new JSStringIdentifier("value", targetType)
-                );
-            } else {
-                return JSInvocationExpression.InvokeStatic(
-                    Dot("Cast", targetType),
-                    new [] { expression, new JSType(targetType) }, true
-                );
-            }
+            return JSInvocationExpression.InvokeStatic(
+                Dot("Cast", targetType),
+                new[] { expression, new JSType(targetType) }, true
+            );
         }
 
         public JSInvocationExpression NewArray (TypeReference elementType, JSExpression sizeOrArrayInitializer) {

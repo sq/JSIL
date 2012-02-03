@@ -3133,6 +3133,48 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSCastExpression : JSExpression {
+        public readonly TypeReference NewType;
+
+        protected JSCastExpression (JSExpression inner, TypeReference newType)
+            : base(inner) {
+
+            NewType = newType;
+        }
+
+        public static JSExpression New (JSExpression inner, TypeReference newType) {
+            return new JSCastExpression(inner, newType);
+        }
+
+        public JSExpression Expression {
+            get {
+                return Values[0];
+            }
+        }
+
+        public override bool IsStatic {
+            get {
+                return Expression.IsStatic;
+            }
+        }
+
+        public override bool IsConstant {
+            get {
+                return Expression.IsConstant;
+            }
+        }
+
+        public override bool IsNull {
+            get {
+                return Expression.IsNull;
+            }
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return NewType;
+        }
+    }
+
     public class JSChangeTypeExpression : JSExpression {
         public readonly TypeReference NewType;
 

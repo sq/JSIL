@@ -1205,7 +1205,7 @@ namespace JSIL {
             ).Visit(function);
 
             new IntroduceEnumCasts(
-                si.TypeSystem
+                si.TypeSystem, TypeInfoProvider
             ).Visit(function);
 
             var dss = new DeoptimizeSwitchStatements(
@@ -1219,6 +1219,10 @@ namespace JSIL {
                 new SimplifyLoops(
                     si.TypeSystem, true
                 ).Visit(function);
+
+            new ExpandCastExpressions(
+                si.TypeSystem, si.JS, si.JSIL
+            ).Visit(function);
 
             temporaryEliminationPass();
 

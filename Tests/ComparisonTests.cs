@@ -131,7 +131,8 @@ namespace JSIL.Tests {
                     @"TestCases\EnumSwitch.cs",
                     @"TestCases\Enums.cs",
                     @"TestCases\EnumArrayLookup.cs",
-                    @"TestCases\OverloadWithEnum.cs"
+                    @"TestCases\OverloadWithEnum.cs",
+                    @"TestCases\EnumIfStatement.cs"
                 }, null, defaultProvider
             );
         }

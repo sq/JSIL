@@ -80,6 +80,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SpecialIdentifiers.cs" />
     <Compile Include="Transforms\CollapseNulls.cs" />
+    <Compile Include="Transforms\ExpandCastExpressions.cs" />
     <Compile Include="Transforms\IntroduceCharCasts.cs" />
     <Compile Include="Transforms\RemoveUnusedLoopNames.cs" />
     <Compile Include="Transforms\LabelGroupBuilder.cs" />
