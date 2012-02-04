@@ -498,7 +498,7 @@ namespace JSIL {
             output.Identifier("JSIL.MakeInterface", null);
             output.LPar();
             output.NewLine();
-
+            
             output.Value(Util.EscapeIdentifier(iface.FullName, EscapingMode.String));
             output.Comma();
 
@@ -551,6 +551,12 @@ namespace JSIL {
 
             output.NewLine();
             output.CloseBrace(false);
+            output.Comma();
+
+            output.OpenBracket();
+            foreach (var i in iface.Interfaces)
+                output.TypeReference(i);
+            output.CloseBracket();
 
             output.RPar();
             output.Semicolon();

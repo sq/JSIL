@@ -1234,6 +1234,9 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.FullName = typeObject.__FullName__ = fullName;
     typeObject.__ShortName__ = localName;
     typeObject.__LockCount__ = 0;
+    typeObject.IsAssignableFrom = function (typeOfValue) {
+      return JSIL.CheckDerivation(typeOfValue.prototype, typeObject.prototype);
+    };
 
     if (stack !== null)
       typeObject.__CallStack__ = stack;
@@ -1298,22 +1301,83 @@ JSIL.MakeStruct = function (baseType, fullName, isPublic, genericArguments, init
   JSIL.MakeType(baseType, fullName, false, isPublic, genericArguments, initializer);
 };
 
-JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members) {
+JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, interfaces) {
   var localName = JSIL.GetLocalName(fullName);
 
-  var typeObject = function() {
+  var typeObject = function () {
     throw new Error("Cannot construct an instance of an interface");
   };
   typeObject.__TypeId__ = ++JSIL.$NextTypeId;
   typeObject.__Members__ = members;
   typeObject.__ShortName__ = localName;
+  typeObject.__Context__ = $private;
   typeObject.FullName = typeObject.__FullName__ = fullName;
   typeObject.__GenericArguments__ = genericArguments || [];
   typeObject.IsInterface = true;
+  typeObject.__Interfaces__ = interfaces;
   typeObject.Of = function () {
     return typeObject;
   };
   typeObject.prototype = JSIL.CloneObject(JSIL.Interface.prototype);
+  typeObject.IsAssignableFrom = function (typeOfValue) {
+    if (typeObject === typeOfValue)
+      return true;
+
+    var getInterfaceTypeObject = function (iface) {
+      if (typeof (iface) === "undefined") {
+        throw new Error("Attempting to resolve undefined interface");
+      } else if (typeof (iface) === "string") {
+        var resolved = JSIL.ResolveName(
+          typeOfValue.__Context__ || JSIL.GlobalNamespace, iface, true
+        );
+        if (resolved.exists())
+          return resolved.get();
+        else {
+          throw new Error("Attempting to resolve undefined interface named '" + iface + "'.");
+        }
+      } else if ((typeof (iface) === "object") && (typeof (iface.get) === "function")) {
+        return iface.get();
+      }
+    };
+
+    var matchInterfacesRecursive = function (iface, needle) {
+      if (iface === needle)
+        return true;
+
+      if (!JSIL.IsArray(iface.__Interfaces__))
+        return false;
+
+      var interfaces = iface.__Interfaces__;
+      for (var i = 0; i < interfaces.length; i++) {
+        var baseIface = getInterfaceTypeObject(interfaces[i]);
+
+        if (matchInterfacesRecursive(baseIface, needle))
+          return true;
+      }
+      return false;
+    };
+
+    if (typeOfValue.IsInterface) {
+      if (matchInterfacesRecursive(typeOfValue, typeObject))
+        return true;
+    }
+    else {
+      var value = typeOfValue.prototype;
+      var interfaces = typeOfValue.prototype.__Interfaces__;
+
+      while (JSIL.IsArray(interfaces)) {
+        for (var i = 0; i < interfaces.length; i++) {
+          if (matchInterfacesRecursive(interfaces[i], typeObject))
+            return true;
+        }
+
+        value = Object.getPrototypeOf(value);
+        interfaces = value.__Interfaces__;
+      }
+    }
+
+    return false;
+  };
 
   if (typeof (printStackTrace) === "function")
     typeObject.__CallStack__ = printStackTrace();
@@ -1934,6 +1998,8 @@ JSIL.ImplementExternals(
     }
   }
 );
+
+JSIL.MakeClass("System.Object", "System.Type", true);
 
 JSIL.MakeClass("System.Object", "JSIL.AnyType", true, [], function ($) {
   $.CheckType = function (value) {

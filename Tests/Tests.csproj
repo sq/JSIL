@@ -273,6 +273,7 @@
     <None Include="SimpleTestCases\ArrayOfStructsDefaultValues.cs" />
     <None Include="TestCases\CharConcat.cs" />
     <None Include="TestCases\GenericMethodAsGenericDelegate.cs" />
+    <None Include="SimpleTestCases\IsAssignableFrom.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
