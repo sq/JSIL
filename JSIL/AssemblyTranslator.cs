@@ -554,8 +554,16 @@ namespace JSIL {
             output.Comma();
 
             output.OpenBracket();
-            foreach (var i in iface.Interfaces)
+            isFirst = true;
+            foreach (var i in iface.Interfaces) {
+                if (!isFirst) {
+                    output.Comma();
+                }
+
                 output.TypeReference(i);
+
+                isFirst = false;
+            }
             output.CloseBracket();
 
             output.RPar();

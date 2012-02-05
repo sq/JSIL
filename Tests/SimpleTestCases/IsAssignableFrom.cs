@@ -12,12 +12,14 @@ interface I { }
 struct J : I { }
 interface K : I { }
 class L : K { }
+interface M : I, IDisposable { }
+class N : M { public void Dispose() { } }
 
 public class Program
 {
     public static void Main(string[] args)
     {
-        var types = new[] { typeof(A), typeof(B), typeof(C), typeof(D), typeof(E), typeof(F), typeof(G), typeof(H), typeof(I), typeof(J), typeof(K), typeof(L) };
+        var types = new[] { typeof(A), typeof(B), typeof(C), typeof(D), typeof(E), typeof(F), typeof(G), typeof(H), typeof(I), typeof(J), typeof(K), typeof(L), typeof(M), typeof(N) };
 
         foreach (var t in types)
         {

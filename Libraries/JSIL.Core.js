@@ -1367,7 +1367,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
 
       while (JSIL.IsArray(interfaces)) {
         for (var i = 0; i < interfaces.length; i++) {
-          if (matchInterfacesRecursive(interfaces[i], typeObject))
+          if (interfaces[i] === typeObject)
             return true;
         }
 
