@@ -275,6 +275,7 @@
     <None Include="TestCases\GenericMethodAsGenericDelegate.cs" />
     <None Include="TestCases\EnumIfStatement.cs" />
     <None Include="SimpleTestCases\IsAssignableFrom.cs" />
+    <None Include="SimpleTestCases\DelegateResultWithConstraints.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

@@ -1181,8 +1181,8 @@ namespace JSIL.Ast {
             var mref = reference as JSMemberReferenceExpression;
 
             if (iref != null) {
-                var invocation = iref.Referent;
-                var jsm = invocation.JSMethod;
+                var invocation = iref.Referent as JSInvocationExpression;
+                var jsm = invocation != null ? invocation.JSMethod : null;
                 if (jsm != null) {
 
                     // For some reason the compiler sometimes generates 'addressof Array.Get(...)', and then it
@@ -1265,18 +1265,18 @@ namespace JSIL.Ast {
     public class JSResultReferenceExpression : JSReferenceExpression {
         public readonly int Depth;
 
-        public JSResultReferenceExpression (JSInvocationExpression invocation, int depth = 1)
+        public JSResultReferenceExpression(JSInvocationExpressionBase invocation, int depth = 1)
             : base (invocation) {
                 Depth = depth;
         }
 
-        new public JSInvocationExpression Referent {
+        new public JSInvocationExpressionBase Referent {
             get {
                 var sce = base.Referent as JSStructCopyExpression;
                 if (sce != null)
-                    return (JSInvocationExpression)sce.Struct;
+                    return (JSInvocationExpressionBase)sce.Struct;
                 else
-                    return (JSInvocationExpression)base.Referent;
+                    return (JSInvocationExpressionBase)base.Referent;
             }
         }
 
@@ -2575,7 +2575,13 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSInvocationExpression : JSExpression {
+    public class JSInvocationExpressionBase : JSExpression {
+        protected JSInvocationExpressionBase(params JSExpression [] values): base(values) {
+
+        }
+    }
+
+    public class JSInvocationExpression : JSInvocationExpressionBase {
         public readonly bool ConstantIfArgumentsAre;
         public readonly bool ExplicitThis;
 
@@ -2768,7 +2774,8 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSDelegateInvocationExpression : JSExpression {
+    public class JSDelegateInvocationExpression : JSInvocationExpressionBase
+    {
         public readonly TypeReference ReturnType;
 
         public JSDelegateInvocationExpression (
