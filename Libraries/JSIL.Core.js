@@ -563,7 +563,7 @@ JSIL.TypeRef.prototype.get = function () {
         ga[i] = arg = new JSIL.TypeRef(this.context, arg).get();
     }
 
-    this.cachedReference = this.cachedReference.Of.apply(this.cachedReference, ga);
+    this.cachedReference = this.cachedReference.Of$NoInitialize.apply(this.cachedReference, ga);
   }
 
   return this.cachedReference;
@@ -806,7 +806,7 @@ JSIL.TypeObjectPrototype.__GenericArguments__ = [];
 JSIL.TypeObjectPrototype.toString = function () {
   return JSIL.GetTypeName(this);
 };
-JSIL.TypeObjectPrototype.Of = function () {
+JSIL.TypeObjectPrototype.Of$NoInitialize = function () {
   // This whole function would be 100x simpler if you could provide a prototype when constructing a function. Javascript sucks so much.
 
   var self = this;
@@ -877,8 +877,15 @@ JSIL.TypeObjectPrototype.Of = function () {
 
   JSIL.InstantiateGenericProperties(result);
 
-  // Force the initialized state back to false and, if the outer type is initialized, initialize the inner type.
+  // Force the initialized state back to false
   result.__TypeInitialized__ = false;
+
+  return result;
+};
+JSIL.TypeObjectPrototype.Of = function () {
+  var result = this.Of$NoInitialize.apply(this, arguments);
+
+  // If the outer type is initialized, initialize the inner type.
   if (this.__TypeInitialized__)
     JSIL.InitializeType(result);
 
@@ -1163,6 +1170,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
 
   typeObject.__GenericArguments__ = genericArguments || [];
   if (typeObject.__GenericArguments__.length > 0) {
+    typeObject.Of$NoInitialize = JSIL.TypeObjectPrototype.Of$NoInitialize.bind(typeObject);
     typeObject.Of = JSIL.TypeObjectPrototype.Of.bind(typeObject);
     typeObject.__IsClosed__ = false;
   } else {
@@ -1243,6 +1251,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
 
     typeObject.__GenericArguments__ = genericArguments || [];
     if (typeObject.__GenericArguments__.length > 0) {
+      typeObject.Of$NoInitialize = JSIL.TypeObjectPrototype.Of$NoInitialize.bind(typeObject);
       typeObject.Of = JSIL.TypeObjectPrototype.Of.bind(typeObject);
       typeObject.__IsClosed__ = false;
     } else {
@@ -1315,6 +1324,9 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
   typeObject.__GenericArguments__ = genericArguments || [];
   typeObject.IsInterface = true;
   typeObject.__Interfaces__ = interfaces;
+  typeObject.Of$NoInitialize = function () {
+    return typeObject;
+  };
   typeObject.Of = function () {
     return typeObject;
   };
@@ -1434,6 +1446,9 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     return localName;
   };
 
+  result.Of$NoInitialize = function () {
+    return result;
+  };
   result.Of = function () {
     return result;
   };
@@ -2117,8 +2132,11 @@ System.ValueType.prototype.Equals = function (rhs) {
 
 JSIL.Interface = function () { };
 JSIL.Interface.prototype = JSIL.MakeProto(Object, JSIL.Interface, "JSIL.Interface", true, $private);
-JSIL.Interface.prototype.Of = function (T) {
+JSIL.Interface.prototype.Of$NoInitialize = function () {
   return this;
+};
+JSIL.Interface.prototype.Of = function () {
+  return this.Of$NoInitialize.apply(this, arguments);
 };
 
 JSIL.MakeInterface("System.IDisposable", true, [], {
@@ -2451,6 +2469,9 @@ JSIL.MakeDelegateType = function (fullName, localName) {
     IsEnum: false
   };
 
+  result.Of$NoInitialize = function () {
+    return result;
+  };
   result.Of = function () {
     return result;
   };
