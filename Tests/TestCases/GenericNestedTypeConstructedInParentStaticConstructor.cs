@@ -2,21 +2,22 @@ using System;
 
 public class Program {
     public static void Main (string[] args) {
-        Console.WriteLine(Battlestar<object>.instance.name);
+        Console.WriteLine(Battlestar<object>.instance.commander);
     }
 }
 
 class Battlestar<T> {
-    public string name;
+    public string commander;
     public static Battlestar<T> instance;
 
     class Galactica : Battlestar<T> {
         public Galactica () {
-            name = "Starbuck";
+            commander = "Adama";
         }
     }
 
-    static Battlestar () {
+    static Battlestar() {
+        Console.WriteLine(".cctor " + typeof(T));
         instance = new Galactica();
     }
 }

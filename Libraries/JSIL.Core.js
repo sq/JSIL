@@ -559,14 +559,22 @@ JSIL.TypeRef.prototype.get = function () {
 
   if (this.genericArguments.length > 0) {
     var ga = this.genericArguments;
+    var doCloseType = true;
+
     for (var i = 0, l = ga.length; i < l; i++) {
       var arg = ga[i];
+
+      if (typeof (arg) === "object" && Object.getPrototypeOf(arg) === JSIL.GenericParameter.prototype) {
+        doCloseType = false;
+        break;
+      }
 
       if (typeof (arg) === "string")
         ga[i] = arg = new JSIL.TypeRef(this.context, arg).get();
     }
 
-    this.cachedReference = this.cachedReference.Of$NoInitialize.apply(this.cachedReference, ga);
+    if (doCloseType)
+      this.cachedReference = this.cachedReference.Of$NoInitialize.apply(this.cachedReference, ga);
   }
 
   return this.cachedReference;
