@@ -13,41 +13,35 @@ JSIL.MakeClass("System.ComponentModel.MemberDescriptor", "System.ComponentModel.
 JSIL.MakeClass("System.Object", "System.ComponentModel.TypeConverter", true);
 JSIL.MakeClass("System.ComponentModel.TypeConverter", "System.ComponentModel.ExpandableObjectConverter", true);
 
-System.Delegate.prototype = JSIL.MakeProto(Function, System.Delegate, "System.Delegate", true);
-System.Delegate.prototype.Invoke = function () {
-  return this.__method__.apply(this.__object__, arguments);
+$jsilcore.$GetInvocationList = function (delegate) {
+    if (delegate === null) {
+      return [ ];
+    } else if (typeof (delegate.GetInvocationList) === "function") {
+      return delegate.GetInvocationList();
+    } else if (typeof (delegate) === "function") {
+      return [ delegate ];
+    } else {
+      throw new Error("Unsupported target for GetInvocationList");
+    }
 };
-System.Delegate.prototype.toString = System.Object.prototype.toString;
-System.Delegate.prototype.GetInvocationList = function () {
-  return [ this ];
-};
-System.Delegate.GetInvocationList = function (delegate) {
-  if (delegate === null) {
-    return [ ];
-  } else if (typeof (delegate.GetInvocationList) === "function") {
-    return delegate.GetInvocationList();
-  } else if (typeof (delegate) === "function") {
-    return [ delegate ];
-  }
-};
-System.Delegate.Combine = function (lhs, rhs) {
+$jsilcore.$Combine = function (lhs, rhs) {
   if (rhs === null) {
     return lhs;
   } else if (lhs === null) {
     return rhs;
   }
 
-  var newList = Array.prototype.slice.call(System.Delegate.GetInvocationList(lhs));
-  newList.push.apply(newList, System.Delegate.GetInvocationList(rhs));
+  var newList = Array.prototype.slice.call($jsilcore.$GetInvocationList(lhs));
+  newList.push.apply(newList, $jsilcore.$GetInvocationList(rhs));
   var result = JSIL.MulticastDelegate.New(newList);
   return result;
 };
-System.Delegate.Remove = function (lhs, rhs) {
+$jsilcore.$Remove = function (lhs, rhs) {
   if (rhs === null)
     return lhs;
 
-  var newList = Array.prototype.slice.call(System.Delegate.GetInvocationList(lhs));
-  var rhsList = System.Delegate.GetInvocationList(rhs);
+  var newList = Array.prototype.slice.call($jsilcore.$GetInvocationList(lhs));
+  var rhsList = $jsilcore.$GetInvocationList(rhs);
 
   for (var i = 0; i < rhsList.length; i++) {
     var needle = rhsList[i];
@@ -72,15 +66,46 @@ System.Delegate.Remove = function (lhs, rhs) {
     return JSIL.MulticastDelegate.New(newList);
 };
 
-System.MulticastDelegate.prototype = JSIL.MakeProto(System.Delegate, System.MulticastDelegate, "System.MulticastDelegate", true);
-System.MulticastDelegate.prototype.GetInvocationList = function () {
-  return this.delegates;
-};
-System.MulticastDelegate.prototype.Invoke = function () {
-  return this.apply(null, arguments);
-};
-System.MulticastDelegate.Combine = System.Delegate.Combine;
-System.MulticastDelegate.Remove = System.Delegate.Remove;
+JSIL.ImplementExternals(
+  "System.Delegate", true, {
+    Invoke: function () {
+      return this.__method__.apply(this.__object__, arguments);
+    },
+    toString: System.Object.prototype.toString,
+    GetInvocationList: function () {
+      return [ this ];
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.MulticastDelegate", true, {
+    GetInvocationList: function () {
+      return this.delegates;
+    },
+    Invoke: function () {
+      return this.apply(null, arguments);
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.Delegate", false, {
+    GetInvocationList: $jsilcore.$GetInvocationList,
+    Combine: $jsilcore.$Combine,
+    Remove: $jsilcore.$Remove
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.MulticastDelegate", false, {
+    Combine: $jsilcore.$Combine,
+    Remove: $jsilcore.$Remove
+  }
+);
+
+JSIL.MakeClass("System.Object", "System.Delegate", true, []);
+JSIL.MakeClass("System.Object", "System.MulticastDelegate", true, []);
 
 JSIL.MulticastDelegate.New = function (delegates) {
   var invoker = function () {
@@ -456,43 +481,53 @@ JSIL.MakeClass("JSIL.ArrayEnumerator", "System.Collections.Generic.List`1/Enumer
   $.prototype.get_Current = JSIL.ArrayEnumerator.prototype.get_Current;
 });
 
-System.Threading.Interlocked.CompareExchange$b1 = JSIL.GenericMethod(
-  ["T"], 
-  function (T, targetRef, value, comparand, succeeded) {
-    var currentValue = targetRef.value;
-    if (currentValue === comparand) {
-      targetRef.value = value;
-      if (typeof (succeeded) != "undefined")
-        succeeded.value = true;
+JSIL.ImplementExternals(
+  "System.Threading.Interlocked", false, {
+    CompareExchange$b1: JSIL.GenericMethod(
+      ["T"], 
+      function (T, targetRef, value, comparand, succeeded) {
+        var currentValue = targetRef.value;
+        if (currentValue === comparand) {
+          targetRef.value = value;
+          if (typeof (succeeded) != "undefined")
+            succeeded.value = true;
 
-      return comparand;
-    } else {
-      if (typeof (succeeded) != "undefined")
-        succeeded.value = false;
+          return comparand;
+        } else {
+          if (typeof (succeeded) != "undefined")
+            succeeded.value = false;
 
-      return currentValue;
+          return currentValue;
+        }
+      }
+    )
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.Threading.Monitor", false, {
+    Enter: function (obj, lockTaken) {
+      var current = (obj.__LockCount__ || 0);
+      if (current >= 1)
+        JSIL.Host.warning("Warning: lock recursion ", obj);
+
+      obj.__LockCount__ = current + 1;
+
+      if (typeof (lockTaken) != "undefined")
+        lockTaken.value = true;
+    },
+    Exit: function (obj) {
+      var current = (obj.__LockCount__ || 0);
+      if (current <= 0)
+        JSIL.Host.warning("Warning: unlocking an object that is not locked ", obj);
+
+      obj.__LockCount__ = current - 1;
     }
   }
 );
 
-System.Threading.Monitor.Enter = function (obj, lockTaken) {
-  var current = (obj.__LockCount__ || 0);
-  if (current >= 1)
-    JSIL.Host.warning("Warning: lock recursion ", obj);
-
-  obj.__LockCount__ = current + 1;
-
-  if (typeof (lockTaken) != "undefined")
-    lockTaken.value = true;
-};
-
-System.Threading.Monitor.Exit = function (obj) {
-  var current = (obj.__LockCount__ || 0);
-  if (current <= 0)
-    JSIL.Host.warning("Warning: unlocking an object that is not locked ", obj);
-
-  obj.__LockCount__ = current - 1;
-};
+JSIL.MakeStaticClass("System.Threading.Interlocked", true, []);
+JSIL.MakeStaticClass("System.Threading.Monitor", true, []);
 
 JSIL.MakeClass("System.Object", "System.Random", true, [], function ($) {
   JSIL.ExternalMembers($, true,

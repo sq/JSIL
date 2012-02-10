@@ -7,6 +7,13 @@ var JSIL = {
   __FullName__ : "JSIL"
 };
 
+if (typeof (Object.create) !== "function") {
+  throw new Error("JSIL requires support for ES5 Object.create");
+}
+if (typeof (Object.defineProperty) !== "function") {
+  throw new Error("JSIL requires support for Object.defineProperty");
+}
+
 // Safari does not provide Function.prototype.bind, and we need it.
 if (typeof (Function.prototype.bind) !== "function") {
   // Implementation from https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Function/bind
@@ -263,13 +270,9 @@ JSIL.DeclareNamespace("System");
 JSIL.DeclareNamespace("System.Collections");
 JSIL.DeclareNamespace("System.Collections.Generic");
 JSIL.DeclareNamespace("System.Array", false);
-JSIL.DeclareNamespace("System.Delegate", false);
-JSIL.DeclareNamespace("System.MulticastDelegate", false);
 JSIL.DeclareNamespace("System.Enum", false);
 JSIL.DeclareNamespace("System.Text");
 JSIL.DeclareNamespace("System.Threading");
-JSIL.DeclareNamespace("System.Threading.Interlocked", false);
-JSIL.DeclareNamespace("System.Threading.Monitor", false);
 JSIL.DeclareNamespace("System.Globalization", false);
 JSIL.DeclareNamespace("System.Environment", false);
 JSIL.DeclareNamespace("System.Runtime", false);
