@@ -1,6 +1,3 @@
-[submodule "Upstream/ILSpy"]
-	path = Upstream/ILSpy
-	url = https://github.com/kevingadd/ILSpy.git
 [submodule "Examples/Tetris"]
 	path = Examples/Tetris
 	url = https://github.com/ttocs7/tetris.git
@@ -10,3 +7,6 @@
 [submodule "Examples/PlatformerStarterKit"]
 	path = Examples/PlatformerStarterKit
 	url = git@github.com:kevingadd/PlatformerStarterKit.git
+[submodule "Upstream/ILSpy"]
+	path = Upstream/ILSpy
+	url = https://github.com/kevingadd/ILSpy.git
