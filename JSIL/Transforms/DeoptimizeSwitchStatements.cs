@@ -98,6 +98,43 @@ namespace JSIL.Transforms {
 
                                 initializer.Values[(int)index.Value] = value;
                             }
+
+                            foreach (var iae in ifs.TrueClause.AllChildrenRecursive.OfType<JSInitializerApplicationExpression>()) {
+                                var targetNew = iae.Target as JSNewExpression;
+                                if (targetNew == null)
+                                    continue;
+
+                                var targetNewJSType = targetNew.Type as JSType;
+                                if (targetNewJSType == null)
+                                    continue;
+
+                                var targetNewType = targetNewJSType.Type as GenericInstanceType;
+                                if (targetNewType == null)
+                                    continue;
+                                if (!targetNewType.Name.Contains("Dictionary"))
+                                    continue;
+                                if (targetNewType.GenericArguments.Count != 2)
+                                    continue;
+                                if (targetNewType.GenericArguments[1].MetadataType != MetadataType.Int32)
+                                    continue;
+
+                                var initArray = iae.Initializer as JSArrayExpression;
+                                if (initArray == null)
+                                    continue;
+
+                                foreach (var item in initArray.Values) {
+                                    var itemArray = item as JSArrayExpression;
+                                    if (itemArray == null)
+                                        continue;
+
+                                    var value = itemArray.Values.First();
+                                    var index = itemArray.Values.Skip(1).First() as JSIntegerLiteral;
+                                    if (index == null)
+                                        continue;
+
+                                    initializer.Values[(int)index.Value] = value;
+                                }
+                            }
                         }
                     }
                 }

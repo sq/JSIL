@@ -2774,8 +2774,7 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSDelegateInvocationExpression : JSInvocationExpressionBase
-    {
+    public class JSDelegateInvocationExpression : JSInvocationExpressionBase {
         public readonly TypeReference ReturnType;
 
         public JSDelegateInvocationExpression (
@@ -2815,6 +2814,34 @@ namespace JSIL.Ast {
                 ThisReference, 
                 String.Join(", ", (from a in Arguments select String.Concat(a)).ToArray())
             );
+        }
+    }
+
+    public class JSInitializerApplicationExpression : JSExpression {
+        public JSInitializerApplicationExpression (JSExpression target, JSExpression initializer)
+            : base (target, initializer) {
+        }
+
+        public JSExpression Target {
+            get {
+                return Values[0];
+            }
+        }
+
+        public JSExpression Initializer {
+            get {
+                return Values[1];
+            }
+        }
+
+        public override bool IsConstant {
+            get {
+                return Target.IsConstant && Initializer.IsConstant;
+            }
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return Target.GetExpectedType(typeSystem);
         }
     }
 

@@ -2039,7 +2039,7 @@ namespace JSIL {
             );
         }
 
-        protected JSInvocationExpression Translate_InitObject (ILExpression node) {
+        protected JSInitializerApplicationExpression Translate_InitObject (ILExpression node) {
             var target = TranslateNode(node.Arguments[0]);
             var typeInfo = TypeInfo.Get(target.GetExpectedType(TypeSystem));
 
@@ -2087,11 +2087,8 @@ namespace JSIL {
                 }
             }
 
-            return JSInvocationExpression.InvokeMethod(
-                new JSFakeMethod("__Initialize__", target.GetExpectedType(TypeSystem)),
-                target, new[] { 
-                    new JSObjectExpression(initializers.ToArray())
-                }
+            return new JSInitializerApplicationExpression(
+                target, new JSObjectExpression(initializers.ToArray())
             );
         }
 

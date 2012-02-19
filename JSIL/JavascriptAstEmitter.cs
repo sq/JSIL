@@ -1068,5 +1068,16 @@ namespace JSIL {
 
             Output.RPar();
         }
+
+        public void VisitNode (JSInitializerApplicationExpression iae) {
+            Output.LPar();
+            Visit(iae.Target);
+            Output.RPar();
+            Output.Dot();
+            Output.Identifier("__Initialize__");
+            Output.LPar();
+            Visit(iae.Initializer);
+            Output.RPar();
+        }
     }
 }

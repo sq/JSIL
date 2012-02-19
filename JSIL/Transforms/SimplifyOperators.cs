@@ -147,16 +147,15 @@ namespace JSIL.Transforms {
                     (rightType != null) &&
                     (rightType.Member.Identifier == "CollectionInitializer")
                 ) {
-                    var newInvocation = JSInvocationExpression.InvokeMethod(
-                        new JSStringIdentifier("__Initialize__", boe.Left.GetExpectedType(TypeSystem)), 
-                        boe.Left, new [] { new JSArrayExpression(
+                    var newInitializer = new JSInitializerApplicationExpression(
+                        boe.Left, new JSArrayExpression(
                             TypeSystem.Object,
                             rightNew.Arguments.ToArray()
-                        ) }
+                        )
                     );
 
-                    ParentNode.ReplaceChild(boe, newInvocation);
-                    VisitReplacement(newInvocation);
+                    ParentNode.ReplaceChild(boe, newInitializer);
+                    VisitReplacement(newInitializer);
 
                     return;
                 }
