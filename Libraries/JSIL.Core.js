@@ -1324,88 +1324,95 @@ JSIL.MakeStruct = function (baseType, fullName, isPublic, genericArguments, init
 JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, interfaces) {
   var localName = JSIL.GetLocalName(fullName);
 
-  var typeObject = function () {
-    throw new Error("Cannot construct an instance of an interface");
-  };
-  typeObject.__TypeId__ = ++JSIL.$NextTypeId;
-  typeObject.__Members__ = members;
-  typeObject.__ShortName__ = localName;
-  typeObject.__Context__ = $private;
-  typeObject.FullName = typeObject.__FullName__ = fullName;
-  typeObject.__GenericArguments__ = genericArguments || [];
-  typeObject.IsInterface = true;
-  typeObject.__Interfaces__ = interfaces;
-  typeObject.Of$NoInitialize = function () {
-    return typeObject;
-  };
-  typeObject.Of = function () {
-    return typeObject;
-  };
-  typeObject.prototype = JSIL.CloneObject(JSIL.Interface.prototype);
-  typeObject.IsAssignableFrom = function (typeOfValue) {
-    if (typeObject === typeOfValue)
-      return true;
+  var callStack = null;
+  if (typeof (printStackTrace) === "function")
+    callStack = printStackTrace();
 
-    var getInterfaceTypeObject = function (iface) {
-      if (typeof (iface) === "undefined") {
-        throw new Error("Attempting to resolve undefined interface");
-      } else if (typeof (iface) === "string") {
-        var resolved = JSIL.ResolveName(
-          typeOfValue.__Context__ || JSIL.GlobalNamespace, iface, true
-        );
-        if (resolved.exists())
-          return resolved.get();
-        else {
-          throw new Error("Attempting to resolve undefined interface named '" + iface + "'.");
-        }
-      } else if ((typeof (iface) === "object") && (typeof (iface.get) === "function")) {
-        return iface.get();
-      }
+  var creator = function () {
+    var typeObject = function () {
+      throw new Error("Cannot construct an instance of an interface");
     };
 
-    var matchInterfacesRecursive = function (iface, needle) {
-      if (iface === needle)
+    typeObject.__CallStack__ = callStack;
+    typeObject.__TypeId__ = ++JSIL.$NextTypeId;
+    typeObject.__Members__ = members;
+    typeObject.__ShortName__ = localName;
+    typeObject.__Context__ = $private;
+    typeObject.FullName = typeObject.__FullName__ = fullName;
+    typeObject.__GenericArguments__ = genericArguments || [];
+    typeObject.IsInterface = true;
+    typeObject.__Interfaces__ = interfaces;
+    typeObject.Of$NoInitialize = function () {
+      return typeObject;
+    };
+    typeObject.Of = function () {
+      return typeObject;
+    };
+    typeObject.prototype = JSIL.CloneObject(JSIL.Interface.prototype);
+    typeObject.IsAssignableFrom = function (typeOfValue) {
+      if (typeObject === typeOfValue)
         return true;
 
-      if (!JSIL.IsArray(iface.__Interfaces__))
+      var getInterfaceTypeObject = function (iface) {
+        if (typeof (iface) === "undefined") {
+          throw new Error("Attempting to resolve undefined interface");
+        } else if (typeof (iface) === "string") {
+          var resolved = JSIL.ResolveName(
+            typeOfValue.__Context__ || JSIL.GlobalNamespace, iface, true
+          );
+          if (resolved.exists())
+            return resolved.get();
+          else {
+            throw new Error("Attempting to resolve undefined interface named '" + iface + "'.");
+          }
+        } else if ((typeof (iface) === "object") && (typeof (iface.get) === "function")) {
+          return iface.get();
+        }
+      };
+
+      var matchInterfacesRecursive = function (iface, needle) {
+        if (iface === needle)
+          return true;
+
+        if (!JSIL.IsArray(iface.__Interfaces__))
+          return false;
+
+        var interfaces = iface.__Interfaces__;
+        for (var i = 0; i < interfaces.length; i++) {
+          var baseIface = getInterfaceTypeObject(interfaces[i]);
+
+          if (matchInterfacesRecursive(baseIface, needle))
+            return true;
+        }
         return false;
+      };
 
-      var interfaces = iface.__Interfaces__;
-      for (var i = 0; i < interfaces.length; i++) {
-        var baseIface = getInterfaceTypeObject(interfaces[i]);
-
-        if (matchInterfacesRecursive(baseIface, needle))
+      if (typeOfValue.IsInterface) {
+        if (matchInterfacesRecursive(typeOfValue, typeObject))
           return true;
       }
+      else {
+        var value = typeOfValue.prototype;
+        var interfaces = typeOfValue.prototype.__Interfaces__;
+
+        while (JSIL.IsArray(interfaces)) {
+          for (var i = 0; i < interfaces.length; i++) {
+            if (interfaces[i] === typeObject)
+              return true;
+          }
+
+          value = Object.getPrototypeOf(value);
+          interfaces = value.__Interfaces__;
+        }
+      }
+
       return false;
     };
 
-    if (typeOfValue.IsInterface) {
-      if (matchInterfacesRecursive(typeOfValue, typeObject))
-        return true;
-    }
-    else {
-      var value = typeOfValue.prototype;
-      var interfaces = typeOfValue.prototype.__Interfaces__;
-
-      while (JSIL.IsArray(interfaces)) {
-        for (var i = 0; i < interfaces.length; i++) {
-          if (interfaces[i] === typeObject)
-            return true;
-        }
-
-        value = Object.getPrototypeOf(value);
-        interfaces = value.__Interfaces__;
-      }
-    }
-
-    return false;
+    return typeObject;
   };
 
-  if (typeof (printStackTrace) === "function")
-    typeObject.__CallStack__ = printStackTrace();
-
-  JSIL.RegisterName(fullName, $private, isPublic, function () { return typeObject; });
+  JSIL.RegisterName(fullName, $private, isPublic, creator);
 };
 
 JSIL.MakeEnumValue = function (enumType, value, key) {
@@ -1432,57 +1439,68 @@ JSIL.MakeEnumValue = function (enumType, value, key) {
 JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
   var localName = JSIL.GetLocalName(fullName);
   
-  var enumType = System.Enum;
-  var prototype = JSIL.CloneObject(enumType.prototype);
-  prototype.__BaseType__ = enumType;
-  prototype.__ShortName__ = localName;
-  prototype.__FullName__ = fullName;
-
-  var result = {
-    prototype: prototype,
-    __BaseType__: enumType,
-    __FullName__: fullName, 
-    FullName: fullName,
-    Name: localName,
-    IsEnum: true,
-    __TypeId__: ++JSIL.$NextTypeId,
-    __IsFlagsEnum__: isFlagsEnum,
-    __ValueToName__: {}
-  };
-
+  var callStack = null;
   if (typeof (printStackTrace) === "function")
-    result.__CallStack__ = printStackTrace();
+    callStack = printStackTrace();
 
-  result.toString = function () {
-    return localName;
-  };
+  var context = $private;
 
-  result.Of$NoInitialize = function () {
+  var creator = function () {
+    var result = {
+      __CallStack__: callStack,
+      __FullName__: fullName, 
+      FullName: fullName,
+      Name: localName,
+      IsEnum: true,
+      __TypeId__: ++JSIL.$NextTypeId,
+      __IsFlagsEnum__: isFlagsEnum,
+      __ValueToName__: {}
+    };
+
+    result.toString = function () {
+      return localName;
+    };
+
+    result.Of$NoInitialize = function () {
+      return result;
+    };
+    result.Of = function () {
+      return result;
+    };
+
+    result.CheckType = function (v) {
+      if (typeof (v.GetType) === "function")
+        if (v.GetType() === result)
+          return true;
+
+      return false;
+    };
+
     return result;
   };
-  result.Of = function () {
-    return result;
+
+  var initializer = function ($) {
+    var enumType = System.Enum;
+    var prototype = JSIL.CloneObject(enumType.prototype);
+    prototype.__BaseType__ = enumType;
+    prototype.__ShortName__ = localName;
+    prototype.__FullName__ = fullName;
+
+    $.__BaseType__ = enumType;
+    $.prototype = prototype;
+
+    for (var key in members) {
+      if (!members.hasOwnProperty(key))
+        continue;
+
+      var value = Math.floor(members[key]);
+
+      $.__ValueToName__[value] = key;
+      $[key] = JSIL.MakeEnumValue($, value, key);
+    }
   };
 
-  result.CheckType = function (v) {
-    if (typeof (v.GetType) === "function")
-      if (v.GetType() === result)
-        return true;
-
-    return false;
-  };
-
-  for (var key in members) {
-    if (!members.hasOwnProperty(key))
-      continue;
-
-    var value = Math.floor(members[key]);
-
-    result.__ValueToName__[value] = key;
-    result[key] = JSIL.MakeEnumValue(result, value, key);
-  }
-
-  JSIL.RegisterName(fullName, $private, isPublic, function () { return result; });
+  JSIL.RegisterName(fullName, $private, isPublic, creator, initializer);
 };
 
 JSIL.MakeInterfaceMemberGetter = function (thisReference, name) {
