@@ -44,6 +44,8 @@ namespace JSIL.Tests {
         public void Events () {
             using (var test = new ComparisonTest(@"TestCases\Events.cs"))
                 test.Run();
+            using (var test = new ComparisonTest(@"TestCases\Events.vb"))
+                test.Run();
         }
 
         [Test]

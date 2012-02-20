@@ -272,7 +272,7 @@ namespace JSIL.Tests {
 
                 return output[0] ?? "";
             } finally {
-                var jsFile = Filename.Replace(".cs", ".js").Replace(".vb", ".js");
+                var jsFile = Filename.Replace(".cs", ".js").Replace(".vb", "_vb.js");
                 if (File.Exists(jsFile))
                     File.Delete(jsFile);
                 File.Copy(tempFilename, jsFile);

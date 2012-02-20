@@ -1,7 +1,7 @@
 Imports System
 
 Public Module Program
-    Public Sub Main(Args As String())
+    Public Sub Main(ByVal Args As String())
         Console.WriteLine(New CustomType())
     End Sub
 End Module

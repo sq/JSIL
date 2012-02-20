@@ -278,6 +278,7 @@
     <None Include="SimpleTestCases\DelegateResultWithConstraints.cs" />
     <None Include="TestCases\GenericNestedTypeConstructedInParentStaticConstructor.cs" />
     <Content Include="SimpleTestCases\Constructors.vb" />
+    <Content Include="TestCases\Events.vb" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
