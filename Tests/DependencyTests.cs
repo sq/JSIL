@@ -12,7 +12,7 @@ namespace JSIL.Tests {
         public void EnumeratesAssemblyDependencies () {
             TempFileCollection temporaryFiles;
 
-            var assembly = CSharpUtil.Compile(@"
+            var assembly = CompilerUtil.CompileCS(@"
 using System;
 using System.Text.RegularExpressions;
 

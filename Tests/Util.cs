@@ -12,6 +12,7 @@ using System.IO;
 using System.Diagnostics;
 using System.Runtime.Serialization.Json;
 using System.Threading;
+using Microsoft.VisualBasic;
 using NUnit.Framework;
 using System.Globalization;
 using Microsoft.Win32;
@@ -28,13 +29,13 @@ namespace JSIL.Tests {
         }
     }
 
-    public static class CSharpUtil {
+    public static class CompilerUtil {
         public static string TempPath;
 
         // Attempt to clean up stray assembly files from previous test runs
         //  since the assemblies would have remained locked and undeletable 
         //  due to being loaded
-        static CSharpUtil () {
+        static CompilerUtil () {
             TempPath = Path.Combine(Path.GetTempPath(), "JSIL Tests");
             if (!Directory.Exists(TempPath))
                 Directory.CreateDirectory(TempPath);
@@ -46,33 +47,44 @@ namespace JSIL.Tests {
                 }
         }
 
-        public static Assembly Compile (string sourceCode, out TempFileCollection temporaryFiles) {
+        public static Assembly CompileCS (string sourceCode, out TempFileCollection temporaryFiles) {
             using (var csc = new CSharpCodeProvider(new Dictionary<string, string>() { 
                 { "CompilerVersion", "v4.0" } 
             })) {
-
-                var parameters = new CompilerParameters(new[] {
-                    "mscorlib.dll", "System.dll", "System.Core.dll", "Microsoft.CSharp.dll",
-                    typeof(JSIL.Meta.JSIgnore).Assembly.Location
-                }) {
-                    CompilerOptions = "/unsafe",
-                    GenerateExecutable = true,
-                    GenerateInMemory = false,
-                    IncludeDebugInformation = true,
-                    TempFiles = new TempFileCollection(TempPath, true)
-                };
-
-                var results = csc.CompileAssemblyFromSource(parameters, sourceCode);
-
-                if (results.Errors.Count > 0) {
-                    throw new Exception(
-                        String.Join(Environment.NewLine, results.Errors.Cast<CompilerError>().Select((ce) => ce.ToString()).ToArray())
-                    );
-                }
-
-                temporaryFiles = results.TempFiles;
-                return results.CompiledAssembly;
+                return Compile(csc, sourceCode, out temporaryFiles);
             }
+        }
+
+        public static Assembly CompileVB (string sourceCode, out TempFileCollection temporaryFiles) {
+            using (var vbc = new VBCodeProvider(new Dictionary<string, string>() { 
+                { "CompilerVersion", "v4.0" } 
+            })) {
+                return Compile(vbc, sourceCode, out temporaryFiles);
+            }
+        }
+
+        private static Assembly Compile (CodeDomProvider provider, string sourceCode, out TempFileCollection temporaryFiles) {            
+            var parameters = new CompilerParameters(new[] {
+                "mscorlib.dll", "System.dll", "System.Core.dll", "Microsoft.CSharp.dll",
+                typeof(JSIL.Meta.JSIgnore).Assembly.Location
+            }) {
+                CompilerOptions = "/unsafe",
+                GenerateExecutable = true,
+                GenerateInMemory = false,
+                IncludeDebugInformation = true,
+                TempFiles = new TempFileCollection(TempPath, true)
+            };
+
+            var results = provider.CompileAssemblyFromSource(parameters, sourceCode);
+
+            if (results.Errors.Count > 0) {
+                throw new Exception(
+                    String.Join(Environment.NewLine, results.Errors.Cast<CompilerError>().Select((ce) => ce.ToString()).ToArray())
+                );
+            }
+
+            temporaryFiles = results.TempFiles;
+            return results.CompiledAssembly;
         }
     }
 
@@ -109,7 +121,16 @@ namespace JSIL.Tests {
             Filename = Path.Combine(TestSourceFolder, filename);
 
             var sourceCode = File.ReadAllText(Filename);
-            Assembly = CSharpUtil.Compile(sourceCode, out TemporaryFiles);
+            switch (Path.GetExtension(filename).ToLower()) {
+                case ".cs":
+                    Assembly = CompilerUtil.CompileCS(sourceCode, out TemporaryFiles);
+                    break;
+                case ".vb":
+                    Assembly = CompilerUtil.CompileVB(sourceCode, out TemporaryFiles);
+                    break;
+                default:
+                    throw new ArgumentException("Unsupported source file type for test");
+            }
 
             var program = Assembly.GetType("Program");
             if (program == null)
@@ -251,7 +272,7 @@ namespace JSIL.Tests {
 
                 return output[0] ?? "";
             } finally {
-                var jsFile = Filename.Replace(".cs", ".js");
+                var jsFile = Filename.Replace(".cs", ".js").Replace(".vb", ".js");
                 if (File.Exists(jsFile))
                     File.Delete(jsFile);
                 File.Copy(tempFilename, jsFile);

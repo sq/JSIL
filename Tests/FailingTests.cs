@@ -14,10 +14,9 @@ namespace JSIL.Tests {
     public class FailingTests {
         [Test]
         public void AllFailingTests () {
-            var simpleTests = Directory.GetFiles(
-                Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "FailingTestCases")),
-                "*.cs"
-            );
+            var testPath = Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "FailingTestCases"));
+            var simpleTests = Directory.GetFiles(testPath, "*.cs").Concat(Directory.GetFiles(testPath, "*.vb")).ToArray();
+
             int passCount = 0;
 
             foreach (var filename in simpleTests) {
