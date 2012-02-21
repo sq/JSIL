@@ -124,15 +124,15 @@ JSIL.MulticastDelegate.New = function (delegates) {
   return result;
 };
 
-System.Action = JSIL.MakeDelegateType("System.Action", "Action");
-System.Action$b1 = JSIL.MakeDelegateType("System.Action`1", "Action`1");
-System.Action$b2 = JSIL.MakeDelegateType("System.Action`2", "Action`2");
-System.Action$b3 = JSIL.MakeDelegateType("System.Action`3", "Action`3");
+JSIL.MakeDelegate("System.Action", true, []);
+JSIL.MakeDelegate("System.Action`1", true, ["T"]);
+JSIL.MakeDelegate("System.Action`2", true, ["T1", "T2"]);
+JSIL.MakeDelegate("System.Action`3", true, ["T1", "T2", "T3"]);
 
-System.Func = JSIL.MakeDelegateType("System.Func", "Func");
-System.Func$b1 = JSIL.MakeDelegateType("System.Func`1", "Func`1");
-System.Func$b2 = JSIL.MakeDelegateType("System.Func`2", "Func`2");
-System.Func$b3 = JSIL.MakeDelegateType("System.Func`3", "Func`3");
+JSIL.MakeDelegate("System.Func", true, ["TResult"]);
+JSIL.MakeDelegate("System.Func`1", true, ["T", "TResult"]);
+JSIL.MakeDelegate("System.Func`2", true, ["T1", "T2", "TResult"]);
+JSIL.MakeDelegate("System.Func`3", true, ["T1", "T2", "T3", "TResult"]);
 
 JSIL.MakeClass(Error, "System.Exception", true, [], function ($) {
   $.prototype._Message = null;

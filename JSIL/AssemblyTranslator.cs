@@ -624,6 +624,14 @@ namespace JSIL {
 
             output.Value(del.IsPublic);
 
+            output.Comma();
+            output.OpenBracket();
+            if (del.HasGenericParameters)
+                output.CommaSeparatedList(
+                    (from p in del.GenericParameters select p.Name), ListValueType.Primitive
+                );
+            output.CloseBracket();
+
             output.RPar();
             output.Semicolon();
             output.NewLine();

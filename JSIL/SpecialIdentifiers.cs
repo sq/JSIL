@@ -128,9 +128,9 @@ namespace JSIL {
         public JSInvocationExpression NewDelegate (TypeReference delegateType, JSExpression thisReference, JSExpression targetMethod) {
             return JSInvocationExpression.InvokeStatic(
                 new JSDotExpression(
-                    Dot("Delegate", TypeSystem.Object),
-                    new JSFakeMethod("New", delegateType, TypeSystem.String, TypeSystem.Object, TypeSystem.Object)
-                ), new [] { JSLiteral.New(delegateType), thisReference, targetMethod },
+                    new JSType(delegateType),
+                    new JSFakeMethod("New", delegateType, TypeSystem.Object, TypeSystem.Object)
+                ), new [] { thisReference, targetMethod },
                 true
             );
         }

@@ -810,7 +810,7 @@ JSIL.MakeIndirectProperty = function (target, key, source) {
     get: getter,
     set: setter
   });
-}
+};
 
 JSIL.TypeObjectPrototype = {};
 JSIL.TypeObjectPrototype.__GenericArguments__ = [];
@@ -868,7 +868,9 @@ JSIL.TypeObjectPrototype.Of$NoInitialize = function () {
   };
   result.__Self__ = result;
   result.__IsClosed__ = true;
-  result.prototype = Object.create(this.prototype);
+
+  if (typeof (this.prototype) === "object")
+    result.prototype = Object.create(this.prototype);
 
   // This is important: It's possible for recursion to cause the initializer to run while we're defining properties.
   // We prevent this from happening by forcing the initialized state to true.
@@ -2460,100 +2462,83 @@ JSIL.MultidimensionalArray.New = function (type) {
     return new JSIL.MultidimensionalArray(type, dimensions);
 };
 
-JSIL.MakeDelegateType = function (fullName, localName) {
-  if (typeof (JSIL.Delegate.Types[fullName]) !== "undefined")
-    return JSIL.Delegate.Types[fullName].__Self__;
+JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
+  var assembly = $private;
+  var localName = JSIL.GetLocalName(fullName);
 
-  // Hack around the fact that every delegate type except MulticastDelegate derives from MulticastDelegate
-  var delegateType;
-  if (fullName === "System.MulticastDelegate") {
-    delegateType = System.Delegate;
-  } else {
-    delegateType = System.MulticastDelegate;
-  }
+  var callStack = null;
+  if (typeof (printStackTrace) === "function")
+    callStack = printStackTrace();
 
-  var prototype = JSIL.CloneObject(delegateType.prototype);
-  prototype.__BaseType__ = delegateType;
-  prototype.__ShortName__ = localName;
-  prototype.FullName = prototype.__FullName__ = fullName;
+  var creator = function () {
+    // Hack around the fact that every delegate type except MulticastDelegate derives from MulticastDelegate
+    var delegateType;
+    if (fullName === "System.MulticastDelegate") {
+      delegateType = JSIL.GetTypeByName("System.Delegate", $jsilcore);
+    } else {
+      delegateType = JSIL.GetTypeByName("System.MulticastDelegate", $jsilcore);
+    }
 
-  var result = {
-    prototype: prototype,
-    __TypeId__: ++JSIL.$NextTypeId,
-    __BaseType__: delegateType,
-    __FullName__: fullName,
-    CheckType: function (value) {
+    var typeObject = Object.create(JSIL.TypeObjectPrototype);
+
+    typeObject.__TypeId__ = ++JSIL.$NextTypeId;
+    typeObject.__BaseType__ = delegateType;
+    typeObject.__FullName__ = fullName;
+    typeObject.__CallStack__ = callStack;
+    typeObject.IsEnum = false;
+
+    typeObject.__GenericArguments__ = genericArguments || [];
+    if (typeObject.__GenericArguments__.length > 0) {
+      typeObject.Of$NoInitialize = JSIL.TypeObjectPrototype.Of$NoInitialize.bind(typeObject);
+      typeObject.Of = JSIL.TypeObjectPrototype.Of.bind(typeObject);
+      typeObject.__IsClosed__ = false;
+    } else {
+      typeObject.__IsClosed__ = true;
+    }
+
+    typeObject.CheckType = function (value) {
       if (
         (
           (typeof (value) === "function") ||
           (typeof (value) === "object")
         ) &&
         (typeof (value.GetType) === "function") &&
-        (value.GetType() === result)
+        (value.GetType() === typeObject)
       )
         return true;
 
       return false;
-    },
-    IsEnum: false
+    };
+
+    typeObject.New = function (object, method) {
+      if ((typeof (method) === "undefined") &&
+          (typeof (object) === "function")
+      ) {
+        method = object;
+        object = null;
+
+        if (
+          (typeof (method.GetType) === "function") &&
+          (method.GetType() === this)
+        )
+          return method;
+      }
+
+      var resultDelegate = method.bind(object);
+
+      resultDelegate.toString = this.toString.bind(this);
+      resultDelegate.GetType = function () {
+        return this;
+      };
+      resultDelegate.__object__ = object;
+      resultDelegate.__method__ = method;
+
+      Object.seal(resultDelegate);
+      return resultDelegate;
+    };
+
+    return typeObject;
   };
 
-  result.Of$NoInitialize = function () {
-    return result;
-  };
-  result.Of = function () {
-    return result;
-  };
-
-  prototype.__Self__ = result;
-  JSIL.Delegate.Types[fullName] = prototype;
-  return result;
-}
-
-JSIL.MakeDelegate = function (fullName, isPublic) {
-  var assembly = $private;
-
-  try {
-    delete JSIL.Delegate.Types[fullName];
-  } catch (e) {
-  }
-
-  var result = JSIL.MakeDelegateType(fullName);
-
-  JSIL.RegisterName(fullName, assembly, isPublic, function () { return result; });
-  
-  return result;
-};
-
-JSIL.Delegate.Types = {};
-JSIL.Delegate.New = function (typeName, object, method) {
-  var existingType = JSIL.Delegate.Types[typeName];
-  if (typeof (existingType) === "undefined") {
-    JSIL.MakeDelegateType(typeName, JSIL.GetLocalName(typeName));
-    existingType = JSIL.Delegate.Types[typeName];
-  }
-
-  if ((typeof (method) === "undefined") &&
-      (typeof (object) === "function")
-  ) {
-    method = object;
-    object = null;
-
-    if (JSIL.GetTypeName(method) == typeName)
-      return method;
-  }
-
-  var result = method.bind(object);
-
-  result.toString = function () {
-    return typeName;
-  };
-  result.GetType = function () {
-    return existingType.__Self__;
-  };
-  result.__object__ = object;
-  result.__method__ = method;
-
-  Object.seal(result);
-  return result;
+  JSIL.RegisterName(fullName, assembly, isPublic, creator);
 };
