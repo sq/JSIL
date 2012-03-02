@@ -830,13 +830,21 @@ $jsilcore.$Of$NoInitialize = function () {
   var typeObject = this.__Type__;
 
   var ga = typeObject.__GenericArguments__;
+  if (arguments.length != ga.length)
+    throw new Error("Invalid number of generic arguments for type '" + JSIL.GetTypeName(this) + "' (got " + arguments.length + ", expected " + ga.length + ")");
+
+  var resolvedArguments = Array.prototype.slice.call(arguments);
+
+  for (var i = 0, l = resolvedArguments.length; i < l; i++) {
+    if (typeof (resolvedArguments[i].get) === "function")
+      resolvedArguments[i] = resolvedArguments[i].get();
+  }
+
   var ofCache = typeObject.__OfCache__;
   var cacheKey = null;
 
-  for (var i = 0, l = arguments.length; i < l; i++) {
-    var typeId = arguments[i].__TypeId__;
-    if ((typeof (typeId) === "undefined") && (typeof (arguments[i].get) === "function"))
-      typeId = arguments[i].get().__TypeId__;
+  for (var i = 0, l = resolvedArguments.length; i < l; i++) {
+    var typeId = resolvedArguments[i].__TypeId__;
 
     if (i == 0)
       cacheKey = typeId;
@@ -846,9 +854,6 @@ $jsilcore.$Of$NoInitialize = function () {
 
   if ((typeof (ofCache) === "undefined") || (ofCache === null))
     typeObject.__OfCache__ = ofCache = [];
-
-  if (arguments.length != ga.length)
-    throw new Error("Invalid number of generic arguments for type '" + JSIL.GetTypeName(this) + "' (got " + arguments.length + ", expected " + ga.length + ")");
 
   // If we do not return the same exact closed type instance from every call to Of(...), derivation checks will fail
   var result = ofCache[cacheKey] || null;
@@ -879,7 +884,7 @@ $jsilcore.$Of$NoInitialize = function () {
     JSIL.MakeIndirectProperty(result, k, staticClassObject);
   }
 
-  var fullName = typeObject.__FullName__ + "[" + Array.prototype.join.call(arguments, ", ") + "]";
+  var fullName = typeObject.__FullName__ + "[" + Array.prototype.join.call(resolvedArguments, ", ") + "]";
   result.__TypeId__ = resultTypeObject.__TypeId__ = ++JSIL.$NextTypeId;
   resultTypeObject.__FullName__ = fullName;
   result.toString = resultTypeObject.toString = function () {
@@ -894,7 +899,7 @@ $jsilcore.$Of$NoInitialize = function () {
   // We prevent this from happening by forcing the initialized state to true.
   resultTypeObject.__TypeInitialized__ = true;
 
-  for (var i = 0, l = arguments.length; i < l; i++) {
+  for (var i = 0, l = resolvedArguments.length; i < l; i++) {
     var key = ga[i];
 
     var decl = {
@@ -902,7 +907,7 @@ $jsilcore.$Of$NoInitialize = function () {
       enumerable: true,
       // The variables holding the generic arguments need to be actual System.Type interfaces.
       // It's not possible to invoke static methods through the generic arguments, so this is fine.
-      value: arguments[i].__Type__ 
+      value: resolvedArguments[i].__Type__ 
     };
     Object.defineProperty(result, key, decl);
     Object.defineProperty(result.prototype, key, decl);
