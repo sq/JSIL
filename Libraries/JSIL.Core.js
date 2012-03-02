@@ -543,9 +543,9 @@ JSIL.TypeRef = function (context, name, genericArguments) {
 };
 JSIL.TypeRef.prototype.toString = function () {
   if (this.typeName === null)
-    return JSIL.GetTypeName(this.cachedReference);
+    return "ref " + JSIL.GetTypeName(this.cachedReference);
   else
-    return this.typeName;
+    return "ref " + this.typeName;
 };
 JSIL.TypeRef.prototype.get = function () {
   if (this.cachedReference !== null)
@@ -826,10 +826,18 @@ $jsilcore.$Of$NoInitialize = function () {
 
   var ga = typeObject.__GenericArguments__;
   var ofCache = typeObject.__OfCache__;
-  var cacheKey = arguments[0].__TypeId__;
+  var cacheKey = null;
 
-  for (var i = 1, l = arguments.length; i < l; i++)
-    cacheKey += "," + arguments[i].__TypeId__;
+  for (var i = 0, l = arguments.length; i < l; i++) {
+    var typeId = arguments[i].__TypeId__;
+    if ((typeof (typeId) === "undefined") && (typeof (arguments[i].get) === "function"))
+      typeId = arguments[i].get().__TypeId__;
+
+    if (i == 0)
+      cacheKey = typeId;
+    else
+      cacheKey += "," + typeId;
+  }
 
   if ((typeof (ofCache) === "undefined") || (ofCache === null))
     typeObject.__OfCache__ = ofCache = [];
@@ -855,7 +863,8 @@ $jsilcore.$Of$NoInitialize = function () {
   ofCache[cacheKey] = result;
 
   var ignoredNames = [
-    "__Type__", "__TypeInitialized__", "__IsClosed__", "prototype", "Of", "toString", "__FullName__"
+    "__Type__", "__TypeInitialized__", "__IsClosed__", "prototype", 
+    "Of", "toString", "__FullName__", "__OfCache__", "Of$NoInitialize"
   ];
 
   for (var k in staticClassObject) {
