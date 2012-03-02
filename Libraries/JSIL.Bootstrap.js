@@ -962,10 +962,3 @@ JSIL.MakeStruct("System.ValueType", "System.Nullable`1", true, ["T"], function (
 JSIL.MakeEnum("System.Reflection.BindingFlags", true, {
   
 }, true);
-
-JSIL.ImplementExternals(
-  "System.Type", true, {
-    GetMethods$1: function () {
-    }
-  }
-);
