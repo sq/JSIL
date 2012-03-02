@@ -1516,6 +1516,8 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
       __ValueToName__: {}
     };
 
+    result.__Type__ = result; // HACK
+
     result.toString = function () {
       return localName;
     };
