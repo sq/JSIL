@@ -946,10 +946,10 @@ JSIL.MakeStaticClass("System.Nullable", true, [], function ($) {
 JSIL.ImplementExternals(
   "System.Nullable", false, {
     GetUnderlyingType: function (nullableType) {   
-      if (JSIL.GetTypeName(nullableType).indexOf("System.Nullable`1") !== 0) {
+      if (nullableType.__FullName__.indexOf("System.Nullable`1") !== 0) {
         return null;
       } else {
-        return nullableType.T;
+        return nullableType.__PublicInterface__.T;
       }
     }
   }

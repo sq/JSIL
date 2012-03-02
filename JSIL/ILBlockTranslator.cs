@@ -2093,13 +2093,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_TypeOf (TypeReference type) {
-            var typedef = GetTypeDefinition(type, true);
-            var result = new JSType(type);
-
-            if ((typedef != null) && (typedef.IsAbstract && typedef.IsSealed))
-                return new JSTypeOfExpression(result);
-
-            return result;
+            return new JSTypeOfExpression(new JSType(type));
         }
 
         protected JSExpression Translate_Ldtoken (ILExpression node, TypeReference type) {

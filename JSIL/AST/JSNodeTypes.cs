@@ -1934,10 +1934,8 @@ namespace JSIL.Ast {
     }
 
     public class JSTypeOfExpression : JSExpression {
-        public readonly JSType Type;
-
-        public JSTypeOfExpression (JSType type) {
-            Type = type;
+        public JSTypeOfExpression (JSType type)
+            : base (type) {
         }
 
         public override bool IsStatic {
@@ -1949,6 +1947,12 @@ namespace JSIL.Ast {
         public override bool IsConstant {
             get {
                 return true;
+            }
+        }
+
+        public JSType Type {
+            get {
+                return (JSType)Values[0];
             }
         }
 

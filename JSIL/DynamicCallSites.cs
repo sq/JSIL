@@ -106,15 +106,20 @@ namespace JSIL {
 
         protected TypeReference UnwrapType (JSExpression expression) {
             var type = expression as JSType;
-            if (type != null)
-                return type.Type;
+            var toe = expression as JSTypeOfExpression;
 
             var invocation = expression as JSInvocationExpression;
             if (invocation != null) {
-                type = invocation.Arguments.FirstOrDefault() as JSType;
-                if (type != null)
-                    return type.Type;
+                var firstArg = invocation.Arguments.FirstOrDefault();
+                type = type ?? firstArg as JSType;
+                toe = toe ?? firstArg as JSTypeOfExpression;
             }
+
+            if (toe != null)
+                type = toe.Type;
+
+            if (type != null)
+                return type.Type;
 
             throw new NotImplementedException("Unrecognized type expression");
         }

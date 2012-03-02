@@ -916,9 +916,7 @@ $jsilcore.$Of$NoInitialize = function () {
     var decl = {
       configurable: false,
       enumerable: true,
-      // The variables holding the generic arguments need to be actual System.Type interfaces.
-      // It's not possible to invoke static methods through the generic arguments, so this is fine.
-      value: resolvedArguments[i].__Type__ 
+      value: resolvedArguments[i]
     };
     Object.defineProperty(result, key, decl);
 
@@ -1817,6 +1815,9 @@ JSIL.GetTypeName = function (value) {
   if ((typeof (result) === "undefined") && (typeof (value.prototype) !== "undefined"))
     result = value.prototype.__FullName__;
 
+  if ((typeof (result) === "undefined") && (typeof (value.__Type__) === "object"))
+    return value.__Type__.__FullName__;
+
   if (typeof (result) === "string")
     return result;
   else if (typeof (result) === "undefined")
@@ -2308,6 +2309,7 @@ System.Array.Of = function (type) {
   if (typeof (compositeType) === "undefined") {
     var typeName = elementName + "[]";
     compositeType = JSIL.CloneObject(tsa);
+    compositeType.__Type__ = compositeType; // TERRIBLE HACK OH GOD
     compositeType.FullName = compositeType.__FullName__ = typeName;
     compositeType.__TypeId__ = ++JSIL.$NextTypeId;
     compositeType.__IsArray__ = true;

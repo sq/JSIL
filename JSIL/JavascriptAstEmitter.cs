@@ -444,6 +444,7 @@ namespace JSIL {
 
         public void VisitNode (JSTypeOfExpression toe) {
             Visit(toe.Type);
+
             Output.Dot();
             Output.Identifier("__Type__");
         }
