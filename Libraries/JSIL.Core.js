@@ -1302,7 +1302,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
       if ((_typeObject.__TypeInitialized__ || false) === false)
         JSIL.InitializeType(_typeObject);
 
-      if (!_typeObject.__IsClosed__)
+      if (_typeObject.__IsClosed__ === false)
         throw new Error("Cannot construct an instance of an open type");
 
       JSIL.InitializeStructFields(this, _typeObject);
@@ -2097,9 +2097,6 @@ JSIL.ImplementExternals(
       return this;
     },
     _ctor: function () {
-    },
-    GetType: function () {
-      return System.Object;
     },
     toString: function ToString() {
       return JSIL.GetTypeName(this);
