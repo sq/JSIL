@@ -1499,6 +1499,8 @@ namespace JSIL {
             if (bodyTransformer != null)
                 bodyTransformer(function);
 
+            function.DisplayName = methodInfo.GetName(true);
+
             if (function != null) {
                 astEmitter.Visit(function);
             } else {

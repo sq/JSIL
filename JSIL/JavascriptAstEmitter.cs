@@ -531,7 +531,7 @@ namespace JSIL {
             Output.CurrentMethod = function.Method.Reference;
 
             Output.OpenFunction(
-                null,
+                function.DisplayName,
                 (o) => {
                     if (o != Output)
                         throw new InvalidOperationException();

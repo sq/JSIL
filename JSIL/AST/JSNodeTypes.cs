@@ -327,6 +327,8 @@ namespace JSIL.Ast {
         public readonly IEnumerable<JSVariable> Parameters;
         public readonly JSBlockStatement Body;
 
+        public string DisplayName = null;
+
         public JSFunctionExpression (
             JSMethod method, Dictionary<string, JSVariable> allVariables, 
             IEnumerable<JSVariable> parameters, JSBlockStatement body
@@ -375,7 +377,7 @@ namespace JSIL.Ast {
 
         public override string ToString () {
             return String.Format(
-                "function {0} ({1}) {{ ... }}", Method.Method.Member,
+                "function {0} ({1}) {{ ... }}", DisplayName ?? Method.Method.Member.ToString(),
                 String.Join(", ", (from p in Parameters select p.Name).ToArray())
             );
         }
