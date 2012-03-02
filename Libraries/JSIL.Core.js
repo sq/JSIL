@@ -581,20 +581,25 @@ JSIL.TypeRef.prototype.get = function () {
 };
 
 JSIL.New = function (type, constructorName, args) {
-  if (type.__IsNativeType__ || false) {
-    var ctor = type.prototype[constructorName];
+  var classObject = type;
+  var typeObject = type;
+  if (typeof (classObject.__Type__) === "object")
+    typeObject = classObject.__Type__;
+
+  if (typeObject.__IsNativeType__ || false) {
+    var ctor = classObject.prototype[constructorName];
     return ctor.apply(null, args);
   } else {
-    var proto = type.prototype;
+    var proto = classObject.prototype;
     var result = Object.create(proto);
   }
 
-  if ((type.__TypeInitialized__ || false) === false)
-    JSIL.InitializeType(type);
+  if ((typeObject.__TypeInitialized__ || false) === false)
+    JSIL.InitializeType(classObject);
   
-  JSIL.InitializeStructFields(result, type);
+  JSIL.InitializeStructFields(result, classObject);
 
-  if (!type.__IsReferenceType__ && (args.length == 0)) {
+  if (!typeObject.__IsReferenceType__ && (args.length == 0)) {
   } else {
     var ctor = proto[constructorName];
     ctor.apply(result, args);
@@ -912,7 +917,7 @@ $jsilcore.$Of = function () {
   var result = this.Of$NoInitialize.apply(this, arguments);
 
   // If the outer type is initialized, initialize the inner type.
-  if (this.__TypeInitialized__)
+  if (this.__Type__.__TypeInitialized__)
     JSIL.InitializeType(result);
 
   return result;
