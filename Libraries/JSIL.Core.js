@@ -835,9 +835,14 @@ $jsilcore.$Of$NoInitialize = function () {
 
   var resolvedArguments = Array.prototype.slice.call(arguments);
 
+  // Ensure that each argument is the public interface of a type (not the type object or a type reference)
   for (var i = 0, l = resolvedArguments.length; i < l; i++) {
-    if (typeof (resolvedArguments[i].get) === "function")
-      resolvedArguments[i] = resolvedArguments[i].get();
+    if (typeof (resolvedArguments[i]) !== "undefined") {
+      if (typeof (resolvedArguments[i].get) === "function")
+        resolvedArguments[i] = resolvedArguments[i].get();
+      else if (typeof (resolvedArguments[i].__PublicInterface__) !== "undefined")
+        resolvedArguments[i] = resolvedArguments[i].__PublicInterface__;
+    }
   }
 
   var ofCache = typeObject.__OfCache__;
@@ -874,7 +879,8 @@ $jsilcore.$Of$NoInitialize = function () {
 
   var ignoredNames = [
     "__Type__", "__TypeInitialized__", "__IsClosed__", "prototype", 
-    "Of", "toString", "__FullName__", "__OfCache__", "Of$NoInitialize"
+    "Of", "toString", "__FullName__", "__OfCache__", "Of$NoInitialize",
+    "GetType"
   ];
 
   for (var k in staticClassObject) {
@@ -892,8 +898,12 @@ $jsilcore.$Of$NoInitialize = function () {
   };
   resultTypeObject.__IsClosed__ = true;
 
-  if (typeof (staticClassObject.prototype) !== "undefined")
+  if (typeof (staticClassObject.prototype) !== "undefined") {
     result.prototype = Object.create(staticClassObject.prototype);
+    result.prototype.GetType = function () {
+      return resultTypeObject;
+    };
+  }
 
   // This is important: It's possible for recursion to cause the initializer to run while we're defining properties.
   // We prevent this from happening by forcing the initialized state to true.
@@ -910,7 +920,10 @@ $jsilcore.$Of$NoInitialize = function () {
       value: resolvedArguments[i].__Type__ 
     };
     Object.defineProperty(result, key, decl);
-    Object.defineProperty(result.prototype, key, decl);
+
+    if (typeof (staticClassObject.prototype) !== "undefined") {
+      Object.defineProperty(result.prototype, key, decl);
+    }
   }
 
   JSIL.InstantiateGenericProperties(result);
@@ -1283,16 +1296,21 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
       typeObject.__CallStack__ = stack;
 
     var staticClassObject = function () {
-      if ((typeObject.__TypeInitialized__ || false) === false)
-        JSIL.InitializeType(typeObject);
+      var _typeObject = this.GetType();
 
-      JSIL.InitializeStructFields(this, typeObject);
+      if ((_typeObject.__TypeInitialized__ || false) === false)
+        JSIL.InitializeType(_typeObject);
+
+      if (!_typeObject.__IsClosed__)
+        throw new Error("Cannot construct an instance of an open type");
+
+      JSIL.InitializeStructFields(this, _typeObject);
 
       var args = arguments;
       if (args === null)
         args = [];
 
-      if (!typeObject.__IsReferenceType__ && (args.length == 0))
+      if (!_typeObject.__IsReferenceType__ && (args.length == 0))
         return;
 
       if (typeof (this._ctor) != "undefined")
