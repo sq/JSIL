@@ -1392,6 +1392,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
       throw new Error("Cannot construct an instance of an interface");
     };
 
+    typeObject.__Type__ = typeObject;
     typeObject.__CallStack__ = callStack;
     typeObject.__TypeId__ = ++JSIL.$NextTypeId;
     typeObject.__Members__ = members;
@@ -1610,7 +1611,7 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
       continue __interfaces__;
     } else if (typeof (iface) === "string") {
       var resolved = JSIL.ResolveName(
-        type.__Context__ || JSIL.GlobalNamespace, iface, true
+        type.__Type__.__Context__ || JSIL.GlobalNamespace, iface, true
       );
       if (resolved.exists())
         iface = resolved.get();
