@@ -53,7 +53,8 @@
     <None Include="FailingTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />
     <Compile Include="AnalysisTests.cs" />
-    <None Include="ReflectionTestCases\PublicStaticMethods.cs" />
+    <None Include="ReflectionTestCases\ListPublicStaticMethods.cs" />
+    <None Include="FailingTestCases\ListOverloadedPublicStaticMethods.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <Compile Include="FormattingTests.cs" />
@@ -244,7 +245,6 @@
     <None Include="SpecialTestCases\ProxiedMethodInheritance2.cs" />
     <None Include="TestCases\StructLateDeclaration.cs" />
     <None Include="TestCases\StructCompoundAssignment.cs" />
-    <None Include="FailingTestCases\RecursiveArrayInitializer.cs" />
     <None Include="SimpleTestCases\DictionaryInitializer.cs" />
     <None Include="SimpleTestCases\NestedLambdas.cs" />
     <None Include="SpecialTestCases\RenameMethod.cs" />

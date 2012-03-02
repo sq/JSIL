@@ -1466,13 +1466,11 @@ namespace JSIL {
             output.LPar();
 
             dollar(output);
-            if (!method.IsStatic) {
-                output.Dot();
-                output.Keyword("prototype");
-            }
 
             output.Comma();
+            output.Value(!method.IsStatic);
 
+            output.Comma();
             output.Value(Util.EscapeIdentifier(methodInfo.GetName(true), EscapingMode.MemberIdentifier));
 
             output.Comma();

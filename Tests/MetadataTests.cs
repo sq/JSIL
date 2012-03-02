@@ -185,8 +185,8 @@ namespace JSIL.Tests {
 
                 // We still want to generate method bodies for auto properties, since they're compiler generated and only
                 //  contain a single statement anyway
-                Assert.IsTrue(generatedJs.Contains("MakeMethod($, \"get_A\""));
-                Assert.IsTrue(generatedJs.Contains("MakeMethod($.prototype, \"get_D\""));
+                Assert.IsTrue(generatedJs.Contains("MakeMethod($, false, \"get_A\""));
+                Assert.IsTrue(generatedJs.Contains("MakeMethod($, true, \"get_D\""));
 
                 Assert.IsTrue(generatedJs.Contains("\"set_E"));
                 Assert.IsTrue(generatedJs.Contains("\"remove_F"));
@@ -291,7 +291,7 @@ namespace JSIL.Tests {
                 "Method", "external method 'Method' of type 'Program' has not"
             );
 
-            Assert.IsFalse(generatedJs.Contains("MakeMethod($, \"Method\""));
+            Assert.IsFalse(generatedJs.Contains("MakeMethod($, false, \"Method\""));
             Assert.IsTrue(generatedJs.Contains(".Program.Method("));
         }
 
@@ -327,7 +327,7 @@ namespace JSIL.Tests {
                 "Property", "method 'get_Property' of type 'Program' has not"
             );
 
-            Assert.IsFalse(generatedJs.Contains("MakeMethod($, \"get_Property\""));
+            Assert.IsFalse(generatedJs.Contains("MakeMethod($, false, \"get_Property\""));
             Assert.IsTrue(generatedJs.Contains(".MakeProperty($, \"Property\""));
             Assert.IsTrue(generatedJs.Contains(".Program.Property"));
         }

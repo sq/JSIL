@@ -1955,8 +1955,18 @@ JSIL.GenericMethod = function (argumentNames, body) {
   return result;
 };
 
-JSIL.MakeMethod = function (context, methodName, fn) {
-  context[methodName] = fn;
+JSIL.MakeMethod = function (type, isInstance, methodName, fn) {
+  var target = type;
+  if (isInstance)
+    target = type.prototype;
+
+  target[methodName] = fn;
+
+  var methodList = type.__Type__.__AllMethods__;
+  if (typeof (methodList) !== "object")
+    methodList = type.__Type__.__AllMethods__ = {};
+
+  methodList[methodName] = {};
 };
 
 JSIL.FindOverload = function (prototype, args, name, overloads) {
@@ -2164,7 +2174,14 @@ JSIL.ImplementExternals(
       return this.__FullName__;
     },
     GetMethods$1: function () {
-      return [];
+      var result = [];
+
+      for (var k in this.__AllMethods__)
+        result.push({
+          Name: k
+        });
+
+      return result;
     }
   }
 );
