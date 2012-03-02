@@ -1909,15 +1909,55 @@ namespace JSIL.Ast {
             get { return Type.FullName; }
         }
 
+        public override bool IsStatic {
+            get {
+                return true;
+            }
+        }
+
+        public override bool IsConstant {
+            get {
+                return true;
+            }
+        }
+
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             return new TypeReference(
-                typeSystem.Boolean.Namespace, "Type",
+                typeSystem.Boolean.Namespace, "RuntimeTypeHandle",
                 typeSystem.Boolean.Module, typeSystem.Boolean.Scope
             );
         }
         
         public override JSLiteral ToLiteral () {
             return JSLiteral.New(Type);
+        }
+    }
+
+    public class JSTypeOfExpression : JSExpression {
+        public readonly JSType Type;
+
+        public JSTypeOfExpression (JSType type) {
+            Type = type;
+        }
+
+        public override bool IsStatic {
+            get {
+                return true;
+            }
+        }
+
+        public override bool IsConstant {
+            get {
+                return true;
+            }
+        }
+
+        public override string ToString () {
+            return Type.ToString();
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return Type.GetExpectedType(typeSystem);
         }
     }
 

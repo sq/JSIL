@@ -817,19 +817,22 @@ JSIL.TypeObjectPrototype.__GenericArguments__ = [];
 JSIL.TypeObjectPrototype.toString = function () {
   return JSIL.GetTypeName(this);
 };
-JSIL.TypeObjectPrototype.Of$NoInitialize = function () {
+
+$jsilcore.$Of$NoInitialize = function () {
   // This whole function would be 100x simpler if you could provide a prototype when constructing a function. Javascript sucks so much.
 
-  var self = this;
-  var ga = this.__GenericArguments__;
-  var ofCache = this.__OfCache__;
+  var staticClassObject = this;
+  var typeObject = this.__Type__;
+
+  var ga = typeObject.__GenericArguments__;
+  var ofCache = typeObject.__OfCache__;
   var cacheKey = arguments[0].__TypeId__;
 
   for (var i = 1, l = arguments.length; i < l; i++)
     cacheKey += "," + arguments[i].__TypeId__;
 
   if ((typeof (ofCache) === "undefined") || (ofCache === null))
-    this.__OfCache__ = ofCache = [];
+    typeObject.__OfCache__ = ofCache = [];
 
   if (arguments.length != ga.length)
     throw new Error("Invalid number of generic arguments for type '" + JSIL.GetTypeName(this) + "' (got " + arguments.length + ", expected " + ga.length + ")");
@@ -840,41 +843,42 @@ JSIL.TypeObjectPrototype.Of$NoInitialize = function () {
   if (result !== null)
     return result;
 
-  result = function () {
+  var resultTypeObject = JSIL.CloneObject(typeObject);
+
+  resultTypeObject.__PublicInterface__ = result = function () {
     var ctorArguments = Array.prototype.slice.call(arguments);
-    return Function.prototype.apply.call(self, this, ctorArguments);
+    return Function.prototype.apply.call(staticClassObject, this, ctorArguments);
   };
+  result.__Type__ = resultTypeObject;
 
   // Prevents recursion when Of is called indirectly during initialization of the new closed type
   ofCache[cacheKey] = result;
 
   var ignoredNames = [
-    "__Self__", "__TypeInitialized__", "__IsClosed__", 
-    "prototype", "Of", "toString", "__FullName__"
+    "__Type__", "__TypeInitialized__", "__IsClosed__", "prototype", "Of", "toString", "__FullName__"
   ];
 
-  for (var k in this) {
+  for (var k in staticClassObject) {
     if (ignoredNames.indexOf(k) !== -1)
       continue;
 
-    JSIL.MakeIndirectProperty(result, k, self);
+    JSIL.MakeIndirectProperty(result, k, staticClassObject);
   }
 
-  var fullName = this.__FullName__ + "[" + Array.prototype.join.call(arguments, ", ") + "]";
-  result.__TypeId__ = ++JSIL.$NextTypeId;
-  result.__FullName__ = fullName;
-  result.toString = function () {
+  var fullName = typeObject.__FullName__ + "[" + Array.prototype.join.call(arguments, ", ") + "]";
+  result.__TypeId__ = resultTypeObject.__TypeId__ = ++JSIL.$NextTypeId;
+  resultTypeObject.__FullName__ = fullName;
+  result.toString = resultTypeObject.toString = function () {
     return fullName;
   };
-  result.__Self__ = result;
-  result.__IsClosed__ = true;
+  resultTypeObject.__IsClosed__ = true;
 
-  if (typeof (this.prototype) === "object")
-    result.prototype = Object.create(this.prototype);
+  if (typeof (staticClassObject.prototype) !== "undefined")
+    result.prototype = Object.create(staticClassObject.prototype);
 
   // This is important: It's possible for recursion to cause the initializer to run while we're defining properties.
   // We prevent this from happening by forcing the initialized state to true.
-  result.__TypeInitialized__ = true;
+  resultTypeObject.__TypeInitialized__ = true;
 
   for (var i = 0, l = arguments.length; i < l; i++) {
     var key = ga[i];
@@ -891,11 +895,11 @@ JSIL.TypeObjectPrototype.Of$NoInitialize = function () {
   JSIL.InstantiateGenericProperties(result);
 
   // Force the initialized state back to false
-  result.__TypeInitialized__ = false;
+  resultTypeObject.__TypeInitialized__ = false;
 
   return result;
 };
-JSIL.TypeObjectPrototype.Of = function () {
+$jsilcore.$Of = function () {
   var result = this.Of$NoInitialize.apply(this, arguments);
 
   // If the outer type is initialized, initialize the inner type.
@@ -903,6 +907,11 @@ JSIL.TypeObjectPrototype.Of = function () {
     JSIL.InitializeType(result);
 
   return result;
+};
+
+JSIL.StaticClassPrototype = {};
+JSIL.StaticClassPrototype.toString = function () {
+  return JSIL.GetTypeName(JSIL.GetType(this));
 };
 
 JSIL.InstantiateGenericProperties = function (obj) {
@@ -936,7 +945,7 @@ JSIL.InstantiateGenericProperties = function (obj) {
 } )();
 
 JSIL.MakeStructFieldInitializer = function (typeObject) {
-  var sf = typeObject.prototype.__StructFields__;
+  var sf = typeObject.__PublicInterface__.prototype.__StructFields__;
   if ((typeof (sf) !== "object") || (sf.length <= 0))
     return null;
   
@@ -962,9 +971,9 @@ JSIL.MakeStructFieldInitializer = function (typeObject) {
 };
 
 JSIL.InitializeStructFields = function (instance, typeObject) {
-  var sfi = typeObject.prototype.__StructFieldInitializer__;
+  var sfi = typeObject.__StructFieldInitializer__;
   if (typeof (sfi) === "undefined")
-    typeObject.prototype.__StructFieldInitializer__ = sfi = JSIL.MakeStructFieldInitializer(typeObject);
+    typeObject.__StructFieldInitializer__ = sfi = JSIL.MakeStructFieldInitializer(typeObject);
   if (sfi === null)
     return;
 
@@ -1009,39 +1018,45 @@ JSIL.InitializeType = function (type) {
   if (typeof (type) === "undefined")
     throw new Error("Type is null");
 
-  if (type.__TypeInitialized__ || false)
+  var classObject = type;
+  var typeObject = type;
+
+  if (typeof (classObject.__Type__) === "object")
+    typeObject = classObject.__Type__;
+
+  if (typeObject.__TypeInitialized__ || false)
     return;
 
   // Not entirely correct, but prevents recursive type initialization
-  type.__TypeInitialized__ = true;
+  typeObject.__TypeInitialized__ = true;
 
-  var ti = type.__Initializers__ || [];
+  var ti = typeObject.__Initializers__ || [];
   while (ti.length > 0) {
     var initializer = ti.unshift();
     if (typeof (initializer) === "function")
       initializer(type);
   };
 
-  if (type.__IsClosed__) {
-    if (typeof (type._cctor) == "function") {
+  if (typeObject.__IsClosed__) {
+    if (typeof (classObject._cctor) == "function") {
       try {
-        type._cctor();
+        classObject._cctor();
       } catch (e) {
         JSIL.Host.error(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(type) + ": ");
       }
     }
 
-    if (typeof (type._cctor2) == "function") {
+    if (typeof (classObject._cctor2) == "function") {
       try {
-        type._cctor2();
+        classObject._cctor2();
       } catch (e) {
         JSIL.Host.error(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(type) + ": ");
       }
     }
   }
 
-  if (typeof (type.__OfCache__) !== "undefined") {
-    var oc = type.__OfCache__;
+  if (typeof (typeObject.__OfCache__) !== "undefined") {
+    var oc = typeObject.__OfCache__;
     for (var k in oc) {
       if (!oc.hasOwnProperty(k))
         continue;
@@ -1167,11 +1182,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   var localName = JSIL.GetLocalName(fullName);
 
   var typeObject = JSIL.CloneObject(System.RuntimeType);
-  typeObject.GetType = function () {
-    return typeObject;
-  };
   typeObject.FullName = typeObject.__FullName__ = fullName;
-  typeObject.__TypeId__ = ++JSIL.$NextTypeId;
 
   if (typeof (printStackTrace) === "function")
     typeObject.__CallStack__ = printStackTrace();
@@ -1180,20 +1191,25 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   typeObject.__IsStatic__ = true;
   typeObject.__Initializers__ = [];
   typeObject.__TypeInitialized__ = false;
-
   typeObject.__GenericArguments__ = genericArguments || [];
+
+  var staticClassObject = JSIL.CloneObject(JSIL.StaticClassPrototype);
+  staticClassObject.__Type__ = typeObject;
+  staticClassObject.__TypeId__ = typeObject.__TypeId__ = ++JSIL.$NextTypeId;
+  typeObject.__PublicInterface__ = staticClassObject;
+
   if (typeObject.__GenericArguments__.length > 0) {
-    typeObject.Of$NoInitialize = JSIL.TypeObjectPrototype.Of$NoInitialize.bind(typeObject);
-    typeObject.Of = JSIL.TypeObjectPrototype.Of.bind(typeObject);
+    staticClassObject.Of$NoInitialize = $jsilcore.$Of$NoInitialize.bind(staticClassObject);
+    staticClassObject.Of = $jsilcore.$Of.bind(staticClassObject);
     typeObject.__IsClosed__ = false;
   } else {
     typeObject.__IsClosed__ = true;
   }
 
   var creator = function () {
-    JSIL.ApplyExternals(typeObject, fullName);
+    JSIL.ApplyExternals(staticClassObject, fullName);
 
-    return typeObject;
+    return staticClassObject;
   };
 
   if (creator) {
@@ -1227,7 +1243,25 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     stack = printStackTrace();
 
   var createTypeObject = function () {
-    var typeObject = function () {
+    var typeObject = JSIL.CloneObject(JSIL.TypeObjectPrototype);
+    typeObject.__IsArray__ = false;
+    typeObject.__Initializers__ = [];
+    typeObject.__TypeInitialized__ = false;
+    typeObject.__IsNativeType__ = false;
+    typeObject.__IsReferenceType__ = isReferenceType;
+    typeObject.__Context__ = assembly;
+    typeObject.FullName = typeObject.__FullName__ = fullName;
+    typeObject.__ShortName__ = localName;
+    typeObject.__LockCount__ = 0;
+    typeObject.IsAssignableFrom = function (typeOfValue) {
+      return JSIL.CheckDerivation(typeOfValue.prototype, typeObject.prototype);
+    };
+    typeObject.__GenericArguments__ = genericArguments || [];
+
+    if (stack !== null)
+      typeObject.__CallStack__ = stack;
+
+    var staticClassObject = function () {
       if ((typeObject.__TypeInitialized__ || false) === false)
         JSIL.InitializeType(typeObject);
 
@@ -1244,47 +1278,32 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
         this._ctor.apply(this, args);
     };
 
-    typeObject.__TypeId__ = ++JSIL.$NextTypeId;
-    typeObject.__IsArray__ = false;
-    typeObject.__Initializers__ = [];
-    typeObject.__TypeInitialized__ = false;
-    typeObject.__IsNativeType__ = false;
-    typeObject.__IsReferenceType__ = isReferenceType;
-    typeObject.__Context__ = assembly;
-    typeObject.__Self__ = typeObject;
-    typeObject.FullName = typeObject.__FullName__ = fullName;
-    typeObject.__ShortName__ = localName;
-    typeObject.__LockCount__ = 0;
-    typeObject.IsAssignableFrom = function (typeOfValue) {
-      return JSIL.CheckDerivation(typeOfValue.prototype, typeObject.prototype);
+    staticClassObject.toString = typeObject.toString = function () {
+      return fullName;
     };
 
-    if (stack !== null)
-      typeObject.__CallStack__ = stack;
+    staticClassObject.__TypeId__ = typeObject.__TypeId__ = ++JSIL.$NextTypeId;
+    staticClassObject.__Type__ = typeObject;
+    staticClassObject.prototype = JSIL.MakeProto(baseType, staticClassObject, fullName, false, assembly);
+    staticClassObject.prototype.__ShortName__ = localName;
+    staticClassObject.prototype.__Interfaces__ = [];
+    staticClassObject.prototype.GetType = function () {
+      return typeObject;
+    };
 
-    typeObject.__GenericArguments__ = genericArguments || [];
     if (typeObject.__GenericArguments__.length > 0) {
-      typeObject.Of$NoInitialize = JSIL.TypeObjectPrototype.Of$NoInitialize.bind(typeObject);
-      typeObject.Of = JSIL.TypeObjectPrototype.Of.bind(typeObject);
+      staticClassObject.Of$NoInitialize = $jsilcore.$Of$NoInitialize.bind(staticClassObject);
+      staticClassObject.Of = $jsilcore.$Of.bind(staticClassObject);
       typeObject.__IsClosed__ = false;
     } else {
       typeObject.__IsClosed__ = true;
     }
 
-    typeObject.toString = function () {
-      return fullName;
-    };
+    typeObject.__PublicInterface__ = staticClassObject;
 
-    typeObject.prototype = JSIL.MakeProto(baseType, typeObject, fullName, false, assembly);
-    typeObject.prototype.__ShortName__ = localName;
-    typeObject.prototype.__Interfaces__ = [];
-    typeObject.prototype.GetType = function () {
-      return typeObject;
-    };
+    JSIL.ApplyExternals(staticClassObject, fullName);
 
-    JSIL.ApplyExternals(typeObject, fullName);
-
-    return typeObject;
+    return staticClassObject;
   };
 
   var state = [null];
@@ -1726,6 +1745,9 @@ JSIL.IsArray = function (value) {
 JSIL.GetType = function (value) {
   var result;
 
+  if ((typeof (value) === "object") && (typeof (value.__Type__) === "object") && (Object.getPrototypeOf(value.__Type__) === JSIL.StaticClassPrototype))
+    return value.__Type__;
+
   if ((typeof (value) !== "undefined") && (typeof (value.GetType) === "function"))
     return value.GetType();
 
@@ -1744,7 +1766,7 @@ JSIL.GetType = function (value) {
   }
 
   return System.Object;
-}
+};
 
 JSIL.GetTypeName = function (value) {
   if (typeof (value) === "undefined" || value === null)
@@ -1770,7 +1792,7 @@ JSIL.GetTypeName = function (value) {
     return "System.Object";
 
   return result;
-}
+};
 
 JSIL.TryCast = function (value, expectedType) {
   if (expectedType.__IsReferenceType__ === false)
@@ -2481,22 +2503,17 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
 
     var typeObject = Object.create(JSIL.TypeObjectPrototype);
 
-    typeObject.__TypeId__ = ++JSIL.$NextTypeId;
     typeObject.__BaseType__ = delegateType;
     typeObject.__FullName__ = fullName;
     typeObject.__CallStack__ = callStack;
     typeObject.IsEnum = false;
 
     typeObject.__GenericArguments__ = genericArguments || [];
-    if (typeObject.__GenericArguments__.length > 0) {
-      typeObject.Of$NoInitialize = JSIL.TypeObjectPrototype.Of$NoInitialize.bind(typeObject);
-      typeObject.Of = JSIL.TypeObjectPrototype.Of.bind(typeObject);
-      typeObject.__IsClosed__ = false;
-    } else {
-      typeObject.__IsClosed__ = true;
-    }
 
-    typeObject.CheckType = function (value) {
+    var staticClassObject = typeObject.__PublicInterface__ = Object.create(JSIL.StaticClassPrototype);
+    staticClassObject.__Type__ = typeObject;
+
+    staticClassObject.CheckType = function (value) {
       if (
         (
           (typeof (value) === "function") ||
@@ -2510,7 +2527,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
       return false;
     };
 
-    typeObject.New = function (object, method) {
+    staticClassObject.New = function (object, method) {
       if ((typeof (method) === "undefined") &&
           (typeof (object) === "function")
       ) {
@@ -2519,16 +2536,17 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
 
         if (
           (typeof (method.GetType) === "function") &&
-          (method.GetType() === this)
+          (method.GetType() === typeObject)
         )
           return method;
       }
 
       var resultDelegate = method.bind(object);
+      var self = this;
 
-      resultDelegate.toString = this.toString.bind(this);
+      resultDelegate.toString = self.toString.bind(self);
       resultDelegate.GetType = function () {
-        return this;
+        return self.__Type__;
       };
       resultDelegate.__object__ = object;
       resultDelegate.__method__ = method;
@@ -2537,7 +2555,17 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
       return resultDelegate;
     };
 
-    return typeObject;
+    staticClassObject.__TypeId__ = typeObject.__TypeId__ = ++JSIL.$NextTypeId;
+
+    if (typeObject.__GenericArguments__.length > 0) {
+      staticClassObject.Of$NoInitialize = $jsilcore.$Of$NoInitialize.bind(staticClassObject);
+      staticClassObject.Of = $jsilcore.$Of.bind(staticClassObject);
+      typeObject.__IsClosed__ = false;
+    } else {
+      typeObject.__IsClosed__ = true;
+    }
+
+    return staticClassObject;
   };
 
   JSIL.RegisterName(fullName, assembly, isPublic, creator);

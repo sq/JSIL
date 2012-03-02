@@ -442,6 +442,12 @@ namespace JSIL {
             );
         }
 
+        public void VisitNode (JSTypeOfExpression toe) {
+            Visit(toe.Type);
+            Output.Dot();
+            Output.Identifier("__Type__");
+        }
+
         public void VisitNode (JSEliminatedVariable variable) {
             throw new InvalidOperationException(String.Format("'{0}' was eliminated despite being in use.", variable.Variable));
         }

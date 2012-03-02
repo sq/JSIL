@@ -7,6 +7,7 @@ var $jsilcore = JSIL.DeclareAssembly("JSIL.Core");
 
 JSIL.DeclareNamespace("System.ComponentModel");
 JSIL.DeclareNamespace("System.Linq");
+JSIL.DeclareNamespace("System.Reflection");
 
 JSIL.MakeClass("System.Object", "System.ComponentModel.MemberDescriptor", true);
 JSIL.MakeClass("System.ComponentModel.MemberDescriptor", "System.ComponentModel.PropertyDescriptor", true);
@@ -956,3 +957,15 @@ JSIL.ImplementExternals(
 
 JSIL.MakeStruct("System.ValueType", "System.Nullable`1", true, ["T"], function ($) {
 });
+
+
+JSIL.MakeEnum("System.Reflection.BindingFlags", true, {
+  
+}, true);
+
+JSIL.ImplementExternals(
+  "System.Type", true, {
+    GetMethods$1: function () {
+    }
+  }
+);

@@ -92,6 +92,18 @@ namespace JSIL {
                 ReturnType = null;
         }
 
+        protected JSExpression FixupThisArgument (JSExpression thisArgument, TypeSystem typeSystem) {
+            var toe = thisArgument as JSTypeOfExpression;
+            if (toe != null)
+                return toe.Type;
+
+            var expectedType = thisArgument.GetExpectedType(typeSystem);
+            if (expectedType.FullName == "System.Type")
+                return JSDotExpression.New(thisArgument, new JSStringIdentifier("__PublicInterface__"));
+
+            return thisArgument;
+        }
+
         protected TypeReference UnwrapType (JSExpression expression) {
             var type = expression as JSType;
             if (type != null)
@@ -145,7 +157,7 @@ namespace JSIL {
             }
 
             public override JSExpression Translate (ILBlockTranslator translator, JSExpression[] arguments) {
-                var thisArgument = arguments[1];
+                var thisArgument = FixupThisArgument(arguments[1], translator.TypeSystem);
 
                 var returnType = ReturnType;
                 if (returnType == null)
@@ -410,7 +422,7 @@ namespace JSIL {
             }
 
             public override JSExpression Translate (ILBlockTranslator translator, JSExpression[] arguments) {
-                var thisArgument = arguments[1];
+                var thisArgument = FixupThisArgument(arguments[1], translator.TypeSystem);
 
                 var returnType = ReturnType;
                 if (returnType == null)
@@ -447,7 +459,7 @@ namespace JSIL {
             }
 
             public override JSExpression Translate (ILBlockTranslator translator, JSExpression[] arguments) {
-                var thisArgument = arguments[1];
+                var thisArgument = FixupThisArgument(arguments[1], translator.TypeSystem);
 
                 var returnType = ReturnType;
                 if (returnType == null)

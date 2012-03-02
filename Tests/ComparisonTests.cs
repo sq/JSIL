@@ -55,6 +55,27 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void Dynamics () {
+            RunComparisonTests(
+                new[] { 
+                    @"TestCases\DynamicBinaryOperators.cs",
+                    @"TestCases\DynamicConversion.cs",
+                    @"TestCases\DynamicGetIndex.cs",
+                    @"TestCases\DynamicInvoke.cs",
+                    @"TestCases\DynamicMethods.cs",
+                    @"TestCases\DynamicOverloadedMethods.cs",
+                    @"TestCases\DynamicPropertyGet.cs",
+                    @"TestCases\DynamicPropertyGetAndCall.cs",
+                    @"TestCases\DynamicPropertySet.cs",
+                    @"TestCases\DynamicReturnTypes.cs",
+                    @"TestCases\DynamicSetIndex.cs",
+                    @"TestCases\DynamicStaticOverloadedMethods.cs",
+                    @"TestCases\DynamicUnaryOperators.cs",
+                }
+            );
+        }
+
+        [Test]
         public void Generics () {
             RunComparisonTests(
                 new[] { 
