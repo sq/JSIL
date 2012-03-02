@@ -597,7 +597,7 @@ JSIL.New = function (type, constructorName, args) {
   if ((typeObject.__TypeInitialized__ || false) === false)
     JSIL.InitializeType(classObject);
   
-  JSIL.InitializeStructFields(result, classObject);
+  JSIL.InitializeStructFields(result, typeObject);
 
   if (!typeObject.__IsReferenceType__ && (args.length == 0)) {
   } else {
