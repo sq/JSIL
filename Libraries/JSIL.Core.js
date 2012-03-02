@@ -900,6 +900,7 @@ $jsilcore.$Of$NoInitialize = function () {
 
   if (typeof (staticClassObject.prototype) !== "undefined") {
     result.prototype = Object.create(staticClassObject.prototype);
+    result.prototype.__FullName__ = fullName;
     result.prototype.GetType = function () {
       return resultTypeObject;
     };
