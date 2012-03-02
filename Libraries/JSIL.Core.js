@@ -1287,9 +1287,6 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.FullName = typeObject.__FullName__ = fullName;
     typeObject.__ShortName__ = localName;
     typeObject.__LockCount__ = 0;
-    typeObject.IsAssignableFrom = function (typeOfValue) {
-      return JSIL.CheckDerivation(typeOfValue.prototype, typeObject.prototype);
-    };
     typeObject.__GenericArguments__ = genericArguments || [];
 
     if (stack !== null)
@@ -1340,6 +1337,17 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__PublicInterface__ = staticClassObject;
 
     typeObject.__BaseType__ = baseType;
+    typeObject.IsAssignableFrom = function (typeOfValue) {
+      var t = typeOfValue;
+      while (typeof (t) !== "undefined") {
+        if (t === typeObject)
+          return true;
+
+        t = JSIL.GetBaseType(t);
+      }
+
+      return false;
+    };
 
     JSIL.ApplyExternals(staticClassObject, fullName);
 
