@@ -1279,6 +1279,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     var typeObject = JSIL.CloneObject(JSIL.TypeObjectPrototype);
     typeObject.__IsArray__ = false;
     typeObject.__Initializers__ = [];
+    typeObject.__Interfaces__ = [];
     typeObject.__TypeInitialized__ = false;
     typeObject.__IsNativeType__ = false;
     typeObject.__IsReferenceType__ = isReferenceType;
@@ -1324,7 +1325,6 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     staticClassObject.__Type__ = typeObject;
     staticClassObject.prototype = JSIL.MakeProto(baseType, staticClassObject, fullName, false, assembly);
     staticClassObject.prototype.__ShortName__ = localName;
-    staticClassObject.prototype.__Interfaces__ = [];
     staticClassObject.prototype.GetType = function () {
       return typeObject;
     };
@@ -1338,6 +1338,8 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     }
 
     typeObject.__PublicInterface__ = staticClassObject;
+
+    typeObject.__BaseType__ = baseType;
 
     JSIL.ApplyExternals(staticClassObject, fullName);
 
@@ -1452,8 +1454,8 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
           return true;
       }
       else {
-        var value = typeOfValue.prototype;
-        var interfaces = typeOfValue.prototype.__Interfaces__;
+        var value = typeOfValue;
+        var interfaces = typeOfValue.__Interfaces__;
 
         while (JSIL.IsArray(interfaces)) {
           for (var i = 0; i < interfaces.length; i++) {
@@ -1461,8 +1463,10 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
               return true;
           }
 
-          value = Object.getPrototypeOf(value);
-          interfaces = value.__Interfaces__;
+          value = JSIL.GetBaseType(value);
+
+          if (typeof (value) !== "undefined")
+            interfaces = value.__Interfaces__;
         }
       }
 
@@ -1572,9 +1576,9 @@ JSIL.MakeInterfaceMemberGetter = function (thisReference, name) {
 };
 
 JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
-  var interfaces = type.prototype.__Interfaces__;
+  var interfaces = type.__Type__.__Interfaces__;
   if (typeof (interfaces) === "undefined") {
-    type.prototype.__Interfaces__ = interfaces = [];
+    type.__Type__.__Interfaces__ = interfaces = [];
   }
 
   var typeName = JSIL.GetTypeName(type);
@@ -1730,7 +1734,7 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
     return false;
 
   if (expectedType.IsInterface === true) {
-    var interfaces = value.__Interfaces__;
+    var interfaces = JSIL.GetType(value).__Interfaces__;
 
     while (JSIL.IsArray(interfaces)) {
       for (var i = 0; i < interfaces.length; i++) {
@@ -1739,7 +1743,7 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
       }
 
       value = Object.getPrototypeOf(value);
-      interfaces = value.__Interfaces__;
+      interfaces = JSIL.GetType(value).__Interfaces__;
     }
 
     return false;
@@ -1781,6 +1785,18 @@ JSIL.IsArray = function (value) {
   }
 
   return false;
+};
+
+JSIL.GetBaseType = function (typeObject) {  
+  var result = typeObject.__BaseType__;
+  if (typeof (result) === "string")
+    result = JSIL.ResolveName(typeObject.__Context__, result, true);
+  if ((typeof (result) !== "undefined") && (typeof (result.get) === "function"))
+    result = result.get();
+  if ((typeof (result) !== "undefined") && (typeof (result.__Type__) === "object"))
+    result = result.__Type__;
+
+  return result;
 };
 
 JSIL.GetType = function (value) {

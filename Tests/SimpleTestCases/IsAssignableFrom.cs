@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 class A { }
 class B { }
@@ -20,15 +21,26 @@ public class Program
     public static void Main(string[] args)
     {
         var types = new[] { typeof(A), typeof(B), typeof(C), typeof(D), typeof(E), typeof(F), typeof(G), typeof(H), typeof(I), typeof(J), typeof(K), typeof(L), typeof(M), typeof(N) };
+        var trueList = new List<string>();
 
         foreach (var t in types)
         {
             foreach (var t2 in types)
             {
-                Console.WriteLine(t.FullName + " <- " + t2.FullName + "´: " + (t.IsAssignableFrom(t2) ? "True" : "False"));
+                bool iaf = t.IsAssignableFrom(t2);
+                if ((object)t == (object)t2) {
+                    if (!iaf)
+                        Console.WriteLine("{0} not assignable to itself!", t.FullName);
+                } else {
+                    if (iaf)
+                        trueList.Add(t.FullName + " <- " + t2.FullName);
+                }
             }
         }
 
+        Console.WriteLine("Assignable types:");
+        foreach (var s in trueList)
+            Console.WriteLine(s);
     }
 }
 
