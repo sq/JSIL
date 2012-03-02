@@ -1955,6 +1955,10 @@ JSIL.GenericMethod = function (argumentNames, body) {
   return result;
 };
 
+JSIL.MakeMethod = function (context, methodName, fn) {
+  context[methodName] = fn;
+};
+
 JSIL.FindOverload = function (prototype, args, name, overloads) {
   var l = args.length;
 

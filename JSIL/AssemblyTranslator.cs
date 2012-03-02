@@ -1462,16 +1462,22 @@ namespace JSIL {
                 output.NewLine();
             }
 
+            output.Identifier("JSIL.MakeMethod", null);
+            output.LPar();
+
             dollar(output);
             if (!method.IsStatic) {
                 output.Dot();
                 output.Keyword("prototype");
             }
-            output.Dot();
 
-            output.Identifier(methodInfo.GetName(true));
+            output.Comma();
 
-            output.Token(" = ");
+            output.Value(Util.EscapeIdentifier(methodInfo.GetName(true), EscapingMode.MemberIdentifier));
+
+            output.Comma();
+
+            output.PlainTextFormatter.Unindent();
 
             if (method.HasGenericParameters) {
                 output.Identifier("JSIL.GenericMethod", null);
@@ -1508,6 +1514,9 @@ namespace JSIL {
                 output.NewLine();
                 output.RPar();
             }
+
+            output.RPar();
+            output.PlainTextFormatter.Indent();
 
             output.Semicolon();
         }

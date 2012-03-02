@@ -185,8 +185,8 @@ namespace JSIL.Tests {
 
                 // We still want to generate method bodies for auto properties, since they're compiler generated and only
                 //  contain a single statement anyway
-                Assert.IsTrue(generatedJs.Contains("get_A = function"));
-                Assert.IsTrue(generatedJs.Contains("get_D = function"));
+                Assert.IsTrue(generatedJs.Contains("MakeMethod($, \"get_A\""));
+                Assert.IsTrue(generatedJs.Contains("MakeMethod($.prototype, \"get_D\""));
 
                 Assert.IsTrue(generatedJs.Contains("\"set_E"));
                 Assert.IsTrue(generatedJs.Contains("\"remove_F"));
@@ -291,7 +291,7 @@ namespace JSIL.Tests {
                 "Method", "external method 'Method' of type 'Program' has not"
             );
 
-            Assert.IsFalse(generatedJs.Contains(".Method = function "));
+            Assert.IsFalse(generatedJs.Contains("MakeMethod($, \"Method\""));
             Assert.IsTrue(generatedJs.Contains(".Program.Method("));
         }
 
@@ -303,7 +303,7 @@ namespace JSIL.Tests {
                 "undefined"
             );
 
-            Assert.IsFalse(generatedJs.Contains(".Field = function "));
+            Assert.IsFalse(generatedJs.Contains(".Field = "));
             Assert.IsTrue(generatedJs.Contains(".Program.Field"));
         }
 
@@ -315,7 +315,7 @@ namespace JSIL.Tests {
                 "undefined"
             );
 
-            Assert.IsFalse(generatedJs.Contains(".get_Property = function "));
+            Assert.IsFalse(generatedJs.Contains("\"get_Property\""));
             Assert.IsFalse(generatedJs.Contains(".MakeProperty($, \"Property\""));
             Assert.IsTrue(generatedJs.Contains(".Program.Property"));
         }
@@ -327,7 +327,7 @@ namespace JSIL.Tests {
                 "Property", "method 'get_Property' of type 'Program' has not"
             );
 
-            Assert.IsFalse(generatedJs.Contains(".get_Property = function "));
+            Assert.IsFalse(generatedJs.Contains("MakeMethod($, \"get_Property\""));
             Assert.IsTrue(generatedJs.Contains(".MakeProperty($, \"Property\""));
             Assert.IsTrue(generatedJs.Contains(".Program.Property"));
         }
