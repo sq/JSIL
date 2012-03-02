@@ -900,7 +900,9 @@ $jsilcore.$Of$NoInitialize = function () {
     var decl = {
       configurable: false,
       enumerable: true,
-      value: arguments[i]
+      // The variables holding the generic arguments need to be actual System.Type interfaces.
+      // It's not possible to invoke static methods through the generic arguments, so this is fine.
+      value: arguments[i].__Type__ 
     };
     Object.defineProperty(result, key, decl);
     Object.defineProperty(result.prototype, key, decl);
