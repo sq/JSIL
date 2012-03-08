@@ -1821,7 +1821,6 @@ JSIL.GenericMethod = function (argumentNames, body) {
     if (arguments.length !== argumentNames.length)
       throw new Error("Invalid number of generic arguments for method (got " + arguments.length + ", expected " + argumentNames.length + ")");
 
-    var outerThis = this;
     var genericArguments = arguments;
 
     return function () {
@@ -1831,7 +1830,7 @@ JSIL.GenericMethod = function (argumentNames, body) {
       for (var i = 0, l = arguments.length; i < l; i++)
         invokeArguments.push(arguments[i]);
 
-      return body.apply(outerThis, invokeArguments);
+      return body.apply(this, invokeArguments);
     };
   };
 

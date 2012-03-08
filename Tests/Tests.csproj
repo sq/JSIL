@@ -279,6 +279,7 @@
     <None Include="TestCases\GenericNestedTypeConstructedInParentStaticConstructor.cs" />
     <Content Include="SimpleTestCases\Constructors.vb" />
     <Content Include="TestCases\Events.vb" />
+    <None Include="TestCases\GenericMethodThisReference.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
