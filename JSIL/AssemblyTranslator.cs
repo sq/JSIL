@@ -1496,12 +1496,12 @@ namespace JSIL {
                 methodInfo.Identifier
             ));
 
-            if (bodyTransformer != null)
-                bodyTransformer(function);
-
-            function.DisplayName = methodInfo.GetName(true);
-
             if (function != null) {
+                if (bodyTransformer != null)
+                    bodyTransformer(function);
+
+                function.DisplayName = methodInfo.GetName(true);
+
                 astEmitter.Visit(function);
             } else {
                 output.Identifier("JSIL.UntranslatableFunction", null);

@@ -67,11 +67,12 @@ namespace JSIL {
         }
 
         public JSFunctionExpression GetExpression (QualifiedMemberIdentifier method) {
-            return GetCacheEntry(method).Expression;
+            var entry = GetCacheEntry(method);
+            return entry.Expression;
         }
 
         public FunctionAnalysis1stPass GetFirstPass (QualifiedMemberIdentifier method) {
-            Entry entry = GetCacheEntry(method);
+            var entry = GetCacheEntry(method);
 
             if (entry.Expression == null)
                 return null;
