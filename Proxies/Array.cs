@@ -65,5 +65,15 @@ namespace JSIL.Proxies {
         public static int IndexOf<T> (T[] array, T value, int startIndex) {
             throw new InvalidOperationException();
         }
+
+        [JSReplacement("Array.prototype.sort.call($array)")]
+        public static void Sort (AnyType[] array) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("Array.prototype.sort.call($array)")]
+        public static void Sort<T> (T[] array) {
+            throw new InvalidOperationException();
+        }
     }
 }
