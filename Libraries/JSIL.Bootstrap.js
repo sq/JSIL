@@ -159,7 +159,7 @@ JSIL.MakeClass(Error, "System.Exception", true, [], function ($) {
 JSIL.MakeClass("System.Exception", "System.InvalidCastException", true);
 JSIL.MakeClass("System.Exception", "System.InvalidOperationException", true);
 
-JSIL.MakeClass("System.Object", "System.Console", true, [], function ($) {
+JSIL.MakeStaticClass("System.Console", true, [], function ($) {
   JSIL.ExternalMembers($, false, 
     "Write", "WriteLine"
   );

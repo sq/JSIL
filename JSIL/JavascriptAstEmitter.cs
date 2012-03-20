@@ -76,8 +76,8 @@ namespace JSIL {
             if (includeBraces)
                 Output.OpenBrace();
 
-            foreach (var stmt in block.Statements)
-                Visit(stmt);
+            for (var i = 0; i < block.Statements.Count; i++)
+                Visit(block.Statements[i]);
 
             if (includeBraces)
                 Output.CloseBrace();

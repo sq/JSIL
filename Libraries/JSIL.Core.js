@@ -2248,6 +2248,7 @@ System.Array.Of = function (type) {
     var typeName = elementName + "[]";
     compositeType = JSIL.CloneObject(tsa);
     compositeType.FullName = compositeType.__FullName__ = typeName;
+    compositeType.__IsReferenceType__ = true;
     compositeType.__TypeId__ = ++JSIL.$NextTypeId;
     compositeType.__IsArray__ = true;
     compositeType.prototype = JSIL.MakeProto(tsa, compositeType, typeName, true, type.__Context__);
