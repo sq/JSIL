@@ -12,13 +12,9 @@ public static class Program {
     }
 
     public static void Main (string[] args) {
-        Console.WriteLine(typeof(Program));
-
-        var methods = typeof(Program).GetMethods(
+        Common.Util.ListMethods(
+            typeof(Program),
             BindingFlags.DeclaredOnly | BindingFlags.Static | BindingFlags.Public
         );
-
-        foreach (var method in methods)
-            Console.WriteLine(method.Name);
     }
 }

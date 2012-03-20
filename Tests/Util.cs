@@ -47,7 +47,7 @@ namespace JSIL.Tests {
                 }
         }
 
-        public static Assembly CompileCS (string sourceCode, out TempFileCollection temporaryFiles) {
+        public static Assembly CompileCS (string[] sourceCode, out TempFileCollection temporaryFiles) {
             using (var csc = new CSharpCodeProvider(new Dictionary<string, string>() { 
                 { "CompilerVersion", "v4.0" } 
             })) {
@@ -55,7 +55,7 @@ namespace JSIL.Tests {
             }
         }
 
-        public static Assembly CompileVB (string sourceCode, out TempFileCollection temporaryFiles) {
+        public static Assembly CompileVB (string[] sourceCode, out TempFileCollection temporaryFiles) {
             using (var vbc = new VBCodeProvider(new Dictionary<string, string>() { 
                 { "CompilerVersion", "v4.0" } 
             })) {
@@ -63,7 +63,7 @@ namespace JSIL.Tests {
             }
         }
 
-        private static Assembly Compile (CodeDomProvider provider, string sourceCode, out TempFileCollection temporaryFiles) {            
+        private static Assembly Compile (CodeDomProvider provider, string[] sourceCode, out TempFileCollection temporaryFiles) {            
             var parameters = new CompilerParameters(new[] {
                 "mscorlib.dll", "System.dll", "System.Core.dll", "Microsoft.CSharp.dll",
                 typeof(JSIL.Meta.JSIgnore).Assembly.Location
@@ -103,7 +103,7 @@ namespace JSIL.Tests {
 
         public readonly TypeInfoProvider TypeInfo;
         public readonly string[] StubbedAssemblies;
-        public readonly string Filename;
+        public readonly string OutputPath;
         public readonly Assembly Assembly;
         public readonly MethodInfo TestMethod;
 
@@ -117,11 +117,29 @@ namespace JSIL.Tests {
             BootstrapJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.Bootstrap.js"));
         }
 
-        public ComparisonTest (string filename, string[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null) {
-            Filename = Path.Combine(TestSourceFolder, filename);
+        public ComparisonTest (string filename, string[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null)
+            : this (
+                new[] { filename }, 
+                Path.Combine(
+                    TestSourceFolder, 
+                    filename.Replace(".cs", ".js").Replace(".vb", "_vb.js")
+                ), 
+                stubbedAssemblies, typeInfo
+            ) {
+        }
 
-            var sourceCode = File.ReadAllText(Filename);
-            switch (Path.GetExtension(filename).ToLower()) {
+        public ComparisonTest (IEnumerable<string> filenames, string outputPath, string[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null) {
+            OutputPath = outputPath;
+
+            var sourceCode = (from f in filenames
+                              let fullPath = Path.Combine(TestSourceFolder, f)
+                              select File.ReadAllText(fullPath)).ToArray();
+            var extensions = (from f in filenames select Path.GetExtension(f).ToLower()).Distinct().ToArray();
+
+            if (extensions.Length != 1)
+                throw new InvalidOperationException("Mixture of different source languages provided.");
+
+            switch (extensions[0]) {
                 case ".cs":
                     Assembly = CompilerUtil.CompileCS(sourceCode, out TemporaryFiles);
                     break;
@@ -272,7 +290,7 @@ namespace JSIL.Tests {
 
                 return output[0] ?? "";
             } finally {
-                var jsFile = Filename.Replace(".cs", ".js").Replace(".vb", "_vb.js");
+                var jsFile = OutputPath;
                 if (File.Exists(jsFile))
                     File.Delete(jsFile);
                 File.Copy(tempFilename, jsFile);
@@ -359,6 +377,14 @@ namespace JSIL.Tests {
         protected void RunComparisonTests (
             string[] filenames, string[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null
         ) {
+            string commonFile = null;
+            for (var i = 0; i < filenames.Length; i++) {
+                if (filenames[i].Contains("\\Common.")) {
+                    commonFile = filenames[i];
+                    break;
+                }
+            }
+
             const string keyName = @"Software\Squared\JSIL\Tests\PreviousFailures";
 
             StackFrame callingTest = null;
@@ -411,10 +437,24 @@ namespace JSIL.Tests {
             );
 
             foreach (var filename in sortedFilenames) {
+                if (filename == commonFile)
+                    continue;
+
                 Console.Write("// {0} ... ", Path.GetFileName(filename));
 
                 try {
-                    using (var test = new ComparisonTest(filename, stubbedAssemblies, typeInfo))
+                    var testFilenames = new List<string>() { filename };
+                    if (commonFile != null)
+                        testFilenames.Add(commonFile);
+
+                    using (var test = new ComparisonTest(
+                        testFilenames, 
+                        Path.Combine(
+                            ComparisonTest.TestSourceFolder,
+                            filename.Replace(".cs", ".js").Replace(".vb", "_vb.js")
+                        ),
+                        stubbedAssemblies, typeInfo)
+                    )
                         test.Run();
                 } catch (Exception ex) {
                     failureList.Add(Path.GetFileNameWithoutExtension(filename));

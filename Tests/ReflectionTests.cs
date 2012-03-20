@@ -16,7 +16,9 @@ namespace JSIL.Tests {
         public void AllReflectionTests () {
             var defaultProvider = MakeDefaultProvider();
             var testPath = Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "ReflectionTestCases"));
-            var simpleTests = Directory.GetFiles(testPath, "*.cs").Concat(Directory.GetFiles(testPath, "*.vb")).ToArray();
+            var simpleTests = Directory.GetFiles(testPath, "*.cs")
+                .Concat(Directory.GetFiles(testPath, "*.vb"))
+                .ToArray();
 
             RunComparisonTests(
                 simpleTests, null, defaultProvider

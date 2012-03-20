@@ -1471,9 +1471,14 @@ namespace JSIL {
             output.Value(!method.IsStatic);
 
             output.Comma();
-            output.Value(Util.EscapeIdentifier(methodInfo.GetName(true), EscapingMode.MemberIdentifier));
+            output.Value(Util.EscapeIdentifier(methodInfo.GetName(false), EscapingMode.MemberIdentifier));
 
             output.Comma();
+
+            if (methodInfo.OverloadIndex.HasValue) {
+                output.Value(methodInfo.OverloadIndex.Value);
+                output.Comma();
+            }
 
             output.PlainTextFormatter.Unindent();
 

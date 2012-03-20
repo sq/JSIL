@@ -12,7 +12,7 @@ namespace JSIL.Tests {
         public void EnumeratesAssemblyDependencies () {
             TempFileCollection temporaryFiles;
 
-            var assembly = CompilerUtil.CompileCS(@"
+            var assembly = CompilerUtil.CompileCS(new[] { @"
 using System;
 using System.Text.RegularExpressions;
 
@@ -23,7 +23,7 @@ public static class Program {
         var match = regex.Match(text);
         Console.WriteLine(""{0} {1}"", match.Success, match.Groups[0].Value);
     }
-}", out temporaryFiles);
+}" }, out temporaryFiles);
 
             var translator = new AssemblyTranslator(
                 new Translator.Configuration {
