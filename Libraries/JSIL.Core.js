@@ -117,22 +117,22 @@ JSIL.ResolvedName = function (parent, parentName, key, localName, allowInheritan
   this.key = key;
   this.localName = localName;
   this.allowInheritance = allowInheritance;
-}
+};
 JSIL.ResolvedName.prototype.exists = function () {
   if (this.allowInheritance)
     return typeof(this.parent[this.key]) !== "undefined";
   else
     return this.parent.hasOwnProperty(this.key);
-}
+};
 JSIL.ResolvedName.prototype.get = function () {
   return this.parent[this.key];
-}
+};
 JSIL.ResolvedName.prototype.del = function () {
   try {
     delete this.parent[this.key];
   } catch (e) {
   }
-}
+};
 JSIL.ResolvedName.prototype.set = function (value) {
   try {
     delete this.parent[this.key];
@@ -149,10 +149,10 @@ JSIL.ResolvedName.prototype.set = function (value) {
       }
     );
   }
-}
+};
 JSIL.ResolvedName.prototype.define = function (declaration) {
   Object.defineProperty(this.parent, this.key, declaration);
-}
+};
 
 JSIL.ResolveName = function (root, name, allowInheritance) {
   var parts = JSIL.SplitName(name);
@@ -264,7 +264,7 @@ JSIL.DeclareNamespace = function (name, sealed) {
         }
       }
     });
-}
+};
 
 JSIL.DeclareNamespace("System");
 JSIL.DeclareNamespace("System.Collections");
@@ -347,7 +347,7 @@ JSIL.Host.error = function (exception, text) {
   }
 
   JSIL.Host.throwException(exception);
-}
+};
 
 JSIL.Host.throwException = function (e) {
   throw e;
@@ -362,7 +362,7 @@ JSIL.Host.runLaterCallback = function () {
     var item = items.shift();
     item();
   }
-}
+};
 
 // This can fail to run the specified action if the host hasn't implemented it, so you should
 //  only use this to run performance improvements, not things you depend on
@@ -417,7 +417,7 @@ JSIL.MakeExternalMemberStub = function (namespaceName, memberName, inheritedMemb
 
   result.__IsPlaceholder__ = true;
   return result;
-}
+};
 
 JSIL.ExternalMembers = function (namespace, isInstance /*, ...memberNames */) {
   if (typeof (namespace) === "undefined") {
@@ -1956,11 +1956,16 @@ JSIL.GenericMethod = function (argumentNames, body) {
   return result;
 };
 
-JSIL.MakeMethod = function (type, isInstance, methodName, overloadIndex, fn) {
+JSIL.MakeMethod = function (type, descriptor, methodName, overloadIndex, fn) {
   var mangledName = methodName;
 
-  var target = type;
-  if (isInstance)
+  var isStatic = descriptor.static || false;
+  var isPublic = descriptor.public || false;
+
+  var target;
+  if (isStatic)
+    target = type;
+  else
     target = type.prototype;
 
   if (typeof(overloadIndex) === "number")
@@ -1978,7 +1983,12 @@ JSIL.MakeMethod = function (type, isInstance, methodName, overloadIndex, fn) {
   if (!JSIL.IsArray(overloadList))
     overloadList = methodList[methodName] = [];
 
-  overloadList.push([overloadIndex, fn]);
+  overloadList.push([
+    {
+      static: isStatic,
+      public: isPublic
+    }, overloadIndex, fn
+  ]);
 };
 
 JSIL.FindOverload = function (prototype, args, name, overloads) {
@@ -2185,13 +2195,33 @@ JSIL.ImplementExternals(
     toString: function () {
       return this.__FullName__;
     },
-    GetMethods$1: function () {
+    GetMethods$0: function () {
+    	return this.GetMethods$1(
+        System.Reflection.BindingFlags.Instance | 
+        System.Reflection.BindingFlags.Static | 
+        System.Reflection.BindingFlags.Public
+      );
+    },
+    GetMethods$1: function (flags) {
       var result = [];
+
+      var publicOnly = (flags & System.Reflection.BindingFlags.Public) != 0;
+      var nonPublicOnly = (flags & System.Reflection.BindingFlags.NonPublic) != 0;
+      if (publicOnly && nonPublicOnly)
+        publicOnly = nonPublicOnly = false;
 
       for (var k in this.__AllMethods__) {
         var overloadList = this.__AllMethods__[k];
 
         for (var i = 0, l = overloadList.length; i < l; i++) {
+          var overload = overloadList[i];
+          var descriptor = overload[0];
+
+          if (publicOnly && !descriptor.public)
+            continue;
+          else if (nonPublicOnly && descriptor.public)
+            continue;
+
           result.push({
             Name: k
           });

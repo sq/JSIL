@@ -1468,7 +1468,20 @@ namespace JSIL {
             dollar(output);
 
             output.Comma();
-            output.Value(!method.IsStatic);
+
+            output.Token("{");
+
+            output.Identifier("static", null);
+            output.Token(":");
+            output.Value(method.IsStatic);
+
+            output.Comma();
+
+            output.Identifier("public", null);
+            output.Token(":");
+            output.Value(method.IsPublic);
+
+            output.Token("}");
 
             output.Comma();
             output.Value(Util.EscapeIdentifier(methodInfo.GetName(false), EscapingMode.MemberIdentifier));
