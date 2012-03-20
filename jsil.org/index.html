@@ -7,7 +7,7 @@
     <link rel="stylesheet" type="text/css" href="index.css">
   </head>
   <body onLoad="onLoad()">
-    <div id="content-box">
+    <div id="content_box">
       <div id="introduction" class="rounded-box">
         <h1><img src="images/jsil_48px.png" id="logo">JSIL</h1>
         <p>JSIL is a compiler that transforms .NET applications and libraries from their native executable format - <a href="http://en.wikipedia.org/wiki/Common_Intermediate_Language">CIL bytecode</a> - into standards-compliant, cross-browser JavaScript. You can take this JavaScript and run it in a web browser or any other modern JavaScript runtime. Unlike other cross-compiler tools targeting JavaScript, JSIL produces readable, easy-to-debug JavaScript that resembles the code a developer might write by hand, while still maintaining the behavior and structure of the original .NET code.</p>
@@ -56,9 +56,9 @@
         <p>Not everybody has time to write code! That's okay. You can <a href="https://github.com/kevingadd/JSIL/issues">report issues</a>, or just talk about JSIL on Twitter or something. It's cool!</p>
       </div>
       <div id="changelog" class="rounded-box">
-        <h2>Changelog <a href="https://github.com/kevingadd/JSIL/commits/master" id="view-on-github">View on GitHub</a></h2>
-        <div id="changelog-loading-placeholder">Loading...</div>
-        <div id="changelog-entries" style="display: none">
+        <h2>Changelog <span id="branch_list"></span> <a href="https://github.com/kevingadd/JSIL/commits/master" id="view_on_github">View on GitHub</a></h2>        
+        <div id="changelog_loading_placeholder">Loading...</div>
+        <div id="changelog_entries" style="display: none">
         </div>
       </div>      
       <div id="aboutauthor" class="rounded-box">
@@ -67,7 +67,7 @@
       </div>
     </div>
     
-    <div class="changelog-entry" id="changelog-entry-template" style="display: none">
+    <div class="changelog-entry" id="changelog_entry_template" style="display: none">
       <img class="author-image" alt="Author's Avatar">
       <div class="header"><a class="author">Author</a><a class="datetime"><span class="date">Date</span> <span class="time">Time</span></a></div>
       <div class="message"><span class="text">Message</span></div>
