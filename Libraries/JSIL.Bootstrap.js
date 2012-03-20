@@ -169,10 +169,18 @@ JSIL.MakeStaticClass("System.Console", true, [], function ($) {
 JSIL.ImplementExternals(
   "System.Console", false, {
     WriteLine: function () {
-      JSIL.Host.logWriteLine(System.String.Format.apply(null, arguments));
+      var text = "";
+      if (arguments.length > 0)
+        text = System.String.Format.apply(null, arguments);
+
+      JSIL.Host.logWriteLine(text);
     },
     Write: function () {
-      JSIL.Host.logWrite(System.String.Format.apply(null, arguments));
+      var text = "";
+      if (arguments.length > 0)
+        text = System.String.Format.apply(null, arguments);
+
+      JSIL.Host.logWrite(text);
     }
   }
 );
