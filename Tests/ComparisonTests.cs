@@ -88,6 +88,7 @@ namespace JSIL.Tests {
                     @"TestCases\InheritGenericClass.cs",
                     @"TestCases\InheritOpenGenericClass.cs",
                     @"TestCases\GenericMethods.cs",
+                    @"TestCases\GenericMethodThisReference.cs",
                     @"TestCases\NestedGenericMethodCalls.cs",
                     @"TestCases\OverloadWithGeneric.cs",
                     @"TestCases\OverloadWithMultipleGeneric.cs",

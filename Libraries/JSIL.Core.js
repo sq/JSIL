@@ -995,7 +995,10 @@ JSIL.MakeStructFieldInitializer = function (typeObject) {
       types[i] = fieldType.get();
   }
 
-  var rawFunction = new Function("types", "target", body.join("\r\n"));
+  var rawFunction = new Function(
+    "types", "target", 
+    "//@ sourceURL=jsil://structFieldInitializer/" + typeObject.__FullName__ + "\r\n" + body.join("\r\n")
+  );
   var boundFunction = rawFunction.bind(null, types);
   boundFunction.__Type__ == typeObject;
 
@@ -1933,17 +1936,15 @@ JSIL.GenericMethod = function (argumentNames, body) {
     if (arguments.length !== argumentNames.length)
       throw new Error("Invalid number of generic arguments for method (got " + arguments.length + ", expected " + argumentNames.length + ")");
 
-    var outerThis = this;
-    var genericArguments = arguments;
+    var genericArguments = Array.prototype.slice.call(arguments);
 
     return function () {
-      var invokeArguments = [];
-      for (var i = 0, l = genericArguments.length; i < l; i++)
-        invokeArguments.push(genericArguments[i]);
-      for (var i = 0, l = arguments.length; i < l; i++)
-        invokeArguments.push(arguments[i]);
+      // concat doesn't work on the raw 'arguments' value :(
+      var invokeArguments = genericArguments.concat(
+        Array.prototype.slice.call(arguments)
+      );
 
-      return body.apply(outerThis, invokeArguments);
+      return body.apply(this, invokeArguments);
     };
   };
 
@@ -2468,6 +2469,7 @@ System.Array.Of = function (type) {
     compositeType = JSIL.CloneObject(tsa);
     compositeType.__Type__ = compositeType; // TERRIBLE HACK OH GOD
     compositeType.FullName = compositeType.__FullName__ = typeName;
+    compositeType.__IsReferenceType__ = true;
     compositeType.__TypeId__ = ++JSIL.$NextTypeId;
     compositeType.__IsArray__ = true;
     compositeType.prototype = JSIL.MakeProto(tsa, compositeType, typeName, true, type.__Context__);

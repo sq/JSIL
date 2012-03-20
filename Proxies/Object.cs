@@ -10,6 +10,7 @@ namespace JSIL.Proxies {
     )]
     public abstract class ObjectProxy {
         [JSIsPure]
+        [JSExternal]
         new abstract public Type GetType ();
 
         [JSExternal]
