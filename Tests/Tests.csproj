@@ -57,6 +57,7 @@
     <None Include="ReflectionTestCases\ListOverloadedPublicStaticMethods.cs" />
     <None Include="ReflectionTestCases\Common.cs" />
     <None Include="ReflectionTestCases\ListFilteredStaticMethods.cs" />
+    <None Include="ReflectionTestCases\ListFilteredMethods.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <Compile Include="FormattingTests.cs" />

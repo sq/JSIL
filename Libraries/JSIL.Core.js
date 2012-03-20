@@ -1961,6 +1961,7 @@ JSIL.MakeMethod = function (type, descriptor, methodName, overloadIndex, fn) {
 
   var isStatic = descriptor.static || false;
   var isPublic = descriptor.public || false;
+  var isSpecialName = (methodName == "_ctor") || (methodName == "_cctor");
 
   var target;
   if (isStatic)
@@ -1986,7 +1987,8 @@ JSIL.MakeMethod = function (type, descriptor, methodName, overloadIndex, fn) {
   overloadList.push([
     {
       static: isStatic,
-      public: isPublic
+      public: isPublic,
+      specialName: isSpecialName
     }, overloadIndex, fn
   ]);
 };
@@ -2210,6 +2212,11 @@ JSIL.ImplementExternals(
       if (publicOnly && nonPublicOnly)
         publicOnly = nonPublicOnly = false;
 
+      var staticOnly = (flags & System.Reflection.BindingFlags.Static) != 0;
+      var instanceOnly = (flags & System.Reflection.BindingFlags.Instance) != 0;
+      if (staticOnly && instanceOnly)
+        staticOnly = instanceOnly = false;
+
       for (var k in this.__AllMethods__) {
         var overloadList = this.__AllMethods__[k];
 
@@ -2217,9 +2224,18 @@ JSIL.ImplementExternals(
           var overload = overloadList[i];
           var descriptor = overload[0];
 
+          // Instance and static constructors are not enumerated like normal methods.
+          if (descriptor.specialName)
+            continue;
+
           if (publicOnly && !descriptor.public)
             continue;
           else if (nonPublicOnly && descriptor.public)
+            continue;
+
+          if (staticOnly && !descriptor.static)
+            continue;
+          else if (instanceOnly && descriptor.static)
             continue;
 
           result.push({

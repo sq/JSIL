@@ -185,8 +185,8 @@ namespace JSIL.Tests {
 
                 // We still want to generate method bodies for auto properties, since they're compiler generated and only
                 //  contain a single statement anyway
-                Assert.IsTrue(generatedJs.Contains("MakeMethod($, false, \"get_A\""));
-                Assert.IsTrue(generatedJs.Contains("MakeMethod($, true, \"get_D\""));
+                Assert.IsTrue(generatedJs.ContainsRegex("MakeMethod(.*\"get_A\".*)"));
+                Assert.IsTrue(generatedJs.ContainsRegex("MakeMethod(.*\"get_D\".*)"));
 
                 Assert.IsTrue(generatedJs.Contains("\"set_E"));
                 Assert.IsTrue(generatedJs.Contains("\"remove_F"));

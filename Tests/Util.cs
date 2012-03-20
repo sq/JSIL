@@ -549,4 +549,11 @@ namespace JSIL.Tests {
             return generatedJs;
         }
     }
+
+    public static class TestExtensions {
+        public static bool ContainsRegex (this string text, string regex) {
+            var m = Regex.Matches(text, regex);
+            return (m.Count > 0);
+        }
+    }
 }

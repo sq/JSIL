@@ -11,6 +11,7 @@ namespace Common {
 
             Array.Sort(methodNames);
 
+            Console.WriteLine();
             foreach (var methodName in methodNames)
                 Console.WriteLine(methodName);
         }
