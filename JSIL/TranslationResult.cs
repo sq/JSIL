@@ -42,11 +42,11 @@ namespace JSIL {
             }
         }
 
-        public void WriteToDirectory (string path) {
+        public void WriteToDirectory (string path, string manifestPrefix = "") {
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
 
-            WriteBytesToFile(path, "manifest.js", Manifest);
+            WriteBytesToFile(path, manifestPrefix + "manifest.js", Manifest);
 
             foreach (var kvp in Files)
                 WriteBytesToFile(path, kvp.Key, kvp.Value);

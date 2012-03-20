@@ -31,7 +31,7 @@ namespace JSIL {
 
         public readonly SymbolProvider SymbolProvider = new SymbolProvider();
         public readonly FunctionCache FunctionCache = new FunctionCache();
-        public readonly AssemblyManifest Manifest = new AssemblyManifest();
+        public readonly AssemblyManifest Manifest;
 
         public event Action<string> AssemblyLoaded;
 
@@ -46,9 +46,15 @@ namespace JSIL {
 
         public AssemblyTranslator (
             Configuration configuration,
-            TypeInfoProvider typeInfoProvider = null
+            TypeInfoProvider typeInfoProvider = null,
+            AssemblyManifest manifest = null
         ) {
             Configuration = configuration;
+            if (manifest != null)
+                Manifest = manifest;
+            else
+                Manifest = new AssemblyManifest();
+
             // Important to avoid preserving the proxy list from previous translations in this process
             MemberIdentifier.ResetProxies();
 
@@ -305,6 +311,11 @@ namespace JSIL {
             pr = new ProgressReporter();
             if (Writing != null)
                 Writing(pr);
+
+            // Assign a unique identifier for all participating assemblies up front
+            foreach (var assembly in assemblies)
+                Manifest.GetPrivateToken(assembly);
+            Manifest.AssignIdentifiers();
 
             Parallel.For(
                 0, assemblies.Length, parallelOptions, (i) => {
@@ -1067,7 +1078,7 @@ namespace JSIL {
 
             output.CloseBracket(true, () => {
                 output.Comma();
-                output.Identifier(output.PrivateToken);
+                output.Identifier(output.PrivateToken.IDString);
                 output.RPar();
                 output.Semicolon();
             });

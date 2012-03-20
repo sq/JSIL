@@ -134,26 +134,29 @@ JSIL.MakeDelegate("System.Func`1", true, ["T", "TResult"]);
 JSIL.MakeDelegate("System.Func`2", true, ["T1", "T2", "TResult"]);
 JSIL.MakeDelegate("System.Func`3", true, ["T1", "T2", "T3", "TResult"]);
 
-JSIL.MakeClass(Error, "System.Exception", true, [], function ($) {
-  $.prototype._Message = null;
-  $.prototype._ctor = function (message) {
-    if (typeof (message) != "undefined")
-      this._Message = String(message);
-  };
-  $.prototype.get_Message = function () {  
-    if ((typeof (this._Message) === "undefined") || (this._Message === null))
-      return System.String.Format("Exception of type '{0}' was thrown.", JSIL.GetTypeName(this));
-    else
-      return this._Message;
-  };
+JSIL.ImplementExternals(
+  "System.Exception", true, {
+    _Message: null,
+    _ctor: function (message) {
+      if (typeof (message) != "undefined")
+        this._Message = String(message);
+    },
+    get_Message: function () {
+      if ((typeof (this._Message) === "undefined") || (this._Message === null))
+        return System.String.Format("Exception of type '{0}' was thrown.", JSIL.GetTypeName(this));
+      else
+        return this._Message;
+    },
+    toString: function () {
+      var message = this.Message;
+      return System.String.Format("{0}: {1}", JSIL.GetTypeName(this), message);
+    }
+  }
+);
 
+JSIL.MakeClass(Error, "System.Exception", true, [], function ($) {
   JSIL.MakeProperty($.prototype, "Message", 
     $.prototype.get_Message, null);
-
-  $.prototype.toString = function () {
-    var message = this.Message;
-    return System.String.Format("{0}: {1}", JSIL.GetTypeName(this), message);
-  };
 });
 
 JSIL.MakeClass("System.Exception", "System.InvalidCastException", true);

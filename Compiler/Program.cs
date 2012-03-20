@@ -202,8 +202,8 @@ namespace JSIL.Compiler {
             };
         }
 
-        static AssemblyTranslator CreateTranslator (Configuration configuration) {
-            var translator = new AssemblyTranslator(configuration);
+        static AssemblyTranslator CreateTranslator (Configuration configuration, AssemblyManifest manifest) {
+            var translator = new AssemblyTranslator(configuration, null, manifest);
 
             translator.Decompiling += MakeProgressHandler("Decompiling   ");
             translator.Optimizing += MakeProgressHandler ("Optimizing    ");
@@ -228,6 +228,7 @@ namespace JSIL.Compiler {
 
         static void Main (string[] arguments) {
             var buildGroups = new List<KeyValuePair<Configuration, IEnumerable<string>>>();
+            var manifest = new AssemblyManifest();
 
             ParseCommandLine(arguments, buildGroups);
 
@@ -249,7 +250,7 @@ namespace JSIL.Compiler {
                         : new Configuration[] { };
                     var localConfig = MergeConfigurations(config, fileConfig);
 
-                    var translator = CreateTranslator(localConfig);
+                    var translator = CreateTranslator(localConfig, manifest);
                     var outputs = translator.Translate(filename, localConfig.UseLocalProxies.GetValueOrDefault(true));
                     var outputDir = localConfig.OutputDirectory
                         .Replace("%assemblypath%", Path.GetDirectoryName(Path.GetFullPath(filename)));
@@ -258,7 +259,7 @@ namespace JSIL.Compiler {
 
                     EmitLog(outputDir, localConfig, filename, outputs);
 
-                    outputs.WriteToDirectory(outputDir);
+                    outputs.WriteToDirectory(outputDir, Path.GetFileName(filename) + ".");
 
                     Console.Error.WriteLine(" done.");
                 }

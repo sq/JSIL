@@ -426,6 +426,7 @@ JSIL.ImplementExternals(
     _ctor: function () {
       this.content = JSIL.New(Microsoft.Xna.Framework.Content.ContentManager, "_ctor$0", []);
       this.gameServices = new Microsoft.Xna.Framework.GameServiceContainer();
+      this.components = new Microsoft.Xna.Framework.GameComponentCollection();
       this._frameDelay = 1000 / 60;
 
       if (typeof (Date.now) === "function") {
@@ -437,6 +438,9 @@ JSIL.ImplementExternals(
       this._runHandle = null;
       this._gameTime = JSIL.New(Microsoft.Xna.Framework.GameTime, "_ctor$0", []);
       this._lastFrame = this._nextFrame = this._started = 0;
+    },
+    get_Components: function () {
+      return this.components;
     },
     get_Content: function () {
       return this.content;
