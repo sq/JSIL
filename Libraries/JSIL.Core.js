@@ -954,7 +954,10 @@ JSIL.MakeStructFieldInitializer = function (typeObject) {
       types[i] = fieldType.get();
   }
 
-  var rawFunction = new Function("types", "target", body.join("\r\n"));
+  var rawFunction = new Function(
+    "types", "target", 
+    "//@ sourceURL=jsil://structFieldInitializer/" + typeObject.__FullName__ + "\r\n" + body.join("\r\n")
+  );
   var boundFunction = rawFunction.bind(null, types);
   boundFunction.__Type__ == typeObject;
 
