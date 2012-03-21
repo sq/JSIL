@@ -1,7 +1,6 @@
 {
   "FrameworkVersion": 4.0,
   "OutputDirectory": "%configpath%",
-  "UseThreads": false,
   "Assemblies": {
     "Proxies": [
       "JSIL.Proxies.XNA4.dll"

@@ -28,7 +28,7 @@ namespace JSIL {
         protected readonly Dictionary<ILVariable, JSVariable> RenamedVariables = new Dictionary<ILVariable, JSVariable>();
 
         // Yuck :(
-        static readonly Dictionary<Tuple<string, string>, bool> TypeAssignabilityCache = new Dictionary<Tuple<string, string>, bool>();
+        static readonly ConcurrentCache<Tuple<string, string>, bool> TypeAssignabilityCache = new ConcurrentCache<Tuple<string, string>, bool>();
 
         public readonly SpecialIdentifiers SpecialIdentifiers;
 
@@ -606,8 +606,6 @@ namespace JSIL {
         }
 
         public static bool TypesAreAssignable (TypeReference target, TypeReference source) {
-            bool result;
-
             // All values are assignable to object
             if (target.FullName == "System.Object")
                 return true;
@@ -629,28 +627,30 @@ namespace JSIL {
                 return true;
 
             var cacheKey = new Tuple<string, string>(target.FullName, source.FullName);
-            if (TypeAssignabilityCache.TryGetValue(cacheKey, out result))
-                return result;
+            return TypeAssignabilityCache.GetOrCreate(
+                cacheKey, () => {
+                    bool result = false;
 
-            var dSource = GetTypeDefinition(source);
+                    var dSource = GetTypeDefinition(source);
 
-            if (dSource == null)
-                result = false;
-            else if (TypesAreEqual(target, dSource))
-                result = true;
-            else if ((dSource.BaseType != null) && TypesAreAssignable(target, dSource.BaseType))
-                result = true;
-            else {
-                foreach (var iface in dSource.Interfaces) {
-                    if (TypesAreAssignable(target, iface)) {
+                    if (dSource == null)
+                        result = false;
+                    else if (TypesAreEqual(target, dSource))
                         result = true;
-                        break;
+                    else if ((dSource.BaseType != null) && TypesAreAssignable(target, dSource.BaseType))
+                        result = true;
+                    else {
+                        foreach (var iface in dSource.Interfaces) {
+                            if (TypesAreAssignable(target, iface)) {
+                                result = true;
+                                break;
+                            }
+                        }
                     }
-                }
-            }
 
-            TypeAssignabilityCache[cacheKey] = result;
-            return result;
+                    return result;
+                }
+            );
         }
 
         protected bool ContainsLabels (ILNode root) {
