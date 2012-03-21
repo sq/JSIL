@@ -82,7 +82,11 @@
           document.getElementById("welcomeMessage").setAttribute("style", "display: none");
         } catch (ex) {
         }
-        JSIL.GetAssembly("Mannux, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null").Mannux.Program.Main([]);
+
+        // We can't invoke Main() since it disposes the Game immediately, breaking everything.
+        var asm = JSIL.GetAssembly("Mannux, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null");
+        var game = new asm.Engine();
+        game.Run();
       };
     </script>
     <script src="../Libraries/JSIL.Browser.js" type="text/javascript"></script>

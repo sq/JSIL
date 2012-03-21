@@ -112,7 +112,11 @@
           document.getElementById("welcomeMessage").setAttribute("style", "display: none");
         } catch (ex) {
         }
-        JSIL.GetAssembly("PlatformerStarterKit, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null").PlatformerStarterKit.Program.Main([]);
+
+        // We can't invoke Main() since it disposes the Game immediately, breaking everything.
+        var asm = JSIL.GetAssembly("PlatformerStarterKit, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null");
+        var game = new asm.PlatformerStarterKit.PlatformerGame();
+        game.Run();
       };
     </script>
     <script src="../Libraries/JSIL.Browser.js" type="text/javascript"></script>

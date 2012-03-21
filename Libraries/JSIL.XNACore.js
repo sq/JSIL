@@ -141,6 +141,8 @@ JSIL.ImplementExternals(
     _ctor$0: function (settingsFile) {
     },
     _ctor$1: function (settingsFile, lookAheadTime, rendererId) {
+    },
+    Update: function () {
     }
   }
 );
@@ -460,6 +462,7 @@ JSIL.ImplementExternals(
       this.gameServices = new Microsoft.Xna.Framework.GameServiceContainer();
       this.components = new Microsoft.Xna.Framework.GameComponentCollection();
       this._frameDelay = 1000 / 60;
+      this._isDead = false;
 
       if (typeof (Date.now) === "function") {
         Object.defineProperty(this, "_GetNow", {
@@ -479,6 +482,9 @@ JSIL.ImplementExternals(
     },
     get_Services: function () {
       return this.gameServices;
+    },
+    get_IsActive: function () {
+      return true && !Microsoft.Xna.Framework.Game._QuitForced && !this._isDead;
     },
     Initialize: function () {
       for (var i = 0, l = this.components._size; i < l; i++) {
@@ -506,6 +512,9 @@ JSIL.ImplementExternals(
       return result;
     },
     Draw: function (gameTime) {
+      if (Microsoft.Xna.Framework.Game._QuitForced || this._isDead)
+        return;
+
       var drawableComponents = this.$ComponentsOfType(Microsoft.Xna.Framework.IDrawable);
       for (var i = 0, l = drawableComponents.length; i < l; i++) {
         var drawable = drawableComponents[i];
@@ -515,6 +524,9 @@ JSIL.ImplementExternals(
       }
     },
     Update: function (gameTime) {
+      if (Microsoft.Xna.Framework.Game._QuitForced || this._isDead)
+        return;
+
       var updateableComponents = this.$ComponentsOfType(Microsoft.Xna.Framework.IUpdateable);
       for (var i = 0, l = updateableComponents.length; i < l; i++) {
         var updateable = updateableComponents[i];
@@ -608,6 +620,8 @@ JSIL.ImplementExternals(
 
       this._runHandle = null;
       this.UnloadContent();
+
+      this._isDead = true;
     }
   }
 );
@@ -633,6 +647,8 @@ JSIL.ImplementExternals(
         return;
 
       this.initialized = true;
+    },
+    Update: function (gameTime) {
     }
   }
 );
@@ -660,6 +676,8 @@ JSIL.ImplementExternals(
       Microsoft.Xna.Framework.GameComponent.prototype.Initialize.call(this);
 
       this.LoadContent();
+    },
+    Draw: function (gameTime) {
     }
   }
 );
@@ -722,6 +740,9 @@ JSIL.ImplementExternals(
       this._buttons = new Microsoft.Xna.Framework.Input.GamePadButtons();
       this._thumbs = new Microsoft.Xna.Framework.Input.GamePadThumbSticks();
       this._triggers = new Microsoft.Xna.Framework.Input.GamePadTriggers();
+    },
+    get_IsConnected: function () {
+      return false;
     },
     get_Buttons: function () {
       return this._buttons;

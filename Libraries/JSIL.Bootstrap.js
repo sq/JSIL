@@ -1044,3 +1044,10 @@ JSIL.ImplementExternals(
 
 JSIL.MakeStruct("System.ValueType", "System.Nullable`1", true, ["T"], function ($) {
 });
+
+JSIL.ImplementExternals(
+  "System.Xml.Serialization.XmlSerializer", true, {
+    "_ctor$6": function (type) {
+    }
+  }
+);

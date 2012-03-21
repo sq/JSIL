@@ -17,7 +17,7 @@
     <div id="sounds"></div>
     <div id="fonts"></div>
     
-    <canvas id="canvas" width="800" height="600">
+    <canvas id="canvas" width="1280" height="720">
     </canvas><br>
     <button id="quitButton" title="Quit Game">X</button>
     <div id="welcomeMessage">
@@ -91,7 +91,11 @@
           document.getElementById("welcomeMessage").setAttribute("style", "display: none");
         } catch (ex) {
         }
-        JSIL.GetAssembly("RolePlayingGame, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null").RolePlaying.RolePlayingGame.Main([]);
+
+        // We can't invoke Main() since it disposes the Game immediately, breaking everything.
+        var asm = JSIL.GetAssembly("RolePlayingGame, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null");
+        var game = new asm.RolePlaying.RolePlayingGame();
+        game.Run();
       };
     </script>
     <script src="../Libraries/JSIL.Browser.js" type="text/javascript"></script>

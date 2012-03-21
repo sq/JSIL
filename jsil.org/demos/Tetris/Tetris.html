@@ -63,7 +63,11 @@
           document.getElementById("welcomeMessage").setAttribute("style", "display: none");
         } catch (ex) {
         }
-        JSIL.GetAssembly("tetris, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null").tetris.Program.Main([]);
+
+        // We can't invoke Main() since it disposes the Game immediately, breaking everything.
+        var asm = JSIL.GetAssembly("tetris, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null");
+        var game = new asm.tetris.Game1();
+        game.Run();
       };
     </script>
     <script src="../Libraries/JSIL.Browser.js" type="text/javascript"></script>
