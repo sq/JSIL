@@ -32,3 +32,4 @@ Tests/*Cases/*.js
 *.jsillog
 /Examples/obj
 /jsil.org/demos/RPG/*.js
+/jsil.org/demos/RPG/Content

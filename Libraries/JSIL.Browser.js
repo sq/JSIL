@@ -149,6 +149,9 @@ window.addEventListener(
 );
 
 function getAssetName (filename) {
+  var backslashRe = /\\/g;
+  filename = filename.replace(backslashRe, "/");
+
   var lastIndex = filename.lastIndexOf(".");
   if (lastIndex === -1)
     return filename.toLowerCase();
