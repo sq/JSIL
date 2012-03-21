@@ -221,6 +221,16 @@ JSIL.ImplementExternals(
         return JSIL.ConcatString(Array.prototype.slice.call(arguments));
       }
     },
+    IsNullOrEmpty: function (str) {
+      if (str === null)
+        return true;
+      else if (typeof (str) === "undefined")
+        return true;
+      else if (str.length === 0)
+        return true;
+
+      return false;
+    },
     Format: function (format) {
       format = String(format);
 
@@ -286,7 +296,7 @@ JSIL.ImplementExternals(
       for (var i = 0; i < length; i++)
         arr[i] = ch;
       return arr.join("");
-    }
+    },
   }
 );
 
@@ -448,8 +458,56 @@ $jsilcore.$ListExternals = {
 
 JSIL.ImplementExternals("System.Collections.Generic.List`1", true, $jsilcore.$ListExternals);
 
-// Lazy way of sharing method implementations between ArrayList and List<T>.
+// Lazy way of sharing method implementations between ArrayList, Collection<T> and List<T>.
 JSIL.ImplementExternals("System.Collections.ArrayList", true, $jsilcore.$ListExternals);
+
+$jsilcore.$CollectionExternals = JSIL.CloneObject($jsilcore.$ListExternals);
+$jsilcore.$CollectionExternals._ctor$0 = function () {
+  this._items = new Array();
+  this._size = 0;
+};
+$jsilcore.$CollectionExternals._ctor$1 = function (list) {
+  this._items = new Array(list.Count);
+  this._size = list.Count;
+
+  for (var i = 0, l = list.Count; i < l; i++)
+    this._items[i] = list[i];
+};
+$jsilcore.$CollectionExternals.Add = function (item) {
+  if (this._size >= this._items.length) {
+    this._items.push(item);
+  } else {
+    this._items[this._size] = item;
+  }
+  this._size += 1;
+};
+
+JSIL.ImplementExternals("System.Collections.ObjectModel.Collection`1", true, $jsilcore.$CollectionExternals);
+
+JSIL.ImplementExternals("System.Collections.Generic.Stack`1", true, {
+  _ctor$0: function () {
+    this._items = new Array();
+    this._size = 0;
+  },
+  _ctor$1: function (size) {
+    this._items = new Array(size);
+    this._size = 0;
+  },
+  Push: function (item) {
+    this._items[this._size] = item;
+    this._size += 1;
+  },
+  Pop: function () {
+    var result = this.Peek();
+    return result;
+  },
+  Peek: function () {
+    if (this._size <= 0)
+      throw new System.InvalidOperationException("Stack is empty");
+
+    return this._items[this._size - 1];
+  }
+});
 
 JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"], function ($) {
   JSIL.ExternalMembers($, true, 
@@ -465,6 +523,25 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"]
   JSIL.ImplementInterfaces($, [
     System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
   ]);
+});
+
+JSIL.MakeClass("System.Object", "System.Collections.Generic.Stack`1", true, ["T"], function ($) {
+	JSIL.ExternalMembers($, true, 
+		"_ctor$0", "_ctor$1", "_ctor$2", "Clear", "Contains", "CopyTo", "get_Count", "GetEnumerator", "ICollection_CopyTo", "ICollection_get_IsSynchronized", "ICollection_get_SyncRoot", "IEnumerable$b1_GetEnumerator", "IEnumerable_GetEnumerator", "Peek", "Pop", "Push", "ToArray", "TrimExcess"
+	);
+
+	JSIL.OverloadedMethod($.prototype, "_ctor", [
+			[0, []], 
+			[1, [new JSIL.TypeRef($asm09, "System.Int32")]], 
+			[2, [new JSIL.TypeRef($asm09, "System.Collections.Generic.IEnumerable$b1", [new JSIL.GenericParameter("T")])]]
+		], $asm0C);
+
+	JSIL.MakeProperty($.prototype, "Count", 
+		$.prototype.get_Count, null);
+
+	JSIL.ImplementInterfaces($, [
+		"System.Collections.Generic.IEnumerable$b1", "System.Collections.IEnumerable"
+	]);
 });
 
 // TODO: This type is actually a struct in the CLR

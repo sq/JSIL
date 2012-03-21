@@ -67,6 +67,7 @@ JSIL.ImplementExternals(
     _ctor$0: function (serviceProvider) {
     },
     _ctor$1: function (serviceProvider, rootDirectory) {
+      this._rootDirectory = rootDirectory;
     },
     Load$b1: JSIL.GenericMethod(
       ["T"],
@@ -76,6 +77,12 @@ JSIL.ImplementExternals(
     ),
     Unload: function () {
       // Unnecessary since we rely on the host to preload our assets.
+    },
+    set_RootDirectory: function (rootDirectory) {
+      this._rootDirectory = rootDirectory;
+    },
+    get_RootDirectory: function () {
+      return this._rootDirectory;
     }
   }
 );
@@ -651,17 +658,35 @@ JSIL.ImplementExternals(
     },
     get_GraphicsDevice: function () {
       return this.device;
+    },
+    set_PreferredBackBufferWidth: function (value) {
+      this._width = value;
+    },
+    set_PreferredBackBufferHeight: function (value) {
+      this._height = value;
     }
   }
 );
 
 JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Graphics.Viewport", true, {
+    get_X: function () {
+      return this._x;
+    },
+    get_Y: function () {
+      return this._y;
+    },
     get_Width: function () {
       return this._width;
     },
     get_Height: function () {
       return this._height;
+    },
+    set_X: function (value) {
+      this._x = value;
+    },
+    set_Y: function (value) {
+      this._y = value;
     },
     set_Width: function (value) {
       this._width = value;
@@ -670,7 +695,7 @@ JSIL.ImplementExternals(
       this._height = value;
     },
     get_TitleSafeArea: function () {
-      return new Microsoft.Xna.Framework.Rectangle(0, 0, this._width, this._height);
+      return new Microsoft.Xna.Framework.Rectangle(this._x, this._y, this._width, this._height);
     }
   }
 );
@@ -847,6 +872,9 @@ $jsilxna.Color = {
   },
   get_Purple : function () {
     return this.purple;
+  },
+  get_Transparent : function () {
+    return this.transparentBlack;
   },
 
   op_Multiply : function (color, multiplier) {
@@ -1192,5 +1220,13 @@ JSIL.ImplementExternals(
       }
     }
 
+  }
+);
+
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Audio.SoundBank", true, {
+    GetCue: function () {
+      return null;
+    }
   }
 );
