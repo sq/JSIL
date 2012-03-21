@@ -137,6 +137,31 @@ HTML5FontAsset.prototype.MeasureString$0 = function (text) {
 };
 
 JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Audio.AudioEngine", true, {
+    _ctor$0: function (settingsFile) {
+    },
+    _ctor$1: function (settingsFile, lookAheadTime, rendererId) {
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Audio.WaveBank", true, {
+    _ctor$0: function (audioEngine, nonStreamingWaveBankFilename) {
+    },
+    _ctor$1: function (audioEngine, streamingWaveBankFilename, offset, packetsize) {
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Audio.SoundBank", true, {
+    _ctor: function (audioEngine, filename) {
+    }
+  }
+);
+
+JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Media.MediaPlayer", false, {
     Play$0: function (song) {
       if (song !== null)
@@ -456,6 +481,11 @@ JSIL.ImplementExternals(
       return this.gameServices;
     },
     Initialize: function () {
+      for (var i = 0, l = this.components._size; i < l; i++) {
+        var component = this.components._items[i];
+        component.Initialize();
+      }
+
       this.LoadContent();
     },
     get_GraphicsDevice: function () {
@@ -465,9 +495,33 @@ JSIL.ImplementExternals(
     },
     UnloadContent: function () {
     },
+    $ComponentsOfType: function (type) {
+      var result = new Array();
+      for (var i = 0, l = this.components._size; i < l; i++) {
+        var item = this.components._items[i];
+
+        if (JSIL.CheckType(item, type))
+          result.push(item);
+      }
+      return result;
+    },
     Draw: function (gameTime) {
+      var drawableComponents = this.$ComponentsOfType(Microsoft.Xna.Framework.IDrawable);
+      for (var i = 0, l = drawableComponents.length; i < l; i++) {
+        var drawable = drawableComponents[i];
+
+        if (drawable.Visible)
+          drawable.Draw(gameTime);
+      }
     },
     Update: function (gameTime) {
+      var updateableComponents = this.$ComponentsOfType(Microsoft.Xna.Framework.IUpdateable);
+      for (var i = 0, l = updateableComponents.length; i < l; i++) {
+        var updateable = updateableComponents[i];
+
+        if (updateable.Enabled)
+          updateable.Update(gameTime);
+      }
     },
     Run: function () {
       Microsoft.Xna.Framework.Game._QuitForced = false;
@@ -554,6 +608,58 @@ JSIL.ImplementExternals(
 
       this._runHandle = null;
       this.UnloadContent();
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.GameComponent", true, {
+    _ctor: function (game) {
+      this.enabled = true;
+      this.initialized = false;
+      this.game = game;
+    },
+    get_Enabled: function () {
+      return this.enabled;
+    },
+    set_Enabled: function (value) {
+      this.enabled = value;
+    },
+    get_Game: function () {
+      return this.game;
+    },
+    Initialize: function () {
+      if (this.initialized)
+        return;
+
+      this.initialized = true;
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.DrawableGameComponent", true, {
+    _ctor: function (game) {
+      Microsoft.Xna.Framework.GameComponent.prototype._ctor.call(this, game);
+
+      this.visible = true;
+    },
+    get_Visible: function () {
+      return this.visible;
+    },
+    set_Visible: function (value) {
+      this.visible = value;
+    },
+    get_GraphicsDevice: function () {
+      return this.game.graphicsDeviceService.GraphicsDevice;
+    },
+    Initialize: function () {
+      if (this.initialized)
+        return;
+
+      Microsoft.Xna.Framework.GameComponent.prototype.Initialize.call(this);
+
+      this.LoadContent();
     }
   }
 );

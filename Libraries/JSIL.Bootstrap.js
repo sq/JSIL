@@ -481,6 +481,10 @@ $jsilcore.$CollectionExternals.Add = function (item) {
   }
   this._size += 1;
 };
+$jsilcore.$CollectionExternals.GetEnumerator = function () {
+  var elementType = this.T;
+  return new (System.Collections.Generic.List$b1_Enumerator.Of(elementType)) (this);
+};
 
 JSIL.ImplementExternals("System.Collections.ObjectModel.Collection`1", true, $jsilcore.$CollectionExternals);
 
@@ -506,6 +510,10 @@ JSIL.ImplementExternals("System.Collections.Generic.Stack`1", true, {
       throw new System.InvalidOperationException("Stack is empty");
 
     return this._items[this._size - 1];
+  },
+  GetEnumerator: function () {
+    var elementType = this.T;
+    return new (System.Collections.Generic.List$b1_Enumerator.Of(elementType)) (this);
   }
 });
 
