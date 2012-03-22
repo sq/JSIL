@@ -120,6 +120,11 @@ HTML5FontAsset.prototype._ctor = function (assetName, id, pointSize, lineHeight)
   this.lineHeight = lineHeight;
   this.canvas = JSIL.Host.getCanvas();
   this.context = this.canvas.getContext("2d");
+  Object.defineProperty(this, "LineSpacing", {
+    get: function () {
+      return this.lineHeight;
+    }
+  });
 };
 HTML5FontAsset.prototype.toCss = function (scale) {
   scale = (scale || 1.0);
