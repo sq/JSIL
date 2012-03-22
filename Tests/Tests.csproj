@@ -281,6 +281,7 @@
     <Content Include="TestCases\Events.vb" />
     <None Include="TestCases\GenericMethodThisReference.cs" />
     <None Include="SimpleTestCases\ArrayOfArrays.cs" />
+    <None Include="SimpleTestCases\StringEmpty.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

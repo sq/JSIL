@@ -49,6 +49,9 @@ namespace JSIL.Ast {
             }
         }
 
+        /// <summary>
+        /// If true, the node should be treated as a null node without any actual impact on the output javascript.
+        /// </summary>
         public virtual bool IsNull {
             get {
                 return false;
@@ -411,9 +414,9 @@ namespace JSIL.Ast {
             }
         }
 
-        public override bool IsStatic {
+        public override bool HasGlobalStateDependency {
             get {
-                return Value.IsStatic;
+                return Value.HasGlobalStateDependency;
             }
         }
 
@@ -1087,12 +1090,18 @@ namespace JSIL.Ast {
             return true;
         }
 
-        public virtual bool IsStatic {
+        /// <summary>
+        /// If true, this expression has at least one dependency on static (non-local) state.
+        /// </summary>
+        public virtual bool HasGlobalStateDependency {
             get {
-                return Values.Any((v) => v.IsStatic);
+                return Values.Any((v) => v.HasGlobalStateDependency);
             }
         }
 
+        /// <summary>
+        /// If true, this expression is constant and has no dependencies on local or global state.
+        /// </summary>
         public virtual bool IsConstant {
             get {
                 return false;
@@ -1933,7 +1942,7 @@ namespace JSIL.Ast {
             Field = field;
         }
 
-        public override bool IsStatic {
+        public override bool HasGlobalStateDependency {
             get {
                 return Field.IsStatic;
             }
@@ -1960,7 +1969,7 @@ namespace JSIL.Ast {
             Property = property;
         }
 
-        public override bool IsStatic {
+        public override bool HasGlobalStateDependency {
             get {
                 return Property.IsStatic;
             }
@@ -2464,9 +2473,9 @@ namespace JSIL.Ast {
             }
         }
 
-        public override bool IsStatic {
+        public override bool HasGlobalStateDependency {
             get {
-                return Target.IsStatic || Member.IsStatic;
+                return Target.HasGlobalStateDependency || Member.HasGlobalStateDependency;
             }
         }
 
@@ -3044,9 +3053,9 @@ namespace JSIL.Ast {
             }
         }
 
-        public override bool IsStatic {
+        public override bool HasGlobalStateDependency {
             get {
-                return Condition.IsStatic || True.IsStatic || False.IsStatic;
+                return Condition.HasGlobalStateDependency || True.HasGlobalStateDependency || False.HasGlobalStateDependency;
             }
         }
 
@@ -3089,9 +3098,9 @@ namespace JSIL.Ast {
             }
         }
 
-        public override bool IsStatic {
+        public override bool HasGlobalStateDependency {
             get {
-                return Left.IsStatic || Right.IsStatic;
+                return Left.HasGlobalStateDependency || Right.HasGlobalStateDependency;
             }
         }
 
@@ -3138,9 +3147,9 @@ namespace JSIL.Ast {
             }
         }
 
-        public override bool IsStatic {
+        public override bool HasGlobalStateDependency {
             get {
-                return Expression.IsStatic;
+                return Expression.HasGlobalStateDependency;
             }
         }
 
@@ -3186,9 +3195,9 @@ namespace JSIL.Ast {
             }
         }
 
-        public override bool IsStatic {
+        public override bool HasGlobalStateDependency {
             get {
-                return Expression.IsStatic;
+                return Expression.HasGlobalStateDependency;
             }
         }
 
@@ -3243,9 +3252,9 @@ namespace JSIL.Ast {
             }
         }
 
-        public override bool IsStatic {
+        public override bool HasGlobalStateDependency {
             get {
-                return Expression.IsStatic;
+                return Expression.HasGlobalStateDependency;
             }
         }
 
@@ -3277,9 +3286,9 @@ namespace JSIL.Ast {
             }
         }
 
-        public override bool IsStatic {
+        public override bool HasGlobalStateDependency {
             get {
-                return Struct.IsStatic;
+                return Struct.HasGlobalStateDependency;
             }
         }
 

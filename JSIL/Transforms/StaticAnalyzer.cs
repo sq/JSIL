@@ -154,7 +154,7 @@ namespace JSIL.Transforms {
             var v = dot.Target as JSVariable;
 
             if (field != null) {
-                if (dot.IsStatic) {
+                if (dot.HasGlobalStateDependency) {
                     State.StaticReferences.Add(new FunctionAnalysis1stPass.StaticReference(
                         StatementIndex, NodeIndex, field.Field.DeclaringType
                     ));
@@ -173,7 +173,7 @@ namespace JSIL.Transforms {
             var v = prop.Target as JSVariable;
             var p = prop.Property.Property;
 
-            if (prop.IsStatic) {
+            if (prop.HasGlobalStateDependency) {
                 State.StaticReferences.Add(new FunctionAnalysis1stPass.StaticReference(
                     StatementIndex, NodeIndex, p.DeclaringType
                 ));
