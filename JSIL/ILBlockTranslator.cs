@@ -968,6 +968,10 @@ namespace JSIL {
         // MSIL Instructions
         //
 
+        protected JSExpression Translate_Sizeof (ILExpression node, TypeReference type) {
+            return new JSUntranslatableExpression("Sizeof");
+        }
+
         protected JSExpression Translate_NullableOf (ILExpression node) {
             var inner = TranslateNode(node.Arguments[0]);
             var innerType = inner.GetExpectedType(TypeSystem);
@@ -1490,11 +1494,11 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Arglist (ILExpression node) {
-            throw new AbortTranslation("Arglist instruction not implemented");
+            return new JSUntranslatableExpression("Arglist");
         }
 
         protected JSExpression Translate_Localloc (ILExpression node) {
-            throw new AbortTranslation("Localloc not implemented");
+            return new JSUntranslatableExpression("Localloc");
         }
 
         protected JSStringLiteral Translate_Ldstr (ILExpression node, string text) {
@@ -1521,6 +1525,10 @@ namespace JSIL {
                     new JSType(method.DeclaringType),
                     new JSMethod(method, methodInfo)
                 );
+        }
+
+        protected JSExpression Translate_Ldvirtftn (ILExpression node, MethodReference method) {
+            return new JSUntranslatableExpression("Ldvirtftn");
         }
 
         protected JSExpression Translate_Ldc (ILExpression node, long value) {

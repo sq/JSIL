@@ -21,6 +21,7 @@ using Mono.Cecil;
 using ICSharpCode.Decompiler;
 using Mono.Cecil.Pdb;
 using Mono.Cecil.Cil;
+using MethodInfo = JSIL.Internal.MethodInfo;
 
 namespace JSIL {
     public class AssemblyTranslator {
@@ -1133,18 +1134,9 @@ namespace JSIL {
                     return null;
                 }
 
-                var allVariables = ilb.GetSelfAndChildrenRecursive<ILExpression>().Select(e => e.Operand as ILVariable)
-                    .Where(v => v != null && !v.IsParameter).Distinct();
-
-                foreach (var v in allVariables) {
-                    if (ILBlockTranslator.IsIgnoredType(v.Type)) {
-                        FunctionCache.CreateNull(methodInfo, method, identifier);
-                        pr.OnFinished();
-                        return null;
-                    }
-                }
-
-                NameVariables.AssignNamesToVariables(context, decompiler.Parameters, allVariables, ilb);
+                IEnumerable<ILVariable> allVariables = GetAllVariablesForMethod(context, decompiler.Parameters, ilb);
+                if (allVariables == null)
+                    return null;
 
                 var translator = new ILBlockTranslator(
                     this, context, method, methodDef, 
@@ -1175,6 +1167,23 @@ namespace JSIL {
             } finally {
                 context.CurrentMethod = oldMethod;
             }
+        }
+
+        internal static ILVariable[] GetAllVariablesForMethod(
+            DecompilerContext context, IEnumerable<ILVariable> parameters, ILBlock methodBody
+        ) {
+            var allVariables = methodBody.GetSelfAndChildrenRecursive<ILExpression>().Select(e => e.Operand as ILVariable)
+                .Where(v => v != null && !v.IsParameter).Distinct().ToArray();
+
+            foreach (var v in allVariables) {
+                if (ILBlockTranslator.IsIgnoredType(v.Type)) {
+                    return null; // return null;
+                }
+            }
+
+            NameVariables.AssignNamesToVariables(context, parameters, allVariables, methodBody);
+
+            return allVariables;
         }
 
         private void OptimizeFunction (
@@ -1368,41 +1377,64 @@ namespace JSIL {
                 var optimizer = new ILAstOptimizer();
                 optimizer.Optimize(ctx, block);
 
-                // We need a translator to map the IL expressions for the default
-                //  values into JSAst expressions.
-                var translator = new ILBlockTranslator(
-                    this, ctx, cctor, cctor, block, new ILVariable[0], new ILVariable[0]
+                // We need the set of variables used by the method in order to
+                //  properly map default values.
+                var variables = GetAllVariablesForMethod(
+                    context, astBuilder.Parameters, block
                 );
+                if (variables != null) {
+                    // We need a translator to map the IL expressions for the default
+                    //  values into JSAst expressions.
+                    var translator = new ILBlockTranslator(
+                        this, ctx, cctor, cctor, block, astBuilder.Parameters, variables
+                    );
 
-                foreach (var node in block.Body) {
-                    var ile = node as ILExpression;
-                    if (ile == null)
-                        continue;
+                    foreach (var node in block.Body) {
+                        var ile = node as ILExpression;
+                        if (ile == null)
+                            continue;
 
-                    if (ile.Code != ILCode.Stsfld)
-                        continue;
+                        if (ile.Code != ILCode.Stsfld)
+                            continue;
 
-                    var targetField = ile.Operand as FieldDefinition;
-                    if (targetField == null)
-                        continue;
+                        var targetField = ile.Operand as FieldDefinition;
+                        if (targetField == null)
+                            continue;
 
-                    if (targetField.DeclaringType != cctor.DeclaringType)
-                        continue;
+                        if (targetField.DeclaringType != cctor.DeclaringType)
+                            continue;
 
-                    JSExpression defaultValue = null;
+                        var expectedType = ile.Arguments[0].ExpectedType;
 
-                    try {
-                        defaultValue = translator.TranslateNode(ile.Arguments[0]);
-                    } catch (Exception ex) {
-                        Console.Error.WriteLine("Warning: failed to translate default value for static field '{0}': {1}", targetField, ex);
+                        // If the field's value is of an ignored type then we ignore the initialization since it probably won't translate anyway.
+                        if (ILBlockTranslator.IsIgnoredType(expectedType))
+                            continue;
+
+                        JSExpression defaultValue = null;
+
+                        try {
+                            defaultValue = translator.TranslateNode(ile.Arguments[0]);
+                        } catch (Exception ex) {
+                            Console.Error.WriteLine("Warning: failed to translate default value for static field '{0}': {1}", targetField, ex);
+                            continue;
+                        }
+
+                        if (defaultValue == null)
+                            continue;
+
+                        try {
+                            // TODO: Expand this to include 'new X' expressions that are effectively constant, by using static analysis to ensure that
+                            //  the new-expression doesn't have any global state dependencies and doesn't perform mutation.
+                            if (!defaultValue.IsConstant)
+                                continue;
+                        } catch (Exception ex) {
+                            // This may fail because we didn't do a full translation.
+                            Console.Error.WriteLine("Warning: failed to translate default value for static field '{0}': {1}", targetField, ex);
+                            continue;
+                        }
+
+                        fieldDefaults[targetField] = defaultValue;
                     }
-
-                    if (defaultValue == null)
-                        continue;
-                    if (!defaultValue.IsConstant)
-                        continue;
-
-                    fieldDefaults[targetField] = defaultValue;
                 }
             }
 
