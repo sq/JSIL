@@ -91,6 +91,9 @@ JSIL.MakeClass($jsilcore.System.Object, "HTML5Asset", true);
 HTML5Asset.prototype._ctor = function (assetName) {
   this.name = assetName;
 };
+HTML5Asset.prototype.toString = function () {
+  return "<XNA Asset '" + this.name + "'>";
+};
 
 JSIL.MakeClass("HTML5Asset", "HTML5ImageAsset", true);
 HTML5ImageAsset.prototype._ctor = function (assetName, image) {
@@ -1266,6 +1269,10 @@ JSIL.ImplementExternals(
     },
 
     InternalDrawString: function (font, text, position, color, scale, effects) {
+      // FIXME: Temporary work around for RPG demo expecting to have 7 lines of text but only having 5.
+      if ((typeof (text) === "undefined") || (text === null))
+        return;
+
       var needRestore = false;
       var positionX = position.X;
       var positionY = position.Y;
@@ -1292,7 +1299,19 @@ JSIL.ImplementExternals(
 
       this.device.context.textBaseline = "top";
       this.device.context.textAlign = "start";
-      this.device.context.font = font.toCss(scale || 1.0);
+
+      var fontCss = font.toCss(scale || 1.0);
+      this.device.context.font = fontCss;
+
+      if (this.device.context.font != fontCss) {
+        // We failed to set the font onto the context; this may mean that the font failed to load.
+        var hasWarned = font.$warnedAboutSetFailure || false;
+        if (!hasWarned) {
+          font.$warnedAboutSetFailure = true;
+          JSIL.Host.warning("Failed to set font '" + font + "' onto canvas context for rendering.");
+        }
+      }
+
       this.device.context.fillStyle = color.toCss();
       this.device.context.fillText(text, positionX, positionY);
 
