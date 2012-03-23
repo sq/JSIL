@@ -158,20 +158,25 @@ JSIL.MakeClass("HTML5Asset", "HTML5FontAsset", true, [], function ($) {
   };
 });
 
-JSIL.MakeClass("HTML5Asset", "RawXNBAsset", true, [], function ($) {
-  $.prototype._ctor = function (assetName, rawBytes) {
-    HTML5Asset.prototype._ctor.call(this, assetName);
-    this.bytes = rawBytes;
-  };
-  $.prototype.ReadAsset = function (type) {
-    var memoryStream = new System.IO.MemoryStream(this.bytes, false);
-    var binaryReader = new System.IO.BinaryReader(memoryStream);
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", true, {
+  // This can't be a _ctor because BinaryReader has multiple overloaded constructors.
+  // Once reflection lands this can probably work fine as a _ctor.
+  $init: function (contentManager, input, assetName, recordDisposableObject, graphicsProfile) {
+    System.IO.BinaryReader.prototype._ctor.call(this, input);
 
-    var formatHeader = String.fromCharCode.apply(String, binaryReader.ReadBytes(3));
+    this.contentManager = contentManager;
+    this.assetName = assetName;
+    this.recordDisposableObject = recordDisposableObject;
+    this.graphicsProfile = graphicsProfile;
+
+    this.typeReaders = new Array();
+  },
+  ReadHeader: function () {
+    var formatHeader = String.fromCharCode.apply(String, this.ReadBytes(3));
     if (formatHeader != "XNB")
       throw new Error("Invalid XNB format");
 
-    var platformId = String.fromCharCode(binaryReader.ReadByte());
+    var platformId = String.fromCharCode(this.ReadByte());
     switch (platformId) {
       case "w":
         break;
@@ -179,11 +184,11 @@ JSIL.MakeClass("HTML5Asset", "RawXNBAsset", true, [], function ($) {
         throw new Error("Unsupported XNB platform: " + platformId);
     }
 
-    var formatVersion = binaryReader.ReadByte();
+    var formatVersion = this.ReadByte();
     if (formatVersion != 5)
       throw new Error("Unsupported XNB format version: " + formatVersion);
 
-    var formatFlags = binaryReader.ReadByte();
+    var formatFlags = this.ReadByte();
 
     var isHiDef = (formatFlags & 0x01) != 0;
     var isCompressed = (formatFlags & 0x80) != 0;
@@ -191,41 +196,61 @@ JSIL.MakeClass("HTML5Asset", "RawXNBAsset", true, [], function ($) {
     if (isCompressed)
       throw new Error("Compressed XNBs are not supported");
 
-    var uncompressedSize = binaryReader.ReadUInt32();
+    var uncompressedSize = this.ReadUInt32();
 
-    var typeReaderCount = binaryReader.Read7BitEncodedInt();
-    var typeReaders = new Array(typeReaderCount);
-
-    var readString = function () {
-      var length = binaryReader.Read7BitEncodedInt();
-      var chars = binaryReader.ReadBytes(length);
-      return String.fromCharCode.apply(String, chars);
-    };
-
-    var readObject = function () {
-      var typeId = binaryReader.Read7BitEncodedInt();
-
-      if (typeId === 0)
-        return null;
-
-      var typeReaderName = typeReaders[typeId - 1];
-      var typeReaderType = System.Type.GetType$2(typeReaderName);
-      
-      return typeReaderType;
-    };
+    var typeReaderCount = this.Read7BitEncodedInt();
 
     for (var i = 0; i < typeReaderCount; i++) {
-      typeReaders[i] = readString();
-      var typeReaderVersionNumber = binaryReader.ReadInt32();
+      this.typeReaders[i] = this.ReadString();
+      var typeReaderVersionNumber = this.ReadInt32();
     }
+  },
+  ReadString: function () {
+    var length = this.Read7BitEncodedInt();
+    var chars = this.ReadBytes(length);
+    return String.fromCharCode.apply(String, chars);
+  },
+  ReadObject$b1$0: JSIL.GenericMethod(["T"], function ReadObject (T) {
+    return this.ReadObject$b1(T)(null);
+  }),
+  ReadObject$b1$1: JSIL.GenericMethod(["T"], function ReadObject (T, existingInstance) {
+    var typeId = this.Read7BitEncodedInt();
 
-    var sharedResourceCount = binaryReader.Read7BitEncodedInt();
+    if (typeId === 0)
+      return null;
+
+    var typeReaderName = this.typeReaders[typeId - 1];
+    var typeReaderType = System.Type.GetType$2(typeReaderName);
+
+    var typeReader = new (typeReaderType) ();
+
+    var result = typeReader.Read(this, existingInstance);
+
+    return result;
+  })
+});
+
+JSIL.MakeClass("HTML5Asset", "RawXNBAsset", true, [], function ($) {
+  $.prototype._ctor = function (assetName, rawBytes) {
+    HTML5Asset.prototype._ctor.call(this, assetName);
+    this.bytes = rawBytes;
+  };
+  $.prototype.ReadAsset = function (type) {
+    var memoryStream = new System.IO.MemoryStream(this.bytes, false);
+    var contentReader = JSIL.New(
+      Microsoft.Xna.Framework.Content.ContentReader, "$init", 
+      [null, memoryStream, this.name, null, 0]
+    );
+
+    contentReader.ReadHeader();
+
+    var sharedResourceCount = contentReader.Read7BitEncodedInt();
     var sharedResources = new Array(sharedResourceCount);
 
-    var mainObject = readObject();
+    var mainObject = contentReader.ReadObject$b1(type)();
 
     for (var i = 0; i < sharedResourceCount; i++)
-      sharedResources[i] = readObject();
+      sharedResources[i] = content.ReadObject$b1(System.Object)();
 
     return mainObject;
   };

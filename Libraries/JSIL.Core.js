@@ -2087,28 +2087,83 @@ JSIL.MakeClass(Object, "System.Object", true, [], function ($) {
   );
 });
 
+JSIL.ParseTypeName = function (name) {
+  var assemblyName = "", typeName = "", parenText = "";
+  var genericArguments = [];
+  var readingAssemblyName = false;
+  var parenDepth = 0;
+
+  for (var i = 0, l = name.length; i < l; i++) {
+    var ch = name[i];
+
+    if (ch == ']') {
+      parenDepth -= 1;
+      if (parenDepth == 0) {
+        if (parenText.length > 0) {
+          genericArguments.push(JSIL.ParseTypeName(parenText));
+        }
+
+        parenText = "";
+      }
+    } else if (ch == '[') {
+      parenDepth += 1;
+    } else if (ch == ',') {
+      if (parenDepth > 0) {
+        parenText += ch;
+      } else {
+        readingAssemblyName = true;
+      }
+    } else if (parenDepth > 0) {
+      parenText += ch;
+    } else if (readingAssemblyName) {
+      assemblyName += ch;
+    } else {
+      typeName += ch;
+    }
+  }
+
+  if (assemblyName.length === 0)
+    assemblyName = null;
+  if (genericArguments.length === 0)
+    genericArguments = null;
+
+  var result = {
+    assembly: assemblyName,
+    type: typeName,
+    genericArguments: genericArguments
+  };
+
+  return result;
+};
+
+JSIL.GetTypeInternal = function (parsedTypeName, defaultContext) {
+  var context = defaultContext;
+  if (parsedTypeName.assembly !== null)
+    context = JSIL.GetAssembly(parsedTypeName.assembly);
+
+  var resolved = JSIL.ResolveName(context, parsedTypeName.type, true);
+  var result = null;
+  if (resolved.exists())
+    result = resolved.get();
+
+  if (parsedTypeName.genericArguments !== null) {
+    var ga = new Array(parsedTypeName.genericArguments.length);
+
+    for (var i = 0, l = ga.length; i < l; i++) {
+      ga[i] = JSIL.GetTypeInternal(parsedTypeName.genericArguments[i], defaultContext);
+    }
+
+    result = result.Of.apply(result, ga);
+  }
+
+  return result;
+};
+
 JSIL.ImplementExternals(
   "System.Type", false, {
     GetType$2: function (name) {
-      var assemblyName = null;
-
-      var commaPos = name.indexOf(",");
-      if (commaPos >= 0) {
-        assemblyName = name.substr(commaPos + 1).trim();
-        name = name.substr(0, commaPos).trim();
-      } else {
-        name = name.trim();
-      }
-
-      var context = JSIL.GlobalNamespace;
-      if (assemblyName != null)
-        context = JSIL.GetAssembly(assemblyName);
-
-      var resolved = JSIL.ResolveName(context, name, true);
-      if (resolved.exists())
-        return resolved.get();
-      else
-        return null;
+      var parsed = JSIL.ParseTypeName(name);
+      return JSIL.GetTypeInternal(parsed, JSIL.GlobalNamespace);
     }
   }
 );
