@@ -1877,7 +1877,10 @@ JSIL.FindOverload = function (prototype, args, name, overloads) {
       var expectedType = overloadArgs[j];
       var arg = args[j];
 
-      if (expectedType.__IsReferenceType__ && (arg === null)) {
+      if ((typeof (expectedType) === "undefined") || (expectedType === null)) {
+        // Specific types, like generic parameters, resolve to null or undefined.
+      } else if ((typeof (expectedType) === "object") && expectedType.__IsReferenceType__ && (arg === null)) {
+        // Null is a valid value for any reference type.
       } else if (!JSIL.CheckType(arg, expectedType)) {
         continue find_overload;
       }
