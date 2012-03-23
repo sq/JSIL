@@ -83,7 +83,7 @@ namespace JSIL {
 
                 AddProxyAssembly(proxyAssembly);
 
-                foreach (var fn in configuration.Assemblies.Proxies)
+                foreach (var fn in configuration.Assemblies.Proxies.Distinct())
                     AddProxyAssembly(fn);
             }
         }

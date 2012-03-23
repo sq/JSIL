@@ -25,6 +25,7 @@ namespace JSIL.Compiler {
         public bool? AutoLoadConfigFiles;
         public bool? UseLocalProxies;
         public string OutputDirectory;
+        public string Profile;
 
         public void MergeInto (Configuration result) {
             base.MergeInto(result);
@@ -35,6 +36,8 @@ namespace JSIL.Compiler {
                 result.UseLocalProxies = UseLocalProxies;
             if (OutputDirectory != null)
                 result.OutputDirectory = OutputDirectory;
+            if (Profile != null)
+                result.Profile = Profile;
 
             SolutionBuilder.MergeInto(result.SolutionBuilder);
         }

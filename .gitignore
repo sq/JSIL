@@ -4,6 +4,8 @@
 _ReSharper.*
 *.ReSharper
 Compiler/obj
+Compiler/Profiles/*/obj
+Compiler/Profiles/*/bin
 JSIL/obj
 JSIL/bin
 Meta/obj

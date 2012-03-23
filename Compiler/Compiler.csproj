@@ -74,7 +74,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\Upstream\Options.cs" />
+    <Compile Include="BuildGroup.cs" />
     <Compile Include="Configuration.cs" />
+    <Compile Include="Profiles\Base.cs" />
+    <Compile Include="Profiles\Default.cs" />
+    <Compile Include="Extensibility\IProfile.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="SolutionBuilder.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

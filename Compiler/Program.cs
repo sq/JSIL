@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
+using JSIL.Compiler.Extensibility;
 using JSIL.Translator;
 
 namespace JSIL.Compiler {
@@ -50,8 +52,12 @@ namespace JSIL.Compiler {
             return result;
         }
 
-        static void ParseCommandLine (IEnumerable<string> arguments, List<KeyValuePair<Configuration, IEnumerable<string>>> buildGroups) {
+        static void ParseCommandLine (IEnumerable<string> arguments, List<BuildGroup> buildGroups, Dictionary<string, IProfile> profiles) {
             var baseConfig = new Configuration();
+            IProfile defaultProfile = new Profiles.Default();
+            var profileAssemblies = new List<string>();
+            bool[] autoloadProfiles = new bool[] { true };
+            string[] newDefaultProfile = new string[] { null };
             List<string> filenames;
 
             {
@@ -101,6 +107,17 @@ namespace JSIL.Compiler {
                         "Accepted values are '3.5' and '4.0'. Default: '4.0'",
                         (fv) => baseConfig.FrameworkVersion = double.Parse(fv)},
 
+                    "Profile options",
+                    {"nap|noautoloadprofiles",
+                        "Disables automatic loading of profile assemblies from the compiler directory.",
+                        (b) => autoloadProfiles[0] = (b == null)},
+                    {"pa=|profileAssembly=",
+                        "Loads one or more project profiles from the specified profile assembly. Note that this does not force the profiles to be used.",
+                        (filename) => profileAssemblies.Add(filename)},
+                    {"dp=|defaultProfile=",
+                        "Overrides the default profile to use for projects by specifying the name of the new default profile..",
+                        (profileName) => newDefaultProfile[0] = profileName},
+
                     "Optimizer options",
                     {"os", 
                         "Suppresses struct copy elimination.",
@@ -131,6 +148,33 @@ namespace JSIL.Compiler {
                 }
             }
 
+            {
+                if (autoloadProfiles[0])
+                    profileAssemblies.AddRange(Directory.GetFiles(".", "JSIL.Profiles.*.dll"));
+
+                foreach (var filename in profileAssemblies) {
+                    var fullPath = Path.GetFullPath(filename);
+                    var assembly = Assembly.LoadFile(fullPath);
+
+                    foreach (var type in assembly.GetTypes()) {
+                        if (
+                            type.FindInterfaces(
+                                (interfaceType, o) => interfaceType == (Type)o, typeof(IProfile)
+                            ).Length != 1
+                        )
+                            continue;
+
+                        var ctor = type.GetConstructor(
+                            BindingFlags.Public | BindingFlags.Instance,
+                            null, System.Type.EmptyTypes, null
+                        );
+                        var profileInstance = (IProfile)ctor.Invoke(new object[0]);
+
+                        profiles.Add(type.Name, profileInstance);
+                    }
+                }
+            }
+
             baseConfig = MergeConfigurations(
                 baseConfig,
                 (from fn in filenames
@@ -146,20 +190,35 @@ namespace JSIL.Compiler {
                     Path.GetDirectoryName(solution),
                     String.Format("{0}.jsilconfig", Path.GetFileName(solution))
                 );
-                var solutionConfig = File.Exists(solutionConfigPath) 
-                    ? new Configuration[] { LoadConfiguration(solutionConfigPath) } 
-                    : new Configuration[] {};
+                var solutionConfig = File.Exists(solutionConfigPath)
+                    ? new Configuration[] { LoadConfiguration(solutionConfigPath) }
+                    : new Configuration[] { };
 
                 var config = MergeConfigurations(baseConfig, solutionConfig);
-                var outputs = SolutionBuilder.Build(
+                var buildResult = SolutionBuilder.Build(
                     solution,
                     config.SolutionBuilder.Configuration,
                     config.SolutionBuilder.Platform
                 );
 
-                buildGroups.Add(new KeyValuePair<Configuration, IEnumerable<string>>(
-                    config, outputs
-                ));
+                IProfile profile = defaultProfile;
+
+                foreach (var candidateProfile in profiles.Values) {
+                    if (!candidateProfile.IsAppropriateForSolution(buildResult))
+                        continue;
+
+                    Console.Error.WriteLine("// Auto-selected the profile '{0}' for this project.", candidateProfile.GetType().Name);
+                    profile = candidateProfile;
+                    break;
+                }
+
+                profile.ProcessBuildResult(buildResult);
+
+                buildGroups.Add(new BuildGroup {
+                    BaseConfiguration = config,
+                    FilesToBuild = buildResult.OutputFiles,
+                    Profile = profile
+                });
             }
 
             var mainGroup = (from fn in filenames
@@ -168,9 +227,11 @@ namespace JSIL.Compiler {
                              select fn).ToArray();
 
             if (mainGroup.Length > 0)
-                buildGroups.Add(new KeyValuePair<Configuration, IEnumerable<string>>(
-                    baseConfig, mainGroup
-                ));
+                buildGroups.Add(new BuildGroup {
+                    BaseConfiguration = baseConfig,
+                    FilesToBuild = mainGroup,
+                    Profile = defaultProfile
+                });
         }
 
         static Action<ProgressReporter> MakeProgressHandler (string description) {
@@ -209,8 +270,6 @@ namespace JSIL.Compiler {
             translator.Optimizing += MakeProgressHandler ("Optimizing    ");
             translator.Writing += MakeProgressHandler    ("Generating JS ");
 
-            var indentLevel = new int[1] { 0 };
-
             translator.AssemblyLoaded += (fn) => {
                 Console.Error.WriteLine("// Loaded {0}", ShortenPath(fn));
             };
@@ -227,20 +286,21 @@ namespace JSIL.Compiler {
         }
 
         static void Main (string[] arguments) {
-            var buildGroups = new List<KeyValuePair<Configuration, IEnumerable<string>>>();
+            var buildGroups = new List<BuildGroup>();
+            var profiles = new Dictionary<string, IProfile>();
             var manifest = new AssemblyManifest();
 
-            ParseCommandLine(arguments, buildGroups);
+            ParseCommandLine(arguments, buildGroups, profiles);
 
             if (buildGroups.Count < 1)
                 return;
 
-            foreach (var kvp in buildGroups) {
-                var config = kvp.Key;
+            foreach (var buildGroup in buildGroups) {
+                var config = buildGroup.BaseConfiguration;
                 if (config.ApplyDefaults.GetValueOrDefault(true))
                     config = MergeConfigurations(LoadConfiguration("defaults.jsilconfig"), config);
 
-                foreach (var filename in kvp.Value) {
+                foreach (var filename in buildGroup.FilesToBuild) {
                     var fileConfigPath = Path.Combine(
                         Path.GetDirectoryName(filename),
                         String.Format("{0}.jsilconfig", Path.GetFileName(filename))
@@ -248,18 +308,34 @@ namespace JSIL.Compiler {
                     var fileConfig = File.Exists(fileConfigPath)
                         ? new Configuration[] { LoadConfiguration(fileConfigPath) }
                         : new Configuration[] { };
+
                     var localConfig = MergeConfigurations(config, fileConfig);
 
+                    var localProfile = buildGroup.Profile;
+                    if (localConfig.Profile != null) {
+                        if (profiles.ContainsKey(localConfig.Profile))
+                            localProfile = profiles[localConfig.Profile];
+                        else
+                            throw new Exception(String.Format(
+                                "No profile named '{0}' was found. Did you load the correct profile assembly?", localConfig.Profile
+                            ));
+                    }
+
+                    localConfig = localProfile.GetConfiguration(localConfig);
+
                     var translator = CreateTranslator(localConfig, manifest);
-                    var outputs = translator.Translate(filename, localConfig.UseLocalProxies.GetValueOrDefault(true));
+                    var outputs = buildGroup.Profile.Translate(translator, filename, localConfig.UseLocalProxies.GetValueOrDefault(true));
                     var outputDir = localConfig.OutputDirectory
                         .Replace("%assemblypath%", Path.GetDirectoryName(Path.GetFullPath(filename)));
 
                     Console.Error.Write("// Saving to '{0}' ...", ShortenPath(outputDir) + "\\");
 
+                    // Ensures that the log file contains the name of the profile that was actually used.
+                    localConfig.Profile = localProfile.GetType().Name;
+
                     EmitLog(outputDir, localConfig, filename, outputs);
 
-                    outputs.WriteToDirectory(outputDir, Path.GetFileName(filename) + ".");
+                    buildGroup.Profile.WriteOutputs(outputs, outputDir, Path.GetFileName(filename) + ".");
 
                     Console.Error.WriteLine(" done.");
                 }
