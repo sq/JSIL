@@ -2381,6 +2381,7 @@ System.Array.prototype.GetLowerBound = function () {
 System.Array.prototype.GetUpperBound = function () {
   return this.length - 1;
 };
+System.Array.__TypeId__ = ++JSIL.$NextTypeId;
 System.Array.__IsArray__ = true;
 System.Array.Types = {};
 System.Array.Of = function (type) {
