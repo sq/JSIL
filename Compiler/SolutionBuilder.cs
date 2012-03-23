@@ -13,10 +13,10 @@ namespace JSIL.Compiler {
     public static class SolutionBuilder {
         public class SolutionBuildResult {
             public readonly string[] OutputFiles;
-            public readonly string[] ProjectsBuilt;
+            public readonly BuiltProject[] ProjectsBuilt;
             public readonly string[] TargetFilesUsed;
 
-            public SolutionBuildResult (string[] outputFiles, string[] projectsBuilt, string[] targetFiles) {
+            public SolutionBuildResult (string[] outputFiles, BuiltProject[] projectsBuilt, string[] targetFiles) {
                 OutputFiles = outputFiles;
                 ProjectsBuilt = projectsBuilt;
                 TargetFilesUsed = targetFiles;
@@ -71,19 +71,41 @@ namespace JSIL.Compiler {
 
             return new SolutionBuildResult(
                 resultFiles.ToArray(),
-                eventRecorder.Projects.ToArray(),
+                eventRecorder.ProjectsById.Values.ToArray(),
                 eventRecorder.TargetFiles.ToArray()
             );
         }
     }
 
+    public class BuiltProject {
+        public BuiltProject Parent;
+        public int Id;
+        public string File;
+
+        public override string ToString () {
+            return String.Format("{0} '{1}'", Id, File);
+        }
+    }
+
     public class BuildEventRecorder : ILogger {
-        public readonly HashSet<string> Projects = new HashSet<string>();
+        public readonly Dictionary<int, BuiltProject> ProjectsById = new Dictionary<int, BuiltProject>();
         public readonly HashSet<string> TargetFiles = new HashSet<string>(); 
 
         public void Initialize (IEventSource eventSource) {
-            eventSource.ProjectStarted += (sender, args) =>
-                Projects.Add(args.ProjectFile);
+            eventSource.ProjectStarted += (sender, args) => {
+                var parentId = args.ParentProjectBuildEventContext.ProjectInstanceId;
+
+                BuiltProject parentProject;
+                ProjectsById.TryGetValue(parentId, out parentProject);
+
+                var obj = new BuiltProject {
+                    Parent = parentProject,
+                    Id = args.ProjectId,
+                    File = args.ProjectFile
+                };
+
+                ProjectsById[args.ProjectId] = obj;
+            };
             eventSource.TargetStarted += (sender, args) =>
                 TargetFiles.Add(args.TargetFile);
         }

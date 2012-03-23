@@ -332,10 +332,11 @@ var assetLoaders = {
       }
     });
   },
-  "PassThrough": function loadPassThrough (filename, data, onError, onDoneLoading) {
+  "XNB": function loadXNB (filename, data, onError, onDoneLoading) {
     loadBinaryFileAsync(fileRoot + filename, function (result, error) {
       if (result !== null) {
-        allAssets[getAssetName(filename)] = result;
+        var assetName = getAssetName(filename);
+        allAssets[assetName] = new RawXNBAsset(assetName, result);
         onDoneLoading(); 
       } else {
         onError(error);

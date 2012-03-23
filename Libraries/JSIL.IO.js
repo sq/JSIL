@@ -21,10 +21,28 @@ JSIL.ImplementExternals(
   }
 );
 
+$bytestream = {
+    Peek: function () {
+      if ((this._pos < 0) || (this._pos >= this._length))
+        return -1;
+
+      return this._buffer[this._pos];
+    },
+    ReadByte: function () {
+      if ((this._pos < 0) || (this._pos >= this._length))
+        return -1;
+
+      return this._buffer[this._pos++];
+    }
+};
+
 JSIL.ImplementExternals(
   "System.IO.FileStream", true, {
     _ctor$0: function () {
       System.IO.Stream.prototype._ctor.call(this);
+
+      this._pos = 0;
+      this._length = 0;
     },
     _ctor$1: function (filename, mode) {
       System.IO.Stream.prototype._ctor.call(this);
@@ -38,22 +56,35 @@ JSIL.ImplementExternals(
         throw new System.Exception("Unable to get an array for the file '" + filename + "'");
 
       this._pos = 0;
-    },
-    Peek: function () {
-      if ((this._pos < 0) || (this._pos >= this._buffer.length))
-        return -1;
-
-      return this._buffer[this._pos];
-    },
-    ReadByte: function () {
-      if ((this._pos < 0) || (this._pos >= this._buffer.length))
-        return -1;
-
-      return this._buffer[this._pos++];
+      this._length = this._buffer.length;
     },
     Close: function () {
     }
   }
+);
+
+JSIL.ImplementExternals(
+  "System.IO.FileStream", true, $bytestream
+);
+
+JSIL.ImplementExternals(
+  "System.IO.MemoryStream", true, {
+    _ctor$2: function (bytes) {
+      System.IO.MemoryStream.prototype._ctor$3.call(this, bytes, true);
+    },
+    _ctor$3: function (bytes, writable) {
+      System.IO.Stream.prototype._ctor.call(this);
+
+      this._buffer = bytes;
+      this._writable = writable;
+      this._length = this._capacity = bytes.length;
+      this._pos = 0;
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.IO.MemoryStream", true, $bytestream
 );
 
 JSIL.ImplementExternals(
@@ -142,6 +173,20 @@ JSIL.ImplementExternals(
     ReadByte: function () {
       return this.m_stream.ReadByte();
     },
+    Read7BitEncodedInt: function () {
+	    var result = 0, bits = 0;
+
+	    while (bits < 35) {
+		    var b = this.ReadByte();
+		    result |= (b & 127) << bits;
+		    bits += 7;
+
+		    if ((b & 128) == 0)
+			    return result;
+	    }
+
+	    throw new System.FormatException("Bad 7-bit int format");
+    },
     Close: function () {
     },
     // Derived from http://blog.vjeux.com/wp-content/uploads/2010/01/binaryReader.js
@@ -203,6 +248,9 @@ JSIL.ImplementExternals(
     },
     Dispose: function () {
       this.m_stream = null;
+    },
+    get_BaseStream: function () {
+      return this.m_stream;
     }
   }
 );

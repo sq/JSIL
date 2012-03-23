@@ -41,14 +41,29 @@ namespace JSIL.Compiler.Profiles {
                 .Replace("%configpath%", configuration.Path)
                 .Replace("%outputpath%", configuration.OutputDirectory);
 
+            var projectCollection = new ProjectCollection();
             var contentProjects = buildResult.ProjectsBuilt.Where(
-                (projectFile) => projectFile.EndsWith(".contentproj")
+                (project) => project.File.EndsWith(".contentproj")
             ).ToArray();
 
-            foreach (var contentProjectPath in contentProjects) {
+            foreach (var builtContentProject in contentProjects) {
+                var contentProjectPath = builtContentProject.File;
+
                 Console.Error.WriteLine("// Processing content project '{0}' ...", contentProjectPath);
 
-                var project = new Project(contentProjectPath);
+                var project = projectCollection.LoadProject(contentProjectPath);
+                var projectProperties = project.Properties.ToDictionary(
+                    (p) => p.Name
+                );
+
+                Project parentProject = null;
+                Dictionary<string, ProjectProperty> parentProjectProperties = null;
+                if (builtContentProject.Parent != null) {
+                    parentProject = projectCollection.LoadProject(builtContentProject.Parent.File);
+                    parentProjectProperties = parentProject.Properties.ToDictionary(
+                        (p) => p.Name
+                    );
+                }
 
                 var contentProjectDirectory = Path.GetDirectoryName(contentProjectPath);
                 var localOutputDirectory = contentOutputDirectory
@@ -76,21 +91,42 @@ namespace JSIL.Compiler.Profiles {
                     var importerName = metadata["Importer"].EvaluatedValue;
                     var processorName = metadata["Processor"].EvaluatedValue;
                     var sourcePath = Path.Combine(contentProjectDirectory, item.EvaluatedInclude);
-                    var outputPath = Path.Combine(localOutputDirectory, item.EvaluatedInclude);
+                    string xnbPath = null;
+
+                    if (parentProjectProperties != null) {
+                        xnbPath = Path.Combine(
+                            Path.Combine(
+                                Path.Combine(
+                                    Path.GetDirectoryName(builtContentProject.Parent.File),
+                                    parentProjectProperties["OutputPath"].EvaluatedValue
+                                ),
+                                "Content"
+                            ),
+                            item.EvaluatedInclude.Replace(Path.GetExtension(item.EvaluatedInclude), ".xnb")
+                        );
+                    }
 
                     switch (processorName) {
-                        case "PassThroughProcessor":
-                            EnsureDirectoryExists(outputPath);
-                            File.Copy(sourcePath, outputPath, true);
-                            logOutput("PassThrough", outputPath);
-                            break;
                         case "TextureProcessor":
+                            var outputPath = Path.Combine(localOutputDirectory, item.EvaluatedInclude);
                             EnsureDirectoryExists(outputPath);
                             File.Copy(sourcePath, outputPath, true);
                             logOutput("Image", outputPath);
+                            continue;
+                    }
+
+                    switch (importerName) {
+                        case "XmlImporter":
+                            var outputPath = Path.Combine(
+                                localOutputDirectory, 
+                                item.EvaluatedInclude.Replace(Path.GetExtension(item.EvaluatedInclude), ".xnb")
+                            );
+                            EnsureDirectoryExists(outputPath);
+                            File.Copy(xnbPath, outputPath, true);
+                            logOutput("XNB", outputPath);
                             break;
                         default:
-                            Console.Error.WriteLine("// Can't process '{0}': processor '{1}' unsupported.", item.EvaluatedInclude, processorName);
+                            Console.Error.WriteLine("// Can't process '{0}': importer '{1}' and processor '{2}' both unsupported.", item.EvaluatedInclude, importerName, processorName);
                             break;
                     }
                 }

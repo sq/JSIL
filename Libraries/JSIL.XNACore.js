@@ -72,7 +72,17 @@ JSIL.ImplementExternals(
     Load$b1: JSIL.GenericMethod(
       ["T"],
       function (T, assetName) {
-        return JSIL.Host.getAsset(assetName);
+        var asset = JSIL.Host.getAsset(assetName);
+
+        var rawXnb = JSIL.TryCast(asset, RawXNBAsset);
+        if (rawXnb !== null) {
+          return rawXnb.ReadAsset(T);
+        }
+
+        if (JSIL.CheckType(asset, HTML5Asset))
+          return asset;
+
+        throw new Error("Asset '" + assetName + "' is not an instance of HTML5Asset.");
       }
     ),
     Unload: function () {
@@ -87,62 +97,139 @@ JSIL.ImplementExternals(
   }
 );
 
-JSIL.MakeClass($jsilcore.System.Object, "HTML5Asset", true);
-HTML5Asset.prototype._ctor = function (assetName) {
-  this.name = assetName;
-};
-HTML5Asset.prototype.toString = function () {
-  return "<XNA Asset '" + this.name + "'>";
-};
+JSIL.MakeClass($jsilcore.System.Object, "HTML5Asset", true, [], function ($) {
+  $.prototype._ctor = function (assetName) {
+    this.name = assetName;
+  };
+  $.prototype.toString = function () {
+    return "<XNA Asset '" + this.name + "'>";
+  };
+});
 
-JSIL.MakeClass("HTML5Asset", "HTML5ImageAsset", true);
-HTML5ImageAsset.prototype._ctor = function (assetName, image) {
-  HTML5Asset.prototype._ctor.call(this, assetName);
-  this.image = image;
-  this.Width = image.naturalWidth;
-  this.Height = image.naturalHeight;
-};
+JSIL.MakeClass("HTML5Asset", "HTML5ImageAsset", true, [], function ($) {
+  $.prototype._ctor = function (assetName, image) {
+    HTML5Asset.prototype._ctor.call(this, assetName);
+    this.image = image;
+    this.Width = image.naturalWidth;
+    this.Height = image.naturalHeight;
+  };
+});
 
-JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true);
-HTML5SoundAsset.prototype._ctor = function (assetName, sound) {
-  HTML5Asset.prototype._ctor.call(this, assetName);
-  this.sound = sound;
-};
-HTML5SoundAsset.prototype.Play$0 = function () {
-  if (this.sound !== null) {
-    this.sound.play();
-  }
-};
-
-JSIL.MakeClass("HTML5Asset", "HTML5FontAsset", true);
-HTML5FontAsset.prototype._cachedCss = null;
-HTML5FontAsset.prototype._ctor = function (assetName, id, pointSize, lineHeight) {
-  HTML5Asset.prototype._ctor.call(this, assetName);
-  this.id = id;
-  this.pointSize = pointSize;
-  this.lineHeight = lineHeight;
-  this.canvas = JSIL.Host.getCanvas();
-  this.context = this.canvas.getContext("2d");
-  Object.defineProperty(this, "LineSpacing", {
-    get: function () {
-      return this.lineHeight;
+JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true, [], function ($) {
+  $.prototype._ctor = function (assetName, sound) {
+    HTML5Asset.prototype._ctor.call(this, assetName);
+    this.sound = sound;
+  };
+  $.prototype.Play$0 = function () {
+    if (this.sound !== null) {
+      this.sound.play();
     }
-  });
-};
-HTML5FontAsset.prototype.toCss = function (scale) {
-  scale = (scale || 1.0);
-  if ((this._cachedCss != null) && (this._cachedScale === scale)) {
-    return this._cachedScale;
-  } else {
-    this._cachedScale = scale;
-    return this._cachedCss = (this.pointSize * scale) + 'pt "' + this.id + '"';
-  }
-};
-HTML5FontAsset.prototype.MeasureString$0 = function (text) {
-  this.context.font = this.toCss();
-  var metrics = this.context.measureText(text);
-  return new Microsoft.Xna.Framework.Vector2(metrics.width, this.lineHeight);
-};
+  };
+});
+
+JSIL.MakeClass("HTML5Asset", "HTML5FontAsset", true, [], function ($) {
+  $.prototype._cachedCss = null;
+  $.prototype._ctor = function (assetName, id, pointSize, lineHeight) {
+    HTML5Asset.prototype._ctor.call(this, assetName);
+    this.id = id;
+    this.pointSize = pointSize;
+    this.lineHeight = lineHeight;
+    this.canvas = JSIL.Host.getCanvas();
+    this.context = this.canvas.getContext("2d");
+    Object.defineProperty(this, "LineSpacing", {
+      get: function () {
+        return this.lineHeight;
+      }
+    });
+  };
+  $.prototype.toCss = function (scale) {
+    scale = (scale || 1.0);
+    if ((this._cachedCss != null) && (this._cachedScale === scale)) {
+      return this._cachedScale;
+    } else {
+      this._cachedScale = scale;
+      return this._cachedCss = (this.pointSize * scale) + 'pt "' + this.id + '"';
+    }
+  };
+  $.prototype.MeasureString$0 = function (text) {
+    this.context.font = this.toCss();
+    var metrics = this.context.measureText(text);
+    return new Microsoft.Xna.Framework.Vector2(metrics.width, this.lineHeight);
+  };
+});
+
+JSIL.MakeClass("HTML5Asset", "RawXNBAsset", true, [], function ($) {
+  $.prototype._ctor = function (assetName, rawBytes) {
+    HTML5Asset.prototype._ctor.call(this, assetName);
+    this.bytes = rawBytes;
+  };
+  $.prototype.ReadAsset = function (type) {
+    var memoryStream = new System.IO.MemoryStream(this.bytes, false);
+    var binaryReader = new System.IO.BinaryReader(memoryStream);
+
+    var formatHeader = String.fromCharCode.apply(String, binaryReader.ReadBytes(3));
+    if (formatHeader != "XNB")
+      throw new Error("Invalid XNB format");
+
+    var platformId = String.fromCharCode(binaryReader.ReadByte());
+    switch (platformId) {
+      case "w":
+        break;
+      default:
+        throw new Error("Unsupported XNB platform: " + platformId);
+    }
+
+    var formatVersion = binaryReader.ReadByte();
+    if (formatVersion != 5)
+      throw new Error("Unsupported XNB format version: " + formatVersion);
+
+    var formatFlags = binaryReader.ReadByte();
+
+    var isHiDef = (formatFlags & 0x01) != 0;
+    var isCompressed = (formatFlags & 0x80) != 0;
+
+    if (isCompressed)
+      throw new Error("Compressed XNBs are not supported");
+
+    var uncompressedSize = binaryReader.ReadUInt32();
+
+    var typeReaderCount = binaryReader.Read7BitEncodedInt();
+    var typeReaders = new Array(typeReaderCount);
+
+    var readString = function () {
+      var length = binaryReader.Read7BitEncodedInt();
+      var chars = binaryReader.ReadBytes(length);
+      return String.fromCharCode.apply(String, chars);
+    };
+
+    var readObject = function () {
+      var typeId = binaryReader.Read7BitEncodedInt();
+
+      if (typeId === 0)
+        return null;
+
+      var typeReaderName = typeReaders[typeId - 1];
+      var typeReaderType = System.Type.GetType$2(typeReaderName);
+      
+      return typeReaderType;
+    };
+
+    for (var i = 0; i < typeReaderCount; i++) {
+      typeReaders[i] = readString();
+      var typeReaderVersionNumber = binaryReader.ReadInt32();
+    }
+
+    var sharedResourceCount = binaryReader.Read7BitEncodedInt();
+    var sharedResources = new Array(sharedResourceCount);
+
+    var mainObject = readObject();
+
+    for (var i = 0; i < sharedResourceCount; i++)
+      sharedResources[i] = readObject();
+
+    return mainObject;
+  };
+});
 
 JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Audio.AudioEngine", true, {

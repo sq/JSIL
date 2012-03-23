@@ -38,6 +38,7 @@ if (typeof (Function.prototype.bind) !== "function") {
 JSIL.GlobalNamespace = this;
 
 JSIL.PrivateNamespaces = {};
+JSIL.AssemblyShortNames = {};
 var $private = null;
 
 JSIL.DeclareAssembly = function (assemblyName) {
@@ -51,6 +52,25 @@ JSIL.GetAssembly = function (assemblyName) {
   var existing = JSIL.PrivateNamespaces[assemblyName];
   if (typeof (existing) !== "undefined")
     return existing;
+
+  var shortName = assemblyName;
+  var commaPos = shortName.indexOf(",");
+  if (commaPos >= 0)
+    shortName = shortName.substr(0, commaPos);
+
+  if (typeof (JSIL.AssemblyShortNames[shortName]) !== "undefined") {
+    var existingFullName = JSIL.AssemblyShortNames[shortName];
+    if (existingFullName !== null) {
+      existing = JSIL.PrivateNamespaces[existingFullName];
+      if (typeof (existing) !== "undefined")
+        return existing;
+    } else if (commaPos >= 0) {
+      // Multiple assemblies with the same short name, so disable the mapping.
+      JSIL.AssemblyShortNames[shortName] = null;
+    }
+  } else if (commaPos >= 0) {
+    JSIL.AssemblyShortNames[shortName] = assemblyName;
+  }
 
   // Create a new private global namespace for the new assembly
   var result = Object.create(JSIL.GlobalNamespace);
@@ -1980,19 +2000,6 @@ JSIL.OverloadedGenericMethod = function (type, name, overloads, _assembly) {
   JSIL.OverloadedMethodCore(type, name, overloads, result);
 };
 
-JSIL.MakeClass(Object, "System.Object", true, [], function ($) {
-  $.prototype.__LockCount__ = 0;
-  $.prototype.__StructFields__ = [];
-
-  JSIL.ExternalMembers($, true, 
-    "Equals", "MemberwiseClone", "__Initialize__", 
-    "_ctor", "GetType", "toString"
-  );
-  JSIL.ExternalMembers($, false,
-    "CheckType"
-  );
-});
-
 JSIL.ImplementExternals(
   "System.Object", false, {
     CheckType: function (value) {
@@ -2000,6 +2007,7 @@ JSIL.ImplementExternals(
     }
   }
 );
+
 JSIL.ImplementExternals(
   "System.Object", true, {
     Equals: function (rhs) {
@@ -2042,6 +2050,45 @@ JSIL.ImplementExternals(
     },
     toString: function ToString() {
       return JSIL.GetTypeName(this);
+    }
+  }
+);
+
+JSIL.MakeClass(Object, "System.Object", true, [], function ($) {
+  $.prototype.__LockCount__ = 0;
+  $.prototype.__StructFields__ = [];
+
+  JSIL.ExternalMembers($, true, 
+    "Equals", "MemberwiseClone", "__Initialize__", 
+    "_ctor", "GetType", "toString"
+  );
+  JSIL.ExternalMembers($, false,
+    "CheckType"
+  );
+});
+
+JSIL.ImplementExternals(
+  "System.Type", false, {
+    GetType$2: function (name) {
+      var assemblyName = null;
+
+      var commaPos = name.indexOf(",");
+      if (commaPos >= 0) {
+        assemblyName = name.substr(commaPos + 1).trim();
+        name = name.substr(0, commaPos).trim();
+      } else {
+        name = name.trim();
+      }
+
+      var context = JSIL.GlobalNamespace;
+      if (assemblyName != null)
+        context = JSIL.GetAssembly(assemblyName);
+
+      var resolved = JSIL.ResolveName(context, name, true);
+      if (resolved.exists())
+        return resolved.get();
+      else
+        return null;
     }
   }
 );
