@@ -221,6 +221,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", true, {
 
     var typeReaderName = this.typeReaders[typeId - 1];
     var typeReaderType = System.Type.GetType$2(typeReaderName);
+    if (typeReaderType === null) {
+      JSIL.Host.error(new Error("The type '" + typeReaderName + "' could not be found while loading asset '" + this.assetName + "'."));
+      return null;
+    }
 
     var typeReader = new (typeReaderType) ();
 
