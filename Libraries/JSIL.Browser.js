@@ -159,6 +159,55 @@ function getAssetName (filename) {
   return filename.substr(0, lastIndex).toLowerCase();
 };
 
+function loadBinaryFileAsync (uri, onComplete) {
+  var req;
+  var state = [false];
+  if ((location.protocol === "file:") && (typeof (ActiveXObject) !== "undefined")) {
+    req = new ActiveXObject("MSXML2.XMLHTTP");
+  } else {
+    req = new XMLHttpRequest();
+  }
+  
+  req.open('GET', uri, false);
+  if (typeof (req.overrideMimeType) !== "undefined")
+    req.overrideMimeType('text/plain; charset=x-user-defined');
+          
+  req.onreadystatechange = function (evt) {
+    if (req.readyState != 4)
+      return;
+
+    if (state[0])
+      return;
+  
+    state[0] = true;
+    if (req.status <= 299) {
+      var bytes;
+      if (
+        (typeof (req.responseBody) !== "undefined") && 
+        (typeof (VBArray) !== "undefined")
+      ) {
+          bytes = new VBArray(req.responseBody).toArray();
+      } else {
+          var text = req.responseText;
+          bytes = new Array(req.responseText.length);
+          for (var i = 0, l = text.length; i < l; i++)
+            bytes[i] = text.charCodeAt(i) & 0xFF;
+      }
+      onComplete(bytes, null);
+    } else {
+      onComplete(null, { statusText: req.statusText, status: req.status });
+      return;
+    }
+  };
+  
+  try {
+    req.send(null);
+  } catch (exc) {
+    state[0] = true;
+    onComplete(null, exc);
+  }
+}
+
 var loadedFontCount = 0;
 var loadingPollInterval = 25;
 var soundLoadTimeout = 30000;
@@ -273,54 +322,25 @@ var assetLoaders = {
     
     state.interval = setInterval(loadingCallback, loadingPollInterval);
   },
-  "File": function loadBinaryFile (filename, data, onError, onDoneLoading) {
-    var req;
-    var state = [false];
-    if ((location.protocol === "file:") && (typeof (ActiveXObject) !== "undefined")) {
-      req = new ActiveXObject("MSXML2.XMLHTTP");
-    } else {
-      req = new XMLHttpRequest();
-    }
-    
-    req.open('GET', fileRoot + filename, false);
-    if (typeof (req.overrideMimeType) !== "undefined")
-      req.overrideMimeType('text/plain; charset=x-user-defined');
-            
-    req.onreadystatechange = function (evt) {
-      if (req.readyState != 4)
-        return;
-
-      if (state[0])
-        return;
-    
-      state[0] = true;
-      if (req.status <= 299) {
-        var bytes;
-        if (
-          (typeof (req.responseBody) !== "undefined") && 
-          (typeof (VBArray) !== "undefined")
-        ) {
-            bytes = new VBArray(req.responseBody).toArray();
-        } else {
-            var text = req.responseText;
-            bytes = new Array(req.responseText.length);
-            for (var i = 0, l = text.length; i < l; i++)
-              bytes[i] = text.charCodeAt(i) & 0xFF;
-        }
-        allFiles[getAssetName(filename)] = bytes;
-        onDoneLoading();
+  "File": function loadFile (filename, data, onError, onDoneLoading) {
+    loadBinaryFileAsync(fileRoot + filename, function (result, error) {
+      if (result !== null) {
+        allFiles[filename] = result;
+        onDoneLoading(); 
       } else {
-        onError(req.statusText || req.status);
-        return;
+        onError(error);
       }
-    };
-    
-    try {
-      req.send(null);
-    } catch (exc) {
-      state[0] = true;
-      onError(exc);
-    }
+    });
+  },
+  "PassThrough": function loadPassThrough (filename, data, onError, onDoneLoading) {
+    loadBinaryFileAsync(fileRoot + filename, function (result, error) {
+      if (result !== null) {
+        allAssets[getAssetName(filename)] = result;
+        onDoneLoading(); 
+      } else {
+        onError(error);
+      }
+    });
   },
   "Font": function loadFont (filename, data, onError, onDoneLoading) {
     var fontId = "xnafont" + loadedFontCount;
@@ -440,7 +460,7 @@ function beginLoading () {
   if (typeof (contentManifest) === "object") {
     for (var k in contentManifest) {
       var subManifest = contentManifest[k];
-      
+
       for (var i = 0, l = subManifest.length; i < l; i++)
         allAssets.push(subManifest[i]);
 

@@ -82,7 +82,7 @@ namespace JSIL.Compiler.Profiles {
                         case "PassThroughProcessor":
                             EnsureDirectoryExists(outputPath);
                             File.Copy(sourcePath, outputPath, true);
-                            logOutput("File", outputPath);
+                            logOutput("PassThrough", outputPath);
                             break;
                         case "TextureProcessor":
                             EnsureDirectoryExists(outputPath);

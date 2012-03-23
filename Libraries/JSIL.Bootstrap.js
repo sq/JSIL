@@ -446,6 +446,9 @@ $jsilcore.$ListExternals = {
   get_Capacity: function () {
     return this._items.length;
   },
+  ToArray: function () {
+    return Array.prototype.slice.call(this._items, 0, this._size);
+  },
   GetEnumerator: function () {
     // Detect whether we are a List<T> or an ArrayList.
     var elementType = this.T;
