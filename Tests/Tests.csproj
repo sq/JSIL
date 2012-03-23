@@ -284,6 +284,7 @@
     <None Include="SimpleTestCases\StringEmpty.cs" />
     <None Include="SimpleTestCases\GetTypeByName.cs" />
     <None Include="TestCases\OverloadWithMultipleGenericThis.cs" />
+    <None Include="TestCases\OverloadWithMultipleGenericThisRecursive.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

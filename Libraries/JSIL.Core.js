@@ -1845,15 +1845,32 @@ JSIL.GenericMethod = function (argumentNames, body) {
       throw new Error("Invalid number of generic arguments for method (got " + arguments.length + ", expected " + argumentNames.length + ")");
 
     var genericArguments = Array.prototype.slice.call(arguments);
+    var outerThis = this;
 
-    return function () {
+    var result = function () {
       // concat doesn't work on the raw 'arguments' value :(
       var invokeArguments = genericArguments.concat(
         Array.prototype.slice.call(arguments)
       );
 
-      return body.apply(this, invokeArguments);
+      return body.apply(outerThis, invokeArguments);
     };
+
+    result.call = function (thisReference) {
+      // concat doesn't work on the raw 'arguments' value :(
+      var invokeArguments = genericArguments.concat(
+        Array.prototype.slice.call(arguments, 1)
+      );
+
+      return body.apply(thisReference, invokeArguments);
+    };
+
+    result.apply = function (thisReference, invokeArguments) {
+      invokeArguments = genericArguments.concat(invokeArguments);
+      return body.apply(thisReference, invokeArguments);
+    };
+
+    return result;
   };
 
   result.__IsGenericMethod__ = true;
