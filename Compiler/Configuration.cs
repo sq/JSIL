@@ -20,12 +20,15 @@ namespace JSIL.Compiler {
             }
         }
 
+        public string Path;
+
         public readonly SolutionBuildConfiguration SolutionBuilder = new SolutionBuildConfiguration();
 
         public bool? AutoLoadConfigFiles;
         public bool? UseLocalProxies;
         public string OutputDirectory;
         public string Profile;
+        public Dictionary<string, object> ProfileSettings = new Dictionary<string, object>();
 
         public void MergeInto (Configuration result) {
             base.MergeInto(result);
@@ -38,6 +41,11 @@ namespace JSIL.Compiler {
                 result.OutputDirectory = OutputDirectory;
             if (Profile != null)
                 result.Profile = Profile;
+            if (Path != null)
+                result.Path = Path;
+
+            foreach (var kvp in ProfileSettings)
+                result.ProfileSettings[kvp.Key] = kvp.Value;
 
             SolutionBuilder.MergeInto(result.SolutionBuilder);
         }

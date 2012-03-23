@@ -30,8 +30,10 @@ namespace JSIL.Compiler {
                 var json = File.ReadAllText(filename);
                 var result = jss.Deserialize<Configuration>(json);
 
+                result.Path = Path.GetDirectoryName(Path.GetFullPath(filename));
+
                 result.OutputDirectory = result.OutputDirectory
-                    .Replace("%configpath%", Path.GetDirectoryName(Path.GetFullPath(filename)))
+                    .Replace("%configpath%", result.Path)
                     .Replace("/", "\\");
 
                 Console.Error.WriteLine("// Applied settings from '{0}'.", ShortenPath(filename));
@@ -212,7 +214,10 @@ namespace JSIL.Compiler {
                     break;
                 }
 
-                profile.ProcessBuildResult(buildResult);
+                profile.ProcessBuildResult(
+                    profile.GetConfiguration(config), 
+                    buildResult
+                );
 
                 buildGroups.Add(new BuildGroup {
                     BaseConfiguration = config,
@@ -328,7 +333,7 @@ namespace JSIL.Compiler {
                     var outputDir = localConfig.OutputDirectory
                         .Replace("%assemblypath%", Path.GetDirectoryName(Path.GetFullPath(filename)));
 
-                    Console.Error.Write("// Saving to '{0}' ...", ShortenPath(outputDir) + "\\");
+                    Console.Error.WriteLine("// Saving output to '{0}'.", ShortenPath(outputDir) + "\\");
 
                     // Ensures that the log file contains the name of the profile that was actually used.
                     localConfig.Profile = localProfile.GetType().Name;
@@ -336,8 +341,6 @@ namespace JSIL.Compiler {
                     EmitLog(outputDir, localConfig, filename, outputs);
 
                     buildGroup.Profile.WriteOutputs(outputs, outputDir, Path.GetFileName(filename) + ".");
-
-                    Console.Error.WriteLine(" done.");
                 }
             }
         }

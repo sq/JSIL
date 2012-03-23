@@ -18,10 +18,15 @@ namespace JSIL.Compiler.Profiles {
         }
 
         public virtual void WriteOutputs (TranslationResult result, string path, string manifestPrefix) {
+            Console.WriteLine(manifestPrefix + "manifest.js");
+
+            foreach (var kvp in result.Files)
+                Console.WriteLine(kvp.Key);
+
             result.WriteToDirectory(path, manifestPrefix);
         }
 
-        public virtual SolutionBuilder.SolutionBuildResult ProcessBuildResult (SolutionBuilder.SolutionBuildResult buildResult) {
+        public virtual SolutionBuilder.SolutionBuildResult ProcessBuildResult (Configuration defaultConfiguration, SolutionBuilder.SolutionBuildResult buildResult) {
             return buildResult;
         }
     }
