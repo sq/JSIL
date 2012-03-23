@@ -158,6 +158,10 @@ JSIL.MakeClass("HTML5Asset", "HTML5FontAsset", true, [], function ($) {
   };
 });
 
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ListReader`1", true, {
+
+});
+
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", true, {
   // This can't be a _ctor because BinaryReader has multiple overloaded constructors.
   // Once reflection lands this can probably work fine as a _ctor.
@@ -220,7 +224,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", true, {
       return null;
 
     var typeReaderName = this.typeReaders[typeId - 1];
-    var typeReaderType = System.Type.GetType$2(typeReaderName);
+    var parsedTypeName = JSIL.ParseTypeName(typeReaderName);
+    // We need to explicitly make the xna assembly the default search context since many of the readers are private classes
+    var typeReaderType = JSIL.GetTypeInternal(parsedTypeName, JSIL.GetAssembly("Microsoft.Xna.Framework"));
+
     if (typeReaderType === null) {
       JSIL.Host.error(new Error("The type '" + typeReaderName + "' could not be found while loading asset '" + this.assetName + "'."));
       return null;
