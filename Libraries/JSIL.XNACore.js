@@ -158,8 +158,46 @@ JSIL.MakeClass("HTML5Asset", "HTML5FontAsset", true, [], function ($) {
   };
 });
 
-JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ListReader`1", true, {
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReader", true, {
+  _ctor: function (targetType) {
+    this.targetType = targetType;
+    this.TargetIsValueType = !targetType.__IsReferenceType__;
+  },
+  Read: function () {
+    throw new Error("Invoked abstract method (ContentTypeReader.Read)");
+  }
+});
 
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReader`1", true, {
+  _ctor: function (targetType) {
+    Microsoft.Xna.Framework.Content.ContentTypeReader.prototype._ctor.call(this, this.T);
+  },
+  Read: function () {
+    throw new Error("Invoked abstract method (ContentTypeReader`1.Read)");
+  }
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.StringReader", true, {
+  Read: function (input, existingInstance) {
+    return input.ReadString();
+  }
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ListReader`1", true, {
+  Read: function (input, existingInstance) {
+    var count = input.ReadInt32();
+    if (existingInstance === null) {
+      existingInstance = new (System.Collections.Generic.List$b1.Of(this.T))();
+    }
+
+    while (count > 0) {
+      var item = input.ReadObject$b1(this.T)();
+      count--;
+      existingInstance.Add(item);
+    }
+
+    return existingInstance;
+  }
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", true, {

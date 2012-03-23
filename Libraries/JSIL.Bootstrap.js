@@ -231,6 +231,12 @@ JSIL.ImplementExternals(
 
       return false;
     },
+    StartsWith: function (str, text) {
+      return str.indexOf(text) === 0;
+    },
+    EndsWith: function (str, text) {
+      return str.lastIndexOf(text) === str.length - text.length;
+    },
     Format: function (format) {
       format = String(format);
 

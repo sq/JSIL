@@ -109,5 +109,17 @@ namespace JSIL.Proxies {
         public static bool operator != (StringProxy lhs, StringProxy rhs) {
             throw new InvalidOperationException();
         }
+
+        [JSReplacement("System.String.StartsWith($this, $text)")]
+        [JSIsPure]
+        new public bool StartsWith (StringProxy text) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.String.EndsWith($this, $text)")]
+        [JSIsPure]
+        new public bool EndsWith (StringProxy text) {
+            throw new InvalidOperationException();
+        }
     }
 }
