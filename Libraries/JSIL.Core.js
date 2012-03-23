@@ -590,7 +590,10 @@ JSIL.TypeRef.prototype.get = function () {
       }
 
       if (typeof (arg) === "string")
-        ga[i] = arg = new JSIL.TypeRef(this.context, arg).get();
+        ga[i] = arg = new JSIL.TypeRef(this.context, arg);
+
+      if (typeof (arg) === "object" && Object.getPrototypeOf(arg) === JSIL.TypeRef.prototype)
+        ga[i] = arg = arg.get();
     }
 
     if (doCloseType)
@@ -845,8 +848,17 @@ JSIL.TypeObjectPrototype.Of$NoInitialize = function () {
   var ofCache = this.__OfCache__;
   var cacheKey = arguments[0].__TypeId__;
 
-  for (var i = 1, l = arguments.length; i < l; i++)
-    cacheKey += "," + arguments[i].__TypeId__;
+  if (typeof (cacheKey) === "undefined")
+    throw new Error("Type missing type ID");
+
+  for (var i = 1, l = arguments.length; i < l; i++) {
+    var tid = arguments[i].__TypeId__;
+
+    if (typeof (tid) === "undefined")
+      throw new Error("Type missing type ID");
+
+    cacheKey += "," + tid;
+  }
 
   if ((typeof (ofCache) === "undefined") || (ofCache === null))
     this.__OfCache__ = ofCache = [];

@@ -182,7 +182,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReader", tru
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReader`1", true, {
   _ctor: function (targetType) {
-    Microsoft.Xna.Framework.Content.ContentTypeReader.prototype._ctor.call(this, this.T);
+    Microsoft.Xna.Framework.Content.ContentTypeReader.prototype._ctor.call(this, targetType || this.T);
   },
   Read: function () {
     throw new Error("Invoked abstract method (ContentTypeReader`1.Read)");
@@ -240,6 +240,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.RectangleReader", true,
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ArrayReader`1", true, {
+  _ctor: function () {
+    Microsoft.Xna.Framework.Content.ContentTypeReader$b1.prototype._ctor.call(this, System.Array.Of(this.T));
+  },
   Initialize: function (manager) {
     this.elementReader = manager.GetTypeReader(this.T);
   },
@@ -260,6 +263,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ArrayReader`1", true, {
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ListReader`1", true, {
+  _ctor: function () {
+    Microsoft.Xna.Framework.Content.ContentTypeReader$b1.prototype._ctor.call(this, System.Collections.Generic.List$b1.Of(this.T));
+  },
   Initialize: function (manager) {
     this.elementReader = manager.GetTypeReader(this.T);
   },
@@ -281,40 +287,61 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ListReader`1", true, {
   }
 });
 
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManager", false, {
+  ReadTypeManifest: function (typeCount, contentReader) {
+    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework");
+    var result = new Array(typeCount);
+    var readerManager = new Microsoft.Xna.Framework.Content.ContentTypeReaderManager(contentReader);
+
+    for (var i = 0; i < typeCount; i++) {
+      var typeReaderName = contentReader.ReadString();
+      var typeReaderVersionNumber = contentReader.ReadInt32();
+
+      var parsedTypeName = JSIL.ParseTypeName(typeReaderName);
+      // We need to explicitly make the xna assembly the default search context since many of the readers are private classes
+      var typeReaderType = JSIL.GetTypeInternal(parsedTypeName, assembly);
+
+      if (typeReaderType === null) {
+        JSIL.Host.error(new Error("The type '" + typeReaderName + "' could not be found while loading asset '" + contentReader.assetName + "'."));
+        return null;
+      }
+
+      var typeReaderInstance = new typeReaderType();
+      var targetType = typeReaderInstance.TargetType;
+      var targetTypeName = targetType.toString();
+
+      console.log(typeReaderInstance.toString() + ".TargetType = " + targetTypeName);
+
+      readerManager.knownReaders[targetTypeName] = typeReaderInstance;
+
+      result[i] = typeReaderInstance;
+    }
+
+    for (var i = 0; i < typeCount; i++) {
+      result[i].Initialize(readerManager);
+    }
+
+    return result;
+  }
+});
+
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManager", true, {
+  _ctor: function (contentReader) {
+    this.contentReader = contentReader;
+    this.knownReaders = {};
+  },
   GetTypeReader: function (type) {
-    var readerName = null;
+    var typeName = type.toString();
+    var reader = this.knownReaders[typeName];
+    if (typeof (reader) === "object")
+      return reader;
 
-    // Once reflection is implemented, we can use it for this.
-    switch (type.__FullName__) {
-      case "System.String":
-        readerName = "Microsoft.Xna.Framework.Content.StringReader";
-        break;
-      case "System.Int16":
-        readerName = "Microsoft.Xna.Framework.Content.Int16Reader";
-        break;
-      case "System.Int32":
-        readerName = "Microsoft.Xna.Framework.Content.Int32Reader";
-        break;
-      case "System.UInt16":
-        readerName = "Microsoft.Xna.Framework.Content.UInt16Reader";
-        break;
-      case "System.UInt32":
-        readerName = "Microsoft.Xna.Framework.Content.UInt32Reader";
-        break;
-      default:
-        JSIL.Host.error(new Error("No content type reader known for type '" + type + "'."));
-        var t = JSIL.GetTypeInternal(JSIL.ParseTypeName("Microsoft.Xna.Framework.Content.ContentTypeReader"), JSIL.GetAssembly("Microsoft.Xna.Framework"));
-        return new t(type);
-        break;
-    }
-
-    if (readerName !== null) {
-      var readerType = JSIL.GetTypeInternal(JSIL.ParseTypeName(readerName), JSIL.GetAssembly("Microsoft.Xna.Framework"));
-      return new readerType();
-    }
-
+    JSIL.Host.error(new Error("No content type reader known for type '" + typeName + "'."));
     return null;
+    /*
+    var t = JSIL.GetTypeInternal(JSIL.ParseTypeName("Microsoft.Xna.Framework.Content.ContentTypeReader"), JSIL.GetAssembly("Microsoft.Xna.Framework"));
+    return new t(type);
+    */
   }
 });
 
@@ -329,8 +356,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", true, {
     this.recordDisposableObject = recordDisposableObject;
     this.graphicsProfile = graphicsProfile;
 
-    this.typeReaderManager = new Microsoft.Xna.Framework.Content.ContentTypeReaderManager();
-    this.typeReaders = new Array();
+    this.typeReaders = null;
   },
   get_AssetName: function () {
     return this.assetName;
@@ -366,25 +392,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", true, {
     var uncompressedSize = this.ReadUInt32();
 
     var typeReaderCount = this.Read7BitEncodedInt();
-
-    for (var i = 0; i < typeReaderCount; i++) {
-      var typeReaderName = this.ReadString();
-      var typeReaderVersionNumber = this.ReadInt32();
-
-      var parsedTypeName = JSIL.ParseTypeName(typeReaderName);
-      // We need to explicitly make the xna assembly the default search context since many of the readers are private classes
-      var typeReaderType = JSIL.GetTypeInternal(parsedTypeName, JSIL.GetAssembly("Microsoft.Xna.Framework"));
-
-      if (typeReaderType === null) {
-        JSIL.Host.error(new Error("The type '" + typeReaderName + "' could not be found while loading asset '" + this.assetName + "'."));
-        return null;
-      }
-
-      var typeReaderInstance = new typeReaderType();
-      typeReaderInstance.Initialize(this.typeReaderManager);
-
-      this.typeReaders[i] = typeReaderInstance;
-    }
+    this.typeReaders = Microsoft.Xna.Framework.Content.ContentTypeReaderManager.ReadTypeManifest(typeReaderCount, this);
   },
   ReadString: function () {
     var length = this.Read7BitEncodedInt();
