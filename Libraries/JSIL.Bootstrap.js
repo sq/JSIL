@@ -1060,3 +1060,11 @@ JSIL.ImplementExternals(
     }
   }
 );
+
+JSIL.ImplementExternals(
+  "System.IO.Path", false, {
+    Combine$0: function (lhs, rhs) {
+      return lhs + "\\" + rhs;
+    }
+  }
+);

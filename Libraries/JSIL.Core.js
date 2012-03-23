@@ -2098,14 +2098,20 @@ JSIL.ParseTypeName = function (name) {
 
     if (ch == ']') {
       parenDepth -= 1;
+
       if (parenDepth == 0) {
         if (parenText.length > 0) {
           genericArguments.push(JSIL.ParseTypeName(parenText));
         }
 
         parenText = "";
+      } else if (parenText.length > 0) {
+        parenText += ch;
       }
     } else if (ch == '[') {
+      if ((parenDepth > 0) && (parenText.length > 0))
+        parenText += ch;
+
       parenDepth += 1;
     } else if (ch == ',') {
       if (parenDepth > 0) {
