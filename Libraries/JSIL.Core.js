@@ -1994,7 +1994,7 @@ JSIL.OverloadedGenericMethod = function (type, name, overloads, _assembly) {
         throw new Error("No overload of '" + name + "<" + genericArguments.join(", ") + ">' matching the argument list '" + String(invokeArguments) + "' could be found.");
       else
         return method.apply(this, genericArguments).apply(this, invokeArguments);
-    };
+    }.bind(this);
   };
 
   JSIL.OverloadedMethodCore(type, name, overloads, result);

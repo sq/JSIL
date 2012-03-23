@@ -71,6 +71,7 @@ namespace JSIL.Tests {
                     @"TestCases\NestedGenericMethodCalls.cs",
                     @"TestCases\OverloadWithGeneric.cs",
                     @"TestCases\OverloadWithMultipleGeneric.cs",
+                    @"TestCases\OverloadWithMultipleGenericThis.cs",
                     @"TestCases\GenericClasses.cs",
                     @"TestCases\GenericStaticMethods.cs",
                     @"TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs",

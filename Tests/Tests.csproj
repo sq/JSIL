@@ -283,6 +283,7 @@
     <None Include="SimpleTestCases\ArrayOfArrays.cs" />
     <None Include="SimpleTestCases\StringEmpty.cs" />
     <None Include="SimpleTestCases\GetTypeByName.cs" />
+    <None Include="TestCases\OverloadWithMultipleGenericThis.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
