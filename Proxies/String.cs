@@ -112,13 +112,13 @@ namespace JSIL.Proxies {
 
         [JSReplacement("System.String.StartsWith($this, $text)")]
         [JSIsPure]
-        new public bool StartsWith (StringProxy text) {
+        new public bool StartsWith (string text) {
             throw new InvalidOperationException();
         }
 
         [JSReplacement("System.String.EndsWith($this, $text)")]
         [JSIsPure]
-        new public bool EndsWith (StringProxy text) {
+        new public bool EndsWith (string text) {
             throw new InvalidOperationException();
         }
     }
