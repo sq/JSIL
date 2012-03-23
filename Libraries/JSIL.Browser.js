@@ -432,9 +432,23 @@ function beginLoading () {
     loadButton.style.display = "none";
   if (loadingProgress)
     loadingProgress.style.display = "";
+
+  var allAssets = [];
+  for (var i = 0, l = assetsToLoad.length; i < l; i++)
+    allAssets.push(assetsToLoad[i]);
+
+  if (typeof (contentManifest) === "object") {
+    for (var k in contentManifest) {
+      var subManifest = contentManifest[k];
+      
+      for (var i = 0, l = subManifest.length; i < l; i++)
+        allAssets.push(subManifest[i]);
+
+    }
+  }
   
   JSIL.Host.logWrite("Loading data ... ");
-  loadAssets(assetsToLoad, function () {
+  loadAssets(allAssets, function () {
     JSIL.Host.logWriteLine("done.");
     try {
       JSIL.Initialize();

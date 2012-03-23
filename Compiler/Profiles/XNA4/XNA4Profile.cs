@@ -55,6 +55,19 @@ namespace JSIL.Compiler.Profiles {
                     .Replace("%contentprojectpath%", contentProjectDirectory)
                     .Replace("/", "\\");
 
+                var contentManifest = new StringBuilder();
+                contentManifest.AppendLine("if (typeof (contentManifest) !== \"object\") { contentManifest = {}; };");
+                contentManifest.AppendLine("contentManifest[\"" + Path.GetFileNameWithoutExtension(contentProjectPath) + "\"] = [");
+
+                Action<string, string> logOutput = (type, filename) => {
+                    var localPath = filename.Replace(localOutputDirectory, "");
+                    if (localPath.StartsWith("\\"))
+                        localPath = localPath.Substring(1);
+
+                    Console.WriteLine(localPath);
+                    contentManifest.AppendFormat("  [\"{0}\", \"{1}\"],{2}", type, localPath.Replace("\\", "/"), Environment.NewLine);
+                };
+
                 foreach (var item in project.Items) {
                     if (item.ItemType != "Compile")
                         continue;
@@ -69,12 +82,12 @@ namespace JSIL.Compiler.Profiles {
                         case "PassThroughProcessor":
                             EnsureDirectoryExists(outputPath);
                             File.Copy(sourcePath, outputPath, true);
-                            Console.WriteLine(outputPath.Replace(configuration.OutputDirectory, ""));
+                            logOutput("File", outputPath);
                             break;
                         case "TextureProcessor":
                             EnsureDirectoryExists(outputPath);
                             File.Copy(sourcePath, outputPath, true);
-                            Console.WriteLine(outputPath.Replace(configuration.OutputDirectory, ""));
+                            logOutput("Image", outputPath);
                             break;
                         default:
                             Console.Error.WriteLine("// Can't process '{0}': processor '{1}' unsupported.", item.EvaluatedInclude, processorName);
@@ -82,8 +95,15 @@ namespace JSIL.Compiler.Profiles {
                     }
                 }
 
-                Console.Error.WriteLine("// Done processing content.");
+                contentManifest.AppendLine("];");
+                File.WriteAllText(
+                    Path.Combine(configuration.OutputDirectory, Path.GetFileName(contentProjectPath) + ".manifest.js"),
+                    contentManifest.ToString()
+                );
             }
+
+            if (contentProjects.Length > 0)
+                Console.Error.WriteLine("// Done processing content.");
 
             return base.ProcessBuildResult(configuration, buildResult);
         }
