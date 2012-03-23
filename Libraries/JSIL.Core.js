@@ -2124,12 +2124,15 @@ JSIL.ParseTypeName = function (name) {
 
   if (assemblyName.length === 0)
     assemblyName = null;
+  else
+    assemblyName = assemblyName.trim();
+
   if (genericArguments.length === 0)
     genericArguments = null;
 
   var result = {
     assembly: assemblyName,
-    type: typeName,
+    type: typeName.trim(),
     genericArguments: genericArguments
   };
 
@@ -2143,17 +2146,18 @@ JSIL.GetTypeInternal = function (parsedTypeName, defaultContext) {
 
   var resolved = JSIL.ResolveName(context, parsedTypeName.type, true);
   var result = null;
-  if (resolved.exists())
+  if (resolved.exists()) {
     result = resolved.get();
 
-  if (parsedTypeName.genericArguments !== null) {
-    var ga = new Array(parsedTypeName.genericArguments.length);
+    if (parsedTypeName.genericArguments !== null) {
+      var ga = new Array(parsedTypeName.genericArguments.length);
 
-    for (var i = 0, l = ga.length; i < l; i++) {
-      ga[i] = JSIL.GetTypeInternal(parsedTypeName.genericArguments[i], defaultContext);
+      for (var i = 0, l = ga.length; i < l; i++) {
+        ga[i] = JSIL.GetTypeInternal(parsedTypeName.genericArguments[i], defaultContext);
+      }
+
+      result = result.Of.apply(result, ga);
     }
-
-    result = result.Of.apply(result, ga);
   }
 
   return result;

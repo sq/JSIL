@@ -13,5 +13,6 @@ public static class Program {
     public static void Main (string[] args) {
         Console.WriteLine(System.Type.GetType("CustomType`1[System.String]"));
         Console.WriteLine(System.Type.GetType("CustomType`1[[System.String," + GetAssemblyName() + "]]"));
+        Console.WriteLine(System.Type.GetType("CustomType`1[[System.String,  " + GetAssemblyName() + "  ]]"));
     }
 }

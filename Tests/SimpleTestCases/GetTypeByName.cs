@@ -14,5 +14,6 @@ public static class Program {
         Console.WriteLine(System.Type.GetType("CustomType"));
         Console.WriteLine(System.Type.GetType("System.String"));
         Console.WriteLine(System.Type.GetType("System.String," + GetAssemblyName()));
+        Console.WriteLine(System.Type.GetType("System.String,  " + GetAssemblyName() + "  "));
     }
 }
