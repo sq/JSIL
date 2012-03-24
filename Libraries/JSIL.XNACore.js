@@ -398,6 +398,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManage
     if (typeof (reader) === "object")
       return reader;
 
+    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework");
+    var thisType = assembly.Microsoft.Xna.Framework.Content.ContentTypeReaderManager;
+
+    reader = thisType.GetTypeReader$1(type, this.contentReader);
+    if (typeof (reader) === "object")
+      return reader;
+
     JSIL.Host.error(new Error("No content type reader known for type '" + typeName + "'."));
     return null;
     /*
@@ -1273,6 +1280,29 @@ JSIL.ImplementExternals(
 );
 
 JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Rectangle", false, {
+    _cctor: function () {
+      Microsoft.Xna.Framework.Rectangle._empty = new Microsoft.Xna.Framework.Rectangle();
+    },
+    get_Empty: function () {
+      return Microsoft.Xna.Framework.Rectangle._empty;
+    },
+    op_Equality: function (lhs, rhs) {
+      return lhs.X === rhs.X && 
+        lhs.Y === rhs.Y && 
+        lhs.Width === rhs.Width && 
+        lhs.Height === rhs.Height;
+    },
+    op_Inequality: function (lhs, rhs) {
+      return lhs.X !== rhs.X || 
+        lhs.Y !== rhs.Y || 
+        lhs.Width !== rhs.Width || 
+        lhs.Height !== rhs.Height;
+    }
+  }
+);
+
+JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Rectangle", true, {
     _ctor: function (x, y, width, height) {
       this.X = x;
@@ -1661,11 +1691,17 @@ JSIL.ImplementExternals(
         destH = -destH;
       }
 
-      this.device.context.drawImage(
-        image, 
-        sourceX, sourceY, sourceW, sourceH,
-        positionX, positionY, destW, destH
-      );
+      // 0x0 blits cause an exception in IE
+      if (
+        (destW > 0) && (destH > 0) &&
+        (sourceW > 0) && (sourceH > 0)
+      ) {
+        this.device.context.drawImage(
+          image, 
+          sourceX, sourceY, sourceW, sourceH,
+          positionX, positionY, destW, destH
+        );
+      }
 
       if (needRestore)
         this.device.context.restore();

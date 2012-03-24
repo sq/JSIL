@@ -1122,3 +1122,33 @@ JSIL.MakeEnum(
     OrdinalIgnoreCase: 5
   }, false
 );
+
+JSIL.ImplementExternals(
+  "System.Text.StringBuilder", true, {
+    _ctor$0: function () {
+      System.Text.StringBuilder.prototype._ctor$1.call(this, 16);
+    },
+    _ctor$1: function (capacity) {
+      System.Text.StringBuilder.prototype._ctor$3.call(this, "", capacity);
+    },
+    _ctor$2: function (value) {
+      System.Text.StringBuilder.prototype._ctor$3.call(this, value, 16);
+    },
+    _ctor$3: function (value, capacity) {
+      this._str = value;
+    },
+    Append$0: function (char, count) {
+      for (var i = 0; i < count; i++)
+        this._str += char;
+    },
+    Append$2: function (text) {
+      this._str += text;
+    },
+    Append$7: function (char) {
+      this._str += char;
+    },
+    toString: function () {
+      return this._str;
+    }
+  }
+);

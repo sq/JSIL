@@ -2320,6 +2320,12 @@ JSIL.ImplementExternals(
     GetType$2: function (name) {
       var parsed = JSIL.ParseTypeName(name);
       return JSIL.GetTypeInternal(parsed, JSIL.GlobalNamespace);
+    },
+    op_Equality: function (lhs, rhs) {
+      if (lhs === rhs)
+        return true;
+      
+      return String(lhs) == String(rhs);
     }
   }
 );
