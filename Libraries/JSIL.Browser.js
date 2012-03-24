@@ -48,7 +48,7 @@ JSIL.Host.translateFilename = function (filename) {
   while (filename[0] === "/")
     filename = filename.substr(1);
   
-  return getAssetName(filename);
+  return filename;
 }
 JSIL.Host.doesFileExist = function (filename) {
   return allFiles.hasOwnProperty(JSIL.Host.translateFilename(filename));
