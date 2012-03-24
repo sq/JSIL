@@ -1768,9 +1768,14 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
         var qualifiedImpl = getOwnDescriptorRecursive(proto, qualifiedName);
       }
 
+      if ((typeof (shortImpl) === "undefined") || (shortImpl === null))
+        hasShort = false;
+
+      if ((typeof (qualifiedImpl) === "undefined") || (qualifiedImpl === null))
+        hasQualified = false;
+
       if (
         hasShort && 
-        (typeof(shortImpl) !== "undefined") &&
         (typeof(shortImpl.__IsPlaceholder__) !== "undefined") &&
         Boolean(shortImpl.__IsPlaceholder__)
       ) {
@@ -1779,7 +1784,6 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
 
       if (
         hasQualified && 
-        (typeof(qualifiedImpl) !== "undefined") &&
         (typeof(qualifiedImpl.__IsPlaceholder__) !== "undefined") &&
         Boolean(qualifiedImpl.__IsPlaceholder__)
       ) {

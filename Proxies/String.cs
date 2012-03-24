@@ -139,5 +139,11 @@ namespace JSIL.Proxies {
         new public string Trim () {
             throw new InvalidOperationException();
         }
+
+        [JSReplacement("System.String.Compare($this, $rhs)")]
+        [JSIsPure]
+        new public int CompareTo (string rhs) {
+            throw new InvalidOperationException();
+        }
     }
 }

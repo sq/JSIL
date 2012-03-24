@@ -237,6 +237,16 @@ JSIL.ImplementExternals(
     EndsWith: function (str, text) {
       return str.lastIndexOf(text) === str.length - text.length;
     },
+    Compare$0: function (lhs, rhs) {
+      return System.String.Compare$2(lhs, rhs, System.StringComparison.Ordinal);
+    },
+    Compare$1: function (lhs, rhs, ignoreCase) {
+      return System.String.Compare$2(
+        lhs, rhs, ignoreCase ? 
+          System.StringComparison.OrdinalIgnoreCase : 
+          System.StringComparison.Ordinal
+      );
+    },
     Compare$2: function (lhs, rhs, comparison) {
       switch (comparison) {
         case System.StringComparison.CurrentCultureIgnoreCase:
