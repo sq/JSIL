@@ -457,6 +457,29 @@ $jsilcore.$ListExternals = {
     this._items.splice(index, 1);
     this._size -= 1;
   },
+  Find: function (predicate) {
+    for (var i = 0; i < this._size; i++) {
+      var item = this._items[i];
+      if (predicate(item))
+        return item;
+    }
+
+    return JSIL.DefaultValue(this.T);
+  },
+  Contains: function (value) {
+    for (var i = 0; i < this._size; i++) {
+      var item = this._items[i];
+
+      if (item === value) {
+        return true;
+      } else if (item !== null) {
+        if (item.Equals(value))
+          return true;
+      }
+    }
+
+    return false;
+  },
   Clear: function () {
     this._size = 0;
   },
@@ -521,6 +544,9 @@ JSIL.ImplementExternals("System.Collections.Generic.Stack`1", true, {
   },
   _ctor$1: function (size) {
     this._items = new Array(size);
+    this._size = 0;
+  },
+  Clear: function () {
     this._size = 0;
   },
   Push: function (item) {
