@@ -608,6 +608,12 @@ JSIL.ImplementExternals(
     get_Zero: function () {
       return Object.create(Microsoft.Xna.Framework.Vector2.prototype);
     },
+    Multiply$0: function (lhs, rhs) {
+      return Microsoft.Xna.Framework.Vector2.op_Multiply$0(lhs, rhs);
+    },
+    Multiply$2: function (lhs, rhs) {
+      return Microsoft.Xna.Framework.Vector2.op_Multiply$1(lhs, rhs);
+    },
     op_Addition: function (lhs, rhs) {
       var result = Object.create(Microsoft.Xna.Framework.Vector2.prototype);
       result.X = lhs.X + rhs.X;
@@ -644,6 +650,12 @@ JSIL.ImplementExternals(
       result.Y = lhs.Y * rhs;
       return result;
     },
+    op_Multiply$2: function (lhs, rhs) {
+      var result = Object.create(Microsoft.Xna.Framework.Vector2.prototype);
+      result.X = lhs * rhs.X;
+      result.Y = lhs * rhs.Y;
+      return result;
+    },
     op_Equality: function (lhs, rhs) {
       return (lhs.X === rhs.X) && (lhs.Y === rhs.Y);
     },
@@ -678,6 +690,12 @@ JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Vector3", false, {
     get_Zero: function () {
       return Object.create(Microsoft.Xna.Framework.Vector3.prototype);
+    },
+    Multiply$0: function (lhs, rhs) {
+      return Microsoft.Xna.Framework.Vector3.op_Multiply$0(lhs, rhs);
+    },
+    Multiply$2: function (lhs, rhs) {
+      return Microsoft.Xna.Framework.Vector3.op_Multiply$1(lhs, rhs);
     },
     op_Addition: function (lhs, rhs) {
       var result = Object.create(Microsoft.Xna.Framework.Vector3.prototype);
@@ -721,6 +739,13 @@ JSIL.ImplementExternals(
       result.Z = lhs.Z * rhs;
       return result;
     },
+    op_Multiply$2: function (lhs, rhs) {
+      var result = Object.create(Microsoft.Xna.Framework.Vector3.prototype);
+      result.X = lhs * rhs.X;
+      result.Y = lhs * rhs.Y;
+      result.Z = lhs * rhs.Z;
+      return result;
+    },
     op_Equality: function (lhs, rhs) {
       return (lhs.X === rhs.X) && (lhs.Y === rhs.Y) && (lhs.Z === rhs.Z);
     },
@@ -762,6 +787,12 @@ JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Vector4", false, {
     get_Zero: function () {
       return Object.create(Microsoft.Xna.Framework.Vector4.prototype);
+    },
+    Multiply$0: function (lhs, rhs) {
+      return Microsoft.Xna.Framework.Vector4.op_Multiply$0(lhs, rhs);
+    },
+    Multiply$2: function (lhs, rhs) {
+      return Microsoft.Xna.Framework.Vector4.op_Multiply$1(lhs, rhs);
     },
     op_Addition: function (lhs, rhs) {
       var result = Object.create(Microsoft.Xna.Framework.Vector4.prototype);
@@ -809,6 +840,14 @@ JSIL.ImplementExternals(
       result.Y = lhs.Y * rhs;
       result.Z = lhs.Z * rhs;
       result.W = lhs.W * rhs;
+      return result;
+    },
+    op_Multiply$2: function (lhs, rhs) {
+      var result = Object.create(Microsoft.Xna.Framework.Vector4.prototype);
+      result.X = lhs * rhs.X;
+      result.Y = lhs * rhs.Y;
+      result.Z = lhs * rhs.Z;
+      result.W = lhs * rhs.W;
       return result;
     },
     op_Equality: function (lhs, rhs) {
@@ -1817,6 +1856,25 @@ JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Audio.SoundBank", true, {
     GetCue: function () {
       return null;
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.MathHelper", false, {
+    Min: function (lhs, rhs) {
+      return Math.min(lhs, rhs);
+    },
+    Max: function (lhs, rhs) {
+      return Math.max(lhs, rhs);
+    },
+    Clamp: function (value, min, max) {
+      if (value < min)
+        return min;
+      else if (value > max)
+        return max;
+      else
+        return value;
     }
   }
 );

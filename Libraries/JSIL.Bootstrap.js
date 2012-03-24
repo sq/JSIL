@@ -275,6 +275,8 @@ JSIL.ImplementExternals(
           switch (valueFormat[0]) {
             case 'f':
             case 'F':
+            case 'n':
+            case 'N':
               var digits = parseInt(valueFormat.substr(1));
               return parseFloat(value).toFixed(digits);
 
@@ -467,18 +469,21 @@ $jsilcore.$ListExternals = {
     return JSIL.DefaultValue(this.T);
   },
   Contains: function (value) {
+    return this.IndexOf$0(value) >= 0;
+  },
+  IndexOf$0: function (value) {
     for (var i = 0; i < this._size; i++) {
       var item = this._items[i];
 
       if (item === value) {
-        return true;
+        return i;
       } else if (item !== null) {
         if (item.Equals(value))
-          return true;
+          return i;
       }
     }
 
-    return false;
+    return -1;
   },
   Clear: function () {
     this._size = 0;
@@ -502,6 +507,10 @@ $jsilcore.$ListExternals = {
       elementType = System.Object;
 
     return new (System.Collections.Generic.List$b1_Enumerator.Of(elementType)) (this);
+  },
+  AsReadOnly: function () {
+    // FIXME
+    return this;
   }
 };
 
@@ -1047,6 +1056,9 @@ JSIL.ImplementExternals(
     },
     ContainsKey: function (key) {
       return this._dict.hasOwnProperty(key);
+    },
+    Clear: function () {
+      this._dict = {}
     }
   }
 );
