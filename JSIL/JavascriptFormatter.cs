@@ -271,11 +271,16 @@ namespace JSIL.Internal {
                 Space();
                 Comment("{0}", originalType);
             } else if (type is GenericParameter) {
+                var gp = (GenericParameter)type;
                 Keyword("new");
                 Space();
                 Identifier("JSIL.GenericParameter", null);
                 LPar();
-                Value(identifier);
+                Value(gp.Name);
+                if (gp.Owner is TypeReference) {
+                    Comma();
+                    Value(gp.Owner as TypeReference);
+                }
                 RPar();
             } else if (at != null) {
                 Value("System.Array");
@@ -354,6 +359,7 @@ namespace JSIL.Internal {
 
             if (type.IsGenericParameter) {
                 var gp = (GenericParameter)type;
+                var ownerType = gp.Owner as TypeReference;
 
                 if (
                     (CurrentMethod != null) &&
@@ -361,12 +367,18 @@ namespace JSIL.Internal {
                      (CurrentMethod.DeclaringType.Equals(gp.Owner))
                     )
                 ) {
-                    if (EmitThisForParameter(gp)) {
-                        Keyword("this");
+                    if (ownerType != null) {
+                        Identifier(ownerType);
                         Dot();
+                        Identifier(gp.Name);
+                        Dot();
+                        Identifier("get");
+                        LPar();
+                        Keyword("this");
+                        RPar();
+                    } else {
+                        Identifier(gp.Name);
                     }
-
-                    Identifier(type.FullName);
                 } else if (replaceGenerics) {
                     if (type.IsValueType)
                         Identifier("JSIL.AnyValueType", null);

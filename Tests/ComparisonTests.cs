@@ -78,7 +78,8 @@ namespace JSIL.Tests {
                     @"TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs",
                     @"TestCases\GenericStaticConstructorOrdering.cs",
                     @"TestCases\GenericMethodAsGenericDelegate.cs",
-                    @"TestCases\GenericNestedTypeConstructedInParentStaticConstructor.cs"
+                    @"TestCases\GenericNestedTypeConstructedInParentStaticConstructor.cs",
+                    @"TestCases\GenericParameterNameShadowing.cs"
                 }
             );
         }

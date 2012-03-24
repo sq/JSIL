@@ -54,7 +54,7 @@
     <None Include="FailingTestCases\BaseFields.cs" />
     <Compile Include="AnalysisTests.cs" />
     <Compile Include="DependencyTests.cs" />
-    <None Include="FailingTestCases\GenericParameterNameShadowing.cs" />
+    <None Include="TestCases\GenericParameterNameShadowing.cs" />
     <Compile Include="FormattingTests.cs" />
     <None Include="FailingTestCases\Arrays.cs" />
     <Compile Include="FailingTests.cs" />
@@ -287,6 +287,7 @@
     <None Include="TestCases\OverloadWithMultipleGenericThisRecursive.cs" />
     <None Include="SimpleTestCases\GetGenericTypeByName.cs" />
     <None Include="SimpleTestCases\StringStartsAndEndsWith.cs" />
+    <None Include="TestCases\InheritOpenGenericClassMultipleTimes.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
