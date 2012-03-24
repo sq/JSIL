@@ -293,6 +293,7 @@
     <None Include="SimpleTestCases\ArrayClone.cs" />
     <None Include="TestCases\InheritStructFields.cs" />
     <None Include="SimpleTestCases\StringTrim.cs" />
+    <None Include="TestCases\EnumBooleanLogic.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

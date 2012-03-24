@@ -13,9 +13,17 @@ namespace JSIL.Transforms {
         public readonly TypeSystem TypeSystem;
         public readonly TypeInfoProvider TypeInfo;
 
+        private readonly HashSet<JSOperator> LogicalOperators;
+
         public IntroduceEnumCasts (TypeSystem typeSystem, TypeInfoProvider typeInfo) {
             TypeSystem = typeSystem;
             TypeInfo = typeInfo;
+
+            LogicalOperators = new HashSet<JSOperator>() {
+                JSOperator.LogicalAnd,
+                JSOperator.LogicalOr,
+                JSOperator.LogicalNot
+            };
         }
 
         public void VisitNode (JSIndexerExpression ie) {
@@ -25,14 +33,58 @@ namespace JSIL.Transforms {
                 !ILBlockTranslator.IsIntegral(indexType) &&
                 ILBlockTranslator.IsEnum(indexType)
             ) {
-                var cast = JSInvocationExpression.InvokeStatic(
-                    new JSFakeMethod("Number", TypeSystem.Int32, indexType), new[] { ie.Index }, true
+                var cast = JSInvocationExpression.InvokeMethod(
+                    new JSFakeMethod("valueOf", TypeSystem.Int32, indexType), ie.Index, null, true
                 );
 
                 ie.ReplaceChild(ie.Index, cast);
             }
 
             VisitChildren(ie);
+        }
+
+        public void VisitNode (JSUnaryOperatorExpression uoe) {
+            var type = uoe.Expression.GetExpectedType(TypeSystem);
+            var isEnum = ILBlockTranslator.IsEnum(type);
+
+            // Detect attempts to perform boolean logic on enums.
+            if (isEnum && LogicalOperators.Contains(uoe.Operator)) {
+                var cast = JSInvocationExpression.InvokeMethod(
+                    new JSFakeMethod("valueOf", TypeSystem.Int32, type), uoe.Expression, null, true
+                );
+
+                uoe.ReplaceChild(uoe.Expression, cast);
+            }
+
+            VisitChildren(uoe);
+        }
+
+        public void VisitNode (JSBinaryOperatorExpression boe) {
+            var leftType = boe.Left.GetExpectedType(TypeSystem);
+            var leftIsEnum = ILBlockTranslator.IsEnum(leftType);
+            var rightType = boe.Right.GetExpectedType(TypeSystem);
+            var rightIsEnum = ILBlockTranslator.IsEnum(rightType);
+
+            // Detect attempts to perform boolean logic on enums.
+            if ((leftIsEnum || rightIsEnum) && LogicalOperators.Contains(boe.Operator)) {
+                if (leftIsEnum) {
+                    var cast = JSInvocationExpression.InvokeMethod(
+                        new JSFakeMethod("valueOf", TypeSystem.Int32, leftType), boe.Left, null, true
+                    );
+
+                    boe.ReplaceChild(boe.Left, cast);
+                }
+
+                if (rightIsEnum) {
+                    var cast = JSInvocationExpression.InvokeMethod(
+                        new JSFakeMethod("valueOf", TypeSystem.Int32, rightType), boe.Right, null, true
+                    );
+
+                    boe.ReplaceChild(boe.Right, cast);
+                }
+            }
+
+            VisitChildren(boe);
         }
 
         public void VisitNode (JSSwitchStatement ss) {
@@ -42,8 +94,8 @@ namespace JSIL.Transforms {
                 !ILBlockTranslator.IsIntegral(conditionType) &&
                 ILBlockTranslator.IsEnum(conditionType)
             ) {
-                var cast = JSInvocationExpression.InvokeStatic(
-                    new JSFakeMethod("Number", TypeSystem.Int32, conditionType), new[] { ss.Condition }, true
+                var cast = JSInvocationExpression.InvokeMethod(
+                    new JSFakeMethod("valueOf", TypeSystem.Int32, conditionType), ss.Condition, null, true
                 );
 
                 ss.ReplaceChild(ss.Condition, cast);

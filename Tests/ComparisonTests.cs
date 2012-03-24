@@ -138,6 +138,7 @@ namespace JSIL.Tests {
                 new[] { 
                     @"TestCases\EnumSwitch.cs",
                     @"TestCases\Enums.cs",
+                    @"TestCases\EnumBooleanLogic.cs",
                     @"TestCases\EnumArrayLookup.cs",
                     @"TestCases\OverloadWithEnum.cs",
                     @"TestCases\EnumIfStatement.cs"
