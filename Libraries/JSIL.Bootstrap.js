@@ -460,13 +460,36 @@ $jsilcore.$ListExternals = {
     this._size -= 1;
   },
   Find: function (predicate) {
+    var index = this.FindIndex$0(predicate);
+    if (index >= 0)
+      return this._items[index];
+    else
+      return JSIL.DefaultValue(this.T);
+  },
+  FindIndex$0: function (predicate) {
     for (var i = 0; i < this._size; i++) {
       var item = this._items[i];
       if (predicate(item))
-        return item;
+        return i;
     }
 
-    return JSIL.DefaultValue(this.T);
+    return -1;
+  },
+  Exists: function (predicate) {
+    return this.FindIndex$0(predicate) >= 0;
+  },
+  FindAll: function (predicate) {
+    var thisType = this.GetType();
+    var result = new thisType();
+
+    for (var i = 0; i < this._size; i++) {
+      var item = this._items[i];
+
+      if (predicate(item))
+        result.Add(item);
+    }
+
+    return result;
   },
   RemoveAll: function (predicate) {
     for (var i = 0; i < this._size; i++) {
@@ -478,6 +501,16 @@ $jsilcore.$ListExternals = {
         this._size -= 1;
       }
     }
+  },
+  TrueForAll: function (predicate) {
+    for (var i = 0; i < this._size; i++) {
+      var item = this._items[i];
+
+      if (!predicate(item))
+        return false;
+    }
+
+    return true;
   },
   Contains: function (value) {
     return this.IndexOf$0(value) >= 0;
@@ -553,20 +586,34 @@ $jsilcore.$CollectionExternals._ctor$1 = function (list) {
   for (var i = 0, l = list.Count; i < l; i++)
     this._items[i] = list[i];
 };
-$jsilcore.$CollectionExternals.Add = function (item) {
-  if (this._size >= this._items.length) {
-    this._items.push(item);
-  } else {
-    this._items[this._size] = item;
-  }
-  this._size += 1;
-};
-$jsilcore.$CollectionExternals.GetEnumerator = function () {
-  var elementType = this.T;
-  return new (System.Collections.Generic.List$b1_Enumerator.Of(elementType)) (this);
-};
 
 JSIL.ImplementExternals("System.Collections.ObjectModel.Collection`1", true, $jsilcore.$CollectionExternals);
+
+$jsilcore.$ReadOnlyCollectionExternals = JSIL.CloneObject($jsilcore.$ListExternals);
+$jsilcore.$ReadOnlyCollectionExternals._ctor = function (list) {
+  this._list = list;
+
+  Object.defineProperty(this, "_items", {
+    get: function () {
+      return list._items;
+    }
+  });
+
+  Object.defineProperty(this, "_size", {
+    get: function () {
+      return list._size;
+    }
+  });
+};
+$jsilcore.$ReadOnlyCollectionExternals.Add = null;
+$jsilcore.$ReadOnlyCollectionExternals.Remove = null;
+$jsilcore.$ReadOnlyCollectionExternals.RemoveAt = null;
+$jsilcore.$ReadOnlyCollectionExternals.RemoveAll = null;
+$jsilcore.$ReadOnlyCollectionExternals.Clear = null;
+$jsilcore.$ReadOnlyCollectionExternals.Sort$0 = null;
+$jsilcore.$ReadOnlyCollectionExternals.Sort$3 = null;
+
+JSIL.ImplementExternals("System.Collections.ObjectModel.ReadOnlyCollection`1", true, $jsilcore.$ReadOnlyCollectionExternals);
 
 JSIL.ImplementExternals("System.Collections.Generic.Stack`1", true, {
   _ctor$0: function () {
@@ -723,10 +770,25 @@ JSIL.ImplementExternals("System.Random", true, {
   NextDouble: Math.random
 });
 
+JSIL.$MathSign = function (value) {
+  if (value > 0)
+    return 1;
+  else if (value < 0)
+    return -1;
+  else
+    return 0;
+};
+
 JSIL.ImplementExternals(
   "System.Math", false, {
     Max: Math.max,
-    Min: Math.min
+    Min: Math.min,
+    Sign$0: JSIL.$MathSign,
+    Sign$1: JSIL.$MathSign,
+    Sign$2: JSIL.$MathSign,
+    Sign$3: JSIL.$MathSign,
+    Sign$4: JSIL.$MathSign,
+    Sign$5: JSIL.$MathSign
   }
 );
 
@@ -1186,3 +1248,12 @@ JSIL.ImplementExternals(
     }
   }
 );
+
+JSIL.CompareNumbers = function (lhs, rhs) {
+  if (lhs > rhs)
+    return 1;
+  else if (lhs < rhs)
+    return -1;
+  else
+    return 0;
+};

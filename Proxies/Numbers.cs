@@ -21,6 +21,11 @@ namespace JSIL.Proxies {
         public string ToString (params AnyType[] arguments) {
             return base.ToString();
         }
+
+        [JSReplacement("JSIL.CompareNumbers($this, $rhs)")]
+        new public int CompareTo (AnyType rhs) {
+            throw new InvalidOperationException();
+        }
     }
 
     [JSProxy(
@@ -39,6 +44,11 @@ namespace JSIL.Proxies {
         [JSReplacement("($this).toString()")]
         public string ToString (params AnyType[] arguments) {
             return base.ToString();
+        }
+
+        [JSReplacement("JSIL.CompareNumbers($this, $rhs)")]
+        new public int CompareTo (AnyType rhs) {
+            throw new InvalidOperationException();
         }
     }
 

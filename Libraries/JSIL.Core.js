@@ -529,9 +529,6 @@ JSIL.ImplementExternals = function (namespaceName, isInstance, externals) {
   var prefix = isInstance ? "instance$" : "";
 
   for (var k in externals) {
-    if (!externals.hasOwnProperty(k))
-      continue;
-
     obj[prefix + k] = externals[k];
   }
 };
@@ -1773,6 +1770,7 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
 
       if (
         hasShort && 
+        (typeof(shortImpl) !== "undefined") &&
         (typeof(shortImpl.__IsPlaceholder__) !== "undefined") &&
         Boolean(shortImpl.__IsPlaceholder__)
       ) {
@@ -1781,6 +1779,7 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
 
       if (
         hasQualified && 
+        (typeof(qualifiedImpl) !== "undefined") &&
         (typeof(qualifiedImpl.__IsPlaceholder__) !== "undefined") &&
         Boolean(qualifiedImpl.__IsPlaceholder__)
       ) {

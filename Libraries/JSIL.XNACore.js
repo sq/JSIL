@@ -608,6 +608,10 @@ JSIL.ImplementExternals(
     get_Zero: function () {
       return Object.create(Microsoft.Xna.Framework.Vector2.prototype);
     },
+    Normalize$0: function (v) {
+      v.Normalize();
+      return v;
+    },
     Multiply$0: function (lhs, rhs) {
       return Microsoft.Xna.Framework.Vector2.op_Multiply$0(lhs, rhs);
     },
@@ -680,8 +684,16 @@ JSIL.ImplementExternals(
       result.Y = this.Y;
       return result;
     },
+    Normalize: function () {
+      var factor = 1.0 / Math.sqrt(this.LengthSquared());
+      this.X *= factor;
+      this.Y *= factor;
+    },
     LengthSquared: function () {
       return (this.X * this.X) + (this.Y * this.Y);
+    },
+    Length: function () {
+      return Math.sqrt(this.LengthSquared());
     }
   }
 );
@@ -690,6 +702,10 @@ JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Vector3", false, {
     get_Zero: function () {
       return Object.create(Microsoft.Xna.Framework.Vector3.prototype);
+    },
+    Normalize$0: function (v) {
+      v.Normalize();
+      return v;
     },
     Multiply$0: function (lhs, rhs) {
       return Microsoft.Xna.Framework.Vector3.op_Multiply$0(lhs, rhs);
@@ -777,8 +793,17 @@ JSIL.ImplementExternals(
       result.Z = this.Z;
       return result;
     },
+    Normalize: function () {
+      var factor = 1.0 / Math.sqrt(this.LengthSquared());
+      this.X *= factor;
+      this.Y *= factor;
+      this.Z *= factor;
+    },
     LengthSquared: function () {
       return (this.X * this.X) + (this.Y * this.Y) + (this.Z * this.Z);
+    },
+    Length: function () {
+      return Math.sqrt(this.LengthSquared());
     }
   }
 );
@@ -787,6 +812,10 @@ JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Vector4", false, {
     get_Zero: function () {
       return Object.create(Microsoft.Xna.Framework.Vector4.prototype);
+    },
+    Normalize$0: function (v) {
+      v.Normalize();
+      return v;
     },
     Multiply$0: function (lhs, rhs) {
       return Microsoft.Xna.Framework.Vector4.op_Multiply$0(lhs, rhs);
@@ -891,8 +920,18 @@ JSIL.ImplementExternals(
       result.Z = this.Z;
       return result;
     },
+    Normalize: function () {
+      var factor = 1.0 / Math.sqrt(this.LengthSquared());
+      this.X *= factor;
+      this.Y *= factor;
+      this.Z *= factor;
+      this.W *= factor;
+    },
     LengthSquared: function () {
       return (this.X * this.X) + (this.Y * this.Y) + (this.Z * this.Z);
+    },
+    Length: function () {
+      return Math.sqrt(this.LengthSquared());
     }
   }
 );
@@ -1219,6 +1258,12 @@ JSIL.ImplementExternals(
 JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Input.GamePadButtons", true, {
     get_Back: function () {
+      return false;
+    },
+    get_LeftShoulder: function () {
+      return false;
+    },
+    get_RightShoulder: function () {
       return false;
     }
   }
