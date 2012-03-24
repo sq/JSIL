@@ -468,6 +468,17 @@ $jsilcore.$ListExternals = {
 
     return JSIL.DefaultValue(this.T);
   },
+  RemoveAll: function (predicate) {
+    for (var i = 0; i < this._size; i++) {
+      var item = this._items[i];
+
+      if (predicate(item)) {
+        this._items.splice(i, 1);
+        i -= 1;
+        this._size -= 1;
+      }
+    }
+  },
   Contains: function (value) {
     return this.IndexOf$0(value) >= 0;
   },
@@ -488,7 +499,18 @@ $jsilcore.$ListExternals = {
   Clear: function () {
     this._size = 0;
   },
+  Sort$0: function () {
+    this._items.sort();
+  },
+  Sort$3: function (comparison) {
+    this._items.sort(comparison);
+  },
   get_Item: function (index) {
+    if (index < 0)
+      throw new System.ArgumentOutOfRangeException("index");
+    else if (index >= this._size)
+      throw new System.ArgumentOutOfRangeException("index");
+
     return this._items[index];
   },
   get_Count: function () {
@@ -510,7 +532,7 @@ $jsilcore.$ListExternals = {
   },
   AsReadOnly: function () {
     // FIXME
-    return this;
+    return new System.Collections.ObjectModel.ReadOnlyCollection$b1(this);
   }
 };
 

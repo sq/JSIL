@@ -21,18 +21,40 @@ JSIL.ImplementExternals(
   }
 );
 
-$bytestream = {
-    Peek: function () {
-      if ((this._pos < 0) || (this._pos >= this._length))
-        return -1;
-
-      return this._buffer[this._pos];
-    },
+JSIL.ImplementExternals(
+  "System.IO.Stream", true, {
     ReadByte: function () {
-      if ((this._pos < 0) || (this._pos >= this._length))
-        return -1;
+      var buffer = [];
+      var count = this.Read(buffer, 0, 1);
 
-      return this._buffer[this._pos++];
+      if (count >= 1)
+        return buffer[0];
+      else
+        return -1;
+    },
+  }
+);
+
+var $bytestream = {
+    Read: function (buffer, offset, count) {
+      var startPos = this._pos;
+      var endPos = this._pos + count;
+
+      if (endPos >= this._length) {
+        endPos = this._length - 1;
+        count = endPos - startPos + 1;
+      }
+
+      if ((startPos < 0) || (startPos >= this._length))
+        return 0;
+
+      for (var i = 0; i < count; i++) {
+        buffer[i] = this._buffer[startPos + i];
+      }
+
+      this._pos += count;
+
+      return count;
     }
 };
 
@@ -109,15 +131,8 @@ JSIL.ImplementExternals(
     },
     ReadBytes: function (count) {
       var result = new Array(count);
-      for (var i = 0; i < count; i++) {
-        var b = this.m_stream.ReadByte();
-        if (b === -1)
-          return result.slice(0, i - 1);
-
-        result[i] = b;
-      };
-
-      return result;
+      var bytesRead = this.m_stream.Read(result, 0, count);
+      return result.slice(0, bytesRead);
     },
     ReadChars: function (count) {
       var result = new Array(count);
