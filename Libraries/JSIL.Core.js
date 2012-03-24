@@ -620,6 +620,16 @@ JSIL.TypeRef.prototype.get = function () {
   return this.cachedReference;
 };
 
+JSIL.DefaultValue = function (type) {
+  if (type.__IsNativeType__ || false) {
+    return new type();
+  } else if (type.__IsReferenceType__) {
+    return null;
+  } else {
+    return Object.create(type.prototype);
+  }
+};
+
 JSIL.New = function (type, constructorName, args) {
   if (type.__IsNativeType__ || false) {
     var ctor = type.prototype[constructorName];

@@ -170,8 +170,17 @@ JSIL.ImplementExternals(
       var bytes = this.ReadBytes(8);
       return this._decodeFloat(bytes, 52, 11);
     },
+    ReadBoolean: function () {
+      return this.m_stream.ReadByte() != 0;
+    },
     ReadByte: function () {
       return this.m_stream.ReadByte();
+    },
+    ReadChar: function () {
+      return String.fromCharCode(this.m_stream.ReadByte());
+    },
+    PeekChar: function () {
+      return String.fromCharCode(this.m_stream.Peek());
     },
     Read7BitEncodedInt: function () {
 	    var result = 0, bits = 0;

@@ -288,6 +288,9 @@
     <None Include="SimpleTestCases\GetGenericTypeByName.cs" />
     <None Include="SimpleTestCases\StringStartsAndEndsWith.cs" />
     <None Include="TestCases\InheritOpenGenericClassMultipleTimes.cs" />
+    <None Include="SimpleTestCases\StringCompare.cs" />
+    <None Include="SimpleTestCases\StringLowerAndUpper.cs" />
+    <None Include="SimpleTestCases\ArrayClone.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

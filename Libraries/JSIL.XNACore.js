@@ -182,7 +182,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReader", tru
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReader`1", true, {
   _ctor: function (targetType) {
-    Microsoft.Xna.Framework.Content.ContentTypeReader.prototype._ctor.call(this, targetType || this.T);
+    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework");
+    assembly.Microsoft.Xna.Framework.Content.ContentTypeReader.prototype._ctor.call(
+      this, 
+      assembly.Microsoft.Xna.Framework.Content.ContentTypeReader$b1.T.get(this)
+    );
   },
   Read: function () {
     throw new Error("Invoked abstract method (ContentTypeReader`1.Read)");
@@ -224,7 +228,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.PointReader", true, {
     var x = input.ReadInt32();
     var y = input.ReadInt32();
 
-    return new Microsoft.Xna.Framework.Point(x, y);
+    var result = new Microsoft.Xna.Framework.Point(x, y);
+    return result;
   }
 });
 
@@ -235,13 +240,38 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.RectangleReader", true,
     var w = input.ReadInt32();
     var h = input.ReadInt32();
     
-    return new Microsoft.Xna.Framework.Rectangle(x, y, w, h);
+    var result = new Microsoft.Xna.Framework.Rectangle(x, y, w, h);
+    return result;
+  }
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.Vector2Reader", true, {
+  Read: function (input, existingInstance) {
+    return input.ReadVector2();
+  }
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.Vector3Reader", true, {
+  Read: function (input, existingInstance) {
+    return input.ReadVector3();
+  }
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.Vector4Reader", true, {
+  Read: function (input, existingInstance) {
+    return input.ReadVector4();
   }
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ArrayReader`1", true, {
   _ctor: function () {
-    Microsoft.Xna.Framework.Content.ContentTypeReader$b1.prototype._ctor.call(this, System.Array.Of(this.T));
+    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework");
+    assembly.Microsoft.Xna.Framework.Content.ContentTypeReader$b1.prototype._ctor.call(
+      this, 
+      System.Array.Of(
+        assembly.Microsoft.Xna.Framework.Content.ArrayReader$b1.T.get(this)
+      )
+    );
   },
   Initialize: function (manager) {
     this.elementReader = manager.GetTypeReader(this.T);
@@ -253,9 +283,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ArrayReader`1", true, {
     }
 
     for (var i = 0; i < count; i++) {
-      // Overload resolution doesn't handle this correctly
-      // existingInstance[i] = input.ReadObject$b1(this.T)(this.elementReader);
-      existingInstance[i] = input.ReadObjectInternal(this.T, this.elementReader, null);
+      existingInstance[i] = input.ReadObjectInternal$b1$1(this.T)(this.elementReader, null);
     }
 
     return existingInstance;
@@ -264,7 +292,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ArrayReader`1", true, {
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ListReader`1", true, {
   _ctor: function () {
-    Microsoft.Xna.Framework.Content.ContentTypeReader$b1.prototype._ctor.call(this, System.Collections.Generic.List$b1.Of(this.T));
+    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework");
+    assembly.Microsoft.Xna.Framework.Content.ContentTypeReader$b1.prototype._ctor.call(
+      this, 
+      System.Collections.Generic.List$b1.Of(
+        assembly.Microsoft.Xna.Framework.Content.ListReader$b1.T.get(this)
+      )
+    );
   },
   Initialize: function (manager) {
     this.elementReader = manager.GetTypeReader(this.T);
@@ -276,9 +310,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ListReader`1", true, {
     }
 
     while (count > 0) {
-      // Overload resolution doesn't handle this correctly
-      // var item = input.ReadObject$b1(this.T)(this.elementReader);
-      var item = input.ReadObjectInternal(this.T, this.elementReader, null);
+      var item = input.ReadObjectInternal$b1$1(this.T)(this.elementReader, null);
       count--;
       existingInstance.Add(item);
     }
@@ -288,10 +320,40 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ListReader`1", true, {
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManager", false, {
+  _cctor: function () {
+    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework");
+    var thisType = assembly.Microsoft.Xna.Framework.Content.ContentTypeReaderManager;
+
+    thisType.nameToReader = {};
+    thisType.targetTypeToReader = {};
+    thisType.readerTypeToReader = {};
+  },
+  AddTypeReader: function (readerTypeName, contentReader, reader) {
+    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework");
+    var thisType = assembly.Microsoft.Xna.Framework.Content.ContentTypeReaderManager;
+
+    var targetType = reader.TargetType;
+    thisType.targetTypeToReader[targetType] = reader;
+    thisType.readerTypeToReader[reader.GetType()] = reader;
+    thisType.nameToReader[readerTypeName] = reader;
+  },
+  GetTypeReader$1: function (targetType, contentReader) {
+    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework");
+    var thisType = assembly.Microsoft.Xna.Framework.Content.ContentTypeReaderManager;
+
+    var result = thisType.targetTypeToReader[targetType];
+
+    if (typeof (result) !== "object")
+      JSIL.Host.error(new Error("No content type reader known for type '" + targetType + "'."));
+
+    return result;
+  },
   ReadTypeManifest: function (typeCount, contentReader) {
     var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework");
+    var thisType = assembly.Microsoft.Xna.Framework.Content.ContentTypeReaderManager;
+
     var result = new Array(typeCount);
-    var readerManager = new Microsoft.Xna.Framework.Content.ContentTypeReaderManager(contentReader);
+    var readerManager = new thisType(contentReader);
 
     for (var i = 0; i < typeCount; i++) {
       var typeReaderName = contentReader.ReadString();
@@ -310,7 +372,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManage
       var targetType = typeReaderInstance.TargetType;
       var targetTypeName = targetType.toString();
 
-      console.log(typeReaderInstance.toString() + ".TargetType = " + targetTypeName);
+      thisType.AddTypeReader(typeReaderName, contentReader, typeReaderInstance);
 
       readerManager.knownReaders[targetTypeName] = typeReaderInstance;
 
@@ -399,25 +461,63 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", true, {
     var chars = this.ReadBytes(length);
     return String.fromCharCode.apply(String, chars);
   },
+  ReadVector2: function () {
+    var x = this.ReadSingle();
+    var y = this.ReadSingle();
+    return new Microsoft.Xna.Framework.Vector2(x, y);
+  },
+  ReadVector3: function () {
+    var x = this.ReadSingle();
+    var y = this.ReadSingle();
+    var z = this.ReadSingle();
+    return new Microsoft.Xna.Framework.Vector3(x, y, z);
+  },
+  ReadVector4: function () {
+    var x = this.ReadSingle();
+    var y = this.ReadSingle();
+    var z = this.ReadSingle();
+    var w = this.ReadSingle();
+    return new Microsoft.Xna.Framework.Vector4(x, y, z, w);
+  },
   ReadObject$b1$0: JSIL.GenericMethod(["T"], function ReadObject (T) {
-    return this.ReadObject$b1(T)(null);
+    return this.ReadObject$b1(T)(JSIL.DefaultValue(T));
   }),
   ReadObject$b1$1: JSIL.GenericMethod(["T"], function ReadObject (T, existingInstance) {
+    return this.ReadObjectInternal$b1$0(T)(existingInstance);
+  }),
+  ReadObject$b1$2: JSIL.GenericMethod(["T"], function ReadObject (T, contentTypeReader) {
+    return this.ReadObjectInternal$b1$1(T)(contentTypeReader, existingInstance);
+  }),
+  ReadObjectInternal$b1$0: JSIL.GenericMethod(["T"], function (T, existingInstance) {
     var typeId = this.Read7BitEncodedInt();
 
     if (typeId === 0)
       return null;
 
     var typeReader = this.typeReaders[typeId - 1];
+    if (typeof (typeReader) !== "object") {
+      JSIL.Host.error(new Error("No type reader for typeId '" + typeId + "'. Misaligned XNB read is likely."));
+      return null;
+    }
+    
+    return typeReader.Read(this, existingInstance);
+  }),
+  ReadObjectInternal$b1$1: JSIL.GenericMethod(["T"], function (T, contentTypeReader, existingInstance) {
+    if (contentTypeReader.TargetIsValueType)
+      return contentTypeReader.Read(this, existingInstance);
+    else
+      return this.ReadObjectInternal$b1$0(T)(existingInstance);
+  }),
+  ReadRawObject$b1$0: JSIL.GenericMethod(["T"], function (T) {
+    return this.ReadRawObject$b1$1(T)(JSIL.DefaultValue(T));
+  }),
+  ReadRawObject$b1$1: JSIL.GenericMethod(["T"], function (T, existingInstance) {
+    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework");
+    var ctrm = assembly.Microsoft.Xna.Framework.Content.ContentTypeReaderManager;
 
-    return this.ReadObjectInternal(T, typeReader, existingInstance);
+    var typeReader = ctrm.GetTypeReader$1(T, this);
+    return typeReader.Read(this, existingInstance);
   }),
-  ReadObject$b1$2: JSIL.GenericMethod(["T"], function ReadObject (T, contentTypeReader) {
-    return this.ReadObjectInternal(T, contentTypeReader, existingInstance);
-  }),
-  ReadObjectInternal: function (T, contentTypeReader, existingInstance) {
-    return contentTypeReader.Read(this, existingInstance);
-  }
 });
 
 JSIL.MakeClass("HTML5Asset", "RawXNBAsset", true, [], function ($) {

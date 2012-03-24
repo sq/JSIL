@@ -65,5 +65,10 @@ namespace JSIL.Proxies {
         public static int IndexOf<T> (T[] array, T value, int startIndex) {
             throw new InvalidOperationException();
         }
+
+        [JSReplacement("Array.prototype.slice.call($this)")]
+        new public object Clone () {
+            throw new InvalidOperationException();
+        }
     }
 }

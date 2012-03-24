@@ -237,6 +237,23 @@ JSIL.ImplementExternals(
     EndsWith: function (str, text) {
       return str.lastIndexOf(text) === str.length - text.length;
     },
+    Compare$2: function (lhs, rhs, comparison) {
+      switch (comparison) {
+        case System.StringComparison.CurrentCultureIgnoreCase:
+        case System.StringComparison.InvariantCultureIgnoreCase:
+        case System.StringComparison.OrdinalIgnoreCase:
+          lhs = lhs.toLowerCase();
+          rhs = rhs.toLowerCase();
+          break;
+      }
+
+      if (lhs < rhs)
+        return -1;
+      else if (lhs > rhs)
+        return 1;
+      else
+        return 0;
+    },
     Format: function (format) {
       format = String(format);
 
@@ -1067,4 +1084,15 @@ JSIL.ImplementExternals(
       return lhs + "\\" + rhs;
     }
   }
+);
+
+JSIL.MakeEnum(
+  "System.StringComparison", true, {
+    CurrentCulture: 0, 
+    CurrentCultureIgnoreCase: 1, 
+    InvariantCulture: 2, 
+    InvariantCultureIgnoreCase: 3, 
+    Ordinal: 4, 
+    OrdinalIgnoreCase: 5
+  }, false
 );

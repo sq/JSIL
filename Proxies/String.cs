@@ -110,6 +110,18 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
+        [JSReplacement("$this.toLowerCase()")]
+        [JSIsPure]
+        new public string ToLower () {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("$this.toUpperCase()")]
+        [JSIsPure]
+        new public string ToUpper () {
+            throw new InvalidOperationException();
+        }
+
         [JSReplacement("System.String.StartsWith($this, $text)")]
         [JSIsPure]
         new public bool StartsWith (string text) {
