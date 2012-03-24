@@ -946,12 +946,14 @@ namespace JSIL {
                 select field).ToArray();
 
             if (structFields.Length > 0) {
+                output.Identifier("JSIL.AddStructFields", null);
+                output.LPar();
+
                 dollar(output);
                 output.Dot();
                 output.Identifier("prototype");
-                output.Dot();
-                output.Identifier("__StructFields__");
-                output.Token(" = ");
+
+                output.Comma();
                 output.OpenBracket(true);
 
                 bool isFirst = true;
@@ -970,7 +972,9 @@ namespace JSIL {
                     isFirst = false;
                 }
 
-                output.CloseBracket(true, output.Semicolon);
+                output.CloseBracket(true);
+                output.RPar();
+                output.Semicolon();
             }
 
             TranslateTypeStaticConstructor(context, typedef, astEmitter, output, typeInfo.StaticConstructor, stubbed, dollar);

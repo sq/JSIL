@@ -1094,6 +1094,18 @@ JSIL.MakeStructFieldInitializer = function (typeObject) {
   return boundFunction;
 };
 
+JSIL.AddStructFields = function (target, fields) {
+  var sf;
+
+  if (Object.hasOwnProperty(target, "__StructFields__"))
+    sf = target.__StructFields__;
+  else
+    target.__StructFields__ = sf = Array.prototype.slice.call(target.__StructFields__ || []);
+
+  for (var i = 0, l = fields.length; i < l; i++)
+    sf.push(fields[i]);
+};
+
 JSIL.InitializeStructFields = function (instance, typeObject) {
   var sfi = typeObject.prototype.__StructFieldInitializer__;
   if (typeof (sfi) === "undefined")
