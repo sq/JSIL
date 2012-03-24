@@ -292,6 +292,7 @@
     <None Include="SimpleTestCases\StringLowerAndUpper.cs" />
     <None Include="SimpleTestCases\ArrayClone.cs" />
     <None Include="TestCases\InheritStructFields.cs" />
+    <None Include="SimpleTestCases\StringTrim.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

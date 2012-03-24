@@ -1097,7 +1097,7 @@ JSIL.MakeStructFieldInitializer = function (typeObject) {
 JSIL.AddStructFields = function (target, fields) {
   var sf;
 
-  if (Object.hasOwnProperty(target, "__StructFields__"))
+  if (target.hasOwnProperty("__StructFields__"))
     sf = target.__StructFields__;
   else
     target.__StructFields__ = sf = Array.prototype.slice.call(target.__StructFields__ || []);
@@ -2324,7 +2324,7 @@ JSIL.ImplementExternals(
     op_Equality: function (lhs, rhs) {
       if (lhs === rhs)
         return true;
-      
+
       return String(lhs) == String(rhs);
     }
   }

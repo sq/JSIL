@@ -133,5 +133,11 @@ namespace JSIL.Proxies {
         new public bool EndsWith (string text) {
             throw new InvalidOperationException();
         }
+
+        [JSReplacement("$this.trim()")]
+        [JSIsPure]
+        new public string Trim () {
+            throw new InvalidOperationException();
+        }
     }
 }
