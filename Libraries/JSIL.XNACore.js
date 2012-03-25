@@ -1774,6 +1774,11 @@ JSIL.ImplementExternals(
         (destW > 0) && (destH > 0) &&
         (sourceW > 0) && (sourceH > 0)
       ) {
+        this.device.context.fillStyle = "rgba(255, 0, 0, 0.5)";
+        this.device.context.fillRect(
+          positionX, positionY, destW, destH
+        );
+
         this.device.context.drawImage(
           image, 
           sourceX, sourceY, sourceW, sourceH,

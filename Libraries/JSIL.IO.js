@@ -185,11 +185,11 @@ JSIL.ImplementExternals(
     },
     ReadSingle: function () {
       var bytes = this.ReadBytes(4);
-      return this._decodeFloat(bytes, 23, 8);
+      return this.$decodeFloat(bytes, 1, 8, 23, -126, 127, true);
     },
     ReadDouble: function () {
       var bytes = this.ReadBytes(8);
-      return this._decodeFloat(bytes, 52, 11);
+      return this.$decodeFloat(bytes, 1, 11, 52, -1022, 1023, true);
     },
     ReadBoolean: function () {
       return this.m_stream.ReadByte() != 0;
@@ -219,62 +219,46 @@ JSIL.ImplementExternals(
     },
     Close: function () {
     },
-    // Derived from http://blog.vjeux.com/wp-content/uploads/2010/01/binaryReader.js
-    _shl: function (a, b) {
-      for (
-        ++b; --b;
-        a = ((a %= 0x7fffffff + 1) & 0x40000000) == 0x40000000 ? 
-          a * 2 : (a - 0x40000000) * 2 + 0x7fffffff + 1
-      );
+    // Derived from http://stackoverflow.com/a/8545403/106786
+    $decodeFloat: function (bytes, signBits, exponentBits, fractionBits, eMin, eMax, littleEndian) {
+      var totalBits = (signBits + exponentBits + fractionBits);
 
-      return a;
-    },
-    _readBits: function (bytes, start, length) {
-      var offsetLeft = (start + length) % 8;
-      var offsetRight = start % 8;
-      var curByte = bytes.length - (start >> 3) - 1;
-      var lastByte = bytes.length + (-(start + length) >> 3);
-      var diff = curByte - lastByte;
+      var binary = "";
+      for (var i = 0, l = bytes.length; i < l; i++) {
+        var bits = bytes[i].toString(2);
+        while (bits.length < 8) 
+          bits = "0" + bits;
 
-      var sum = (bytes[bytes.length - curByte - 1] >> offsetRight) & 
-        ((1 << (diff ? 8 - offsetRight : length)) - 1);
+        if (littleEndian)
+          binary = bits + binary;
+        else
+          binary += bits;
+      }
 
-      if (diff && offsetLeft)
-        sum += (bytes[bytes.length - lastByte++ - 1] & ((1 << offsetLeft) - 1)) << (diff-- << 3) - offsetRight; 
-
-      while (diff)
-        sum += this._shl(bytes[bytes.length - lastByte++ - 1], (diff-- << 3) - offsetRight);
-
-      return sum;
-    },
-    _decodeFloat: function (bytes, precisionBits, exponentBits) {
-      var length = precisionBits + exponentBits + 1;
-      if ((length >> 3) > bytes.length)
-        throw new Error("Buffer too small");
-
-      var bias = Math.pow(2, exponentBits - 1) - 1;
-      var signal = this._readBits(bytes, precisionBits + exponentBits, 1);
-      var exponent = this._readBits(bytes, precisionBits, exponentBits);
+      var sign = (binary.charAt(0) == '1')?-1:1;
+      var exponent = parseInt(binary.substr(signBits, exponentBits), 2) - eMax;
+      var significandBase = binary.substr(signBits + exponentBits, fractionBits);
+      var significandBin = '1'+significandBase;
+      var i = 0;
+      var val = 1;
       var significand = 0;
-      var divisor = 2;
-      var curByte = 0;
-      do {
-        var byteValue = bytes[++curByte - bytes.length - 1];
-        var startBit = precisionBits % 8 || 8;
-        var mask = 1 << startBit;
-        while (mask >>= 1) {
-          if (byteValue & mask) {
-            significand += 1 / divisor;
+
+      if (exponent == -eMax) {
+          if (significandBase.indexOf('1') == -1)
+              return 0;
+          else {
+              exponent = eMin;
+              significandBin = '0'+significandBase;
           }
-          divisor *= 2;
-        }
-      } while (precisionBits -= startBit);
+      }
 
-      var result = exponent == (bias << 1) + 1 ? significand ? NaN : signal ? -Infinity : +Infinity
-        : (1 + signal * -2) * (exponent || significand ? !exponent ? Math.pow(2, -bias + 1) * significand
-        : Math.pow(2, exponent - bias) * (1 + significand) : 0);
+      while (i < significandBin.length) {
+          significand += val * parseInt(significandBin.charAt(i));
+          val = val / 2;
+          i++;
+      }
 
-      return result;
+      return sign * significand * Math.pow(2, exponent);
     },
     Dispose: function () {
       this.m_stream = null;

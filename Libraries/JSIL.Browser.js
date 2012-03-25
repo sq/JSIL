@@ -142,6 +142,8 @@ window.addEventListener(
 window.addEventListener(
   "mousemove", function (evt) {
     var canvas = document.getElementById("canvas");
+    if ((typeof (canvas) !== "object") || (canvas === null))
+      return;
     
     mousePosition[0] = evt.clientX - canvas.offsetLeft;
     mousePosition[1] = evt.clientY - canvas.offsetTop;
