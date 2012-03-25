@@ -52,8 +52,10 @@ body {
 	color: white;
 	font-family: Consolas, Courier New, Courier;
 	font-size: 9pt;
-	padding-left: 4px;
-	padding-right: 4px;
+	padding-top: 3px;
+	padding-bottom: 3px;
+	padding-left: 6px;
+	padding-right: 6px;
 }
 #log {
 	font-family: Consolas, Courier New, Courier;

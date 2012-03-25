@@ -27,9 +27,10 @@ namespace JSIL.Compiler.Profiles {
 
             result.ProfileSettings.SetDefault("ContentOutputDirectory", null);
             result.ProfileSettings.SetDefault("JPEGQuality", 90);
-            result.ProfileSettings.SetDefault("UsePNGQuant", true);
+            result.ProfileSettings.SetDefault("UsePNGQuant", false);
             result.ProfileSettings.SetDefault("PNGQuantColorCount", 256);
             result.ProfileSettings.SetDefault("PNGQuantOptions", "");
+            result.ProfileSettings.SetDefault("PNGQuantBlacklist", new string[0]);
 
             return result;
         }
@@ -148,7 +149,7 @@ namespace JSIL.Compiler.Profiles {
                         case "TextureProcessor":
                             var itemOutputDirectory = Path.Combine(localOutputDirectory, Path.GetDirectoryName(item.EvaluatedInclude));
                             var outputPath = Common.CompressImage(
-                                sourcePath, itemOutputDirectory, 
+                                item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory, 
                                 configuration.ProfileSettings
                             );
 

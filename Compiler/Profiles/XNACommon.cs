@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -120,13 +121,14 @@ public static class Common {
         return result.ToArray();
     }
 
-    public static string CompressImage (string sourcePath, string outputFolder, Dictionary<string, object> settings) {
+    public static string CompressImage (string imageName, string sourceFolder, string outputFolder, Dictionary<string, object> settings) {
         EnsureDirectoryExists(outputFolder);
 
-        var outputPath = Path.Combine(outputFolder, Path.GetFileNameWithoutExtension(sourcePath));
+        var sourcePath = Path.Combine(sourceFolder, imageName);
+        var outputPath = Path.Combine(outputFolder, Path.GetFileNameWithoutExtension(imageName));
         var justCopy = true;
 
-        switch (Path.GetExtension(sourcePath).ToLower()) {
+        switch (Path.GetExtension(imageName).ToLower()) {
             case ".jpg":
             case ".jpeg":
                 outputPath += ".jpg";
@@ -198,7 +200,7 @@ public static class Common {
                             }
 
                             default:
-                                Console.Error.WriteLine("// Unsupported bitmap format: '{0}' {1}", Path.GetFileNameWithoutExtension(sourcePath), texture.PixelFormat);
+                                Console.Error.WriteLine("// Unsupported bitmap format: '{0}' {1}", Path.GetFileNameWithoutExtension(imageName), texture.PixelFormat);
                                 return null;
                         }
                     }
@@ -209,7 +211,7 @@ public static class Common {
 
             case ".png":
             default:
-                outputPath += Path.GetExtension(sourcePath);
+                outputPath += Path.GetExtension(imageName);
                 break;
         }
 
@@ -217,6 +219,7 @@ public static class Common {
             File.Copy(sourcePath, outputPath, true);
 
         bool usePNGQuant = Convert.ToBoolean(settings["UsePNGQuant"]);
+        var pngQuantBlacklist = (settings["PNGQuantBlacklist"] as ArrayList).Cast<string>().OrderBy((s) => s).ToArray();
         var pngQuantParameters = String.Format(
             "{0} {1}", 
             settings["PNGQuantColorCount"],
@@ -229,7 +232,11 @@ public static class Common {
             "PNGQuant.exe"
         );
 
-        if (usePNGQuant && (Path.GetExtension(outputPath).ToLower() == ".png")) {
+        if (
+            usePNGQuant && 
+            (Path.GetExtension(outputPath).ToLower() == ".png") &&
+            Array.BinarySearch(pngQuantBlacklist, imageName) == -1
+        ) {
             var psi = new ProcessStartInfo(pngQuantPath, pngQuantParameters);
             psi.UseShellExecute = false;
             psi.RedirectStandardInput = true;
