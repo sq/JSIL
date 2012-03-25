@@ -2251,7 +2251,7 @@ JSIL.ImplementExternals(
       this.isDisposed = false;      
 
       this.image = document.createElement("img");
-      this.image.src = this.$getDataUrlForBytes(null, 0, 0);
+      this.image.src = this.$getDataUrlForBytes(null, 0, 0, false);
     },
     get_Width: function () {
       return this.width;
@@ -2266,9 +2266,9 @@ JSIL.ImplementExternals(
       if (rect !== null)
         throw new System.NotImplementedException();
 
-      this.image.src = this.$getDataUrlForBytes(data, startIndex, elementCount);
+      this.image.src = this.$getDataUrlForBytes(data, startIndex, elementCount, true);
     }),
-    $getDataUrlForBytes: function (bytes, startIndex, elementCount) {
+    $getDataUrlForBytes: function (bytes, startIndex, elementCount, unpremultiply) {
       var canvas = document.createElement("canvas");
       canvas.width = this.width;
       canvas.height = this.height;
@@ -2276,8 +2276,33 @@ JSIL.ImplementExternals(
 
       if (bytes !== null) {
         var imageData = ctx.createImageData(this.width, this.height);
-        for (var i = 0; i < elementCount; i++)
-          imageData.data[i] = bytes[startIndex + i];
+
+        // XNA texture colors are premultiplied, but canvas pixels aren't, so we need to try
+        //  to reverse the premultiplication.
+        if (unpremultiply) {
+          var pixelCount = elementCount / 4;
+          for (var i = 0; i < pixelCount; i++) {
+            var p = i * 4;
+
+            var r = bytes[p];
+            var g = bytes[p + 1];
+            var b = bytes[p + 2];
+            var a = bytes[p + 3];
+
+            if (a <= 0)
+              continue;
+
+            var m = 255 / a;
+
+            imageData.data[p] = r * m;
+            imageData.data[p + 1] = g * m;
+            imageData.data[p + 2] = b * m;
+            imageData.data[p + 3] = a;
+          }
+        } else {
+          for (var i = 0; i < elementCount; i++)
+            imageData.data[i] = bytes[startIndex + i];
+        }
 
         ctx.putImageData(imageData, 0, 0);
       }

@@ -52,8 +52,6 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
   var existing = JSIL.PrivateNamespaces[assemblyName];
   if (typeof (existing) !== "undefined")
     return existing;
-  else if (requireExisting)
-    return null;
 
   var shortName = assemblyName;
   var commaPos = shortName.indexOf(",");
@@ -73,6 +71,9 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
   } else if (commaPos >= 0) {
     JSIL.AssemblyShortNames[shortName] = assemblyName;
   }
+
+  if (requireExisting)
+    return null;
 
   // Create a new private global namespace for the new assembly
   var result = Object.create(JSIL.GlobalNamespace);
