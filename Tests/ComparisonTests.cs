@@ -271,6 +271,18 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void Ternaries () {
+            var defaultProvider = MakeDefaultProvider();
+
+            RunComparisonTests(
+                new[] { 
+                    @"TestCases\TernaryArithmetic.cs",
+                    @"TestCases\TernaryTypeInference.cs",
+                }, null, defaultProvider
+            );
+        }
+
+        [Test]
         public void Temporaries () {
             var defaultProvider = MakeDefaultProvider();
 

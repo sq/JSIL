@@ -297,6 +297,7 @@
     <None Include="SimpleTestCases\StringIndexOf.cs" />
     <None Include="SimpleTestCases\StringLastIndexOf.cs" />
     <None Include="SimpleTestCases\StringReplace.cs" />
+    <None Include="TestCases\TernaryTypeInference.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

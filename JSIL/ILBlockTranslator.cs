@@ -1140,11 +1140,28 @@ namespace JSIL {
         }
 
         protected JSTernaryOperatorExpression Translate_TernaryOp (ILExpression node) {
+            var expectedType = node.ExpectedType;
+            var inferredType = node.InferredType;
+
+            var left = node.Arguments[1];
+            var right = node.Arguments[2];
+
+            // FIXME: ILSpy generates invalid type information for ternary operators.
+            //  Detect invalid type information and replace it with less-invalid type information.
+            if (
+                (!TypesAreEqual(left.ExpectedType, right.ExpectedType)) ||
+                (!TypesAreEqual(left.InferredType, right.InferredType))
+            ) {
+                left.ExpectedType = left.InferredType;
+                right.ExpectedType = right.InferredType;
+                inferredType = expectedType ?? TypeSystem.Object;
+            }
+
             return new JSTernaryOperatorExpression(
                 TranslateNode(node.Arguments[0]),
-                TranslateNode(node.Arguments[1]),
-                TranslateNode(node.Arguments[2]),
-                node.ExpectedType ?? node.InferredType
+                TranslateNode(left),
+                TranslateNode(right),
+                expectedType ?? inferredType
             );
         }
 
