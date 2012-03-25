@@ -140,6 +140,7 @@ namespace JSIL.Tests {
                     @"TestCases\EnumCasts.cs",
                     @"TestCases\Enums.cs",
                     @"TestCases\EnumFieldDefaults.cs",
+                    @"TestCases\EnumFieldAssignment.cs",
                     @"TestCases\EnumBooleanLogic.cs",
                     @"TestCases\EnumArrayLookup.cs",
                     @"TestCases\OverloadWithEnum.cs",
@@ -243,6 +244,11 @@ namespace JSIL.Tests {
         public void SwitchStatements () {
             var defaultProvider = MakeDefaultProvider();
 
+            using (var test = new ComparisonTest(@"SpecialTestCases\BigStringSwitch.cs")) {
+                test.Run();
+                test.Run("howdy", "hello", "world", "what", "why", "who", "where", "when");
+            }
+
             RunComparisonTests(
                 new[] { 
                     @"TestCases\Switch.cs",
@@ -251,11 +257,6 @@ namespace JSIL.Tests {
                     @"TestCases\ContinueInsideSwitch.cs",
                 }, null, defaultProvider
             );
-
-            using (var test = new ComparisonTest(@"SpecialTestCases\BigStringSwitch.cs")) {
-                test.Run();
-                test.Run("howdy", "hello", "world", "what", "why", "who", "where", "when");
-            }
         }
 
         [Test]

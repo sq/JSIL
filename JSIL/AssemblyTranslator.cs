@@ -1254,6 +1254,16 @@ namespace JSIL {
                 si.TypeSystem, TypeInfoProvider
             ).Visit(function);
 
+            new ExpandCastExpressions(
+                si.TypeSystem, si.JS, si.JSIL, TypeInfoProvider
+            ).Visit(function);
+            
+            // We need another operator simplification pass to simplify expressions created by cast expressions
+            if (Configuration.Optimizer.SimplifyOperators.GetValueOrDefault(true))
+                new SimplifyOperators(
+                    si.JSIL, si.JS, si.TypeSystem
+                ).Visit(function);
+
             var dss = new DeoptimizeSwitchStatements(
                 si.TypeSystem
             );
@@ -1265,10 +1275,6 @@ namespace JSIL {
                 new SimplifyLoops(
                     si.TypeSystem, true
                 ).Visit(function);
-
-            new ExpandCastExpressions(
-                si.TypeSystem, si.JS, si.JSIL
-            ).Visit(function);
 
             temporaryEliminationPass();
 

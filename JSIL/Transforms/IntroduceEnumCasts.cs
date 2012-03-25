@@ -103,42 +103,5 @@ namespace JSIL.Transforms {
 
             VisitChildren(ss);
         }
-
-        public void VisitNode (JSCastExpression ce) {
-            var currentType = ce.Expression.GetExpectedType(TypeSystem);
-            var targetType = ce.NewType;
-            JSExpression newExpression = null;
-
-            if (ILBlockTranslator.IsEnum(currentType)) {
-                var enumInfo = TypeInfo.GetExisting(currentType);
-
-                if (targetType.MetadataType == MetadataType.Boolean) {
-                    EnumMemberInfo enumMember;
-                    if (enumInfo.ValueToEnumMember.TryGetValue(0, out enumMember)) {
-                        newExpression = new JSBinaryOperatorExpression(
-                            JSOperator.NotEqual, ce.Expression, 
-                            new JSEnumLiteral(enumMember.Value, enumMember), TypeSystem.Boolean
-                        );
-                    } else if (enumInfo.ValueToEnumMember.TryGetValue(1, out enumMember)) {
-                        newExpression = new JSBinaryOperatorExpression(
-                            JSOperator.Equal, ce.Expression,
-                            new JSEnumLiteral(enumMember.Value, enumMember), TypeSystem.Boolean
-                        );
-                    } else {
-                        newExpression = new JSUntranslatableExpression(String.Format(
-                            "Could not cast enum of type '{0}' to boolean because it has no zero value or one value",
-                            currentType.FullName
-                        ));
-                    }
-                }
-            }
-
-            if (newExpression != null) {
-                ParentNode.ReplaceChild(ce, newExpression);
-                VisitReplacement(newExpression);
-            } else {
-                VisitChildren(ce);
-            }
-        }
     }
 }

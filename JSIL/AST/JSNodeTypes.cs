@@ -3185,7 +3185,11 @@ namespace JSIL.Ast {
             NewType = newType;
         }
 
-        public static JSExpression New (JSExpression inner, TypeReference newType) {
+        public static JSExpression New (JSExpression inner, TypeReference newType, TypeSystem typeSystem) {
+            var currentType = inner.GetExpectedType(typeSystem);
+            if (ILBlockTranslator.TypesAreEqual(currentType, newType))
+                return inner;
+
             return new JSCastExpression(inner, newType);
         }
 

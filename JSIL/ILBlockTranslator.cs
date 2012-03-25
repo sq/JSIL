@@ -769,6 +769,15 @@ namespace JSIL {
                 throw;
             }
 
+            if (
+                (result != null) &&
+                (expression.ExpectedType != null) &&
+                (expression.InferredType != null) &&
+                !TypesAreAssignable(expression.ExpectedType, expression.InferredType)
+            ) {
+                return JSCastExpression.New(result, expression.ExpectedType, TypeSystem);
+            }
+
             return result;
         }
 
@@ -1707,7 +1716,8 @@ namespace JSIL {
 
             return JSCastExpression.New(
                 TranslateNode(node.Arguments[0]),
-                targetType
+                targetType,
+                TypeSystem
             );
         }
 
@@ -1724,7 +1734,7 @@ namespace JSIL {
         protected JSExpression Translate_Unbox_Any (ILExpression node, TypeReference targetType) {
             var value = TranslateNode(node.Arguments[0]);
 
-            var result = JSCastExpression.New(value, targetType);
+            var result = JSCastExpression.New(value, targetType, TypeSystem);
 
             if (CopyOnReturn(targetType))
                 return JSReferenceExpression.New(result);
@@ -1802,7 +1812,7 @@ namespace JSIL {
                 if (currentType.FullName == "JSIL.Proxy.AnyType")
                     return value;
 
-                return JSCastExpression.New(value, expectedType);
+                return JSCastExpression.New(value, expectedType, TypeSystem);
             } else
                 return value;
         }

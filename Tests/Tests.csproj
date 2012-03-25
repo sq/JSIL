@@ -301,6 +301,7 @@
     <None Include="SimpleTestCases\FieldRecursiveInitialization.cs" />
     <None Include="TestCases\EnumCasts.cs" />
     <None Include="TestCases\EnumFieldDefaults.cs" />
+    <None Include="TestCases\EnumFieldAssignment.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
