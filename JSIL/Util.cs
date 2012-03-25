@@ -44,6 +44,8 @@ namespace JSIL.Internal {
             if (String.IsNullOrWhiteSpace(result))
                 result = assembly.Location;
 
+            result = result.Replace("/", "\\");
+
             return result;
         }
 

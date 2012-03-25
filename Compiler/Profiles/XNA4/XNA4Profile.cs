@@ -11,6 +11,8 @@ using Microsoft.Xna.Framework;
 
 namespace JSIL.Compiler.Profiles {
     public class XNA4 : BaseProfile {
+        public HashSet<string> ContentProjectsProcessed = new HashSet<string>();
+
         public override bool IsAppropriateForSolution (SolutionBuilder.SolutionBuildResult buildResult) {
             return buildResult.TargetFilesUsed.Any(
                 (targetFile) => targetFile.Contains(@"XNA Game Studio\v4.0")
@@ -24,14 +26,12 @@ namespace JSIL.Compiler.Profiles {
             result.Assemblies.Proxies.Add("JSIL.Proxies.XNA4.dll");
 
             result.ProfileSettings.SetDefault("ContentOutputDirectory", null);
+            result.ProfileSettings.SetDefault("JPEGQuality", 90);
+            result.ProfileSettings.SetDefault("UsePNGQuant", true);
+            result.ProfileSettings.SetDefault("PNGQuantColorCount", 256);
+            result.ProfileSettings.SetDefault("PNGQuantOptions", "");
 
             return result;
-        }
-
-        private static void EnsureDirectoryExists (string path) {
-            var directoryName = Path.GetDirectoryName(path);
-            if (!Directory.Exists(directoryName))
-                Directory.CreateDirectory(directoryName);
         }
 
         public override TranslationResult Translate (AssemblyTranslator translator, string assemblyPath, bool scanForProxies) {
@@ -63,6 +63,10 @@ namespace JSIL.Compiler.Profiles {
             foreach (var builtContentProject in contentProjects) {
                 var contentProjectPath = builtContentProject.File;
 
+                if (ContentProjectsProcessed.Contains(contentProjectPath))
+                    continue;
+
+                ContentProjectsProcessed.Add(contentProjectPath);
                 Console.Error.WriteLine("// Processing content project '{0}' ...", contentProjectPath);
 
                 var project = projectCollection.LoadProject(contentProjectPath);
@@ -126,10 +130,13 @@ namespace JSIL.Compiler.Profiles {
                     }
 
                     switch (processorName) {
+                        case "FontTextureProcessor":
                         case "TextureProcessor":
-                            var outputPath = Path.Combine(localOutputDirectory, item.EvaluatedInclude);
-                            EnsureDirectoryExists(outputPath);
-                            File.Copy(sourcePath, outputPath, true);
+                            var itemOutputDirectory = Path.Combine(localOutputDirectory, Path.GetDirectoryName(item.EvaluatedInclude));
+                            var outputPath = Common.CompressImage(
+                                sourcePath, itemOutputDirectory, 
+                                configuration.ProfileSettings
+                            );
                             logOutput("Image", outputPath);
                             continue;
                     }
@@ -140,7 +147,9 @@ namespace JSIL.Compiler.Profiles {
                                 localOutputDirectory, 
                                 item.EvaluatedInclude.Replace(Path.GetExtension(item.EvaluatedInclude), ".xnb")
                             );
-                            EnsureDirectoryExists(outputPath);
+
+                            Common.EnsureDirectoryExists(Path.GetDirectoryName(outputPath));
+
                             File.Copy(xnbPath, outputPath, true);
                             logOutput("XNB", outputPath);
                             break;

@@ -34,11 +34,11 @@
     <Reference Include="Microsoft.Build" />
     <Reference Include="Microsoft.Xna.Framework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=842cf8be1de50553, processorArchitecture=x86" />
     <Reference Include="System" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Util.cs" />
     <Compile Include="..\XNACommon.cs" />
     <Compile Include="XNA4Profile.cs" />
   </ItemGroup>
