@@ -1265,6 +1265,33 @@ JSIL.ImplementExternals(
     Append$7: function (char) {
       this._str += char;
     },
+    Append$4: function (bool) {
+      this._str += (bool ? "True" : "False");
+    },
+    Append$8: function (int16) {
+      this._str += String(int16);
+    },
+    Append$9: function (int32) {
+      this._str += String(int32);
+    },
+    Append$10: function (int64) {
+      this._str += String(int64);
+    },
+    Append$11: function (single) {
+      this._str += String(single);
+    },
+    Append$12: function (double) {
+      this._str += String(double);
+    },
+    Append$14: function (uint16) {
+      this._str += String(uint16);
+    },
+    Append$15: function (uint32) {
+      this._str += String(uint32);
+    },
+    Append$16: function (uint64) {
+      this._str += String(uint64);
+    },
     $Replace: function (oldText, newText, startIndex, count) {
       var prefix = this._str.substr(0, startIndex);
       var suffix = this._str.substr(startIndex + count);
