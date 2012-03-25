@@ -296,6 +296,7 @@
     <None Include="TestCases\EnumBooleanLogic.cs" />
     <None Include="SimpleTestCases\StringIndexOf.cs" />
     <None Include="SimpleTestCases\StringLastIndexOf.cs" />
+    <None Include="SimpleTestCases\StringReplace.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

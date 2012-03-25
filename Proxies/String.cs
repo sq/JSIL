@@ -196,5 +196,17 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
          */
+
+        [JSReplacement("System.String.Replace($this, $oldText, $newText)")]
+        [JSIsPure]
+        new public string Replace (string oldText, string newText) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.String.Replace($this, $oldChar, $newChar)")]
+        [JSIsPure]
+        new public string Replace (char oldChar, char newChar) {
+            throw new InvalidOperationException();
+        }
     }
 }

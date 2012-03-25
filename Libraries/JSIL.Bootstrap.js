@@ -237,6 +237,9 @@ JSIL.ImplementExternals(
     EndsWith: function (str, text) {
       return str.lastIndexOf(text) === str.length - text.length;
     },
+    Replace: function (str, oldText, newText) {
+      return str.split(oldText).join(newText);
+    },
     Compare$0: function (lhs, rhs) {
       return System.String.Compare$2(lhs, rhs, System.StringComparison.Ordinal);
     },
@@ -1261,6 +1264,25 @@ JSIL.ImplementExternals(
     },
     Append$7: function (char) {
       this._str += char;
+    },
+    $Replace: function (oldText, newText, startIndex, count) {
+      var prefix = this._str.substr(0, startIndex);
+      var suffix = this._str.substr(startIndex + count);
+      var region = this._str.substr(startIndex, count);
+      var result = prefix + region.split(oldText).join(newText) + suffix;
+      this._str = result;
+    },
+    Replace$0: function (oldText, newText) {
+      return this.$Replace(oldText, newText, 0, this._str.length);
+    },
+    Replace$1: function (oldText, newText, startIndex, count) {
+      return this.$Replace(oldText, newText, startIndex, count);
+    },
+    Replace$2: function (oldChar, newChar) {
+      return this.$Replace(oldChar, newChar, 0, this._str.length);
+    },
+    Replace$3: function (oldChar, newChar, startIndex, count) {
+      return this.$Replace(oldChar, newChar, startIndex, count);
     },
     toString: function () {
       return this._str;
