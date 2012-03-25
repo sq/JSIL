@@ -1653,12 +1653,12 @@ JSIL.ImplementExternals(
       } else if (spriteSortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.BackToFront) {
         this.defer = true;
         this.deferSorter = function (lhs, rhs) {
-          return cmp(lhs.arguments[8], rhs.arguments[8]);
+          return -cmp(lhs.arguments[8], rhs.arguments[8]);
         };
       } else if (spriteSortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.FrontToBack) {
         this.defer = true;
         this.deferSorter = function (lhs, rhs) {
-          return -cmp(lhs.arguments[8], rhs.arguments[8]);
+          return cmp(lhs.arguments[8], rhs.arguments[8]);
         };
       } else if (spriteSortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Texture) {
         this.defer = true;
