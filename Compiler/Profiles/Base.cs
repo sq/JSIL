@@ -14,7 +14,10 @@ namespace JSIL.Compiler.Profiles {
         }
 
         public virtual TranslationResult Translate (AssemblyTranslator translator, string assemblyPath, bool scanForProxies) {
-            return translator.Translate(assemblyPath, scanForProxies);
+            var result = translator.Translate(assemblyPath, scanForProxies);
+
+            AssemblyTranslator.GenerateManifest(translator.Manifest, assemblyPath, result);
+            return result;
         }
 
         public virtual void WriteOutputs (TranslationResult result, string path, string manifestPrefix) {

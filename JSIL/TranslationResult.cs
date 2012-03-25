@@ -12,6 +12,9 @@ namespace JSIL {
         public ArraySegment<byte> Manifest;
 
         public void WriteToStream (Stream output) {
+            if (Manifest.Array == null)
+                throw new Exception("AssemblyTranslator.GenerateManifest must be called first");
+
             var newline = Encoding.ASCII.GetBytes(Environment.NewLine);
 
             output.Write(Manifest.Array, Manifest.Offset, Manifest.Count);
@@ -26,6 +29,9 @@ namespace JSIL {
         }
 
         public string WriteToString () {
+            if (Manifest.Array == null)
+                throw new Exception("AssemblyTranslator.GenerateManifest must be called first");
+
             using (var ms = new MemoryStream()) {
                 WriteToStream(ms);
                 return Encoding.UTF8.GetString(ms.GetBuffer(), 0, (int)ms.Length);
@@ -43,6 +49,9 @@ namespace JSIL {
         }
 
         public void WriteToDirectory (string path, string manifestPrefix = "") {
+            if (Manifest.Array == null)
+                throw new Exception("AssemblyTranslator.GenerateManifest must be called first");
+
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
 

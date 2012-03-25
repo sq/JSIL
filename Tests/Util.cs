@@ -186,9 +186,11 @@ namespace JSIL.Tests {
 
             string translatedJs;
             var translationStarted = DateTime.UtcNow.Ticks;
+            var assemblyPath = Util.GetPathOfAssembly(Assembly);
             var result = translator.Translate(
-                Util.GetPathOfAssembly(Assembly), TypeInfo == null
+                assemblyPath, TypeInfo == null
             );
+            AssemblyTranslator.GenerateManifest(translator.Manifest, assemblyPath, result);
             translatedJs = result.WriteToString();
 
             // If we're using a preconstructed type information provider, we need to remove the type information

@@ -34,12 +34,16 @@ namespace JSIL.Compiler.Profiles {
                 Directory.CreateDirectory(directoryName);
         }
 
-        public override void WriteOutputs (TranslationResult result, string path, string manifestPrefix) {
+        public override TranslationResult Translate (AssemblyTranslator translator, string assemblyPath, bool scanForProxies) {
+            var result = translator.Translate(assemblyPath, scanForProxies);
+
             result.Files["XNA.Colors.js"] = new ArraySegment<byte>(Encoding.UTF8.GetBytes(
                 Common.MakeXNAColors()
             ));
 
-            base.WriteOutputs(result, path, manifestPrefix);
+            AssemblyTranslator.GenerateManifest(translator.Manifest, assemblyPath, result);
+
+            return result;
         }
 
         public override SolutionBuilder.SolutionBuildResult ProcessBuildResult (Configuration configuration, SolutionBuilder.SolutionBuildResult buildResult) {
@@ -81,6 +85,8 @@ namespace JSIL.Compiler.Profiles {
                     .Replace("/", "\\");
 
                 var contentManifest = new StringBuilder();
+                contentManifest.AppendFormat("// {0}\r\n", JSIL.AssemblyTranslator.GetHeaderText());
+                contentManifest.AppendLine();
                 contentManifest.AppendLine("if (typeof (contentManifest) !== \"object\") { contentManifest = {}; };");
                 contentManifest.AppendLine("contentManifest[\"" + Path.GetFileNameWithoutExtension(contentProjectPath) + "\"] = [");
 
@@ -91,10 +97,9 @@ namespace JSIL.Compiler.Profiles {
 
                     Console.WriteLine(localPath);
 
-                    var propertiesObject = new StringBuilder();
-                    propertiesObject.AppendFormat("{{ \"sizeBytes\": {0} }}", new FileInfo(filename).Length);
+                    var propertiesObject = String.Format("{{ \"sizeBytes\": {0} }}", new FileInfo(filename).Length);
 
-                    contentManifest.AppendFormat("  [\"{0}\", \"{1}\", {2}],{3}", type, localPath.Replace("\\", "/"), propertiesObject.ToString(), Environment.NewLine);
+                    contentManifest.AppendFormat("  [\"{0}\", \"{1}\", {2}],{3}", type, localPath.Replace("\\", "/"), propertiesObject, Environment.NewLine);
                 };
 
                 foreach (var item in project.Items) {

@@ -9,6 +9,7 @@ public static class Common {
         var colorType = typeof(Color);
         var colors = colorType.GetProperties(BindingFlags.Static | BindingFlags.Public);
 
+        result.AppendFormat("// {0}\r\n", JSIL.AssemblyTranslator.GetHeaderText());
         result.AppendLine("(function ($jsilxna) {");
         result.AppendLine("  $jsilxna.colors = [");
 
