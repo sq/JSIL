@@ -647,6 +647,7 @@ namespace JSIL.Internal {
         public readonly HashSet<MethodGroupInfo> MethodGroups = new HashSet<MethodGroupInfo>();
 
         public readonly bool IsFlagsEnum;
+        public readonly EnumMemberInfo FirstEnumMember = null;
         public readonly Dictionary<long, EnumMemberInfo> ValueToEnumMember;
         public readonly Dictionary<string, EnumMemberInfo> EnumMembers;
         public readonly Dictionary<MemberIdentifier, IMemberInfo> Members;
@@ -774,6 +775,10 @@ namespace JSIL.Internal {
                         enumValue = Convert.ToInt64(field.Constant);
 
                     var info = new EnumMemberInfo(type, field.Name, enumValue);
+
+                    if (FirstEnumMember == null)
+                        FirstEnumMember = info;
+
                     ValueToEnumMember[enumValue] = info;
                     EnumMembers[field.Name] = info;
 

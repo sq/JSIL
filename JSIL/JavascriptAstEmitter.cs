@@ -412,7 +412,12 @@ namespace JSIL {
         }
 
         public void VisitNode (JSDefaultValueLiteral defaultValue) {
-            if (TypeAnalysis.IsIntegerOrEnum(defaultValue.Value)) {
+            if (ILBlockTranslator.IsEnum(defaultValue.Value)) {
+                var enumInfo = TypeInfo.Get(defaultValue.Value);
+                Output.Identifier(defaultValue.Value);
+                Output.Dot();
+                Output.Identifier(enumInfo.FirstEnumMember.Name);
+            } else if (TypeAnalysis.IsIntegerOrEnum(defaultValue.Value)) {
                 Output.Value(0);
             } else if (!defaultValue.Value.IsValueType) {
                 Output.Keyword("null");

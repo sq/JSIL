@@ -137,7 +137,9 @@ namespace JSIL.Tests {
             RunComparisonTests(
                 new[] { 
                     @"TestCases\EnumSwitch.cs",
+                    @"TestCases\EnumCasts.cs",
                     @"TestCases\Enums.cs",
+                    @"TestCases\EnumFieldDefaults.cs",
                     @"TestCases\EnumBooleanLogic.cs",
                     @"TestCases\EnumArrayLookup.cs",
                     @"TestCases\OverloadWithEnum.cs",

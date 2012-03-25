@@ -262,10 +262,10 @@ JSIL.ImplementExternals(
       );
     },
     Compare$2: function (lhs, rhs, comparison) {
-      switch (comparison) {
-        case System.StringComparison.CurrentCultureIgnoreCase:
-        case System.StringComparison.InvariantCultureIgnoreCase:
-        case System.StringComparison.OrdinalIgnoreCase:
+      switch (comparison.valueOf()) {
+        case 1: // System.StringComparison.CurrentCultureIgnoreCase:
+        case 3: // System.StringComparison.InvariantCultureIgnoreCase:
+        case 5: // System.StringComparison.OrdinalIgnoreCase:
           lhs = lhs.toLowerCase();
           rhs = rhs.toLowerCase();
           break;

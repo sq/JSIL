@@ -1983,7 +1983,12 @@ JSIL.Cast = function (value, expectedType) {
 
 
   if (expectedType.IsEnum) {
-    var result = JSIL.MakeEnumValue(expectedType, value, null);
+    var result = expectedType.__ValueToName__[value];
+    if (typeof (result) !== "undefined")
+      return result;
+
+    result = JSIL.MakeEnumValue(expectedType, value, null);
+    return result;
   } else if (JSIL.CheckType(value, expectedType)) {
     // If the user is casting to an integral type like Int32, we need to floor the value since JS stores all numbers as double
     if (JSIL.CheckDerivation(expectedType.prototype, Number.prototype) && (expectedType.prototype.__IsIntegral__)) {

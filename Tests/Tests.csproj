@@ -299,6 +299,8 @@
     <None Include="SimpleTestCases\StringReplace.cs" />
     <None Include="TestCases\TernaryTypeInference.cs" />
     <None Include="SimpleTestCases\FieldRecursiveInitialization.cs" />
+    <None Include="TestCases\EnumCasts.cs" />
+    <None Include="TestCases\EnumFieldDefaults.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
