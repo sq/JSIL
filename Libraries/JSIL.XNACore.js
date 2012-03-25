@@ -154,8 +154,17 @@ JSIL.MakeClass("HTML5Asset", "HTML5FontAsset", true, [], function ($) {
   };
   $.prototype.MeasureString$0 = function (text) {
     this.context.font = this.toCss();
-    var metrics = this.context.measureText(text);
-    return new Microsoft.Xna.Framework.Vector2(metrics.width, this.lineHeight);
+    var lines = text.split("\n");
+
+    var resultX = 0, resultY = 0;
+
+    for (var i = 0, l = lines.length; i < l; i++) {
+      var metrics = this.context.measureText(lines[i]);
+      resultX = Math.max(resultX, metrics.width);
+      resultY += this.lineHeight;
+    }
+
+    return new Microsoft.Xna.Framework.Vector2(resultX, resultY);
   };
 });
 
@@ -1839,7 +1848,12 @@ JSIL.ImplementExternals(
       }
 
       this.device.context.fillStyle = color.toCss();
-      this.device.context.fillText(text, positionX, positionY);
+
+      var lines = text.split("\n");
+      for (var i = 0, l = lines.length; i < l; i++) {
+        this.device.context.fillText(lines[i], positionX, positionY);
+        positionY += font.LineSpacing;
+      }
 
       if (needRestore)
         this.device.context.restore();
