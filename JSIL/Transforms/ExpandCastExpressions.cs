@@ -66,8 +66,10 @@ namespace JSIL.Transforms {
                     newExpression = new JSDotExpression(
                         ce.Expression, new JSStringIdentifier("value", targetType)
                     );
+                } else if (targetType.FullName == "System.Enum") {
+                    newExpression = ce.Expression;
                 } else {
-                    Debugger.Break();
+                    // Debugger.Break();
                 }
             } else if (
                 !currentType.IsValueType &&
@@ -86,7 +88,7 @@ namespace JSIL.Transforms {
                 ParentNode.ReplaceChild(ce, newExpression);
                 VisitReplacement(newExpression);
             } else {
-                Debugger.Break();
+                // Debugger.Break();
                 VisitChildren(ce);
             }
         }
