@@ -637,6 +637,9 @@ JSIL.ImplementExternals("System.Collections.Generic.Stack`1", true, {
   Clear: function () {
     this._size = 0;
   },
+  get_Count: function () {
+    return this._size;
+  },
   Push: function (item) {
     this._items[this._size] = item;
     this._size += 1;
@@ -1153,6 +1156,12 @@ JSIL.ImplementExternals(
     },
     Clear: function () {
       this._dict = {}
+    },
+    Add: function (key, value) {
+      if (this.ContainsKey(key))
+        throw new System.ArgumentException("Key already exists");
+
+      this._dict[String(key)] = value;
     }
   }
 );

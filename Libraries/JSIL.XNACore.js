@@ -1454,6 +1454,12 @@ JSIL.ImplementExternals(
     },
     Equals$0: function (rhs) {
       return this.X === rhs.X && this.Y === rhs.Y;
+    },
+    MemberwiseClone: function () {
+      var result = Object.create(Microsoft.Xna.Framework.Point.prototype);
+      result.X = this.X;
+      result.Y = this.Y;
+      return result;
     }
   }
 );
@@ -1667,6 +1673,7 @@ JSIL.ImplementExternals(
       var scaleX = 1, scaleY = 1, originX = 0, originY = 0;
       var sourceX = 0, sourceY = 0, sourceW = texture.Width, sourceH = texture.Height;
       var positionX, positionY;
+      
       if (typeof (scale) === "number")
         scaleX = scaleY = scale;
       else if ((typeof (scale) === "object") && (scale !== null) && (typeof (scale.X) === "number")) {

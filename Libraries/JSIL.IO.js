@@ -31,31 +31,37 @@ JSIL.ImplementExternals(
         return buffer[0];
       else
         return -1;
-    },
+    }
   }
 );
 
 var $bytestream = {
-    Read: function (buffer, offset, count) {
-      var startPos = this._pos;
-      var endPos = this._pos + count;
+  Read: function (buffer, offset, count) {
+    var startPos = this._pos;
+    var endPos = this._pos + count;
 
-      if (endPos >= this._length) {
-        endPos = this._length - 1;
-        count = endPos - startPos + 1;
-      }
-
-      if ((startPos < 0) || (startPos >= this._length))
-        return 0;
-
-      for (var i = 0; i < count; i++) {
-        buffer[i] = this._buffer[startPos + i];
-      }
-
-      this._pos += count;
-
-      return count;
+    if (endPos >= this._length) {
+      endPos = this._length - 1;
+      count = endPos - startPos + 1;
     }
+
+    if ((startPos < 0) || (startPos >= this._length))
+      return 0;
+
+    for (var i = 0; i < count; i++) {
+      buffer[i] = this._buffer[startPos + i];
+    }
+
+    this._pos += count;
+
+    return count;
+  },
+  $PeekByte: function () {
+    if (this._pos >= this._length)
+      return -1;
+
+    return this._buffer[this._pos];
+  }
 };
 
 JSIL.ImplementExternals(
@@ -195,7 +201,7 @@ JSIL.ImplementExternals(
       return String.fromCharCode(this.m_stream.ReadByte());
     },
     PeekChar: function () {
-      return String.fromCharCode(this.m_stream.Peek());
+      return String.fromCharCode(this.m_stream.$PeekByte());
     },
     Read7BitEncodedInt: function () {
 	    var result = 0, bits = 0;
@@ -295,7 +301,7 @@ JSIL.ImplementExternals(
           else
             break;
         } else if (ch === 13) {
-          var next = this.stream.Peek();
+          var next = this.stream.$PeekByte();
           if (next === 10)
             continue;
           else if (next === -1) {

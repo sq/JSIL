@@ -437,10 +437,24 @@ JSIL.IgnoredMember = function (memberName) {
   JSIL.Host.error(new Error("An attempt was made to reference the member '" + memberName + "', but it was explicitly ignored during translation."));
 };
 
+JSIL.RenameFunction = function (name, fn) {
+  var decl = {
+    value: name,
+    enumerable: true,
+    configurable: true
+  };
+  
+  Object.defineProperty(fn, "displayName", decl);
+  Object.defineProperty(fn, "debugName", decl);
+
+  return fn;
+};
+
 JSIL.MakeExternalMemberStub = function (namespaceName, memberName, inheritedMember) {
   var state = {
     alreadyWarned: false
   };
+
   var result;
   if (typeof (inheritedMember) === "function") {
     result = function () {
@@ -456,7 +470,11 @@ JSIL.MakeExternalMemberStub = function (namespaceName, memberName, inheritedMemb
     };
   }
 
+  var fullName = namespaceName + "::" + memberName;
+  result = JSIL.RenameFunction(fullName, result);
+
   result.__IsPlaceholder__ = true;
+
   return result;
 }
 
@@ -529,7 +547,12 @@ JSIL.ImplementExternals = function (namespaceName, isInstance, externals) {
   var prefix = isInstance ? "instance$" : "";
 
   for (var k in externals) {
-    obj[prefix + k] = externals[k];
+    var external = externals[k];
+
+    if (typeof (external) === "function")
+      external = JSIL.RenameFunction(namespaceName + "::" + k, external);
+
+    obj[prefix + k] = external;
   }
 };
 
