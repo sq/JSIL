@@ -591,19 +591,6 @@ JSIL.ImplementExternals(
 );
 
 JSIL.ImplementExternals(
-  "Microsoft.Xna.Framework.MathHelper", false, {
-    Clamp: function (value, min, max) {
-      if (value <= min)
-        return min;
-      else if (value >= max)
-        return max;
-      else
-        return value;
-    }
-  }
-);
-
-JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Vector2", false, {
     get_Zero: function () {
       return Object.create(Microsoft.Xna.Framework.Vector2.prototype);
@@ -1921,6 +1908,9 @@ JSIL.ImplementExternals(
       return Math.max(lhs, rhs);
     },
     Clamp: function (value, min, max) {
+      if (max < min)
+        max = min;
+
       if (value < min)
         return min;
       else if (value > max)
