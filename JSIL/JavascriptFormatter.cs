@@ -246,7 +246,7 @@ namespace JSIL.Internal {
                 Value("JSIL.AnyType");
                 return;
             } else if (type.FullName == "JSIL.Proxy.AnyType[]") {
-                Value("System.Array");
+                TypeReference(ILBlockTranslator.GetTypeDefinition(type));
                 Space();
                 Comment("AnyType[]");
                 return;
@@ -283,7 +283,7 @@ namespace JSIL.Internal {
                 }
                 RPar();
             } else if (at != null) {
-                Value("System.Array");
+                TypeReference(ILBlockTranslator.GetTypeDefinition(at));
                 Space();
                 Comment("{0}", originalType);
             } else {

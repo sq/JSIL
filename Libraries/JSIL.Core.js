@@ -1662,9 +1662,10 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     };
 
     result.CheckType = function (v) {
-      if (typeof (v.GetType) === "function")
+      if (typeof (v.GetType) === "function") {
         if (v.GetType() === result)
           return true;
+      }
 
       return false;
     };
@@ -2075,7 +2076,7 @@ JSIL.FindOverload = function (prototype, args, name, overloads) {
 
       if ((typeof (expectedType) === "undefined") || (expectedType === null)) {
         // Specific types, like generic parameters, resolve to null or undefined.
-      } else if ((typeof (expectedType) === "object") && expectedType.__IsReferenceType__ && (arg === null)) {
+      } else if (expectedType.__IsReferenceType__ && (arg === null)) {
         // Null is a valid value for any reference type.
       } else if (!JSIL.CheckType(arg, expectedType)) {
         continue find_overload;
@@ -2530,6 +2531,14 @@ System.Enum.Parse = function (type, value) {
     else
       return type[name];
   }
+};
+System.Enum.CheckType = function (value) {
+  if (typeof (value) === "object") {
+    if ((value !== null) && (typeof (value.GetType) === "function"))
+      return value.GetType().IsEnum;
+  }
+
+  return false;
 };
 System.Enum.ToString = function (type, value) {
 };

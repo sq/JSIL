@@ -208,6 +208,18 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.StringReader", true, {
   }
 });
 
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ByteReader", true, {
+  Read: function (input, existingInstance) {
+    return input.ReadByte();
+  }
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.CharReader", true, {
+  Read: function (input, existingInstance) {
+    return input.ReadChar();
+  }
+});
+
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.Int16Reader", true, {
   Read: function (input, existingInstance) {
     return input.ReadInt16();
@@ -347,7 +359,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.Texture2DReader", true,
       var mipSize = input.ReadInt32();
       var mipBytes = input.ReadBytes(mipSize);
 
-      result.SetData$b1(System.Byte)(i, null, mipBytes, 0, mipSize);
+      result.SetData$b1$2(System.Byte)(i, null, mipBytes, 0, mipSize);
     }
 
     return result;
@@ -388,6 +400,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.SpriteFontReader", true
       lineSpacing, spacing, 
       kerning, defaultCharacter
     );
+
+    return result;
   }
 });
 
@@ -1946,6 +1960,13 @@ JSIL.ImplementExternals(
       if ((typeof (text) === "undefined") || (text === null))
         return;
 
+      var asmGraphics = JSIL.GetAssembly("Microsoft.Xna.Framework.Graphics");
+      var tSpriteFont = asmGraphics.Microsoft.Xna.Framework.Graphics.SpriteFont;
+
+      if (Object.getPrototypeOf(font) === tSpriteFont.prototype) {
+        return font.InternalDraw(text, this, position, color, 0, 0, scale, effects, depth);
+      }
+
       var needRestore = false;
       var positionX = position.X;
       var positionY = position.Y;
@@ -2078,6 +2099,190 @@ JSIL.ImplementExternals(
         return max;
       else
         return value;
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Graphics.SpriteFont", true, {
+    _ctor: function (texture, glyphs, cropping, charMap, lineSpacing, spacing, kerning, defaultCharacter) {
+      this.textureValue = texture;
+      this.glyphData = glyphs;
+      this.croppingData = cropping;
+      this.characterMap = charMap;
+      this.lineSpacing = lineSpacing;
+      this.spacing = spacing;
+      this.kerning = kerning;
+      this.defaultCharacter = defaultCharacter;
+      this.characters = this.characterMap.AsReadOnly();
+      this.charToIndex = {};
+
+      for (var i = 0; i < charMap.Count; i++) {
+        var ch = charMap.get_Item(i);        
+        this.charToIndex[ch.charCodeAt(0)] = i;
+      }
+    },
+    get_LineSpacing: function () {
+      return this.lineSpacing;
+    },
+    get_Spacing: function () {
+      return this.spacing;
+    },
+    get_DefaultCharacter: function () {
+      return this.defaultCharacter;
+    },
+    get_Characters: function () {
+      return this.characters;
+    },
+    GetIndexForCharacter: function (char) {
+      var result = this.charToIndex[char.charCodeAt(0)];
+
+      if ((typeof (result) === "undefined") && (this.defaultCharacter !== null))
+        result = this.charToIndex[this.defaultCharacter.charCodeAt(0)];
+
+      if (typeof (result) === "undefined")
+        result = -1;
+
+      return result;
+    },
+    MeasureString$0: function (text) {
+      return this.InternalMeasure(text);
+    },
+    MeasureString$1: function (stringBuilder) {
+      return this.InternalMeasure(stringBuilder.toString());
+    },
+    InternalMeasure: function (text) {
+      var tVector2 = Microsoft.Xna.Framework.Vector2;
+      var result = new tVector2(0, 0);
+      var lineWidth = 0;
+      var lineCount = 1;
+
+      for (var i = 0, l = text.length; i < l; i++) {
+        var ch = text[i];
+        switch (ch) {
+          case "\r":
+            continue;
+          case "\n":
+            result.X = Math.max(lineWidth, result.X);
+            lineWidth = 0;
+
+            if (i < (l - 1))
+              lineCount += 1;
+
+            continue;
+        }
+
+        result.X += this.spacing;
+
+        var charIndex = this.GetIndexForCharacter(ch);
+        if (charIndex < 0) {
+          continue;
+        }
+
+        var kerning = this.kerning.get_Item(charIndex);
+        var beforeGlyph = kerning.X;
+        var glyphWidth = kerning.Y;
+        var afterGlyph = kerning.Z;
+
+        result.X += beforeGlyph;
+        result.X += glyphWidth;
+        result.X += afterGlyph;
+      }
+
+      result.Y = lineCount * this.lineSpacing;
+
+      return result;
+    },
+    InternalDraw: function (text, spriteBatch, textblockPosition, color, rotation, origin, scale, spriteEffects, depth) {
+      var tVector2 = Microsoft.Xna.Framework.Vector2;
+      var position = new tVector2(textblockPosition.X, textblockPosition.Y);
+      var drawPosition = new tVector2();
+
+      for (var i = 0, l = text.length; i < l; i++) {
+        var ch = text[i];
+        switch (ch) {
+          case "\r":
+            continue;
+          case "\n":
+            position.X = textblockPosition.X;
+            position.Y += this.lineSpacing;
+            continue;
+        }
+
+        position.X += this.spacing;
+
+        var charIndex = this.GetIndexForCharacter(ch);
+        if (charIndex < 0) {
+          continue;
+        }
+
+        var kerning = this.kerning.get_Item(charIndex);
+        var beforeGlyph = kerning.X;
+        var glyphWidth = kerning.Y;
+        var afterGlyph = kerning.Z;
+
+        position.X += beforeGlyph;
+
+        var glyphRect = this.glyphData.get_Item(charIndex);
+        var cropRect = this.croppingData.get_Item(charIndex);
+
+        drawPosition.X = position.X + cropRect.X;
+        drawPosition.Y = position.Y + cropRect.Y;
+
+        spriteBatch.InternalDraw(
+          this.textureValue, drawPosition, glyphRect, color, rotation, origin, scale, spriteEffects, depth
+        );
+
+        position.X += glyphWidth;
+        position.X += afterGlyph;
+      }
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Graphics.Texture2D", true, {
+    _ctor$2: function (graphicsDevice, width, height, mipMap, format) {
+      this._parent = graphicsDevice;
+      this.width = width;
+      this.height = height;
+      this.mipMap = mipMap;
+      this.format = format;
+      this.isDisposed = false;      
+
+      this.image = document.createElement("img");
+      this.image.src = this.$getDataUrlForBytes(null, 0, 0);
+    },
+    get_Width: function () {
+      return this.width;
+    },
+    get_Height: function () {
+      return this.height;
+    },
+    SetData$b1$2: JSIL.GenericMethod(["T"], function (T, level, rect, data, startIndex, elementCount) {
+      if (level !== 0)
+        return;
+
+      if (rect !== null)
+        throw new System.NotImplementedException();
+
+      this.image.src = this.$getDataUrlForBytes(data, startIndex, elementCount);
+    }),
+    $getDataUrlForBytes: function (bytes, startIndex, elementCount) {
+      var canvas = document.createElement("canvas");
+      canvas.width = this.width;
+      canvas.height = this.height;
+      var ctx = canvas.getContext("2d");
+
+      if (bytes !== null) {
+        var imageData = ctx.createImageData(this.width, this.height);
+        for (var i = 0; i < elementCount; i++)
+          imageData.data[i] = bytes[startIndex + i];
+
+        ctx.putImageData(imageData, 0, 0);
+      }
+
+      return canvas.toDataURL();
     }
   }
 );

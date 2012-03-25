@@ -46,8 +46,8 @@ body {
 #progressText {
 	position: absolute;
 	text-align: center;
-	text-shadow: #000000 0px 0px 3px;
-	background-color: rgba(0, 0, 0, 0.33);
+	text-shadow: #000000 1px 1px 0px;
+	background-color: rgba(0, 0, 0, 0.66);
 	border-radius: 8px;
 	color: white;
 	font-family: Consolas, Courier New, Courier;
