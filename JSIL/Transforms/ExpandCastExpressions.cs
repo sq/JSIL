@@ -72,14 +72,24 @@ namespace JSIL.Transforms {
                     // Debugger.Break();
                 }
             } else if (
-                !currentType.IsValueType &&
                 targetType.MetadataType == MetadataType.Boolean
             ) {
                 newExpression = new JSBinaryOperatorExpression(
                     JSBinaryOperator.NotEqual,
-                    ce.Expression, new JSNullLiteral(currentType),
+                    ce.Expression, new JSDefaultValueLiteral(currentType),
                     TypeSystem.Boolean
                 );
+            } else if (
+                ILBlockTranslator.IsNumeric(targetType) &&
+                ILBlockTranslator.IsNumeric(currentType)
+            ) {
+                if (
+                    ILBlockTranslator.IsIntegral(currentType) ||
+                    !ILBlockTranslator.IsIntegral(targetType)
+                )
+                    newExpression = ce.Expression;
+                else
+                    newExpression = JSInvocationExpression.InvokeStatic(JS.floor, new[] { ce.Expression }, true);
             } else {
                 newExpression = JSIL.Cast(ce.Expression, targetType);
             }

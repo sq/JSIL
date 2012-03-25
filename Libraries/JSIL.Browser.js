@@ -401,6 +401,7 @@ function loadNextAsset (assets, state, onDoneLoading, loadDelay) {
   var w = 0;
   var loadingProgress = document.getElementById("loadingProgress");
   var progressBar = document.getElementById("progressBar");
+  var progressText = document.getElementById("progressText");
 
   var i = state.assetsLoaded;
   
@@ -414,6 +415,13 @@ function loadNextAsset (assets, state, onDoneLoading, loadDelay) {
 
   if (progressBar)
     progressBar.style.width = w.toString() + "px";
+
+  if (progressText) {
+    progressText.innerHTML = Math.floor(state.bytesLoaded / 1024) + "kb / " + Math.floor(state.assetBytes / 1024) + "kb";
+
+    progressText.style.left = ((loadingProgress.clientWidth - progressText.clientWidth) / 2).toString() + "px";
+    progressText.style.top = ((loadingProgress.clientHeight - progressText.clientHeight) / 2).toString() + "px";
+  }
   
   if (i >= assets.length) {
     setTimeout(onDoneLoading, loadDelay);

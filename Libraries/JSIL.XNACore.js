@@ -1679,8 +1679,7 @@ JSIL.ImplementExternals(
 
         for (var i = 0, l = this.deferredDraws.length; i < l; i++) {
           var draw = this.deferredDraws[i];
-
-          this.InternalDraw.apply(this, draw.arguments);
+          draw.fn.apply(this, draw.arguments);
         }
       }
 
@@ -1697,6 +1696,7 @@ JSIL.ImplementExternals(
 
       if (this.defer) {
         this.deferredDraws.push({
+          fn: this.InternalDraw,
           index: this.deferredDraws.length,
           arguments: [
             texture, position, 
@@ -1851,7 +1851,28 @@ JSIL.ImplementExternals(
         this.device.context.restore();
     },
 
-    InternalDrawString: function (font, text, position, color, scale, effects) {
+    InternalDrawString: function (font, text, position, color, scale, effects, depth) {
+      if (typeof (scale) === "undefined")
+        scale = 1;
+      if (typeof (depth) === "undefined")
+        depth = 1;
+
+      if (this.defer) {
+        this.deferredDraws.push({
+          fn: this.InternalDrawString,
+          index: this.deferredDraws.length,
+          arguments: [
+            font, text, position,
+            color || null,
+            scale,
+            effects || null,
+            depth
+          ]
+        });
+
+        return;
+      }
+
       // FIXME: Temporary work around for RPG demo expecting to have 7 lines of text but only having 5.
       if ((typeof (text) === "undefined") || (text === null))
         return;

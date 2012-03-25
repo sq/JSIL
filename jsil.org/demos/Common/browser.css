@@ -43,6 +43,18 @@ body {
 	margin: -1px;
 	padding: 0px;
 }
+#progressText {
+	position: absolute;
+	text-align: center;
+	text-shadow: #000000 0px 0px 3px;
+	background-color: rgba(0, 0, 0, 0.33);
+	border-radius: 8px;
+	color: white;
+	font-family: Consolas, Courier New, Courier;
+	font-size: 9pt;
+	padding-left: 4px;
+	padding-right: 4px;
+}
 #log {
 	font-family: Consolas, Courier New, Courier;
 	font-size: 9pt;

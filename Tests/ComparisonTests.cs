@@ -21,7 +21,9 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        public void CastingFromNull() {
+        public void Casts() {
+            using (var test = new ComparisonTest(@"TestCases\CastToBoolean.cs"))
+                test.Run();
             using (var test = new ComparisonTest(@"TestCases\CastingFromNull.cs"))
                 test.Run();
         }
