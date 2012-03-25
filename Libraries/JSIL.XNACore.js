@@ -45,20 +45,25 @@ $jsilxna.getImageMultiplied = function (image, color) {
   context.clearRect(0, 0, image.naturalWidth + 2, image.naturalHeight + 2);
   context.drawImage(image, 1, 1);
 
-  var imageData = context.getImageData(1, 1, image.naturalWidth, image.naturalHeight);
-  var rmul = color.r / 255;
-  var gmul = color.g / 255;
-  var bmul = color.b / 255;
-  var bytes = imageData.data;
+  try {
+    var imageData = context.getImageData(1, 1, image.naturalWidth, image.naturalHeight);
+    var rmul = color.r / 255;
+    var gmul = color.g / 255;
+    var bmul = color.b / 255;
+    var bytes = imageData.data;
 
-  for (var i = 0, l = image.naturalWidth * image.naturalHeight * 4; i < l; i += 4) {
-    bytes[i] *= rmul;
-    bytes[i + 1] *= gmul;
-    bytes[i + 2] *= bmul;
+    for (var i = 0, l = image.naturalWidth * image.naturalHeight * 4; i < l; i += 4) {
+      bytes[i] *= rmul;
+      bytes[i + 1] *= gmul;
+      bytes[i + 2] *= bmul;
+    }
+
+    context.putImageData(imageData, 1, 1);
+    $jsilxna.setCachedMultipliedImage(image, color, canvas);
+  } catch (exc) {
+    return image;
   }
 
-  context.putImageData(imageData, 1, 1);
-  $jsilxna.setCachedMultipliedImage(image, color, canvas);
   return canvas;
 };
 
@@ -2163,7 +2168,7 @@ JSIL.ImplementExternals(
           case "\r":
             continue;
           case "\n":
-            result.X = Math.max(lineWidth, result.X);
+            result.X = Math.max(lineWidth, result.X);            
             lineWidth = 0;
 
             if (i < (l - 1))
@@ -2172,7 +2177,7 @@ JSIL.ImplementExternals(
             continue;
         }
 
-        result.X += this.spacing;
+        lineWidth += this.spacing;
 
         var charIndex = this.GetIndexForCharacter(ch);
         if (charIndex < 0) {
@@ -2184,11 +2189,12 @@ JSIL.ImplementExternals(
         var glyphWidth = kerning.Y;
         var afterGlyph = kerning.Z;
 
-        result.X += beforeGlyph;
-        result.X += glyphWidth;
-        result.X += afterGlyph;
+        lineWidth += beforeGlyph;
+        lineWidth += glyphWidth;
+        lineWidth += afterGlyph;
       }
 
+      result.X = Math.max(lineWidth, result.X);
       result.Y = lineCount * this.lineSpacing;
 
       return result;
@@ -2293,6 +2299,8 @@ JSIL.ImplementExternals(
               continue;
 
             var m = 255 / a;
+            if (a >= 254)
+              m = 1.0;
 
             imageData.data[p] = r * m;
             imageData.data[p + 1] = g * m;
