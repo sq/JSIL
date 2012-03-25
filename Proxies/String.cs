@@ -145,5 +145,56 @@ namespace JSIL.Proxies {
         new public int CompareTo (string rhs) {
             throw new InvalidOperationException();
         }
+
+        [JSReplacement("$this.indexOf($value)")]
+        [JSIsPure]
+        new public int IndexOf (char value) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("$this.indexOf($value, $startIndex)")]
+        [JSIsPure]
+        new public int IndexOf (char value, int startIndex) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("$this.indexOf($value)")]
+        [JSIsPure]
+        new public int IndexOf (string value) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("$this.indexOf($value, $startIndex)")]
+        [JSIsPure]
+        new public int IndexOf (string value, int startIndex) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("$this.lastIndexOf($value)")]
+        [JSIsPure]
+        new public int LastIndexOf (char value) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("$this.lastIndexOf($value)")]
+        [JSIsPure]
+        new public int LastIndexOf (string value) {
+            throw new InvalidOperationException();
+        }
+
+        // FIXME
+        /*
+        [JSReplacement("$this.lastIndexOf($value, $startIndex)")]
+        [JSIsPure]
+        new public int LastIndexOf (char value, int startIndex) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("$this.lastIndexOf($value, $startIndex)")]
+        [JSIsPure]
+        new public int LastIndexOf (string value, int startIndex) {
+            throw new InvalidOperationException();
+        }
+         */
     }
 }
