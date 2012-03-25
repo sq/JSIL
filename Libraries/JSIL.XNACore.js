@@ -1652,13 +1652,11 @@ JSIL.ImplementExternals(
         this.defer = false;
       } else if (spriteSortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.BackToFront) {
         this.defer = true;
-        console.log("BackToFront");
         this.deferSorter = function (lhs, rhs) {
           return cmp(lhs.arguments[8], rhs.arguments[8]);
         };
       } else if (spriteSortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.FrontToBack) {
         this.defer = true;
-        console.log("FrontToBack");
         this.deferSorter = function (lhs, rhs) {
           return -cmp(lhs.arguments[8], rhs.arguments[8]);
         };
@@ -1682,7 +1680,6 @@ JSIL.ImplementExternals(
         for (var i = 0, l = this.deferredDraws.length; i < l; i++) {
           var draw = this.deferredDraws[i];
 
-          console.log(draw.arguments[0].name, " depth=", draw.arguments[8]);
           this.InternalDraw.apply(this, draw.arguments);
         }
       }
