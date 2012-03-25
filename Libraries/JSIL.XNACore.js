@@ -328,6 +328,69 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ListReader`1", true, {
   }
 });
 
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.Texture2DReader", true, {
+  Read: function (input, existingInstance) {
+    var asmGraphics = JSIL.GetAssembly("Microsoft.Xna.Framework.Graphics");
+    var tTexture2D = asmGraphics.Microsoft.Xna.Framework.Graphics.Texture2D;
+    var tSurfaceFormat = asmGraphics.Microsoft.Xna.Framework.Graphics.SurfaceFormat;
+
+    var surfaceFormat = JSIL.Cast(input.ReadInt32(), tSurfaceFormat);
+    var width = input.ReadInt32();
+    var height = input.ReadInt32();
+    var mipCount = input.ReadInt32();
+
+    var result = existingInstance;
+    if (result === null)
+      result = new tTexture2D(null, width, height, mipCount > 1, surfaceFormat);
+
+    for (var i = 0; i < mipCount; i++) {
+      var mipSize = input.ReadInt32();
+      var mipBytes = input.ReadBytes(mipSize);
+
+      result.SetData$b1(System.Byte)(i, null, mipBytes, 0, mipSize);
+    }
+
+    return result;
+  }
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.SpriteFontReader", true, {
+  Read: function (input, existingInstance) {
+    var asmXna = JSIL.GetAssembly("Microsoft.Xna.Framework");
+    var asmGraphics = JSIL.GetAssembly("Microsoft.Xna.Framework.Graphics");
+
+    var tList = System.Collections.Generic.List$b1;
+    var tSpriteFont = asmGraphics.Microsoft.Xna.Framework.Graphics.SpriteFont;
+    var tTexture2D = asmGraphics.Microsoft.Xna.Framework.Graphics.Texture2D;
+    var tRectangle = asmXna.Microsoft.Xna.Framework.Rectangle;
+    var tVector3 = asmXna.Microsoft.Xna.Framework.Vector3;
+
+    var texture = input.ReadObject$b1$0(tTexture2D)();
+
+    var glyphs = input.ReadObject$b1$0(tList.Of(tRectangle))();
+
+    var cropping = input.ReadObject$b1$0(tList.Of(tRectangle))();
+
+    var charMap = input.ReadObject$b1$0(tList.Of(System.Char))();
+
+    var lineSpacing = input.ReadInt32();
+    var spacing = input.ReadSingle();
+
+    var kerning = input.ReadObject$b1$0(tList.Of(tVector3))();
+
+    var defaultCharacter = null;
+    if (input.ReadBoolean())
+      defaultCharacter = input.ReadChar();
+
+    var result = new tSpriteFont(
+      texture, glyphs, 
+      cropping, charMap, 
+      lineSpacing, spacing, 
+      kerning, defaultCharacter
+    );
+  }
+});
+
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManager", false, {
   _cctor: function () {
     var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework");
@@ -368,8 +431,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManage
       var typeReaderName = contentReader.ReadString();
       var typeReaderVersionNumber = contentReader.ReadInt32();
 
-      var parsedTypeName = JSIL.ParseTypeName(typeReaderName);
       // We need to explicitly make the xna assembly the default search context since many of the readers are private classes
+      var parsedTypeName = JSIL.ParseTypeName(typeReaderName);
       var typeReaderType = JSIL.GetTypeInternal(parsedTypeName, assembly);
 
       if (typeReaderType === null) {
@@ -560,6 +623,12 @@ JSIL.MakeClass("HTML5Asset", "RawXNBAsset", true, [], function ($) {
       sharedResources[i] = content.ReadObject$b1(System.Object)();
 
     return mainObject;
+  };
+});
+
+JSIL.MakeClass("RawXNBAsset", "SpriteFontAsset", true, [], function ($) {
+  $.prototype._ctor = function (assetName, rawBytes) {
+    RawXNBAsset.prototype._ctor.call(this, assetName, rawBytes);
   };
 });
 

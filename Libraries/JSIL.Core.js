@@ -48,10 +48,12 @@ JSIL.DeclareAssembly = function (assemblyName) {
   return result;
 };
 
-JSIL.GetAssembly = function (assemblyName) {
+JSIL.GetAssembly = function (assemblyName, requireExisting) {
   var existing = JSIL.PrivateNamespaces[assemblyName];
   if (typeof (existing) !== "undefined")
     return existing;
+  else if (requireExisting)
+    return null;
 
   var shortName = assemblyName;
   var commaPos = shortName.indexOf(",");
@@ -1984,8 +1986,8 @@ JSIL.Cast = function (value, expectedType) {
 
   if (expectedType.IsEnum) {
     var result = expectedType.__ValueToName__[value];
-    if (typeof (result) !== "undefined")
-      return result;
+    if (typeof (result) === "string")
+      return expectedType[result];
 
     result = JSIL.MakeEnumValue(expectedType, value, null);
     return result;
@@ -2293,6 +2295,8 @@ JSIL.ParseTypeName = function (name) {
     } else if (ch == ',') {
       if (parenDepth > 0) {
         parenText += ch;
+      } else if (readingAssemblyName) {
+        assemblyName += ",";
       } else {
         readingAssemblyName = true;
       }
@@ -2323,9 +2327,11 @@ JSIL.ParseTypeName = function (name) {
 };
 
 JSIL.GetTypeInternal = function (parsedTypeName, defaultContext) {
-  var context = defaultContext;
+  var context = null;
   if (parsedTypeName.assembly !== null)
-    context = JSIL.GetAssembly(parsedTypeName.assembly);
+    context = JSIL.GetAssembly(parsedTypeName.assembly, true);
+  if (context === null)
+    context = defaultContext;
 
   var resolved = JSIL.ResolveName(context, parsedTypeName.type, true);
   var result = null;

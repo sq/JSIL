@@ -106,6 +106,18 @@ namespace JSIL.Compiler.Profiles {
                     contentManifest.AppendFormat("  [\"{0}\", \"{1}\", {2}],{3}", type, localPath.Replace("\\", "/"), propertiesObject, Environment.NewLine);
                 };
 
+                Action<ProjectItem, string, string> copyRawXnb = (item, xnbPath, type) => {
+                    var outputPath = Path.Combine(
+                        localOutputDirectory,
+                        item.EvaluatedInclude.Replace(Path.GetExtension(item.EvaluatedInclude), ".xnb")
+                    );
+
+                    Common.EnsureDirectoryExists(Path.GetDirectoryName(outputPath));
+
+                    File.Copy(xnbPath, outputPath, true);
+                    logOutput(type, outputPath);
+                };
+
                 foreach (var item in project.Items) {
                     if (item.ItemType != "Compile")
                         continue;
@@ -131,27 +143,22 @@ namespace JSIL.Compiler.Profiles {
 
                     switch (processorName) {
                         case "FontTextureProcessor":
+                            copyRawXnb(item, xnbPath, "SpriteFont");
+                            continue;
                         case "TextureProcessor":
                             var itemOutputDirectory = Path.Combine(localOutputDirectory, Path.GetDirectoryName(item.EvaluatedInclude));
                             var outputPath = Common.CompressImage(
                                 sourcePath, itemOutputDirectory, 
                                 configuration.ProfileSettings
                             );
+
                             logOutput("Image", outputPath);
                             continue;
                     }
 
                     switch (importerName) {
                         case "XmlImporter":
-                            var outputPath = Path.Combine(
-                                localOutputDirectory, 
-                                item.EvaluatedInclude.Replace(Path.GetExtension(item.EvaluatedInclude), ".xnb")
-                            );
-
-                            Common.EnsureDirectoryExists(Path.GetDirectoryName(outputPath));
-
-                            File.Copy(xnbPath, outputPath, true);
-                            logOutput("XNB", outputPath);
+                            copyRawXnb(item, xnbPath, "XNB");
                             break;
                         default:
                             Console.Error.WriteLine("// Can't process '{0}': importer '{1}' and processor '{2}' both unsupported.", item.EvaluatedInclude, importerName, processorName);

@@ -345,6 +345,17 @@ var assetLoaders = {
       }
     });
   },
+  "SpriteFont": function loadSpriteFont (filename, data, onError, onDoneLoading) {
+    loadBinaryFileAsync(fileRoot + filename, function (result, error) {
+      if (result !== null) {
+        var assetName = getAssetName(filename);
+        allAssets[assetName] = new SpriteFontAsset(assetName, result);
+        onDoneLoading(); 
+      } else {
+        onError(error);
+      }
+    });
+  },
   "Font": function loadFont (filename, data, onError, onDoneLoading) {
     var fontId = "xnafont" + loadedFontCount;
     loadedFontCount += 1;
