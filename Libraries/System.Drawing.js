@@ -88,6 +88,16 @@ if (JSIL.HostType.IsBrowser) {
   );
 }
 
+$jsildrawing.makeColor = function (proto, a, r, g, b, name) {
+  var result = Object.create(proto);
+  result.a = a;
+  result.r = r;
+  result.g = g;
+  result.b = b;
+  result.name = name;
+  return result;
+};
+
 JSIL.ImplementExternals(
   "System.Drawing.Color", true, {
     a: 0,
@@ -181,11 +191,14 @@ JSIL.ImplementExternals(
       return System.Drawing.Color.aquamarine;
     },
     _cctor2: function () {
-      System.Drawing.Color.black = new System.Drawing.Color(0xFF, 0x0, 0x0, 0x0, "Black");
-      System.Drawing.Color.white = new System.Drawing.Color(0xFF, 0xFF, 0xFF, 0xFF, "White");
-      System.Drawing.Color.oldLace = new System.Drawing.Color(0xFF, 0xFD, 0xF5, 0xE6, "OldLace");
-      System.Drawing.Color.blueViolet = new System.Drawing.Color(0xFF, 0x8A, 0x2B, 0xE2, "BlueViolet");
-      System.Drawing.Color.aquamarine = new System.Drawing.Color(0xFF, 0x7F, 0xFF, 0xD4, "Aquamarine");
+      var proto = System.Drawing.Color.prototype;
+      var makeColor = $jsildrawing.makeColor;
+
+      System.Drawing.Color.black = makeColor(0xFF, 0x0, 0x0, 0x0, "Black");
+      System.Drawing.Color.white = makeColor(0xFF, 0xFF, 0xFF, 0xFF, "White");
+      System.Drawing.Color.oldLace = makeColor(0xFF, 0xFD, 0xF5, 0xE6, "OldLace");
+      System.Drawing.Color.blueViolet = makeColor(0xFF, 0x8A, 0x2B, 0xE2, "BlueViolet");
+      System.Drawing.Color.aquamarine = makeColor(0xFF, 0x7F, 0xFF, 0xD4, "Aquamarine");
     }
   }
 );

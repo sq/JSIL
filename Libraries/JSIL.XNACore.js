@@ -1470,65 +1470,37 @@ $jsilxna.makeColor = function (proto, r, g, b, a) {
   else
     result.a = 255;
   return result;
-}
+};
 
 $jsilxna.Color = {
   _cctor : function () {
     var self = this;
     var proto = this.prototype;
     var makeColor = $jsilxna.makeColor;
-    self.black = makeColor(proto, 0, 0, 0);
-    self.transparentBlack = makeColor(proto, 0, 0, 0, 0);
-    self.white = makeColor(proto, 255, 255, 255);
-    self.transparentWhite = makeColor(proto, 255, 255, 255, 0);
-    self.red = makeColor(proto, 255, 0, 0);
-    self.yellow = makeColor(proto, 255, 255, 0);
-    self.orange = makeColor(proto, 255, 165, 0); 
-    self.green = makeColor(proto, 0, 128, 0);
-    self.cyan = makeColor(proto, 0, 255, 255);
-    self.blue = makeColor(proto, 0, 0, 255);
-    self.purple = makeColor(proto, 128, 0, 128); 
-    self.cornflowerBlue = makeColor(proto, 100, 149, 237);
-  },
+    var colors = $jsilxna.colors || [];
 
-  get_Black : function () {
-    return this.black;
-  },
-  get_TransparentBlack : function () {
-    return this.transparentBlack;
-  },
-  get_White : function () {
-    return this.white;
-  },
-  get_TransparentWhite : function () {
-    return this.transparentWhite;
-  },
-  get_Red : function () {
-    return this.red;
-  },
-  get_Orange : function () {
-    return this.orange;
-  },
-  get_Yellow : function () {
-    return this.yellow;
-  },
-  get_Green : function () {
-    return this.green;
-  },
-  get_Cyan : function () {
-    return this.cyan;
-  },
-  get_Blue : function () {
-    return this.blue;
-  },
-  get_CornflowerBlue : function () {
-    return this.cornflowerBlue;
-  },
-  get_Purple : function () {
-    return this.purple;
-  },
-  get_Transparent : function () {
-    return this.transparentBlack;
+    var bindColor = function (c) {
+      return function () {
+        return c;
+      };
+    };
+
+    for (var i = 0, l = colors.length; i < l; i++) {
+      var colorName = colors[i][0];
+      var color = makeColor(proto, colors[i][1], colors[i][2], colors[i][3], colors[i][4]);
+
+      Object.defineProperty(Microsoft.Xna.Framework.Color, "get_" + colorName, {
+        value: bindColor(color),
+        enumerable: true,
+        configurable: true
+      });
+
+      Object.defineProperty(Microsoft.Xna.Framework.Color, colorName, {
+        value: color,
+        enumerable: true,
+        configurable: true
+      });
+    }
   },
 
   op_Multiply : function (color, multiplier) {

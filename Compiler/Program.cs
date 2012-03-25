@@ -156,23 +156,28 @@ namespace JSIL.Compiler {
 
                 foreach (var filename in profileAssemblies) {
                     var fullPath = Path.GetFullPath(filename);
-                    var assembly = Assembly.LoadFile(fullPath);
 
-                    foreach (var type in assembly.GetTypes()) {
-                        if (
-                            type.FindInterfaces(
-                                (interfaceType, o) => interfaceType == (Type)o, typeof(IProfile)
-                            ).Length != 1
-                        )
-                            continue;
+                    try {
+                        var assembly = Assembly.LoadFile(fullPath);
 
-                        var ctor = type.GetConstructor(
-                            BindingFlags.Public | BindingFlags.Instance,
-                            null, System.Type.EmptyTypes, null
-                        );
-                        var profileInstance = (IProfile)ctor.Invoke(new object[0]);
+                        foreach (var type in assembly.GetTypes()) {
+                            if (
+                                type.FindInterfaces(
+                                    (interfaceType, o) => interfaceType == (Type)o, typeof(IProfile)
+                                ).Length != 1
+                            )
+                                continue;
 
-                        profiles.Add(type.Name, profileInstance);
+                            var ctor = type.GetConstructor(
+                                BindingFlags.Public | BindingFlags.Instance,
+                                null, System.Type.EmptyTypes, null
+                            );
+                            var profileInstance = (IProfile)ctor.Invoke(new object[0]);
+
+                            profiles.Add(type.Name, profileInstance);
+                        }
+                    } catch (Exception exc) {
+                        Console.Error.WriteLine("Warning: Failed to load profile '{0}': {1}", filename, exc);
                     }
                 }
             }

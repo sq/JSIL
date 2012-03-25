@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using JSIL.Compiler.Extensibility;
 using Microsoft.Build.Evaluation;
+using Microsoft.Xna.Framework;
 
 namespace JSIL.Compiler.Profiles {
     public class XNA4 : BaseProfile {
@@ -30,6 +32,34 @@ namespace JSIL.Compiler.Profiles {
             var directoryName = Path.GetDirectoryName(path);
             if (!Directory.Exists(directoryName))
                 Directory.CreateDirectory(directoryName);
+        }
+
+        private static string MakeXNAColors () {
+            var result = new StringBuilder();
+            var colorType = typeof(Color);
+            var colors = colorType.GetProperties(BindingFlags.Static | BindingFlags.Public);
+
+            result.AppendLine("(function ($jsilxna) {");
+            result.AppendLine("  $jsilxna.colors = [");
+
+            foreach (var color in colors) {
+                var colorValue = (Color)color.GetValue(null, null);
+
+                result.AppendFormat("    [\"{0}\", {1}, {2}, {3}, {4}],\r\n", color.Name, colorValue.R, colorValue.G, colorValue.B, colorValue.A);
+            }
+
+            result.AppendLine("  ];");
+            result.AppendLine("} )( JSIL.GetAssembly(\"JSIL.XNA\") );");
+
+            return result.ToString();
+        }
+
+        public override void WriteOutputs (TranslationResult result, string path, string manifestPrefix) {
+            result.Files["XNA.Colors.js"] = new ArraySegment<byte>(Encoding.UTF8.GetBytes(
+                MakeXNAColors()
+            ));
+
+            base.WriteOutputs(result, path, manifestPrefix);
         }
 
         public override SolutionBuilder.SolutionBuildResult ProcessBuildResult (Configuration configuration, SolutionBuilder.SolutionBuildResult buildResult) {
