@@ -80,7 +80,11 @@ namespace JSIL.Compiler.Profiles {
                         localPath = localPath.Substring(1);
 
                     Console.WriteLine(localPath);
-                    contentManifest.AppendFormat("  [\"{0}\", \"{1}\"],{2}", type, localPath.Replace("\\", "/"), Environment.NewLine);
+
+                    var propertiesObject = new StringBuilder();
+                    propertiesObject.AppendFormat("{{ \"sizeBytes\": {0} }}", new FileInfo(filename).Length);
+
+                    contentManifest.AppendFormat("  [\"{0}\", \"{1}\", {2}],{3}", type, localPath.Replace("\\", "/"), propertiesObject.ToString(), Environment.NewLine);
                 };
 
                 foreach (var item in project.Items) {

@@ -395,13 +395,21 @@ var assetLoaders = {
   }
 };
 
-function loadNextAsset (assets, i, onDoneLoading, loadDelay) {      
+function loadNextAsset (assets, state, onDoneLoading, loadDelay) {      
   var w = 0;
   var loadingProgress = document.getElementById("loadingProgress");
   var progressBar = document.getElementById("progressBar");
+
+  var i = state.assetsLoaded;
   
-  if (loadingProgress)
-    w = (i * loadingProgress.clientWidth) / (assets.length + 1);
+  if (loadingProgress) {
+    w = (state.bytesLoaded * loadingProgress.clientWidth) / (state.assetBytes);
+    if (w < 0)
+      w = 0;
+    else if (w > loadingProgress.clientWidth)
+      w = loadingProgress.clientWidth;
+  }
+
   if (progressBar)
     progressBar.style.width = w.toString() + "px";
   
@@ -413,8 +421,20 @@ function loadNextAsset (assets, i, onDoneLoading, loadDelay) {
   var assetSpec = assets[i];
   var j = i + 1;
   
+  var assetType = assetSpec[0];
+  var assetPath = assetSpec[1];
+  var assetData = assetSpec[2] || null;
+  var assetLoader = assetLoaders[assetType];
+
+  var sizeBytes = 1;
+  if (assetData !== null)
+    sizeBytes = assetData.sizeBytes || 1;
+  
   var stepCallback = function () {
-    loadNextAsset(assets, j, onDoneLoading, loadDelay);
+    state.assetsLoaded += 1;
+    state.bytesLoaded += sizeBytes;
+
+    loadNextAsset(assets, state, onDoneLoading, loadDelay);
   };
   
   var errorCallback = function (e) {
@@ -422,11 +442,6 @@ function loadNextAsset (assets, i, onDoneLoading, loadDelay) {
     JSIL.Host.logWriteLine("The asset '" + assetSpec + "' could not be loaded:" + String(e));
     stepCallback();
   };
-  
-  var assetType = assetSpec[0];
-  var assetPath = assetSpec[1];
-  var assetData = assetSpec[2] || null;
-  var assetLoader = assetLoaders[assetType];
   
   if (typeof (assetLoader) !== "function") {
     errorCallback("No asset loader registered for type '" + assetType + "'.");
@@ -438,7 +453,26 @@ function loadNextAsset (assets, i, onDoneLoading, loadDelay) {
 }
 
 function loadAssets (assets, onDoneLoading) {
-  loadNextAsset(assets, 0, onDoneLoading, 1);
+  var state = {
+    assetBytes: 0,
+    assetCount: assets.length,
+    bytesLoaded: 0,
+    assetsLoaded: 0
+  };
+
+  for (var i = 0, l = assets.length; i < l; i++) {
+    var properties = assets[i][2];
+
+    if (typeof (properties) !== "object") {
+      state.assetBytes += 1;
+      continue;
+    }
+
+    var sizeBytes = properties.sizeBytes || 1;
+    state.assetBytes += sizeBytes;
+  }
+
+  loadNextAsset(assets, state, onDoneLoading, 1);
 }
 
 function beginLoading () {
