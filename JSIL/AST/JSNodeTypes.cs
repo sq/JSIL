@@ -64,7 +64,7 @@ namespace JSIL.Ast {
             ReplaceChild(oldChild, newChild);
 
             foreach (var child in Children) {
-                if (child != null)
+                if ((child != null) && (child != newChild))
                     child.ReplaceChildRecursive(oldChild, newChild);
             }
         }
@@ -1050,7 +1050,7 @@ namespace JSIL.Ast {
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
                 throw new ArgumentNullException();
-            if ((oldChild == this) || (newChild == this))
+            if (newChild == this)
                 throw new InvalidOperationException("Infinite recursion");
 
             if ((newChild != null) && !(newChild is JSExpression))

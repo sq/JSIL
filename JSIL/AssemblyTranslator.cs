@@ -1437,6 +1437,12 @@ namespace JSIL {
                             continue;
                         }
 
+                        var typeReferences = defaultValue.AllChildrenRecursive.OfType<JSType>();
+                        foreach (var typeReference in typeReferences) {
+                            if (ILBlockTranslator.TypesAreEqual(typeReference.Type, cctor.DeclaringType))
+                                defaultValue.ReplaceChildRecursive(typeReference, new JSStringIdentifier("$", cctor.DeclaringType));
+                        }
+
                         fieldDefaults[targetField] = defaultValue;
                     }
                 }
