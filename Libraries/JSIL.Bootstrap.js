@@ -154,6 +154,17 @@ JSIL.ImplementExternals(
   }
 );
 
+JSIL.ImplementExternals(
+  "System.SystemException", true, {
+    _ctor$0: function () {
+      System.Exception.prototype._ctor.call(this);
+    },
+    _ctor$1: function (message) {
+      System.Exception.prototype._ctor.call(this, message);
+    }
+  }
+);
+
 JSIL.MakeClass(Error, "System.Exception", true, [], function ($) {
   JSIL.MakeProperty($.prototype, "Message", 
     $.prototype.get_Message, null);
