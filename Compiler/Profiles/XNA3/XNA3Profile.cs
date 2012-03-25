@@ -13,6 +13,14 @@ namespace JSIL.Compiler.Profiles {
             );
         }
 
+        public override void WriteOutputs (TranslationResult result, string path, string manifestPrefix) {
+            result.Files["XNA.Colors.js"] = new ArraySegment<byte>(Encoding.UTF8.GetBytes(
+                Common.MakeXNAColors()
+            ));
+
+            base.WriteOutputs(result, path, manifestPrefix);
+        }
+
         public override Configuration GetConfiguration (Configuration defaultConfiguration) {
             var result = defaultConfiguration.Clone();
 

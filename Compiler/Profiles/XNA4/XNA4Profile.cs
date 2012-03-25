@@ -34,29 +34,9 @@ namespace JSIL.Compiler.Profiles {
                 Directory.CreateDirectory(directoryName);
         }
 
-        private static string MakeXNAColors () {
-            var result = new StringBuilder();
-            var colorType = typeof(Color);
-            var colors = colorType.GetProperties(BindingFlags.Static | BindingFlags.Public);
-
-            result.AppendLine("(function ($jsilxna) {");
-            result.AppendLine("  $jsilxna.colors = [");
-
-            foreach (var color in colors) {
-                var colorValue = (Color)color.GetValue(null, null);
-
-                result.AppendFormat("    [\"{0}\", {1}, {2}, {3}, {4}],\r\n", color.Name, colorValue.R, colorValue.G, colorValue.B, colorValue.A);
-            }
-
-            result.AppendLine("  ];");
-            result.AppendLine("} )( JSIL.GetAssembly(\"JSIL.XNA\") );");
-
-            return result.ToString();
-        }
-
         public override void WriteOutputs (TranslationResult result, string path, string manifestPrefix) {
             result.Files["XNA.Colors.js"] = new ArraySegment<byte>(Encoding.UTF8.GetBytes(
-                MakeXNAColors()
+                Common.MakeXNAColors()
             ));
 
             base.WriteOutputs(result, path, manifestPrefix);
