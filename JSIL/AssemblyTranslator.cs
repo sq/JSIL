@@ -1281,6 +1281,10 @@ namespace JSIL {
             var lnd = new LoopNameDetector();
             lnd.Visit(function);
             lnd.EliminateUnusedLoopNames();
+
+            new ExpandCastExpressions(
+                si.TypeSystem, si.JS, si.JSIL, TypeInfoProvider
+            ).Visit(function);
         }
 
         protected static bool NeedsStaticConstructor (TypeReference type) {
@@ -1449,7 +1453,13 @@ namespace JSIL {
                                 defaultValue.ReplaceChildRecursive(typeReference, new JSStringIdentifier("$", cctor.DeclaringType));
                         }
 
-                        fieldDefaults[targetField] = defaultValue;
+                        var es = new JSExpressionStatement(defaultValue);
+                        var ece = new ExpandCastExpressions(
+                            translator.TypeSystem, translator.SpecialIdentifiers.JS, translator.SpecialIdentifiers.JSIL, translator.TypeInfo
+                        );
+                        ece.Visit(es);
+
+                        fieldDefaults[targetField] = es.Expression;
                     }
                 }
             }
@@ -1511,6 +1521,7 @@ namespace JSIL {
                     continue;
 
                 var expr = TranslateField(f, fieldDefaults, dollar);
+
                 if (expr != null)
                     astEmitter.Visit(new JSExpressionStatement(expr));
             }

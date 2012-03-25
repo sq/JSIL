@@ -13,9 +13,9 @@ namespace JSIL.Transforms {
         public readonly TypeSystem TypeSystem;
         public readonly JSSpecialIdentifiers JS;
         public readonly JSILIdentifier JSIL;
-        public readonly TypeInfoProvider TypeInfo;
+        public readonly ITypeInfoSource TypeInfo;
 
-        public ExpandCastExpressions (TypeSystem typeSystem, JSSpecialIdentifiers js, JSILIdentifier jsil, TypeInfoProvider typeInfo) {
+        public ExpandCastExpressions (TypeSystem typeSystem, JSSpecialIdentifiers js, JSILIdentifier jsil, ITypeInfoSource typeInfo) {
             TypeSystem = typeSystem;
             JS = js;
             JSIL = jsil;
@@ -42,7 +42,7 @@ namespace JSIL.Transforms {
             } else if (
                 ILBlockTranslator.IsEnum(currentType)
             ) {
-                var enumInfo = TypeInfo.GetTypeInformation(currentType);
+                var enumInfo = TypeInfo.Get(currentType);
 
                 if (targetType.MetadataType == MetadataType.Boolean) {
                     EnumMemberInfo enumMember;
@@ -62,10 +62,12 @@ namespace JSIL.Transforms {
                             currentType.FullName
                         ));
                     }
-                } else if (ILBlockTranslator.IsIntegral(targetType)) {
+                } else if (ILBlockTranslator.IsNumeric(targetType)) {
                     newExpression = new JSDotExpression(
                         ce.Expression, new JSStringIdentifier("value", targetType)
                     );
+                } else {
+                    Debugger.Break();
                 }
             } else if (
                 !currentType.IsValueType &&
@@ -84,6 +86,7 @@ namespace JSIL.Transforms {
                 ParentNode.ReplaceChild(ce, newExpression);
                 VisitReplacement(newExpression);
             } else {
+                Debugger.Break();
                 VisitChildren(ce);
             }
         }
