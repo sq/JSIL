@@ -1631,15 +1631,91 @@ JSIL.ImplementExternals(
 
     _ctor: function (device) {
       this.device = device;
+      this.defer = false;
+      this.deferSorter = null;
+      this.deferredDraws = [];
     },
 
-    Begin: function () {
+    Begin: function (spriteSortMode, blendState) {
+      var cmp = function (lhs, rhs) {
+        if (lhs > rhs)
+          return 1;
+        else if (rhs > lhs)
+          return -1;
+        else
+          return 0;
+      };
+
+      this.deferSorter = null;
+
+      if (spriteSortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Immediate) {
+        this.defer = false;
+      } else if (spriteSortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.BackToFront) {
+        this.defer = true;
+        console.log("BackToFront");
+        this.deferSorter = function (lhs, rhs) {
+          return cmp(lhs.arguments[8], rhs.arguments[8]);
+        };
+      } else if (spriteSortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.FrontToBack) {
+        this.defer = true;
+        console.log("FrontToBack");
+        this.deferSorter = function (lhs, rhs) {
+          return -cmp(lhs.arguments[8], rhs.arguments[8]);
+        };
+      } else if (spriteSortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Texture) {
+        this.defer = true;
+        this.deferSorter = function (lhs, rhs) {
+          return cmp(lhs.arguments[0], rhs.arguments[0]);
+        };
+      } else if (spriteSortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Deferred) {
+        this.defer = true;
+      }
     },
 
     End: function () {
+      if (this.defer) {
+        this.defer = false;
+
+        if (this.deferSorter !== null)
+          this.deferredDraws.sort(this.deferSorter);
+
+        for (var i = 0, l = this.deferredDraws.length; i < l; i++) {
+          var draw = this.deferredDraws[i];
+
+          console.log(draw.arguments[0].name, " depth=", draw.arguments[8]);
+          this.InternalDraw.apply(this, draw.arguments);
+        }
+      }
+
+      this.deferredDraws = [];
     },
 
-    InternalDraw: function (texture, position, sourceRectangle, color, rotation, origin, scale, effects) {
+    InternalDraw: function (texture, position, sourceRectangle, color, rotation, origin, scale, effects, depth) {
+      if (typeof (scale) === "undefined")
+        scale = 1;
+      if (typeof (depth) === "undefined")
+        depth = 1;
+      if (typeof (rotation) === "undefined")
+        rotation = 0;
+
+      if (this.defer) {
+        this.deferredDraws.push({
+          index: this.deferredDraws.length,
+          arguments: [
+            texture, position, 
+            sourceRectangle || null, 
+            color || null, 
+            rotation, 
+            origin || null, 
+            scale, 
+            effects || null, 
+            depth
+          ]
+        });
+
+        return;
+      }
+
       var needRestore = false;
       var image = texture.image;
       var positionIsRect = typeof (position.Width) === "number";
