@@ -4,7 +4,7 @@
     "OverwriteExistingContent": true,
     "ContentOutputDirectory": "%configpath%/Content",
     "UsePNGQuant": true,
-    "PNGQuantBlacklist": [
-    ]
+    "FileSettings": {
+    }
   }
 }

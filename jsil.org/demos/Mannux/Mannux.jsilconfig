@@ -1,3 +1,11 @@
 {
-  "OutputDirectory": "%configpath%"
+  "OutputDirectory": "%configpath%",
+  "ProfileSettings": {
+    "OverwriteExistingContent": true,
+    "ContentOutputDirectory": "%configpath%/Content",
+    "UsePNGQuant": true,
+    "FileSettings": {
+      "tabpis.png": "UseXNB"
+    }
+  }
 }

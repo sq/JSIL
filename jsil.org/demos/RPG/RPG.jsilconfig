@@ -4,9 +4,9 @@
     "OverwriteExistingContent": true,
     "ContentOutputDirectory": "%configpath%/Content",
     "UsePNGQuant": true,
-    "PNGQuantBlacklist": [
-      "Textures\\Maps\\NonCombat\\ForestTiles.png",
-      "Textures\\Maps\\NonCombat\\DungeonTiles.png"
-    ]
+    "FileSettings": {
+      "Textures\\Maps\\NonCombat\\ForestTiles.png": "NoPNGQuant",
+      "Textures\\Maps\\NonCombat\\DungeonTiles.png": "NoPNGQuant"
+    }
   }
 }

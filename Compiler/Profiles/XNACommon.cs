@@ -340,8 +340,7 @@ public static class Common {
         if (!NeedsRebuild(oldResult, CompressVersion, sourcePath, out sourceInfo, out resultInfo))
             return oldResult;
 
-        var forceJpegList = settings["ForceJPEG"] as string[];
-        bool forceJpeg = Array.BinarySearch(forceJpegList, imageName) >= 0;
+        bool forceJpeg = GetFileSettings(settings, imageName).Contains("forcejpeg");
 
         var outputPath = Path.Combine(outputFolder, Path.GetFileNameWithoutExtension(imageName));
         var justCopy = true;
@@ -448,7 +447,6 @@ public static class Common {
             File.Copy(sourcePath, outputPath, true);
 
         bool usePNGQuant = Convert.ToBoolean(settings["UsePNGQuant"]);
-        var pngQuantBlacklist = settings["PNGQuantBlacklist"] as string[];
         var pngQuantParameters = String.Format(
             "{0} {1}", 
             settings["PNGQuantColorCount"],
@@ -464,7 +462,7 @@ public static class Common {
         if (
             usePNGQuant && 
             (Path.GetExtension(outputPath).ToLower() == ".png") &&
-            Array.BinarySearch(pngQuantBlacklist, imageName) == -1
+            !GetFileSettings(settings, imageName).Contains("nopngquant")
         ) {
             byte[] result;
             string stderr;
@@ -552,17 +550,16 @@ public static class Common {
         result.ProfileSettings.SetDefault("PNGQuantColorCount", 256);
         result.ProfileSettings.SetDefault("PNGQuantOptions", "");
 
-        if (result.ProfileSettings.ContainsKey("PNGQuantBlacklist"))
-            result.ProfileSettings["PNGQuantBlacklist"] = (result.ProfileSettings["PNGQuantBlacklist"] as ArrayList)
-                .Cast<string>().OrderBy((s) => s).ToArray();
-        else
-            result.ProfileSettings["PNGQuantBlacklist"] = new string[0];
+        result.ProfileSettings.SetDefault("FileSettings", new Dictionary<string, object>());
+    }
 
-        if (result.ProfileSettings.ContainsKey("ForceJPEG"))
-            result.ProfileSettings["ForceJPEG"] = (result.ProfileSettings["ForceJPEG"] as ArrayList)
-                .Cast<string>().OrderBy((s) => s).ToArray();
+    public static HashSet<string> GetFileSettings (Dictionary<string, object> profileSettings, string fileName) {
+        var fileSettings = profileSettings["FileSettings"] as Dictionary<string, object>;
+        object settings;
+        if (fileSettings.TryGetValue(fileName, out settings))
+            return new HashSet<string>(settings.ToString().ToLower().Split(' '));
         else
-            result.ProfileSettings["ForceJPEG"] = new string[0];
+            return new HashSet<string>();
     }
 
     public static void ProcessContentProjects (Configuration configuration, SolutionBuilder.SolutionBuildResult buildResult, HashSet<string> contentProjectsProcessed) {
@@ -715,6 +712,11 @@ public static class Common {
                             ),
                         item.EvaluatedInclude.Replace(Path.GetExtension(item.EvaluatedInclude), ".xnb")
                     );
+                }
+
+                if (GetFileSettings(configuration.ProfileSettings, item.EvaluatedInclude).Contains("usexnb")) {
+                    copyRawXnb(item, xnbPath, "SpriteFont");
+                    continue;
                 }
 
                 switch (processorName) {

@@ -21,9 +21,9 @@
 	top: 2px;
 }
 #loadingProgress {
-	width: 200px;
+	width: 400px;
 	height: 40px;
-	left: 300px;
+	left: 200px;
 	top: 280px;
 }
 #progressBar {
