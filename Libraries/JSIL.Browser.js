@@ -161,6 +161,56 @@ function getAssetName (filename) {
   return filename.substr(0, lastIndex).toLowerCase();
 };
 
+function evalScript (uri, text) {
+  var anchor = document.createElement("a");
+  anchor.href = uri;
+  var absoluteUri = anchor.href;
+
+  // Add a sourceURL comment so that the script has the correct URL in debuggers
+  window.scriptText = "//@ sourceURL=" + absoluteUri + "\r\n\r\n" + text;
+
+  // Add a new script tag to ensure that we aren't forcing the script into a strict context
+  var e = document.createElement("script");
+  e.type = "text/javascript";
+  e.appendChild(document.createTextNode("(new Function(window.scriptText))();"));
+  document.getElementById("scripts").appendChild(e);
+
+  window.scriptText = null;
+
+  document.getElementById("scripts").removeChild(e);
+};
+
+function loadTextAsync (uri, onComplete) {
+  var req = new XMLHttpRequest();
+  var state = [false];
+
+  req.open('GET', uri, true);
+          
+  req.onreadystatechange = function (evt) {
+    if (req.readyState != 4)
+      return;
+
+    if (state[0])
+      return;
+  
+    state[0] = true;
+
+    if (req.status <= 299) {
+      onComplete(req.responseText, null);
+    } else {
+      onComplete(null, { statusText: req.statusText, status: req.status });
+      return;
+    }
+  };
+  
+  try {
+    req.send(null);
+  } catch (exc) {
+    state[0] = true;
+    onComplete(null, exc);
+  }
+};
+
 function loadBinaryFileAsync (uri, onComplete) {
   var req;
   var state = [false];
@@ -228,22 +278,28 @@ var fontLoadTimeout = 15000;
 
 var assetLoaders = {
   "Library": function loadLibrary (filename, data, onError, onDoneLoading) {
-    var e = document.createElement("script");
-    e.type = "text/javascript";
-    e.addEventListener("error", onError, true);
-    e.addEventListener("load", onDoneLoading.bind(null, null), true);
-    e.async = true;
-    e.src = libraryRoot + filename;
-    document.getElementById("scripts").appendChild(e);
+    loadTextAsync(libraryRoot + filename, function (result, error) {
+      var finisher = function () {
+        evalScript(filename, result);
+      };
+
+      if (result !== null)
+        onDoneLoading(finisher);
+      else
+        onError(error);
+    });
   },
   "Script": function loadScript (filename, data, onError, onDoneLoading) {
-    var e = document.createElement("script");
-    e.type = "text/javascript";
-    e.addEventListener("error", onError, true);
-    e.addEventListener("load", onDoneLoading.bind(null, null), true);
-    e.async = true;
-    e.src = scriptRoot + filename;
-    document.getElementById("scripts").appendChild(e);
+    loadTextAsync(scriptRoot + filename, function (result, error) {
+      var finisher = function () {
+        evalScript(filename, result);
+      };
+
+      if (result !== null)
+        onDoneLoading(finisher);
+      else
+        onError(error);
+    });
   },
   "Image": function loadImage (filename, data, onError, onDoneLoading) {
     var e = document.createElement("img");
@@ -530,10 +586,12 @@ function finishLoading () {
   updateProgressBar("Loading data: ", "", state.assetsFinished, state.assetCount);
 
   for (var i = 0; i < 4; i++) {
-    if (state.finishIndex < state.assetCount) {
-      var finish = state.finishQueue[state.finishIndex];
-      if (typeof (finish) === "function")
-        finish();
+    if (state.finishIndex < state.finishQueue.length) {
+      var item = state.finishQueue[state.finishIndex];
+      var cb = item[2];
+
+      if (typeof (cb) === "function")
+        cb();
 
       state.finishIndex += 1;
       state.assetsFinished += 1;
@@ -552,12 +610,10 @@ function pollAssetQueue () {
   var w = 0;
   updateProgressBar("Downloading files: ", "kb", state.bytesLoaded / 1024, state.assetBytes / 1024);
 
-  var makeStepCallback = function (state, sizeBytes, i) {
+  var makeStepCallback = function (state, type, sizeBytes, i) {
     return function (finish) {
       if (typeof (finish) === "function")
-        state.finishQueue[i] = finish;
-      else
-        state.finishQueue[i] = null;
+        state.finishQueue.push([type, i, finish]);
 
       state.assetsLoading -= 1;
       state.assetsLoaded += 1;
@@ -588,7 +644,7 @@ function pollAssetQueue () {
     if (assetData !== null)
       sizeBytes = assetData.sizeBytes || 1;
 
-    var stepCallback = makeStepCallback(state, sizeBytes, state.loadIndex); 
+    var stepCallback = makeStepCallback(state, assetType, sizeBytes, state.loadIndex); 
     var errorCallback = makeErrorCallback(assetPath, assetSpec);    
     
     if (typeof (assetLoader) !== "function") {
@@ -605,6 +661,45 @@ function pollAssetQueue () {
     window.clearInterval(state.interval);
     state.interval = null;
 
+    var cmp = function (lhs, rhs) {
+      if (lhs > rhs)
+        return 1;
+      else if (rhs > lhs)
+        return -1;
+      else
+        return 0;
+    };
+
+    state.finishQueue.sort(function (lhs, rhs) {
+      var lhsTypeIndex = 2, rhsTypeIndex = 2;
+      var lhsIndex = lhs[1];
+      var rhsIndex = rhs[1];
+
+      switch (lhs[0]) {
+        case "Library":
+          lhsTypeIndex = 0;
+          break;
+        case "Script":
+          lhsTypeIndex = 1;
+          break;
+      }
+
+      switch (rhs[0]) {
+        case "Library":
+          rhsTypeIndex = 0;
+          break;
+        case "Script":
+          rhsTypeIndex = 1;
+          break;
+      }
+
+      var result = cmp(lhsTypeIndex, rhsTypeIndex);
+      if (result === 0)
+        result = cmp(lhsIndex, rhsIndex);
+
+      return result;
+    });
+
     state.interval = window.setInterval(finishLoading.bind(state), 1);
 
     return;
@@ -619,7 +714,7 @@ function loadAssets (assets, onDoneLoading) {
     assetsLoaded: 0,
     assetsFinished: 0,
     assetsLoading: 0,
-    maxAssetsLoading: 32,
+    maxAssetsLoading: 16,
     onDoneLoading: onDoneLoading,
     assets: assets,
     interval: null,
@@ -640,7 +735,7 @@ function loadAssets (assets, onDoneLoading) {
     state.assetBytes += sizeBytes;
   }
 
-  state.interval = window.setInterval(pollAssetQueue.bind(state), 10);
+  state.interval = window.setInterval(pollAssetQueue.bind(state), 1);
 };
 
 function beginLoading () {
