@@ -398,7 +398,6 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
     } else if (networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
       clearInterval(state.interval);
       state.loaded = true;
-      allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), null, data);
       try {
         onError("Error " + e.error.code);
       } catch (ex) {

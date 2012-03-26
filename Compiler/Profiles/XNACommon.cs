@@ -127,6 +127,7 @@ public static class Common {
     [Serializable]
     public struct CompressResult {
         public int Version;
+        public string Key;
 
         public string SourceFilename;
         public long SourceSize;
@@ -142,18 +143,13 @@ public static class Common {
         return Math.Abs(delta.TotalSeconds);
     }
 
-    public static CompressResult? CompressImage (string imageName, string sourceFolder, string outputFolder, Dictionary<string, object> settings, CompressResult? oldResult) {
-        const int CompressVersion = 2;
-
-        EnsureDirectoryExists(outputFolder);
-
-        var sourcePath = Path.Combine(sourceFolder, imageName);
-        var sourceInfo = new FileInfo(sourcePath);
-        FileInfo resultInfo;
+    private static bool NeedsRebuild (CompressResult? oldResult, int version, string sourcePath, out FileInfo sourceInfo, out FileInfo resultInfo) {
+        sourceInfo = new FileInfo(sourcePath);
+        resultInfo = null;
 
         if (oldResult.HasValue) {
             if (
-                (oldResult.Value.Version == CompressVersion) &&
+                (oldResult.Value.Version == version) &&
                 (oldResult.Value.SourceFilename == sourcePath) &&
                 (DeltaSeconds(oldResult.Value.SourceTimestamp, sourceInfo.LastWriteTimeUtc) < 1.0) &&
                 (oldResult.Value.SourceSize == sourceInfo.Length)
@@ -167,11 +163,182 @@ public static class Common {
                         (oldResult.Value.Size == resultInfo.Length)
                     ) {
 
-                        return oldResult.Value;
+                        return false;
                     }
                 }
             }
         }
+
+        return true;
+    }
+
+    public static string FFMPEGDecode (string sourcePath) {
+        var outputPath = Path.GetTempFileName();
+        var ffmpegPath = Path.GetFullPath(@"..\Upstream\FFMPEG\ffmpeg.exe");
+        if (!File.Exists(ffmpegPath)) {
+            Console.Error.WriteLine(@"// Warning: ffmpeg.exe was not found at ..\Upstream\FFMPEG\ffmpeg.exe. Can't decode '{0}'.", Path.GetFileName(sourcePath));
+            return null;
+        }
+
+        var arguments = String.Format("-v error -i \"{0}\" -f wav \"{1}\"", sourcePath, outputPath);
+        string stderr;
+        byte[] stdout;
+
+        File.Delete(outputPath);
+        RunProcess(
+            ffmpegPath, arguments, null, out stderr, out stdout
+        );
+
+        if (!String.IsNullOrWhiteSpace(stderr))
+            Console.Error.WriteLine("// Error output from ffmpeg: {0}", stderr);
+        if (stdout.Length > 0)
+            Console.Error.WriteLine("// Output from ffmpeg: {0}", Encoding.ASCII.GetString(stdout));
+
+        if (File.Exists(outputPath))
+            return outputPath;
+        else
+            return null;
+    }
+
+    public static bool CompressMP3 (string sourcePath, string outputPath, Dictionary<string, object> settings) {
+        var lamePath = Path.GetFullPath(@"..\Upstream\LAME\lame.exe");
+        if (!File.Exists(lamePath)) {
+            Console.Error.WriteLine(@"// Warning: lame.exe was not found at ..\Upstream\LAME\lame.exe. Can't encode MP3.");
+            return false;
+        }
+
+        var arguments = String.Format("--quiet {0} \"{1}\" \"{2}\"", settings["MP3Quality"], sourcePath, outputPath);
+        string stderr;
+        byte[] stdout;
+
+        if (File.Exists(outputPath))
+            File.Delete(outputPath);
+
+        RunProcess(
+            lamePath, arguments, null, out stderr, out stdout
+        );
+
+        if (!String.IsNullOrWhiteSpace(stderr))
+            Console.Error.WriteLine("// Error output from lame: {0}", stderr);
+        if (stdout.Length > 0)
+            Console.Error.WriteLine("// Output from lame: {0}", Encoding.ASCII.GetString(stdout));
+
+        return File.Exists(outputPath);
+    }
+
+    public static bool CompressOGG (string sourcePath, string outputPath, Dictionary<string, object> settings) {
+        var lamePath = Path.GetFullPath(@"..\Upstream\OggEnc\oggenc2.exe");
+        if (!File.Exists(lamePath)) {
+            Console.Error.WriteLine(@"// Warning: oggenc2.exe was not found at ..\Upstream\OggEnc\oggenc2.exe. Can't encode OGG.");
+            return false;
+        }
+
+        var arguments = String.Format("-Q {0} \"{1}\" -o \"{2}\"", settings["OGGQuality"], sourcePath, outputPath);
+        string stderr;
+        byte[] stdout;
+
+        if (File.Exists(outputPath))
+            File.Delete(outputPath);
+
+        RunProcess(
+            lamePath, arguments, null, out stderr, out stdout
+        );
+
+        if (!String.IsNullOrWhiteSpace(stderr))
+            Console.Error.WriteLine("// Error output from oggenc2: {0}", stderr);
+        if (stdout.Length > 0)
+            Console.Error.WriteLine("// Output from oggenc2: {0}", Encoding.ASCII.GetString(stdout));
+
+        return File.Exists(outputPath);
+    }
+
+    public static IEnumerable<CompressResult> CompressAudio (string fileName, string sourceFolder, string outputFolder, Dictionary<string, object> settings, Dictionary<string, CompressResult> existingJournal) {
+        const int CompressVersion = 3;
+
+        EnsureDirectoryExists(outputFolder);
+
+        var sourcePath = Path.Combine(sourceFolder, fileName);
+        FileInfo sourceInfo, resultInfo;
+        CompressResult existingJournalEntry;
+
+        var outputPath = Path.Combine(outputFolder, Path.GetFileNameWithoutExtension(fileName));
+
+        string sourceWave = null;
+        bool sourceWaveIsTemporary = false;
+
+        var originalExtension = Path.GetExtension(fileName).ToLower();
+
+        try {
+            switch (originalExtension) {
+                case ".wma":
+                case ".mp3":
+                case ".aac":
+                    sourceWave = FFMPEGDecode(sourcePath);
+                    if (sourceWave == null)
+                        yield break;
+
+                    sourceWaveIsTemporary = true;
+
+                    break;
+
+                case ".wav":
+                    sourceWave = fileName;
+                    break;
+            }
+
+            var mp3Path = outputPath + ".mp3";
+            var oggPath = outputPath + ".ogg";
+            bool makeMp3 = false, makeOgg = false;
+
+            if (
+                existingJournal.TryGetValue(sourcePath + ":mp3", out existingJournalEntry)
+            ) {
+                if (NeedsRebuild(existingJournalEntry, CompressVersion, sourcePath, out sourceInfo, out resultInfo))
+                    makeMp3 = true;
+                else
+                    yield return existingJournalEntry;
+            } else {
+                sourceInfo = new FileInfo(sourcePath);
+                makeMp3 = true;
+            }
+
+            if (makeMp3) {
+                if (CompressMP3(sourceWave, mp3Path, settings))
+                    yield return MakeCompressResult(CompressVersion, "mp3", mp3Path, sourcePath, sourceInfo);
+            }
+
+            if (
+                existingJournal.TryGetValue(sourcePath + ":ogg", out existingJournalEntry)
+            ) {
+                if (NeedsRebuild(existingJournalEntry, CompressVersion, sourcePath, out sourceInfo, out resultInfo))
+                    makeOgg = true;
+                else
+                    yield return existingJournalEntry;
+            } else {
+                sourceInfo = new FileInfo(sourcePath);
+                makeOgg = true;
+            }
+
+            if (makeOgg) {
+                if (CompressOGG(sourceWave, oggPath, settings))
+                    yield return MakeCompressResult(CompressVersion, "ogg", oggPath, sourcePath, sourceInfo);
+            }
+        } finally {
+            if (sourceWaveIsTemporary)
+                File.Delete(sourceWave);
+        }
+    }
+
+    public static CompressResult? CompressImage (string imageName, string sourceFolder, string outputFolder, Dictionary<string, object> settings, CompressResult? oldResult) {
+        const int CompressVersion = 2;
+
+        EnsureDirectoryExists(outputFolder);
+
+        var sourcePath = Path.Combine(sourceFolder, imageName);
+        FileInfo sourceInfo, resultInfo;
+
+        if (!NeedsRebuild(oldResult, CompressVersion, sourcePath, out sourceInfo, out resultInfo))
+            return oldResult;
 
         var forceJpegList = settings["ForceJPEG"] as string[];
         bool forceJpeg = Array.BinarySearch(forceJpegList, imageName) >= 0;
@@ -299,49 +466,71 @@ public static class Common {
             (Path.GetExtension(outputPath).ToLower() == ".png") &&
             Array.BinarySearch(pngQuantBlacklist, imageName) == -1
         ) {
-            var psi = new ProcessStartInfo(pngQuantPath, pngQuantParameters);
-            psi.UseShellExecute = false;
-            psi.RedirectStandardInput = true;
-            psi.RedirectStandardError = true;
-            psi.RedirectStandardOutput = true;
+            byte[] result;
+            string stderr;
 
-            using (var process = Process.Start(psi)) {
-                process.StandardInput.AutoFlush = true;
+            RunProcess(
+                pngQuantPath, pngQuantParameters,
+                File.ReadAllBytes(outputPath),
+                out stderr, out result
+            );
 
+            if (!String.IsNullOrWhiteSpace(stderr))
+                Console.Error.WriteLine("// Error output from PNGQuant: {0}", stderr);
+
+            File.WriteAllBytes(outputPath, result);
+        }
+
+        return MakeCompressResult(CompressVersion, null, outputPath, sourcePath, sourceInfo);
+    }
+
+    private static void RunProcess (string filename, string parameters, byte[] stdin, out string stderr, out byte[] stdout) {
+        var psi = new ProcessStartInfo(filename, parameters);
+
+        psi.WorkingDirectory = Path.GetDirectoryName(filename);
+        psi.UseShellExecute = false;
+        psi.RedirectStandardInput = stdin != null;
+        psi.RedirectStandardError = true;
+        psi.RedirectStandardOutput = true;
+
+        using (var process = Process.Start(psi)) {
+
+            if (stdin != null) {
                 ThreadPool.QueueUserWorkItem(
                     (_) => {
-                        var bytes = File.ReadAllBytes(outputPath);
-                        process.StandardInput.BaseStream.Write(
-                            bytes, 0, bytes.Length
-                        );
+                        if (stdin != null)
+                            process.StandardInput.BaseStream.Write(
+                                stdin, 0, stdin.Length
+                            );
+
                         process.StandardInput.BaseStream.Flush();
                         process.StandardInput.BaseStream.Close();
                     }, null
                 );
-
-                var stderr = new string[1] { null };
-                ThreadPool.QueueUserWorkItem(
-                    (_) => {
-                        var text = Encoding.ASCII.GetString(ReadEntireStream(process.StandardError.BaseStream));
-                        stderr[0] = text;
-                    }, null
-                );
-
-                var result = ReadEntireStream(process.StandardOutput.BaseStream);
-
-                File.WriteAllBytes(outputPath, result);
-
-                process.WaitForExit();
-                if (!String.IsNullOrWhiteSpace(stderr[0]))
-                    Console.Error.WriteLine("// Error output from PNGQuant: {0}", stderr[0]);
-
-                process.Close();
             }
-        }
 
-        resultInfo = new FileInfo(outputPath);
+            var temp = new string[1] { null };
+            ThreadPool.QueueUserWorkItem(
+                (_) => {
+                    var text = Encoding.ASCII.GetString(ReadEntireStream(process.StandardError.BaseStream));
+                    temp[0] = text;
+                }, null
+            );
+
+            stdout = ReadEntireStream(process.StandardOutput.BaseStream);
+
+            process.WaitForExit();
+            stderr = temp[0];
+
+            process.Close();
+        }
+    }
+
+    private static CompressResult MakeCompressResult (int version, string key, string outputPath, string sourcePath, FileInfo sourceInfo) {
+        var resultInfo = new FileInfo(outputPath);
         return new CompressResult {
-            Version = CompressVersion,
+            Version = version,
+            Key = key,
 
             SourceFilename = sourcePath,
             SourceSize = sourceInfo.Length,
@@ -356,6 +545,9 @@ public static class Common {
     public static void InitConfiguration (JSIL.Compiler.Configuration result) {
         result.ProfileSettings.SetDefault("ContentOutputDirectory", null);
         result.ProfileSettings.SetDefault("JPEGQuality", 90);
+        result.ProfileSettings.SetDefault("MP3Quality", "-V 3");
+        result.ProfileSettings.SetDefault("OGGQuality", "-q 6");
+
         result.ProfileSettings.SetDefault("UsePNGQuant", false);
         result.ProfileSettings.SetDefault("PNGQuantColorCount", 256);
         result.ProfileSettings.SetDefault("PNGQuantOptions", "");
@@ -389,7 +581,7 @@ public static class Common {
             (project) => project.File.EndsWith(".contentproj")
             ).ToArray();
 
-        Dictionary<string, Common.CompressResult> existingJournal;
+        Dictionary<string, Common.CompressResult> existingJournal = null;
         Common.CompressResult? existingJournalEntry;
         var jss = new JavaScriptSerializer();
 
@@ -406,9 +598,16 @@ public static class Common {
             Common.EnsureDirectoryExists(Path.GetDirectoryName(journalPath));
             if (File.Exists(journalPath)) {
                 var journalEntries = jss.Deserialize<Common.CompressResult[]>(File.ReadAllText(journalPath));
-                existingJournal = journalEntries.ToDictionary((je) => je.SourceFilename);
-            } else {
-                existingJournal = null;
+
+                if (journalEntries != null)
+                    existingJournal = journalEntries.ToDictionary(
+                        (je) => {
+                            if (je.Key != null)
+                                return je.SourceFilename + ":" + je.Key;
+                            else
+                                return je.SourceFilename;
+                        }
+                    );
             }
 
             contentProjectsProcessed.Add(contentProjectPath);
@@ -440,20 +639,28 @@ public static class Common {
             contentManifest.AppendLine("contentManifest[\"" + Path.GetFileNameWithoutExtension(contentProjectPath) +
                                        "\"] = [");
 
-            Action<string, string> logOutput =
-            (type, filename) => {
+            Action<string, string, Dictionary<string, object>> logOutput =
+            (type, filename, properties) => {
                 var localPath = filename.Replace(localOutputDirectory, "");
                 if (localPath.StartsWith("\\"))
                     localPath = localPath.Substring(1);
 
                 Console.WriteLine(localPath);
 
-                var propertiesObject = String.Format("{{ \"sizeBytes\": {0} }}",
-                                                    new FileInfo(filename).Length);
+                string propertiesObject;
 
-                contentManifest.AppendFormat("  [\"{0}\", \"{1}\", {2}],{3}", type,
-                                            localPath.Replace("\\", "/"),
-                                            propertiesObject, Environment.NewLine);
+                if (properties == null) {
+                    properties = new Dictionary<string, object> {
+                        { "sizeBytes", new FileInfo(filename).Length }
+                    };
+                }
+
+                contentManifest.AppendFormat(
+                    "  [\"{0}\", \"{1}\", {2}],{3}", 
+                    type, localPath.Replace("\\", "/"),
+                    jss.Serialize(properties),
+                    Environment.NewLine
+                );
             };
 
             Action<ProjectItem, string, string> copyRawXnb =
@@ -469,18 +676,33 @@ public static class Common {
                     Path.GetDirectoryName(outputPath));
 
                 File.Copy(xnbPath, outputPath, true);
-                logOutput(type, outputPath);
+                logOutput(type, outputPath, null);
             };
 
             foreach (var item in project.Items) {
                 if (item.ItemType != "Compile")
                     continue;
 
+                var itemOutputDirectory = Path.Combine(
+                    localOutputDirectory,
+                    Path.GetDirectoryName(item.EvaluatedInclude)
+                );
+
                 var metadata = item.DirectMetadata.ToDictionary((md) => md.Name);
                 var importerName = metadata["Importer"].EvaluatedValue;
                 var processorName = metadata["Processor"].EvaluatedValue;
                 var sourcePath = Path.Combine(contentProjectDirectory, item.EvaluatedInclude);
                 string xnbPath = null;
+
+                if (existingJournal == null)
+                    existingJournalEntry = null;
+                else {
+                    Common.CompressResult temp;
+                    if (existingJournal.TryGetValue(sourcePath, out temp))
+                        existingJournalEntry = temp;
+                    else
+                        existingJournalEntry = null;
+                }
 
                 if (parentProjectProperties != null) {
                     xnbPath = Path.Combine(
@@ -506,32 +728,44 @@ public static class Common {
                             continue;
                         }
 
-                        if (existingJournal == null)
-                            existingJournalEntry = null;
-                        else {
-                            Common.CompressResult temp;
-                            if (existingJournal.TryGetValue(sourcePath, out temp))
-                                existingJournalEntry = temp;
-                            else
-                                existingJournalEntry = null;
-                        }
-
-                        var itemOutputDirectory = Path.Combine(localOutputDirectory,
-                                                               Path.GetDirectoryName(item.EvaluatedInclude));
                         var result = Common.CompressImage(
                             item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
                             configuration.ProfileSettings, existingJournalEntry
-                            );
+                        );
 
                         if (result.HasValue) {
                             journal.Add(result.Value);
-                            logOutput("Image", result.Value.Filename);
+                            logOutput("Image", result.Value.Filename, null);
                         }
 
                         continue;
                 }
 
                 switch (importerName) {
+                    case "WmaImporter":
+                        var results = Common.CompressAudio(
+                            item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
+                            configuration.ProfileSettings, existingJournal
+                        ).ToArray();
+
+                        var formats = new List<string>();
+                        var properties = new Dictionary<string, object> {
+                            {"formats", formats},
+                            {"sizeBytes", results.Max((r) => r.Size)}
+                        };
+
+                        foreach (var result in results) {
+                            formats.Add(Path.GetExtension(result.Filename));
+                            journal.Add(result);
+                        }
+
+                        var prefixName = Path.Combine(
+                            Path.GetDirectoryName(results.First().Filename),
+                            Path.GetFileNameWithoutExtension(results.First().Filename)
+                        );
+                        logOutput("Sound", prefixName, properties);
+
+                        break;
                     case "XmlImporter":
                         copyRawXnb(item, xnbPath, "XNB");
                         break;

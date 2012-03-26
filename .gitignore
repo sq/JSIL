@@ -35,5 +35,7 @@ Tests/*Cases/*.js
 /Examples/obj
 /jsil.org/demos/RPG/*.js
 /jsil.org/demos/RPG/Content
-
 /Upstream/dxtc.cpp
+/Upstream/LAME
+/Upstream/FFMPEG
+/Upstream/OggEnc

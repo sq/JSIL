@@ -214,16 +214,14 @@ JSIL.MakeClass("HTML5Asset", "HTML5ImageAsset", true, [], function ($) {
 });
 
 JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true, [], function ($) {
-  $.prototype._ctor = function (assetName, sound, properties) {
+  $.prototype._ctor = function (assetName, sound) {
     HTML5Asset.prototype._ctor.call(this, assetName);
     this.sound = sound;
-    this.properties = properties;
-    this.loop = properties.loop || false;
     this.freeInstances = [
-      this.$createInstance()
+      this.$createInstance(false)
     ];
   };
-  $.prototype.$createInstance = function () {
+  $.prototype.$createInstance = function (loop) {
     var instance = this.sound.cloneNode(true);
 
     if (this.loop) {
@@ -244,7 +242,7 @@ JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true, [], function ($) {
     if (this.freeInstances.length > 0) {
       instance = this.freeInstances.pop();
     } else {
-      instance = this.$createInstance();
+      instance = this.$createInstance(false);
     }
 
     instance.play();
@@ -252,23 +250,30 @@ JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true, [], function ($) {
 });
 
 JSIL.MakeClass("HTML5Asset", "WebkitSoundAsset", true, [], function ($) {
-  $.prototype._ctor = function (assetName, audioContext, buffer, properties) {
+  $.prototype._ctor = function (assetName, audioContext, buffer) {
     HTML5Asset.prototype._ctor.call(this, assetName);
     this.audioContext = audioContext;
     this.buffer = buffer;
-    this.properties = properties;
-    this.loop = properties.loop || false;
   };
-  $.prototype.$createInstance = function () {
+  $.prototype.$createInstance = function (loop) {
     var instance = this.audioContext.createBufferSource();
     instance.buffer = this.buffer;
-    instance.loop = this.loop;
+    instance.loop = loop;
     instance.connect(this.audioContext.destination);
-    return instance;
+    return {
+      source: instance,
+      play: function () {
+        instance.noteOn(0);
+      },
+      pause: function () {
+        instance.noteOff(0);
+      }
+    };
   };
   $.prototype.Play$0 = function () {
-    var instance = this.$createInstance();
-    instance.noteOn(0);
+    var instance = this.$createInstance(false);
+
+    instance.play();
   };
 });
 
@@ -833,9 +838,33 @@ JSIL.ImplementExternals(
 
 JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Media.MediaPlayer", false, {
+    _cctor: function () {
+      Microsoft.Xna.Framework.Media.MediaPlayer.repeat = false;
+      Microsoft.Xna.Framework.Media.MediaPlayer.currentSong = null;
+    },
+    get_IsRepeating: function () {
+      return Microsoft.Xna.Framework.Media.MediaPlayer.repeat;
+    },
+    set_IsRepeating: function (value) {
+      Microsoft.Xna.Framework.Media.MediaPlayer.repeat = value;
+    },
     Play$0: function (song) {
-      if (song !== null)
-        song.Play$0();
+      var oldInstance = Microsoft.Xna.Framework.Media.MediaPlayer.currentSong;
+      var newInstance = null;      
+
+      if (song !== null) {
+        newInstance = song.$createInstance(
+          Microsoft.Xna.Framework.Media.MediaPlayer.repeat
+        );
+      }
+
+      if (oldInstance !== null)
+        oldInstance.pause();
+
+      if (newInstance !== null)
+        newInstance.play();
+
+      Microsoft.Xna.Framework.Media.MediaPlayer.currentSong = newInstance;
     }
   }
 );
