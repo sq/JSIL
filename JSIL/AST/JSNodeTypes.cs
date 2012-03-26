@@ -131,6 +131,7 @@ namespace JSIL.Ast {
 
     public class JSBlockStatement : JSStatement {
         public readonly List<JSStatement> Statements;
+        private bool _IsControlFlow = false;
 
         public JSBlockStatement (params JSStatement[] statements) {
             Statements = new List<JSStatement>(statements);
@@ -172,7 +173,10 @@ namespace JSIL.Ast {
 
         public virtual bool IsControlFlow {
             get {
-                return false;
+                return _IsControlFlow;
+            }
+            internal set {
+                _IsControlFlow = value;
             }
         }
 
@@ -217,8 +221,13 @@ namespace JSIL.Ast {
         public JSLabelGroupStatement (int index, params JSStatement[] labels) {
             GroupIndex = index;
 
-            foreach (var lb in labels)
+            foreach (var lb in labels) {
+                var labelBlock = lb as JSBlockStatement;
+                if (labelBlock != null)
+                    labelBlock.IsControlFlow = true;
+
                 Labels.Enqueue(lb.Label, lb);
+            }
         }
 
         public override IEnumerable<JSNode> Children {
@@ -602,6 +611,14 @@ namespace JSIL.Ast {
             _Condition = condition;
             _TrueClause = trueClause;
             _FalseClause = falseClause;
+
+            var trueBlock = _TrueClause as JSBlockStatement;
+            if (trueBlock != null)
+                trueBlock.IsControlFlow = true;
+
+            var falseBlock = _FalseClause as JSBlockStatement;
+            if (falseBlock != null)
+                falseBlock.IsControlFlow = true;
         }
 
         public static JSIfStatement New (params KeyValuePair<JSExpression, JSStatement>[] conditions) {

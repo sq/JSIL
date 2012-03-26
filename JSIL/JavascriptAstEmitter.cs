@@ -131,7 +131,6 @@ namespace JSIL {
                 Output.Keyword("continue");
                 Output.Space();
                 Output.Identifier(stepLabel);
-                Output.Semicolon(true);
 
                 return true;
             };
@@ -144,6 +143,7 @@ namespace JSIL {
                 if (!isFirst && needsTrailingBreak) {
                     Output.PlainTextFormatter.Indent();
                     emitGoto(kvp.Key);
+                    Output.Semicolon(true);
                     Output.PlainTextFormatter.Unindent();
                 }
 

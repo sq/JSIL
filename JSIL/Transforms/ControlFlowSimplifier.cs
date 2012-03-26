@@ -25,7 +25,7 @@ namespace JSIL.Transforms {
         public void VisitNode (JSSwitchCase sc) {
             SwitchCaseStack.Push(sc);
 
-            if (TraceLevel >= 1) {
+            if (TraceLevel >= 2) {
                 if (sc.Values != null)
                     Console.WriteLine("// Entering case {0}", sc.Values.FirstOrDefault());
                 else
@@ -34,7 +34,7 @@ namespace JSIL.Transforms {
 
             VisitChildren(sc);
 
-            if (TraceLevel >= 1)
+            if (TraceLevel >= 2)
                 Console.WriteLine("// Exiting case");
 
             SwitchCaseStack.Pop();
@@ -47,11 +47,11 @@ namespace JSIL.Transforms {
                 (thisSwitchCase != LastSwitchCase) || 
                 (parentLabelGroup != null);
 
-            if (TraceLevel >= 1)
+            if (TraceLevel >= 2)
                 Console.WriteLine("// Entering block {0}", bs.Label ?? bs.GetType().Name);
 
             if (isControlFlow) {
-                if (TraceLevel >= 1)
+                if (TraceLevel >= 2)
                     Console.WriteLine("// Count reset");
 
                 AbsoluteJumpsSeenStack.Add(0);
@@ -63,7 +63,7 @@ namespace JSIL.Transforms {
 
             BlockStack.Pop();
 
-            if (TraceLevel >= 1)
+            if (TraceLevel >= 2)
                 Console.WriteLine("// Exiting block");
 
             if (isControlFlow)
@@ -102,14 +102,14 @@ namespace JSIL.Transforms {
                 AbsoluteJumpsSeen += 1;
 
                 if (AbsoluteJumpsSeen > 1) {
-                    if (TraceLevel >= 2)
+                    if (TraceLevel >= 1)
                         Console.WriteLine("// Eliminating {0}", ce);
 
                     var replacement = new JSNullExpression();
                     ParentNode.ReplaceChild(ce, replacement);
                     return;
                 } else {
-                    if (TraceLevel >= 2)
+                    if (TraceLevel >= 3)
                         Console.WriteLine("// Not eliminating {0}", ce);
                 }
             }
@@ -126,14 +126,14 @@ namespace JSIL.Transforms {
                 AbsoluteJumpsSeen += 1;
 
                 if (AbsoluteJumpsSeen > 1) {
-                    if (TraceLevel >= 2)
+                    if (TraceLevel >= 1)
                         Console.WriteLine("// Eliminating {0}", be);
 
                     var replacement = new JSNullExpression();
                     ParentNode.ReplaceChild(be, replacement);
                     return;
                 } else {
-                    if (TraceLevel >= 2)
+                    if (TraceLevel >= 3)
                         Console.WriteLine("// Not eliminating {0}", be);
                 }
             }
@@ -150,14 +150,14 @@ namespace JSIL.Transforms {
                 AbsoluteJumpsSeen += 1;
 
                 if (AbsoluteJumpsSeen > 1) {
-                    if (TraceLevel >= 2)
+                    if (TraceLevel >= 1)
                         Console.WriteLine("// Eliminating {0}", ge);
 
                     var replacement = new JSNullExpression();
                     ParentNode.ReplaceChild(ge, replacement);
                     return;
                 } else {
-                    if (TraceLevel >= 2)
+                    if (TraceLevel >= 3)
                         Console.WriteLine("// Not eliminating {0}", ge);
                 }
             }

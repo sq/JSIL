@@ -26,7 +26,7 @@ namespace JSIL.Translator {
             public bool? SimplifyOperators;
             public bool? SimplifyLoops;
             public bool? EliminateTemporaries;
-            public bool? EliminateDuplicateControlFlow;
+            public bool? EliminateRedundantControlFlow;
 
             public void MergeInto (OptimizerConfiguration result) {
                 if (EliminateStructCopies.HasValue)
@@ -37,8 +37,8 @@ namespace JSIL.Translator {
                     result.SimplifyLoops = SimplifyLoops;
                 if (SimplifyOperators.HasValue)
                     result.SimplifyOperators = SimplifyOperators;
-                if (EliminateDuplicateControlFlow.HasValue)
-                    result.EliminateDuplicateControlFlow = EliminateDuplicateControlFlow;
+                if (EliminateRedundantControlFlow.HasValue)
+                    result.EliminateRedundantControlFlow = EliminateRedundantControlFlow;
             }
         }
 
