@@ -225,7 +225,7 @@ function loadBinaryFileAsync (uri, onComplete) {
     req.responseType = 'arraybuffer';
   }
   if (typeof (req.overrideMimeType) !== "undefined") {
-    req.overrideMimeType('text/plain; charset=x-user-defined');
+    req.overrideMimeType('application/octet-stream; charset=x-user-defined');
   }
           
   req.onreadystatechange = function (evt) {
