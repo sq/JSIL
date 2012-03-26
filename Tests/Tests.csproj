@@ -303,6 +303,7 @@
     <None Include="TestCases\EnumFieldDefaults.cs" />
     <None Include="TestCases\EnumFieldAssignment.cs" />
     <None Include="TestCases\CastToBoolean.cs" />
+    <None Include="TestCases\EnumNegation.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

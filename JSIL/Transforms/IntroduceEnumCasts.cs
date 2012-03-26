@@ -47,13 +47,16 @@ namespace JSIL.Transforms {
             var type = uoe.Expression.GetExpectedType(TypeSystem);
             var isEnum = ILBlockTranslator.IsEnum(type);
 
-            // Detect attempts to perform boolean logic on enums.
-            if (isEnum && LogicalOperators.Contains(uoe.Operator)) {
+            if (isEnum) {
                 var cast = JSInvocationExpression.InvokeMethod(
                     new JSFakeMethod("valueOf", TypeSystem.Int32, type), uoe.Expression, null, true
                 );
 
-                uoe.ReplaceChild(uoe.Expression, cast);
+                if (LogicalOperators.Contains(uoe.Operator)) {
+                    uoe.ReplaceChild(uoe.Expression, cast);
+                } else if (uoe.Operator == JSOperator.Negation) {
+                    uoe.ReplaceChild(uoe.Expression, cast);
+                }
             }
 
             VisitChildren(uoe);
@@ -65,7 +68,6 @@ namespace JSIL.Transforms {
             var rightType = boe.Right.GetExpectedType(TypeSystem);
             var rightIsEnum = ILBlockTranslator.IsEnum(rightType);
 
-            // Detect attempts to perform boolean logic on enums.
             if ((leftIsEnum || rightIsEnum) && LogicalOperators.Contains(boe.Operator)) {
                 if (leftIsEnum) {
                     var cast = JSInvocationExpression.InvokeMethod(

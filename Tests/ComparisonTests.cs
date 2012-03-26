@@ -141,6 +141,7 @@ namespace JSIL.Tests {
                     @"TestCases\EnumSwitch.cs",
                     @"TestCases\EnumCasts.cs",
                     @"TestCases\Enums.cs",
+                    @"TestCases\EnumNegation.cs",
                     @"TestCases\EnumFieldDefaults.cs",
                     @"TestCases\EnumFieldAssignment.cs",
                     @"TestCases\EnumBooleanLogic.cs",

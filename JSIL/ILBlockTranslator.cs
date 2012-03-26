@@ -204,6 +204,18 @@ namespace JSIL {
                 );
             }
 
+            // Insert correct casts when unary operators are applied to enums.
+            if (IsEnum(innerType) && IsEnum(node.ExpectedType ?? node.InferredType)) {
+                return JSCastExpression.New(
+                    new JSUnaryOperatorExpression(
+                        op,
+                        JSCastExpression.New(inner, TypeSystem.Int32, TypeSystem),
+                        TypeSystem.Int32
+                    ),
+                    node.ExpectedType ?? node.InferredType, TypeSystem
+                );
+            }
+
             return new JSUnaryOperatorExpression(
                 op, inner, node.ExpectedType ?? node.InferredType
             );
