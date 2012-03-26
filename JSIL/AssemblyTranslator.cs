@@ -1296,6 +1296,9 @@ namespace JSIL {
 
             temporaryEliminationPass();
 
+            if (Configuration.Optimizer.EliminateDuplicateControlFlow.GetValueOrDefault(false))
+                new ControlFlowSimplifier().Visit(function);
+
             var lnd = new LoopNameDetector();
             lnd.Visit(function);
             lnd.EliminateUnusedLoopNames();

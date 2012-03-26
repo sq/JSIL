@@ -131,7 +131,7 @@ namespace JSIL {
                 Output.Keyword("continue");
                 Output.Space();
                 Output.Identifier(stepLabel);
-                Output.Semicolon();
+                Output.Semicolon(true);
 
                 return true;
             };
@@ -142,8 +142,8 @@ namespace JSIL {
 
             foreach (var kvp in labelGroup.Labels) {
                 if (!isFirst && needsTrailingBreak) {
+                    Output.PlainTextFormatter.Indent();
                     emitGoto(kvp.Key);
-
                     Output.PlainTextFormatter.Unindent();
                 }
 
@@ -156,10 +156,48 @@ namespace JSIL {
 
                 Visit(kvp.Value);
 
-                var lastStatement = kvp.Value.Children.LastOrDefault() as JSExpressionStatement;
+                Func<JSNode, bool> isNotNull = (n) => {
+                    if (n.IsNull)
+                        return false;
+                    if (n is JSNullStatement)
+                        return false;
+                    if (n is JSNullExpression)
+                        return false;
+
+                    var es = n as JSExpressionStatement;
+                    if (es != null) {
+                        if (es.Expression.IsNull)
+                            return false;
+                        if (es.Expression is JSNullExpression)
+                            return false;
+                    }
+
+                    return true;
+                };
+
+                var nonNullChildren = kvp.Value.Children.Where(isNotNull);
+
+                var lastStatement = nonNullChildren.LastOrDefault();
+                JSBlockStatement lastBlockStatement;
+
+                while ((lastBlockStatement = lastStatement as JSBlockStatement) != null) {
+                    if (lastBlockStatement.IsControlFlow)
+                        break;
+                    else {
+                        nonNullChildren = lastStatement.Children.Where(isNotNull);
+                        lastStatement = nonNullChildren.LastOrDefault();
+                    }
+                }
+
+                var lastExpressionStatement = lastStatement as JSExpressionStatement;
+
                 if (
-                    (lastStatement != null) &&
-                    ((lastStatement.Expression is JSContinueExpression) || (lastStatement.Expression is JSBreakExpression))
+                    (lastExpressionStatement != null) &&
+                    (
+                        (lastExpressionStatement.Expression is JSContinueExpression) || 
+                        (lastExpressionStatement.Expression is JSBreakExpression) ||
+                        (lastExpressionStatement.Expression is JSGotoExpression)
+                    )
                 ) {
                     needsTrailingBreak = false;
                 } else {
@@ -167,16 +205,22 @@ namespace JSIL {
                 }
 
                 isFirst = false;
+
+                Output.PlainTextFormatter.Unindent();
             }
 
             GotoStack.Pop();
 
             if (needsTrailingBreak) {
+                Output.PlainTextFormatter.Indent();
                 Output.Keyword("break");
                 Output.Space();
                 Output.Identifier(stepLabel);
-                Output.Semicolon();
+                Output.Semicolon(true);
+                Output.PlainTextFormatter.Unindent();
             }
+
+            Output.NewLine();
 
             Output.PlainTextFormatter.Unindent();
 
@@ -585,6 +629,7 @@ namespace JSIL {
                 Output.PlainTextFormatter.Indent();
                 Visit(c.Body);
                 Output.PlainTextFormatter.Unindent();
+                Output.NewLine();
             }
 
             Output.CloseBrace();

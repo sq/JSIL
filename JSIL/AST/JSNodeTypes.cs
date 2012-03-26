@@ -170,6 +170,12 @@ namespace JSIL.Ast {
             return false;
         }
 
+        public virtual bool IsControlFlow {
+            get {
+                return false;
+            }
+        }
+
         public override string ToString () {
             return ToString(true);
         }
@@ -189,6 +195,12 @@ namespace JSIL.Ast {
 
     public abstract class JSLoopStatement : JSBlockStatement {
         public int? Index;
+
+        public override bool IsControlFlow {
+            get {
+                return true;
+            }
+        }
 
         protected override string PrependLabel (string text) {
             if (!Index.HasValue)
