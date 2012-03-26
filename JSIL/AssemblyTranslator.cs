@@ -1032,8 +1032,11 @@ namespace JSIL {
                 output.Semicolon();
             }
 
-            if ((typeInfo.MethodGroups.Count + typedef.Properties.Count) > 0)
+            output.NewLine();
+            if ((typeInfo.MethodGroups.Count + typedef.Properties.Count) > 0) {
                 initializeOverloadsAndProperties();
+                output.NewLine();
+            }
 
             var interfaces = (from i in typeInfo.Interfaces
                               where !i.IsIgnored
@@ -1664,6 +1667,7 @@ namespace JSIL {
             }
 
             output.Semicolon();
+            output.NewLine();
         }
 
         protected void TranslateProperty (

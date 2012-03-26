@@ -121,10 +121,55 @@ public static class Common {
         return result.ToArray();
     }
 
-    public static string CompressImage (string imageName, string sourceFolder, string outputFolder, Dictionary<string, object> settings) {
+    [Serializable]
+    public struct CompressResult {
+        public int Version;
+
+        public string SourceFilename;
+        public long SourceSize;
+        public DateTime SourceTimestamp;
+
+        public string Filename;
+        public long Size;
+        public DateTime Timestamp;
+    }
+
+    public static double DeltaSeconds (DateTime lhs, DateTime rhs) {
+        var delta = rhs - lhs;
+        return Math.Abs(delta.TotalSeconds);
+    }
+
+    public static CompressResult? CompressImage (string imageName, string sourceFolder, string outputFolder, Dictionary<string, object> settings, CompressResult? oldResult) {
+        const int CompressVersion = 1;
+
         EnsureDirectoryExists(outputFolder);
 
         var sourcePath = Path.Combine(sourceFolder, imageName);
+        var sourceInfo = new FileInfo(sourcePath);
+        FileInfo resultInfo;
+
+        if (oldResult.HasValue) {
+            if (
+                (oldResult.Value.Version == CompressVersion) &&
+                (oldResult.Value.SourceFilename == sourcePath) &&
+                (DeltaSeconds(oldResult.Value.SourceTimestamp, sourceInfo.LastWriteTimeUtc) < 1.0) &&
+                (oldResult.Value.SourceSize == sourceInfo.Length)
+            ) {
+
+                if (File.Exists(oldResult.Value.Filename)) {
+                    resultInfo = new FileInfo(oldResult.Value.Filename);
+
+                    if (
+                        (DeltaSeconds(oldResult.Value.Timestamp, resultInfo.LastWriteTimeUtc) < 1.0) &&
+                        (oldResult.Value.Size == resultInfo.Length)
+                    ) {
+
+                        return oldResult.Value;
+                    }
+                }
+            }
+        }
+
         var outputPath = Path.Combine(outputFolder, Path.GetFileNameWithoutExtension(imageName));
         var justCopy = true;
 
@@ -277,6 +322,17 @@ public static class Common {
             }
         }
 
-        return outputPath;
+        resultInfo = new FileInfo(outputPath);
+        return new CompressResult {
+            Version = CompressVersion,
+
+            SourceFilename = sourcePath,
+            SourceSize = sourceInfo.Length,
+            SourceTimestamp = sourceInfo.LastWriteTimeUtc,
+
+            Filename = outputPath,
+            Size = resultInfo.Length,
+            Timestamp = resultInfo.LastWriteTimeUtc
+        };
     }
 }

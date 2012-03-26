@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Web.Script.Serialization;
 using JSIL.Compiler.Extensibility;
 using Microsoft.Build.Evaluation;
 using Microsoft.Xna.Framework;
@@ -61,11 +62,26 @@ namespace JSIL.Compiler.Profiles {
                 (project) => project.File.EndsWith(".contentproj")
             ).ToArray();
 
+            Dictionary<string, Common.CompressResult> existingJournal;
+            Common.CompressResult? existingJournalEntry;
+            var jss = new JavaScriptSerializer();
+
             foreach (var builtContentProject in contentProjects) {
                 var contentProjectPath = builtContentProject.File;
 
                 if (ContentProjectsProcessed.Contains(contentProjectPath))
                     continue;
+
+                var journal = new List<Common.CompressResult>();
+                var journalPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "JSIL", contentProjectPath.Replace("\\", "_").Replace(":", ""));
+
+                Common.EnsureDirectoryExists(Path.GetDirectoryName(journalPath));
+                if (File.Exists(journalPath)) {
+                    var journalEntries = jss.Deserialize<Common.CompressResult[]>(File.ReadAllText(journalPath));
+                    existingJournal = journalEntries.ToDictionary((je) => je.SourceFilename);
+                } else {
+                    existingJournal = null;
+                }
 
                 ContentProjectsProcessed.Add(contentProjectPath);
                 Console.Error.WriteLine("// Processing content project '{0}' ...", contentProjectPath);
@@ -147,13 +163,27 @@ namespace JSIL.Compiler.Profiles {
                             copyRawXnb(item, xnbPath, "SpriteFont");
                             continue;
                         case "TextureProcessor":
+                            if (existingJournal == null)
+                                existingJournalEntry = null;
+                            else {
+                                Common.CompressResult temp;
+                                if (existingJournal.TryGetValue(sourcePath, out temp))
+                                    existingJournalEntry = temp;
+                                else
+                                    existingJournalEntry = null;
+                            }
+
                             var itemOutputDirectory = Path.Combine(localOutputDirectory, Path.GetDirectoryName(item.EvaluatedInclude));
-                            var outputPath = Common.CompressImage(
+                            var result = Common.CompressImage(
                                 item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory, 
-                                configuration.ProfileSettings
+                                configuration.ProfileSettings, existingJournalEntry
                             );
 
-                            logOutput("Image", outputPath);
+                            if (result.HasValue) {
+                                journal.Add(result.Value);
+                                logOutput("Image", result.Value.Filename);
+                            }
+
                             continue;
                     }
 
@@ -171,6 +201,10 @@ namespace JSIL.Compiler.Profiles {
                 File.WriteAllText(
                     Path.Combine(configuration.OutputDirectory, Path.GetFileName(contentProjectPath) + ".manifest.js"),
                     contentManifest.ToString()
+                );
+
+                File.WriteAllText(
+                    journalPath, jss.Serialize(journal).Replace("{", "\r\n{")
                 );
             }
 

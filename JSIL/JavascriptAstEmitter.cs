@@ -84,6 +84,8 @@ namespace JSIL {
         }
 
         public void VisitNode (JSLabelGroupStatement labelGroup) {
+            Output.NewLine();
+
             var stepLabel = String.Format("$labelgroup{0}", labelGroup.GroupIndex);
             var labelVar = String.Format("$label{0}", labelGroup.GroupIndex);
             var firstLabel = labelGroup.Labels.First().Key;
@@ -207,6 +209,8 @@ namespace JSIL {
                 isFirst = false;
 
                 Output.PlainTextFormatter.Unindent();
+
+                Output.NewLine();
             }
 
             GotoStack.Pop();
@@ -219,8 +223,6 @@ namespace JSIL {
                 Output.Semicolon(true);
                 Output.PlainTextFormatter.Unindent();
             }
-
-            Output.NewLine();
 
             Output.PlainTextFormatter.Unindent();
 
@@ -727,6 +729,8 @@ namespace JSIL {
         }
 
         public void VisitNode (JSForLoop loop) {
+            Output.NewLine();
+
             BlockStack.Push(BlockType.ForHeader);
             WriteLoopLabel(loop);
 
@@ -757,6 +761,8 @@ namespace JSIL {
         }
 
         public void VisitNode (JSWhileLoop loop) {
+            Output.NewLine();
+
             BlockStack.Push(BlockType.While);
             WriteLoopLabel(loop);
 
@@ -774,6 +780,8 @@ namespace JSIL {
         }
 
         public void VisitNode (JSDoLoop loop) {
+            Output.NewLine();
+
             BlockStack.Push(BlockType.Do);
             WriteLoopLabel(loop);
 
