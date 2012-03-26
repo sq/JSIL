@@ -101,8 +101,12 @@ $jsilxna.setCachedMultipliedImage = function (image, color, value) {
 
 $jsilxna.getImageMultiplied = function (image, color) {
   var cached = $jsilxna.getCachedMultipliedImage(image, color);
-  if (cached !== null)
-    return cached;
+  if (cached !== null) {
+    if (typeof (cached.canvas) !== "undefined")
+      return cached.canvas;
+    else
+      return cached;
+  }
 
   var canvas = document.createElement("canvas");
   var context = canvas.getContext("2d");
@@ -131,12 +135,28 @@ $jsilxna.getImageMultiplied = function (image, color) {
     }
 
     context.putImageData(imageData, 1, 1);
-    $jsilxna.setCachedMultipliedImage(image, color, canvas);
+
+    // Chrome's canvas implementation is broken and randomly hangs for thousands of milliseconds if you ask
+    //  it to paint canvases with certain hard-to-identify characteristics.
+    var newImage = document.createElement("img");
+
+    // Loading an image from a data URL can take an arbitrary amount of time, so we have to use the canvas
+    //  as our source until then, even though it's slow.
+    newImage.addEventListener("load", function () {
+      delete newImage["canvas"];
+    }, true);
+    newImage["canvas"] = canvas;
+    newImage.width = canvas.width;
+    newImage.height = canvas.height;
+
+    newImage.src = canvas.toDataURL();
+
+    $jsilxna.setCachedMultipliedImage(image, color, newImage);
   } catch (exc) {
     return image;
   }
 
-  return canvas;
+  return newImage;
 };
 
 JSIL.ImplementExternals(
@@ -1829,6 +1849,14 @@ JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Graphics.SpriteBatch", true, {
     $drawDebugRects: false,
 
+    $canvasDrawImage: function (image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, destW, destH) {
+      this.device.context.drawImage(
+        image, 
+        sourceX, sourceY, sourceW, sourceH,
+        positionX, positionY, destW, destH
+      );
+    },
+
     _ctor: function (device) {
       this.device = device;
       this.defer = false;
@@ -2040,7 +2068,7 @@ JSIL.ImplementExternals(
           );
         }
 
-        this.device.context.drawImage(
+        this.$canvasDrawImage(
           image, 
           sourceX, sourceY, sourceW, sourceH,
           positionX, positionY, destW, destH
