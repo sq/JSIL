@@ -224,7 +224,7 @@ JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true, [], function ($) {
   $.prototype.$createInstance = function (loop) {
     var instance = this.sound.cloneNode(true);
 
-    if (this.loop) {
+    if (loop) {
       instance.addEventListener("ended", function () {
         instance.play();
       }.bind(this), true);
