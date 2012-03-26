@@ -170,9 +170,13 @@ function loadBinaryFileAsync (uri, onComplete) {
     req = new XMLHttpRequest();
   }
   
-  req.open('GET', uri, false);
-  if (typeof (req.overrideMimeType) !== "undefined")
+  req.open('GET', uri, true);
+  if (typeof (ArrayBuffer) === "function") {
+    req.responseType = 'arraybuffer';
+  }
+  if (typeof (req.overrideMimeType) !== "undefined") {
     req.overrideMimeType('text/plain; charset=x-user-defined');
+  }
           
   req.onreadystatechange = function (evt) {
     if (req.readyState != 4)
@@ -185,16 +189,23 @@ function loadBinaryFileAsync (uri, onComplete) {
     if (req.status <= 299) {
       var bytes;
       if (
+        (typeof (ArrayBuffer) === "function") &&
+        (typeof (req.response) === "object")
+      ) {
+        var buffer = req.response;
+        bytes = new Uint8Array(buffer);
+      } else if (
         (typeof (req.responseBody) !== "undefined") && 
         (typeof (VBArray) !== "undefined")
       ) {
-          bytes = new VBArray(req.responseBody).toArray();
+        bytes = new VBArray(req.responseBody).toArray();
       } else {
-          var text = req.responseText;
-          bytes = new Array(req.responseText.length);
-          for (var i = 0, l = text.length; i < l; i++)
-            bytes[i] = text.charCodeAt(i) & 0xFF;
+        var text = req.responseText;
+        bytes = new Array(req.responseText.length);
+        for (var i = 0, l = text.length; i < l; i++)
+          bytes[i] = text.charCodeAt(i) & 0xFF;
       }
+
       onComplete(bytes, null);
     } else {
       onComplete(null, { statusText: req.statusText, status: req.status });
@@ -243,101 +254,6 @@ var assetLoaders = {
     }, true);
     e.src = contentRoot + filename;
     document.getElementById("images").appendChild(e);
-  },
-  "Sound": function loadImage (filename, data, onError, onDoneLoading) {
-    var startedLoadingWhen = (new Date()).getTime();
-
-    var e = document.createElement("audio");
-    e.setAttribute("autobuffer", true);
-    e.setAttribute("preload", "auto");
-    
-    var state = { 
-      loaded: false
-    };
-    
-    var loadingCallback = function (evt) {
-      if (state.loaded)
-        return;
-      
-      var networkState = e.networkState || 0;
-      var readyState = e.readyState || 0;
-
-      if (
-        (networkState === HTMLMediaElement.NETWORK_IDLE) ||
-        (networkState === HTMLMediaElement.NETWORK_LOADED /* This is in the spec, but no browser defines it? */) ||
-        (readyState === HTMLMediaElement.HAVE_ENOUGH_DATA /* Chrome 12+ breaks networkState, so we have to rely on readyState */) ||
-        (readyState === HTMLMediaElement.HAVE_FUTURE_DATA) ||
-        (readyState === HTMLMediaElement.HAVE_CURRENT_DATA)
-      ) {
-        clearInterval(state.interval);
-        state.loaded = true;
-        allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), e, data);
-        onDoneLoading();
-      } else if (networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
-        clearInterval(state.interval);
-        state.loaded = true;
-        allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), null, data);
-        try {
-          onError("Error " + e.error.code);
-        } catch (ex) {
-          onError("Unknown error");
-        }
-      }
-
-      var now = (new Date()).getTime();
-
-      // Workaround for bug in Chrome 12+ where a load stalls indefinitely unless you spam the load method.
-      if ((now - startedLoadingWhen) >= soundLoadTimeout) {
-        JSIL.Host.logWriteLine("A sound file is taking forever to load. Google Chrome 12 and 13 both have a bug that can cause this, so if you're using them... try another browser.");
-
-        clearInterval(state.interval);
-        state.loaded = true;
-        allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), e, data);
-        onDoneLoading();
-      }
-    };
-    
-    for (var i = 0; i < data.formats.length; i++) {
-      var format = data.formats[i];
-      var extension, mimetype = null;
-      if (typeof (format) === "string")
-        extension = format;
-      else {
-        extension = format.extension;
-        mimetype = format.mimetype;
-      }
-
-      if (mimetype === null) {
-        switch (extension) {
-          case ".mp3":
-            mimetype = "audio/mpeg"
-            break;
-          case ".ogg":
-            mimetype = "audio/ogg; codecs=vorbis"
-            break;
-        }
-      }
-      
-      // Don't add unsupported sources.
-      if (String(e.canPlayType(mimetype)).trim().length > 0) {
-        var source = document.createElement("source");
-
-        if (mimetype !== null)
-          source.setAttribute("type", mimetype);
-
-        source.setAttribute("src", contentRoot + filename + extension);
-
-        e.appendChild(source);
-      }
-    }
-    
-    document.getElementById("sounds").appendChild(e);
-    
-    // Events on <audio> elements are inconsistent at best across browsers, so we poll instead. :/    
-
-    if (typeof (e.load) === "function")
-      e.load();    
-    state.interval = setInterval(loadingCallback, loadingPollInterval);
   },
   "File": function loadFile (filename, data, onError, onDoneLoading) {
     loadBinaryFileAsync(fileRoot + filename, function (result, error) {
@@ -400,6 +316,158 @@ var assetLoaders = {
     e.setAttribute("style", 'font: ' + pointSize + ' "' + fontId + '"');
   }
 };
+
+var loadWebkitSound = function (filename, data, onError, onDoneLoading) {
+  var audioContext = this;
+  var uri = null;
+  var tempElement = document.createElement("audio");
+
+  for (var i = 0; i < data.formats.length; i++) {
+    var format = data.formats[i];
+    var extension, mimetype = null;
+    if (typeof (format) === "string")
+      extension = format;
+    else {
+      extension = format.extension;
+      mimetype = format.mimetype;
+    }
+
+    if (mimetype === null) {
+      switch (extension) {
+        case ".mp3":
+          mimetype = "audio/mpeg"
+          break;
+        case ".ogg":
+          mimetype = "audio/ogg; codecs=vorbis"
+          break;
+      }
+    }
+    
+    if (String(tempElement.canPlayType(mimetype)).trim().length > 0) {
+      uri = contentRoot + filename + extension;
+      break;
+    }
+  }  
+
+  if (uri === null) {
+    onError("Could not find a supported format to load for the sound '" + getAssetName(filename) + "'.");
+    return;
+  }
+
+  loadBinaryFileAsync(uri, function (result, error) {
+    if (result !== null) {
+      var buffer = audioContext.createBuffer(result.buffer, false);
+
+      allAssets[getAssetName(filename)] = new WebkitSoundAsset(getAssetName(filename), audioContext, buffer, data);
+      onDoneLoading();
+    } else {
+      onError(error);
+    }
+  });
+};
+
+var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
+  var startedLoadingWhen = (new Date()).getTime();
+
+  var e = document.createElement("audio");
+  e.setAttribute("autobuffer", true);
+  e.setAttribute("preload", "auto");
+  
+  var state = { 
+    loaded: false
+  };
+  
+  var loadingCallback = function (evt) {
+    if (state.loaded)
+      return;
+    
+    var networkState = e.networkState || 0;
+    var readyState = e.readyState || 0;
+
+    if (
+      (networkState === HTMLMediaElement.NETWORK_IDLE) ||
+      (networkState === HTMLMediaElement.NETWORK_LOADED /* This is in the spec, but no browser defines it? */) ||
+      (readyState === HTMLMediaElement.HAVE_ENOUGH_DATA /* Chrome 12+ breaks networkState, so we have to rely on readyState */) ||
+      (readyState === HTMLMediaElement.HAVE_FUTURE_DATA) ||
+      (readyState === HTMLMediaElement.HAVE_CURRENT_DATA)
+    ) {
+      clearInterval(state.interval);
+      state.loaded = true;
+      allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), e, data);
+      onDoneLoading();
+    } else if (networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
+      clearInterval(state.interval);
+      state.loaded = true;
+      allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), null, data);
+      try {
+        onError("Error " + e.error.code);
+      } catch (ex) {
+        onError("Unknown error");
+      }
+    }
+
+    var now = (new Date()).getTime();
+
+    // Workaround for bug in Chrome 12+ where a load stalls indefinitely unless you spam the load method.
+    if ((now - startedLoadingWhen) >= soundLoadTimeout) {
+      JSIL.Host.logWriteLine("A sound file is taking forever to load. Google Chrome 12 and 13 both have a bug that can cause this, so if you're using them... try another browser.");
+
+      clearInterval(state.interval);
+      state.loaded = true;
+      allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), e, data);
+      onDoneLoading();
+    }
+  };
+  
+  for (var i = 0; i < data.formats.length; i++) {
+    var format = data.formats[i];
+    var extension, mimetype = null;
+    if (typeof (format) === "string")
+      extension = format;
+    else {
+      extension = format.extension;
+      mimetype = format.mimetype;
+    }
+
+    if (mimetype === null) {
+      switch (extension) {
+        case ".mp3":
+          mimetype = "audio/mpeg"
+          break;
+        case ".ogg":
+          mimetype = "audio/ogg; codecs=vorbis"
+          break;
+      }
+    }
+    
+    // Don't add unsupported sources.
+    if (String(e.canPlayType(mimetype)).trim().length > 0) {
+      var source = document.createElement("source");
+
+      if (mimetype !== null)
+        source.setAttribute("type", mimetype);
+
+      source.setAttribute("src", contentRoot + filename + extension);
+
+      e.appendChild(source);
+    }
+  }
+  
+  document.getElementById("sounds").appendChild(e);
+  
+  // Events on <audio> elements are inconsistent at best across browsers, so we poll instead. :/    
+
+  if (typeof (e.load) === "function")
+    e.load();    
+  state.interval = setInterval(loadingCallback, loadingPollInterval);
+};
+
+// Chrome and Safari's <audio> implementations are utter garbage.
+if (typeof (webkitAudioContext) === "function") {
+  assetLoaders["Sound"] = loadWebkitSound.bind(new webkitAudioContext());
+} else {
+  assetLoaders["Sound"] = loadHTML5Sound;
+}
 
 var $makeXNBAssetLoader = function (key, typeName) {
   assetLoaders[key] = function (filename, data, onError, onDoneLoading) {

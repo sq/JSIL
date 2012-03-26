@@ -236,7 +236,7 @@ JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true, [], function ($) {
           this.freeInstances.push(instance);
       }.bind(this), true);
     }
-    
+
     return instance;
   };
   $.prototype.Play$0 = function () {
@@ -248,6 +248,27 @@ JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true, [], function ($) {
     }
 
     instance.play();
+  };
+});
+
+JSIL.MakeClass("HTML5Asset", "WebkitSoundAsset", true, [], function ($) {
+  $.prototype._ctor = function (assetName, audioContext, buffer, properties) {
+    HTML5Asset.prototype._ctor.call(this, assetName);
+    this.audioContext = audioContext;
+    this.buffer = buffer;
+    this.properties = properties;
+    this.loop = properties.loop || false;
+  };
+  $.prototype.$createInstance = function () {
+    var instance = this.audioContext.createBufferSource();
+    instance.buffer = this.buffer;
+    instance.loop = this.loop;
+    instance.connect(this.audioContext.destination);
+    return instance;
+  };
+  $.prototype.Play$0 = function () {
+    var instance = this.$createInstance();
+    instance.noteOn(0);
   };
 });
 

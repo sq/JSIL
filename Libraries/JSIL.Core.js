@@ -1909,7 +1909,17 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
 };
 
 JSIL.IsArray = function (value) {
-  if ((typeof (value) === "object") && (value !== null) && (Object.getPrototypeOf(value) === Array.prototype)) {
+  if ((typeof (value) === "object") && (value !== null)) {
+    if (Object.getPrototypeOf(value) === Array.prototype) {
+    } else if (typeof (ArrayBuffer) === "function") {
+      if ((typeof (value.buffer) === "object") && (Object.getPrototypeOf(value.buffer) === ArrayBuffer.prototype))
+        ;
+      else
+        return false;
+    } else {
+      return false;
+    }
+
     var length = null;
     try {
       length = value.length;
