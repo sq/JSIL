@@ -160,6 +160,7 @@ namespace JSIL.Compiler.Profiles {
 
                     switch (processorName) {
                         case "FontTextureProcessor":
+                        case "FontDescriptionProcessor":
                             copyRawXnb(item, xnbPath, "SpriteFont");
                             continue;
                         case "TextureProcessor":

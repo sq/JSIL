@@ -335,7 +335,7 @@ var assetLoaders = {
     });
   },
   "XNB": function loadXNB (filename, data, onError, onDoneLoading) {
-    loadBinaryFileAsync(fileRoot + filename, function (result, error) {
+    loadBinaryFileAsync(contentRoot + filename, function (result, error) {
       if (result !== null) {
         var assetName = getAssetName(filename);
         allAssets[assetName] = new RawXNBAsset(assetName, result);
@@ -346,7 +346,7 @@ var assetLoaders = {
     });
   },
   "SpriteFont": function loadSpriteFont (filename, data, onError, onDoneLoading) {
-    loadBinaryFileAsync(fileRoot + filename, function (result, error) {
+    loadBinaryFileAsync(contentRoot + filename, function (result, error) {
       if (result !== null) {
         var assetName = getAssetName(filename);
         allAssets[assetName] = new SpriteFontAsset(assetName, result);

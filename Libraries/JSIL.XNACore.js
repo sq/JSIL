@@ -692,6 +692,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", true, {
 
 JSIL.MakeClass("HTML5Asset", "RawXNBAsset", true, [], function ($) {
   $.prototype._ctor = function (assetName, rawBytes) {
+    if (JSIL.GetAssembly("JSIL.IO", true) === null)
+      throw new Error("JSIL.IO is required");
+
     HTML5Asset.prototype._ctor.call(this, assetName);
     this.bytes = rawBytes;
     this.contentManager = null;
@@ -2321,12 +2324,20 @@ JSIL.ImplementExternals(
 JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Graphics.Texture2D", true, {
     _ctor$2: function (graphicsDevice, width, height, mipMap, format) {
+      this.imageFormats = {
+        0: null, // Color
+        5: $jsilxna.DecodeDxt3, // DXT3
+      };
+
       this._parent = graphicsDevice;
       this.width = width;
       this.height = height;
       this.mipMap = mipMap;
       this.format = format;
       this.isDisposed = false;      
+
+      if (typeof (this.imageFormats[format.valueOf()]) === "undefined")
+          throw new System.NotImplementedException("The pixel format '" + format.name + "' is not supported.");
 
       this.image = document.createElement("img");
       this.image.src = this.$getDataUrlForBytes(null, 0, 0, false);
@@ -2353,6 +2364,13 @@ JSIL.ImplementExternals(
       var ctx = canvas.getContext("2d");
 
       if (bytes !== null) {
+        var decoder = this.imageFormats[this.format.valueOf()];
+        if (decoder !== null) {
+          bytes = decoder(this.width, this.height, bytes, startIndex, elementCount);
+          startIndex = 0;
+          elementCount = bytes.length;
+        }
+
         var imageData = ctx.createImageData(this.width, this.height);
 
         // XNA texture colors are premultiplied, but canvas pixels aren't, so we need to try
@@ -2388,3 +2406,117 @@ JSIL.ImplementExternals(
     }
   }
 );
+
+// Based on Benjamin Dobell's DXTC decompressors.
+// http://www.glassechidna.com.au
+$jsilxna.Unpack565 = function (sourceBuffer, sourceOffset) {
+  var result = [];
+
+  var color565 = (sourceBuffer[sourceOffset] << 8) + (sourceBuffer[sourceOffset + 1]);
+
+  var temp = (color565 >> 11) * 255 + 16;
+  result[0] = Math.floor((temp/32 + temp)/32);
+  temp = ((color565 & 0x07E0) >> 5) * 255 + 32;
+  result[1] = Math.floor((temp/64 + temp)/64);
+  temp = (color565 & 0x001F) * 255 + 16;
+  result[2] = Math.floor((temp/32 + temp)/32);
+
+  return result;
+};
+
+$jsilxna.DecompressBlockBC12 = function(source, sourceOffset, writePixel, bc2Mode) {
+  var color0 = $jsilxna.Unpack565(source, sourceOffset);
+  var color1 = $jsilxna.Unpack565(source, sourceOffset + 2);
+
+  var r0 = color0[0], g0 = color0[1], b0 = color0[2];
+  var r1 = color1[0], g1 = color1[1], b1 = color1[2];
+
+  var readPosition = sourceOffset + 4;
+  var finalColor;
+ 
+  for (var y = 0; y < 4; y++) {
+    var currentByte = source[readPosition];
+
+    for (var x = 0; x < 4; x++) {
+      var positionCode = (currentByte >> (2 * x)) & 0x03;
+ 
+      if (bc2Mode || (color0 > color1)) {
+        switch (positionCode) {
+          case 0:
+            finalColor = [r0, g0, b0, 255];
+            break;
+          case 1:
+            finalColor = [r1, g1, b1, 255];
+            break;
+          case 2:
+            finalColor = [(2*r0+r1)/3, (2*g0+g1)/3, (2*b0+b1)/3, 255];
+            break;
+          case 3:
+            finalColor = [(r0+2*r1)/3, (g0+2*g1)/3, (b0+2*b1)/3, 255];
+            break;
+        }
+      } else {
+        switch (positionCode) {
+          case 0:
+            finalColor = [r0, g0, b0, 255];
+            break;
+          case 1:
+            finalColor = [r1, g1, b1, 255];
+            break;
+          case 2:
+            finalColor = [(r0+r1)/2, (g0+g1)/2, (b0+b1)/2, 255];
+            break;
+          case 3:
+            finalColor = [0, 0, 0, 255];
+            break;
+        }
+      }
+ 
+      writePixel(x, y, finalColor);
+    }
+
+    readPosition += 1;
+  }
+}
+
+$jsilxna.makePixelWriter = function (buffer, width, x, y) {
+  return function (_x, _y, color) {
+    var offset = (((_y + y) * width) + (_x + x)) * 4;
+
+    buffer[offset] = color[0];
+    buffer[offset + 1] = color[1];
+    buffer[offset + 2] = color[2];
+    buffer[offset + 3] = color[3];
+  };
+};
+
+$jsilxna.DecodeDxt3 = function (width, height, bytes, offset, count) {
+  var totalSizeBytes = width * height * 4;
+  var result = new Array(totalSizeBytes);
+
+  var blockCountX = Math.floor((width + 3) / 4);
+  var blockCountY = Math.floor((height + 3) / 4);
+  var blockWidth = (width < 4) ? width : 4;
+  var blockHeight = (height < 4) ? height : 4;
+ 
+  var sourceOffset = offset;
+
+  for (var y = 0; y < blockCountY; y++) {
+    for (var x = 0; x < blockCountX; x++) {
+      // Skip alpha data
+
+      sourceOffset += 8;
+
+      // Decode color data
+      $jsilxna.DecompressBlockBC12(
+        bytes, sourceOffset, 
+        $jsilxna.makePixelWriter(result, width, x * blockWidth, y * blockHeight),
+        true
+      );
+
+      sourceOffset += 8;
+    }
+  }
+
+  return result;
+};
