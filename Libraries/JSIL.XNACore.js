@@ -1116,7 +1116,8 @@ JSIL.ImplementExternals(
       this.content = JSIL.New(Microsoft.Xna.Framework.Content.ContentManager, "_ctor$0", []);
       this.gameServices = new Microsoft.Xna.Framework.GameServiceContainer();
       this.components = new Microsoft.Xna.Framework.GameComponentCollection();
-      this._frameDelay = 1000 / 60;
+      this.targetElapsedTime = System.TimeSpan.FromTicks(166667);
+      this.isFixedTimeStep = true;
       this._isDead = false;
 
       if (typeof (Date.now) === "function") {
@@ -1128,6 +1129,18 @@ JSIL.ImplementExternals(
       this._runHandle = null;
       this._gameTime = JSIL.New(Microsoft.Xna.Framework.GameTime, "_ctor$0", []);
       this._lastFrame = this._nextFrame = this._started = 0;
+    },
+    get_IsFixedTimeStep: function () {
+      return this.isFixedTimeStep;
+    },
+    set_IsFixedTimeStep: function (value) {
+      this.isFixedTimeStep = value;
+    },
+    get_TargetElapsedTime: function () {
+      return this.targetElapsedTime;
+    },
+    set_TargetElapsedTime: function (value) {
+      this.targetElapsedTime = value;
     },
     get_Components: function () {
       return this.components;
@@ -1242,21 +1255,39 @@ JSIL.ImplementExternals(
         var total = now - this._started;
       }
 
-      this._lastFrame = now;
-      this._nextFrame = now + this._frameDelay;
+      var frameDelay = this.targetElapsedTime.get_TotalMilliseconds();
 
-      // Some of the XNA samples seem to fall over and die if elapsed is too large. :|
-      if (elapsed > this._frameDelay)
-        elapsed = this._frameDelay;
+      this._lastFrame = now;
+      this._nextFrame = now + frameDelay;
 
       var millisecondInTicks = 10000;
-
-      this._gameTime.elapsedRealTime._ticks = this._gameTime.elapsedGameTime._ticks = Math.floor(elapsed * millisecondInTicks);
-      this._gameTime.totalRealTime._ticks = this._gameTime.totalGameTime._ticks = Math.floor(total * millisecondInTicks);
+      var maxElapsedTimeMs = 500;
 
       var failed = true;
       try {
-        this.Update(this._gameTime);
+        if (this.isFixedTimeStep) {
+          this._gameTime.elapsedRealTime._ticks = Math.floor(elapsed * millisecondInTicks);
+          this._gameTime.totalRealTime._ticks = Math.floor(total * millisecondInTicks);
+          this._gameTime.elapsedGameTime._ticks = (frameDelay * millisecondInTicks);
+
+          if (elapsed > maxElapsedTimeMs)
+            elapsed = maxElapsedTimeMs;
+
+          var numFrames = Math.floor(elapsed / frameDelay);
+          if (numFrames < 0)
+            numFrames = 1;
+
+          for (var i = 0; i < numFrames; i++) {
+            this._gameTime.totalGameTime._ticks += (frameDelay * millisecondInTicks);
+
+            this.Update(this._gameTime);            
+          }
+        } else {
+          this._gameTime.elapsedRealTime._ticks = this._gameTime.elapsedGameTime._ticks = Math.floor(elapsed * millisecondInTicks);
+          this._gameTime.totalRealTime._ticks = this._gameTime.totalGameTime._ticks = Math.floor(total * millisecondInTicks);
+          this.Update(this._gameTime);
+        }
+
         this.Draw(this._gameTime);
         failed = false;
       } finally {
