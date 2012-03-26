@@ -231,7 +231,7 @@ var assetLoaders = {
     var e = document.createElement("script");
     e.type = "text/javascript";
     e.addEventListener("error", onError, true);
-    e.addEventListener("load", onDoneLoading, true);
+    e.addEventListener("load", onDoneLoading.bind(null, null), true);
     e.async = true;
     e.src = libraryRoot + filename;
     document.getElementById("scripts").appendChild(e);
@@ -240,18 +240,18 @@ var assetLoaders = {
     var e = document.createElement("script");
     e.type = "text/javascript";
     e.addEventListener("error", onError, true);
-    e.addEventListener("load", onDoneLoading, true);
+    e.addEventListener("load", onDoneLoading.bind(null, null), true);
     e.async = true;
     e.src = scriptRoot + filename;
     document.getElementById("scripts").appendChild(e);
   },
   "Image": function loadImage (filename, data, onError, onDoneLoading) {
     var e = document.createElement("img");
-    e.addEventListener("error", onError, true);
-    e.addEventListener("load", function () {
+    var finisher = function () {
       allAssets[getAssetName(filename)] = new HTML5ImageAsset(getAssetName(filename), e);
-      onDoneLoading();
-    }, true);
+    };
+    e.addEventListener("error", onError, true);
+    e.addEventListener("load", onDoneLoading.bind(null, finisher), true);
     e.src = contentRoot + filename;
     document.getElementById("images").appendChild(e);
   },
@@ -259,7 +259,7 @@ var assetLoaders = {
     loadBinaryFileAsync(fileRoot + filename, function (result, error) {
       if (result !== null) {
         allFiles[filename] = result;
-        onDoneLoading(); 
+        onDoneLoading(null); 
       } else {
         onError(error);
       }
@@ -292,11 +292,16 @@ var assetLoaders = {
     var originalWidth = e.offsetWidth;
     var originalHeight = e.offsetHeight;
     var startedLoadingWhen = (new Date()).getTime();
-    
-    var loadedCallback = function () {
-      clearInterval(intervalHandle);
+
+    var finisher = function () {
       allAssets[getAssetName(filename)] = new HTML5FontAsset(getAssetName(filename), fontId, (data || 12), e.offsetHeight);
-      onDoneLoading();
+    };
+    
+    var intervalHandle;
+
+    var loadedCallback = function () {
+      clearInterval(intervalHandle);      
+      onDoneLoading(finisher);
     };
     
     var checkIfLoadedCallback = function () {    
@@ -308,7 +313,8 @@ var assetLoaders = {
           (now - startedLoadingWhen) > fontLoadTimeout)
         loadedCallback();
     };
-    var intervalHandle = setInterval(checkIfLoadedCallback, loadingPollInterval);
+
+    intervalHandle = setInterval(checkIfLoadedCallback, loadingPollInterval);
     
     // Then set up a callback to watch for the size of the element to change, and apply our CSS font.
     // In practice, the size shouldn't change until the font has loaded.
@@ -357,9 +363,11 @@ var loadWebkitSound = function (filename, data, onError, onDoneLoading) {
   loadBinaryFileAsync(uri, function (result, error) {
     if (result !== null) {
       var buffer = audioContext.createBuffer(result.buffer, false);
-
-      allAssets[getAssetName(filename)] = new WebkitSoundAsset(getAssetName(filename), audioContext, buffer, data);
-      onDoneLoading();
+      var finisher = function () {
+        allAssets[getAssetName(filename)] = new WebkitSoundAsset(getAssetName(filename), audioContext, buffer, data);
+      };
+      
+      onDoneLoading(finisher);
     } else {
       onError(error);
     }
@@ -367,7 +375,7 @@ var loadWebkitSound = function (filename, data, onError, onDoneLoading) {
 };
 
 var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
-  var startedLoadingWhen = (new Date()).getTime();
+  var startedLoadingWhen = Date.now();
 
   var e = document.createElement("audio");
   e.setAttribute("autobuffer", true);
@@ -384,6 +392,10 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
     var networkState = e.networkState || 0;
     var readyState = e.readyState || 0;
 
+    var finisher = function () {
+      allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), e);
+    };
+
     if (
       (networkState === HTMLMediaElement.NETWORK_IDLE) ||
       (networkState === HTMLMediaElement.NETWORK_LOADED /* This is in the spec, but no browser defines it? */) ||
@@ -393,8 +405,7 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
     ) {
       clearInterval(state.interval);
       state.loaded = true;
-      allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), e, data);
-      onDoneLoading();
+      onDoneLoading(finisher);
     } else if (networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
       clearInterval(state.interval);
       state.loaded = true;
@@ -405,7 +416,7 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
       }
     }
 
-    var now = (new Date()).getTime();
+    var now = Date.now();
 
     // Workaround for bug in Chrome 12+ where a load stalls indefinitely unless you spam the load method.
     if ((now - startedLoadingWhen) >= soundLoadTimeout) {
@@ -413,8 +424,7 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
 
       clearInterval(state.interval);
       state.loaded = true;
-      allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), e, data);
-      onDoneLoading();
+      onDoneLoading(finisher);
     }
   };
   
@@ -472,10 +482,12 @@ var $makeXNBAssetLoader = function (key, typeName) {
   assetLoaders[key] = function (filename, data, onError, onDoneLoading) {
     loadBinaryFileAsync(contentRoot + filename, function (result, error) {
       if (result !== null) {
-        var assetName = getAssetName(filename);
-        var type = System.Type.GetType(typeName);
-        allAssets[assetName] = new type(assetName, result);
-        onDoneLoading(); 
+        var finisher = function () {
+          var assetName = getAssetName(filename);
+          var type = System.Type.GetType(typeName);
+          allAssets[assetName] = new type(assetName, result);
+        };
+        onDoneLoading(finisher); 
       } else {
         onError(error);
       }
@@ -487,16 +499,14 @@ $makeXNBAssetLoader("XNB", "RawXNBAsset");
 $makeXNBAssetLoader("SpriteFont", "SpriteFontAsset");
 $makeXNBAssetLoader("Texture2D", "Texture2DAsset");
 
-function loadNextAsset (assets, state, onDoneLoading, loadDelay) {      
-  var w = 0;
+function updateProgressBar (prefix, suffix, bytesLoaded, bytesTotal) {
   var loadingProgress = document.getElementById("loadingProgress");
   var progressBar = document.getElementById("progressBar");
   var progressText = document.getElementById("progressText");
-
-  var i = state.assetsLoaded;
   
+  var w = 0;
   if (loadingProgress) {
-    w = (state.bytesLoaded * loadingProgress.clientWidth) / (state.assetBytes);
+    w = (bytesLoaded * loadingProgress.clientWidth) / (bytesTotal);
     if (w < 0)
       w = 0;
     else if (w > loadingProgress.clientWidth)
@@ -507,57 +517,115 @@ function loadNextAsset (assets, state, onDoneLoading, loadDelay) {
     progressBar.style.width = w.toString() + "px";
 
   if (progressText) {
-    progressText.innerHTML = Math.floor(state.bytesLoaded / 1024) + "kb / " + Math.floor(state.assetBytes / 1024) + "kb";
+    progressText.innerHTML = prefix + Math.floor(bytesLoaded) + suffix + " / " + Math.floor(bytesTotal) + suffix;
 
     progressText.style.left = ((loadingProgress.clientWidth - progressText.clientWidth) / 2).toString() + "px";
     progressText.style.top = ((loadingProgress.clientHeight - progressText.clientHeight) / 2).toString() + "px";
   }
+};
+
+function finishLoading () {
+  var state = this;
+
+  updateProgressBar("Loading data: ", "", state.assetsFinished, state.assetCount);
+
+  for (var i = 0; i < 4; i++) {
+    if (state.finishIndex < state.assetCount) {
+      var finish = state.finishQueue[state.finishIndex];
+      if (typeof (finish) === "function")
+        finish();
+
+      state.finishIndex += 1;
+      state.assetsFinished += 1;
+    } else {
+      window.clearInterval(state.interval);
+      state.interval = null;
+      window.setTimeout(state.onDoneLoading, 10);
+      return;
+    }
+  }
+};
+
+function pollAssetQueue () {      
+  var state = this;
+
+  var w = 0;
+  updateProgressBar("Downloading files: ", "kb", state.bytesLoaded / 1024, state.assetBytes / 1024);
+
+  var makeStepCallback = function (state, sizeBytes, i) {
+    return function (finish) {
+      if (typeof (finish) === "function")
+        state.finishQueue[i] = finish;
+      else
+        state.finishQueue[i] = null;
+
+      state.assetsLoading -= 1;
+      state.assetsLoaded += 1;
+
+      state.bytesLoaded += sizeBytes;
+    };
+  };
+
+  var makeErrorCallback = function (assetPath, assetSpec) {
+    return function (e) {
+      state.assetsLoading -= 1;
+      state.assetsLoaded += 1;
+
+      allAssets[getAssetName(assetPath)] = null;
+      JSIL.Host.logWriteLine("The asset '" + assetSpec + "' could not be loaded:" + String(e));
+    };    
+  };
+
+  while ((state.assetsLoading < state.maxAssetsLoading) && (state.loadIndex < state.assetCount)) {
+    var assetSpec = state.assets[state.loadIndex];
   
-  if (i >= assets.length) {
-    setTimeout(onDoneLoading, loadDelay);
+    var assetType = assetSpec[0];
+    var assetPath = assetSpec[1];
+    var assetData = assetSpec[2] || null;
+    var assetLoader = assetLoaders[assetType];
+
+    var sizeBytes = 1;
+    if (assetData !== null)
+      sizeBytes = assetData.sizeBytes || 1;
+
+    var stepCallback = makeStepCallback(state, sizeBytes, state.loadIndex); 
+    var errorCallback = makeErrorCallback(assetPath, assetSpec);    
+    
+    if (typeof (assetLoader) !== "function") {
+      errorCallback("No asset loader registered for type '" + assetType + "'.");
+    } else {
+      state.assetsLoading += 1;
+      assetLoader(assetPath, assetData, errorCallback, stepCallback);
+    }
+
+    state.loadIndex += 1;
+  }
+    
+  if (state.assetsLoaded >= state.assetCount) {
+    window.clearInterval(state.interval);
+    state.interval = null;
+
+    state.interval = window.setInterval(finishLoading.bind(state), 1);
+
     return;
   }
-
-  var assetSpec = assets[i];
-  var j = i + 1;
-  
-  var assetType = assetSpec[0];
-  var assetPath = assetSpec[1];
-  var assetData = assetSpec[2] || null;
-  var assetLoader = assetLoaders[assetType];
-
-  var sizeBytes = 1;
-  if (assetData !== null)
-    sizeBytes = assetData.sizeBytes || 1;
-  
-  var stepCallback = function () {
-    state.assetsLoaded += 1;
-    state.bytesLoaded += sizeBytes;
-
-    loadNextAsset(assets, state, onDoneLoading, loadDelay);
-  };
-  
-  var errorCallback = function (e) {
-    allAssets[getAssetName(assetPath)] = null;
-    JSIL.Host.logWriteLine("The asset '" + assetSpec + "' could not be loaded:" + String(e));
-    stepCallback();
-  };
-  
-  if (typeof (assetLoader) !== "function") {
-    errorCallback("No asset loader registered for type '" + assetType + "'.");
-  } else {      
-    setTimeout(function () {        
-      assetLoader(assetPath, assetData, errorCallback, stepCallback);
-    }, loadDelay);
-  }
-}
+};
 
 function loadAssets (assets, onDoneLoading) {
   var state = {
     assetBytes: 0,
     assetCount: assets.length,
     bytesLoaded: 0,
-    assetsLoaded: 0
+    assetsLoaded: 0,
+    assetsFinished: 0,
+    assetsLoading: 0,
+    maxAssetsLoading: 32,
+    onDoneLoading: onDoneLoading,
+    assets: assets,
+    interval: null,
+    finishQueue: [],
+    loadIndex: 0,
+    finishIndex: 0
   };
 
   for (var i = 0, l = assets.length; i < l; i++) {
@@ -572,8 +640,8 @@ function loadAssets (assets, onDoneLoading) {
     state.assetBytes += sizeBytes;
   }
 
-  loadNextAsset(assets, state, onDoneLoading, 1);
-}
+  state.interval = window.setInterval(pollAssetQueue.bind(state), 10);
+};
 
 function beginLoading () {
   var progressBar = document.getElementById("progressBar");
