@@ -1300,7 +1300,7 @@ JSIL.ImplementExternals(
             elapsed = maxElapsedTimeMs;
 
           var numFrames = Math.floor(elapsed / frameDelay);
-          if (numFrames < 0)
+          if (numFrames < 1)
             numFrames = 1;
 
           for (var i = 0; i < numFrames; i++) {
