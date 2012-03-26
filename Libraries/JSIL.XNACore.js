@@ -6,7 +6,79 @@ if (typeof (JSIL) === "undefined")
 var $jsilxna = JSIL.DeclareAssembly("JSIL.XNA");
 
 $jsilxna.nextImageId = 0;
+
 $jsilxna.multipliedImageCache = {};
+$jsilxna.multipliedImageCache.accessHistory = {};
+$jsilxna.multipliedImageCache.capacity = 256; // unique images
+$jsilxna.multipliedImageCache.capacityBytes = (1024 * 1024) * 16; // total image bytes (at 32bpp)
+$jsilxna.multipliedImageCache.evictionMinimumAge = 250; // milliseconds
+$jsilxna.multipliedImageCache.count = 0;
+$jsilxna.multipliedImageCache.countBytes = 0;
+$jsilxna.multipliedImageCache.evictionPending = false;
+
+$jsilxna.multipliedImageCache.getItem = function (key) {
+  this.accessHistory[key] = Date.now();
+
+  this.maybeEvictItems();
+
+  return this[key];
+}.bind($jsilxna.multipliedImageCache);
+
+$jsilxna.multipliedImageCache.setItem = function (key, value) {
+  if (typeof (this[key]) === "undefined") {
+    this.count += 1;
+    this.countBytes += (value.width * value.height * 4);
+  }
+
+  this.accessHistory[key] = Date.now();
+  this[key] = value;
+
+  this.maybeEvictItems();
+}.bind($jsilxna.multipliedImageCache);
+
+$jsilxna.multipliedImageCache.maybeEvictItems = function () {
+  if (this.evictionPending)
+    return;
+
+  if ((this.count >= this.capacity) || (this.countBytes >= this.capacityBytes)) {
+    this.evictionPending = true;
+    JSIL.Host.runLater(this.evictExtraItems);
+  }
+}.bind($jsilxna.multipliedImageCache);
+
+$jsilxna.multipliedImageCache.evictExtraItems = function () {
+  this.evictionPending = false;
+  var keys = Object.keys(this.accessHistory);
+  keys.sort(function (lhs, rhs) {
+    var lhsTimestamp = this.accessHistory[lhs];
+    var rhsTimestamp = this.accessHistory[rhs];
+    if (lhsTimestamp > rhsTimestamp)
+      return 1;
+    else if (rhsTimestamp > lhsTimestamp)
+      return -1;
+    else
+      return 0;
+  }.bind(this));
+
+  var now = Date.now();
+
+  for (var i = 0, l = this.count; i < l; i++) {
+    var age = now - this.accessHistory[keys[i]];
+    if (age <= this.evictionMinimumAge)
+      continue;
+
+    var item = this[keys[i]];
+
+    delete this.accessHistory[keys[i]];
+    delete this[keys[i]];
+
+    this.count -= 1;
+    this.countBytes -= (item.width * item.height * 4);
+
+    if (this.count <= this.capacity)
+      break;
+  }
+}.bind($jsilxna.multipliedImageCache);
 
 $jsilxna.getCachedMultipliedImage = function (image, color) {
   var imageId = image.getAttribute("__imageId") || null;
@@ -14,7 +86,7 @@ $jsilxna.getCachedMultipliedImage = function (image, color) {
     image.setAttribute("__imageId", imageId = new String($jsilxna.nextImageId++));
 
   var key = imageId + color.toCss(255);
-  var result = $jsilxna.multipliedImageCache[key] || null;
+  var result = $jsilxna.multipliedImageCache.getItem(key) || null;
   return result;
 };
 
@@ -24,7 +96,7 @@ $jsilxna.setCachedMultipliedImage = function (image, color, value) {
     image.setAttribute("__imageId", imageId = new String($jsilxna.nextImageId++));
 
   var key = imageId + color.toCss(255);
-  $jsilxna.multipliedImageCache[key] = value;
+  $jsilxna.multipliedImageCache.setItem(key, value);
 };
 
 $jsilxna.getImageMultiplied = function (image, color) {
@@ -2290,9 +2362,6 @@ JSIL.ImplementExternals(
           for (var i = 0; i < pixelCount; i++) {
             var p = i * 4;
 
-            var r = bytes[p];
-            var g = bytes[p + 1];
-            var b = bytes[p + 2];
             var a = bytes[p + 3];
 
             if (a <= 0)
@@ -2302,9 +2371,9 @@ JSIL.ImplementExternals(
             if (a >= 254)
               m = 1.0;
 
-            imageData.data[p] = r * m;
-            imageData.data[p + 1] = g * m;
-            imageData.data[p + 2] = b * m;
+            imageData.data[p    ] = bytes[p    ] * m;
+            imageData.data[p + 1] = bytes[p + 1] * m;
+            imageData.data[p + 2] = bytes[p + 2] * m;
             imageData.data[p + 3] = a;
           }
         } else {
