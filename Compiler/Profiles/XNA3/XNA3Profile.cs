@@ -7,6 +7,8 @@ using JSIL.Compiler.Extensibility;
 
 namespace JSIL.Compiler.Profiles {
     public class XNA3 : BaseProfile {
+        public HashSet<string> ContentProjectsProcessed = new HashSet<string>();
+
         public override bool IsAppropriateForSolution (SolutionBuilder.SolutionBuildResult buildResult) {
             return buildResult.TargetFilesUsed.Any(
                 (targetFile) => targetFile.Contains(@"XNA Game Studio\v3.0") || targetFile.Contains(@"XNA Game Studio\v3.1")
@@ -31,7 +33,15 @@ namespace JSIL.Compiler.Profiles {
             result.FrameworkVersion = 3.5;
             result.Assemblies.Proxies.Add("JSIL.Proxies.XNA3.dll");
 
+            Common.InitConfiguration(result);
+
             return result;
+        }
+
+        public override SolutionBuilder.SolutionBuildResult ProcessBuildResult (Configuration configuration, SolutionBuilder.SolutionBuildResult buildResult) {
+            Common.ProcessContentProjects(configuration, buildResult, ContentProjectsProcessed);
+
+            return base.ProcessBuildResult(configuration, buildResult);
         }
     }
 }

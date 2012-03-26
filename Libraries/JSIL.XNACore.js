@@ -497,7 +497,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.Texture2DReader", true,
 
     var result = existingInstance;
     if (result === null)
-      result = new tTexture2D(null, width, height, mipCount > 1, surfaceFormat);
+      result = JSIL.New(tTexture2D, "$internalCtor", [null, width, height, mipCount > 1, surfaceFormat]);
 
     for (var i = 0; i < mipCount; i++) {
       var mipSize = input.ReadInt32();
@@ -677,8 +677,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", true, {
     }
 
     var formatVersion = this.ReadByte();
-    if (formatVersion != 5)
-      throw new Error("Unsupported XNB format version: " + formatVersion);
+    switch (formatVersion) {
+      case 4:
+      case 5:
+        break;
+      default:
+        throw new Error("Unsupported XNB format version: " + formatVersion);
+    }
 
     var formatFlags = this.ReadByte();
 
@@ -2435,11 +2440,11 @@ JSIL.ImplementExternals(
 
 JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Graphics.Texture2D", true, {
-    _ctor$2: function (graphicsDevice, width, height, mipMap, format) {
+    $internalCtor: function (graphicsDevice, width, height, mipMap, format) {
       this.imageFormats = {
-        0: null, // Color
-        4: $jsilxna.DecodeDxt2, // DXT2
-        5: $jsilxna.DecodeDxt3, // DXT3
+        "Color": null, // Color
+        "Dxt2": $jsilxna.DecodeDxt2, // DXT2
+        "Dxt3": $jsilxna.DecodeDxt3, // DXT3
       };
 
       this._parent = graphicsDevice;
@@ -2449,7 +2454,7 @@ JSIL.ImplementExternals(
       this.format = format;
       this.isDisposed = false;      
 
-      if (typeof (this.imageFormats[format.valueOf()]) === "undefined")
+      if (typeof (this.imageFormats[format.name]) === "undefined")
           throw new System.NotImplementedException("The pixel format '" + format.name + "' is not supported.");
 
       this.image = document.createElement("img");
@@ -2478,7 +2483,7 @@ JSIL.ImplementExternals(
       var ctx = canvas.getContext("2d");
 
       if (bytes !== null) {
-        var decoder = this.imageFormats[this.format.valueOf()];
+        var decoder = this.imageFormats[this.format.name];
         if (decoder !== null) {
           bytes = decoder(this.width, this.height, bytes, startIndex, elementCount);
           startIndex = 0;

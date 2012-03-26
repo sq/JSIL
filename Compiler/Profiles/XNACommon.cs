@@ -8,6 +8,9 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using System.Web.Script.Serialization;
+using JSIL.Compiler;
+using Microsoft.Build.Evaluation;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using EncoderParameter = System.Drawing.Imaging.EncoderParameter;
@@ -140,7 +143,7 @@ public static class Common {
     }
 
     public static CompressResult? CompressImage (string imageName, string sourceFolder, string outputFolder, Dictionary<string, object> settings, CompressResult? oldResult) {
-        const int CompressVersion = 1;
+        const int CompressVersion = 2;
 
         EnsureDirectoryExists(outputFolder);
 
@@ -170,101 +173,115 @@ public static class Common {
             }
         }
 
+        var forceJpegList = settings["ForceJPEG"] as string[];
+        bool forceJpeg = Array.BinarySearch(forceJpegList, imageName) >= 0;
+
         var outputPath = Path.Combine(outputFolder, Path.GetFileNameWithoutExtension(imageName));
         var justCopy = true;
 
-        switch (Path.GetExtension(imageName).ToLower()) {
-            case ".jpg":
-            case ".jpeg":
-                outputPath += ".jpg";
-                break;
+        Action<System.Drawing.Bitmap> saveJpeg = (bitmap) => {
+            var encoder = GetEncoder(ImageFormat.Jpeg);
+            var encoderParameters = new System.Drawing.Imaging.EncoderParameters(1);
+            encoderParameters.Param[0] = new EncoderParameter(
+                System.Drawing.Imaging.Encoder.Quality,
+                Convert.ToInt64(settings["JPEGQuality"])
+            );
+            bitmap.Save(outputPath, encoder, encoderParameters);
+        };
 
-            case ".bmp":
-                justCopy = false;
+        if (forceJpeg) {
+            justCopy = false;
+            outputPath += ".jpg";
 
-                var hImage = LoadImage(IntPtr.Zero, sourcePath, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-                try {
-                    using (var texture = (System.Drawing.Bitmap)System.Drawing.Image.FromHbitmap(hImage)) {
-                        switch (texture.PixelFormat) {
-                            case PixelFormat.Gdi:
-                            case PixelFormat.Extended:
-                            case PixelFormat.Canonical:
-                            case PixelFormat.Undefined:
-                            case PixelFormat.Format16bppRgb555:
-                            case PixelFormat.Format16bppRgb565:
-                            case PixelFormat.Format24bppRgb: {
-                                outputPath += ".jpg";
-                                var encoder = GetEncoder(ImageFormat.Jpeg);
-                                var encoderParameters = new System.Drawing.Imaging.EncoderParameters(1);
-                                encoderParameters.Param[0] = new EncoderParameter(
-                                    System.Drawing.Imaging.Encoder.Quality,
-                                    Convert.ToInt64(settings["JPEGQuality"])
-                                );
-                                texture.Save(outputPath, encoder, encoderParameters);
-                                break;
+            using (var img = (System.Drawing.Bitmap)System.Drawing.Image.FromFile(sourcePath))
+                saveJpeg(img);
+        } else {
+            switch (Path.GetExtension(imageName).ToLower()) {
+                case ".jpg":
+                case ".jpeg":
+                    outputPath += ".jpg";
+                    break;
+
+                case ".bmp":
+                    justCopy = false;
+
+                    var hImage = LoadImage(IntPtr.Zero, sourcePath, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+                    try {
+                        using (var texture = (System.Drawing.Bitmap)System.Drawing.Image.FromHbitmap(hImage)) {
+                            switch (texture.PixelFormat) {
+                                case PixelFormat.Gdi:
+                                case PixelFormat.Extended:
+                                case PixelFormat.Canonical:
+                                case PixelFormat.Undefined:
+                                case PixelFormat.Format16bppRgb555:
+                                case PixelFormat.Format16bppRgb565:
+                                case PixelFormat.Format24bppRgb:
+                                    outputPath += ".jpg";
+                                    saveJpeg(texture);
+                                    break;
+
+                                case PixelFormat.Format32bppArgb:
+                                case PixelFormat.Format32bppPArgb:
+                                case PixelFormat.Format32bppRgb: {
+                                    // Do an elaborate song and dance to extract the alpha channel from the PNG, because
+                                    //  GDI+ is too utterly shitty to do that itself
+                                        var dc = CreateCompatibleDC(IntPtr.Zero);
+
+                                        var newImage = new System.Drawing.Bitmap(
+                                            texture.Width, texture.Height, PixelFormat.Format32bppArgb
+                                        );
+                                        var bits = newImage.LockBits(
+                                            new System.Drawing.Rectangle(0, 0, texture.Width, texture.Height),
+                                            ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb
+                                        );
+
+                                        var info = new BITMAPINFO {
+                                            biBitCount = 32,
+                                            biClrImportant = 0,
+                                            biClrUsed = 0,
+                                            biCompression = 0,
+                                            biHeight = -texture.Height,
+                                            biPlanes = 1,
+                                            biSizeImage = bits.Stride * bits.Height,
+                                            biWidth = bits.Width,
+                                        };
+                                        info.biSize = Marshal.SizeOf(info);
+
+                                        var rv = GetDIBits(dc, hImage, 0, (uint)texture.Height, bits.Scan0, ref info, 0);
+
+                                        newImage.UnlockBits(bits);
+
+                                        DeleteObject(dc);
+
+                                        outputPath += ".png";
+                                        newImage.Save(outputPath, ImageFormat.Png);
+                                        newImage.Dispose();
+
+                                        break;
+                                    }
+
+                                default:
+                                    Console.Error.WriteLine("// Unsupported bitmap format: '{0}' {1}", Path.GetFileNameWithoutExtension(imageName), texture.PixelFormat);
+                                    return null;
                             }
-
-                            // Do an elaborate song and dance to extract the alpha channel from the PNG, because
-                            //  GDI+ is too utterly shitty to do that itself
-                            case PixelFormat.Format32bppArgb:
-                            case PixelFormat.Format32bppPArgb:
-                            case PixelFormat.Format32bppRgb: {
-                                var dc = CreateCompatibleDC(IntPtr.Zero);
-
-                                var newImage = new System.Drawing.Bitmap(
-                                    texture.Width, texture.Height, PixelFormat.Format32bppArgb
-                                );
-                                var bits = newImage.LockBits(
-                                    new System.Drawing.Rectangle(0, 0, texture.Width, texture.Height),
-                                    ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb
-                                );
-
-                                var info = new BITMAPINFO {
-                                    biBitCount = 32,
-                                    biClrImportant = 0,
-                                    biClrUsed = 0,
-                                    biCompression = 0,
-                                    biHeight = -texture.Height,
-                                    biPlanes = 1,
-                                    biSizeImage = bits.Stride * bits.Height,
-                                    biWidth = bits.Width,
-                                };
-                                info.biSize = Marshal.SizeOf(info);
-
-                                var rv = GetDIBits(dc, hImage, 0, (uint)texture.Height, bits.Scan0, ref info, 0);
-
-                                newImage.UnlockBits(bits);
-
-                                DeleteObject(dc);
-
-                                outputPath += ".png";
-                                newImage.Save(outputPath, ImageFormat.Png);
-                                newImage.Dispose();
-
-                                break;
-                            }
-
-                            default:
-                                Console.Error.WriteLine("// Unsupported bitmap format: '{0}' {1}", Path.GetFileNameWithoutExtension(imageName), texture.PixelFormat);
-                                return null;
                         }
+                    } finally {
+                        DeleteObject(hImage);
                     }
-                } finally {
-                    DeleteObject(hImage);
-                }
-                break;
+                    break;
 
-            case ".png":
-            default:
-                outputPath += Path.GetExtension(imageName);
-                break;
+                case ".png":
+                default:
+                    outputPath += Path.GetExtension(imageName);
+                    break;
+            }
         }
 
         if (justCopy)
             File.Copy(sourcePath, outputPath, true);
 
         bool usePNGQuant = Convert.ToBoolean(settings["UsePNGQuant"]);
-        var pngQuantBlacklist = (settings["PNGQuantBlacklist"] as ArrayList).Cast<string>().OrderBy((s) => s).ToArray();
+        var pngQuantBlacklist = settings["PNGQuantBlacklist"] as string[];
         var pngQuantParameters = String.Format(
             "{0} {1}", 
             settings["PNGQuantColorCount"],
@@ -334,5 +351,210 @@ public static class Common {
             Size = resultInfo.Length,
             Timestamp = resultInfo.LastWriteTimeUtc
         };
+    }
+
+    public static void InitConfiguration (JSIL.Compiler.Configuration result) {
+        result.ProfileSettings.SetDefault("ContentOutputDirectory", null);
+        result.ProfileSettings.SetDefault("JPEGQuality", 90);
+        result.ProfileSettings.SetDefault("UsePNGQuant", false);
+        result.ProfileSettings.SetDefault("PNGQuantColorCount", 256);
+        result.ProfileSettings.SetDefault("PNGQuantOptions", "");
+
+        if (result.ProfileSettings.ContainsKey("PNGQuantBlacklist"))
+            result.ProfileSettings["PNGQuantBlacklist"] = (result.ProfileSettings["PNGQuantBlacklist"] as ArrayList)
+                .Cast<string>().OrderBy((s) => s).ToArray();
+        else
+            result.ProfileSettings["PNGQuantBlacklist"] = new string[0];
+
+        if (result.ProfileSettings.ContainsKey("ForceJPEG"))
+            result.ProfileSettings["ForceJPEG"] = (result.ProfileSettings["ForceJPEG"] as ArrayList)
+                .Cast<string>().OrderBy((s) => s).ToArray();
+        else
+            result.ProfileSettings["ForceJPEG"] = new string[0];
+    }
+
+    public static void ProcessContentProjects (Configuration configuration, SolutionBuilder.SolutionBuildResult buildResult, HashSet<string> contentProjectsProcessed) {
+        var contentOutputDirectory =
+            configuration.ProfileSettings.GetValueOrDefault("ContentOutputDirectory", null) as string;
+
+        if (contentOutputDirectory == null)
+            return;
+
+        contentOutputDirectory = contentOutputDirectory
+            .Replace("%configpath%", configuration.Path)
+            .Replace("%outputpath%", configuration.OutputDirectory);
+
+        var projectCollection = new ProjectCollection();
+        var contentProjects = buildResult.ProjectsBuilt.Where(
+            (project) => project.File.EndsWith(".contentproj")
+            ).ToArray();
+
+        Dictionary<string, Common.CompressResult> existingJournal;
+        Common.CompressResult? existingJournalEntry;
+        var jss = new JavaScriptSerializer();
+
+        foreach (var builtContentProject in contentProjects) {
+            var contentProjectPath = builtContentProject.File;
+
+            if (contentProjectsProcessed.Contains(contentProjectPath))
+                continue;
+
+            var journal = new List<Common.CompressResult>();
+            var journalPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "JSIL",
+                                           contentProjectPath.Replace("\\", "_").Replace(":", ""));
+
+            Common.EnsureDirectoryExists(Path.GetDirectoryName(journalPath));
+            if (File.Exists(journalPath)) {
+                var journalEntries = jss.Deserialize<Common.CompressResult[]>(File.ReadAllText(journalPath));
+                existingJournal = journalEntries.ToDictionary((je) => je.SourceFilename);
+            } else {
+                existingJournal = null;
+            }
+
+            contentProjectsProcessed.Add(contentProjectPath);
+            Console.Error.WriteLine("// Processing content project '{0}' ...", contentProjectPath);
+
+            var project = projectCollection.LoadProject(contentProjectPath);
+            var projectProperties = project.Properties.ToDictionary(
+                (p) => p.Name
+                );
+
+            Project parentProject = null;
+            Dictionary<string, ProjectProperty> parentProjectProperties = null;
+            if (builtContentProject.Parent != null) {
+                parentProject = projectCollection.LoadProject(builtContentProject.Parent.File);
+                parentProjectProperties = parentProject.Properties.ToDictionary(
+                    (p) => p.Name
+                    );
+            }
+
+            var contentProjectDirectory = Path.GetDirectoryName(contentProjectPath);
+            var localOutputDirectory = contentOutputDirectory
+                .Replace("%contentprojectpath%", contentProjectDirectory)
+                .Replace("/", "\\");
+
+            var contentManifest = new StringBuilder();
+            contentManifest.AppendFormat("// {0}\r\n", JSIL.AssemblyTranslator.GetHeaderText());
+            contentManifest.AppendLine();
+            contentManifest.AppendLine("if (typeof (contentManifest) !== \"object\") { contentManifest = {}; };");
+            contentManifest.AppendLine("contentManifest[\"" + Path.GetFileNameWithoutExtension(contentProjectPath) +
+                                       "\"] = [");
+
+            Action<string, string> logOutput =
+            (type, filename) => {
+                var localPath = filename.Replace(localOutputDirectory, "");
+                if (localPath.StartsWith("\\"))
+                    localPath = localPath.Substring(1);
+
+                Console.WriteLine(localPath);
+
+                var propertiesObject = String.Format("{{ \"sizeBytes\": {0} }}",
+                                                    new FileInfo(filename).Length);
+
+                contentManifest.AppendFormat("  [\"{0}\", \"{1}\", {2}],{3}", type,
+                                            localPath.Replace("\\", "/"),
+                                            propertiesObject, Environment.NewLine);
+            };
+
+            Action<ProjectItem, string, string> copyRawXnb =
+            (item, xnbPath, type) => {
+                var outputPath = Path.Combine(
+                    localOutputDirectory,
+                    item.EvaluatedInclude.Replace(
+                        Path.GetExtension(item.EvaluatedInclude),
+                        ".xnb")
+                    );
+
+                Common.EnsureDirectoryExists(
+                    Path.GetDirectoryName(outputPath));
+
+                File.Copy(xnbPath, outputPath, true);
+                logOutput(type, outputPath);
+            };
+
+            foreach (var item in project.Items) {
+                if (item.ItemType != "Compile")
+                    continue;
+
+                var metadata = item.DirectMetadata.ToDictionary((md) => md.Name);
+                var importerName = metadata["Importer"].EvaluatedValue;
+                var processorName = metadata["Processor"].EvaluatedValue;
+                var sourcePath = Path.Combine(contentProjectDirectory, item.EvaluatedInclude);
+                string xnbPath = null;
+
+                if (parentProjectProperties != null) {
+                    xnbPath = Path.Combine(
+                        Path.Combine(
+                            Path.Combine(
+                                Path.GetDirectoryName(builtContentProject.Parent.File),
+                                parentProjectProperties["OutputPath"].EvaluatedValue
+                                ),
+                            "Content"
+                            ),
+                        item.EvaluatedInclude.Replace(Path.GetExtension(item.EvaluatedInclude), ".xnb")
+                    );
+                }
+
+                switch (processorName) {
+                    case "FontTextureProcessor":
+                    case "FontDescriptionProcessor":
+                        copyRawXnb(item, xnbPath, "SpriteFont");
+                        continue;
+                    case "TextureProcessor":
+                        if (Path.GetExtension(sourcePath).ToLower() == ".tga") {
+                            copyRawXnb(item, xnbPath, "Texture2D");
+                            continue;
+                        }
+
+                        if (existingJournal == null)
+                            existingJournalEntry = null;
+                        else {
+                            Common.CompressResult temp;
+                            if (existingJournal.TryGetValue(sourcePath, out temp))
+                                existingJournalEntry = temp;
+                            else
+                                existingJournalEntry = null;
+                        }
+
+                        var itemOutputDirectory = Path.Combine(localOutputDirectory,
+                                                               Path.GetDirectoryName(item.EvaluatedInclude));
+                        var result = Common.CompressImage(
+                            item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
+                            configuration.ProfileSettings, existingJournalEntry
+                            );
+
+                        if (result.HasValue) {
+                            journal.Add(result.Value);
+                            logOutput("Image", result.Value.Filename);
+                        }
+
+                        continue;
+                }
+
+                switch (importerName) {
+                    case "XmlImporter":
+                        copyRawXnb(item, xnbPath, "XNB");
+                        break;
+                    default:
+                        Console.Error.WriteLine(
+                            "// Can't process '{0}': importer '{1}' and processor '{2}' both unsupported.",
+                            item.EvaluatedInclude, importerName, processorName);
+                        break;
+                }
+            }
+
+            contentManifest.AppendLine("];");
+            File.WriteAllText(
+                Path.Combine(configuration.OutputDirectory, Path.GetFileName(contentProjectPath) + ".manifest.js"),
+                contentManifest.ToString()
+            );
+
+            File.WriteAllText(
+                journalPath, jss.Serialize(journal).Replace("{", "\r\n{")
+            );
+        }
+
+        if (contentProjects.Length > 0)
+            Console.Error.WriteLine("// Done processing content.");
     }
 }

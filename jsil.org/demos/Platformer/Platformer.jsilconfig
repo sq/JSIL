@@ -3,8 +3,14 @@
   "ProfileSettings": {
     "OverwriteExistingContent": true,
     "ContentOutputDirectory": "%configpath%/Content",
+    "JPEGQuality": 90,
     "UsePNGQuant": true,
     "PNGQuantBlacklist": [
+    ],
+    "ForceJPEG": [
+    	"Backgrounds\\Layer0_0.png",
+    	"Backgrounds\\Layer0_1.png",
+    	"Backgrounds\\Layer0_2.png"
     ]
   }
 }
