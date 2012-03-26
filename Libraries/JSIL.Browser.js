@@ -334,28 +334,6 @@ var assetLoaders = {
       }
     });
   },
-  "XNB": function loadXNB (filename, data, onError, onDoneLoading) {
-    loadBinaryFileAsync(contentRoot + filename, function (result, error) {
-      if (result !== null) {
-        var assetName = getAssetName(filename);
-        allAssets[assetName] = new RawXNBAsset(assetName, result);
-        onDoneLoading(); 
-      } else {
-        onError(error);
-      }
-    });
-  },
-  "SpriteFont": function loadSpriteFont (filename, data, onError, onDoneLoading) {
-    loadBinaryFileAsync(contentRoot + filename, function (result, error) {
-      if (result !== null) {
-        var assetName = getAssetName(filename);
-        allAssets[assetName] = new SpriteFontAsset(assetName, result);
-        onDoneLoading(); 
-      } else {
-        onError(error);
-      }
-    });
-  },
   "Font": function loadFont (filename, data, onError, onDoneLoading) {
     var fontId = "xnafont" + loadedFontCount;
     loadedFontCount += 1;
@@ -407,6 +385,25 @@ var assetLoaders = {
     e.setAttribute("style", 'font: ' + pointSize + ' "' + fontId + '"');
   }
 };
+
+var $makeXNBAssetLoader = function (key, typeName) {
+  assetLoaders[key] = function (filename, data, onError, onDoneLoading) {
+    loadBinaryFileAsync(contentRoot + filename, function (result, error) {
+      if (result !== null) {
+        var assetName = getAssetName(filename);
+        var type = System.Type.GetType(typeName);
+        allAssets[assetName] = new type(assetName, result);
+        onDoneLoading(); 
+      } else {
+        onError(error);
+      }
+    });
+  };
+};
+
+$makeXNBAssetLoader("XNB", "RawXNBAsset");
+$makeXNBAssetLoader("SpriteFont", "SpriteFontAsset");
+$makeXNBAssetLoader("Texture2D", "Texture2DAsset");
 
 function loadNextAsset (assets, state, onDoneLoading, loadDelay) {      
   var w = 0;

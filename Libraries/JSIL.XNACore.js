@@ -726,6 +726,12 @@ JSIL.MakeClass("RawXNBAsset", "SpriteFontAsset", true, [], function ($) {
   };
 });
 
+JSIL.MakeClass("RawXNBAsset", "Texture2DAsset", true, [], function ($) {
+  $.prototype._ctor = function (assetName, rawBytes) {
+    RawXNBAsset.prototype._ctor.call(this, assetName, rawBytes);
+  };
+});
+
 JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Audio.AudioEngine", true, {
     _ctor$0: function (settingsFile) {

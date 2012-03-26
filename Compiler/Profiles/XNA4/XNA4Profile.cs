@@ -164,6 +164,11 @@ namespace JSIL.Compiler.Profiles {
                             copyRawXnb(item, xnbPath, "SpriteFont");
                             continue;
                         case "TextureProcessor":
+                            if (Path.GetExtension(sourcePath).ToLower() == ".tga") {
+                                copyRawXnb(item, xnbPath, "Texture2D");
+                                continue;
+                            }
+
                             if (existingJournal == null)
                                 existingJournalEntry = null;
                             else {

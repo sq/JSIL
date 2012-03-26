@@ -1900,7 +1900,7 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
       (typeof (expectedProto) === "null"))
     return false;
 
-  if (typeof (value) === "object") {
+  if ((typeof (value) === "object") || (typeof (value) === "function")) {
     if (JSIL.CheckDerivation(Object.getPrototypeOf(value), expectedProto))
       return true;
   }
