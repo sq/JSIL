@@ -107,6 +107,17 @@
     <PostBuildEvent>copy "$(ProjectDir)\..\Upstream\Spidermonkey\*.*" "$(OutDir)"
 copy "$(ProjectDir)\..\Upstream\PNGQuant\*.exe" "$(OutDir)"</PostBuildEvent>
   </PropertyGroup>
+  <PropertyGroup>
+    <PreBuildEvent>IF "$(PlatformName)"=="x86" GOTO goodPlatform
+ECHO JSIL must be built with the platform set to x86.
+EXIT /b 1
+:goodPlatform
+IF "$(ConfigurationName)"=="Debug" GOTO goodConfiguration
+IF "$(ConfigurationName)"=="Release" GOTO goodConfiguration
+ECHO JSIL must be built with the configuration set to Debug or Release.
+EXIT /b 2
+:goodConfiguration</PreBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
