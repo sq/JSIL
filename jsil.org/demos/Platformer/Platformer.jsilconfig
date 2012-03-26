@@ -7,10 +7,7 @@
     "FileSettings": {
       "Backgrounds\\Layer0_0.png": "ForceJPEG",
       "Backgrounds\\Layer0_1.png": "ForceJPEG",
-      "Backgrounds\\Layer0_2.png": "ForceJPEG",
-      "Sprites\\Player\\Idle.png": "UseXNB",
-      "Sprites\\Player\\Jump.png": "UseXNB",
-      "Sprites\\Player\\Run.png": "UseXNB"
+      "Backgrounds\\Layer0_2.png": "ForceJPEG"
     }
   }
 }

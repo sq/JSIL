@@ -5,7 +5,6 @@
     "ContentOutputDirectory": "%configpath%/Content",
     "UsePNGQuant": true,
     "FileSettings": {
-      "tabpis.png": "UseXNB"
     }
   }
 }

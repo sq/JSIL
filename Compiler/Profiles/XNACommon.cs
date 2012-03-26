@@ -487,22 +487,25 @@ public static class Common {
 
         psi.WorkingDirectory = Path.GetDirectoryName(filename);
         psi.UseShellExecute = false;
-        psi.RedirectStandardInput = stdin != null;
+        psi.RedirectStandardInput = true;
         psi.RedirectStandardError = true;
         psi.RedirectStandardOutput = true;
 
         using (var process = Process.Start(psi)) {
+            var stdinStream = process.StandardInput.BaseStream;
+            var stderrStream = process.StandardError.BaseStream;
 
             if (stdin != null) {
                 ThreadPool.QueueUserWorkItem(
                     (_) => {
-                        if (stdin != null)
-                            process.StandardInput.BaseStream.Write(
+                        if (stdin != null) {
+                            stdinStream.Write(
                                 stdin, 0, stdin.Length
                             );
+                            stdinStream.Flush();
+                        }
 
-                        process.StandardInput.BaseStream.Flush();
-                        process.StandardInput.BaseStream.Close();
+                        stdinStream.Close();
                     }, null
                 );
             }
@@ -510,7 +513,7 @@ public static class Common {
             var temp = new string[1] { null };
             ThreadPool.QueueUserWorkItem(
                 (_) => {
-                    var text = Encoding.ASCII.GetString(ReadEntireStream(process.StandardError.BaseStream));
+                    var text = Encoding.ASCII.GetString(ReadEntireStream(stderrStream));
                     temp[0] = text;
                 }, null
             );
@@ -578,7 +581,7 @@ public static class Common {
             (project) => project.File.EndsWith(".contentproj")
             ).ToArray();
 
-        Dictionary<string, Common.CompressResult> existingJournal = null;
+        Dictionary<string, Common.CompressResult> existingJournal = new Dictionary<string, CompressResult>();
         Common.CompressResult? existingJournalEntry;
         var jss = new JavaScriptSerializer();
 
@@ -691,15 +694,11 @@ public static class Common {
                 var sourcePath = Path.Combine(contentProjectDirectory, item.EvaluatedInclude);
                 string xnbPath = null;
 
-                if (existingJournal == null)
+                Common.CompressResult temp;
+                if (existingJournal.TryGetValue(sourcePath, out temp))
+                    existingJournalEntry = temp;
+                else
                     existingJournalEntry = null;
-                else {
-                    Common.CompressResult temp;
-                    if (existingJournal.TryGetValue(sourcePath, out temp))
-                        existingJournalEntry = temp;
-                    else
-                        existingJournalEntry = null;
-                }
 
                 if (parentProjectProperties != null) {
                     xnbPath = Path.Combine(

@@ -2665,40 +2665,84 @@ $jsilxna.DecompressAlphaBlockBC3 = function (source, sourceOffset) {
   var readPosition = sourceOffset + 2;
   var readPositionBits = 0;
   var finalAlpha;
+
+  // I'm too lazy to get the math for this right using JS integer arithmetic.
+  // It's slower, but it works.
+  var bits = "";
+  for (var i = 0; i < 6; i++) {
+    var byte = source[readPosition + i].toString(2);
+    while (byte.length < 8)
+      byte = "0" + byte;
+
+    bits = byte + bits;
+  }
  
   for (var y = 0; y < 4; y++) {
-    var currentByte = source[readPosition];
-    var nextByte = source[readPosition + 1] || 0;
-
     for (var x = 0; x < 4; x++) {
-      var positionCode = (currentByte >> (readPositionBits)) & 0x07;
-      if (readPositionBits > 5) {
-        var extraBitsMinus1 = Math.max(0, 3 - (8 - readPositionBits) - 1);
-        positionCode |= nextByte & (1 << extraBitsMinus1);
-      }
- 
-      switch (positionCode) {
-        case 0:
-          finalAlpha = alpha0;
-          break;
-        case 1:
-          finalAlpha = alpha1;
-          break;
-        case 2:
-          finalAlpha = (2*alpha0+alpha1)/3;
-          break;
-        case 3:
-          finalAlpha = (alpha0+2*alpha1)/3;
-          break;
+      var currentBits = bits.substr(readPositionBits, 3);
+      var positionCode = parseInt(currentBits, 2);
+
+      if (alpha0 > alpha1) {
+        switch (positionCode) {
+          case 0:
+            finalAlpha = alpha0;
+            break;
+          case 1:
+            finalAlpha = alpha1;
+            break;
+          case 2:
+            finalAlpha = ((6 * alpha0) + (1 * alpha1)) / 7;
+            break;
+          case 3:
+            finalAlpha = ((5 * alpha0) + (2 * alpha1)) / 7;
+            break;
+          case 4:
+            finalAlpha = ((4 * alpha0) + (3 * alpha1)) / 7;
+            break;
+          case 5:
+            finalAlpha = ((3 * alpha0) + (4 * alpha1)) / 7;
+            break;
+          case 6:
+            finalAlpha = ((2 * alpha0) + (5 * alpha1)) / 7;
+            break;
+          case 7:
+            finalAlpha = ((1 * alpha0) + (6 * alpha1)) / 7;
+            break;
+        }
+      } else {
+        switch (positionCode) {
+          case 0:
+            finalAlpha = alpha0;
+            break;
+          case 1:
+            finalAlpha = alpha1;
+            break;
+          case 2:
+            finalAlpha = ((4 * alpha0) + (1 * alpha1)) / 5
+            break;
+          case 3:
+            finalAlpha = ((3 * alpha0) + (2 * alpha1)) / 5
+            break;
+          case 4:
+            finalAlpha = ((2 * alpha0) + (3 * alpha1)) / 5
+            break;
+          case 5:
+            finalAlpha = ((1 * alpha0) + (4 * alpha1)) / 5
+            break;
+          case 6:
+            finalAlpha = 0;
+            break;
+          case 7:
+            finalAlpha = 255;
+            break;
+        }
       }
  
       readPositionBits += 3;
-      if (readPositionBits > 7) {
-        readPositionBits -= 8;
-        readPosition += 1;
-      }
 
-      result[x + (y * 4)] = finalAlpha;
+      var _x = 3 - x;
+      var _y = 3 - y;
+      result[_x + (_y * 4)] = finalAlpha;
     }    
   }
 
