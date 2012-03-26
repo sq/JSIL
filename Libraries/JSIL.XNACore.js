@@ -214,14 +214,40 @@ JSIL.MakeClass("HTML5Asset", "HTML5ImageAsset", true, [], function ($) {
 });
 
 JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true, [], function ($) {
-  $.prototype._ctor = function (assetName, sound) {
+  $.prototype._ctor = function (assetName, sound, properties) {
     HTML5Asset.prototype._ctor.call(this, assetName);
     this.sound = sound;
+    this.properties = properties;
+    this.loop = properties.loop || false;
+    this.freeInstances = [
+      this.$createInstance()
+    ];
+  };
+  $.prototype.$createInstance = function () {
+    var instance = this.sound.cloneNode(true);
+
+    if (this.loop) {
+      instance.addEventListener("ended", function () {
+        instance.play();
+      }.bind(this), true);
+    } else {
+      instance.addEventListener("ended", function () {
+        if (this.freeInstances.length < 16)
+          this.freeInstances.push(instance);
+      }.bind(this), true);
+    }
+    
+    return instance;
   };
   $.prototype.Play$0 = function () {
-    if (this.sound !== null) {
-      this.sound.play();
+    var instance;
+    if (this.freeInstances.length > 0) {
+      instance = this.freeInstances.pop();
+    } else {
+      instance = this.$createInstance();
     }
+
+    instance.play();
   };
 });
 

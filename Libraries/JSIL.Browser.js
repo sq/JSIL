@@ -250,8 +250,6 @@ var assetLoaders = {
     var e = document.createElement("audio");
     e.setAttribute("autobuffer", true);
     e.setAttribute("preload", "auto");
-    if ((data !== null) && data.hasOwnProperty("loop"))
-      e.loop = data.loop;
     
     var state = { 
       loaded: false
@@ -273,12 +271,12 @@ var assetLoaders = {
       ) {
         clearInterval(state.interval);
         state.loaded = true;
-        allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), e);
+        allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), e, data);
         onDoneLoading();
       } else if (networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
         clearInterval(state.interval);
         state.loaded = true;
-        allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), null);
+        allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), null, data);
         try {
           onError("Error " + e.error.code);
         } catch (ex) {
@@ -294,12 +292,11 @@ var assetLoaders = {
 
         clearInterval(state.interval);
         state.loaded = true;
-        allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), e);
+        allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), e, data);
         onDoneLoading();
       }
     };
     
-    // Events on <audio> elements are inconsistent at best across browsers, so we poll instead. :/    
     for (var i = 0; i < data.formats.length; i++) {
       var format = data.formats[i];
       var extension, mimetype = null;
@@ -309,19 +306,37 @@ var assetLoaders = {
         extension = format.extension;
         mimetype = format.mimetype;
       }
+
+      if (mimetype === null) {
+        switch (extension) {
+          case ".mp3":
+            mimetype = "audio/mpeg"
+            break;
+          case ".ogg":
+            mimetype = "audio/ogg; codecs=vorbis"
+            break;
+        }
+      }
       
-      var source = document.createElement("source");
-      source.src = contentRoot + filename + extension;
-      if (mimetype !== null)
-        source.type = mimetype;
-      e.appendChild(source);
+      // Don't add unsupported sources.
+      if (String(e.canPlayType(mimetype)).trim().length > 0) {
+        var source = document.createElement("source");
+
+        if (mimetype !== null)
+          source.setAttribute("type", mimetype);
+
+        source.setAttribute("src", contentRoot + filename + extension);
+
+        e.appendChild(source);
+      }
     }
     
     document.getElementById("sounds").appendChild(e);
     
+    // Events on <audio> elements are inconsistent at best across browsers, so we poll instead. :/    
+
     if (typeof (e.load) === "function")
-      e.load();
-    
+      e.load();    
     state.interval = setInterval(loadingCallback, loadingPollInterval);
   },
   "File": function loadFile (filename, data, onError, onDoneLoading) {
