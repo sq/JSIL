@@ -2286,7 +2286,7 @@ JSIL.ImplementExternals(
             continue;
           case "\n":
             position.X = textblockPosition.X;
-            position.Y += this.lineSpacing;
+            position.Y += this.lineSpacing * scale;
             continue;
         }
 
@@ -2298,17 +2298,17 @@ JSIL.ImplementExternals(
         }
 
         var kerning = this.kerning.get_Item(charIndex);
-        var beforeGlyph = kerning.X;
-        var glyphWidth = kerning.Y;
-        var afterGlyph = kerning.Z;
+        var beforeGlyph = kerning.X * scale;
+        var glyphWidth = kerning.Y * scale;
+        var afterGlyph = kerning.Z * scale;
 
         position.X += beforeGlyph;
 
         var glyphRect = this.glyphData.get_Item(charIndex);
         var cropRect = this.croppingData.get_Item(charIndex);
 
-        drawPosition.X = position.X + cropRect.X;
-        drawPosition.Y = position.Y + cropRect.Y;
+        drawPosition.X = position.X + cropRect.X * scale;
+        drawPosition.Y = position.Y + cropRect.Y * scale;
 
         spriteBatch.InternalDraw(
           this.textureValue, drawPosition, glyphRect, color, rotation, origin, scale, spriteEffects, depth
@@ -2326,6 +2326,7 @@ JSIL.ImplementExternals(
     _ctor$2: function (graphicsDevice, width, height, mipMap, format) {
       this.imageFormats = {
         0: null, // Color
+        4: $jsilxna.DecodeDxt2, // DXT2
         5: $jsilxna.DecodeDxt3, // DXT3
       };
 
@@ -2355,7 +2356,8 @@ JSIL.ImplementExternals(
       if (rect !== null)
         throw new System.NotImplementedException();
 
-      this.image.src = this.$getDataUrlForBytes(data, startIndex, elementCount, true);
+      var shouldUnpremultiply = true;
+      this.image.src = this.$getDataUrlForBytes(data, startIndex, elementCount, shouldUnpremultiply);
     }),
     $getDataUrlForBytes: function (bytes, startIndex, elementCount, unpremultiply) {
       var canvas = document.createElement("canvas");
@@ -2424,13 +2426,14 @@ $jsilxna.Unpack565 = function (sourceBuffer, sourceOffset) {
   return result;
 };
 
-$jsilxna.DecompressBlockBC12 = function(source, sourceOffset, writePixel, bc2Mode) {
+$jsilxna.DecompressBlockBC12 = function(source, sourceOffset, writePixel, alphaSource) {
   var color0 = $jsilxna.Unpack565(source, sourceOffset);
   var color1 = $jsilxna.Unpack565(source, sourceOffset + 2);
 
   var r0 = color0[0], g0 = color0[1], b0 = color0[2];
   var r1 = color1[0], g1 = color1[1], b1 = color1[2];
 
+  var bc2Mode = typeof (alphaSource) === "function";
   var readPosition = sourceOffset + 4;
   var finalColor;
  
@@ -2439,23 +2442,28 @@ $jsilxna.DecompressBlockBC12 = function(source, sourceOffset, writePixel, bc2Mod
 
     for (var x = 0; x < 4; x++) {
       var positionCode = (currentByte >> (2 * x)) & 0x03;
+      var alpha = 255;
+      if (bc2Mode)
+        alpha = alphaSource(x, y);
  
       if (bc2Mode || (color0 > color1)) {
+        // BC2 block mode or a BC1 block where (color0 > color1)
         switch (positionCode) {
           case 0:
-            finalColor = [r0, g0, b0, 255];
+            finalColor = [r0, g0, b0, alpha];
             break;
           case 1:
-            finalColor = [r1, g1, b1, 255];
+            finalColor = [r1, g1, b1, alpha];
             break;
           case 2:
-            finalColor = [(2*r0+r1)/3, (2*g0+g1)/3, (2*b0+b1)/3, 255];
+            finalColor = [(2*r0+r1)/3, (2*g0+g1)/3, (2*b0+b1)/3, alpha];
             break;
           case 3:
-            finalColor = [(r0+2*r1)/3, (g0+2*g1)/3, (b0+2*b1)/3, 255];
+            finalColor = [(r0+2*r1)/3, (g0+2*g1)/3, (b0+2*b1)/3, alpha];
             break;
         }
       } else {
+        // BC1 block mode
         switch (positionCode) {
           case 0:
             finalColor = [r0, g0, b0, 255];
@@ -2478,6 +2486,22 @@ $jsilxna.DecompressBlockBC12 = function(source, sourceOffset, writePixel, bc2Mod
     readPosition += 1;
   }
 }
+
+$jsilxna.DecompressAlphaBlockBC2 = function (source, sourceOffset) {
+  return function (x, y) {
+    var offset = Math.floor(((y * 4) + x) / 2) + sourceOffset;
+    var byte = source[offset];
+    var bits;
+
+    if ((x & 1) == 1) {
+      bits = (byte >> 4) & 0x0F;
+    } else {
+      bits = byte & 0x0F;
+    }
+
+    return bits * 0x11;
+  };
+};
 
 $jsilxna.makePixelWriter = function (buffer, width, x, y) {
   return function (_x, _y, color) {
@@ -2503,7 +2527,10 @@ $jsilxna.DecodeDxt3 = function (width, height, bytes, offset, count) {
 
   for (var y = 0; y < blockCountY; y++) {
     for (var x = 0; x < blockCountX; x++) {
-      // Skip alpha data
+      // Decode alpha data
+      var alphaSource = $jsilxna.DecompressAlphaBlockBC2(
+        bytes, sourceOffset
+      );
 
       sourceOffset += 8;
 
@@ -2511,7 +2538,7 @@ $jsilxna.DecodeDxt3 = function (width, height, bytes, offset, count) {
       $jsilxna.DecompressBlockBC12(
         bytes, sourceOffset, 
         $jsilxna.makePixelWriter(result, width, x * blockWidth, y * blockHeight),
-        true
+        alphaSource
       );
 
       sourceOffset += 8;
