@@ -307,6 +307,8 @@
     <None Include="TestCases\EnumNegation.cs" />
     <None Include="SimpleTestCases\StringToCharArray.cs" />
     <None Include="SimpleTestCases\RecursiveConstructorInheritance.cs" />
+    <None Include="SimpleTestCases\GetExecutingAssembly.cs" />
+    <None Include="SimpleTestCases\AssemblyGetType.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

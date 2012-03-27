@@ -1271,6 +1271,7 @@ namespace JSIL {
                 ).Visit(function);
 
             new ReplaceMethodCalls(
+                function.Method.Reference,
                 si.JSIL, si.JS, si.TypeSystem
             ).Visit(function);
 

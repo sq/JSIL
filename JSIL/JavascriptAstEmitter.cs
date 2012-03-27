@@ -368,6 +368,10 @@ namespace JSIL {
             Output.Value(type.Value);
         }
 
+        public void VisitNode (JSAssemblyNameLiteral asm) {
+            Output.Value(asm.Value.FullName);
+        }
+
         public void VisitNode (JSIntegerLiteral integer) {
             Output.Value(integer.Value);
         }
@@ -488,6 +492,10 @@ namespace JSIL {
                         break;
                 }
             }
+        }
+
+        public void VisitNode (JSAssembly asm) {
+            Output.AssemblyReference(asm.Assembly);
         }
 
         public void VisitNode (JSType type) {

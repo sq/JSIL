@@ -48,6 +48,15 @@ namespace JSIL.Internal {
             Manifest.AssignIdentifiers();
         }
 
+        public void AssemblyReference (AssemblyDefinition assembly) {
+            string key = assembly.FullName;
+
+            var token = Manifest.GetPrivateToken(key);
+            Manifest.AssignIdentifiers();
+
+            Identifier(token.IDString, null);
+        }
+
         public void AssemblyReference (TypeReference type) {
             string key = GetContainingAssemblyName(type);
 

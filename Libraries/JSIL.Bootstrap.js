@@ -173,12 +173,6 @@ JSIL.MakeClass(Error, "System.Exception", true, [], function ($) {
 JSIL.MakeClass("System.Exception", "System.InvalidCastException", true);
 JSIL.MakeClass("System.Exception", "System.InvalidOperationException", true);
 
-JSIL.MakeStaticClass("System.Console", true, [], function ($) {
-  JSIL.ExternalMembers($, false, 
-    "Write", "WriteLine"
-  );
-});
-
 JSIL.ImplementExternals(
   "System.Console", false, {
     WriteLine: function () {
@@ -189,6 +183,20 @@ JSIL.ImplementExternals(
     }
   }
 );
+
+JSIL.ImplementExternals(
+  "System.Diagnostics.Debug", false, {
+    WriteLine$0: function (text) {
+      JSIL.Host.logWriteLine(text);
+    },
+  }
+);
+
+JSIL.MakeStaticClass("System.Console", true, [], function ($) {
+  JSIL.ExternalMembers($, false, 
+    "Write", "WriteLine"
+  );
+});
 
 // Unfortunately, without access to sandboxed natives, we have to extend the actual prototype for String :(
 

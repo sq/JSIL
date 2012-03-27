@@ -620,7 +620,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManage
 
       // We need to explicitly make the xna assembly the default search context since many of the readers are private classes
       var parsedTypeName = JSIL.ParseTypeName(typeReaderName);
-      var typeReaderType = JSIL.GetTypeInternal(parsedTypeName, assembly);
+      var typeReaderType = JSIL.GetTypeInternal(parsedTypeName, assembly, false);
 
       if (typeReaderType === null) {
         JSIL.Host.error(new Error("The type '" + typeReaderName + "' could not be found while loading asset '" + contentReader.assetName + "'."));
@@ -666,10 +666,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManage
 
     JSIL.Host.error(new Error("No content type reader known for type '" + typeName + "'."));
     return null;
-    /*
-    var t = JSIL.GetTypeInternal(JSIL.ParseTypeName("Microsoft.Xna.Framework.Content.ContentTypeReader"), JSIL.GetAssembly("Microsoft.Xna.Framework"));
-    return new t(type);
-    */
   }
 });
 

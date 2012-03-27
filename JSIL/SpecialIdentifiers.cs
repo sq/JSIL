@@ -78,7 +78,14 @@ namespace JSIL {
             );
         }
 
-        public JSInvocationExpression GetType (JSExpression expression) {
+        public JSInvocationExpression GetTypeFromAssembly (JSExpression assembly, JSExpression typeName, JSExpression throwOnFail) {
+            return JSInvocationExpression.InvokeStatic(
+                Dot("GetTypeFromAssembly", new TypeReference("System", "Type", TypeSystem.Object.Module, TypeSystem.Object.Scope)),
+                new[] { assembly, typeName, new JSNullLiteral(TypeSystem.Object), throwOnFail }, true
+            );
+        }
+
+        public JSInvocationExpression GetTypeOf (JSExpression expression) {
             return JSInvocationExpression.InvokeStatic(
                 Dot("GetType", new TypeReference("System", "Type", TypeSystem.Object.Module, TypeSystem.Object.Scope)),
                 new[] { expression }, true

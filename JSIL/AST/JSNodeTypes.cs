@@ -1515,6 +1515,10 @@ namespace JSIL.Ast {
             get;
         }
 
+        public static JSAssemblyNameLiteral New (AssemblyDefinition value) {
+            return new JSAssemblyNameLiteral(value);
+        }
+
         public static JSTypeNameLiteral New (TypeReference value) {
             return new JSTypeNameLiteral(value);
         }
@@ -1798,6 +1802,16 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSAssemblyNameLiteral : JSLiteralBase<AssemblyDefinition> {
+        public JSAssemblyNameLiteral (AssemblyDefinition value)
+            : base(value) {
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return typeSystem.String;
+        }
+    }
+
     public class JSVerbatimLiteral : JSLiteral {
         public readonly JSMethod OriginalMethod;
         public readonly TypeReference Type;
@@ -1933,6 +1947,26 @@ namespace JSIL.Ast {
     public class JSNamespace : JSStringIdentifier {
         public JSNamespace (string name)
             : base(name) {
+        }
+    }
+
+    public class JSAssembly : JSIdentifier {
+        new public readonly AssemblyDefinition Assembly;
+
+        public JSAssembly (AssemblyDefinition assembly) {
+            Assembly = assembly;
+        }
+
+        public override string Identifier {
+            get { return Assembly.FullName; }
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return typeSystem.Object;
+        }
+
+        public override JSLiteral ToLiteral () {
+            return JSLiteral.New(Assembly);
         }
     }
 

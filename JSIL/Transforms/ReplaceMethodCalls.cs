@@ -13,8 +13,12 @@ namespace JSIL.Transforms {
         public readonly TypeSystem TypeSystem;
         public readonly JSILIdentifier JSIL;
         public readonly JSSpecialIdentifiers JS;
+        public readonly MethodReference Method;
 
-        public ReplaceMethodCalls (JSILIdentifier jsil, JSSpecialIdentifiers js, TypeSystem typeSystem) {
+        public ReplaceMethodCalls (
+            MethodReference method, JSILIdentifier jsil, JSSpecialIdentifiers js, TypeSystem typeSystem
+        ) {
+            Method = method;
             JSIL = jsil;
             JS = js;
             TypeSystem = typeSystem;
@@ -38,7 +42,7 @@ namespace JSIL.Transforms {
                             if ((thisType is GenericInstanceType) && thisType.FullName.StartsWith("System.Nullable")) {
                                 replacement = new JSType(thisType);
                             } else {
-                                replacement = JSIL.GetType(thisExpression);
+                                replacement = JSIL.GetTypeOf(thisExpression);
                             }
 
                             ParentNode.ReplaceChild(ie, replacement);
@@ -197,6 +201,38 @@ namespace JSIL.Transforms {
                     ParentNode.ReplaceChild(ie, copy);
                     VisitReplacement(copy);
                     return;
+                } else if (
+                    method.Reference.DeclaringType.FullName == "System.Reflection.Assembly"
+                ) {
+                    switch (method.Reference.Name) {
+                        case "GetExecutingAssembly": {
+                            var assembly = Method.DeclaringType.Module.Assembly;
+                            var asmNode = new JSAssembly(assembly);
+                            ParentNode.ReplaceChild(ie, asmNode);
+                            VisitReplacement(asmNode);
+
+                            return;
+                        }
+                        case "GetType": {
+                            switch (method.Method.Parameters.Length) {
+                                case 1:
+                                case 2:
+                                    JSExpression throwOnFail = new JSBooleanLiteral(false);
+                                    if (method.Method.Parameters.Length == 2)
+                                        throwOnFail = ie.Arguments[1];
+
+                                    var invocation = JSIL.GetTypeFromAssembly(
+                                        ie.ThisReference, ie.Arguments[0], throwOnFail
+                                    );
+                                    ParentNode.ReplaceChild(ie, invocation);
+                                    VisitReplacement(invocation);
+
+                                    return;
+                            }
+
+                            break;
+                        }
+                    }
                 } else if (
                     method.Method.DeclaringType.Definition.FullName == "System.Array" &&
                     (ie.Arguments.Count == 1)

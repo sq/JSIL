@@ -2355,27 +2355,44 @@ JSIL.ParseTypeName = function (name) {
   return result;
 };
 
-JSIL.GetTypeInternal = function (parsedTypeName, defaultContext) {
+JSIL.GetTypeInternal = function (parsedTypeName, defaultContext, throwOnFail) {
   var context = null;
   if (parsedTypeName.assembly !== null)
     context = JSIL.GetAssembly(parsedTypeName.assembly, true);
   if (context === null)
     context = defaultContext;
 
-  var resolved = JSIL.ResolveName(context, parsedTypeName.type, true);
-  var result = null;
+  var ga = null;
+  if (parsedTypeName.genericArguments !== null) {
+    ga = new Array(parsedTypeName.genericArguments.length);
+
+    for (var i = 0, l = ga.length; i < l; i++) {
+      ga[i] = JSIL.GetTypeInternal(parsedTypeName.genericArguments[i], defaultContext);
+    }
+  }
+
+  return JSIL.GetTypeFromAssembly(context, parsedTypeName.type, ga, throwOnFail);
+};
+
+JSIL.GetTypeFromAssembly = function (assembly, typeName, genericArguments, throwOnFail) {
+  var resolved, result = null;
+
+  try {
+    resolved = JSIL.ResolveName(assembly, typeName, true);
+  } catch (exc) {
+    if (throwOnFail)
+      throw exc;
+    else
+      return null;
+  }
+
   if (resolved.exists()) {
     result = resolved.get();
 
-    if (parsedTypeName.genericArguments !== null) {
-      var ga = new Array(parsedTypeName.genericArguments.length);
-
-      for (var i = 0, l = ga.length; i < l; i++) {
-        ga[i] = JSIL.GetTypeInternal(parsedTypeName.genericArguments[i], defaultContext);
-      }
-
-      result = result.Of.apply(result, ga);
-    }
+    if (JSIL.IsArray(genericArguments))
+      result = result.Of.apply(result, genericArguments);
+  } else if (throwOnFail) {
+    throw new System.TypeLoadException("The type '" + typeName + "' could not be found in the assembly.");
   }
 
   return result;
@@ -2385,13 +2402,26 @@ JSIL.ImplementExternals(
   "System.Type", false, {
     GetType$2: function (name) {
       var parsed = JSIL.ParseTypeName(name);
-      return JSIL.GetTypeInternal(parsed, JSIL.GlobalNamespace);
+      return JSIL.GetTypeInternal(parsed, JSIL.GlobalNamespace, false);
     },
     op_Equality: function (lhs, rhs) {
       if (lhs === rhs)
         return true;
 
       return String(lhs) == String(rhs);
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.Type", true, {
+    get_Assembly: function () {
+      // FIXME
+      return null;
+    },
+    get_Namespace: function () {
+      // FIXME
+      return null;
     }
   }
 );
