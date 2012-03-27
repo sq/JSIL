@@ -674,6 +674,19 @@ JSIL.ImplementExternals("System.Collections.Generic.Stack`1", true, {
   }
 });
 
+JSIL.MakeClass("System.Object", "JSIL.EnumerableArray", true, [], function ($) {
+  $.prototype._ctor = function (array) {
+    this.array = array;
+  };
+  $.prototype.GetEnumerator = function () {
+    return new JSIL.ArrayEnumerator(this.array);
+  };
+
+  JSIL.ImplementInterfaces($, [
+    System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
+  ]);
+});
+
 JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"], function ($) {
   JSIL.ExternalMembers($, true, 
     "_ctor", "Add", "AddRange", "Remove", "RemoveAt", "Clear", 
@@ -1149,8 +1162,6 @@ JSIL.ImplementExternals(
   }
 );
 
-JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary`2", true, ["TKey", "TValue"]);
-
 JSIL.ImplementExternals(
   "System.Collections.Generic.Dictionary`2", true, {
     _ctor$0: function () {
@@ -1172,6 +1183,20 @@ JSIL.ImplementExternals(
         this._count += 1;
 
       this._dict[_key] = value;
+    },
+    get_Values: function () {
+      var keys = Object.keys(this._dict);
+      var values = new Array(keys.length);
+
+      for (var i = 0; i < keys.length; i++)
+        values[i] = this._dict[keys[i]];
+
+      return new JSIL.EnumerableArray(values);
+    },
+    get_Keys: function () {
+      var keys = Object.keys(this._dict);
+
+      return new JSIL.EnumerableArray(keys);
     },
     get_Count: function () {
       return this._count;
@@ -1195,6 +1220,8 @@ JSIL.ImplementExternals(
     }
   }
 );
+
+JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary`2", true, ["TKey", "TValue"]);
 
 JSIL.MakeStaticClass("System.Linq.Enumerable", true, [], function ($) {
   JSIL.ExternalMembers($, false, 
@@ -1343,15 +1370,6 @@ JSIL.ImplementExternals(
     }
   }
 );
-
-JSIL.CompareNumbers = function (lhs, rhs) {
-  if (lhs > rhs)
-    return 1;
-  else if (lhs < rhs)
-    return -1;
-  else
-    return 0;
-};
 
 JSIL.ImplementExternals(
   "System.Diagnostics.StackTrace", true, {

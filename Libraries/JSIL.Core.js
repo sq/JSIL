@@ -2886,3 +2886,30 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
 
   JSIL.RegisterName(fullName, assembly, isPublic, creator);
 };
+
+JSIL.StringToByteArray = function (text) {
+  var result = new Array(text.length);
+  
+  for (var i = 0, l = text.length; i < l; i++)
+    result[i] = text.charCodeAt(i) & 0xFF;
+
+  return result;
+};
+
+JSIL.StringToCharArray = function (text) {
+  var result = new Array(text.length);
+
+  for (var i = 0, l = text.length; i < l; i++)
+    result[i] = text[i];
+
+  return result;
+};
+
+JSIL.CompareNumbers = function (lhs, rhs) {
+  if (lhs > rhs)
+    return 1;
+  else if (lhs < rhs)
+    return -1;
+  else
+    return 0;
+};

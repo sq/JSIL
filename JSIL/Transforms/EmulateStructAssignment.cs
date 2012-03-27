@@ -9,7 +9,7 @@ using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class EmulateStructAssignment : JSAstVisitor {
-        public const bool Tracing = true;
+        public const bool Tracing = false;
 
         public readonly CLRSpecialIdentifiers CLR;
         public readonly IFunctionSource FunctionSource;

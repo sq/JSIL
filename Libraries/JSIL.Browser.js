@@ -272,9 +272,7 @@ function loadBinaryFileAsync (uri, onComplete) {
         bytes = new VBArray(req.responseBody).toArray();
       } else {
         var text = req.responseText;
-        bytes = new Array(req.responseText.length);
-        for (var i = 0, l = text.length; i < l; i++)
-          bytes[i] = text.charCodeAt(i) & 0xFF;
+        bytes = JSIL.StringToByteArray(text);
       }
 
       onComplete(bytes, null);
