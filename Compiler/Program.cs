@@ -32,13 +32,11 @@ namespace JSIL.Compiler {
 
                 result.Path = Path.GetDirectoryName(Path.GetFullPath(filename));
 
-                result.OutputDirectory = result.OutputDirectory
-                    .Replace("%configpath%", result.Path)
-                    .Replace("/", "\\");
+                result.OutputDirectory = MapConfigPath(result.OutputDirectory, result.Path);
 
                 var newProxies = (from p in result.Assemblies.Proxies
-                                 select p.Replace("%configpath%", result.Path)
-                                     .Replace("/", "\\")).ToArray();
+                                 let newP = MapConfigPath(p, result.Path)
+                                 select newP).ToArray();
 
                 result.Assemblies.Proxies.Clear();
                 result.Assemblies.Proxies.AddRange(newProxies);
@@ -50,6 +48,25 @@ namespace JSIL.Compiler {
                 Console.Error.WriteLine("// Error reading '{0}': {1}", filename, ex);
                 throw;
             }
+        }
+
+        static string MapConfigPath (string reference, string configPath) {
+            return reference
+                .Replace("%configpath%", configPath)
+                .Replace("/", "\\");
+        }
+
+        static string MapAssemblyPath (string reference, string assemblyPath, bool ensureExists) {
+            var result = reference
+                .Replace("%assemblypath%", assemblyPath)
+                .Replace("/", "\\");
+
+            if (ensureExists) {
+                if (!File.Exists(result))
+                    return null;
+            }
+
+            return result;
         }
 
         static Configuration MergeConfigurations (Configuration baseConfiguration, params Configuration[] toMerge) {
@@ -342,10 +359,19 @@ namespace JSIL.Compiler {
 
                     localConfig = localProfile.GetConfiguration(localConfig);
 
+                    var assemblyPath = Path.GetDirectoryName(Path.GetFullPath(filename));
+
+                    var newProxies = (from p in localConfig.Assemblies.Proxies
+                                      let newP = MapAssemblyPath(p, assemblyPath, true)
+                                      where newP != null
+                                      select newP).ToArray();
+
+                    localConfig.Assemblies.Proxies.Clear();
+                    localConfig.Assemblies.Proxies.AddRange(newProxies);
+
                     var translator = CreateTranslator(localConfig, manifest);
                     var outputs = buildGroup.Profile.Translate(translator, filename, localConfig.UseLocalProxies.GetValueOrDefault(true));
-                    var outputDir = localConfig.OutputDirectory
-                        .Replace("%assemblypath%", Path.GetDirectoryName(Path.GetFullPath(filename)));
+                    var outputDir = MapAssemblyPath(localConfig.OutputDirectory, assemblyPath, false);
 
                     Console.Error.WriteLine("// Saving output to '{0}'.", ShortenPath(outputDir) + "\\");
 
