@@ -1890,6 +1890,14 @@ namespace JSIL {
             return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32);
         }
 
+        protected JSExpression Translate_Conv_Ovf_I (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_I_Un (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32);
+        }
+
         protected JSExpression Translate_Conv_I8 (ILExpression node) {
             return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int64);
         }

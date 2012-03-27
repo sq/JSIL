@@ -232,7 +232,11 @@ namespace JSIL.Internal {
                 case MetadataScopeType.ModuleReference:
                     throw new NotImplementedException();
                 case MetadataScopeType.ModuleDefinition:
-                    return ((ModuleDefinition)scope).Assembly.FullName;
+                    var assembly = ((ModuleDefinition)scope).Assembly;
+                    if (assembly != null)
+                        return assembly.FullName;
+                    else
+                        return "<Assembly Not Loaded>";
             }
 
             if (resolved != null)

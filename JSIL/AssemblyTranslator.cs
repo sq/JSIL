@@ -496,8 +496,14 @@ namespace JSIL {
             var sealedTypes = new HashSet<TypeDefinition>();
             var declaredTypes = new HashSet<TypeDefinition>();
 
-            foreach (var module in assembly.Modules)
+            foreach (var module in assembly.Modules) {
+                if (module.Assembly != assembly) {
+                    Console.Error.WriteLine("// Warning: Mono.Cecil failed to correctly load the module '{0}'. Skipping it.", module);
+                    continue;
+                }
+
                 TranslateModule(context, formatter, module, sealedTypes, declaredTypes, stubbed);
+            }
 
             tw.Flush();
         }

@@ -413,7 +413,10 @@ namespace JSIL {
                 }
             }
 
-            throw new InvalidOperationException("Untranslatable goto encountered targeting label " + go.TargetLabel);
+            Output.Identifier("JSIL.UntranslatableInstruction", null);
+            Output.LPar();
+            Output.Value(go.ToString());
+            Output.RPar();
         }
 
         public void VisitNode (JSUntranslatableStatement us) {

@@ -311,6 +311,8 @@ namespace JSIL.Compiler {
                     config = MergeConfigurations(LoadConfiguration("defaults.jsilconfig"), config);
 
                 foreach (var filename in buildGroup.FilesToBuild) {
+                    GC.Collect();
+
                     var fileConfigPath = Path.Combine(
                         Path.GetDirectoryName(filename),
                         String.Format("{0}.jsilconfig", Path.GetFileName(filename))
