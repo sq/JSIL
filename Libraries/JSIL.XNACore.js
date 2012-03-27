@@ -2058,15 +2058,6 @@ JSIL.ImplementExternals(
     },
 
     Begin: function (spriteSortMode, blendState) {
-      var cmp = function (lhs, rhs) {
-        if (lhs > rhs)
-          return 1;
-        else if (rhs > lhs)
-          return -1;
-        else
-          return 0;
-      };
-
       this.deferSorter = null;
 
       if (spriteSortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Immediate) {
@@ -2074,17 +2065,17 @@ JSIL.ImplementExternals(
       } else if (spriteSortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.BackToFront) {
         this.defer = true;
         this.deferSorter = function (lhs, rhs) {
-          return -cmp(lhs.arguments[8], rhs.arguments[8]);
+          return -JSIL.CompareNumbers(lhs.arguments[8], rhs.arguments[8]);
         };
       } else if (spriteSortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.FrontToBack) {
         this.defer = true;
         this.deferSorter = function (lhs, rhs) {
-          return cmp(lhs.arguments[8], rhs.arguments[8]);
+          return JSIL.CompareNumbers(lhs.arguments[8], rhs.arguments[8]);
         };
       } else if (spriteSortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Texture) {
         this.defer = true;
         this.deferSorter = function (lhs, rhs) {
-          return cmp(lhs.arguments[0], rhs.arguments[0]);
+          return JSIL.CompareNumbers(lhs.arguments[0], rhs.arguments[0]);
         };
       } else if (spriteSortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Deferred) {
         this.defer = true;
@@ -2596,12 +2587,19 @@ JSIL.ImplementExternals(
       this.image = document.createElement("img");
       this.image.src = this.$getDataUrlForBytes(null, 0, 0, false);
     },
+    _ctor$2: function (graphicsDevice, width, height, mipMap, format) {
+      this.$internalCtor(graphicsDevice, width, height, mipMap, format);
+    },
     get_Width: function () {
       return this.width;
     },
     get_Height: function () {
       return this.height;
     },
+    SetData$b1$0: JSIL.GenericMethod(["T"], function (T, data) {
+      var shouldUnpremultiply = true;
+      this.image.src = this.$getDataUrlForBytes(data, 0, data.length, shouldUnpremultiply);
+    }),
     SetData$b1$2: JSIL.GenericMethod(["T"], function (T, level, rect, data, startIndex, elementCount) {
       if (level !== 0)
         return;

@@ -1155,27 +1155,43 @@ JSIL.ImplementExternals(
   "System.Collections.Generic.Dictionary`2", true, {
     _ctor$0: function () {
       this._dict = {};
+      this._count = 0;
     },
     _ctor$1: function (count) {
       this._dict = {};
+      this._count = 0;
     },
     get_Item: function (key) {
-      return this._dict[String(key)];
+      var _key = String(key);
+      return this._dict[_key];
     },
     set_Item: function (key, value) {
-      this._dict[String(key)] = value;
+      var _key = String(key);
+
+      if (typeof this._dict[_key] === "undefined")
+        this._count += 1;
+
+      this._dict[_key] = value;
+    },
+    get_Count: function () {
+      return this._count;
     },
     ContainsKey: function (key) {
-      return this._dict.hasOwnProperty(key);
+      var _key = String(key);
+      return this._dict.hasOwnProperty(_key);
     },
     Clear: function () {
       this._dict = {}
+      this._count = 0;
     },
     Add: function (key, value) {
-      if (this.ContainsKey(key))
+      var _key = String(key);
+
+      if (typeof this._dict[_key] !== "undefined")
         throw new System.ArgumentException("Key already exists");
 
-      this._dict[String(key)] = value;
+      this._dict[_key] = value;
+      this._count += 1;
     }
   }
 );
@@ -1336,3 +1352,36 @@ JSIL.CompareNumbers = function (lhs, rhs) {
   else
     return 0;
 };
+
+JSIL.ImplementExternals(
+  "System.Diagnostics.StackTrace", true, {
+    _ctor$0: function () {
+      this.CaptureStackTrace(0, false, null, null);
+    },
+    CaptureStackTrace: function (framesToSkip, needFileInfo, thread, exception) {
+      this.frames = [];
+    },
+    GetFrame: function (index) {
+      // FIXME
+      return new System.Diagnostics.StackFrame();
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.Diagnostics.StackFrame", true, {
+    GetMethod: function () {
+      // FIXME
+      return new System.Reflection.MethodBase();
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.Reflection.MemberInfo", true, {
+    get_DeclaringType: function () {
+      // FIXME
+      return new System.Type();
+    }
+  }
+);

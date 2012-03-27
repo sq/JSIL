@@ -42,8 +42,8 @@ JSIL.Host.logWriteLine = function (text) {
   }
 };
 JSIL.Host.translateFilename = function (filename) {
-  var root = JSIL.Host.getRootDirectory();
-  filename = filename.replace(root, "");
+  var root = JSIL.Host.getRootDirectory().toLowerCase();
+  filename = filename.toLowerCase().replace(root, "").replace(fileRoot.toLowerCase(), "");
   
   while (filename[0] === "/")
     filename = filename.substr(1);
@@ -335,7 +335,7 @@ var assetLoaders = {
   "File": function loadFile (filename, data, onError, onDoneLoading) {
     loadBinaryFileAsync(fileRoot + filename, function (result, error) {
       if (result !== null) {
-        allFiles[filename] = result;
+        allFiles[filename.toLowerCase()] = result;
         onDoneLoading(null); 
       } else {
         onError(error);

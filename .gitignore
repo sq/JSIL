@@ -30,11 +30,13 @@ Tests/*Cases/*.js
 /jsil.org/demos/Platformer/*.js
 /jsil.org/demos/Tetris/*.js
 /jsil.org/demos/Raytracer/*.js
+/jsil.org/demos/RPG/*.js
+/jsil.org/demos/Sully/*.js
 /jsil.org/demos/Libraries
 *.jsillog
 /Examples/obj
-/jsil.org/demos/RPG/*.js
 /jsil.org/demos/RPG/Content
+/jsil.org/demos/Sully/Content
 /Upstream/dxtc.cpp
 /Upstream/LAME
 /Upstream/FFMPEG

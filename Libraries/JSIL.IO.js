@@ -9,6 +9,10 @@ JSIL.ImplementExternals(
   "System.IO.File", false, {
     Exists: function (filename) {
       return JSIL.Host.doesFileExist(filename);
+    },
+    ReadAllText$0: function (filename) {
+      var file = JSIL.Host.getFile(filename);
+      return String.fromCharCode.apply(String, file);
     }
   }
 );
