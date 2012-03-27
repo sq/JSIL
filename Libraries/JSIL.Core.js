@@ -1662,6 +1662,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
       FullName: fullName,
       Name: localName,
       IsEnum: true,
+      __IsReferenceType__: false,
       __TypeId__: ++JSIL.$NextTypeId,
       __IsFlagsEnum__: isFlagsEnum,
       __ValueToName__: {}
@@ -2647,6 +2648,11 @@ JSIL.Array.New = function (type, sizeOrInitializer) {
     } else if (type.__IsNumeric__) {
       for (var i = 0; i < size; i++)
         result[i] = 0;
+    } else if (type.IsEnum) {
+      var defaultValue = type[type.__ValueToName__[0]];
+
+      for (var i = 0; i < size; i++)
+        result[i] = defaultValue;
     } else {
       for (var i = 0; i < size; i++)
         result[i] = new type();
