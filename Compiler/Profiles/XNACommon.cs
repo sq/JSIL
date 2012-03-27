@@ -674,6 +674,24 @@ public static class Common {
                 );
             };
 
+            Action<ProjectItem> copyRawFile =
+            (item) => {
+                var sourcePath = Path.Combine(
+                    contentProjectDirectory,
+                    item.EvaluatedInclude
+                );
+                var outputPath = Path.Combine(
+                    localOutputDirectory,
+                    item.EvaluatedInclude
+                );
+
+                Common.EnsureDirectoryExists(
+                    Path.GetDirectoryName(outputPath));
+
+                File.Copy(sourcePath, outputPath, true);
+                logOutput("File", outputPath, null);
+            };
+
             Action<ProjectItem, string, string> copyRawXnb =
             (item, xnbPath, type) => {
                 var outputPath = Path.Combine(
@@ -691,18 +709,40 @@ public static class Common {
             };
 
             foreach (var item in project.Items) {
-                if (item.ItemType != "Compile")
-                    continue;
+                switch (item.ItemType) {
+                    case "Reference":
+                    case "ProjectReference":
+                        continue;
+                    case "Compile":
+                    case "None":
+                        break;
+                    default:
+                        continue;
+                }
 
                 var itemOutputDirectory = Path.Combine(
                     localOutputDirectory,
                     Path.GetDirectoryName(item.EvaluatedInclude)
                 );
 
+                var sourcePath = Path.Combine(contentProjectDirectory, item.EvaluatedInclude);
                 var metadata = item.DirectMetadata.ToDictionary((md) => md.Name);
+
+                if (item.ItemType == "None") {
+                    ProjectMetadata copyToOutputDirectory;
+
+                    if (
+                        metadata.TryGetValue("CopyToOutputDirectory", out copyToOutputDirectory) &&
+                        copyToOutputDirectory.EvaluatedValue == "Always"
+                    ) {
+                        copyRawFile(item);
+                    }
+
+                    continue;
+                }
+
                 var importerName = metadata["Importer"].EvaluatedValue;
                 var processorName = metadata["Processor"].EvaluatedValue;
-                var sourcePath = Path.Combine(contentProjectDirectory, item.EvaluatedInclude);
                 string xnbPath = null;
 
                 Common.CompressResult temp;
@@ -717,9 +757,9 @@ public static class Common {
                             Path.Combine(
                                 Path.GetDirectoryName(builtContentProject.Parent.File),
                                 parentProjectProperties["OutputPath"].EvaluatedValue
-                                ),
-                            "Content"
                             ),
+                            "Content"
+                        ),
                         item.EvaluatedInclude.Replace(Path.GetExtension(item.EvaluatedInclude), ".xnb")
                     );
                 }
@@ -745,6 +785,7 @@ public static class Common {
                         case "FontDescriptionProcessor":
                             copyRawXnb(item, xnbPath, "SpriteFont");
                             continue;
+                        case "SoundEffectProcessor":
                         case "SongProcessor":
                             journal.AddRange(CompressAudioGroup(
                                 item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
