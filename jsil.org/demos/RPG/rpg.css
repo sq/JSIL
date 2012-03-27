@@ -4,15 +4,15 @@
 }
 #welcomeMessage {
 	width: 680px;
-	height: 300px;
+	height: 350px;
 	left: 300px;
-	top: 50px;
+	top: 40px;
 }
 #loadButton {
 	width: 200px;
 	height: 40px;
 	left: 539px;
-	top: 280px;
+	top: 320px;
 }
 #quitButton {
 	width: 32px;
@@ -24,7 +24,7 @@
 	width: 600px;
 	height: 40px;
 	left: 339px;
-	top: 280px;
+	top: 320px;
 }
 #progressBar {
 	height: 40px;

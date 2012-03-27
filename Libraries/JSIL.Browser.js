@@ -513,17 +513,14 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
       }
     }
     
-    // Don't add unsupported sources.
-    if (String(e.canPlayType(mimetype)).trim().length > 0) {
-      var source = document.createElement("source");
+    var source = document.createElement("source");
 
-      if (mimetype !== null)
-        source.setAttribute("type", mimetype);
+    if (mimetype !== null)
+      source.setAttribute("type", mimetype);
 
-      source.setAttribute("src", contentRoot + filename + extension);
+    source.setAttribute("src", contentRoot + filename + extension);
 
-      e.appendChild(source);
-    }
+    e.appendChild(source);
   }
   
   document.getElementById("sounds").appendChild(e);
