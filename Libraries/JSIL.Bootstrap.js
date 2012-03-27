@@ -135,36 +135,44 @@ JSIL.MakeDelegate("System.Func`1", true, ["T", "TResult"]);
 JSIL.MakeDelegate("System.Func`2", true, ["T1", "T2", "TResult"]);
 JSIL.MakeDelegate("System.Func`3", true, ["T1", "T2", "T3", "TResult"]);
 
-JSIL.MakeClass(Error, "System.Exception", true, [], function ($) {
-  $.prototype._Message = null;
-  $.prototype._ctor = function (message) {
-    if (typeof (message) != "undefined")
-      this._Message = String(message);
-  };
-  $.prototype.get_Message = function () {  
-    if ((typeof (this._Message) === "undefined") || (this._Message === null))
-      return System.String.Format("Exception of type '{0}' was thrown.", JSIL.GetTypeName(this));
-    else
-      return this._Message;
-  };
+JSIL.ImplementExternals(
+  "System.Exception", true, {
+    _Message: null,
+    _ctor: function (message) {
+      if (typeof (message) != "undefined")
+        this._Message = String(message);
+    },
+    get_Message: function () {
+      if ((typeof (this._Message) === "undefined") || (this._Message === null))
+        return System.String.Format("Exception of type '{0}' was thrown.", JSIL.GetTypeName(this));
+      else
+        return this._Message;
+    },
+    toString: function () {
+      var message = this.Message;
+      return System.String.Format("{0}: {1}", JSIL.GetTypeName(this), message);
+    }
+  }
+);
 
+JSIL.ImplementExternals(
+  "System.SystemException", true, {
+    _ctor$0: function () {
+      System.Exception.prototype._ctor.call(this);
+    },
+    _ctor$1: function (message) {
+      System.Exception.prototype._ctor.call(this, message);
+    }
+  }
+);
+
+JSIL.MakeClass(Error, "System.Exception", true, [], function ($) {
   JSIL.MakeProperty($.prototype, "Message", 
     $.prototype.get_Message, null);
-
-  $.prototype.toString = function () {
-    var message = this.Message;
-    return System.String.Format("{0}: {1}", JSIL.GetTypeName(this), message);
-  };
 });
 
 JSIL.MakeClass("System.Exception", "System.InvalidCastException", true);
 JSIL.MakeClass("System.Exception", "System.InvalidOperationException", true);
-
-JSIL.MakeStaticClass("System.Console", true, [], function ($) {
-  JSIL.ExternalMembers($, false, 
-    "Write", "WriteLine"
-  );
-});
 
 JSIL.ImplementExternals(
   "System.Console", false, {
@@ -184,6 +192,20 @@ JSIL.ImplementExternals(
     }
   }
 );
+
+JSIL.ImplementExternals(
+  "System.Diagnostics.Debug", false, {
+    WriteLine$0: function (text) {
+      JSIL.Host.logWriteLine(text);
+    },
+  }
+);
+
+JSIL.MakeStaticClass("System.Console", true, [], function ($) {
+  JSIL.ExternalMembers($, false, 
+    "Write", "WriteLine"
+  );
+});
 
 // Unfortunately, without access to sandboxed natives, we have to extend the actual prototype for String :(
 
@@ -227,6 +249,52 @@ JSIL.ImplementExternals(
         return JSIL.ConcatString(Array.prototype.slice.call(arguments));
       }
     },
+    IsNullOrEmpty: function (str) {
+      if (str === null)
+        return true;
+      else if (typeof (str) === "undefined")
+        return true;
+      else if (str.length === 0)
+        return true;
+
+      return false;
+    },
+    StartsWith: function (str, text) {
+      return str.indexOf(text) === 0;
+    },
+    EndsWith: function (str, text) {
+      return str.lastIndexOf(text) === str.length - text.length;
+    },
+    Replace: function (str, oldText, newText) {
+      return str.split(oldText).join(newText);
+    },
+    Compare$0: function (lhs, rhs) {
+      return System.String.Compare$2(lhs, rhs, System.StringComparison.Ordinal);
+    },
+    Compare$1: function (lhs, rhs, ignoreCase) {
+      return System.String.Compare$2(
+        lhs, rhs, ignoreCase ? 
+          System.StringComparison.OrdinalIgnoreCase : 
+          System.StringComparison.Ordinal
+      );
+    },
+    Compare$2: function (lhs, rhs, comparison) {
+      switch (comparison.valueOf()) {
+        case 1: // System.StringComparison.CurrentCultureIgnoreCase:
+        case 3: // System.StringComparison.InvariantCultureIgnoreCase:
+        case 5: // System.StringComparison.OrdinalIgnoreCase:
+          lhs = lhs.toLowerCase();
+          rhs = rhs.toLowerCase();
+          break;
+      }
+
+      if (lhs < rhs)
+        return -1;
+      else if (lhs > rhs)
+        return 1;
+      else
+        return 0;
+    },
     Format: function (format) {
       format = String(format);
 
@@ -248,6 +316,8 @@ JSIL.ImplementExternals(
           switch (valueFormat[0]) {
             case 'f':
             case 'F':
+            case 'n':
+            case 'N':
               var digits = parseInt(valueFormat.substr(1));
               return parseFloat(value).toFixed(digits);
 
@@ -292,7 +362,7 @@ JSIL.ImplementExternals(
       for (var i = 0; i < length; i++)
         arr[i] = ch;
       return arr.join("");
-    }
+    },
   }
 );
 
@@ -430,10 +500,91 @@ $jsilcore.$ListExternals = {
     this._items.splice(index, 1);
     this._size -= 1;
   },
+  Find: function (predicate) {
+    var index = this.FindIndex$0(predicate);
+    if (index >= 0)
+      return this._items[index];
+    else
+      return JSIL.DefaultValue(this.T);
+  },
+  FindIndex$0: function (predicate) {
+    for (var i = 0; i < this._size; i++) {
+      var item = this._items[i];
+      if (predicate(item))
+        return i;
+    }
+
+    return -1;
+  },
+  Exists: function (predicate) {
+    return this.FindIndex$0(predicate) >= 0;
+  },
+  FindAll: function (predicate) {
+    var thisType = this.GetType();
+    var result = new thisType();
+
+    for (var i = 0; i < this._size; i++) {
+      var item = this._items[i];
+
+      if (predicate(item))
+        result.Add(item);
+    }
+
+    return result;
+  },
+  RemoveAll: function (predicate) {
+    for (var i = 0; i < this._size; i++) {
+      var item = this._items[i];
+
+      if (predicate(item)) {
+        this._items.splice(i, 1);
+        i -= 1;
+        this._size -= 1;
+      }
+    }
+  },
+  TrueForAll: function (predicate) {
+    for (var i = 0; i < this._size; i++) {
+      var item = this._items[i];
+
+      if (!predicate(item))
+        return false;
+    }
+
+    return true;
+  },
+  Contains: function (value) {
+    return this.IndexOf$0(value) >= 0;
+  },
+  IndexOf$0: function (value) {
+    for (var i = 0; i < this._size; i++) {
+      var item = this._items[i];
+
+      if (item === value) {
+        return i;
+      } else if (item !== null) {
+        if (item.Equals(value))
+          return i;
+      }
+    }
+
+    return -1;
+  },
   Clear: function () {
     this._size = 0;
   },
+  Sort$0: function () {
+    this._items.sort();
+  },
+  Sort$3: function (comparison) {
+    this._items.sort(comparison);
+  },
   get_Item: function (index) {
+    if (index < 0)
+      throw new System.ArgumentOutOfRangeException("index");
+    else if (index >= this._size)
+      throw new System.ArgumentOutOfRangeException("index");
+
     return this._items[index];
   },
   get_Count: function () {
@@ -442,6 +593,9 @@ $jsilcore.$ListExternals = {
   get_Capacity: function () {
     return this._items.length;
   },
+  ToArray: function () {
+    return Array.prototype.slice.call(this._items, 0, this._size);
+  },
   GetEnumerator: function () {
     // Detect whether we are a List<T> or an ArrayList.
     var elementType = this.T;
@@ -449,13 +603,115 @@ $jsilcore.$ListExternals = {
       elementType = System.Object;
 
     return new (System.Collections.Generic.List$b1_Enumerator.Of(elementType)) (this);
+  },
+  AsReadOnly: function () {
+    // FIXME
+    return new System.Collections.ObjectModel.ReadOnlyCollection$b1(this);
   }
 };
 
 JSIL.ImplementExternals("System.Collections.Generic.List`1", true, $jsilcore.$ListExternals);
 
-// Lazy way of sharing method implementations between ArrayList and List<T>.
+// Lazy way of sharing method implementations between ArrayList, Collection<T> and List<T>.
 JSIL.ImplementExternals("System.Collections.ArrayList", true, $jsilcore.$ListExternals);
+
+JSIL.ImplementExternals("System.Collections.ArrayList", true, {
+  ToArray$0: function () {
+    return Array.prototype.slice.call(this._items, 0, this._size);
+  },
+  ToArray$1: function (type) {
+    return Array.prototype.slice.call(this._items, 0, this._size);
+  }
+});
+
+$jsilcore.$CollectionExternals = JSIL.CloneObject($jsilcore.$ListExternals);
+$jsilcore.$CollectionExternals._ctor$0 = function () {
+  this._items = new Array();
+  this._size = 0;
+};
+$jsilcore.$CollectionExternals._ctor$1 = function (list) {
+  this._items = new Array(list.Count);
+  this._size = list.Count;
+
+  for (var i = 0, l = list.Count; i < l; i++)
+    this._items[i] = list[i];
+};
+
+JSIL.ImplementExternals("System.Collections.ObjectModel.Collection`1", true, $jsilcore.$CollectionExternals);
+
+$jsilcore.$ReadOnlyCollectionExternals = JSIL.CloneObject($jsilcore.$ListExternals);
+$jsilcore.$ReadOnlyCollectionExternals._ctor = function (list) {
+  this._list = list;
+
+  Object.defineProperty(this, "_items", {
+    get: function () {
+      return list._items;
+    }
+  });
+
+  Object.defineProperty(this, "_size", {
+    get: function () {
+      return list._size;
+    }
+  });
+};
+$jsilcore.$ReadOnlyCollectionExternals.Add = null;
+$jsilcore.$ReadOnlyCollectionExternals.Remove = null;
+$jsilcore.$ReadOnlyCollectionExternals.RemoveAt = null;
+$jsilcore.$ReadOnlyCollectionExternals.RemoveAll = null;
+$jsilcore.$ReadOnlyCollectionExternals.Clear = null;
+$jsilcore.$ReadOnlyCollectionExternals.Sort$0 = null;
+$jsilcore.$ReadOnlyCollectionExternals.Sort$3 = null;
+
+JSIL.ImplementExternals("System.Collections.ObjectModel.ReadOnlyCollection`1", true, $jsilcore.$ReadOnlyCollectionExternals);
+
+JSIL.ImplementExternals("System.Collections.Generic.Stack`1", true, {
+  _ctor$0: function () {
+    this._items = new Array();
+    this._size = 0;
+  },
+  _ctor$1: function (size) {
+    this._items = new Array(size);
+    this._size = 0;
+  },
+  Clear: function () {
+    this._size = 0;
+  },
+  get_Count: function () {
+    return this._size;
+  },
+  Push: function (item) {
+    this._items[this._size] = item;
+    this._size += 1;
+  },
+  Pop: function () {
+    var result = this.Peek();
+    return result;
+  },
+  Peek: function () {
+    if (this._size <= 0)
+      throw new System.InvalidOperationException("Stack is empty");
+
+    return this._items[this._size - 1];
+  },
+  GetEnumerator: function () {
+    var elementType = this.T;
+    return new (System.Collections.Generic.List$b1_Enumerator.Of(elementType)) (this);
+  }
+});
+
+JSIL.MakeClass("System.Object", "JSIL.EnumerableArray", true, [], function ($) {
+  $.prototype._ctor = function (array) {
+    this.array = array;
+  };
+  $.prototype.GetEnumerator = function () {
+    return new JSIL.ArrayEnumerator(this.array);
+  };
+
+  JSIL.ImplementInterfaces($, [
+    System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
+  ]);
+});
 
 JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"], function ($) {
   JSIL.ExternalMembers($, true, 
@@ -471,6 +727,25 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"]
   JSIL.ImplementInterfaces($, [
     System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
   ]);
+});
+
+JSIL.MakeClass("System.Object", "System.Collections.Generic.Stack`1", true, ["T"], function ($) {
+	JSIL.ExternalMembers($, true, 
+		"_ctor$0", "_ctor$1", "_ctor$2", "Clear", "Contains", "CopyTo", "get_Count", "GetEnumerator", "ICollection_CopyTo", "ICollection_get_IsSynchronized", "ICollection_get_SyncRoot", "IEnumerable$b1_GetEnumerator", "IEnumerable_GetEnumerator", "Peek", "Pop", "Push", "ToArray", "TrimExcess"
+	);
+
+	JSIL.OverloadedMethod($.prototype, "_ctor", [
+			[0, []], 
+			[1, [new JSIL.TypeRef($asm09, "System.Int32")]], 
+			[2, [new JSIL.TypeRef($asm09, "System.Collections.Generic.IEnumerable$b1", [new JSIL.GenericParameter("T")])]]
+		], $asm0C);
+
+	JSIL.MakeProperty($.prototype, "Count", 
+		$.prototype.get_Count, null);
+
+	JSIL.ImplementInterfaces($, [
+		"System.Collections.Generic.IEnumerable$b1", "System.Collections.IEnumerable"
+	]);
 });
 
 // TODO: This type is actually a struct in the CLR
@@ -561,10 +836,25 @@ JSIL.ImplementExternals("System.Random", true, {
   NextDouble: Math.random
 });
 
+JSIL.$MathSign = function (value) {
+  if (value > 0)
+    return 1;
+  else if (value < 0)
+    return -1;
+  else
+    return 0;
+};
+
 JSIL.ImplementExternals(
   "System.Math", false, {
     Max: Math.max,
-    Min: Math.min
+    Min: Math.min,
+    Sign$0: JSIL.$MathSign,
+    Sign$1: JSIL.$MathSign,
+    Sign$2: JSIL.$MathSign,
+    Sign$3: JSIL.$MathSign,
+    Sign$4: JSIL.$MathSign,
+    Sign$5: JSIL.$MathSign
   }
 );
 
@@ -898,27 +1188,66 @@ JSIL.ImplementExternals(
   }
 );
 
-JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary`2", true, ["TKey", "TValue"]);
-
 JSIL.ImplementExternals(
   "System.Collections.Generic.Dictionary`2", true, {
     _ctor$0: function () {
       this._dict = {};
+      this._count = 0;
     },
     _ctor$1: function (count) {
       this._dict = {};
+      this._count = 0;
     },
     get_Item: function (key) {
-      return this._dict[String(key)];
+      var _key = String(key);
+      return this._dict[_key];
     },
     set_Item: function (key, value) {
-      this._dict[String(key)] = value;
+      var _key = String(key);
+
+      if (typeof this._dict[_key] === "undefined")
+        this._count += 1;
+
+      this._dict[_key] = value;
+    },
+    get_Values: function () {
+      var keys = Object.keys(this._dict);
+      var values = new Array(keys.length);
+
+      for (var i = 0; i < keys.length; i++)
+        values[i] = this._dict[keys[i]];
+
+      return new JSIL.EnumerableArray(values);
+    },
+    get_Keys: function () {
+      var keys = Object.keys(this._dict);
+
+      return new JSIL.EnumerableArray(keys);
+    },
+    get_Count: function () {
+      return this._count;
     },
     ContainsKey: function (key) {
-      return this._dict.hasOwnProperty(key);
+      var _key = String(key);
+      return this._dict.hasOwnProperty(_key);
+    },
+    Clear: function () {
+      this._dict = {}
+      this._count = 0;
+    },
+    Add: function (key, value) {
+      var _key = String(key);
+
+      if (typeof this._dict[_key] !== "undefined")
+        throw new System.ArgumentException("Key already exists");
+
+      this._dict[_key] = value;
+      this._count += 1;
     }
   }
 );
+
+JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary`2", true, ["TKey", "TValue"]);
 
 JSIL.MakeStaticClass("System.Linq.Enumerable", true, [], function ($) {
   JSIL.ExternalMembers($, false, 
@@ -989,3 +1318,158 @@ JSIL.MakeEnum("System.Reflection.BindingFlags", true, {
 		OptionalParamBinding: 262144, 
 		IgnoreReturn: 16777216  
 }, true);
+});
+
+JSIL.ImplementExternals(
+  "System.Xml.Serialization.XmlSerializer", true, {
+    "_ctor$6": function (type) {
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.IO.Path", false, {
+    Combine$0: function (lhs, rhs) {
+      return lhs + "\\" + rhs;
+    }
+  }
+);
+
+JSIL.MakeEnum(
+  "System.StringComparison", true, {
+    CurrentCulture: 0, 
+    CurrentCultureIgnoreCase: 1, 
+    InvariantCulture: 2, 
+    InvariantCultureIgnoreCase: 3, 
+    Ordinal: 4, 
+    OrdinalIgnoreCase: 5
+  }, false
+);
+
+JSIL.ImplementExternals(
+  "System.Text.StringBuilder", true, {
+    _ctor$0: function () {
+      System.Text.StringBuilder.prototype._ctor$1.call(this, 16);
+    },
+    _ctor$1: function (capacity) {
+      System.Text.StringBuilder.prototype._ctor$3.call(this, "", capacity);
+    },
+    _ctor$2: function (value) {
+      System.Text.StringBuilder.prototype._ctor$3.call(this, value, 16);
+    },
+    _ctor$3: function (value, capacity) {
+      this._str = value;
+    },
+    get_Length: function () {
+      return this._str.length;
+    },
+    set_Length: function (value) {
+      var delta = value - this._str.length;
+      if (delta < 0) {
+        this._str = this._str.substr(0, value);
+      } else if (delta > 0) {
+        var ch = new Array(delta);
+        for (var i = 0; i < delta; i++)
+          ch[i] = '\0';
+
+        this._str += String.fromCharCode.apply(String, ch);
+      }
+    },
+    Append$0: function (char, count) {
+      for (var i = 0; i < count; i++)
+        this._str += char;
+    },
+    Append$1: function (chars, startIndex, charCount) {
+      for (var i = 0; i < charCount; i++)
+        this._str += chars[startIndex + i];
+    },
+    Append$2: function (text) {
+      this._str += text;
+    },
+    Append$7: function (char) {
+      this._str += char;
+    },
+    Append$4: function (bool) {
+      this._str += (bool ? "True" : "False");
+    },
+    Append$8: function (int16) {
+      this._str += String(int16);
+    },
+    Append$9: function (int32) {
+      this._str += String(int32);
+    },
+    Append$10: function (int64) {
+      this._str += String(int64);
+    },
+    Append$11: function (single) {
+      this._str += String(single);
+    },
+    Append$12: function (double) {
+      this._str += String(double);
+    },
+    Append$14: function (uint16) {
+      this._str += String(uint16);
+    },
+    Append$15: function (uint32) {
+      this._str += String(uint32);
+    },
+    Append$16: function (uint64) {
+      this._str += String(uint64);
+    },
+    $Replace: function (oldText, newText, startIndex, count) {
+      var prefix = this._str.substr(0, startIndex);
+      var suffix = this._str.substr(startIndex + count);
+      var region = this._str.substr(startIndex, count);
+      var result = prefix + region.split(oldText).join(newText) + suffix;
+      this._str = result;
+    },
+    Replace$0: function (oldText, newText) {
+      return this.$Replace(oldText, newText, 0, this._str.length);
+    },
+    Replace$1: function (oldText, newText, startIndex, count) {
+      return this.$Replace(oldText, newText, startIndex, count);
+    },
+    Replace$2: function (oldChar, newChar) {
+      return this.$Replace(oldChar, newChar, 0, this._str.length);
+    },
+    Replace$3: function (oldChar, newChar, startIndex, count) {
+      return this.$Replace(oldChar, newChar, startIndex, count);
+    },
+    toString: function () {
+      return this._str;
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.Diagnostics.StackTrace", true, {
+    _ctor$0: function () {
+      this.CaptureStackTrace(0, false, null, null);
+    },
+    CaptureStackTrace: function (framesToSkip, needFileInfo, thread, exception) {
+      this.frames = [];
+    },
+    GetFrame: function (index) {
+      // FIXME
+      return new System.Diagnostics.StackFrame();
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.Diagnostics.StackFrame", true, {
+    GetMethod: function () {
+      // FIXME
+      return new System.Reflection.MethodBase();
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.Reflection.MemberInfo", true, {
+    get_DeclaringType: function () {
+      // FIXME
+      return new System.Type();
+    }
+  }
+);

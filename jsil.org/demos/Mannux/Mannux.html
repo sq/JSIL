@@ -2,14 +2,18 @@
 <html>
   <head>
     <title>Mannux</title>
+
+    <link rel="stylesheet" href="../Common/browser.css">
     <link rel="stylesheet" href="mannux.css">
+    
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
   </head>
   <body onload="onLoad()">
     <script src="../Libraries/printStackTrace.js" type="text/javascript"></script>
     <script src="../Libraries/JSIL.Core.js" type="text/javascript"></script>
     <script src="../Libraries/JSIL.Bootstrap.js" type="text/javascript"></script>
-    <script src="manifest.js" type="text/javascript"></script>
+    <script src="Mannux.exe.manifest.js" type="text/javascript"></script>
+    <script src="Content.contentproj.manifest.js" type="text/javascript"></script>
     
     <!-- workaround for chromium bug -->
     <div id="scripts"></div>
@@ -28,6 +32,7 @@
     <button id="loadButton">Load Game</button>
     <div id="loadingProgress">
       <div id="progressBar"></div>
+      <span id="progressText"></span>
     </div>
     <div id="log"><center><i>Arrow keys to move. Space to jump. Ctrl to fire.</i></center><br></div>
     
@@ -43,17 +48,6 @@
         ["Library", "JSIL.XNACore.js"],
         ["Library", "JSIL.XNA3.js"],
         ["Library", "JSIL.IO.js"],
-        ["Script", "mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
-        ["Script", "System, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
-        ["Script", "System.Xml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
-        ["Script", "System.Data.SqlXml, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
-        ["Script", "System.Configuration, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a.js"],
-        ["Script", "System.Core, Version=3.5.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
-        ["Script", "System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a.js"],
-        ["Script", "System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
-        ["Script", "Microsoft.Xna.Framework, Version=3.1.0.0, Culture=neutral, PublicKeyToken=6d5c3888ef60e27d.js"],
-        ["Script", "Microsoft.Xna.Framework.Game, Version=3.1.0.0, Culture=neutral, PublicKeyToken=6d5c3888ef60e27d.js"],
-        ["Script", "Mannux, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null.js"],
         ["File", "data/maps/test.map"],
         ["File", "data/maps/test2.map"],
         ["File", "Mannux.map"],
@@ -64,12 +58,6 @@
         ["File", "map04.map"],
         ["File", "shaft.map"],
         ["File", "testmap.map"],
-        ["Image", "Boom.png"],
-        ["Image", "door.png"],
-        ["Image", "bullet.png"],
-        ["Image", "mantiles.png"],
-        ["Image", "ripper.png"],
-        ["Image", "tabpis.png"],
         ["File", "boom.txt"],
         ["File", "bullet.txt"],
         ["File", "door.txt"],
@@ -82,7 +70,11 @@
           document.getElementById("welcomeMessage").setAttribute("style", "display: none");
         } catch (ex) {
         }
-        JSIL.GetAssembly("Mannux, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null").Mannux.Program.Main([]);
+
+        // We can't invoke Main() since it disposes the Game immediately, breaking everything.
+        var asm = JSIL.GetAssembly("Mannux, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null");
+        var game = new asm.Engine();
+        game.Run();
       };
     </script>
     <script src="../Libraries/JSIL.Browser.js" type="text/javascript"></script>

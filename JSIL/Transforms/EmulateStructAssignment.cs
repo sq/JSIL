@@ -16,6 +16,8 @@ namespace JSIL.Transforms {
         public readonly TypeSystem TypeSystem;
         public readonly bool OptimizeCopies;
 
+        private FunctionAnalysis2ndPass SecondPass = null;
+
         protected readonly Dictionary<string, int> ReferenceCounts = new Dictionary<string, int>();
 
         public EmulateStructAssignment (TypeSystem typeSystem, IFunctionSource functionSource, CLRSpecialIdentifiers clr, bool optimizeCopies) {
@@ -68,9 +70,16 @@ namespace JSIL.Transforms {
             var rightVar = value as JSVariable;
             if (rightVar != null) {
                 int referenceCount;
-                if (ReferenceCounts.TryGetValue(rightVar.Identifier, out referenceCount) &&
-                    (referenceCount == 1) && !rightVar.IsReference && rightVar.IsParameter)
+                if (
+                    ReferenceCounts.TryGetValue(rightVar.Identifier, out referenceCount) &&
+                    (referenceCount == 1) && !rightVar.IsReference && rightVar.IsParameter &&
+                    !SecondPass.VariableAliases.ContainsKey(rightVar.Identifier)
+                ) {
+                    if (Tracing)
+                        Debug.WriteLine(String.Format("Returning false from IsCopyNeeded for parameter {0} because reference count is 1 and it has no aliases", value));
+
                     return false;
+                }
             }
  
             return true;
@@ -85,7 +94,9 @@ namespace JSIL.Transforms {
             }
 
             var countRefs = new CountVariableReferences(ReferenceCounts);
-            countRefs.Visit(fn);
+            countRefs.Visit(fn.Body);
+
+            SecondPass = FunctionSource.GetSecondPass(fn.Method);
 
             VisitChildren(fn);
         }
@@ -160,6 +171,7 @@ namespace JSIL.Transforms {
             if (IsCopyNeeded(boe.Right)) {
                 if (Tracing)
                     Debug.WriteLine(String.Format("struct copy introduced for assignment rhs {0}", boe.Right));
+
                 boe.Right = new JSStructCopyExpression(boe.Right);
             }
 
@@ -175,15 +187,13 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSVariable variable) {
-            // If our parent node is the function, we're in the argument list
-            if (ParentNode is JSFunctionExpression)
-                return;
-
             int count;
             if (ReferenceCounts.TryGetValue(variable.Identifier, out count))
                 ReferenceCounts[variable.Identifier] = count + 1;
             else
                 ReferenceCounts[variable.Identifier] = 1;
+
+            VisitChildren(variable);
         }
     }
 }

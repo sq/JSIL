@@ -65,7 +65,7 @@ namespace JSIL.Transforms {
             if ((boe != null) && (boe.Operator == JSOperator.Equal)) {
                 var leftVar = boe.Left as JSVariable;
                 var leftIgnored = boe.Left as JSIgnoredMemberReference;
-                var rightNull = boe.Right as JSDefaultValueLiteral;
+                var rightNull = (JSLiteral)(boe.Right as JSDefaultValueLiteral) ?? (JSLiteral)(boe.Right as JSNullLiteral);
 
                 if (rightNull != null) {
                     if (leftVar != null) {

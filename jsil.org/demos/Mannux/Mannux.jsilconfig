@@ -1,9 +1,10 @@
 {
-  "FrameworkVersion": 3.5,
   "OutputDirectory": "%configpath%",
-  "Assemblies": {
-    "Proxies": [
-      "JSIL.Proxies.XNA3.dll"
-    ]
+  "ProfileSettings": {
+    "OverwriteExistingContent": true,
+    "ContentOutputDirectory": "%configpath%/Content",
+    "UsePNGQuant": true,
+    "FileSettings": {
+    }
   }
 }

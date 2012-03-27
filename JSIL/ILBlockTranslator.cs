@@ -28,7 +28,7 @@ namespace JSIL {
         protected readonly Dictionary<ILVariable, JSVariable> RenamedVariables = new Dictionary<ILVariable, JSVariable>();
 
         // Yuck :(
-        static readonly Dictionary<Tuple<string, string>, bool> TypeAssignabilityCache = new Dictionary<Tuple<string, string>, bool>();
+        static readonly ConcurrentCache<Tuple<string, string>, bool> TypeAssignabilityCache = new ConcurrentCache<Tuple<string, string>, bool>();
 
         public readonly SpecialIdentifiers SpecialIdentifiers;
 
@@ -201,6 +201,18 @@ namespace JSIL {
             ) {
                 return new JSBinaryOperatorExpression(
                     JSOperator.Equal, inner, new JSDefaultValueLiteral(innerType), TypeSystem.Boolean
+                );
+            }
+
+            // Insert correct casts when unary operators are applied to enums.
+            if (IsEnum(innerType) && IsEnum(node.ExpectedType ?? node.InferredType)) {
+                return JSCastExpression.New(
+                    new JSUnaryOperatorExpression(
+                        op,
+                        JSCastExpression.New(inner, TypeSystem.Int32, TypeSystem),
+                        TypeSystem.Int32
+                    ),
+                    node.ExpectedType ?? node.InferredType, TypeSystem
                 );
             }
 
@@ -606,8 +618,6 @@ namespace JSIL {
         }
 
         public static bool TypesAreAssignable (TypeReference target, TypeReference source) {
-            bool result;
-
             // All values are assignable to object
             if (target.FullName == "System.Object")
                 return true;
@@ -629,28 +639,30 @@ namespace JSIL {
                 return true;
 
             var cacheKey = new Tuple<string, string>(target.FullName, source.FullName);
-            if (TypeAssignabilityCache.TryGetValue(cacheKey, out result))
-                return result;
+            return TypeAssignabilityCache.GetOrCreate(
+                cacheKey, () => {
+                    bool result = false;
 
-            var dSource = GetTypeDefinition(source);
+                    var dSource = GetTypeDefinition(source);
 
-            if (dSource == null)
-                result = false;
-            else if (TypesAreEqual(target, dSource))
-                result = true;
-            else if ((dSource.BaseType != null) && TypesAreAssignable(target, dSource.BaseType))
-                result = true;
-            else {
-                foreach (var iface in dSource.Interfaces) {
-                    if (TypesAreAssignable(target, iface)) {
+                    if (dSource == null)
+                        result = false;
+                    else if (TypesAreEqual(target, dSource))
                         result = true;
-                        break;
+                    else if ((dSource.BaseType != null) && TypesAreAssignable(target, dSource.BaseType))
+                        result = true;
+                    else {
+                        foreach (var iface in dSource.Interfaces) {
+                            if (TypesAreAssignable(target, iface)) {
+                                result = true;
+                                break;
+                            }
+                        }
                     }
-                }
-            }
 
-            TypeAssignabilityCache[cacheKey] = result;
-            return result;
+                    return result;
+                }
+            );
         }
 
         protected bool ContainsLabels (ILNode root) {
@@ -767,6 +779,15 @@ namespace JSIL {
 
                 Console.Error.WriteLine("Error occurred while translating node {0}", expression);
                 throw;
+            }
+
+            if (
+                (result != null) &&
+                (expression.ExpectedType != null) &&
+                (expression.InferredType != null) &&
+                !TypesAreAssignable(expression.ExpectedType, expression.InferredType)
+            ) {
+                return JSCastExpression.New(result, expression.ExpectedType, TypeSystem);
             }
 
             return result;
@@ -968,6 +989,10 @@ namespace JSIL {
         // MSIL Instructions
         //
 
+        protected JSExpression Translate_Sizeof (ILExpression node, TypeReference type) {
+            return new JSUntranslatableExpression("Sizeof");
+        }
+
         protected JSExpression Translate_NullableOf (ILExpression node) {
             var inner = TranslateNode(node.Arguments[0]);
             var innerType = inner.GetExpectedType(TypeSystem);
@@ -979,11 +1004,21 @@ namespace JSIL {
             return JSChangeTypeExpression.New(inner, TypeSystem, nullableGenericType);
         }
 
+        protected JSExpression Translate_Wrap (ILExpression node) {
+            var inner = TranslateNode(node.Arguments[0]);
+
+            return inner;
+        }
+
         protected JSExpression Translate_ValueOf (ILExpression node) {
             var inner = TranslateNode(node.Arguments[0]);
-            var innerType = (GenericInstanceType)inner.GetExpectedType(TypeSystem);
+            var innerType = DereferenceType(inner.GetExpectedType(TypeSystem));
 
-            return JSChangeTypeExpression.New(inner, TypeSystem, innerType.GenericArguments.First());
+            var innerTypeGit = innerType as GenericInstanceType;
+            if (innerTypeGit != null)
+                return JSChangeTypeExpression.New(inner, TypeSystem, innerTypeGit.GenericArguments.First());
+            else
+                return new JSUntranslatableExpression(node);
         }
 
         protected JSExpression Translate_ComparisonOperator (ILExpression node, JSBinaryOperator op) {
@@ -1136,11 +1171,28 @@ namespace JSIL {
         }
 
         protected JSTernaryOperatorExpression Translate_TernaryOp (ILExpression node) {
+            var expectedType = node.ExpectedType;
+            var inferredType = node.InferredType;
+
+            var left = node.Arguments[1];
+            var right = node.Arguments[2];
+
+            // FIXME: ILSpy generates invalid type information for ternary operators.
+            //  Detect invalid type information and replace it with less-invalid type information.
+            if (
+                (!TypesAreEqual(left.ExpectedType, right.ExpectedType)) ||
+                (!TypesAreEqual(left.InferredType, right.InferredType))
+            ) {
+                left.ExpectedType = left.InferredType;
+                right.ExpectedType = right.InferredType;
+                inferredType = expectedType ?? TypeSystem.Object;
+            }
+
             return new JSTernaryOperatorExpression(
                 TranslateNode(node.Arguments[0]),
-                TranslateNode(node.Arguments[1]),
-                TranslateNode(node.Arguments[2]),
-                node.ExpectedType ?? node.InferredType
+                TranslateNode(left),
+                TranslateNode(right),
+                expectedType ?? inferredType
             );
         }
 
@@ -1490,11 +1542,11 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Arglist (ILExpression node) {
-            throw new AbortTranslation("Arglist instruction not implemented");
+            return new JSUntranslatableExpression("Arglist");
         }
 
         protected JSExpression Translate_Localloc (ILExpression node) {
-            throw new AbortTranslation("Localloc not implemented");
+            return new JSUntranslatableExpression("Localloc");
         }
 
         protected JSStringLiteral Translate_Ldstr (ILExpression node, string text) {
@@ -1521,6 +1573,10 @@ namespace JSIL {
                     new JSType(method.DeclaringType),
                     new JSMethod(method, methodInfo)
                 );
+        }
+
+        protected JSExpression Translate_Ldvirtftn (ILExpression node, MethodReference method) {
+            return new JSUntranslatableExpression("Ldvirtftn");
         }
 
         protected JSExpression Translate_Ldc (ILExpression node, long value) {
@@ -1682,7 +1738,8 @@ namespace JSIL {
 
             return JSCastExpression.New(
                 TranslateNode(node.Arguments[0]),
-                targetType
+                targetType,
+                TypeSystem
             );
         }
 
@@ -1699,7 +1756,7 @@ namespace JSIL {
         protected JSExpression Translate_Unbox_Any (ILExpression node, TypeReference targetType) {
             var value = TranslateNode(node.Arguments[0]);
 
-            var result = JSCastExpression.New(value, targetType);
+            var result = JSCastExpression.New(value, targetType, TypeSystem);
 
             if (CopyOnReturn(targetType))
                 return JSReferenceExpression.New(result);
@@ -1777,7 +1834,7 @@ namespace JSIL {
                 if (currentType.FullName == "JSIL.Proxy.AnyType")
                     return value;
 
-                return JSCastExpression.New(value, expectedType);
+                return JSCastExpression.New(value, expectedType, TypeSystem);
             } else
                 return value;
         }
@@ -1830,6 +1887,14 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Conv_Ovf_I4 (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_I (ILExpression node) {
+            return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32);
+        }
+
+        protected JSExpression Translate_Conv_Ovf_I_Un (ILExpression node) {
             return Translate_Conv(node, Context.CurrentModule.TypeSystem.Int32);
         }
 
@@ -2170,7 +2235,7 @@ namespace JSIL {
             }
 
             var result = Translate_MethodReplacement(
-                new JSMethod(method, methodInfo), thisExpression, arguments, false, !method.HasThis, explicitThis
+                new JSMethod(method, methodInfo), thisExpression, arguments, false, !method.HasThis, explicitThis || methodInfo.IsConstructor
             );
 
             if (method.ReturnType.MetadataType != MetadataType.Void) {
@@ -2219,7 +2284,7 @@ namespace JSIL {
                 return new JSIgnoredMemberReference(true, null, JSLiteral.New(method.FullName));
 
             var result = Translate_MethodReplacement(
-               new JSMethod(method, methodInfo), thisExpression, translatedArguments, true, false, false
+               new JSMethod(method, methodInfo), thisExpression, translatedArguments, true, false, methodInfo.IsConstructor
             );
 
             if (method.ReturnType.MetadataType != MetadataType.Void) {

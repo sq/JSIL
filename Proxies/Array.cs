@@ -66,6 +66,11 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
+        [JSReplacement("Array.prototype.slice.call($this)")]
+        public object Clone () {
+            throw new InvalidOperationException();
+        }
+
         [JSReplacement("Array.prototype.sort.call($array)")]
         public static void Sort (AnyType[] array) {
             throw new InvalidOperationException();

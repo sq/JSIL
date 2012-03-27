@@ -175,7 +175,6 @@ namespace JSIL.Ast {
         /// </summary>
         public virtual void VisitNode (JSNode node) {
             if (node == null) {
-                Debugger.Break();
                 Debug.WriteLine("Warning: Null node found in JavaScript AST");
                 return;
             }

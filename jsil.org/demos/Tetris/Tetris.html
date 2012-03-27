@@ -2,14 +2,19 @@
 <html>
   <head>
     <title>XNA4 Tetris Game</title>
+
+    <link rel="stylesheet" href="../Common/browser.css">
     <link rel="stylesheet" href="tetris.css">
+    
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
   </head>
   <body onload="onLoad()">
-    <script src="../Libraries/printStackTrace.js" type="text/javascript"></script>
+    <!-- <script src="../Libraries/printStackTrace.js" type="text/javascript"></script> -->
+    
     <script src="../Libraries/JSIL.Core.js" type="text/javascript"></script>
     <script src="../Libraries/JSIL.Bootstrap.js" type="text/javascript"></script>
-    <script src="manifest.js" type="text/javascript"></script>
+    <script src="tetris.exe.manifest.js" type="text/javascript"></script>
+    <script src="tetrisContent.contentproj.manifest.js" type="text/javascript"></script>
     
     <!-- workaround for chromium bug -->
     <div id="scripts"></div>
@@ -29,6 +34,7 @@
     <button id="loadButton">Load Game</button>
     <div id="loadingProgress">
       <div id="progressBar"></div>
+      <span id="progressText"></span>
     </div>
     <div id="log"><center><i>Left/right arrows to move piece. Up to rotate piece. Space to drop piece.</i></center><br></div>
     
@@ -39,23 +45,9 @@
       var contentRoot = "Content/";
       
       var assetsToLoad = [
-        ["Script", "mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
-        ["Script", "System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
-        ["Script", "System.Xml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
-        ["Script", "System.Data.SqlXml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
-        ["Script", "System.Configuration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a.js"],
-        ["Script", "System.Core, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"],
-        ["Script", "Microsoft.Xna.Framework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=842cf8be1de50553.js"],
-        ["Script", "Microsoft.Xna.Framework.Game, Version=4.0.0.0, Culture=neutral, PublicKeyToken=842cf8be1de50553.js"],
-        ["Script", "Microsoft.Xna.Framework.Graphics, Version=4.0.0.0, Culture=neutral, PublicKeyToken=842cf8be1de50553.js"],
+        ["Library", "JSIL.IO.js"],
         ["Library", "JSIL.XNACore.js"],
-        ["Library", "JSIL.XNA4.js"],
-        ["Script", "tetris, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null.js"],
-        ["Image", "blanksprite.png"],
-        ["Image", "blocksprite.png"],
-        ["Image", "menusprite.png"],
-        ["Image", "shadowsprite.png"],
-        ["Font", "font.ttf", 14]
+        ["Library", "JSIL.XNA4.js"]
       ];
             
       function runMain () {
@@ -63,7 +55,11 @@
           document.getElementById("welcomeMessage").setAttribute("style", "display: none");
         } catch (ex) {
         }
-        JSIL.GetAssembly("tetris, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null").tetris.Program.Main([]);
+
+        // We can't invoke Main() since it disposes the Game immediately, breaking everything.
+        var asm = JSIL.GetAssembly("tetris, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null");
+        var game = new asm.tetris.Game1();
+        game.Run();
       };
     </script>
     <script src="../Libraries/JSIL.Browser.js" type="text/javascript"></script>

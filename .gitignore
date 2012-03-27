@@ -4,6 +4,8 @@
 _ReSharper.*
 *.ReSharper
 Compiler/obj
+Compiler/Profiles/*/obj
+Compiler/Profiles/*/bin
 JSIL/obj
 JSIL/bin
 Meta/obj
@@ -28,6 +30,16 @@ Tests/*Cases/*.js
 /jsil.org/demos/Platformer/*.js
 /jsil.org/demos/Tetris/*.js
 /jsil.org/demos/Raytracer/*.js
+/jsil.org/demos/RPG/*.js
+/jsil.org/demos/Sully/*.js
 /jsil.org/demos/Libraries
 *.jsillog
 /Examples/obj
+/jsil.org/demos/RPG/Content
+/jsil.org/demos/Sully/Content
+/Upstream/dxtc.cpp
+/Upstream/LAME
+/Upstream/FFMPEG
+/Upstream/OggEnc
+/Upstream/XapParse/obj
+/Upstream/XapParse/bin

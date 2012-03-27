@@ -49,6 +49,9 @@ namespace JSIL.Ast {
             }
         }
 
+        /// <summary>
+        /// If true, the node should be treated as a null node without any actual impact on the output javascript.
+        /// </summary>
         public virtual bool IsNull {
             get {
                 return false;
@@ -61,7 +64,7 @@ namespace JSIL.Ast {
             ReplaceChild(oldChild, newChild);
 
             foreach (var child in Children) {
-                if (child != null)
+                if ((child != null) && (child != newChild))
                     child.ReplaceChildRecursive(oldChild, newChild);
             }
         }
@@ -128,6 +131,7 @@ namespace JSIL.Ast {
 
     public class JSBlockStatement : JSStatement {
         public readonly List<JSStatement> Statements;
+        private bool _IsControlFlow = false;
 
         public JSBlockStatement (params JSStatement[] statements) {
             Statements = new List<JSStatement>(statements);
@@ -167,6 +171,15 @@ namespace JSIL.Ast {
             return false;
         }
 
+        public virtual bool IsControlFlow {
+            get {
+                return _IsControlFlow;
+            }
+            internal set {
+                _IsControlFlow = value;
+            }
+        }
+
         public override string ToString () {
             return ToString(true);
         }
@@ -187,6 +200,12 @@ namespace JSIL.Ast {
     public abstract class JSLoopStatement : JSBlockStatement {
         public int? Index;
 
+        public override bool IsControlFlow {
+            get {
+                return true;
+            }
+        }
+
         protected override string PrependLabel (string text) {
             if (!Index.HasValue)
                 return text;
@@ -202,8 +221,13 @@ namespace JSIL.Ast {
         public JSLabelGroupStatement (int index, params JSStatement[] labels) {
             GroupIndex = index;
 
-            foreach (var lb in labels)
+            foreach (var lb in labels) {
+                var labelBlock = lb as JSBlockStatement;
+                if (labelBlock != null)
+                    labelBlock.IsControlFlow = true;
+
                 Labels.Enqueue(lb.Label, lb);
+            }
         }
 
         public override IEnumerable<JSNode> Children {
@@ -413,9 +437,9 @@ namespace JSIL.Ast {
             }
         }
 
-        public override bool IsStatic {
+        public override bool HasGlobalStateDependency {
             get {
-                return Value.IsStatic;
+                return Value.HasGlobalStateDependency;
             }
         }
 
@@ -589,6 +613,14 @@ namespace JSIL.Ast {
             _Condition = condition;
             _TrueClause = trueClause;
             _FalseClause = falseClause;
+
+            var trueBlock = _TrueClause as JSBlockStatement;
+            if (trueBlock != null)
+                trueBlock.IsControlFlow = true;
+
+            var falseBlock = _FalseClause as JSBlockStatement;
+            if (falseBlock != null)
+                falseBlock.IsControlFlow = true;
         }
 
         public static JSIfStatement New (params KeyValuePair<JSExpression, JSStatement>[] conditions) {
@@ -1049,7 +1081,7 @@ namespace JSIL.Ast {
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
                 throw new ArgumentNullException();
-            if ((oldChild == this) || (newChild == this))
+            if (newChild == this)
                 throw new InvalidOperationException("Infinite recursion");
 
             if ((newChild != null) && !(newChild is JSExpression))
@@ -1089,12 +1121,18 @@ namespace JSIL.Ast {
             return true;
         }
 
-        public virtual bool IsStatic {
+        /// <summary>
+        /// If true, this expression has at least one dependency on static (non-local) state.
+        /// </summary>
+        public virtual bool HasGlobalStateDependency {
             get {
-                return Values.Any((v) => v.IsStatic);
+                return Values.Any((v) => v.HasGlobalStateDependency);
             }
         }
 
+        /// <summary>
+        /// If true, this expression is constant and has no dependencies on local or global state.
+        /// </summary>
         public virtual bool IsConstant {
             get {
                 return false;
@@ -1479,6 +1517,10 @@ namespace JSIL.Ast {
             get;
         }
 
+        public static JSAssemblyNameLiteral New (AssemblyDefinition value) {
+            return new JSAssemblyNameLiteral(value);
+        }
+
         public static JSTypeNameLiteral New (TypeReference value) {
             return new JSTypeNameLiteral(value);
         }
@@ -1762,6 +1804,16 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSAssemblyNameLiteral : JSLiteralBase<AssemblyDefinition> {
+        public JSAssemblyNameLiteral (AssemblyDefinition value)
+            : base(value) {
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return typeSystem.String;
+        }
+    }
+
     public class JSVerbatimLiteral : JSLiteral {
         public readonly JSMethod OriginalMethod;
         public readonly TypeReference Type;
@@ -1900,6 +1952,26 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSAssembly : JSIdentifier {
+        new public readonly AssemblyDefinition Assembly;
+
+        public JSAssembly (AssemblyDefinition assembly) {
+            Assembly = assembly;
+        }
+
+        public override string Identifier {
+            get { return Assembly.FullName; }
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return typeSystem.Object;
+        }
+
+        public override JSLiteral ToLiteral () {
+            return JSLiteral.New(Assembly);
+        }
+    }
+
     public class JSType : JSIdentifier {
         new public readonly TypeReference Type;
 
@@ -1979,7 +2051,7 @@ namespace JSIL.Ast {
             Field = field;
         }
 
-        public override bool IsStatic {
+        public override bool HasGlobalStateDependency {
             get {
                 return Field.IsStatic;
             }
@@ -2006,7 +2078,7 @@ namespace JSIL.Ast {
             Property = property;
         }
 
-        public override bool IsStatic {
+        public override bool HasGlobalStateDependency {
             get {
                 return Property.IsStatic;
             }
@@ -2510,9 +2582,9 @@ namespace JSIL.Ast {
             }
         }
 
-        public override bool IsStatic {
+        public override bool HasGlobalStateDependency {
             get {
-                return Target.IsStatic || Member.IsStatic;
+                return Target.HasGlobalStateDependency || Member.HasGlobalStateDependency;
             }
         }
 
@@ -3090,9 +3162,9 @@ namespace JSIL.Ast {
             }
         }
 
-        public override bool IsStatic {
+        public override bool HasGlobalStateDependency {
             get {
-                return Condition.IsStatic || True.IsStatic || False.IsStatic;
+                return Condition.HasGlobalStateDependency || True.HasGlobalStateDependency || False.HasGlobalStateDependency;
             }
         }
 
@@ -3135,9 +3207,9 @@ namespace JSIL.Ast {
             }
         }
 
-        public override bool IsStatic {
+        public override bool HasGlobalStateDependency {
             get {
-                return Left.IsStatic || Right.IsStatic;
+                return Left.HasGlobalStateDependency || Right.HasGlobalStateDependency;
             }
         }
 
@@ -3184,9 +3256,9 @@ namespace JSIL.Ast {
             }
         }
 
-        public override bool IsStatic {
+        public override bool HasGlobalStateDependency {
             get {
-                return Expression.IsStatic;
+                return Expression.HasGlobalStateDependency;
             }
         }
 
@@ -3222,7 +3294,11 @@ namespace JSIL.Ast {
             NewType = newType;
         }
 
-        public static JSExpression New (JSExpression inner, TypeReference newType) {
+        public static JSExpression New (JSExpression inner, TypeReference newType, TypeSystem typeSystem) {
+            var currentType = inner.GetExpectedType(typeSystem);
+            if (ILBlockTranslator.TypesAreEqual(currentType, newType))
+                return inner;
+
             return new JSCastExpression(inner, newType);
         }
 
@@ -3232,9 +3308,9 @@ namespace JSIL.Ast {
             }
         }
 
-        public override bool IsStatic {
+        public override bool HasGlobalStateDependency {
             get {
-                return Expression.IsStatic;
+                return Expression.HasGlobalStateDependency;
             }
         }
 
@@ -3289,9 +3365,9 @@ namespace JSIL.Ast {
             }
         }
 
-        public override bool IsStatic {
+        public override bool HasGlobalStateDependency {
             get {
-                return Expression.IsStatic;
+                return Expression.HasGlobalStateDependency;
             }
         }
 
@@ -3323,9 +3399,9 @@ namespace JSIL.Ast {
             }
         }
 
-        public override bool IsStatic {
+        public override bool HasGlobalStateDependency {
             get {
-                return Struct.IsStatic;
+                return Struct.HasGlobalStateDependency;
             }
         }
 

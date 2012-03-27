@@ -1,0 +1,37 @@
+#canvas {
+	left: 2px;
+	top: 2px;
+}
+#welcomeMessage {
+	width: 680px;
+	height: 350px;
+	left: 300px;
+	top: 40px;
+}
+#loadButton {
+	width: 200px;
+	height: 40px;
+	left: 539px;
+	top: 320px;
+}
+#quitButton {
+	width: 32px;
+	height: 32px;
+	left: 1284px;
+	top: 2px;
+}
+#loadingProgress {
+	width: 600px;
+	height: 40px;
+	left: 339px;
+	top: 320px;
+}
+#progressBar {
+	height: 40px;
+}
+#log {
+	width: 1280px;
+	height: 150px;
+	left: 2px;
+	top: 724px;
+}

@@ -1,0 +1,81 @@
+<!DOCTYPE html> 
+<html>
+  <head>
+    <title>RPG Starter Kit</title>
+
+    <link rel="stylesheet" href="../Common/browser.css">
+    <link rel="stylesheet" href="rpg.css">
+
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  </head>
+  <body onload="onLoad()">
+    <!-- <script src="../Libraries/printStackTrace.js" type="text/javascript"></script> -->
+    
+    <script src="../Libraries/JSIL.Core.js" type="text/javascript"></script>
+    <script src="../Libraries/JSIL.Bootstrap.js" type="text/javascript"></script>
+    <script src="RolePlayingGame.exe.manifest.js" type="text/javascript"></script>
+    <script src="RolePlayingGameContentWindows.contentproj.manifest.js" type="text/javascript"></script>
+    
+    <!-- workaround for chromium bug -->
+    <div id="scripts"></div>
+    <div id="images"></div>
+    <div id="sounds"></div>
+    <div id="fonts"></div>
+    
+    <canvas id="canvas" width="1280" height="720">
+    </canvas><br>
+    <button id="quitButton" title="Quit Game">X</button>
+    <div id="welcomeMessage">
+      <p align="center"><a href="http://jsil.org/"><img src="http://jsil.org/images/jsil_48px.png" alt="JSIL logo" border="0"></a></p>
+      <p>This demo is the XNA 4 RPG Starter Kit, compiled from C# to JavaScript using <A href="http://jsil.org/">JSIL, my open-source C# to JavaScript compiler</a>. It should run in any browser that supports HTML5 and a modern version of JavaScript, no plugins required.</p>
+      <p>Unfortunately, Safari and Internet Explorer have broken audio support so this demo will likely not work in them.</p>
+      <p align="center">To begin playing, click the <b>Load Game</b> button below. Please be patient, because the game has a large amount of data to load!</p>
+    </div>
+    <button id="loadButton">Load Game</button>
+    <div id="loadingProgress">
+      <div id="progressBar"></div>
+      <span id="progressText"></span>
+    </div>
+    <div id="log"><center><i>Arrow keys to move. Escape to cancel. Left/Right shift to change tabs. Enter to select. Space to open game menu.</i></center><br></div>
+    
+    <script type="text/javascript">
+      var scriptRoot = "";
+      var libraryRoot = "../Libraries/";
+      var fileRoot = "Content/";
+      var contentRoot = "Content/";
+      
+      var assetsToLoad = [
+        ["Library", "System.Drawing.js"],
+        ["Library", "System.Windows.js"],
+        ["Library", "JSIL.XNACore.js"],
+        ["Library", "JSIL.XNA4.js"],
+        ["Library", "JSIL.IO.js"],
+      ];
+
+      function runMain () {
+        try {
+          document.getElementById("welcomeMessage").setAttribute("style", "display: none");
+        } catch (ex) {
+        }
+
+        // We can't invoke Main() since it disposes the Game immediately, breaking everything.
+        var asm = JSIL.GetAssembly("RolePlayingGame, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null");
+        var game = new asm.RolePlaying.RolePlayingGame();
+        game.Run();
+      };
+    </script>
+    <script src="../Libraries/JSIL.Browser.js" type="text/javascript"></script>
+    <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-6375004-2']);
+    _gaq.push(['_setDomainName', '.luminance.org']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+    </script>
+  </body>
+</html>

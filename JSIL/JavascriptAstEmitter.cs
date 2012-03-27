@@ -84,6 +84,8 @@ namespace JSIL {
         }
 
         public void VisitNode (JSLabelGroupStatement labelGroup) {
+            Output.NewLine();
+
             var stepLabel = String.Format("$labelgroup{0}", labelGroup.GroupIndex);
             var labelVar = String.Format("$label{0}", labelGroup.GroupIndex);
             var firstLabel = labelGroup.Labels.First().Key;
@@ -131,7 +133,6 @@ namespace JSIL {
                 Output.Keyword("continue");
                 Output.Space();
                 Output.Identifier(stepLabel);
-                Output.Semicolon();
 
                 return true;
             };
@@ -142,8 +143,9 @@ namespace JSIL {
 
             foreach (var kvp in labelGroup.Labels) {
                 if (!isFirst && needsTrailingBreak) {
+                    Output.PlainTextFormatter.Indent();
                     emitGoto(kvp.Key);
-
+                    Output.Semicolon(true);
                     Output.PlainTextFormatter.Unindent();
                 }
 
@@ -156,10 +158,48 @@ namespace JSIL {
 
                 Visit(kvp.Value);
 
-                var lastStatement = kvp.Value.Children.LastOrDefault() as JSExpressionStatement;
+                Func<JSNode, bool> isNotNull = (n) => {
+                    if (n.IsNull)
+                        return false;
+                    if (n is JSNullStatement)
+                        return false;
+                    if (n is JSNullExpression)
+                        return false;
+
+                    var es = n as JSExpressionStatement;
+                    if (es != null) {
+                        if (es.Expression.IsNull)
+                            return false;
+                        if (es.Expression is JSNullExpression)
+                            return false;
+                    }
+
+                    return true;
+                };
+
+                var nonNullChildren = kvp.Value.Children.Where(isNotNull);
+
+                var lastStatement = nonNullChildren.LastOrDefault();
+                JSBlockStatement lastBlockStatement;
+
+                while ((lastBlockStatement = lastStatement as JSBlockStatement) != null) {
+                    if (lastBlockStatement.IsControlFlow)
+                        break;
+                    else {
+                        nonNullChildren = lastStatement.Children.Where(isNotNull);
+                        lastStatement = nonNullChildren.LastOrDefault();
+                    }
+                }
+
+                var lastExpressionStatement = lastStatement as JSExpressionStatement;
+
                 if (
-                    (lastStatement != null) &&
-                    ((lastStatement.Expression is JSContinueExpression) || (lastStatement.Expression is JSBreakExpression))
+                    (lastExpressionStatement != null) &&
+                    (
+                        (lastExpressionStatement.Expression is JSContinueExpression) || 
+                        (lastExpressionStatement.Expression is JSBreakExpression) ||
+                        (lastExpressionStatement.Expression is JSGotoExpression)
+                    )
                 ) {
                     needsTrailingBreak = false;
                 } else {
@@ -167,15 +207,21 @@ namespace JSIL {
                 }
 
                 isFirst = false;
+
+                Output.PlainTextFormatter.Unindent();
+
+                Output.NewLine();
             }
 
             GotoStack.Pop();
 
             if (needsTrailingBreak) {
+                Output.PlainTextFormatter.Indent();
                 Output.Keyword("break");
                 Output.Space();
                 Output.Identifier(stepLabel);
-                Output.Semicolon();
+                Output.Semicolon(true);
+                Output.PlainTextFormatter.Unindent();
             }
 
             Output.PlainTextFormatter.Unindent();
@@ -322,6 +368,10 @@ namespace JSIL {
             Output.Value(type.Value);
         }
 
+        public void VisitNode (JSAssemblyNameLiteral asm) {
+            Output.Value(asm.Value.FullName);
+        }
+
         public void VisitNode (JSIntegerLiteral integer) {
             Output.Value(integer.Value);
         }
@@ -367,7 +417,10 @@ namespace JSIL {
                 }
             }
 
-            throw new InvalidOperationException("Untranslatable goto encountered targeting label " + go.TargetLabel);
+            Output.Identifier("JSIL.UntranslatableInstruction", null);
+            Output.LPar();
+            Output.Value(go.ToString());
+            Output.RPar();
         }
 
         public void VisitNode (JSUntranslatableStatement us) {
@@ -412,7 +465,12 @@ namespace JSIL {
         }
 
         public void VisitNode (JSDefaultValueLiteral defaultValue) {
-            if (TypeAnalysis.IsIntegerOrEnum(defaultValue.Value)) {
+            if (ILBlockTranslator.IsEnum(defaultValue.Value)) {
+                var enumInfo = TypeInfo.Get(defaultValue.Value);
+                Output.Identifier(defaultValue.Value);
+                Output.Dot();
+                Output.Identifier(enumInfo.FirstEnumMember.Name);
+            } else if (TypeAnalysis.IsIntegerOrEnum(defaultValue.Value)) {
                 Output.Value(0);
             } else if (!defaultValue.Value.IsValueType) {
                 Output.Keyword("null");
@@ -434,6 +492,10 @@ namespace JSIL {
                         break;
                 }
             }
+        }
+
+        public void VisitNode (JSAssembly asm) {
+            Output.AssemblyReference(asm.Assembly);
         }
 
         public void VisitNode (JSType type) {
@@ -587,6 +649,7 @@ namespace JSIL {
                 Output.PlainTextFormatter.Indent();
                 Visit(c.Body);
                 Output.PlainTextFormatter.Unindent();
+                Output.NewLine();
             }
 
             Output.CloseBrace();
@@ -684,6 +747,8 @@ namespace JSIL {
         }
 
         public void VisitNode (JSForLoop loop) {
+            Output.NewLine();
+
             BlockStack.Push(BlockType.ForHeader);
             WriteLoopLabel(loop);
 
@@ -714,6 +779,8 @@ namespace JSIL {
         }
 
         public void VisitNode (JSWhileLoop loop) {
+            Output.NewLine();
+
             BlockStack.Push(BlockType.While);
             WriteLoopLabel(loop);
 
@@ -731,6 +798,8 @@ namespace JSIL {
         }
 
         public void VisitNode (JSDoLoop loop) {
+            Output.NewLine();
+
             BlockStack.Push(BlockType.Do);
             WriteLoopLabel(loop);
 

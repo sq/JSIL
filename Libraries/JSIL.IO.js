@@ -9,6 +9,10 @@ JSIL.ImplementExternals(
   "System.IO.File", false, {
     Exists: function (filename) {
       return JSIL.Host.doesFileExist(filename);
+    },
+    ReadAllText$0: function (filename) {
+      var file = JSIL.Host.getFile(filename);
+      return String.fromCharCode.apply(String, file);
     }
   }
 );
@@ -22,9 +26,55 @@ JSIL.ImplementExternals(
 );
 
 JSIL.ImplementExternals(
+  "System.IO.Stream", true, {
+    ReadByte: function () {
+      var buffer = [];
+      var count = this.Read(buffer, 0, 1);
+
+      if (count >= 1)
+        return buffer[0];
+      else
+        return -1;
+    }
+  }
+);
+
+var $bytestream = {
+  Read: function (buffer, offset, count) {
+    var startPos = this._pos;
+    var endPos = this._pos + count;
+
+    if (endPos >= this._length) {
+      endPos = this._length - 1;
+      count = endPos - startPos + 1;
+    }
+
+    if ((startPos < 0) || (startPos >= this._length))
+      return 0;
+
+    for (var i = 0; i < count; i++) {
+      buffer[i] = this._buffer[startPos + i];
+    }
+
+    this._pos += count;
+
+    return count;
+  },
+  $PeekByte: function () {
+    if (this._pos >= this._length)
+      return -1;
+
+    return this._buffer[this._pos];
+  }
+};
+
+JSIL.ImplementExternals(
   "System.IO.FileStream", true, {
     _ctor$0: function () {
       System.IO.Stream.prototype._ctor.call(this);
+
+      this._pos = 0;
+      this._length = 0;
     },
     _ctor$1: function (filename, mode) {
       System.IO.Stream.prototype._ctor.call(this);
@@ -38,22 +88,35 @@ JSIL.ImplementExternals(
         throw new System.Exception("Unable to get an array for the file '" + filename + "'");
 
       this._pos = 0;
-    },
-    Peek: function () {
-      if ((this._pos < 0) || (this._pos >= this._buffer.length))
-        return -1;
-
-      return this._buffer[this._pos];
-    },
-    ReadByte: function () {
-      if ((this._pos < 0) || (this._pos >= this._buffer.length))
-        return -1;
-
-      return this._buffer[this._pos++];
+      this._length = this._buffer.length;
     },
     Close: function () {
     }
   }
+);
+
+JSIL.ImplementExternals(
+  "System.IO.FileStream", true, $bytestream
+);
+
+JSIL.ImplementExternals(
+  "System.IO.MemoryStream", true, {
+    _ctor$2: function (bytes) {
+      System.IO.MemoryStream.prototype._ctor$3.call(this, bytes, true);
+    },
+    _ctor$3: function (bytes, writable) {
+      System.IO.Stream.prototype._ctor.call(this);
+
+      this._buffer = bytes;
+      this._writable = writable;
+      this._length = this._capacity = bytes.length;
+      this._pos = 0;
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.IO.MemoryStream", true, $bytestream
 );
 
 JSIL.ImplementExternals(
@@ -78,15 +141,8 @@ JSIL.ImplementExternals(
     },
     ReadBytes: function (count) {
       var result = new Array(count);
-      for (var i = 0; i < count; i++) {
-        var b = this.m_stream.ReadByte();
-        if (b === -1)
-          return result.slice(0, i - 1);
-
-        result[i] = b;
-      };
-
-      return result;
+      var bytesRead = this.m_stream.Read(result, 0, count);
+      return result.slice(0, bytesRead);
     },
     ReadChars: function (count) {
       var result = new Array(count);
@@ -133,76 +189,86 @@ JSIL.ImplementExternals(
     },
     ReadSingle: function () {
       var bytes = this.ReadBytes(4);
-      return this._decodeFloat(bytes, 23, 8);
+      return this.$decodeFloat(bytes, 1, 8, 23, -126, 127, true);
     },
     ReadDouble: function () {
       var bytes = this.ReadBytes(8);
-      return this._decodeFloat(bytes, 52, 11);
+      return this.$decodeFloat(bytes, 1, 11, 52, -1022, 1023, true);
+    },
+    ReadBoolean: function () {
+      return this.m_stream.ReadByte() != 0;
     },
     ReadByte: function () {
       return this.m_stream.ReadByte();
     },
+    ReadChar: function () {
+      return String.fromCharCode(this.m_stream.ReadByte());
+    },
+    PeekChar: function () {
+      return String.fromCharCode(this.m_stream.$PeekByte());
+    },
+    Read7BitEncodedInt: function () {
+	    var result = 0, bits = 0;
+
+	    while (bits < 35) {
+		    var b = this.ReadByte();
+		    result |= (b & 127) << bits;
+		    bits += 7;
+
+		    if ((b & 128) == 0)
+			    return result;
+	    }
+
+	    throw new System.FormatException("Bad 7-bit int format");
+    },
     Close: function () {
     },
-    // Derived from http://blog.vjeux.com/wp-content/uploads/2010/01/binaryReader.js
-    _shl: function (a, b) {
-      for (
-        ++b; --b;
-        a = ((a %= 0x7fffffff + 1) & 0x40000000) == 0x40000000 ? 
-          a * 2 : (a - 0x40000000) * 2 + 0x7fffffff + 1
-      );
+    // Derived from http://stackoverflow.com/a/8545403/106786
+    $decodeFloat: function (bytes, signBits, exponentBits, fractionBits, eMin, eMax, littleEndian) {
+      var totalBits = (signBits + exponentBits + fractionBits);
 
-      return a;
-    },
-    _readBits: function (bytes, start, length) {
-      var offsetLeft = (start + length) % 8;
-      var offsetRight = start % 8;
-      var curByte = bytes.length - (start >> 3) - 1;
-      var lastByte = bytes.length + (-(start + length) >> 3);
-      var diff = curByte - lastByte;
+      var binary = "";
+      for (var i = 0, l = bytes.length; i < l; i++) {
+        var bits = bytes[i].toString(2);
+        while (bits.length < 8) 
+          bits = "0" + bits;
 
-      var sum = (bytes[bytes.length - curByte - 1] >> offsetRight) & 
-        ((1 << (diff ? 8 - offsetRight : length)) - 1);
+        if (littleEndian)
+          binary = bits + binary;
+        else
+          binary += bits;
+      }
 
-      if (diff && offsetLeft)
-        sum += (bytes[bytes.length - lastByte++ - 1] & ((1 << offsetLeft) - 1)) << (diff-- << 3) - offsetRight; 
-
-      while (diff)
-        sum += this._shl(bytes[bytes.length - lastByte++ - 1], (diff-- << 3) - offsetRight);
-
-      return sum;
-    },
-    _decodeFloat: function (bytes, precisionBits, exponentBits) {
-      var length = precisionBits + exponentBits + 1;
-      if ((length >> 3) > bytes.length)
-        throw new Error("Buffer too small");
-
-      var bias = Math.pow(2, exponentBits - 1) - 1;
-      var signal = this._readBits(bytes, precisionBits + exponentBits, 1);
-      var exponent = this._readBits(bytes, precisionBits, exponentBits);
+      var sign = (binary.charAt(0) == '1')?-1:1;
+      var exponent = parseInt(binary.substr(signBits, exponentBits), 2) - eMax;
+      var significandBase = binary.substr(signBits + exponentBits, fractionBits);
+      var significandBin = '1'+significandBase;
+      var i = 0;
+      var val = 1;
       var significand = 0;
-      var divisor = 2;
-      var curByte = 0;
-      do {
-        var byteValue = bytes[++curByte - bytes.length - 1];
-        var startBit = precisionBits % 8 || 8;
-        var mask = 1 << startBit;
-        while (mask >>= 1) {
-          if (byteValue & mask) {
-            significand += 1 / divisor;
+
+      if (exponent == -eMax) {
+          if (significandBase.indexOf('1') == -1)
+              return 0;
+          else {
+              exponent = eMin;
+              significandBin = '0'+significandBase;
           }
-          divisor *= 2;
-        }
-      } while (precisionBits -= startBit);
+      }
 
-      var result = exponent == (bias << 1) + 1 ? significand ? NaN : signal ? -Infinity : +Infinity
-        : (1 + signal * -2) * (exponent || significand ? !exponent ? Math.pow(2, -bias + 1) * significand
-        : Math.pow(2, exponent - bias) * (1 + significand) : 0);
+      while (i < significandBin.length) {
+          significand += val * parseInt(significandBin.charAt(i));
+          val = val / 2;
+          i++;
+      }
 
-      return result;
+      return sign * significand * Math.pow(2, exponent);
     },
     Dispose: function () {
       this.m_stream = null;
+    },
+    get_BaseStream: function () {
+      return this.m_stream;
     }
   }
 );
@@ -223,7 +289,7 @@ JSIL.ImplementExternals(
           else
             break;
         } else if (ch === 13) {
-          var next = this.stream.Peek();
+          var next = this.stream.$PeekByte();
           if (next === 10)
             continue;
           else if (next === -1) {

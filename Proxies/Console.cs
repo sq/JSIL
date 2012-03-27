@@ -12,7 +12,7 @@ namespace JSIL.Proxies {
         [JSExternal]
         [JSMutatedArguments()]
         [JSEscapingArguments()]
-        new public static void WriteLine (params AnyType[] arguments) {
+        public static void WriteLine (params AnyType[] arguments) {
             throw new InvalidOperationException();
         }
 
@@ -20,7 +20,7 @@ namespace JSIL.Proxies {
         [JSExternal]
         [JSMutatedArguments()]
         [JSEscapingArguments()]
-        new public static void Write (params AnyType[] arguments) {
+        public static void Write (params AnyType[] arguments) {
             throw new InvalidOperationException();
         }
     }

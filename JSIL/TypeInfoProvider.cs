@@ -10,6 +10,7 @@ using Mono.Cecil;
 namespace JSIL {
     public class TypeInfoProvider : ITypeInfoSource {
         protected readonly HashSet<AssemblyDefinition> Assemblies = new HashSet<AssemblyDefinition>();
+        protected readonly HashSet<string> ProxyAssemblyNames = new HashSet<string>();
         protected readonly ConcurrentCache<TypeIdentifier, TypeInfo> TypeInformation;
         protected readonly ConcurrentCache<string, ModuleInfo> ModuleInformation;
         protected readonly Dictionary<TypeIdentifier, ProxyInfo> TypeProxies = new Dictionary<TypeIdentifier, ProxyInfo>();
@@ -63,6 +64,11 @@ namespace JSIL {
 
             lock (Assemblies)
             foreach (var asm in assemblies) {
+                if (ProxyAssemblyNames.Contains(asm.FullName))
+                    continue;
+                else
+                    ProxyAssemblyNames.Add(asm.FullName);
+
                 if (Assemblies.Contains(asm))
                     continue;
                 else

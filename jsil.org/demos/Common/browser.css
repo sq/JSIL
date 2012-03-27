@@ -1,0 +1,82 @@
+body {
+	overflow: hidden;
+}
+#canvas {
+	background-color: black;
+	position: absolute;
+	margin: 0px;
+	border: 0px;
+	padding: 0px;
+}
+#welcomeMessage {
+	font-family: Calibri, Tahoma, Verdana, sans-serif;
+	background-color: rgba(32, 32, 32, 1);
+	border-color: black;
+	border-width: 0px;
+	border-radius: 16px;
+	color: white;
+	position: absolute;
+	z-index: 80;
+	padding: 8px;
+	margin: -8px;
+}
+#welcomeMessage a {
+	color: #BFBFFF;
+}
+#loadButton {
+	position: absolute;	
+	z-index: 90;
+}
+#quitButton {
+	position: absolute;	
+}
+#loadingProgress {
+	background-color: black;
+	border: 3px solid white;
+	border-radius: 6px;
+	position: absolute;	
+	z-index: 99;
+}
+#progressBar {
+	background-color: white;
+	border: 1px solid white;
+	margin: -1px;
+	padding: 0px;
+}
+#progressText {
+	position: absolute;
+	text-align: center;
+	text-shadow: #000000 1px 1px 0px;
+	background-color: rgba(0, 0, 0, 0.66);
+	border-radius: 8px;
+	color: white;
+	font-family: Consolas, Courier New, Courier;
+	font-size: 9pt;
+	padding-top: 3px;
+	padding-bottom: 3px;
+	padding-left: 6px;
+	padding-right: 6px;
+}
+#log {
+	font-family: Consolas, Courier New, Courier;
+	font-size: 9pt;
+	margin: 0px;
+	border: 0px;
+	padding: 0px;
+	overflow-x: hidden;
+	overflow-y: scroll;
+	position: absolute;
+}
+#images, #scripts, #sounds {
+	display: none;
+}
+#fonts {
+	position: absolute;
+	z-index: -99;
+	left: 2px;
+	top: 2px;
+	width: 16px;
+	height: 16px;
+	background-color: white;
+	color: black;
+}

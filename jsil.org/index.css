@@ -18,7 +18,7 @@ div#changelog {
 	height: 26em;
 }
 
-div#changelog-entries {
+div#changelog_entries {
 	position: absolute;
 	left: 0.25em;
 	top: 3em;
@@ -45,6 +45,9 @@ img.author-image {
 	left: 0.1em;
 	width: 2.8em;
 	bottom: 0.1em;
+	border-radius: 6px;
+	border-top-right-radius: 2px;
+	border-bottom-left-radius: 2px;
 }
 
 div.changelog-entry div.header {
@@ -95,7 +98,7 @@ div.changelog-entry .datetime .time {
 	margin-left: 0.5em;
 }
 
-div#changelog-loading-placeholder {
+div#changelog_loading_placeholder {
 	position: absolute;
 	top: 4em;
 	bottom: 0px;
@@ -105,7 +108,7 @@ div#changelog-loading-placeholder {
 	text-align: center;
 }
 
-a#view-on-github {
+a#view_on_github {
 	position: absolute;
 	top: 0.5em;
 	right: 0.5em;
@@ -140,4 +143,29 @@ iframe#codesample {
 	width: 100%;
 	overflow: hidden;
 	height: 0em;
+}
+
+span#branch_list {
+	position: absolute;
+	top: 0.5em;
+	margin-left: 1.5em;
+	font-size: 0.5em;
+	font-weight: normal;
+}
+
+a.branch {
+	margin-right: 0.33em;
+}
+
+a.branch.active {
+	font-weight: bold;
+	background-color: rgba(255, 229, 209, 0.8);
+	border-color: #C68D61;
+	color: #703200;
+}
+
+a.branch.active:hover {
+	background-color: rgba(255, 229, 209, 0.8);
+	border-color: #C68D61;
+	color: #703200;
 }

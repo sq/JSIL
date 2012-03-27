@@ -13,11 +13,13 @@ namespace JSIL.Transforms {
         public readonly TypeSystem TypeSystem;
         public readonly JSSpecialIdentifiers JS;
         public readonly JSILIdentifier JSIL;
+        public readonly ITypeInfoSource TypeInfo;
 
-        public ExpandCastExpressions (TypeSystem typeSystem, JSSpecialIdentifiers js, JSILIdentifier jsil) {
+        public ExpandCastExpressions (TypeSystem typeSystem, JSSpecialIdentifiers js, JSILIdentifier jsil, ITypeInfoSource typeInfo) {
             TypeSystem = typeSystem;
             JS = js;
             JSIL = jsil;
+            TypeInfo = typeInfo;
         }
 
         public void VisitNode (JSCastExpression ce) {
@@ -38,12 +40,56 @@ namespace JSIL.Transforms {
                     JS.charCodeAt, ce.Expression, new[] { JSLiteral.New(0) }, true
                 );
             } else if (
-                ILBlockTranslator.IsEnum(currentType) &&
-                ILBlockTranslator.IsIntegral(targetType)
+                ILBlockTranslator.IsEnum(currentType)
             ) {
-                newExpression = new JSDotExpression(
-                    ce.Expression, new JSStringIdentifier("value", targetType)
+                var enumInfo = TypeInfo.Get(currentType);
+
+                if (targetType.MetadataType == MetadataType.Boolean) {
+                    EnumMemberInfo enumMember;
+                    if (enumInfo.ValueToEnumMember.TryGetValue(0, out enumMember)) {
+                        newExpression = new JSBinaryOperatorExpression(
+                            JSOperator.NotEqual, ce.Expression,
+                            new JSEnumLiteral(enumMember.Value, enumMember), TypeSystem.Boolean
+                        );
+                    } else if (enumInfo.ValueToEnumMember.TryGetValue(1, out enumMember)) {
+                        newExpression = new JSBinaryOperatorExpression(
+                            JSOperator.Equal, ce.Expression,
+                            new JSEnumLiteral(enumMember.Value, enumMember), TypeSystem.Boolean
+                        );
+                    } else {
+                        newExpression = new JSUntranslatableExpression(String.Format(
+                            "Could not cast enum of type '{0}' to boolean because it has no zero value or one value",
+                            currentType.FullName
+                        ));
+                    }
+                } else if (ILBlockTranslator.IsNumeric(targetType)) {
+                    newExpression = new JSDotExpression(
+                        ce.Expression, new JSStringIdentifier("value", targetType)
+                    );
+                } else if (targetType.FullName == "System.Enum") {
+                    newExpression = ce.Expression;
+                } else {
+                    // Debugger.Break();
+                }
+            } else if (
+                targetType.MetadataType == MetadataType.Boolean
+            ) {
+                newExpression = new JSBinaryOperatorExpression(
+                    JSBinaryOperator.NotEqual,
+                    ce.Expression, new JSDefaultValueLiteral(currentType),
+                    TypeSystem.Boolean
                 );
+            } else if (
+                ILBlockTranslator.IsNumeric(targetType) &&
+                ILBlockTranslator.IsNumeric(currentType)
+            ) {
+                if (
+                    ILBlockTranslator.IsIntegral(currentType) ||
+                    !ILBlockTranslator.IsIntegral(targetType)
+                )
+                    newExpression = ce.Expression;
+                else
+                    newExpression = JSInvocationExpression.InvokeStatic(JS.floor, new[] { ce.Expression }, true);
             } else {
                 newExpression = JSIL.Cast(ce.Expression, targetType);
             }
@@ -52,6 +98,7 @@ namespace JSIL.Transforms {
                 ParentNode.ReplaceChild(ce, newExpression);
                 VisitReplacement(newExpression);
             } else {
+                // Debugger.Break();
                 VisitChildren(ce);
             }
         }

@@ -11,7 +11,19 @@ using Microsoft.Build.Logging;
 
 namespace JSIL.Compiler {
     public static class SolutionBuilder {
-        public static string[] Build (string solutionFile, string buildConfiguration = null, string buildPlatform = null) {
+        public class SolutionBuildResult {
+            public readonly string[] OutputFiles;
+            public readonly BuiltProject[] ProjectsBuilt;
+            public readonly string[] TargetFilesUsed;
+
+            public SolutionBuildResult (string[] outputFiles, BuiltProject[] projectsBuilt, string[] targetFiles) {
+                OutputFiles = outputFiles;
+                ProjectsBuilt = projectsBuilt;
+                TargetFilesUsed = targetFiles;
+            }
+        }
+
+        public static SolutionBuildResult Build (string solutionFile, string buildConfiguration = null, string buildPlatform = null) {
             string configString = String.Format("{0}|{1}", buildConfiguration ?? "<default>", buildPlatform ?? "<default>");
 
             if ((buildConfiguration ?? buildPlatform) != null)
@@ -34,8 +46,10 @@ namespace JSIL.Compiler {
                 BuildRequestDataFlags.ReplaceExistingProjectInstance
             );
 
-            parms.Loggers = new[] { 
-                new ConsoleLogger(LoggerVerbosity.Quiet)
+            var eventRecorder = new BuildEventRecorder();
+
+            parms.Loggers = new ILogger[] { 
+                new ConsoleLogger(LoggerVerbosity.Quiet), eventRecorder
             };
 
             var manager = BuildManager.DefaultBuildManager;
@@ -55,7 +69,58 @@ namespace JSIL.Compiler {
                 }
             }
 
-            return resultFiles.ToArray();
+            return new SolutionBuildResult(
+                resultFiles.ToArray(),
+                eventRecorder.ProjectsById.Values.ToArray(),
+                eventRecorder.TargetFiles.ToArray()
+            );
+        }
+    }
+
+    public class BuiltProject {
+        public BuiltProject Parent;
+        public int Id;
+        public string File;
+
+        public override string ToString () {
+            return String.Format("{0} '{1}'", Id, File);
+        }
+    }
+
+    public class BuildEventRecorder : ILogger {
+        public readonly Dictionary<int, BuiltProject> ProjectsById = new Dictionary<int, BuiltProject>();
+        public readonly HashSet<string> TargetFiles = new HashSet<string>(); 
+
+        public void Initialize (IEventSource eventSource) {
+            eventSource.ProjectStarted += (sender, args) => {
+                var parentId = args.ParentProjectBuildEventContext.ProjectInstanceId;
+
+                BuiltProject parentProject;
+                ProjectsById.TryGetValue(parentId, out parentProject);
+
+                var obj = new BuiltProject {
+                    Parent = parentProject,
+                    Id = args.ProjectId,
+                    File = args.ProjectFile
+                };
+
+                ProjectsById[args.ProjectId] = obj;
+            };
+            eventSource.TargetStarted += (sender, args) =>
+                TargetFiles.Add(args.TargetFile);
+        }
+
+        public string Parameters {
+            get;
+            set;
+        }
+
+        public void Shutdown () {
+        }
+
+        public LoggerVerbosity Verbosity {
+            get;
+            set;
         }
     }
 }
