@@ -1597,6 +1597,7 @@ namespace JSIL.Internal {
         public readonly PropertyInfo Property = null;
         public readonly EventInfo Event = null;
         public readonly bool IsGeneric;
+        public readonly bool IsConstructor;
 
         public int? OverloadIndex;
         protected bool? _ParametersIgnored;
@@ -1615,6 +1616,7 @@ namespace JSIL.Internal {
             ShortName = GetShortName(method);
             Parameters = method.Parameters.ToArray();
             IsGeneric = method.HasGenericParameters;
+            IsConstructor = method.Name == ".ctor";
         }
 
         public MethodInfo (
@@ -1633,6 +1635,7 @@ namespace JSIL.Internal {
             ShortName = GetShortName(method);
             Parameters = method.Parameters.ToArray();
             IsGeneric = method.HasGenericParameters;
+            IsConstructor = method.Name == ".ctor";
         }
 
         public MethodInfo (
@@ -1650,6 +1653,7 @@ namespace JSIL.Internal {
             ShortName = GetShortName(method);
             Parameters = method.Parameters.ToArray();
             IsGeneric = method.HasGenericParameters;
+            IsConstructor = method.Name == ".ctor";
         }
 
         protected override string GetName () {

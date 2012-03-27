@@ -2231,7 +2231,7 @@ namespace JSIL {
             }
 
             var result = Translate_MethodReplacement(
-                new JSMethod(method, methodInfo), thisExpression, arguments, false, !method.HasThis, explicitThis
+                new JSMethod(method, methodInfo), thisExpression, arguments, false, !method.HasThis, explicitThis || methodInfo.IsConstructor
             );
 
             if (method.ReturnType.MetadataType != MetadataType.Void) {
@@ -2280,7 +2280,7 @@ namespace JSIL {
                 return new JSIgnoredMemberReference(true, null, JSLiteral.New(method.FullName));
 
             var result = Translate_MethodReplacement(
-               new JSMethod(method, methodInfo), thisExpression, translatedArguments, true, false, false
+               new JSMethod(method, methodInfo), thisExpression, translatedArguments, true, false, methodInfo.IsConstructor
             );
 
             if (method.ReturnType.MetadataType != MetadataType.Void) {

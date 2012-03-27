@@ -306,6 +306,7 @@
     <None Include="TestCases\CastToBoolean.cs" />
     <None Include="TestCases\EnumNegation.cs" />
     <None Include="SimpleTestCases\StringToCharArray.cs" />
+    <None Include="SimpleTestCases\RecursiveConstructorInheritance.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
