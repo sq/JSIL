@@ -554,6 +554,9 @@ public static class Common {
         result.ProfileSettings.SetDefault("PNGQuantOptions", "");
 
         result.ProfileSettings.SetDefault("FileSettings", new Dictionary<string, object>());
+
+        result.ProfileSettings.SetDefault("ForceCopyXNBImporters", new string[0]);
+        result.ProfileSettings.SetDefault("ForceCopyXNBProcessors", new string[0]);
     }
 
     public static HashSet<string> GetFileSettings (Dictionary<string, object> profileSettings, string fileName) {
@@ -580,6 +583,14 @@ public static class Common {
         var contentProjects = buildResult.ProjectsBuilt.Where(
             (project) => project.File.EndsWith(".contentproj")
             ).ToArray();
+
+        var forceCopyImporters = new HashSet<string>(
+            ((IEnumerable)configuration.ProfileSettings["ForceCopyXNBImporters"]).Cast<string>()
+        );
+
+        var forceCopyProcessors = new HashSet<string>(
+            ((IEnumerable)configuration.ProfileSettings["ForceCopyXNBProcessors"]).Cast<string>()
+        );
 
         Dictionary<string, Common.CompressResult> existingJournal = new Dictionary<string, CompressResult>();
         Common.CompressResult? existingJournalEntry;
@@ -714,58 +725,61 @@ public static class Common {
                 }
 
                 if (GetFileSettings(configuration.ProfileSettings, item.EvaluatedInclude).Contains("usexnb")) {
-                    copyRawXnb(item, xnbPath, "SpriteFont");
-                    continue;
-                }
+                    copyRawXnb(item, xnbPath, "XNB");
+                } else if (
+                    forceCopyProcessors.Contains(processorName) || 
+                    forceCopyImporters.Contains(importerName)
+                ) {
+                    copyRawXnb(item, xnbPath, "XNB");
+                } else {
+                    switch (processorName) {
+                        case "XactProcessor":
+                            Common.ConvertXactProject(
+                                item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
+                                configuration.ProfileSettings, existingJournal,
+                                journal, logOutput
+                            );
 
-                switch (processorName) {
-                    case "XactProcessor":
-                        Common.ConvertXactProject(
-                            item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
-                            configuration.ProfileSettings, existingJournal,
-                            journal, logOutput
-                        );
-
-                        break;
-                    case "FontTextureProcessor":
-                    case "FontDescriptionProcessor":
-                        copyRawXnb(item, xnbPath, "SpriteFont");
-                        continue;
-                    case "TextureProcessor":
-                        if (Path.GetExtension(sourcePath).ToLower() == ".tga") {
-                            copyRawXnb(item, xnbPath, "Texture2D");
+                            break;
+                        case "FontTextureProcessor":
+                        case "FontDescriptionProcessor":
+                            copyRawXnb(item, xnbPath, "SpriteFont");
                             continue;
-                        }
+                        case "SongProcessor":
+                            journal.AddRange(CompressAudioGroup(
+                                item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
+                                configuration.ProfileSettings, existingJournal, logOutput
+                            ));
+                            continue;
+                        case "TextureProcessor":
+                            if (Path.GetExtension(sourcePath).ToLower() == ".tga") {
+                                copyRawXnb(item, xnbPath, "Texture2D");
+                                continue;
+                            }
 
-                        var result = Common.CompressImage(
-                            item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
-                            configuration.ProfileSettings, existingJournalEntry
-                        );
+                            var result = Common.CompressImage(
+                                item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
+                                configuration.ProfileSettings, existingJournalEntry
+                            );
 
-                        if (result.HasValue) {
-                            journal.Add(result.Value);
-                            logOutput("Image", result.Value.Filename, null);
-                        }
+                            if (result.HasValue) {
+                                journal.Add(result.Value);
+                                logOutput("Image", result.Value.Filename, null);
+                            }
 
-                        continue;
-                }
-
-                switch (importerName) {
-                    case "WmaImporter":
-                        journal.AddRange(CompressAudioGroup(
-                            item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
-                            configuration.ProfileSettings, existingJournal, logOutput
-                        ));
-
-                        break;
-                    case "XmlImporter":
-                        copyRawXnb(item, xnbPath, "XNB");
-                        break;
-                    default:
-                        Console.Error.WriteLine(
-                            "// Can't process '{0}': importer '{1}' and processor '{2}' both unsupported.",
-                            item.EvaluatedInclude, importerName, processorName);
-                        break;
+                            continue;
+                    }
+                    
+                    switch (importerName) {
+                        case "XmlImporter":
+                            copyRawXnb(item, xnbPath, "XNB");
+                            break;
+                        default:
+                            Console.Error.WriteLine(
+                                "// Can't process '{0}': importer '{1}' and processor '{2}' both unsupported.",
+                                item.EvaluatedInclude, importerName, processorName);
+                            break;
+                    }
                 }
             }
 

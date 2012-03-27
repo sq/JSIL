@@ -1004,11 +1004,21 @@ namespace JSIL {
             return JSChangeTypeExpression.New(inner, TypeSystem, nullableGenericType);
         }
 
+        protected JSExpression Translate_Wrap (ILExpression node) {
+            var inner = TranslateNode(node.Arguments[0]);
+
+            return inner;
+        }
+
         protected JSExpression Translate_ValueOf (ILExpression node) {
             var inner = TranslateNode(node.Arguments[0]);
-            var innerType = (GenericInstanceType)inner.GetExpectedType(TypeSystem);
+            var innerType = DereferenceType(inner.GetExpectedType(TypeSystem));
 
-            return JSChangeTypeExpression.New(inner, TypeSystem, innerType.GenericArguments.First());
+            var innerTypeGit = innerType as GenericInstanceType;
+            if (innerTypeGit != null)
+                return JSChangeTypeExpression.New(inner, TypeSystem, innerTypeGit.GenericArguments.First());
+            else
+                return new JSUntranslatableExpression(node);
         }
 
         protected JSExpression Translate_ComparisonOperator (ILExpression node, JSBinaryOperator op) {
