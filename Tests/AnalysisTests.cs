@@ -45,6 +45,25 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void ReturnMutatedStructArgument () {
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\ReturnMutatedStructArgument.cs",
+                "a=2, b=1\r\na=2, b=4\r\na=3, b=4",
+                "a=2, b=1\r\na=2, b=4\r\na=3, b=4"
+            );
+
+            Console.WriteLine(generatedJs);
+            Assert.IsFalse(Regex.IsMatch(
+                generatedJs,
+                @"(\$asm([0-9A-F])*).Program.ReturnMutatedArgument\(a.MemberwiseClone\(\), 0\)"
+            ));
+            Assert.IsTrue(Regex.IsMatch(
+                generatedJs,
+                @"b = (\$asm([0-9A-F])*).Program.ReturnMutatedArgument\(a, 0\).MemberwiseClone\(\);"
+            ));
+        }
+
+        [Test]
         public void IncrementArgumentField () {
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\IncrementArgumentField.cs",

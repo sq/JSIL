@@ -156,6 +156,7 @@ function getAssetName (filename, preserveCase) {
   filename = filename.replace(backslashRe, "/");
 
   var lastIndex = filename.lastIndexOf(".");
+  var result;
   if (lastIndex === -1)
     result = filename;
   else
@@ -599,14 +600,18 @@ function finishLoading () {
 
   for (var i = 0; i < 4; i++) {
     if (state.finishIndex < state.finishQueue.length) {
-      var item = state.finishQueue[state.finishIndex];
-      var cb = item[2];
+      try {
+        var item = state.finishQueue[state.finishIndex];
+        var cb = item[2];
 
-      if (typeof (cb) === "function")
-        cb();
-
-      state.finishIndex += 1;
-      state.assetsFinished += 1;
+        if (typeof (cb) === "function")
+          cb();
+      } catch (exc) {
+        throw exc;
+      } finally {
+        state.finishIndex += 1;
+        state.assetsFinished += 1;
+      }
     } else {
       window.clearInterval(state.interval);
       state.interval = null;
@@ -645,28 +650,32 @@ function pollAssetQueue () {
   };
 
   while ((state.assetsLoading < state.maxAssetsLoading) && (state.loadIndex < state.assetCount)) {
-    var assetSpec = state.assets[state.loadIndex];
-  
-    var assetType = assetSpec[0];
-    var assetPath = assetSpec[1];
-    var assetData = assetSpec[2] || null;
-    var assetLoader = assetLoaders[assetType];
-
-    var sizeBytes = 1;
-    if (assetData !== null)
-      sizeBytes = assetData.sizeBytes || 1;
-
-    var stepCallback = makeStepCallback(state, assetType, sizeBytes, state.loadIndex); 
-    var errorCallback = makeErrorCallback(assetPath, assetSpec);    
+    try {
+      var assetSpec = state.assets[state.loadIndex];
     
-    if (typeof (assetLoader) !== "function") {
-      errorCallback("No asset loader registered for type '" + assetType + "'.");
-    } else {
-      state.assetsLoading += 1;
-      assetLoader(assetPath, assetData, errorCallback, stepCallback);
-    }
+      var assetType = assetSpec[0];
+      var assetPath = assetSpec[1];
+      var assetData = assetSpec[2] || null;
+      var assetLoader = assetLoaders[assetType];
 
-    state.loadIndex += 1;
+      var sizeBytes = 1;
+      if (assetData !== null)
+        sizeBytes = assetData.sizeBytes || 1;
+
+      var stepCallback = makeStepCallback(state, assetType, sizeBytes, state.loadIndex); 
+      var errorCallback = makeErrorCallback(assetPath, assetSpec);    
+      
+      if (typeof (assetLoader) !== "function") {
+        errorCallback("No asset loader registered for type '" + assetType + "'.");
+      } else {
+        state.assetsLoading += 1;
+        assetLoader(assetPath, assetData, errorCallback, stepCallback);
+      }
+    } catch (exc) {
+      throw exc;
+    } finally {
+      state.loadIndex += 1;
+    }
   }
     
   if (state.assetsLoaded >= state.assetCount) {

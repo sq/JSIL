@@ -431,6 +431,7 @@ namespace JSIL.Transforms {
         protected bool? _CachedIsPure = false;
         protected bool _ComputingPurity = false;
 
+        public readonly Dictionary<string, HashSet<string>> VariableAliases;
         public readonly HashSet<string> ModifiedVariables;
         public readonly HashSet<string> EscapingVariables;
         public readonly string ResultVariable;
@@ -443,6 +444,17 @@ namespace JSIL.Transforms {
             Data = data;
             _IsPure = (data.StaticReferences.Count == 0) &&
                 (data.SideEffects.Count == 0);
+
+            VariableAliases = new Dictionary<string, HashSet<string>>();
+            foreach (var assignment in data.Assignments) {
+                if (assignment.SourceVariable != null) {
+                    HashSet<string> aliases;
+                    if (!VariableAliases.TryGetValue(assignment.SourceVariable.Identifier, out aliases))
+                        VariableAliases[assignment.SourceVariable.Identifier] = aliases = new HashSet<string>();
+
+                    aliases.Add(assignment.Target.Identifier);
+                }
+            }
 
             ModifiedVariables = Data.ModifiedVariables;
             EscapingVariables = Data.EscapingVariables;
@@ -483,6 +495,8 @@ namespace JSIL.Transforms {
             } else {
                 EscapingVariables = new HashSet<string>();
             }
+
+            VariableAliases = new Dictionary<string, HashSet<string>>();
 
             ResultVariable = null;
 
