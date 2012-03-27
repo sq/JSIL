@@ -1983,9 +1983,9 @@ namespace JSIL.Ast {
             get { return Type.FullName; }
         }
 
-        public override bool IsStatic {
+        public override bool HasGlobalStateDependency {
             get {
-                return true;
+                return false;
             }
         }
 
@@ -2012,9 +2012,9 @@ namespace JSIL.Ast {
             : base (type) {
         }
 
-        public override bool IsStatic {
+        public override bool HasGlobalStateDependency {
             get {
-                return true;
+                return false;
             }
         }
 

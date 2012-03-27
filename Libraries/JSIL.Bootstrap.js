@@ -1318,7 +1318,6 @@ JSIL.MakeEnum("System.Reflection.BindingFlags", true, {
 		OptionalParamBinding: 262144, 
 		IgnoreReturn: 16777216  
 }, true);
-});
 
 JSIL.ImplementExternals(
   "System.Xml.Serialization.XmlSerializer", true, {
@@ -1461,15 +1460,6 @@ JSIL.ImplementExternals(
     GetMethod: function () {
       // FIXME
       return new System.Reflection.MethodBase();
-    }
-  }
-);
-
-JSIL.ImplementExternals(
-  "System.Reflection.MemberInfo", true, {
-    get_DeclaringType: function () {
-      // FIXME
-      return new System.Type();
     }
   }
 );

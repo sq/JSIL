@@ -945,8 +945,6 @@ JSIL.ResolveGenericParameters = function (obj, context) {
 
   return obj;
 };
-JSIL.TypeObjectPrototype.Of$NoInitialize = function () {
-  // This whole function would be 100x simpler if you could provide a prototype when constructing a function. Javascript sucks so much.
 
 $jsilcore.$Of$NoInitialize = function () {
   // This whole function would be 100x simpler if you could provide a prototype when constructing a function. Javascript sucks so much.
@@ -954,23 +952,10 @@ $jsilcore.$Of$NoInitialize = function () {
   var staticClassObject = this;
   var typeObject = this.__Type__;
 
-  if (typeof (cacheKey) === "undefined")
-    throw new Error("Type missing type ID");
-
   var ga = typeObject.__GenericArguments__;
   if (arguments.length != ga.length)
     throw new Error("Invalid number of generic arguments for type '" + JSIL.GetTypeName(this) + "' (got " + arguments.length + ", expected " + ga.length + ")");
 
-  for (var i = 1, l = arguments.length; i < l; i++) {
-    var tid = arguments[i].__TypeId__;
-
-    if (typeof (tid) === "undefined")
-      throw new Error("Type missing type ID");
-
-    cacheKey += "," + tid;
-  }
-
-  if ((typeof (ofCache) === "undefined") || (ofCache === null))
   var resolvedArguments = Array.prototype.slice.call(arguments);
 
   // Ensure that each argument is the public interface of a type (not the type object or a type reference)
@@ -983,11 +968,13 @@ $jsilcore.$Of$NoInitialize = function () {
     }
   }
 
-  var ofCache = typeObject.__OfCache__;
   var cacheKey = null;
 
   for (var i = 0, l = resolvedArguments.length; i < l; i++) {
     var typeId = resolvedArguments[i].__TypeId__;
+
+    if (typeof (typeId) === "undefined")
+      throw new Error("Type missing type ID");
 
     if (i == 0)
       cacheKey = typeId;
@@ -995,6 +982,7 @@ $jsilcore.$Of$NoInitialize = function () {
       cacheKey += "," + typeId;
   }
 
+  var ofCache = typeObject.__OfCache__;
   if ((typeof (ofCache) === "undefined") || (ofCache === null))
     typeObject.__OfCache__ = ofCache = [];
 
@@ -1028,19 +1016,14 @@ $jsilcore.$Of$NoInitialize = function () {
     JSIL.MakeIndirectProperty(result, k, staticClassObject);
   }
 
-  var fullName = this.__FullName__ + "[" + Array.prototype.join.call(arguments, ", ") + "]";
-  result.__TypeId__ = ++JSIL.$NextTypeId;
-  result.__FullNameWithoutArguments__ = this.__FullName__;
-  result.__FullName__ = fullName;
-  result.toString = function () {
   var fullName = typeObject.__FullName__ + "[" + Array.prototype.join.call(resolvedArguments, ", ") + "]";
   result.__TypeId__ = resultTypeObject.__TypeId__ = ++JSIL.$NextTypeId;
+  resultTypeObject.__FullNameWithoutArguments__ = typeObject.__FullName__;
   resultTypeObject.__FullName__ = fullName;
   result.toString = resultTypeObject.toString = function () {
     return this.__FullName__;
   };
   result.__Self__ = result;
-  resultTypeObject.__IsClosed__ = true;
 
   if (typeof (staticClassObject.prototype) !== "undefined") {
     result.prototype = Object.create(staticClassObject.prototype);
@@ -1065,13 +1048,13 @@ $jsilcore.$Of$NoInitialize = function () {
 
     Object.defineProperty(result, key, decl);
 
-    if (typeof (staticClassObject.prototype) !== "undefined") {
-      Object.defineProperty(result.prototype, key, decl);
-    }
-
     var name = new JSIL.Name(key, this.__FullName__);
     name.defineProperty(result, decl);
-    name.defineProperty(result.prototype, decl);
+
+    if (typeof (staticClassObject.prototype) !== "undefined") {
+      Object.defineProperty(result.prototype, key, decl);
+      name.defineProperty(result.prototype, decl);
+    }
   }
 
   var proto = result.prototype;
@@ -1089,7 +1072,7 @@ $jsilcore.$Of$NoInitialize = function () {
     if (Object.getPrototypeOf(arguments[i]) === JSIL.GenericParameter.prototype)
       isClosed = false;
   }
-  result.__IsClosed__ = isClosed;
+  resultTypeObject.__IsClosed__ = isClosed;
 
   JSIL.InstantiateGenericProperties(result);
 
@@ -1306,21 +1289,29 @@ JSIL.GetFunctionName = function (fn) {
   return fn.name || fn.__name__ || "unknown";
 };
 
-JSIL.ApplyExternals = function (typeObject, fullName) {
+JSIL.ApplyExternals = function (publicInterface, fullName) {
   var externals = JSIL.AllImplementedExternals[fullName];
   var instancePrefix = "instance$";
+
+  var hasPrototype = typeof (publicInterface.prototype) === "object";
+  var prototype = hasPrototype ? publicInterface.prototype : null;
 
   for (var k in externals) {
     if (!externals.hasOwnProperty(k))
       continue;
 
+    var target = publicInterface;
     var value = externals[k];
     var key = k;
-    var target = typeObject;
 
     if (k.indexOf(instancePrefix) === 0) {
-      key = k.replace(instancePrefix, "");
-      target = target.prototype;
+      if (hasPrototype) {
+        key = k.replace(instancePrefix, "");
+        target = prototype;
+      } else {
+        JSIL.Host.warning("Type '" + fullName + "' has no prototype to apply instance externals to.");
+        continue;
+      }
     }
 
     try {
@@ -1586,8 +1577,6 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
         }
       );
     }
-
-    JSIL.ApplyExternals(typeObject, fullName);
 
     JSIL.ApplyExternals(staticClassObject, fullName);
 
@@ -2586,14 +2575,7 @@ JSIL.ImplementExternals(
     get_Namespace: function () {
       // FIXME
       return null;
-    }
-  }
-);
-
-JSIL.MakeClass("System.Object", "System.Type", true);
-
-JSIL.ImplementExternals(
-  "System.Type", true, {
+    },
     toString: function () {
       return this.__FullName__;
     },
@@ -2648,84 +2630,6 @@ JSIL.ImplementExternals(
     }
   }
 );
-
-JSIL.MakeClass("System.Object", "System.Reflection.MemberInfo", true, [], function ($) {
-});
-
-JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function ($) {
-		JSIL.ExternalMembers($, true, 
-			"_ctor", "_Type_GetIDsOfNames", "_Type_GetTypeInfo", "_Type_GetTypeInfoCount", "_Type_Invoke", "Equals$0", "Equals$1", "FindInterfaces", "FindMembers", "get_Assembly", "get_AssemblyQualifiedName", "get_Attributes", "get_BaseType", "get_ContainsGenericParameters", "get_DeclaringMethod", "get_DeclaringType", "get_FullName", "get_GenericParameterAttributes", "get_GenericParameterPosition", "get_GUID", "get_HasElementType", "get_HasProxyAttribute", "get_IsAbstract", "get_IsAnsiClass", "get_IsArray", "get_IsAutoClass", "get_IsAutoLayout", "get_IsByRef", "get_IsClass", "get_IsCOMObject", "get_IsContextful", "get_IsEnum", "get_IsExplicitLayout", "get_IsGenericParameter", "get_IsGenericType", "get_IsGenericTypeDefinition", "get_IsImport", "get_IsInterface", "get_IsLayoutSequential", "get_IsMarshalByRef", "get_IsNested", "get_IsNestedAssembly", "get_IsNestedFamANDAssem", "get_IsNestedFamily", "get_IsNestedFamORAssem", "get_IsNestedPrivate", "get_IsNestedPublic", "get_IsNotPublic", "get_IsPointer", "get_IsPrimitive", "get_IsPublic", "get_IsSealed", "get_IsSerializable", "get_IsSpecialName", "get_IsSzArray", "get_IsUnicodeClass", "get_IsValueType", "get_IsVisible", "get_MemberType", "get_Module", "get_Namespace", "get_ReflectedType", "get_StructLayoutAttribute", "get_TypeHandle", "get_TypeInitializer", "get_UnderlyingSystemType", "GetArrayRank", "GetAttributeFlagsImpl", "GetConstructor$0", "GetConstructor$1", "GetConstructor$2", "GetConstructorImpl", "GetConstructors$0", "GetConstructors$1", "GetDefaultMemberName", "GetDefaultMembers", "GetElementType", "GetEvent$0", "GetEvent$1", "GetEvents$0", "GetEvents$1", "GetField$0", "GetField$1", "GetFields$0", "GetFields$1", "GetGenericArguments", "GetGenericParameterConstraints", "GetGenericTypeDefinition", "GetHashCode", "GetInterface$0", "GetInterface$1", "GetInterfaceMap", "GetInterfaces", "GetMember$0", "GetMember$1", "GetMember$2", "GetMembers$0", "GetMembers$1", "GetMethod$0", "GetMethod$1", "GetMethod$2", "GetMethod$3", "GetMethod$4", "GetMethod$5", "GetMethodImpl", "GetMethods$0", "GetMethods$1", "GetNestedType$0", "GetNestedType$1", "GetNestedTypes$0", "GetNestedTypes$1", "GetProperties$0", "GetProperties$1", "GetProperty$0", "GetProperty$1", "GetProperty$2", "GetProperty$3", "GetProperty$4", "GetProperty$5", "GetProperty$6", "GetPropertyImpl", "GetRootElementType", "GetType", "GetTypeCodeInternal", "GetTypeHandleInternal", "HasElementTypeImpl", "HasProxyAttributeImpl", "InvokeMember$0", "InvokeMember$1", "InvokeMember$2", "IsArrayImpl", "IsAssignableFrom", "IsByRefImpl", "IsCOMObjectImpl", "IsContextfulImpl", "IsInstanceOfType", "IsMarshalByRefImpl", "IsPointerImpl", "IsPrimitiveImpl", "IsSubclassOf", "IsValueTypeImpl", "MakeArrayType$0", "MakeArrayType$1", "MakeByRefType", "MakeGenericType", "MakePointerType", "QuickSerializationCastCheck", "SigToString", "toString"
-		);
-		JSIL.OverloadedMethod($.prototype, "GetConstructors", [
-				[0, []], 
-				[1, ["System.Reflection.BindingFlags"]]
-			], $jsilcore);
-		JSIL.OverloadedMethod($.prototype, "GetMethod", [
-				[0, ["System.String", "System.Reflection.BindingFlags", "System.Reflection.Binder", "System.Reflection.CallingConventions", "System.Array" /* System.Type[] */ , "System.Array" /* System.Reflection.ParameterModifier[] */ ]], 
-				[1, ["System.String", "System.Reflection.BindingFlags", "System.Reflection.Binder", "System.Array" /* System.Type[] */ , "System.Array" /* System.Reflection.ParameterModifier[] */ ]], 
-				[2, ["System.String", "System.Array" /* System.Type[] */ , "System.Array" /* System.Reflection.ParameterModifier[] */ ]], 
-				[3, ["System.String", "System.Array" /* System.Type[] */ ]], 
-				[4, ["System.String", "System.Reflection.BindingFlags"]], 
-				[5, ["System.String"]]
-			], $jsilcore);
-		JSIL.OverloadedMethod($.prototype, "GetMethods", [
-				[0, []], 
-				[1, ["System.Reflection.BindingFlags"]]
-			], $jsilcore);
-		JSIL.OverloadedMethod($.prototype, "GetField", [
-				[0, ["System.String", "System.Reflection.BindingFlags"]], 
-				[1, ["System.String"]]
-			], $jsilcore);
-		JSIL.OverloadedMethod($.prototype, "GetFields", [
-				[0, []], 
-				[1, ["System.Reflection.BindingFlags"]]
-			], $jsilcore);
-		JSIL.OverloadedMethod($.prototype, "GetInterface", [
-				[0, ["System.String"]], 
-				[1, ["System.String", "System.Boolean"]]
-			], $jsilcore);
-		JSIL.OverloadedMethod($.prototype, "GetEvent", [
-				[0, ["System.String"]], 
-				[1, ["System.String", "System.Reflection.BindingFlags"]]
-			], $jsilcore);
-		JSIL.OverloadedMethod($.prototype, "GetEvents", [
-				[0, []], 
-				[1, ["System.Reflection.BindingFlags"]]
-			], $jsilcore);
-		JSIL.OverloadedMethod($.prototype, "GetProperty", [
-				[0, ["System.String", "System.Reflection.BindingFlags", "System.Reflection.Binder", "System.Type", "System.Array" /* System.Type[] */ , "System.Array" /* System.Reflection.ParameterModifier[] */ ]], 
-				[1, ["System.String", "System.Type", "System.Array" /* System.Type[] */ , "System.Array" /* System.Reflection.ParameterModifier[] */ ]], 
-				[2, ["System.String", "System.Reflection.BindingFlags"]], 
-				[3, ["System.String", "System.Type", "System.Array" /* System.Type[] */ ]], 
-				[4, ["System.String", "System.Array" /* System.Type[] */ ]], 
-				[5, ["System.String", "System.Type"]], 
-				[6, ["System.String"]]
-			], $jsilcore);
-		JSIL.OverloadedMethod($.prototype, "GetProperties", [
-				[0, ["System.Reflection.BindingFlags"]], 
-				[1, []]
-			], $jsilcore);
-		JSIL.OverloadedMethod($.prototype, "GetNestedTypes", [
-				[0, []], 
-				[1, ["System.Reflection.BindingFlags"]]
-			], $jsilcore);
-		JSIL.OverloadedMethod($.prototype, "GetNestedType", [
-				[0, ["System.String"]], 
-				[1, ["System.String", "System.Reflection.BindingFlags"]]
-			], $jsilcore);
-		JSIL.OverloadedMethod($.prototype, "GetMember", [
-				[0, ["System.String"]], 
-				[1, ["System.String", "System.Reflection.BindingFlags"]], 
-				[2, ["System.String", "System.Reflection.MemberTypes", "System.Reflection.BindingFlags"]]
-			], $jsilcore);
-		JSIL.OverloadedMethod($.prototype, "GetMembers", [
-				[0, []], 
-				[1, ["System.Reflection.BindingFlags"]]
-			], $jsilcore);
-});
-
-JSIL.MakeClass("System.Type", "System.RuntimeType", false, [], function ($) {
-});
 
 JSIL.MakeClass("System.Object", "JSIL.AnyType", true, [], function ($) {
   $.CheckType = function (value) {
@@ -3131,7 +3035,8 @@ JSIL.MultidimensionalArray = function (type, dimensions, initializer) {
       );
       break;
   }
-}
+};
+
 JSIL.MultidimensionalArray.prototype = JSIL.CloneObject(System.Array.prototype);
 JSIL.MultidimensionalArray.prototype.GetLowerBound = function (i) {
   return 0;
@@ -3218,7 +3123,9 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
       var resultDelegate = method.bind(object);
       var self = this;
 
-      resultDelegate.toString = self.toString.bind(self);
+      resultDelegate.toString = function () {
+        return self.__Type__.__FullName__;
+      };
       resultDelegate.GetType = function () {
         return self.__Type__;
       };
@@ -3271,3 +3178,90 @@ JSIL.CompareNumbers = function (lhs, rhs) {
   else
     return 0;
 };
+
+JSIL.ImplementExternals(
+  "System.Reflection.MemberInfo", true, {
+    get_DeclaringType: function () {
+      // FIXME
+      return new System.Type();
+    }
+  }
+);
+
+JSIL.MakeClass("System.Object", "System.Reflection.MemberInfo", true, [], function ($) {
+});
+
+JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function ($) {
+    JSIL.ExternalMembers($, true, 
+      "_ctor", "_Type_GetIDsOfNames", "_Type_GetTypeInfo", "_Type_GetTypeInfoCount", "_Type_Invoke", "Equals$0", "Equals$1", "FindInterfaces", "FindMembers", "get_Assembly", "get_AssemblyQualifiedName", "get_Attributes", "get_BaseType", "get_ContainsGenericParameters", "get_DeclaringMethod", "get_DeclaringType", "get_FullName", "get_GenericParameterAttributes", "get_GenericParameterPosition", "get_GUID", "get_HasElementType", "get_HasProxyAttribute", "get_IsAbstract", "get_IsAnsiClass", "get_IsArray", "get_IsAutoClass", "get_IsAutoLayout", "get_IsByRef", "get_IsClass", "get_IsCOMObject", "get_IsContextful", "get_IsEnum", "get_IsExplicitLayout", "get_IsGenericParameter", "get_IsGenericType", "get_IsGenericTypeDefinition", "get_IsImport", "get_IsInterface", "get_IsLayoutSequential", "get_IsMarshalByRef", "get_IsNested", "get_IsNestedAssembly", "get_IsNestedFamANDAssem", "get_IsNestedFamily", "get_IsNestedFamORAssem", "get_IsNestedPrivate", "get_IsNestedPublic", "get_IsNotPublic", "get_IsPointer", "get_IsPrimitive", "get_IsPublic", "get_IsSealed", "get_IsSerializable", "get_IsSpecialName", "get_IsSzArray", "get_IsUnicodeClass", "get_IsValueType", "get_IsVisible", "get_MemberType", "get_Module", "get_Namespace", "get_ReflectedType", "get_StructLayoutAttribute", "get_TypeHandle", "get_TypeInitializer", "get_UnderlyingSystemType", "GetArrayRank", "GetAttributeFlagsImpl", "GetConstructor$0", "GetConstructor$1", "GetConstructor$2", "GetConstructorImpl", "GetConstructors$0", "GetConstructors$1", "GetDefaultMemberName", "GetDefaultMembers", "GetElementType", "GetEvent$0", "GetEvent$1", "GetEvents$0", "GetEvents$1", "GetField$0", "GetField$1", "GetFields$0", "GetFields$1", "GetGenericArguments", "GetGenericParameterConstraints", "GetGenericTypeDefinition", "GetHashCode", "GetInterface$0", "GetInterface$1", "GetInterfaceMap", "GetInterfaces", "GetMember$0", "GetMember$1", "GetMember$2", "GetMembers$0", "GetMembers$1", "GetMethod$0", "GetMethod$1", "GetMethod$2", "GetMethod$3", "GetMethod$4", "GetMethod$5", "GetMethodImpl", "GetMethods$0", "GetMethods$1", "GetNestedType$0", "GetNestedType$1", "GetNestedTypes$0", "GetNestedTypes$1", "GetProperties$0", "GetProperties$1", "GetProperty$0", "GetProperty$1", "GetProperty$2", "GetProperty$3", "GetProperty$4", "GetProperty$5", "GetProperty$6", "GetPropertyImpl", "GetRootElementType", "GetType", "GetTypeCodeInternal", "GetTypeHandleInternal", "HasElementTypeImpl", "HasProxyAttributeImpl", "InvokeMember$0", "InvokeMember$1", "InvokeMember$2", "IsArrayImpl", "IsAssignableFrom", "IsByRefImpl", "IsCOMObjectImpl", "IsContextfulImpl", "IsInstanceOfType", "IsMarshalByRefImpl", "IsPointerImpl", "IsPrimitiveImpl", "IsSubclassOf", "IsValueTypeImpl", "MakeArrayType$0", "MakeArrayType$1", "MakeByRefType", "MakeGenericType", "MakePointerType", "QuickSerializationCastCheck", "SigToString", "toString"
+    );
+    JSIL.OverloadedMethod($.prototype, "GetConstructors", [
+        [0, []], 
+        [1, ["System.Reflection.BindingFlags"]]
+      ], $jsilcore);
+    JSIL.OverloadedMethod($.prototype, "GetMethod", [
+        [0, ["System.String", "System.Reflection.BindingFlags", "System.Reflection.Binder", "System.Reflection.CallingConventions", "System.Array" /* System.Type[] */ , "System.Array" /* System.Reflection.ParameterModifier[] */ ]], 
+        [1, ["System.String", "System.Reflection.BindingFlags", "System.Reflection.Binder", "System.Array" /* System.Type[] */ , "System.Array" /* System.Reflection.ParameterModifier[] */ ]], 
+        [2, ["System.String", "System.Array" /* System.Type[] */ , "System.Array" /* System.Reflection.ParameterModifier[] */ ]], 
+        [3, ["System.String", "System.Array" /* System.Type[] */ ]], 
+        [4, ["System.String", "System.Reflection.BindingFlags"]], 
+        [5, ["System.String"]]
+      ], $jsilcore);
+    JSIL.OverloadedMethod($.prototype, "GetMethods", [
+        [0, []], 
+        [1, ["System.Reflection.BindingFlags"]]
+      ], $jsilcore);
+    JSIL.OverloadedMethod($.prototype, "GetField", [
+        [0, ["System.String", "System.Reflection.BindingFlags"]], 
+        [1, ["System.String"]]
+      ], $jsilcore);
+    JSIL.OverloadedMethod($.prototype, "GetFields", [
+        [0, []], 
+        [1, ["System.Reflection.BindingFlags"]]
+      ], $jsilcore);
+    JSIL.OverloadedMethod($.prototype, "GetInterface", [
+        [0, ["System.String"]], 
+        [1, ["System.String", "System.Boolean"]]
+      ], $jsilcore);
+    JSIL.OverloadedMethod($.prototype, "GetEvent", [
+        [0, ["System.String"]], 
+        [1, ["System.String", "System.Reflection.BindingFlags"]]
+      ], $jsilcore);
+    JSIL.OverloadedMethod($.prototype, "GetEvents", [
+        [0, []], 
+        [1, ["System.Reflection.BindingFlags"]]
+      ], $jsilcore);
+    JSIL.OverloadedMethod($.prototype, "GetProperty", [
+        [0, ["System.String", "System.Reflection.BindingFlags", "System.Reflection.Binder", "System.Type", "System.Array" /* System.Type[] */ , "System.Array" /* System.Reflection.ParameterModifier[] */ ]], 
+        [1, ["System.String", "System.Type", "System.Array" /* System.Type[] */ , "System.Array" /* System.Reflection.ParameterModifier[] */ ]], 
+        [2, ["System.String", "System.Reflection.BindingFlags"]], 
+        [3, ["System.String", "System.Type", "System.Array" /* System.Type[] */ ]], 
+        [4, ["System.String", "System.Array" /* System.Type[] */ ]], 
+        [5, ["System.String", "System.Type"]], 
+        [6, ["System.String"]]
+      ], $jsilcore);
+    JSIL.OverloadedMethod($.prototype, "GetProperties", [
+        [0, ["System.Reflection.BindingFlags"]], 
+        [1, []]
+      ], $jsilcore);
+    JSIL.OverloadedMethod($.prototype, "GetNestedTypes", [
+        [0, []], 
+        [1, ["System.Reflection.BindingFlags"]]
+      ], $jsilcore);
+    JSIL.OverloadedMethod($.prototype, "GetNestedType", [
+        [0, ["System.String"]], 
+        [1, ["System.String", "System.Reflection.BindingFlags"]]
+      ], $jsilcore);
+    JSIL.OverloadedMethod($.prototype, "GetMember", [
+        [0, ["System.String"]], 
+        [1, ["System.String", "System.Reflection.BindingFlags"]], 
+        [2, ["System.String", "System.Reflection.MemberTypes", "System.Reflection.BindingFlags"]]
+      ], $jsilcore);
+    JSIL.OverloadedMethod($.prototype, "GetMembers", [
+        [0, []], 
+        [1, ["System.Reflection.BindingFlags"]]
+      ], $jsilcore);
+});
+
+JSIL.MakeClass("System.Type", "System.RuntimeType", false, [], function ($) {
+});
