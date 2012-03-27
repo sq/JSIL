@@ -177,23 +177,15 @@ function getAssetName (filename, preserveCase) {
     return result.toLowerCase();
 };
 
-function evalScript (uri, text) {
+JSIL.loadGlobalScript = function (uri) {
   var anchor = document.createElement("a");
   anchor.href = uri;
   var absoluteUri = anchor.href;
 
-  // Add a sourceURL comment so that the script has the correct URL in debuggers
-  window.scriptText = "//@ sourceURL=" + absoluteUri + "\r\n\r\n" + text;
-
-  // Add a new script tag to ensure that we aren't forcing the script into a strict context
-  var e = document.createElement("script");
-  e.type = "text/javascript";
-  e.appendChild(document.createTextNode("(new Function(window.scriptText))();"));
-  document.getElementById("scripts").appendChild(e);
-
-  window.scriptText = null;
-
-  document.getElementById("scripts").removeChild(e);
+  var scriptTag = document.createElement("script");
+  scriptTag.type = "text/javascript";
+  scriptTag.src = absoluteUri;
+  document.getElementById("scripts").appendChild(scriptTag);
 };
 
 function loadTextAsync (uri, onComplete) {
@@ -299,7 +291,7 @@ var assetLoaders = {
   "Library": function loadLibrary (filename, data, onError, onDoneLoading) {
     loadTextAsync(libraryRoot + filename, function (result, error) {
       var finisher = function () {
-        evalScript(filename, result);
+        JSIL.loadGlobalScript(libraryRoot + filename);
       };
 
       if (result !== null)
@@ -311,7 +303,7 @@ var assetLoaders = {
   "Script": function loadScript (filename, data, onError, onDoneLoading) {
     loadTextAsync(scriptRoot + filename, function (result, error) {
       var finisher = function () {
-        evalScript(filename, result);
+        JSIL.loadGlobalScript(scriptRoot + filename);
       };
 
       if (result !== null)

@@ -1377,19 +1377,27 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   };
 
   if (creator) {
-    try {
-      creator.name = fullName + ".__creator__";
-    } catch (e) {
-    }
-    creator.__name__ = fullName + ".__creator__";
+    var decl = {
+      value: fullName + ".__creator__",
+      configurable: true,
+      enumerable: true
+    };
+
+    Object.defineProperty(creator, "__name__", decl);
+    Object.defineProperty(creator, "debugName", decl);
+    Object.defineProperty(creator, "displayName", decl);
   }
 
   if (initializer) {
-    try {
-      initializer.name = fullName + ".__initializer__";
-    } catch (e) {
-    }
-    initializer.__name__ = fullName + ".__initializer__";
+    var decl = {
+      value: fullName + ".__initializer__",
+      configurable: true,
+      enumerable: true
+    };
+
+    Object.defineProperty(initializer, "__name__", decl);
+    Object.defineProperty(initializer, "debugName", decl);
+    Object.defineProperty(initializer, "displayName", decl);
   }
 
   JSIL.RegisterName(fullName, assembly, isPublic, creator, initializer);
@@ -1489,19 +1497,27 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
   };
 
   if (getTypeObject) {
-    try {
-      getTypeObject.name = fullName + ".__creator__";
-    } catch (e) {
-    }
-    getTypeObject.__name__ = fullName + ".__creator__";
+    var decl = {
+      value: fullName + ".__creator__",
+      configurable: true,
+      enumerable: true
+    };
+
+    Object.defineProperty(getTypeObject, "__name__", decl);
+    Object.defineProperty(getTypeObject, "debugName", decl);
+    Object.defineProperty(getTypeObject, "displayName", decl);
   }
 
   if (initializer) {
-    try {
-      initializer.name = fullName + ".__initializer__";
-    } catch (e) {
-    }
-    initializer.__name__ = fullName + ".__initializer__";
+    var decl = {
+      value: fullName + ".__initializer__",
+      configurable: true,
+      enumerable: true
+    };
+
+    Object.defineProperty(initializer, "__name__", decl);
+    Object.defineProperty(initializer, "debugName", decl);
+    Object.defineProperty(initializer, "displayName", decl);
   }
 
   JSIL.RegisterName(fullName, assembly, isPublic, getTypeObject, initializer);
