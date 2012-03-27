@@ -60,7 +60,7 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
 
   if (typeof (JSIL.AssemblyShortNames[shortName]) !== "undefined") {
     var existingFullName = JSIL.AssemblyShortNames[shortName];
-    if (existingFullName !== null) {
+    if ((existingFullName !== null) && (commaPos <= 0)) {
       existing = JSIL.PrivateNamespaces[existingFullName];
       if (typeof (existing) !== "undefined")
         return existing;
