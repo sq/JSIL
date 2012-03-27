@@ -333,8 +333,7 @@ namespace JSIL {
                             outputStream.GetBuffer(), 0, (int)outputStream.Length
                         );
 
-                        lock (result.Files)
-                            result.Files[outputPath] = segment;
+                        result.AddFile(outputPath, segment);
                     }
 
                     lock (result.Assemblies)
@@ -365,7 +364,7 @@ namespace JSIL {
                 tw.WriteLine("if (typeof (contentManifest) !== \"object\") { contentManifest = {}; };");
                 tw.WriteLine("contentManifest[\"" + Path.GetFileName(assemblyPath).Replace("\\", "\\\\") + "\"] = [");
 
-                foreach (var kvp in result.Files) {
+                foreach (var kvp in result.OrderedFiles) {
                     var propertiesObject = String.Format("{{ \"sizeBytes\": {0} }}", kvp.Value.Count);
 
                     tw.WriteLine(String.Format(

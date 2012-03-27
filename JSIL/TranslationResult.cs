@@ -8,8 +8,27 @@ using Mono.Cecil;
 namespace JSIL {
     public class TranslationResult {
         public readonly List<AssemblyDefinition> Assemblies = new List<AssemblyDefinition>();
+        public readonly List<string> FileOrder = new List<string>();
         public readonly Dictionary<string, ArraySegment<byte>> Files = new Dictionary<string, ArraySegment<byte>>();
         public ArraySegment<byte> Manifest;
+
+        public IEnumerable<KeyValuePair<string, ArraySegment<byte>>> OrderedFiles {
+            get {
+                foreach (var filename in FileOrder)
+                    yield return new KeyValuePair<string, ArraySegment<byte>>(filename, Files[filename]);
+            }
+        }
+
+        public void AddFile (string filename, ArraySegment<byte> bytes, int? position = null) {
+            lock (Files) {
+                if (position.HasValue)
+                    FileOrder.Insert(position.Value, filename);
+                else
+                    FileOrder.Add(filename);
+
+                Files[filename] = bytes;
+            }
+        }
 
         public void WriteToStream (Stream output) {
             if (Manifest.Array == null)

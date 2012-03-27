@@ -18,9 +18,9 @@ namespace JSIL.Compiler.Profiles {
         public override TranslationResult Translate (AssemblyTranslator translator, string assemblyPath, bool scanForProxies) {
             var result = translator.Translate(assemblyPath, scanForProxies);
 
-            result.Files["XNA.Colors.js"] = new ArraySegment<byte>(Encoding.UTF8.GetBytes(
+            result.AddFile("XNA.Colors.js", new ArraySegment<byte>(Encoding.UTF8.GetBytes(
                 Common.MakeXNAColors()
-            ));
+            )), 0);
 
             AssemblyTranslator.GenerateManifest(translator.Manifest, assemblyPath, result);
 

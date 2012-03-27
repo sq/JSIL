@@ -160,6 +160,14 @@ $jsilxna.getImageMultiplied = function (image, color) {
 };
 
 JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Content.ContentLoadException", true, {
+    _ctor$1: function (message) {
+      this._Message = String(message);
+    }
+  }
+);
+
+JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Content.ContentManager", true, {
     _ctor$0: function (serviceProvider) {
     },
@@ -1973,7 +1981,7 @@ $jsilxna.makeColor = function (proto, r, g, b, a) {
 };
 
 $jsilxna.Color = {
-  _cctor : function () {
+  _cctor: function () {
     var self = this;
     var proto = this.prototype;
     var makeColor = $jsilxna.makeColor;

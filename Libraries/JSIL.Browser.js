@@ -177,12 +177,13 @@ function getAssetName (filename, preserveCase) {
     return result.toLowerCase();
 };
 
-JSIL.loadGlobalScript = function (uri) {
+JSIL.loadGlobalScript = function (uri, onComplete) {
   var anchor = document.createElement("a");
   anchor.href = uri;
   var absoluteUri = anchor.href;
 
   var scriptTag = document.createElement("script");
+  scriptTag.addEventListener("load", onComplete, true);
   scriptTag.type = "text/javascript";
   scriptTag.src = absoluteUri;
   document.getElementById("scripts").appendChild(scriptTag);
@@ -288,10 +289,14 @@ var soundLoadTimeout = 30000;
 var fontLoadTimeout = 15000;
 
 var assetLoaders = {
-  "Library": function loadLibrary (filename, data, onError, onDoneLoading) {
+  "Library": function loadLibrary (filename, data, onError, onDoneLoading, state) {
     loadTextAsync(libraryRoot + filename, function (result, error) {
       var finisher = function () {
-        JSIL.loadGlobalScript(libraryRoot + filename);
+        state.pendingScriptLoads += 1;
+
+        JSIL.loadGlobalScript(libraryRoot + filename, function () {
+          state.pendingScriptLoads -= 1;
+        });
       };
 
       if (result !== null)
@@ -300,10 +305,14 @@ var assetLoaders = {
         onError(error);
     });
   },
-  "Script": function loadScript (filename, data, onError, onDoneLoading) {
+  "Script": function loadScript (filename, data, onError, onDoneLoading, state) {
     loadTextAsync(scriptRoot + filename, function (result, error) {
       var finisher = function () {
-        JSIL.loadGlobalScript(scriptRoot + filename);
+        state.pendingScriptLoads += 1;
+
+        JSIL.loadGlobalScript(scriptRoot + filename, function () {
+          state.pendingScriptLoads -= 1;
+        });
       };
 
       if (result !== null)
@@ -536,7 +545,8 @@ var $makeXNBAssetLoader = function (key, typeName) {
         var finisher = function () {
           var key = getAssetName(filename, false);
           var assetName = getAssetName(filename, true);
-          var type = System.Type.GetType(typeName);
+          var parsedTypeName = JSIL.ParseTypeName(typeName);    
+          var type = JSIL.GetTypeInternal(parsedTypeName, JSIL.GlobalNamespace);
           allAssets[key] = new type(assetName, result);
         };
         onDoneLoading(finisher); 
@@ -581,16 +591,20 @@ function finishLoading () {
 
   updateProgressBar("Loading data: ", "", state.assetsFinished, state.assetCount);
 
-  for (var i = 0; i < 4; i++) {
+  var started = Date.now();
+  var endBy = started + 5;
+
+  while (Date.now() <= endBy) {
+    if (state.pendingScriptLoads > 0)
+      return;
+
     if (state.finishIndex < state.finishQueue.length) {
       try {
         var item = state.finishQueue[state.finishIndex];
         var cb = item[2];
 
         if (typeof (cb) === "function")
-          cb();
-      } catch (exc) {
-        throw exc;
+          cb(state);
       } finally {
         state.finishIndex += 1;
         state.assetsFinished += 1;
@@ -652,10 +666,8 @@ function pollAssetQueue () {
         errorCallback("No asset loader registered for type '" + assetType + "'.");
       } else {
         state.assetsLoading += 1;
-        assetLoader(assetPath, assetData, errorCallback, stepCallback);
+        assetLoader(assetPath, assetData, errorCallback, stepCallback, state);
       }
-    } catch (exc) {
-      throw exc;
     } finally {
       state.loadIndex += 1;
     }
@@ -724,7 +736,8 @@ function loadAssets (assets, onDoneLoading) {
     interval: null,
     finishQueue: [],
     loadIndex: 0,
-    finishIndex: 0
+    finishIndex: 0,
+    pendingScriptLoads: 0
   };
 
   for (var i = 0, l = assets.length; i < l; i++) {
