@@ -60,15 +60,16 @@ JSIL.Host.getFile = function (filename) {
   return allFiles[JSIL.Host.translateFilename(filename)];
 };
 JSIL.Host.getImage = function (filename) {
-  var key = getAssetName(filename);
+  var key = getAssetName(filename, false);
   if (!allAssets.hasOwnProperty(key))
     throw new System.Exception("The image '" + key + "' is not in the asset manifest.");
   return allAssets[key].image;
 };
 JSIL.Host.getAsset = function (filename) {
-  var key = getAssetName(filename);
+  var key = getAssetName(filename, false);
   if (!allAssets.hasOwnProperty(key))
     throw new System.Exception("The asset '" + key + "' is not in the asset manifest.");
+
   return allAssets[key];
 };
 JSIL.Host.getHeldKeys = function () {
@@ -150,15 +151,20 @@ window.addEventListener(
   }, true
 );
 
-function getAssetName (filename) {
+function getAssetName (filename, preserveCase) {
   var backslashRe = /\\/g;
   filename = filename.replace(backslashRe, "/");
 
   var lastIndex = filename.lastIndexOf(".");
   if (lastIndex === -1)
-    return filename.toLowerCase();
-  
-  return filename.substr(0, lastIndex).toLowerCase();
+    result = filename;
+  else
+    result = filename.substr(0, lastIndex);
+
+  if (preserveCase === true)
+    return result;
+  else
+    return result.toLowerCase();
 };
 
 function evalScript (uri, text) {
@@ -181,9 +187,14 @@ function evalScript (uri, text) {
 };
 
 function loadTextAsync (uri, onComplete) {
-  var req = new XMLHttpRequest();
-  var state = [false];
+  var req;
+  if ((location.protocol === "file:") && (typeof (ActiveXObject) !== "undefined")) {
+    req = new ActiveXObject("MSXML2.XMLHTTP");
+  } else {
+    req = new XMLHttpRequest();
+  }
 
+  var state = [false];
   req.open('GET', uri, true);
           
   req.onreadystatechange = function (evt) {
@@ -304,7 +315,7 @@ var assetLoaders = {
   "Image": function loadImage (filename, data, onError, onDoneLoading) {
     var e = document.createElement("img");
     var finisher = function () {
-      allAssets[getAssetName(filename)] = new HTML5ImageAsset(getAssetName(filename), e);
+      allAssets[getAssetName(filename)] = new HTML5ImageAsset(getAssetName(filename, true), e);
     };
     e.addEventListener("error", onError, true);
     e.addEventListener("load", onDoneLoading.bind(null, finisher), true);
@@ -350,7 +361,7 @@ var assetLoaders = {
     var startedLoadingWhen = (new Date()).getTime();
 
     var finisher = function () {
-      allAssets[getAssetName(filename)] = new HTML5FontAsset(getAssetName(filename), fontId, (data || 12), e.offsetHeight);
+      allAssets[getAssetName(filename)] = new HTML5FontAsset(getAssetName(filename, true), fontId, (data || 12), e.offsetHeight);
     };
     
     var intervalHandle;
@@ -420,7 +431,7 @@ var loadWebkitSound = function (filename, data, onError, onDoneLoading) {
     if (result !== null) {
       var buffer = audioContext.createBuffer(result.buffer, false);
       var finisher = function () {
-        allAssets[getAssetName(filename)] = new WebkitSoundAsset(getAssetName(filename), audioContext, buffer, data);
+        allAssets[getAssetName(filename)] = new WebkitSoundAsset(getAssetName(filename, true), audioContext, buffer, data);
       };
       
       onDoneLoading(finisher);
@@ -449,7 +460,7 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
     var readyState = e.readyState || 0;
 
     var finisher = function () {
-      allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename), e);
+      allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename, true), e);
     };
 
     if (
@@ -539,9 +550,10 @@ var $makeXNBAssetLoader = function (key, typeName) {
     loadBinaryFileAsync(contentRoot + filename, function (result, error) {
       if (result !== null) {
         var finisher = function () {
-          var assetName = getAssetName(filename);
+          var key = getAssetName(filename, false);
+          var assetName = getAssetName(filename, true);
           var type = System.Type.GetType(typeName);
-          allAssets[assetName] = new type(assetName, result);
+          allAssets[key] = new type(assetName, result);
         };
         onDoneLoading(finisher); 
       } else {
