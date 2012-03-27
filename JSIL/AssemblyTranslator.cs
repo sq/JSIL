@@ -172,6 +172,8 @@ namespace JSIL {
                 path, readerParameters, 
                 useSymbols, path
             );
+            if (assembly == null)
+                throw new FileNotFoundException("Could not load the assembly '" + path + "'");
 
             var result = new List<AssemblyDefinition>();
             result.Add(assembly);

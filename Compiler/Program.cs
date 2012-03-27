@@ -36,6 +36,13 @@ namespace JSIL.Compiler {
                     .Replace("%configpath%", result.Path)
                     .Replace("/", "\\");
 
+                var newProxies = (from p in result.Assemblies.Proxies
+                                 select p.Replace("%configpath%", result.Path)
+                                     .Replace("/", "\\")).ToArray();
+
+                result.Assemblies.Proxies.Clear();
+                result.Assemblies.Proxies.AddRange(newProxies);
+
                 Console.Error.WriteLine("// Applied settings from '{0}'.", ShortenPath(filename));
 
                 return result;

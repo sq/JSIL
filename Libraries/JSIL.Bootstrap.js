@@ -1309,9 +1309,28 @@ JSIL.ImplementExternals(
     _ctor$3: function (value, capacity) {
       this._str = value;
     },
+    get_Length: function () {
+      return this._str.length;
+    },
+    set_Length: function (value) {
+      var delta = value - this._str.length;
+      if (delta < 0) {
+        this._str = this._str.substr(0, value);
+      } else if (delta > 0) {
+        var ch = new Array(delta);
+        for (var i = 0; i < delta; i++)
+          ch[i] = '\0';
+
+        this._str += String.fromCharCode.apply(String, ch);
+      }
+    },
     Append$0: function (char, count) {
       for (var i = 0; i < count; i++)
         this._str += char;
+    },
+    Append$1: function (chars, startIndex, charCount) {
+      for (var i = 0; i < charCount; i++)
+        this._str += chars[startIndex + i];
     },
     Append$2: function (text) {
       this._str += text;
