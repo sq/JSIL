@@ -415,44 +415,9 @@ var assetLoaders = {
 var loadWebkitSound = function (filename, data, onError, onDoneLoading) {
   var audioContext = this;
   var uri = null;
-  var tempElement = document.createElement("audio");
 
-  if (!JSIL.IsArray(data.formats)) {
-    onError("Sound in manifest without any formats");
-    return;
-  }
-
-  for (var i = 0; i < data.formats.length; i++) {
-    var format = data.formats[i];
-    var extension, mimetype = null;
-    if (typeof (format) === "string")
-      extension = format;
-    else {
-      extension = format.extension;
-      mimetype = format.mimetype;
-    }
-
-    if (mimetype === null) {
-      switch (extension) {
-        case ".mp3":
-          mimetype = "audio/mpeg"
-          break;
-        case ".ogg":
-          mimetype = "audio/ogg; codecs=vorbis"
-          break;
-      }
-    }
-    
-    if (String(tempElement.canPlayType(mimetype)).trim().length > 0) {
-      uri = contentRoot + filename + extension;
-      break;
-    }
-  }  
-
-  if (uri === null) {
-    onError("Could not find a supported format to load for the sound '" + getAssetName(filename) + "'.");
-    return;
-  }
+  // Safari doesn't implement canPlayType, so we just have to hard-code MP3. Lame.
+  uri = contentRoot + filename + ".mp3";
 
   loadBinaryFileAsync(uri, function (result, error) {
     if (result !== null) {
