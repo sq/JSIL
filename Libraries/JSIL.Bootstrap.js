@@ -598,6 +598,15 @@ JSIL.ImplementExternals("System.Collections.Generic.List`1", true, $jsilcore.$Li
 // Lazy way of sharing method implementations between ArrayList, Collection<T> and List<T>.
 JSIL.ImplementExternals("System.Collections.ArrayList", true, $jsilcore.$ListExternals);
 
+JSIL.ImplementExternals("System.Collections.ArrayList", true, {
+  ToArray$0: function () {
+    return Array.prototype.slice.call(this._items, 0, this._size);
+  },
+  ToArray$1: function (type) {
+    return Array.prototype.slice.call(this._items, 0, this._size);
+  }
+});
+
 $jsilcore.$CollectionExternals = JSIL.CloneObject($jsilcore.$ListExternals);
 $jsilcore.$CollectionExternals._ctor$0 = function () {
   this._items = new Array();

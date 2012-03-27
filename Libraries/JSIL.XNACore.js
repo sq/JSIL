@@ -169,7 +169,17 @@ JSIL.ImplementExternals(
     Load$b1: JSIL.GenericMethod(
       ["T"],
       function (T, assetName) {
-        var asset = JSIL.Host.getAsset(assetName);
+        var asset;
+
+        try {
+          asset = JSIL.Host.getAsset(assetName);
+        } catch (exc) {
+          if (exc.Message.indexOf("is not in the asset manifest") >= 0) {
+            throw new Microsoft.Xna.Framework.Content.ContentLoadException(exc.Message);
+          } else {
+            throw exc;
+          }
+        }
 
         var rawXnb = JSIL.TryCast(asset, RawXNBAsset);
         if (rawXnb !== null) {
@@ -181,7 +191,7 @@ JSIL.ImplementExternals(
           return asset;
         }
 
-        throw new Error("Asset '" + assetName + "' is not an instance of HTML5Asset.");
+        throw new Microsoft.Xna.Framework.Content.ContentLoadException("Asset '" + assetName + "' is not an instance of HTML5Asset.");
       }
     ),
     Unload: function () {
@@ -659,7 +669,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", true, {
   // This can't be a _ctor because BinaryReader has multiple overloaded constructors.
   // Once reflection lands this can probably work fine as a _ctor.
   $init: function (contentManager, input, assetName, recordDisposableObject, graphicsProfile) {
-    System.IO.BinaryReader.prototype._ctor.call(this, input);
+    System.IO.BinaryReader.prototype._ctor$0.call(this, input);
 
     this.contentManager = contentManager;
     this.assetName = assetName;
@@ -974,8 +984,11 @@ JSIL.ImplementExternals(
 
 JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Vector2", false, {
+    _cctor: function () {
+      Microsoft.Xna.Framework.Vector2._zero = new Microsoft.Xna.Framework.Vector2();
+    },
     get_Zero: function () {
-      return Object.create(Microsoft.Xna.Framework.Vector2.prototype);
+      return Microsoft.Xna.Framework.Vector2._zero;
     },
     Normalize$0: function (v) {
       v.Normalize();
@@ -1069,8 +1082,55 @@ JSIL.ImplementExternals(
 
 JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Vector3", false, {
+    _cctor: function () {
+      var $ = Microsoft.Xna.Framework.Vector3;
+
+      $._zero = new $(0, 0, 0);
+      $._one = new $(1, 1, 1);
+
+      $._unitX = new $(1, 0, 0);
+      $._unitY = new $(0, 1, 0);
+      $._unitZ = new $(0, 0, 1);
+
+      $._up = new $(0, 1, 0);
+      $._down = new $(0, -1, 0);
+      $._right = new $(1, 0, 0);
+      $._left = new $(-1, 0, 0);
+      $._forward = new $(0, 0, -1);
+      $._backward = new $(0, 0, 1);
+    },
     get_Zero: function () {
-      return Object.create(Microsoft.Xna.Framework.Vector3.prototype);
+      return Microsoft.Xna.Framework.Vector3._zero;
+    },
+    get_One: function () {
+      return Microsoft.Xna.Framework.Vector3._one;
+    },
+    get_UnitX: function () {
+      return Microsoft.Xna.Framework.Vector3._unitX;
+    },
+    get_UnitY: function () {
+      return Microsoft.Xna.Framework.Vector3._unitY;
+    },
+    get_UnitZ: function () {
+      return Microsoft.Xna.Framework.Vector3._unitZ;
+    },
+    get_Up: function () {
+      return Microsoft.Xna.Framework.Vector3._up;
+    },
+    get_Down: function () {
+      return Microsoft.Xna.Framework.Vector3._down;
+    },
+    get_Right: function () {
+      return Microsoft.Xna.Framework.Vector3._right;
+    },
+    get_Left: function () {
+      return Microsoft.Xna.Framework.Vector3._left;
+    },
+    get_Forward: function () {
+      return Microsoft.Xna.Framework.Vector3._forward;
+    },
+    get_Backward: function () {
+      return Microsoft.Xna.Framework.Vector3._backward;
     },
     Normalize$0: function (v) {
       v.Normalize();
@@ -1179,8 +1239,11 @@ JSIL.ImplementExternals(
 
 JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Vector4", false, {
+    _cctor: function () {
+      Microsoft.Xna.Framework.Vector4._zero = new Microsoft.Xna.Framework.Vector4();
+    },
     get_Zero: function () {
-      return Object.create(Microsoft.Xna.Framework.Vector4.prototype);
+      return Microsoft.Xna.Framework.Vector4._zero;
     },
     Normalize$0: function (v) {
       v.Normalize();
@@ -1301,6 +1364,30 @@ JSIL.ImplementExternals(
     },
     Length: function () {
       return Math.sqrt(this.LengthSquared());
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Matrix", false, {
+    _cctor: function () {
+      // FIXME
+      Microsoft.Xna.Framework.Matrix._identity = new Microsoft.Xna.Framework.Matrix();
+    },
+    get_Identity: function () {
+      return Microsoft.Xna.Framework.Matrix._identity;
+    },
+    CreateLookAt$0: function () {
+      // FIXME
+      return new Microsoft.Xna.Framework.Matrix();
+    },
+    CreateOrthographic$0: function () {
+      // FIXME
+      return new Microsoft.Xna.Framework.Matrix();
+    },
+    CreateScale$0: function () {
+      // FIXME
+      return new Microsoft.Xna.Framework.Matrix();
     }
   }
 );
@@ -2579,13 +2666,16 @@ JSIL.ImplementExternals(
       this.height = height;
       this.mipMap = mipMap;
       this.format = format;
-      this.isDisposed = false;      
+      this.isDisposed = false;
 
       if (typeof (this.imageFormats[format.name]) === "undefined")
           throw new System.NotImplementedException("The pixel format '" + format.name + "' is not supported.");
 
       this.image = document.createElement("img");
       this.image.src = this.$getDataUrlForBytes(null, 0, 0, false);
+    },
+    _ctor$1: function (graphicsDevice, width, height) {
+      this.$internalCtor(graphicsDevice, width, height, false, Microsoft.Xna.Framework.Graphics.SurfaceFormat.Color);
     },
     _ctor$2: function (graphicsDevice, width, height, mipMap, format) {
       this.$internalCtor(graphicsDevice, width, height, mipMap, format);
@@ -2656,6 +2746,14 @@ JSIL.ImplementExternals(
       }
 
       return canvas.toDataURL();
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Graphics.RenderTarget2D", true, {
+    _ctor$2: function (graphicsDevice, width, height) {
+      this.$internalCtor(graphicsDevice, width, height, false, Microsoft.Xna.Framework.Graphics.SurfaceFormat.Color);
     }
   }
 );
