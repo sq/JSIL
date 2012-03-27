@@ -67,7 +67,7 @@ namespace JSIL.Proxies {
         }
 
         [JSReplacement("Array.prototype.slice.call($this)")]
-        new public object Clone () {
+        public object Clone () {
             throw new InvalidOperationException();
         }
     }

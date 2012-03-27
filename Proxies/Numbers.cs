@@ -13,7 +13,7 @@ namespace JSIL.Proxies {
     public abstract class IntegerProxy {
         [JSRuntimeDispatch]
         [JSExternal]
-        new public static AnyType Parse (params AnyType[] arguments) {
+        public static AnyType Parse (params AnyType[] arguments) {
             throw new InvalidOperationException();
         }
 
@@ -23,7 +23,7 @@ namespace JSIL.Proxies {
         }
 
         [JSReplacement("JSIL.CompareNumbers($this, $rhs)")]
-        new public int CompareTo (AnyType rhs) {
+        public int CompareTo (AnyType rhs) {
             throw new InvalidOperationException();
         }
     }
@@ -37,7 +37,7 @@ namespace JSIL.Proxies {
     public abstract class NumberProxy {
         [JSRuntimeDispatch]
         [JSExternal]
-        new public static AnyType Parse (params AnyType[] arguments) {
+        public static AnyType Parse (params AnyType[] arguments) {
             throw new InvalidOperationException();
         }
 
@@ -47,7 +47,7 @@ namespace JSIL.Proxies {
         }
 
         [JSReplacement("JSIL.CompareNumbers($this, $rhs)")]
-        new public int CompareTo (AnyType rhs) {
+        public int CompareTo (AnyType rhs) {
             throw new InvalidOperationException();
         }
     }
@@ -59,7 +59,7 @@ namespace JSIL.Proxies {
     public abstract class DecimalProxy {
         [JSRuntimeDispatch]
         [JSExternal]
-        new public static Decimal op_Explicit (params AnyType[] arguments) {
+        public static Decimal op_Explicit (params AnyType[] arguments) {
             throw new InvalidOperationException();
         }
     }
