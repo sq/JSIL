@@ -65,7 +65,16 @@ JSIL.Host.getImage = function (filename) {
     throw new System.Exception("The image '" + key + "' is not in the asset manifest.");
   return allAssets[key].image;
 };
-JSIL.Host.getAsset = function (filename) {
+JSIL.Host.getAsset = function (filename, stripRoot) {
+  if (stripRoot === true) {
+    var backslashRe = /\\/g;
+
+    filename = filename.replace(backslashRe, "/");
+    var croot = contentRoot.replace(backslashRe, "/");
+
+    filename = filename.replace(croot, "");
+  }
+
   var key = getAssetName(filename, false);
   if (!allAssets.hasOwnProperty(key))
     throw new System.Exception("The asset '" + key + "' is not in the asset manifest.");
@@ -333,6 +342,18 @@ var assetLoaders = {
       }
     });
   },
+  "SoundBank": function loadSoundBank (filename, data, onError, onDoneLoading) {
+    loadTextAsync(contentRoot + filename, function (result, error) {
+      if (result !== null) {
+        var finisher = function () {
+          allAssets[getAssetName(filename)] = JSON.parse(result);
+        };
+        onDoneLoading(finisher);
+      } else {
+        onError(error);
+      }
+    });
+  },
   "Font": function loadFont (filename, data, onError, onDoneLoading) {
     var fontId = "xnafont" + loadedFontCount;
     loadedFontCount += 1;
@@ -395,6 +416,11 @@ var loadWebkitSound = function (filename, data, onError, onDoneLoading) {
   var audioContext = this;
   var uri = null;
   var tempElement = document.createElement("audio");
+
+  if (!JSIL.IsArray(data.formats)) {
+    onError("Sound in manifest without any formats");
+    return;
+  }
 
   for (var i = 0; i < data.formats.length; i++) {
     var format = data.formats[i];
@@ -480,7 +506,7 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
       try {
         onError("Error " + e.error.code);
       } catch (ex) {
-        onError("Unknown error");
+        onError("Error " + String(e.error));
       }
     }
 
@@ -495,6 +521,11 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
       onDoneLoading(finisher);
     }
   };
+
+  if (!JSIL.IsArray(data.formats)) {
+    onError("Sound in manifest without any formats");
+    return;
+  }
   
   for (var i = 0; i < data.formats.length; i++) {
     var format = data.formats[i];

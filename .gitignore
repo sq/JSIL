@@ -39,3 +39,5 @@ Tests/*Cases/*.js
 /Upstream/LAME
 /Upstream/FFMPEG
 /Upstream/OggEnc
+/Upstream/XapParse/obj
+/Upstream/XapParse/bin

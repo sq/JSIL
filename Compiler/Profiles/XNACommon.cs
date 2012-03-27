@@ -253,7 +253,7 @@ public static class Common {
     }
 
     public static IEnumerable<CompressResult> CompressAudio (string fileName, string sourceFolder, string outputFolder, Dictionary<string, object> settings, Dictionary<string, CompressResult> existingJournal) {
-        const int CompressVersion = 3;
+        const int CompressVersion = 4;
 
         EnsureDirectoryExists(outputFolder);
 
@@ -282,7 +282,7 @@ public static class Common {
                     break;
 
                 case ".wav":
-                    sourceWave = fileName;
+                    sourceWave = sourcePath;
                     break;
             }
 
@@ -719,6 +719,14 @@ public static class Common {
                 }
 
                 switch (processorName) {
+                    case "XactProcessor":
+                        Common.ConvertXactProject(
+                            item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
+                            configuration.ProfileSettings, existingJournal,
+                            journal, logOutput
+                        );
+
+                        break;
                     case "FontTextureProcessor":
                     case "FontDescriptionProcessor":
                         copyRawXnb(item, xnbPath, "SpriteFont");
@@ -744,27 +752,10 @@ public static class Common {
 
                 switch (importerName) {
                     case "WmaImporter":
-                        var results = Common.CompressAudio(
+                        journal.AddRange(CompressAudioGroup(
                             item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
-                            configuration.ProfileSettings, existingJournal
-                        ).ToArray();
-
-                        var formats = new List<string>();
-                        var properties = new Dictionary<string, object> {
-                            {"formats", formats},
-                            {"sizeBytes", results.Max((r) => r.Size)}
-                        };
-
-                        foreach (var result in results) {
-                            formats.Add(Path.GetExtension(result.Filename));
-                            journal.Add(result);
-                        }
-
-                        var prefixName = Path.Combine(
-                            Path.GetDirectoryName(results.First().Filename),
-                            Path.GetFileNameWithoutExtension(results.First().Filename)
-                        );
-                        logOutput("Sound", prefixName, properties);
+                            configuration.ProfileSettings, existingJournal, logOutput
+                        ));
 
                         break;
                     case "XmlImporter":
@@ -791,5 +782,165 @@ public static class Common {
 
         if (contentProjects.Length > 0)
             Console.Error.WriteLine("// Done processing content.");
+    }
+
+    private static IEnumerable<CompressResult> CompressAudioGroup(
+        string fileName, string contentProjectDirectory, string itemOutputDirectory,
+        Dictionary<string, object> profileSettings, Dictionary<string, CompressResult> existingJournal, 
+        Action<string, string, Dictionary<string, object>> logOutput
+    ) {
+        var results = Common.CompressAudio(
+            fileName, contentProjectDirectory, itemOutputDirectory,
+            profileSettings, existingJournal
+        ).ToArray();
+
+        var formats = new List<string>();
+        var properties = new Dictionary<string, object> {
+            {"formats", formats},
+            {"sizeBytes", results.Max((r) => r.Size)}
+        };
+
+        foreach (var result in results)
+            formats.Add(Path.GetExtension(result.Filename));
+
+        var prefixName = Path.Combine(
+            Path.GetDirectoryName(results.First().Filename),
+            Path.GetFileNameWithoutExtension(results.First().Filename)
+        );
+
+        logOutput("Sound", prefixName, properties);
+
+        foreach (var result in results)
+            yield return result;
+    }
+
+    [Serializable]
+    public class CueEntry {
+        public string Name;
+        public string[] Sounds;
+    }
+
+    [Serializable]
+    public class TrackEntry {        
+        public string Name;
+        public Dictionary<string, object>[] Events;
+    }
+
+    [Serializable]
+    public class SoundEntry {
+        public string Name;
+        public TrackEntry[] Tracks;
+    }
+
+    private static Dictionary<string, object> TranslateEvent (
+        Xap.EventBase evt, HashSet<string> waveNames
+    ) {
+        return new Dictionary<string, object>() {
+            {"Type", evt.GetType().Name}
+        };
+    }
+
+    private static Dictionary<string, object> TranslateEvent (
+        Xap.PlayWaveEvent evt, HashSet<string> waveNames 
+    ) {
+        var waveEntry = evt.m_waveEntries.First();
+
+        waveNames.Add(waveEntry.m_entryName);
+
+        return new Dictionary<string, object>() {
+            {"Type", evt.GetType().Name},
+            {"WaveBank", waveEntry.m_bankName},
+            {"Wave", waveEntry.m_entryName},
+            {"LoopCount", evt.m_loopCount}
+        };
+    }
+
+    private static void ConvertXactProject (
+        string projectFile, string sourceFolder, 
+        string outputFolder, Dictionary<string, object> profileSettings, 
+        Dictionary<string, CompressResult> existingJournal, List<CompressResult> journal, 
+        Action<string, string, Dictionary<string, object>> logOutput
+    ) {
+        const int CompressVersion = 1;
+
+        Console.Error.WriteLine("// Processing {0}...", projectFile);
+
+        var projectSubdir = Path.GetDirectoryName(projectFile);
+        var projectPath = Path.Combine(sourceFolder, projectFile);
+        var projectInfo = new FileInfo(projectPath);
+
+        var project = new Xap.Project();
+        project.Parse(File.ReadAllLines(projectPath));
+
+        var waveManifest = new Dictionary<string, string>();
+        var jss = new JavaScriptSerializer();
+
+        foreach (var waveBank in project.m_waveBanks) {
+
+            foreach (var wave in waveBank.m_waves) {
+                var waveFolder = Path.GetDirectoryName(wave.m_fileName);
+                waveManifest[wave.m_name] = Path.Combine(
+                    projectSubdir, 
+                    wave.m_fileName.Replace(Path.GetExtension(wave.m_fileName), "")
+                );
+
+                journal.AddRange(CompressAudioGroup(
+                    Path.Combine(projectSubdir, wave.m_fileName), sourceFolder, 
+                    Path.Combine(outputFolder, waveFolder), profileSettings, existingJournal, logOutput
+                ));
+            }
+        }
+
+        foreach (var soundBank in project.m_soundBanks) {
+            var waveNames = new HashSet<string>();
+
+            var soundEntries =
+                (from sound in soundBank.m_sounds
+                 select new SoundEntry {
+                     Name = sound.m_name,
+                     Tracks = (
+                        from track in sound.m_tracks
+                        select new TrackEntry {
+                            Name = track.m_name,
+                            Events = (
+                                from evt in track.m_events
+                                select (Dictionary<string, object>)TranslateEvent(
+                                    evt as dynamic, waveNames
+                                )
+                            ).ToArray()
+                        }
+                     ).ToArray()
+                 }).ToArray();
+
+            var cueEntries = 
+                (from cue in soundBank.m_cues
+                select new CueEntry {
+                    Name = cue.m_name,
+                    Sounds = (
+                        from se in cue.m_soundEntries select se.m_name
+                    ).ToArray()
+                }).ToArray();
+                
+            var soundBankJson = jss.Serialize(
+                new Dictionary<string, object> {
+                    {"Name", soundBank.m_name},
+                    {"Cues", cueEntries},
+                    {"Sounds", soundEntries},
+                    {"Waves", waveManifest}
+                }
+            );
+
+            var soundBankPath = Path.Combine(outputFolder, soundBank.m_name + ".soundBank");
+            File.WriteAllText(
+                soundBankPath, soundBankJson
+            );
+
+            journal.Add(MakeCompressResult(
+                CompressVersion, null, soundBankPath, projectPath, projectInfo
+            ));
+            logOutput("SoundBank", soundBankPath, null);
+        }
+
+        Console.Error.WriteLine("// Done processing {0}.", projectFile);
     }
 }

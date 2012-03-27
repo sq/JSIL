@@ -177,8 +177,9 @@ JSIL.ImplementExternals(
           return rawXnb.ReadAsset(T);
         }
 
-        if (JSIL.CheckType(asset, HTML5Asset))
+        if (JSIL.CheckType(asset, HTML5Asset)) {
           return asset;
+        }
 
         throw new Error("Asset '" + assetName + "' is not an instance of HTML5Asset.");
       }
@@ -218,15 +219,20 @@ JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true, [], function ($) {
     HTML5Asset.prototype._ctor.call(this, assetName);
     this.sound = sound;
     this.freeInstances = [
-      this.$createInstance(false)
+      this.$createInstance(0)
     ];
   };
-  $.prototype.$createInstance = function (loop) {
+  $.prototype.$createInstance = function (loopCount) {
     var instance = this.sound.cloneNode(true);
 
-    if (loop) {
+    if (loopCount > 0) {
+      var state = [loopCount];
+
       instance.addEventListener("ended", function () {
-        instance.play();
+        if (state[0] > 0) {
+          state[0]--;
+          instance.play();
+        }
       }.bind(this), true);
     } else {
       instance.addEventListener("ended", function () {
@@ -242,7 +248,7 @@ JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true, [], function ($) {
     if (this.freeInstances.length > 0) {
       instance = this.freeInstances.pop();
     } else {
-      instance = this.$createInstance(false);
+      instance = this.$createInstance(0);
     }
 
     instance.play();
@@ -255,10 +261,10 @@ JSIL.MakeClass("HTML5Asset", "WebkitSoundAsset", true, [], function ($) {
     this.audioContext = audioContext;
     this.buffer = buffer;
   };
-  $.prototype.$createInstance = function (loop) {
+  $.prototype.$createInstance = function (loopCount) {
     var instance = this.audioContext.createBufferSource();
     instance.buffer = this.buffer;
-    instance.loop = loop;
+    instance.loop = loopCount > 0;
     instance.connect(this.audioContext.destination);
     return {
       source: instance,
@@ -271,7 +277,7 @@ JSIL.MakeClass("HTML5Asset", "WebkitSoundAsset", true, [], function ($) {
     };
   };
   $.prototype.Play$0 = function () {
-    var instance = this.$createInstance(false);
+    var instance = this.$createInstance(0);
 
     instance.play();
   };
@@ -830,8 +836,105 @@ JSIL.ImplementExternals(
 );
 
 JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Audio.Cue", true, {
+    _ctor: function (name, soundBank, sounds, audioEngine) {
+      this._name = name;
+      this.soundBank = soundBank;
+      this.sounds = sounds;
+      this.audioEngine = audioEngine;
+      this.wavesPlaying = [];
+    },
+    get_Name: function () {
+      return this._name;
+    },
+    Play: function () {
+      var soundName = this.sounds[0];
+      var sound = this.soundBank.sounds[soundName];
+
+      for (var i = 0; i < sound.Tracks.length; i++) {
+        var track = sound.Tracks[i];
+        for (var j = 0; j < track.Events.length; j++) {
+          var evt = track.Events[j];
+
+          switch (evt.Type) {
+            case "PlayWaveEvent":
+              var waveName = evt.Wave;
+              var wave = this.soundBank.waves[waveName];
+
+              var instance = wave.$createInstance(evt.LoopCount);
+              instance.play();
+
+              this.wavesPlaying.push(instance);
+
+              break;
+          }
+        }
+      }
+    },
+    Pause: function () {
+      for (var i = 0; i < this.wavesPlaying.length; i++) {
+        var wave = this.wavesPlaying[i];
+        wave.pause()
+      }
+    },
+    Resume: function () {
+      for (var i = 0; i < this.wavesPlaying.length; i++) {
+        var wave = this.wavesPlaying[i];
+        wave.play()
+      }
+    },
+    Stop: function () {
+      while (this.wavesPlaying.length > 0) {
+        var wave = this.wavesPlaying.shift();
+        wave.pause()
+      }
+    },
+    Dispose$0: function () {
+      this.Stop();
+    }
+  }
+);
+
+JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Audio.SoundBank", true, {
     _ctor: function (audioEngine, filename) {
+      var json = JSIL.Host.getAsset(filename, true);
+
+      this.name = json.Name;
+
+      this.cues = {};
+      this.sounds = {};
+      this.waves = {};
+
+      for (var i = 0, l = json.Cues.length; i < l; i++) {
+        var cue = json.Cues[i];
+
+        this.cues[cue.Name] = cue;
+      }
+
+      for (var i = 0, l = json.Sounds.length; i < l; i++) {
+        var sound = json.Sounds[i];
+
+        this.sounds[sound.Name] = sound;
+      }
+
+      for (var name in json.Waves) {
+        var filename = json.Waves[name];
+        var waveAsset = JSIL.Host.getAsset(filename);
+
+        this.waves[name] = waveAsset;
+      }
+    },
+    GetCue: function (name) {
+      var cue = this.cues[name];
+      var result = new Microsoft.Xna.Framework.Audio.Cue(
+          cue.Name, this, cue.Sounds, this.audioEngine
+      );
+      return result;
+    },
+    PlayCue$0: function (name) {
+      var cue = this.GetCue(name);
+      cue.Play();
     }
   }
 );
@@ -854,7 +957,7 @@ JSIL.ImplementExternals(
 
       if (song !== null) {
         newInstance = song.$createInstance(
-          Microsoft.Xna.Framework.Media.MediaPlayer.repeat
+          Microsoft.Xna.Framework.Media.MediaPlayer.repeat ? 9999 : 0
         );
       }
 
@@ -1225,6 +1328,7 @@ JSIL.ImplementExternals(
       this.components = new Microsoft.Xna.Framework.GameComponentCollection();
       this.targetElapsedTime = System.TimeSpan.FromTicks(166667);
       this.isFixedTimeStep = true;
+      this.forceElapsedTimeToZero = true;
       this._isDead = false;
 
       if (typeof (Date.now) === "function") {
@@ -1275,6 +1379,9 @@ JSIL.ImplementExternals(
     LoadContent: function () {
     },
     UnloadContent: function () {
+    },
+    ResetElapsedTime: function () {
+      this.forceElapsedTimeToZero = true;
     },
     $ComponentsOfType: function (type) {
       var result = new Array();
@@ -1360,6 +1467,11 @@ JSIL.ImplementExternals(
       } else {
         var elapsed = now - this._lastFrame;
         var total = now - this._started;
+      }
+
+      if (this.forceElapsedTimeToZero) {
+        this.forceElapsedTimeToZero = false;
+        elapsed = 0;
       }
 
       var frameDelay = this.targetElapsedTime.get_TotalMilliseconds();
@@ -2296,14 +2408,6 @@ JSIL.ImplementExternals(
       }
     }
 
-  }
-);
-
-JSIL.ImplementExternals(
-  "Microsoft.Xna.Framework.Audio.SoundBank", true, {
-    GetCue: function () {
-      return null;
-    }
   }
 );
 
