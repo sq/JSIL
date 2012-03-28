@@ -464,7 +464,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ArrayReader`1", true, {
       this, 
       System.Array.Of(
         assembly.Microsoft.Xna.Framework.Content.ArrayReader$b1.T.get(this)
-      )
+      ).__Type__
     );
   },
   Initialize: function (manager) {
@@ -491,7 +491,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ListReader`1", true, {
       this, 
       System.Collections.Generic.List$b1.Of(
         assembly.Microsoft.Xna.Framework.Content.ListReader$b1.T.get(this)
-      )
+      ).__Type__
     );
   },
   Initialize: function (manager) {
@@ -592,18 +592,20 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManage
     var thisType = assembly.Microsoft.Xna.Framework.Content.ContentTypeReaderManager;
 
     var targetType = reader.TargetType;
-    thisType.targetTypeToReader[targetType] = reader;
-    thisType.readerTypeToReader[reader.GetType()] = reader;
+    thisType.targetTypeToReader[targetType.__TypeId__] = reader;
+    thisType.readerTypeToReader[reader.GetType().__TypeId__] = reader;
     thisType.nameToReader[readerTypeName] = reader;
   },
   GetTypeReader$1: function (targetType, contentReader) {
     var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework");
     var thisType = assembly.Microsoft.Xna.Framework.Content.ContentTypeReaderManager;
 
-    var result = thisType.targetTypeToReader[targetType];
+    var result = thisType.targetTypeToReader[targetType.__TypeId__];
 
-    if (typeof (result) !== "object")
+    if (typeof (result) !== "object") {
       JSIL.Host.error(new Error("No content type reader known for type '" + targetType + "'."));
+      return null;
+    }
 
     return result;
   },
