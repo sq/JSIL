@@ -660,6 +660,7 @@ namespace JSIL.Internal {
         protected bool _IsIgnored = false;
         protected bool _IsExternal = false;
         protected bool _MethodGroupsInitialized = false;
+        protected int _DerivedTypeCount = 0;
 
         public TypeInfo (ITypeInfoSource source, ModuleInfo module, TypeDefinition type, TypeInfo declaringType, TypeInfo baseClass, TypeIdentifier identifier) {
             Identifier = identifier;
@@ -668,6 +669,9 @@ namespace JSIL.Internal {
             Source = source;
             Definition = type;
             bool isStatic = type.IsSealed && type.IsAbstract;
+
+            if (baseClass != null)
+                baseClass.DerivedTypeCount += 1;
 
             Proxies = source.GetProxies(type);
             Metadata = new MetadataCollection(type);
@@ -855,6 +859,15 @@ namespace JSIL.Internal {
                     return (string)parms[0].Value;
 
                 return null;
+            }
+        }
+
+        public int DerivedTypeCount {
+            get {
+                return this._DerivedTypeCount;
+            }
+            private set {
+                this._DerivedTypeCount = value;
             }
         }
 
@@ -1598,6 +1611,8 @@ namespace JSIL.Internal {
         public readonly EventInfo Event = null;
         public readonly bool IsGeneric;
         public readonly bool IsConstructor;
+        public readonly bool IsVirtual;
+        public readonly bool IsSealed;
 
         public int? OverloadIndex;
         protected bool? _ParametersIgnored;
@@ -1617,6 +1632,8 @@ namespace JSIL.Internal {
             Parameters = method.Parameters.ToArray();
             IsGeneric = method.HasGenericParameters;
             IsConstructor = method.Name == ".ctor";
+            IsVirtual = method.IsVirtual;
+            IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
         }
 
         public MethodInfo (
@@ -1636,6 +1653,8 @@ namespace JSIL.Internal {
             Parameters = method.Parameters.ToArray();
             IsGeneric = method.HasGenericParameters;
             IsConstructor = method.Name == ".ctor";
+            IsVirtual = method.IsVirtual;
+            IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
         }
 
         public MethodInfo (
@@ -1654,6 +1673,8 @@ namespace JSIL.Internal {
             Parameters = method.Parameters.ToArray();
             IsGeneric = method.HasGenericParameters;
             IsConstructor = method.Name == ".ctor";
+            IsVirtual = method.IsVirtual;
+            IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
         }
 
         protected override string GetName () {

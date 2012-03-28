@@ -1747,7 +1747,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
     typeObject.__Members__ = members;
     typeObject.__ShortName__ = localName;
     typeObject.__Context__ = $private;
-    typeObject.FullName = typeObject.__FullName__ = fullName;
+    typeObject.__FullName__ = fullName;
     typeObject.__GenericArguments__ = genericArguments || [];
     typeObject.IsInterface = true;
     typeObject.__Interfaces__ = interfaces;
@@ -2722,6 +2722,9 @@ JSIL.ImplementExternals(
     get_Name: function () {
       return JSIL.GetLocalName(this.__FullName__);
     },
+    get_FullName: function () {
+      return this.__FullName__;
+    },
     get_Assembly: function () {
       // FIXME: Probably wrong for nested types.
       return this.__Context__;
@@ -2829,7 +2832,7 @@ JSIL.Reference.Of = function (type) {
       return typeName;
     };
     compositeType.prototype = JSIL.MakeProto(JSIL.Reference, compositeType, typeName, true, type.__Context__);
-    compositeType.FullName = compositeType.__FullName__ = typeName;
+    compositeType.__FullName__ = typeName;
     compositeType.__TypeId__ = ++JSIL.$NextTypeId;
     JSIL.Reference.Types[elementName] = compositeType;
   }

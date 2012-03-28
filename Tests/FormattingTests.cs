@@ -396,5 +396,39 @@ namespace JSIL.Tests {
                 throw;
             }
         }
+
+        [Test]
+        public void SealedMethods () {
+            var generatedJs = GetJavascript(
+                @"TestCases\SealedMethods.cs",
+                "Foo.Func1\r\nFoo.Func2\r\nFoo.Func1"
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("Foo.prototype.Func1.call"), "Func1 was called through the prototype with an explicit this");
+                Assert.IsTrue(generatedJs.Contains("this.Func1"), "Func1 was not called on this");
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
+        public void UnderivedMethods () {
+            var generatedJs = GetJavascript(
+                @"TestCases\UnderivedMethods.cs",
+                "Foo.Func1\r\nFoo.Func2\r\nFoo.Func1"
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("Foo.prototype.Func1.call"), "Func1 was called through the prototype with an explicit this");
+                Assert.IsTrue(generatedJs.Contains("this.Func1"), "Func1 was not called on this");
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
     }
 }

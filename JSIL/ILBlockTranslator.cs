@@ -2184,6 +2184,7 @@ namespace JSIL {
             var declaringType = DereferenceType(method.DeclaringType);
 
             var declaringTypeDef = GetTypeDefinition(declaringType);
+            var declaringTypeInfo = TypeInfo.Get(declaringType);
 
             var arguments = Translate(node.Arguments, method.Parameters, method.HasThis);
             JSExpression thisExpression;
@@ -2214,18 +2215,26 @@ namespace JSIL {
                 // Make sure that 'this' references only pass this check when they don't refer to 
                 //  members of base types. It's always okay to use thiscall form for interfaces, since we qualify 
                 //  the name of the method/property.
+                // If a method isn't virtual we always need to call it with an explicit this parameter
+                //  because it may be shadowed by a derived type. 
+                // It's okay to call a nonvirtual method without an explicit 'this' if the method is final or
+                //  if the type that defines it has no derived types.
                 if (
-                    ((TypesAreEqual(declaringType, firstArgType)) &&
                     (
-                        (ilv == null) || (ilv.Name != "this") ||
-                        (TypesAreEqual(thisType, firstArgType))
-                    )) || (
-                        (declaringTypeDef != null) &&
-                        (declaringTypeDef.IsInterface) &&
-                        TypesAreAssignable(declaringTypeDef, thisType) &&
-                        TypesAreAssignable(declaringTypeDef, firstArgType)
-                    )
+                        ((TypesAreEqual(declaringType, firstArgType)) &&
+                        (
+                            (ilv == null) || (ilv.Name != "this") ||
+                            (TypesAreEqual(thisType, firstArgType))
+                        )) || (
+                            (declaringTypeDef != null) &&
+                            (declaringTypeDef.IsInterface) &&
+                            TypesAreAssignable(declaringTypeDef, thisType) &&
+                            TypesAreAssignable(declaringTypeDef, firstArgType)
+                        )
+                    ) &&
+                    (methodInfo.IsVirtual || methodInfo.IsSealed || (declaringTypeInfo.DerivedTypeCount == 0))
                 ) {
+                    explicitThis = false;
                 } else {
                     explicitThis = true;
                 }
