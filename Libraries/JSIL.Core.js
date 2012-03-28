@@ -2888,14 +2888,24 @@ JSIL.ImplementExternals("System.Enum", false, {
   };
 
   publicInterface.Types = {};
-  publicInterface.Of = function (type) {
-    if (typeof (type) === "undefined")
+  publicInterface.Of = function (elementType) {
+    if (typeof (elementType) === "undefined")
       throw new Error("Attempting to create an array of an undefined type");
 
-    var compositePublicInterface = publicInterface.Types[type.__TypeId__];
+    var elementTypeObject, elementTypePublicInterface;
+
+    if (typeof (elementType.__Type__) === "object") {
+      elementTypeObject = elementType.__Type__;
+      elementTypePublicInterface = elementType;
+    } else if (typeof (elementType.__PublicInterface__) !== "undefined") {
+      elementTypeObject = elementType;
+      elementTypePublicInterface = elementType.__PublicInterface__;
+    }
+
+    var compositePublicInterface = publicInterface.Types[elementTypePublicInterface.__TypeId__];
 
     if (typeof (compositePublicInterface) === "undefined") {
-      var typeName = type.__FullName__ + "[]";
+      var typeName = elementTypeObject.__FullName__ + "[]";
 
       var compositeTypeObject = JSIL.CloneObject(typeObject);
       compositePublicInterface = JSIL.CloneObject(publicInterface);
@@ -2911,12 +2921,14 @@ JSIL.ImplementExternals("System.Enum", false, {
         return typeName;
       };
 
-      compositePublicInterface.prototype = JSIL.MakeProto(publicInterface, compositePublicInterface, typeName, true, type.__Context__);
+      compositePublicInterface.prototype = JSIL.MakeProto(
+        publicInterface, compositePublicInterface, typeName, true, elementTypeObject.__Context__
+      );
       compositePublicInterface.toString = function () {
         return "<" + typeName + " Public Interface>";
       };
 
-      publicInterface.Types[type.__TypeId__] = compositePublicInterface;
+      publicInterface.Types[elementTypePublicInterface.__TypeId__] = compositePublicInterface;
     }
 
     return compositePublicInterface;
