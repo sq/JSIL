@@ -1080,7 +1080,7 @@ $jsilcore.$Of$NoInitialize = function () {
     var getterDecl = {
       configurable: true,
       enumerable: true,
-      value: makeGetter(name)
+      get: makeGetter(name)
     };
 
     name.defineProperty(result, decl);
