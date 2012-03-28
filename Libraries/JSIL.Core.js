@@ -575,8 +575,7 @@ JSIL.Initialize = function () {
 };
 
 JSIL.GenericParameter = function (name, context) {
-  this.name = name;
-  this.context = context;
+  this.name = new JSIL.Name(name, context);
   this.__TypeId__ = ++JSIL.$NextTypeId;
 };
 JSIL.GenericParameter.prototype.get = function (context) {
@@ -585,10 +584,10 @@ JSIL.GenericParameter.prototype.get = function (context) {
     return JSIL.AnyType;
   }
 
-  return context[this.name];
+  return this.name.get(context);
 };
 JSIL.GenericParameter.prototype.toString = function () {
-  return "<Generic Parameter " + this.context + "::" + this.name + ">";
+  return "<Generic Parameter " + this.name.humanReadable + ">";
 };
 
 JSIL.TypeRef = function (context, name, genericArguments) {
@@ -895,7 +894,7 @@ JSIL.TypeObjectPrototype.__GenericArguments__ = [];
 JSIL.TypeObjectPrototype.toString = function () {
   return JSIL.GetTypeName(this);
 };
-JSIL.ResolveGenericParameters = function (obj, context) {
+JSIL.ResolveGenericParameters = function (obj, resolveTarget, context) {
   if ((typeof (obj) !== "object") && (typeof (obj) !== "function"))
     throw new Error("Cannot resolve generic parameters on non-object");
 
@@ -906,12 +905,17 @@ JSIL.ResolveGenericParameters = function (obj, context) {
   // Walk through our base types and attempt to resolve any unresolved generic parameters.
   // This fixes up cases where B<T> inherits from something like A<T[]>.
   var gaContext = obj;
-  // We need to ensure that we write resolved type values to the context so that we don't
-  //  modify any global state (like the properties of base classes).
-  var resolveTarget = context.prototype;
 
   while ((typeof(gaContext) !== "undefined") && (gaContext !== null)) {
-    var localType = gaContext.__Type__;
+    var localType, localPublicInterface;
+    if (typeof (gaContext.__Type__) === "object") {
+      localType = gaContext.__Type__;
+      localPublicInterface = gaContext;
+    } else if (typeof (gaContext.__PublicInterface__) !== "undefined") {
+      localType = gaContext;
+      localPublicInterface = gaContext.__PublicInterface__;
+    }
+
     if (typeof (localType) === "undefined")
       break;
 
@@ -926,14 +930,22 @@ JSIL.ResolveGenericParameters = function (obj, context) {
     for (var i = 0, l = localGa.length; i < l; i++) {
       var key = localGa[i];
       var qualifiedName = new JSIL.Name(key, localFullName);
-      var value = qualifiedName.get(proto);
+      var value = qualifiedName.get(resolveTarget); // || qualifiedName.get(obj);
 
-      var newValue = JSIL.ResolveGenericParameters(value, context);
+      var valueProto;
+      if (typeof (value.__Type__) === "object") {
+        valueProto = value.prototype;
+      } else if (typeof (value.__PublicInterface__) !== "undefined") {
+        valueProto = value.__PublicInterface__.prototype;
+      } else {
+        valueProto = resolveTarget;
+      }
+
+      var newValue = JSIL.ResolveGenericParameters(value, valueProto, context);
       if (newValue !== value) {
         var decl = { value: newValue, enumerable: true, configurable: true };
 
         qualifiedName.defineProperty(resolveTarget, decl);
-        Object.defineProperty(resolveTarget, key, decl);
       }
 
       newFullName += newValue.toString();
@@ -1052,20 +1064,31 @@ $jsilcore.$Of$NoInitialize = function () {
 
   for (var i = 0, l = resolvedArguments.length; i < l; i++) {
     var key = ga[i];
+    var name = new JSIL.Name(key, resultTypeObject.__FullNameWithoutArguments__);
+
+    var makeGetter = function (_name) {
+      return function () {
+        return _name.get(this);
+      }
+    };
 
     var decl = {
       configurable: true,
       enumerable: true,
       value: resolvedArguments[i]
     };
+    var getterDecl = {
+      configurable: true,
+      enumerable: true,
+      value: makeGetter(name)
+    };
 
-    var name = new JSIL.Name(key, resultTypeObject.__FullNameWithoutArguments__);
     name.defineProperty(result, decl);
-    Object.defineProperty(result, key, decl);
+    Object.defineProperty(result, key, getterDecl);
 
     if (typeof (staticClassObject.prototype) !== "undefined") {
-      Object.defineProperty(result.prototype, key, decl);
       name.defineProperty(result.prototype, decl);
+      Object.defineProperty(result.prototype, key, getterDecl);
     }
   }
 
@@ -1074,7 +1097,7 @@ $jsilcore.$Of$NoInitialize = function () {
     var baseType = proto.__BaseType__;
 
     if (typeof (baseType) !== "undefined")
-      JSIL.ResolveGenericParameters(baseType, result);
+      JSIL.ResolveGenericParameters(baseType, proto, result);
   }
 
   // Since .Of() will now be called even for open types, we need to ensure that we flag
