@@ -10,7 +10,8 @@
       "Microsoft.VisualC,",
       "Accessibility,",
       "SMDiagnostics,",
-      "System.EnterpriseServices,"
+      "System.EnterpriseServices,",
+      "JSIL.Meta,"
     ]
   }
 }

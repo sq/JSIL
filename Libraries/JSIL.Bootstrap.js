@@ -1210,6 +1210,8 @@ JSIL.ImplementExternals(
         this._count += 1;
 
       this._dict[_key] = value;
+
+      return value;
     },
     get_Values: function () {
       var keys = Object.keys(this._dict);
@@ -1461,6 +1463,31 @@ JSIL.ImplementExternals(
     GetMethod: function () {
       // FIXME
       return new System.Reflection.MethodBase();
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.Enum", false, {
+    GetNames: function (enm) {
+      return enm.__Names__;
+    },
+    GetValues: function (enm) {
+      var names = enm.__Names__;
+      var result = new Array(names.length);
+
+      for (var i = 0; i < result.length; i++)
+        result[i] = enm[names[i]];
+
+      return result;
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.Activator", false, {
+    CreateInstance$2: function (type, arguments) {
+      return JSIL.CreateInstanceOfType(type, arguments);
     }
   }
 );

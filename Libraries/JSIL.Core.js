@@ -1872,7 +1872,8 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
       __IsReferenceType__: false,
       __TypeId__: ++JSIL.$NextTypeId,
       __IsFlagsEnum__: isFlagsEnum,
-      __ValueToName__: {}
+      __ValueToName__: {},
+      __Names__: []
     };
 
     result.__Type__ = result; // HACK
@@ -1916,6 +1917,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
 
       var value = Math.floor(members[key]);
 
+      $.__Names__.push(key);
       $.__ValueToName__[value] = key;
       $[key] = JSIL.MakeEnumValue($, value, key);
     }
@@ -2212,7 +2214,9 @@ JSIL.GetType = function (value) {
 };
 
 JSIL.GetTypeName = function (value) {
-  if (typeof (value) === "undefined" || value === null)
+  if (typeof (value) === "undefined")
+    return "JavaScript.Undefined";
+  else if (value === null)
     return "System.Object";
 
   var result = value.__FullName__;
@@ -2679,7 +2683,7 @@ JSIL.GetTypeFromAssembly = function (assembly, typeName, genericArguments, throw
   if (resolved.exists()) {
     result = resolved.get();
 
-    if (JSIL.IsArray(genericArguments))
+    if (JSIL.IsArray(genericArguments) && (genericArguments.length > 0))
       result = result.Of.apply(result, genericArguments);
   } else if (throwOnFail) {
     throw new System.TypeLoadException("The type '" + typeName + "' could not be found in the assembly.");
@@ -2715,6 +2719,9 @@ JSIL.ImplementExternals(
 
 JSIL.ImplementExternals(
   "System.Type", true, {
+    get_Name: function () {
+      return JSIL.GetLocalName(this.__FullName__);
+    },
     get_Assembly: function () {
       // FIXME: Probably wrong for nested types.
       return this.__Context__;
@@ -2725,6 +2732,11 @@ JSIL.ImplementExternals(
     },
     toString: function () {
       return this.__FullName__;
+    },
+    IsSubclassOf: function (type) {
+      var needle = type.__PublicInterface__.prototype;
+      var haystack = this.__PublicInterface__.prototype;
+      return JSIL.CheckDerivation(haystack, needle);
     },
     GetMethods$0: function () {
     	return this.GetMethods$1(
@@ -3393,6 +3405,7 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function
     JSIL.ExternalMembers($, true, 
       "_ctor", "_Type_GetIDsOfNames", "_Type_GetTypeInfo", "_Type_GetTypeInfoCount", "_Type_Invoke", "Equals$0", "Equals$1", "FindInterfaces", "FindMembers", "get_Assembly", "get_AssemblyQualifiedName", "get_Attributes", "get_BaseType", "get_ContainsGenericParameters", "get_DeclaringMethod", "get_DeclaringType", "get_FullName", "get_GenericParameterAttributes", "get_GenericParameterPosition", "get_GUID", "get_HasElementType", "get_HasProxyAttribute", "get_IsAbstract", "get_IsAnsiClass", "get_IsArray", "get_IsAutoClass", "get_IsAutoLayout", "get_IsByRef", "get_IsClass", "get_IsCOMObject", "get_IsContextful", "get_IsEnum", "get_IsExplicitLayout", "get_IsGenericParameter", "get_IsGenericType", "get_IsGenericTypeDefinition", "get_IsImport", "get_IsInterface", "get_IsLayoutSequential", "get_IsMarshalByRef", "get_IsNested", "get_IsNestedAssembly", "get_IsNestedFamANDAssem", "get_IsNestedFamily", "get_IsNestedFamORAssem", "get_IsNestedPrivate", "get_IsNestedPublic", "get_IsNotPublic", "get_IsPointer", "get_IsPrimitive", "get_IsPublic", "get_IsSealed", "get_IsSerializable", "get_IsSpecialName", "get_IsSzArray", "get_IsUnicodeClass", "get_IsValueType", "get_IsVisible", "get_MemberType", "get_Module", "get_Namespace", "get_ReflectedType", "get_StructLayoutAttribute", "get_TypeHandle", "get_TypeInitializer", "get_UnderlyingSystemType", "GetArrayRank", "GetAttributeFlagsImpl", "GetConstructor$0", "GetConstructor$1", "GetConstructor$2", "GetConstructorImpl", "GetConstructors$0", "GetConstructors$1", "GetDefaultMemberName", "GetDefaultMembers", "GetElementType", "GetEvent$0", "GetEvent$1", "GetEvents$0", "GetEvents$1", "GetField$0", "GetField$1", "GetFields$0", "GetFields$1", "GetGenericArguments", "GetGenericParameterConstraints", "GetGenericTypeDefinition", "GetHashCode", "GetInterface$0", "GetInterface$1", "GetInterfaceMap", "GetInterfaces", "GetMember$0", "GetMember$1", "GetMember$2", "GetMembers$0", "GetMembers$1", "GetMethod$0", "GetMethod$1", "GetMethod$2", "GetMethod$3", "GetMethod$4", "GetMethod$5", "GetMethodImpl", "GetMethods$0", "GetMethods$1", "GetNestedType$0", "GetNestedType$1", "GetNestedTypes$0", "GetNestedTypes$1", "GetProperties$0", "GetProperties$1", "GetProperty$0", "GetProperty$1", "GetProperty$2", "GetProperty$3", "GetProperty$4", "GetProperty$5", "GetProperty$6", "GetPropertyImpl", "GetRootElementType", "GetType", "GetTypeCodeInternal", "GetTypeHandleInternal", "HasElementTypeImpl", "HasProxyAttributeImpl", "InvokeMember$0", "InvokeMember$1", "InvokeMember$2", "IsArrayImpl", "IsAssignableFrom", "IsByRefImpl", "IsCOMObjectImpl", "IsContextfulImpl", "IsInstanceOfType", "IsMarshalByRefImpl", "IsPointerImpl", "IsPrimitiveImpl", "IsSubclassOf", "IsValueTypeImpl", "MakeArrayType$0", "MakeArrayType$1", "MakeByRefType", "MakeGenericType", "MakePointerType", "QuickSerializationCastCheck", "SigToString", "toString"
     );
+
     JSIL.OverloadedMethod($.prototype, "GetConstructors", [
         [0, []], 
         [1, ["System.Reflection.BindingFlags"]]
@@ -3459,6 +3472,19 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function
         [0, []], 
         [1, ["System.Reflection.BindingFlags"]]
       ], $jsilcore);
+
+    JSIL.MakeProperty($.prototype, "Name", 
+      $.prototype.get_Name, null);
+    JSIL.MakeProperty($.prototype, "Module", 
+      $.prototype.get_Module, null);
+    JSIL.MakeProperty($.prototype, "Assembly", 
+      $.prototype.get_Assembly, null);
+    JSIL.MakeProperty($.prototype, "FullName", 
+      $.prototype.get_FullName, null);
+    JSIL.MakeProperty($.prototype, "Namespace", 
+      $.prototype.get_Namespace, null);
+    JSIL.MakeProperty($.prototype, "BaseType", 
+      $.prototype.get_BaseType, null);
 });
 
 JSIL.MakeClass("System.Type", "System.RuntimeType", false, [], function ($) {

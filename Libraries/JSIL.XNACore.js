@@ -364,7 +364,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReader", tru
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReader`1", true, {
   _ctor: function (targetType) {
-    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework");
+    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework", true);
     assembly.Microsoft.Xna.Framework.Content.ContentTypeReader.prototype._ctor.call(
       this, 
       assembly.Microsoft.Xna.Framework.Content.ContentTypeReader$b1.T.get(this)
@@ -459,7 +459,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.Vector4Reader", true, {
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ArrayReader`1", true, {
   _ctor: function () {
-    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework");
+    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework", true);
     assembly.Microsoft.Xna.Framework.Content.ContentTypeReader$b1.prototype._ctor.call(
       this, 
       System.Array.Of(
@@ -486,7 +486,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ArrayReader`1", true, {
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ListReader`1", true, {
   _ctor: function () {
-    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework");
+    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework", true);
     assembly.Microsoft.Xna.Framework.Content.ContentTypeReader$b1.prototype._ctor.call(
       this, 
       System.Collections.Generic.List$b1.Of(
@@ -515,7 +515,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ListReader`1", true, {
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.Texture2DReader", true, {
   Read: function (input, existingInstance) {
-    var asmGraphics = JSIL.GetAssembly("Microsoft.Xna.Framework.Graphics");
+    var asmGraphics = JSIL.GetAssembly("Microsoft.Xna.Framework.Graphics", true);
     var tTexture2D = asmGraphics.Microsoft.Xna.Framework.Graphics.Texture2D;
     var tSurfaceFormat = asmGraphics.Microsoft.Xna.Framework.Graphics.SurfaceFormat;
 
@@ -541,8 +541,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.Texture2DReader", true,
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.SpriteFontReader", true, {
   Read: function (input, existingInstance) {
-    var asmXna = JSIL.GetAssembly("Microsoft.Xna.Framework");
-    var asmGraphics = JSIL.GetAssembly("Microsoft.Xna.Framework.Graphics");
+    var asmXna = JSIL.GetAssembly("Microsoft.Xna.Framework", true);
+    var asmGraphics = JSIL.GetAssembly("Microsoft.Xna.Framework.Graphics", true);
 
     var tList = System.Collections.Generic.List$b1;
     var tSpriteFont = asmGraphics.Microsoft.Xna.Framework.Graphics.SpriteFont;
@@ -580,7 +580,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.SpriteFontReader", true
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManager", false, {
   _cctor: function () {
-    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework");
+    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework", true);
     var thisType = assembly.Microsoft.Xna.Framework.Content.ContentTypeReaderManager;
 
     thisType.nameToReader = {};
@@ -588,7 +588,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManage
     thisType.readerTypeToReader = {};
   },
   AddTypeReader: function (readerTypeName, contentReader, reader) {
-    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework");
+    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework", true);
     var thisType = assembly.Microsoft.Xna.Framework.Content.ContentTypeReaderManager;
 
     var targetType = reader.TargetType;
@@ -597,7 +597,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManage
     thisType.nameToReader[readerTypeName] = reader;
   },
   GetTypeReader$1: function (targetType, contentReader) {
-    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework");
+    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework", true);
     var thisType = assembly.Microsoft.Xna.Framework.Content.ContentTypeReaderManager;
 
     var result = thisType.targetTypeToReader[targetType.__TypeId__];
@@ -610,7 +610,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManage
     return result;
   },
   ReadTypeManifest: function (typeCount, contentReader) {
-    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework");
+    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework", true);
     var thisType = assembly.Microsoft.Xna.Framework.Content.ContentTypeReaderManager;
 
     var result = new Array(typeCount);
@@ -659,7 +659,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManage
     if (typeof (reader) === "object")
       return reader;
 
-    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework");
+    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework", true);
     var thisType = assembly.Microsoft.Xna.Framework.Content.ContentTypeReaderManager;
 
     reader = thisType.GetTypeReader$1(type, this.contentReader);
@@ -781,7 +781,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", true, {
     return this.ReadRawObject$b1$1(T)(JSIL.DefaultValue(T));
   }),
   ReadRawObject$b1$1: JSIL.GenericMethod(["T"], function (T, existingInstance) {
-    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework");
+    var assembly = JSIL.GetAssembly("Microsoft.Xna.Framework", true);
     var ctrm = assembly.Microsoft.Xna.Framework.Content.ContentTypeReaderManager;
 
     var typeReader = ctrm.GetTypeReader$1(T, this);
@@ -2390,7 +2390,7 @@ JSIL.ImplementExternals(
       if ((typeof (text) === "undefined") || (text === null))
         return;
 
-      var asmGraphics = JSIL.GetAssembly("Microsoft.Xna.Framework.Graphics");
+      var asmGraphics = JSIL.GetAssembly("Microsoft.Xna.Framework.Graphics", true);
       var tSpriteFont = asmGraphics.Microsoft.Xna.Framework.Graphics.SpriteFont;
 
       if (Object.getPrototypeOf(font) === tSpriteFont.prototype) {
