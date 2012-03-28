@@ -73,4 +73,66 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
     }
+
+    [JSProxy(
+        new[] {
+            "Microsoft.Xna.Framework.Vector2",
+            "Microsoft.Xna.Framework.Vector3",
+            "Microsoft.Xna.Framework.Vector4",
+        },
+        JSProxyMemberPolicy.ReplaceNone,
+        JSProxyAttributePolicy.ReplaceDeclared,
+        JSProxyInterfacePolicy.ReplaceDeclared
+    )]
+    public abstract class VectorProxy {
+        [JSIsPure]
+        public static bool operator == (VectorProxy a, VectorProxy b) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static bool operator != (VectorProxy a, VectorProxy b) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static VectorProxy operator / (VectorProxy a, VectorProxy b) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static VectorProxy operator / (VectorProxy a, float b) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static VectorProxy operator * (VectorProxy a, VectorProxy b) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static VectorProxy operator * (VectorProxy a, float b) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static VectorProxy operator * (float a, VectorProxy b) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static VectorProxy operator - (VectorProxy a, VectorProxy b) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static VectorProxy operator + (VectorProxy a, VectorProxy b) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public bool Equals (VectorProxy other) {
+            throw new InvalidOperationException();
+        }
+    }
 }
