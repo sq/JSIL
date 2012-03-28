@@ -907,6 +907,9 @@ JSIL.ResolveGenericParameters = function (obj, context) {
   // Walk through our base types and attempt to resolve any unresolved generic parameters.
   // This fixes up cases where B<T> inherits from something like A<T[]>.
   var gaContext = obj;
+  // We need to ensure that we write resolved type values to the context so that we don't
+  //  modify any global state (like the properties of base classes).
+  var resolveTarget = context.prototype;
 
   while ((typeof(gaContext) !== "undefined") && (gaContext !== null)) {
     var localType = gaContext.__Type__;
@@ -928,9 +931,10 @@ JSIL.ResolveGenericParameters = function (obj, context) {
 
       var newValue = JSIL.ResolveGenericParameters(value, context);
       if (newValue !== value) {
-        qualifiedName.defineProperty(
-          proto, { value: newValue, enumerable: true, configurable: true }
-        );
+        var decl = { value: newValue, enumerable: true, configurable: true };
+
+        qualifiedName.defineProperty(resolveTarget, decl);
+        Object.defineProperty(resolveTarget, key, decl);
       }
 
       newFullName += newValue.toString();
@@ -1058,18 +1062,7 @@ $jsilcore.$Of$NoInitialize = function () {
 
     var name = new JSIL.Name(key, resultTypeObject.__FullNameWithoutArguments__);
     name.defineProperty(result, decl);
-
-    var makeGetter = function (_name) {
-      return function () {
-        return _name.get(this);
-      };
-    };
-
-    Object.defineProperty(result, key, {
-      get: makeGetter(name),
-      configurable: true,
-      enumerable: true
-    });
+    Object.defineProperty(result, key, decl);
 
     if (typeof (staticClassObject.prototype) !== "undefined") {
       Object.defineProperty(result.prototype, key, decl);
