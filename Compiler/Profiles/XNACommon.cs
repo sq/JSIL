@@ -780,7 +780,7 @@ public static class Common {
                                 journal, logOutput
                             );
 
-                            break;
+                            continue;
                         case "FontTextureProcessor":
                         case "FontDescriptionProcessor":
                             copyRawXnb(item, xnbPath, "SpriteFont");
@@ -815,6 +815,7 @@ public static class Common {
                         case "XmlImporter":
                             copyRawXnb(item, xnbPath, "XNB");
                             break;
+
                         default:
                             Console.Error.WriteLine(
                                 "// Can't process '{0}': importer '{1}' and processor '{2}' both unsupported.",
