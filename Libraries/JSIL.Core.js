@@ -2860,55 +2860,79 @@ JSIL.ImplementExternals("System.Enum", false, {
   CheckType: System.Enum.CheckType
 });
 
-$jsilcore.SystemArray = System.Array;
+(function () {
+  var runtimeType = $jsilcore.$GetRuntimeType($private);
 
-System.Array.prototype = JSIL.MakeProto("System.Object", System.Array, "System.Array", true, $private);
-System.Array.prototype.GetLength = function () {
-  return this.length;
-};
-System.Array.prototype.GetLowerBound = function () {
-  return 0;
-};
-System.Array.prototype.GetUpperBound = function () {
-  return this.length - 1;
-};
-System.Array.__TypeId__ = ++JSIL.$NextTypeId;
-System.Array.__IsArray__ = true;
-System.Array.Types = {};
-System.Array.Of = function (type) {
-  if (typeof (type) === "undefined")
-    throw new Error("Attempting to create an array of an undefined type");
+  var publicInterface = $jsilcore.SystemArray = System.Array;
+  var typeObject = JSIL.CloneObject(runtimeType);
 
-  var tsa = $jsilcore.SystemArray;
-  var elementName = JSIL.GetTypeName(type);
-  var compositeType = tsa.Types[elementName];
+  typeObject.__IsClosed__ = true;
+  typeObject.__IsReferenceType__ = true;
+  typeObject.__IsArray__ = true;
 
-  if (typeof (compositeType) === "undefined") {
-    var typeName = elementName + "[]";
-    compositeType = JSIL.CloneObject(tsa);
-    compositeType.__Type__ = compositeType; // TERRIBLE HACK OH GOD
-    compositeType.FullName = compositeType.__FullName__ = typeName;
-    compositeType.__IsReferenceType__ = true;
-    compositeType.__TypeId__ = ++JSIL.$NextTypeId;
-    compositeType.__IsArray__ = true;
-    compositeType.prototype = JSIL.MakeProto(tsa, compositeType, typeName, true, type.__Context__);
-    compositeType.toString = function () {
-      return typeName;
-    };
-    tsa.Types[elementName] = compositeType;
-  }
+  publicInterface.prototype = JSIL.MakeProto("System.Object", publicInterface, "System.Array", true, $private);
+  publicInterface.prototype.GetLength = function () {
+    return this.length;
+  };
+  publicInterface.prototype.GetLowerBound = function () {
+    return 0;
+  };
+  publicInterface.prototype.GetUpperBound = function () {
+    return this.length - 1;
+  };
 
-  return compositeType;
-};
-System.Array.CheckType = function (value) {
-  return JSIL.IsArray(value);
-};
-JSIL.DefineTypeName("System.Array", function () { return $jsilcore.SystemArray; }, true);
+  publicInterface.__Type__ = typeObject;
+  publicInterface.__TypeId__ = ++JSIL.$NextTypeId;
+  publicInterface.toString = function () {
+    return "<System.Array Public Interface>";
+  };
 
-JSIL.ImplementExternals("System.Array", false, {
-  Of: System.Array.Of,
-  CheckType: System.Array.CheckType
-});
+  publicInterface.Types = {};
+  publicInterface.Of = function (type) {
+    if (typeof (type) === "undefined")
+      throw new Error("Attempting to create an array of an undefined type");
+
+    var compositePublicInterface = publicInterface.Types[type.__TypeId__];
+
+    if (typeof (compositePublicInterface) === "undefined") {
+      var typeName = type.__FullName__ + "[]";
+
+      var compositeTypeObject = JSIL.CloneObject(typeObject);
+      compositePublicInterface = JSIL.CloneObject(publicInterface);
+
+      compositeTypeObject.__PublicInterface__ = compositePublicInterface;
+      compositePublicInterface.__Type__ = compositeTypeObject;
+
+      compositeTypeObject.__FullName__ = compositeTypeObject.__FullNameWithoutArguments__ = typeName;
+      compositeTypeObject.__IsReferenceType__ = true;
+      compositeTypeObject.__TypeId__ = ++JSIL.$NextTypeId;
+      compositeTypeObject.__IsArray__ = true;
+      compositeTypeObject.toString = function () {
+        return typeName;
+      };
+
+      compositePublicInterface.prototype = JSIL.MakeProto(publicInterface, compositePublicInterface, typeName, true, type.__Context__);
+      compositePublicInterface.toString = function () {
+        return "<" + typeName + " Public Interface>";
+      };
+
+      publicInterface.Types[type.__TypeId__] = compositePublicInterface;
+    }
+
+    return compositePublicInterface;
+  };
+
+  publicInterface.CheckType = function (value) {
+    return JSIL.IsArray(value);
+  };
+
+  JSIL.DefineTypeName("System.Array", function () { return publicInterface; }, true);
+
+  JSIL.ImplementExternals("System.Array", false, {
+    Of: publicInterface.Of,
+    CheckType: publicInterface.CheckType
+  });
+})();
 
 JSIL.Array.New = function (type, sizeOrInitializer) {
   if (Array.isArray(sizeOrInitializer)) {
