@@ -606,7 +606,8 @@ $jsilcore.$ListExternals = {
   },
   AsReadOnly: function () {
     // FIXME
-    return new System.Collections.ObjectModel.ReadOnlyCollection$b1(this);
+    var tCollection = System.Collections.ObjectModel.ReadOnlyCollection$b1.Of(this.T);
+    return new tCollection(this);
   }
 };
 

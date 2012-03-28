@@ -627,7 +627,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManage
         return null;
       }
 
-      var typeReaderInstance = new typeReaderType();
+      var typeReaderInstance = JSIL.CreateInstanceOfType(typeReaderType);
       var targetType = typeReaderInstance.TargetType;
       var targetTypeName = targetType.toString();
 
@@ -1992,17 +1992,19 @@ $jsilxna.Color = {
     var context = System.Type.GetType("Microsoft.Xna.Framework.Color,Microsoft.Xna.Framework") ||
       System.Type.GetType("Microsoft.Xna.Framework.Graphics.Color,Microsoft.Xna.Framework");
 
+    var publicInterface = context.__PublicInterface__;
+
     for (var i = 0, l = colors.length; i < l; i++) {
       var colorName = colors[i][0];
       var color = makeColor(proto, colors[i][1], colors[i][2], colors[i][3], colors[i][4]);
 
-      Object.defineProperty(context, "get_" + colorName, {
+      Object.defineProperty(publicInterface, "get_" + colorName, {
         value: bindColor(color),
         enumerable: true,
         configurable: true
       });
 
-      Object.defineProperty(context, colorName, {
+      Object.defineProperty(publicInterface, colorName, {
         value: color,
         enumerable: true,
         configurable: true

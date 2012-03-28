@@ -2619,6 +2619,13 @@ JSIL.GetTypeFromAssembly = function (assembly, typeName, genericArguments, throw
   return result.__Type__;
 };
 
+JSIL.CreateInstanceOfType = function (type, arguments) {
+  var publicInterface = type.__PublicInterface__;
+  var instance = JSIL.CloneObject(publicInterface.prototype);
+  Function.prototype.apply.call(publicInterface, instance, arguments);
+  return instance;
+};
+
 JSIL.ImplementExternals(
   "System.Type", false, {
     GetType$2: function (name) {
