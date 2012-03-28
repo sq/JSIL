@@ -314,7 +314,6 @@ JSIL.DeclareNamespace = function (name, sealed) {
 JSIL.DeclareNamespace("System");
 JSIL.DeclareNamespace("System.Collections");
 JSIL.DeclareNamespace("System.Collections.Generic");
-JSIL.DeclareNamespace("System.Array", false);
 JSIL.DeclareNamespace("System.Enum", false);
 JSIL.DeclareNamespace("System.Text");
 JSIL.DeclareNamespace("System.Threading");
@@ -2066,7 +2065,9 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
 
 JSIL.IsArray = function (value) {
   if ((typeof (value) === "object") && (value !== null)) {
-    if (Object.getPrototypeOf(value) === Array.prototype) {
+    var valueProto = Object.getPrototypeOf(value);
+
+    if (valueProto === Array.prototype) {
     } else if (typeof (ArrayBuffer) === "function") {
       if ((typeof (value.buffer) === "object") && (Object.getPrototypeOf(value.buffer) === ArrayBuffer.prototype))
         ;
@@ -2863,7 +2864,9 @@ JSIL.ImplementExternals("System.Enum", false, {
 (function () {
   var runtimeType = $jsilcore.$GetRuntimeType($private);
 
-  var publicInterface = $jsilcore.SystemArray = System.Array;
+  var publicInterface = $jsilcore.SystemArray = System.Array = function (size) {
+    return new Array(size);
+  };
   var typeObject = JSIL.CloneObject(runtimeType);
 
   typeObject.__IsClosed__ = true;
@@ -2885,6 +2888,9 @@ JSIL.ImplementExternals("System.Enum", false, {
   publicInterface.__TypeId__ = ++JSIL.$NextTypeId;
   publicInterface.toString = function () {
     return "<System.Array Public Interface>";
+  };
+  publicInterface.CheckType = function (value) {
+    return JSIL.IsArray(value);
   };
 
   publicInterface.Types = {};
@@ -2908,14 +2914,18 @@ JSIL.ImplementExternals("System.Enum", false, {
       var typeName = elementTypeObject.__FullName__ + "[]";
 
       var compositeTypeObject = JSIL.CloneObject(typeObject);
-      compositePublicInterface = JSIL.CloneObject(publicInterface);
+      compositePublicInterface = function (size) {
+        return new Array(size);
+      };
+      compositePublicInterface.prototype = JSIL.CloneObject(publicInterface.prototype);
+
+      compositePublicInterface.__Type__ = compositeTypeObject;
+      compositePublicInterface.__TypeId__ = ++JSIL.$NextTypeId;
+      compositePublicInterface.CheckType = publicInterface.CheckType;
 
       compositeTypeObject.__PublicInterface__ = compositePublicInterface;
-      compositePublicInterface.__Type__ = compositeTypeObject;
-
       compositeTypeObject.__FullName__ = compositeTypeObject.__FullNameWithoutArguments__ = typeName;
       compositeTypeObject.__IsReferenceType__ = true;
-      compositeTypeObject.__TypeId__ = ++JSIL.$NextTypeId;
       compositeTypeObject.__IsArray__ = true;
       compositeTypeObject.toString = function () {
         return typeName;
@@ -2932,10 +2942,6 @@ JSIL.ImplementExternals("System.Enum", false, {
     }
 
     return compositePublicInterface;
-  };
-
-  publicInterface.CheckType = function (value) {
-    return JSIL.IsArray(value);
   };
 
   JSIL.DefineTypeName("System.Array", function () { return publicInterface; }, true);
