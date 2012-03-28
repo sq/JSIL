@@ -182,6 +182,30 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
+        [JSReplacement("System.String.IndexOfAny($this, $chars)")]
+        [JSIsPure]
+        public int IndexOfAny (char[] chars) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.String.LastIndexOfAny($this, $chars)")]
+        [JSIsPure]
+        public int LastIndexOfAny (char[] chars) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("$this.substr($position)")]
+        [JSIsPure]
+        public string Substring (int position) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("$this.substr($position, $length)")]
+        [JSIsPure]
+        public string Substring (int position, int length) {
+            throw new InvalidOperationException();
+        }
+
         // FIXME
         /*
         [JSReplacement("$this.lastIndexOf($value, $startIndex)")]

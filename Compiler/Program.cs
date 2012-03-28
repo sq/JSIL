@@ -337,6 +337,13 @@ namespace JSIL.Compiler {
                 foreach (var filename in buildGroup.FilesToBuild) {
                     GC.Collect();
 
+                    if (config.Assemblies.Ignored.Any(
+                        (ignoreRegex) => Regex.IsMatch(filename, ignoreRegex, RegexOptions.IgnoreCase))
+                    ) {
+                        Console.Error.WriteLine("// Ignoring build result '{0}' based on configuration.", Path.GetFileName(filename));
+                        continue;
+                    }
+
                     var fileConfigPath = Path.Combine(
                         Path.GetDirectoryName(filename),
                         String.Format("{0}.jsilconfig", Path.GetFileName(filename))

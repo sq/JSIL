@@ -224,17 +224,6 @@ String.prototype.Split = function (separators) {
   return this.split(separators[0]);
 };
 
-JSIL.MakeClass("System.Object", "System.String", true, [], function ($) {
-  $.__IsNativeType__ = true;
-
-  JSIL.ExternalMembers($, false, 
-    "Concat", "Format"
-  );
-  JSIL.ExternalMembers($, true,
-    "_ctor", "_ctor$0", "_ctor$1", "_ctor$2"
-  );
-});
-
 JSIL.ImplementExternals(
   "System.String", false, {
     CheckType: function (value) {
@@ -294,6 +283,32 @@ JSIL.ImplementExternals(
         return 1;
       else
         return 0;
+    },
+    IndexOfAny: function (str, chars) {
+      var result = null;
+      for (var i = 0; i < chars.length; i++) {
+        var index = str.indexOf(chars[i]);
+        if ((result === null) || (index < result))
+          result = index;
+      }
+
+      if (result === null)
+        return -1;
+      else
+        return result;
+    },
+    LastIndexOfAny: function (str, chars) {
+      var result = null;
+      for (var i = 0; i < chars.length; i++) {
+        var index = str.lastIndexOf(chars[i]);
+        if ((result === null) || (index > result))
+          result = index;
+      }
+
+      if (result === null)
+        return -1;
+      else
+        return result;
     },
     Format: function (format) {
       format = String(format);
@@ -365,6 +380,17 @@ JSIL.ImplementExternals(
     },
   }
 );
+
+JSIL.MakeClass("System.Object", "System.String", true, [], function ($) {
+  $.__IsNativeType__ = true;
+
+  JSIL.ExternalMembers($, false, 
+    "Concat", "Format"
+  );
+  JSIL.ExternalMembers($, true,
+    "_ctor", "_ctor$0", "_ctor$1", "_ctor$2"
+  );
+});
 
 JSIL.ConcatString = function (/* ...values */) {
   var result = String(arguments[0]);

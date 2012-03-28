@@ -1917,6 +1917,11 @@ JSIL.ImplementExternals(
         Math.floor(this.Y + (this.Height / 2))
       );
     },
+    get_Location: function () {
+      return new Microsoft.Xna.Framework.Point(
+        this.X, this.Y
+      );
+    },
     Contains$1: function (value) {
       return this.X <= value.X && value.X < this.X + this.Width && this.Y <= value.Y && value.Y < this.Y + this.Height;
     },

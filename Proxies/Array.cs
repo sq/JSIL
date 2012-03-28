@@ -71,6 +71,11 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
+        [JSReplacement("$array.splice.apply($array, [$destinationIndex, $this.length].concat($this))")]
+        public void CopyTo (Array array, int destinationIndex) {
+            throw new InvalidOperationException();
+        }
+
         [JSReplacement("Array.prototype.sort.call($array)")]
         public static void Sort (AnyType[] array) {
             throw new InvalidOperationException();
