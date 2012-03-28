@@ -515,7 +515,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ListReader`1", true, {
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.Texture2DReader", true, {
   Read: function (input, existingInstance) {
-    var asmGraphics = JSIL.GetAssembly("Microsoft.Xna.Framework.Graphics", true);
+    var asmGraphics = JSIL.GetAssembly("Microsoft.Xna.Framework.Graphics", true) ||
+      JSIL.GetAssembly("Microsoft.Xna.Framework", true);
     var tTexture2D = asmGraphics.Microsoft.Xna.Framework.Graphics.Texture2D;
     var tSurfaceFormat = asmGraphics.Microsoft.Xna.Framework.Graphics.SurfaceFormat;
 
@@ -542,7 +543,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.Texture2DReader", true,
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.SpriteFontReader", true, {
   Read: function (input, existingInstance) {
     var asmXna = JSIL.GetAssembly("Microsoft.Xna.Framework", true);
-    var asmGraphics = JSIL.GetAssembly("Microsoft.Xna.Framework.Graphics", true);
+    var asmGraphics = JSIL.GetAssembly("Microsoft.Xna.Framework.Graphics", true) ||
+      JSIL.GetAssembly("Microsoft.Xna.Framework", true);
 
     var tList = System.Collections.Generic.List$b1;
     var tSpriteFont = asmGraphics.Microsoft.Xna.Framework.Graphics.SpriteFont;
@@ -2395,7 +2397,8 @@ JSIL.ImplementExternals(
       if ((typeof (text) === "undefined") || (text === null))
         return;
 
-      var asmGraphics = JSIL.GetAssembly("Microsoft.Xna.Framework.Graphics", true);
+      var asmGraphics = JSIL.GetAssembly("Microsoft.Xna.Framework.Graphics", true) ||
+        JSIL.GetAssembly("Microsoft.Xna.Framework", true);
       var tSpriteFont = asmGraphics.Microsoft.Xna.Framework.Graphics.SpriteFont;
 
       if (Object.getPrototypeOf(font) === tSpriteFont.prototype) {
