@@ -643,12 +643,22 @@ JSIL.TypeRef.prototype.get = function () {
 };
 
 JSIL.DefaultValue = function (type) {
-  if (type.__IsNativeType__ || false) {
-    return new type();
-  } else if (type.__IsReferenceType__) {
+  var typeObject, typePublicInterface;
+
+  if (typeof (type.__Type__) === "object") {
+    typeObject = type.__Type__;
+    typePublicInterface = type;
+  } else if (typeof (type.__PublicInterface__) !== "undefined") {
+    typeObject = type;
+    typePublicInterface = type.__PublicInterface__;
+  }
+
+  if (typeObject.__IsNativeType__ || false) {
+    return new typePublicInterface();
+  } else if (typeObject.__IsReferenceType__) {
     return null;
   } else {
-    return Object.create(type.prototype);
+    return Object.create(typePublicInterface.prototype);
   }
 };
 
