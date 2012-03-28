@@ -2622,10 +2622,10 @@ JSIL.GetTypeFromAssembly = function (assembly, typeName, genericArguments, throw
     return null;
 };
 
-JSIL.CreateInstanceOfType = function (type, arguments) {
+JSIL.CreateInstanceOfType = function (type, constructorArguments) {
   var publicInterface = type.__PublicInterface__;
   var instance = JSIL.CloneObject(publicInterface.prototype);
-  Function.prototype.apply.call(publicInterface, instance, arguments);
+  Function.prototype.apply.call(publicInterface, instance, constructorArguments);
   return instance;
 };
 
