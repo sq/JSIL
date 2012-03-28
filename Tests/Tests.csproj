@@ -59,6 +59,7 @@
     <None Include="ReflectionTestCases\Common.cs" />
     <None Include="ReflectionTestCases\ListFilteredStaticMethods.cs" />
     <None Include="ReflectionTestCases\ListFilteredMethods.cs" />
+    <None Include="FailingTestCases\OverloadedVirtualMethods.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

@@ -708,11 +708,13 @@ JSIL.ImplementExternals("System.Collections.Generic.Stack`1", true, {
     return this._size;
   },
   Push: function (item) {
-    this._items[this._size] = item;
+    this._items.push(item)
     this._size += 1;
   },
   Pop: function () {
-    var result = this.Peek();
+    var result = this._items.pop();
+    this._size -= 1;
+
     return result;
   },
   Peek: function () {
@@ -720,6 +722,36 @@ JSIL.ImplementExternals("System.Collections.Generic.Stack`1", true, {
       throw new System.InvalidOperationException("Stack is empty");
 
     return this._items[this._size - 1];
+  },
+  GetEnumerator: function () {
+    var elementType = this.T;
+    return new (System.Collections.Generic.List$b1_Enumerator.Of(elementType)) (this);
+  }
+});
+
+JSIL.ImplementExternals("System.Collections.Generic.Queue`1", true, {
+  _ctor$0: function () {
+    this._items = new Array();
+    this._size = 0;
+  },
+  _ctor$1: function (size) {
+    this._items = new Array(size);
+    this._size = 0;
+  },
+  Clear: function () {
+    this._size = 0;
+  },
+  get_Count: function () {
+    return this._size;
+  },
+  Enqueue: function (item) {
+    this._items.push(item);
+    this._size += 1;
+  },
+  Dequeue: function () {
+    var result = this._items.shift();
+    this._size -= 1;
+    return result;
   },
   GetEnumerator: function () {
     var elementType = this.T;
@@ -1512,8 +1544,8 @@ JSIL.ImplementExternals(
 
 JSIL.ImplementExternals(
   "System.Activator", false, {
-    CreateInstance$2: function (type, arguments) {
-      return JSIL.CreateInstanceOfType(type, arguments);
+    CreateInstance$2: function (type, constructorArguments) {
+      return JSIL.CreateInstanceOfType(type, constructorArguments);
     }
   }
 );

@@ -20,12 +20,16 @@ using MethodInfo = System.Reflection.MethodInfo;
 
 namespace JSIL.Tests {
     public class JavaScriptException : Exception {
+        public readonly int ExitCode;
         public readonly string ErrorText;
+        public readonly string Output;
 
         public JavaScriptException (int exitCode, string stdout, string stderr)
             : base(String.Format("JavaScript interpreter exited with code {0}\r\n{1}\r\n{2}", exitCode, stdout, stderr)) 
         {
+            ExitCode = exitCode;
             ErrorText = stderr;
+            Output = stdout;
         }
     }
 
@@ -339,7 +343,7 @@ namespace JSIL.Tests {
                 if (errors[0] != null)
                     throw new Exception("C# test failed", errors[0]);
                 else if (errors[1] != null)
-                    throw new Exception("JS test failed", errors[1]);
+                    throw errors[1];
                 else
                     Assert.AreEqual(outputs[0], outputs[1]);
 

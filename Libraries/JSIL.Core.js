@@ -1495,7 +1495,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
 
   var runtimeType = $jsilcore.$GetRuntimeType(assembly);
   var typeObject = JSIL.CloneObject(runtimeType);
-  typeObject.FullName = typeObject.__FullName__ = fullName;
+  typeObject.__FullName__ = fullName;
 
   if (typeof (printStackTrace) === "function")
     typeObject.__CallStack__ = printStackTrace();
@@ -1593,7 +1593,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__IsNativeType__ = false;
     typeObject.__IsReferenceType__ = isReferenceType;
     typeObject.__Context__ = assembly;
-    typeObject.FullName = typeObject.__FullName__ = fullName;
+    typeObject.__FullName__ = fullName;
     typeObject.__ShortName__ = localName;
     typeObject.__LockCount__ = 0;
     typeObject.__GenericArguments__ = genericArguments || [];
