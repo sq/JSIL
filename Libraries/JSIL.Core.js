@@ -2355,7 +2355,15 @@ JSIL.MakeMethod = function (type, descriptor, methodName, overloadIndex, fn) {
   else if (typeof (overloadIndex) === "function")
     fn = overloadIndex;
 
-  target[mangledName] = fn;
+  try {
+    target[mangledName] = fn;
+  } catch (exc) {
+    Object.defineProperty(target, "mangledName", {
+      value: fn,
+      configurable: true,
+      enumerable: true
+    });
+  }
 
   var methodList = type.__Type__.__AllMethods__;
   if (typeof (methodList) !== "object")

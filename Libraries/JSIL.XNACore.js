@@ -877,10 +877,13 @@ JSIL.ImplementExternals(
               var waveName = evt.Wave;
               var wave = this.soundBank.waves[waveName];
 
-              var instance = wave.$createInstance(evt.LoopCount);
-              instance.play();
+              // Handle broken audio implementations
+              if (wave !== null) {
+                var instance = wave.$createInstance(evt.LoopCount);
+                instance.play();
 
-              this.wavesPlaying.push(instance);
+                this.wavesPlaying.push(instance);
+              }
 
               break;
           }

@@ -39,6 +39,7 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Primitives.cs" />
     <Compile Include="Gamepad.cs" />
     <Compile Include="Game.cs" />
     <Compile Include="SpriteBatch.cs" />
