@@ -582,7 +582,7 @@ JSIL.GenericParameter = function (name, context) {
 };
 JSIL.GenericParameter.prototype.get = function (context) {
   if ((typeof (context) !== "object") && (typeof (context) !== "function")) {
-    // throw new Error("No context provided when resolving generic parameter '" + this.name + "'");
+    throw new Error("No context provided when resolving generic parameter '" + this.name + "'");
     return JSIL.AnyType;
   }
 
@@ -909,20 +909,28 @@ JSIL.ResolveGenericParameters = function (obj, context) {
   var gaContext = obj;
 
   while ((typeof(gaContext) !== "undefined") && (gaContext !== null)) {
-    var localGa = gaContext.__GenericArguments__ || [];
-    var newFullName = gaContext.__FullNameWithoutArguments__ || gaContext.__FullName__;
+    var localType = gaContext.__Type__;
+    if (typeof (localType) === "undefined")
+      break;
+
+    var localGa = localType.__GenericArguments__ || [];
+    var localFullName = localType.__FullNameWithoutArguments__ || localType.__FullName__;
+    var newFullName = localFullName;
+    var proto = gaContext.prototype;
 
     if (localGa.length > 0)
       newFullName += "[";
 
     for (var i = 0, l = localGa.length; i < l; i++) {
       var key = localGa[i];
-      var value = gaContext[key];
+      var qualifiedName = new JSIL.Name(key, localFullName);
+      var value = qualifiedName.get(proto);
 
       var newValue = JSIL.ResolveGenericParameters(value, context);
       if (newValue !== value) {
-        var qualifiedKey = new JSIL.Name(key, gaContext.__ShortName__);
-        qualifiedKey.defineProperty(gaContext.prototype, { value: newValue, enumerable: true, configurable: true });
+        qualifiedName.defineProperty(
+          proto, { value: newValue, enumerable: true, configurable: true }
+        );
       }
 
       newFullName += newValue.toString();
@@ -934,11 +942,10 @@ JSIL.ResolveGenericParameters = function (obj, context) {
     if (localGa.length > 0)
       newFullName += "]";
 
-    gaContext.__FullName__ = newFullName;
+    localType.__FullName__ = newFullName;
 
-    var proto = gaContext.prototype;
     if (typeof (proto) !== "undefined")
-      gaContext = gaContext.prototype.__BaseType__;
+      gaContext = proto.__BaseType__;
     else
       break;
   }
@@ -961,10 +968,10 @@ $jsilcore.$Of$NoInitialize = function () {
   // Ensure that each argument is the public interface of a type (not the type object or a type reference)
   for (var i = 0, l = resolvedArguments.length; i < l; i++) {
     if (typeof (resolvedArguments[i]) !== "undefined") {
-      if (typeof (resolvedArguments[i].get) === "function")
-        resolvedArguments[i] = resolvedArguments[i].get();
-      else if (typeof (resolvedArguments[i].__PublicInterface__) !== "undefined")
-        resolvedArguments[i] = resolvedArguments[i].__PublicInterface__;
+      if (Object.getPrototypeOf(resolvedArguments[i]) === JSIL.TypeRef.prototype)
+        resolvedArguments[i] = resolvedArguments[i].get().__Type__;
+      else if (typeof (resolvedArguments[i].__Type__) !== "undefined")
+        resolvedArguments[i] = resolvedArguments[i].__Type__;
     }
   }
 
@@ -1020,8 +1027,11 @@ $jsilcore.$Of$NoInitialize = function () {
   result.__TypeId__ = resultTypeObject.__TypeId__ = ++JSIL.$NextTypeId;
   resultTypeObject.__FullNameWithoutArguments__ = typeObject.__FullName__;
   resultTypeObject.__FullName__ = fullName;
-  result.toString = resultTypeObject.toString = function () {
+  resultTypeObject.toString = function () {
     return this.__FullName__;
+  };
+  result.toString = function () {
+    return "<" + this.__Type__.__FullName__ + " Public Interface>";
   };
   result.__Self__ = result;
 
@@ -1046,10 +1056,20 @@ $jsilcore.$Of$NoInitialize = function () {
       value: resolvedArguments[i]
     };
 
-    Object.defineProperty(result, key, decl);
-
-    var name = new JSIL.Name(key, this.__FullName__);
+    var name = new JSIL.Name(key, resultTypeObject.__FullNameWithoutArguments__);
     name.defineProperty(result, decl);
+
+    var makeGetter = function (_name) {
+      return function () {
+        return _name.get(this);
+      };
+    };
+
+    Object.defineProperty(result, key, {
+      get: makeGetter(name),
+      configurable: true,
+      enumerable: true
+    });
 
     if (typeof (staticClassObject.prototype) !== "undefined") {
       Object.defineProperty(result.prototype, key, decl);
@@ -1428,7 +1448,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
     var ga = typeObject.__GenericArguments__[i];
     var name = new JSIL.Name(ga, fullName);
     Object.defineProperty(
-      typeObject, ga, {
+      staticClassObject, ga, {
         value: name,
         enumerable: true,
         configurable: true
@@ -1528,7 +1548,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     };
 
     staticClassObject.toString = typeObject.toString = function () {
-      return fullName;
+      return "<" + fullName + " Public Interface>";
     };
 
     staticClassObject.__TypeId__ = typeObject.__TypeId__ = ++JSIL.$NextTypeId;
@@ -1570,7 +1590,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
       var ga = typeObject.__GenericArguments__[i];
       var name = new JSIL.Name(ga, fullName);
       Object.defineProperty(
-        typeObject, ga, {
+        staticClassObject, ga, {
           value: name,
           enumerable: true,
           configurable: true
@@ -1628,6 +1648,7 @@ JSIL.MakeStruct = function (baseType, fullName, isPublic, genericArguments, init
 };
 
 JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, interfaces) {
+  var assembly = $private;
   var localName = JSIL.GetLocalName(fullName);
 
   var callStack = null;
@@ -1635,11 +1656,16 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
     callStack = printStackTrace();
 
   var creator = function () {
-    var typeObject = function () {
+    var publicInterface = function () {
       throw new Error("Cannot construct an instance of an interface");
     };
 
-    typeObject.__Type__ = typeObject;
+    var runtimeType = $jsilcore.$GetRuntimeType(assembly);
+    var typeObject = JSIL.CloneObject(runtimeType);
+
+    publicInterface.__Type__ = typeObject;
+
+    typeObject.__PublicInterface__ = publicInterface;
     typeObject.__CallStack__ = callStack;
     typeObject.__TypeId__ = ++JSIL.$NextTypeId;
     typeObject.__Members__ = members;
@@ -1649,13 +1675,19 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
     typeObject.__GenericArguments__ = genericArguments || [];
     typeObject.IsInterface = true;
     typeObject.__Interfaces__ = interfaces;
-    typeObject.Of$NoInitialize = function () {
-      return typeObject;
-    };
-    typeObject.Of = function () {
-      return typeObject;
-    };
+
     typeObject.prototype = JSIL.CloneObject(JSIL.Interface.prototype);
+
+    publicInterface.toString = function () {
+      return "<" + fullName + " Public Interface>";
+    };
+    publicInterface.Of$NoInitialize = function () {
+      return typeObject;
+    };
+    publicInterface.Of = function () {
+      return typeObject;
+    };
+
     typeObject.IsAssignableFrom = function (typeOfValue) {
       if (typeObject === typeOfValue)
         return true;
@@ -1668,12 +1700,12 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
             typeOfValue.__Context__ || JSIL.GlobalNamespace, iface, true
           );
           if (resolved.exists())
-            return resolved.get();
+            return resolved.get().__Type__;
           else {
             throw new Error("Attempting to resolve undefined interface named '" + iface + "'.");
           }
         } else if ((typeof (iface) === "object") && (typeof (iface.get) === "function")) {
-          return iface.get();
+          return iface.get().__Type__;
         }
       };
 
@@ -1718,7 +1750,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
       return false;
     };
 
-    return typeObject;
+    return publicInterface;
   };
 
   JSIL.RegisterName(fullName, $private, isPublic, creator);
@@ -1874,6 +1906,9 @@ JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
       iface = iface.get();
     }
 
+    if (typeof (iface.__Type__) === "object")
+      iface = iface.__Type__;
+
     var ifaceName = JSIL.GetTypeName(iface);
     if (iface.IsInterface !== true) {
       JSIL.Host.warning("Type ", ifaceName, " is not an interface.");
@@ -1976,9 +2011,19 @@ JSIL.CheckDerivation = function (haystack, needle) {
 };
 
 JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
+  var expectedTypeObject, expectedTypePublicInterface;
+
   if (typeof (expectedType) === "undefined") {
     JSIL.Host.warning("Warning: Comparing value against an undefined type: ", value);
     return false;
+  }
+
+  if (typeof (expectedType.__Type__) === "object") {
+    expectedTypeObject = expectedType.__Type__;
+    expectedTypePublicInterface = expectedType;
+  } else if (typeof (expectedType.__PublicInterface__) !== "undefined") {
+    expectedTypeObject = expectedType;
+    expectedTypePublicInterface = expectedType.__PublicInterface__;
   }
 
   if (typeof (value) === "undefined")
@@ -1986,12 +2031,12 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
   else if (value === null)
     return false;
 
-  if (expectedType.IsInterface === true) {
+  if (expectedTypeObject.IsInterface === true) {
     var interfaces = JSIL.GetType(value).__Interfaces__;
 
     while (JSIL.IsArray(interfaces)) {
       for (var i = 0; i < interfaces.length; i++) {
-        if (interfaces[i] === expectedType)
+        if (interfaces[i] === expectedTypeObject)
           return true;
       }
 
@@ -2000,11 +2045,11 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
     }
 
     return false;
-  } else if (expectedType.IsEnum === true) {
-    return expectedType.CheckType(value);
+  } else if (expectedTypeObject.IsEnum === true) {
+    return expectedTypePublicInterface.CheckType(value);
   }
 
-  var ct = expectedType.CheckType;
+  var ct = expectedTypePublicInterface.CheckType;
   if (
     (typeof (ct) != "undefined") &&
     !Boolean(bypassCustomCheckMethod)
@@ -2013,7 +2058,7 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
       return true;
   }
 
-  var expectedProto = expectedType.prototype;
+  var expectedProto = expectedTypePublicInterface.prototype;
   if ((typeof (expectedProto) === "undefined") ||
       (typeof (expectedProto) === "null"))
     return false;
@@ -2131,7 +2176,6 @@ JSIL.Cast = function (value, expectedType) {
   if (value === null) 
     return null;
 
-
   if (expectedType.IsEnum) {
     var result = expectedType.__ValueToName__[value];
     if (typeof (result) === "string")
@@ -2173,6 +2217,13 @@ JSIL.GenericMethod = function (argumentNames, body) {
 
     var genericArguments = Array.prototype.slice.call(arguments);
     var outerThis = this;
+
+    // The user might pass in a public interface instead of a type object, so map that to the type object.
+    for (var i = 0, l = genericArguments.length; i < l; i++) {
+      var ga = genericArguments[i];
+      if (typeof (ga.__Type__) === "object")
+        genericArguments[i] = ga.__Type__;
+    }
 
     var result = function () {
       // concat doesn't work on the raw 'arguments' value :(
@@ -2548,7 +2599,7 @@ JSIL.GetTypeFromAssembly = function (assembly, typeName, genericArguments, throw
     throw new System.TypeLoadException("The type '" + typeName + "' could not be found in the assembly.");
   }
 
-  return result;
+  return result.__Type__;
 };
 
 JSIL.ImplementExternals(
