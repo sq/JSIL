@@ -870,10 +870,12 @@ JSIL.MakeGenericProperty = function (parent, name, getter, setter) {
 JSIL.MakeNumericType = function (baseType, typeName, isIntegral) {
   JSIL.MakeType(baseType, typeName, false, true);
   var resolved = JSIL.ResolveName(JSIL.GlobalNamespace, typeName, true);
-  resolved.get().__IsNumeric__ = true;
-  resolved.get().prototype.__IsNumeric__ = true;
-  resolved.get().__IsIntegral__ = isIntegral;
-  resolved.get().prototype.__IsIntegral__ = isIntegral;
+  var publicInterface = resolved.get();
+  var typeObject = publicInterface.__Type__;
+  typeObject.__IsNumeric__ = true;
+  publicInterface.prototype.__IsNumeric__ = true;
+  typeObject.__IsIntegral__ = isIntegral;
+  publicInterface.prototype.__IsIntegral__ = isIntegral;
 };
 
 JSIL.MakeIndirectProperty = function (target, key, source) {
@@ -904,78 +906,85 @@ JSIL.TypeObjectPrototype.__GenericArguments__ = [];
 JSIL.TypeObjectPrototype.toString = function () {
   return JSIL.GetTypeName(this);
 };
-JSIL.ResolveGenericParameters = function (obj, resolveTarget, context) {
-  if ((typeof (obj) !== "object") && (typeof (obj) !== "function"))
-    throw new Error("Cannot resolve generic parameters on non-object");
+
+JSIL.ResolveGenericTypeReference = function (obj, context) {
+  if ((typeof (obj) !== "object") || (obj === null))
+    return null;
 
   if (Object.getPrototypeOf(obj) === JSIL.GenericParameter.prototype) {
-    return obj.get(context);
-  }
+    var result = obj.get(context);
 
-  // Walk through our base types and attempt to resolve any unresolved generic parameters.
-  // This fixes up cases where B<T> inherits from something like A<T[]>.
-  var gaContext = obj;
+    if (
+      (typeof (result) === "undefined") ||
+      (result === null)
+    )
+      return obj;
 
-  while ((typeof(gaContext) !== "undefined") && (gaContext !== null)) {
-    var localType, localPublicInterface;
-    if (typeof (gaContext.__Type__) === "object") {
-      localType = gaContext.__Type__;
-      localPublicInterface = gaContext;
-    } else if (typeof (gaContext.__PublicInterface__) !== "undefined") {
-      localType = gaContext;
-      localPublicInterface = gaContext.__PublicInterface__;
+    return JSIL.ResolveGenericTypeReference(result, context);
+  } else if (!obj.__IsClosed__) {
+    var ga = obj.__GenericArguments__ || [];
+    if (ga.length < 1)
+      return obj;
+
+    var openType = obj.__OpenType__;
+    var openPublicInterface = openType.__PublicInterface__;
+    var existingParameters = obj.__GenericArgumentValues__ || [];
+    var closedParameters = new Array(existingParameters.length);
+
+    for (var i = 0; i < closedParameters.length; i++) {
+      closedParameters[i] = JSIL.ResolveGenericTypeReference(
+        existingParameters[i], context
+      );
+
+      // Failed to resolve the parameter.
+      if (
+        (typeof (closedParameters[i]) === "undefined") ||
+        (closedParameters[i] === null)
+      )
+        return obj;
     }
 
-    if (typeof (localType) === "undefined")
-      break;
+    var result = openPublicInterface.Of.apply(openPublicInterface, closedParameters);
+    return result.__Type__;
+  }
 
-    var localGa = localType.__GenericArguments__ || [];
-    var localFullName = localType.__FullNameWithoutArguments__ || localType.__FullName__;
-    var newFullName = localFullName;
-    var proto = gaContext.prototype;
+  return obj;
+};
 
-    if (localGa.length > 0)
-      newFullName += "[";
+JSIL.FindGenericParameters = function (obj, type, resultList) {
+  // Walk through our base types and identify any unresolved generic parameters.
+  // This produces a list of parameters that need new values assigned in the target prototype.
+
+  if ((typeof (obj) !== "object") && (typeof (obj) !== "function"))
+    throw new Error("Cannot resolve generic parameters of non-object");
+
+  var currentType = type;
+
+  while ((typeof(currentType) !== "undefined") && (currentType !== null)) {
+    var localGa = currentType.__GenericArguments__ || [];
+    var localFullName = currentType.__FullNameWithoutArguments__ || currentType.__FullName__;
 
     for (var i = 0, l = localGa.length; i < l; i++) {
       var key = localGa[i];
       var qualifiedName = new JSIL.Name(key, localFullName);
-      var value = qualifiedName.get(resolveTarget); // || qualifiedName.get(obj);
+      var value = qualifiedName.get(obj);
 
-      var valueProto;
-      if (typeof (value.__Type__) === "object") {
-        valueProto = value.prototype;
-      } else if (typeof (value.__PublicInterface__) !== "undefined") {
-        valueProto = value.__PublicInterface__.prototype;
-      } else {
-        valueProto = resolveTarget;
+      if ((typeof (value) === "object") && (value !== null)) {
+        if (Object.getPrototypeOf(value) === JSIL.GenericParameter.prototype) {
+          resultList.push([qualifiedName, value]);
+        } else if (!value.__IsClosed__) {
+          resultList.push([qualifiedName, value]);
+        }
       }
-
-      var newValue = JSIL.ResolveGenericParameters(value, valueProto, context);
-      if (newValue !== value) {
-        var decl = { value: newValue, enumerable: true, configurable: true };
-
-        qualifiedName.defineProperty(resolveTarget, decl);
-      }
-
-      newFullName += newValue.toString();
-
-      if (i < (l - 1))
-        newFullName += ", ";
     }
 
-    if (localGa.length > 0)
-      newFullName += "]";
-
-    localType.__FullName__ = newFullName;
-
-    if (typeof (proto) !== "undefined")
-      gaContext = proto.__BaseType__;
-    else
-      break;
+    currentType = currentType.__BaseType__;
+    if (
+      (typeof(currentType) === "object") && 
+      (Object.getPrototypeOf(currentType) === JSIL.TypeRef.prototype)
+    )
+      currentType = currentType.get().__Type__;
   }
-
-  return obj;
 };
 
 $jsilcore.$Of$NoInitialize = function () {
@@ -997,6 +1006,28 @@ $jsilcore.$Of$NoInitialize = function () {
         resolvedArguments[i] = resolvedArguments[i].get().__Type__;
       else if (typeof (resolvedArguments[i].__Type__) !== "undefined")
         resolvedArguments[i] = resolvedArguments[i].__Type__;
+    }
+
+    if (typeof(resolvedArguments[i]) === "undefined")
+      throw new Error("Undefined passed as generic argument");
+    else if (resolvedArguments[i] === null)
+      throw new Error("Null passed as generic argument");
+  }
+
+  if (typeof (staticClassObject.prototype) !== "undefined") {
+    var resolveContext = JSIL.CloneObject(staticClassObject.prototype);
+    for (var i = 0; i < resolvedArguments.length; i++) {
+      var name = new JSIL.Name(ga[i], typeObject.__FullName__);
+      name.set(resolveContext, resolvedArguments[i]);
+    }
+
+    for (var i = 0; i < resolvedArguments.length; i++) {
+      var resolved = JSIL.ResolveGenericTypeReference(resolvedArguments[i], resolveContext);
+      
+      if ((resolved !== resolvedArguments[i]) && (resolved !== null)) {
+        // console.log("ga[", i, "] ", resolvedArguments[i], " -> ", resolved);
+        resolvedArguments[i] = resolved;
+      }
     }
   }
 
@@ -1030,10 +1061,39 @@ $jsilcore.$Of$NoInitialize = function () {
     var ctorArguments = Array.prototype.slice.call(arguments);
     return Function.prototype.apply.call(staticClassObject, this, ctorArguments);
   };
+  resultTypeObject.__OpenType__ = typeObject;
   result.__Type__ = resultTypeObject;
 
   // Prevents recursion when Of is called indirectly during initialization of the new closed type
   ofCache[cacheKey] = result;
+
+  if (typeof (staticClassObject.prototype) !== "undefined") {
+    result.prototype = Object.create(staticClassObject.prototype);
+    result.prototype.GetType = function () {
+      return resultTypeObject;
+    };
+
+    var genericParametersToResolve = [];
+    JSIL.FindGenericParameters(result.prototype, resultTypeObject, genericParametersToResolve);
+
+    for (var i = 0; i < genericParametersToResolve.length; i++) {
+      var qualifiedName = genericParametersToResolve[i][0];
+      var value = genericParametersToResolve[i][1];
+
+      var resolved = JSIL.ResolveGenericTypeReference(value, resolveContext);
+      
+      if ((resolved !== null) && (resolved !== value)) {
+        // console.log(qualifiedName.humanReadable, " ", value, " -> ", resolved);
+        qualifiedName.defineProperty(
+          result.prototype, {
+            value: resolved,
+            enumerable: true,
+            configurable: true
+          }
+        );
+      }
+    }
+  }
 
   var ignoredNames = [
     "__Type__", "__TypeInitialized__", "__IsClosed__", "prototype", 
@@ -1050,6 +1110,7 @@ $jsilcore.$Of$NoInitialize = function () {
 
   var fullName = typeObject.__FullName__ + "[" + Array.prototype.join.call(resolvedArguments, ", ") + "]";
   result.__TypeId__ = resultTypeObject.__TypeId__ = ++JSIL.$NextTypeId;
+  resultTypeObject.__GenericArgumentValues__ = resolvedArguments;
   resultTypeObject.__FullNameWithoutArguments__ = typeObject.__FullName__;
   resultTypeObject.__FullName__ = fullName;
   resultTypeObject.toString = function () {
@@ -1060,12 +1121,8 @@ $jsilcore.$Of$NoInitialize = function () {
   };
   result.__Self__ = result;
 
-  if (typeof (staticClassObject.prototype) !== "undefined") {
-    result.prototype = Object.create(staticClassObject.prototype);
+  if (typeof (result.prototype) !== "undefined") {
     result.prototype.__FullName__ = fullName;
-    result.prototype.GetType = function () {
-      return resultTypeObject;
-    };
   }
 
   // This is important: It's possible for recursion to cause the initializer to run while we're defining properties.
@@ -1102,19 +1159,13 @@ $jsilcore.$Of$NoInitialize = function () {
     }
   }
 
-  var proto = result.prototype;
-  if (typeof (proto) !== "undefined") {
-    var baseType = proto.__BaseType__;
-
-    if (typeof (baseType) !== "undefined")
-      JSIL.ResolveGenericParameters(baseType, proto, result);
-  }
-
   // Since .Of() will now be called even for open types, we need to ensure that we flag
   //  the type as open if it has any unresolved generic parameters.
   var isClosed = true;
   for (var i = 0, l = arguments.length; i < l; i++) {
-    if (Object.getPrototypeOf(arguments[i]) === JSIL.GenericParameter.prototype)
+    if (Object.getPrototypeOf(resolvedArguments[i]) === JSIL.GenericParameter.prototype)
+      isClosed = false;
+    else if (resolvedArguments[i].__IsClosed__ === false)
       isClosed = false;
   }
   resultTypeObject.__IsClosed__ = isClosed;
@@ -1589,7 +1640,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
       staticClassObject.Of = $jsilcore.$Of.bind(staticClassObject);
       typeObject.__IsClosed__ = false;
     } else {
-      typeObject.__IsClosed__ = true;
+      typeObject.__IsClosed__ = !(baseType.__IsClosed__ === false);
     }
 
     typeObject.toString = function () {
