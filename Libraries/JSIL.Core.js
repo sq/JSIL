@@ -1743,7 +1743,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
 
     typeObject.__PublicInterface__ = publicInterface;
     typeObject.__CallStack__ = callStack;
-    typeObject.__TypeId__ = ++JSIL.$NextTypeId;
+    publicInterface.__TypeId__ = typeObject.__TypeId__ = ++JSIL.$NextTypeId;
     typeObject.__Members__ = members;
     typeObject.__ShortName__ = localName;
     typeObject.__Context__ = $private;
@@ -2716,12 +2716,12 @@ JSIL.ImplementExternals(
 JSIL.ImplementExternals(
   "System.Type", true, {
     get_Assembly: function () {
-      // FIXME
-      return null;
+      // FIXME: Probably wrong for nested types.
+      return this.__Context__;
     },
     get_Namespace: function () {
-      // FIXME
-      return null;
+      // FIXME: Probably wrong for nested types.
+      return JSIL.GetParentName(this.__FullName__);
     },
     toString: function () {
       return this.__FullName__;
@@ -2987,7 +2987,7 @@ JSIL.ImplementExternals("System.Enum", false, {
   };
 
   publicInterface.__Type__ = typeObject;
-  publicInterface.__TypeId__ = ++JSIL.$NextTypeId;
+  typeObject.__TypeId__ = publicInterface.__TypeId__ = ++JSIL.$NextTypeId;
   publicInterface.toString = function () {
     return "<System.Array Public Interface>";
   };
@@ -3022,7 +3022,7 @@ JSIL.ImplementExternals("System.Enum", false, {
       compositePublicInterface.prototype = JSIL.CloneObject(publicInterface.prototype);
 
       compositePublicInterface.__Type__ = compositeTypeObject;
-      compositePublicInterface.__TypeId__ = ++JSIL.$NextTypeId;
+      compositeTypeObject.__TypeId__ = compositePublicInterface.__TypeId__ = ++JSIL.$NextTypeId;
       compositePublicInterface.CheckType = publicInterface.CheckType;
 
       compositeTypeObject.__PublicInterface__ = compositePublicInterface;
