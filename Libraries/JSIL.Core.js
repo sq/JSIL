@@ -2616,7 +2616,10 @@ JSIL.GetTypeFromAssembly = function (assembly, typeName, genericArguments, throw
     throw new System.TypeLoadException("The type '" + typeName + "' could not be found in the assembly.");
   }
 
-  return result.__Type__;
+  if (result !== null)
+    return result.__Type__;
+  else
+    return null;
 };
 
 JSIL.CreateInstanceOfType = function (type, arguments) {

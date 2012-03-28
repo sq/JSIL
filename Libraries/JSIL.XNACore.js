@@ -1989,8 +1989,11 @@ $jsilxna.Color = {
       };
     };
 
-    var context = System.Type.GetType("Microsoft.Xna.Framework.Color,Microsoft.Xna.Framework") ||
-      System.Type.GetType("Microsoft.Xna.Framework.Graphics.Color,Microsoft.Xna.Framework");
+    var typeName1 = JSIL.ParseTypeName("Microsoft.Xna.Framework.Color,Microsoft.Xna.Framework");
+    var typeName2 = JSIL.ParseTypeName("Microsoft.Xna.Framework.Graphics.Color,Microsoft.Xna.Framework");
+
+    var context = JSIL.GetTypeInternal(typeName1, $jsilxna, false) || 
+      JSIL.GetTypeInternal(typeName2, $jsilxna, false);
 
     var publicInterface = context.__PublicInterface__;
 
