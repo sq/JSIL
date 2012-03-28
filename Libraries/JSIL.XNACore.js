@@ -2659,17 +2659,8 @@ JSIL.ImplementExternals(
 );
 
 JSIL.ImplementExternals(
-  "Microsoft.Xna.Framework.Graphics.Texture2D", true, {
+  "Microsoft.Xna.Framework.Graphics.Texture2D", true, {    
     $internalCtor: function (graphicsDevice, width, height, mipMap, format) {
-      this.imageFormats = {
-        "Color": $jsilxna.ColorToCanvas,
-        "Dxt1": $jsilxna.DecodeDxt1,
-        "Dxt2": $jsilxna.DecodeDxt3,
-        "Dxt3": $jsilxna.DecodeDxt3,
-        "Dxt4": $jsilxna.DecodeDxt5,
-        "Dxt5": $jsilxna.DecodeDxt5,
-      };
-
       this._parent = graphicsDevice;
       this.width = width;
       this.height = height;
@@ -2677,11 +2668,13 @@ JSIL.ImplementExternals(
       this.format = format;
       this.isDisposed = false;
 
-      if (typeof (this.imageFormats[format.name]) === "undefined")
+      if (typeof ($jsilxna.ImageFormats[format.name]) === "undefined")
           throw new System.NotImplementedException("The pixel format '" + format.name + "' is not supported.");
 
       this.image = document.createElement("img");
       this.image.src = this.$getDataUrlForBytes(null, 0, 0, false);
+    },
+    _ctor$0: function () {
     },
     _ctor$1: function (graphicsDevice, width, height) {
       this.$internalCtor(graphicsDevice, width, height, false, Microsoft.Xna.Framework.Graphics.SurfaceFormat.Color);
@@ -2716,7 +2709,7 @@ JSIL.ImplementExternals(
       var ctx = canvas.getContext("2d");
 
       if (bytes !== null) {
-        var decoder = this.imageFormats[this.format.name];
+        var decoder = $jsilxna.ImageFormats[this.format.name];
         if (decoder !== null) {
           bytes = decoder(this.width, this.height, bytes, startIndex, elementCount);
           startIndex = 0;
@@ -3077,4 +3070,13 @@ $jsilxna.ColorToCanvas = function (width, height, bytes, offset, count) {
   }
 
   return result;
+};
+
+$jsilxna.ImageFormats = {
+  "Color": $jsilxna.ColorToCanvas,
+  "Dxt1": $jsilxna.DecodeDxt1,
+  "Dxt2": $jsilxna.DecodeDxt3,
+  "Dxt3": $jsilxna.DecodeDxt3,
+  "Dxt4": $jsilxna.DecodeDxt5,
+  "Dxt5": $jsilxna.DecodeDxt5,
 };

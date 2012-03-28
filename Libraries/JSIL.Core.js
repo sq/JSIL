@@ -2985,7 +2985,17 @@ JSIL.ImplementExternals("System.Enum", false, {
   });
 })();
 
-JSIL.Array.New = function (type, sizeOrInitializer) {
+JSIL.Array.New = function (elementType, sizeOrInitializer) {
+  var elementTypeObject, elementTypePublicInterface;
+
+  if (typeof (elementType.__Type__) === "object") {
+    elementTypeObject = elementType.__Type__;
+    elementTypePublicInterface = elementType;
+  } else if (typeof (elementType.__PublicInterface__) !== "undefined") {
+    elementTypeObject = elementType;
+    elementTypePublicInterface = elementType.__PublicInterface__;
+  }
+
   if (Array.isArray(sizeOrInitializer)) {
     // If non-numeric, assume array initializer
     var result = new Array(sizeOrInitializer.length);
@@ -2995,20 +3005,20 @@ JSIL.Array.New = function (type, sizeOrInitializer) {
     var size = Number(sizeOrInitializer);
     var result = new Array(size);
 
-    if (type.__IsReferenceType__) {
+    if (elementTypeObject.__IsReferenceType__) {
       for (var i = 0; i < size; i++)
         result[i] = null;
-    } else if (type.__IsNumeric__) {
+    } else if (elementTypeObject.__IsNumeric__) {
       for (var i = 0; i < size; i++)
         result[i] = 0;
-    } else if (type.IsEnum) {
-      var defaultValue = type[type.__ValueToName__[0]];
+    } else if (elementTypeObject.IsEnum) {
+      var defaultValue = elementTypeObject[elementTypeObject.__ValueToName__[0]];
 
       for (var i = 0; i < size; i++)
         result[i] = defaultValue;
     } else {
       for (var i = 0; i < size; i++)
-        result[i] = new type();
+        result[i] = new elementTypePublicInterface();
     }
   }
 
