@@ -2658,7 +2658,9 @@ JSIL.ImplementExternals(
         drawPosition.Y = position.Y + cropRect.Y * scale;
 
         spriteBatch.InternalDraw(
-          this.textureValue, drawPosition, glyphRect, color, rotation, origin, scale, spriteEffects, depth
+          this.textureValue, drawPosition.MemberwiseClone(), 
+          glyphRect, color, rotation, 
+          origin, scale, spriteEffects, depth
         );
 
         position.X += glyphWidth;
