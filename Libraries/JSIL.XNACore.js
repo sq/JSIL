@@ -1889,7 +1889,26 @@ JSIL.ImplementExternals(
         lhs.Y !== rhs.Y || 
         lhs.Width !== rhs.Width || 
         lhs.Height !== rhs.Height;
-    }
+    },
+    Intersect$0: function (lhs, rhs) {
+      var lhsX2 = lhs.X + lhs.Width;
+      var rhsX2 = rhs.X + rhs.Width;
+      var lhsY2 = lhs.Y + lhs.Height;
+      var rhsY2 = rhs.Y + rhs.Height;
+
+      var x1 = (lhs.X > rhs.X) ? lhs.X : rhs.X;
+      var y1 = (lhs.Y > rhs.Y) ? lhs.Y : rhs.Y;
+      var x2 = (lhsX2 < rhsX2) ? lhsX2 : rhsX2;
+      var y2 = (lhsY2 < rhsY2) ? lhsY2 : rhsY2;
+
+      if (x2 > x1 && y2 > y1)
+        return new Microsoft.Xna.Framework.Rectangle(x1, y1, x2 - x1, y2 - y1);
+
+      return Microsoft.Xna.Framework.Rectangle._empty;
+    },
+    Intersect$1: function (lhs, rhs, result) {
+      result.value = Microsoft.Xna.Framework.Rectangle.Intersect$0(lhs.value, rhs.value);
+    },
   }
 );
 
@@ -1923,6 +1942,12 @@ JSIL.ImplementExternals(
       return new Microsoft.Xna.Framework.Point(
         this.X, this.Y
       );
+    },
+    Inflate: function (x, y) {
+      this.X -= x;
+      this.Y -= y;
+      this.Width += (x * 2);
+      this.Height += (y * 2);
     },
     Contains$1: function (value) {
       return this.X <= value.X && value.X < this.X + this.Width && this.Y <= value.Y && value.Y < this.Y + this.Height;
