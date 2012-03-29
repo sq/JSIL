@@ -1639,6 +1639,55 @@ JSIL.ImplementExternals(
 
 JSIL.ImplementExternals(
   "System.Enum", false, {
+    CheckType: function (value) {
+      if (typeof (value) === "object") {
+        if ((value !== null) && (typeof (value.GetType) === "function"))
+          return value.GetType().IsEnum;
+      }
+
+      return false;
+    },
+    Parse$0: function (enm, text) {
+      return System.Enum.Parse$1(enm, text, false);
+    },
+    Parse$1: function (enm, text, ignoreCase) {
+      var result = new JSIL.Variable();
+      if (System.Enum.TryParse$1(enm, text, ignoreCase, result))
+        return result.value;
+
+      throw new System.Exception("Failed to parse enum");
+    },
+    TryParse$0: function (enm, text, result) {
+      return System.Enum.TryParse$1(enm, text, false, result);
+    },
+    TryParse$1: function (enm, text, ignoreCase, result) {      
+      var num = Number(text);
+
+      if (isNaN(num)) {
+        if (ignoreCase) {
+          var names = enm.__Names__;
+          for (var i = 0; i < names.length; i++) {
+            if (System.String.Compare$1(names[i], text, true) === 0) {
+              result.value = enm[names[i]];
+              break;
+            }
+          }
+        } else {
+          result.value = enm[value];
+        }
+
+        return (typeof (result.value) !== "undefined");
+      } else {
+        var name = enm.__ValueToName__[num];
+
+        if (typeof (name) === "undefined")
+          return false;
+        else {
+          result.value = enm[name];
+          return true;
+        }
+      }
+    },
     GetNames: function (enm) {
       return enm.__Names__;
     },

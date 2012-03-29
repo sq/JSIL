@@ -2941,43 +2941,6 @@ JSIL.MakeInterface("System.Collections.Generic.IEnumerable`1", true, ["T"], {
   "GetEnumerator": Function
 });
 
-System.Enum.Parse = function (type, value) {
-  var num = Number(value);
-
-  if (isNaN(num)) {
-    return type[value];
-  } else {
-    var name = type.__ValueToName__[value];
-
-    if (typeof (name) === "undefined")
-      return value;
-    else
-      return type[name];
-  }
-};
-System.Enum.CheckType = function (value) {
-  if (typeof (value) === "object") {
-    if ((value !== null) && (typeof (value.GetType) === "function"))
-      return value.GetType().IsEnum;
-  }
-
-  return false;
-};
-System.Enum.ToString = function (type, value) {
-};
-System.Enum.prototype = JSIL.MakeProto("System.Object", System.Enum, "System.Enum", false, $private);
-System.Enum.prototype.toString = function ToString() {
-  if (typeof (this.name) === "undefined") {
-    return this.value.toString();
-  } else {
-    return this.name;
-  }
-};
-
-JSIL.ImplementExternals("System.Enum", false, {
-  CheckType: System.Enum.CheckType
-});
-
 (function () {
   var runtimeType = $jsilcore.$GetRuntimeType($private);
 
