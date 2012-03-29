@@ -93,7 +93,7 @@ namespace JSIL.Tests {
     }
 
     public class ComparisonTest : IDisposable {
-        public const float JavascriptExecutionTimeout = 30.0f;
+        public float JavascriptExecutionTimeout = 30.0f;
 
         public static readonly Regex ElapsedRegex = new Regex(
             @"// elapsed: (?'elapsed'[0-9]*(\.[0-9]*)?)", RegexOptions.Compiled | RegexOptions.ExplicitCapture

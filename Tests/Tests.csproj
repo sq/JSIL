@@ -317,6 +317,9 @@
     <None Include="SimpleTestCases\AssemblyGetType.cs" />
     <None Include="TestCases\SealedMethods.cs" />
     <None Include="TestCases\UnderivedMethods.cs" />
+    <None Include="FailingTestCases\ElaborateSwitchControlFlow.cs" />
+    <None Include="SimpleTestCases\LinqSelect.cs" />
+    <None Include="SimpleTestCases\LinqToArray.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

@@ -501,7 +501,7 @@ $jsilcore.$ListExternals = {
     this._size += 1;
   },
   AddRange: function (items) {
-    var e = items.IEnumerable_GetEnumerator();
+    var e = JSIL.GetEnumerator(items);
     try {
       while (e.MoveNext()) {
         if (this._size >= this._items.length) {
@@ -950,14 +950,21 @@ JSIL.ImplementExternals(
 );
 JSIL.MakeNumericType(Number, "System.Byte", true);
 
+$jsilcore.$ParseInt = function (text) {
+  return Math.abs(parseInt(text, 10));
+};
+$jsilcore.$TryParseInt$0 = function (text, result) {
+  result.value = parseInt(text, 10);
+  return !isNaN(result.value);
+};
+
 JSIL.ImplementExternals(
   "System.UInt16", false, {
     CheckType: function (value) {
       return (typeof (value) === "number") && (value >= 0);
     },
-    Parse: function (text) {
-      return Math.abs(parseInt(text, 10));
-    }
+    Parse: $jsilcore.$ParseInt,
+    TryParse$0: $jsilcore.$TryParseInt$0
   }
 );
 JSIL.MakeNumericType(Number, "System.UInt16", true);
@@ -968,9 +975,8 @@ JSIL.ImplementExternals(
     CheckType: function (value) {
       return (typeof (value) === "number");
     },
-    Parse: function (text) {
-      return Math.abs(parseInt(text, 10));
-    }
+    Parse: $jsilcore.$ParseInt,
+    TryParse$0: $jsilcore.$TryParseInt$0
   }
 );
 JSIL.MakeNumericType(Number, "System.Int16", true);
@@ -981,9 +987,8 @@ JSIL.ImplementExternals(
     CheckType: function (value) {
       return (typeof (value) === "number") && (value >= 0);
     },
-    Parse: function (text) {
-      return Math.abs(parseInt(text, 10));
-    }
+    Parse: $jsilcore.$ParseInt,
+    TryParse$0: $jsilcore.$TryParseInt$0
   }
 );
 JSIL.MakeNumericType(Number, "System.UInt32", true);
@@ -994,9 +999,8 @@ JSIL.ImplementExternals(
     CheckType: function (value) {
       return (typeof (value) === "number");
     },
-    Parse: function (text) {
-      return parseInt(text, 10);
-    }
+    Parse: $jsilcore.$ParseInt,
+    TryParse$0: $jsilcore.$TryParseInt$0
   }
 );
 JSIL.MakeNumericType(Number, "System.Int32", true);
@@ -1007,9 +1011,8 @@ JSIL.ImplementExternals(
     CheckType: function (value) {
       return (typeof (value) === "number");
     },
-    Parse: function (text) {
-      return parseInt(text, 10);
-    }
+    Parse: $jsilcore.$ParseInt,
+    TryParse$0: $jsilcore.$TryParseInt$0
   }
 );
 JSIL.MakeNumericType(Number, "System.Int64", true);
@@ -1310,10 +1313,77 @@ JSIL.ImplementExternals(
 
 JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary`2", true, ["TKey", "TValue"]);
 
-JSIL.MakeStaticClass("System.Linq.Enumerable", true, [], function ($) {
-  JSIL.ExternalMembers($, false, 
-    "Count$b1$0"
+JSIL.GetEnumerator = function (enumerable) {
+  if (JSIL.IsArray(enumerable))
+    return new JSIL.ArrayEnumerator(enumerable);
+  else if (typeof (enumerable.IEnumerable$b1_GetEnumerator) === "function")
+    return enumerable.IEnumerable$b1_GetEnumerator();
+  else if (typeof (enumerable.IEnumerable_GetEnumerator) === "function")
+    return enumerable.IEnumerable_GetEnumerator();    
+  else if (typeof (enumerable.GetEnumerator) === "function")
+    return enumerable.GetEnumerator();    
+  else
+    throw new Error("Value is not enumerable");
+}
+
+JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerator", true, [], function ($) {
+  $.prototype._ctor = function (getNextItem, reset, dispose) {
+    this._getNextItem = getNextItem;
+    this._reset = reset;
+    this._dispose = dispose;
+    this._first = true;
+    this._needDispose = false;
+    this._current = new JSIL.Variable(null);
+  };
+  $.prototype.Reset = function () {
+    if (this._needDispose)
+      this._dispose();
+
+    this._first = false;
+    this._needDispose = true;
+    this._reset();
+  };
+  $.prototype.MoveNext = function () {
+    if (this._first) {
+      this._reset();
+      this._needDispose = true;
+      this._first = false;
+    }
+
+    return this._getNextItem(this._current);
+  };
+  $.prototype.Dispose = function () {
+    if (this._needDispose)
+      this._dispose();
+
+    this._needDispose = false;
+  };
+  $.prototype.get_Current = function () {
+    return this._current.value;
+  };
+  Object.defineProperty(
+      $.prototype, "Current", { 
+        get: $.prototype.get_Current,
+        configurable: true
+      }
   );
+  JSIL.ImplementInterfaces($, [
+    System.IDisposable, System.Collections.IEnumerator, System.Collections.Generic.IEnumerator$b1
+  ]);
+});
+
+JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerable", true, [], function ($) {
+  $.prototype._ctor = function (getNextItem, reset, dispose) {
+    this._getNextItem = getNextItem;
+    this._reset = reset;
+    this._dispose = dispose;
+  };
+  $.prototype.GetEnumerator = function () {
+    return new JSIL.AbstractEnumerator(this._getNextItem, this._reset, this._dispose);
+  };
+  JSIL.ImplementInterfaces($, [
+    System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
+  ]);
 });
 
 JSIL.ImplementExternals(
@@ -1321,7 +1391,7 @@ JSIL.ImplementExternals(
     Count$b1$0: JSIL.GenericMethod(
       ["T"], 
       function (T, enumerable) {
-        var e = enumerable.IEnumerable$b1_GetEnumerator();
+        var e = JSIL.GetEnumerator(enumerable);
         var result = 0;
         try {
           while (e.MoveNext())
@@ -1331,9 +1401,51 @@ JSIL.ImplementExternals(
         }
         return result;
       }
-    )
+    ),
+    ToArray$b1: JSIL.GenericMethod(
+      ["T"],
+      function (T, enumerable) {
+        var e = JSIL.GetEnumerator(enumerable);
+        var result = [];
+        try {
+          while (e.MoveNext())
+            result.push(e.Current);
+        } finally {
+          e.IDisposable_Dispose();
+        }
+        return result;
+      }
+    ),
+    Select$b2$0: JSIL.GenericMethod(
+      ["TSource", "TResult"],
+      function (TSource, TResult, enumerable, selector) {
+        var state = {};
+
+        return new JSIL.AbstractEnumerable(
+          function getNext (result) {
+            var ok = state.enumerator.MoveNext();
+            if (ok)
+              result.value = selector(state.enumerator.Current);
+
+            return ok;
+          },
+          function reset () {
+            state.enumerator = JSIL.GetEnumerator(enumerable);
+          },
+          function dispose () {
+            state.enumerator.IDisposable_Dispose();
+          }
+        );
+      }
+    ),
   }
 );
+
+JSIL.MakeStaticClass("System.Linq.Enumerable", true, [], function ($) {
+  JSIL.ExternalMembers($, false, 
+    "Count$b1$0", "ToArray$b1", "Select$b2$0", "Select$b2$1", "Select$b2"
+  );
+});
 
 JSIL.MakeStaticClass("System.Nullable", true, [], function ($) {
   JSIL.ExternalMembers($, false, 

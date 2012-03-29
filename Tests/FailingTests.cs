@@ -23,8 +23,10 @@ namespace JSIL.Tests {
                 Console.Write("// {0} ... ", Path.GetFileName(filename));
 
                 try {
-                    using (var test = new ComparisonTest(filename))
+                    using (var test = new ComparisonTest(filename)) {
+                        test.JavascriptExecutionTimeout = 5.0f;
                         test.Run();
+                    }
 
                     passCount += 1;
                 } catch (JavaScriptException jse) {
