@@ -533,7 +533,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.Texture2DReader", true,
       var mipSize = input.ReadInt32();
       var mipBytes = input.ReadBytes(mipSize);
 
-      result.SetData$b1$2(System.Byte)(i, null, mipBytes, 0, mipSize);
+      if (i === 0)
+        result.SetData$b1$2(System.Byte)(i, null, mipBytes, 0, mipSize);
     }
 
     return result;
@@ -2085,6 +2086,15 @@ $jsilxna.Color = {
   }
 };
 
+$jsilxna.ClampByte = function (v) {
+  if (v < 0)
+    return 0;
+  else if (v > 255)
+    return 255;
+  else
+    return Math.floor(v);
+}
+
 $jsilxna.ColorPrototype = {
   _ctor$1 : function (r, g, b) {
     this.a = 255;
@@ -2100,15 +2110,15 @@ $jsilxna.ColorPrototype = {
   },
   _ctor$3 : function (r, g, b) {
     this.a = 255;
-    this.r = Math.floor(r * 255);
-    this.g = Math.floor(g * 255);
-    this.b = Math.floor(b * 255);
+    this.r = $jsilxna.ClampByte(r * 255);
+    this.g = $jsilxna.ClampByte(g * 255);
+    this.b = $jsilxna.ClampByte(b * 255);
   },
   _ctor$4 : function (r, g, b, a) {
-    this.a = Math.floor(a * 255);
-    this.r = Math.floor(r * 255);
-    this.g = Math.floor(g * 255);
-    this.b = Math.floor(b * 255);
+    this.a = $jsilxna.ClampByte(a * 255);
+    this.r = $jsilxna.ClampByte(r * 255);
+    this.g = $jsilxna.ClampByte(g * 255);
+    this.b = $jsilxna.ClampByte(b * 255);
   },
   _ctor$5 : function (v3) {
     this._ctor$3(v3.X, v3.Y, v3.Z);
@@ -2779,9 +2789,34 @@ JSIL.ImplementExternals(
     get_Height: function () {
       return this.height;
     },
-    SetData$b1$0: JSIL.GenericMethod(["T"], function (T, data) {
+    $setDataInternal: function (T, data, startIndex, elementCount) {
+      var bytes = null;
+
+      switch (T.toString()) {
+        case "System.Byte":
+          bytes = data;
+          break;
+        case "Microsoft.Xna.Framework.Color":
+        case "Microsoft.Xna.Framework.Graphics.Color":
+          bytes = $jsilxna.UnpackColorsToBytes(data, startIndex, elementCount);
+          startIndex = 0;
+          elementCount = bytes.length;
+          break;
+        case "System.Int32":
+        case "System.UInt32":
+          bytes = $jsilxna.UnpackIntsToBytes(data, startIndex, elementCount);
+          startIndex = 0;
+          elementCount = bytes.length;
+          break;
+        default:
+          throw new System.Exception("Pixel format '" + T.toString() + "' not implemented");
+      }
+
       var shouldUnpremultiply = true;
-      this.image.src = this.$getDataUrlForBytes(data, 0, data.length, shouldUnpremultiply);
+      this.image.src = this.$getDataUrlForBytes(bytes, startIndex, elementCount, shouldUnpremultiply);
+    },
+    SetData$b1$0: JSIL.GenericMethod(["T"], function (T, data) {
+      this.$setDataInternal(T, data, 0, data.length);
     }),
     SetData$b1$2: JSIL.GenericMethod(["T"], function (T, level, rect, data, startIndex, elementCount) {
       if (level !== 0)
@@ -2790,8 +2825,7 @@ JSIL.ImplementExternals(
       if (rect !== null)
         throw new System.NotImplementedException();
 
-      var shouldUnpremultiply = true;
-      this.image.src = this.$getDataUrlForBytes(data, startIndex, elementCount, shouldUnpremultiply);
+      this.$setDataInternal(T, data, startIndex, elementCount);
     }),
     $getDataUrlForBytes: function (bytes, startIndex, elementCount, unpremultiply) {
       var canvas = document.createElement("canvas");
@@ -2842,9 +2876,6 @@ JSIL.ImplementExternals(
     }
   }
 );
-        [0, [new JSIL.TypeRef($asm03, "Microsoft.Xna.Framework.Graphics.GraphicsDevice"), new JSIL.TypeRef($asm05, "System.Int32"), new JSIL.TypeRef($asm05, "System.Int32"), new JSIL.TypeRef($asm05, "System.Boolean"), new JSIL.TypeRef($asm03, "Microsoft.Xna.Framework.Graphics.SurfaceFormat"), new JSIL.TypeRef($asm03, "Microsoft.Xna.Framework.Graphics.DepthFormat"), new JSIL.TypeRef($asm05, "System.Int32"), new JSIL.TypeRef($asm03, "Microsoft.Xna.Framework.Graphics.RenderTargetUsage")]], 
-        [1, [new JSIL.TypeRef($asm03, "Microsoft.Xna.Framework.Graphics.GraphicsDevice"), new JSIL.TypeRef($asm05, "System.Int32"), new JSIL.TypeRef($asm05, "System.Int32"), new JSIL.TypeRef($asm05, "System.Boolean"), new JSIL.TypeRef($asm03, "Microsoft.Xna.Framework.Graphics.SurfaceFormat"), new JSIL.TypeRef($asm03, "Microsoft.Xna.Framework.Graphics.DepthFormat")]], 
-        [2, [new JSIL.TypeRef($asm03, "Microsoft.Xna.Framework.Graphics.GraphicsDevice"), new JSIL.TypeRef($asm05, "System.Int32"), new JSIL.TypeRef($asm05, "System.Int32")]]
 
 JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Graphics.RenderTarget2D", true, {
@@ -3200,6 +3231,38 @@ $jsilxna.ColorToCanvas = function (width, height, bytes, offset, count) {
     result[i + 1] = bytes[offset + i + 1];
     result[i + 2] = bytes[offset + i + 0];
     result[i + 3] = bytes[offset + i + 3];
+  }
+
+  return result;
+};
+
+$jsilxna.UnpackColorsToBytes = function (colors, startIndex, elementCount) {
+  var result = new Array(colors.length * 4); 
+
+  for (var i = 0, l = elementCount; i < l; i++) {
+    var item = colors[startIndex + i];
+
+    var p = i * 4;
+    result[p + 0] = item.r & 0xFF;
+    result[p + 1] = item.g & 0xFF;
+    result[p + 2] = item.b & 0xFF;
+    result[p + 3] = item.a & 0xFF;
+  }
+
+  return result;
+};
+
+$jsilxna.UnpackIntsToBytes = function (ints, startIndex, elementCount) {
+  var result = new Array(ints.length * 4); 
+
+  for (var i = 0, l = elementCount; i < l; i++) {
+    var item = ints[startIndex + i];
+
+    var p = i * 4;
+    result[p + 0] = item & 0xFF;
+    result[p + 1] = (item >> 8) & 0xFF;
+    result[p + 2] = (item >> 16) & 0xFF;
+    result[p + 3] = (item >> 24) & 0xFF;
   }
 
   return result;

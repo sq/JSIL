@@ -35,7 +35,7 @@ JSIL.ImplementExternals(
         return buffer[0];
       else
         return -1;
-    }
+    },
   }
 );
 
@@ -65,7 +65,10 @@ var $bytestream = {
       return -1;
 
     return this._buffer[this._pos];
-  }
+  },
+  get_Position: function () {
+    return this._pos;
+  }  
 };
 
 JSIL.ImplementExternals(
@@ -120,6 +123,17 @@ JSIL.ImplementExternals(
 );
 
 JSIL.ImplementExternals(
+  "System.IO.BinaryWriter", true, {
+    _ctor$1: function (stream) {
+      this.m_stream = stream;
+    },
+    get_BaseStream: function () {
+      return this.m_stream;
+    }
+  }
+);
+
+JSIL.ImplementExternals(
   "System.IO.BinaryReader", true, {
     _ctor$0: function (stream) {
       System.Object.prototype._ctor.call(this);
@@ -167,7 +181,8 @@ JSIL.ImplementExternals(
       var low1 = this.m_stream.ReadByte();
       var low2 = this.m_stream.ReadByte();
       var low3 = this.m_stream.ReadByte();
-      return low1 | (low2 << 8) | (low3 << 16) | (this.m_stream.ReadByte() << 24);
+      var low4 = this.m_stream.ReadByte();
+      return low1 + (low2 * 256) + (low3 * 65536) + (low4 * 16777216);
     },
     ReadInt16: function () {
       var value = this.ReadUInt16();
@@ -178,7 +193,7 @@ JSIL.ImplementExternals(
     },
     ReadUInt16: function () {
       var low = this.m_stream.ReadByte();
-      return low | (this.m_stream.ReadByte() << 8);
+      return low + (this.m_stream.ReadByte() * 256);
     },
     ReadSByte: function () {
       var byt = this.m_stream.ReadByte();
@@ -208,18 +223,18 @@ JSIL.ImplementExternals(
       return String.fromCharCode(this.m_stream.$PeekByte());
     },
     Read7BitEncodedInt: function () {
-	    var result = 0, bits = 0;
+      var result = 0, bits = 0;
 
-	    while (bits < 35) {
-		    var b = this.ReadByte();
-		    result |= (b & 127) << bits;
-		    bits += 7;
+      while (bits < 35) {
+        var b = this.ReadByte();
+        result |= (b & 127) << bits;
+        bits += 7;
 
-		    if ((b & 128) == 0)
-			    return result;
-	    }
+        if ((b & 128) == 0)
+          return result;
+      }
 
-	    throw new System.FormatException("Bad 7-bit int format");
+      throw new System.FormatException("Bad 7-bit int format");
     },
     Close: function () {
     },
