@@ -2774,6 +2774,9 @@ JSIL.ImplementExternals(
 
       this.image = document.createElement("img");
       this.image.src = this.$getDataUrlForBytes(null, 0, 0, false);
+      var textures = document.getElementById("textures");
+      if (textures)
+        textures.appendChild(this.image);
     },
     _ctor$0: function () {
     },
@@ -2798,13 +2801,13 @@ JSIL.ImplementExternals(
           break;
         case "Microsoft.Xna.Framework.Color":
         case "Microsoft.Xna.Framework.Graphics.Color":
-          bytes = $jsilxna.UnpackColorsToBytes(data, startIndex, elementCount);
+          bytes = $jsilxna.UnpackColorsToColorBytes(data, startIndex, elementCount);
           startIndex = 0;
           elementCount = bytes.length;
           break;
         case "System.Int32":
         case "System.UInt32":
-          bytes = $jsilxna.UnpackIntsToBytes(data, startIndex, elementCount);
+          bytes = $jsilxna.UnpackIntsToColorBytes(data, startIndex, elementCount);
           startIndex = 0;
           elementCount = bytes.length;
           break;
@@ -2873,6 +2876,11 @@ JSIL.ImplementExternals(
       }
 
       return canvas.toDataURL();
+    },
+    Dispose: function () {
+      var textures = document.getElementById("textures");
+      if (textures)
+        textures.removeChild(this.image);
     }
   }
 );
@@ -2892,8 +2900,11 @@ JSIL.ImplementExternals(
       this.canvas = document.createElement("canvas");
       this.canvas.width = width;
       this.canvas.height = height;
-      document.getElementById("rendertargets").appendChild(this.canvas);
       this.context = this.canvas.getContext("2d");
+
+      var targets = document.getElementById("rendertargets");
+      if (targets)
+        targets.appendChild(this.canvas);
     },
     _ctor$0: function (graphicsDevice, width, height, mipMap, colorFormat, depthFormat, multisampleCount, usage) {
       this.$internalCtor(graphicsDevice, width, height, mipMap, colorFormat);
@@ -2917,7 +2928,10 @@ JSIL.ImplementExternals(
       this.image.src = this.canvas.toDataURL();
     },
     Dispose: function () {
-      document.getElementById("rendertargets").removeChild(this.canvas);
+      var targets = document.getElementById("rendertargets");
+      if (targets)
+        targets.removeChild(this.canvas);
+
       this.canvas = null;
       this.context = null;
     }
@@ -3225,43 +3239,50 @@ $jsilxna.DecodeDxt5 = function (width, height, bytes, offset, count) {
 
 $jsilxna.ColorToCanvas = function (width, height, bytes, offset, count) {
   var result = new Array(count);
+  var swapRedAndBlue = true;
 
-  for (var i = 0, l = count; i < l; i += 4) {
-    result[i + 0] = bytes[offset + i + 2];
-    result[i + 1] = bytes[offset + i + 1];
-    result[i + 2] = bytes[offset + i + 0];
-    result[i + 3] = bytes[offset + i + 3];
-  }
+  if (swapRedAndBlue) {
+    for (var i = 0, l = count; i < l; i += 4) {
+      result[i + 0] = bytes[offset + i + 2];
+      result[i + 1] = bytes[offset + i + 1];
+      result[i + 2] = bytes[offset + i + 0];
+      result[i + 3] = bytes[offset + i + 3];
+    }
+  } else {
+    for (var i = 0, l = count; i < l; i++) {
+      result[i] = bytes[offset + i];
+    }
+  }  
 
   return result;
 };
 
-$jsilxna.UnpackColorsToBytes = function (colors, startIndex, elementCount) {
+$jsilxna.UnpackColorsToColorBytes = function (colors, startIndex, elementCount) {
   var result = new Array(colors.length * 4); 
 
   for (var i = 0, l = elementCount; i < l; i++) {
     var item = colors[startIndex + i];
 
     var p = i * 4;
-    result[p + 0] = item.r & 0xFF;
+    result[p + 0] = item.b & 0xFF;
     result[p + 1] = item.g & 0xFF;
-    result[p + 2] = item.b & 0xFF;
+    result[p + 2] = item.r & 0xFF;
     result[p + 3] = item.a & 0xFF;
   }
 
   return result;
 };
 
-$jsilxna.UnpackIntsToBytes = function (ints, startIndex, elementCount) {
+$jsilxna.UnpackIntsToColorBytes = function (ints, startIndex, elementCount) {
   var result = new Array(ints.length * 4); 
 
   for (var i = 0, l = elementCount; i < l; i++) {
     var item = ints[startIndex + i];
 
     var p = i * 4;
-    result[p + 0] = item & 0xFF;
+    result[p + 0] = (item >> 16) & 0xFF;
     result[p + 1] = (item >> 8) & 0xFF;
-    result[p + 2] = (item >> 16) & 0xFF;
+    result[p + 2] = (item) & 0xFF;
     result[p + 3] = (item >> 24) & 0xFF;
   }
 
