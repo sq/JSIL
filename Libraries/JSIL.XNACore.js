@@ -2207,6 +2207,7 @@ JSIL.ImplementExternals(
 JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Graphics.SpriteBatch", true, {
     $drawDebugRects: false,
+    $drawDebugBoxes: false,
 
     $canvasDrawImage: function (image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, destW, destH) {
       this.device.context.drawImage(
@@ -2273,6 +2274,15 @@ JSIL.ImplementExternals(
         rotation = 0;
 
       if (this.defer) {
+        position = position.MemberwiseClone();
+
+        if (sourceRectangle !== null)
+          sourceRectangle = sourceRectangle.MemberwiseClone();
+        if (color !== null)
+          color = color.MemberwiseClone();
+        if (origin !== null)
+          origin = origin.MemberwiseClone();
+
         this.deferredDraws.push({
           fn: this.InternalDraw,
           index: this.deferredDraws.length,
@@ -2412,8 +2422,15 @@ JSIL.ImplementExternals(
         (sourceW > 0) && (sourceH > 0)
       ) {
         if (this.$drawDebugRects) {
-          this.device.context.fillStyle = "rgba(255, 0, 0, 0.5)";
+          this.device.context.fillStyle = "rgba(255, 0, 0, 0.33)";
           this.device.context.fillRect(
+            positionX, positionY, destW, destH
+          );
+        }
+
+        if (this.$drawDebugBoxes) {
+          this.device.context.strokeStyle = "rgba(255, 255, 0, 0.66)";
+          this.device.context.strokeRect(
             positionX, positionY, destW, destH
           );
         }
@@ -2436,6 +2453,11 @@ JSIL.ImplementExternals(
         depth = 1;
 
       if (this.defer) {
+        position = position.MemberwiseClone();
+
+        if (color !== null)
+          color = color.MemberwiseClone();
+
         this.deferredDraws.push({
           fn: this.InternalDrawString,
           index: this.deferredDraws.length,
@@ -2747,7 +2769,7 @@ JSIL.ImplementExternals(
         drawPosition.Y = position.Y + cropRect.Y * scale;
 
         spriteBatch.InternalDraw(
-          this.textureValue, drawPosition.MemberwiseClone(), 
+          this.textureValue, drawPosition, 
           glyphRect, color, rotation, 
           origin, scale, spriteEffects, depth
         );
