@@ -1613,6 +1613,7 @@ JSIL.ImplementExternals(
           this.Update(this._gameTime);
         }
 
+        this.get_GraphicsDevice().$Clear();
         this.Draw(this._gameTime);
         failed = false;
       } finally {
@@ -1956,6 +1957,14 @@ JSIL.ImplementExternals(
       this.Y = value.Y;
 
       return value;
+    },
+    Offset$0: function (point) {
+      this.X += point.X;
+      this.Y += point.Y;
+    },
+    Offset$1: function (x, y) {
+      this.X += x;
+      this.Y += y;
     },
     Inflate: function (x, y) {
       this.X -= x;
@@ -2508,8 +2517,9 @@ JSIL.ImplementExternals(
 JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Graphics.GraphicsDevice", true, {
     _ctor: function () {
-      this.canvas = JSIL.Host.getCanvas();
-      this.context = this.canvas.getContext("2d");
+      this.originalCanvas = this.canvas = JSIL.Host.getCanvas();
+      this.renderTarget = null;
+      this.originalContext = this.context = this.canvas.getContext("2d");
       this.viewport = new Microsoft.Xna.Framework.Graphics.Viewport();
       this.viewport.Width = this.canvas.clientWidth || this.canvas.width;
       this.viewport.Height = this.canvas.clientHeight || this.canvas.height;
@@ -2519,8 +2529,16 @@ JSIL.ImplementExternals(
     },
     set_Viewport: function (newViewport) {
       this.viewport = newViewport;
-      this.canvas = JSIL.Host.getCanvas(this.viewport.Width, this.viewport.Height);
-      this.context = this.canvas.getContext("2d");
+
+      if (this.renderTarget === null) {
+        if ((this.viewport.Width != this.originalCanvas.width) || (this.viewport.Height != this.originalCanvas.height)) {
+          this.canvas = this.originalCanvas = JSIL.Host.getCanvas(this.viewport.Width, this.viewport.Height);
+          this.context = this.originalContext = this.canvas.getContext("2d");
+        }
+      }
+    },
+    $Clear: function () {
+      this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     },
     InternalClear: function (color) {
       this.context.fillStyle = color.toCss();
@@ -2545,8 +2563,27 @@ JSIL.ImplementExternals(
           JSIL.Host.error(new Error("The primitive type " + primitiveType.toString() + " is not implemented."));
           return;
       }
-    }
+    },
+    SetRenderTarget$1: function (renderTarget2D) {
+      if (this.renderTarget === renderTarget2D)
+        return;
 
+      var oldRenderTarget = this.renderTarget;
+      this.renderTarget = renderTarget2D;
+
+      if (renderTarget2D !== null) {
+        this.canvas = renderTarget2D.canvas;
+        this.context = renderTarget2D.context;
+      } else {
+        this.canvas = this.originalCanvas;
+        this.context = this.originalContext;
+      }
+
+      this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+      if (oldRenderTarget !== null)
+        oldRenderTarget.$ResynthesizeImage();
+    },
   }
 );
 
@@ -2805,11 +2842,53 @@ JSIL.ImplementExternals(
     }
   }
 );
+        [0, [new JSIL.TypeRef($asm03, "Microsoft.Xna.Framework.Graphics.GraphicsDevice"), new JSIL.TypeRef($asm05, "System.Int32"), new JSIL.TypeRef($asm05, "System.Int32"), new JSIL.TypeRef($asm05, "System.Boolean"), new JSIL.TypeRef($asm03, "Microsoft.Xna.Framework.Graphics.SurfaceFormat"), new JSIL.TypeRef($asm03, "Microsoft.Xna.Framework.Graphics.DepthFormat"), new JSIL.TypeRef($asm05, "System.Int32"), new JSIL.TypeRef($asm03, "Microsoft.Xna.Framework.Graphics.RenderTargetUsage")]], 
+        [1, [new JSIL.TypeRef($asm03, "Microsoft.Xna.Framework.Graphics.GraphicsDevice"), new JSIL.TypeRef($asm05, "System.Int32"), new JSIL.TypeRef($asm05, "System.Int32"), new JSIL.TypeRef($asm05, "System.Boolean"), new JSIL.TypeRef($asm03, "Microsoft.Xna.Framework.Graphics.SurfaceFormat"), new JSIL.TypeRef($asm03, "Microsoft.Xna.Framework.Graphics.DepthFormat")]], 
+        [2, [new JSIL.TypeRef($asm03, "Microsoft.Xna.Framework.Graphics.GraphicsDevice"), new JSIL.TypeRef($asm05, "System.Int32"), new JSIL.TypeRef($asm05, "System.Int32")]]
 
 JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Graphics.RenderTarget2D", true, {
+    $internalCtor: function (graphicsDevice, width, height, mipMap, format) {
+      this._parent = graphicsDevice;
+      this.width = width;
+      this.height = height;
+      this.mipMap = mipMap;
+      this.format = format;
+      this.isDisposed = false;
+
+      this.image = null;
+
+      this.canvas = document.createElement("canvas");
+      this.canvas.width = width;
+      this.canvas.height = height;
+      document.getElementById("rendertargets").appendChild(this.canvas);
+      this.context = this.canvas.getContext("2d");
+    },
+    _ctor$0: function (graphicsDevice, width, height, mipMap, colorFormat, depthFormat, multisampleCount, usage) {
+      this.$internalCtor(graphicsDevice, width, height, mipMap, colorFormat);
+    },
+    _ctor$1: function (graphicsDevice, width, height, mipMap, colorFormat, depthFormat) {
+      this.$internalCtor(graphicsDevice, width, height, mipMap, colorFormat);
+    },
     _ctor$2: function (graphicsDevice, width, height) {
       this.$internalCtor(graphicsDevice, width, height, false, Microsoft.Xna.Framework.Graphics.SurfaceFormat.Color);
+    },
+    SetData$b1$0: JSIL.GenericMethod(["T"], function (T, data) {
+      throw new System.NotImplementedException();
+    }),
+    SetData$b1$2: JSIL.GenericMethod(["T"], function (T, level, rect, data, startIndex, elementCount) {
+      throw new System.NotImplementedException();
+    }),
+    $ResynthesizeImage: function () {
+      if (this.image === null)
+        this.image = document.createElement("img");
+
+      this.image.src = this.canvas.toDataURL();
+    },
+    Dispose: function () {
+      document.getElementById("rendertargets").removeChild(this.canvas);
+      this.canvas = null;
+      this.context = null;
     }
   }
 );
