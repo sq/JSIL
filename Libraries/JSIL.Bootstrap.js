@@ -1260,31 +1260,104 @@ JSIL.ImplementExternals(
       this._dict = {};
       this._count = 0;
     },
-    get_Item: function (key) {
-      var _key = String(key);
-      return this._dict[_key];
+    $getHash: function (key) {
+      if ((typeof (key) !== "undefined") && (key !== null) && (typeof (key.GetHashCode) === "function") && (key.GetHashCode.__IsPlaceholder__ !== true)) {
+        return key.GetHashCode();
+      } else if ((typeof (key) === "string") || (typeof (key) === "number")) {
+        return String(key);
+      } else {
+        return "nohash";
+      }
     },
-    set_Item: function (key, value) {
-      var _key = String(key);
+    $areEqual: function (lhs, rhs) {
+      if (lhs === rhs)
+        return true;
 
-      if (typeof this._dict[_key] === "undefined")
-        this._count += 1;
+      if ((typeof (lhs) !== "undefined") && (lhs !== null) && (typeof (lhs.Equals) === "function") && (lhs.Equals.__IsPlaceholder__ !== true)) {
+        if (lhs.Equals(rhs))
+          return true;
+      }
 
-      this._dict[_key] = value;
+      if ((typeof (rhs) !== "undefined") && (rhs !== null) && (typeof (rhs.Equals) === "function") && (rhs.Equals.__IsPlaceholder__ !== true)) {
+        if (rhs.Equals(lhs))
+          return true;
+      }
 
+      return lhs == rhs;
+    },
+    $searchBucket: function (key) {
+      var hashCode = this.$getHash(key);
+      var bucket = this._dict[hashCode];
+      if (!JSIL.IsArray(bucket))
+        return null;
+
+      for (var i = 0; i < bucket.length; i++) {
+        var bucketEntry = bucket[i];
+
+        if (this.$areEqual(bucketEntry[0], key))
+          return bucketEntry;
+      }
+
+      return null;
+    },
+    $addToBucket: function (key, value) {
+      var hashCode = this.$getHash(key);
+      var bucket = this._dict[hashCode];
+      if (!JSIL.IsArray(bucket))
+        this._dict[hashCode] = bucket = [];
+
+      bucket.push([key, value]);
+      this._count += 1;
       return value;
     },
-    get_Values: function () {
-      var keys = Object.keys(this._dict);
-      var values = new Array(keys.length);
+    TryGetValue: function (key, result) {
+      var bucketEntry = this.$searchBucket(key);
+      if (bucketEntry !== null) {
+        result.value = bucketEntry[1];
+        return true;
+      }
 
-      for (var i = 0; i < keys.length; i++)
-        values[i] = this._dict[keys[i]];
+      return false;
+    },
+    get_Item: function (key) {
+      var bucketEntry = this.$searchBucket(key);
+      if (bucketEntry !== null)
+        return bucketEntry[1];
+      else
+        throw new System.Exception("Key not found");
+    },
+    set_Item: function (key, value) {
+      var bucketEntry = this.$searchBucket(key);
+      if (bucketEntry !== null)
+        return bucketEntry[1] = value;
+      else
+        return this.$addToBucket(key, value);
+    },
+    get_Values: function () {
+      var values = [];
+
+      for (var k in this._dict) {
+        if (!this._dict.hasOwnProperty(k))
+          continue;
+        var bucket = this._dict[k];
+
+        for (var i = 0; i < bucket.length; i++)
+          values.push(bucket[i][1]);
+      }
 
       return new JSIL.EnumerableArray(values);
     },
     get_Keys: function () {
-      var keys = Object.keys(this._dict);
+      var keys = [];
+
+      for (var k in this._dict) {
+        if (!this._dict.hasOwnProperty(k))
+          continue;
+        var bucket = this._dict[k];
+
+        for (var i = 0; i < bucket.length; i++)
+          keys.push(bucket[i][0]);
+      }
 
       return new JSIL.EnumerableArray(keys);
     },
@@ -1292,21 +1365,19 @@ JSIL.ImplementExternals(
       return this._count;
     },
     ContainsKey: function (key) {
-      var _key = String(key);
-      return this._dict.hasOwnProperty(_key);
+      return this.$searchBucket(key) !== null;
     },
     Clear: function () {
       this._dict = {}
       this._count = 0;
     },
     Add: function (key, value) {
-      var _key = String(key);
+      var bucketEntry = this.$searchBucket(key);
 
-      if (typeof this._dict[_key] !== "undefined")
+      if (bucketEntry !== null)
         throw new System.ArgumentException("Key already exists");
 
-      this._dict[_key] = value;
-      this._count += 1;
+      return this.$addToBucket(key, value);
     }
   }
 );
@@ -1673,7 +1744,7 @@ JSIL.ImplementExternals(
             }
           }
         } else {
-          result.value = enm[value];
+          result.value = enm[text];
         }
 
         return (typeof (result.value) !== "undefined");
@@ -1708,5 +1779,67 @@ JSIL.ImplementExternals(
     CreateInstance$2: function (type, constructorArguments) {
       return JSIL.CreateInstanceOfType(type, constructorArguments);
     }
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.Diagnostics.Stopwatch", false, {
+    StartNew: function () {
+      var result = new System.Diagnostics.Stopwatch();
+      result.Start();
+      return result;
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.Diagnostics.Stopwatch", true, {
+    _ctor: function () {
+      this.Reset();
+    },
+    get_IsRunning: function () {
+      return this.isRunning;
+    },
+    get_Elapsed: function () {
+      return System.TimeSpan.FromMilliseconds(this.get_ElapsedMilliseconds());
+    },
+    get_ElapsedMilliseconds: function () {
+      var result = this.elapsed;
+      if (this.isRunning)
+        result += Date.now() - this.startedWhen;
+
+      return result;
+    },
+    get_ElapsedTicks: function () {
+      return this.get_ElapsedMilliseconds() * 10000;
+    },
+    Start: function () {
+      if (!this.isRunning) {
+        this.startedWhen = Date.now();
+        this.isRunning = true;
+      }
+    },
+    Stop: function () {
+      if (this.isRunning) {
+        this.isRunning = false;
+
+        var now = Date.now();
+        var elapsed = now - this.startedWhen;
+
+        this.elapsed += elapsed;
+        if (this.elapsed < 0)
+          this.elapsed = 0;
+      }
+    },
+    Reset: function () {
+      this.elapsed = 0;
+      this.isRunning = false;
+      this.startedWhen = 0;
+    },
+    Restart: function () {
+      this.elapsed = 0;
+      this.isRunning = true;
+      this.startedWhen = Date.now();
+    },
   }
 );

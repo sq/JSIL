@@ -110,6 +110,12 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
+        [JSReplacement("$this == $rhs")]
+        [JSIsPure]
+        public bool Equals (StringProxy rhs) {
+            throw new InvalidOperationException();
+        }
+
         [JSReplacement("$this.toLowerCase()")]
         [JSIsPure]
         public string ToLower () {

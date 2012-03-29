@@ -1399,6 +1399,10 @@ JSIL.ImplementExternals(
     CreateScale$0: function () {
       // FIXME
       return new Microsoft.Xna.Framework.Matrix();
+    },
+    CreateTranslation$2: function () {
+      // FIXME
+      return new Microsoft.Xna.Framework.Matrix();
     }
   }
 );
@@ -1438,6 +1442,10 @@ JSIL.ImplementExternals(
       this._runHandle = null;
       this._gameTime = JSIL.New(Microsoft.Xna.Framework.GameTime, "_ctor$0", []);
       this._lastFrame = this._nextFrame = this._started = 0;
+    },
+    get_Window: function () {
+      // FIXME
+      return {};
     },
     get_IsFixedTimeStep: function () {
       return this.isFixedTimeStep;
@@ -1942,6 +1950,12 @@ JSIL.ImplementExternals(
       return new Microsoft.Xna.Framework.Point(
         this.X, this.Y
       );
+    },
+    set_Location: function (value) {
+      this.X = value.X;
+      this.Y = value.Y;
+
+      return value;
     },
     Inflate: function (x, y) {
       this.X -= x;

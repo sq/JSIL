@@ -314,7 +314,6 @@ JSIL.DeclareNamespace = function (name, sealed) {
 JSIL.DeclareNamespace("System");
 JSIL.DeclareNamespace("System.Collections");
 JSIL.DeclareNamespace("System.Collections.Generic");
-JSIL.DeclareNamespace("System.Enum", false);
 JSIL.DeclareNamespace("System.Text");
 JSIL.DeclareNamespace("System.Threading");
 JSIL.DeclareNamespace("System.Globalization", false);
@@ -1832,6 +1831,16 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
   JSIL.RegisterName(fullName, $private, isPublic, creator);
 };
 
+JSIL.MakeClass("System.ValueType", "System.Enum", true, [], function ($) {
+    JSIL.ExternalMembers($, true, 
+      "_ctor", "CompareTo", "Equals", "GetHashCode", "GetTypeCode", "GetValue", "HasFlag", "IConvertible_ToBoolean", "IConvertible_ToByte", "IConvertible_ToChar", "IConvertible_ToDateTime", "IConvertible_ToDecimal", "IConvertible_ToDouble", "IConvertible_ToInt16", "IConvertible_ToInt32", "IConvertible_ToInt64", "IConvertible_ToSByte", "IConvertible_ToSingle", "IConvertible_ToType", "IConvertible_ToUInt16", "IConvertible_ToUInt32", "IConvertible_ToUInt64", "InternalGetValue", "toString", "ToString$0", "ToString$1", "ToString$2"
+    );
+    JSIL.ExternalMembers($, false, 
+      "Format", "GetEnumValues", "GetHashEntry", "GetName", "GetNames", "GetUnderlyingType", "GetValues", "InternalBoxEnum", "InternalCompareTo", "InternalFlagsFormat", "InternalFormat", "InternalFormattedHexString", "InternalGetNames", "InternalGetUnderlyingType", "InternalGetValues", "IsDefined", "Parse$0", "Parse$1", "ToObject$0", "ToObject$1", "ToObject$2", "ToObject$3", "ToObject$4", "ToObject$5", "ToObject$6", "ToObject$7", "ToObject$8", "ToUInt64", "TryParse$b1$0", "TryParse$b1$1", "TryParseEnum"
+    );
+  }
+);
+
 JSIL.MakeEnumValue = function (enumType, value, key) {
   var obj = new Number(value);
   if (key !== null)
@@ -1902,8 +1911,9 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
   };
 
   var initializer = function ($) {
-    var enumType = System.Enum;
-    var prototype = JSIL.CloneObject(enumType.prototype);
+    var asm = JSIL.GetAssembly("mscorlib");
+    var enumType = JSIL.GetTypeFromAssembly(asm, "System.Enum");
+    var prototype = JSIL.CloneObject(enumType.__PublicInterface__.prototype);
     prototype.__BaseType__ = enumType;
     prototype.__ShortName__ = localName;
     prototype.__FullName__ = fullName;
