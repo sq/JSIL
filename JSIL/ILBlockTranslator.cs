@@ -1576,7 +1576,15 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldvirtftn (ILExpression node, MethodReference method) {
-            return new JSUntranslatableExpression("Ldvirtftn");
+            var methodInfo = TypeInfo.GetMethod(method);
+            if (methodInfo == null)
+                return new JSIgnoredMemberReference(true, null, new JSStringLiteral(method.FullName));
+
+            return JSDotExpression.New(
+                new JSType(method.DeclaringType),
+                JS.prototype,
+                new JSMethod(method, methodInfo)
+            );
         }
 
         protected JSExpression Translate_Ldc (ILExpression node, long value) {

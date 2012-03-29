@@ -41,6 +41,7 @@ namespace JSIL.Transforms {
             public JSVariable SwitchVariable;
             public JSVariable OutputVariable;
             public JSGotoExpression Goto;
+            public bool IsInverted;
         }
 
         public readonly Dictionary<JSVariable, NullCheck> NullChecks = new Dictionary<JSVariable, NullCheck>(
@@ -61,6 +62,8 @@ namespace JSIL.Transforms {
         public void VisitNode (JSIfStatement ifs) {
             var boe = ifs.Condition as JSBinaryOperatorExpression;
             var uoe = ifs.Condition as JSUnaryOperatorExpression;
+            var invocation = ifs.Condition as JSInvocationExpression;
+            bool invocationIsInverted = false;
 
             if ((boe != null) && (boe.Operator == JSOperator.Equal)) {
                 var leftVar = boe.Left as JSVariable;
@@ -83,16 +86,16 @@ namespace JSIL.Transforms {
                                 Statement = ifs,
                             };
 
-                            foreach (var invocation in ifs.TrueClause.AllChildrenRecursive.OfType<JSInvocationExpression>()) {
-                                if (invocation.JSMethod == null)
+                            foreach (var _invocation in ifs.TrueClause.AllChildrenRecursive.OfType<JSInvocationExpression>()) {
+                                if (_invocation.JSMethod == null)
                                     continue;
-                                if (invocation.JSMethod.Identifier != "Add")
+                                if (_invocation.JSMethod.Identifier != "Add")
                                     continue;
-                                if (invocation.Arguments.Count != 2)
+                                if (_invocation.Arguments.Count != 2)
                                     continue;
 
-                                var value = invocation.Arguments[0];
-                                var index = invocation.Arguments[1] as JSIntegerLiteral;
+                                var value = _invocation.Arguments[0];
+                                var index = _invocation.Arguments[1] as JSIntegerLiteral;
                                 if (index == null)
                                     continue;
 
@@ -139,33 +142,42 @@ namespace JSIL.Transforms {
                     }
                 }
             } else if ((uoe != null) && (uoe.Operator == JSOperator.LogicalNot)) {
-                var invocation = uoe.Expression as JSInvocationExpression;
+                invocation = uoe.Expression as JSInvocationExpression;
+                invocationIsInverted = true;
+            }
 
-                if (
-                    (invocation != null) && 
-                    (invocation.Arguments.Count == 2) &&
-                    (invocation.JSMethod != null) &&
-                    (invocation.JSMethod.Identifier == "TryGetValue")
-                ) {
-                    var thisIgnored = invocation.ThisReference as JSIgnoredMemberReference;
-                    var switchVar = invocation.Arguments[0] as JSVariable;
-                    var outRef = invocation.Arguments[1] as JSPassByReferenceExpression;
+            if (
+                (invocation != null) &&
+                (invocation.Arguments.Count == 2) &&
+                (invocation.JSMethod != null) &&
+                (invocation.JSMethod.Identifier == "TryGetValue")
+            ) {
+                var thisIgnored = invocation.ThisReference as JSIgnoredMemberReference;
+                var switchVar = invocation.Arguments[0] as JSVariable;
+                var outRef = invocation.Arguments[1] as JSPassByReferenceExpression;
 
-                    if ((thisIgnored != null) && (switchVar != null) && (outRef != null)) {
-                        var thisField = thisIgnored.Member as FieldInfo;
-                        var outReferent = outRef.Referent as JSReferenceExpression;
+                if ((thisIgnored != null) && (switchVar != null) && (outRef != null)) {
+                    var thisField = thisIgnored.Member as FieldInfo;
+                    var outReferent = outRef.Referent as JSReferenceExpression;
 
-                        if ((thisField != null) && (outReferent != null)) {
-                            var outVar = outReferent.Referent as JSVariable;
+                    if ((thisField != null) && (outReferent != null)) {
+                        var outVar = outReferent.Referent as JSVariable;
 
-                            if (outVar != null) {
-                                IndexLookups[outVar] = new IndexLookup {
-                                    OutputVariable = outVar,
-                                    SwitchVariable = switchVar,
-                                    Field = thisField,
-                                    Statement = ifs,
-                                    Goto = ifs.AllChildrenRecursive.OfType<JSGotoExpression>().FirstOrDefault()
-                                };
+                        if (outVar != null) {
+                            IndexLookups[outVar] = new IndexLookup {
+                                OutputVariable = outVar,
+                                SwitchVariable = switchVar,
+                                Field = thisField,
+                                Statement = ifs,
+                                Goto = ifs.TrueClause.AllChildrenRecursive.OfType<JSGotoExpression>().FirstOrDefault(),
+                                IsInverted = invocationIsInverted
+                            };
+
+                            if (!invocationIsInverted) {
+                                var replacement = ifs.TrueClause;
+                                ParentNode.ReplaceChild(ifs, replacement);
+                                VisitReplacement(replacement);
+                                return;
                             }
                         }
                     }
@@ -195,8 +207,10 @@ namespace JSIL.Transforms {
                 if (NullChecks.TryGetValue(indexLookup.SwitchVariable, out nullCheck))
                     ParentNode.ReplaceChild(nullCheck.Statement, new JSNullStatement());
 
-                ParentNode.ReplaceChild(initializer.Statement, new JSNullStatement());
-                ParentNode.ReplaceChild(indexLookup.Statement, new JSNullStatement());
+                Stack.Skip(2).First().ReplaceChildRecursive(initializer.Statement, new JSNullStatement());
+
+                if (indexLookup.IsInverted)
+                    ParentNode.ReplaceChild(indexLookup.Statement, new JSNullStatement());
 
                 var switchCases = new List<JSSwitchCase>();
                 JSExpression[] values;

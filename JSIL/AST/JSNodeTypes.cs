@@ -2481,7 +2481,7 @@ namespace JSIL.Ast {
                 return variable.Equals(obj) || base.Equals(obj);
             else {
                 variable = obj as JSVariable;
-                if (variable.Identifier == Identifier)
+                if ((variable != null) && (variable.Identifier == Identifier))
                     return true;
                 else
                     return base.Equals(obj);

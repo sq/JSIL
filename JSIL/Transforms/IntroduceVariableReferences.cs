@@ -99,9 +99,6 @@ namespace JSIL.Transforms {
         }
 
         protected void TransformVariableIntoReference (JSVariable variable, JSVariableDeclarationStatement statement, int declarationIndex, JSBlockStatement enclosingBlock) {
-            if (variable.IsReference)
-                Debugger.Break();
-
             var oldDeclaration = statement.Declarations[declarationIndex];
             var valueType = oldDeclaration.Right.GetExpectedType(JSIL.TypeSystem);
             var newVariable = variable.Reference();

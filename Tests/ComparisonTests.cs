@@ -273,6 +273,11 @@ namespace JSIL.Tests {
                 test.Run("howdy", "hello", "world", "what", "why", "who", "where", "when");
             }
 
+            using (var test = new ComparisonTest(@"SpecialTestCases\AlternateSwitchForm.cs")) {
+                test.Run();
+                test.Run("HP", "MP", "STK", "MAG");
+            }
+
             RunComparisonTests(
                 new[] { 
                     @"TestCases\Switch.cs",

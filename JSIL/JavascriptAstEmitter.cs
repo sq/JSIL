@@ -525,8 +525,6 @@ namespace JSIL {
                     var thisRef = ThisReplacementStack.Peek();
                     if (thisRef != null)
                         Visit(thisRef);
-                    else
-                        Debugger.Break();
 
                     return;
                 } else {

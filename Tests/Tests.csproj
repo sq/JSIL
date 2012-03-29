@@ -320,6 +320,7 @@
     <None Include="FailingTestCases\ElaborateSwitchControlFlow.cs" />
     <None Include="SimpleTestCases\LinqSelect.cs" />
     <None Include="SimpleTestCases\LinqToArray.cs" />
+    <None Include="SpecialTestCases\AlternateSwitchForm.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
