@@ -489,7 +489,7 @@ $jsilcore.$ListExternals = {
       this._size = this._items.length;
     } else {
       this._items = new Array(size);
-      this._size = size;
+      this._size = 0;
     }
   },
   Add: function (item) {
@@ -1334,32 +1334,40 @@ JSIL.ImplementExternals(
         return this.$addToBucket(key, value);
     },
     get_Values: function () {
-      var values = [];
+      return new JSIL.AbstractEnumerable(
+        (function getValuesProxy () {
+          var values = [];
 
-      for (var k in this._dict) {
-        if (!this._dict.hasOwnProperty(k))
-          continue;
-        var bucket = this._dict[k];
+          for (var k in this._dict) {
+            if (!this._dict.hasOwnProperty(k))
+              continue;
+            var bucket = this._dict[k];
 
-        for (var i = 0; i < bucket.length; i++)
-          values.push(bucket[i][1]);
-      }
+            for (var i = 0; i < bucket.length; i++)
+              values.push(bucket[i][1]);
+          }
 
-      return new JSIL.EnumerableArray(values);
+          return new JSIL.ArrayEnumerator(values);
+        }).bind(this)
+      );
     },
     get_Keys: function () {
-      var keys = [];
+      return new JSIL.AbstractEnumerable(
+        (function getKeysProxy () {
+          var keys = [];
 
-      for (var k in this._dict) {
-        if (!this._dict.hasOwnProperty(k))
-          continue;
-        var bucket = this._dict[k];
+          for (var k in this._dict) {
+            if (!this._dict.hasOwnProperty(k))
+              continue;
+            var bucket = this._dict[k];
 
-        for (var i = 0; i < bucket.length; i++)
-          keys.push(bucket[i][0]);
-      }
+            for (var i = 0; i < bucket.length; i++)
+              keys.push(bucket[i][0]);
+          }
 
-      return new JSIL.EnumerableArray(keys);
+          return new JSIL.ArrayEnumerator(keys);
+        }).bind(this)
+      );
     },
     get_Count: function () {
       return this._count;
@@ -1445,12 +1453,20 @@ JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerator", true, [], function ($
 
 JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerable", true, [], function ($) {
   $.prototype._ctor = function (getNextItem, reset, dispose) {
-    this._getNextItem = getNextItem;
-    this._reset = reset;
-    this._dispose = dispose;
+    if (arguments.length === 1) {
+      this._getEnumerator = getNextItem;
+    } else {
+      this._getEnumerator = null;
+      this._getNextItem = getNextItem;
+      this._reset = reset;
+      this._dispose = dispose;
+    }
   };
   $.prototype.GetEnumerator = function () {
-    return new JSIL.AbstractEnumerator(this._getNextItem, this._reset, this._dispose);
+    if (this._getEnumerator !== null)
+      return this._getEnumerator();
+    else
+      return new JSIL.AbstractEnumerator(this._getNextItem, this._reset, this._dispose);
   };
   JSIL.ImplementInterfaces($, [
     System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
@@ -1521,6 +1537,38 @@ JSIL.ImplementExternals(
         }
 
         throw new System.Exception("Enumerable contains no items");
+      }
+    ),
+    Any$b1$0: JSIL.GenericMethod(
+      ["T"],
+      function (T, enumerable) {
+        var enumerator = JSIL.GetEnumerator(enumerable);
+
+        try {
+          if (enumerator.MoveNext())
+            return true;
+        } finally {
+          enumerator.IDisposable_Dispose();
+        }
+
+        return false;
+      }
+    ),
+    Any$b1$1: JSIL.GenericMethod(
+      ["T"],
+      function (T, enumerable, predicate) {
+        var enumerator = JSIL.GetEnumerator(enumerable);
+        
+        try {
+          while (enumerator.MoveNext()) {
+            if (predicate(enumerator.Current))
+              return true;
+          }
+        } finally {
+          enumerator.IDisposable_Dispose();
+        }
+
+        return false;
       }
     )
   }

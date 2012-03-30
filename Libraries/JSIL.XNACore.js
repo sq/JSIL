@@ -135,27 +135,12 @@ $jsilxna.getImageMultiplied = function (image, color) {
 
     context.putImageData(imageData, 1, 1);
 
-    // Chrome's canvas implementation is broken and randomly hangs for thousands of milliseconds if you ask
-    //  it to paint canvases with certain hard-to-identify characteristics.
-    var newImage = document.createElement("img");
-
-    // Loading an image from a data URL can take an arbitrary amount of time, so we have to use the canvas
-    //  as our source until then, even though it's slow.
-    newImage.addEventListener("load", function () {
-      delete newImage["canvas"];
-    }, true);
-    newImage["canvas"] = canvas;
-    newImage.width = canvas.width;
-    newImage.height = canvas.height;
-
-    newImage.src = canvas.toDataURL();
-
-    $jsilxna.setCachedMultipliedImage(image, color, newImage);
+    $jsilxna.setCachedMultipliedImage(image, color, canvas);
   } catch (exc) {
     return image;
   }
 
-  return newImage;
+  return canvas;
 };
 
 $jsilxna.getImageTopLeftPixelMultiplied = function (image, color) {
