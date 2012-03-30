@@ -1381,6 +1381,17 @@ JSIL.ImplementExternals(
 );
 
 JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Matrix", true, {
+    xScale: 1,
+    yScale: 1,
+    zScale: 1,
+    xTranslation: 0,
+    yTranslation: 0,
+    zTranslation: 0
+  }
+);
+
+JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Matrix", false, {
     _cctor: function () {
       // FIXME
@@ -1397,13 +1408,21 @@ JSIL.ImplementExternals(
       // FIXME
       return new Microsoft.Xna.Framework.Matrix();
     },
-    CreateScale$0: function () {
+    CreateScale$0: function (x, y, z) {
       // FIXME
-      return new Microsoft.Xna.Framework.Matrix();
+      var result = Object.create(Microsoft.Xna.Framework.Matrix.prototype);
+      result.xScale = x;
+      result.yScale = y;
+      result.zScale = z;
+      return result;
     },
-    CreateTranslation$2: function () {
+    CreateTranslation$2: function (x, y, z) {
       // FIXME
-      return new Microsoft.Xna.Framework.Matrix();
+      var result = Object.create(Microsoft.Xna.Framework.Matrix.prototype);
+      result.xTranslation = x;
+      result.yTranslation = y;
+      result.zTranslation = z;
+      return result;
     }
   }
 );
@@ -2224,28 +2243,34 @@ JSIL.ImplementExternals(
       this.deferredDraws = [];
     },
 
-    Begin: function (spriteSortMode, blendState) {
+    Begin: function (sortMode, blendState, samplerState, depthStencilState, rasterizerState, effect, transformMatrix) {
+      this.device.context.save();
       this.deferSorter = null;
 
-      if (spriteSortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Immediate) {
+      if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Immediate) {
         this.defer = false;
-      } else if (spriteSortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.BackToFront) {
+      } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.BackToFront) {
         this.defer = true;
         this.deferSorter = function (lhs, rhs) {
           return -JSIL.CompareNumbers(lhs.arguments[8], rhs.arguments[8]);
         };
-      } else if (spriteSortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.FrontToBack) {
+      } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.FrontToBack) {
         this.defer = true;
         this.deferSorter = function (lhs, rhs) {
           return JSIL.CompareNumbers(lhs.arguments[8], rhs.arguments[8]);
         };
-      } else if (spriteSortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Texture) {
+      } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Texture) {
         this.defer = true;
         this.deferSorter = function (lhs, rhs) {
           return JSIL.CompareNumbers(lhs.arguments[0], rhs.arguments[0]);
         };
-      } else if (spriteSortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Deferred) {
+      } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Deferred) {
         this.defer = true;
+      }
+
+      if ((typeof (transformMatrix) === "object") && (transformMatrix !== null)) {
+        this.device.context.translate(transformMatrix.xTranslation, transformMatrix.yTranslation);
+        this.device.context.scale(transformMatrix.xScale, transformMatrix.yScale);
       }
     },
 
@@ -2263,6 +2288,8 @@ JSIL.ImplementExternals(
       }
 
       this.deferredDraws = [];
+
+      this.device.context.restore();
     },
 
     InternalDraw: function (texture, position, sourceRectangle, color, rotation, origin, scale, effects, depth) {
@@ -2555,22 +2582,25 @@ JSIL.ImplementExternals(
       this.viewport = new Microsoft.Xna.Framework.Graphics.Viewport();
       this.viewport.Width = this.canvas.clientWidth || this.canvas.width;
       this.viewport.Height = this.canvas.clientHeight || this.canvas.height;
+      this.$UpdateViewport();
     },
     get_Viewport: function () {
       return this.viewport;
     },
     set_Viewport: function (newViewport) {
-      this.viewport = newViewport;
+      this.viewport = newViewport.MemberwiseClone();
 
-      if (this.renderTarget === null) {
-        if ((this.viewport.Width != this.originalCanvas.width) || (this.viewport.Height != this.originalCanvas.height)) {
-          this.canvas = this.originalCanvas = JSIL.Host.getCanvas(this.viewport.Width, this.viewport.Height);
-          this.context = this.originalContext = this.canvas.getContext("2d");
-        }
-      }
+      this.$UpdateViewport();
+    },
+    $UpdateViewport: function () {
+      this.context.setTransform(1, 0, 0, 1, 0, 0);
+      this.context.translate(this.viewport.X, this.viewport.Y);
+      this.context.scale(this.viewport.Width / this.canvas.width, this.viewport.Height / this.canvas.height);
     },
     $Clear: function () {
+      this.context.setTransform(1, 0, 0, 1, 0, 0);
       this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      this.$UpdateViewport();
     },
     InternalClear: function (color) {
       this.context.fillStyle = color.toCss();
@@ -2611,7 +2641,15 @@ JSIL.ImplementExternals(
         this.context = this.originalContext;
       }
 
+      this.context.setTransform(1, 0, 0, 1, 0, 0);
       this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+      this.viewport.X = 0;
+      this.viewport.Y = 0;
+      this.viewport.Width = this.canvas.width;
+      this.viewport.Height = this.canvas.height;
+
+      this.$UpdateViewport();
 
       if (oldRenderTarget !== null)
         oldRenderTarget.$ResynthesizeImage();
