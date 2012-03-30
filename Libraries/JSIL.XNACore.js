@@ -115,7 +115,6 @@ $jsilxna.getImageMultiplied = function (image, color) {
   canvas.width = image.naturalWidth + 2;
   canvas.height = image.naturalHeight + 2;
 
-  context.save();
   context.globalCompositeOperation = "copy";
   context.globalCompositeAlpha = 1.0;
   context.clearRect(0, 0, image.naturalWidth + 2, image.naturalHeight + 2);
@@ -157,6 +156,55 @@ $jsilxna.getImageMultiplied = function (image, color) {
   }
 
   return newImage;
+};
+
+$jsilxna.getImageTopLeftPixelMultiplied = function (image, color) {
+  var cached = image.topLeftPixel;
+  if (typeof (cached) === "string")
+    return cached;
+
+  var canvas = document.createElement("canvas");
+  var context = canvas.getContext("2d");
+
+  // Workaround for bug in Firefox's canvas implementation that treats the outside of a canvas as solid white
+  canvas.width = 1;
+  canvas.height = 1;
+
+  context.globalCompositeOperation = "copy";
+  context.globalCompositeAlpha = 1.0;
+  context.clearRect(0, 0, 1, 1);
+  context.drawImage(image, 0, 0);
+
+  var result = "rgba(0, 0, 0, 0)";
+  try {
+    var imageData = context.getImageData(0, 0, 1, 1);
+
+    var r = imageData.data[0];
+    var g = imageData.data[1];
+    var b = imageData.data[2];
+    var a = imageData.data[3] / 255;
+
+    var m = 1.0 / a;
+
+    if ((typeof (color) === "object") && (color !== null)) {
+      r = (r * color.R) / 255;
+      g = (g * color.G) / 255;
+      b = (b * color.B) / 255;
+    }
+
+    r = $jsilxna.ClampByte(r * m);
+    g = $jsilxna.ClampByte(g * m);
+    b = $jsilxna.ClampByte(b * m);
+
+    image.topLeftPixel = result = "rgba(" + 
+      r + ", " + 
+      g + ", " +
+      b + ", " +
+      a + ")";
+  } catch (exc) {
+  }
+
+  return result;
 };
 
 JSIL.ImplementExternals(
@@ -1408,6 +1456,10 @@ JSIL.ImplementExternals(
       // FIXME
       return new Microsoft.Xna.Framework.Matrix();
     },
+    CreateOrthographicOffCenter$0: function () {
+      // FIXME
+      return new Microsoft.Xna.Framework.Matrix();
+    },
     CreateScale$0: function (x, y, z) {
       // FIXME
       var result = Object.create(Microsoft.Xna.Framework.Matrix.prototype);
@@ -1423,6 +1475,24 @@ JSIL.ImplementExternals(
       result.yTranslation = y;
       result.zTranslation = z;
       return result;
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Graphics.Effect", true, {
+    get_CurrentTechnique: function () {
+      // FIXME
+      return new Microsoft.Xna.Framework.Graphics.EffectTechnique();
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "Microsoft.Xna.Framework.Graphics.EffectTechnique", true, {
+    get_Passes: function () {
+      // FIXME
+      return [new Microsoft.Xna.Framework.Graphics.EffectPass()];
     }
   }
 );
@@ -2329,7 +2399,8 @@ JSIL.ImplementExternals(
       }
 
       var needRestore = false;
-      var image = texture.image;
+      var image = texture.image, originalImage = texture.image;
+      var imageWidth = image.naturalWidth, imageHeight = image.naturalHeight;
       var positionIsRect = typeof (position.Width) === "number";
       var scaleX = 1, scaleY = 1, originX = 0, originY = 0;
       var sourceX = 0, sourceY = 0, sourceW = texture.Width, sourceH = texture.Height;
@@ -2449,6 +2520,10 @@ JSIL.ImplementExternals(
         (sourceW > 0) && (sourceH > 0)
       ) {
         if (this.$drawDebugRects) {
+          if (!needRestore)    
+            this.device.context.save();
+          needRestore = true;
+
           this.device.context.fillStyle = "rgba(255, 0, 0, 0.33)";
           this.device.context.fillRect(
             positionX, positionY, destW, destH
@@ -2456,17 +2531,32 @@ JSIL.ImplementExternals(
         }
 
         if (this.$drawDebugBoxes) {
+          if (!needRestore)    
+            this.device.context.save();
+          needRestore = true;
+
           this.device.context.strokeStyle = "rgba(255, 255, 0, 0.66)";
           this.device.context.strokeRect(
             positionX, positionY, destW, destH
           );
         }
 
-        this.$canvasDrawImage(
-          image, 
-          sourceX, sourceY, sourceW, sourceH,
-          positionX, positionY, destW, destH
-        );
+        if ((imageWidth === 1) && (imageHeight === 1)) {
+          if (!needRestore)
+            this.device.context.save();
+          needRestore = true;
+          
+          var imageColor = $jsilxna.getImageTopLeftPixelMultiplied(originalImage, color);
+
+          this.device.context.fillStyle = imageColor;
+          this.device.context.fillRect(positionX, positionY, destW, destH);
+        } else {
+          this.$canvasDrawImage(
+            image, 
+            sourceX, sourceY, sourceW, sourceH,
+            positionX, positionY, destW, destH
+          );
+        }
       }
 
       if (needRestore)
@@ -2606,16 +2696,16 @@ JSIL.ImplementExternals(
       this.context.fillStyle = color.toCss();
       this.context.fillRect(0, 0, this.viewport.Width, this.viewport.Height);
     },
-    DrawUserPrimitives: function (primitiveType, vertices, vertexOffset, primitiveCount) {
+    InternalDrawUserPrimitives: function (T, primitiveType, vertices, vertexOffset, primitiveCount) {
       switch (primitiveType) {
         case Microsoft.Xna.Framework.Graphics.PrimitiveType.LineList:
           for (var i = 0; i < primitiveCount; i++) {
             var j = i * 2;
-            this.context.lineWidth = 2;
+            this.context.lineWidth = 1;
             this.context.strokeStyle = vertices[j].Color.toCss();
             this.context.beginPath();
-            this.context.moveTo(vertices[j].Position.X, vertices[j].Position.Y);
-            this.context.lineTo(vertices[j + 1].Position.X, vertices[j + 1].Position.Y);
+            this.context.moveTo(vertices[j].Position.X + 0.5, vertices[j].Position.Y + 0.5);
+            this.context.lineTo(vertices[j + 1].Position.X + 0.5, vertices[j + 1].Position.Y + 0.5);
             this.context.closePath();
             this.context.stroke();
           }
@@ -2626,6 +2716,16 @@ JSIL.ImplementExternals(
           return;
       }
     },
+    DrawUserPrimitives$b1$0: JSIL.GenericMethod(
+      ["T"], function (T, primitiveType, vertices, vertexOffset, primitiveCount) {
+        return this.InternalDrawUserPrimitives(T, primitiveType, vertices, vertexOffset, primitiveCount);
+      }
+    ),
+    DrawUserPrimitives$b1$1: JSIL.GenericMethod(
+      ["T"], function (T, primitiveType, vertices, vertexOffset, primitiveCount, vertexDeclaration) {
+        return this.InternalDrawUserPrimitives(T, primitiveType, vertices, vertexOffset, primitiveCount);
+      }
+    ),
     SetRenderTarget$1: function (renderTarget2D) {
       if (this.renderTarget === renderTarget2D)
         return;
@@ -2854,6 +2954,7 @@ JSIL.ImplementExternals(
     },
     $setDataInternal: function (T, data, startIndex, elementCount) {
       var bytes = null;
+      var swapRedAndBlue = false;
 
       switch (T.toString()) {
         case "System.Byte":
@@ -2864,19 +2965,14 @@ JSIL.ImplementExternals(
           bytes = $jsilxna.UnpackColorsToColorBytes(data, startIndex, elementCount);
           startIndex = 0;
           elementCount = bytes.length;
-          break;
-        case "System.Int32":
-        case "System.UInt32":
-          bytes = $jsilxna.UnpackIntsToColorBytes(data, startIndex, elementCount);
-          startIndex = 0;
-          elementCount = bytes.length;
+          swapRedAndBlue = true;
           break;
         default:
           throw new System.Exception("Pixel format '" + T.toString() + "' not implemented");
       }
 
       var shouldUnpremultiply = true;
-      this.image.src = this.$getDataUrlForBytes(bytes, startIndex, elementCount, shouldUnpremultiply);
+      this.image.src = this.$getDataUrlForBytes(bytes, startIndex, elementCount, shouldUnpremultiply, swapRedAndBlue);
     },
     SetData$b1$0: JSIL.GenericMethod(["T"], function (T, data) {
       this.$setDataInternal(T, data, 0, data.length);
@@ -2890,7 +2986,7 @@ JSIL.ImplementExternals(
 
       this.$setDataInternal(T, data, startIndex, elementCount);
     }),
-    $getDataUrlForBytes: function (bytes, startIndex, elementCount, unpremultiply) {
+    $getDataUrlForBytes: function (bytes, startIndex, elementCount, unpremultiply, swapRedAndBlue) {
       var canvas = document.createElement("canvas");
       canvas.width = this.width;
       canvas.height = this.height;
@@ -2899,7 +2995,7 @@ JSIL.ImplementExternals(
       if (bytes !== null) {
         var decoder = $jsilxna.ImageFormats[this.format.name];
         if (decoder !== null) {
-          bytes = decoder(this.width, this.height, bytes, startIndex, elementCount);
+          bytes = decoder(this.width, this.height, bytes, startIndex, elementCount, swapRedAndBlue);
           startIndex = 0;
           elementCount = bytes.length;
         }
@@ -2915,17 +3011,21 @@ JSIL.ImplementExternals(
 
             var a = bytes[p + 3];
 
-            if (a <= 0)
+            if (a <= 0) {
               continue;
+            } else if (a > 254) {
+              imageData.data[p    ] = bytes[p    ];
+              imageData.data[p + 1] = bytes[p + 1];
+              imageData.data[p + 2] = bytes[p + 2];
+              imageData.data[p + 3] = a;
+            } else {
+              var m = 255 / a;
 
-            var m = 255 / a;
-            if (a >= 254)
-              m = 1.0;
-
-            imageData.data[p    ] = bytes[p    ] * m;
-            imageData.data[p + 1] = bytes[p + 1] * m;
-            imageData.data[p + 2] = bytes[p + 2] * m;
-            imageData.data[p + 3] = a;
+              imageData.data[p    ] = bytes[p    ] * m;
+              imageData.data[p + 1] = bytes[p + 1] * m;
+              imageData.data[p + 2] = bytes[p + 2] * m;
+              imageData.data[p + 3] = a;
+            }
           }
         } else {
           for (var i = 0; i < elementCount; i++)
@@ -2955,11 +3055,9 @@ JSIL.ImplementExternals(
       this.format = format;
       this.isDisposed = false;
 
-      this.image = null;
-
-      this.canvas = document.createElement("canvas");
-      this.canvas.width = width;
-      this.canvas.height = height;
+      this.image = this.canvas = document.createElement("canvas");
+      this.canvas.naturalWidth = this.canvas.width = width;
+      this.canvas.naturalHeight = this.canvas.height = height;
       this.context = this.canvas.getContext("2d");
 
       var targets = document.getElementById("rendertargets");
@@ -2982,10 +3080,6 @@ JSIL.ImplementExternals(
       throw new System.NotImplementedException();
     }),
     $ResynthesizeImage: function () {
-      if (this.image === null)
-        this.image = document.createElement("img");
-
-      this.image.src = this.canvas.toDataURL();
     },
     Dispose: function () {
       var targets = document.getElementById("rendertargets");
@@ -3297,9 +3391,8 @@ $jsilxna.DecodeDxt5 = function (width, height, bytes, offset, count) {
   return result;
 };
 
-$jsilxna.ColorToCanvas = function (width, height, bytes, offset, count) {
+$jsilxna.ColorToCanvas = function (width, height, bytes, offset, count, swapRedAndBlue) {
   var result = new Array(count);
-  var swapRedAndBlue = true;
 
   if (swapRedAndBlue) {
     for (var i = 0, l = count; i < l; i += 4) {
@@ -3324,26 +3417,10 @@ $jsilxna.UnpackColorsToColorBytes = function (colors, startIndex, elementCount) 
     var item = colors[startIndex + i];
 
     var p = i * 4;
-    result[p + 0] = item.b & 0xFF;
+    result[p + 0] = item.r & 0xFF;
     result[p + 1] = item.g & 0xFF;
-    result[p + 2] = item.r & 0xFF;
+    result[p + 2] = item.b & 0xFF;
     result[p + 3] = item.a & 0xFF;
-  }
-
-  return result;
-};
-
-$jsilxna.UnpackIntsToColorBytes = function (ints, startIndex, elementCount) {
-  var result = new Array(ints.length * 4); 
-
-  for (var i = 0, l = elementCount; i < l; i++) {
-    var item = ints[startIndex + i];
-
-    var p = i * 4;
-    result[p + 0] = (item >> 16) & 0xFF;
-    result[p + 1] = (item >> 8) & 0xFF;
-    result[p + 2] = (item) & 0xFF;
-    result[p + 3] = (item >> 24) & 0xFF;
   }
 
   return result;

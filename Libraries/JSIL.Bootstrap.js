@@ -1509,6 +1509,20 @@ JSIL.ImplementExternals(
         );
       }
     ),
+    First$b1$0: JSIL.GenericMethod(
+      ["T"],
+      function (T, enumerable) {
+        var enumerator = JSIL.GetEnumerator(enumerable);
+        try {
+          if (enumerator.MoveNext())
+            return enumerator.Current;
+        } finally {
+          enumerator.IDisposable_Dispose();
+        }
+
+        throw new System.Exception("Enumerable contains no items");
+      }
+    )
   }
 );
 
