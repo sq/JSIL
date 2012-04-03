@@ -800,30 +800,50 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
   JSIL.DefineTypeName(name, getter, isPublic);
 };
 
-JSIL.MakeProto = function (baseType, target, typeName, isReferenceType, assembly) {
-  var baseTypeInstance = null;
+JSIL.ResolveTypeReference = function (typeReference, context) {
+  var result = null;
 
-  if (typeof (baseType) === "undefined") {
-    throw new Error("The base type of '" + typeName + "' is not defined");
-  } else if (typeof (baseType) === "string") {
-    baseTypeInstance = JSIL.GetTypeByName(baseType, assembly);
-  } else if (
-    typeof (baseType) === "object"
+  if (
+    typeof (typeReference) === "undefined"
   ) {
-    if (Object.getPrototypeOf(baseType) === JSIL.TypeRef.prototype)
-      baseTypeInstance = baseType.get();
+    throw new Error("Undefined type reference");
+  } else if (
+    typeof (typeReference) === "string"
+  ) {
+    result = JSIL.GetTypeByName(typeReference, context);
+  } else if (
+    typeof (typeReference) === "object"
+  ) {
+    if (Object.getPrototypeOf(typeReference) === JSIL.TypeRef.prototype)
+      result = typeReference.get();
     else
-      baseTypeInstance = baseType;
+      result = typeReference;
   } else if (
     typeof (baseType) === "function"
   ) {
-    baseTypeInstance = baseType;
+    result = typeReference;
   } else {
-    throw new Error("Invalid base type: " + String(baseType));
+    result = typeReference;
   }
 
-  var prototype = JSIL.CloneObject(baseTypeInstance.prototype);
-  prototype.__BaseType__ = baseTypeInstance;
+  if (typeof (result.__Type__) === "object") {
+    return [result, result.__Type__];
+  } else if (
+    typeof (result.__PublicInterface__) !== "undefined"
+  ) {
+    return [result.__PublicInterface__, result];
+  } else {
+    return [result, result];
+  }
+};
+
+JSIL.MakeProto = function (baseType, target, typeName, isReferenceType, assembly) {
+  var _ = JSIL.ResolveTypeReference(baseType, assembly);
+  var baseTypePublicInterface = _[0];
+  var baseTypeObject = _[1];
+
+  var prototype = JSIL.CloneObject(baseTypePublicInterface.prototype);
+  prototype.__BaseType__ = baseTypeObject;
 
   prototype.__ShortName__ = JSIL.GetLocalName(typeName);
   prototype.__FullName__ = typeName;
@@ -1648,7 +1668,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
 
     typeObject.__PublicInterface__ = staticClassObject;
 
-    typeObject.__BaseType__ = baseType;
+    typeObject.__BaseType__ = JSIL.ResolveTypeReference(baseType, assembly)[1];
     typeObject.IsAssignableFrom = function (typeOfValue) {
       var t = typeOfValue;
       while (typeof (t) !== "undefined") {
@@ -2751,15 +2771,17 @@ JSIL.ImplementExternals(
       var haystack = this.__PublicInterface__.prototype;
       return JSIL.CheckDerivation(haystack, needle);
     },
-    GetMethods$0: function () {
-    	return this.GetMethods$1(
+    GetMembers$0: function () {
+      return this.GetMembers$1(
         System.Reflection.BindingFlags.Instance | 
         System.Reflection.BindingFlags.Static | 
         System.Reflection.BindingFlags.Public
       );
     },
-    GetMethods$1: function (flags) {
+    GetMembers$1: function (flags) {
       var result = [];
+
+      var allowInherited = (flags & System.Reflection.BindingFlags.DeclaredOnly) == 0;
 
       var publicOnly = (flags & System.Reflection.BindingFlags.Public) != 0;
       var nonPublicOnly = (flags & System.Reflection.BindingFlags.NonPublic) != 0;
@@ -2771,8 +2793,103 @@ JSIL.ImplementExternals(
       if (staticOnly && instanceOnly)
         staticOnly = instanceOnly = false;
 
-      for (var k in this.__AllMethods__) {
-        var overloadList = this.__AllMethods__[k];
+      var methods = {};
+      var target = this;
+
+      while (target !== null) {
+        var targetMethods = target.__AllMethods__;
+
+        if (typeof (targetMethods) !== "object")
+          break;
+
+        for (var k in targetMethods) {
+          if (!JSIL.IsArray(methods[k]))
+            methods[k] = targetMethods[k];
+          else
+            methods[k] = targetMethods[k].concat(methods[k]);
+        }
+
+        if (!allowInherited)
+          break;
+
+        target = target.__BaseType__;
+      }
+
+      for (var k in methods) {
+        var overloadList = methods[k];
+
+        for (var i = 0, l = overloadList.length; i < l; i++) {
+          var overload = overloadList[i];
+          var descriptor = overload[0];
+
+          // Instance and static constructors are not enumerated like normal methods.
+          if (descriptor.specialName)
+            continue;
+
+          if (publicOnly && !descriptor.public)
+            continue;
+          else if (nonPublicOnly && descriptor.public)
+            continue;
+
+          if (staticOnly && !descriptor.static)
+            continue;
+          else if (instanceOnly && descriptor.static)
+            continue;
+
+          result.push({
+            Name: k
+          });
+        }
+      }
+
+      return result;
+    },
+    GetMethods$0: function () {
+    	return this.GetMethods$1(
+        System.Reflection.BindingFlags.Instance | 
+        System.Reflection.BindingFlags.Static | 
+        System.Reflection.BindingFlags.Public
+      );
+    },
+    GetMethods$1: function (flags) {
+      var result = [];
+
+      var allowInherited = (flags & System.Reflection.BindingFlags.DeclaredOnly) == 0;
+
+      var publicOnly = (flags & System.Reflection.BindingFlags.Public) != 0;
+      var nonPublicOnly = (flags & System.Reflection.BindingFlags.NonPublic) != 0;
+      if (publicOnly && nonPublicOnly)
+        publicOnly = nonPublicOnly = false;
+
+      var staticOnly = (flags & System.Reflection.BindingFlags.Static) != 0;
+      var instanceOnly = (flags & System.Reflection.BindingFlags.Instance) != 0;
+      if (staticOnly && instanceOnly)
+        staticOnly = instanceOnly = false;
+
+      var methods = {};
+      var target = this;
+
+      while (target !== null) {
+        var targetMethods = target.__AllMethods__;
+
+        if (typeof (targetMethods) !== "object")
+          break;
+
+        for (var k in targetMethods) {
+          if (!JSIL.IsArray(methods[k]))
+            methods[k] = targetMethods[k];
+          else
+            methods[k] = targetMethods[k].concat(methods[k]);
+        }
+
+        if (!allowInherited)
+          break;
+
+        target = target.__BaseType__;
+      }
+
+      for (var k in methods) {
+        var overloadList = methods[k];
 
         for (var i = 0, l = overloadList.length; i < l; i++) {
           var overload = overloadList[i];
