@@ -750,43 +750,6 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
   JSIL.DefineTypeName(name, getter, isPublic);
 };
 
-JSIL.ResolveTypeReference = function (typeReference, context) {
-  var result = null;
-
-  if (
-    typeof (typeReference) === "undefined"
-  ) {
-    throw new Error("Undefined type reference");
-  } else if (
-    typeof (typeReference) === "string"
-  ) {
-    result = JSIL.GetTypeByName(typeReference, context);
-  } else if (
-    typeof (typeReference) === "object"
-  ) {
-    if (Object.getPrototypeOf(typeReference) === JSIL.TypeRef.prototype)
-      result = typeReference.get();
-    else
-      result = typeReference;
-  } else if (
-    typeof (baseType) === "function"
-  ) {
-    result = typeReference;
-  } else {
-    result = typeReference;
-  }
-
-  if (typeof (result.__Type__) === "object") {
-    return [result, result.__Type__];
-  } else if (
-    typeof (result.__PublicInterface__) !== "undefined"
-  ) {
-    return [result.__PublicInterface__, result];
-  } else {
-    return [result, result];
-  }
-};
-
 JSIL.MakeProto = function (baseType, target, typeName, isReferenceType, assembly) {
   var _ = JSIL.ResolveTypeReference(baseType, assembly);
   var baseTypePublicInterface = _[0];
@@ -922,17 +885,49 @@ JSIL.FindGenericParameters = function (obj, type, resultList) {
   }
 };
 
+JSIL.ResolveTypeReference = function (typeReference, context) {
+  var result = null;
+
+  if (
+    typeof (typeReference) === "undefined"
+  ) {
+    throw new Error("Undefined type reference");
+  } else if (
+    typeof (typeReference) === "string"
+  ) {
+    result = JSIL.GetTypeByName(typeReference, context);
+  } else if (
+    typeof (typeReference) === "object"
+  ) {
+    if (Object.getPrototypeOf(typeReference) === JSIL.TypeRef.prototype)
+      result = typeReference.get();
+    else
+      result = typeReference;
+  } else if (
+    typeof (baseType) === "function"
+  ) {
+    result = typeReference;
+  } else {
+    result = typeReference;
+  }
+
+  if (typeof (result.__Type__) === "object") {
+    return [result, result.__Type__];
+  } else if (
+    typeof (result.__PublicInterface__) !== "undefined"
+  ) {
+    return [result.__PublicInterface__, result];
+  } else {
+    return [result, result];
+  }
+};
+
 JSIL.ResolveTypeArgumentArray = function (typeArgs) {
   var resolvedArguments = typeArgs;
 
   // Ensure that each argument is the public interface of a type (not the type object or a type reference)
   for (var i = 0, l = resolvedArguments.length; i < l; i++) {
-    if (typeof (resolvedArguments[i]) !== "undefined") {
-      if (Object.getPrototypeOf(resolvedArguments[i]) === JSIL.TypeRef.prototype)
-        resolvedArguments[i] = resolvedArguments[i].get().__Type__;
-      else if (typeof (resolvedArguments[i].__Type__) !== "undefined")
-        resolvedArguments[i] = resolvedArguments[i].__Type__;
-    }
+    resolvedArguments[i] = JSIL.ResolveTypeReference(resolvedArguments[i])[1];
 
     if (typeof(resolvedArguments[i]) === "undefined")
       throw new Error("Undefined passed as type argument");
@@ -2364,6 +2359,7 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
 
 JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, signature, fn) {
   var descriptor = this.ParseDescriptor(_descriptor, methodName);
+
   var mangledName = methodName + "$" + signature.Hash;
 
   descriptor.Target[mangledName] = fn;
@@ -2374,7 +2370,6 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
     mangledName: mangledName 
   });
 };
-
 
 JSIL.InterfaceBuilder.prototype.ImplementInterfaces = function (/* ...interfacesToImplement */) {
   var interfaces = this.typeObject.__Interfaces__;
@@ -2522,6 +2517,44 @@ JSIL.InterfaceBuilder.prototype.ImplementInterfaces = function (/* ...interfaces
 JSIL.MethodSignature = function (returnType, argumentTypes) {
   this.returnType = returnType;
   this.argumentTypes = argumentTypes;
+};
+
+JSIL.MethodSignature.prototype.GetKey = function (name) {
+  return name + "$" + this.Hash;
+};
+
+JSIL.MethodSignature.prototype.Call = function (name, thisReference /*, ...parameters */) {
+  var key = this.GetKey(name);
+
+  var method = thisReference[key];
+  if (typeof (method) !== "function") {
+    var signature;
+
+    if (this.returnType !== null) {
+      signature = JSIL.ResolveTypeReference(this.returnType)[1].toString() + " ";
+    } else {
+      signature = "void ";
+    }
+
+    signature += name + " (";
+
+    for (var i = 0; i < this.argumentTypes.length; i++) {
+      signature += JSIL.ResolveTypeReference(this.argumentTypes[i])[1].toString();
+
+      if (i < this.argumentTypes.length - 1)
+        signature += ", "
+    }
+
+    signature += ")";
+
+    throw new Error(
+      "No method with signature '" + signature +
+      "' defined in context '" + JSIL.GetTypeName(thisReference) + "'"
+    );
+  }
+
+  var parameters = Array.prototype.slice.call(arguments, 2);
+  return method.apply(thisReference, parameters);
 };
 
 JSIL.MethodSignature.prototype.get_Hash = function () {
@@ -2703,6 +2736,13 @@ JSIL.ImplementExternals(
 JSIL.MakeClass(Object, "System.Object", true, [], function ($) {
   $.Field({}, "__LockCount__", Number, function ($) { return 0; });
   $.Field({}, "__StructField__", Array, function ($) { return []; });
+
+  $.Method({Static: false, Public: true}, "Equals",
+    new JSIL.MethodSignature(new JSIL.TypeRef($jsilcore, "System.Boolean"), [$.Type]),
+    function (rhs) {
+      return this === rhs;
+    }
+  );
 
   $.ExternalMembers(true, 
     "Equals", "MemberwiseClone", "__Initialize__", 
@@ -2978,108 +3018,114 @@ JSIL.MakeClass("System.Object", "JSIL.AnyValueType", true, [], function ($) {
   };
 });
 
-JSIL.MakeClass("System.Object", "JSIL.Reference", true);
-JSIL.MakeClass("JSIL.Reference", "JSIL.Variable", true);
-JSIL.MakeClass("JSIL.Reference", "JSIL.MemberReference", true);
+JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
+  var types = $.publicInterface.Types = {};
 
-JSIL.Reference.__ExpectedType__ = System.Object;
-JSIL.Reference.Types = {};
+  $.publicInterface.Of = function (type) {
+    if (typeof (type) === "undefined")
+      throw new Error("Undefined reference type");
+    
+    var elementName = JSIL.GetTypeName(type);
+    var compositeType = JSIL.Reference.Types[elementName];
 
-JSIL.Reference.Of = function (type) {
-  if (typeof (type) === "undefined")
-    throw new Error("Undefined reference type");
-  
-  var elementName = JSIL.GetTypeName(type);
-  var compositeType = JSIL.Reference.Types[elementName];
+    if (typeof (compositeType) === "undefined") {
+      var typeName = "ref " + elementName;
+      compositeType = JSIL.CloneObject(JSIL.Reference);
+      compositeType.CheckType = function (value) {
+        var isReference = JSIL.CheckType(value, JSIL.Reference, true);
+        var isRightType = JSIL.CheckType(value.value, type, false);
+        if (!isRightType && (type === System.Object) && (value.value === null))
+          isRightType = true;
+        return isReference && isRightType;
+      };
+      compositeType.toString = function () {
+        return typeName;
+      };
+      compositeType.prototype = JSIL.MakeProto(JSIL.Reference, compositeType, typeName, true, type.__Context__);
+      compositeType.__FullName__ = typeName;
+      compositeType.__TypeId__ = ++JSIL.$NextTypeId;
+      JSIL.Reference.Types[elementName] = compositeType;
+    }
 
-  if (typeof (compositeType) === "undefined") {
-    var typeName = "ref " + elementName;
-    compositeType = JSIL.CloneObject(JSIL.Reference);
-    compositeType.CheckType = function (value) {
-      var isReference = JSIL.CheckType(value, JSIL.Reference, true);
-      var isRightType = JSIL.CheckType(value.value, type, false);
-      if (!isRightType && (type === System.Object) && (value.value === null))
-        isRightType = true;
-      return isReference && isRightType;
-    };
-    compositeType.toString = function () {
-      return typeName;
-    };
-    compositeType.prototype = JSIL.MakeProto(JSIL.Reference, compositeType, typeName, true, type.__Context__);
-    compositeType.__FullName__ = typeName;
-    compositeType.__TypeId__ = ++JSIL.$NextTypeId;
-    JSIL.Reference.Types[elementName] = compositeType;
-  }
-
-  return compositeType;
-};
-
-JSIL.Variable.prototype._ctor = function (value) {
-  this.value = value;
-};
-
-JSIL.MemberReference.prototype._ctor = function (object, memberName) {
-  this.object = object;
-  this.memberName = memberName;
-};
-JSIL.MemberReference.prototype.get_value = function () {
-  return this.object[this.memberName];
-};
-JSIL.MemberReference.prototype.set_value = function (value) {
-  this.object[this.memberName] = value;
-}
-Object.defineProperty(JSIL.MemberReference.prototype, "value", {
-  get: JSIL.MemberReference.prototype.get_value,
-  set: JSIL.MemberReference.prototype.set_value,
-  configurable: false,
-  enumerable: false
+    return compositeType;
+  };
 });
 
-JSIL.MakeClass("System.Object", "JSIL.CollectionInitializer", true);
-JSIL.CollectionInitializer.prototype._ctor = function () {
-  this.values = Array.prototype.slice.call(arguments);
-};
-JSIL.CollectionInitializer.prototype.Apply = function (target) {
-  var values;
-
-  // This method is designed to support being applied to a regular array as well
-  if (this.hasOwnProperty("values"))
-    values = this.values;
-  else
-    values = this;
-
-  for (var i = 0, l = values.length; i < l; i++)
-    target.Add.apply(target, values[i]);
-};
-
-JSIL.MakeClass("System.Object", "System.ValueType", true);
-System.ValueType.prototype.Equals = function (rhs) {
-  if (this === rhs)
-    return true;
-
-  if ((rhs === null) || (rhs === undefined))
-    return false;
-
-  for (var key in this) {
-    if (!this.hasOwnProperty(key))
-      continue;
-
-    var valueLhs = this[key];
-    var valueRhs = rhs[key];
-
-    if ((valueLhs === null) || (valueLhs === undefined)) {
-      if (valueLhs !== valueRhs)
-        return false;
-    } else if (typeof (valueLhs.Equals) === "function") {
-      if (!valueLhs.Equals(valueRhs))
-        return false;
-    } else if (valueLhs !== valueRhs) {
-      return false;
-    }
+JSIL.MakeClass("JSIL.Reference", "JSIL.Variable", true, [], function ($) {
+  $.publicInterface.prototype._ctor = function (value) {
+    this.value = value;
+  };
+});
+JSIL.MakeClass("JSIL.Reference", "JSIL.MemberReference", true, [], function ($) {
+  $.publicInterface.prototype._ctor = function (object, memberName) {
+    this.object = object;
+    this.memberName = memberName;
+  };
+  $.publicInterface.prototype.get_value = function () {
+    return this.object[this.memberName];
+  };
+  $.publicInterface.prototype.set_value = function (value) {
+    this.object[this.memberName] = value;
   }
 
-  return true;
-};
+  Object.defineProperty($.publicInterface.prototype, "value", {
+    get: $.publicInterface.prototype.get_value,
+    set: $.publicInterface.prototype.set_value,
+    configurable: false,
+    enumerable: false
+  });
+});
+
+JSIL.MakeClass("System.Object", "JSIL.CollectionInitializer", true, [], function ($) {
+  $.publicInterface.prototype._ctor = function () {
+    this.values = Array.prototype.slice.call(arguments);
+  };
+  $.publicInterface.prototype.Apply = function (target) {
+    var values;
+
+    // This method is designed to support being applied to a regular array as well
+    if (this.hasOwnProperty("values"))
+      values = this.values;
+    else
+      values = this;
+
+    for (var i = 0, l = values.length; i < l; i++)
+      target.Add.apply(target, values[i]);
+  };
+});
+
+JSIL.MakeClass("System.Object", "System.ValueType", true, [], function ($) {
+  $.Method({Static: false, Public: true}, "Equals",
+    new JSIL.MethodSignature(System.Boolean, [System.Object]),
+    function (rhs) {
+      if (this === rhs)
+        return true;
+
+      if ((rhs === null) || (rhs === undefined))
+        return false;
+
+      for (var key in this) {
+        if (!this.hasOwnProperty(key))
+          continue;
+
+        var valueLhs = this[key];
+        var valueRhs = rhs[key];
+
+        if ((valueLhs === null) || (valueLhs === undefined)) {
+          if (valueLhs !== valueRhs)
+            return false;
+        } else if (typeof (valueLhs.Equals) === "function") {
+          if (!valueLhs.Equals(valueRhs))
+            return false;
+        } else if (valueLhs !== valueRhs) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+  );
+});
 
 JSIL.Interface = function () { };
 JSIL.Interface.prototype = JSIL.MakeProto(Object, JSIL.Interface, "JSIL.Interface", true, $private);
@@ -3115,40 +3161,28 @@ JSIL.MakeInterface("System.Collections.Generic.IEnumerable`1", true, ["T"], {
   "GetEnumerator": Function
 });
 
-(function () {
-  var runtimeType = $jsilcore.$GetRuntimeType($private);
+JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
+  $.typeObject.__IsArray__ = true;
 
-  var publicInterface = $jsilcore.SystemArray = System.Array = function (size) {
-    return new Array(size);
-  };
-  var typeObject = JSIL.CloneObject(runtimeType);
-
-  typeObject.__IsClosed__ = true;
-  typeObject.__IsReferenceType__ = true;
-  typeObject.__IsArray__ = true;
-
-  publicInterface.prototype = JSIL.MakeProto("System.Object", publicInterface, "System.Array", true, $private);
-  publicInterface.prototype.GetLength = function () {
+  $.publicInterface.prototype.GetLength = function () {
     return this.length;
   };
-  publicInterface.prototype.GetLowerBound = function () {
+  $.publicInterface.prototype.GetLowerBound = function () {
     return 0;
   };
-  publicInterface.prototype.GetUpperBound = function () {
+  $.publicInterface.prototype.GetUpperBound = function () {
     return this.length - 1;
   };
 
-  publicInterface.__Type__ = typeObject;
-  typeObject.__TypeId__ = publicInterface.__TypeId__ = ++JSIL.$NextTypeId;
-  publicInterface.toString = function () {
-    return "<System.Array Public Interface>";
-  };
-  publicInterface.CheckType = function (value) {
+  $.publicInterface.CheckType = function (value) {
     return JSIL.IsArray(value);
   };
 
-  publicInterface.Types = {};
-  publicInterface.Of = function (elementType) {
+  var typeObject = $.typeObject;
+  var publicInterface = $.publicInterface;
+  var types = $.publicInterface.Types = {};
+
+  $.publicInterface.Of = function (elementType) {
     if (typeof (elementType) === "undefined")
       throw new Error("Attempting to create an array of an undefined type");
 
@@ -3162,7 +3196,7 @@ JSIL.MakeInterface("System.Collections.Generic.IEnumerable`1", true, ["T"], {
       elementTypePublicInterface = elementType.__PublicInterface__;
     }
 
-    var compositePublicInterface = publicInterface.Types[elementTypePublicInterface.__TypeId__];
+    var compositePublicInterface = types[elementTypePublicInterface.__TypeId__];
 
     if (typeof (compositePublicInterface) === "undefined") {
       var typeName = elementTypeObject.__FullName__ + "[]";
@@ -3198,13 +3232,11 @@ JSIL.MakeInterface("System.Collections.Generic.IEnumerable`1", true, ["T"], {
     return compositePublicInterface;
   };
 
-  JSIL.DefineTypeName("System.Array", function () { return publicInterface; }, true);
-
   JSIL.ImplementExternals("System.Array", false, {
-    Of: publicInterface.Of,
-    CheckType: publicInterface.CheckType
+    Of: $.publicInterface.Of,
+    CheckType: $.publicInterface.CheckType
   });
-})();
+});
 
 JSIL.Array.New = function (elementType, sizeOrInitializer) {
   var elementTypeObject, elementTypePublicInterface;
@@ -3271,147 +3303,145 @@ JSIL.Array.ShallowCopy = function (destination, source) {
     destination[i] = source[i];
 };
 
-JSIL.MultidimensionalArray = function (type, dimensions, initializer) {
-  if (dimensions.length < 2)
-    throw new Error("Must have at least two dimensions: " + String(dimensions));
+JSIL.MakeClass("System.Array", "JSIL.MultidimensionalArray", true, [], function ($) {
+  $.publicInterface.prototype._ctor = function (type, dimensions, initializer) {
+    if (dimensions.length < 2)
+      throw new Error("Must have at least two dimensions: " + String(dimensions));
 
-  var totalSize = dimensions[0];
-  for (var i = 1; i < dimensions.length; i++)
-    totalSize *= dimensions[i];
+    var totalSize = dimensions[0];
+    for (var i = 1; i < dimensions.length; i++)
+      totalSize *= dimensions[i];
 
-  this._dimensions = dimensions;
-  var items = this._items = new Array(totalSize);
+    this._dimensions = dimensions;
+    var items = this._items = new Array(totalSize);
 
-  Object.defineProperty(
-    this, "length", {
-      value: totalSize,
-      configurable: true,
-      enumerable: true
+    Object.defineProperty(
+      this, "length", {
+        value: totalSize,
+        configurable: true,
+        enumerable: true
+      }
+    );
+
+    var defaultValue = null;
+    if (type.__IsNumeric__)
+      defaultValue = 0;
+
+    if (JSIL.IsArray(initializer)) {
+      JSIL.Array.ShallowCopy(items, initializer);
+    } else {
+      for (var i = 0; i < totalSize; i++)
+        items[i] = defaultValue;
     }
-  );
 
-  var defaultValue = null;
-  if (type.__IsNumeric__)
-    defaultValue = 0;
+    switch (dimensions.length) {
+      case 2:
+        var height = this.length0 = dimensions[0];
+        var width = this.length1 = dimensions[1];
 
-  if (JSIL.IsArray(initializer)) {
-    JSIL.Array.ShallowCopy(items, initializer);
-  } else {
-    for (var i = 0; i < totalSize; i++)
-      items[i] = defaultValue;
-  }
+        Object.defineProperty(
+          this, "Get", {
+            configurable: true, enumerable: true, value: function Get (y, x) {
+              return items[(y * width) + x];
+            }
+          }
+        );
+        Object.defineProperty(
+          this, "GetReference", {
+            configurable: true, enumerable: true, value: function GetReference (y, x) {
+              return new JSIL.MemberReference(items, (y * width) + x);
+            }
+          }
+        );
+        Object.defineProperty(
+          this, "Set", {
+            configurable: true, enumerable: true, value: function Set (y, x, value) {
+              items[(y * width) + x] = value;
+            }
+          }
+        );
+        Object.defineProperty(
+          this, "GetLength", {
+            configurable: true, enumerable: true, value: function GetLength (i) {
+              return dimensions[i];
+            }
+          }
+        );
+        Object.defineProperty(
+          this, "GetUpperBound", {
+            configurable: true, enumerable: true, value: function GetUpperBound (i) {
+              return dimensions[i] - 1;
+            }
+          }
+        );
+        break;
+      case 3:
+        var depth = this.length0 = dimensions[0];
+        var height = this.length1 = dimensions[1];
+        var width = this.length2 = dimensions[2];
+        var heightxwidth = height * width;
 
-  switch (dimensions.length) {
-    case 2:
-      var height = this.length0 = dimensions[0];
-      var width = this.length1 = dimensions[1];
+        Object.defineProperty(
+          this, "Get", {
+            configurable: true, enumerable: true, value: function Get (z, y, x) {
+              return items[(z * heightxwidth) + (y * width) + x];      
+            }
+          }
+        );
+        Object.defineProperty(
+          this, "GetReference", {
+            configurable: true, enumerable: true, value: function GetReference (z, y, x) {
+              return new JSIL.MemberReference(items, (z * heightxwidth) + (y * width) + x);
+            }
+          }
+        );
+        Object.defineProperty(
+          this, "Set", {
+            configurable: true, enumerable: true, value: function Set (z, y, x, value) {
+              items[(z * heightxwidth) + (y * width) + x] = value;
+            }
+          }
+        );
+        Object.defineProperty(
+          this, "GetLength", {
+            configurable: true, enumerable: true, value: function GetLength (i) {
+              return dimensions[i];
+            }
+          }
+        );
+        Object.defineProperty(
+          this, "GetUpperBound", {
+            configurable: true, enumerable: true, value: function GetUpperBound (i) {
+              return dimensions[i] - 1;
+            }
+          }
+        );
+        break;
+    }
+  };
 
-      Object.defineProperty(
-        this, "Get", {
-          configurable: true, enumerable: true, value: function Get (y, x) {
-            return items[(y * width) + x];
-          }
-        }
-      );
-      Object.defineProperty(
-        this, "GetReference", {
-          configurable: true, enumerable: true, value: function GetReference (y, x) {
-            return new JSIL.MemberReference(items, (y * width) + x);
-          }
-        }
-      );
-      Object.defineProperty(
-        this, "Set", {
-          configurable: true, enumerable: true, value: function Set (y, x, value) {
-            items[(y * width) + x] = value;
-          }
-        }
-      );
-      Object.defineProperty(
-        this, "GetLength", {
-          configurable: true, enumerable: true, value: function GetLength (i) {
-            return dimensions[i];
-          }
-        }
-      );
-      Object.defineProperty(
-        this, "GetUpperBound", {
-          configurable: true, enumerable: true, value: function GetUpperBound (i) {
-            return dimensions[i] - 1;
-          }
-        }
-      );
-      break;
-    case 3:
-      var depth = this.length0 = dimensions[0];
-      var height = this.length1 = dimensions[1];
-      var width = this.length2 = dimensions[2];
-      var heightxwidth = height * width;
+  $.publicInterface.New = function (type) {
+    var initializer = arguments[arguments.length - 1];
+    var numDimensions = arguments.length - 1;
 
-      Object.defineProperty(
-        this, "Get", {
-          configurable: true, enumerable: true, value: function Get (z, y, x) {
-            return items[(z * heightxwidth) + (y * width) + x];      
-          }
-        }
-      );
-      Object.defineProperty(
-        this, "GetReference", {
-          configurable: true, enumerable: true, value: function GetReference (z, y, x) {
-            return new JSIL.MemberReference(items, (z * heightxwidth) + (y * width) + x);
-          }
-        }
-      );
-      Object.defineProperty(
-        this, "Set", {
-          configurable: true, enumerable: true, value: function Set (z, y, x, value) {
-            items[(z * heightxwidth) + (y * width) + x] = value;
-          }
-        }
-      );
-      Object.defineProperty(
-        this, "GetLength", {
-          configurable: true, enumerable: true, value: function GetLength (i) {
-            return dimensions[i];
-          }
-        }
-      );
-      Object.defineProperty(
-        this, "GetUpperBound", {
-          configurable: true, enumerable: true, value: function GetUpperBound (i) {
-            return dimensions[i] - 1;
-          }
-        }
-      );
-      break;
-  }
-};
+    if (JSIL.IsArray(initializer))
+      numDimensions -= 1;
+    else
+      initializer = null;
 
-JSIL.MultidimensionalArray.prototype = JSIL.CloneObject(System.Array.prototype);
-JSIL.MultidimensionalArray.prototype.GetLowerBound = function (i) {
-  return 0;
-};
-JSIL.MultidimensionalArray.New = function (type) {
-  var initializer = arguments[arguments.length - 1];
-  var numDimensions = arguments.length - 1;
+    if (numDimensions < 1)
+      throw new Error("Must provide at least one dimension");
+    else if ((numDimensions == 1) && (initializer === null))
+      return System.Array.New(type, arguments[1]);
 
-  if (JSIL.IsArray(initializer))
-    numDimensions -= 1;
-  else
-    initializer = null;
+    var dimensions = Array.prototype.slice.call(arguments, 1, 1 + numDimensions);
 
-  if (numDimensions < 1)
-    throw new Error("Must provide at least one dimension");
-  else if ((numDimensions == 1) && (initializer === null))
-    return System.Array.New(type, arguments[1]);
-
-  var dimensions = Array.prototype.slice.call(arguments, 1, 1 + numDimensions);
-
-  if (initializer != null)
-    return new JSIL.MultidimensionalArray(type, dimensions, initializer);
-  else
-    return new JSIL.MultidimensionalArray(type, dimensions);
-};
+    if (initializer != null)
+      return new JSIL.MultidimensionalArray(type, dimensions, initializer);
+    else
+      return new JSIL.MultidimensionalArray(type, dimensions);
+  };
+});
 
 JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
   var assembly = $private;

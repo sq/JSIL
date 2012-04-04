@@ -985,9 +985,11 @@ namespace JSIL {
                 ((outerInvocation != null) && (outerInvocation.ThisReference == newexp));
 
             if (
-                (newexp.Constructor != null) && 
-                newexp.Constructor.OverloadIndex.HasValue &&
-                newexp.Constructor.Name.Contains("$")
+                (newexp.Constructor != null) &&
+                !(
+                  newexp.Constructor.IsSealed || 
+                  newexp.Constructor.DeclaringType.DerivedTypeCount == 0
+                )
             ) {
                 Output.Identifier("JSIL.New", null);
                 Output.LPar();
@@ -1104,8 +1106,14 @@ namespace JSIL {
         }
 
         public void VisitNode (JSInvocationExpression invocation) {
+            TypeReference typeOfThisReference = null;
+
+            bool isOverloaded = (invocation.JSMethod != null) && 
+                (invocation.JSMethod.Method != null) && 
+                (invocation.JSMethod.Method.MethodGroup != null);
+            bool usePreciseName = false;
             bool isStatic = false;
-            if (invocation.ExplicitThis && invocation.ThisReference.IsNull) {
+            if (invocation.ExplicitThis && invocation.ThisReference.IsNull && !isOverloaded) {
                 isStatic = true;
 
                 if (!invocation.Type.IsNull) {
@@ -1114,28 +1122,53 @@ namespace JSIL {
                 }
 
                 Visit(invocation.Method);
-            } else if (invocation.ExplicitThis) {
-                Visit(invocation.Type);
-                Output.Dot();
-                Output.Identifier("prototype");
-                Output.Dot();
-                Visit(invocation.Method);
-                Output.Dot();
-                Output.Identifier("call");
             } else {
-                bool needsParens =
-                    (CountOfMatchingSubtrees<JSFunctionExpression>(new[] { invocation.ThisReference }) > 0) ||
-                    (CountOfMatchingSubtrees<JSIntegerLiteral>(new[] { invocation.ThisReference }) > 0) ||
-                    (CountOfMatchingSubtrees<JSNumberLiteral>(new[] { invocation.ThisReference }) > 0);
+                usePreciseName = !invocation.ExplicitThis;
 
-                if (needsParens)
+                if (isOverloaded) {
+                    usePreciseName = true;
+                } else if (
+                    invocation.JSMethod.Method.IsSealed ||
+                    (invocation.JSMethod.Method.DeclaringType.DerivedTypeCount == 0)
+                ) {
+                    usePreciseName = false;
+                } else {
+                }
+
+                if (usePreciseName) {
                     Output.LPar();
-                Visit(invocation.ThisReference);
-                if (needsParens)
+                    Output.MethodSignature(
+                        null, invocation.JSMethod.Method.ReturnType,
+                        (from p in invocation.JSMethod.Method.Parameters select p.ParameterType)
+                    );
                     Output.RPar();
 
-                Output.Dot();
-                Visit(invocation.Method);
+                    Output.Dot();
+                    Output.Identifier("Call");
+
+                } else if (invocation.ExplicitThis) {
+                    Visit(invocation.Type);
+                    Output.Dot();
+                    Output.Identifier("prototype");
+                    Output.Dot();
+                    Visit(invocation.Method);
+                    Output.Dot();
+                    Output.Identifier("call");
+                } else {
+                    bool needsParens =
+                        (CountOfMatchingSubtrees<JSFunctionExpression>(new[] { invocation.ThisReference }) > 0) ||
+                        (CountOfMatchingSubtrees<JSIntegerLiteral>(new[] { invocation.ThisReference }) > 0) ||
+                        (CountOfMatchingSubtrees<JSNumberLiteral>(new[] { invocation.ThisReference }) > 0);
+
+                    if (needsParens)
+                        Output.LPar();
+                    Visit(invocation.ThisReference);
+                    if (needsParens)
+                        Output.RPar();
+
+                    Output.Dot();
+                    Visit(invocation.Method);
+                }
             }
 
             Output.LPar();
@@ -1145,7 +1178,22 @@ namespace JSIL {
             if (needLineBreak)
                 Output.NewLine();
 
-            if (invocation.ExplicitThis && !isStatic && !invocation.ThisReference.IsNull) {
+            if (usePreciseName) {
+                var identifier = Util.EscapeIdentifier(
+                    invocation.JSMethod.Method.GetName(true), EscapingMode.MemberIdentifier
+                );
+
+                Output.Value(identifier);
+                Output.Comma();
+
+                if (invocation.ThisReference.IsNull)
+                    Visit(invocation.Type);
+                else
+                    Visit(invocation.ThisReference);
+
+                if (invocation.Arguments.Count > 0)
+                    Output.Comma();
+            } else if (invocation.ExplicitThis && !isStatic && !invocation.ThisReference.IsNull) {
                 Visit(invocation.ThisReference);
 
                 if (invocation.Arguments.Count > 0)

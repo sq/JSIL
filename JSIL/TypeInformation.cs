@@ -899,17 +899,15 @@ namespace JSIL.Internal {
                 if (filtered.Length <= 1)
                     continue;
 
-                int i = 0;
                 var groupName = filtered.First().Name;
-
-                foreach (var item in filtered.OrderBy((m) => m.Member.MetadataToken.ToUInt32())) {
-                    item.OverloadIndex = i;
-                    i += 1;
-                }
-
-                MethodGroups.Add(new MethodGroupInfo(
+                var mgi = new MethodGroupInfo(
                     this, filtered.ToArray(), groupName
-                ));
+                );
+
+                foreach (var m in mg)
+                    m.MethodGroup = mgi;
+
+                MethodGroups.Add(mgi);
             }
         }
 
@@ -1618,7 +1616,7 @@ namespace JSIL.Internal {
         public readonly bool IsVirtual;
         public readonly bool IsSealed;
 
-        public int? OverloadIndex;
+        public MethodGroupInfo MethodGroup = null;
         protected bool? _ParametersIgnored;
         protected readonly string ShortName;
 
@@ -1703,11 +1701,6 @@ namespace JSIL.Internal {
 
             if (Member.HasGenericParameters)
                 result = String.Format("{0}`{1}", result, Member.GenericParameters.Count);
-
-            if (OverloadIndex.HasValue) {
-                if (nameMangling.GetValueOrDefault(!Metadata.HasAttribute("JSIL.Meta.JSRuntimeDispatch")))
-                    result = String.Format("{0}${1}", result, OverloadIndex.Value);
-            }
 
             return result;
         }

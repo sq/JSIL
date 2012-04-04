@@ -407,32 +407,47 @@ JSIL.ConcatString = function (/* ...values */) {
 System.String.Empty = '';
 
 JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, [], function ($) {
-  $.Method({Public: true , Static: false}, "_ctor", function (array) {
-    this._array = array;
-    this._length = array.length;
-    this._index = -1;
-  });
-  $.Method({Public: true , Static: false}, "Reset", function () {
-    if (this._array === null)
-      throw new Error("Enumerator is disposed or not initialized");
+  $.Method({Public: true , Static: false}, "_ctor", 
+    new JSIL.MethodSignature(null, [System.Array]),
+    function (array) {
+      this._array = array;
+      this._length = array.length;
+      this._index = -1;
+    }
+  );
+  $.Method({Public: true , Static: false}, "Reset", 
+    new JSIL.MethodSignature(null, []),
+    function () {
+      if (this._array === null)
+        throw new Error("Enumerator is disposed or not initialized");
 
-    this._index = -1;
-  });
-  $.Method({Public: true , Static: false}, "MoveNext", function () {
-    if (this._index >= this._length)
-      return false;
+      this._index = -1;
+    }
+  );
+  $.Method({Public: true , Static: false}, "MoveNext", 
+    new JSIL.MethodSignature(System.Boolean, []),
+    function () {
+      if (this._index >= this._length)
+        return false;
 
-    this._index += 1;
-    return (this._index < this._length);
-  });
-  $.Method({Public: true , Static: false}, "Dispose", function () {
-    this._array = null;
-    this._index = 0;
-    this._length = -1;
-  });
-  $.Method({Public: true , Static: false}, "get_Current", function () {
-    return this._array[this._index];
-  });
+      this._index += 1;
+      return (this._index < this._length);
+    }
+  );
+  $.Method({Public: true , Static: false}, "Dispose", 
+    new JSIL.MethodSignature(null, []),
+    function () {
+      this._array = null;
+      this._index = 0;
+      this._length = -1;
+    }
+  );
+  $.Method({Public: true , Static: false}, "get_Current", 
+    new JSIL.MethodSignature(System.Object, []),
+    function () {
+      return this._array[this._index];
+    }
+  );
 
   $.Property({Public: true , Static: false}, "Current");
 
@@ -753,12 +768,18 @@ JSIL.ImplementExternals("System.Collections.Generic.Queue`1", true, {
 });
 
 JSIL.MakeClass("System.Object", "JSIL.EnumerableArray", true, [], function ($) {
-  $.Method({Public: true , Static: false}, "_ctor", function (array) {
-    this.array = array;
-  });
-  $.Method({Public: true , Static: false}, "GetEnumerator", function () {
-    return new JSIL.ArrayEnumerator(this.array);
-  });
+  $.Method({Public: true , Static: false}, "_ctor", 
+    new JSIL.MethodSignature(null, [System.Array]),
+    function (array) {
+      this.array = array;
+    }
+  );
+  $.Method({Public: true , Static: false}, "GetEnumerator", 
+    new JSIL.MethodSignature(System.Collections.IEnumerator$b1, []),
+    function () {
+      return new JSIL.ArrayEnumerator(this.array);
+    }
+  );
 
   $.ImplementInterfaces(
     System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
@@ -796,12 +817,15 @@ JSIL.MakeClass("JSIL.ArrayEnumerator", "System.Collections.Generic.List`1/Enumer
   $.Field({Public: false, Static: false}, "_length", Number, function ($) { return 0; });
   $.Field({Public: false, Static: false}, "_index", Number, function ($) { return -1; });
 
-  $.Method({Public: true, Static: false}, "_ctor", function (list) {
-    if (typeof (list) != "undefined") {
-      this._array = list._items;
-      this._length = list.Count;
+  $.Method({Public: true, Static: false}, "_ctor", 
+    new JSIL.MethodSignature(null, ["System.Collections.Generic.List`1"]),
+    function (list) {
+      if (typeof (list) != "undefined") {
+        this._array = list._items;
+        this._length = list.Count;
+      }
     }
-  });
+  );
 });
 
 JSIL.ImplementExternals(
