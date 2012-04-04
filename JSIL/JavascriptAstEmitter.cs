@@ -1125,11 +1125,15 @@ namespace JSIL {
             } else {
                 usePreciseName = !invocation.ExplicitThis;
 
-                if (isOverloaded) {
+                if ((invocation.JSMethod == null) || (invocation.JSMethod.Method == null)) {
+                    usePreciseName = false;
+                } else if (isOverloaded) {
                     usePreciseName = true;
                 } else if (
-                    invocation.JSMethod.Method.IsSealed ||
-                    (invocation.JSMethod.Method.DeclaringType.DerivedTypeCount == 0)
+                    (
+                        invocation.JSMethod.Method.IsSealed ||
+                        (invocation.JSMethod.Method.DeclaringType.DerivedTypeCount == 0)
+                    )
                 ) {
                     usePreciseName = false;
                 } else {

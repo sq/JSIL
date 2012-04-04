@@ -104,6 +104,7 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
 
 
 var $jsilcore = JSIL.DeclareAssembly("JSIL.Core");
+$jsilcore.SystemObjectInitialized = false;
 JSIL.$NextTypeId = 0;
 JSIL.$PublicTypes = {};
 
@@ -1434,7 +1435,16 @@ JSIL.MakeExternalType = function (fullName, isPublic) {
   }
 };
 
-$jsilcore.$GetRuntimeType = function (context) {
+$jsilcore.$GetRuntimeType = function (context, forTypeName) {
+  // Initializing System.Object forms a cyclical dependency through RuntimeType.
+  // To deal with this, we use a stub for RuntimeType until System.Object has been fully initialized.
+  if (!$jsilcore.SystemObjectInitialized)
+    return $jsilcore.RuntimeType;
+
+  // If we're currently initializing RuntimeType, Type or MemberInfo, we also need to use the stub.
+  if ((forTypeName == "System.RuntimeType") || (forTypeName == "System.Type") || (forTypeName == "System.Reflection.MemberInfo"))
+    return $jsilcore.RuntimeType;
+
   var runtimeType = JSIL.ResolveName($jsilcore, "System.RuntimeType", true);
   if (runtimeType.exists()) {
     runtimeType = runtimeType.get();
@@ -1454,7 +1464,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   var assembly = $private;
   var localName = JSIL.GetLocalName(fullName);
 
-  var runtimeType = $jsilcore.$GetRuntimeType(assembly);
+  var runtimeType = $jsilcore.$GetRuntimeType(assembly, fullName);
   var typeObject = JSIL.CloneObject(runtimeType);
   typeObject.__FullName__ = fullName;
 
@@ -1547,11 +1557,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
 
   var createTypeObject = function () {
     var runtimeType;
-    // Since the actual definition for Type/RuntimeType is cyclical, we need to use a stub for them.
-    if (["System.Object", "System.Reflection.MemberInfo", "System.Type", "System.RuntimeType"].indexOf(fullName) !== -1)
-      runtimeType = $jsilcore.RuntimeType;
-    else
-      runtimeType = $jsilcore.$GetRuntimeType(assembly);
+    runtimeType = $jsilcore.$GetRuntimeType(assembly, fullName);
 
     var typeObject = JSIL.CloneObject(runtimeType);
 
@@ -1718,7 +1724,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
       throw new Error("Cannot construct an instance of an interface");
     };
 
-    var runtimeType = $jsilcore.$GetRuntimeType(assembly);
+    var runtimeType = $jsilcore.$GetRuntimeType(assembly, fullName);
     var typeObject = JSIL.CloneObject(runtimeType);
 
     publicInterface.__Type__ = typeObject;
@@ -2734,6 +2740,8 @@ JSIL.ImplementExternals(
 );
 
 JSIL.MakeClass(Object, "System.Object", true, [], function ($) {
+  $jsilcore.SystemObjectInitialized = true;
+
   $.Field({}, "__LockCount__", Number, function ($) { return 0; });
   $.Field({}, "__StructField__", Array, function ($) { return []; });
 
@@ -3161,6 +3169,10 @@ JSIL.MakeInterface("System.Collections.Generic.IEnumerable`1", true, ["T"], {
   "GetEnumerator": Function
 });
 
+JSIL.ImplementExternals("System.Array", false, {
+  CheckType: JSIL.IsArray
+});
+  
 JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
   $.typeObject.__IsArray__ = true;
 
@@ -3231,11 +3243,6 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
 
     return compositePublicInterface;
   };
-
-  JSIL.ImplementExternals("System.Array", false, {
-    Of: $.publicInterface.Of,
-    CheckType: $.publicInterface.CheckType
-  });
 });
 
 JSIL.Array.New = function (elementType, sizeOrInitializer) {

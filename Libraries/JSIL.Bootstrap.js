@@ -9,6 +9,120 @@ JSIL.DeclareNamespace("System.ComponentModel");
 JSIL.DeclareNamespace("System.Linq");
 JSIL.DeclareNamespace("System.Reflection");
 
+JSIL.ImplementExternals(
+  "System.Boolean", false, {
+    CheckType: function (value) {
+      return (value === false) || (value === true);
+    }
+  }
+);
+JSIL.MakeNumericType(Boolean, "System.Boolean", true);
+
+JSIL.ImplementExternals(
+  "System.Char", false, {
+    CheckType: function (value) {
+      return (typeof (value) === "string") && (value.length == 1);
+    }
+  }
+);
+JSIL.MakeNumericType(String, "System.Char", true);
+
+JSIL.ImplementExternals(
+  "System.Byte", false, {
+    CheckType: function (value) {
+      return (typeof (value) === "number") && (value >= 0) && (value <= 255);
+    }
+  }
+);
+JSIL.MakeNumericType(Number, "System.Byte", true);
+
+$jsilcore.$ParseInt = function (text) {
+  return Math.abs(parseInt(text, 10));
+};
+$jsilcore.$TryParseInt$0 = function (text, result) {
+  result.value = parseInt(text, 10);
+  return !isNaN(result.value);
+};
+
+JSIL.ImplementExternals(
+  "System.UInt16", false, {
+    CheckType: function (value) {
+      return (typeof (value) === "number") && (value >= 0);
+    },
+    Parse: $jsilcore.$ParseInt,
+    TryParse$0: $jsilcore.$TryParseInt$0
+  }
+);
+JSIL.MakeNumericType(Number, "System.UInt16", true);
+System.UInt16.MaxValue = 65535;
+
+JSIL.ImplementExternals(
+  "System.Int16", false, {
+    CheckType: function (value) {
+      return (typeof (value) === "number");
+    },
+    Parse: $jsilcore.$ParseInt,
+    TryParse$0: $jsilcore.$TryParseInt$0
+  }
+);
+JSIL.MakeNumericType(Number, "System.Int16", true);
+System.Int16.MaxValue = 32767;
+
+JSIL.ImplementExternals(
+  "System.UInt32", false, {
+    CheckType: function (value) {
+      return (typeof (value) === "number") && (value >= 0);
+    },
+    Parse: $jsilcore.$ParseInt,
+    TryParse$0: $jsilcore.$TryParseInt$0
+  }
+);
+JSIL.MakeNumericType(Number, "System.UInt32", true);
+System.UInt32.MaxValue = 4294967295;
+
+JSIL.ImplementExternals(
+  "System.Int32", false, {
+    CheckType: function (value) {
+      return (typeof (value) === "number");
+    },
+    Parse: $jsilcore.$ParseInt,
+    TryParse$0: $jsilcore.$TryParseInt$0
+  }
+);
+JSIL.MakeNumericType(Number, "System.Int32", true);
+System.Int32.MaxValue = 2147483647;
+
+JSIL.ImplementExternals(
+  "System.Int64", false, {
+    CheckType: function (value) {
+      return (typeof (value) === "number");
+    },
+    Parse: $jsilcore.$ParseInt,
+    TryParse$0: $jsilcore.$TryParseInt$0
+  }
+);
+JSIL.MakeNumericType(Number, "System.Int64", true);
+
+JSIL.ImplementExternals(
+  "System.Single", false, {
+    CheckType: function (value) {
+      return (typeof (value) === "number");
+    },
+    IsNaN: isNaN
+  }
+);
+JSIL.MakeNumericType(Number, "System.Single", false);
+
+JSIL.ImplementExternals(
+  "System.Double", false, {
+    CheckType: function (value) {
+      return (typeof (value) === "number");
+    },
+    IsNaN: isNaN
+  }
+);
+JSIL.MakeNumericType(Number, "System.Double", false);
+
 JSIL.MakeClass("System.Object", "System.ComponentModel.MemberDescriptor", true);
 JSIL.MakeClass("System.ComponentModel.MemberDescriptor", "System.ComponentModel.PropertyDescriptor", true);
 JSIL.MakeClass("System.Object", "System.ComponentModel.TypeConverter", true);
@@ -72,7 +186,6 @@ JSIL.ImplementExternals(
     Invoke: function () {
       return this.__method__.apply(this.__object__, arguments);
     },
-    toString: System.Object.prototype.toString,
     GetInvocationList: function () {
       return [ this ];
     }
@@ -926,120 +1039,6 @@ JSIL.MakeStaticClass("System.Math", true, function ($) {
     "Min", "Max"
   );
 });
-
-JSIL.ImplementExternals(
-  "System.Boolean", false, {
-    CheckType: function (value) {
-      return (value === false) || (value === true);
-    }
-  }
-);
-JSIL.MakeNumericType(Boolean, "System.Boolean", true);
-
-JSIL.ImplementExternals(
-  "System.Char", false, {
-    CheckType: function (value) {
-      return (typeof (value) === "string") && (value.length == 1);
-    }
-  }
-);
-JSIL.MakeNumericType(String, "System.Char", true);
-
-JSIL.ImplementExternals(
-  "System.Byte", false, {
-    CheckType: function (value) {
-      return (typeof (value) === "number") && (value >= 0) && (value <= 255);
-    }
-  }
-);
-JSIL.MakeNumericType(Number, "System.Byte", true);
-
-$jsilcore.$ParseInt = function (text) {
-  return Math.abs(parseInt(text, 10));
-};
-$jsilcore.$TryParseInt$0 = function (text, result) {
-  result.value = parseInt(text, 10);
-  return !isNaN(result.value);
-};
-
-JSIL.ImplementExternals(
-  "System.UInt16", false, {
-    CheckType: function (value) {
-      return (typeof (value) === "number") && (value >= 0);
-    },
-    Parse: $jsilcore.$ParseInt,
-    TryParse$0: $jsilcore.$TryParseInt$0
-  }
-);
-JSIL.MakeNumericType(Number, "System.UInt16", true);
-System.UInt16.MaxValue = 65535;
-
-JSIL.ImplementExternals(
-  "System.Int16", false, {
-    CheckType: function (value) {
-      return (typeof (value) === "number");
-    },
-    Parse: $jsilcore.$ParseInt,
-    TryParse$0: $jsilcore.$TryParseInt$0
-  }
-);
-JSIL.MakeNumericType(Number, "System.Int16", true);
-System.Int16.MaxValue = 32767;
-
-JSIL.ImplementExternals(
-  "System.UInt32", false, {
-    CheckType: function (value) {
-      return (typeof (value) === "number") && (value >= 0);
-    },
-    Parse: $jsilcore.$ParseInt,
-    TryParse$0: $jsilcore.$TryParseInt$0
-  }
-);
-JSIL.MakeNumericType(Number, "System.UInt32", true);
-System.UInt32.MaxValue = 4294967295;
-
-JSIL.ImplementExternals(
-  "System.Int32", false, {
-    CheckType: function (value) {
-      return (typeof (value) === "number");
-    },
-    Parse: $jsilcore.$ParseInt,
-    TryParse$0: $jsilcore.$TryParseInt$0
-  }
-);
-JSIL.MakeNumericType(Number, "System.Int32", true);
-System.Int32.MaxValue = 2147483647;
-
-JSIL.ImplementExternals(
-  "System.Int64", false, {
-    CheckType: function (value) {
-      return (typeof (value) === "number");
-    },
-    Parse: $jsilcore.$ParseInt,
-    TryParse$0: $jsilcore.$TryParseInt$0
-  }
-);
-JSIL.MakeNumericType(Number, "System.Int64", true);
-
-JSIL.ImplementExternals(
-  "System.Single", false, {
-    CheckType: function (value) {
-      return (typeof (value) === "number");
-    },
-    IsNaN: isNaN
-  }
-);
-JSIL.MakeNumericType(Number, "System.Single", false);
-
-JSIL.ImplementExternals(
-  "System.Double", false, {
-    CheckType: function (value) {
-      return (typeof (value) === "number");
-    },
-    IsNaN: isNaN
-  }
-);
-JSIL.MakeNumericType(Number, "System.Double", false);
 
 JSIL.MakeStruct("System.ValueType", "System.Decimal", true);
 System.Decimal.CheckType = function (value) {
