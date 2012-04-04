@@ -87,8 +87,13 @@ namespace JSIL.Internal {
         public void CommaSeparatedList (IEnumerable<object> values, ListValueType valueType = ListValueType.Primitive) {
             bool isFirst = true;
             foreach (var value in values) {
-                if (!isFirst)
+                if (!isFirst) {
                     Comma();
+
+                    if ((valueType == ListValueType.TypeIdentifier) ||
+                        (valueType == ListValueType.TypeReference))
+                        NewLine();
+                }
 
                 if (valueType == ListValueType.Primitive)
                     Value(value as dynamic);

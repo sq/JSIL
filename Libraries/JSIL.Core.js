@@ -1133,7 +1133,7 @@ JSIL.InstantiateGenericProperties = function (obj) {
 
   while ((typeof (typeObject) !== "undefined") && (typeObject !== null)) {
     var gps = typeObject.__GenericProperties__;
-    
+
     if (JSIL.IsArray(gps)) {
       for (var i = 0, l = gps.length; i < l; i++) {
         var gp = gps[i];
@@ -2191,6 +2191,10 @@ JSIL.InterfaceBuilder = function (typeObject, publicInterface) {
     SpecialName: false,
     Name: null
   };
+};
+
+JSIL.InterfaceBuilder.prototype.toString = function () {
+  return "<Interface Builder for " + this.namespace + ">";
 };
 
 JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name) {

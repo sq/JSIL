@@ -465,8 +465,11 @@ JSIL.ImplementExternals(
 JSIL.MakeClass("System.Object", "System.Threading.Thread", true, [], function ($) {
   $.Field({Public: false, Static: true}, "_currentThread", null);
 
-  $.Property({Public: true , Static: false}, "CurrentThread");
-  $.Property({Public: true , Static: false}, "ManagedThreadId");
+  $.ExternalMembers(false, "get_CurrentThread");
+  $.ExternalMembers(false, "get_ManagedThreadId");
+
+  $.Property({Public: true , Static: true}, "CurrentThread");
+  $.Property({Public: true , Static: true}, "ManagedThreadId");
 });
 
 $jsilcore.$ListExternals = {
