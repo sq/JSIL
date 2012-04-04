@@ -2920,7 +2920,7 @@ JSIL.MakeClass(Object, "System.Object", true, [], function ($) {
   $.ExternalMethod({Static: false, Public: false}, "__Initialize__",
     new JSIL.MethodSignature(null, [], $jsilcore)
   );
-  
+
   $.ExternalMembers(false, "CheckType");
 
   $jsilcore.SystemObjectInitialized = true;
@@ -3634,6 +3634,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
 
     var typeObject = Object.create(JSIL.TypeObjectPrototype);
 
+    typeObject.__Context__ = assembly;
     typeObject.__BaseType__ = delegateType;
     typeObject.__FullName__ = fullName;
     typeObject.__CallStack__ = callStack;
