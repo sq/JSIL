@@ -502,6 +502,8 @@ JSIL.MakeClass("System.Object", "System.String", true, [], function ($) {
   $.ExternalMembers(true,
     "_ctor", "_ctor$0", "_ctor$1", "_ctor$2"
   );
+
+  $.Constant({Static: true , Public: true }, "Empty", "");
 });
 
 JSIL.ConcatString = function (/* ...values */) {
@@ -517,7 +519,6 @@ JSIL.ConcatString = function (/* ...values */) {
 
   return result;
 };
-System.String.Empty = '';
 
 JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, [], function ($) {
   $.Method({Public: true , Static: false}, "_ctor", 
@@ -593,11 +594,17 @@ JSIL.ImplementExternals(
 JSIL.MakeClass("System.Object", "System.Threading.Thread", true, [], function ($) {
   $.Field({Public: false, Static: true}, "_currentThread", $.Type, function ($) { return null; });
 
-  $.ExternalMembers(false, "get_CurrentThread");
-  $.ExternalMembers(false, "get_ManagedThreadId");
+  $.ExternalMethod(
+    {Public: true , Static: true }, "get_CurrentThread",
+    new JSIL.MethodSignature($.Type, [])
+  );
+  $.ExternalMethod(
+    {Public: true , Static: true }, "get_ManagedThreadId",
+    new JSIL.MethodSignature(System.Int32, [])
+  );
 
-  $.Property({Public: true , Static: true}, "CurrentThread");
-  $.Property({Public: true , Static: true}, "ManagedThreadId");
+  $.Property({Public: true , Static: true }, "CurrentThread");
+  $.Property({Public: true , Static: true }, "ManagedThreadId");
 });
 
 $jsilcore.$ListExternals = {
@@ -1040,43 +1047,44 @@ JSIL.MakeStaticClass("System.Math", true, function ($) {
   );
 });
 
-JSIL.MakeStruct("System.ValueType", "System.Decimal", true);
-System.Decimal.CheckType = function (value) {
-  return (typeof (value) === "number") || 
-    JSIL.CheckType(value, System.Decimal, true);
-};
-System.Decimal.prototype._ctor = function (value) {
-  this.value = Number(value);
-};
-System.Decimal.prototype.toString = function (format) {
-  return this.value.toString();
-};
-System.Decimal.op_Explicit = function (value) {
-  if (JSIL.CheckType(value, System.Decimal, true))
-    return value;
-  else
-    return new System.Decimal(value);
-};
-System.Decimal.op_Addition = function (lhs, rhs) {
-  lhs = System.Decimal.op_Explicit(lhs);
-  rhs = System.Decimal.op_Explicit(rhs);
-  return new System.Decimal(lhs.value + rhs.value);
-};
-System.Decimal.op_Subtraction = function (lhs, rhs) {
-  lhs = System.Decimal.op_Explicit(lhs);
-  rhs = System.Decimal.op_Explicit(rhs);
-  return new System.Decimal(lhs.value - rhs.value);
-};
-System.Decimal.op_Multiply = function (lhs, rhs) {
-  lhs = System.Decimal.op_Explicit(lhs);
-  rhs = System.Decimal.op_Explicit(rhs);
-  return new System.Decimal(lhs.value * rhs.value);
-};
-System.Decimal.op_Division = function (lhs, rhs) {
-  lhs = System.Decimal.op_Explicit(lhs);
-  rhs = System.Decimal.op_Explicit(rhs);
-  return new System.Decimal(lhs.value / rhs.value);
-};
+JSIL.MakeStruct("System.ValueType", "System.Decimal", true, [], function ($) {
+  $.publicInterface.CheckType = function (value) {
+    return (typeof (value) === "number") || 
+      JSIL.CheckType(value, System.Decimal, true);
+  };
+  $.publicInterface.prototype._ctor = function (value) {
+    this.value = Number(value);
+  };
+  $.publicInterface.prototype.toString = function (format) {
+    return this.value.toString();
+  };
+  $.publicInterface.op_Explicit = function (value) {
+    if (JSIL.CheckType(value, System.Decimal, true))
+      return value;
+    else
+      return new System.Decimal(value);
+  };
+  $.publicInterface.op_Addition = function (lhs, rhs) {
+    lhs = System.Decimal.op_Explicit(lhs);
+    rhs = System.Decimal.op_Explicit(rhs);
+    return new System.Decimal(lhs.value + rhs.value);
+  };
+  $.publicInterface.op_Subtraction = function (lhs, rhs) {
+    lhs = System.Decimal.op_Explicit(lhs);
+    rhs = System.Decimal.op_Explicit(rhs);
+    return new System.Decimal(lhs.value - rhs.value);
+  };
+  $.publicInterface.op_Multiply = function (lhs, rhs) {
+    lhs = System.Decimal.op_Explicit(lhs);
+    rhs = System.Decimal.op_Explicit(rhs);
+    return new System.Decimal(lhs.value * rhs.value);
+  };
+  $.publicInterface.op_Division = function (lhs, rhs) {
+    lhs = System.Decimal.op_Explicit(lhs);
+    rhs = System.Decimal.op_Explicit(rhs);
+    return new System.Decimal(lhs.value / rhs.value);
+  };
+});
 
 System.Environment.GetResourceFromDefault = function (key) {
   return key;

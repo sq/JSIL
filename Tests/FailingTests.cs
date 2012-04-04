@@ -17,7 +17,7 @@ namespace JSIL.Tests {
             var testPath = Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "FailingTestCases"));
             var simpleTests = Directory.GetFiles(testPath, "*.cs").Concat(Directory.GetFiles(testPath, "*.vb")).ToArray();
 
-            int passCount = 0;
+            List<string> passedTests = new List<string>();
 
             foreach (var filename in simpleTests) {
                 Console.Write("// {0} ... ", Path.GetFileName(filename));
@@ -28,7 +28,7 @@ namespace JSIL.Tests {
                         test.Run();
                     }
 
-                    passCount += 1;
+                    passedTests.Add(Path.GetFileName(filename));
                 } catch (JavaScriptException jse) {
                     Console.WriteLine(jse.ToString());
                 } catch (Exception ex) {
@@ -36,7 +36,9 @@ namespace JSIL.Tests {
                 }
             }
 
-            Assert.AreEqual(0, passCount, "One or more tests passed that should have failed");
+            if (passedTests.Count > 0) {
+                Assert.Fail("One or more tests passed that should have failed:\r\n" + String.Join("\r\n", passedTests));
+            }
         }
     }
 }
