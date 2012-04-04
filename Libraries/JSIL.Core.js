@@ -1156,10 +1156,23 @@ JSIL.InstantiateGenericProperties = function (obj) {
   $jsilcore.RuntimeType = runtimeType;
 } )();
 
+JSIL.GetStructFieldList = function (typeObject) {
+  var sf = [];
+
+  var obj = typeObject;
+  while ((typeof (obj) !== "undefined") && (obj !== null)) {
+    var osf = obj.__StructFields__;
+    if (JSIL.IsArray(osf))
+      sf = osf.concat(sf);
+
+    obj = obj.__BaseType__;
+  }
+
+  return sf;
+};
+
 JSIL.MakeStructFieldInitializer = function (typeObject) {
-  var sf = typeObject.__StructFields__;
-  if ((typeof (sf) !== "object") || (sf.length <= 0))
-    return null;
+  var sf = JSIL.GetStructFieldList(typeObject);
   
   var body = [];
   var types = [];
@@ -1185,7 +1198,16 @@ JSIL.MakeStructFieldInitializer = function (typeObject) {
   return boundFunction;
 };
 
-JSIL.InitializeStructFields = function (instance, typeObject) {
+JSIL.InitializeStructFields = function (instance, type) {
+  var typeObject, publicInterface;
+  if (typeof (type.__Type__) === "object") {
+    typeObject = type.__Type__;
+    publicInterface = type;
+  } else if (typeof (type.__PublicInterface__) !== "undefined") {
+    typeObject = type;
+    publicInterface = type.__PublicInterface__;
+  }
+
   var sfi = typeObject.__StructFieldInitializer__;
   if (typeof (sfi) === "undefined")
     typeObject.__StructFieldInitializer__ = sfi = JSIL.MakeStructFieldInitializer(typeObject);
@@ -1205,9 +1227,7 @@ JSIL.CopyObjectValues = function (source, target) {
 };
 
 JSIL.CopyMembers = function (source, target) {
-  var sf = source.GetType().__StructFields__;
-  if (typeof (sf) != "object")
-    sf = [];
+  var sf = JSIL.GetStructFieldList(source.GetType());
 
   for (var key in source) {
     if (!source.hasOwnProperty(key))
@@ -1518,6 +1538,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     var typeObject = JSIL.CloneObject(runtimeType);
 
     typeObject.__IsArray__ = false;
+    typeObject.__StructFields__ = [];
     typeObject.__Initializers__ = [];
     typeObject.__Interfaces__ = [];
     typeObject.__TypeInitialized__ = false;
@@ -2229,16 +2250,11 @@ JSIL.InterfaceBuilder.prototype.ExternalMembers = function (isInstance /*, ...na
   }
 };
 
-JSIL.InterfaceBuilder.prototype.StructFields = function (fields) {
-  var sf;
+JSIL.InterfaceBuilder.prototype.StructFields = function (/* ...fields */) {
+  var sf = this.typeObject.__StructFields__;
 
-  if (this.typeObject.hasOwnProperty("__StructFields__"))
-    sf = this.typeObject.__StructFields__;
-  else
-    this.typeObject.__StructFields__ = sf = Array.prototype.slice.call(this.typeObject.__StructFields__ || []);
-
-  for (var i = 0, l = fields.length; i < l; i++)
-    sf.push(fields[i]);
+  for (var i = 0, l = arguments.length; i < l; i++)
+    sf.push(arguments[i]);
 };
 
 JSIL.InterfaceBuilder.prototype.Constant = function (_descriptor, name, value) {
@@ -2362,7 +2378,7 @@ JSIL.InterfaceBuilder.prototype.OverloadedGenericMethod = function (_descriptor,
   JSIL.OverloadedMethodCore(descriptor.Target, name, overloads, result);
 };
 
-JSIL.InterfaceBuilder.prototype.ImplementInterfaces = function (interfacesToImplement) {
+JSIL.InterfaceBuilder.prototype.ImplementInterfaces = function (/* ...interfacesToImplement */) {
   var interfaces = this.typeObject.__Interfaces__;
   if (typeof (interfaces) === "undefined") {
     this.typeObject.__Interfaces__ = interfaces = [];
@@ -2394,8 +2410,8 @@ JSIL.InterfaceBuilder.prototype.ImplementInterfaces = function (interfacesToImpl
   };
 
   __interfaces__:
-  for (var i = 0, l = interfacesToImplement.length; i < l; i++) {
-    var iface = interfacesToImplement[i];
+  for (var i = 0, l = arguments.length; i < l; i++) {
+    var iface = arguments[i];
 
     if (typeof (iface) === "undefined") {
       JSIL.Host.warning("Type ", typeName, " implements an undefined interface.");

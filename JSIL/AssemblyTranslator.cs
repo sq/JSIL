@@ -975,8 +975,7 @@ namespace JSIL {
                 output.Dot();
                 output.Identifier("StructFields", null);
                 output.LPar();
-
-                output.OpenBracket(true);
+                output.NewLine();
 
                 bool isFirst = true;
                 foreach (var sf in structFields) {
@@ -994,7 +993,7 @@ namespace JSIL {
                     isFirst = false;
                 }
 
-                output.CloseBracket(true);
+                output.NewLine();
                 output.RPar();
                 output.Semicolon();
             }
@@ -1057,12 +1056,10 @@ namespace JSIL {
                 output.Dot();
                 output.Identifier("ImplementInterfaces", null);
                 output.LPar();
-                output.OpenBracket(true);
+                output.NewLine();
                 output.CommaSeparatedList(interfaces, ListValueType.TypeReference);
-                output.CloseBracket(true, () => {
-                    output.RPar();
-                    output.Semicolon();
-                });
+                output.NewLine();
+                output.RPar();
             }
         }
 
