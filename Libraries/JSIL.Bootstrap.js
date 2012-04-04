@@ -463,7 +463,7 @@ JSIL.ImplementExternals(
 );
 
 JSIL.MakeClass("System.Object", "System.Threading.Thread", true, [], function ($) {
-  $.Field({Public: false, Static: true}, "_currentThread", $.Type, null);
+  $.Field({Public: false, Static: true}, "_currentThread", $.Type, function ($) { return null; });
 
   $.ExternalMembers(false, "get_CurrentThread");
   $.ExternalMembers(false, "get_ManagedThreadId");
@@ -798,9 +798,9 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.Stack`1", true, ["T"
 
 // TODO: This type is actually a struct in the CLR
 JSIL.MakeClass("JSIL.ArrayEnumerator", "System.Collections.Generic.List`1/Enumerator", true, ["T"], function ($) {
-  $.Field({Public: false, Static: false}, "_array", Array, null);
-  $.Field({Public: false, Static: false}, "_length", Number, 0);
-  $.Field({Public: false, Static: false}, "_index", Number, -1);
+  $.Field({Public: false, Static: false}, "_array", Array, function ($) { return null; });
+  $.Field({Public: false, Static: false}, "_length", Number, function ($) { return 0; });
+  $.Field({Public: false, Static: false}, "_index", Number, function ($) { return -1; });
 
   $.Method({Public: true, Static: false}, "_ctor", function (list) {
     if (typeof (list) != "undefined") {

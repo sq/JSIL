@@ -962,42 +962,6 @@ namespace JSIL {
                     return true;
             };
 
-            var structFields = 
-                (from field in typedef.Fields
-                where !isFieldIgnored(field) && 
-                    !field.HasConstant &&
-                    EmulateStructAssignment.IsStruct(field.FieldType) &&
-                    !field.IsStatic
-                select field).ToArray();
-
-            if (structFields.Length > 0) {
-                dollar(output);
-                output.Dot();
-                output.Identifier("StructFields", null);
-                output.LPar();
-                output.NewLine();
-
-                bool isFirst = true;
-                foreach (var sf in structFields) {
-                    if (!isFirst) {
-                        output.Comma();
-                        output.NewLine();
-                    }
-
-                    output.OpenBracket();
-                    output.Value(sf.Name);
-                    output.Comma();
-                    output.TypeReference(sf.FieldType);
-                    output.CloseBracket();
-
-                    isFirst = false;
-                }
-
-                output.NewLine();
-                output.RPar();
-                output.Semicolon();
-            }
-
             TranslateTypeStaticConstructor(context, typedef, astEmitter, output, typeInfo.StaticConstructor, stubbed, dollar);
 
             if (typedef.FullName == "System.Array")
@@ -1334,7 +1298,8 @@ namespace JSIL {
         }
 
         protected JSExpression TranslateField (
-            FieldDefinition field, Dictionary<FieldDefinition, JSExpression> defaultValues, Action<JavascriptFormatter> dollar
+            FieldDefinition field, Dictionary<FieldDefinition, JSExpression> defaultValues, 
+            bool cctorContext, Action<JavascriptFormatter> dollar
         ) {
             JSDotExpression target;
             var fieldInfo = TypeInfoProvider.GetMemberInformation<Internal.FieldInfo>(field);
@@ -1362,17 +1327,69 @@ namespace JSIL {
                     }
                 );
             } else {
+                bool forCctor = false;
+                if (field.IsStatic && NeedsStaticConstructor(field.FieldType))
+                    forCctor = true;
+                else if (EmulateStructAssignment.IsStruct(field.FieldType))
+                    forCctor = true;
+
                 JSExpression defaultValue;
                 if (!defaultValues.TryGetValue(field, out defaultValue))
                     defaultValue = new JSDefaultValueLiteral(field.FieldType);
 
-                return JSInvocationExpression.InvokeStatic(
-                    JSDotExpression.New(
-                        dollarIdentifier, new JSFakeMethod("Field", field.Module.TypeSystem.Void)
-                    ), new JSExpression[] {
-                        descriptor, JSLiteral.New(fieldInfo.Name), new JSType(field.FieldType), defaultValue, 
-                    }
-                );
+                JSExpression fieldTypeExpression;
+                if (ILBlockTranslator.TypesAreEqual(field.DeclaringType, field.FieldType)) {
+                    // If the field's type is its declaring type, we need to avoid recursively initializing it.
+                    fieldTypeExpression = new JSDotExpression(
+                        new JSRawOutputIdentifier(dollar, field.Module.TypeSystem.Object),
+                        new JSStringIdentifier("Type", field.Module.TypeSystem.Object)
+                    );
+                } else
+                    fieldTypeExpression = new JSType(field.FieldType);
+
+                if (cctorContext != forCctor) {
+                    defaultValue = new JSNullLiteral(field.Module.TypeSystem.Object);
+                } else if (!cctorContext) {
+                    // We have to represent the default value as a callable function, taking a single
+                    //  argument that represents the public interface, so that recursive field initializations
+                    //  will work correctly. InterfaceBuilder.Field will invoke this function for us.
+
+                    defaultValue = new JSFunctionExpression(
+                        // No method or variables. This could break things.
+                        null, null, 
+                        // We redefine $ within the function so that it points to the public interface,
+                        //  instead of pointing to the outside interface builder.
+                        new JSVariable[] { new JSParameter("$", field.DeclaringType, null) },
+                        new JSBlockStatement(
+                            new JSExpressionStatement(new JSReturnExpression(defaultValue))
+                        )
+                    );
+                }
+
+                if (cctorContext) {
+                    JSExpression thisParameter;
+                    if (field.IsStatic)
+                        thisParameter = new JSType(field.DeclaringType);
+                    else
+                        thisParameter = new JSThisParameter(field.DeclaringType, null);
+
+                    return new JSBinaryOperatorExpression(
+                        JSBinaryOperator.Assignment,
+                        JSDotExpression.New(
+                            thisParameter,
+                            new JSField(field, fieldInfo)
+                        ),
+                        defaultValue,
+                        field.FieldType
+                    );
+                } else
+                    return JSInvocationExpression.InvokeStatic(
+                        JSDotExpression.New(
+                            dollarIdentifier, new JSFakeMethod("Field", field.Module.TypeSystem.Void)
+                        ), new JSExpression[] {
+                            descriptor, JSLiteral.New(fieldInfo.Name), fieldTypeExpression, defaultValue
+                        }
+                    );
             }
         }
 
@@ -1523,7 +1540,7 @@ namespace JSIL {
 
                 // Generate field initializations that were not generated by the compiler
                 foreach (var field in fieldsToEmit) {
-                    var expr = TranslateField(field, fieldDefaults, dollar);
+                    var expr = TranslateField(field, fieldDefaults, true, dollar);
 
                     if (expr != null) {
                         var stmt = new JSExpressionStatement(expr);
@@ -1539,17 +1556,11 @@ namespace JSIL {
             // Everything else is emitted inline.
 
             foreach (var f in typedef.Fields) {
-                if (f.IsStatic && NeedsStaticConstructor(f.FieldType))
-                    continue;
-
-                if (EmulateStructAssignment.IsStruct(f.FieldType))
-                    continue;
-
                 var fi = TypeInfoProvider.GetField(f);
                 if ((fi != null) && (fi.IsIgnored || fi.IsExternal))
                     continue;
 
-                var expr = TranslateField(f, fieldDefaults, dollar);
+                var expr = TranslateField(f, fieldDefaults, false, dollar);
 
                 if (expr != null)
                     astEmitter.Visit(new JSExpressionStatement(expr));

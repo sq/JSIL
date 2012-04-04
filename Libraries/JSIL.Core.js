@@ -1205,12 +1205,9 @@ JSIL.MakeStructFieldInitializer = function (typeObject) {
     var fieldName = sf[i][0];
     var fieldType = sf[i][1];
 
-    body[i] = "target['" + fieldName + "'] = new (types[" + i.toString() + "]);";
+    body[i] = "target['" + fieldName + "'] = JSIL.CreateInstanceOfType(types[" + i.toString() + "]);";
 
-    if (typeof (fieldType) === "string")
-      types[i] = JSIL.GetTypeByName(fieldType, typeObject.__Context__);
-    else if (typeof (fieldType.get) === "function")
-      types[i] = fieldType.get();
+    types[i] = fieldType;
   }
 
   var rawFunction = new Function(
@@ -1577,6 +1574,10 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__LockCount__ = 0;
     typeObject.__Members__ = {};
     typeObject.__GenericArguments__ = genericArguments || [];
+
+    var baseTypeName = baseType.toString();
+    var valueTypeName = "System.ValueType";
+    typeObject.__IsStruct__ = (baseTypeName.indexOf(valueTypeName) == baseTypeName.length - valueTypeName.length);
 
     if (stack !== null)
       typeObject.__CallStack__ = stack;
@@ -2286,13 +2287,6 @@ JSIL.InterfaceBuilder.prototype.ExternalMembers = function (isInstance /*, ...na
   }
 };
 
-JSIL.InterfaceBuilder.prototype.StructFields = function (/* ...fields */) {
-  var sf = this.typeObject.__StructFields__;
-
-  for (var i = 0, l = arguments.length; i < l; i++)
-    sf.push(arguments[i]);
-};
-
 JSIL.InterfaceBuilder.prototype.Constant = function (_descriptor, name, value) {
   var descriptor = this.ParseDescriptor(_descriptor, name);
 
@@ -2339,12 +2333,31 @@ JSIL.InterfaceBuilder.prototype.GenericProperty = function (_descriptor, name) {
   this.PushMember("PropertyInfo", descriptor, null);
 };
 
-JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldType, defaultValue) {
+JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldType, defaultValueExpression) {
   var descriptor = this.ParseDescriptor(_descriptor, fieldName);
 
-  descriptor.Target[fieldName] = defaultValue;
+  var data = { fieldType: fieldType };
 
-  this.PushMember("FieldInfo", descriptor, { fieldType: fieldType, defaultValue: defaultValue });
+  if (typeof (defaultValueExpression) === "function") {
+    data.defaultValue = defaultValueExpression(descriptor.Target);
+    descriptor.Target[fieldName] = data.defaultValue;
+  }
+
+  var typeObject;
+  if (typeof (fieldType.__Type__) === "object")
+    typeObject = fieldType.__Type__;
+  else
+    typeObject = fieldType;
+
+  var isStruct = typeObject.__IsStruct__ || false;
+
+  // console.log(String(typeObject) + ".isStruct=" + isStruct + "\r\n");
+  if (isStruct && !descriptor.Static) {
+    var sf = this.typeObject.__StructFields__;
+    sf.push([fieldName, typeObject]);
+  }
+
+  this.PushMember("FieldInfo", descriptor, data);
 };
 
 JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, overloadIndex, fn) {
@@ -2739,8 +2752,8 @@ JSIL.ImplementExternals(
 );
 
 JSIL.MakeClass(Object, "System.Object", true, [], function ($) {
-  $.Field({}, "__LockCount__", Number, 0);
-  $.Field({}, "__StructField__", Array, []);
+  $.Field({}, "__LockCount__", Number, function ($) { return 0; });
+  $.Field({}, "__StructField__", Array, function ($) { return []; });
 
   $.ExternalMembers(true, 
     "Equals", "MemberwiseClone", "__Initialize__", 
