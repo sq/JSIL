@@ -1361,7 +1361,7 @@ namespace JSIL {
                     JSDotExpression.New(
                         dollarIdentifier, new JSFakeMethod("Constant", field.Module.TypeSystem.Void)
                     ), new JSExpression[] {
-                        descriptor, JSLiteral.New(field.Name), constant
+                        descriptor, JSLiteral.New(fieldInfo.Name), constant
                     }
                 );
             } else {
@@ -1373,7 +1373,7 @@ namespace JSIL {
                     JSDotExpression.New(
                         dollarIdentifier, new JSFakeMethod("Field", field.Module.TypeSystem.Void)
                     ), new JSExpression[] {
-                        descriptor, JSLiteral.New(field.Name), defaultValue
+                        descriptor, JSLiteral.New(fieldInfo.Name), defaultValue
                     }
                 );
             }
