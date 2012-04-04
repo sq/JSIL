@@ -1053,10 +1053,10 @@ namespace JSIL {
                               select i).ToArray();
 
             if (interfaces.Length > 0) {
-                output.Identifier("JSIL.ImplementInterfaces", null);
-                output.LPar();
                 dollar(output);
-                output.Comma();
+                output.Dot();
+                output.Identifier("ImplementInterfaces", null);
+                output.LPar();
                 output.OpenBracket(true);
                 output.CommaSeparatedList(interfaces, ListValueType.TypeReference);
                 output.CloseBracket(true, () => {

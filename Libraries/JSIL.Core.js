@@ -1882,149 +1882,6 @@ JSIL.MakeInterfaceMemberGetter = function (thisReference, name) {
   };
 };
 
-JSIL.ImplementInterfaces = function (type, interfacesToImplement) {
-  var interfaces = type.__Type__.__Interfaces__;
-  if (typeof (interfaces) === "undefined") {
-    type.__Type__.__Interfaces__ = interfaces = [];
-  }
-
-  var typeName = JSIL.GetTypeName(type);
-  var missingMembers = [];
-
-  var hasOwnPropertyRecursive = function (target, name) {
-    while (!target.hasOwnProperty(name)) {
-      target = Object.getPrototypeOf(target);
-
-      if ((typeof (target) === "undefined") || (target === null))
-        return false;
-    }
-
-    return target.hasOwnProperty(name);
-  };
-
-  var getOwnDescriptorRecursive = function (target, name) {
-    while (!target.hasOwnProperty(name)) {
-      target = Object.getPrototypeOf(target);
-
-      if ((typeof (target) === "undefined") || (target === null))
-        return null;
-    }
-
-    return Object.getOwnPropertyDescriptor(target, name);
-  };
-
-  __interfaces__:
-  for (var i = 0, l = interfacesToImplement.length; i < l; i++) {
-    var iface = interfacesToImplement[i];
-
-    if (typeof (iface) === "undefined") {
-      JSIL.Host.warning("Type ", typeName, " implements an undefined interface.");
-      continue __interfaces__;
-    } else if (typeof (iface) === "string") {
-      var resolved = JSIL.ResolveName(
-        type.__Type__.__Context__ || JSIL.GlobalNamespace, iface, true
-      );
-      if (resolved.exists())
-        iface = resolved.get();
-      else {
-        JSIL.Host.warning("Type ", typeName, " implements an undefined interface named '", iface, "'.");
-        continue __interfaces__;
-      }
-    } else if ((typeof (iface) === "object") && (typeof (iface.get) === "function")) {
-      iface = iface.get();
-    }
-
-    if (typeof (iface.__Type__) === "object")
-      iface = iface.__Type__;
-
-    var ifaceName = JSIL.GetTypeName(iface);
-    if (iface.IsInterface !== true) {
-      JSIL.Host.warning("Type ", ifaceName, " is not an interface.");
-      continue __interfaces__;
-    }
-
-    // In cases where an interface method (IInterface_MethodName) is implemented by a regular method
-    //  (MethodName), we make a copy of the regular method with the name of the interface method, so
-    //  that attempts to directly invoke the interface method will still work.
-    var members = iface.__Members__;
-    var proto = type.prototype;
-
-    if (
-      (ifaceName.indexOf("Enumerator") !== -1) &&
-      (typeName.indexOf("Enumerator") !== -1) &&
-      (typeName.indexOf("List") !== -1)
-    ) {
-      ifaceName = ifaceName;
-    }
-
-    __members__:
-    for (var key in members) {
-      if (!members.hasOwnProperty(key))
-        continue __members__;
-
-      var memberType = members[key];
-      var qualifiedName = JSIL.EscapeName(iface.__ShortName__ + "." + key);
-
-      var hasShort = hasOwnPropertyRecursive(proto, key);
-      var hasQualified = hasOwnPropertyRecursive(proto, qualifiedName);
-
-      if (memberType === Function) {
-        var shortImpl = proto[key];
-        var qualifiedImpl = proto[qualifiedName];
-      } else if (memberType === Property) {
-        var shortImpl = getOwnDescriptorRecursive(proto, key);
-        var qualifiedImpl = getOwnDescriptorRecursive(proto, qualifiedName);
-      }
-
-      if ((typeof (shortImpl) === "undefined") || (shortImpl === null))
-        hasShort = false;
-
-      if ((typeof (qualifiedImpl) === "undefined") || (qualifiedImpl === null))
-        hasQualified = false;
-
-      if (
-        hasShort && 
-        (typeof(shortImpl.__IsPlaceholder__) !== "undefined") &&
-        Boolean(shortImpl.__IsPlaceholder__)
-      ) {
-        hasShort = false;
-      }
-
-      if (
-        hasQualified && 
-        (typeof(qualifiedImpl.__IsPlaceholder__) !== "undefined") &&
-        Boolean(qualifiedImpl.__IsPlaceholder__)
-      ) {
-        hasQualified = false;
-      }
-
-      if (!hasShort && !hasQualified) {
-        missingMembers.push(qualifiedName);
-        continue __members__;
-      }
-
-      if (!hasQualified) {
-        if (memberType === Function) {
-          Object.defineProperty(proto, qualifiedName, {
-            configurable: true,
-            enumerable: true,
-            get: JSIL.MakeInterfaceMemberGetter(proto, key)
-          });
-        } else if (memberType === Property) {
-          Object.defineProperty(proto, qualifiedName, shortImpl);
-        }
-      }
-    }
-
-    if (interfaces.indexOf(iface) < 0)
-      interfaces.push(iface);
-  }
-
-  if (missingMembers.length > 0) {
-    JSIL.Host.warning("Type ", JSIL.GetTypeName(type), " is missing implementation of interface member(s): ", missingMembers.join(", "));
-  }
-};
-
 JSIL.CheckDerivation = function (haystack, needle) {
   var proto = haystack;
 
@@ -2293,7 +2150,7 @@ JSIL.GenericMethod = function (argumentNames, body) {
 };
 
 JSIL.InterfaceBuilder = function (typeObject, publicInterface) {
-  this.assembly = $private;
+  this.context = typeObject.__Context__ || JSIL.GlobalNamespace;
   this.typeObject = typeObject;
   this.publicInterface = publicInterface;
   this.namespace = JSIL.GetTypeName(typeObject);
@@ -2503,6 +2360,149 @@ JSIL.InterfaceBuilder.prototype.OverloadedGenericMethod = function (_descriptor,
   };
 
   JSIL.OverloadedMethodCore(descriptor.Target, name, overloads, result);
+};
+
+JSIL.InterfaceBuilder.prototype.ImplementInterfaces = function (interfacesToImplement) {
+  var interfaces = this.typeObject.__Interfaces__;
+  if (typeof (interfaces) === "undefined") {
+    this.typeObject.__Interfaces__ = interfaces = [];
+  }
+
+  var typeName = this.namespace;
+  var missingMembers = [];
+
+  var hasOwnPropertyRecursive = function (target, name) {
+    while (!target.hasOwnProperty(name)) {
+      target = Object.getPrototypeOf(target);
+
+      if ((typeof (target) === "undefined") || (target === null))
+        return false;
+    }
+
+    return target.hasOwnProperty(name);
+  };
+
+  var getOwnDescriptorRecursive = function (target, name) {
+    while (!target.hasOwnProperty(name)) {
+      target = Object.getPrototypeOf(target);
+
+      if ((typeof (target) === "undefined") || (target === null))
+        return null;
+    }
+
+    return Object.getOwnPropertyDescriptor(target, name);
+  };
+
+  __interfaces__:
+  for (var i = 0, l = interfacesToImplement.length; i < l; i++) {
+    var iface = interfacesToImplement[i];
+
+    if (typeof (iface) === "undefined") {
+      JSIL.Host.warning("Type ", typeName, " implements an undefined interface.");
+      continue __interfaces__;
+    } else if (typeof (iface) === "string") {
+      var resolved = JSIL.ResolveName(
+        this.context, iface, true
+      );
+      if (resolved.exists())
+        iface = resolved.get();
+      else {
+        JSIL.Host.warning("Type ", typeName, " implements an undefined interface named '", iface, "'.");
+        continue __interfaces__;
+      }
+    } else if ((typeof (iface) === "object") && (typeof (iface.get) === "function")) {
+      iface = iface.get();
+    }
+
+    if (typeof (iface.__Type__) === "object")
+      iface = iface.__Type__;
+
+    var ifaceName = JSIL.GetTypeName(iface);
+    if (iface.IsInterface !== true) {
+      JSIL.Host.warning("Type ", ifaceName, " is not an interface.");
+      continue __interfaces__;
+    }
+
+    // In cases where an interface method (IInterface_MethodName) is implemented by a regular method
+    //  (MethodName), we make a copy of the regular method with the name of the interface method, so
+    //  that attempts to directly invoke the interface method will still work.
+    var members = iface.__Members__;
+    var proto = this.publicInterface.prototype;
+
+    if (
+      (ifaceName.indexOf("Enumerator") !== -1) &&
+      (typeName.indexOf("Enumerator") !== -1) &&
+      (typeName.indexOf("List") !== -1)
+    ) {
+      ifaceName = ifaceName;
+    }
+
+    __members__:
+    for (var key in members) {
+      if (!members.hasOwnProperty(key))
+        continue __members__;
+
+      var memberType = members[key];
+      var qualifiedName = JSIL.EscapeName(iface.__ShortName__ + "." + key);
+
+      var hasShort = hasOwnPropertyRecursive(proto, key);
+      var hasQualified = hasOwnPropertyRecursive(proto, qualifiedName);
+
+      if (memberType === Function) {
+        var shortImpl = proto[key];
+        var qualifiedImpl = proto[qualifiedName];
+      } else if (memberType === Property) {
+        var shortImpl = getOwnDescriptorRecursive(proto, key);
+        var qualifiedImpl = getOwnDescriptorRecursive(proto, qualifiedName);
+      }
+
+      if ((typeof (shortImpl) === "undefined") || (shortImpl === null))
+        hasShort = false;
+
+      if ((typeof (qualifiedImpl) === "undefined") || (qualifiedImpl === null))
+        hasQualified = false;
+
+      if (
+        hasShort && 
+        (typeof(shortImpl.__IsPlaceholder__) !== "undefined") &&
+        Boolean(shortImpl.__IsPlaceholder__)
+      ) {
+        hasShort = false;
+      }
+
+      if (
+        hasQualified && 
+        (typeof(qualifiedImpl.__IsPlaceholder__) !== "undefined") &&
+        Boolean(qualifiedImpl.__IsPlaceholder__)
+      ) {
+        hasQualified = false;
+      }
+
+      if (!hasShort && !hasQualified) {
+        missingMembers.push(qualifiedName);
+        continue __members__;
+      }
+
+      if (!hasQualified) {
+        if (memberType === Function) {
+          Object.defineProperty(proto, qualifiedName, {
+            configurable: true,
+            enumerable: true,
+            get: JSIL.MakeInterfaceMemberGetter(proto, key)
+          });
+        } else if (memberType === Property) {
+          Object.defineProperty(proto, qualifiedName, shortImpl);
+        }
+      }
+    }
+
+    if (interfaces.indexOf(iface) < 0)
+      interfaces.push(iface);
+  }
+
+  if (missingMembers.length > 0) {
+    JSIL.Host.warning("Type ", this.namespace, " is missing implementation of interface member(s): ", missingMembers.join(", "));
+  }
 };
 
 JSIL.FindOverload = function (prototype, args, name, overloads) {

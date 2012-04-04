@@ -407,39 +407,36 @@ JSIL.ConcatString = function (/* ...values */) {
 System.String.Empty = '';
 
 JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, [], function ($) {
-  $.prototype._ctor = function (array) {
+  $.Method({Public: true , Static: false}, "_ctor", function (array) {
     this._array = array;
     this._length = array.length;
     this._index = -1;
-  };
-  $.prototype.Reset = function () {
+  });
+  $.Method({Public: true , Static: false}, "Reset", function () {
     if (this._array === null)
       throw new Error("Enumerator is disposed or not initialized");
 
     this._index = -1;
-  };
-  $.prototype.MoveNext = function () {
+  });
+  $.Method({Public: true , Static: false}, "MoveNext", function () {
     if (this._index >= this._length)
       return false;
 
     this._index += 1;
     return (this._index < this._length);
-  };
-  $.prototype.Dispose = function () {
+  });
+  $.Method({Public: true , Static: false}, "Dispose", function () {
     this._array = null;
     this._index = 0;
     this._length = -1;
-  };
-  $.prototype.get_Current = function () {
+  });
+  $.Method({Public: true , Static: false}, "get_Current", function () {
     return this._array[this._index];
-  };
-  Object.defineProperty(
-      $.prototype, "Current", { 
-        get: $.prototype.get_Current,
-        configurable: true
-      }
-  );
-  JSIL.ImplementInterfaces($, [
+  });
+
+  $.Property({Public: true , Static: false}, "Current");
+
+  $.ImplementInterfaces([
     System.IDisposable, System.Collections.IEnumerator, System.Collections.Generic.IEnumerator$b1
   ]);
 });
@@ -466,16 +463,10 @@ JSIL.ImplementExternals(
 );
 
 JSIL.MakeClass("System.Object", "System.Threading.Thread", true, [], function ($) {
-  $._currentThread = null;
+  $.Field({Public: false, Static: true}, "_currentThread", null);
 
-  JSIL.MakeProperty(
-    $, "CurrentThread", 
-    $.get_CurrentThread, null
-  );
-  JSIL.MakeProperty(
-    $, "ManagedThreadId", 
-    $.get_ManagedThreadId, null
-  );
+  $.Property({Public: true , Static: false}, "CurrentThread");
+  $.Property({Public: true , Static: false}, "ManagedThreadId");
 });
 
 $jsilcore.$ListExternals = {
@@ -759,14 +750,14 @@ JSIL.ImplementExternals("System.Collections.Generic.Queue`1", true, {
 });
 
 JSIL.MakeClass("System.Object", "JSIL.EnumerableArray", true, [], function ($) {
-  $.prototype._ctor = function (array) {
+  $.Method({Public: true , Static: false}, "_ctor", function (array) {
     this.array = array;
-  };
-  $.prototype.GetEnumerator = function () {
+  });
+  $.Method({Public: true , Static: false}, "GetEnumerator", function () {
     return new JSIL.ArrayEnumerator(this.array);
-  };
+  });
 
-  JSIL.ImplementInterfaces($, [
+  $.ImplementInterfaces([
     System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
   ]);
 });
@@ -777,12 +768,9 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"]
     "get_Item", "get_Count", "get_Capacity", "GetEnumerator"
   );
 
-  JSIL.MakeProperty(
-    $.prototype, "Count", 
-    $.prototype.get_Count, null
-  );
+  $.Property({Public: true , Static: false}, "Count");
 
-  JSIL.ImplementInterfaces($, [
+  $.ImplementInterfaces([
     System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
   ]);
 });
@@ -807,19 +795,16 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.Stack`1", true, ["T"
 
 // TODO: This type is actually a struct in the CLR
 JSIL.MakeClass("JSIL.ArrayEnumerator", "System.Collections.Generic.List`1/Enumerator", true, ["T"], function ($) {
-  $.prototype._array = null;
-  $.prototype._length = 0;
-  $.prototype._index = -1;
-  $.prototype._ctor = function (list) {
+  $.Field({Public: false, Static: false}, "_array", null);
+  $.Field({Public: false, Static: false}, "_length", 0);
+  $.Field({Public: false, Static: false}, "_index", -1);
+
+  $.Method({Public: true, Static: false}, "_ctor", function (list) {
     if (typeof (list) != "undefined") {
       this._array = list._items;
       this._length = list.Count;
     }
-  };
-  $.prototype.MoveNext = JSIL.ArrayEnumerator.prototype.MoveNext;
-  $.prototype.Dispose = JSIL.ArrayEnumerator.prototype.Dispose;
-  $.prototype.Reset = JSIL.ArrayEnumerator.prototype.Reset;
-  $.prototype.get_Current = JSIL.ArrayEnumerator.prototype.get_Current;
+  });
 });
 
 JSIL.ImplementExternals(
