@@ -123,219 +123,6 @@ JSIL.ImplementExternals(
 );
 JSIL.MakeNumericType(Number, "System.Double", false);
 
-JSIL.MakeClass("System.Object", "System.ComponentModel.MemberDescriptor", true);
-JSIL.MakeClass("System.ComponentModel.MemberDescriptor", "System.ComponentModel.PropertyDescriptor", true);
-JSIL.MakeClass("System.Object", "System.ComponentModel.TypeConverter", true);
-JSIL.MakeClass("System.ComponentModel.TypeConverter", "System.ComponentModel.ExpandableObjectConverter", true);
-
-$jsilcore.$GetInvocationList = function (delegate) {
-    if (delegate === null) {
-      return [ ];
-    } else if (typeof (delegate.GetInvocationList) === "function") {
-      return delegate.GetInvocationList();
-    } else if (typeof (delegate) === "function") {
-      return [ delegate ];
-    } else {
-      throw new Error("Unsupported target for GetInvocationList");
-    }
-};
-$jsilcore.$Combine = function (lhs, rhs) {
-  if (rhs === null) {
-    return lhs;
-  } else if (lhs === null) {
-    return rhs;
-  }
-
-  var newList = Array.prototype.slice.call($jsilcore.$GetInvocationList(lhs));
-  newList.push.apply(newList, $jsilcore.$GetInvocationList(rhs));
-  var result = JSIL.MulticastDelegate.New(newList);
-  return result;
-};
-$jsilcore.$Remove = function (lhs, rhs) {
-  if (rhs === null)
-    return lhs;
-
-  var newList = Array.prototype.slice.call($jsilcore.$GetInvocationList(lhs));
-  var rhsList = $jsilcore.$GetInvocationList(rhs);
-
-  for (var i = 0; i < rhsList.length; i++) {
-    var needle = rhsList[i];
-
-    __inner:
-    for (var j = 0; j < newList.length; j++) {
-      var haystack = newList[j];
-      if ((haystack.__method__ === needle.__method__) &&
-          (haystack.__object__ === needle.__object__)
-      ) {
-        newList.splice(j, 1);
-        break __inner;
-      }
-    }
-  }
-
-  if (newList.length == 0)
-    return null;
-  else if (newList.length == 1)
-    return newList[0];
-  else
-    return JSIL.MulticastDelegate.New(newList);
-};
-
-JSIL.ImplementExternals(
-  "System.Delegate", true, {
-    Invoke: function () {
-      return this.__method__.apply(this.__object__, arguments);
-    },
-    GetInvocationList: function () {
-      return [ this ];
-    }
-  }
-);
-
-JSIL.ImplementExternals(
-  "System.MulticastDelegate", true, {
-    GetInvocationList: function () {
-      return this.delegates;
-    },
-    Invoke: function () {
-      return this.apply(null, arguments);
-    }
-  }
-);
-
-JSIL.ImplementExternals(
-  "System.Delegate", false, {
-    GetInvocationList: $jsilcore.$GetInvocationList,
-    Combine: $jsilcore.$Combine,
-    Remove: $jsilcore.$Remove
-  }
-);
-
-JSIL.ImplementExternals(
-  "System.MulticastDelegate", false, {
-    Combine: $jsilcore.$Combine,
-    Remove: $jsilcore.$Remove
-  }
-);
-
-JSIL.MakeClass("System.Object", "System.Delegate", true, []);
-JSIL.MakeClass("System.Object", "System.MulticastDelegate", true, []);
-
-JSIL.MulticastDelegate.New = function (delegates) {
-  var invoker = function () {
-    var result;
-    for (var i = 0, l = this.length; i < l; i++) {
-      var d = this[i];
-      result = d.apply(null, arguments);
-    }
-    return result;
-  };
-
-  var result = invoker.bind(delegates);
-  result.delegates = delegates;
-  result.__proto__ = System.MulticastDelegate.prototype;
-  Object.seal(result);
-  return result;
-};
-
-JSIL.MakeDelegate("System.Action", true, []);
-JSIL.MakeDelegate("System.Action`1", true, ["T"]);
-JSIL.MakeDelegate("System.Action`2", true, ["T1", "T2"]);
-JSIL.MakeDelegate("System.Action`3", true, ["T1", "T2", "T3"]);
-
-JSIL.MakeDelegate("System.Func`1", true, ["TResult"]);
-JSIL.MakeDelegate("System.Func`2", true, ["T", "TResult"]);
-JSIL.MakeDelegate("System.Func`3", true, ["T1", "T2", "TResult"]);
-JSIL.MakeDelegate("System.Func`4", true, ["T1", "T2", "T3", "TResult"]);
-
-JSIL.ImplementExternals(
-  "System.Exception", true, {
-    _Message: null,
-    _ctor: function (message) {
-      if (typeof (message) != "undefined")
-        this._Message = String(message);
-    },
-    get_Message: function () {
-      if ((typeof (this._Message) === "undefined") || (this._Message === null))
-        return System.String.Format("Exception of type '{0}' was thrown.", JSIL.GetTypeName(this));
-      else
-        return this._Message;
-    },
-    toString: function () {
-      var message = this.Message;
-      return System.String.Format("{0}: {1}", JSIL.GetTypeName(this), message);
-    }
-  }
-);
-
-JSIL.ImplementExternals(
-  "System.SystemException", true, {
-    _ctor$0: function () {
-      System.Exception.prototype._ctor.call(this);
-    },
-    _ctor$1: function (message) {
-      System.Exception.prototype._ctor.call(this, message);
-    }
-  }
-);
-
-JSIL.MakeClass(Error, "System.Exception", true, [], function ($) {
-  $.Property({Public: true , Static: false}, "Message");
-});
-
-JSIL.MakeClass("System.Exception", "System.InvalidCastException", true);
-JSIL.MakeClass("System.Exception", "System.InvalidOperationException", true);
-
-JSIL.ImplementExternals(
-  "System.Console", false, {
-    WriteLine: function () {
-      var text = "";
-      if (arguments.length > 0)
-        text = System.String.Format.apply(null, arguments);
-
-      JSIL.Host.logWriteLine(text);
-    },
-    Write: function () {
-      var text = "";
-      if (arguments.length > 0)
-        text = System.String.Format.apply(null, arguments);
-
-      JSIL.Host.logWrite(text);
-    }
-  }
-);
-
-JSIL.ImplementExternals(
-  "System.Diagnostics.Debug", false, {
-    WriteLine$0: function (text) {
-      JSIL.Host.logWriteLine(text);
-    },
-  }
-);
-
-JSIL.MakeStaticClass("System.Console", true, [], function ($) {
-  $.ExternalMembers(false, 
-    "Write", "WriteLine"
-  );
-});
-
-// Unfortunately, without access to sandboxed natives, we have to extend the actual prototype for String :(
-
-String.prototype.Equals = function (rhs) {
-  if ((typeof (this) === "string") && (typeof (rhs) === "string")) {
-    return this == rhs;
-  } else {
-    return this === rhs;
-  }
-};
-
-String.prototype.Split = function (separators) {
-  if (separators.length > 1)
-    throw new Error("Split cannot handle more than one separator");
-
-  return this.split(separators[0]);
-};
-
 JSIL.ImplementExternals(
   "System.String", false, {
     CheckType: function (value) {
@@ -505,6 +292,231 @@ JSIL.MakeClass("System.Object", "System.String", true, [], function ($) {
 
   $.Constant({Static: true , Public: true }, "Empty", "");
 });
+
+JSIL.MakeClass("System.Object", "System.ComponentModel.MemberDescriptor", true);
+JSIL.MakeClass("System.ComponentModel.MemberDescriptor", "System.ComponentModel.PropertyDescriptor", true);
+JSIL.MakeClass("System.Object", "System.ComponentModel.TypeConverter", true);
+JSIL.MakeClass("System.ComponentModel.TypeConverter", "System.ComponentModel.ExpandableObjectConverter", true);
+
+$jsilcore.$GetInvocationList = function (delegate) {
+    if (delegate === null) {
+      return [ ];
+    } else if (typeof (delegate.GetInvocationList) === "function") {
+      return delegate.GetInvocationList();
+    } else if (typeof (delegate) === "function") {
+      return [ delegate ];
+    } else {
+      throw new Error("Unsupported target for GetInvocationList");
+    }
+};
+$jsilcore.$Combine = function (lhs, rhs) {
+  if (rhs === null) {
+    return lhs;
+  } else if (lhs === null) {
+    return rhs;
+  }
+
+  var newList = Array.prototype.slice.call($jsilcore.$GetInvocationList(lhs));
+  newList.push.apply(newList, $jsilcore.$GetInvocationList(rhs));
+  var result = JSIL.MulticastDelegate.New(newList);
+  return result;
+};
+$jsilcore.$Remove = function (lhs, rhs) {
+  if (rhs === null)
+    return lhs;
+
+  var newList = Array.prototype.slice.call($jsilcore.$GetInvocationList(lhs));
+  var rhsList = $jsilcore.$GetInvocationList(rhs);
+
+  for (var i = 0; i < rhsList.length; i++) {
+    var needle = rhsList[i];
+
+    __inner:
+    for (var j = 0; j < newList.length; j++) {
+      var haystack = newList[j];
+      if ((haystack.__method__ === needle.__method__) &&
+          (haystack.__object__ === needle.__object__)
+      ) {
+        newList.splice(j, 1);
+        break __inner;
+      }
+    }
+  }
+
+  if (newList.length == 0)
+    return null;
+  else if (newList.length == 1)
+    return newList[0];
+  else
+    return JSIL.MulticastDelegate.New(newList);
+};
+
+JSIL.ImplementExternals(
+  "System.Delegate", true, {
+    Invoke: function () {
+      return this.__method__.apply(this.__object__, arguments);
+    },
+    GetInvocationList: function () {
+      return [ this ];
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.MulticastDelegate", true, {
+    GetInvocationList: function () {
+      return this.delegates;
+    },
+    Invoke: function () {
+      return this.apply(null, arguments);
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.Delegate", false, {
+    GetInvocationList: $jsilcore.$GetInvocationList,
+    Combine: $jsilcore.$Combine,
+    Remove: $jsilcore.$Remove
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.MulticastDelegate", false, {
+    Combine: $jsilcore.$Combine,
+    Remove: $jsilcore.$Remove
+  }
+);
+
+JSIL.MakeClass("System.Object", "System.Delegate", true, []);
+JSIL.MakeClass("System.Object", "System.MulticastDelegate", true, []);
+
+JSIL.MulticastDelegate.New = function (delegates) {
+  var invoker = function () {
+    var result;
+    for (var i = 0, l = this.length; i < l; i++) {
+      var d = this[i];
+      result = d.apply(null, arguments);
+    }
+    return result;
+  };
+
+  var result = invoker.bind(delegates);
+  result.delegates = delegates;
+  result.__proto__ = System.MulticastDelegate.prototype;
+  Object.seal(result);
+  return result;
+};
+
+JSIL.MakeDelegate("System.Action", true, []);
+JSIL.MakeDelegate("System.Action`1", true, ["T"]);
+JSIL.MakeDelegate("System.Action`2", true, ["T1", "T2"]);
+JSIL.MakeDelegate("System.Action`3", true, ["T1", "T2", "T3"]);
+
+JSIL.MakeDelegate("System.Func`1", true, ["TResult"]);
+JSIL.MakeDelegate("System.Func`2", true, ["T", "TResult"]);
+JSIL.MakeDelegate("System.Func`3", true, ["T1", "T2", "TResult"]);
+JSIL.MakeDelegate("System.Func`4", true, ["T1", "T2", "T3", "TResult"]);
+
+JSIL.ImplementExternals(
+  "System.Exception", function ($) {
+    $.Field({Static: false, Public: false}, "_Message", "System.String", null);
+
+    $.Method({Static: false, Public: true }, "_ctor",
+      new JSIL.MethodSignature(null, ["System.String"]),
+      function (message) {
+        if (typeof (message) != "undefined")
+          this._Message = String(message);
+      }
+    );
+
+    $.Method({Static: false, Public: true }, "get_Message",
+      new JSIL.MethodSignature(System.String, []),
+      function () {
+        if ((typeof (this._Message) === "undefined") || (this._Message === null))
+          return System.String.Format("Exception of type '{0}' was thrown.", JSIL.GetTypeName(this));
+        else
+          return this._Message;
+      }
+    );
+
+    $.Method({Static: false, Public: true }, "toString",
+      new JSIL.MethodSignature(System.String, []),
+      function () {
+        var message = this.Message;
+        return System.String.Format("{0}: {1}", JSIL.GetTypeName(this), message);
+      }
+    );
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.SystemException", true, {
+    _ctor$0: function () {
+      System.Exception.prototype._ctor.call(this);
+    },
+    _ctor$1: function (message) {
+      System.Exception.prototype._ctor.call(this, message);
+    }
+  }
+);
+
+JSIL.MakeClass(Error, "System.Exception", true, [], function ($) {
+  $.Property({Public: true , Static: false}, "Message");
+});
+
+JSIL.MakeClass("System.Exception", "System.InvalidCastException", true);
+JSIL.MakeClass("System.Exception", "System.InvalidOperationException", true);
+
+JSIL.ImplementExternals(
+  "System.Console", false, {
+    WriteLine: function () {
+      var text = "";
+      if (arguments.length > 0)
+        text = System.String.Format.apply(null, arguments);
+
+      JSIL.Host.logWriteLine(text);
+    },
+    Write: function () {
+      var text = "";
+      if (arguments.length > 0)
+        text = System.String.Format.apply(null, arguments);
+
+      JSIL.Host.logWrite(text);
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.Diagnostics.Debug", false, {
+    WriteLine$0: function (text) {
+      JSIL.Host.logWriteLine(text);
+    },
+  }
+);
+
+JSIL.MakeStaticClass("System.Console", true, [], function ($) {
+  $.ExternalMembers(false, 
+    "Write", "WriteLine"
+  );
+});
+
+// Unfortunately, without access to sandboxed natives, we have to extend the actual prototype for String :(
+
+String.prototype.Equals = function (rhs) {
+  if ((typeof (this) === "string") && (typeof (rhs) === "string")) {
+    return this == rhs;
+  } else {
+    return this === rhs;
+  }
+};
+
+String.prototype.Split = function (separators) {
+  if (separators.length > 1)
+    throw new Error("Split cannot handle more than one separator");
+
+  return this.split(separators[0]);
+};
 
 JSIL.ConcatString = function (/* ...values */) {
   var result = String(arguments[0]);
