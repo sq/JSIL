@@ -1538,8 +1538,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__FullName__ = fullName;
     typeObject.__ShortName__ = localName;
     typeObject.__LockCount__ = 0;
-    typeObject.__AllMethods__ = {};
-    typeObject.__Members__ = [];
+    typeObject.__Members__ = {};
     typeObject.__GenericProperties__ = [];
     typeObject.__GenericArguments__ = genericArguments || [];
 
@@ -2313,7 +2312,8 @@ JSIL.InterfaceBuilder = function (typeObject, publicInterface) {
   this.memberDescriptorPrototype = {
     Static: false,
     Public: false,
-    SpecialName: false
+    SpecialName: false,
+    Name: null
   };
 };
 
@@ -2323,8 +2323,8 @@ JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name) {
   result.Static = descriptor.Static || false;
   result.Public = descriptor.Public || false;
 
-  if (name)
-    result.SpecialName = (name == "_ctor") || (name == "_cctor");
+  result.Name = name;
+  result.SpecialName = (name == "_ctor") || (name == "_cctor");
 
   Object.defineProperty(result, "Target", {
     configurable: true,
@@ -2333,6 +2333,14 @@ JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name) {
   });
 
   return result;
+};
+
+JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data) {
+  var members = this.typeObject.__Members__;
+  if (!JSIL.IsArray(members))
+    this.typeObject.__Members__ = members = [];
+
+  Array.prototype.push.call(members, [type, descriptor, data]);
 };
 
 JSIL.InterfaceBuilder.prototype.ExternalMembers = function (isInstance /*, ...names */) {
@@ -2401,6 +2409,8 @@ JSIL.InterfaceBuilder.prototype.Property = function (_descriptor, name, getter, 
     prop["set"] = setter;
 
   Object.defineProperty(descriptor.Target, name, prop);
+
+  this.PushMember("PropertyInfo", descriptor, null);
 };
 
 JSIL.InterfaceBuilder.prototype.GenericProperty = function (_descriptor, name, getter, setter) {
@@ -2415,9 +2425,7 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, defaul
 
   descriptor.Target[fieldName] = defaultValue;
 
-  var memberList = this.typeObject.__Members__;
-
-  memberList[fieldName] = descriptor;
+  this.PushMember("FieldInfo", descriptor, { defaultValue: defaultValue });
 };
 
 JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, overloadIndex, fn) {
@@ -2439,17 +2447,7 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, over
     });
   }
 
-  var methodList = this.typeObject.__AllMethods__;
-  if (typeof (methodList) !== "object")
-    methodList = this.typeObject.__AllMethods__ = {};
-
-  var overloadList = methodList[methodName];
-  if (!JSIL.IsArray(overloadList))
-    overloadList = methodList[methodName] = [];
-
-  overloadList.push([
-    descriptor, overloadIndex, fn
-  ]);
+  this.PushMember("MethodInfo", descriptor, { overloadIndex: overloadIndex, mangledName: mangledName });
 };
 
 JSIL.InterfaceBuilder.prototype.OverloadedMethod = function (_descriptor, name, overloads, _assembly) {
@@ -2772,6 +2770,75 @@ JSIL.CreateInstanceOfType = function (type, constructorArguments) {
   return instance;
 };
 
+JSIL.GetMembersInternal = function (typeObject, flags, memberType) {
+  var result = [];
+
+  var allowInherited = (flags & System.Reflection.BindingFlags.DeclaredOnly) == 0;
+
+  var publicOnly = (flags & System.Reflection.BindingFlags.Public) != 0;
+  var nonPublicOnly = (flags & System.Reflection.BindingFlags.NonPublic) != 0;
+  if (publicOnly && nonPublicOnly)
+    publicOnly = nonPublicOnly = false;
+
+  var staticOnly = (flags & System.Reflection.BindingFlags.Static) != 0;
+  var instanceOnly = (flags & System.Reflection.BindingFlags.Instance) != 0;
+  if (staticOnly && instanceOnly)
+    staticOnly = instanceOnly = false;
+
+  var members = [];
+  var target = typeObject;
+
+  while (target !== null) {
+    var targetMembers = target.__Members__;
+
+    if (!JSIL.IsArray(targetMembers))
+      break;
+
+    members = targetMembers.concat(members);
+
+    if (!allowInherited)
+      break;
+
+    target = target.__BaseType__;
+  }
+
+  for (var i = 0, l = members.length; i < l; i++) {
+    var member = members[i];
+    var type = member[0];
+    var descriptor = member[1];
+    var data = member[2];
+
+    // Instance and static constructors are not enumerated like normal methods.
+    if (descriptor.SpecialName)
+      continue;
+
+    if (publicOnly && !descriptor.Public)
+      continue;
+    else if (nonPublicOnly && descriptor.Public)
+      continue;
+
+    if (staticOnly && !descriptor.Static)
+      continue;
+    else if (instanceOnly && descriptor.Static)
+      continue;
+
+    if ((typeof (memberType) === "string") && (memberType != type))
+      continue;
+
+    var parsedTypeName = JSIL.ParseTypeName("System.Reflection." + type);    
+    var infoType = JSIL.GetTypeInternal(parsedTypeName, JSIL.GlobalNamespace, true);
+    var info = JSIL.CreateInstanceOfType(infoType);
+
+    info.Name = descriptor.Name;
+    info.IsPublic = descriptor.Public;
+    info.IsStatic = descriptor.Static;
+
+    result.push(info);
+  }
+
+  return result;
+};
+
 JSIL.ImplementExternals(
   "System.Type", false, {
     GetType$2: function (name) {
@@ -2819,70 +2886,7 @@ JSIL.ImplementExternals(
       );
     },
     GetMembers$1: function (flags) {
-      var result = [];
-
-      var allowInherited = (flags & System.Reflection.BindingFlags.DeclaredOnly) == 0;
-
-      var publicOnly = (flags & System.Reflection.BindingFlags.Public) != 0;
-      var nonPublicOnly = (flags & System.Reflection.BindingFlags.NonPublic) != 0;
-      if (publicOnly && nonPublicOnly)
-        publicOnly = nonPublicOnly = false;
-
-      var staticOnly = (flags & System.Reflection.BindingFlags.Static) != 0;
-      var instanceOnly = (flags & System.Reflection.BindingFlags.Instance) != 0;
-      if (staticOnly && instanceOnly)
-        staticOnly = instanceOnly = false;
-
-      var methods = {};
-      var target = this;
-
-      while (target !== null) {
-        var targetMethods = target.__AllMethods__;
-
-        if (typeof (targetMethods) !== "object")
-          break;
-
-        for (var k in targetMethods) {
-          if (!JSIL.IsArray(methods[k]))
-            methods[k] = targetMethods[k];
-          else
-            methods[k] = targetMethods[k].concat(methods[k]);
-        }
-
-        if (!allowInherited)
-          break;
-
-        target = target.__BaseType__;
-      }
-
-      for (var k in methods) {
-        var overloadList = methods[k];
-
-        for (var i = 0, l = overloadList.length; i < l; i++) {
-          var overload = overloadList[i];
-          var descriptor = overload[0];
-
-          // Instance and static constructors are not enumerated like normal methods.
-          if (descriptor.SpecialName)
-            continue;
-
-          if (publicOnly && !descriptor.Public)
-            continue;
-          else if (nonPublicOnly && descriptor.Public)
-            continue;
-
-          if (staticOnly && !descriptor.Static)
-            continue;
-          else if (instanceOnly && descriptor.Static)
-            continue;
-
-          var info = new System.Reflection.MethodInfo();
-          info.Name = k;
-          result.push(info);
-        }
-      }
-
-      return result;
+      return JSIL.GetMembersInternal(this, flags);
     },
     GetMethods$0: function () {
     	return this.GetMethods$1(
@@ -2892,70 +2896,17 @@ JSIL.ImplementExternals(
       );
     },
     GetMethods$1: function (flags) {
-      var result = [];
-
-      var allowInherited = (flags & System.Reflection.BindingFlags.DeclaredOnly) == 0;
-
-      var publicOnly = (flags & System.Reflection.BindingFlags.Public) != 0;
-      var nonPublicOnly = (flags & System.Reflection.BindingFlags.NonPublic) != 0;
-      if (publicOnly && nonPublicOnly)
-        publicOnly = nonPublicOnly = false;
-
-      var staticOnly = (flags & System.Reflection.BindingFlags.Static) != 0;
-      var instanceOnly = (flags & System.Reflection.BindingFlags.Instance) != 0;
-      if (staticOnly && instanceOnly)
-        staticOnly = instanceOnly = false;
-
-      var methods = {};
-      var target = this;
-
-      while (target !== null) {
-        var targetMethods = target.__AllMethods__;
-
-        if (typeof (targetMethods) !== "object")
-          break;
-
-        for (var k in targetMethods) {
-          if (!JSIL.IsArray(methods[k]))
-            methods[k] = targetMethods[k];
-          else
-            methods[k] = targetMethods[k].concat(methods[k]);
-        }
-
-        if (!allowInherited)
-          break;
-
-        target = target.__BaseType__;
-      }
-
-      for (var k in methods) {
-        var overloadList = methods[k];
-
-        for (var i = 0, l = overloadList.length; i < l; i++) {
-          var overload = overloadList[i];
-          var descriptor = overload[0];
-
-          // Instance and static constructors are not enumerated like normal methods.
-          if (descriptor.specialName)
-            continue;
-
-          if (publicOnly && !descriptor.public)
-            continue;
-          else if (nonPublicOnly && descriptor.public)
-            continue;
-
-          if (staticOnly && !descriptor.static)
-            continue;
-          else if (instanceOnly && descriptor.static)
-            continue;
-
-          result.push({
-            Name: k
-          });
-        }
-      }
-
-      return result;
+      return JSIL.GetMembersInternal(this, flags, "MethodInfo");
+    },
+    GetFields$0: function () {
+      return this.GetFields$1(
+        System.Reflection.BindingFlags.Instance | 
+        System.Reflection.BindingFlags.Static | 
+        System.Reflection.BindingFlags.Public
+      );
+    },
+    GetFields$1: function (flags) {
+      return JSIL.GetFieldsInternal(this, flags, "FieldInfo");
     }
   }
 );
