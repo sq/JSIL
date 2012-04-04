@@ -783,12 +783,6 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.Stack`1", true, ["T"
 		"_ctor$0", "_ctor$1", "_ctor$2", "Clear", "Contains", "CopyTo", "get_Count", "GetEnumerator", "ICollection_CopyTo", "ICollection_get_IsSynchronized", "ICollection_get_SyncRoot", "IEnumerable$b1_GetEnumerator", "IEnumerable_GetEnumerator", "Peek", "Pop", "Push", "ToArray", "TrimExcess"
 	);
 
-	$.OverloadedMethod({Public: true , Static: false}, "_ctor", [
-			[0, []], 
-			[1, [new JSIL.TypeRef($asm09, "System.Int32")]], 
-			[2, [new JSIL.TypeRef($asm09, "System.Collections.Generic.IEnumerable$b1", [new JSIL.GenericParameter("T")])]]
-		], $asm0C);
-
 	$.Property({Public: true , Static: false}, "Count");
 
 	$.ImplementInterfaces(

@@ -2336,6 +2336,8 @@ JSIL.InterfaceBuilder.prototype.GenericProperty = function (_descriptor, name) {
 JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldType, defaultValueExpression) {
   var descriptor = this.ParseDescriptor(_descriptor, fieldName);
 
+  fieldType = JSIL.ResolveTypeReference(fieldType, this.context)[1];
+
   var data = { fieldType: fieldType };
 
   if (typeof (defaultValueExpression) === "function") {
@@ -2360,72 +2362,19 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
   this.PushMember("FieldInfo", descriptor, data);
 };
 
-JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, overloadIndex, fn) {
+JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, signature, fn) {
   var descriptor = this.ParseDescriptor(_descriptor, methodName);
-  var mangledName = methodName;
+  var mangledName = methodName + "$" + signature.Hash;
 
-  if (typeof(overloadIndex) === "number")
-    mangledName = methodName + "$" + overloadIndex;
-  else if (typeof (overloadIndex) === "function")
-    fn = overloadIndex;
+  descriptor.Target[mangledName] = fn;
+  descriptor.Target[methodName] = fn;
 
-  try {
-    descriptor.Target[mangledName] = fn;
-  } catch (exc) {
-    Object.defineProperty(descriptor.Target, "mangledName", {
-      value: fn,
-      configurable: true,
-      enumerable: true
-    });
-  }
-
-  this.PushMember("MethodInfo", descriptor, { overloadIndex: overloadIndex, mangledName: mangledName });
+  this.PushMember("MethodInfo", descriptor, { 
+    signature: signature, 
+    mangledName: mangledName 
+  });
 };
 
-JSIL.InterfaceBuilder.prototype.OverloadedMethod = function (_descriptor, name, overloads, _assembly) {
-  var descriptor = this.ParseDescriptor(_descriptor, name);
-
-  var assembly = _assembly || $private;
-  var r = JSIL.MakeOverloadResolver(overloads, assembly);
-
-  var result = function () {
-    var args = Array.prototype.slice.call(arguments);
-    var method = JSIL.FindOverload(type, args, name, r(this));
-
-    if (method === null)
-      throw new Error("No overload of '" + name + "' matching the argument list '" + String(args) + "' could be found.");
-    else
-      return method.apply(this, args);
-  };
-
-  result.__MethodName__ = name;
-  result.__MethodOverloads__ = overloads;
-
-  JSIL.OverloadedMethodCore(descriptor.Target, name, overloads, result);
-};
-
-JSIL.InterfaceBuilder.prototype.OverloadedGenericMethod = function (_descriptor, name, overloads, _assembly) {
-  var descriptor = this.ParseDescriptor(_descriptor, name);
-
-  var assembly = _assembly || $private;
-  var r = JSIL.MakeOverloadResolver(overloads, assembly);
-
-  var result = function () {
-    var genericArguments = Array.prototype.slice.call(arguments);
-
-    return function () {
-      var invokeArguments = Array.prototype.slice.call(arguments);
-      var method = JSIL.FindOverload(type, invokeArguments, name, r(this));
-
-      if (method === null)
-        throw new Error("No overload of '" + name + "<" + genericArguments.join(", ") + ">' matching the argument list '" + String(invokeArguments) + "' could be found.");
-      else
-        return method.apply(this, genericArguments).apply(this, invokeArguments);
-    }.bind(this);
-  };
-
-  JSIL.OverloadedMethodCore(descriptor.Target, name, overloads, result);
-};
 
 JSIL.InterfaceBuilder.prototype.ImplementInterfaces = function (/* ...interfacesToImplement */) {
   var interfaces = this.typeObject.__Interfaces__;
@@ -3608,73 +3557,6 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function
     $.ExternalMembers(true, 
       "_ctor", "_Type_GetIDsOfNames", "_Type_GetTypeInfo", "_Type_GetTypeInfoCount", "_Type_Invoke", "Equals$0", "Equals$1", "FindInterfaces", "FindMembers", "get_Assembly", "get_AssemblyQualifiedName", "get_Attributes", "get_BaseType", "get_ContainsGenericParameters", "get_DeclaringMethod", "get_DeclaringType", "get_FullName", "get_GenericParameterAttributes", "get_GenericParameterPosition", "get_GUID", "get_HasElementType", "get_HasProxyAttribute", "get_IsAbstract", "get_IsAnsiClass", "get_IsArray", "get_IsAutoClass", "get_IsAutoLayout", "get_IsByRef", "get_IsClass", "get_IsCOMObject", "get_IsContextful", "get_IsEnum", "get_IsExplicitLayout", "get_IsGenericParameter", "get_IsGenericType", "get_IsGenericTypeDefinition", "get_IsImport", "get_IsInterface", "get_IsLayoutSequential", "get_IsMarshalByRef", "get_IsNested", "get_IsNestedAssembly", "get_IsNestedFamANDAssem", "get_IsNestedFamily", "get_IsNestedFamORAssem", "get_IsNestedPrivate", "get_IsNestedPublic", "get_IsNotPublic", "get_IsPointer", "get_IsPrimitive", "get_IsPublic", "get_IsSealed", "get_IsSerializable", "get_IsSpecialName", "get_IsSzArray", "get_IsUnicodeClass", "get_IsValueType", "get_IsVisible", "get_MemberType", "get_Module", "get_Namespace", "get_ReflectedType", "get_StructLayoutAttribute", "get_TypeHandle", "get_TypeInitializer", "get_UnderlyingSystemType", "GetArrayRank", "GetAttributeFlagsImpl", "GetConstructor$0", "GetConstructor$1", "GetConstructor$2", "GetConstructorImpl", "GetConstructors$0", "GetConstructors$1", "GetDefaultMemberName", "GetDefaultMembers", "GetElementType", "GetEvent$0", "GetEvent$1", "GetEvents$0", "GetEvents$1", "GetField$0", "GetField$1", "GetFields$0", "GetFields$1", "GetGenericArguments", "GetGenericParameterConstraints", "GetGenericTypeDefinition", "GetHashCode", "GetInterface$0", "GetInterface$1", "GetInterfaceMap", "GetInterfaces", "GetMember$0", "GetMember$1", "GetMember$2", "GetMembers$0", "GetMembers$1", "GetMethod$0", "GetMethod$1", "GetMethod$2", "GetMethod$3", "GetMethod$4", "GetMethod$5", "GetMethodImpl", "GetMethods$0", "GetMethods$1", "GetNestedType$0", "GetNestedType$1", "GetNestedTypes$0", "GetNestedTypes$1", "GetProperties$0", "GetProperties$1", "GetProperty$0", "GetProperty$1", "GetProperty$2", "GetProperty$3", "GetProperty$4", "GetProperty$5", "GetProperty$6", "GetPropertyImpl", "GetRootElementType", "GetType", "GetTypeCodeInternal", "GetTypeHandleInternal", "HasElementTypeImpl", "HasProxyAttributeImpl", "InvokeMember$0", "InvokeMember$1", "InvokeMember$2", "IsArrayImpl", "IsAssignableFrom", "IsByRefImpl", "IsCOMObjectImpl", "IsContextfulImpl", "IsInstanceOfType", "IsMarshalByRefImpl", "IsPointerImpl", "IsPrimitiveImpl", "IsSubclassOf", "IsValueTypeImpl", "MakeArrayType$0", "MakeArrayType$1", "MakeByRefType", "MakeGenericType", "MakePointerType", "QuickSerializationCastCheck", "SigToString", "toString"
     );
-
-    $.OverloadedMethod({Public: true , Static: false}, "GetConstructors", [
-        [0, []], 
-        [1, ["System.Reflection.BindingFlags"]]
-      ], $jsilcore);
-    $.OverloadedMethod({Public: true , Static: false}, "GetMethod", [
-        [0, ["System.String", "System.Reflection.BindingFlags", "System.Reflection.Binder", "System.Reflection.CallingConventions", "System.Array" /* System.Type[] */ , "System.Array" /* System.Reflection.ParameterModifier[] */ ]], 
-        [1, ["System.String", "System.Reflection.BindingFlags", "System.Reflection.Binder", "System.Array" /* System.Type[] */ , "System.Array" /* System.Reflection.ParameterModifier[] */ ]], 
-        [2, ["System.String", "System.Array" /* System.Type[] */ , "System.Array" /* System.Reflection.ParameterModifier[] */ ]], 
-        [3, ["System.String", "System.Array" /* System.Type[] */ ]], 
-        [4, ["System.String", "System.Reflection.BindingFlags"]], 
-        [5, ["System.String"]]
-      ], $jsilcore);
-    $.OverloadedMethod({Public: true , Static: false}, "GetMethods", [
-        [0, []], 
-        [1, ["System.Reflection.BindingFlags"]]
-      ], $jsilcore);
-    $.OverloadedMethod({Public: true , Static: false}, "GetField", [
-        [0, ["System.String", "System.Reflection.BindingFlags"]], 
-        [1, ["System.String"]]
-      ], $jsilcore);
-    $.OverloadedMethod({Public: true , Static: false}, "GetFields", [
-        [0, []], 
-        [1, ["System.Reflection.BindingFlags"]]
-      ], $jsilcore);
-    $.OverloadedMethod({Public: true , Static: false}, "GetInterface", [
-        [0, ["System.String"]], 
-        [1, ["System.String", "System.Boolean"]]
-      ], $jsilcore);
-    $.OverloadedMethod({Public: true , Static: false}, "GetEvent", [
-        [0, ["System.String"]], 
-        [1, ["System.String", "System.Reflection.BindingFlags"]]
-      ], $jsilcore);
-    $.OverloadedMethod({Public: true , Static: false}, "GetEvents", [
-        [0, []], 
-        [1, ["System.Reflection.BindingFlags"]]
-      ], $jsilcore);
-    $.OverloadedMethod({Public: true , Static: false}, "GetProperty", [
-        [0, ["System.String", "System.Reflection.BindingFlags", "System.Reflection.Binder", "System.Type", "System.Array" /* System.Type[] */ , "System.Array" /* System.Reflection.ParameterModifier[] */ ]], 
-        [1, ["System.String", "System.Type", "System.Array" /* System.Type[] */ , "System.Array" /* System.Reflection.ParameterModifier[] */ ]], 
-        [2, ["System.String", "System.Reflection.BindingFlags"]], 
-        [3, ["System.String", "System.Type", "System.Array" /* System.Type[] */ ]], 
-        [4, ["System.String", "System.Array" /* System.Type[] */ ]], 
-        [5, ["System.String", "System.Type"]], 
-        [6, ["System.String"]]
-      ], $jsilcore);
-    $.OverloadedMethod({Public: true , Static: false}, "GetProperties", [
-        [0, ["System.Reflection.BindingFlags"]], 
-        [1, []]
-      ], $jsilcore);
-    $.OverloadedMethod({Public: true , Static: false}, "GetNestedTypes", [
-        [0, []], 
-        [1, ["System.Reflection.BindingFlags"]]
-      ], $jsilcore);
-    $.OverloadedMethod({Public: true , Static: false}, "GetNestedType", [
-        [0, ["System.String"]], 
-        [1, ["System.String", "System.Reflection.BindingFlags"]]
-      ], $jsilcore);
-    $.OverloadedMethod({Public: true , Static: false}, "GetMember", [
-        [0, ["System.String"]], 
-        [1, ["System.String", "System.Reflection.BindingFlags"]], 
-        [2, ["System.String", "System.Reflection.MemberTypes", "System.Reflection.BindingFlags"]]
-      ], $jsilcore);
-    $.OverloadedMethod({Public: true , Static: false}, "GetMembers", [
-        [0, []], 
-        [1, ["System.Reflection.BindingFlags"]]
-      ], $jsilcore);
 
     $.Property({Public: true , Static: false}, "Name");
     $.Property({Public: true , Static: false}, "Module");

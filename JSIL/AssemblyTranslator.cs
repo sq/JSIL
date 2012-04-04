@@ -939,9 +939,6 @@ namespace JSIL {
                 TranslatePrimitiveDefinition(context, output, typedef, stubbed, dollar);
 
             Action initializeOverloadsAndProperties = () => {
-                foreach (var methodGroup in typeInfo.MethodGroups)
-                    TranslateMethodGroup(context, output, methodGroup, dollar);
-
                 foreach (var property in typedef.Properties)
                     TranslateProperty(context, output, property, dollar);
             };
@@ -1025,58 +1022,6 @@ namespace JSIL {
                 output.NewLine();
                 output.RPar();
             }
-        }
-
-        protected void TranslateMethodGroup (
-            DecompilerContext context, JavascriptFormatter output,
-            MethodGroupInfo methodGroup, Action<JavascriptFormatter> dollar
-        ) {
-            var methods = (from m in methodGroup.Methods where !m.IsIgnored select m).ToArray();
-            if (methods.Length < 1)
-                return;
-
-            dollar(output);
-            output.Dot();
-            output.Identifier(
-                (methods.First().IsGeneric) ? "OverloadedGenericMethod" : "OverloadedMethod", null
-            );
-            output.LPar();
-
-            output.MemberDescriptor(true, methodGroup.IsStatic);
-
-            output.Comma();
-            output.Value(Util.EscapeIdentifier(methodGroup.Name));
-            output.Comma();
-            output.OpenBracket(true);
-
-            bool isFirst = true;
-            foreach (var method in methods) {
-                if (!isFirst) {
-                    output.Comma();
-                    output.NewLine();
-                }
-
-                output.OpenBracket();
-                output.Value(method.OverloadIndex.Value);
-                output.Comma();
-
-                output.OpenBracket();
-                output.CommaSeparatedList(
-                    from p in method.Member.Parameters select p.ParameterType, 
-                    ListValueType.TypeReference
-                );
-                output.CloseBracket();
-
-                output.CloseBracket();
-                isFirst = false;
-            }
-
-            output.CloseBracket(true, () => {
-                output.Comma();
-                output.Identifier(output.PrivateToken.IDString);
-                output.RPar();
-                output.Semicolon();
-            });
         }
 
         internal JSFunctionExpression TranslateMethodExpression (DecompilerContext context, MethodReference method, MethodDefinition methodDef) {
@@ -1638,13 +1583,11 @@ namespace JSIL {
             output.Value(Util.EscapeIdentifier(methodInfo.GetName(false), EscapingMode.MemberIdentifier));
 
             output.Comma();
+            output.NewLine();
 
-            if (methodInfo.OverloadIndex.HasValue) {
-                output.Value(methodInfo.OverloadIndex.Value);
-                output.Comma();
-            }
-
-            output.PlainTextFormatter.Unindent();
+            output.MethodSignature(method.DeclaringType, methodInfo.ReturnType, (from p in methodInfo.Parameters select p.ParameterType));
+            output.Comma();
+            output.NewLine();
 
             if (method.HasGenericParameters) {
                 output.Identifier("JSIL.GenericMethod", null);
@@ -1684,8 +1627,8 @@ namespace JSIL {
                 output.RPar();
             }
 
+            output.NewLine();
             output.RPar();
-            output.PlainTextFormatter.Indent();
 
             output.Semicolon();
             output.NewLine();

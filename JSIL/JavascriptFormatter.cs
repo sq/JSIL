@@ -148,13 +148,13 @@ namespace JSIL.Internal {
             }
         }
 
-        public void CommaSeparatedList (IEnumerable<TypeReference> types) {
+        public void CommaSeparatedList (IEnumerable<TypeReference> types, TypeReference context = null) {
             bool isFirst = true;
             foreach (var type in types) {
                 if (!isFirst)
                     Comma();
 
-                Identifier(type, false);
+                TypeReference(type, context);
 
                 isFirst = false;
             }
@@ -259,7 +259,15 @@ namespace JSIL.Internal {
                 return tr.Module.Assembly.FullName;
         }
 
-        public void TypeReference (TypeReference type) {
+        public void TypeReference (TypeReference type, TypeReference context = null) {
+            if ((context != null) && ILBlockTranslator.TypesAreEqual(type, context)) {
+                // If the field's type is its declaring type, we need to avoid recursively initializing it.
+                Identifier("$", null);
+                Dot();
+                Identifier("Type");
+                return;
+            }
+
             if (type.FullName == "JSIL.Proxy.AnyType") {
                 Value("JSIL.AnyType");
                 return;
@@ -699,6 +707,25 @@ namespace JSIL.Internal {
             Token(": ");
             PlainTextFormatter.Indent();
             NewLine();
+        }
+
+        public void MethodSignature (TypeReference context, TypeReference returnType, IEnumerable<TypeReference> parameterTypes) {
+            Token("new JSIL.MethodSignature");
+            LPar();
+
+            if (returnType.FullName == "System.Void")
+                Identifier("null", null);
+            else
+                TypeReference(returnType, context);
+
+            Comma();
+            OpenBracket(false);
+
+            CommaSeparatedList(parameterTypes, context);
+
+            CloseBracket(false);
+
+            RPar();
         }
     }
 }

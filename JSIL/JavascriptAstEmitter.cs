@@ -499,14 +499,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSTypeReference tr) {
-            if (ILBlockTranslator.TypesAreEqual(tr.Context, tr.Type)) {
-                // If the field's type is its declaring type, we need to avoid recursively initializing it.
-                Output.Identifier("$", null);
-                Output.Dot();
-                Output.Identifier("Type");
-            } else {
-                Output.Identifier(tr.Type, false, true);
-            }
+            Output.TypeReference(tr.Type, tr.Context);
         }
 
         public void VisitNode (JSType type) {
