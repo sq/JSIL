@@ -1582,6 +1582,10 @@ namespace JSIL.Internal {
             get { return Member.PropertyType; }
         }
 
+        public bool IsPublic {
+            get { return (Member.GetMethod ?? Member.SetMethod).IsPublic; }
+        }
+
         public override bool IsStatic {
             get { return (Member.GetMethod ?? Member.SetMethod).IsStatic; }
         }

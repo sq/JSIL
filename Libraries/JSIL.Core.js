@@ -1134,8 +1134,9 @@ JSIL.InstantiateGenericProperties = function (obj) {
     var gps = obj.__GenericProperties__ || [];
 
     for (var i = 0, l = gps.length; i < l; i++) {
-      var gp = gps[i];
-      JSIL.MakeProperty(target, gp[0], gp[1], gp[2]);
+      var name = gps[i];
+
+      JSIL.InterfaceBuilder.MakeProperty(name, target);
     }
 
     obj = Object.getPrototypeOf(obj);
@@ -1156,7 +1157,7 @@ JSIL.InstantiateGenericProperties = function (obj) {
 } )();
 
 JSIL.MakeStructFieldInitializer = function (typeObject) {
-  var sf = typeObject.__PublicInterface__.prototype.__StructFields__;
+  var sf = typeObject.__StructFields__;
   if ((typeof (sf) !== "object") || (sf.length <= 0))
     return null;
   
@@ -1184,18 +1185,6 @@ JSIL.MakeStructFieldInitializer = function (typeObject) {
   return boundFunction;
 };
 
-JSIL.AddStructFields = function (target, fields) {
-  var sf;
-
-  if (target.hasOwnProperty("__StructFields__"))
-    sf = target.__StructFields__;
-  else
-    target.__StructFields__ = sf = Array.prototype.slice.call(target.__StructFields__ || []);
-
-  for (var i = 0, l = fields.length; i < l; i++)
-    sf.push(fields[i]);
-};
-
 JSIL.InitializeStructFields = function (instance, typeObject) {
   var sfi = typeObject.__StructFieldInitializer__;
   if (typeof (sfi) === "undefined")
@@ -1216,7 +1205,7 @@ JSIL.CopyObjectValues = function (source, target) {
 };
 
 JSIL.CopyMembers = function (source, target) {
-  var sf = source.__StructFields__;
+  var sf = source.GetType().__StructFields__;
   if (typeof (sf) != "object")
     sf = [];
 
@@ -2383,6 +2372,18 @@ JSIL.InterfaceBuilder.prototype.ExternalMembers = function (isInstance /*, ...na
   }
 };
 
+JSIL.InterfaceBuilder.prototype.StructFields = function (fields) {
+  var sf;
+
+  if (this.typeObject.hasOwnProperty("__StructFields__"))
+    sf = this.typeObject.__StructFields__;
+  else
+    this.typeObject.__StructFields__ = sf = Array.prototype.slice.call(this.typeObject.__StructFields__ || []);
+
+  for (var i = 0, l = fields.length; i < l; i++)
+    sf.push(fields[i]);
+};
+
 JSIL.InterfaceBuilder.prototype.Constant = function (_descriptor, name, value) {
   var descriptor = this.ParseDescriptor(_descriptor, name);
 
@@ -2395,29 +2396,38 @@ JSIL.InterfaceBuilder.prototype.Constant = function (_descriptor, name, value) {
   Object.defineProperty(descriptor.Target, name, prop);
 };
 
-JSIL.InterfaceBuilder.prototype.Property = function (_descriptor, name, getter, setter) {
-  var descriptor = this.ParseDescriptor(_descriptor, name);
-
+JSIL.InterfaceBuilder.MakeProperty = function (name, target) {
   var prop = {
     configurable: true,
     enumerable: true
   };
 
-  if (typeof (getter) === "function")
-    prop["get"] = getter;
-  if (typeof (setter) === "function")
-    prop["set"] = setter;
+  var getterName = "get_" + name;
+  var setterName = "set_" + name;
 
-  Object.defineProperty(descriptor.Target, name, prop);
+  if (typeof (target[getterName]) === "function")
+    prop["get"] = target[getterName];
+  if (typeof (target[setterName]) === "function")
+    prop["set"] = target[setterName];
+
+  Object.defineProperty(target, name, prop);
+};
+
+JSIL.InterfaceBuilder.prototype.Property = function (_descriptor, name) {
+  var descriptor = this.ParseDescriptor(_descriptor, name);
+
+  JSIL.InterfaceBuilder.MakeProperty(name, descriptor.Target);
 
   this.PushMember("PropertyInfo", descriptor, null);
 };
 
-JSIL.InterfaceBuilder.prototype.GenericProperty = function (_descriptor, name, getter, setter) {
+JSIL.InterfaceBuilder.prototype.GenericProperty = function (_descriptor, name) {
   var descriptor = this.ParseDescriptor(_descriptor, name);
 
   var props = this.typeObject.__GenericProperties__;
-  props.push([name, getter, setter]);
+  props.push(name);
+
+  this.PushMember("PropertyInfo", descriptor, null);
 };
 
 JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, defaultValue) {

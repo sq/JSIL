@@ -971,14 +971,11 @@ namespace JSIL {
                 select field).ToArray();
 
             if (structFields.Length > 0) {
-                output.Identifier("JSIL.AddStructFields", null);
-                output.LPar();
-
                 dollar(output);
                 output.Dot();
-                output.Identifier("prototype");
+                output.Identifier("StructFields", null);
+                output.LPar();
 
-                output.Comma();
                 output.OpenBracket(true);
 
                 bool isFirst = true;
@@ -1704,50 +1701,21 @@ namespace JSIL {
 
             var isStatic = (property.SetMethod ?? property.GetMethod).IsStatic;
 
+            dollar(output);
+            output.Dot();
+
             if (property.DeclaringType.HasGenericParameters && isStatic)
-                output.Identifier("JSIL.MakeGenericProperty", null);
+                output.Identifier("GenericProperty", null);
             else
-                output.Identifier("JSIL.MakeProperty", null);
+                output.Identifier("Property", null);
 
             output.LPar();
 
-            dollar(output);
-            if (!isStatic) {
-                output.Dot();
-                output.Keyword("prototype");
-            }
+            output.MemberDescriptor(propertyInfo.IsPublic, propertyInfo.IsStatic);
+
             output.Comma();
 
             output.Value(Util.EscapeIdentifier(propertyInfo.Name));
-
-            output.Comma();
-            output.NewLine();
-
-            if (property.GetMethod != null) {
-                dollar(output);
-                if (!isStatic) {
-                    output.Dot();
-                    output.Keyword("prototype");
-                }
-                output.Dot();
-                output.Identifier(property.GetMethod, false);
-            } else {
-                output.Keyword("null");
-            }
-
-            output.Comma();
-
-            if (property.SetMethod != null) {
-                dollar(output);
-                if (!isStatic) {
-                    output.Dot();
-                    output.Keyword("prototype");
-                }
-                output.Dot();
-                output.Identifier(property.SetMethod, false);
-            } else {
-                output.Keyword("null");
-            }
 
             output.RPar();
             output.Semicolon();
