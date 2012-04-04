@@ -922,17 +922,8 @@ JSIL.FindGenericParameters = function (obj, type, resultList) {
   }
 };
 
-$jsilcore.$Of$NoInitialize = function () {
-  // This whole function would be 100x simpler if you could provide a prototype when constructing a function. Javascript sucks so much.
-
-  var staticClassObject = this;
-  var typeObject = this.__Type__;
-
-  var ga = typeObject.__GenericArguments__;
-  if (arguments.length != ga.length)
-    throw new Error("Invalid number of generic arguments for type '" + JSIL.GetTypeName(this) + "' (got " + arguments.length + ", expected " + ga.length + ")");
-
-  var resolvedArguments = Array.prototype.slice.call(arguments);
+JSIL.ResolveTypeArgumentArray = function (typeArgs) {
+  var resolvedArguments = typeArgs;
 
   // Ensure that each argument is the public interface of a type (not the type object or a type reference)
   for (var i = 0, l = resolvedArguments.length; i < l; i++) {
@@ -944,10 +935,48 @@ $jsilcore.$Of$NoInitialize = function () {
     }
 
     if (typeof(resolvedArguments[i]) === "undefined")
-      throw new Error("Undefined passed as generic argument");
+      throw new Error("Undefined passed as type argument");
     else if (resolvedArguments[i] === null)
-      throw new Error("Null passed as generic argument");
+      throw new Error("Null passed as type argument");
   }
+
+  return resolvedArguments;
+};
+
+JSIL.HashTypeArgumentArray = function (typeArgs) {
+  var cacheKey = null;
+
+  if (typeArgs.length <= 0)
+    return "void";
+
+  for (var i = 0, l = typeArgs.length; i < l; i++) {
+    var typeId = typeArgs[i].__TypeId__;
+
+    if (typeof (typeId) === "undefined")
+      throw new Error("Type missing type ID");
+
+    if (i == 0)
+      cacheKey = typeId;
+    else
+      cacheKey += "," + typeId;
+  }
+
+  return cacheKey;
+};
+
+$jsilcore.$Of$NoInitialize = function () {
+  // This whole function would be 100x simpler if you could provide a prototype when constructing a function. Javascript sucks so much.
+
+  var staticClassObject = this;
+  var typeObject = this.__Type__;
+
+  var ga = typeObject.__GenericArguments__;
+  if (arguments.length != ga.length)
+    throw new Error("Invalid number of generic arguments for type '" + JSIL.GetTypeName(this) + "' (got " + arguments.length + ", expected " + ga.length + ")");
+
+  var resolvedArguments = JSIL.ResolveTypeArgumentArray(
+    Array.prototype.slice.call(arguments)
+  );
 
   if (typeof (staticClassObject.prototype) !== "undefined") {
     var resolveContext = JSIL.CloneObject(staticClassObject.prototype);
@@ -966,19 +995,7 @@ $jsilcore.$Of$NoInitialize = function () {
     }
   }
 
-  var cacheKey = null;
-
-  for (var i = 0, l = resolvedArguments.length; i < l; i++) {
-    var typeId = resolvedArguments[i].__TypeId__;
-
-    if (typeof (typeId) === "undefined")
-      throw new Error("Type missing type ID");
-
-    if (i == 0)
-      cacheKey = typeId;
-    else
-      cacheKey += "," + typeId;
-  }
+  var cacheKey = JSIL.HashTypeArgumentArray(resolvedArguments);
 
   var ofCache = typeObject.__OfCache__;
   if ((typeof (ofCache) === "undefined") || (ofCache === null))
@@ -2185,6 +2202,12 @@ JSIL.InterfaceBuilder = function (typeObject, publicInterface) {
   this.publicInterface = publicInterface;
   this.namespace = JSIL.GetTypeName(typeObject);
 
+  Object.defineProperty(this, "Type", {
+    configurable: false,
+    enumerable: true,
+    value: typeObject
+  });
+
   this.memberDescriptorPrototype = {
     Static: false,
     Public: false,
@@ -2316,12 +2339,12 @@ JSIL.InterfaceBuilder.prototype.GenericProperty = function (_descriptor, name) {
   this.PushMember("PropertyInfo", descriptor, null);
 };
 
-JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, defaultValue) {
+JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldType, defaultValue) {
   var descriptor = this.ParseDescriptor(_descriptor, fieldName);
 
   descriptor.Target[fieldName] = defaultValue;
 
-  this.PushMember("FieldInfo", descriptor, { defaultValue: defaultValue });
+  this.PushMember("FieldInfo", descriptor, { fieldType: fieldType, defaultValue: defaultValue });
 };
 
 JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, overloadIndex, fn) {
@@ -2534,6 +2557,38 @@ JSIL.InterfaceBuilder.prototype.ImplementInterfaces = function (/* ...interfaces
   }
 };
 
+JSIL.MethodSignature = function (returnType, argumentTypes) {
+  this.returnType = returnType;
+  this.argumentTypes = argumentTypes;
+};
+
+JSIL.MethodSignature.prototype.get_Hash = function () {
+  if (this._hash !== null)
+    return this._hash;
+
+  var resolvedArgTypes = JSIL.ResolveTypeArgumentArray(Array.prototype.slice.call(this.argumentTypes));
+  var hash = JSIL.HashTypeArgumentArray(resolvedArgTypes);
+
+  if (this.returnType !== null) {
+    var resolvedReturnType = JSIL.ResolveTypeArgumentArray([this.returnType])[0];
+    hash += "=" + resolvedReturnType.__TypeId__;
+  } else {
+    hash += "=void";
+  }
+
+  return this._hash = hash;
+};
+
+JSIL.MethodSignature.prototype.returnType = null;
+JSIL.MethodSignature.prototype.argumentTypes = [];
+JSIL.MethodSignature.prototype._hash = null;
+
+Object.defineProperty(JSIL.MethodSignature.prototype, "Hash", {
+  configurable: false,
+  enumerable: true,
+  get: JSIL.MethodSignature.prototype.get_Hash
+});
+
 JSIL.FindOverload = function (prototype, args, name, overloads) {
   var l = args.length;
 
@@ -2684,8 +2739,8 @@ JSIL.ImplementExternals(
 );
 
 JSIL.MakeClass(Object, "System.Object", true, [], function ($) {
-  $.Field({}, "__LockCount__", 0);
-  $.Field({}, "__StructField__", []);
+  $.Field({}, "__LockCount__", Number, 0);
+  $.Field({}, "__StructField__", Array, []);
 
   $.ExternalMembers(true, 
     "Equals", "MemberwiseClone", "__Initialize__", 

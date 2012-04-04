@@ -130,10 +130,10 @@ JSIL.MakeDelegate("System.Action`1", true, ["T"]);
 JSIL.MakeDelegate("System.Action`2", true, ["T1", "T2"]);
 JSIL.MakeDelegate("System.Action`3", true, ["T1", "T2", "T3"]);
 
-JSIL.MakeDelegate("System.Func", true, ["TResult"]);
-JSIL.MakeDelegate("System.Func`1", true, ["T", "TResult"]);
-JSIL.MakeDelegate("System.Func`2", true, ["T1", "T2", "TResult"]);
-JSIL.MakeDelegate("System.Func`3", true, ["T1", "T2", "T3", "TResult"]);
+JSIL.MakeDelegate("System.Func`1", true, ["TResult"]);
+JSIL.MakeDelegate("System.Func`2", true, ["T", "TResult"]);
+JSIL.MakeDelegate("System.Func`3", true, ["T1", "T2", "TResult"]);
+JSIL.MakeDelegate("System.Func`4", true, ["T1", "T2", "T3", "TResult"]);
 
 JSIL.ImplementExternals(
   "System.Exception", true, {
@@ -463,7 +463,7 @@ JSIL.ImplementExternals(
 );
 
 JSIL.MakeClass("System.Object", "System.Threading.Thread", true, [], function ($) {
-  $.Field({Public: false, Static: true}, "_currentThread", null);
+  $.Field({Public: false, Static: true}, "_currentThread", $.Type, null);
 
   $.ExternalMembers(false, "get_CurrentThread");
   $.ExternalMembers(false, "get_ManagedThreadId");
@@ -798,9 +798,9 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.Stack`1", true, ["T"
 
 // TODO: This type is actually a struct in the CLR
 JSIL.MakeClass("JSIL.ArrayEnumerator", "System.Collections.Generic.List`1/Enumerator", true, ["T"], function ($) {
-  $.Field({Public: false, Static: false}, "_array", null);
-  $.Field({Public: false, Static: false}, "_length", 0);
-  $.Field({Public: false, Static: false}, "_index", -1);
+  $.Field({Public: false, Static: false}, "_array", Array, null);
+  $.Field({Public: false, Static: false}, "_length", Number, 0);
+  $.Field({Public: false, Static: false}, "_index", Number, -1);
 
   $.Method({Public: true, Static: false}, "_ctor", function (list) {
     if (typeof (list) != "undefined") {

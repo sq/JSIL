@@ -1370,7 +1370,7 @@ namespace JSIL {
                     JSDotExpression.New(
                         dollarIdentifier, new JSFakeMethod("Field", field.Module.TypeSystem.Void)
                     ), new JSExpression[] {
-                        descriptor, JSLiteral.New(fieldInfo.Name), defaultValue
+                        descriptor, JSLiteral.New(fieldInfo.Name), new JSType(field.FieldType), defaultValue, 
                     }
                 );
             }
