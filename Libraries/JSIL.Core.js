@@ -107,10 +107,18 @@ var $jsilcore = JSIL.DeclareAssembly("JSIL.Core");
 $jsilcore.SystemObjectInitialized = false;
 JSIL.$NextTypeId = 0;
 JSIL.$PublicTypes = {};
+JSIL.$PublicTypeAssemblies = {};
 JSIL.$AssignedTypeIds = {};
 
 JSIL.AssignTypeId = function (assembly, typeName) {
-  var key = assembly + "$" + typeName;
+  if (typeof (assembly.typesByName) !== "object")
+    throw new Error("Invalid assembly context");
+
+  if (typeof (JSIL.$PublicTypeAssemblies[typeName]) !== "undefined") {
+    assembly = JSIL.$PublicTypeAssemblies[typeName];
+  }
+
+  var key = String(assembly) + "$" + typeName;
   var result = JSIL.$AssignedTypeIds[key];
 
   if (typeof (result) !== "number")
@@ -286,8 +294,11 @@ JSIL.DefineTypeName = function (name, getter, isPublic) {
       JSIL.$PublicTypes[name] = function () {
         throw new Error("Type '" + name + "' has multiple public definitions. You must access it through a specific assembly.");
       };
+
+      delete JSIL.$PublicTypeAssemblies[name];
     } else {
       JSIL.$PublicTypes[name] = getter;
+      JSIL.$PublicTypeAssemblies[name] = $private;
     }
   }
 
@@ -470,7 +481,7 @@ JSIL.RenameFunction = function (name, fn) {
   return fn;
 };
 
-JSIL.MakeExternalMemberStub = function (namespaceName, memberName, inheritedMember) {
+JSIL.MakeExternalMemberStub = function (namespaceName, getMemberName, inheritedMember) {
   var state = {
     alreadyWarned: false
   };
@@ -479,19 +490,17 @@ JSIL.MakeExternalMemberStub = function (namespaceName, memberName, inheritedMemb
   if (typeof (inheritedMember) === "function") {
     result = function () {
       if (!state.alreadyWarned) {
-        JSIL.Host.warning("The external method '" + memberName + "' of type '" + namespaceName + "' has not been implemented; calling inherited method.");
+        JSIL.Host.warning("The external method '" + getMemberName() + "' of type '" + namespaceName + "' has not been implemented; calling inherited method.");
         state.alreadyWarned = true;
       }
+
       return Function.prototype.apply.call(inheritedMember, this, arguments);
     };
   } else {
     result = function () {
-      JSIL.Host.error(new Error("The external method '" + memberName + "' of type '" + namespaceName + "' has not been implemented."));
+      JSIL.Host.error(new Error("The external method '" + getMemberName() + "' of type '" + namespaceName + "' has not been implemented."));
     };
   }
-
-  var fullName = namespaceName + "::" + memberName;
-  result = JSIL.RenameFunction(fullName, result);
 
   result.__IsPlaceholder__ = true;
 
@@ -519,9 +528,16 @@ JSIL.ImplementExternals = function (namespaceName, isInstance, externals) {
   if (typeof (isInstance) === "function") {
     externals = isInstance;
 
-    var typeObject = {__Members__: []};
+    var typeId = JSIL.AssignTypeId(context, namespaceName);
+    var typeObject = {
+      __Members__: [],
+      __TypeId__: typeId
+    };
     var publicInterface = {
-      prototype: {}
+      prototype: {
+        __TypeId__: typeId
+      },
+      __TypeId__: typeId
     };
     var ib = new JSIL.InterfaceBuilder(context, typeObject, publicInterface);
     externals(ib);
@@ -994,6 +1010,9 @@ JSIL.ResolveTypeArgumentArray = function (typeArgs) {
 JSIL.HashTypeArgumentArray = function (typeArgs, context) {
   var cacheKey = null;
 
+  if (typeof (context) === "undefined")
+    throw new Error("Context required");
+
   if (typeArgs.length <= 0)
     return "void";
 
@@ -1006,7 +1025,7 @@ JSIL.HashTypeArgumentArray = function (typeArgs, context) {
     } else if (
       typeof (tr) === "string"
     ) {
-      typeId = JSIL.AssignTypeId(context || $private || JSIL.GlobalNamespace, tr);
+      typeId = JSIL.AssignTypeId(context, tr);
     } else if (
       typeof (tr) === "object"
     ) {
@@ -2344,7 +2363,7 @@ JSIL.InterfaceBuilder.prototype.ExternalMembers = function (isInstance /*, ...na
     if (impl.hasOwnProperty(prefix + memberName)) {
       newValue = impl[prefix + memberName];
     } else if (!target.hasOwnProperty(memberName)) {
-      newValue = JSIL.MakeExternalMemberStub(this.namespace, memberName, memberValue);
+      newValue = JSIL.MakeExternalMemberStub(this.namespace, function () { return memberName; }, memberValue);
     }
 
     if (newValue !== undefined) {
@@ -2454,7 +2473,7 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
   if (impl.hasOwnProperty(prefix + mangledName)) {
     newValue = impl[prefix + mangledName];
   } else if (!descriptor.Target.hasOwnProperty(mangledName)) {
-    newValue = JSIL.MakeExternalMemberStub(this.namespace, mangledName, memberValue);
+    newValue = JSIL.MakeExternalMemberStub(this.namespace, function () { return signature.toString(methodName); }, memberValue);
   }
 
   if (newValue !== undefined) {
@@ -2627,8 +2646,8 @@ JSIL.InterfaceBuilder.prototype.ImplementInterfaces = function (/* ...interfaces
   }
 };
 
-JSIL.MethodSignature = function (returnType, argumentTypes) {
-  this.context = $private;
+JSIL.MethodSignature = function (returnType, argumentTypes, context) {
+  this.context = context || $private;
   this.returnType = returnType;
   this.argumentTypes = argumentTypes;
 };
@@ -2637,29 +2656,39 @@ JSIL.MethodSignature.prototype.GetKey = function (name) {
   return name + "$" + this.Hash;
 };
 
+JSIL.MethodSignature.prototype.toString = function (name) {
+  var signature;
+
+  if (this.returnType !== null) {
+    signature = JSIL.ResolveTypeReference(this.returnType)[1].toString() + " ";
+  } else {
+    signature = "void ";
+  }
+
+  if (typeof (name) === "string") {
+    signature += name + " (";
+  } else {
+    signature += " (";
+  }
+
+  for (var i = 0; i < this.argumentTypes.length; i++) {
+    signature += JSIL.ResolveTypeReference(this.argumentTypes[i])[1].toString();
+
+    if (i < this.argumentTypes.length - 1)
+      signature += ", "
+  }
+
+  signature += ")";
+
+  return signature;
+};
+
 JSIL.MethodSignature.prototype.Call = function (name, thisReference /*, ...parameters */) {
   var key = this.GetKey(name);
 
   var method = thisReference[key];
   if (typeof (method) !== "function") {
-    var signature;
-
-    if (this.returnType !== null) {
-      signature = JSIL.ResolveTypeReference(this.returnType)[1].toString() + " ";
-    } else {
-      signature = "void ";
-    }
-
-    signature += name + " (";
-
-    for (var i = 0; i < this.argumentTypes.length; i++) {
-      signature += JSIL.ResolveTypeReference(this.argumentTypes[i])[1].toString();
-
-      if (i < this.argumentTypes.length - 1)
-        signature += ", "
-    }
-
-    signature += ")";
+    var signature = this.toString(name);
 
     throw new Error(
       "No method with signature '" + signature +
@@ -2804,15 +2833,15 @@ JSIL.ImplementExternals(
 
 JSIL.ImplementExternals(
   "System.Object", function ($) {
-    $.Method({Static: false, Public: true }, "Equals",
-      new JSIL.MethodSignature("System.Boolean", ["System.Object"]),
+    $.Method({Static: false, Public: true}, "Equals",
+      new JSIL.MethodSignature("System.Boolean", ["System.Object"], $jsilcore),
       function (rhs) {
         return this === rhs;
       }
     );
 
     $.Method({Static: false, Public: false}, "MemberwiseClone",
-      new JSIL.MethodSignature("System.Object", []),
+      new JSIL.MethodSignature("System.Object", [], $jsilcore),
       function () {
         var result = Object.create(Object.getPrototypeOf(this));
 
@@ -2856,7 +2885,7 @@ JSIL.ImplementExternals(
     );
 
     $.Method({Static: false, Public: true}, "toString",
-      new JSIL.MethodSignature("System.String", []),
+      new JSIL.MethodSignature("System.String", [], $jsilcore),
       function () {
         return JSIL.GetTypeName(this);
       }
@@ -2869,26 +2898,29 @@ JSIL.MakeClass(Object, "System.Object", true, [], function ($) {
   $.Field({}, "__StructField__", Array, function ($) { return []; });
 
   $.ExternalMethod({Static: false, Public: true}, "_ctor",
-    new JSIL.MethodSignature(null, [])
+    new JSIL.MethodSignature(null, [], $jsilcore)
   );
 
   $.ExternalMethod({Static: false, Public: true}, "GetType",
-    new JSIL.MethodSignature(new JSIL.TypeRef($jsilcore, "System.Type"), [])
+    new JSIL.MethodSignature("System.Type", [], $jsilcore)
   );
 
   $.ExternalMethod({Static: false, Public: true}, "Equals",
-    new JSIL.MethodSignature(new JSIL.TypeRef($jsilcore, "System.Boolean"), [$.Type])
+    new JSIL.MethodSignature("System.Boolean", [$.Type], $jsilcore)
   );
 
   $.ExternalMethod({Static: false, Public: true}, "MemberwiseClone",
-    new JSIL.MethodSignature($.Type, [])
+    new JSIL.MethodSignature($.Type, [], $jsilcore)
   );
 
   $.ExternalMethod({Static: false, Public: true}, "toString",
-    new JSIL.MethodSignature(new JSIL.TypeRef($jsilcore, "System.String"), [])
+    new JSIL.MethodSignature("System.String", [], $jsilcore)
   );
 
-  $.ExternalMembers(true,  "__Initialize__");
+  $.ExternalMethod({Static: false, Public: false}, "__Initialize__",
+    new JSIL.MethodSignature(null, [], $jsilcore)
+  );
+  
   $.ExternalMembers(false, "CheckType");
 
   $jsilcore.SystemObjectInitialized = true;
