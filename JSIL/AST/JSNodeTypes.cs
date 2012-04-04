@@ -2007,6 +2007,16 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSTypeReference : JSType {
+        public readonly TypeReference Context;
+
+        public JSTypeReference (TypeReference type, TypeReference context)
+            : base(type) {
+
+            Context = context;
+        }
+    }
+
     public class JSTypeOfExpression : JSExpression {
         public JSTypeOfExpression (JSType type)
             : base (type) {

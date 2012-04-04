@@ -498,6 +498,17 @@ namespace JSIL {
             Output.AssemblyReference(asm.Assembly);
         }
 
+        public void VisitNode (JSTypeReference tr) {
+            if (ILBlockTranslator.TypesAreEqual(tr.Context, tr.Type)) {
+                // If the field's type is its declaring type, we need to avoid recursively initializing it.
+                Output.Identifier("$", null);
+                Output.Dot();
+                Output.Identifier("Type");
+            } else {
+                Output.Identifier(tr.Type, false, true);
+            }
+        }
+
         public void VisitNode (JSType type) {
             Output.Identifier(
                 type.Type, IncludeTypeParens.Peek()

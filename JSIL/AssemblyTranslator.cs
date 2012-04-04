@@ -1337,15 +1337,7 @@ namespace JSIL {
                 if (!defaultValues.TryGetValue(field, out defaultValue))
                     defaultValue = new JSDefaultValueLiteral(field.FieldType);
 
-                JSExpression fieldTypeExpression;
-                if (ILBlockTranslator.TypesAreEqual(field.DeclaringType, field.FieldType)) {
-                    // If the field's type is its declaring type, we need to avoid recursively initializing it.
-                    fieldTypeExpression = new JSDotExpression(
-                        new JSRawOutputIdentifier(dollar, field.Module.TypeSystem.Object),
-                        new JSStringIdentifier("Type", field.Module.TypeSystem.Object)
-                    );
-                } else
-                    fieldTypeExpression = new JSType(field.FieldType);
+                JSExpression fieldTypeExpression = new JSTypeReference(field.FieldType, field.DeclaringType);
 
                 if (cctorContext != forCctor) {
                     defaultValue = new JSNullLiteral(field.Module.TypeSystem.Object);
