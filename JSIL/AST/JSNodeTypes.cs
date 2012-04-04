@@ -3073,6 +3073,28 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSMemberDescriptor : JSExpression {
+        public readonly bool IsPublic;
+        public readonly bool IsStatic;
+
+        public JSMemberDescriptor (bool isPublic, bool isStatic)
+            : base() {
+
+            IsPublic = isPublic;
+            IsStatic = isStatic;
+        }
+
+        public override bool IsConstant {
+            get {
+                return true;
+            }
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return typeSystem.Object;
+        }
+    }
+
     public class JSObjectExpression : JSExpression {
         public JSObjectExpression (params JSPairExpression[] pairs) : base(
             pairs

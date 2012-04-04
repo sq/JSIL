@@ -1008,7 +1008,10 @@ namespace JSIL {
                 staticExternalMemberNames.Add("Of");
 
             if (externalMemberNames.Count > 0) {
-                output.Identifier("JSIL.ExternalMembers", null);
+                dollar(output);
+                output.Dot();
+                output.Identifier("ExternalMembers", null);
+
                 output.LPar();
                 dollar(output);
                 output.Comma();
@@ -1024,7 +1027,10 @@ namespace JSIL {
             }
 
             if (staticExternalMemberNames.Count > 0) {
-                output.Identifier("JSIL.ExternalMembers", null);
+                dollar(output);
+                output.Dot();
+                output.Identifier("ExternalMembers", null);
+
                 output.LPar();
                 dollar(output);
                 output.Comma();
@@ -1071,16 +1077,14 @@ namespace JSIL {
             if (methods.Length < 1)
                 return;
 
+            dollar(output);
+            output.Dot();
             output.Identifier(
-                (methods.First().IsGeneric) ? "JSIL.OverloadedGenericMethod" : "JSIL.OverloadedMethod", null
+                (methods.First().IsGeneric) ? "OverloadedGenericMethod" : "OverloadedMethod", null
             );
             output.LPar();
 
-            dollar(output);
-            if (!methodGroup.IsStatic) {
-                output.Dot();
-                output.Keyword("prototype");
-            }
+            output.MemberDescriptor(true, methodGroup.IsStatic);
 
             output.Comma();
             output.Value(Util.EscapeIdentifier(methodGroup.Name));
@@ -1342,15 +1346,11 @@ namespace JSIL {
             var fieldInfo = TypeInfoProvider.GetMemberInformation<Internal.FieldInfo>(field);
             if ((fieldInfo == null) || fieldInfo.IsIgnored || fieldInfo.IsExternal)
                 return null;
-            
-            if (field.IsStatic)
-                target = JSDotExpression.New(
-                    new JSRawOutputIdentifier(dollar, field.DeclaringType), new JSField(field, fieldInfo)
-                );
-            else
-                target = JSDotExpression.New(
-                    new JSRawOutputIdentifier(dollar, field.DeclaringType), new JSStringIdentifier("prototype"), new JSField(field, fieldInfo)
-                );
+
+            var dollarIdentifier = new JSRawOutputIdentifier(dollar, field.DeclaringType);
+            var descriptor = new JSMemberDescriptor(
+                field.IsPublic, field.IsStatic
+            );
 
             if (field.HasConstant) {
                 JSLiteral constant;
@@ -1362,9 +1362,9 @@ namespace JSIL {
 
                 return JSInvocationExpression.InvokeStatic(
                     JSDotExpression.New(
-                        new JSStringIdentifier("JSIL"), new JSFakeMethod("MakeConstant", field.Module.TypeSystem.Void)
-                    ), new[] { 
-                        target.Target, target.Member.ToLiteral(), constant                            
+                        dollarIdentifier, new JSFakeMethod("Constant", field.Module.TypeSystem.Void)
+                    ), new JSExpression[] {
+                        descriptor, JSLiteral.New(field.Name), constant
                     }
                 );
             } else {
@@ -1372,9 +1372,12 @@ namespace JSIL {
                 if (!defaultValues.TryGetValue(field, out defaultValue))
                     defaultValue = new JSDefaultValueLiteral(field.FieldType);
 
-                return new JSBinaryOperatorExpression(
-                    JSOperator.Assignment, target,
-                    defaultValue, field.FieldType
+                return JSInvocationExpression.InvokeStatic(
+                    JSDotExpression.New(
+                        dollarIdentifier, new JSFakeMethod("Field", field.Module.TypeSystem.Void)
+                    ), new JSExpression[] {
+                        descriptor, JSLiteral.New(field.Name), defaultValue
+                    }
                 );
             }
         }
@@ -1627,26 +1630,12 @@ namespace JSIL {
                 output.NewLine();
             }
 
-            output.Identifier("JSIL.MakeMethod", null);
+            dollar(output);
+            output.Dot();
+            output.Identifier("Method", null);
             output.LPar();
 
-            dollar(output);
-
-            output.Comma();
-
-            output.Token("{");
-
-            output.Identifier("static", null);
-            output.Token(":");
-            output.Value(method.IsStatic);
-
-            output.Comma();
-
-            output.Identifier("public", null);
-            output.Token(":");
-            output.Value(method.IsPublic);
-
-            output.Token("}");
+            output.MemberDescriptor(method.IsPublic, method.IsStatic);
 
             output.Comma();
             output.Value(Util.EscapeIdentifier(methodInfo.GetName(false), EscapingMode.MemberIdentifier));

@@ -326,6 +326,26 @@ namespace JSIL.Internal {
             TypeReference(type.Definition);
         }
 
+        public void MemberDescriptor (bool isPublic, bool isStatic) {
+            Token("{");
+
+            Identifier("Static", null);
+            Token(":");
+            Value(isStatic);
+            if (isStatic)
+                Token(" ");
+
+            Comma();
+
+            Identifier("Public", null);
+            Token(":");
+            Value(isPublic);
+            if (isPublic)
+                Token(" ");
+
+            Token("}");
+        }
+
         public void Identifier (string name, EscapingMode? escapingMode = EscapingMode.MemberIdentifier) {
             if (escapingMode.HasValue)
                 PlainTextOutput.Write(Util.EscapeIdentifier(

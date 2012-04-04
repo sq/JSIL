@@ -9,7 +9,7 @@ public static class Program {
     }
 
     public static void Main (string[] args) {
-        Common.Util.ListMethods(
+        Common.Util.ListMembers<MethodInfo>(
             typeof(Program),
             BindingFlags.DeclaredOnly | BindingFlags.Static | BindingFlags.Public
         );

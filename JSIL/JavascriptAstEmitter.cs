@@ -1035,6 +1035,10 @@ namespace JSIL {
             Output.CloseBracket();
         }
 
+        public void VisitNode (JSMemberDescriptor desc) {
+            Output.MemberDescriptor(desc.IsPublic, desc.IsStatic);
+        }
+
         public void VisitNode (JSObjectExpression obj) {
             Output.OpenBrace();
             CommaSeparatedList(obj.Values, true);

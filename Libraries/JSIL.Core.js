@@ -480,56 +480,6 @@ JSIL.MakeExternalMemberStub = function (namespaceName, memberName, inheritedMemb
   return result;
 };
 
-JSIL.ExternalMembers = function (namespace, isInstance /*, ...memberNames */) {
-  if (typeof (namespace) === "undefined") {
-    JSIL.Host.error(new Error("External members declared in undefined namespace"));
-    return;
-  }
-  
-  var namespaceName = JSIL.GetTypeName(namespace);
-  var impl = JSIL.AllImplementedExternals[namespaceName];
-
-  var prefix = isInstance ? "instance$" : "";
-
-  if (isInstance) {
-    namespace = namespace.prototype;
-    if (typeof (namespace) === "undefined") {
-      JSIL.Host.error(new Error("External instance members declared in namespace with no prototype"));
-      return;
-    }
-  }
-
-  if (typeof (impl) !== "object")
-    impl = {};
-
-  for (var i = 2, l = arguments.length; i < l; i++) {
-    var memberName = arguments[i];
-    var memberValue = namespace[memberName];
-    var newValue = undefined;
-
-    if (impl.hasOwnProperty(prefix + memberName)) {
-      newValue = impl[prefix + memberName];
-    } else if (!namespace.hasOwnProperty(memberName)) {
-      newValue = JSIL.MakeExternalMemberStub(namespaceName, memberName, memberValue);
-    }
-
-    if (newValue !== undefined) {
-      try {
-        delete namespace[memberName];
-      } catch (e) {
-      }
-
-      try {
-        namespace[memberName] = newValue;
-      } catch (e) {
-        Object.defineProperty(namespace, memberName, {
-          value: newValue, enumerable: true, configurable: true
-        });
-      }
-    }
-  }
-};
-
 JSIL.ImplementExternals = function (namespaceName, isInstance, externals) {
   if (typeof (namespaceName) !== "string") {
     JSIL.Host.error(new Error("ImplementExternals expected name of namespace"));
@@ -850,40 +800,6 @@ JSIL.MakeProto = function (baseType, target, typeName, isReferenceType, assembly
   prototype.__IsReferenceType__ = Boolean(isReferenceType);
 
   return prototype;
-};
-
-JSIL.MakeConstant = function (parent, name, value) {
-  var descriptor = {
-    configurable: true,
-    enumerable: true,
-    value: value
-  };
-
-  Object.defineProperty(parent, name, descriptor);
-};
-
-JSIL.MakeProperty = function (parent, name, getter, setter) {
-  var descriptor = {
-    configurable: true,
-    enumerable: true
-  };
-
-  if (typeof (getter) === "function")
-    descriptor["get"] = getter;
-  if (typeof (setter) === "function")
-    descriptor["set"] = setter;
-
-  Object.defineProperty(parent, name, descriptor);
-};
-
-JSIL.MakeGenericProperty = function (parent, name, getter, setter) {
-  var props;
-  if (parent.hasOwnProperty("__GenericProperties__")) {
-    props = parent.__GenericProperties__;
-  } else {
-    props = parent.__GenericProperties__ = [];
-  }
-  props.push([name, getter, setter]);
 };
 
 JSIL.MakeNumericType = function (baseType, typeName, isIntegral) {
@@ -1569,6 +1485,8 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
     Object.defineProperty(creator, "displayName", decl);
   }
 
+  var wrappedInitializer = null;
+
   if (initializer) {
     var decl = {
       value: fullName + ".__initializer__",
@@ -1579,9 +1497,14 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
     Object.defineProperty(initializer, "__name__", decl);
     Object.defineProperty(initializer, "debugName", decl);
     Object.defineProperty(initializer, "displayName", decl);
+
+    wrappedInitializer = function (to) {
+      var interfaceBuilder = new JSIL.InterfaceBuilder(to.__Type__, to);
+      initializer(interfaceBuilder);
+    };
   }
 
-  JSIL.RegisterName(fullName, assembly, isPublic, creator, initializer);
+  JSIL.RegisterName(fullName, assembly, isPublic, creator, wrappedInitializer);
 };
 
 JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, genericArguments, initializer) {
@@ -1615,6 +1538,9 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__FullName__ = fullName;
     typeObject.__ShortName__ = localName;
     typeObject.__LockCount__ = 0;
+    typeObject.__AllMethods__ = {};
+    typeObject.__Members__ = [];
+    typeObject.__GenericProperties__ = [];
     typeObject.__GenericArguments__ = genericArguments || [];
 
     if (stack !== null)
@@ -1719,6 +1645,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     Object.defineProperty(getTypeObject, "displayName", decl);
   }
 
+  var wrappedInitializer = null;
   if (initializer) {
     var decl = {
       value: fullName + ".__initializer__",
@@ -1729,9 +1656,14 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     Object.defineProperty(initializer, "__name__", decl);
     Object.defineProperty(initializer, "debugName", decl);
     Object.defineProperty(initializer, "displayName", decl);
+
+    wrappedInitializer = function (to) {
+      var interfaceBuilder = new JSIL.InterfaceBuilder(to.__Type__, to);
+      initializer(interfaceBuilder);
+    };
   }
 
-  JSIL.RegisterName(fullName, assembly, isPublic, getTypeObject, initializer);
+  JSIL.RegisterName(fullName, assembly, isPublic, getTypeObject, wrappedInitializer);
 };
 
 JSIL.MakeClass = function (baseType, fullName, isPublic, genericArguments, initializer) {
@@ -1852,10 +1784,10 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
 };
 
 JSIL.MakeClass("System.ValueType", "System.Enum", true, [], function ($) {
-    JSIL.ExternalMembers($, true, 
+    $.ExternalMembers(true, 
       "_ctor", "CompareTo", "Equals", "GetHashCode", "GetTypeCode", "GetValue", "HasFlag", "IConvertible_ToBoolean", "IConvertible_ToByte", "IConvertible_ToChar", "IConvertible_ToDateTime", "IConvertible_ToDecimal", "IConvertible_ToDouble", "IConvertible_ToInt16", "IConvertible_ToInt32", "IConvertible_ToInt64", "IConvertible_ToSByte", "IConvertible_ToSingle", "IConvertible_ToType", "IConvertible_ToUInt16", "IConvertible_ToUInt32", "IConvertible_ToUInt64", "InternalGetValue", "toString", "ToString$0", "ToString$1", "ToString$2"
     );
-    JSIL.ExternalMembers($, false, 
+    $.ExternalMembers(false, 
       "Format", "GetEnumValues", "GetHashEntry", "GetName", "GetNames", "GetUnderlyingType", "GetValues", "InternalBoxEnum", "InternalCompareTo", "InternalFlagsFormat", "InternalFormat", "InternalFormattedHexString", "InternalGetNames", "InternalGetUnderlyingType", "InternalGetValues", "IsDefined", "Parse$0", "Parse$1", "ToObject$0", "ToObject$1", "ToObject$2", "ToObject$3", "ToObject$4", "ToObject$5", "ToObject$6", "ToObject$7", "ToObject$8", "ToUInt64", "TryParse$b1$0", "TryParse$b1$1", "TryParseEnum"
     );
   }
@@ -2333,7 +2265,8 @@ JSIL.GenericMethod = function (argumentNames, body) {
     // The user might pass in a public interface instead of a type object, so map that to the type object.
     for (var i = 0, l = genericArguments.length; i < l; i++) {
       var ga = genericArguments[i];
-      if (typeof (ga.__Type__) === "object")
+
+      if ((typeof (ga) !== "undefined") && (ga !== null) && (typeof (ga.__Type__) === "object"))
         genericArguments[i] = ga.__Type__;
     }
 
@@ -2371,18 +2304,125 @@ JSIL.GenericMethod = function (argumentNames, body) {
   return result;
 };
 
-JSIL.MakeMethod = function (type, descriptor, methodName, overloadIndex, fn) {
+JSIL.InterfaceBuilder = function (typeObject, publicInterface) {
+  this.assembly = $private;
+  this.typeObject = typeObject;
+  this.publicInterface = publicInterface;
+  this.namespace = JSIL.GetTypeName(typeObject);
+
+  this.memberDescriptorPrototype = {
+    Static: false,
+    Public: false,
+    SpecialName: false
+  };
+};
+
+JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name) {
+  var result = Object.create(this.memberDescriptorPrototype);
+
+  result.Static = descriptor.Static || false;
+  result.Public = descriptor.Public || false;
+
+  if (name)
+    result.SpecialName = (name == "_ctor") || (name == "_cctor");
+
+  Object.defineProperty(result, "Target", {
+    configurable: true,
+    enumerable: false,
+    value: result.Static ? this.publicInterface : this.publicInterface.prototype
+  });
+
+  return result;
+};
+
+JSIL.InterfaceBuilder.prototype.ExternalMembers = function (isInstance /*, ...names */) {
+  var impl = JSIL.AllImplementedExternals[this.namespace];
+
+  var prefix = isInstance ? "instance$" : "";
+  var target = this.publicInterface;
+
+  if (isInstance)
+    target = target.prototype;
+
+  if (typeof (impl) !== "object")
+    JSIL.AllImplementedExternals[this.namespace] = impl = {};
+
+  for (var i = 1, l = arguments.length; i < l; i++) {
+    var memberName = arguments[i];
+    var memberValue = target[memberName];
+    var newValue = undefined;
+
+    if (impl.hasOwnProperty(prefix + memberName)) {
+      newValue = impl[prefix + memberName];
+    } else if (!target.hasOwnProperty(memberName)) {
+      newValue = JSIL.MakeExternalMemberStub(this.namespace, memberName, memberValue);
+    }
+
+    if (newValue !== undefined) {
+      try {
+        delete target[memberName];
+      } catch (e) {
+      }
+
+      try {
+        target[memberName] = newValue;
+      } catch (e) {
+        Object.defineProperty(target, memberName, {
+          value: newValue, enumerable: true, configurable: true
+        });
+      }
+    }
+  }
+};
+
+JSIL.InterfaceBuilder.prototype.Constant = function (_descriptor, name, value) {
+  var descriptor = this.ParseDescriptor(_descriptor, name);
+
+  var prop = {
+    configurable: true,
+    enumerable: true,
+    value: value
+  };
+
+  Object.defineProperty(descriptor.Target, name, prop);
+};
+
+JSIL.InterfaceBuilder.prototype.Property = function (_descriptor, name, getter, setter) {
+  var descriptor = this.ParseDescriptor(_descriptor, name);
+
+  var prop = {
+    configurable: true,
+    enumerable: true
+  };
+
+  if (typeof (getter) === "function")
+    prop["get"] = getter;
+  if (typeof (setter) === "function")
+    prop["set"] = setter;
+
+  Object.defineProperty(descriptor.Target, name, prop);
+};
+
+JSIL.InterfaceBuilder.prototype.GenericProperty = function (_descriptor, name, getter, setter) {
+  var descriptor = this.ParseDescriptor(_descriptor, name);
+
+  var props = this.typeObject.__GenericProperties__;
+  props.push([name, getter, setter]);
+};
+
+JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, defaultValue) {
+  var descriptor = this.ParseDescriptor(_descriptor, fieldName);
+
+  descriptor.Target[fieldName] = defaultValue;
+
+  var memberList = this.typeObject.__Members__;
+
+  memberList[fieldName] = descriptor;
+};
+
+JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, overloadIndex, fn) {
+  var descriptor = this.ParseDescriptor(_descriptor, methodName);
   var mangledName = methodName;
-
-  var isStatic = descriptor.static || false;
-  var isPublic = descriptor.public || false;
-  var isSpecialName = (methodName == "_ctor") || (methodName == "_cctor");
-
-  var target;
-  if (isStatic)
-    target = type;
-  else
-    target = type.prototype;
 
   if (typeof(overloadIndex) === "number")
     mangledName = methodName + "$" + overloadIndex;
@@ -2390,30 +2430,71 @@ JSIL.MakeMethod = function (type, descriptor, methodName, overloadIndex, fn) {
     fn = overloadIndex;
 
   try {
-    target[mangledName] = fn;
+    descriptor.Target[mangledName] = fn;
   } catch (exc) {
-    Object.defineProperty(target, "mangledName", {
+    Object.defineProperty(descriptor.Target, "mangledName", {
       value: fn,
       configurable: true,
       enumerable: true
     });
   }
 
-  var methodList = type.__Type__.__AllMethods__;
+  var methodList = this.typeObject.__AllMethods__;
   if (typeof (methodList) !== "object")
-    methodList = type.__Type__.__AllMethods__ = {};
+    methodList = this.typeObject.__AllMethods__ = {};
 
   var overloadList = methodList[methodName];
   if (!JSIL.IsArray(overloadList))
     overloadList = methodList[methodName] = [];
 
   overloadList.push([
-    {
-      static: isStatic,
-      public: isPublic,
-      specialName: isSpecialName
-    }, overloadIndex, fn
+    descriptor, overloadIndex, fn
   ]);
+};
+
+JSIL.InterfaceBuilder.prototype.OverloadedMethod = function (_descriptor, name, overloads, _assembly) {
+  var descriptor = this.ParseDescriptor(_descriptor, name);
+
+  var assembly = _assembly || $private;
+  var r = JSIL.MakeOverloadResolver(overloads, assembly);
+
+  var result = function () {
+    var args = Array.prototype.slice.call(arguments);
+    var method = JSIL.FindOverload(type, args, name, r(this));
+
+    if (method === null)
+      throw new Error("No overload of '" + name + "' matching the argument list '" + String(args) + "' could be found.");
+    else
+      return method.apply(this, args);
+  };
+
+  result.__MethodName__ = name;
+  result.__MethodOverloads__ = overloads;
+
+  JSIL.OverloadedMethodCore(descriptor.Target, name, overloads, result);
+};
+
+JSIL.InterfaceBuilder.prototype.OverloadedGenericMethod = function (_descriptor, name, overloads, _assembly) {
+  var descriptor = this.ParseDescriptor(_descriptor, name);
+
+  var assembly = _assembly || $private;
+  var r = JSIL.MakeOverloadResolver(overloads, assembly);
+
+  var result = function () {
+    var genericArguments = Array.prototype.slice.call(arguments);
+
+    return function () {
+      var invokeArguments = Array.prototype.slice.call(arguments);
+      var method = JSIL.FindOverload(type, invokeArguments, name, r(this));
+
+      if (method === null)
+        throw new Error("No overload of '" + name + "<" + genericArguments.join(", ") + ">' matching the argument list '" + String(invokeArguments) + "' could be found.");
+      else
+        return method.apply(this, genericArguments).apply(this, invokeArguments);
+    }.bind(this);
+  };
+
+  JSIL.OverloadedMethodCore(descriptor.Target, name, overloads, result);
 };
 
 JSIL.FindOverload = function (prototype, args, name, overloads) {
@@ -2514,47 +2595,6 @@ JSIL.OverloadedMethodCore = function (type, name, overloads, dispatcher) {
   );
 };
 
-JSIL.OverloadedMethod = function (type, name, overloads, _assembly) {
-  var assembly = _assembly || $private;
-  var r = JSIL.MakeOverloadResolver(overloads, assembly);
-
-  var result = function () {
-    var args = Array.prototype.slice.call(arguments);
-    var method = JSIL.FindOverload(type, args, name, r(this));
-
-    if (method === null)
-      throw new Error("No overload of '" + name + "' matching the argument list '" + String(args) + "' could be found.");
-    else
-      return method.apply(this, args);
-  };
-
-  result.__MethodName__ = name;
-  result.__MethodOverloads__ = overloads;
-
-  JSIL.OverloadedMethodCore(type, name, overloads, result);
-};
-
-JSIL.OverloadedGenericMethod = function (type, name, overloads, _assembly) {
-  var assembly = _assembly || $private;
-  var r = JSIL.MakeOverloadResolver(overloads, assembly);
-
-  var result = function () {
-    var genericArguments = Array.prototype.slice.call(arguments);
-
-    return function () {
-      var invokeArguments = Array.prototype.slice.call(arguments);
-      var method = JSIL.FindOverload(type, invokeArguments, name, r(this));
-
-      if (method === null)
-        throw new Error("No overload of '" + name + "<" + genericArguments.join(", ") + ">' matching the argument list '" + String(invokeArguments) + "' could be found.");
-      else
-        return method.apply(this, genericArguments).apply(this, invokeArguments);
-    }.bind(this);
-  };
-
-  JSIL.OverloadedMethodCore(type, name, overloads, result);
-};
-
 JSIL.ImplementExternals(
   "System.Object", false, {
     CheckType: function (value) {
@@ -2607,14 +2647,14 @@ JSIL.ImplementExternals(
 );
 
 JSIL.MakeClass(Object, "System.Object", true, [], function ($) {
-  $.prototype.__LockCount__ = 0;
-  $.prototype.__StructFields__ = [];
+  $.Field({}, "__LockCount__", 0);
+  $.Field({}, "__StructField__", []);
 
-  JSIL.ExternalMembers($, true, 
+  $.ExternalMembers(true, 
     "Equals", "MemberwiseClone", "__Initialize__", 
     "_ctor", "GetType", "toString"
   );
-  JSIL.ExternalMembers($, false,
+  $.ExternalMembers(false,
     "CheckType"
   );
 });
@@ -2823,22 +2863,22 @@ JSIL.ImplementExternals(
           var descriptor = overload[0];
 
           // Instance and static constructors are not enumerated like normal methods.
-          if (descriptor.specialName)
+          if (descriptor.SpecialName)
             continue;
 
-          if (publicOnly && !descriptor.public)
+          if (publicOnly && !descriptor.Public)
             continue;
-          else if (nonPublicOnly && descriptor.public)
-            continue;
-
-          if (staticOnly && !descriptor.static)
-            continue;
-          else if (instanceOnly && descriptor.static)
+          else if (nonPublicOnly && descriptor.Public)
             continue;
 
-          result.push({
-            Name: k
-          });
+          if (staticOnly && !descriptor.Static)
+            continue;
+          else if (instanceOnly && descriptor.Static)
+            continue;
+
+          var info = new System.Reflection.MethodInfo();
+          info.Name = k;
+          result.push(info);
         }
       }
 
@@ -3494,16 +3534,28 @@ JSIL.ImplementExternals(
 JSIL.MakeClass("System.Object", "System.Reflection.MemberInfo", true, [], function ($) {
 });
 
+JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.MethodInfo", true, [], function ($) {
+});
+
+JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.FieldInfo", true, [], function ($) {
+});
+
+JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.EventInfo", true, [], function ($) {
+});
+
+JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.PropertyInfo", true, [], function ($) {
+});
+
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function ($) {
-    JSIL.ExternalMembers($, true, 
+    $.ExternalMembers(true, 
       "_ctor", "_Type_GetIDsOfNames", "_Type_GetTypeInfo", "_Type_GetTypeInfoCount", "_Type_Invoke", "Equals$0", "Equals$1", "FindInterfaces", "FindMembers", "get_Assembly", "get_AssemblyQualifiedName", "get_Attributes", "get_BaseType", "get_ContainsGenericParameters", "get_DeclaringMethod", "get_DeclaringType", "get_FullName", "get_GenericParameterAttributes", "get_GenericParameterPosition", "get_GUID", "get_HasElementType", "get_HasProxyAttribute", "get_IsAbstract", "get_IsAnsiClass", "get_IsArray", "get_IsAutoClass", "get_IsAutoLayout", "get_IsByRef", "get_IsClass", "get_IsCOMObject", "get_IsContextful", "get_IsEnum", "get_IsExplicitLayout", "get_IsGenericParameter", "get_IsGenericType", "get_IsGenericTypeDefinition", "get_IsImport", "get_IsInterface", "get_IsLayoutSequential", "get_IsMarshalByRef", "get_IsNested", "get_IsNestedAssembly", "get_IsNestedFamANDAssem", "get_IsNestedFamily", "get_IsNestedFamORAssem", "get_IsNestedPrivate", "get_IsNestedPublic", "get_IsNotPublic", "get_IsPointer", "get_IsPrimitive", "get_IsPublic", "get_IsSealed", "get_IsSerializable", "get_IsSpecialName", "get_IsSzArray", "get_IsUnicodeClass", "get_IsValueType", "get_IsVisible", "get_MemberType", "get_Module", "get_Namespace", "get_ReflectedType", "get_StructLayoutAttribute", "get_TypeHandle", "get_TypeInitializer", "get_UnderlyingSystemType", "GetArrayRank", "GetAttributeFlagsImpl", "GetConstructor$0", "GetConstructor$1", "GetConstructor$2", "GetConstructorImpl", "GetConstructors$0", "GetConstructors$1", "GetDefaultMemberName", "GetDefaultMembers", "GetElementType", "GetEvent$0", "GetEvent$1", "GetEvents$0", "GetEvents$1", "GetField$0", "GetField$1", "GetFields$0", "GetFields$1", "GetGenericArguments", "GetGenericParameterConstraints", "GetGenericTypeDefinition", "GetHashCode", "GetInterface$0", "GetInterface$1", "GetInterfaceMap", "GetInterfaces", "GetMember$0", "GetMember$1", "GetMember$2", "GetMembers$0", "GetMembers$1", "GetMethod$0", "GetMethod$1", "GetMethod$2", "GetMethod$3", "GetMethod$4", "GetMethod$5", "GetMethodImpl", "GetMethods$0", "GetMethods$1", "GetNestedType$0", "GetNestedType$1", "GetNestedTypes$0", "GetNestedTypes$1", "GetProperties$0", "GetProperties$1", "GetProperty$0", "GetProperty$1", "GetProperty$2", "GetProperty$3", "GetProperty$4", "GetProperty$5", "GetProperty$6", "GetPropertyImpl", "GetRootElementType", "GetType", "GetTypeCodeInternal", "GetTypeHandleInternal", "HasElementTypeImpl", "HasProxyAttributeImpl", "InvokeMember$0", "InvokeMember$1", "InvokeMember$2", "IsArrayImpl", "IsAssignableFrom", "IsByRefImpl", "IsCOMObjectImpl", "IsContextfulImpl", "IsInstanceOfType", "IsMarshalByRefImpl", "IsPointerImpl", "IsPrimitiveImpl", "IsSubclassOf", "IsValueTypeImpl", "MakeArrayType$0", "MakeArrayType$1", "MakeByRefType", "MakeGenericType", "MakePointerType", "QuickSerializationCastCheck", "SigToString", "toString"
     );
 
-    JSIL.OverloadedMethod($.prototype, "GetConstructors", [
+    $.OverloadedMethod({Public: true , Static: false}, "GetConstructors", [
         [0, []], 
         [1, ["System.Reflection.BindingFlags"]]
       ], $jsilcore);
-    JSIL.OverloadedMethod($.prototype, "GetMethod", [
+    $.OverloadedMethod({Public: true , Static: false}, "GetMethod", [
         [0, ["System.String", "System.Reflection.BindingFlags", "System.Reflection.Binder", "System.Reflection.CallingConventions", "System.Array" /* System.Type[] */ , "System.Array" /* System.Reflection.ParameterModifier[] */ ]], 
         [1, ["System.String", "System.Reflection.BindingFlags", "System.Reflection.Binder", "System.Array" /* System.Type[] */ , "System.Array" /* System.Reflection.ParameterModifier[] */ ]], 
         [2, ["System.String", "System.Array" /* System.Type[] */ , "System.Array" /* System.Reflection.ParameterModifier[] */ ]], 
@@ -3511,31 +3563,31 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function
         [4, ["System.String", "System.Reflection.BindingFlags"]], 
         [5, ["System.String"]]
       ], $jsilcore);
-    JSIL.OverloadedMethod($.prototype, "GetMethods", [
+    $.OverloadedMethod({Public: true , Static: false}, "GetMethods", [
         [0, []], 
         [1, ["System.Reflection.BindingFlags"]]
       ], $jsilcore);
-    JSIL.OverloadedMethod($.prototype, "GetField", [
+    $.OverloadedMethod({Public: true , Static: false}, "GetField", [
         [0, ["System.String", "System.Reflection.BindingFlags"]], 
         [1, ["System.String"]]
       ], $jsilcore);
-    JSIL.OverloadedMethod($.prototype, "GetFields", [
+    $.OverloadedMethod({Public: true , Static: false}, "GetFields", [
         [0, []], 
         [1, ["System.Reflection.BindingFlags"]]
       ], $jsilcore);
-    JSIL.OverloadedMethod($.prototype, "GetInterface", [
+    $.OverloadedMethod({Public: true , Static: false}, "GetInterface", [
         [0, ["System.String"]], 
         [1, ["System.String", "System.Boolean"]]
       ], $jsilcore);
-    JSIL.OverloadedMethod($.prototype, "GetEvent", [
+    $.OverloadedMethod({Public: true , Static: false}, "GetEvent", [
         [0, ["System.String"]], 
         [1, ["System.String", "System.Reflection.BindingFlags"]]
       ], $jsilcore);
-    JSIL.OverloadedMethod($.prototype, "GetEvents", [
+    $.OverloadedMethod({Public: true , Static: false}, "GetEvents", [
         [0, []], 
         [1, ["System.Reflection.BindingFlags"]]
       ], $jsilcore);
-    JSIL.OverloadedMethod($.prototype, "GetProperty", [
+    $.OverloadedMethod({Public: true , Static: false}, "GetProperty", [
         [0, ["System.String", "System.Reflection.BindingFlags", "System.Reflection.Binder", "System.Type", "System.Array" /* System.Type[] */ , "System.Array" /* System.Reflection.ParameterModifier[] */ ]], 
         [1, ["System.String", "System.Type", "System.Array" /* System.Type[] */ , "System.Array" /* System.Reflection.ParameterModifier[] */ ]], 
         [2, ["System.String", "System.Reflection.BindingFlags"]], 
@@ -3544,40 +3596,34 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function
         [5, ["System.String", "System.Type"]], 
         [6, ["System.String"]]
       ], $jsilcore);
-    JSIL.OverloadedMethod($.prototype, "GetProperties", [
+    $.OverloadedMethod({Public: true , Static: false}, "GetProperties", [
         [0, ["System.Reflection.BindingFlags"]], 
         [1, []]
       ], $jsilcore);
-    JSIL.OverloadedMethod($.prototype, "GetNestedTypes", [
+    $.OverloadedMethod({Public: true , Static: false}, "GetNestedTypes", [
         [0, []], 
         [1, ["System.Reflection.BindingFlags"]]
       ], $jsilcore);
-    JSIL.OverloadedMethod($.prototype, "GetNestedType", [
+    $.OverloadedMethod({Public: true , Static: false}, "GetNestedType", [
         [0, ["System.String"]], 
         [1, ["System.String", "System.Reflection.BindingFlags"]]
       ], $jsilcore);
-    JSIL.OverloadedMethod($.prototype, "GetMember", [
+    $.OverloadedMethod({Public: true , Static: false}, "GetMember", [
         [0, ["System.String"]], 
         [1, ["System.String", "System.Reflection.BindingFlags"]], 
         [2, ["System.String", "System.Reflection.MemberTypes", "System.Reflection.BindingFlags"]]
       ], $jsilcore);
-    JSIL.OverloadedMethod($.prototype, "GetMembers", [
+    $.OverloadedMethod({Public: true , Static: false}, "GetMembers", [
         [0, []], 
         [1, ["System.Reflection.BindingFlags"]]
       ], $jsilcore);
 
-    JSIL.MakeProperty($.prototype, "Name", 
-      $.prototype.get_Name, null);
-    JSIL.MakeProperty($.prototype, "Module", 
-      $.prototype.get_Module, null);
-    JSIL.MakeProperty($.prototype, "Assembly", 
-      $.prototype.get_Assembly, null);
-    JSIL.MakeProperty($.prototype, "FullName", 
-      $.prototype.get_FullName, null);
-    JSIL.MakeProperty($.prototype, "Namespace", 
-      $.prototype.get_Namespace, null);
-    JSIL.MakeProperty($.prototype, "BaseType", 
-      $.prototype.get_BaseType, null);
+    $.Property({Public: true , Static: false}, "Name");
+    $.Property({Public: true , Static: false}, "Module");
+    $.Property({Public: true , Static: false}, "Assembly");
+    $.Property({Public: true , Static: false}, "FullName");
+    $.Property({Public: true , Static: false}, "Namespace");
+    $.Property({Public: true , Static: false}, "BaseType");
 });
 
 JSIL.MakeClass("System.Type", "System.RuntimeType", false, [], function ($) {

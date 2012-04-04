@@ -13,22 +13,22 @@ public class B : A {
 
 public static class Program {
     public static void Main (string[] args) {
-        Common.Util.AssertMethods(
+        Common.Util.AssertMembers<MethodInfo>(
             typeof(A),
             BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Public,
             "MethodA"
         );
-        Common.Util.AssertMethods(
+        Common.Util.AssertMembers<MethodInfo>(
             typeof(B),
             BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Public,
             "MethodB"
         );
-        Common.Util.AssertMethods(
+        Common.Util.AssertMembers<MethodInfo>(
             typeof(A),
             BindingFlags.Instance | BindingFlags.Public,
             "MethodA"
         );
-        Common.Util.AssertMethods(
+        Common.Util.AssertMembers<MethodInfo>(
             typeof(B),
             BindingFlags.Instance | BindingFlags.Public,
             "MethodA", "MethodB"

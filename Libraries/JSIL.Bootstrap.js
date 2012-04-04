@@ -167,8 +167,7 @@ JSIL.ImplementExternals(
 );
 
 JSIL.MakeClass(Error, "System.Exception", true, [], function ($) {
-  JSIL.MakeProperty($.prototype, "Message", 
-    $.prototype.get_Message, null);
+  $.Property({Public: true , Static: false}, "Message");
 });
 
 JSIL.MakeClass("System.Exception", "System.InvalidCastException", true);
@@ -202,7 +201,7 @@ JSIL.ImplementExternals(
 );
 
 JSIL.MakeStaticClass("System.Console", true, [], function ($) {
-  JSIL.ExternalMembers($, false, 
+  $.ExternalMembers(false, 
     "Write", "WriteLine"
   );
 });
@@ -384,10 +383,10 @@ JSIL.ImplementExternals(
 JSIL.MakeClass("System.Object", "System.String", true, [], function ($) {
   $.__IsNativeType__ = true;
 
-  JSIL.ExternalMembers($, false, 
+  $.ExternalMembers(false, 
     "Concat", "Format"
   );
-  JSIL.ExternalMembers($, true,
+  $.ExternalMembers(true,
     "_ctor", "_ctor$0", "_ctor$1", "_ctor$2"
   );
 });
@@ -773,7 +772,7 @@ JSIL.MakeClass("System.Object", "JSIL.EnumerableArray", true, [], function ($) {
 });
 
 JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"], function ($) {
-  JSIL.ExternalMembers($, true, 
+  $.ExternalMembers(true, 
     "_ctor", "Add", "AddRange", "Remove", "RemoveAt", "Clear", 
     "get_Item", "get_Count", "get_Capacity", "GetEnumerator"
   );
@@ -789,18 +788,17 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"]
 });
 
 JSIL.MakeClass("System.Object", "System.Collections.Generic.Stack`1", true, ["T"], function ($) {
-	JSIL.ExternalMembers($, true, 
+	$.ExternalMembers(true, 
 		"_ctor$0", "_ctor$1", "_ctor$2", "Clear", "Contains", "CopyTo", "get_Count", "GetEnumerator", "ICollection_CopyTo", "ICollection_get_IsSynchronized", "ICollection_get_SyncRoot", "IEnumerable$b1_GetEnumerator", "IEnumerable_GetEnumerator", "Peek", "Pop", "Push", "ToArray", "TrimExcess"
 	);
 
-	JSIL.OverloadedMethod($.prototype, "_ctor", [
+	$.OverloadedMethod({Public: true , Static: false}, "_ctor", [
 			[0, []], 
 			[1, [new JSIL.TypeRef($asm09, "System.Int32")]], 
 			[2, [new JSIL.TypeRef($asm09, "System.Collections.Generic.IEnumerable$b1", [new JSIL.GenericParameter("T")])]]
 		], $asm0C);
 
-	JSIL.MakeProperty($.prototype, "Count", 
-		$.prototype.get_Count, null);
+	$.Property({Public: true , Static: false}, "Count");
 
 	JSIL.ImplementInterfaces($, [
 		"System.Collections.Generic.IEnumerable$b1", "System.Collections.IEnumerable"
@@ -873,7 +871,7 @@ JSIL.MakeStaticClass("System.Threading.Interlocked", true, []);
 JSIL.MakeStaticClass("System.Threading.Monitor", true, []);
 
 JSIL.MakeClass("System.Object", "System.Random", true, [], function ($) {
-  JSIL.ExternalMembers($, true,
+  $.ExternalMembers(true,
     "_ctor", "Next", "NextDouble"
   );
 });
@@ -918,7 +916,7 @@ JSIL.ImplementExternals(
 );
 
 JSIL.MakeStaticClass("System.Math", true, function ($) {
-  JSIL.ExternalMembers($, false, 
+  $.ExternalMembers(false, 
     "Min", "Max"
   );
 });
@@ -1105,37 +1103,28 @@ JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true, [], fu
 });
 
 JSIL.MakeStruct("System.ValueType", "System.TimeSpan", true, [], function ($) {
-    JSIL.ExternalMembers($, true, 
+    $.ExternalMembers(true, 
       "get_Ticks", "get_Milliseconds", "get_TotalMilliseconds", "get_Seconds",
       "get_Minutes", "get_Hours", "get_Days", "get_TotalSeconds", "get_TotalMinutes"
     );
 
-    JSIL.MakeProperty($.prototype, "Ticks",
-      $.prototype.get_Ticks);
+    $.Property({Public: true , Static: false}, "Ticks");
 
-    JSIL.MakeProperty($.prototype, "Milliseconds",
-      $.prototype.get_Milliseconds);
+    $.Property({Public: true , Static: false}, "Milliseconds");
 
-    JSIL.MakeProperty($.prototype, "TotalMilliseconds",
-      $.prototype.get_TotalMilliseconds);
+    $.Property({Public: true , Static: false}, "TotalMilliseconds");
 
-    JSIL.MakeProperty($.prototype, "Seconds",
-      $.prototype.get_Seconds);
+    $.Property({Public: true , Static: false}, "Seconds");
 
-    JSIL.MakeProperty($.prototype, "Minutes",
-      $.prototype.get_Minutes);
+    $.Property({Public: true , Static: false}, "Minutes");
 
-    JSIL.MakeProperty($.prototype, "Hours",
-      $.prototype.get_Hours);
+    $.Property({Public: true , Static: false}, "Hours");
 
-    JSIL.MakeProperty($.prototype, "Days",
-      $.prototype.get_Days);
+    $.Property({Public: true , Static: false}, "Days");
 
-    JSIL.MakeProperty($.prototype, "TotalSeconds",
-      $.prototype.get_TotalSeconds);
+    $.Property({Public: true , Static: false}, "TotalSeconds");
 
-    JSIL.MakeProperty($.prototype, "TotalMinutes",
-      $.prototype.get_TotalMinutes);
+    $.Property({Public: true , Static: false}, "TotalMinutes");
 });
 
 JSIL.ImplementExternals(
@@ -1575,13 +1564,13 @@ JSIL.ImplementExternals(
 );
 
 JSIL.MakeStaticClass("System.Linq.Enumerable", true, [], function ($) {
-  JSIL.ExternalMembers($, false, 
+  $.ExternalMembers(false, 
     "Count$b1$0", "ToArray$b1", "Select$b2$0", "Select$b2$1", "Select$b2"
   );
 });
 
 JSIL.MakeStaticClass("System.Nullable", true, [], function ($) {
-  JSIL.ExternalMembers($, false, 
+  $.ExternalMembers(false, 
     "GetUnderlyingType"
   );
 });
