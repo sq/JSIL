@@ -1129,17 +1129,25 @@ JSIL.StaticClassPrototype.toString = function () {
 
 JSIL.InstantiateGenericProperties = function (obj) {
   var target = obj;
+  var typeObject = obj.__Type__;
 
-  while (obj !== null) {
-    var gps = obj.__GenericProperties__ || [];
+  while ((typeof (typeObject) !== "undefined") && (typeObject !== null)) {
+    var gps = typeObject.__GenericProperties__;
+    
+    if (JSIL.IsArray(gps)) {
+      for (var i = 0, l = gps.length; i < l; i++) {
+        var gp = gps[i];
+        var isStatic = gp[0];
+        var name = gp[1];
 
-    for (var i = 0, l = gps.length; i < l; i++) {
-      var name = gps[i];
-
-      JSIL.InterfaceBuilder.MakeProperty(name, target);
+        if (isStatic)        
+          JSIL.InterfaceBuilder.MakeProperty(name, target);
+        else
+          JSIL.InterfaceBuilder.MakeProperty(name, target.prototype);
+      }
     }
 
-    obj = Object.getPrototypeOf(obj);
+    typeObject = typeObject.__BaseType__;
   }
 };
 
@@ -1447,6 +1455,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   typeObject.__BaseType__ = undefined;
   typeObject.__ShortName__ = localName;
   typeObject.__IsStatic__ = true;
+  typeObject.__GenericProperties__ = [];
   typeObject.__Initializers__ = [];
   typeObject.__TypeInitialized__ = false;
   typeObject.__GenericArguments__ = genericArguments || [];
@@ -1539,6 +1548,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
 
     typeObject.__IsArray__ = false;
     typeObject.__StructFields__ = [];
+    typeObject.__GenericProperties__ = [];
     typeObject.__Initializers__ = [];
     typeObject.__Interfaces__ = [];
     typeObject.__TypeInitialized__ = false;
@@ -1549,7 +1559,6 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__ShortName__ = localName;
     typeObject.__LockCount__ = 0;
     typeObject.__Members__ = {};
-    typeObject.__GenericProperties__ = [];
     typeObject.__GenericArguments__ = genericArguments || [];
 
     if (stack !== null)
@@ -2298,7 +2307,7 @@ JSIL.InterfaceBuilder.prototype.GenericProperty = function (_descriptor, name) {
   var descriptor = this.ParseDescriptor(_descriptor, name);
 
   var props = this.typeObject.__GenericProperties__;
-  props.push(name);
+  props.push([descriptor.Static, name]);
 
   this.PushMember("PropertyInfo", descriptor, null);
 };

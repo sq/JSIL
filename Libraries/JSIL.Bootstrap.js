@@ -436,9 +436,9 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, [], function ($) {
 
   $.Property({Public: true , Static: false}, "Current");
 
-  $.ImplementInterfaces([
+  $.ImplementInterfaces(
     System.IDisposable, System.Collections.IEnumerator, System.Collections.Generic.IEnumerator$b1
-  ]);
+  );
 });
 
 JSIL.ImplementExternals(
@@ -757,9 +757,9 @@ JSIL.MakeClass("System.Object", "JSIL.EnumerableArray", true, [], function ($) {
     return new JSIL.ArrayEnumerator(this.array);
   });
 
-  $.ImplementInterfaces([
+  $.ImplementInterfaces(
     System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
-  ]);
+  );
 });
 
 JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"], function ($) {
@@ -770,9 +770,9 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"]
 
   $.Property({Public: true , Static: false}, "Count");
 
-  $.ImplementInterfaces([
+  $.ImplementInterfaces(
     System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
-  ]);
+  );
 });
 
 JSIL.MakeClass("System.Object", "System.Collections.Generic.Stack`1", true, ["T"], function ($) {
@@ -788,9 +788,9 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.Stack`1", true, ["T"
 
 	$.Property({Public: true , Static: false}, "Count");
 
-	JSIL.ImplementInterfaces($, [
+	$.ImplementInterfaces(
 		"System.Collections.Generic.IEnumerable$b1", "System.Collections.IEnumerable"
-	]);
+	);
 });
 
 // TODO: This type is actually a struct in the CLR
@@ -1420,9 +1420,10 @@ JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerator", true, [], function ($
         configurable: true
       }
   );
-  JSIL.ImplementInterfaces($, [
+
+  $.ImplementInterfaces(
     System.IDisposable, System.Collections.IEnumerator, System.Collections.Generic.IEnumerator$b1
-  ]);
+  );
 });
 
 JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerable", true, [], function ($) {
@@ -1442,9 +1443,10 @@ JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerable", true, [], function ($
     else
       return new JSIL.AbstractEnumerator(this._getNextItem, this._reset, this._dispose);
   };
-  JSIL.ImplementInterfaces($, [
+
+  $.ImplementInterfaces(
     System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
-  ]);
+  );
 });
 
 JSIL.ImplementExternals(
