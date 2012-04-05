@@ -2708,7 +2708,7 @@ JSIL.MethodSignature.prototype.Call = function (context, name, ga, thisReference
     method = method.apply(thisReference, ga);  
   }
 
-  var parameters = Array.prototype.slice.call(arguments, 2);
+  var parameters = Array.prototype.slice.call(arguments, 4);
   return method.apply(thisReference, parameters);
 }
 
@@ -2729,7 +2729,7 @@ JSIL.MethodSignature.prototype.CallVirtual = function (name, ga, thisReference /
     method = method.apply(thisReference, ga);  
   }
 
-  var parameters = Array.prototype.slice.call(arguments, 2);
+  var parameters = Array.prototype.slice.call(arguments, 3);
   return method.apply(thisReference, parameters);
 };
 
