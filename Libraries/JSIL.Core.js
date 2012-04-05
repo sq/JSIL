@@ -1633,6 +1633,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   if (typeof (printStackTrace) === "function")
     typeObject.__CallStack__ = printStackTrace();
 
+  typeObject.__Context__ = assembly;
   typeObject.__BaseType__ = undefined;
   typeObject.__ShortName__ = localName;
   typeObject.__IsStatic__ = true;
