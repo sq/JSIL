@@ -970,8 +970,6 @@ namespace JSIL {
                 output.Identifier("ExternalMembers", null);
 
                 output.LPar();
-                dollar(output);
-                output.Comma();
                 output.Value(true);
                 output.Comma();
                 output.NewLine();
@@ -989,8 +987,6 @@ namespace JSIL {
                 output.Identifier("ExternalMembers", null);
 
                 output.LPar();
-                dollar(output);
-                output.Comma();
                 output.Value(false);
                 output.Comma();
                 output.NewLine();
