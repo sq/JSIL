@@ -1108,122 +1108,126 @@ namespace JSIL {
         public void VisitNode (JSInvocationExpression invocation) {
             TypeReference typeOfThisReference = null;
 
-            bool isOverloaded = (invocation.JSMethod != null) &&
-                (invocation.JSMethod.Method != null) &&
-                invocation.JSMethod.Method.IsOverloadedRecursive;
-            bool usePreciseName = false;
-            bool isStatic = false;
+            var jsm = invocation.JSMethod;
+            MethodInfo method = null;
+            if (jsm != null)
+                method = jsm.Method;
 
-            usePreciseName = isOverloaded || !invocation.ExplicitThis;
+            bool isOverloaded = (method != null) &&
+                method.IsOverloadedRecursive &&
+                !method.Metadata.HasAttribute("JSIL.Meta.JSRuntimeDispatch");
 
-            if ((invocation.JSMethod == null) || (invocation.JSMethod.Method == null)) {
-                usePreciseName = false;
-            } else if (
-                (
-                    invocation.JSMethod.Method.IsSealed ||
-                    (invocation.JSMethod.Method.DeclaringType.DerivedTypeCount == 0)
-                )
-            ) {
-                usePreciseName = false;
-            }
+            bool isStatic = invocation.ExplicitThis && invocation.ThisReference.IsNull;
 
-            if (invocation.ExplicitThis && invocation.ThisReference.IsNull) {
-                isStatic = true;
+            bool hasArguments = invocation.Arguments.Count > 0;
 
-                if (usePreciseName) {
+            bool needsParens =
+                (CountOfMatchingSubtrees<JSFunctionExpression>(new[] { invocation.ThisReference }) > 0) ||
+                (CountOfMatchingSubtrees<JSIntegerLiteral>(new[] { invocation.ThisReference }) > 0) ||
+                (CountOfMatchingSubtrees<JSNumberLiteral>(new[] { invocation.ThisReference }) > 0);
+
+            Action thisRef = () => {
+                if (needsParens)
                     Output.LPar();
-                    Output.MethodSignature(
-                        null, invocation.JSMethod.Method.ReturnType,
-                        (from p in invocation.JSMethod.Method.Parameters select p.ParameterType)
-                    );
-                    Output.RPar();
 
-                    Output.Dot();
+                Visit(invocation.ThisReference);
+
+                if (needsParens)
+                    Output.RPar();
+            };
+
+            if (isOverloaded) {
+                var methodName = Util.EscapeIdentifier(method.Name, EscapingMode.MemberIdentifier);
+
+                Output.LPar();
+                Output.MethodSignature(
+                    null, method.ReturnType,
+                    (from p in method.Parameters select p.ParameterType)
+                );
+                Output.RPar();
+                Output.Dot();
+
+                if (isStatic) {
                     Output.Identifier("Call");
+                    Output.LPar();
+
+                    Visit(invocation.Type);
+                    Output.Comma();
+
+                    Output.Value(methodName);
+                    Output.Comma();
+                    Output.Identifier("null", null);
+
+                    if (hasArguments)
+                        Output.Comma();
+                } else if (invocation.ExplicitThis) {
+                    Output.Identifier("Call");
+                    Output.LPar();
+
+                    Visit(invocation.Type);
+                    Output.Dot();
+                    Output.Identifier("prototype", null);
+                    Output.Comma();
+
+                    Output.Value(methodName);
+                    Output.Comma();
+                    Output.Identifier("null", null);
+                    Output.Comma();
+                    Visit(invocation.ThisReference);
+
+                    if (hasArguments)
+                        Output.Comma();
                 } else {
+                    Output.Identifier("CallVirtual");
+                    Output.LPar();
+
+                    Output.Value(methodName);
+                    Output.Comma();
+                    Output.Identifier("null", null);
+                    Output.Comma();
+                    Visit(invocation.ThisReference);
+
+                    if (hasArguments)
+                        Output.Comma();
+                }
+            } else {
+                if (isStatic) {
                     if (!invocation.Type.IsNull) {
                         Visit(invocation.Type);
                         Output.Dot();
                     }
 
                     Visit(invocation.Method);
-                }
-            } else {
-                if (usePreciseName) {
                     Output.LPar();
-                    Output.MethodSignature(
-                        null, invocation.JSMethod.Method.ReturnType,
-                        (from p in invocation.JSMethod.Method.Parameters select p.ParameterType)
-                    );
-                    Output.RPar();
-
-                    Output.Dot();
-                    Output.Identifier(invocation.ExplicitThis ? "Call" : "CallVirtual");
                 } else if (invocation.ExplicitThis) {
-                    Visit(invocation.Type);
+                    if (!invocation.Type.IsNull) {
+                        Visit(invocation.Type);
+                        Output.Dot();
+                        Output.Identifier("prototype", null);
+                        Output.Dot();
+                    }
 
-                    Output.Dot();
-                    Output.Identifier("prototype");
-                    Output.Dot();
                     Visit(invocation.Method);
                     Output.Dot();
-                    Output.Identifier("call");
-                } else {
-                    bool needsParens =
-                        (CountOfMatchingSubtrees<JSFunctionExpression>(new[] { invocation.ThisReference }) > 0) ||
-                        (CountOfMatchingSubtrees<JSIntegerLiteral>(new[] { invocation.ThisReference }) > 0) ||
-                        (CountOfMatchingSubtrees<JSNumberLiteral>(new[] { invocation.ThisReference }) > 0);
+                    Output.Identifier("call", null);
+                    Output.LPar();
 
-                    if (needsParens)
-                        Output.LPar();
                     Visit(invocation.ThisReference);
-                    if (needsParens)
-                        Output.RPar();
 
+                    if (hasArguments)
+                        Output.Comma();
+                } else {
+                    thisRef();
                     Output.Dot();
                     Visit(invocation.Method);
+                    Output.LPar();
                 }
             }
-
-            Output.LPar();
 
             bool needLineBreak = ArgumentsNeedLineBreak(invocation.Arguments);
 
             if (needLineBreak)
                 Output.NewLine();
-
-            if (usePreciseName) {
-                if (invocation.ExplicitThis) {
-                    Visit(invocation.Type);
-
-                    if (!isStatic) {
-                        Output.Dot();
-                        Output.Identifier("prototype", null);
-                    }
-
-                    Output.Comma();
-                }
-
-                var identifier = Util.EscapeIdentifier(
-                    invocation.JSMethod.Method.GetName(true), EscapingMode.MemberIdentifier
-                );
-
-                Output.Value(identifier);
-                Output.Comma();
-
-                if (invocation.ThisReference.IsNull)
-                    Visit(invocation.Type);
-                else
-                    Visit(invocation.ThisReference);
-
-                if (invocation.Arguments.Count > 0)
-                    Output.Comma();
-            } else if (invocation.ExplicitThis && !isStatic && !invocation.ThisReference.IsNull) {
-                Visit(invocation.ThisReference);
-
-                if (invocation.Arguments.Count > 0)
-                    Output.Comma();
-            }
 
             CommaSeparatedList(invocation.Arguments, needLineBreak);
 

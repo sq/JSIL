@@ -2683,8 +2683,11 @@ JSIL.MethodSignature.prototype.toString = function (name) {
   return signature;
 };
 
-JSIL.MethodSignature.prototype.Call = function (context, name, thisReference /*, ...parameters */) {
+JSIL.MethodSignature.prototype.Call = function (context, name, ga, thisReference /*, ...parameters */) {
   var key = this.GetKey(name);
+
+  if (thisReference === null)
+    thisReference = context;
 
   var method = context[key];
   if (typeof (method) !== "function") {
@@ -2696,11 +2699,15 @@ JSIL.MethodSignature.prototype.Call = function (context, name, thisReference /*,
     );
   }
 
+  if (JSIL.IsArray(ga)) {
+    method = method.apply(thisReference, ga);  
+  }
+  
   var parameters = Array.prototype.slice.call(arguments, 2);
   return method.apply(thisReference, parameters);
 }
 
-JSIL.MethodSignature.prototype.CallVirtual = function (name, thisReference /*, ...parameters */) {
+JSIL.MethodSignature.prototype.CallVirtual = function (name, ga, thisReference /*, ...parameters */) {
   var key = this.GetKey(name);
 
   var method = thisReference[key];
@@ -2711,6 +2718,10 @@ JSIL.MethodSignature.prototype.CallVirtual = function (name, thisReference /*, .
       "No method with signature '" + signature +
       "' defined in context '" + JSIL.GetTypeName(thisReference) + "'"
     );
+  }
+
+  if (JSIL.IsArray(ga)) {
+    method = method.apply(thisReference, ga);  
   }
 
   var parameters = Array.prototype.slice.call(arguments, 2);
