@@ -1108,36 +1108,27 @@ namespace JSIL {
         public void VisitNode (JSInvocationExpression invocation) {
             TypeReference typeOfThisReference = null;
 
-            bool isOverloaded = (invocation.JSMethod != null) && 
-                (invocation.JSMethod.Method != null) && 
-                (invocation.JSMethod.Method.MethodGroup != null);
+            bool isOverloaded = (invocation.JSMethod != null) &&
+                (invocation.JSMethod.Method != null) &&
+                invocation.JSMethod.Method.IsOverloadedRecursive;
             bool usePreciseName = false;
             bool isStatic = false;
-            if (invocation.ExplicitThis && invocation.ThisReference.IsNull && !isOverloaded) {
+
+            usePreciseName = isOverloaded || !invocation.ExplicitThis;
+
+            if ((invocation.JSMethod == null) || (invocation.JSMethod.Method == null)) {
+                usePreciseName = false;
+            } else if (
+                (
+                    invocation.JSMethod.Method.IsSealed ||
+                    (invocation.JSMethod.Method.DeclaringType.DerivedTypeCount == 0)
+                )
+            ) {
+                usePreciseName = false;
+            }
+
+            if (invocation.ExplicitThis && invocation.ThisReference.IsNull) {
                 isStatic = true;
-
-                if (!invocation.Type.IsNull) {
-                    Visit(invocation.Type);
-                    Output.Dot();
-                }
-
-                Visit(invocation.Method);
-            } else {
-                usePreciseName = !invocation.ExplicitThis;
-
-                if ((invocation.JSMethod == null) || (invocation.JSMethod.Method == null)) {
-                    usePreciseName = false;
-                } else if (isOverloaded) {
-                    usePreciseName = true;
-                } else if (
-                    (
-                        invocation.JSMethod.Method.IsSealed ||
-                        (invocation.JSMethod.Method.DeclaringType.DerivedTypeCount == 0)
-                    )
-                ) {
-                    usePreciseName = false;
-                } else {
-                }
 
                 if (usePreciseName) {
                     Output.LPar();
@@ -1149,9 +1140,28 @@ namespace JSIL {
 
                     Output.Dot();
                     Output.Identifier("Call");
+                } else {
+                    if (!invocation.Type.IsNull) {
+                        Visit(invocation.Type);
+                        Output.Dot();
+                    }
 
+                    Visit(invocation.Method);
+                }
+            } else {
+                if (usePreciseName) {
+                    Output.LPar();
+                    Output.MethodSignature(
+                        null, invocation.JSMethod.Method.ReturnType,
+                        (from p in invocation.JSMethod.Method.Parameters select p.ParameterType)
+                    );
+                    Output.RPar();
+
+                    Output.Dot();
+                    Output.Identifier(invocation.ExplicitThis ? "Call" : "CallVirtual");
                 } else if (invocation.ExplicitThis) {
                     Visit(invocation.Type);
+
                     Output.Dot();
                     Output.Identifier("prototype");
                     Output.Dot();
@@ -1183,6 +1193,17 @@ namespace JSIL {
                 Output.NewLine();
 
             if (usePreciseName) {
+                if (invocation.ExplicitThis) {
+                    Visit(invocation.Type);
+
+                    if (!isStatic) {
+                        Output.Dot();
+                        Output.Identifier("prototype", null);
+                    }
+
+                    Output.Comma();
+                }
+
                 var identifier = Util.EscapeIdentifier(
                     invocation.JSMethod.Method.GetName(true), EscapingMode.MemberIdentifier
                 );

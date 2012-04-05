@@ -644,7 +644,10 @@ namespace JSIL.Internal {
         public readonly MetadataCollection Metadata;
         public readonly ProxyInfo[] Proxies;
 
+        public readonly Dictionary<string, int> MethodNameCounts = new Dictionary<string, int>();
         public readonly HashSet<MethodGroupInfo> MethodGroups = new HashSet<MethodGroupInfo>();
+
+        public readonly List<TypeInfo> DerivedTypes = new List<TypeInfo>();
 
         public readonly bool IsFlagsEnum;
         public readonly EnumMemberInfo FirstEnumMember = null;
@@ -660,7 +663,6 @@ namespace JSIL.Internal {
         protected bool _IsIgnored = false;
         protected bool _IsExternal = false;
         protected bool _MethodGroupsInitialized = false;
-        protected int _DerivedTypeCount = 0;
 
         public TypeInfo (ITypeInfoSource source, ModuleInfo module, TypeDefinition type, TypeInfo declaringType, TypeInfo baseClass, TypeIdentifier identifier) {
             Identifier = identifier;
@@ -671,7 +673,7 @@ namespace JSIL.Internal {
             bool isStatic = type.IsSealed && type.IsAbstract;
 
             if (baseClass != null)
-                baseClass.DerivedTypeCount += 1;
+                baseClass.DerivedTypes.Add(this);
 
             Proxies = source.GetProxies(type);
             Metadata = new MetadataCollection(type);
@@ -862,12 +864,22 @@ namespace JSIL.Internal {
             }
         }
 
+        public IEnumerable<TypeInfo> SelfAndBaseTypesRecursive {
+            get {
+                yield return this;
+
+                var baseType = BaseClass;
+                while (baseType != null) {
+                    yield return baseType;
+
+                    baseType = baseType.BaseClass;
+                }
+            }
+        }
+
         public int DerivedTypeCount {
             get {
-                return this._DerivedTypeCount;
-            }
-            private set {
-                this._DerivedTypeCount = value;
+                return this.DerivedTypes.Count;
             }
         }
 
@@ -1123,7 +1135,20 @@ namespace JSIL.Internal {
             return false;
         }
 
+        protected void IncrementNameCount (string methodName) {
+            foreach (var t in SelfAndBaseTypesRecursive) {
+                int existingCount;
+
+                if (t.MethodNameCounts.TryGetValue(methodName, out existingCount))
+                    t.MethodNameCounts[methodName] = existingCount + 1;
+                else
+                    t.MethodNameCounts[methodName] = 1;
+            }
+        }
+
         protected MethodInfo AddMember (MethodDefinition method, PropertyInfo property, bool isFromProxy = false) {
+            IncrementNameCount(method.Name);
+
             IMemberInfo result;
             var identifier = new MemberIdentifier(method);
             if (Members.TryGetValue(identifier, out result))
@@ -1140,6 +1165,8 @@ namespace JSIL.Internal {
         }
 
         protected MethodInfo AddMember (MethodDefinition method, EventInfo evt, bool isFromProxy = false) {
+            IncrementNameCount(method.Name);
+
             IMemberInfo result;
             var identifier = new MemberIdentifier(method);
             if (Members.TryGetValue(identifier, out result))
@@ -1151,6 +1178,8 @@ namespace JSIL.Internal {
         }
 
         protected MethodInfo AddMember (MethodDefinition method, bool isFromProxy = false) {
+            IncrementNameCount(method.Name);
+
             IMemberInfo result;
             var identifier = new MemberIdentifier(method);
             if (Members.TryGetValue(identifier, out result))
@@ -1616,7 +1645,8 @@ namespace JSIL.Internal {
         public readonly bool IsVirtual;
         public readonly bool IsSealed;
 
-        public MethodGroupInfo MethodGroup = null;
+        protected MethodGroupInfo _MethodGroup = null;
+        protected bool? _IsOverloadedRecursive;
         protected bool? _ParametersIgnored;
         protected readonly string ShortName;
 
@@ -1681,6 +1711,40 @@ namespace JSIL.Internal {
 
         protected override string GetName () {
             return GetName(null);
+        }
+
+        public bool IsOverloaded {
+            get {
+                return _MethodGroup != null;
+            }
+        }
+
+        public bool IsOverloadedRecursive {
+            get {
+                if (IsOverloaded)
+                    return true;
+
+                if (!_IsOverloadedRecursive.HasValue) {
+                    int count;
+
+                    if (DeclaringType.MethodNameCounts.TryGetValue(Member.Name, out count))
+                        _IsOverloadedRecursive = (count >= 2);
+                    else
+                        _IsOverloadedRecursive = false;
+                }
+
+                return _IsOverloadedRecursive.Value;
+            }
+        }
+
+        public MethodGroupInfo MethodGroup {
+            get {
+                return _MethodGroup;
+            }
+            internal set {
+                _IsOverloadedRecursive = null;
+                _MethodGroup = value;
+            }
         }
 
         public string GetName (bool? nameMangling = null) {

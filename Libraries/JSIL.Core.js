@@ -2683,7 +2683,24 @@ JSIL.MethodSignature.prototype.toString = function (name) {
   return signature;
 };
 
-JSIL.MethodSignature.prototype.Call = function (name, thisReference /*, ...parameters */) {
+JSIL.MethodSignature.prototype.Call = function (context, name, thisReference /*, ...parameters */) {
+  var key = this.GetKey(name);
+
+  var method = context[key];
+  if (typeof (method) !== "function") {
+    var signature = this.toString(name);
+
+    throw new Error(
+      "No method with signature '" + signature +
+      "' defined in context '" + JSIL.GetTypeName(context) + "'"
+    );
+  }
+
+  var parameters = Array.prototype.slice.call(arguments, 2);
+  return method.apply(thisReference, parameters);
+}
+
+JSIL.MethodSignature.prototype.CallVirtual = function (name, thisReference /*, ...parameters */) {
   var key = this.GetKey(name);
 
   var method = thisReference[key];
