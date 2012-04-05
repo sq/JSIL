@@ -293,9 +293,27 @@ namespace JSIL.Internal {
             var at = type as ArrayType;
 
             if (isReference) {
-                Value("JSIL.Reference");
-                Space();
-                Comment("{0}", originalType);
+                if (type is GenericParameter) {
+                    Value("JSIL.Reference");
+                    Space();
+                    Comment("{0}", originalType);
+                } else {
+                    Keyword("new");
+                    Space();
+                    Identifier("JSIL.TypeRef", null);
+                    LPar();
+
+                    Identifier("$jsilcore", null);
+                    Comma();
+                    Value("JSIL.Reference");
+                    Comma();
+                    OpenBracket(false);
+
+                    TypeReference(type);
+
+                    CloseBracket(false);
+                    RPar();
+                }
             } else if (type is GenericParameter) {
                 var gp = (GenericParameter)type;
                 Keyword("new");
@@ -303,10 +321,15 @@ namespace JSIL.Internal {
                 Identifier("JSIL.GenericParameter", null);
                 LPar();
                 Value(gp.Name);
+
                 if (gp.Owner is TypeReference) {
                     Comma();
                     Value(gp.Owner as TypeReference);
+                } else if (gp.Owner is MethodDefinition) {
+                    Comma();
+                    Value((gp.Owner as MethodDefinition).FullName);
                 }
+
                 RPar();
             } else if (at != null) {
                 TypeReference(ILBlockTranslator.GetTypeDefinition(at));

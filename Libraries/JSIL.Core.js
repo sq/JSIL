@@ -37,6 +37,7 @@ if (typeof (Function.prototype.bind) !== "function") {
 
 JSIL.GlobalNamespace = this;
 
+JSIL.$NextAssemblyId = 0;
 JSIL.PrivateNamespaces = {};
 JSIL.AssemblyShortNames = {};
 var $private = null;
@@ -78,6 +79,17 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
   // Create a new private global namespace for the new assembly
   var result = Object.create(JSIL.GlobalNamespace);
 
+  var assemblyId = ++JSIL.$NextAssemblyId;
+
+  try {
+    Object.defineProperty(result, "__AssemblyId__", {
+      configurable: true,
+      enumerable: false,
+      value: assemblyId
+    });
+  } catch (e) {
+  }
+
   try {
     Object.defineProperty(result, "toString", {
       configurable: true,
@@ -109,16 +121,17 @@ JSIL.$NextTypeId = 0;
 JSIL.$PublicTypes = {};
 JSIL.$PublicTypeAssemblies = {};
 JSIL.$AssignedTypeIds = {};
+JSIL.$GenericParameterTypeIds = {};
 
 JSIL.AssignTypeId = function (assembly, typeName) {
-  if (typeof (assembly.typesByName) !== "object")
+  if (typeof (assembly.__AssemblyId__) === "undefined")
     throw new Error("Invalid assembly context");
 
   if (typeof (JSIL.$PublicTypeAssemblies[typeName]) !== "undefined") {
     assembly = JSIL.$PublicTypeAssemblies[typeName];
   }
 
-  var key = String(assembly) + "$" + typeName;
+  var key = assembly.__AssemblyId__ + "$" + typeName;
   var result = JSIL.$AssignedTypeIds[key];
 
   if (typeof (result) !== "number")
@@ -587,8 +600,23 @@ JSIL.Initialize = function () {
 };
 
 JSIL.GenericParameter = function (name, context) {
+  var key;
+
   this.name = new JSIL.Name(name, context);
-  this.__TypeId__ = ++JSIL.$NextTypeId;
+
+  if (typeof (context) === "string") {
+    key = context + "$" + name;
+  } else if (typeof (context.__TypeId__) === "undefined") {
+    throw new Error("Invalid context for generic parameter");
+  } else {
+    key = context.__TypeId__ + "$" + name;
+  }
+
+  if (typeof (JSIL.$GenericParameterTypeIds[key]) === "undefined") {
+    JSIL.$GenericParameterTypeIds[key] = this.__TypeId__ = ++JSIL.$NextTypeId;
+  } else {
+    this.__TypeId__ = JSIL.$GenericParameterTypeIds[key];
+  }
 };
 JSIL.GenericParameter.prototype.get = function (context) {
   if ((typeof (context) !== "object") && (typeof (context) !== "function")) {
@@ -628,8 +656,21 @@ JSIL.TypeRef.prototype.toString = function () {
 JSIL.TypeRef.prototype.getTypeId = function () {
   if (this.cachedReference !== null)
     return this.cachedReference.__TypeId__;
-  else
-    return JSIL.AssignTypeId(this.context, this.typeName);
+  else {
+    var result = JSIL.AssignTypeId(this.context, this.typeName);
+
+    if (this.genericArguments.length > 0) {
+      result += "[";
+
+      result += JSIL.HashTypeArgumentArray(this.genericArguments, this.context);
+
+      result += "]";
+
+      // print(result);
+    }
+
+    return result;
+  }
 };
 JSIL.TypeRef.prototype.get = function () {
   if (this.cachedReference !== null)
@@ -1020,7 +1061,7 @@ JSIL.HashTypeArgumentArray = function (typeArgs, context) {
     var tr = typeArgs[i];
     var typeId;
 
-    if (typeof (tr.__TypeId__) === "number") {
+    if (typeof (tr.__TypeId__) !== "undefined") {
       typeId = tr.__TypeId__;
     } else if (
       typeof (tr) === "string"
@@ -1148,7 +1189,16 @@ $jsilcore.$Of$NoInitialize = function () {
   }
 
   var fullName = typeObject.__FullName__ + "[" + Array.prototype.join.call(resolvedArguments, ", ") + "]";
-  result.__TypeId__ = resultTypeObject.__TypeId__ = JSIL.AssignTypeId(typeObject.__Context__, fullName);
+  var typeId = typeObject.__TypeId__ + "[";
+  for (var i = 0; i < resolvedArguments.length; i++) {
+    if (i > 0)
+      typeId += ",";
+
+    typeId += resolvedArguments[i].__TypeId__;
+  }
+  typeId += "]";
+
+  result.__TypeId__ = resultTypeObject.__TypeId__ = typeId;
   resultTypeObject.__GenericArgumentValues__ = resolvedArguments;
   resultTypeObject.__FullNameWithoutArguments__ = typeObject.__FullName__;
   resultTypeObject.__FullName__ = fullName;
@@ -2333,6 +2383,14 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
     SetIfUndefined: function (key, value) {
       if (!this.Target.hasOwnProperty(key))
         this.Target[key] = value;
+    },
+    SetExclusive: function (key, value) {
+      if (!this.Target.hasOwnProperty(key))
+        this.Target[key] = value;
+      else
+        this.Target[key] = function () {
+          throw new Error("Method '" + key + "' is overloaded and must be called with a specific signature");
+        };
     }
   };
 };
@@ -2499,7 +2557,7 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
   var mangledName = methodName + "$" + signature.Hash;
 
   descriptor.Target[mangledName] = fn;
-  descriptor.SetIfUndefined(methodName, fn);
+  descriptor.SetExclusive(methodName, fn);
 
   this.PushMember("MethodInfo", descriptor, { 
     signature: signature, 
@@ -3315,6 +3373,8 @@ JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
   $.publicInterface.Of = function (type) {
     if (typeof (type) === "undefined")
       throw new Error("Undefined reference type");
+
+    var typeObject = JSIL.ResolveTypeReference(type)[1];
     
     var elementName = JSIL.GetTypeName(type);
     var compositeType = JSIL.Reference.Types[elementName];
@@ -3332,9 +3392,9 @@ JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
       compositeType.toString = function () {
         return typeName;
       };
-      compositeType.prototype = JSIL.MakeProto(JSIL.Reference, compositeType, typeName, true, type.__Context__);
+      compositeType.prototype = JSIL.MakeProto(JSIL.Reference, compositeType, typeName, true, typeObject.__Context__);
       compositeType.__FullName__ = typeName;
-      compositeType.__TypeId__ = ++JSIL.$NextTypeId;
+      compositeType.__TypeId__ = $.Type.__TypeId__ + "[" + JSIL.HashTypeArgumentArray([typeObject], typeObject.__Context__) + "]";
       JSIL.Reference.Types[elementName] = compositeType;
     }
 
