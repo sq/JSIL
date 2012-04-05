@@ -1120,6 +1120,7 @@ namespace JSIL {
             bool isStatic = invocation.ExplicitThis && invocation.ThisReference.IsNull;
 
             bool hasArguments = invocation.Arguments.Count > 0;
+            bool hasGenericArguments = invocation.GenericArguments != null;
 
             bool needsParens =
                 (CountOfMatchingSubtrees<JSFunctionExpression>(new[] { invocation.ThisReference }) > 0) ||
@@ -1147,6 +1148,15 @@ namespace JSIL {
                 Output.RPar();
                 Output.Dot();
 
+                Action genericArgs = () => {
+                    if (hasGenericArguments) {
+                        Output.OpenBracket(false);
+                        Output.CommaSeparatedList(invocation.GenericArguments, ListValueType.TypeReference);
+                        Output.CloseBracket(false);
+                    } else
+                        Output.Identifier("null", null);
+                };
+
                 if (isStatic) {
                     Output.Identifier("Call");
                     Output.LPar();
@@ -1156,7 +1166,7 @@ namespace JSIL {
 
                     Output.Value(methodName);
                     Output.Comma();
-                    Output.Identifier("null", null);
+                    genericArgs();
 
                     if (hasArguments)
                         Output.Comma();
@@ -1171,7 +1181,7 @@ namespace JSIL {
 
                     Output.Value(methodName);
                     Output.Comma();
-                    Output.Identifier("null", null);
+                    genericArgs();
                     Output.Comma();
                     Visit(invocation.ThisReference);
 
@@ -1183,7 +1193,7 @@ namespace JSIL {
 
                     Output.Value(methodName);
                     Output.Comma();
-                    Output.Identifier("null", null);
+                    genericArgs();
                     Output.Comma();
                     Visit(invocation.ThisReference);
 

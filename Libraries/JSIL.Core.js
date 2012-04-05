@@ -1374,6 +1374,25 @@ JSIL.InitializeType = function (type) {
   // Not entirely correct, but prevents recursive type initialization
   typeObject.__TypeInitialized__ = true;
 
+  // Generate struct field list by enumerating field info
+  var fields = JSIL.GetMembersInternal(
+    typeObject, $jsilcore.BindingFlags.DeclaredOnly | $jsilcore.BindingFlags.Instance, "FieldInfo"
+  );
+  var sf = typeObject.__StructFields__;
+
+  for (var i = 0; i < fields.length; i++) {
+    var field = fields[i];
+
+    var fieldType = field.FieldType;
+    var isStruct = fieldType.__IsStruct__ || false;
+
+    // console.log(String(typeObject) + ".isStruct=" + isStruct + "\r\n");
+    if (isStruct && !field.IsStatic) {
+      sf.push([field.Name, fieldType]);
+    }
+  }
+
+  // Run any queued initializers for the type
   var ti = typeObject.__Initializers__ || [];
   while (ti.length > 0) {
     var initializer = ti.unshift();
@@ -1381,6 +1400,7 @@ JSIL.InitializeType = function (type) {
       initializer(type);
   };
 
+  // If the type is closed, invoke its static constructor(s)
   if (typeObject.__IsClosed__) {
     if (typeof (classObject._cctor) == "function") {
       try {
@@ -1399,6 +1419,7 @@ JSIL.InitializeType = function (type) {
     }
   }
 
+  // Any closed forms of the type, if it's an open type, should be initialized too.
   if (typeof (typeObject.__OfCache__) !== "undefined") {
     var oc = typeObject.__OfCache__;
     for (var k in oc) {
@@ -2432,27 +2453,11 @@ JSIL.InterfaceBuilder.prototype.GenericProperty = function (_descriptor, name) {
 JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldType, defaultValueExpression) {
   var descriptor = this.ParseDescriptor(_descriptor, fieldName);
 
-  fieldType = JSIL.ResolveTypeReference(fieldType, this.context)[1];
-
   var data = { fieldType: fieldType };
 
   if (typeof (defaultValueExpression) === "function") {
     data.defaultValue = defaultValueExpression(descriptor.Target);
     descriptor.Target[fieldName] = data.defaultValue;
-  }
-
-  var typeObject;
-  if (typeof (fieldType.__Type__) === "object")
-    typeObject = fieldType.__Type__;
-  else
-    typeObject = fieldType;
-
-  var isStruct = typeObject.__IsStruct__ || false;
-
-  // console.log(String(typeObject) + ".isStruct=" + isStruct + "\r\n");
-  if (isStruct && !descriptor.Static) {
-    var sf = this.typeObject.__StructFields__;
-    sf.push([fieldName, typeObject]);
   }
 
   this.PushMember("FieldInfo", descriptor, data);
@@ -2702,7 +2707,7 @@ JSIL.MethodSignature.prototype.Call = function (context, name, ga, thisReference
   if (JSIL.IsArray(ga)) {
     method = method.apply(thisReference, ga);  
   }
-  
+
   var parameters = Array.prototype.slice.call(arguments, 2);
   return method.apply(thisReference, parameters);
 }
@@ -3067,18 +3072,42 @@ JSIL.CreateInstanceOfType = function (type, constructorArguments) {
   return instance;
 };
 
+$jsilcore.BindingFlags = {
+  Default: 0, 
+  IgnoreCase: 1, 
+  DeclaredOnly: 2, 
+  Instance: 4, 
+  Static: 8, 
+  Public: 16, 
+  NonPublic: 32, 
+  FlattenHierarchy: 64, 
+  InvokeMethod: 256, 
+  CreateInstance: 512, 
+  GetField: 1024, 
+  SetField: 2048, 
+  GetProperty: 4096, 
+  SetProperty: 8192, 
+  PutDispProperty: 16384, 
+  PutRefDispProperty: 32768, 
+  ExactBinding: 65536, 
+  SuppressChangeType: 131072, 
+  OptionalParamBinding: 262144, 
+  IgnoreReturn: 16777216 
+};
+
 JSIL.GetMembersInternal = function (typeObject, flags, memberType) {
   var result = [];
+  var bindingFlags = $jsilcore.BindingFlags;
 
-  var allowInherited = (flags & System.Reflection.BindingFlags.DeclaredOnly) == 0;
+  var allowInherited = (flags & bindingFlags.DeclaredOnly) == 0;
 
-  var publicOnly = (flags & System.Reflection.BindingFlags.Public) != 0;
-  var nonPublicOnly = (flags & System.Reflection.BindingFlags.NonPublic) != 0;
+  var publicOnly = (flags & bindingFlags.Public) != 0;
+  var nonPublicOnly = (flags & bindingFlags.NonPublic) != 0;
   if (publicOnly && nonPublicOnly)
     publicOnly = nonPublicOnly = false;
 
-  var staticOnly = (flags & System.Reflection.BindingFlags.Static) != 0;
-  var instanceOnly = (flags & System.Reflection.BindingFlags.Instance) != 0;
+  var staticOnly = (flags & bindingFlags.Static) != 0;
+  var instanceOnly = (flags & bindingFlags.Instance) != 0;
   if (staticOnly && instanceOnly)
     staticOnly = instanceOnly = false;
 
@@ -3125,6 +3154,9 @@ JSIL.GetMembersInternal = function (typeObject, flags, memberType) {
     var parsedTypeName = JSIL.ParseTypeName("System.Reflection." + type);    
     var infoType = JSIL.GetTypeInternal(parsedTypeName, JSIL.GlobalNamespace, true);
     var info = JSIL.CreateInstanceOfType(infoType);
+
+    info._typeObject = typeObject;
+    info._data = data;
 
     info.Name = descriptor.Name;
     info.IsPublic = descriptor.Public;
@@ -3763,8 +3795,23 @@ JSIL.CompareNumbers = function (lhs, rhs) {
 JSIL.ImplementExternals(
   "System.Reflection.MemberInfo", true, {
     get_DeclaringType: function () {
-      // FIXME
-      return new System.Type();
+      return this._typeObject;
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.Reflection.FieldInfo", true, {
+    get_FieldType: function () {
+      var result = this._cachedFieldType;
+
+      if (typeof (result) === "undefined") {
+        result = this._cachedFieldType = JSIL.ResolveTypeReference(
+          this._data.fieldType, this._typeObject.__Context__
+        )[1];
+      }
+
+      return result;
     }
   }
 );
@@ -3776,6 +3823,7 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.MethodInfo", t
 });
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.FieldInfo", true, [], function ($) {
+    $.Property({Public: true , Static: false}, "FieldType");
 });
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.EventInfo", true, [], function ($) {
