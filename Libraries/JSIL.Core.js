@@ -3184,59 +3184,117 @@ JSIL.ImplementExternals(
 );
 
 JSIL.ImplementExternals(
-  "System.Type", true, {
-    get_Name: function () {
-      return JSIL.GetLocalName(this.__FullName__);
-    },
-    get_FullName: function () {
-      return this.__FullName__;
-    },
-    get_Assembly: function () {
-      // FIXME: Probably wrong for nested types.
-      return this.__Context__;
-    },
-    get_Namespace: function () {
-      // FIXME: Probably wrong for nested types.
-      return JSIL.GetParentName(this.__FullName__);
-    },
-    toString: function () {
-      return this.__FullName__;
-    },
-    IsSubclassOf: function (type) {
-      var needle = type.__PublicInterface__.prototype;
-      var haystack = this.__PublicInterface__.prototype;
-      return JSIL.CheckDerivation(haystack, needle);
-    },
-    GetMembers$0: function () {
-      return this.GetMembers$1(
-        System.Reflection.BindingFlags.Instance | 
-        System.Reflection.BindingFlags.Static | 
-        System.Reflection.BindingFlags.Public
-      );
-    },
-    GetMembers$1: function (flags) {
-      return JSIL.GetMembersInternal(this, flags);
-    },
-    GetMethods$0: function () {
-    	return this.GetMethods$1(
-        System.Reflection.BindingFlags.Instance | 
-        System.Reflection.BindingFlags.Static | 
-        System.Reflection.BindingFlags.Public
-      );
-    },
-    GetMethods$1: function (flags) {
-      return JSIL.GetMembersInternal(this, flags, "MethodInfo");
-    },
-    GetFields$0: function () {
-      return this.GetFields$1(
-        System.Reflection.BindingFlags.Instance | 
-        System.Reflection.BindingFlags.Static | 
-        System.Reflection.BindingFlags.Public
-      );
-    },
-    GetFields$1: function (flags) {
-      return JSIL.GetFieldsInternal(this, flags, "FieldInfo");
-    }
+  "System.Type", function ($) {
+    $.Method({Public: true , Static: false}, "get_Name",
+      new JSIL.MethodSignature("System.String", []),
+      function () {
+        return JSIL.GetLocalName(this.__FullName__);
+      }
+    );
+
+    $.Method({Public: true , Static: false}, "get_FullName",
+      new JSIL.MethodSignature("System.String", []),
+      function () {
+        return this.__FullName__;
+      }
+    );
+
+    $.Method({Public: true , Static: false}, "get_Assembly",
+      new JSIL.MethodSignature("System.Reflection.Assembly", []),
+      function () {
+        // FIXME: Probably wrong for nested types.
+        return this.__Context__;
+      }
+    );
+
+    $.Method({Public: true , Static: false}, "get_Namespace",
+      new JSIL.MethodSignature("System.String", []),
+      function () {
+        // FIXME: Probably wrong for nested types.
+        return JSIL.GetParentName(this.__FullName__);
+      }
+    );
+
+    $.Method({Public: true , Static: false}, "toString",
+      new JSIL.MethodSignature("System.String", []),
+      function () {
+        return this.__FullName__;
+      }
+    );
+
+    $.Method({Public: true , Static: false}, "IsSubclassOf",
+      new JSIL.MethodSignature("System.Boolean", ["System.Type"]),
+      function (type) {
+        var needle = type.__PublicInterface__.prototype;
+        var haystack = this.__PublicInterface__.prototype;
+        return JSIL.CheckDerivation(haystack, needle);
+      }
+    );
+
+    $.Method({Public: true , Static: false}, "GetMembers",
+      new JSIL.MethodSignature("System.Array", []),      
+      function () {
+        return JSIL.GetMembersInternal(
+          this, 
+          System.Reflection.BindingFlags.Instance | 
+          System.Reflection.BindingFlags.Static | 
+          System.Reflection.BindingFlags.Public
+        );
+      }
+    );
+
+    $.Method({Public: true , Static: false}, "GetMembers",
+      new JSIL.MethodSignature("System.Array", ["System.Reflection.BindingFlags"]),      
+      function (flags) {
+        return JSIL.GetMembersInternal(
+          this, flags
+        );
+      }
+    );
+
+    $.Method({Public: true , Static: false}, "GetMethods",
+      new JSIL.MethodSignature("System.Array", []),      
+      function () {
+        return JSIL.GetMembersInternal(
+          this, 
+          System.Reflection.BindingFlags.Instance | 
+          System.Reflection.BindingFlags.Static | 
+          System.Reflection.BindingFlags.Public,
+          "MethodInfo"
+        );
+      }
+    );
+
+    $.Method({Public: true , Static: false}, "GetMethods",
+      new JSIL.MethodSignature("System.Array", ["System.Reflection.BindingFlags"]),      
+      function (flags) {
+        return JSIL.GetMembersInternal(
+          this, flags, "MethodInfo"
+        );
+      }
+    );
+
+    $.Method({Public: true , Static: false}, "GetFields",
+      new JSIL.MethodSignature("System.Array", []),      
+      function () {
+        return JSIL.GetMembersInternal(
+          this, 
+          System.Reflection.BindingFlags.Instance | 
+          System.Reflection.BindingFlags.Static | 
+          System.Reflection.BindingFlags.Public,
+          "FieldInfo"
+        );
+      }
+    );
+
+    $.Method({Public: true , Static: false}, "GetFields",
+      new JSIL.MethodSignature("System.Array", ["System.Reflection.BindingFlags"]),      
+      function (flags) {
+        return JSIL.GetMembersInternal(
+          this, flags, "FieldInfo"
+        );
+      }
+    );
   }
 );
 
