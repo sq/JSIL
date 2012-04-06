@@ -1581,7 +1581,7 @@ namespace JSIL {
             output.MemberDescriptor(method.IsPublic, method.IsStatic);
 
             output.Comma();
-            output.Value(Util.EscapeIdentifier(methodInfo.GetName(false), EscapingMode.MemberIdentifier));
+            output.Value(Util.EscapeIdentifier(methodInfo.GetName(false), EscapingMode.String));
 
             output.Comma();
             output.NewLine();
@@ -1662,7 +1662,7 @@ namespace JSIL {
 
             output.Comma();
 
-            output.Value(Util.EscapeIdentifier(propertyInfo.Name));
+            output.Value(Util.EscapeIdentifier(propertyInfo.Name, EscapingMode.String));
 
             output.RPar();
             output.Semicolon();

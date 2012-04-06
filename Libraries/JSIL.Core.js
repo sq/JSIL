@@ -1355,10 +1355,13 @@ JSIL.InstantiateProperties = function (publicInterface, typeObject) {
         var isStatic = property[0];
         var name = property[1];
 
+        var localName = JSIL.GetLocalName(name);
+        var parentName = JSIL.GetParentName(name);
+
         if (isStatic)
           JSIL.InterfaceBuilder.MakeProperty(name, publicInterface);
         else
-          JSIL.InterfaceBuilder.MakeProperty(name, publicInterface.prototype);
+          JSIL.InterfaceBuilder.MakeProperty(localName, publicInterface.prototype, parentName);
       }
     }
 
@@ -2706,11 +2709,14 @@ JSIL.InterfaceBuilder.prototype.toString = function () {
 JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name) {
   var result = Object.create(this.memberDescriptorPrototype);
 
+  var escapedName = JSIL.EscapeName(name);
+
   result.Static = descriptor.Static || false;
   result.Public = descriptor.Public || false;
 
   result.Name = name;
-  result.SpecialName = (name == "_ctor") || (name == "_cctor");
+  result.EscapedName = escapedName;
+  result.SpecialName = (name == ".ctor") || (name == ".cctor");
 
   Object.defineProperty(result, "Target", {
     configurable: true,
@@ -2779,14 +2785,19 @@ JSIL.InterfaceBuilder.prototype.Constant = function (_descriptor, name, value) {
   Object.defineProperty(descriptor.Target, name, prop);
 };
 
-JSIL.InterfaceBuilder.MakeProperty = function (name, target) {
+JSIL.InterfaceBuilder.MakeProperty = function (name, target, interfacePrefix) {
   var prop = {
     configurable: true,
     enumerable: true
   };
 
-  var getterName = "get_" + name;
-  var setterName = "set_" + name;
+  if ((typeof (interfacePrefix) !== "string") || (interfacePrefix.length < 1))
+    interfacePrefix = "";
+  else
+    interfacePrefix = JSIL.EscapeName(interfacePrefix) + "_"; 
+
+  var getterName = interfacePrefix + "get_" + name;
+  var setterName = interfacePrefix + "set_" + name;
 
   var getter = target[getterName];
   var setter = target[setterName];
@@ -2798,7 +2809,7 @@ JSIL.InterfaceBuilder.MakeProperty = function (name, target) {
     prop["set"] = setter;
   }
 
-  Object.defineProperty(target, name, prop);
+  Object.defineProperty(target, interfacePrefix + name, prop);
 };
 
 JSIL.InterfaceBuilder.prototype.Property = function (_descriptor, name) {
@@ -2826,7 +2837,7 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
 
   if (typeof (defaultValueExpression) === "function") {
     data.defaultValue = defaultValueExpression(descriptor.Target);
-    descriptor.Target[fieldName] = data.defaultValue;
+    descriptor.Target[descriptor.EscapedName] = data.defaultValue;
   }
 
   this.PushMember("FieldInfo", descriptor, data);
@@ -2835,7 +2846,7 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
 JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodName, signature) {
   var descriptor = this.ParseDescriptor(_descriptor, methodName);
 
-  var mangledName = methodName + "$" + signature.Hash;
+  var mangledName = descriptor.EscapedName + "$" + signature.Hash;
 
   var impl = this.externals;
 
@@ -2853,7 +2864,7 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
 
   if (newValue !== undefined) {
     descriptor.Target[mangledName] = newValue;
-    descriptor.SetIfUndefined(methodName, newValue);
+    descriptor.SetIfUndefined(descriptor.EscapedName, newValue);
   }
 
   this.PushMember("MethodInfo", descriptor, { 
@@ -2866,10 +2877,10 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
 JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, signature, fn) {
   var descriptor = this.ParseDescriptor(_descriptor, methodName);
 
-  var mangledName = methodName + "$" + signature.Hash;
+  var mangledName = descriptor.EscapedName + "$" + signature.Hash;
 
   descriptor.Target[mangledName] = fn;
-  descriptor.SetExclusive(methodName, fn);
+  descriptor.SetExclusive(descriptor.EscapedName, fn);
 
   this.PushMember("MethodInfo", descriptor, { 
     signature: signature, 
