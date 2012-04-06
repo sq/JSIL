@@ -1162,7 +1162,7 @@ namespace JSIL {
                 };
 
                 if (isStatic) {
-                    Output.Identifier("Call");
+                    Output.Identifier("CallStatic");
                     Output.LPar();
 
                     Visit(invocation.Type);
