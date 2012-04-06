@@ -39,6 +39,7 @@ namespace JSIL {
             }
         }
 
+        public readonly MethodTypeFactory MethodTypes;
         public readonly ConcurrentHashQueue<QualifiedMemberIdentifier> OptimizationQueue;
         protected readonly ConcurrentCache<QualifiedMemberIdentifier, Entry> Cache;
 
@@ -46,6 +47,7 @@ namespace JSIL {
             var comparer = new QualifiedMemberIdentifier.Comparer(typeInfo);
             Cache = new ConcurrentCache<QualifiedMemberIdentifier, Entry>(Environment.ProcessorCount, 4096, comparer);
             OptimizationQueue = new ConcurrentHashQueue<QualifiedMemberIdentifier>(Environment.ProcessorCount, 4096, comparer);
+            MethodTypes = new MethodTypeFactory();
         }
 
         public bool TryGetExpression (QualifiedMemberIdentifier method, out JSFunctionExpression function) {
@@ -148,10 +150,11 @@ namespace JSIL {
         ) {
             return Cache.GetOrCreate(identifier, () => {
                 var result = new JSFunctionExpression(
-                    new JSMethod(method, info),
+                    new JSMethod(method, info, MethodTypes),
                     translator.Variables,
                     parameters,
-                    body
+                    body,
+                    MethodTypes
                 );
 
                 OptimizationQueue.TryEnqueue(identifier);
@@ -185,6 +188,7 @@ namespace JSIL {
         public void Dispose () {
             Cache.Clear();
             OptimizationQueue.Clear();
+            MethodTypes.Dispose();
         }
     }
 }

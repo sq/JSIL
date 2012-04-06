@@ -407,9 +407,15 @@ namespace JSIL.Internal {
             States = new ConcurrentDictionary<TKey, ConstructionState>(concurrencyLevel, concurrencyLevel, comparer);
         }
 
+        public int Count {
+            get {
+                return Storage.Count + States.Count;
+            }
+        }
+
         public void Clear () {
-            States.Clear();
             Storage.Clear();
+            States.Clear();
         }
 
         public bool MightContainKey (TKey key) {

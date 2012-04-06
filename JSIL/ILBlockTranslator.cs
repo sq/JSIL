@@ -33,14 +33,19 @@ namespace JSIL {
 
         protected readonly Stack<JSStatement> Blocks = new Stack<JSStatement>();
 
-        public ILBlockTranslator (AssemblyTranslator translator, DecompilerContext context, MethodReference methodReference, MethodDefinition methodDefinition, ILBlock ilb, IEnumerable<ILVariable> parameters, IEnumerable<ILVariable> allVariables) {
+        public ILBlockTranslator (
+            AssemblyTranslator translator, DecompilerContext context, 
+            MethodReference methodReference, MethodDefinition methodDefinition, 
+            ILBlock ilb, IEnumerable<ILVariable> parameters, 
+            IEnumerable<ILVariable> allVariables
+        ) {
             Translator = translator;
             Context = context;
             ThisMethodReference = methodReference;
             ThisMethod = methodDefinition;
             Block = ilb;
 
-            SpecialIdentifiers = new JSIL.SpecialIdentifiers(TypeSystem);
+            SpecialIdentifiers = new JSIL.SpecialIdentifiers(translator.FunctionCache.MethodTypes, TypeSystem);
 
             if (methodReference.HasThis)
                 Variables.Add("this", JSThisParameter.New(methodReference.DeclaringType, methodReference));
@@ -62,6 +67,12 @@ namespace JSIL {
                 } else {
                     Variables.Add(v.Identifier, v);
                 }
+            }
+        }
+
+        protected MethodTypeFactory MethodTypes {
+            get {
+                return Translator.FunctionCache.MethodTypes;
             }
         }
 
@@ -1563,12 +1574,12 @@ namespace JSIL {
                 return JSDotExpression.New(
                     new JSType(method.DeclaringType),
                     JS.prototype,
-                    new JSMethod(method, methodInfo)
+                    new JSMethod(method, methodInfo, MethodTypes)
                 );
             else
                 return new JSDotExpression(
                     new JSType(method.DeclaringType),
-                    new JSMethod(method, methodInfo)
+                    new JSMethod(method, methodInfo, MethodTypes)
                 );
         }
 
@@ -1580,7 +1591,7 @@ namespace JSIL {
             return JSDotExpression.New(
                 new JSType(method.DeclaringType),
                 JS.prototype,
-                new JSMethod(method, methodInfo)
+                new JSMethod(method, methodInfo, MethodTypes)
             );
         }
 
@@ -2172,7 +2183,7 @@ namespace JSIL {
 
         protected JSExpression Translate_Ldtoken (ILExpression node, MethodReference method) {
             var methodInfo = TypeInfo.GetMethod(method);
-            return new JSMethod(method, methodInfo);
+            return new JSMethod(method, methodInfo, MethodTypes);
         }
 
         protected JSExpression Translate_Ldtoken (ILExpression node, FieldReference field) {
@@ -2249,7 +2260,9 @@ namespace JSIL {
             }
 
             var result = Translate_MethodReplacement(
-                new JSMethod(method, methodInfo), thisExpression, arguments, false, !method.HasThis, explicitThis || methodInfo.IsConstructor
+                new JSMethod(method, methodInfo, MethodTypes), 
+                thisExpression, arguments, false, 
+                !method.HasThis, explicitThis || methodInfo.IsConstructor
             );
 
             if (method.ReturnType.MetadataType != MetadataType.Void) {
@@ -2298,7 +2311,9 @@ namespace JSIL {
                 return new JSIgnoredMemberReference(true, null, JSLiteral.New(method.FullName));
 
             var result = Translate_MethodReplacement(
-               new JSMethod(method, methodInfo), thisExpression, translatedArguments, true, false, methodInfo.IsConstructor
+               new JSMethod(method, methodInfo, MethodTypes), 
+               thisExpression, translatedArguments, true, 
+               false, methodInfo.IsConstructor
             );
 
             if (method.ReturnType.MetadataType != MetadataType.Void) {

@@ -30,6 +30,7 @@ namespace JSIL {
         public readonly Configuration Configuration;
 
         public readonly SymbolProvider SymbolProvider = new SymbolProvider();
+        public readonly AssemblyCache AssemblyCache = new AssemblyCache();
         public readonly FunctionCache FunctionCache;
         public readonly AssemblyManifest Manifest;
 
@@ -101,7 +102,7 @@ namespace JSIL {
                 readerParameters.AssemblyResolver = new AssemblyResolver(new string[] { 
                     Path.GetDirectoryName(mainAssemblyPath),
                     Path.GetDirectoryName(Util.GetPathOfAssembly(Assembly.GetExecutingAssembly())) 
-                });
+                }, AssemblyCache);
             }
 
             if (useSymbols)
@@ -522,8 +523,8 @@ namespace JSIL {
 
             context.CurrentModule = module;
 
-            var js = new JSSpecialIdentifiers(context.CurrentModule.TypeSystem);
-            var jsil = new JSILIdentifier(context.CurrentModule.TypeSystem, js);
+            var js = new JSSpecialIdentifiers(FunctionCache.MethodTypes, context.CurrentModule.TypeSystem);
+            var jsil = new JSILIdentifier(FunctionCache.MethodTypes, context.CurrentModule.TypeSystem, js);
 
             // Probably should be an argument, not a member variable...
             var astEmitter = new JavascriptAstEmitter(
@@ -1186,7 +1187,7 @@ namespace JSIL {
             ).Visit(function);
 
             new IntroduceEnumCasts(
-                si.TypeSystem, _TypeInfoProvider
+                si.TypeSystem, _TypeInfoProvider, FunctionCache.MethodTypes
             ).Visit(function);
 
             new ExpandCastExpressions(
@@ -1265,7 +1266,7 @@ namespace JSIL {
 
                 return JSInvocationExpression.InvokeStatic(
                     JSDotExpression.New(
-                        dollarIdentifier, new JSFakeMethod("Constant", field.Module.TypeSystem.Void)
+                        dollarIdentifier, new JSFakeMethod("Constant", field.Module.TypeSystem.Void, null, FunctionCache.MethodTypes)
                     ), new JSExpression[] {
                         descriptor, JSLiteral.New(fieldInfo.Name), constant
                     }
@@ -1298,7 +1299,8 @@ namespace JSIL {
                         new JSVariable[] { new JSParameter("$", field.DeclaringType, null) },
                         new JSBlockStatement(
                             new JSExpressionStatement(new JSReturnExpression(defaultValue))
-                        )
+                        ),
+                        FunctionCache.MethodTypes
                     );
                 }
 
@@ -1321,7 +1323,7 @@ namespace JSIL {
                 } else
                     return JSInvocationExpression.InvokeStatic(
                         JSDotExpression.New(
-                            dollarIdentifier, new JSFakeMethod("Field", field.Module.TypeSystem.Void)
+                            dollarIdentifier, new JSFakeMethod("Field", field.Module.TypeSystem.Void, null, FunctionCache.MethodTypes)
                         ), new JSExpression[] {
                             descriptor, JSLiteral.New(fieldInfo.Name), fieldTypeExpression, defaultValue
                         }
@@ -1671,6 +1673,7 @@ namespace JSIL {
                 _TypeInfoProvider.Dispose();
 
             FunctionCache.Dispose();
+            AssemblyCache.Dispose();
         }
 
         public TypeInfoProvider GetTypeInfoProvider () {

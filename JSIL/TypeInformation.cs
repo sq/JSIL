@@ -1246,39 +1246,47 @@ namespace JSIL.Internal {
         }
     }
 
-    public class AttributeEntry {
+    public class AttributeGroup {
+        public class Entry {
+            public readonly CustomAttributeArgument[] Arguments;
+
+            public Entry (CustomAttribute ca) {
+                Arguments = ca.ConstructorArguments.ToArray();
+            }
+        }
+
         public bool Inherited;
         public string Name;
-        public readonly List<CustomAttribute> Attributes = new List<CustomAttribute>();
+        public readonly List<Entry> Entries = new List<Entry>();
     }
 
-    public class MetadataCollection : IEnumerable<KeyValuePair<string, AttributeEntry>> {
-        protected Dictionary<string, AttributeEntry> Attributes = null;
+    public class MetadataCollection : IEnumerable<KeyValuePair<string, AttributeGroup>> {
+        protected Dictionary<string, AttributeGroup> Attributes = null;
 
         public MetadataCollection (ICustomAttributeProvider target) {
             if (target.CustomAttributes.Count == 0)
                 return;
 
             foreach (var ca in target.CustomAttributes) {
-                AttributeEntry existing;
+                AttributeGroup existing;
                 if (TryGetValue(ca.AttributeType.FullName, out existing))
-                    existing.Attributes.Add(ca);
+                    existing.Entries.Add(new AttributeGroup.Entry(ca));
                 else
-                    Add(ca.AttributeType.FullName, new AttributeEntry {
-                        Attributes = { ca },
+                    Add(ca.AttributeType.FullName, new AttributeGroup {
+                        Entries = { new AttributeGroup.Entry(ca) },
                         Inherited = false
                     });
             }
         }
 
-        public void Add (string name, AttributeEntry entry) {
+        public void Add (string name, AttributeGroup entry) {
             if (Attributes == null)
-                Attributes = new Dictionary<string, AttributeEntry>();
+                Attributes = new Dictionary<string, AttributeGroup>();
 
             Attributes.Add(name, entry);
         }
 
-        public bool TryGetValue (string name, out AttributeEntry entry) {
+        public bool TryGetValue (string name, out AttributeGroup entry) {
             if (Attributes == null) {
                 entry = null;
                 return false;
@@ -1303,7 +1311,7 @@ namespace JSIL.Internal {
             if (replaceAll)
                 Clear();
 
-            AttributeEntry existing;
+            AttributeGroup existing;
             if (rhs.Attributes != null) {
                 foreach (var kvp in rhs.Attributes) {
                     if (TryGetValue(kvp.Key, out existing)) {
@@ -1313,10 +1321,10 @@ namespace JSIL.Internal {
                             continue;
                     }
 
-                    var inherited = new AttributeEntry {
+                    var inherited = new AttributeGroup {
                         Inherited = true,
                     };
-                    inherited.Attributes.AddRange(kvp.Value.Attributes);
+                    inherited.Entries.AddRange(kvp.Value.Entries);
                     Add(kvp.Key, inherited);
                 }
             }
@@ -1334,8 +1342,8 @@ namespace JSIL.Internal {
             return false;
         }
 
-        public AttributeEntry GetAttribute (string fullName) {
-            AttributeEntry entry;
+        public AttributeGroup GetAttribute (string fullName) {
+            AttributeGroup entry;
 
             if (TryGetValue(fullName, out entry))
                 return entry;
@@ -1348,10 +1356,10 @@ namespace JSIL.Internal {
             if (attr == null)
                 return null;
 
-            return attr.Attributes[0].ConstructorArguments;
+            return attr.Entries[0].Arguments;
         }
 
-        public IEnumerator<KeyValuePair<string, AttributeEntry>> GetEnumerator () {
+        public IEnumerator<KeyValuePair<string, AttributeGroup>> GetEnumerator () {
             return Attributes.GetEnumerator();
         }
 
@@ -1913,6 +1921,129 @@ namespace JSIL.Internal {
             }
 
             return false;
+        }
+    }
+
+    public class MethodTypeFactory : IDisposable {
+        protected struct MethodSignature {
+            public readonly TypeReference ReturnType;
+            public readonly IEnumerable<TypeReference> ParameterTypes;
+            public readonly int ParameterCount;
+            private readonly int HashCode;
+
+            public MethodSignature (TypeReference returnType, IEnumerable<TypeReference> parameterTypes) {
+                ReturnType = returnType;
+                ParameterTypes = parameterTypes;
+                ParameterCount = parameterTypes.Count();
+
+                HashCode = ReturnType.FullName.GetHashCode() ^ ParameterCount;
+
+                int i = 0;
+                foreach (var p in ParameterTypes) {
+                    HashCode ^= (p.FullName.GetHashCode() << i);
+                    i += 1;
+                }
+            }
+
+            public override int GetHashCode () {
+                return HashCode;
+            }
+
+            public bool Equals (MethodSignature rhs) {
+                if (!ILBlockTranslator.TypesAreEqual(
+                    ReturnType, rhs.ReturnType
+                ))
+                    return false;
+
+                if (ParameterCount != rhs.ParameterCount)
+                    return false;
+
+                using (var e1 = ParameterTypes.GetEnumerator())
+                using (var e2 = rhs.ParameterTypes.GetEnumerator())
+                    while (e1.MoveNext() && e2.MoveNext()) {
+                        if (!ILBlockTranslator.TypesAreEqual(e1.Current, e2.Current))
+                            return false;
+                    }
+
+                return true;
+            }
+
+            public override bool Equals (object obj) {
+                if (obj is MethodSignature)
+                    return Equals((MethodSignature)obj);
+                else
+                    return base.Equals(obj);
+            }
+        }
+
+        protected readonly ConcurrentCache<MethodSignature, TypeReference> Cache = new ConcurrentCache<MethodSignature, TypeReference>();
+
+        public TypeReference Get (MethodReference method, TypeSystem typeSystem) {
+            return Get(
+                method.ReturnType,
+                (from p in method.Parameters select p.ParameterType),
+                typeSystem
+            );
+        }
+
+        public TypeReference Get (TypeReference returnType, IEnumerable<TypeReference> parameterTypes, TypeSystem typeSystem) {
+            TypeReference result;
+            var ptypes = parameterTypes.ToArray();
+            var signature = new MethodSignature(returnType, ptypes);
+
+            return Cache.GetOrCreate(
+                signature, () => {
+                    TypeReference genericDelegateType;
+
+                    var systemModule = typeSystem.Boolean.Resolve().Module;
+                    bool hasReturnType;
+
+                    if (ILBlockTranslator.TypesAreEqual(typeSystem.Void, returnType)) {
+                        hasReturnType = false;
+                        var name = String.Format("System.Action`{0}", signature.ParameterCount);
+                        genericDelegateType = systemModule.GetType(
+                            signature.ParameterCount == 0 ? "System.Action" : name
+                        );
+                    } else {
+                        hasReturnType = true;
+                        genericDelegateType = systemModule.GetType(String.Format(
+                            "System.Func`{0}", signature.ParameterCount + 1
+                        ));
+                    }
+
+                    if (genericDelegateType != null) {
+                        var git = new GenericInstanceType(genericDelegateType);
+                        foreach (var pt in ptypes)
+                            git.GenericArguments.Add(pt);
+
+                        if (hasReturnType)
+                            git.GenericArguments.Add(returnType);
+
+                        return git;
+                    } else {
+                        var baseType = systemModule.GetType("System.MulticastDelegate");
+
+                        var td = new TypeDefinition(
+                            "JSIL.Meta", "MethodSignature", TypeAttributes.Class | TypeAttributes.NotPublic, baseType
+                        );
+                        td.DeclaringType = baseType;
+
+                        var invoke = new MethodDefinition(
+                            "Invoke", MethodAttributes.Public, returnType
+                        );
+                        foreach (var pt in ptypes)
+                            invoke.Parameters.Add(new ParameterDefinition(pt));
+
+                        td.Methods.Add(invoke);
+
+                        return td;
+                    }
+                }
+            );
+        }
+
+        public void Dispose () {
+            Cache.Clear();
         }
     }
 }

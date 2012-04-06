@@ -11,10 +11,21 @@ using Mono.Cecil.Mdb;
 using Mono.Cecil.Pdb;
 
 namespace JSIL.Internal {
-    public class AssemblyResolver : BaseAssemblyResolver {
-        protected readonly ConcurrentCache<string, AssemblyDefinition> Cache = new ConcurrentCache<string, AssemblyDefinition>();
+    public class AssemblyCache : ConcurrentCache<string, AssemblyDefinition>, IDisposable {
+        public void Dispose () {
+            Clear();
+        }
+    }
 
-        public AssemblyResolver (IEnumerable<string> dirs) {
+    public class AssemblyResolver : BaseAssemblyResolver {
+        protected readonly AssemblyCache Cache = new AssemblyCache();
+
+        public AssemblyResolver (IEnumerable<string> dirs, AssemblyCache cache = null) {
+            if (cache != null)
+                Cache = cache;
+            else
+                Cache = new AssemblyCache();
+
             foreach (var dir in dirs)
                 AddSearchDirectory(dir);
         }

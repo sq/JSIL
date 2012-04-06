@@ -206,12 +206,12 @@ namespace JSIL.Tests {
 
         [Test]
         public void AllSimpleTests () {
-            var defaultProvider = MakeDefaultProvider();
+            var typeInfo = MakeDefaultProvider();
             var testPath = Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "SimpleTestCases"));
             var simpleTests = Directory.GetFiles(testPath, "*.cs").Concat(Directory.GetFiles(testPath, "*.vb")).ToArray();
 
             RunComparisonTests(
-                simpleTests, null, defaultProvider
+                simpleTests, null, typeInfo
             );
         }
 

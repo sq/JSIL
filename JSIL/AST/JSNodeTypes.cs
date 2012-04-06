@@ -343,6 +343,8 @@ namespace JSIL.Ast {
     }
 
     public class JSFunctionExpression : JSExpression {
+        public readonly MethodTypeFactory MethodTypes;
+
         public readonly JSMethod Method;
 
         public readonly Dictionary<string, JSVariable> AllVariables;
@@ -355,12 +357,14 @@ namespace JSIL.Ast {
 
         public JSFunctionExpression (
             JSMethod method, Dictionary<string, JSVariable> allVariables, 
-            IEnumerable<JSVariable> parameters, JSBlockStatement body
+            IEnumerable<JSVariable> parameters, JSBlockStatement body,
+            MethodTypeFactory methodTypes
         ) {
             Method = method;
             AllVariables = allVariables;
             Parameters = parameters;
             Body = body;
+            MethodTypes = methodTypes;
         }
 
         public override IEnumerable<JSNode> Children {
@@ -390,7 +394,7 @@ namespace JSIL.Ast {
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             if (Method != null) {
-                var delegateType = ConstructDelegateType(Method.Reference, typeSystem);
+                var delegateType = MethodTypes.Get(Method.Reference, typeSystem);
                 if (delegateType == null)
                     return Method.Reference.ReturnType;
                 else
@@ -895,59 +899,7 @@ namespace JSIL.Ast {
     }
 
     public abstract class JSExpression : JSNode {
-        protected struct MethodSignature {
-            public readonly TypeReference ReturnType;
-            public readonly IEnumerable<TypeReference> ParameterTypes;
-            public readonly int ParameterCount;
-            private readonly int HashCode;
-
-            public MethodSignature (TypeReference returnType, IEnumerable<TypeReference> parameterTypes) {
-                ReturnType = returnType;
-                ParameterTypes = parameterTypes;
-                ParameterCount = parameterTypes.Count();
-
-                HashCode = ReturnType.FullName.GetHashCode() ^ ParameterCount;
-
-                int i = 0;
-                foreach (var p in ParameterTypes) {
-                    HashCode ^= (p.FullName.GetHashCode() << i);
-                    i += 1;
-                }
-            }
-
-            public override int GetHashCode () {
-                return HashCode;
-            }
-
-            public bool Equals (MethodSignature rhs) {
-                if (!ILBlockTranslator.TypesAreEqual(
-                    ReturnType, rhs.ReturnType
-                ))
-                    return false;
-
-                if (ParameterCount != rhs.ParameterCount)
-                    return false;
-
-                using (var e1 = ParameterTypes.GetEnumerator())
-                using (var e2 = rhs.ParameterTypes.GetEnumerator())
-                while (e1.MoveNext() && e2.MoveNext()) {
-                    if (!ILBlockTranslator.TypesAreEqual(e1.Current, e2.Current))
-                        return false;
-                }
-
-                return true;
-            }
-
-            public override bool Equals (object obj) {
-                if (obj is MethodSignature)
-                    return Equals((MethodSignature)obj);
-                else
-                    return base.Equals(obj);
-            }
-        }
-
         public static readonly JSNullExpression Null = new JSNullExpression();
-        protected static readonly ConcurrentCache<MethodSignature, TypeReference> MethodTypeCache = new ConcurrentCache<MethodSignature, TypeReference>();
 
         protected readonly IList<JSExpression> Values;
 
@@ -1012,70 +964,6 @@ namespace JSIL.Ast {
             }
 
             return TypeAnalysis.SubstituteTypeArgs(type, member);
-        }
-
-        public static TypeReference ConstructDelegateType (MethodReference method, TypeSystem typeSystem) {
-            return ConstructDelegateType(
-                method.ReturnType,
-                (from p in method.Parameters select p.ParameterType),
-                typeSystem
-            );
-        }
-
-        public static TypeReference ConstructDelegateType (TypeReference returnType, IEnumerable<TypeReference> parameterTypes, TypeSystem typeSystem) {
-            TypeReference result;
-            var ptypes = parameterTypes.ToArray();
-            var signature = new MethodSignature(returnType, ptypes);
-
-            return MethodTypeCache.GetOrCreate(
-                signature, () => {
-                    TypeReference genericDelegateType;
-
-                    var systemModule = typeSystem.Boolean.Resolve().Module;
-                    bool hasReturnType;
-
-                    if (ILBlockTranslator.TypesAreEqual(typeSystem.Void, returnType)) {
-                        hasReturnType = false;
-                        var name = String.Format("System.Action`{0}", signature.ParameterCount);
-                        genericDelegateType = systemModule.GetType(
-                            signature.ParameterCount == 0 ? "System.Action" : name
-                        );
-                    } else {
-                        hasReturnType = true;
-                        genericDelegateType = systemModule.GetType(String.Format(
-                            "System.Func`{0}", signature.ParameterCount + 1
-                        ));
-                    }
-
-                    if (genericDelegateType != null) {
-                        var git = new GenericInstanceType(genericDelegateType);
-                        foreach (var pt in ptypes)
-                            git.GenericArguments.Add(pt);
-
-                        if (hasReturnType)
-                            git.GenericArguments.Add(returnType);
-
-                        return git;
-                    } else {
-                        var baseType = systemModule.GetType("System.MulticastDelegate");
-
-                        var td = new TypeDefinition(
-                            "JSIL.Meta", "MethodSignature", TypeAttributes.Class | TypeAttributes.NotPublic, baseType
-                        );
-                        td.DeclaringType = baseType;
-
-                        var invoke = new MethodDefinition(
-                            "Invoke", MethodAttributes.Public, returnType
-                        );
-                        foreach (var pt in ptypes)
-                            invoke.Parameters.Add(new ParameterDefinition(pt));
-
-                        td.Methods.Add(invoke);
-
-                        return td;
-                    }
-                }
-            );
         }
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
@@ -1233,7 +1121,8 @@ namespace JSIL.Ast {
                         materialized = JSInvocationExpression.InvokeMethod(
                             invocation.JSType, new JSFakeMethod(
                                 "GetReference", new ByReferenceType(jsm.Reference.ReturnType),
-                                (from p in jsm.Reference.Parameters select p.ParameterType).ToArray()
+                                (from p in jsm.Reference.Parameters select p.ParameterType).ToArray(),
+                                jsil.MethodTypes
                             ), invocation.ThisReference, invocation.Arguments.ToArray(), true
                         );
                         return true;
@@ -1500,10 +1389,6 @@ namespace JSIL.Ast {
             var property = Member as PropertyInfo;
             if (property != null)
                 return property.ReturnType;
-
-            var method = Member as MethodInfo;
-            if (method != null)
-                return JSExpression.ConstructDelegateType(method.Member, typeSystem);
 
             return typeSystem.Void;
         }
@@ -2113,16 +1998,22 @@ namespace JSIL.Ast {
     }
 
     public class JSMethod : JSIdentifier {
+        public readonly MethodTypeFactory MethodTypes;
+
         public readonly IEnumerable<TypeReference> GenericArguments;
         public readonly MethodReference Reference;
         public readonly MethodInfo Method;
 
-        public JSMethod (MethodReference reference, MethodInfo method, IEnumerable<TypeReference> genericArguments = null) {
+        public JSMethod (
+            MethodReference reference, MethodInfo method, MethodTypeFactory methodTypes,
+            IEnumerable<TypeReference> genericArguments = null          
+        ) {
             if ((reference == null) || (method == null))
                 throw new ArgumentNullException();
 
             Reference = reference;
             Method = method;
+            MethodTypes = methodTypes;
 
             if (genericArguments == null) {
                 var gim = Reference as GenericInstanceMethod;
@@ -2146,31 +2037,22 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return ConstructDelegateType(Reference, typeSystem);
+            return MethodTypes.Get(Reference, typeSystem);
         }
     }
 
     public class JSFakeMethod : JSIdentifier {
+        public readonly MethodTypeFactory MethodTypes;
+
         public readonly string Name;
         public readonly TypeReference ReturnType;
         public readonly TypeReference[] ParameterTypes;
 
-        public JSFakeMethod (string name, TypeReference returnType, params TypeReference[] parameterTypes) {
+        public JSFakeMethod (string name, TypeReference returnType, TypeReference[] parameterTypes, MethodTypeFactory methodTypes) {
             Name = name;
             ReturnType = returnType;
-            ParameterTypes = parameterTypes;
-
-            /*
-            if (IsOpenGenericType(ReturnType))
-                throw new Exception("Open generic return type");
-            else if (parameterTypes.Any(IsOpenGenericType))
-                throw new Exception("Open generic parameter type");
-             */
-
-            /*
-            if (ReturnType.IsGenericParameter || parameterTypes.Any((p) => p.IsGenericParameter))
-                throw new ArgumentException()
-             */
+            ParameterTypes = parameterTypes ?? new TypeReference[0];
+            MethodTypes = methodTypes;
         }
 
         public override string Identifier {
@@ -2178,7 +2060,7 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return ConstructDelegateType(
+            return MethodTypes.Get(
                 ReturnType, ParameterTypes, typeSystem
             );
         }

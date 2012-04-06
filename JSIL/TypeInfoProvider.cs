@@ -111,26 +111,30 @@ namespace JSIL {
             }
         }
 
+        private void Remove (TypeDefinition type) {
+            var identifier = new TypeIdentifier(type);
+            var typeName = type.FullName;
+
+            TypeProxies.Remove(identifier);
+            TypeInformation.TryRemove(identifier);
+            DirectProxiesByTypeName.Remove(typeName);
+            ProxiesByName.TryRemove(typeName);
+
+            foreach (var nt in type.NestedTypes)
+                Remove(nt);
+        }
+
         public void Remove (params AssemblyDefinition[] assemblies) {
             lock (Assemblies)
             foreach (var assembly in assemblies) {
                 Assemblies.Remove(assembly);
+                ProxyAssemblyNames.Remove(assembly.FullName);
 
                 foreach (var module in assembly.Modules) {
                     ModuleInformation.TryRemove(module.FullyQualifiedName);
 
                     foreach (var type in module.Types) {
-                        var identifier = new TypeIdentifier(type);
-
-                        TypeProxies.Remove(identifier);
-                        TypeInformation.TryRemove(identifier);
-
-                        foreach (var nt in type.NestedTypes) {
-                            var ni = new TypeIdentifier(nt);
-
-                            TypeProxies.Remove(ni);
-                            TypeInformation.TryRemove(ni);
-                        }
+                        Remove(type);
                     }
                 }
             }
