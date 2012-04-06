@@ -1580,7 +1580,10 @@ namespace JSIL {
             output.Comma();
             output.NewLine();
 
-            output.MethodSignature(method.DeclaringType, methodInfo.ReturnType, (from p in methodInfo.Parameters select p.ParameterType));
+            output.MethodSignature(
+                method.DeclaringType, methodInfo.ReturnType, 
+                (from p in methodInfo.Parameters select p.ParameterType), false
+            );
             output.Comma();
             output.NewLine();
 

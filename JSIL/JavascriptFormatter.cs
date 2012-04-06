@@ -154,7 +154,7 @@ namespace JSIL.Internal {
                 if (!isFirst)
                     Comma();
 
-                TypeReference(type, context);
+                TypeReference(type as dynamic, context);
 
                 isFirst = false;
             }
@@ -732,7 +732,7 @@ namespace JSIL.Internal {
             NewLine();
         }
 
-        public void MethodSignature (TypeReference context, TypeReference returnType, IEnumerable<TypeReference> parameterTypes) {
+        public void MethodSignature (TypeReference context, TypeReference returnType, IEnumerable<TypeReference> parameterTypes, bool methodContext) {
             Token("new JSIL.MethodSignature");
             LPar();
 
@@ -744,7 +744,11 @@ namespace JSIL.Internal {
             Comma();
             OpenBracket(false);
 
-            CommaSeparatedList(parameterTypes, context);
+            if (methodContext) {
+                CommaSeparatedList(parameterTypes, ListValueType.Identifier);
+            } else {
+                CommaSeparatedList(parameterTypes, context);
+            }
 
             CloseBracket(false);
 

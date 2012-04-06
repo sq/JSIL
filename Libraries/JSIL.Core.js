@@ -1061,7 +1061,11 @@ JSIL.HashTypeArgumentArray = function (typeArgs, context) {
     var tr = typeArgs[i];
     var typeId;
 
-    if (typeof (tr.__TypeId__) !== "undefined") {
+    if (typeof (tr) === "undefined") {
+      throw new Error("Undefined passed as type argument");
+    } else if (tr === null) {
+      throw new Error("Null passed as type argument");
+    } else if (typeof (tr.__TypeId__) !== "undefined") {
       typeId = tr.__TypeId__;
     } else if (
       typeof (tr) === "string"
@@ -1252,7 +1256,9 @@ $jsilcore.$Of$NoInitialize = function () {
   }
   resultTypeObject.__IsClosed__ = isClosed;
 
-  JSIL.InstantiateGenericProperties(result);
+  JSIL.RenameGenericMethods(result, resultTypeObject);
+
+  JSIL.InstantiateGenericProperties(result, resultTypeObject);
 
   // Force the initialized state back to false
   resultTypeObject.__TypeInitialized__ = false;
@@ -1274,10 +1280,62 @@ JSIL.StaticClassPrototype.toString = function () {
   return JSIL.GetTypeName(JSIL.GetType(this));
 };
 
-JSIL.InstantiateGenericProperties = function (obj) {
-  var target = obj;
-  var typeObject = obj.__Type__;
+// Any methods with generic parameters as their return type or argument type(s) must be renamed
+//  after the generic type is closed; otherwise overload resolution will fail to locate them because
+//  the method signature won't match.
+JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
+  var members = typeObject.__Members__;
+  if (!JSIL.IsArray(members))
+    return;
 
+  var members = typeObject.__Members__ = Array.prototype.slice.call(members);
+  var resolveContext = publicInterface.prototype;
+
+  _loop:
+  for (var i = 0, l = members.length; i < l; i++) {
+    var member = members[i];
+
+    switch (member[0]) {
+      case "MethodInfo":
+      case "ConstructorInfo":
+        break;
+      default:
+        continue _loop;
+    }
+
+    var descriptor = member[1];
+    var data = member[2];
+    var signature = data.signature;
+
+    var target = descriptor.Static ? publicInterface : publicInterface.prototype;
+
+    var returnType = [signature.returnType];
+    var argumentTypes = Array.prototype.slice.call(signature.argumentTypes);
+
+    JSIL.$ResolveGenericTypeReferences(resolveContext, returnType);
+    JSIL.$ResolveGenericTypeReferences(resolveContext, argumentTypes);
+
+    var resolvedSignature = new JSIL.MethodSignature(returnType[0], argumentTypes);
+
+    if (resolvedSignature.Hash != signature.Hash) {
+      var oldName = data.mangledName;
+      var newName = descriptor.Name + "$" + resolvedSignature.Hash;
+
+      var methodReference = target[oldName];
+
+      try {
+        delete target[oldName];
+      } catch (e) {
+      }
+
+      target[newName] = methodReference;
+
+      // print(oldName + " -> " + newName);
+    }
+  }
+};
+
+JSIL.InstantiateGenericProperties = function (publicInterface, typeObject) {
   while ((typeof (typeObject) !== "undefined") && (typeObject !== null)) {
     var gps = typeObject.__GenericProperties__;
 
@@ -1288,9 +1346,9 @@ JSIL.InstantiateGenericProperties = function (obj) {
         var name = gp[1];
 
         if (isStatic)        
-          JSIL.InterfaceBuilder.MakeProperty(name, target);
+          JSIL.InterfaceBuilder.MakeProperty(name, publicInterface);
         else
-          JSIL.InterfaceBuilder.MakeProperty(name, target.prototype);
+          JSIL.InterfaceBuilder.MakeProperty(name, publicInterface.prototype);
       }
     }
 
@@ -1431,6 +1489,14 @@ JSIL.$ResolveGenericTypeReferences = function (context, types) {
   }
 };
 
+JSIL.$MakeMethodGroup = function (methodName, overloadSignatures) {
+  var dispatcher = function () {
+    throw new Error("Cannot dispatch overloaded method '" + methodName + "'");
+  };
+
+  return JSIL.RenameFunction(methodName, dispatcher);
+};
+
 JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
   var methods = JSIL.GetMembersInternal(
     typeObject, 0, "MethodInfo"
@@ -1441,9 +1507,11 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
   for (var i = 0, l = methods.length; i < l; i++) {
     var method = methods[i];
 
-    var methodList = methodsByName[method.Name];
+    var key = method.IsStatic + "$" + method.Name;
+
+    var methodList = methodsByName[key];
     if (!JSIL.IsArray(methodList))
-      methodList = methodsByName[method.Name] = [];
+      methodList = methodsByName[key] = [];
 
     methodList.push(method);
   }
@@ -1451,30 +1519,31 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
   var printedTypeName = false;
   var resolveContext = publicInterface.prototype;
 
-  for (var methodName in methodsByName) {
-    var methodList = methodsByName[methodName];
+  for (var key in methodsByName) {
+    var methodList = methodsByName[key];
 
     if (methodList.length < 2)
       continue;
 
     if (!printedTypeName) {
-      print("-- " + typeObject.__FullName__ + " --");
+      // print("-- " + typeObject.__FullName__ + " --");
       printedTypeName = true;
     }
 
-    var returnType = [methodList[0].ReturnType];
-    JSIL.$ResolveGenericTypeReferences(resolveContext, returnType);
+    var methodName = methodList[0].Name;
+    var isStatic = methodList[0].IsStatic;
+    var signature = methodList[0]._data.signature;
+
+    var entries = [];
 
     for (var i = 0, l = methodList.length; i < l; i++) {
       var method = methodList[i];
 
-      var parameterTypes = Array.prototype.slice.call(method.GetParameterTypes());
-      JSIL.$ResolveGenericTypeReferences(resolveContext, parameterTypes);
-
-      var resolvedSignature = new JSIL.MethodSignature(returnType[0], parameterTypes);
-
-      print(resolvedSignature.toString(method.DeclaringType.__FullName__ + "::" + methodName));
+      // print(resolvedSignature.toString(method.DeclaringType.__FullName__ + "::" + methodName));
     }
+
+    var target = isStatic ? publicInterface : publicInterface.prototype;
+    target[methodName] = JSIL.$MakeMethodGroup(methodName, entries);
   }
 };
 
@@ -2451,6 +2520,9 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
         this.Target[key] = function () {
           throw new Error("Method '" + key + "' is overloaded and must be called with a specific signature");
         };
+    },
+    toString: function () {
+      return "<" + this.Name + " Descriptor>";
     }
   };
 };

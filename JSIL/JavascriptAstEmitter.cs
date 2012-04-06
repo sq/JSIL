@@ -1143,7 +1143,11 @@ namespace JSIL {
                 Output.LPar();
                 Output.MethodSignature(
                     null, method.ReturnType,
-                    (from p in method.Parameters select p.ParameterType)
+                    (
+                    from p in method.Parameters select 
+                        JSExpression.SubstituteTypeArgs(this.TypeInfo, p.ParameterType, jsm.Reference)
+                    ),
+                    true
                 );
                 Output.RPar();
                 Output.Dot();
