@@ -984,24 +984,31 @@ JSIL.ImplementExternals(
 );
 
 JSIL.ImplementExternals(
-  "System.Threading.Monitor", false, {
-    Enter: function (obj, lockTaken) {
-      var current = (obj.__LockCount__ || 0);
-      if (current >= 1)
-        JSIL.Host.warning("Warning: lock recursion ", obj);
+  "System.Threading.Monitor", function ($) {
+    $.Method({Public: true , Static: true }, "Enter", 
+      new JSIL.MethodSignature(null, ["System.Object", JSIL.Reference.Of(System.Boolean)]),
+      function (obj, lockTaken) {
+        var current = (obj.__LockCount__ || 0);
+        if (current >= 1)
+          JSIL.Host.warning("Warning: lock recursion ", obj);
 
-      obj.__LockCount__ = current + 1;
+        obj.__LockCount__ = current + 1;
 
-      if (typeof (lockTaken) != "undefined")
-        lockTaken.value = true;
-    },
-    Exit: function (obj) {
-      var current = (obj.__LockCount__ || 0);
-      if (current <= 0)
-        JSIL.Host.warning("Warning: unlocking an object that is not locked ", obj);
+        if (typeof (lockTaken) != "undefined")
+          lockTaken.value = true;
+      }
+    );
 
-      obj.__LockCount__ = current - 1;
-    }
+    $.Method({Public: true , Static: true }, "Exit", 
+      new JSIL.MethodSignature(null, ["System.Object"]),
+      function (obj) {
+        var current = (obj.__LockCount__ || 0);
+        if (current <= 0)
+          JSIL.Host.warning("Warning: unlocking an object that is not locked ", obj);
+
+        obj.__LockCount__ = current - 1;
+      }
+    );
   }
 );
 

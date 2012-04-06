@@ -1256,6 +1256,8 @@ namespace JSIL {
                 field.IsPublic, field.IsStatic
             );
 
+            var fieldName = Util.EscapeIdentifier(fieldInfo.Name, EscapingMode.MemberIdentifier);
+
             if (field.HasConstant) {
                 JSLiteral constant;
                 if (field.Constant == null) {
@@ -1268,7 +1270,7 @@ namespace JSIL {
                     JSDotExpression.New(
                         dollarIdentifier, new JSFakeMethod("Constant", field.Module.TypeSystem.Void, null, FunctionCache.MethodTypes)
                     ), new JSExpression[] {
-                        descriptor, JSLiteral.New(fieldInfo.Name), constant
+                        descriptor, JSLiteral.New(fieldName), constant
                     }
                 );
             } else {
@@ -1325,7 +1327,7 @@ namespace JSIL {
                         JSDotExpression.New(
                             dollarIdentifier, new JSFakeMethod("Field", field.Module.TypeSystem.Void, null, FunctionCache.MethodTypes)
                         ), new JSExpression[] {
-                            descriptor, JSLiteral.New(fieldInfo.Name), fieldTypeExpression, defaultValue
+                            descriptor, JSLiteral.New(fieldName), fieldTypeExpression, defaultValue
                         }
                     );
             }
