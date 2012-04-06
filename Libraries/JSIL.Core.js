@@ -3154,10 +3154,48 @@ $jsilcore.BindingFlags = {
   IgnoreReturn: 16777216 
 };
 
+JSIL.GetReflectionCache = function (typeObject) {
+  if (typeof (typeObject) === "undefined")
+    return null;
+  if (typeObject === null)
+    return null;
+
+  var cache = typeObject.__ReflectionCache__;
+  if (JSIL.IsArray(cache))
+    return cache;
+
+  var members = typeObject.__Members__;
+  if (!JSIL.IsArray(members))
+    return null;
+
+  cache = typeObject.__ReflectionCache__ = [];
+
+  for (var i = 0, l = members.length; i < l; i++) {
+    var member = members[i];
+
+    var type = member[0];
+    var descriptor = member[1];
+    var data = member[2];
+
+    var parsedTypeName = JSIL.ParseTypeName("System.Reflection." + type);    
+    var infoType = JSIL.GetTypeInternal(parsedTypeName, JSIL.GlobalNamespace, true);
+    var info = JSIL.CreateInstanceOfType(infoType);
+
+    info._typeObject = typeObject;
+    info._data = data;
+    info._descriptor = descriptor;
+
+    cache.push(info);
+  }
+
+  return cache;
+};
+
 JSIL.GetMembersInternal = function (typeObject, flags, memberType) {
   var result = [];
   var bindingFlags = $jsilcore.BindingFlags;
 
+  var constructorsOnly = (memberType === "ConstructorInfo");
   var allowInherited = (flags & bindingFlags.DeclaredOnly) == 0;
 
   var publicOnly = (flags & bindingFlags.Public) != 0;
@@ -3174,9 +3212,8 @@ JSIL.GetMembersInternal = function (typeObject, flags, memberType) {
   var target = typeObject;
 
   while (target !== null) {
-    var targetMembers = target.__Members__;
-
-    if (!JSIL.IsArray(targetMembers))
+    var targetMembers = JSIL.GetReflectionCache(target);
+    if (targetMembers === null)
       break;
 
     members = targetMembers.concat(members);
@@ -3189,39 +3226,26 @@ JSIL.GetMembersInternal = function (typeObject, flags, memberType) {
 
   for (var i = 0, l = members.length; i < l; i++) {
     var member = members[i];
-    var type = member[0];
-    var descriptor = member[1];
-    var data = member[2];
 
     // Instance and static constructors are not enumerated like normal methods.
-    if (descriptor.SpecialName)
+    if (member.IsSpecialName !== constructorsOnly)
       continue;
 
-    if (publicOnly && !descriptor.Public)
+    if (publicOnly && !member.IsPublic)
       continue;
-    else if (nonPublicOnly && descriptor.Public)
-      continue;
-
-    if (staticOnly && !descriptor.Static)
-      continue;
-    else if (instanceOnly && descriptor.Static)
+    else if (nonPublicOnly && member.IsPublic)
       continue;
 
-    if ((typeof (memberType) === "string") && (memberType != type))
+    if (staticOnly && !member.IsStatic)
+      continue;
+    else if (instanceOnly && member.IsStatic)
       continue;
 
-    var parsedTypeName = JSIL.ParseTypeName("System.Reflection." + type);    
-    var infoType = JSIL.GetTypeInternal(parsedTypeName, JSIL.GlobalNamespace, true);
-    var info = JSIL.CreateInstanceOfType(infoType);
+    if ((typeof (memberType) === "string") && (memberType != member.GetType().__ShortName__)) {
+      continue;
+    }
 
-    info._typeObject = typeObject;
-    info._data = data;
-
-    info.Name = descriptor.Name;
-    info.IsPublic = descriptor.Public;
-    info.IsStatic = descriptor.Static;
-
-    result.push(info);
+    result.push(member);
   }
 
   return result;
@@ -3915,7 +3939,19 @@ JSIL.ImplementExternals(
   "System.Reflection.MemberInfo", true, {
     get_DeclaringType: function () {
       return this._typeObject;
-    }
+    },
+    get_Name: function () {
+      return this._descriptor.Name;
+    },
+    get_IsPublic: function () {
+      return this._descriptor.Public;
+    },
+    get_IsStatic: function () {
+      return this._descriptor.Static;
+    },
+    get_IsSpecialName: function () {
+      return this._descriptor.SpecialName;
+    },
   }
 );
 
@@ -3936,6 +3972,10 @@ JSIL.ImplementExternals(
 );
 
 JSIL.MakeClass("System.Object", "System.Reflection.MemberInfo", true, [], function ($) {
+    $.Property({Public: true , Static: false}, "Name");
+    $.Property({Public: true , Static: false}, "IsPublic");
+    $.Property({Public: true , Static: false}, "IsStatic");
+    $.Property({Public: true , Static: false}, "IsSpecialName");
 });
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.MethodInfo", true, [], function ($) {
@@ -3956,7 +3996,6 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function
       "_ctor", "_Type_GetIDsOfNames", "_Type_GetTypeInfo", "_Type_GetTypeInfoCount", "_Type_Invoke", "Equals$0", "Equals$1", "FindInterfaces", "FindMembers", "get_Assembly", "get_AssemblyQualifiedName", "get_Attributes", "get_BaseType", "get_ContainsGenericParameters", "get_DeclaringMethod", "get_DeclaringType", "get_FullName", "get_GenericParameterAttributes", "get_GenericParameterPosition", "get_GUID", "get_HasElementType", "get_HasProxyAttribute", "get_IsAbstract", "get_IsAnsiClass", "get_IsArray", "get_IsAutoClass", "get_IsAutoLayout", "get_IsByRef", "get_IsClass", "get_IsCOMObject", "get_IsContextful", "get_IsEnum", "get_IsExplicitLayout", "get_IsGenericParameter", "get_IsGenericType", "get_IsGenericTypeDefinition", "get_IsImport", "get_IsInterface", "get_IsLayoutSequential", "get_IsMarshalByRef", "get_IsNested", "get_IsNestedAssembly", "get_IsNestedFamANDAssem", "get_IsNestedFamily", "get_IsNestedFamORAssem", "get_IsNestedPrivate", "get_IsNestedPublic", "get_IsNotPublic", "get_IsPointer", "get_IsPrimitive", "get_IsPublic", "get_IsSealed", "get_IsSerializable", "get_IsSpecialName", "get_IsSzArray", "get_IsUnicodeClass", "get_IsValueType", "get_IsVisible", "get_MemberType", "get_Module", "get_Namespace", "get_ReflectedType", "get_StructLayoutAttribute", "get_TypeHandle", "get_TypeInitializer", "get_UnderlyingSystemType", "GetArrayRank", "GetAttributeFlagsImpl", "GetConstructor$0", "GetConstructor$1", "GetConstructor$2", "GetConstructorImpl", "GetConstructors$0", "GetConstructors$1", "GetDefaultMemberName", "GetDefaultMembers", "GetElementType", "GetEvent$0", "GetEvent$1", "GetEvents$0", "GetEvents$1", "GetField$0", "GetField$1", "GetFields$0", "GetFields$1", "GetGenericArguments", "GetGenericParameterConstraints", "GetGenericTypeDefinition", "GetHashCode", "GetInterface$0", "GetInterface$1", "GetInterfaceMap", "GetInterfaces", "GetMember$0", "GetMember$1", "GetMember$2", "GetMembers$0", "GetMembers$1", "GetMethod$0", "GetMethod$1", "GetMethod$2", "GetMethod$3", "GetMethod$4", "GetMethod$5", "GetMethodImpl", "GetMethods$0", "GetMethods$1", "GetNestedType$0", "GetNestedType$1", "GetNestedTypes$0", "GetNestedTypes$1", "GetProperties$0", "GetProperties$1", "GetProperty$0", "GetProperty$1", "GetProperty$2", "GetProperty$3", "GetProperty$4", "GetProperty$5", "GetProperty$6", "GetPropertyImpl", "GetRootElementType", "GetType", "GetTypeCodeInternal", "GetTypeHandleInternal", "HasElementTypeImpl", "HasProxyAttributeImpl", "InvokeMember$0", "InvokeMember$1", "InvokeMember$2", "IsArrayImpl", "IsAssignableFrom", "IsByRefImpl", "IsCOMObjectImpl", "IsContextfulImpl", "IsInstanceOfType", "IsMarshalByRefImpl", "IsPointerImpl", "IsPrimitiveImpl", "IsSubclassOf", "IsValueTypeImpl", "MakeArrayType$0", "MakeArrayType$1", "MakeByRefType", "MakeGenericType", "MakePointerType", "QuickSerializationCastCheck", "SigToString", "toString"
     );
 
-    $.Property({Public: true , Static: false}, "Name");
     $.Property({Public: true , Static: false}, "Module");
     $.Property({Public: true , Static: false}, "Assembly");
     $.Property({Public: true , Static: false}, "FullName");
