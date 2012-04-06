@@ -928,7 +928,7 @@ namespace JSIL {
             var externalMemberNames = new HashSet<string>();
             var staticExternalMemberNames = new HashSet<string>();
 
-            foreach (var method in typedef.Methods) {
+            foreach (var method in typedef.Methods.OrderBy((md) => md.Name)) {
                 // We translate the static constructor explicitly later, and inject field initialization
                 if (method.Name == ".cctor")
                     continue;
@@ -943,7 +943,7 @@ namespace JSIL {
                 TranslatePrimitiveDefinition(context, output, typedef, stubbed, dollar);
 
             Action initializeOverloadsAndProperties = () => {
-                foreach (var property in typedef.Properties)
+                foreach (var property in typedef.Properties.OrderBy((p) => p.Name))
                     TranslateProperty(context, output, property, dollar);
             };
 
@@ -1495,7 +1495,7 @@ namespace JSIL {
             //  by the cctor.
             // Everything else is emitted inline.
 
-            foreach (var f in typedef.Fields) {
+            foreach (var f in typedef.Fields.OrderBy((f) => f.Name)) {
                 var fi = _TypeInfoProvider.GetField(f);
                 if ((fi != null) && (fi.IsIgnored || fi.IsExternal))
                     continue;
