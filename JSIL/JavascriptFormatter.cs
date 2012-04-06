@@ -298,13 +298,12 @@ namespace JSIL.Internal {
                     Space();
                     Comment("{0}", originalType);
                 } else {
-                    Keyword("new");
-                    Space();
-                    Identifier("JSIL.TypeRef", null);
-                    LPar();
 
                     Identifier("$jsilcore", null);
-                    Comma();
+                    Dot();
+                    Identifier("TypeRef", null);
+                    LPar();
+
                     Value("JSIL.Reference");
                     Comma();
                     OpenBracket(false);
@@ -339,13 +338,11 @@ namespace JSIL.Internal {
                 Comment("{0}", originalType);
                 */
             } else {
-                Keyword("new");
-                Space();
-                Identifier("JSIL.TypeRef", null);
-                LPar();
-
                 AssemblyReference(type);
-                Comma();
+                Dot();
+                Identifier("TypeRef", null);
+
+                LPar();
 
                 Value(fullName);
 

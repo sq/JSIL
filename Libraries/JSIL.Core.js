@@ -78,6 +78,9 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
 
   // Create a new private global namespace for the new assembly
   var result = Object.create(JSIL.GlobalNamespace);
+  result.TypeRef = function (name, ga) {
+    return new JSIL.TypeRef(result, name, ga);
+  };
 
   var assemblyId = ++JSIL.$NextAssemblyId;
 
@@ -3357,7 +3360,7 @@ JSIL.CreateInstanceOfType = function (type, constructorName, constructorArgument
     constructor = publicInterface;
     constructorName = null;
   }
-  
+
   if (!JSIL.IsArray(constructorArguments))
     constructorArguments = [];
 
