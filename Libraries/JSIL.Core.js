@@ -124,6 +124,8 @@ JSIL.$AssignedTypeIds = {};
 JSIL.$GenericParameterTypeIds = {};
 
 JSIL.AssignTypeId = function (assembly, typeName) {
+  var typeName = JSIL.EscapeName(typeName);
+
   if (typeof (assembly.__AssemblyId__) === "undefined")
     throw new Error("Invalid assembly context");
 
@@ -290,7 +292,9 @@ JSIL.GetTypeByName = function (name, assembly) {
     }
   }
 
-  var typeFunction = JSIL.$PublicTypes[name];
+  var key = JSIL.EscapeName(name);
+
+  var typeFunction = JSIL.$PublicTypes[key];
   if (typeof (typeFunction) !== "function")
     throw new Error("Type '" + name + "' has not been defined.");
 
@@ -302,16 +306,17 @@ JSIL.DefineTypeName = function (name, getter, isPublic) {
     throw new Error("Definition for type name '" + name + "' is not a function");
 
   if (isPublic) {
-    var existing = JSIL.$PublicTypes[name];
+    var key = JSIL.EscapeName(name);
+    var existing = JSIL.$PublicTypes[key];
     if (typeof (existing) === "function") {
-      JSIL.$PublicTypes[name] = function () {
+      JSIL.$PublicTypes[key] = function () {
         throw new Error("Type '" + name + "' has multiple public definitions. You must access it through a specific assembly.");
       };
 
-      delete JSIL.$PublicTypeAssemblies[name];
+      delete JSIL.$PublicTypeAssemblies[key];
     } else {
-      JSIL.$PublicTypes[name] = getter;
-      JSIL.$PublicTypeAssemblies[name] = $private;
+      JSIL.$PublicTypes[key] = getter;
+      JSIL.$PublicTypeAssemblies[key] = $private;
     }
   }
 
@@ -570,7 +575,7 @@ JSIL.ImplementExternals = function (namespaceName, isInstance, externals) {
       if (data.mangledName) {
         obj[descriptor.Static ? data.mangledName : prefix + data.mangledName] = target[name];
       }
-      
+
       obj[descriptor.Static ? descriptor.Name : prefix + descriptor.Name] = target[name];
     }
   } else {

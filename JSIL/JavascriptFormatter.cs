@@ -283,11 +283,11 @@ namespace JSIL.Internal {
             type = ILBlockTranslator.DereferenceType(type);
             var typeDef = ILBlockTranslator.GetTypeDefinition(type, false);
             var typeInfo = TypeInfo.Get(type);
+            var fullName = (typeInfo != null) ? typeInfo.FullName
+                    : (typeDef != null) ? typeDef.FullName
+                        : type.FullName;
             var identifier = Util.EscapeIdentifier(
-                (typeInfo != null) ? typeInfo.FullName 
-                    : (typeDef != null) ? typeDef.FullName 
-                        : type.FullName
-                , EscapingMode.String
+                fullName, EscapingMode.String
             );
             var git = type as GenericInstanceType;
             var at = type as ArrayType;
@@ -347,7 +347,7 @@ namespace JSIL.Internal {
                 AssemblyReference(type);
                 Comma();
 
-                Value(identifier);
+                Value(fullName);
 
                 if (git != null) {
                     Comma();
