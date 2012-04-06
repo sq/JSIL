@@ -42,9 +42,10 @@ namespace JSIL {
         public readonly ConcurrentHashQueue<QualifiedMemberIdentifier> OptimizationQueue;
         protected readonly ConcurrentCache<QualifiedMemberIdentifier, Entry> Cache;
 
-        public FunctionCache () {
-            Cache = new ConcurrentCache<QualifiedMemberIdentifier, Entry>(Environment.ProcessorCount, 4096);
-            OptimizationQueue = new ConcurrentHashQueue<QualifiedMemberIdentifier>(Environment.ProcessorCount, 4096);
+        public FunctionCache (ITypeInfoSource typeInfo) {
+            var comparer = new QualifiedMemberIdentifier.Comparer(typeInfo);
+            Cache = new ConcurrentCache<QualifiedMemberIdentifier, Entry>(Environment.ProcessorCount, 4096, comparer);
+            OptimizationQueue = new ConcurrentHashQueue<QualifiedMemberIdentifier>(Environment.ProcessorCount, 4096, comparer);
         }
 
         public bool TryGetExpression (QualifiedMemberIdentifier method, out JSFunctionExpression function) {

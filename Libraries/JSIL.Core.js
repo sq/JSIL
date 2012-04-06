@@ -1113,14 +1113,7 @@ $jsilcore.$Of$NoInitialize = function () {
       name.set(resolveContext, resolvedArguments[i]);
     }
 
-    for (var i = 0; i < resolvedArguments.length; i++) {
-      var resolved = JSIL.ResolveGenericTypeReference(resolvedArguments[i], resolveContext);
-      
-      if ((resolved !== resolvedArguments[i]) && (resolved !== null)) {
-        // console.log("ga[", i, "] ", resolvedArguments[i], " -> ", resolved);
-        resolvedArguments[i] = resolved;
-      }
-    }
+    JSIL.$ResolveGenericTypeReferences(typeObject, resolvedArguments);
   }
 
   var cacheKey = JSIL.HashTypeArgumentArray(resolvedArguments, typeObject.__Context__);
@@ -1408,25 +1401,9 @@ JSIL.CopyMembers = function (source, target) {
   }
 };
 
-JSIL.InitializeType = function (type) {
-  if (typeof (type) === "undefined")
-    throw new Error("Type is null");
-
-  var classObject = type;
-  var typeObject = type;
-
-  if (typeof (classObject.__Type__) === "object")
-    typeObject = classObject.__Type__;
-
-  if (typeObject.__TypeInitialized__ || false)
-    return;
-
-  // Not entirely correct, but prevents recursive type initialization
-  typeObject.__TypeInitialized__ = true;
-
-  // Generate struct field list by enumerating field info
+JSIL.$BuildStructFieldList = function (typeObject) {
   var fields = JSIL.GetMembersInternal(
-    typeObject, $jsilcore.BindingFlags.DeclaredOnly | $jsilcore.BindingFlags.Instance, "FieldInfo"
+    typeObject, $jsilcore.BindingFlags.Instance, "FieldInfo"
   );
   var sf = typeObject.__StructFields__;
 
@@ -1440,6 +1417,88 @@ JSIL.InitializeType = function (type) {
     if (isStruct && !field.IsStatic) {
       sf.push([field.Name, fieldType]);
     }
+  }
+};
+
+JSIL.$ResolveGenericTypeReferences = function (context, types) {
+  for (var i = 0; i < types.length; i++) {
+    var resolved = JSIL.ResolveGenericTypeReference(types[i], context);
+    
+    if ((resolved !== types[i]) && (resolved !== null)) {
+      // console.log("ga[" + i + "] " + types[i] + " -> " + resolved);
+      types[i] = resolved;
+    }
+  }
+};
+
+JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
+  var methods = JSIL.GetMembersInternal(
+    typeObject, 0, "MethodInfo"
+  );
+
+  // Group up all the methods by name in preparation for building the method groups
+  var methodsByName = {};
+  for (var i = 0, l = methods.length; i < l; i++) {
+    var method = methods[i];
+
+    var methodList = methodsByName[method.Name];
+    if (!JSIL.IsArray(methodList))
+      methodList = methodsByName[method.Name] = [];
+
+    methodList.push(method);
+  }
+
+  var printedTypeName = false;
+  var resolveContext = publicInterface.prototype;
+
+  for (var methodName in methodsByName) {
+    var methodList = methodsByName[methodName];
+
+    if (methodList.length < 2)
+      continue;
+
+    if (!printedTypeName) {
+      // print("-- " +typeObject.__FullName__ + " --");
+      printedTypeName = true;
+    }
+
+    var returnType = [methodList[0].ReturnType];
+    JSIL.$ResolveGenericTypeReferences(resolveContext, returnType);
+
+    for (var i = 0, l = methodList.length; i < l; i++) {
+      var method = methodList[i];
+
+      var parameterTypes = Array.prototype.slice.call(method.GetParameterTypes());
+      JSIL.$ResolveGenericTypeReferences(resolveContext, parameterTypes);
+
+      var resolvedSignature = new JSIL.MethodSignature(returnType[0], parameterTypes);
+
+      // print(resolvedSignature.toString(methodName));
+    }
+  }
+};
+
+JSIL.InitializeType = function (type) {
+  if (typeof (type) === "undefined")
+    throw new Error("Type is null");
+
+  var classObject = type, typeObject = type;
+
+  if (typeof (type.__Type__) === "object")
+    typeObject = type.__Type__;
+  else if (typeof (type.__PublicInterface__) !== "undefined")
+    classObject = type.__PublicInterface__;
+
+  if (typeObject.__TypeInitialized__ || false)
+    return;
+
+  // Not entirely correct, but prevents recursive type initialization
+  typeObject.__TypeInitialized__ = true;
+
+  JSIL.$BuildStructFieldList(typeObject);
+
+  if (typeObject.__IsClosed__) {
+    JSIL.$BuildMethodGroups(typeObject, classObject);
   }
 
   // Run any queued initializers for the type
@@ -3154,6 +3213,7 @@ $jsilcore.BindingFlags = {
   IgnoreReturn: 16777216 
 };
 
+// Ensures that all the type's members have associated MemberInfo instances and returns them.
 JSIL.GetReflectionCache = function (typeObject) {
   if (typeof (typeObject) === "undefined")
     return null;
@@ -3177,6 +3237,7 @@ JSIL.GetReflectionCache = function (typeObject) {
     var descriptor = member[1];
     var data = member[2];
 
+    // Construct the appropriate subclass of MemberInfo
     var parsedTypeName = JSIL.ParseTypeName("System.Reflection." + type);    
     var infoType = JSIL.GetTypeInternal(parsedTypeName, JSIL.GlobalNamespace, true);
     var info = JSIL.CreateInstanceOfType(infoType);
@@ -3191,6 +3252,9 @@ JSIL.GetReflectionCache = function (typeObject) {
   return cache;
 };
 
+// Scans the specified type (and its base types, as necessary) to retrieve all the MemberInfo instances appropriate for a request.
+// If any BindingFlags are specified in flags they are applied as filters to limit the number of members returned.
+// If memberType is specified and is the short name of a MemberInfo subclass like 'FieldInfo', only members of that type are returned.
 JSIL.GetMembersInternal = function (typeObject, flags, memberType) {
   var result = [];
   var bindingFlags = $jsilcore.BindingFlags;
@@ -3950,8 +4014,26 @@ JSIL.ImplementExternals(
       return this._descriptor.Static;
     },
     get_IsSpecialName: function () {
-      return this._descriptor.SpecialName;
+      return this._descriptor.SpecialName === true;
     },
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.Reflection.MethodBase", true, {
+    GetParameterTypes: function () {
+      var signature = this._data.signature;
+      return signature.argumentTypes;
+    }
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.Reflection.MethodInfo", true, {
+    get_ReturnType: function () {
+      var signature = this._data.signature;
+      return signature.returnType;
+    }
   }
 );
 
@@ -3978,7 +4060,14 @@ JSIL.MakeClass("System.Object", "System.Reflection.MemberInfo", true, [], functi
     $.Property({Public: true , Static: false}, "IsSpecialName");
 });
 
-JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.MethodInfo", true, [], function ($) {
+JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.MethodBase", true, [], function ($) {
+});
+
+JSIL.MakeClass("System.Reflection.MethodBase", "System.Reflection.MethodInfo", true, [], function ($) {
+    $.Property({Public: true , Static: false}, "ReturnType");
+});
+
+JSIL.MakeClass("System.Reflection.MethodBase", "System.Reflection.ConstructorInfo", true, [], function ($) {
 });
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.FieldInfo", true, [], function ($) {

@@ -988,13 +988,13 @@ namespace JSIL.Ast {
             return type;
         }
 
-        public static TypeReference SubstituteTypeArgs (TypeReference type, MemberReference member) {
+        public static TypeReference SubstituteTypeArgs (ITypeInfoSource typeInfo, TypeReference type, MemberReference member) {
             var gp = (type as GenericParameter);
 
             if (gp != null) {
                 if (gp.Owner.GenericParameterType == GenericParameterType.Method) {
-                    var ownerIdentifier = new MemberIdentifier(gp.Owner as MethodReference);
-                    var memberIdentifier = new MemberIdentifier(member as dynamic);
+                    var ownerIdentifier = new MemberIdentifier(typeInfo, gp.Owner as MethodReference);
+                    var memberIdentifier = new MemberIdentifier(typeInfo, member as dynamic);
 
                     if (!ownerIdentifier.Equals(memberIdentifier))
                         return type;
@@ -2100,7 +2100,7 @@ namespace JSIL.Ast {
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {
             if (Property.ReturnType.IsGenericParameter)
-                return SubstituteTypeArgs(Property.ReturnType, Reference);
+                return SubstituteTypeArgs(Property.Source, Property.ReturnType, Reference);
             else
                 return Property.ReturnType;
         }
@@ -2880,7 +2880,7 @@ namespace JSIL.Ast {
             var targetFakeMethod = FakeMethod ?? (targetAbstractMethod as JSFakeMethod);
 
             if (targetMethod != null)
-                return SubstituteTypeArgs(targetMethod.Reference.ReturnType, targetMethod.Reference);
+                return SubstituteTypeArgs(targetMethod.Method.Source, targetMethod.Reference.ReturnType, targetMethod.Reference);
             else if (targetFakeMethod != null)
                 return targetFakeMethod.ReturnType;
 

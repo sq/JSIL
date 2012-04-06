@@ -18,6 +18,9 @@ namespace JSIL.Internal {
         IMemberInfo Get (MemberReference member);
 
         ProxyInfo[] GetProxies (TypeDefinition type);
+
+        void CacheProxyNames (MemberReference member);
+        bool TryGetProxyNames (string typeFullName, out string[] result);
     }
 
     public static class TypeInfoSourceExtensions {
@@ -108,6 +111,25 @@ namespace JSIL.Internal {
     }
 
     public class QualifiedMemberIdentifier {
+        public class Comparer : IEqualityComparer<QualifiedMemberIdentifier> {
+            public readonly ITypeInfoSource TypeInfo;
+
+            public Comparer (ITypeInfoSource typeInfo) {
+                TypeInfo = typeInfo;
+            }
+
+            public bool Equals (QualifiedMemberIdentifier x, QualifiedMemberIdentifier y) {
+                if (x == null)
+                    return x == y;
+
+                return x.Equals(y, TypeInfo);
+            }
+
+            public int GetHashCode (QualifiedMemberIdentifier obj) {
+                return obj.GetHashCode();
+            }
+        }
+
         public readonly TypeIdentifier Type;
         public readonly MemberIdentifier Member;
 
@@ -120,19 +142,15 @@ namespace JSIL.Internal {
             return Type.GetHashCode() ^ Member.GetHashCode();
         }
 
-        public bool Equals (QualifiedMemberIdentifier rhs) {
+        public bool Equals (QualifiedMemberIdentifier rhs, ITypeInfoSource typeInfo) {
             if (!Type.Equals(rhs.Type))
                 return false;
 
-            return Member.Equals(rhs.Member);
+            return Member.Equals(rhs.Member, typeInfo);
         }
 
         public override bool Equals (object obj) {
-            var rhs = obj as QualifiedMemberIdentifier;
-            if (rhs != null)
-                return Equals(rhs);
-            else
-                return base.Equals(obj);
+            throw new InvalidOperationException("Use QualifiedMemberIdentifier.Equals(...) explicitly.");
         }
 
         public override string ToString () {
@@ -141,14 +159,31 @@ namespace JSIL.Internal {
     }
 
     public class MemberIdentifier {
+        public class Comparer : IEqualityComparer<MemberIdentifier> {
+            public readonly ITypeInfoSource TypeInfo;
+
+            public Comparer (ITypeInfoSource typeInfo) {
+                TypeInfo = typeInfo;
+            }
+
+            public bool Equals (MemberIdentifier x, MemberIdentifier y) {
+                if (x == null)
+                    return x == y;
+
+                return x.Equals(y, TypeInfo);
+            }
+
+            public int GetHashCode (MemberIdentifier obj) {
+                return obj.GetHashCode();
+            }
+        }
+
         public enum MemberType : byte {
             Field = 0,
             Method = 1,
             Property = 2,
             Event = 3,
         }
-
-        public static readonly ConcurrentCache<string, string[]> Proxies = new ConcurrentCache<string, string[]>();
 
         public readonly MemberType Type;
         public readonly string Name;
@@ -161,29 +196,25 @@ namespace JSIL.Internal {
 
         public static readonly TypeReference[] AnyParameterTypes = new TypeReference[] {};
 
-        public static void ResetProxies () {
-            Proxies.Clear();
-        }
-
-        public static MemberIdentifier New (MemberReference mr) {
+        public static MemberIdentifier New (ITypeInfoSource ti, MemberReference mr) {
             MethodReference method;
             PropertyReference property;
             EventReference evt;
             FieldReference field;
 
             if ((method = mr as MethodReference) != null)
-                return new MemberIdentifier(method);
+                return new MemberIdentifier(ti, method);
             else if ((field = mr as FieldReference) != null)
-                return new MemberIdentifier(field);
+                return new MemberIdentifier(ti, field);
             else if ((property = mr as PropertyReference) != null)
-                return new MemberIdentifier(property);
+                return new MemberIdentifier(ti, property);
             else if ((evt = mr as EventReference) != null)
-                return new MemberIdentifier(evt);
+                return new MemberIdentifier(ti, evt);
             else
                 throw new NotImplementedException();
         }
 
-        public MemberIdentifier (MethodReference mr) {
+        public MemberIdentifier (ITypeInfoSource ti, MethodReference mr) {
             Type = MemberType.Method;
             Name = mr.Name;
             ReturnType = mr.ReturnType;
@@ -197,19 +228,19 @@ namespace JSIL.Internal {
             else
                 GenericArgumentCount = 0;
 
-            LocateProxy(mr);
+            ti.CacheProxyNames(mr);
 
             HashCode = Type.GetHashCode() ^ Name.GetHashCode();
         }
 
-        public MemberIdentifier (PropertyReference pr) {
+        public MemberIdentifier (ITypeInfoSource ti, PropertyReference pr) {
             Type = MemberType.Property;
             Name = pr.Name;
             ReturnType = pr.PropertyType;
             ParameterCount = 0;
             GenericArgumentCount = 0;
             ParameterTypes = null;
-            LocateProxy(pr);
+            ti.CacheProxyNames(pr);
 
             var pd = pr.Resolve();
             if (pd != null) {
@@ -225,83 +256,28 @@ namespace JSIL.Internal {
             HashCode = Type.GetHashCode() ^ Name.GetHashCode();
         }
 
-        public MemberIdentifier (FieldReference fr) {
+        public MemberIdentifier (ITypeInfoSource ti, FieldReference fr) {
             Type = MemberType.Field;
             Name = fr.Name;
             ReturnType = fr.FieldType;
             ParameterCount = 0;
             GenericArgumentCount = 0;
             ParameterTypes = null;
-            LocateProxy(fr);
+            ti.CacheProxyNames(fr);
 
             HashCode = Type.GetHashCode() ^ Name.GetHashCode();
         }
 
-        public MemberIdentifier (EventReference er) {
+        public MemberIdentifier (ITypeInfoSource ti, EventReference er) {
             Type = MemberType.Event;
             Name = er.Name;
             ReturnType = er.EventType;
             ParameterCount = 0;
             GenericArgumentCount = 0;
             ParameterTypes = null;
-            LocateProxy(er);
+            ti.CacheProxyNames(er);
 
             HashCode = Type.GetHashCode() ^ Name.GetHashCode();
-        }
-
-        protected static void LocateProxy (MemberReference mr) {
-            var fullName = mr.DeclaringType.FullName;
-
-            Proxies.TryCreate(fullName, () => {
-                var icap = mr.DeclaringType as ICustomAttributeProvider;
-                if (icap == null)
-                    return null;
-
-                CustomAttribute proxyAttribute = null;
-                for (int i = 0, c = icap.CustomAttributes.Count; i < c; i++) {
-                    var ca = icap.CustomAttributes[i];
-                    if ((ca.AttributeType.Name == "JSProxy") && (ca.AttributeType.Namespace == "JSIL.Proxy")) {
-                        proxyAttribute = ca;
-                        break;
-                    }
-                }
-
-                if (proxyAttribute == null)
-                    return null;
-
-                string[] proxyTargets = null;
-                var args = proxyAttribute.ConstructorArguments;
-
-                foreach (var arg in args) {
-                    switch (arg.Type.FullName) {
-                        case "System.Type":
-                            proxyTargets = new string[] { ((TypeReference)arg.Value).FullName };
-
-                            break;
-                        case "System.Type[]": {
-                            var values = (CustomAttributeArgument[])arg.Value;
-                            proxyTargets = new string[values.Length];
-                            for (var i = 0; i < proxyTargets.Length; i++)
-                                proxyTargets[i] = ((TypeReference)values[i].Value).FullName;
-
-                            break;
-                        }
-                        case "System.String": {
-                            proxyTargets = new string[] { (string)arg.Value };
-
-                            break;
-                        }
-                        case "System.String[]": {
-                            var values = (CustomAttributeArgument[])arg.Value;
-                            proxyTargets = (from v in values select (string)v.Value).ToArray();
-
-                            break;
-                        }
-                    }
-                }
-
-                return proxyTargets;
-            });
         }
 
         static TypeReference[] GetParameterTypes (IList<ParameterDefinition> parameters) {
@@ -335,7 +311,7 @@ namespace JSIL.Internal {
             return (t.Name == "AnyType" && t.Namespace == "JSIL.Proxy") || (t.IsGenericParameter);
         }
 
-        bool TypesAreEqual (TypeReference lhs, TypeReference rhs) {
+        bool TypesAreEqual (ITypeInfoSource typeInfo, TypeReference lhs, TypeReference rhs) {
             if (lhs == rhs)
                 return true;
             else if (lhs == null || rhs == null)
@@ -348,7 +324,7 @@ namespace JSIL.Internal {
                 if ((lhsReference == null) || (rhsReference == null))
                     return false;
 
-                return TypesAreEqual(lhsReference.ElementType, rhsReference.ElementType);
+                return TypesAreEqual(typeInfo, lhsReference.ElementType, rhsReference.ElementType);
             }
 
             var lhsArray = lhs as ArrayType;
@@ -358,7 +334,7 @@ namespace JSIL.Internal {
                 if ((lhsArray == null) || (rhsArray == null))
                     return false;
 
-                return TypesAreEqual(lhsArray.ElementType, rhsArray.ElementType);
+                return TypesAreEqual(typeInfo, lhsArray.ElementType, rhsArray.ElementType);
             }
 
             var lhsGit = lhs as GenericInstanceType;
@@ -368,13 +344,13 @@ namespace JSIL.Internal {
                 if (lhsGit.GenericArguments.Count != rhsGit.GenericArguments.Count)
                     return false;
 
-                if (!TypesAreEqual(lhsGit.ElementType, rhsGit.ElementType))
+                if (!TypesAreEqual(typeInfo, lhsGit.ElementType, rhsGit.ElementType))
                     return false;
 
                 using (var eLeft = lhsGit.GenericArguments.GetEnumerator())
                 using (var eRight = rhsGit.GenericArguments.GetEnumerator())
                 while (eLeft.MoveNext() && eRight.MoveNext()) {
-                    if (!TypesAreEqual(eLeft.Current, eRight.Current))
+                    if (!TypesAreEqual(typeInfo, eLeft.Current, eRight.Current))
                         return false;
                 }
 
@@ -383,13 +359,13 @@ namespace JSIL.Internal {
 
             string[] proxyTargets;
             if (
-                Proxies.TryGet(lhs.FullName, out proxyTargets) &&
+                typeInfo.TryGetProxyNames(lhs.FullName, out proxyTargets) &&
                 (proxyTargets != null) &&
                 proxyTargets.Contains(rhs.FullName)
             ) {
                 return true;
             } else if (
-                Proxies.TryGet(rhs.FullName, out proxyTargets) &&
+                typeInfo.TryGetProxyNames(rhs.FullName, out proxyTargets) &&
                 (proxyTargets != null) &&
                 proxyTargets.Contains(lhs.FullName)
             ) {
@@ -402,7 +378,7 @@ namespace JSIL.Internal {
             return ILBlockTranslator.TypesAreEqual(lhs, rhs);
         }
 
-        public bool Equals (MemberIdentifier rhs) {
+        public bool Equals (MemberIdentifier rhs, ITypeInfoSource typeInfo) {
             if (this == rhs)
                 return true;
 
@@ -412,7 +388,7 @@ namespace JSIL.Internal {
             if (!String.Equals(Name, rhs.Name))
                 return false;
 
-            if (!TypesAreEqual(ReturnType, rhs.ReturnType))
+            if (!TypesAreEqual(typeInfo, ReturnType, rhs.ReturnType))
                 return false;
 
             if (GenericArgumentCount != rhs.GenericArgumentCount)
@@ -427,7 +403,7 @@ namespace JSIL.Internal {
                     return false;
 
                 for (int i = 0, c = ParameterCount; i < c; i++) {
-                    if (!TypesAreEqual(ParameterTypes[i], rhs.ParameterTypes[i]))
+                    if (!TypesAreEqual(typeInfo, ParameterTypes[i], rhs.ParameterTypes[i]))
                         return false;
                 }
             }
@@ -436,11 +412,7 @@ namespace JSIL.Internal {
         }
 
         public override bool Equals (object obj) {
-            var rhs = obj as MemberIdentifier;
-            if (rhs != null)
-                return Equals(rhs);
-
-            return base.Equals(obj);
+            throw new InvalidOperationException("Use MemberIdentifier.Equals(...) explicitly.");
         }
 
         public override int GetHashCode () {
@@ -489,14 +461,21 @@ namespace JSIL.Internal {
         public readonly JSProxyMemberPolicy MemberPolicy;
         public readonly JSProxyInterfacePolicy InterfacePolicy;
 
-        public readonly Dictionary<MemberIdentifier, FieldDefinition> Fields = new Dictionary<MemberIdentifier, FieldDefinition>();
-        public readonly Dictionary<MemberIdentifier, PropertyDefinition> Properties = new Dictionary<MemberIdentifier, PropertyDefinition>();
-        public readonly Dictionary<MemberIdentifier, EventDefinition> Events = new Dictionary<MemberIdentifier, EventDefinition>();
-        public readonly Dictionary<MemberIdentifier, MethodDefinition> Methods = new Dictionary<MemberIdentifier, MethodDefinition>();
+        public readonly Dictionary<MemberIdentifier, FieldDefinition> Fields;
+        public readonly Dictionary<MemberIdentifier, PropertyDefinition> Properties;
+        public readonly Dictionary<MemberIdentifier, EventDefinition> Events;
+        public readonly Dictionary<MemberIdentifier, MethodDefinition> Methods;
 
         public readonly bool IsInheritable;
 
-        public ProxyInfo (TypeDefinition proxyType) {
+        public ProxyInfo (TypeInfoProvider typeInfo, TypeDefinition proxyType) {
+            var comparer = new MemberIdentifier.Comparer(typeInfo);
+
+            Fields = new Dictionary<MemberIdentifier, FieldDefinition>(comparer);
+            Properties = new Dictionary<MemberIdentifier, PropertyDefinition>(comparer);
+            Events = new Dictionary<MemberIdentifier, EventDefinition>(comparer);
+            Methods = new Dictionary<MemberIdentifier, MethodDefinition>(comparer);
+
             Definition = proxyType;
             Metadata = new MetadataCollection(proxyType);
             Interfaces = proxyType.Interfaces.ToArray();
@@ -548,28 +527,28 @@ namespace JSIL.Internal {
                 if (!ILBlockTranslator.TypesAreEqual(field.DeclaringType, proxyType))
                     continue;
 
-                Fields.Add(new MemberIdentifier(field), field);
+                Fields.Add(new MemberIdentifier(typeInfo, field), field);
             }
 
             foreach (var property in proxyType.Properties) {
                 if (!ILBlockTranslator.TypesAreEqual(property.DeclaringType, proxyType))
                     continue;
 
-                Properties.Add(new MemberIdentifier(property), property);
+                Properties.Add(new MemberIdentifier(typeInfo, property), property);
             }
 
             foreach (var evt in proxyType.Events) {
                 if (!ILBlockTranslator.TypesAreEqual(evt.DeclaringType, proxyType))
                     continue;
 
-                Events.Add(new MemberIdentifier(evt), evt);
+                Events.Add(new MemberIdentifier(typeInfo, evt), evt);
             }
 
             foreach (var method in proxyType.Methods) {
                 if (!ILBlockTranslator.TypesAreEqual(method.DeclaringType, proxyType))
                     continue;
 
-                Methods.Add(new MemberIdentifier(method), method);
+                Methods.Add(new MemberIdentifier(typeInfo, method), method);
             }
         }
 
@@ -732,7 +711,8 @@ namespace JSIL.Internal {
 
             {
                 var capacity = type.Fields.Count + type.Properties.Count + type.Events.Count + type.Methods.Count;
-                Members = new Dictionary<MemberIdentifier, IMemberInfo>(capacity);
+                var comparer = new MemberIdentifier.Comparer(source);
+                Members = new Dictionary<MemberIdentifier, IMemberInfo>(capacity, comparer);
             }
 
             foreach (var field in type.Fields)
@@ -964,7 +944,7 @@ namespace JSIL.Internal {
         protected bool BeforeAddProxyMember<T> (ProxyInfo proxy, T member, out IMemberInfo result, ICustomAttributeProvider owningMember = null)
             where T : MemberReference, ICustomAttributeProvider
         {
-            var identifier = MemberIdentifier.New(member);
+            var identifier = MemberIdentifier.New(this.Source, member);
 
             if (member.CustomAttributes.Any(ShouldNeverInherit)) {
                 if (!proxy.IsMatch(this.Definition, false)) {
@@ -1150,7 +1130,7 @@ namespace JSIL.Internal {
             IncrementNameCount(method.Name);
 
             IMemberInfo result;
-            var identifier = new MemberIdentifier(method);
+            var identifier = new MemberIdentifier(this.Source, method);
             if (Members.TryGetValue(identifier, out result))
                 return (MethodInfo)result;
 
@@ -1168,7 +1148,7 @@ namespace JSIL.Internal {
             IncrementNameCount(method.Name);
 
             IMemberInfo result;
-            var identifier = new MemberIdentifier(method);
+            var identifier = new MemberIdentifier(this.Source, method);
             if (Members.TryGetValue(identifier, out result))
                 return (MethodInfo)result;
 
@@ -1181,7 +1161,7 @@ namespace JSIL.Internal {
             IncrementNameCount(method.Name);
 
             IMemberInfo result;
-            var identifier = new MemberIdentifier(method);
+            var identifier = new MemberIdentifier(this.Source, method);
             if (Members.TryGetValue(identifier, out result))
                 return (MethodInfo)result;
 
@@ -1196,7 +1176,7 @@ namespace JSIL.Internal {
 
         protected FieldInfo AddMember (FieldDefinition field) {
             IMemberInfo result;
-            var identifier = new MemberIdentifier(field);
+            var identifier = new MemberIdentifier(this.Source, field);
             if (Members.TryGetValue(identifier, out result))
                 return (FieldInfo)result;
 
@@ -1207,7 +1187,7 @@ namespace JSIL.Internal {
 
         protected PropertyInfo AddMember (PropertyDefinition property, bool isFromProxy = false) {
             IMemberInfo result;
-            var identifier = new MemberIdentifier(property);
+            var identifier = new MemberIdentifier(this.Source, property);
             if (Members.TryGetValue(identifier, out result))
                 return (PropertyInfo)result;
 
@@ -1218,7 +1198,7 @@ namespace JSIL.Internal {
 
         protected EventInfo AddMember (EventDefinition evt, bool isFromProxy = false) {
             IMemberInfo result;
-            var identifier = new MemberIdentifier(evt);
+            var identifier = new MemberIdentifier(this.Source, evt);
             if (Members.TryGetValue(identifier, out result))
                 return (EventInfo)result;
 
@@ -1465,6 +1445,10 @@ namespace JSIL.Internal {
 
         protected virtual string GetName () {
             return ChangedName ?? Member.Name;
+        }
+
+        public ITypeInfoSource Source {
+            get { return DeclaringType.Source; }
         }
 
         bool IMemberInfo.IsFromProxy {

@@ -31,7 +31,7 @@ namespace JSIL {
         public readonly TypeInfoProvider TypeInfoProvider;
 
         public readonly SymbolProvider SymbolProvider = new SymbolProvider();
-        public readonly FunctionCache FunctionCache = new FunctionCache();
+        public readonly FunctionCache FunctionCache;
         public readonly AssemblyManifest Manifest;
 
         public event Action<string> AssemblyLoaded;
@@ -55,9 +55,6 @@ namespace JSIL {
                 Manifest = manifest;
             else
                 Manifest = new AssemblyManifest();
-
-            // Important to avoid preserving the proxy list from previous translations in this process
-            MemberIdentifier.ResetProxies();
 
             if (typeInfoProvider != null) {
                 TypeInfoProvider = typeInfoProvider;
@@ -86,6 +83,8 @@ namespace JSIL {
                 foreach (var fn in configuration.Assemblies.Proxies.Distinct())
                     AddProxyAssembly(fn);
             }
+
+            FunctionCache = new FunctionCache(TypeInfoProvider);
         }
 
         protected virtual ReaderParameters GetReaderParameters (bool useSymbols, string mainAssemblyPath = null) {
@@ -953,7 +952,7 @@ namespace JSIL {
 
             Func<FieldDefinition, bool> isFieldIgnored = (f) => {
                 IMemberInfo memberInfo;
-                if (typeInfo.Members.TryGetValue(MemberIdentifier.New(f), out memberInfo))
+                if (typeInfo.Members.TryGetValue(MemberIdentifier.New(this.TypeInfoProvider, f), out memberInfo))
                     return memberInfo.IsIgnored;
                 else
                     return true;
@@ -1507,7 +1506,7 @@ namespace JSIL {
 
                 var typeInfo = TypeInfoProvider.GetTypeInformation(typedef);
                 typeInfo.StaticConstructor = fakeCctor;
-                var identifier = MemberIdentifier.New(fakeCctor);
+                var identifier = MemberIdentifier.New(this.TypeInfoProvider, fakeCctor);
 
                 typeInfo.Members[identifier] = new Internal.MethodInfo(
                     typeInfo, identifier, fakeCctor, new ProxyInfo[0], false

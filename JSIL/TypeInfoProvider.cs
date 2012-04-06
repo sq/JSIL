@@ -16,9 +16,70 @@ namespace JSIL {
         protected readonly Dictionary<TypeIdentifier, ProxyInfo> TypeProxies = new Dictionary<TypeIdentifier, ProxyInfo>();
         protected readonly Dictionary<string, HashSet<ProxyInfo>> DirectProxiesByTypeName = new Dictionary<string, HashSet<ProxyInfo>>();
 
+        protected readonly ConcurrentCache<string, string[]> ProxiesByName = new ConcurrentCache<string, string[]>();
+
         public TypeInfoProvider () {
             TypeInformation = new ConcurrentCache<TypeIdentifier, TypeInfo>(Environment.ProcessorCount, 1024);
             ModuleInformation = new ConcurrentCache<string, ModuleInfo>(Environment.ProcessorCount, 128);
+        }
+
+        bool ITypeInfoSource.TryGetProxyNames (string typeFullName, out string[] result) {
+            return ProxiesByName.TryGet(typeFullName, out result);
+        }
+
+        void ITypeInfoSource.CacheProxyNames (MemberReference mr) {
+            var fullName = mr.DeclaringType.FullName;
+
+            ProxiesByName.TryCreate(fullName, () => {
+                var icap = mr.DeclaringType as Mono.Cecil.ICustomAttributeProvider;
+                if (icap == null)
+                    return null;
+
+                CustomAttribute proxyAttribute = null;
+                for (int i = 0, c = icap.CustomAttributes.Count; i < c; i++) {
+                    var ca = icap.CustomAttributes[i];
+                    if ((ca.AttributeType.Name == "JSProxy") && (ca.AttributeType.Namespace == "JSIL.Proxy")) {
+                        proxyAttribute = ca;
+                        break;
+                    }
+                }
+
+                if (proxyAttribute == null)
+                    return null;
+
+                string[] proxyTargets = null;
+                var args = proxyAttribute.ConstructorArguments;
+
+                foreach (var arg in args) {
+                    switch (arg.Type.FullName) {
+                        case "System.Type":
+                            proxyTargets = new string[] { ((TypeReference)arg.Value).FullName };
+
+                            break;
+                        case "System.Type[]": {
+                                var values = (CustomAttributeArgument[])arg.Value;
+                                proxyTargets = new string[values.Length];
+                                for (var i = 0; i < proxyTargets.Length; i++)
+                                    proxyTargets[i] = ((TypeReference)values[i].Value).FullName;
+
+                                break;
+                            }
+                        case "System.String": {
+                                proxyTargets = new string[] { (string)arg.Value };
+
+                                break;
+                            }
+                        case "System.String[]": {
+                                var values = (CustomAttributeArgument[])arg.Value;
+                                proxyTargets = (from v in values select (string)v.Value).ToArray();
+
+                                break;
+                            }
+                    }
+                }
+
+                return proxyTargets;
+            });
         }
 
         protected IEnumerable<TypeDefinition> ProxyTypesFromAssembly (AssemblyDefinition assembly) {
@@ -75,7 +136,7 @@ namespace JSIL {
                     Assemblies.Add(asm);
 
                 foreach (var proxyType in ProxyTypesFromAssembly(asm)) {
-                    var proxyInfo = new ProxyInfo(proxyType);
+                    var proxyInfo = new ProxyInfo(this, proxyType);
                     TypeProxies.Add(new TypeIdentifier(proxyType), proxyInfo);
 
                     foreach (var typeref in proxyInfo.ProxiedTypes) {
@@ -279,7 +340,7 @@ namespace JSIL {
                 return null;
             }
 
-            var identifier = MemberIdentifier.New(member);
+            var identifier = MemberIdentifier.New(this, member);
 
             IMemberInfo result;
             if (!typeInfo.Members.TryGetValue(identifier, out result)) {
@@ -314,7 +375,7 @@ namespace JSIL {
         public T GetMemberInformation<T> (MemberReference member)
             where T : class, Internal.IMemberInfo {
             var typeInformation = GetTypeInformation(member.DeclaringType);
-            var identifier = MemberIdentifier.New(member);
+            var identifier = MemberIdentifier.New(this, member);
 
             IMemberInfo result;
             if (!typeInformation.Members.TryGetValue(identifier, out result)) {

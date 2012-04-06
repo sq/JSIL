@@ -331,14 +331,14 @@ namespace JSIL.Internal {
         protected readonly ConcurrentDictionary<TValue, bool> Dictionary;
         protected readonly ConcurrentQueue<TValue> Queue;
 
-        public ConcurrentHashQueue () {
+        public ConcurrentHashQueue (IEqualityComparer<TValue> comparer) {
             Queue = new ConcurrentQueue<TValue>();
-            Dictionary = new ConcurrentDictionary<TValue, bool>();
+            Dictionary = new ConcurrentDictionary<TValue, bool>(comparer);
         }
 
-        public ConcurrentHashQueue (int concurrencyLevel, int capacity) {
+        public ConcurrentHashQueue (int concurrencyLevel, int capacity, IEqualityComparer<TValue> comparer) {
             Queue = new ConcurrentQueue<TValue>();
-            Dictionary = new ConcurrentDictionary<TValue, bool>(concurrencyLevel, capacity);
+            Dictionary = new ConcurrentDictionary<TValue, bool>(concurrencyLevel, capacity, comparer);
         }
 
         public bool TryEnqueue (TValue value) {

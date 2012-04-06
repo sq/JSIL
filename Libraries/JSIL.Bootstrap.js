@@ -687,7 +687,7 @@ $jsilcore.$ListExternals = {
   },
   FindAll: function (predicate) {
     var thisType = this.GetType();
-    var result = new thisType();
+    var result = JSIL.CreateInstanceOfType(thisType);
 
     for (var i = 0; i < this._size; i++) {
       var item = this._items[i];

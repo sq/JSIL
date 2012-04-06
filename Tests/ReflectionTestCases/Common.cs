@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reflection;
+using System.Collections.Generic;
 
 namespace Common {
     public static class Util {
@@ -27,12 +28,20 @@ namespace Common {
             return names;
         }
 
-        public static void AssertMembers<T> (Type type, BindingFlags flags, params string[] names) where T : MemberInfo {
-            var methodNames = GetMemberNames<T>(type, flags);
+        public static int AssertMembers<T> (Type type, BindingFlags flags, params string[] names) where T : MemberInfo {
+            int result = 0;
+            var methodNames = new List<string>(GetMemberNames<T>(type, flags));
 
-            foreach (var name in names)
-                if (System.Array.IndexOf(methodNames, name) < 0)
+            foreach (var name in names) {
+                int count = methodNames.FindAll((n) => n == name).Count;
+
+                if (count < 1)
                     Console.WriteLine("{0} not in members of {1}", name, type);
+
+                result += count;
+            }
+
+            return result;
         }
 
         public static void ListMembers<T> (Type type, BindingFlags flags) where T : MemberInfo {
