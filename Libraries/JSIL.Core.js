@@ -78,10 +78,6 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
 
   // Create a new private global namespace for the new assembly
   var result = Object.create(JSIL.GlobalNamespace);
-  result.TypeRef = function (name, ga) {
-    return new JSIL.TypeRef(result, name, ga);
-  };
-
   var assemblyId = ++JSIL.$NextAssemblyId;
 
   try {
@@ -92,6 +88,14 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
     });
   } catch (e) {
   }
+
+  Object.defineProperty(result, "TypeRef", {
+    configurable: true,
+    enumerable: false,
+    value: function (name, ga) {
+      return new JSIL.TypeRef(result, name, ga);
+    }
+  });
 
   try {
     Object.defineProperty(result, "toString", {
@@ -3352,6 +3356,7 @@ JSIL.GetTypeFromAssembly = function (assembly, typeName, genericArguments, throw
 JSIL.CreateInstanceOfType = function (type, constructorName, constructorArguments) {
   var publicInterface = type.__PublicInterface__;
   var instance = JSIL.CloneObject(publicInterface.prototype);
+  var constructor;
 
   if (typeof (constructorName) === "string") {
     constructor = publicInterface.prototype[constructorName];
@@ -3502,6 +3507,10 @@ JSIL.GetMembersInternal = function (typeObject, flags, memberType) {
 
 JSIL.ImplementExternals(
   "System.Type", function ($) {
+    var memberArray = new JSIL.TypeRef($jsilcore, "System.Array", ["System.Reflection.MemberInfo"]);
+    var fieldArray = new JSIL.TypeRef($jsilcore, "System.Array", ["System.Reflection.FieldInfo"]);
+    var methodArray = new JSIL.TypeRef($jsilcore, "System.Array", ["System.Reflection.MethodInfo"]);
+
     $.Method({Public: true , Static: true }, "GetType",
       new JSIL.MethodSignature($.Type, ["System.String"]),
       function (name) {
@@ -3580,7 +3589,7 @@ JSIL.ImplementExternals(
     );
 
     $.Method({Public: true , Static: false}, "GetMembers",
-      new JSIL.MethodSignature("System.Array", []),      
+      new JSIL.MethodSignature(memberArray, []),      
       function () {
         return JSIL.GetMembersInternal(
           this, 
@@ -3592,7 +3601,7 @@ JSIL.ImplementExternals(
     );
 
     $.Method({Public: true , Static: false}, "GetMembers",
-      new JSIL.MethodSignature("System.Array", ["System.Reflection.BindingFlags"]),      
+      new JSIL.MethodSignature(memberArray, ["System.Reflection.BindingFlags"]),      
       function (flags) {
         return JSIL.GetMembersInternal(
           this, flags
@@ -3601,7 +3610,7 @@ JSIL.ImplementExternals(
     );
 
     $.Method({Public: true , Static: false}, "GetMethods",
-      new JSIL.MethodSignature("System.Array", []),      
+      new JSIL.MethodSignature(methodArray, []),      
       function () {
         return JSIL.GetMembersInternal(
           this, 
@@ -3614,7 +3623,7 @@ JSIL.ImplementExternals(
     );
 
     $.Method({Public: true , Static: false}, "GetMethods",
-      new JSIL.MethodSignature("System.Array", ["System.Reflection.BindingFlags"]),      
+      new JSIL.MethodSignature(methodArray, ["System.Reflection.BindingFlags"]),      
       function (flags) {
         return JSIL.GetMembersInternal(
           this, flags, "MethodInfo"
@@ -3623,7 +3632,7 @@ JSIL.ImplementExternals(
     );
 
     $.Method({Public: true , Static: false}, "GetFields",
-      new JSIL.MethodSignature("System.Array", []),      
+      new JSIL.MethodSignature(fieldArray, []),      
       function () {
         return JSIL.GetMembersInternal(
           this, 
@@ -3636,7 +3645,7 @@ JSIL.ImplementExternals(
     );
 
     $.Method({Public: true , Static: false}, "GetFields",
-      new JSIL.MethodSignature("System.Array", ["System.Reflection.BindingFlags"]),      
+      new JSIL.MethodSignature(fieldArray, ["System.Reflection.BindingFlags"]),      
       function (flags) {
         return JSIL.GetMembersInternal(
           this, flags, "FieldInfo"
@@ -3853,7 +3862,7 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
       compositePublicInterface.prototype = JSIL.CloneObject(publicInterface.prototype);
 
       compositePublicInterface.__Type__ = compositeTypeObject;
-      compositeTypeObject.__TypeId__ = compositePublicInterface.__TypeId__ = ++JSIL.$NextTypeId;
+      compositeTypeObject.__TypeId__ = compositePublicInterface.__TypeId__ = typeObject.__TypeId__ + "[" + elementTypeObject.__TypeId__ + "]";
       compositePublicInterface.CheckType = publicInterface.CheckType;
 
       compositeTypeObject.__PublicInterface__ = compositePublicInterface;
@@ -4284,7 +4293,7 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.PropertyInfo",
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function ($) {
     $.ExternalMembers(true, 
-      "_ctor", "_Type_GetIDsOfNames", "_Type_GetTypeInfo", "_Type_GetTypeInfoCount", "_Type_Invoke", "Equals$0", "Equals$1", "FindInterfaces", "FindMembers", "get_Assembly", "get_AssemblyQualifiedName", "get_Attributes", "get_BaseType", "get_ContainsGenericParameters", "get_DeclaringMethod", "get_DeclaringType", "get_GenericParameterAttributes", "get_GenericParameterPosition", "get_GUID", "get_HasElementType", "get_HasProxyAttribute", "get_IsAbstract", "get_IsAnsiClass", "get_IsArray", "get_IsAutoClass", "get_IsAutoLayout", "get_IsByRef", "get_IsClass", "get_IsCOMObject", "get_IsContextful", "get_IsEnum", "get_IsExplicitLayout", "get_IsGenericParameter", "get_IsGenericType", "get_IsGenericTypeDefinition", "get_IsImport", "get_IsInterface", "get_IsLayoutSequential", "get_IsMarshalByRef", "get_IsNested", "get_IsNestedAssembly", "get_IsNestedFamANDAssem", "get_IsNestedFamily", "get_IsNestedFamORAssem", "get_IsNestedPrivate", "get_IsNestedPublic", "get_IsNotPublic", "get_IsPointer", "get_IsPrimitive", "get_IsPublic", "get_IsSealed", "get_IsSerializable", "get_IsSpecialName", "get_IsSzArray", "get_IsUnicodeClass", "get_IsValueType", "get_IsVisible", "get_MemberType", "get_Module", "get_Namespace", "get_ReflectedType", "get_StructLayoutAttribute", "get_TypeHandle", "get_TypeInitializer", "get_UnderlyingSystemType", "GetArrayRank", "GetAttributeFlagsImpl", "GetConstructor$0", "GetConstructor$1", "GetConstructor$2", "GetConstructorImpl", "GetConstructors$0", "GetConstructors$1", "GetDefaultMemberName", "GetDefaultMembers", "GetElementType", "GetEvent$0", "GetEvent$1", "GetEvents$0", "GetEvents$1", "GetField$0", "GetField$1", "GetFields$0", "GetFields$1", "GetGenericArguments", "GetGenericParameterConstraints", "GetGenericTypeDefinition", "GetHashCode", "GetInterface$0", "GetInterface$1", "GetInterfaceMap", "GetInterfaces", "GetMember$0", "GetMember$1", "GetMember$2", "GetMembers$0", "GetMembers$1", "GetMethod$0", "GetMethod$1", "GetMethod$2", "GetMethod$3", "GetMethod$4", "GetMethod$5", "GetMethodImpl", "GetMethods$0", "GetMethods$1", "GetNestedType$0", "GetNestedType$1", "GetNestedTypes$0", "GetNestedTypes$1", "GetProperties$0", "GetProperties$1", "GetProperty$0", "GetProperty$1", "GetProperty$2", "GetProperty$3", "GetProperty$4", "GetProperty$5", "GetProperty$6", "GetPropertyImpl", "GetRootElementType", "GetTypeCodeInternal", "GetTypeHandleInternal", "HasElementTypeImpl", "HasProxyAttributeImpl", "InvokeMember$0", "InvokeMember$1", "InvokeMember$2", "IsArrayImpl", "IsByRefImpl", "IsCOMObjectImpl", "IsContextfulImpl", "IsInstanceOfType", "IsMarshalByRefImpl", "IsPointerImpl", "IsPrimitiveImpl", "IsSubclassOf", "IsValueTypeImpl", "MakeArrayType$0", "MakeArrayType$1", "MakeByRefType", "MakeGenericType", "MakePointerType", "QuickSerializationCastCheck", "SigToString"
+      "_ctor", "_Type_GetIDsOfNames", "_Type_GetTypeInfo", "_Type_GetTypeInfoCount", "_Type_Invoke", "Equals$0", "Equals$1", "FindInterfaces", "FindMembers", "get_Assembly", "get_AssemblyQualifiedName", "get_Attributes", "get_BaseType", "get_ContainsGenericParameters", "get_DeclaringMethod", "get_DeclaringType", "get_GenericParameterAttributes", "get_GenericParameterPosition", "get_GUID", "get_HasElementType", "get_HasProxyAttribute", "get_IsAbstract", "get_IsAnsiClass", "get_IsArray", "get_IsAutoClass", "get_IsAutoLayout", "get_IsByRef", "get_IsClass", "get_IsCOMObject", "get_IsContextful", "get_IsEnum", "get_IsExplicitLayout", "get_IsGenericParameter", "get_IsGenericType", "get_IsGenericTypeDefinition", "get_IsImport", "get_IsInterface", "get_IsLayoutSequential", "get_IsMarshalByRef", "get_IsNested", "get_IsNestedAssembly", "get_IsNestedFamANDAssem", "get_IsNestedFamily", "get_IsNestedFamORAssem", "get_IsNestedPrivate", "get_IsNestedPublic", "get_IsNotPublic", "get_IsPointer", "get_IsPrimitive", "get_IsPublic", "get_IsSealed", "get_IsSerializable", "get_IsSpecialName", "get_IsSzArray", "get_IsUnicodeClass", "get_IsValueType", "get_IsVisible", "get_MemberType", "get_Module", "get_Namespace", "get_ReflectedType", "get_StructLayoutAttribute", "get_TypeHandle", "get_TypeInitializer", "get_UnderlyingSystemType", "GetArrayRank", "GetAttributeFlagsImpl", "GetConstructor$0", "GetConstructor$1", "GetConstructor$2", "GetConstructorImpl", "GetConstructors$0", "GetConstructors$1", "GetDefaultMemberName", "GetDefaultMembers", "GetElementType", "GetEvent$0", "GetEvent$1", "GetEvents$0", "GetEvents$1", "GetField$0", "GetField$1", "GetFields$0", "GetFields$1", "GetGenericArguments", "GetGenericParameterConstraints", "GetGenericTypeDefinition", "GetHashCode", "GetInterface$0", "GetInterface$1", "GetInterfaceMap", "GetInterfaces", "GetMember$0", "GetMember$1", "GetMember$2", "GetMethod$0", "GetMethod$1", "GetMethod$2", "GetMethod$3", "GetMethod$4", "GetMethod$5", "GetMethodImpl", "GetMethods$0", "GetMethods$1", "GetNestedType$0", "GetNestedType$1", "GetNestedTypes$0", "GetNestedTypes$1", "GetProperties$0", "GetProperties$1", "GetProperty$0", "GetProperty$1", "GetProperty$2", "GetProperty$3", "GetProperty$4", "GetProperty$5", "GetProperty$6", "GetPropertyImpl", "GetRootElementType", "GetTypeCodeInternal", "GetTypeHandleInternal", "HasElementTypeImpl", "HasProxyAttributeImpl", "InvokeMember$0", "InvokeMember$1", "InvokeMember$2", "IsArrayImpl", "IsByRefImpl", "IsCOMObjectImpl", "IsContextfulImpl", "IsInstanceOfType", "IsMarshalByRefImpl", "IsPointerImpl", "IsPrimitiveImpl", "IsSubclassOf", "IsValueTypeImpl", "MakeArrayType$0", "MakeArrayType$1", "MakeByRefType", "MakeGenericType", "MakePointerType", "QuickSerializationCastCheck", "SigToString"
     );
 
     $.ExternalMethod({Public: true , Static: false}, "toString",
