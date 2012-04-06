@@ -24,11 +24,10 @@ using Mono.Cecil.Cil;
 using MethodInfo = JSIL.Internal.MethodInfo;
 
 namespace JSIL {
-    public class AssemblyTranslator {
+    public class AssemblyTranslator : IDisposable {
         public const int LargeMethodThreshold = 20 * 1024;
 
         public readonly Configuration Configuration;
-        public readonly TypeInfoProvider TypeInfoProvider;
 
         public readonly SymbolProvider SymbolProvider = new SymbolProvider();
         public readonly FunctionCache FunctionCache;
@@ -45,6 +44,9 @@ namespace JSIL {
         public event Action<string, Exception> CouldNotResolveAssembly;
         public event Action<string, Exception> CouldNotDecompileMethod;
 
+        internal readonly TypeInfoProvider _TypeInfoProvider;
+        protected bool OwnsTypeInfoProvider;
+
         public AssemblyTranslator (
             Configuration configuration,
             TypeInfoProvider typeInfoProvider = null,
@@ -57,12 +59,14 @@ namespace JSIL {
                 Manifest = new AssemblyManifest();
 
             if (typeInfoProvider != null) {
-                TypeInfoProvider = typeInfoProvider;
+                _TypeInfoProvider = typeInfoProvider;
+                OwnsTypeInfoProvider = false;
 
                 if (configuration.Assemblies.Proxies.Count > 0)
                     throw new InvalidOperationException("Cannot reuse an existing type provider if explicitly loading proxies");
             } else {
-                TypeInfoProvider = new JSIL.TypeInfoProvider();
+                _TypeInfoProvider = new JSIL.TypeInfoProvider();
+                OwnsTypeInfoProvider = true;
 
                 Assembly proxyAssembly = null;
                 var proxyPath = Path.GetDirectoryName(Util.GetPathOfAssembly(Assembly.GetExecutingAssembly()));
@@ -84,7 +88,7 @@ namespace JSIL {
                     AddProxyAssembly(fn);
             }
 
-            FunctionCache = new FunctionCache(TypeInfoProvider);
+            FunctionCache = new FunctionCache(_TypeInfoProvider);
         }
 
         protected virtual ReaderParameters GetReaderParameters (bool useSymbols, string mainAssemblyPath = null) {
@@ -109,7 +113,7 @@ namespace JSIL {
         public void AddProxyAssembly (string path) {
             var assemblies = LoadAssembly(path, Configuration.UseSymbols.GetValueOrDefault(true), false);
 
-            TypeInfoProvider.AddProxyAssemblies(assemblies);
+            _TypeInfoProvider.AddProxyAssemblies(assemblies);
         }
 
         public void AddProxyAssembly (Assembly assembly) {
@@ -269,7 +273,7 @@ namespace JSIL {
             var parallelOptions = GetParallelOptions();
 
             if (scanForProxies)
-                TypeInfoProvider.AddProxyAssemblies(assemblies);
+                _TypeInfoProvider.AddProxyAssemblies(assemblies);
 
             var pr = new ProgressReporter();
             if (Decompiling != null)
@@ -410,7 +414,7 @@ namespace JSIL {
             var allTypes = new List<TypeDefinition>();
 
             foreach (var module in assembly.Modules) {
-                var moduleInfo = TypeInfoProvider.GetModuleInformation(module);
+                var moduleInfo = _TypeInfoProvider.GetModuleInformation(module);
                 if (moduleInfo.IsIgnored)
                     continue;
 
@@ -438,7 +442,7 @@ namespace JSIL {
                             if (!m.HasBody)
                                 continue;
 
-                            var mi = TypeInfoProvider.GetMethod(m);
+                            var mi = _TypeInfoProvider.GetMethod(m);
 
                             if ((mi == null) || (mi.IsIgnored))
                                 continue;
@@ -481,7 +485,7 @@ namespace JSIL {
             bool stubbed = IsStubbed(assembly);
 
             var tw = new StreamWriter(outputStream, Encoding.ASCII);
-            var formatter = new JavascriptFormatter(tw, this.TypeInfoProvider, Manifest, assembly);
+            var formatter = new JavascriptFormatter(tw, this._TypeInfoProvider, Manifest, assembly);
 
             formatter.Comment(GetHeaderText());
             formatter.NewLine();
@@ -512,7 +516,7 @@ namespace JSIL {
             DecompilerContext context, JavascriptFormatter output, ModuleDefinition module, 
             HashSet<TypeDefinition> sealedTypes, HashSet<TypeDefinition> declaredTypes, bool stubbed
         ) {
-            var moduleInfo = TypeInfoProvider.GetModuleInformation(module);
+            var moduleInfo = _TypeInfoProvider.GetModuleInformation(module);
             if (moduleInfo.IsIgnored)
                 return;
 
@@ -523,7 +527,7 @@ namespace JSIL {
 
             // Probably should be an argument, not a member variable...
             var astEmitter = new JavascriptAstEmitter(
-                output, jsil, context.CurrentModule.TypeSystem, this.TypeInfoProvider
+                output, jsil, context.CurrentModule.TypeSystem, this._TypeInfoProvider
             );
 
             foreach (var typedef in module.Types)
@@ -552,7 +556,7 @@ namespace JSIL {
 
             bool isFirst = true;
             foreach (var m in iface.Methods) {
-                var methodInfo = TypeInfoProvider.GetMethod(m);
+                var methodInfo = _TypeInfoProvider.GetMethod(m);
                 if ((methodInfo != null) && methodInfo.IsIgnored)
                     continue;
 
@@ -569,7 +573,7 @@ namespace JSIL {
             }
 
             foreach (var p in iface.Properties) {
-                var propertyInfo = TypeInfoProvider.GetProperty(p);
+                var propertyInfo = _TypeInfoProvider.GetProperty(p);
                 if ((propertyInfo != null) && propertyInfo.IsIgnored)
                     continue;
 
@@ -608,7 +612,7 @@ namespace JSIL {
         }
 
         protected void TranslateEnum (DecompilerContext context, JavascriptFormatter output, TypeDefinition enm) {
-            var typeInfo = TypeInfoProvider.GetTypeInformation(enm);
+            var typeInfo = _TypeInfoProvider.GetTypeInformation(enm);
 
             output.Identifier("JSIL.MakeEnum", null);
             output.LPar();
@@ -622,7 +626,7 @@ namespace JSIL {
 
             output.OpenBrace();
 
-            var typeInformation = TypeInfoProvider.GetTypeInformation(enm);
+            var typeInformation = _TypeInfoProvider.GetTypeInformation(enm);
             if (typeInformation == null)
                 throw new InvalidOperationException();
 
@@ -674,7 +678,7 @@ namespace JSIL {
         }
 
         protected void DeclareType (DecompilerContext context, TypeDefinition typedef, JavascriptAstEmitter astEmitter, JavascriptFormatter output, HashSet<TypeDefinition> declaredTypes, bool stubbed) {
-            var typeInfo = TypeInfoProvider.GetTypeInformation(typedef);
+            var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
                 return;
 
@@ -827,7 +831,7 @@ namespace JSIL {
         }
 
         protected bool ShouldTranslateMethods (TypeDefinition typedef) {
-            var typeInfo = TypeInfoProvider.GetTypeInformation(typedef);
+            var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy || typeInfo.IsExternal)
                 return false;
 
@@ -914,7 +918,7 @@ namespace JSIL {
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
             bool stubbed, Action<JavascriptFormatter> dollar
         ) {
-            var typeInfo = TypeInfoProvider.GetTypeInformation(typedef);
+            var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             if (!ShouldTranslateMethods(typedef))
                 return;
 
@@ -943,7 +947,7 @@ namespace JSIL {
             };
 
             Func<TypeReference, bool> isInterfaceIgnored = (i) => {
-                var interfaceInfo = TypeInfoProvider.GetTypeInformation(i);
+                var interfaceInfo = _TypeInfoProvider.GetTypeInformation(i);
                 if (interfaceInfo != null)
                     return interfaceInfo.IsIgnored;
                 else
@@ -952,7 +956,7 @@ namespace JSIL {
 
             Func<FieldDefinition, bool> isFieldIgnored = (f) => {
                 IMemberInfo memberInfo;
-                if (typeInfo.Members.TryGetValue(MemberIdentifier.New(this.TypeInfoProvider, f), out memberInfo))
+                if (typeInfo.Members.TryGetValue(MemberIdentifier.New(this._TypeInfoProvider, f), out memberInfo))
                     return memberInfo.IsIgnored;
                 else
                     return true;
@@ -1027,7 +1031,7 @@ namespace JSIL {
                 if (methodDef == null)
                     throw new ArgumentNullException("methodDef");
 
-                var methodInfo = TypeInfoProvider.GetMemberInformation<JSIL.Internal.MethodInfo>(methodDef);
+                var methodInfo = _TypeInfoProvider.GetMemberInformation<JSIL.Internal.MethodInfo>(methodDef);
 
                 var identifier = new QualifiedMemberIdentifier(
                     methodInfo.DeclaringType.Identifier, methodInfo.Identifier
@@ -1152,7 +1156,7 @@ namespace JSIL {
 
             new IntroduceVariableDeclarations(
                 variables,
-                TypeInfoProvider
+                _TypeInfoProvider
             ).Visit(function);
 
             new IntroduceVariableReferences(
@@ -1182,11 +1186,11 @@ namespace JSIL {
             ).Visit(function);
 
             new IntroduceEnumCasts(
-                si.TypeSystem, TypeInfoProvider
+                si.TypeSystem, _TypeInfoProvider
             ).Visit(function);
 
             new ExpandCastExpressions(
-                si.TypeSystem, si.JS, si.JSIL, TypeInfoProvider
+                si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider
             ).Visit(function);
             
             // We need another operator simplification pass to simplify expressions created by cast expressions
@@ -1217,7 +1221,7 @@ namespace JSIL {
             lnd.EliminateUnusedLoopNames();
 
             new ExpandCastExpressions(
-                si.TypeSystem, si.JS, si.JSIL, TypeInfoProvider
+                si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider
             ).Visit(function);
         }
 
@@ -1242,7 +1246,7 @@ namespace JSIL {
             bool cctorContext, Action<JavascriptFormatter> dollar
         ) {
             JSDotExpression target;
-            var fieldInfo = TypeInfoProvider.GetMemberInformation<Internal.FieldInfo>(field);
+            var fieldInfo = _TypeInfoProvider.GetMemberInformation<Internal.FieldInfo>(field);
             if ((fieldInfo == null) || fieldInfo.IsIgnored || fieldInfo.IsExternal)
                 return null;
 
@@ -1338,12 +1342,12 @@ namespace JSIL {
             var fieldsToEmit =
                 (from f in staticFields
                  where NeedsStaticConstructor(f.FieldType)
-                 let fi = TypeInfoProvider.GetField(f)
+                 let fi = _TypeInfoProvider.GetField(f)
                  where ((fi != null) && (!fi.IsExternal && !fi.IsIgnored)) || (fi == null)
                  select f).ToArray();
             var fieldsToStrip =
                 new HashSet<FieldDefinition>(from f in staticFields
-                 let fi = TypeInfoProvider.GetField(f)
+                 let fi = _TypeInfoProvider.GetField(f)
                  where (fi != null) && (fi.IsExternal || fi.IsIgnored)
                  select f);
 
@@ -1488,7 +1492,7 @@ namespace JSIL {
             // Everything else is emitted inline.
 
             foreach (var f in typedef.Fields) {
-                var fi = TypeInfoProvider.GetField(f);
+                var fi = _TypeInfoProvider.GetField(f);
                 if ((fi != null) && (fi.IsIgnored || fi.IsExternal))
                     continue;
 
@@ -1504,9 +1508,9 @@ namespace JSIL {
                 var fakeCctor = new MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static, typeSystem.Void);
                 fakeCctor.DeclaringType = typedef;
 
-                var typeInfo = TypeInfoProvider.GetTypeInformation(typedef);
+                var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
                 typeInfo.StaticConstructor = fakeCctor;
-                var identifier = MemberIdentifier.New(this.TypeInfoProvider, fakeCctor);
+                var identifier = MemberIdentifier.New(this._TypeInfoProvider, fakeCctor);
 
                 typeInfo.Members[identifier] = new Internal.MethodInfo(
                     typeInfo, identifier, fakeCctor, new ProxyInfo[0], false
@@ -1527,7 +1531,7 @@ namespace JSIL {
             Action<JavascriptFormatter> dollar,
             Action<JSFunctionExpression> bodyTransformer = null
         ) {
-            var methodInfo = TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
+            var methodInfo = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
             if (methodInfo == null)
                 return;
 
@@ -1636,7 +1640,7 @@ namespace JSIL {
             DecompilerContext context, JavascriptFormatter output,
             PropertyDefinition property, Action<JavascriptFormatter> dollar
         ) {
-            var propertyInfo = TypeInfoProvider.GetMemberInformation<Internal.PropertyInfo>(property);
+            var propertyInfo = _TypeInfoProvider.GetMemberInformation<Internal.PropertyInfo>(property);
             if ((propertyInfo == null) || propertyInfo.IsIgnored || propertyInfo.IsExternal)
                 return;
 
@@ -1660,6 +1664,18 @@ namespace JSIL {
 
             output.RPar();
             output.Semicolon();
+        }
+
+        public void Dispose () {
+            if (OwnsTypeInfoProvider)
+                _TypeInfoProvider.Dispose();
+
+            FunctionCache.Dispose();
+        }
+
+        public TypeInfoProvider GetTypeInfoProvider () {
+            OwnsTypeInfoProvider = false;
+            return _TypeInfoProvider;
         }
     }
 }

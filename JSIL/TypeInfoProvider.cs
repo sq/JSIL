@@ -8,19 +8,35 @@ using JSIL.Internal;
 using Mono.Cecil;
 
 namespace JSIL {
-    public class TypeInfoProvider : ITypeInfoSource {
+    public class TypeInfoProvider : ITypeInfoSource, IDisposable {
         protected readonly HashSet<AssemblyDefinition> Assemblies = new HashSet<AssemblyDefinition>();
         protected readonly HashSet<string> ProxyAssemblyNames = new HashSet<string>();
         protected readonly ConcurrentCache<TypeIdentifier, TypeInfo> TypeInformation;
         protected readonly ConcurrentCache<string, ModuleInfo> ModuleInformation;
         protected readonly Dictionary<TypeIdentifier, ProxyInfo> TypeProxies = new Dictionary<TypeIdentifier, ProxyInfo>();
         protected readonly Dictionary<string, HashSet<ProxyInfo>> DirectProxiesByTypeName = new Dictionary<string, HashSet<ProxyInfo>>();
-
         protected readonly ConcurrentCache<string, string[]> ProxiesByName = new ConcurrentCache<string, string[]>();
+        protected readonly ConcurrentCache<Tuple<string, string>, bool> TypeAssignabilityCache = new ConcurrentCache<Tuple<string, string>, bool>();
 
         public TypeInfoProvider () {
             TypeInformation = new ConcurrentCache<TypeIdentifier, TypeInfo>(Environment.ProcessorCount, 1024);
             ModuleInformation = new ConcurrentCache<string, ModuleInfo>(Environment.ProcessorCount, 128);
+        }
+
+        ConcurrentCache<Tuple<string, string>, bool> ITypeInfoSource.AssignabilityCache {
+            get {
+                return this.TypeAssignabilityCache;
+            }
+        }
+
+        public void Dispose () {
+            Assemblies.Clear();
+            ProxyAssemblyNames.Clear();
+            TypeInformation.Clear();
+            ModuleInformation.Clear();
+            TypeProxies.Clear();
+            DirectProxiesByTypeName.Clear();
+            ProxiesByName.Clear();
         }
 
         bool ITypeInfoSource.TryGetProxyNames (string typeFullName, out string[] result) {

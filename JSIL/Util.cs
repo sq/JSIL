@@ -341,6 +341,14 @@ namespace JSIL.Internal {
             Dictionary = new ConcurrentDictionary<TValue, bool>(concurrencyLevel, capacity, comparer);
         }
 
+        public void Clear () {
+            Dictionary.Clear();
+
+            TValue temp;
+            while (Queue.Count > 0)
+                Queue.TryDequeue(out temp);
+        }
+
         public bool TryEnqueue (TValue value) {
             if (Dictionary.TryAdd(value, false)) {
                 Queue.Enqueue(value);

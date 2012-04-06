@@ -17,7 +17,7 @@ namespace JSIL {
         void InvalidateSecondPass (QualifiedMemberIdentifier method);
     }
 
-    public class FunctionCache : IFunctionSource {
+    public class FunctionCache : IFunctionSource, IDisposable {
         public class Entry {
             public QualifiedMemberIdentifier Identifier;
             public MethodInfo Info;
@@ -180,6 +180,11 @@ namespace JSIL {
                     Expression = null
                 };
             });
+        }
+
+        public void Dispose () {
+            Cache.Clear();
+            OptimizationQueue.Clear();
         }
     }
 }

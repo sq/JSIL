@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using JSIL.Ast;
 using JSIL.Meta;
 using JSIL.Proxy;
@@ -21,6 +22,10 @@ namespace JSIL.Internal {
 
         void CacheProxyNames (MemberReference member);
         bool TryGetProxyNames (string typeFullName, out string[] result);
+
+        ConcurrentCache<Tuple<string, string>, bool> AssignabilityCache {
+            get;
+        }
     }
 
     public static class TypeInfoSourceExtensions {
@@ -468,7 +473,10 @@ namespace JSIL.Internal {
 
         public readonly bool IsInheritable;
 
-        public ProxyInfo (TypeInfoProvider typeInfo, TypeDefinition proxyType) {
+        protected readonly ITypeInfoSource TypeInfo;
+
+        public ProxyInfo (ITypeInfoSource typeInfo, TypeDefinition proxyType) {
+            TypeInfo = typeInfo;
             var comparer = new MemberIdentifier.Comparer(typeInfo);
 
             Fields = new Dictionary<MemberIdentifier, FieldDefinition>(comparer);
@@ -585,7 +593,7 @@ namespace JSIL.Internal {
             foreach (var pt in ProxiedTypes) {
                 bool isMatch;
                 if (inheritable)
-                    isMatch = ILBlockTranslator.TypesAreAssignable(pt, type);
+                    isMatch = ILBlockTranslator.TypesAreAssignable(TypeInfo, pt, type);
                 else
                     isMatch = ILBlockTranslator.TypesAreEqual(pt, type);
 
@@ -626,8 +634,6 @@ namespace JSIL.Internal {
         public readonly Dictionary<string, int> MethodNameCounts = new Dictionary<string, int>();
         public readonly HashSet<MethodGroupInfo> MethodGroups = new HashSet<MethodGroupInfo>();
 
-        public readonly ConcurrentBag<TypeInfo> DerivedTypes = new ConcurrentBag<TypeInfo>();
-
         public readonly bool IsFlagsEnum;
         public readonly EnumMemberInfo FirstEnumMember = null;
         public readonly Dictionary<long, EnumMemberInfo> ValueToEnumMember;
@@ -637,6 +643,7 @@ namespace JSIL.Internal {
         public readonly bool IsDelegate;
         public readonly string Replacement;
 
+        protected int _DerivedTypeCount = 0;
         protected string _FullName = null;
         protected bool _FullyInitialized = false;
         protected bool _IsIgnored = false;
@@ -652,7 +659,7 @@ namespace JSIL.Internal {
             bool isStatic = type.IsSealed && type.IsAbstract;
 
             if (baseClass != null)
-                baseClass.DerivedTypes.Add(this);
+                Interlocked.Increment(ref baseClass._DerivedTypeCount);
 
             Proxies = source.GetProxies(type);
             Metadata = new MetadataCollection(type);
@@ -859,7 +866,7 @@ namespace JSIL.Internal {
 
         public int DerivedTypeCount {
             get {
-                return this.DerivedTypes.Count;
+                return _DerivedTypeCount;
             }
         }
 

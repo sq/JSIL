@@ -1315,7 +1315,7 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
     JSIL.$ResolveGenericTypeReferences(resolveContext, returnType);
     JSIL.$ResolveGenericTypeReferences(resolveContext, argumentTypes);
 
-    var resolvedSignature = new JSIL.MethodSignature(returnType[0], argumentTypes);
+    var resolvedSignature = new JSIL.MethodSignature(returnType[0], argumentTypes, typeObject.__Context__);
 
     if (resolvedSignature.Hash != signature.Hash) {
       var oldName = data.mangledName;
@@ -1543,7 +1543,8 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
     }
 
     var target = isStatic ? publicInterface : publicInterface.prototype;
-    target[methodName] = JSIL.$MakeMethodGroup(methodName, entries);
+
+    // target[methodName] = JSIL.$MakeMethodGroup(methodName, entries);
   }
 };
 

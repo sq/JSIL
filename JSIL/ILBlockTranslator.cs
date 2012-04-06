@@ -27,9 +27,6 @@ namespace JSIL {
 
         protected readonly Dictionary<ILVariable, JSVariable> RenamedVariables = new Dictionary<ILVariable, JSVariable>();
 
-        // Yuck :(
-        static readonly ConcurrentCache<Tuple<string, string>, bool> TypeAssignabilityCache = new ConcurrentCache<Tuple<string, string>, bool>();
-
         public readonly SpecialIdentifiers SpecialIdentifiers;
 
         protected int UnlabelledBlockCount = 0;
@@ -82,7 +79,7 @@ namespace JSIL {
 
         public ITypeInfoSource TypeInfo {
             get {
-                return Translator.TypeInfoProvider;
+                return Translator._TypeInfoProvider;
             }
         }
 
@@ -197,7 +194,7 @@ namespace JSIL {
             // Detect the weird pattern '!(x = y as z)' and transform it into '(x = y as z) != null'
             if (
                 (op == JSOperator.LogicalNot) && 
-                !TypesAreAssignable(TypeSystem.Boolean, innerType)
+                !TypesAreAssignable(TypeInfo, TypeSystem.Boolean, innerType)
             ) {
                 return new JSBinaryOperatorExpression(
                     JSOperator.Equal, inner, new JSDefaultValueLiteral(innerType), TypeSystem.Boolean
@@ -617,7 +614,7 @@ namespace JSIL {
             }
         }
 
-        public static bool TypesAreAssignable (TypeReference target, TypeReference source) {
+        public static bool TypesAreAssignable (ITypeInfoSource typeInfo, TypeReference target, TypeReference source) {
             // All values are assignable to object
             if (target.FullName == "System.Object")
                 return true;
@@ -639,7 +636,7 @@ namespace JSIL {
                 return true;
 
             var cacheKey = new Tuple<string, string>(target.FullName, source.FullName);
-            return TypeAssignabilityCache.GetOrCreate(
+            return typeInfo.AssignabilityCache.GetOrCreate(
                 cacheKey, () => {
                     bool result = false;
 
@@ -649,11 +646,11 @@ namespace JSIL {
                         result = false;
                     else if (TypesAreEqual(target, dSource))
                         result = true;
-                    else if ((dSource.BaseType != null) && TypesAreAssignable(target, dSource.BaseType))
+                    else if ((dSource.BaseType != null) && TypesAreAssignable(typeInfo, target, dSource.BaseType))
                         result = true;
                     else {
                         foreach (var iface in dSource.Interfaces) {
-                            if (TypesAreAssignable(target, iface)) {
+                            if (TypesAreAssignable(typeInfo, target, iface)) {
                                 result = true;
                                 break;
                             }
@@ -785,7 +782,7 @@ namespace JSIL {
                 (result != null) &&
                 (expression.ExpectedType != null) &&
                 (expression.InferredType != null) &&
-                !TypesAreAssignable(expression.ExpectedType, expression.InferredType)
+                !TypesAreAssignable(TypeInfo, expression.ExpectedType, expression.InferredType)
             ) {
                 return JSCastExpression.New(result, expression.ExpectedType, TypeSystem);
             }
@@ -1320,7 +1317,7 @@ namespace JSIL {
                 result = new JSIndirectVariable(Variables, variable.Name, ThisMethodReference);
 
             var expectedType = node.ExpectedType ?? node.InferredType ?? variable.Type;
-            if (!TypesAreAssignable(expectedType, variable.Type))
+            if (!TypesAreAssignable(TypeInfo, expectedType, variable.Type))
                 result = Translate_Conv(result, expectedType);
 
             return result;
@@ -1342,7 +1339,7 @@ namespace JSIL {
                 return new JSNullExpression();
 
             var expectedType = node.ExpectedType ?? node.InferredType ?? variable.Type;
-            if (!TypesAreAssignable(expectedType, value.GetExpectedType(TypeSystem)))
+            if (!TypesAreAssignable(TypeInfo, expectedType, value.GetExpectedType(TypeSystem)))
                 value = Translate_Conv(value, expectedType);
 
             JSVariable jsv;
@@ -1823,7 +1820,7 @@ namespace JSIL {
                 } else {
                     return value;
                 }
-            } else if (!TypesAreAssignable(expectedType, currentType)) {
+            } else if (!TypesAreAssignable(TypeInfo, expectedType, currentType)) {
                 if (expectedType.FullName == "System.Boolean") {
                     if (IsIntegral(currentType)) {
                         // i != 0 sometimes becomes (bool)i, so we want to generate the explicit form
@@ -2236,8 +2233,8 @@ namespace JSIL {
                         )) || (
                             (declaringTypeDef != null) &&
                             (declaringTypeDef.IsInterface) &&
-                            TypesAreAssignable(declaringTypeDef, thisType) &&
-                            TypesAreAssignable(declaringTypeDef, firstArgType)
+                            TypesAreAssignable(TypeInfo, declaringTypeDef, thisType) &&
+                            TypesAreAssignable(TypeInfo, declaringTypeDef, firstArgType)
                         )
                     ) &&
                     (methodInfo.IsVirtual || methodInfo.IsSealed || (declaringTypeInfo.DerivedTypeCount == 0))
@@ -2257,7 +2254,7 @@ namespace JSIL {
 
             if (method.ReturnType.MetadataType != MetadataType.Void) {
                 var expectedType = node.ExpectedType ?? node.InferredType ?? method.ReturnType;
-                if (!TypesAreAssignable(expectedType, result.GetExpectedType(TypeSystem)))
+                if (!TypesAreAssignable(TypeInfo, expectedType, result.GetExpectedType(TypeSystem)))
                     result = Translate_Conv(result, expectedType);
             }
 
@@ -2306,7 +2303,7 @@ namespace JSIL {
 
             if (method.ReturnType.MetadataType != MetadataType.Void) {
                 var expectedType = node.ExpectedType ?? node.InferredType ?? method.ReturnType;
-                if (!TypesAreAssignable(expectedType, result.GetExpectedType(TypeSystem)))
+                if (!TypesAreAssignable(TypeInfo, expectedType, result.GetExpectedType(TypeSystem)))
                     result = Translate_Conv(result, expectedType);
             }
 

@@ -296,6 +296,8 @@ namespace JSIL.Tests {
 
                 return output[0] ?? "";
             } finally {
+                translator.Dispose();
+
                 var jsFile = OutputPath;
                 if (File.Exists(jsFile))
                     File.Delete(jsFile);
@@ -377,7 +379,7 @@ namespace JSIL.Tests {
     public class GenericTestFixture {
         protected TypeInfoProvider MakeDefaultProvider () {
             // Construct a type info provider with default proxies loaded (kind of a hack)
-            return (new AssemblyTranslator(ComparisonTest.MakeDefaultConfiguration())).TypeInfoProvider;
+            return (new AssemblyTranslator(ComparisonTest.MakeDefaultConfiguration())).GetTypeInfoProvider();
         }
 
         protected void RunComparisonTests (
