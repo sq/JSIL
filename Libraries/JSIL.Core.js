@@ -2084,7 +2084,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__PublicInterface__ = staticClassObject;
 
     typeObject.__BaseType__ = JSIL.ResolveTypeReference(baseType, assembly)[1];
-    typeObject.IsAssignableFrom = function (typeOfValue) {
+    typeObject._IsAssignableFrom = function (typeOfValue) {
       var t = typeOfValue;
       while (typeof (t) !== "undefined") {
         if (t === typeObject)
@@ -2204,7 +2204,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
       return typeObject;
     };
 
-    typeObject.IsAssignableFrom = function (typeOfValue) {
+    typeObject._IsAssignableFrom = function (typeOfValue) {
       if (typeObject === typeOfValue)
         return true;
 
@@ -3530,6 +3530,19 @@ JSIL.ImplementExternals(
         var needle = type.__PublicInterface__.prototype;
         var haystack = this.__PublicInterface__.prototype;
         return JSIL.CheckDerivation(haystack, needle);
+      }
+    );
+
+    $.Method({Public: true , Static: false}, "IsAssignableFrom",
+      new JSIL.MethodSignature("System.Boolean", ["System.Type"]),
+      function (type) {
+        if (type === this)
+          return true;
+
+        if (this._IsAssignableFrom)
+          return this._IsAssignableFrom(type);
+        else
+          return false;
       }
     );
 
