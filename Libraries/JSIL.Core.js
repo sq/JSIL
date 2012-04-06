@@ -729,34 +729,6 @@ JSIL.DefaultValue = function (type) {
   }
 };
 
-JSIL.New = function (type, constructorName, args) {
-  var classObject = type;
-  var typeObject = type;
-  if (typeof (classObject.__Type__) === "object")
-    typeObject = classObject.__Type__;
-
-  if (typeObject.__IsNativeType__ || false) {
-    var ctor = classObject.prototype[constructorName];
-    return ctor.apply(null, args);
-  } else {
-    var proto = classObject.prototype;
-    var result = Object.create(proto);
-  }
-
-  if ((typeObject.__TypeInitialized__ || false) === false)
-    JSIL.InitializeType(classObject);
-  
-  JSIL.InitializeStructFields(result, typeObject);
-
-  if (!typeObject.__IsReferenceType__ && (args.length == 0)) {
-  } else {
-    var ctor = proto[constructorName];
-    ctor.apply(result, args);
-  }
-
-  return result;
-};
-
 JSIL.CloneObject = function (obj) {
   if ((typeof (obj) === "undefined") || (obj === null))
     throw new Error("Cloning a non-object");
@@ -2937,6 +2909,45 @@ JSIL.MethodSignature.prototype.toString = function (name) {
   return signature;
 };
 
+JSIL.MethodSignature.prototype.Construct = function (publicInterface /*, ...parameters */) {  
+  var constructorArguments = Array.prototype.slice.call(arguments, 1);
+
+  var typeObject = publicInterface.__Type__;
+  var result;
+
+  if (typeObject.__IsNativeType__) {
+    var ctor = publicInterface.prototype["_ctor"];
+    return ctor.apply(publicInterface, constructorArguments);
+  } else {
+    var proto = publicInterface.prototype;
+    result = Object.create(proto);
+  }
+
+  if ((typeObject.__TypeInitialized__ || false) === false)
+    JSIL.InitializeType(publicInterface);
+  
+  JSIL.InitializeStructFields(result, typeObject);
+
+  if (!typeObject.__IsReferenceType__ && (constructorArguments.length == 0)) {
+  } else {
+    var key = this.GetKey("_ctor");
+    var ctor = proto[key];
+
+    if (typeof (ctor) !== "function") {
+      var signature = this.toString();
+
+      throw new Error(
+        "No constructor with signature '" + signature +
+        "' defined in context '" + JSIL.GetTypeName(publicInterface) + "'"
+      );
+    }
+
+    ctor.apply(result, constructorArguments);
+  }
+
+  return result;
+};
+
 JSIL.MethodSignature.prototype.Call = function (context, name, ga, thisReference /*, ...parameters */) {
   var key = this.GetKey(name);
 
@@ -2959,7 +2970,7 @@ JSIL.MethodSignature.prototype.Call = function (context, name, ga, thisReference
 
   var parameters = Array.prototype.slice.call(arguments, 4);
   return method.apply(thisReference, parameters);
-}
+};
 
 JSIL.MethodSignature.prototype.CallStatic = function (context, name, ga /*, ...parameters */) {
   var key = this.GetKey(name);
@@ -2980,7 +2991,7 @@ JSIL.MethodSignature.prototype.CallStatic = function (context, name, ga /*, ...p
 
   var parameters = Array.prototype.slice.call(arguments, 3);
   return method.apply(context, parameters);
-}
+};
 
 JSIL.MethodSignature.prototype.CallVirtual = function (name, ga, thisReference /*, ...parameters */) {
   var key = this.GetKey(name);
@@ -3335,10 +3346,29 @@ JSIL.GetTypeFromAssembly = function (assembly, typeName, genericArguments, throw
     return null;
 };
 
-JSIL.CreateInstanceOfType = function (type, constructorArguments) {
+JSIL.CreateInstanceOfType = function (type, constructorName, constructorArguments) {
   var publicInterface = type.__PublicInterface__;
   var instance = JSIL.CloneObject(publicInterface.prototype);
-  Function.prototype.apply.call(publicInterface, instance, constructorArguments);
+
+  if (typeof (constructorName) === "string") {
+    constructor = publicInterface.prototype[constructorName];
+  } else {
+    constructorArguments = constructorName;
+    constructor = publicInterface;
+    constructorName = null;
+  }
+  
+  if (!JSIL.IsArray(constructorArguments))
+    constructorArguments = [];
+
+  if (typeof (constructor) !== "function") {
+    if (typeof(constructorName) === "string")
+      throw new Error("Type '" + String(type) + "' has no constructor named '" + constructorName + "'.");
+    else
+      throw new Error("Type '" + String(type) + "' has no constructor.");
+  }
+
+  Function.prototype.apply.call(constructor, instance, constructorArguments);
   return instance;
 };
 

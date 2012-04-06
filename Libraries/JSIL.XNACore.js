@@ -560,7 +560,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.Texture2DReader", true,
 
     var result = existingInstance;
     if (result === null)
-      result = JSIL.New(tTexture2D, "$internalCtor", [null, width, height, mipCount > 1, surfaceFormat]);
+      result = JSIL.CreateInstanceOfType(tTexture2D, "$internalCtor", [null, width, height, mipCount > 1, surfaceFormat]);
 
     for (var i = 0; i < mipCount; i++) {
       var mipSize = input.ReadInt32();
@@ -836,7 +836,7 @@ JSIL.MakeClass("HTML5Asset", "RawXNBAsset", true, [], function ($) {
   };
   $.prototype.ReadAsset = function (type) {
     var memoryStream = new System.IO.MemoryStream(this.bytes, false);
-    var contentReader = JSIL.New(
+    var contentReader = JSIL.CreateInstanceOfType(
       Microsoft.Xna.Framework.Content.ContentReader, "$init", 
       [this.contentManager, memoryStream, this.name, null, 0]
     );
@@ -1500,7 +1500,7 @@ JSIL.ImplementExternals(
 JSIL.ImplementExternals(
   "Microsoft.Xna.Framework.Game", true, {
     _ctor: function () {
-      this.content = JSIL.New(Microsoft.Xna.Framework.Content.ContentManager, "_ctor$0", []);
+      this.content = JSIL.CreateInstanceOfType(Microsoft.Xna.Framework.Content.ContentManager);
       this.gameServices = new Microsoft.Xna.Framework.GameServiceContainer();
       this.components = new Microsoft.Xna.Framework.GameComponentCollection();
       this.targetElapsedTime = System.TimeSpan.FromTicks(166667);
@@ -1515,7 +1515,7 @@ JSIL.ImplementExternals(
       }
 
       this._runHandle = null;
-      this._gameTime = JSIL.New(Microsoft.Xna.Framework.GameTime, "_ctor$0", []);
+      this._gameTime = JSIL.CreateInstanceOfType(Microsoft.Xna.Framework.GameTime);
       this._lastFrame = this._nextFrame = this._started = 0;
     },
     get_Window: function () {

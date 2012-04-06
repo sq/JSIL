@@ -739,7 +739,7 @@ namespace JSIL.Internal {
             Token("new JSIL.MethodSignature");
             LPar();
 
-            if (returnType.FullName == "System.Void")
+            if ((returnType == null) || (returnType.FullName == "System.Void"))
                 Identifier("null", null);
             else
                 TypeReference(returnType, context);

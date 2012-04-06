@@ -984,14 +984,25 @@ namespace JSIL {
             bool parens = ((outerDot != null) && (outerDot.Target == newexp)) ||
                 ((outerInvocation != null) && (outerInvocation.ThisReference == newexp));
 
-            if (
-                (newexp.Constructor != null) &&
-                !(
-                  newexp.Constructor.IsSealed || 
-                  newexp.Constructor.DeclaringType.DerivedTypeCount == 0
-                )
-            ) {
-                Output.Identifier("JSIL.New", null);
+            var ctor = newexp.Constructor;
+            var isOverloaded = (ctor != null) &&
+                ctor.IsOverloadedRecursive &&
+                !ctor.Metadata.HasAttribute("JSIL.Meta.JSRuntimeDispatch");
+
+            bool hasArguments = newexp.Arguments.Count > 0;
+
+            if (isOverloaded) {
+                Output.LPar();
+                Output.MethodSignature(
+                    null, null,
+                    from p in ctor.Parameters
+                    select p.ParameterType,
+                    true
+                );
+                Output.RPar();
+                Output.Dot();
+
+                Output.Identifier("Construct");
                 Output.LPar();
 
                 IncludeTypeParens.Push(false);
@@ -1001,15 +1012,11 @@ namespace JSIL {
                     IncludeTypeParens.Pop();
                 }
 
-                Output.Comma();
-                Output.Value(Util.EscapeIdentifier(newexp.Constructor.Name, EscapingMode.MemberIdentifier));
-
-                Output.Comma();
-                Output.OpenBracket(false);
-                if (newexp.Arguments.Count > 0) {
+                if (hasArguments) {
+                    Output.Comma();
                     CommaSeparatedList(newexp.Arguments);
                 }
-                Output.CloseBracket();
+
                 Output.RPar();
             } else {
                 if (parens)
