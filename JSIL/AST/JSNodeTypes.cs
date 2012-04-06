@@ -996,7 +996,7 @@ namespace JSIL.Ast {
                     var ownerIdentifier = new MemberIdentifier(typeInfo, gp.Owner as MethodReference);
                     var memberIdentifier = new MemberIdentifier(typeInfo, member as dynamic);
 
-                    if (!ownerIdentifier.Equals(memberIdentifier))
+                    if (!ownerIdentifier.Equals(memberIdentifier, typeInfo))
                         return type;
 
                     if (!(member is GenericInstanceMethod))
