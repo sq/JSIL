@@ -566,9 +566,12 @@ JSIL.ImplementExternals = function (namespaceName, isInstance, externals) {
       var name = data.mangledName || descriptor.Name;
 
       var target = descriptor.Static ? publicInterface : publicInterface.prototype;
-      var resultKey = descriptor.Static ? name : prefix + name;
 
-      obj[resultKey] = target[name];
+      if (data.mangledName) {
+        obj[descriptor.Static ? data.mangledName : prefix + data.mangledName] = target[name];
+      }
+      
+      obj[descriptor.Static ? descriptor.Name : prefix + descriptor.Name] = target[name];
     }
   } else {
     var prefix = isInstance ? "instance$" : "";
@@ -1258,7 +1261,8 @@ $jsilcore.$Of$NoInitialize = function () {
 
   JSIL.RenameGenericMethods(result, resultTypeObject);
 
-  JSIL.InstantiateGenericProperties(result, resultTypeObject);
+  if (isClosed)
+    JSIL.InstantiateProperties(result, resultTypeObject);
 
   // Force the initialized state back to false
   resultTypeObject.__TypeInitialized__ = false;
@@ -1335,17 +1339,17 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
   }
 };
 
-JSIL.InstantiateGenericProperties = function (publicInterface, typeObject) {
+JSIL.InstantiateProperties = function (publicInterface, typeObject) {
   while ((typeof (typeObject) !== "undefined") && (typeObject !== null)) {
-    var gps = typeObject.__GenericProperties__;
+    var ps = typeObject.__Properties__;
 
-    if (JSIL.IsArray(gps)) {
-      for (var i = 0, l = gps.length; i < l; i++) {
-        var gp = gps[i];
-        var isStatic = gp[0];
-        var name = gp[1];
+    if (JSIL.IsArray(ps)) {
+      for (var i = 0, l = ps.length; i < l; i++) {
+        var property = ps[i];
+        var isStatic = property[0];
+        var name = property[1];
 
-        if (isStatic)        
+        if (isStatic)
           JSIL.InterfaceBuilder.MakeProperty(name, publicInterface);
         else
           JSIL.InterfaceBuilder.MakeProperty(name, publicInterface.prototype);
@@ -1569,6 +1573,8 @@ JSIL.InitializeType = function (type) {
 
   if (typeObject.__IsClosed__) {
     JSIL.$BuildMethodGroups(typeObject, classObject);
+
+    JSIL.InstantiateProperties(classObject, typeObject);    
   }
 
   // Run any queued initializers for the type
@@ -1729,12 +1735,18 @@ JSIL.MakeExternalType = function (fullName, isPublic) {
 $jsilcore.$GetRuntimeType = function (context, forTypeName) {
   // Initializing System.Object forms a cyclical dependency through RuntimeType.
   // To deal with this, we use a stub for RuntimeType until System.Object has been fully initialized.
-  if (!$jsilcore.SystemObjectInitialized)
-    return $jsilcore.RuntimeType;
 
   // If we're currently initializing RuntimeType, Type or MemberInfo, we also need to use the stub.
-  if ((forTypeName == "System.RuntimeType") || (forTypeName == "System.Type") || (forTypeName == "System.Reflection.MemberInfo"))
-    return $jsilcore.RuntimeType;
+  if (
+      (forTypeName == "System.RuntimeType") || 
+      (forTypeName == "System.Type") || 
+      (forTypeName == "System.Reflection.MemberInfo") ||
+      (forTypeName == "System.Object")
+    ) {
+
+    if (!$jsilcore.SystemObjectInitialized)
+      return $jsilcore.RuntimeType;
+  }
 
   var runtimeType = JSIL.ResolveName($jsilcore, "System.RuntimeType", true);
   if (runtimeType.exists()) {
@@ -1766,7 +1778,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   typeObject.__BaseType__ = undefined;
   typeObject.__ShortName__ = localName;
   typeObject.__IsStatic__ = true;
-  typeObject.__GenericProperties__ = [];
+  typeObject.__Properties__ = [];
   typeObject.__Initializers__ = [];
   typeObject.__TypeInitialized__ = false;
   typeObject.__GenericArguments__ = genericArguments || [];
@@ -1855,7 +1867,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
 
     typeObject.__IsArray__ = false;
     typeObject.__StructFields__ = [];
-    typeObject.__GenericProperties__ = [];
+    typeObject.__Properties__ = [];
     typeObject.__Initializers__ = [];
     typeObject.__Interfaces__ = [];
     typeObject.__TypeInitialized__ = false;
@@ -2510,12 +2522,26 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
     Public: false,
     SpecialName: false,
     Name: null,
-    SetIfUndefined: function (key, value) {
+    IsUndefined: function (key) {
       if (!this.Target.hasOwnProperty(key))
+        return true;
+
+      var existing = this.Target[key];
+      if (existing.__IsPlaceholder__)
+        return true;
+      else if (typeof (existing) === "undefined")
+        return true;
+      else if (existing === null)
+        return true;
+
+      return false;
+    },
+    SetIfUndefined: function (key, value) {
+      if (this.IsUndefined(key))
         this.Target[key] = value;
     },
     SetExclusive: function (key, value) {
-      if (!this.Target.hasOwnProperty(key))
+      if (this.IsUndefined(key))
         this.Target[key] = value;
       else
         this.Target[key] = function () {
@@ -2575,7 +2601,8 @@ JSIL.InterfaceBuilder.prototype.ExternalMembers = function (isInstance /*, ...na
     if (impl.hasOwnProperty(prefix + memberName)) {
       newValue = impl[prefix + memberName];
     } else if (!target.hasOwnProperty(memberName)) {
-      newValue = JSIL.MakeExternalMemberStub(this.namespace, function () { return memberName; }, memberValue);
+      var getName = (function () { return this; }).bind(memberName);
+      newValue = JSIL.MakeExternalMemberStub(this.namespace, getName, memberValue);
     }
 
     if (newValue !== undefined) {
@@ -2616,10 +2643,15 @@ JSIL.InterfaceBuilder.MakeProperty = function (name, target) {
   var getterName = "get_" + name;
   var setterName = "set_" + name;
 
-  if (typeof (target[getterName]) === "function")
-    prop["get"] = target[getterName];
-  if (typeof (target[setterName]) === "function")
-    prop["set"] = target[setterName];
+  var getter = target[getterName];
+  var setter = target[setterName];
+
+  if (typeof (target[getterName]) === "function") {
+    prop["get"] = getter;
+  }
+  if (typeof (target[setterName]) === "function") {
+    prop["set"] = setter;
+  }
 
   Object.defineProperty(target, name, prop);
 };
@@ -2627,7 +2659,8 @@ JSIL.InterfaceBuilder.MakeProperty = function (name, target) {
 JSIL.InterfaceBuilder.prototype.Property = function (_descriptor, name) {
   var descriptor = this.ParseDescriptor(_descriptor, name);
 
-  JSIL.InterfaceBuilder.MakeProperty(name, descriptor.Target);
+  var props = this.typeObject.__Properties__;
+  props.push([descriptor.Static, name]);
 
   this.PushMember("PropertyInfo", descriptor, null);
 };
@@ -2635,7 +2668,7 @@ JSIL.InterfaceBuilder.prototype.Property = function (_descriptor, name) {
 JSIL.InterfaceBuilder.prototype.GenericProperty = function (_descriptor, name) {
   var descriptor = this.ParseDescriptor(_descriptor, name);
 
-  var props = this.typeObject.__GenericProperties__;
+  var props = this.typeObject.__Properties__;
   props.push([descriptor.Static, name]);
 
   this.PushMember("PropertyInfo", descriptor, null);
@@ -2669,7 +2702,8 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
   if (impl.hasOwnProperty(prefix + mangledName)) {
     newValue = impl[prefix + mangledName];
   } else if (!descriptor.Target.hasOwnProperty(mangledName)) {
-    newValue = JSIL.MakeExternalMemberStub(this.namespace, function () { return signature.toString(methodName); }, memberValue);
+    var getName = (function () { return this[0].toString(this[1]); }).bind([signature, methodName]);
+    newValue = JSIL.MakeExternalMemberStub(this.namespace, getName, memberValue);
   }
 
   if (newValue !== undefined) {
@@ -4156,7 +4190,11 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.PropertyInfo",
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function ($) {
     $.ExternalMembers(true, 
-      "_ctor", "_Type_GetIDsOfNames", "_Type_GetTypeInfo", "_Type_GetTypeInfoCount", "_Type_Invoke", "Equals$0", "Equals$1", "FindInterfaces", "FindMembers", "get_Assembly", "get_AssemblyQualifiedName", "get_Attributes", "get_BaseType", "get_ContainsGenericParameters", "get_DeclaringMethod", "get_DeclaringType", "get_FullName", "get_GenericParameterAttributes", "get_GenericParameterPosition", "get_GUID", "get_HasElementType", "get_HasProxyAttribute", "get_IsAbstract", "get_IsAnsiClass", "get_IsArray", "get_IsAutoClass", "get_IsAutoLayout", "get_IsByRef", "get_IsClass", "get_IsCOMObject", "get_IsContextful", "get_IsEnum", "get_IsExplicitLayout", "get_IsGenericParameter", "get_IsGenericType", "get_IsGenericTypeDefinition", "get_IsImport", "get_IsInterface", "get_IsLayoutSequential", "get_IsMarshalByRef", "get_IsNested", "get_IsNestedAssembly", "get_IsNestedFamANDAssem", "get_IsNestedFamily", "get_IsNestedFamORAssem", "get_IsNestedPrivate", "get_IsNestedPublic", "get_IsNotPublic", "get_IsPointer", "get_IsPrimitive", "get_IsPublic", "get_IsSealed", "get_IsSerializable", "get_IsSpecialName", "get_IsSzArray", "get_IsUnicodeClass", "get_IsValueType", "get_IsVisible", "get_MemberType", "get_Module", "get_Namespace", "get_ReflectedType", "get_StructLayoutAttribute", "get_TypeHandle", "get_TypeInitializer", "get_UnderlyingSystemType", "GetArrayRank", "GetAttributeFlagsImpl", "GetConstructor$0", "GetConstructor$1", "GetConstructor$2", "GetConstructorImpl", "GetConstructors$0", "GetConstructors$1", "GetDefaultMemberName", "GetDefaultMembers", "GetElementType", "GetEvent$0", "GetEvent$1", "GetEvents$0", "GetEvents$1", "GetField$0", "GetField$1", "GetFields$0", "GetFields$1", "GetGenericArguments", "GetGenericParameterConstraints", "GetGenericTypeDefinition", "GetHashCode", "GetInterface$0", "GetInterface$1", "GetInterfaceMap", "GetInterfaces", "GetMember$0", "GetMember$1", "GetMember$2", "GetMembers$0", "GetMembers$1", "GetMethod$0", "GetMethod$1", "GetMethod$2", "GetMethod$3", "GetMethod$4", "GetMethod$5", "GetMethodImpl", "GetMethods$0", "GetMethods$1", "GetNestedType$0", "GetNestedType$1", "GetNestedTypes$0", "GetNestedTypes$1", "GetProperties$0", "GetProperties$1", "GetProperty$0", "GetProperty$1", "GetProperty$2", "GetProperty$3", "GetProperty$4", "GetProperty$5", "GetProperty$6", "GetPropertyImpl", "GetRootElementType", "GetType", "GetTypeCodeInternal", "GetTypeHandleInternal", "HasElementTypeImpl", "HasProxyAttributeImpl", "InvokeMember$0", "InvokeMember$1", "InvokeMember$2", "IsArrayImpl", "IsAssignableFrom", "IsByRefImpl", "IsCOMObjectImpl", "IsContextfulImpl", "IsInstanceOfType", "IsMarshalByRefImpl", "IsPointerImpl", "IsPrimitiveImpl", "IsSubclassOf", "IsValueTypeImpl", "MakeArrayType$0", "MakeArrayType$1", "MakeByRefType", "MakeGenericType", "MakePointerType", "QuickSerializationCastCheck", "SigToString", "toString"
+      "_ctor", "_Type_GetIDsOfNames", "_Type_GetTypeInfo", "_Type_GetTypeInfoCount", "_Type_Invoke", "Equals$0", "Equals$1", "FindInterfaces", "FindMembers", "get_Assembly", "get_AssemblyQualifiedName", "get_Attributes", "get_BaseType", "get_ContainsGenericParameters", "get_DeclaringMethod", "get_DeclaringType", "get_GenericParameterAttributes", "get_GenericParameterPosition", "get_GUID", "get_HasElementType", "get_HasProxyAttribute", "get_IsAbstract", "get_IsAnsiClass", "get_IsArray", "get_IsAutoClass", "get_IsAutoLayout", "get_IsByRef", "get_IsClass", "get_IsCOMObject", "get_IsContextful", "get_IsEnum", "get_IsExplicitLayout", "get_IsGenericParameter", "get_IsGenericType", "get_IsGenericTypeDefinition", "get_IsImport", "get_IsInterface", "get_IsLayoutSequential", "get_IsMarshalByRef", "get_IsNested", "get_IsNestedAssembly", "get_IsNestedFamANDAssem", "get_IsNestedFamily", "get_IsNestedFamORAssem", "get_IsNestedPrivate", "get_IsNestedPublic", "get_IsNotPublic", "get_IsPointer", "get_IsPrimitive", "get_IsPublic", "get_IsSealed", "get_IsSerializable", "get_IsSpecialName", "get_IsSzArray", "get_IsUnicodeClass", "get_IsValueType", "get_IsVisible", "get_MemberType", "get_Module", "get_Namespace", "get_ReflectedType", "get_StructLayoutAttribute", "get_TypeHandle", "get_TypeInitializer", "get_UnderlyingSystemType", "GetArrayRank", "GetAttributeFlagsImpl", "GetConstructor$0", "GetConstructor$1", "GetConstructor$2", "GetConstructorImpl", "GetConstructors$0", "GetConstructors$1", "GetDefaultMemberName", "GetDefaultMembers", "GetElementType", "GetEvent$0", "GetEvent$1", "GetEvents$0", "GetEvents$1", "GetField$0", "GetField$1", "GetFields$0", "GetFields$1", "GetGenericArguments", "GetGenericParameterConstraints", "GetGenericTypeDefinition", "GetHashCode", "GetInterface$0", "GetInterface$1", "GetInterfaceMap", "GetInterfaces", "GetMember$0", "GetMember$1", "GetMember$2", "GetMembers$0", "GetMembers$1", "GetMethod$0", "GetMethod$1", "GetMethod$2", "GetMethod$3", "GetMethod$4", "GetMethod$5", "GetMethodImpl", "GetMethods$0", "GetMethods$1", "GetNestedType$0", "GetNestedType$1", "GetNestedTypes$0", "GetNestedTypes$1", "GetProperties$0", "GetProperties$1", "GetProperty$0", "GetProperty$1", "GetProperty$2", "GetProperty$3", "GetProperty$4", "GetProperty$5", "GetProperty$6", "GetPropertyImpl", "GetRootElementType", "GetType", "GetTypeCodeInternal", "GetTypeHandleInternal", "HasElementTypeImpl", "HasProxyAttributeImpl", "InvokeMember$0", "InvokeMember$1", "InvokeMember$2", "IsArrayImpl", "IsAssignableFrom", "IsByRefImpl", "IsCOMObjectImpl", "IsContextfulImpl", "IsInstanceOfType", "IsMarshalByRefImpl", "IsPointerImpl", "IsPrimitiveImpl", "IsSubclassOf", "IsValueTypeImpl", "MakeArrayType$0", "MakeArrayType$1", "MakeByRefType", "MakeGenericType", "MakePointerType", "QuickSerializationCastCheck", "SigToString"
+    );
+
+    $.ExternalMethod({Public: true , Static: false}, "toString",
+      new JSIL.MethodSignature("System.String", [])
     );
 
     $.Property({Public: true , Static: false}, "Module");

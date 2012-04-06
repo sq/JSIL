@@ -332,9 +332,12 @@ namespace JSIL.Internal {
 
                 RPar();
             } else if (at != null) {
+                TypeIdentifier(at, false, true);
+                /*
                 TypeReference(ILBlockTranslator.GetTypeDefinition(at));
                 Space();
                 Comment("{0}", originalType);
+                */
             } else {
                 Keyword("new");
                 Space();
