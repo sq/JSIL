@@ -1458,7 +1458,7 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
       continue;
 
     if (!printedTypeName) {
-      // print("-- " +typeObject.__FullName__ + " --");
+      print("-- " + typeObject.__FullName__ + " --");
       printedTypeName = true;
     }
 
@@ -1473,7 +1473,7 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
 
       var resolvedSignature = new JSIL.MethodSignature(returnType[0], parameterTypes);
 
-      // print(resolvedSignature.toString(methodName));
+      print(resolvedSignature.toString(method.DeclaringType.__FullName__ + "::" + methodName));
     }
   }
 };
@@ -4054,6 +4054,7 @@ JSIL.ImplementExternals(
 );
 
 JSIL.MakeClass("System.Object", "System.Reflection.MemberInfo", true, [], function ($) {
+    $.Property({Public: true , Static: false}, "DeclaringType");
     $.Property({Public: true , Static: false}, "Name");
     $.Property({Public: true , Static: false}, "IsPublic");
     $.Property({Public: true , Static: false}, "IsStatic");

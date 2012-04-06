@@ -626,7 +626,7 @@ namespace JSIL.Internal {
         public readonly Dictionary<string, int> MethodNameCounts = new Dictionary<string, int>();
         public readonly HashSet<MethodGroupInfo> MethodGroups = new HashSet<MethodGroupInfo>();
 
-        public readonly List<TypeInfo> DerivedTypes = new List<TypeInfo>();
+        public readonly ConcurrentBag<TypeInfo> DerivedTypes = new ConcurrentBag<TypeInfo>();
 
         public readonly bool IsFlagsEnum;
         public readonly EnumMemberInfo FirstEnumMember = null;
@@ -1119,10 +1119,12 @@ namespace JSIL.Internal {
             foreach (var t in SelfAndBaseTypesRecursive) {
                 int existingCount;
 
-                if (t.MethodNameCounts.TryGetValue(methodName, out existingCount))
-                    t.MethodNameCounts[methodName] = existingCount + 1;
-                else
-                    t.MethodNameCounts[methodName] = 1;
+                lock (t.MethodNameCounts) {
+                    if (t.MethodNameCounts.TryGetValue(methodName, out existingCount))
+                        t.MethodNameCounts[methodName] = existingCount + 1;
+                    else
+                        t.MethodNameCounts[methodName] = 1;
+                }
             }
         }
 
@@ -1710,8 +1712,12 @@ namespace JSIL.Internal {
 
                 if (!_IsOverloadedRecursive.HasValue) {
                     int count;
+                    bool found;
 
-                    if (DeclaringType.MethodNameCounts.TryGetValue(Member.Name, out count))
+                    lock (DeclaringType.MethodNameCounts)
+                        found = DeclaringType.MethodNameCounts.TryGetValue(Member.Name, out count);
+
+                    if (found)
                         _IsOverloadedRecursive = (count >= 2);
                     else
                         _IsOverloadedRecursive = false;
