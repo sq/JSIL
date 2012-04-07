@@ -969,8 +969,8 @@ namespace JSIL {
             }
 
             var interfaces = (from i in typeInfo.Interfaces
-                              where !i.IsIgnored
-                              select i).ToArray();
+                              where !i.Item1.IsIgnored
+                              select i.Item2).ToArray();
 
             if (interfaces.Length > 0) {
                 output.NewLine();

@@ -623,7 +623,7 @@ namespace JSIL.Internal {
         public readonly TypeInfo DeclaringType;
         public readonly TypeInfo BaseClass;
 
-        public readonly TypeInfo[] Interfaces;
+        public readonly System.Tuple<TypeInfo, TypeReference>[] Interfaces;
 
         // This needs to be mutable so we can introduce a constructed cctor later
         public MethodDefinition StaticConstructor;
@@ -672,11 +672,11 @@ namespace JSIL.Internal {
                 (type.BaseType.FullName == "System.MulticastDelegate")
             );
 
-            var interfaces = new HashSet<TypeInfo>(
-                from i in type.Interfaces select source.GetExisting(i)
+            var interfaces = new HashSet<Tuple<TypeInfo, TypeReference>>(
+                from i in type.Interfaces select Tuple.Create(source.GetExisting(i), i)
             );
 
-            if (interfaces.Any((ii) => ii == null))
+            if (interfaces.Any((ii) => ii.Item1 == null))
                 throw new InvalidOperationException("Missing type info for one or more interfaces");
 
             foreach (var proxy in Proxies) {
@@ -689,7 +689,7 @@ namespace JSIL.Internal {
 
                     foreach (var i in proxy.Interfaces) {
                         var ii = source.Get(i);
-                        interfaces.Add(ii);
+                        interfaces.Add(Tuple.Create(ii, i));
                     }
                 }
             }

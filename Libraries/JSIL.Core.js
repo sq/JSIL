@@ -730,8 +730,13 @@ JSIL.TypeRef.prototype.get = function () {
     for (var i = 0, l = ga.length; i < l; i++) {
       var arg = ga[i];
 
-      if (typeof (arg) === "string")
-        ga[i] = arg = new JSIL.TypeRef(this.context, arg);
+      if (typeof (arg) === "string") {
+        if (arg.indexOf("!!") === 0) {
+          ga[i] = arg = new JSIL.PositionalGenericParameter(arg, this.context);
+        } else {
+          ga[i] = arg = new JSIL.TypeRef(this.context, arg);
+        }
+      }
 
       if (typeof (arg) === "object" && Object.getPrototypeOf(arg) === JSIL.TypeRef.prototype)
         ga[i] = arg = arg.get();
@@ -943,6 +948,13 @@ JSIL.ResolveGenericTypeReference = function (obj, context) {
       return obj;
 
     return JSIL.ResolveGenericTypeReference(result, context);
+  } else if (Object.getPrototypeOf(obj) === JSIL.TypeRef.prototype) {
+    var resolvedGa = [];
+    for (var i = 0, l = obj.genericArguments.length; i < l; i++) {
+      resolvedGa[i] = JSIL.ResolveGenericTypeReference(obj.genericArguments[i], context);
+    }
+
+    return new JSIL.TypeRef(obj.context, obj.typeName, resolvedGa);
   } else if (!obj.__IsClosed__) {
     var ga = obj.__GenericArguments__ || [];
     if (ga.length < 1)
@@ -1209,7 +1221,7 @@ $jsilcore.$Of$NoInitialize = function () {
   var ignoredNames = [
     "__Type__", "__TypeInitialized__", "__IsClosed__", "prototype", 
     "Of", "toString", "__FullName__", "__OfCache__", "Of$NoInitialize",
-    "GetType"
+    "GetType", "CheckType"
   ];
 
   for (var k in staticClassObject) {
@@ -1248,6 +1260,20 @@ $jsilcore.$Of$NoInitialize = function () {
   // This is important: It's possible for recursion to cause the initializer to run while we're defining properties.
   // We prevent this from happening by forcing the initialized state to true.
   resultTypeObject.__TypeInitialized__ = true;
+
+  // Resolve any generic parameter references in the interfaces this type implements.
+  var interfaces = resultTypeObject.__Interfaces__ = [];
+  var sourceInterfaces = typeObject.__Interfaces__;
+
+  for (var i = 0, l = sourceInterfaces.length; i < l; i++) {
+    var unresolvedInterface = sourceInterfaces[i];
+    var resolvedInterface = JSIL.ResolveGenericTypeReference(unresolvedInterface, resolveContext);
+
+    if (resolvedInterface !== null)
+      interfaces[i] = resolvedInterface;
+    else
+      interfaces[i] = unresolvedInterface;
+  }
 
   for (var i = 0, l = resolvedArguments.length; i < l; i++) {
     var key = ga[i];
@@ -1401,6 +1427,11 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
   if (!JSIL.IsArray(interfaces))
     return;
 
+  if (typeObject.IsInterface)
+    return;
+
+  var context = typeObject.__Context__;
+
   var typeName = typeObject.__FullName__;
   var missingMembers = [];
 
@@ -1435,7 +1466,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
       continue __interfaces__;
     } else if (typeof (iface) === "string") {
       var resolved = JSIL.ResolveName(
-        this.context, iface, true
+        context, iface, true
       );
 
       if (resolved.exists())
@@ -1453,7 +1484,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
 
     interfaces[i] = iface;
 
-    var ifaceName = iface.__FullName__;
+    var ifaceName = iface.__FullNameWithoutArguments__;
     if (iface.IsInterface !== true) {
       JSIL.Host.warning("Type ", ifaceName, " is not an interface.");
       continue __interfaces__;
@@ -1529,7 +1560,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
   }
 
   if (missingMembers.length > 0) {
-    JSIL.Host.warning("Type ", this.namespace, " is missing implementation of interface member(s): ", missingMembers.join(", "));
+    JSIL.Host.warning("Type ", typeObject, " is missing implementation of interface member(s): ", missingMembers.join(", "));
   }
 };
 
@@ -1955,6 +1986,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   typeObject.__IsStatic__ = true;
   typeObject.__Properties__ = [];
   typeObject.__Initializers__ = [];
+  typeObject.__Interfaces__ = [];
   typeObject.__TypeInitialized__ = false;
   typeObject.__GenericArguments__ = genericArguments || [];
 
@@ -2040,11 +2072,15 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
 
     var typeObject = JSIL.CloneObject(runtimeType);
 
+    typeObject.__BaseType__ = JSIL.ResolveTypeReference(baseType, assembly)[1];
+    var baseTypeName = typeObject.__BaseType__.__FullName__ || baseType.toString();
+    var baseTypeInterfaces = typeObject.__BaseType__.__Interfaces__ || [];
+
     typeObject.__IsArray__ = false;
     typeObject.__StructFields__ = [];
     typeObject.__Properties__ = [];
     typeObject.__Initializers__ = [];
-    typeObject.__Interfaces__ = [];
+    typeObject.__Interfaces__ = Array.prototype.slice.call(baseTypeInterfaces);
     typeObject.__TypeInitialized__ = false;
     typeObject.__IsNativeType__ = false;
     typeObject.__IsReferenceType__ = isReferenceType;
@@ -2054,8 +2090,6 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__LockCount__ = 0;
     typeObject.__Members__ = [];
     typeObject.__GenericArguments__ = genericArguments || [];
-
-    var baseTypeName = baseType.toString();
     var valueTypeName = "System.ValueType";
     typeObject.__IsStruct__ = (baseTypeName.indexOf(valueTypeName) == baseTypeName.length - valueTypeName.length);
 
@@ -2110,7 +2144,6 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
 
     typeObject.__PublicInterface__ = staticClassObject;
 
-    typeObject.__BaseType__ = JSIL.ResolveTypeReference(baseType, assembly)[1];
     typeObject._IsAssignableFrom = function (typeOfValue) {
       var t = typeOfValue;
       while (typeof (t) !== "undefined") {
@@ -2206,6 +2239,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
     var runtimeType = $jsilcore.$GetRuntimeType(assembly, fullName);
     var typeObject = JSIL.CloneObject(runtimeType);
 
+    publicInterface.prototype = {};
     publicInterface.__Type__ = typeObject;
 
     typeObject.__PublicInterface__ = publicInterface;
@@ -2217,19 +2251,19 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
     typeObject.__FullName__ = fullName;
     typeObject.__GenericArguments__ = genericArguments || [];
     typeObject.IsInterface = true;
-    typeObject.__Interfaces__ = interfaces;
-
-    typeObject.prototype = JSIL.CloneObject(JSIL.Interface.prototype);
+    typeObject.__Interfaces__ = interfaces || [];
 
     publicInterface.toString = function () {
       return "<" + fullName + " Public Interface>";
     };
-    publicInterface.Of$NoInitialize = function () {
-      return typeObject;
-    };
-    publicInterface.Of = function () {
-      return typeObject;
-    };
+
+    if (typeObject.__GenericArguments__.length > 0) {
+      publicInterface.Of$NoInitialize = $jsilcore.$Of$NoInitialize.bind(publicInterface);
+      publicInterface.Of = $jsilcore.$Of.bind(publicInterface);
+      typeObject.__IsClosed__ = false;
+    } else {
+      typeObject.__IsClosed__ = true;
+    }
 
     typeObject._IsAssignableFrom = function (typeOfValue) {
       if (typeObject === typeOfValue)
@@ -2944,9 +2978,8 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
 
 JSIL.InterfaceBuilder.prototype.ImplementInterfaces = function (/* ...interfacesToImplement */) {
   var interfaces = this.typeObject.__Interfaces__;
-  if (typeof (interfaces) === "undefined") {
-    this.typeObject.__Interfaces__ = interfaces = [];
-  }
+  if (typeof (interfaces) === "undefined")
+    throw new Error("Type has no interface list");
 
   for (var i = 0; i < arguments.length; i++) {
     interfaces.push(arguments[i]);
@@ -3908,15 +3941,6 @@ JSIL.MakeClass("System.Object", "System.ValueType", true, [], function ($) {
   );
 });
 
-JSIL.Interface = function () { };
-JSIL.Interface.prototype = JSIL.MakeProto(Object, JSIL.Interface, "JSIL.Interface", true, $private);
-JSIL.Interface.prototype.Of$NoInitialize = function () {
-  return this;
-};
-JSIL.Interface.prototype.Of = function () {
-  return this.Of$NoInitialize.apply(this, arguments);
-};
-
 JSIL.MakeInterface("System.IDisposable", true, [], {
   "Dispose": Function
 });
@@ -3937,10 +3961,10 @@ JSIL.MakeInterface("System.Collections.IEnumerable", true, [], {
 JSIL.MakeInterface("System.Collections.Generic.IEnumerator`1", true, ["T"], {
   "get_Current": Function,
   "Current": Property
-});
+}, ["System.Collections.IEnumerator"]);
 JSIL.MakeInterface("System.Collections.Generic.IEnumerable`1", true, ["T"], {
   "GetEnumerator": Function
-});
+}, ["System.Collections.IEnumerable"]);
 
 JSIL.ImplementExternals("System.Array", false, {
   CheckType: JSIL.IsArray
@@ -4248,6 +4272,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
     typeObject.__BaseType__ = delegateType;
     typeObject.__FullName__ = fullName;
     typeObject.__CallStack__ = callStack;
+    typeObject.__Interfaces__ = [];
     typeObject.IsEnum = false;
 
     typeObject.__GenericArguments__ = genericArguments || [];
