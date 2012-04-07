@@ -326,6 +326,7 @@
     <None Include="SpecialTestCases\AlternateSwitchForm.cs" />
     <None Include="TestCases\GenericMethodAsGenericDelegate.cs" />
     <None Include="TestCases\DynamicGenericMethods.cs" />
+    <None Include="SpecialTestCases\GenericMethodSignatures.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

@@ -738,6 +738,55 @@ namespace JSIL.Internal {
             NewLine();
         }
 
+        protected TypeReference MapTypeReferenceForMethod (MethodInfo method, MethodReference reference, TypeReference tr) {
+            var r = tr as ByReferenceType;
+            if (r != null)
+                return new ByReferenceType(MapTypeReferenceForMethod(method, reference, r.ElementType));
+
+            var gp = tr as GenericParameter;
+            if (gp != null) {
+                if (gp.Owner == method.Member)
+                    return new GenericParameter(gp.Position, GenericParameterType.Method, method.Member.Module);
+            }
+
+            var at = tr as ArrayType;
+            if (at != null)
+                return new ArrayType(MapTypeReferenceForMethod(method, reference, at.ElementType), at.Rank);
+
+            var git = tr as GenericInstanceType;
+            if (git != null) {
+                var result = new GenericInstanceType(git.ElementType);
+
+                foreach (var ga in git.GenericArguments)
+                    result.GenericArguments.Add(MapTypeReferenceForMethod(method, reference, ga));
+
+                return result;
+            }
+
+            try {
+                return JSExpression.SubstituteTypeArgs(TypeInfo, tr, reference);
+            } catch (Exception exc) {
+                // ILSpy really sucks sometimes :(
+                return tr;
+            }
+        }
+
+        public void MethodSignatureForMethod (
+            MethodInfo method, MethodReference reference, MethodReference methodBody = null
+        ) {
+
+            var returnType = MapTypeReferenceForMethod(method, reference, method.ReturnType);
+            var parameterTypes = (from p in method.Parameters
+                                  select MapTypeReferenceForMethod(method, reference, p.ParameterType)).ToArray();
+
+            MethodSignature(
+                null,
+                returnType,
+                parameterTypes,
+                method.GenericParameterNames, methodBody
+            );
+        }
+
         public void MethodSignature (
             TypeReference context, TypeReference returnType, 
             IEnumerable<TypeReference> parameterTypes, 

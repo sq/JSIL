@@ -1119,33 +1119,6 @@ namespace JSIL {
             Output.RPar();
         }
 
-        protected TypeReference MapTypeReferenceForInvocation (MethodInfo method, JSMethod jsm, TypeReference tr) {
-            var r = tr as ByReferenceType;
-            if (r != null)
-                return new ByReferenceType(MapTypeReferenceForInvocation(method, jsm, r.ElementType));
-
-            var gp = tr as GenericParameter;
-            if (gp != null) {
-                if (gp.Owner == method.Member)
-                    return new GenericParameter(gp.Position, GenericParameterType.Method, method.Member.Module);
-            }
-
-            return JSExpression.SubstituteTypeArgs(TypeInfo, tr, jsm.Reference);
-        }
-
-        protected void MethodSignatureForInvocation (MethodInfo method, JSMethod jsm) {
-            var returnType = MapTypeReferenceForInvocation(method, jsm, method.ReturnType);
-            var parameterTypes = (from p in method.Parameters select 
-                                      MapTypeReferenceForInvocation(method, jsm, p.ParameterType)).ToArray();
-
-            Output.MethodSignature(
-                null,
-                returnType,
-                parameterTypes,
-                method.GenericParameterNames, Output.CurrentMethod
-            );
-        }
-
         public void VisitNode (JSInvocationExpression invocation) {
             TypeReference typeOfThisReference = null;
 
@@ -1182,7 +1155,7 @@ namespace JSIL {
                 var methodName = Util.EscapeIdentifier(method.GetName(true), EscapingMode.MemberIdentifier);
 
                 Output.LPar();
-                MethodSignatureForInvocation(method, jsm);
+                Output.MethodSignatureForMethod(method, jsm.Reference, Output.CurrentMethod);
                 Output.RPar();
                 Output.Dot();
 

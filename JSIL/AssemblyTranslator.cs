@@ -1548,10 +1548,8 @@ namespace JSIL {
             output.Comma();
             output.NewLine();
 
-            output.MethodSignature(
-                method.DeclaringType, methodInfo.ReturnType, 
-                (from p in methodInfo.Parameters select p.ParameterType),
-                methodInfo.GenericParameterNames
+            output.MethodSignatureForMethod(
+                methodInfo, methodRef, null
             );
 
             if (!isExternal) {

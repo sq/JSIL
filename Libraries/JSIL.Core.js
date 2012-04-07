@@ -3979,9 +3979,11 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
     } else if (typeof (elementType.__PublicInterface__) !== "undefined") {
       elementTypeObject = elementType;
       elementTypePublicInterface = elementType.__PublicInterface__;
+    } else {
+      elementTypeObject = elementTypePublicInterface = elementType;
     }
 
-    var compositePublicInterface = types[elementTypePublicInterface.__TypeId__];
+    var compositePublicInterface = types[elementTypeObject.__TypeId__];
 
     if (typeof (compositePublicInterface) === "undefined") {
       var typeName = elementTypeObject.__FullName__ + "[]";
@@ -4011,7 +4013,7 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
         return "<" + typeName + " Public Interface>";
       };
 
-      publicInterface.Types[elementTypePublicInterface.__TypeId__] = compositePublicInterface;
+      publicInterface.Types[elementTypeObject.__TypeId__] = compositePublicInterface;
     }
 
     return compositePublicInterface;

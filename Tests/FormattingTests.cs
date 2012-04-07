@@ -430,5 +430,22 @@ namespace JSIL.Tests {
                 throw;
             }
         }
+
+        [Test]
+        public void GenericMethodSignatures () {
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\GenericMethodSignatures.cs",
+                "1"
+            );
+
+            try {
+                Assert.IsTrue(generatedJs.Contains("new JSIL.MethodSignature(\"!!0\", [\"!!0\"], [\"T\"]"));
+                Assert.IsFalse(generatedJs.Contains("new JSIL.GenericParameter"));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
     }
 }

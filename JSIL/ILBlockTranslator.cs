@@ -401,7 +401,7 @@ namespace JSIL {
             return generate();
         }
 
-        public static TypeDefinition GetTypeDefinition (TypeReference typeRef, bool resolveTypedArrays = true) {
+        public static TypeDefinition GetTypeDefinition (TypeReference typeRef, bool mapAllArraysToSystemArray = true) {
             if (typeRef == null)
                 return null;
 
@@ -424,8 +424,22 @@ namespace JSIL {
                 }
             } while (unwrapped);
 
-            if (resolveTypedArrays && (typeRef is ArrayType))
-                return new TypeReference(ts.Object.Namespace, "Array", ts.Object.Module, ts.Object.Scope).ResolveOrThrow();
+            var at = typeRef as ArrayType;
+            if (at != null) {
+                if (mapAllArraysToSystemArray)
+                    return new TypeReference(ts.Object.Namespace, "Array", ts.Object.Module, ts.Object.Scope).ResolveOrThrow();
+
+                var inner = GetTypeDefinition(at.ElementType, mapAllArraysToSystemArray);
+                if (inner != null)
+                    return (new ArrayType(inner, at.Rank)).Resolve();
+                else
+                    return null;
+            }
+
+            var gp = typeRef as GenericParameter;
+            if ((gp != null) && (gp.Owner == null))
+                return null;
+
             else if (IsIgnoredType(typeRef))
                 return null;
             else 
