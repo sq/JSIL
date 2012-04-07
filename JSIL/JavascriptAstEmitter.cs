@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using ICSharpCode.Decompiler.Ast;
 using ICSharpCode.Decompiler.ILAst;
 using JSIL.Ast;
 using JSIL.Internal;
@@ -90,25 +88,25 @@ namespace JSIL {
             var labelVar = String.Format("$label{0}", labelGroup.GroupIndex);
             var firstLabel = labelGroup.Labels.First().Key;
 
-            Output.Keyword("var");
+            Output.WriteRaw("var");
             Output.Space();
             Output.Identifier(labelVar);
-            Output.Token(" = ");
+            Output.WriteRaw(" = ");
             Output.Value(firstLabel);
             Output.Semicolon();
 
             Output.Label(stepLabel);
-            Output.Keyword("while");
+            Output.WriteRaw("while");
             Output.Space();
             Output.LPar();
 
-            Output.Keyword("true");
+            Output.WriteRaw("true");
 
             Output.RPar();
             Output.Space();
             Output.OpenBrace();
 
-            Output.Keyword("switch");
+            Output.WriteRaw("switch");
             Output.Space();
             Output.LPar();
 
@@ -125,12 +123,12 @@ namespace JSIL {
                         return false;
 
                     Output.Identifier(labelVar);
-                    Output.Token(" = ");
+                    Output.WriteRaw(" = ");
                     Output.Value(labelName);
                     Output.Semicolon();
                 }
 
-                Output.Keyword("continue");
+                Output.WriteRaw("continue");
                 Output.Space();
                 Output.Identifier(stepLabel);
 
@@ -143,17 +141,17 @@ namespace JSIL {
 
             foreach (var kvp in labelGroup.Labels) {
                 if (!isFirst && needsTrailingBreak) {
-                    Output.PlainTextFormatter.Indent();
+                    Output.Indent();
                     emitGoto(kvp.Key);
                     Output.Semicolon(true);
-                    Output.PlainTextFormatter.Unindent();
+                    Output.Unindent();
                 }
 
-                Output.Keyword("case");
+                Output.WriteRaw("case");
                 Output.Space();
                 Output.Value(kvp.Key);
-                Output.Token(":");
-                Output.PlainTextFormatter.Indent();
+                Output.WriteRaw(":");
+                Output.Indent();
                 Output.NewLine();
 
                 Visit(kvp.Value);
@@ -208,7 +206,7 @@ namespace JSIL {
 
                 isFirst = false;
 
-                Output.PlainTextFormatter.Unindent();
+                Output.Unindent();
 
                 Output.NewLine();
             }
@@ -216,15 +214,15 @@ namespace JSIL {
             GotoStack.Pop();
 
             if (needsTrailingBreak) {
-                Output.PlainTextFormatter.Indent();
-                Output.Keyword("break");
+                Output.Indent();
+                Output.WriteRaw("break");
                 Output.Space();
                 Output.Identifier(stepLabel);
                 Output.Semicolon(true);
-                Output.PlainTextFormatter.Unindent();
+                Output.Unindent();
             }
 
-            Output.PlainTextFormatter.Unindent();
+            Output.Unindent();
 
             Output.CloseBrace();
 
@@ -235,7 +233,7 @@ namespace JSIL {
             if (vars.Declarations.Count == 0)
                 return;
 
-            Output.Keyword("var");
+            Output.WriteRaw("var");
             Output.Space();
 
             CommaSeparatedList(vars.Declarations);
@@ -340,20 +338,20 @@ namespace JSIL {
                     continue;
 
                 if (!isFirst)
-                    Output.PlainTextOutput.WriteLine();
+                    Output.NewLine();
 
                 var matches = regex.Matches(line);
 
                 foreach (Match m in matches) {
                     if (m.Groups["text"].Success) {
-                        Output.PlainTextOutput.Write(m.Groups["text"].Value);
+                        Output.WriteRaw(m.Groups["text"].Value);
                     } else if (m.Groups["name"].Success) {
                         var key = m.Groups["name"].Value;
 
                         if (verbatim.Variables.ContainsKey(key))
                             Visit(verbatim.Variables[key]);
                         else
-                            Output.PlainTextOutput.Write("null");
+                            Output.WriteRaw("null");
                     }
                 }
 
@@ -392,7 +390,7 @@ namespace JSIL {
 
             foreach (var name in enm.Names) {
                 if (!isFirst)
-                    Output.Token(" | ");
+                    Output.WriteRaw(" | ");
 
                 Output.Identifier(enm.EnumType);
                 Output.Dot();
@@ -406,7 +404,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSNullLiteral nil) {
-            Output.Keyword("null");
+            Output.WriteRaw("null");
         }
 
         public void VisitNode (JSGotoExpression go) {
@@ -473,11 +471,11 @@ namespace JSIL {
             } else if (TypeAnalysis.IsIntegerOrEnum(defaultValue.Value)) {
                 Output.Value(0);
             } else if (!defaultValue.Value.IsValueType) {
-                Output.Keyword("null");
+                Output.WriteRaw("null");
             } else {
                 switch (defaultValue.Value.FullName) {
                     case "System.Nullable`1":
-                        Output.Keyword("null");
+                        Output.WriteRaw("null");
                         break;
                     case "System.Single":
                     case "System.Double":
@@ -485,7 +483,7 @@ namespace JSIL {
                         Output.Value(0.0);
                         break;
                     case "System.Boolean":
-                        Output.Keyword("false");
+                        Output.WriteRaw("false");
                         break;
                     default:
                         VisitNode(new JSNewExpression(new JSType(defaultValue.Value), null));
@@ -532,7 +530,7 @@ namespace JSIL {
 
                     return;
                 } else {
-                    Output.Keyword("this");
+                    Output.WriteRaw("this");
                 }
             } else
                 Output.Identifier(variable.Identifier);
@@ -585,7 +583,7 @@ namespace JSIL {
 
             if (lambda.UseBind) {
                 Output.Dot();
-                Output.Keyword("bind");
+                Output.WriteRaw("bind");
                 Output.LPar();
                 Visit(lambda.This);
                 Output.RPar();
@@ -634,7 +632,7 @@ namespace JSIL {
             BlockStack.Push(BlockType.Switch);
             WriteLabel(swtch);
 
-            Output.Keyword("switch");
+            Output.WriteRaw("switch");
             Output.Space();
 
             Output.LPar();
@@ -647,19 +645,19 @@ namespace JSIL {
             foreach (var c in swtch.Cases) {
                 if (c.Values != null) {
                     foreach (var value in c.Values) {
-                        Output.Token("case ");
+                        Output.WriteRaw("case ");
                         Visit(value);
-                        Output.Token(": ");
+                        Output.WriteRaw(": ");
                         Output.NewLine();
                     }
                 } else {
-                    Output.Token("default: ");
+                    Output.WriteRaw("default: ");
                     Output.NewLine();
                 }
 
-                Output.PlainTextFormatter.Indent();
+                Output.Indent();
                 Visit(c.Body);
-                Output.PlainTextFormatter.Unindent();
+                Output.Unindent();
                 Output.NewLine();
             }
 
@@ -678,7 +676,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSIfStatement ifs) {
-            Output.Keyword("if");
+            Output.WriteRaw("if");
             Output.Space();
 
             Output.LPar();
@@ -701,7 +699,7 @@ namespace JSIL {
                         if (o != this.Output)
                             throw new InvalidOperationException();
 
-                        o.Keyword("else if");
+                        o.WriteRaw("else if");
                         o.Space();
                         o.LPar();
                         Visit(nestedIf.Condition);
@@ -727,7 +725,7 @@ namespace JSIL {
                 return;
             }
 
-            Output.Keyword("try");
+            Output.WriteRaw("try");
             Output.Space();
             Output.OpenBrace();
 
@@ -738,7 +736,7 @@ namespace JSIL {
                     if (o != Output)
                         throw new InvalidOperationException();
 
-                    o.Keyword("catch");
+                    o.WriteRaw("catch");
                     o.Space();
                     o.LPar();
                     Visit(tcb.CatchVariable);
@@ -763,7 +761,7 @@ namespace JSIL {
             BlockStack.Push(BlockType.ForHeader);
             WriteLoopLabel(loop);
 
-            Output.Keyword("for");
+            Output.WriteRaw("for");
             Output.Space();
 
             Output.LPar();
@@ -795,7 +793,7 @@ namespace JSIL {
             BlockStack.Push(BlockType.While);
             WriteLoopLabel(loop);
 
-            Output.Keyword("while");
+            Output.WriteRaw("while");
             Output.Space();
 
             Output.LPar();
@@ -814,7 +812,7 @@ namespace JSIL {
             BlockStack.Push(BlockType.Do);
             WriteLoopLabel(loop);
 
-            Output.Keyword("do");
+            Output.WriteRaw("do");
             Output.Space();
             Output.OpenBrace();
 
@@ -822,7 +820,7 @@ namespace JSIL {
 
             Output.CloseBrace(false);
             Output.Space();
-            Output.Keyword("while");
+            Output.WriteRaw("while");
             Output.Space();
 
             Output.LPar();
@@ -834,7 +832,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSReturnExpression ret) {
-            Output.Keyword("return");
+            Output.WriteRaw("return");
 
             if (ret.Value != null) {
                 Output.Space();
@@ -843,14 +841,14 @@ namespace JSIL {
         }
 
         public void VisitNode (JSThrowExpression ret) {
-            Output.Keyword("throw");
+            Output.WriteRaw("throw");
             Output.Space();
             Visit(ret.Exception);
         }
 
         public void VisitNode (JSBreakExpression brk) {
             if (brk.TargetLoop.HasValue) {
-                Output.Keyword("break");
+                Output.WriteRaw("break");
                 Output.Space();
                 Output.Identifier(String.Format("$loop{0}", brk.TargetLoop.Value));
                 return;
@@ -862,7 +860,7 @@ namespace JSIL {
 
             switch (BlockStack.Peek()) {
                 case BlockType.Switch:
-                    Output.Keyword("break");
+                    Output.WriteRaw("break");
                     break;
                 default:
                     throw new NotImplementedException("Invalid break statement");
@@ -872,24 +870,24 @@ namespace JSIL {
 
         public void VisitNode (JSContinueExpression cont) {
             if (cont.TargetLoop.HasValue) {
-                Output.Keyword("continue");
+                Output.WriteRaw("continue");
                 Output.Space();
                 Output.Identifier(String.Format("$loop{0}", cont.TargetLoop.Value));
             } else if (GotoStack.Count > 0) {
                 GotoStack.Peek()(null);
             } else {
-                Output.Keyword("continue");
+                Output.WriteRaw("continue");
             }
         }
 
         public void VisitNode (JSUnaryOperatorExpression uop) {
             if (!uop.IsPostfix)
-                Output.Token(uop.Operator.Token);
+                Output.WriteRaw(uop.Operator.Token);
 
             Visit(uop.Expression);
 
             if (uop.IsPostfix)
-                Output.Token(uop.Operator.Token);
+                Output.WriteRaw(uop.Operator.Token);
         }
 
         public void VisitNode (JSBinaryOperatorExpression bop) {
@@ -946,7 +944,7 @@ namespace JSIL {
 
             Visit(bop.Left);
             Output.Space();
-            Output.Token(bop.Operator.Token);
+            Output.WriteRaw(bop.Operator.Token);
             Output.Space();
 
             if (
@@ -967,10 +965,10 @@ namespace JSIL {
 
             Visit(ternary.Condition);
 
-            Output.Token(" ? ");
+            Output.WriteRaw(" ? ");
             Visit(ternary.True);
 
-            Output.Token(" : ");
+            Output.WriteRaw(" : ");
             Visit(ternary.False);
 
             Output.RPar();
@@ -1022,7 +1020,7 @@ namespace JSIL {
                 if (parens)
                     Output.LPar();
 
-                Output.Keyword("new");
+                Output.WriteRaw("new");
                 Output.Space();
 
                 IncludeTypeParens.Push(true);
@@ -1043,7 +1041,7 @@ namespace JSIL {
 
         public void VisitNode (JSPairExpression pair) {
             Visit(pair.Key);
-            Output.Token(": ");
+            Output.WriteRaw(": ");
             Visit(pair.Value);
         }
 

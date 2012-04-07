@@ -10,17 +10,13 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using ICSharpCode.Decompiler.Ast;
-using ICSharpCode.Decompiler.Ast.Transforms;
 using ICSharpCode.Decompiler.ILAst;
-using ICSharpCode.NRefactory.CSharp;
 using JSIL.Ast;
 using JSIL.Internal;
 using JSIL.Transforms;
 using JSIL.Translator;
 using Mono.Cecil;
 using ICSharpCode.Decompiler;
-using Mono.Cecil.Pdb;
-using Mono.Cecil.Cil;
 using MethodInfo = JSIL.Internal.MethodInfo;
 
 namespace JSIL {
@@ -567,7 +563,7 @@ namespace JSIL {
                 }
 
                 output.Value(Util.EscapeIdentifier(m.Name));
-                output.Token(": ");
+                output.WriteRaw(": ");
                 output.Identifier("Function");
 
                 isFirst = false;
@@ -584,7 +580,7 @@ namespace JSIL {
                 }
 
                 output.Value(Util.EscapeIdentifier(p.Name));
-                output.Token(": ");
+                output.WriteRaw(": ");
                 output.Identifier("Property");
 
                 isFirst = false;
@@ -639,7 +635,7 @@ namespace JSIL {
                 }
 
                 output.Identifier(em.Name);
-                output.Token(": ");
+                output.WriteRaw(": ");
                 output.Value(em.Value);
 
                 isFirst = false;
@@ -695,7 +691,7 @@ namespace JSIL {
             if (typeInfo.Replacement != null) {
                 TranslateTypeDefinition(
                     context, typedef, astEmitter, output, stubbed,
-                    (o) => o.Token(typeInfo.Replacement)
+                    (o) => o.WriteRaw(typeInfo.Replacement)
                 );
 
                 output.NewLine();
@@ -884,32 +880,32 @@ namespace JSIL {
             dollar(output);
             output.Dot();
             output.Identifier("__IsIntegral__");
-            output.Token(" = ");
+            output.WriteRaw(" = ");
             output.Value(isIntegral);
             output.Semicolon(true);
 
             dollar(output);
             output.Dot();
-            output.Keyword("prototype");
+            output.WriteRaw("prototype");
             output.Dot();
             output.Identifier("__IsIntegral__");
-            output.Token(" = ");
+            output.WriteRaw(" = ");
             output.Value(isIntegral);
             output.Semicolon(true);
 
             dollar(output);
             output.Dot();
             output.Identifier("__IsNumeric__");
-            output.Token(" = ");
+            output.WriteRaw(" = ");
             output.Value(isNumeric);
             output.Semicolon(true);
 
             dollar(output);
             output.Dot();
-            output.Keyword("prototype");
+            output.WriteRaw("prototype");
             output.Dot();
             output.Identifier("__IsNumeric__");
-            output.Token(" = ");
+            output.WriteRaw(" = ");
             output.Value(isNumeric);
             output.Semicolon(true);
         }
@@ -925,9 +921,6 @@ namespace JSIL {
 
             context.CurrentType = typedef;
 
-            var externalMemberNames = new HashSet<string>();
-            var staticExternalMemberNames = new HashSet<string>();
-
             foreach (var method in typedef.Methods.OrderBy((md) => md.Name)) {
                 // We translate the static constructor explicitly later, and inject field initialization
                 if (method.Name == ".cctor")
@@ -935,7 +928,7 @@ namespace JSIL {
 
                 TranslateMethod(
                     context, method, method, astEmitter, output, 
-                    stubbed, externalMemberNames, staticExternalMemberNames, dollar
+                    stubbed, dollar
                 );
             }
 
@@ -964,43 +957,6 @@ namespace JSIL {
             };
 
             TranslateTypeStaticConstructor(context, typedef, astEmitter, output, typeInfo.StaticConstructor, stubbed, dollar);
-
-            if (typedef.FullName == "System.Array")
-                staticExternalMemberNames.Add("Of");
-
-            if (externalMemberNames.Count > 0) {
-                dollar(output);
-                output.Dot();
-                output.Identifier("ExternalMembers", null);
-
-                output.LPar();
-                output.Value(true);
-                output.Comma();
-                output.NewLine();
-
-                output.CommaSeparatedList(externalMemberNames.OrderBy((n) => n), ListValueType.Primitive);
-                output.NewLine();
-
-                output.RPar();
-                output.Semicolon();
-            }
-
-            if (staticExternalMemberNames.Count > 0) {
-                dollar(output);
-                output.Dot();
-                output.Identifier("ExternalMembers", null);
-
-                output.LPar();
-                output.Value(false);
-                output.Comma();
-                output.NewLine();
-
-                output.CommaSeparatedList(staticExternalMemberNames.OrderBy((n) => n), ListValueType.Primitive);
-                output.NewLine();
-
-                output.RPar();
-                output.Semicolon();
-            }
 
             output.NewLine();
             if ((typeInfo.MethodGroups.Count + typedef.Properties.Count) > 0) {
@@ -1507,7 +1463,7 @@ namespace JSIL {
             }
 
             if ((cctor != null) && !stubbed) {
-                TranslateMethod(context, cctor, cctor, astEmitter, output, false, null, null, dollar, fixupCctor);
+                TranslateMethod(context, cctor, cctor, astEmitter, output, false, dollar, fixupCctor);
             } else if (fieldsToEmit.Length > 0) {
                 var fakeCctor = new MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static, typeSystem.Void);
                 fakeCctor.DeclaringType = typedef;
@@ -1523,15 +1479,13 @@ namespace JSIL {
                 // Generate the fake constructor, since it wasn't created during the analysis pass
                 TranslateMethodExpression(context, fakeCctor, fakeCctor);
 
-                TranslateMethod(context, fakeCctor, fakeCctor, astEmitter, output, false, null, null, dollar, fixupCctor);
+                TranslateMethod(context, fakeCctor, fakeCctor, astEmitter, output, false, dollar, fixupCctor);
             }
         }
 
         protected void TranslateMethod (
             DecompilerContext context, MethodReference methodRef, MethodDefinition method,
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed, 
-            HashSet<string> externalMemberNames,
-            HashSet<string> staticExternalMemberNames,
             Action<JavascriptFormatter> dollar,
             Action<JSFunctionExpression> bodyTransformer = null
         ) {
@@ -1543,14 +1497,10 @@ namespace JSIL {
             bool methodIsProxied = (methodInfo.IsFromProxy && methodInfo.Member.HasBody) && 
                 !methodInfo.IsExternal && !isReplaced;
 
-            if (methodInfo.IsExternal || (stubbed && !methodIsProxied)) {
+            bool isExternal = methodInfo.IsExternal || (stubbed && !methodIsProxied);
+            if (isExternal) {
                 if (isReplaced)
                     return;
-
-                if (externalMemberNames == null)
-                    throw new ArgumentNullException("externalMemberNames");
-                if (staticExternalMemberNames == null)
-                    throw new ArgumentNullException("staticExternalMemberNames");
 
                 var isProperty = methodInfo.DeclaringProperty != null;
 
@@ -1558,10 +1508,9 @@ namespace JSIL {
                     return;
 
                 if (!isProperty || !methodInfo.Member.IsCompilerGenerated()) {
-                    (method.IsStatic ? staticExternalMemberNames : externalMemberNames)
-                        .Add(Util.EscapeIdentifier(methodInfo.GetName(true)));
 
-                    return;
+                } else {
+                    isExternal = false;
                 }
             }
 
@@ -1577,7 +1526,10 @@ namespace JSIL {
 
             dollar(output);
             output.Dot();
-            output.Identifier("Method", null);
+            if (isExternal)
+                output.Identifier("ExternalMethod", null);
+            else
+                output.Identifier("Method", null);
             output.LPar();
 
             output.MemberDescriptor(method.IsPublic, method.IsStatic);
@@ -1592,45 +1544,48 @@ namespace JSIL {
                 method.DeclaringType, methodInfo.ReturnType, 
                 (from p in methodInfo.Parameters select p.ParameterType), false
             );
-            output.Comma();
-            output.NewLine();
 
-            if (method.HasGenericParameters) {
-                output.Identifier("JSIL.GenericMethod", null);
-                output.LPar();
-                output.NewLine();
-                output.OpenBracket();
-
-                output.CommaSeparatedList((from p in method.GenericParameters select p.Name), ListValueType.Primitive);
-
-                output.CloseBracket();
+            if (!isExternal) {
                 output.Comma();
                 output.NewLine();
-            }
 
-            JSFunctionExpression function;
-            function = FunctionCache.GetExpression(new QualifiedMemberIdentifier(
-                methodInfo.DeclaringType.Identifier,
-                methodInfo.Identifier
-            ));
+                if (method.HasGenericParameters) {
+                    output.Identifier("JSIL.GenericMethod", null);
+                    output.LPar();
+                    output.NewLine();
+                    output.OpenBracket();
 
-            if (function != null) {
-                if (bodyTransformer != null)
-                    bodyTransformer(function);
+                    output.CommaSeparatedList((from p in method.GenericParameters select p.Name), ListValueType.Primitive);
 
-                function.DisplayName = methodInfo.GetName(true);
+                    output.CloseBracket();
+                    output.Comma();
+                    output.NewLine();
+                }
 
-                astEmitter.Visit(function);
-            } else {
-                output.Identifier("JSIL.UntranslatableFunction", null);
-                output.LPar();
-                output.Value(method.FullName);
-                output.RPar();
-            }
+                JSFunctionExpression function;
+                function = FunctionCache.GetExpression(new QualifiedMemberIdentifier(
+                    methodInfo.DeclaringType.Identifier,
+                    methodInfo.Identifier
+                ));
 
-            if (method.HasGenericParameters) {
-                output.NewLine();
-                output.RPar();
+                if (function != null) {
+                    if (bodyTransformer != null)
+                        bodyTransformer(function);
+
+                    function.DisplayName = methodInfo.GetName(true);
+
+                    astEmitter.Visit(function);
+                } else {
+                    output.Identifier("JSIL.UntranslatableFunction", null);
+                    output.LPar();
+                    output.Value(method.FullName);
+                    output.RPar();
+                }
+
+                if (method.HasGenericParameters) {
+                    output.NewLine();
+                    output.RPar();
+                }
             }
 
             output.NewLine();

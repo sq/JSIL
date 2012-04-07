@@ -4,10 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-using ICSharpCode.Decompiler;
-using ICSharpCode.Decompiler.Ast;
 using ICSharpCode.Decompiler.ILAst;
-using ICSharpCode.NRefactory.CSharp;
 using JSIL.Ast;
 using JSIL.Internal;
 using Mono.Cecil;
@@ -25,8 +22,6 @@ namespace JSIL.Internal {
 
     public class JavascriptFormatter {
         public readonly TextWriter Output;
-        public readonly PlainTextOutput PlainTextOutput;
-        public readonly TextOutputFormatter PlainTextFormatter;
         public readonly AssemblyManifest Manifest;
         public readonly ITypeInfoSource TypeInfo;
         public readonly AssemblyDefinition Assembly;
@@ -36,10 +31,11 @@ namespace JSIL.Internal {
 
         protected readonly HashSet<string> DeclaredNamespaces = new HashSet<string>();
 
+        protected uint _IndentLevel = 0;
+        protected bool _IndentNeeded = false;
+
         public JavascriptFormatter (TextWriter output, ITypeInfoSource typeInfo, AssemblyManifest manifest, AssemblyDefinition assembly) {
             Output = output;
-            PlainTextOutput = new PlainTextOutput(Output);
-            PlainTextFormatter = new TextOutputFormatter(PlainTextOutput);
             TypeInfo = typeInfo;
             Manifest = manifest;
             Assembly = assembly;
@@ -66,22 +62,58 @@ namespace JSIL.Internal {
             Identifier(token.IDString, null);
         }
 
+        public void Indent () {
+            _IndentLevel += 1;
+        }
+
+        public void Unindent () {
+            if (_IndentLevel == 0)
+                throw new InvalidOperationException("Indent level is already 0");
+
+            _IndentLevel -= 1;
+        }
+
+        public void NewLine () {
+            Output.Write(Environment.NewLine);
+            _IndentNeeded = true;
+        }
+
+        protected void WriteIndentIfNeeded () {
+            if (!_IndentNeeded)
+                return;
+
+            _IndentNeeded = false;
+            Output.Write(new string(' ', (int)(_IndentLevel * 2)));
+        }
+
+        public void WriteRaw (string characters) {
+            WriteIndentIfNeeded();
+
+            Output.Write(characters);
+        }
+
+        public void WriteRaw (string format, params object[] arguments) {
+            WriteIndentIfNeeded();
+
+            Output.Write(String.Format(format, arguments));
+        }
+
         public void LPar () {
-            PlainTextOutput.Write("(");
-            PlainTextOutput.Indent();
+            WriteRaw("(");
+            Indent();
         }
 
         public void RPar () {
-            PlainTextOutput.Unindent();
-            PlainTextOutput.Write(")");
+            Unindent();
+            WriteRaw(")");
         }
 
         public void Space () {
-            PlainTextOutput.Write(" ");
+            WriteRaw(" ");
         }
 
         public void Comma () {
-            PlainTextOutput.Write(", ");
+            WriteRaw(", ");
         }
 
         public void CommaSeparatedList (IEnumerable<object> values, ListValueType valueType = ListValueType.Primitive) {
@@ -104,7 +136,7 @@ namespace JSIL.Internal {
                 else if (valueType == ListValueType.TypeReference)
                     TypeReference(value as dynamic);
                 else
-                    PlainTextOutput.Write(value.ToString());
+                    WriteRaw(value.ToString());
 
                 isFirst = false;
             }
@@ -129,9 +161,9 @@ namespace JSIL.Internal {
                 else if (keyType == ListValueType.TypeReference)
                     TypeReference(kvp.Key as dynamic);
                 else
-                    PlainTextOutput.Write(kvp.Key.ToString());
+                    WriteRaw(kvp.Key.ToString());
 
-                Token(": ");
+                WriteRaw(": ");
 
                 if (valueType == ListValueType.Primitive)
                     Value(kvp.Value as dynamic);
@@ -142,7 +174,7 @@ namespace JSIL.Internal {
                 else if (valueType == ListValueType.TypeReference)
                     TypeReference(kvp.Value as dynamic);
                 else
-                    PlainTextOutput.Write(kvp.Value.ToString());
+                    WriteRaw(kvp.Value.ToString());
 
                 isFirst = false;
             }
@@ -161,63 +193,66 @@ namespace JSIL.Internal {
         }
 
         public void OpenBracket (bool indent = false) {
-            PlainTextOutput.Write("[");
+            WriteRaw("[");
 
             if (indent) {
-                PlainTextOutput.Indent();
-                PlainTextOutput.WriteLine();
+                Indent();
+                NewLine();
             }
         }
 
         public void CloseBracket (bool indent = false, Action newline = null) {
             if (indent) {
-                PlainTextOutput.Unindent();
-                PlainTextOutput.WriteLine();
+                Unindent();
+                NewLine();
             }
 
-            PlainTextOutput.Write("]");
+            WriteRaw("]");
 
             if (indent) {
                 if (newline != null)
                     newline();
                 else
-                    PlainTextOutput.WriteLine();
+                    NewLine();
             }
         }
 
         public void OpenBrace () {
-            PlainTextOutput.WriteLine("{");
-            PlainTextOutput.Indent();
+            WriteRaw("{");
+            Indent();
+            NewLine();
         }
 
         public void CloseBrace (bool newLine = true) {
-            PlainTextOutput.Unindent();
+            Unindent();
+
+            WriteRaw("}");
+
             if (newLine)
-                PlainTextOutput.WriteLine("}");
-            else
-                PlainTextOutput.Write("}");
+                NewLine();
         }
 
         public void CloseAndReopenBrace (Action<JavascriptFormatter> midtext) {
-            PlainTextOutput.Unindent();
-            PlainTextOutput.Write("} ");
+            Unindent();
+            WriteRaw("} ");
             midtext(this);
-            PlainTextOutput.WriteLine(" {");
-            PlainTextOutput.Indent();
+            WriteRaw(" {");
+            NewLine();
+            Indent();
         }
 
         public void CloseAndReopenBrace (string midtext) {
-            PlainTextOutput.Unindent();
-            PlainTextOutput.WriteLine(String.Format("}} {0} {{", midtext));
-            PlainTextOutput.Indent();
+            Unindent();
+            WriteRaw("}} {0} {{", midtext);
+            NewLine();
+            Indent();
         }
 
         public void OpenFunction (string functionName, Action<JavascriptFormatter> emitParameters) {
-            PlainTextOutput.Write("function");
-            Space();
+            WriteRaw("function ");
 
             if (functionName != null) {
-                PlainTextOutput.Write(Util.EscapeIdentifier(functionName));
+                WriteRaw(Util.EscapeIdentifier(functionName));
                 Space();
             }
 
@@ -315,7 +350,7 @@ namespace JSIL.Internal {
                 }
             } else if (type is GenericParameter) {
                 var gp = (GenericParameter)type;
-                Keyword("new");
+                WriteRaw("new");
                 Space();
                 Identifier("JSIL.GenericParameter", null);
                 LPar();
@@ -363,32 +398,32 @@ namespace JSIL.Internal {
         }
 
         public void MemberDescriptor (bool isPublic, bool isStatic) {
-            Token("{");
+            WriteRaw("{");
 
             Identifier("Static", null);
-            Token(":");
+            WriteRaw(":");
             Value(isStatic);
             if (isStatic)
-                Token(" ");
+                WriteRaw(" ");
 
             Comma();
 
             Identifier("Public", null);
-            Token(":");
+            WriteRaw(":");
             Value(isPublic);
             if (isPublic)
-                Token(" ");
+                WriteRaw(" ");
 
-            Token("}");
+            WriteRaw("}");
         }
 
         public void Identifier (string name, EscapingMode? escapingMode = EscapingMode.MemberIdentifier) {
             if (escapingMode.HasValue)
-                PlainTextOutput.Write(Util.EscapeIdentifier(
+                WriteRaw(Util.EscapeIdentifier(
                     name, escapingMode.Value
                 ));
             else
-                PlainTextOutput.Write(name);
+                WriteRaw(name);
         }
 
         public void Identifier (ILVariable variable) {
@@ -443,7 +478,7 @@ namespace JSIL.Internal {
                         Dot();
                         Identifier("get");
                         LPar();
-                        Keyword("this");
+                        WriteRaw("this");
                         RPar();
                     } else {
                         Identifier(gp.Name);
@@ -455,7 +490,7 @@ namespace JSIL.Internal {
                         Identifier("JSIL.AnyType", null);
                 } else {
                     if (EmitThisForParameter(gp)) {
-                        Keyword("this");
+                        WriteRaw("this");
                         Dot();
                     }
 
@@ -464,22 +499,22 @@ namespace JSIL.Internal {
             } else {
                 var info = TypeInfo.Get(type);
                 if (info.Replacement != null) {
-                    PlainTextOutput.Write(info.Replacement);
+                    WriteRaw(info.Replacement);
                     return;
                 }
 
                 var typedef = type.Resolve();
                 if (typedef != null) {
                     if (GetContainingAssemblyName(typedef) == Assembly.FullName) {
-                        PlainTextOutput.Write(PrivateToken.IDString);
-                        PlainTextOutput.Write(".");
+                        WriteRaw(PrivateToken.IDString);
+                        WriteRaw(".");
                     } else {
                         AssemblyReference(typedef);
-                        PlainTextOutput.Write(".");
+                        WriteRaw(".");
                     }
                 }
 
-                PlainTextOutput.Write(Util.EscapeIdentifier(
+                WriteRaw(Util.EscapeIdentifier(
                     info.FullName, EscapingMode.TypeIdentifier
                 ));
             }
@@ -565,16 +600,8 @@ namespace JSIL.Internal {
             }
         }
 
-        public void Keyword (string keyword) {
-            PlainTextOutput.Write(keyword);
-        }
-
-        public void Token (string token) {
-            PlainTextOutput.Write(token);
-        }
-
         public void Dot () {
-            PlainTextOutput.Write(".");
+            WriteRaw(".");
         }
 
         public void Semicolon () {
@@ -582,41 +609,36 @@ namespace JSIL.Internal {
         }
 
         public void Semicolon (bool lineBreak) {
-            if (lineBreak)
-                PlainTextOutput.WriteLine(";");
-            else
-                PlainTextOutput.Write("; ");
-        }
+            WriteRaw(";");
 
-        public void NewLine () {
-            PlainTextOutput.WriteLine();
+            if (lineBreak)
+                NewLine();
+            else
+                Space();
         }
 
         public void Value (bool value) {
-            if (value)
-                PlainTextOutput.Write("true");
-            else
-                PlainTextOutput.Write("false");
+            WriteRaw(value ? "true" : "false");
         }
 
         public void Value (string value) {
-            PlainTextOutput.Write(Util.EscapeString(value));
+            WriteRaw(Util.EscapeString(value));
         }
 
         public void Value (char value) {
-            PlainTextOutput.Write(Util.EscapeString("" + value));
+            WriteRaw(Util.EscapeString(new string(value, 1)));
         }
 
         public void Value (long value) {
-            PlainTextOutput.Write(value.ToString());
+            WriteRaw(value.ToString());
         }
 
         public void Value (ulong value) {
-            PlainTextOutput.Write(value.ToString());
+            WriteRaw(value.ToString());
         }
 
         public void Value (double value) {
-            PlainTextOutput.Write(value.ToString("R", CultureInfo.InvariantCulture));
+            WriteRaw(value.ToString("R", CultureInfo.InvariantCulture));
         }
 
         public void Value (TypeReference type) {
@@ -649,10 +671,7 @@ namespace JSIL.Internal {
 
         public void Comment (string commentFormat, params object[] values) {
             var commentText = String.Format(" " + commentFormat + " ", values);
-            PlainTextFormatter.WriteComment(
-                CommentType.MultiLine, commentText
-            );
-            PlainTextFormatter.Space();
+            WriteRaw("/* {0} */", commentText);
         }
 
         public void DefaultValue (TypeReference typeReference) {
@@ -662,13 +681,13 @@ namespace JSIL.Internal {
                 Value(0);
                 return;
             } else if (!typeReference.IsValueType) {
-                Keyword("null");
+                WriteRaw("null");
                 return;
             }
 
             switch (fullName) {
                 case "System.Nullable`1":
-                    Keyword("null");
+                    WriteRaw("null");
                     return;
                 case "System.Single":
                 case "System.Double":
@@ -677,7 +696,7 @@ namespace JSIL.Internal {
                     return;
             }
 
-            Keyword("new");
+            WriteRaw("new");
             Space();
             Identifier(typeReference);
             LPar();
@@ -685,10 +704,10 @@ namespace JSIL.Internal {
         }
 
         public void DeclareAssembly () {
-            Keyword("var");
+            WriteRaw("var");
             Space();
             Identifier(PrivateToken.IDString);
-            Token(" = ");
+            WriteRaw(" = ");
             Identifier("JSIL.DeclareAssembly", null);
             LPar();
             Value(Assembly.FullName);
@@ -725,16 +744,20 @@ namespace JSIL.Internal {
         }
 
         public void Label (string labelName) {
-            PlainTextFormatter.Unindent();
+            Unindent();
             Identifier(labelName);
-            Token(": ");
-            PlainTextFormatter.Indent();
+            WriteRaw(": ");
+            Indent();
             NewLine();
         }
 
-        public void MethodSignature (TypeReference context, TypeReference returnType, IEnumerable<TypeReference> parameterTypes, bool methodContext) {
-            Token("new JSIL.MethodSignature");
+        public void MethodSignature (TypeReference context, TypeReference returnType, IEnumerable<TypeReference> _parameterTypes, bool methodContext) {
+            WriteRaw("new JSIL.MethodSignature");
             LPar();
+
+            var parameterTypes = _parameterTypes.ToArray();
+            if (parameterTypes.Length > 2)
+                NewLine();
 
             if ((returnType == null) || (returnType.FullName == "System.Void"))
                 Identifier("null", null);
@@ -742,7 +765,7 @@ namespace JSIL.Internal {
                 TypeReference(returnType, context);
 
             Comma();
-            OpenBracket(false);
+            OpenBracket(parameterTypes.Length > 2);
 
             if (methodContext) {
                 CommaSeparatedList(parameterTypes, ListValueType.Identifier);
@@ -750,7 +773,10 @@ namespace JSIL.Internal {
                 CommaSeparatedList(parameterTypes, context);
             }
 
-            CloseBracket(false);
+            CloseBracket(parameterTypes.Length > 2);
+
+            if (parameterTypes.Length > 2)
+                NewLine();
 
             RPar();
         }
