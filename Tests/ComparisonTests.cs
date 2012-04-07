@@ -100,6 +100,7 @@ namespace JSIL.Tests {
                     @"TestCases\GenericStaticMethods.cs",
                     @"TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs",
                     @"TestCases\GenericStaticConstructorOrdering.cs",
+                    @"TestCases\MethodOfGenericTypeAsGenericDelegate.cs",
                     @"TestCases\GenericMethodAsGenericDelegate.cs",
                     @"TestCases\GenericNestedTypeConstructedInParentStaticConstructor.cs",
                     @"TestCases\GenericParameterNameShadowing.cs"

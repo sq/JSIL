@@ -2719,20 +2719,13 @@ JSIL.InterfaceBuilder.prototype.toString = function () {
 JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name, signature) {
   var result = Object.create(this.memberDescriptorPrototype);
 
-  var escapedName, escapedNameWithSuffix;
-  if (typeof (signature) === "object") {
-    escapedName = JSIL.EscapeName(name);
-    escapedNameWithSuffix = escapedName + JSIL.EscapeName(signature.GenericSuffix);
-  } else {
-    escapedName = escapedNameWithSuffix = JSIL.EscapeName(name);
-  }
+  var escapedName = JSIL.EscapeName(name);
 
   result.Static = descriptor.Static || false;
   result.Public = descriptor.Public || false;
 
   result.Name = name;
   result.EscapedName = escapedName;
-  result.EscapedNameWithSuffix = escapedNameWithSuffix;
   result.SpecialName = (name == ".ctor") || (name == ".cctor");
 
   Object.defineProperty(result, "Target", {
@@ -2891,7 +2884,7 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
 
   if (newValue !== undefined) {
     descriptor.Target[mangledName] = newValue;
-    descriptor.SetIfUndefined(descriptor.EscapedNameWithSuffix, newValue);
+    descriptor.SetIfUndefined(descriptor.EscapedName, newValue);
   }
 
   this.PushMember("MethodInfo", descriptor, { 
@@ -2919,7 +2912,7 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
   }
 
   descriptor.Target[mangledName] = fn;
-  descriptor.SetExclusive(descriptor.EscapedNameWithSuffix, fn);
+  descriptor.SetExclusive(descriptor.EscapedName, fn);
 
   this.PushMember("MethodInfo", descriptor, { 
     signature: signature, 

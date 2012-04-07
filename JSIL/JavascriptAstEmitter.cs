@@ -295,7 +295,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSMethod method) {
-            Output.Identifier(method.Method.Name);
+            Output.Identifier(method.Method.GetName(true));
 
             var ga = method.GenericArguments;
             if (ga != null) {

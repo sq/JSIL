@@ -282,7 +282,7 @@
     <None Include="TestCases\ContinueInsideSwitch.cs" />
     <None Include="SimpleTestCases\ArrayOfStructsDefaultValues.cs" />
     <None Include="TestCases\CharConcat.cs" />
-    <None Include="TestCases\GenericMethodAsGenericDelegate.cs" />
+    <None Include="TestCases\MethodOfGenericTypeAsGenericDelegate.cs" />
     <None Include="TestCases\EnumIfStatement.cs" />
     <None Include="SimpleTestCases\IsAssignableFrom.cs" />
     <None Include="SimpleTestCases\DelegateResultWithConstraints.cs" />
@@ -324,6 +324,7 @@
     <None Include="SimpleTestCases\LinqSelect.cs" />
     <None Include="SimpleTestCases\LinqToArray.cs" />
     <None Include="SpecialTestCases\AlternateSwitchForm.cs" />
+    <None Include="TestCases\GenericMethodAsGenericDelegate.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
