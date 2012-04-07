@@ -75,20 +75,9 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
-        [JSExternal]
-        [JSRuntimeDispatch]
         [JSIsPure]
+        [JSReplacement("JSIL.SplitString($this, $dividers)")]
         public abstract string[] Split (AnyType[] dividers);
-
-        [JSExternal]
-        [JSRuntimeDispatch]
-        [JSIsPure]
-        public abstract string[] Split (AnyType[] dividers, StringSplitOptions options);
-
-        [JSExternal]
-        [JSRuntimeDispatch]
-        [JSIsPure]
-        public abstract string[] Split (AnyType[] dividers, int maximumCount, StringSplitOptions options);
 
         [JSChangeName("length")]
         [JSNeverReplace]

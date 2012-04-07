@@ -4358,6 +4358,27 @@ JSIL.StringToCharArray = function (text) {
   return result;
 };
 
+JSIL.ObjectEquals = function (lhs, rhs) {
+  if (lhs === rhs)
+    return true;
+
+  var signature = new JSIL.MethodSignature("System.Boolean", ["System.Object"], [], $jsilcore);
+  var key = signature.GetKey("Equals");
+
+  var impl = lhs[key];
+  if (typeof (impl) === "function")
+    return signature.CallVirtual("Equals", null, lhs, rhs);
+
+  switch (typeof (lhs)) {
+    case "string":
+    case "number":
+      return lhs == rhs;
+      break;
+  }
+
+  return false;
+};
+
 JSIL.CompareNumbers = function (lhs, rhs) {
   if (lhs > rhs)
     return 1;

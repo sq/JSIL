@@ -22,9 +22,8 @@ namespace JSIL.Proxies {
         [JSRuntimeDispatch]
         new abstract public string ToString ();
 
-        [JSExternal]
         [JSIsPure]
-        [JSNeverReplace]
+        [JSReplacement("JSIL.ObjectEquals($this, $obj)")]
         new abstract public bool Equals (object obj);
     }
 }

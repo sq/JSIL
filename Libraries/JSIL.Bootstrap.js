@@ -124,49 +124,44 @@ JSIL.ImplementExternals(
 JSIL.MakeNumericType(Number, "System.Double", false);
 
 JSIL.ImplementExternals(
-  "System.String", false, {
-    CheckType: function (value) {
-      return (typeof (value) === "string") || (
-        (typeof (value.text) === "string") && (value.__proto__ === prototype)
-      );
-    },
-    Concat: function (firstValue) {
-      if (JSIL.IsArray(firstValue) && arguments.length == 1) {
-        return JSIL.ConcatString.apply(null, firstValue);
-      } else {
-        return JSIL.ConcatString(Array.prototype.slice.call(arguments));
-      }
-    },
-    IsNullOrEmpty: function (str) {
-      if (str === null)
-        return true;
-      else if (typeof (str) === "undefined")
-        return true;
-      else if (str.length === 0)
-        return true;
+  "System.String", function ($) {
+    var fromCharArray = function (chars, startIndex, length) {
+      var arr = chars.slice(startIndex, length);
+      return arr.join("");
+    };
 
-      return false;
-    },
-    StartsWith: function (str, text) {
-      return str.indexOf(text) === 0;
-    },
-    EndsWith: function (str, text) {
-      return str.lastIndexOf(text) === str.length - text.length;
-    },
-    Replace: function (str, oldText, newText) {
-      return str.split(oldText).join(newText);
-    },
-    Compare$0: function (lhs, rhs) {
-      return System.String.Compare$2(lhs, rhs, System.StringComparison.Ordinal);
-    },
-    Compare$1: function (lhs, rhs, ignoreCase) {
-      return System.String.Compare$2(
-        lhs, rhs, ignoreCase ? 
-          System.StringComparison.OrdinalIgnoreCase : 
-          System.StringComparison.Ordinal
-      );
-    },
-    Compare$2: function (lhs, rhs, comparison) {
+    $.Method({Static: false, Public: true }, ".ctor",
+      new JSIL.MethodSignature(null, [System.Array.Of("System.Char"), "System.Int32", "System.Int32"], [], $jsilcore),
+      fromCharArray
+    );
+
+    $.Method({Static: false, Public: true }, ".ctor",
+      new JSIL.MethodSignature(null, [System.Array.Of("System.Char")], [], $jsilcore),
+      function (chars) {
+        return fromCharArray.call(this, chars, 0, chars.length);
+      }
+    );
+
+    $.Method({Static: false, Public: true }, ".ctor",
+      new JSIL.MethodSignature(null, ["System.Char", "System.Int32"], [], $jsilcore),
+      function (ch, length) {
+        var arr = new Array(length);
+        for (var i = 0; i < length; i++)
+          arr[i] = ch;
+        return arr.join("");
+      }
+    );
+
+    $.Method({Static: true , Public: true }, "CheckType",
+      new JSIL.MethodSignature("System.Boolean", [JSIL.AnyType]),
+      function (value) {
+        return (typeof (value) === "string") || (
+          (typeof (value.text) === "string") && (value.__proto__ === prototype)
+        );
+      }
+    );
+
+    var compareInternal = function (lhs, rhs, comparison) {
       switch (comparison.valueOf()) {
         case 1: // System.StringComparison.CurrentCultureIgnoreCase:
         case 3: // System.StringComparison.InvariantCultureIgnoreCase:
@@ -182,113 +177,176 @@ JSIL.ImplementExternals(
         return 1;
       else
         return 0;
-    },
-    IndexOfAny: function (str, chars) {
-      var result = null;
-      for (var i = 0; i < chars.length; i++) {
-        var index = str.indexOf(chars[i]);
-        if ((result === null) || (index < result))
-          result = index;
+    };
+
+    $.Method({Static:true , Public:true }, "Compare", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [$jsilcore.TypeRef("System.String"), $jsilcore.TypeRef("System.String")], []),
+      function (lhs, rhs) {
+        return compareInternal(lhs, rhs, System.StringComparison.Ordinal);
       }
+    );
 
-      if (result === null)
-        return -1;
-      else
-        return result;
-    },
-    LastIndexOfAny: function (str, chars) {
-      var result = null;
-      for (var i = 0; i < chars.length; i++) {
-        var index = str.lastIndexOf(chars[i]);
-        if ((result === null) || (index > result))
-          result = index;
+    $.Method({Static:true , Public:true }, "Compare", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [
+          $jsilcore.TypeRef("System.String"), $jsilcore.TypeRef("System.String"), 
+          $jsilcore.TypeRef("System.Boolean")
+        ], []),
+      function (lhs, rhs, ignoreCase) {
+        return compareInternal(
+          lhs, rhs, ignoreCase ? 
+            System.StringComparison.OrdinalIgnoreCase : 
+            System.StringComparison.Ordinal
+        );
       }
+    );
 
-      if (result === null)
-        return -1;
-      else
-        return result;
-    },
-    Format: function (format) {
-      format = String(format);
+    $.Method({Static:true , Public:true }, "Compare", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [
+          $jsilcore.TypeRef("System.String"), $jsilcore.TypeRef("System.String"), 
+          $jsilcore.TypeRef("System.StringComparison")
+        ], []),
+      compareInternal
+    );
 
-      var regex = new RegExp("{([0-9]*)(?::([^}]*))?}", "g");
-      var match = null;
+    var concatInternal = function (firstValue) {
+      if (JSIL.IsArray(firstValue) && arguments.length == 1) {
+        return JSIL.ConcatString.apply(null, firstValue);
+      } else {
+        return JSIL.ConcatString(Array.prototype.slice.call(arguments));
+      }
+    };
 
-      var values = Array.prototype.slice.call(arguments, 1);
+    $.Method({Static:true , Public:true }, "Concat", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.String"), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["T"]),
+      concatInternal
+    );
 
-      if ((values.length == 1) && JSIL.IsArray(values[0]))
-        values = values[0];
+    $.Method({Static:true , Public:true }, "Concat", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.String"), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$jsilcore.TypeRef("System.String")])], []),
+      concatInternal
+    );
 
-      var matcher = function (match, index, valueFormat, offset, str) {
-        index = parseInt(index);
+    $.Method({Static: true , Public: true }, "EndsWith",
+      new JSIL.MethodSignature("System.Boolean", ["System.String", "System.String"], [], $jsilcore),
+      function (str, text) {
+        return str.lastIndexOf(text) === str.length - text.length;
+      }
+    );
 
-        var value = values[index];
+    $.Method({Static:true , Public:true }, "Format", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.String"), [$jsilcore.TypeRef("System.Array") /* AnyType[] */ ], []),
+      function (format) {
+        format = String(format);
 
-        if (valueFormat) {
+        var regex = new RegExp("{([0-9]*)(?::([^}]*))?}", "g");
+        var match = null;
 
-          switch (valueFormat[0]) {
-            case 'f':
-            case 'F':
-            case 'n':
-            case 'N':
-              var digits = parseInt(valueFormat.substr(1));
-              return parseFloat(value).toFixed(digits);
+        var values = Array.prototype.slice.call(arguments, 1);
 
-            default:
-              throw new Error("Unsupported format string: " + valueFormat);
-          }
-        } else {
+        if ((values.length == 1) && JSIL.IsArray(values[0]))
+          values = values[0];
 
-          if (typeof (value) === "boolean") {
-            if (value)
-              return "True";
-            else
-              return "False";
+        var matcher = function (match, index, valueFormat, offset, str) {
+          index = parseInt(index);
+
+          var value = values[index];
+
+          if (valueFormat) {
+
+            switch (valueFormat[0]) {
+              case 'f':
+              case 'F':
+              case 'n':
+              case 'N':
+                var digits = parseInt(valueFormat.substr(1));
+                return parseFloat(value).toFixed(digits);
+
+              default:
+                throw new Error("Unsupported format string: " + valueFormat);
+            }
           } else {
-            return String(value);
+
+            if (typeof (value) === "boolean") {
+              if (value)
+                return "True";
+              else
+                return "False";
+            } else {
+              return String(value);
+            }
           }
+        };
+
+        return format.replace(regex, matcher);
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "IndexOfAny", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [System.Array.Of($jsilcore.System.Char), $jsilcore.TypeRef("System.Int32")], []),
+      function (str, chars) {
+        var result = null;
+        for (var i = 0; i < chars.length; i++) {
+          var index = str.indexOf(chars[i]);
+          if ((result === null) || (index < result))
+            result = index;
         }
-      };
 
-      return format.replace(regex, matcher);
-    }
-  }
-);
+        if (result === null)
+          return -1;
+        else
+          return result;
+      }
+    );
 
-JSIL.ImplementExternals(
-  "System.String", true, {
-    _ctor: function (text) {
-      if (typeof (text) === "string")
-        return text;
-      else
-        return String(text);
-    },
-    _ctor$0: function (chars, startIndex, length) {
-      var arr = chars.slice(startIndex, length);
-      return arr.join("");
-    },
-    _ctor$1: function (chars) {
-      return _ctor$0.call(this, chars, 0, chars.length);
-    },
-    _ctor$2: function (ch, length) {
-      var arr = new Array(length);
-      for (var i = 0; i < length; i++)
-        arr[i] = ch;
-      return arr.join("");
-    },
+    $.Method({Static:true , Public:true }, "IsNullOrEmpty", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [$jsilcore.TypeRef("System.String")], []),
+      function (str) {
+        if (str === null)
+          return true;
+        else if (typeof (str) === "undefined")
+          return true;
+        else if (str.length === 0)
+          return true;
+
+        return false;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "LastIndexOfAny", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [System.Array.Of($jsilcore.System.Char), $jsilcore.TypeRef("System.Int32")], []),
+      function (str, chars) {
+        var result = null;
+        for (var i = 0; i < chars.length; i++) {
+          var index = str.lastIndexOf(chars[i]);
+          if ((result === null) || (index > result))
+            result = index;
+        }
+
+        if (result === null)
+          return -1;
+        else
+          return result;
+      }
+    );
+
+    $.Method({Static: true , Public: true }, "Replace",
+      new JSIL.MethodSignature("System.String", ["System.String", "System.String", "System.String"], [], $jsilcore),
+      function (str, oldText, newText) {
+        return str.split(oldText).join(newText);
+      }
+    );
+
+    $.Method({Static: true , Public: true }, "StartsWith",
+      new JSIL.MethodSignature("System.Boolean", ["System.String", "System.String"], [], $jsilcore),
+      function (str, text) {
+        return str.indexOf(text) === 0;
+      }
+    );
   }
 );
 
 JSIL.MakeClass("System.Object", "System.String", true, [], function ($) {
   $.__IsNativeType__ = true;
-
-  $.ExternalMembers(false, 
-    "Concat", "Format"
-  );
-  $.ExternalMembers(true,
-    "_ctor", "_ctor$0", "_ctor$1", "_ctor$2"
-  );
 
   $.Constant({Static: true , Public: true }, "Empty", "");
 });
@@ -501,21 +559,11 @@ JSIL.MakeStaticClass("System.Console", true, [], function ($) {
   );
 });
 
-// Unfortunately, without access to sandboxed natives, we have to extend the actual prototype for String :(
-
-String.prototype.Equals = function (rhs) {
-  if ((typeof (this) === "string") && (typeof (rhs) === "string")) {
-    return this == rhs;
-  } else {
-    return this === rhs;
-  }
-};
-
-String.prototype.Split = function (separators) {
+JSIL.SplitString = function (str, separators) {
   if (separators.length > 1)
     throw new Error("Split cannot handle more than one separator");
 
-  return this.split(separators[0]);
+  return str.split(separators[0]);
 };
 
 JSIL.ConcatString = function (/* ...values */) {
@@ -1846,68 +1894,107 @@ JSIL.ImplementExternals(
 );
 
 JSIL.ImplementExternals(
-  "System.Enum", false, {
-    CheckType: function (value) {
-      if (typeof (value) === "object") {
-        if ((value !== null) && (typeof (value.GetType) === "function"))
-          return value.GetType().IsEnum;
+  "System.Enum", function ($) {    
+    $.Method({Static: true , Public: true }, "CheckType",
+      new JSIL.MethodSignature("System.Boolean", [JSIL.AnyType]),
+      function (value) {
+        if (typeof (value) === "object") {
+          if ((value !== null) && (typeof (value.GetType) === "function"))
+            return value.GetType().IsEnum;
+        }
+
+        return false;
       }
+    );
 
-      return false;
-    },
-    Parse$0: function (enm, text) {
-      return System.Enum.Parse$1(enm, text, false);
-    },
-    Parse$1: function (enm, text, ignoreCase) {
-      var result = new JSIL.Variable();
-      if (System.Enum.TryParse$1(enm, text, ignoreCase, result))
-        return result.value;
-
-      throw new System.Exception("Failed to parse enum");
-    },
-    TryParse$0: function (enm, text, result) {
-      return System.Enum.TryParse$1(enm, text, false, result);
-    },
-    TryParse$1: function (enm, text, ignoreCase, result) {      
+    var internalTryParse = function (TEnum, text, ignoreCase, result) {      
       var num = Number(text);
 
       if (isNaN(num)) {
         if (ignoreCase) {
-          var names = enm.__Names__;
+          var names = TEnum.__Names__;
           for (var i = 0; i < names.length; i++) {
-            if (System.String.Compare$1(names[i], text, true) === 0) {
-              result.value = enm[names[i]];
+            var isMatch = (names[i].toLowerCase() == text.toLowerCase());
+
+            if (isMatch) {
+              result.value = TEnum[names[i]];
               break;
             }
           }
         } else {
-          result.value = enm[text];
+          result.value = TEnum[text];
         }
 
         return (typeof (result.value) !== "undefined");
       } else {
-        var name = enm.__ValueToName__[num];
+        var name = TEnum.__ValueToName__[num];
 
         if (typeof (name) === "undefined")
           return false;
         else {
-          result.value = enm[name];
+          result.value = TEnum[name];
           return true;
         }
       }
-    },
-    GetNames: function (enm) {
-      return enm.__Names__;
-    },
-    GetValues: function (enm) {
-      var names = enm.__Names__;
-      var result = new Array(names.length);
+    };
 
-      for (var i = 0; i < result.length; i++)
-        result[i] = enm[names[i]];
+    var internalParse = function (enm, text, ignoreCase) {
+      var result = new JSIL.Variable();
+      if (internalTryParse(enm, text, ignoreCase, result))
+        return result.value;
 
-      return result;
-    }
+      throw new System.Exception("Failed to parse enum");
+    };
+
+    $.Method({Static:true , Public:true }, "Parse", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Object"), [$jsilcore.TypeRef("System.Type"), $jsilcore.TypeRef("System.String")], []),
+      function (enm, text) {
+        return internalParse(enm, text, false);
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "Parse", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Object"), [
+          $jsilcore.TypeRef("System.Type"), $jsilcore.TypeRef("System.String"), 
+          $jsilcore.TypeRef("System.Boolean")
+        ], []),
+      internalParse
+    );    
+
+    $.Method({Static:true , Public:true }, "TryParse", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [$jsilcore.TypeRef("System.String"), "JSIL.Reference" /* !!0& */ ], ["TEnum"]),
+      function (TEnum, text, result) {
+        return internalTryParse(TEnum, text, result);
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "TryParse", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [
+          $jsilcore.TypeRef("System.String"), $jsilcore.TypeRef("System.Boolean"), 
+          "JSIL.Reference" /* !!0& */ 
+        ], ["TEnum"]),
+      internalTryParse
+    );
+
+    $.Method({Static:true , Public:true }, "GetNames", 
+      new JSIL.MethodSignature(System.Array.Of($jsilcore.System.String), [$jsilcore.TypeRef("System.Type")], []),
+      function (enm) {
+        return enm.__Names__;
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "GetValues", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Array"), [$jsilcore.TypeRef("System.Type")], []),
+      function (enm) {
+        var names = enm.__Names__;
+        var result = new Array(names.length);
+
+        for (var i = 0; i < result.length; i++)
+          result[i] = enm[names[i]];
+
+        return result;
+      }
+    );
   }
 );
 
