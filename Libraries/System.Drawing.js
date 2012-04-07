@@ -11,8 +11,10 @@ JSIL.DeclareNamespace("System.Drawing");
 if (JSIL.HostType.IsBrowser) {
   JSIL.ImplementExternals(
     "System.Drawing.Image", function ($) {
+      var mscorlib = JSIL.GetAssembly("mscorlib", true);
+
       $.Method({Static:false, Public:true }, "Save", 
-        new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array") /* AnyType[] */ ], []),
+        new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Array") /* AnyType[] */ ], []),
         function (filename) {
           this.context.putImageData(this.buffer, 0, 0);
         }
@@ -24,6 +26,7 @@ if (JSIL.HostType.IsBrowser) {
   JSIL.ImplementExternals(
     "System.Drawing.Bitmap", function ($) {
       var systemDrawing = JSIL.GetAssembly("System.Drawing", true);
+      var mscorlib = JSIL.GetAssembly("mscorlib", true);
 
       var constructFromFile = function (filename) {
         // System.Drawing.Image.prototype._ctor.call(this);
@@ -47,17 +50,17 @@ if (JSIL.HostType.IsBrowser) {
       };
 
       $.Method({Static:false, Public:true }, ".ctor", 
-        new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.String")], []),
+        new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.String")], []),
         constructFromFile
       );
 
       $.Method({Static:false, Public:true }, ".ctor", 
-        new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.String"), $jsilcore.TypeRef("System.Boolean")], []),
+        new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.String"), mscorlib.TypeRef("System.Boolean")], []),
         constructFromFile
       );
 
       $.Method({Static:false, Public:true }, ".ctor", 
-        new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Int32"), $jsilcore.TypeRef("System.Int32")], []),
+        new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32"), mscorlib.TypeRef("System.Int32")], []),
         function (width, height) {
           System.Drawing.Image.prototype._ctor.call(this);
 
@@ -75,7 +78,7 @@ if (JSIL.HostType.IsBrowser) {
 
       $.Method({Static:false, Public:true }, "SetPixel", 
         new JSIL.MethodSignature(null, [
-            $jsilcore.TypeRef("System.Int32"), $jsilcore.TypeRef("System.Int32"), 
+            mscorlib.TypeRef("System.Int32"), mscorlib.TypeRef("System.Int32"), 
             systemDrawing.TypeRef("System.Drawing.Color")
           ], []),
         function (x, y, color) {
@@ -98,104 +101,132 @@ if (JSIL.HostType.IsBrowser) {
 }
 
 JSIL.ImplementExternals(
-  "System.Drawing.Color", true, {
-    a: 0,
-    r: 0,
-    g: 0,
-    b: 0,
-    name: null,
-    _ctor: function (a, r, g, b, name) {
-      this.a = a;
-      this.r = r;
-      this.g = g;
-      this.b = b;
-      this.name = name;
-    },
-    toString: function () {
-      if ((typeof (this.name) != "undefined") && (this.name != null))
-        return this.name;
-      else
-        return System.String.Format("Color({0}, {1}, {2}, {3})", this.a, this.r, this.g, this.b);
-    },
-    get_A: function () {
-      return this.a;
-    },
-    get_R: function () {
-      return this.r;
-    },
-    get_G: function () {
-      return this.g;
-    },
-    get_B: function () {
-      return this.b;
-    },
-    set_A: function (value) {
-      this.name = null;
-      this.a = value;
-    },
-    set_R: function (value) {
-      this.name = null;
-      this.r = value;
-    },
-    set_G: function (value) {
-      this.name = null;
-      this.g = value;
-    },
-    set_B: function (value) {
-      this.name = null;
-      this.b = value;
-    },
-    get_Name: function () {
-      return this.name;
-    },
-    MemberwiseClone: function () {
-      if ((typeof (this.name) != "undefined") && (this.name != null)) {
-        return this;
-      } else {
-        var result = Object.create(System.Drawing.Color.prototype);
-        result.a = this.a;
-        result.r = this.r;
-        result.g = this.g;
-        result.b = this.b;
-        return result;
-      }
-    }
-  }
-);
+  "System.Drawing.Color", function ($) {
+    var systemDrawing = JSIL.GetAssembly("System.Drawing", true);
+    var mscorlib = JSIL.GetAssembly("mscorlib", true);
 
-JSIL.ImplementExternals(
-  "System.Drawing.Color", false, {
-    FromArgb: function () {
-      if (arguments.length == 3) {
-        return new System.Drawing.Color(255, arguments[0], arguments[1], arguments[2]);
-      } else if (arguments.length == 4) {
-        return new System.Drawing.Color(arguments[0], arguments[1], arguments[2], arguments[3]);
-      } else {
-        throw new Error("Expected (r, g, b) or (a, r, g, b)");
+    var makeColor = function (a, r, g, b, name) {
+      var prototype = systemDrawing.System.Drawing.Color.prototype;
+      var result = Object.create(prototype);
+
+      result.a = a;
+      result.r = r;
+      result.g = g;
+      result.b = b;
+      result.name = name;
+
+      return result;
+    };
+
+    $.Method({Static:true , Public:false}, ".cctor2", 
+      new JSIL.MethodSignature(null, [], []), 
+      function _cctor2 () {
+        var sdc = systemDrawing.System.Drawing.Color;
+
+        var makeNamedColor = function (a, r, g, b, name) {
+          var color = makeColor(a, r, g, b, name);
+
+          sdc["get_" + name] = function () {
+            return color;
+          };
+
+          Object.defineProperty(
+            sdc, name, {
+              enumerable: true,
+              configurable: true,
+              value: color
+            }
+          );
+        };
+
+        makeNamedColor(0xFF, 0x00, 0x00, 0x00, "Black");
+        makeNamedColor(0xFF, 0xFF, 0xFF, 0xFF, "White");
+        makeNamedColor(0xFF, 0xFD, 0xF5, 0xE6, "OldLace");
+        makeNamedColor(0xFF, 0x8A, 0x2B, 0xE2, "BlueViolet");
+        makeNamedColor(0xFF, 0x7F, 0xFF, 0xD4, "Aquamarine");
       }
-    },
-    get_Black: function () {
-      return System.Drawing.Color.black;
-    },
-    get_White: function () {
-      return System.Drawing.Color.white;
-    },
-    get_OldLace: function () {
-      return System.Drawing.Color.oldLace;
-    },
-    get_BlueViolet: function () {
-      return System.Drawing.Color.blueViolet;
-    },
-    get_Aquamarine: function () {
-      return System.Drawing.Color.aquamarine;
-    },
-    _cctor2: function () {
-      System.Drawing.Color.black = new System.Drawing.Color(0xFF, 0x0, 0x0, 0x0, "Black");
-      System.Drawing.Color.white = new System.Drawing.Color(0xFF, 0xFF, 0xFF, 0xFF, "White");
-      System.Drawing.Color.oldLace = new System.Drawing.Color(0xFF, 0xFD, 0xF5, 0xE6, "OldLace");
-      System.Drawing.Color.blueViolet = new System.Drawing.Color(0xFF, 0x8A, 0x2B, 0xE2, "BlueViolet");
-      System.Drawing.Color.aquamarine = new System.Drawing.Color(0xFF, 0x7F, 0xFF, 0xD4, "Aquamarine");
-    }
+    );
+
+    $.Method({Static:true , Public:true }, "FromArgb", 
+      new JSIL.MethodSignature(systemDrawing.TypeRef("System.Drawing.Color"), [
+          mscorlib.TypeRef("System.Int32"), mscorlib.TypeRef("System.Int32"), 
+          mscorlib.TypeRef("System.Int32"), mscorlib.TypeRef("System.Int32")
+        ], []),
+      function (alpha, red, green, blue) {
+        return makeColor(alpha, red, green, blue, null);
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "FromArgb", 
+      new JSIL.MethodSignature(systemDrawing.TypeRef("System.Drawing.Color"), [
+          mscorlib.TypeRef("System.Int32"), mscorlib.TypeRef("System.Int32"), 
+          mscorlib.TypeRef("System.Int32")
+        ], []),
+      function (red, green, blue) {
+        return makeColor(255, red, green, blue, null);
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_A", 
+      new JSIL.MethodSignature(mscorlib.TypeRef("System.Byte"), [], []),
+      function () {
+        return this.a;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_R", 
+      new JSIL.MethodSignature(mscorlib.TypeRef("System.Byte"), [], []),
+      function () {
+        return this.r;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_G", 
+      new JSIL.MethodSignature(mscorlib.TypeRef("System.Byte"), [], []),
+      function () {
+        return this.g;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_B", 
+      new JSIL.MethodSignature(mscorlib.TypeRef("System.Byte"), [], []),
+      function () {
+        return this.b;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_Name", 
+      new JSIL.MethodSignature(mscorlib.TypeRef("System.String"), [], []),
+      function () {
+        return this.name;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "toString", 
+      new JSIL.MethodSignature(mscorlib.TypeRef("System.String"), [], []),
+      function () {
+        if ((typeof (this.name) != "undefined") && (this.name != null))
+          return this.name;
+        else
+          return System.String.Format("({0}, {1}, {2}, {3})", this.a, this.r, this.g, this.b);
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "MemberwiseClone", 
+      new JSIL.MethodSignature($.Type, [], []),
+      function () {
+        if ((typeof (this.name) != "undefined") && (this.name != null)) {
+          return this;
+        } else {
+          var result = Object.create(systemDrawing.System.Drawing.Color.prototype);
+          result.a = this.a;
+          result.r = this.r;
+          result.g = this.g;
+          result.b = this.b;
+          return result;
+        }
+      }
+    );
   }
 );
 

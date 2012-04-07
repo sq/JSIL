@@ -542,7 +542,12 @@ JSIL.ImplementExternals = function (namespaceName, isInstance, externals) {
   }
 
   var context = $private;
-  
+
+  var queue = JSIL.ExternalsQueue[namespaceName];
+  if (!JSIL.IsArray(queue)) {
+    JSIL.ExternalsQueue[namespaceName] = queue = [];
+  }
+
   var obj = JSIL.AllImplementedExternals[namespaceName];
   if (typeof (obj) !== "object") {
     JSIL.AllImplementedExternals[namespaceName] = obj = {};
@@ -553,53 +558,57 @@ JSIL.ImplementExternals = function (namespaceName, isInstance, externals) {
     return;
   }
 
-  if (typeof (isInstance) === "function") {
-    externals = isInstance;
+  // Deferring the execution of externals functions is important in case they reference
+  //  other types or assemblies.
+  queue.push(function ImplementExternalsImpl () {  
+    if (typeof (isInstance) === "function") {
+      externals = isInstance;
 
-    var typeId = JSIL.AssignTypeId(context, namespaceName);
-    var typeObject = {
-      __Members__: [],
-      __TypeId__: typeId
-    };
-    var publicInterface = {
-      prototype: {
+      var typeId = JSIL.AssignTypeId(context, namespaceName);
+      var typeObject = {
+        __Members__: [],
         __TypeId__: typeId
-      },
-      __TypeId__: typeId
-    };
-    var ib = new JSIL.InterfaceBuilder(context, typeObject, publicInterface);
-    externals(ib);
+      };
+      var publicInterface = {
+        prototype: {
+          __TypeId__: typeId
+        },
+        __TypeId__: typeId
+      };
+      var ib = new JSIL.InterfaceBuilder(context, typeObject, publicInterface);
+      externals(ib);
 
-    var prefix = "instance$";
+      var prefix = "instance$";
 
-    var m = typeObject.__Members__;
-    for (var i = 0; i < m.length; i++) {
-      var type = m[i][0];
-      var descriptor = m[i][1];
-      var data = m[i][2];
+      var m = typeObject.__Members__;
+      for (var i = 0; i < m.length; i++) {
+        var type = m[i][0];
+        var descriptor = m[i][1];
+        var data = m[i][2];
 
-      var name = data.mangledName || descriptor.Name;
+        var name = data.mangledName || descriptor.EscapedName;
 
-      var target = descriptor.Static ? publicInterface : publicInterface.prototype;
+        var target = descriptor.Static ? publicInterface : publicInterface.prototype;
 
-      if (data.mangledName) {
-        obj[descriptor.Static ? data.mangledName : prefix + data.mangledName] = target[name];
+        if (data.mangledName) {
+          obj[descriptor.Static ? data.mangledName : prefix + data.mangledName] = target[name];
+        }
+
+        obj[descriptor.Static ? descriptor.EscapedName : prefix + descriptor.EscapedName] = target[name];
       }
+    } else {
+      var prefix = isInstance ? "instance$" : "";
 
-      obj[descriptor.Static ? descriptor.Name : prefix + descriptor.Name] = target[name];
+      for (var k in externals) {
+        var external = externals[k];
+
+        if (typeof (external) === "function")
+          external = JSIL.RenameFunction(namespaceName + "::" + k, external);
+
+        obj[prefix + k] = external;
+      }
     }
-  } else {
-    var prefix = isInstance ? "instance$" : "";
-
-    for (var k in externals) {
-      var external = externals[k];
-
-      if (typeof (external) === "function")
-        external = JSIL.RenameFunction(namespaceName + "::" + k, external);
-
-      obj[prefix + k] = external;
-    }
-  }
+  });
 };
 
 JSIL.QueueTypeInitializer = function (type, initializer) {
@@ -788,6 +797,7 @@ JSIL.CloneObject = function (obj) {
 
 JSIL.AllRegisteredNames = [];
 JSIL.AllImplementedExternals = {};
+JSIL.ExternalsQueue = {};
 
 JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initializer) {
   var privateName = JSIL.ResolveName(privateNamespace, name, false);
@@ -1286,10 +1296,14 @@ $jsilcore.$Of$NoInitialize = function () {
     var unresolvedInterface = sourceInterfaces[i];
     var resolvedInterface = JSIL.ResolveGenericTypeReference(unresolvedInterface, resolveContext);
 
-    if (resolvedInterface !== null)
-      interfaces[i] = resolvedInterface;
-    else
-      interfaces[i] = unresolvedInterface;
+    if (resolvedInterface === null)
+      resolvedInterface = unresolvedInterface;
+
+    // It's possible there are duplicates in the interface list.
+    if (interfaces.indexOf(resolvedInterface) >= 0)
+      continue;
+
+    interfaces.push(resolvedInterface);
   }
 
   for (var i = 0, l = resolvedArguments.length; i < l; i++) {
@@ -1868,6 +1882,14 @@ JSIL.GetFunctionName = function (fn) {
 };
 
 JSIL.ApplyExternals = function (publicInterface, fullName) {
+  var queue = JSIL.ExternalsQueue[fullName];
+  if (JSIL.IsArray(queue)) {
+    while (queue.length > 0) {
+      var fn = queue.shift();
+      fn();
+    }
+  }
+
   var externals = JSIL.AllImplementedExternals[fullName];
   var instancePrefix = "instance$";
 
