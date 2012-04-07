@@ -59,7 +59,7 @@
     <None Include="ReflectionTestCases\Common.cs" />
     <None Include="ReflectionTestCases\ListFilteredStaticMethods.cs" />
     <None Include="ReflectionTestCases\ListFilteredMethods.cs" />
-    <None Include="FailingTestCases\OverloadedVirtualMethods.cs" />
+    <None Include="SimpleTestCases\OverloadedVirtualMethods.cs" />
     <None Include="ReflectionTestCases\ListInheritedMethods.cs" />
     <None Include="ReflectionTestCases\ListFields.cs" />
     <None Include="ReflectionTestCases\ListHiddenMethods.cs" />

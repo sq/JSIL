@@ -175,7 +175,7 @@ namespace JSIL.Tests {
             var generatedJs = GenericIgnoreTest(
                 @"SpecialTestCases\StubbedMethodBodies.cs",
                 "",
-                "The external method 'Main' of type 'Program'",
+                "The external method 'void Main(System.String[])' of type 'Program'",
                 new [] { ".*" }
             );
 
@@ -185,15 +185,15 @@ namespace JSIL.Tests {
 
                 // We still want to generate method bodies for auto properties, since they're compiler generated and only
                 //  contain a single statement anyway
-                Assert.IsTrue(generatedJs.ContainsRegex("MakeMethod(.*\"get_A\".*)"));
-                Assert.IsTrue(generatedJs.ContainsRegex("MakeMethod(.*\"get_D\".*)"));
+                Assert.IsTrue(generatedJs.ContainsRegex("\\$\\.Method(.*\"get_A\".*)"));
+                Assert.IsTrue(generatedJs.ContainsRegex("\\$\\.Method(.*\"get_D\".*)"));
 
-                Assert.IsTrue(generatedJs.Contains("\"set_E"));
-                Assert.IsTrue(generatedJs.Contains("\"remove_F"));
-                Assert.IsTrue(generatedJs.Contains("\"_ctor"));
+                Assert.IsTrue(generatedJs.Contains("\"set_E\""));
+                Assert.IsTrue(generatedJs.Contains("\"remove_F\""));
+                Assert.IsTrue(generatedJs.Contains("\".ctor\""));
 
-                Assert.IsTrue(generatedJs.Contains("$.A$value = 0"));
-                Assert.IsTrue(generatedJs.Contains("$.prototype.D$value = 0"));
+                Assert.IsTrue(generatedJs.Contains("\"A$value\""));
+                Assert.IsTrue(generatedJs.Contains("\"D$value\""));
             } catch {
                 Console.WriteLine(generatedJs);
                 throw;
@@ -288,10 +288,9 @@ namespace JSIL.Tests {
         public void ExternalMethod () {
             var generatedJs = GenericIgnoreTest(
                 @"SpecialTestCases\ExternalMethod.cs",
-                "Method", "external method 'Method' of type 'Program' has not"
+                "Method", "external method 'void Method()' of type 'Program' has not"
             );
 
-            Assert.IsFalse(generatedJs.Contains("MakeMethod($, false, \"Method\""));
             Assert.IsTrue(generatedJs.Contains(".Program.Method("));
         }
 
@@ -316,7 +315,7 @@ namespace JSIL.Tests {
             );
 
             Assert.IsFalse(generatedJs.Contains("\"get_Property\""));
-            Assert.IsFalse(generatedJs.Contains(".MakeProperty($, \"Property\""));
+            Assert.IsFalse(generatedJs.Contains("\"Property\""));
             Assert.IsTrue(generatedJs.Contains(".Program.Property"));
         }
 
@@ -324,11 +323,10 @@ namespace JSIL.Tests {
         public void ExternalPropertyGetter () {
             var generatedJs = GenericIgnoreTest(
                 @"SpecialTestCases\ExternalPropertyGetter.cs",
-                "Property", "method 'get_Property' of type 'Program' has not"
+                "Property", "method 'System.String get_Property()' of type 'Program' has not"
             );
 
-            Assert.IsFalse(generatedJs.Contains("MakeMethod($, false, \"get_Property\""));
-            Assert.IsTrue(generatedJs.Contains(".MakeProperty($, \"Property\""));
+            Assert.IsTrue(generatedJs.Contains("$.Property({Static:true , Public:true }, \"Property\""));
             Assert.IsTrue(generatedJs.Contains(".Program.Property"));
         }
 
@@ -375,8 +373,8 @@ namespace JSIL.Tests {
 
             Assert.IsTrue(generatedJs.Contains("UnqualifiedTypeName"));
             Assert.IsTrue(generatedJs.Contains("UnqualifiedTypeName.GetString"));
-            Assert.IsTrue(generatedJs.Contains("UnqualifiedTypeName.get_StringProperty"));
-            Assert.IsTrue(generatedJs.Contains("UnqualifiedTypeName.set_StringProperty"));
+            Assert.IsTrue(generatedJs.Contains("UnqualifiedTypeName.Method({Static:true , Public:true }, \"get_StringProperty\""));
+            Assert.IsTrue(generatedJs.Contains("UnqualifiedTypeName.Method({Static:true , Public:true }, \"set_StringProperty\""));
             Assert.IsTrue(generatedJs.Contains("UnqualifiedTypeName.StringField"));
             Assert.IsTrue(generatedJs.Contains("return \"MyClass\""));
             Assert.IsFalse(generatedJs.Contains("MyClass."));

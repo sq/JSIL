@@ -287,6 +287,9 @@ JSIL.ResolveName = function (root, name, allowInheritance) {
 
 // Must not be used to construct type or interact with members. Only to get a reference to the type for access to type information.
 JSIL.GetTypeByName = function (name, assembly) {
+  if (name.indexOf("!!") === 0)
+    throw new Error("Positional generic method parameter '" + name + "' cannot be resolved by GetTypeByName.");
+
   if (assembly !== undefined) {
     var tbn = assembly.typesByName;
 
@@ -645,6 +648,30 @@ JSIL.GenericParameter.prototype.toString = function () {
   return "<Generic Parameter " + this.name.humanReadable + ">";
 };
 
+JSIL.PositionalGenericParameter = function (name, context) {
+  this.index = parseInt(name.substr(2));
+  this.__TypeId__ = name;
+  this.__Context__ = context || $jsilcore;
+};
+JSIL.PositionalGenericParameter.prototype.get = function (context) {
+  if ((typeof (context) !== "object") && (typeof (context) !== "function")) {
+    throw new Error("No context provided when resolving generic method parameter #" + this.index);
+    return JSIL.AnyType;
+  }
+
+  throw new Error("Not implemented");
+};
+JSIL.PositionalGenericParameter.prototype.toString = function (context) {
+  if (
+    (typeof (context) === "object") && (context !== null) &&
+    (Object.getPrototypeOf(context) === JSIL.MethodSignature.prototype)
+  ) {
+    return context.genericArgumentNames[this.index];
+  }
+
+  return "<Generic Method Parameter #" + this.index + ">";
+};
+
 JSIL.TypeRef = function (context, name, genericArguments) {
   if (arguments.length === 1) {
     this.context = null;
@@ -992,7 +1019,18 @@ JSIL.ResolveTypeReference = function (typeReference, context) {
   } else if (
     typeof (typeReference) === "string"
   ) {
-    result = JSIL.GetTypeByName(typeReference, context);
+    if (typeReference.indexOf("!!") === 0) {
+      result = new JSIL.PositionalGenericParameter(typeReference, context);
+
+      if (
+        (typeof (context) === "object") && (context !== null) &&
+        (Object.getPrototypeOf(context) === JSIL.MethodSignature.prototype)
+      ) {
+        result = context.genericArgumentNames[result.index];
+      }
+    } else {
+      result = JSIL.GetTypeByName(typeReference, context);
+    }
   } else if (
     typeof (typeReference) === "object"
   ) {
@@ -1038,8 +1076,10 @@ JSIL.ResolveTypeArgumentArray = function (typeArgs) {
 JSIL.HashTypeArgumentArray = function (typeArgs, context) {
   var cacheKey = null;
 
+  /*
   if (typeof (context) === "undefined")
     throw new Error("Context required");
+  */
 
   if (typeArgs.length <= 0)
     return "void";
@@ -1057,7 +1097,14 @@ JSIL.HashTypeArgumentArray = function (typeArgs, context) {
     } else if (
       typeof (tr) === "string"
     ) {
-      typeId = JSIL.AssignTypeId(context, tr);
+      if (tr.indexOf("!!") === 0) {
+        typeId = tr;
+      } else {
+        if (typeof (context) === "undefined")
+          throw new Error("Context required");
+
+        typeId = JSIL.AssignTypeId(context, tr);
+      }
     } else if (
       typeof (tr) === "object"
     ) {
@@ -2507,6 +2554,9 @@ JSIL.GetTypeName = function (value) {
   else if (value === null)
     return "System.Object";
 
+  if (typeof (value) === "string")
+    return value;
+
   var result = value.__FullName__;
 
   if ((typeof (result) === "undefined") && (typeof (value.prototype) !== "undefined"))
@@ -2561,7 +2611,7 @@ JSIL.Cast = function (value, expectedType) {
 
     return value;
   } else
-    throw new System.InvalidCastException("Unable to cast object of type '" + JSIL.GetTypeName(value) + "' to type '" + JSIL.GetTypeName(expectedType) + "'.");
+    throw new System.InvalidCastException("Unable to cast object of type '" + JSIL.GetTypeName(JSIL.GetType(value)) + "' to type '" + JSIL.GetTypeName(expectedType) + "'.");
 };
 
 JSIL.Coalesce = function (lhs, rhs) {
@@ -2629,14 +2679,6 @@ JSIL.GenericMethod = function (argumentNames, methodName, body) {
   return result;
 };
 
-JSIL.ThisMethodProxy = function () {
-};
-
-JSIL.ThisMethodProxy.prototype.methodName = null;
-JSIL.ThisMethodProxy.prototype.toString = function () {
-  return "<Method " + this.methodName + " Proxy>";
-};
-
 JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
   this.context = context;
   this.typeObject = typeObject;
@@ -2645,14 +2687,6 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
   this.externals = JSIL.AllImplementedExternals[this.namespace];
   if (typeof (this.externals) !== "object")
     this.externals = JSIL.AllImplementedExternals[this.namespace] = {};
-
-  this.thisMethod = new JSIL.ThisMethodProxy();
-
-  Object.defineProperty(this, "ThisMethod", {
-    configurable: false,
-    enumerable: true,
-    value: this.thisMethod
-  });
 
   Object.defineProperty(this, "Type", {
     configurable: false,
@@ -2701,15 +2735,6 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
       return "<" + this.Name + " Descriptor>";
     }
   };
-};
-
-JSIL.InterfaceBuilder.prototype.BindThisMethod = function (methodName) {
-  var result = this.thisMethod;
-  this.thisMethod.methodName = methodName;
-
-  this.thisMethod = new JSIL.ThisMethodProxy();
-
-  return result;
 };
 
 JSIL.InterfaceBuilder.prototype.toString = function () {
@@ -2856,8 +2881,6 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
 JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodName, signature) {
   var descriptor = this.ParseDescriptor(_descriptor, methodName, signature);
 
-  var thisMethod = this.BindThisMethod(methodName);
-
   var mangledName = signature.GetKey(descriptor.EscapedName);
 
   var impl = this.externals;
@@ -2896,8 +2919,6 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
 
 JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, signature, fn) {
   var descriptor = this.ParseDescriptor(_descriptor, methodName, signature);
-
-  var thisMethod = this.BindThisMethod(methodName);
 
   var mangledName = signature.GetKey(descriptor.EscapedName);
 
@@ -2947,11 +2968,15 @@ JSIL.MethodSignature.prototype.GetKey = function (name) {
   return name + this.Hash;
 };
 
+JSIL.MethodSignature.prototype.ResolveTypeReference = function (typeReference) {
+  return JSIL.ResolveTypeReference(typeReference, this);
+};
+
 JSIL.MethodSignature.prototype.toString = function (name) {
   var signature;
 
   if (this.returnType !== null) {
-    signature = JSIL.ResolveTypeReference(this.returnType)[1].toString() + " ";
+    signature = this.ResolveTypeReference(this.returnType)[1].toString(this) + " ";
   } else {
     signature = "void ";
   }
@@ -2976,7 +3001,7 @@ JSIL.MethodSignature.prototype.toString = function (name) {
   }
 
   for (var i = 0; i < this.argumentTypes.length; i++) {
-    signature += JSIL.ResolveTypeReference(this.argumentTypes[i])[1].toString();
+    signature += this.ResolveTypeReference(this.argumentTypes[i])[1].toString(this);
 
     if (i < this.argumentTypes.length - 1)
       signature += ", "
@@ -3064,7 +3089,7 @@ JSIL.MethodSignature.prototype.CallStatic = function (context, name, ga /*, ...p
   }
 
   if (JSIL.IsArray(ga)) {
-    method = method.apply(thisReference, ga);  
+    method = method.apply(context, ga);  
   }
 
   var parameters = Array.prototype.slice.call(arguments, 3);
@@ -3767,28 +3792,43 @@ JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
     var typeObject = JSIL.ResolveTypeReference(type)[1];
     
     var elementName = JSIL.GetTypeName(type);
-    var compositeType = JSIL.Reference.Types[elementName];
+    var compositePublicInterface = JSIL.Reference.Types[elementName];
 
-    if (typeof (compositeType) === "undefined") {
+    if (typeof (compositePublicInterface) === "undefined") {
       var typeName = "ref " + elementName;
-      compositeType = JSIL.CloneObject(JSIL.Reference);
-      compositeType.CheckType = function (value) {
+
+      var compositeTypeObject = JSIL.CloneObject($.Type);
+      compositePublicInterface = JSIL.CloneObject(JSIL.Reference);
+
+      compositePublicInterface.__Type__ = compositeTypeObject;
+      compositeTypeObject.__PublicInterface__ = compositePublicInterface;
+
+      var toStringImpl = function (context) {
+        return "ref " + typeObject.toString(context);
+      };
+
+      compositePublicInterface.CheckType = function (value) {
         var isReference = JSIL.CheckType(value, JSIL.Reference, true);
         var isRightType = JSIL.CheckType(value.value, type, false);
         if (!isRightType && (type === System.Object) && (value.value === null))
           isRightType = true;
         return isReference && isRightType;
       };
-      compositeType.toString = function () {
-        return typeName;
-      };
-      compositeType.prototype = JSIL.MakeProto(JSIL.Reference, compositeType, typeName, true, typeObject.__Context__);
-      compositeType.__FullName__ = typeName;
-      compositeType.__TypeId__ = $.Type.__TypeId__ + "[" + JSIL.HashTypeArgumentArray([typeObject], typeObject.__Context__) + "]";
-      JSIL.Reference.Types[elementName] = compositeType;
+      compositePublicInterface.prototype = JSIL.MakeProto(JSIL.Reference, compositePublicInterface, typeName, true, typeObject.__Context__);
+
+      compositePublicInterface.toString = toStringImpl;
+      compositePublicInterface.prototype.toString = toStringImpl;
+      compositeTypeObject.toString = toStringImpl;
+
+      compositePublicInterface.__FullName__ = compositeTypeObject.__FullName__ = typeName;
+      compositePublicInterface.__TypeId__ = compositeTypeObject.__TypeId__ = (
+        $.Type.__TypeId__ + "[" + JSIL.HashTypeArgumentArray([typeObject], typeObject.__Context__) + "]"
+      );
+
+      JSIL.Reference.Types[elementName] = compositePublicInterface;
     }
 
-    return compositeType;
+    return compositePublicInterface;
   };
 });
 
@@ -4325,6 +4365,9 @@ JSIL.ImplementExternals(
     GetParameterTypes: function () {
       var signature = this._data.signature;
       return signature.argumentTypes;
+    },
+    toString: function () {
+      return this._data.signature.toString(this.Name);
     }
   }
 );

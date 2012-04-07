@@ -1499,7 +1499,7 @@ namespace JSIL.Internal {
             }
         }
 
-        public string ChangedName {
+        public virtual string ChangedName {
             get {
                 var parms = Metadata.GetAttributeParameters("JSIL.Meta.JSChangeName");
                 if (parms != null)
@@ -1716,6 +1716,18 @@ namespace JSIL.Internal {
 
         protected override string GetName () {
             return GetName(false);
+        }
+
+        public override string ChangedName {
+            get {
+                if (Property != null) {
+                    var propertyChangedName = Property.ChangedName;
+                    if (propertyChangedName != null)
+                        return ShortName.Substring(0, ShortName.IndexOf('_') + 1) + propertyChangedName;
+                }
+
+                return base.ChangedName;
+            }
         }
 
         public bool IsOverloaded {

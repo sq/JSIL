@@ -961,9 +961,9 @@ JSIL.MakeClass("JSIL.ArrayEnumerator", "System.Collections.Generic.List`1/Enumer
 });
 
 JSIL.ImplementExternals(
-  "System.Threading.Interlocked", false, {
-    CompareExchange$b1: JSIL.GenericMethod(
-      ["T"], 
+  "System.Threading.Interlocked", function ($) {
+    $.Method({Public: true , Static: true }, "CompareExchange", 
+      new JSIL.MethodSignature("!!0", [JSIL.Reference.Of("!!0"), "!!0", "!!0"], ["T"]),
       function (T, targetRef, value, comparand, succeeded) {
         var currentValue = targetRef.value;
         if (currentValue === comparand) {
@@ -979,7 +979,7 @@ JSIL.ImplementExternals(
           return currentValue;
         }
       }
-    )
+    );
   }
 );
 
@@ -1012,7 +1012,11 @@ JSIL.ImplementExternals(
   }
 );
 
-JSIL.MakeStaticClass("System.Threading.Interlocked", true, []);
+JSIL.MakeStaticClass("System.Threading.Interlocked", true, [], function ($) {
+  $.ExternalMethod({Public: true , Static: true }, "CompareExchange", 
+    new JSIL.MethodSignature("!!0", [JSIL.Reference.Of("!!0"), "!!0", "!!0"], ["T"])
+  );
+});
 JSIL.MakeStaticClass("System.Threading.Monitor", true, []);
 
 JSIL.MakeClass("System.Object", "System.Random", true, [], function ($) {

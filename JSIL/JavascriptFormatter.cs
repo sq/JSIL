@@ -330,21 +330,26 @@ namespace JSIL.Internal {
                 }
             } else if (type is GenericParameter) {
                 var gp = (GenericParameter)type;
-                WriteRaw("new");
-                Space();
-                Identifier("JSIL.GenericParameter", null);
-                LPar();
-                Value(gp.Name);
 
-                if (gp.Owner is TypeReference) {
-                    Comma();
-                    Value(gp.Owner as TypeReference);
-                } else if (gp.Owner is MethodDefinition) {
-                    Comma();
-                    Value((gp.Owner as MethodDefinition).FullName);
+                if (gp.Owner == null) {
+                    Value(gp.Name);
+                } else {
+                    WriteRaw("new");
+                    Space();
+                    Identifier("JSIL.GenericParameter", null);
+                    LPar();
+                    Value(gp.Name);
+
+                    if (gp.Owner is TypeReference) {
+                        Comma();
+                        Value(gp.Owner as TypeReference);
+                    } else if (gp.Owner is MethodDefinition) {
+                        Comma();
+                        Value((gp.Owner as MethodDefinition).FullName);
+                    }
+
+                    RPar();
                 }
-
-                RPar();
             } else if (at != null) {
                 TypeIdentifier(at, false, true);
                 /*
@@ -445,7 +450,9 @@ namespace JSIL.Internal {
                 var gp = (GenericParameter)type;
                 var ownerType = gp.Owner as TypeReference;
 
-                if (
+                if (gp.Owner == null) {
+                    Value(gp.Name);
+                } else if (
                     (CurrentMethod != null) &&
                     ((CurrentMethod.Equals(gp.Owner)) ||
                      (CurrentMethod.DeclaringType.Equals(gp.Owner))
@@ -650,8 +657,8 @@ namespace JSIL.Internal {
         }
 
         public void Comment (string commentFormat, params object[] values) {
-            var commentText = String.Format(" " + commentFormat + " ", values);
-            WriteRaw("/* {0} */", commentText);
+            var commentText = String.Format(commentFormat, values);
+            WriteRaw("/* {0} */ ", commentText);
         }
 
         public void DefaultValue (TypeReference typeReference) {
