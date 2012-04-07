@@ -885,34 +885,32 @@ namespace JSIL {
 
             dollar(output);
             output.Dot();
-            output.Identifier("__IsIntegral__");
-            output.WriteRaw(" = ");
+            output.Identifier("SetValue", null);
+            output.LPar();
+            output.Value("__IsNativeType__");
+            output.Comma();
+            output.Value(true);
+            output.RPar();
+            output.Semicolon(true);
+
+            dollar(output);
+            output.Dot();
+            output.Identifier("SetValue", null);
+            output.LPar();
+            output.Value("__IsIntegral__");
+            output.Comma();
             output.Value(isIntegral);
+            output.RPar();
             output.Semicolon(true);
 
             dollar(output);
             output.Dot();
-            output.WriteRaw("prototype");
-            output.Dot();
-            output.Identifier("__IsIntegral__");
-            output.WriteRaw(" = ");
-            output.Value(isIntegral);
-            output.Semicolon(true);
-
-            dollar(output);
-            output.Dot();
-            output.Identifier("__IsNumeric__");
-            output.WriteRaw(" = ");
+            output.Identifier("SetValue", null);
+            output.LPar();
+            output.Value("__IsNumeric__");
+            output.Comma();
             output.Value(isNumeric);
-            output.Semicolon(true);
-
-            dollar(output);
-            output.Dot();
-            output.WriteRaw("prototype");
-            output.Dot();
-            output.Identifier("__IsNumeric__");
-            output.WriteRaw(" = ");
-            output.Value(isNumeric);
+            output.RPar();
             output.Semicolon(true);
         }
 
@@ -927,6 +925,9 @@ namespace JSIL {
 
             context.CurrentType = typedef;
 
+            if (typedef.IsPrimitive)
+                TranslatePrimitiveDefinition(context, output, typedef, stubbed, dollar);
+
             foreach (var method in typedef.Methods.OrderBy((md) => md.Name)) {
                 // We translate the static constructor explicitly later, and inject field initialization
                 if (method.Name == ".cctor")
@@ -937,9 +938,6 @@ namespace JSIL {
                     stubbed, dollar
                 );
             }
-
-            if (typedef.IsPrimitive)
-                TranslatePrimitiveDefinition(context, output, typedef, stubbed, dollar);
 
             Action initializeOverloadsAndProperties = () => {
                 foreach (var property in typedef.Properties.OrderBy((p) => p.Name))

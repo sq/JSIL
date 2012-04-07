@@ -1624,13 +1624,24 @@ JSIL.GetStructFieldList = function (typeObject) {
 };
 
 JSIL.MakeStructFieldInitializer = function (typeObject) {
+  // The definition for native types often includes a self-typed struct field, which is just plain busted.
+  if (typeObject.__IsNativeType__)
+    return null;
+
   var sf = JSIL.GetStructFieldList(typeObject);
-  
+  if (sf.length < 1)
+    return null;
+
   var body = [];
   var types = [];
   for (var i = 0, l = sf.length; i < l; i++) {
     var fieldName = sf[i][0];
     var fieldType = sf[i][1];
+
+    if (fieldType === typeObject) {
+      JSIL.Host.warning("Ignoring self-typed struct field " + fieldName);
+      continue;
+    }
 
     body[i] = "target['" + fieldName + "'] = JSIL.CreateInstanceOfType(types[" + i.toString() + "]);";
 
@@ -1708,7 +1719,8 @@ JSIL.$BuildStructFieldList = function (typeObject) {
     var field = fields[i];
 
     var fieldType = field.FieldType;
-    var isStruct = fieldType.__IsStruct__ || false;
+    // Native types may derive from System.ValueType but we can't treat them as structs.
+    var isStruct = (fieldType.__IsStruct__ || false) && (!fieldType.__IsNativeType__);
 
     // console.log(String(typeObject) + ".isStruct=" + isStruct + "\r\n");
     if (isStruct && !field.IsStatic) {
@@ -2814,6 +2826,14 @@ JSIL.InterfaceBuilder.prototype.toString = function () {
   return "<Interface Builder for " + this.namespace + ">";
 };
 
+JSIL.InterfaceBuilder.prototype.SetValue = function (key, value) {
+  this.publicInterface[key] = value;
+  this.typeObject[key] = value;
+
+  if (typeof (this.publicInterface.prototype) !== "undefined")
+    this.publicInterface.prototype[key] = value;
+};
+
 JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name, signature) {
   var result = Object.create(this.memberDescriptorPrototype);
 
@@ -3552,6 +3572,11 @@ JSIL.CreateInstanceOfType = function (type, constructorName, constructorArgument
     constructorArguments = constructorName;
     constructor = publicInterface;
     constructorName = null;
+  }
+
+  if (type.__IsNativeType__) {
+    // Native types need to be constructed differently.
+    return constructor.apply(constructor, constructorArguments);
   }
 
   if (!JSIL.IsArray(constructorArguments))
