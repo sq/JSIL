@@ -14,7 +14,7 @@ if (JSIL.HostType.IsBrowser) {
       var mscorlib = JSIL.GetAssembly("mscorlib", true);
 
       $.Method({Static:false, Public:true }, "Save", 
-        new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Array") /* AnyType[] */ ], []),
+        new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.String")], []),
         function (filename) {
           this.context.putImageData(this.buffer, 0, 0);
         }
@@ -62,7 +62,7 @@ if (JSIL.HostType.IsBrowser) {
       $.Method({Static:false, Public:true }, ".ctor", 
         new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32"), mscorlib.TypeRef("System.Int32")], []),
         function (width, height) {
-          System.Drawing.Image.prototype._ctor.call(this);
+          // System.Drawing.Image.prototype._ctor.call(this);
 
           this.canvas = JSIL.Host.getCanvas(width, height);
           this.context = this.canvas.getContext('2d');

@@ -131,12 +131,12 @@ JSIL.ImplementExternals(
     };
 
     $.Method({Static: false, Public: true }, ".ctor",
-      new JSIL.MethodSignature(null, [System.Array.Of("System.Char"), "System.Int32", "System.Int32"], [], $jsilcore),
+      new JSIL.MethodSignature(null, [System.Array.Of($jsilcore.TypeRef("System.Char")), "System.Int32", "System.Int32"], [], $jsilcore),
       fromCharArray
     );
 
     $.Method({Static: false, Public: true }, ".ctor",
-      new JSIL.MethodSignature(null, [System.Array.Of("System.Char")], [], $jsilcore),
+      new JSIL.MethodSignature(null, [System.Array.Of($jsilcore.TypeRef("System.Char"))], [], $jsilcore),
       function (chars) {
         return fromCharArray.call(this, chars, 0, chars.length);
       }

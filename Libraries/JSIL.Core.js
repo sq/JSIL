@@ -78,7 +78,14 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
 
   // Create a new private global namespace for the new assembly
   var result = Object.create(JSIL.GlobalNamespace);
-  var assemblyId = ++JSIL.$NextAssemblyId;
+  var assemblyId;
+
+  // Terrible hack to assign the mscorlib and JSIL.Core types the same IDs
+  if (shortName === "mscorlib") {
+    assemblyId = $jsilcore.__AssemblyId__;
+  } else {
+    assemblyId = ++JSIL.$NextAssemblyId;
+  }
 
   try {
     Object.defineProperty(result, "__AssemblyId__", {
@@ -1981,6 +1988,10 @@ JSIL.MakeExternalType = function (fullName, isPublic) {
     if (!publicName.exists())
       publicName.define(definition);
   }
+};
+
+JSIL.GetCorlib = function () {
+  return JSIL.GetAssembly("mscorlib", true) || $jsilcore;
 };
 
 $jsilcore.$GetRuntimeType = function (context, forTypeName) {
