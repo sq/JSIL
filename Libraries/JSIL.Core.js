@@ -4056,17 +4056,13 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
     if (typeof (elementType) === "undefined")
       throw new Error("Attempting to create an array of an undefined type");
 
-    var elementTypeObject, elementTypePublicInterface;
+    var _ = JSIL.ResolveTypeReference(elementType);
+    var elementTypePublicInterface = _[0];
+    var elementTypeObject = _[1];
 
-    if (typeof (elementType.__Type__) === "object") {
-      elementTypeObject = elementType.__Type__;
-      elementTypePublicInterface = elementType;
-    } else if (typeof (elementType.__PublicInterface__) !== "undefined") {
-      elementTypeObject = elementType;
-      elementTypePublicInterface = elementType.__PublicInterface__;
-    } else {
-      elementTypeObject = elementTypePublicInterface = elementType;
-    }
+    var elementTypeId = elementTypeObject.__TypeId__;
+    if (typeof (elementTypeId) === "undefined")
+      throw new Error("Element type missing type ID");
 
     var compositePublicInterface = types[elementTypeObject.__TypeId__];
 
