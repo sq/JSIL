@@ -294,6 +294,17 @@ namespace JSIL {
             Output.CloseBracket();
         }
 
+        public void VisitNode (JSFakeMethod fakeMethod) {
+            Output.Identifier(fakeMethod.Name);
+
+            var ga = fakeMethod.GenericArguments;
+            if (ga != null) {
+                Output.LPar();
+                CommaSeparatedList(ga);
+                Output.RPar();
+            }
+        }
+
         public void VisitNode (JSMethod method) {
             Output.Identifier(method.Method.GetName(true));
 

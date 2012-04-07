@@ -65,6 +65,7 @@ namespace JSIL.Tests {
                     @"TestCases\DynamicGetIndex.cs",
                     @"TestCases\DynamicInvoke.cs",
                     @"TestCases\DynamicMethods.cs",
+                    @"TestCases\DynamicGenericMethods.cs",
                     @"TestCases\DynamicOverloadedMethods.cs",
                     @"TestCases\DynamicPropertyGet.cs",
                     @"TestCases\DynamicPropertyGetAndCall.cs",

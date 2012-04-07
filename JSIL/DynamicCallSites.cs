@@ -143,9 +143,14 @@ namespace JSIL {
                 }
             }
 
-            public JSExpression TypeArguments {
+            public JSExpression[] TypeArguments {
                 get {
-                    return Arguments[2];
+                    var invocation = Arguments[2] as JSInvocationExpression;
+                    if (invocation == null)
+                        return null;
+
+                    var array = (JSArrayExpression)invocation.Arguments[1];
+                    return array.Values.ToArray();
                 }
             }
 
@@ -168,8 +173,14 @@ namespace JSIL {
                 if (returnType == null)
                     returnType = translator.TypeSystem.Void;
 
+                var argumentValues = arguments.Skip(2).ToArray();
+
                 return JSInvocationExpression.InvokeMethod(
-                    new JSStringIdentifier(MemberName, returnType), thisArgument,
+                    new JSFakeMethod(
+                        MemberName, returnType, 
+                        (from av in argumentValues select av.GetExpectedType(translator.TypeSystem)).ToArray(),
+                        translator.MethodTypes, TypeArguments
+                    ), thisArgument,
                     arguments.Skip(2).ToArray()
                 );
             }

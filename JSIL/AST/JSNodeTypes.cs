@@ -2047,16 +2047,50 @@ namespace JSIL.Ast {
         public readonly string Name;
         public readonly TypeReference ReturnType;
         public readonly TypeReference[] ParameterTypes;
+        public readonly JSExpression[] GenericArguments;
 
-        public JSFakeMethod (string name, TypeReference returnType, TypeReference[] parameterTypes, MethodTypeFactory methodTypes) {
+        public JSFakeMethod (
+            string name, TypeReference returnType, 
+            TypeReference[] parameterTypes, MethodTypeFactory methodTypes,
+            JSExpression[] genericArguments = null 
+        ) {
             Name = name;
             ReturnType = returnType;
             ParameterTypes = parameterTypes ?? new TypeReference[0];
             MethodTypes = methodTypes;
+            GenericArguments = genericArguments;
         }
 
         public override string Identifier {
             get { return Name; }
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                if (GenericArguments == null)
+                    yield break;
+
+                for (var i = 0; i < GenericArguments.Length; i++)
+                    yield return GenericArguments[i];
+            }
+        }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            if (GenericArguments == null)
+                return;
+
+            var oldExpression = oldChild as JSExpression;
+            var newExpression = newChild as JSExpression;
+
+            if (
+                (oldExpression != null) &&
+                ((newExpression != null) == (newChild != null))
+            ) {
+                for (var i = 0; i < GenericArguments.Length; i++) {
+                    if (GenericArguments[i] == oldExpression)
+                        GenericArguments[i] = newExpression;
+                }
+            }
         }
 
         public override TypeReference GetExpectedType (TypeSystem typeSystem) {

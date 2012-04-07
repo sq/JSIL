@@ -70,7 +70,7 @@ namespace JSIL {
             }
         }
 
-        protected MethodTypeFactory MethodTypes {
+        internal MethodTypeFactory MethodTypes {
             get {
                 return Translator.FunctionCache.MethodTypes;
             }
