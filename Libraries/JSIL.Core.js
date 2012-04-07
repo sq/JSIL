@@ -3984,7 +3984,10 @@ JSIL.MakeInterface("System.Collections.Generic.IEnumerable`1", true, ["T"], {
 }, ["System.Collections.IEnumerable"]);
 
 JSIL.ImplementExternals("System.Array", false, {
-  CheckType: JSIL.IsArray
+  CheckType: JSIL.IsArray,
+  Of: function (elementType) {
+    return $jsilcore.System.Array.Of(elementType);
+  }
 });
   
 JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {

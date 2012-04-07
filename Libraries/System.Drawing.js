@@ -10,9 +10,23 @@ JSIL.DeclareNamespace("System.Drawing");
 
 if (JSIL.HostType.IsBrowser) {
   JSIL.ImplementExternals(
-    "System.Drawing.Bitmap", true, {
-      _ctor$0: function (filename) {
-        System.Drawing.Image.prototype._ctor.call(this);
+    "System.Drawing.Image", function ($) {
+      $.Method({Static:false, Public:true }, "Save", 
+        new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array") /* AnyType[] */ ], []),
+        function (filename) {
+          this.context.putImageData(this.buffer, 0, 0);
+        }
+      );
+
+    }
+  );
+
+  JSIL.ImplementExternals(
+    "System.Drawing.Bitmap", function ($) {
+      var systemDrawing = JSIL.GetAssembly("System.Drawing", true);
+
+      var constructFromFile = function (filename) {
+        // System.Drawing.Image.prototype._ctor.call(this);
 
         this.image = JSIL.Host.getImage(filename);
 
@@ -30,60 +44,55 @@ if (JSIL.HostType.IsBrowser) {
         }
         */
         this.buffer = null;
-      },
-      _ctor$1: function (filename, b) {
-        System.Drawing.Bitmap.prototype._ctor$0.call(this, filename);
-      },
-      _ctor$7: function (width, height) {
-        System.Drawing.Image.prototype._ctor.call(this);
+      };
 
-        this.canvas = JSIL.Host.getCanvas(width, height);
-        this.context = this.canvas.getContext('2d');
-        this.context.globalCompositeOperation = "copy";
+      $.Method({Static:false, Public:true }, ".ctor", 
+        new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.String")], []),
+        constructFromFile
+      );
 
-        this.buffer = this.context.createImageData(width, height);
-        this.context.putImageData(this.buffer, 0, 0);
+      $.Method({Static:false, Public:true }, ".ctor", 
+        new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.String"), $jsilcore.TypeRef("System.Boolean")], []),
+        constructFromFile
+      );
 
-        this.setPixelCount = 0;
-        this.flushInterval = width - 1;
-      },
-      _SetupContext: function (width, height) {
-      },
-      SetPixel: function (x, y, color) {
-        var index = ((y * this.buffer.width) + x) * 4;
-        var data = this.buffer.data;
-        data[index] = color.R;
-        data[index + 1] = color.G;
-        data[index + 2] = color.B;
-        data[index + 3] = 255;
+      $.Method({Static:false, Public:true }, ".ctor", 
+        new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Int32"), $jsilcore.TypeRef("System.Int32")], []),
+        function (width, height) {
+          System.Drawing.Image.prototype._ctor.call(this);
 
-        if (this.setPixelCount++ >= this.flushInterval) {
-          this.setPixelCount = 0;
+          this.canvas = JSIL.Host.getCanvas(width, height);
+          this.context = this.canvas.getContext('2d');
+          this.context.globalCompositeOperation = "copy";
+
+          this.buffer = this.context.createImageData(width, height);
           this.context.putImageData(this.buffer, 0, 0);
+
+          this.setPixelCount = 0;
+          this.flushInterval = width - 1;
         }
-      },
-      Save: function (filename) {
-        this.context.putImageData(this.buffer, 0, 0);
-      }
-    }
-  );
+      );
 
-} else {
-  JSIL.ImplementExternals(
-    "System.Drawing.Bitmap", true, {
-      _ctor: function (width, height) {
-        this.Width = width;
-        this.Height = height;
-        this.Pixels = new Array(width * height);
-      },
-      SetPixel: function (x, y, color) {
-        if ((x < 0) || (y < 0) || (x >= this.Width) || (y >= this.Height))
-          throw new Error("Coordinates out of bounds");
+      $.Method({Static:false, Public:true }, "SetPixel", 
+        new JSIL.MethodSignature(null, [
+            $jsilcore.TypeRef("System.Int32"), $jsilcore.TypeRef("System.Int32"), 
+            systemDrawing.TypeRef("System.Drawing.Color")
+          ], []),
+        function (x, y, color) {
+          var index = ((y * this.buffer.width) + x) * 4;
+          var data = this.buffer.data;
+          data[index] = color.R;
+          data[index + 1] = color.G;
+          data[index + 2] = color.B;
+          data[index + 3] = 255;
 
-        this.Pixels[(y * this.Width) + x] = color;
-      },
-      Save: function (filename) {
-      }
+          if (this.setPixelCount++ >= this.flushInterval) {
+            this.setPixelCount = 0;
+            this.context.putImageData(this.buffer, 0, 0);
+          }
+        }
+      );
+
     }
   );
 }
