@@ -68,7 +68,7 @@ namespace JSIL.Internal {
 
         public void Unindent () {
             if (_IndentLevel == 0)
-                throw new InvalidOperationException("Indent level is already 0");
+                Debug.WriteLine("WARNING: Indent level is already 0");
 
             _IndentLevel -= 1;
         }
@@ -774,9 +774,6 @@ namespace JSIL.Internal {
             }
 
             CloseBracket(parameterTypes.Length > 2);
-
-            if (parameterTypes.Length > 2)
-                NewLine();
 
             RPar();
         }

@@ -222,8 +222,6 @@ namespace JSIL {
                 Output.Unindent();
             }
 
-            Output.Unindent();
-
             Output.CloseBrace();
 
             Output.CloseBrace();

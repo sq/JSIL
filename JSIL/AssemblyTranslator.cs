@@ -805,6 +805,9 @@ namespace JSIL {
 
             }
 
+            // Hack to force the indent level for type definitions to be 1 instead of 2.
+            output.Unindent();
+
             output.Comma();
             output.OpenFunction(null, (f) => {
                 f.Identifier("$");
@@ -818,6 +821,9 @@ namespace JSIL {
             output.NewLine();
 
             output.CloseBrace(false);
+
+            // Hack to force the indent level for type definitions to be 1 instead of 2.
+            output.Indent();
 
             output.RPar();
             output.Semicolon();
@@ -958,10 +964,8 @@ namespace JSIL {
 
             TranslateTypeStaticConstructor(context, typedef, astEmitter, output, typeInfo.StaticConstructor, stubbed, dollar);
 
-            output.NewLine();
             if ((typeInfo.MethodGroups.Count + typedef.Properties.Count) > 0) {
                 initializeOverloadsAndProperties();
-                output.NewLine();
             }
 
             var interfaces = (from i in typeInfo.Interfaces
@@ -969,6 +973,8 @@ namespace JSIL {
                               select i).ToArray();
 
             if (interfaces.Length > 0) {
+                output.NewLine();
+
                 dollar(output);
                 output.Dot();
                 output.Identifier("ImplementInterfaces", null);
@@ -1458,8 +1464,10 @@ namespace JSIL {
 
                 var expr = TranslateField(f, fieldDefaults, false, dollar);
 
-                if (expr != null)
+                if (expr != null) {
+                    output.NewLine();
                     astEmitter.Visit(new JSExpressionStatement(expr));
+                }
             }
 
             if ((cctor != null) && !stubbed) {
@@ -1518,6 +1526,8 @@ namespace JSIL {
                 return;
             if (!method.HasBody)
                 return;
+
+            output.NewLine();
 
             if (methodIsProxied) {
                 output.Comment("Implementation from {0}", methodInfo.DeclaringType.FullName);
@@ -1592,7 +1602,6 @@ namespace JSIL {
             output.RPar();
 
             output.Semicolon();
-            output.NewLine();
         }
 
         protected void TranslateProperty (
@@ -1604,6 +1613,8 @@ namespace JSIL {
                 return;
 
             var isStatic = (property.SetMethod ?? property.GetMethod).IsStatic;
+
+            output.NewLine();
 
             dollar(output);
             output.Dot();
