@@ -1609,16 +1609,10 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
 } )();
 
 JSIL.GetStructFieldList = function (typeObject) {
-  var sf = [];
+  var sf = typeObject.__StructFields__;
 
-  var obj = typeObject;
-  while ((typeof (obj) !== "undefined") && (obj !== null)) {
-    var osf = obj.__StructFields__;
-    if (JSIL.IsArray(osf))
-      sf = osf.concat(sf);
-
-    obj = obj.__BaseType__;
-  }
+  if (!JSIL.IsArray(sf))
+    return [];
 
   return sf;
 };
@@ -1713,7 +1707,7 @@ JSIL.$BuildStructFieldList = function (typeObject) {
   var fields = JSIL.GetMembersInternal(
     typeObject, $jsilcore.BindingFlags.Instance, "FieldInfo"
   );
-  var sf = typeObject.__StructFields__;
+  var sf = typeObject.__StructFields__ = [];
 
   for (var i = 0; i < fields.length; i++) {
     var field = fields[i];
