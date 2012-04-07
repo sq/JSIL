@@ -1300,15 +1300,16 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
 
     var returnType = [signature.returnType];
     var argumentTypes = Array.prototype.slice.call(signature.argumentTypes);
+    var genericArgumentNames = signature.genericArgumentNames;
 
     JSIL.$ResolveGenericTypeReferences(resolveContext, returnType);
     JSIL.$ResolveGenericTypeReferences(resolveContext, argumentTypes);
 
-    var resolvedSignature = new JSIL.MethodSignature(returnType[0], argumentTypes, typeObject.__Context__);
+    var resolvedSignature = new JSIL.MethodSignature(returnType[0], argumentTypes, genericArgumentNames, typeObject.__Context__);
 
     if (resolvedSignature.Hash != signature.Hash) {
       var oldName = data.mangledName;
-      var newName = descriptor.Name + "$" + resolvedSignature.Hash;
+      var newName = resolvedSignature.GetKey(descriptor.Name);
 
       var methodReference = target[oldName];
 
@@ -2574,15 +2575,10 @@ JSIL.Dynamic.Cast = function (value, expectedType) {
   return value;
 };
 
-JSIL.FakeGenericMethod = function (argumentNames, body) {
-  var result = function () {
-  };
-};
-
-JSIL.GenericMethod = function (argumentNames, body) {
+JSIL.GenericMethod = function (argumentNames, methodName, body) {
   var result = function () {
     if (arguments.length !== argumentNames.length)
-      throw new Error("Invalid number of generic arguments for method (got " + arguments.length + ", expected " + argumentNames.length + ")");
+      throw new Error("Invalid number of generic arguments for method '" + methodName + "' (got " + arguments.length + ", expected " + argumentNames.length + ")");
 
     var genericArguments = Array.prototype.slice.call(arguments);
     var outerThis = this;
@@ -2618,15 +2614,27 @@ JSIL.GenericMethod = function (argumentNames, body) {
       return body.apply(thisReference, invokeArguments);
     };
 
+    result.toString = function () {
+      return "<Bound Generic Method '" + methodName + "'>";      
+    };
+
     return result;
   };
 
   result.__IsGenericMethod__ = true;
   result.toString = function () {
-    return "<Unbound Generic Method>";
+    return "<Unbound Generic Method '" + methodName + "'>";
   };
 
   return result;
+};
+
+JSIL.ThisMethodProxy = function () {
+};
+
+JSIL.ThisMethodProxy.prototype.methodName = null;
+JSIL.ThisMethodProxy.prototype.toString = function () {
+  return "<Method " + this.methodName + " Proxy>";
 };
 
 JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
@@ -2637,6 +2645,14 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
   this.externals = JSIL.AllImplementedExternals[this.namespace];
   if (typeof (this.externals) !== "object")
     this.externals = JSIL.AllImplementedExternals[this.namespace] = {};
+
+  this.thisMethod = new JSIL.ThisMethodProxy();
+
+  Object.defineProperty(this, "ThisMethod", {
+    configurable: false,
+    enumerable: true,
+    value: this.thisMethod
+  });
 
   Object.defineProperty(this, "Type", {
     configurable: false,
@@ -2670,10 +2686,16 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
     SetExclusive: function (key, value) {
       if (this.IsUndefined(key))
         this.Target[key] = value;
-      else
-        this.Target[key] = function () {
-          throw new Error("Method '" + key + "' is overloaded and must be called with a specific signature");
-        };
+      else {
+        var placeholder = (function () {
+          throw new Error("Method '" + this.Name + "' is overloaded and must be called with a specific signature");
+        }).bind(this);
+        placeholder.toString = (function () {
+          return "<Overloaded Method '" + this.Name + "'>"
+        }).bind(this);
+
+        this.Target[key] = placeholder;
+      }
     },
     toString: function () {
       return "<" + this.Name + " Descriptor>";
@@ -2681,20 +2703,36 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
   };
 };
 
+JSIL.InterfaceBuilder.prototype.BindThisMethod = function (methodName) {
+  var result = this.thisMethod;
+  this.thisMethod.methodName = methodName;
+
+  this.thisMethod = new JSIL.ThisMethodProxy();
+
+  return result;
+};
+
 JSIL.InterfaceBuilder.prototype.toString = function () {
   return "<Interface Builder for " + this.namespace + ">";
 };
 
-JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name) {
+JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name, signature) {
   var result = Object.create(this.memberDescriptorPrototype);
 
-  var escapedName = JSIL.EscapeName(name);
+  var escapedName, escapedNameWithSuffix;
+  if (typeof (signature) === "object") {
+    escapedName = JSIL.EscapeName(name);
+    escapedNameWithSuffix = escapedName + JSIL.EscapeName(signature.GenericSuffix);
+  } else {
+    escapedName = escapedNameWithSuffix = JSIL.EscapeName(name);
+  }
 
   result.Static = descriptor.Static || false;
   result.Public = descriptor.Public || false;
 
   result.Name = name;
   result.EscapedName = escapedName;
+  result.EscapedNameWithSuffix = escapedNameWithSuffix;
   result.SpecialName = (name == ".ctor") || (name == ".cctor");
 
   Object.defineProperty(result, "Target", {
@@ -2823,9 +2861,11 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
 };
 
 JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodName, signature) {
-  var descriptor = this.ParseDescriptor(_descriptor, methodName);
+  var descriptor = this.ParseDescriptor(_descriptor, methodName, signature);
 
-  var mangledName = descriptor.EscapedName + "$" + signature.Hash;
+  var thisMethod = this.BindThisMethod(methodName);
+
+  var mangledName = signature.GetKey(descriptor.EscapedName);
 
   var impl = this.externals;
 
@@ -2836,14 +2876,22 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
 
   if (impl.hasOwnProperty(prefix + mangledName)) {
     newValue = impl[prefix + mangledName];
+
+    newValue.toString = function () {
+      return "<External " + signature.toString(methodName) + ">";
+    };
   } else if (!descriptor.Target.hasOwnProperty(mangledName)) {
     var getName = (function () { return this[0].toString(this[1]); }).bind([signature, methodName]);
     newValue = JSIL.MakeExternalMemberStub(this.namespace, getName, memberValue);
+
+    newValue.toString = function () {
+      return "<Missing External " + signature.toString(methodName) + ">";
+    };
   }
 
   if (newValue !== undefined) {
     descriptor.Target[mangledName] = newValue;
-    descriptor.SetIfUndefined(descriptor.EscapedName, newValue);
+    descriptor.SetIfUndefined(descriptor.EscapedNameWithSuffix, newValue);
   }
 
   this.PushMember("MethodInfo", descriptor, { 
@@ -2854,12 +2902,24 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
 };
 
 JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, signature, fn) {
-  var descriptor = this.ParseDescriptor(_descriptor, methodName);
+  var descriptor = this.ParseDescriptor(_descriptor, methodName, signature);
 
-  var mangledName = descriptor.EscapedName + "$" + signature.Hash;
+  var thisMethod = this.BindThisMethod(methodName);
+
+  var mangledName = signature.GetKey(descriptor.EscapedName);
+
+  if (signature.genericArgumentNames.length > 0) {
+    fn = JSIL.GenericMethod(
+      signature.genericArgumentNames, methodName, fn
+    );
+  } else {
+    fn.toString = function () {
+      return "<" + signature.toString(methodName) + ">";
+    };
+  }
 
   descriptor.Target[mangledName] = fn;
-  descriptor.SetExclusive(descriptor.EscapedName, fn);
+  descriptor.SetExclusive(descriptor.EscapedNameWithSuffix, fn);
 
   this.PushMember("MethodInfo", descriptor, { 
     signature: signature, 
@@ -2879,14 +2939,19 @@ JSIL.InterfaceBuilder.prototype.ImplementInterfaces = function (/* ...interfaces
   }
 };
 
-JSIL.MethodSignature = function (returnType, argumentTypes, context) {
+JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames, context) {
   this.context = context || $private;
   this.returnType = returnType;
   this.argumentTypes = argumentTypes;
+
+  if (JSIL.IsArray(genericArgumentNames))
+    this.genericArgumentNames = genericArgumentNames;
+  else
+    this.genericArgumentNames = [];
 };
 
 JSIL.MethodSignature.prototype.GetKey = function (name) {
-  return name + "$" + this.Hash;
+  return name + this.Hash;
 };
 
 JSIL.MethodSignature.prototype.toString = function (name) {
@@ -2899,9 +2964,22 @@ JSIL.MethodSignature.prototype.toString = function (name) {
   }
 
   if (typeof (name) === "string") {
-    signature += name + " (";
+    signature += name;
+  }
+
+  if (this.genericArgumentNames.length > 0) {
+    signature += "<";
+
+    for (var i = 0, l = this.genericArgumentNames.length; i < l; i++) {
+      if (i > 0)
+        signature += ", ";
+
+      signature += this.genericArgumentNames[i];
+    }
+
+    signature += "> (";
   } else {
-    signature += " (";
+    signature += "(";
   }
 
   for (var i = 0; i < this.argumentTypes.length; i++) {
@@ -3021,11 +3099,24 @@ JSIL.MethodSignature.prototype.CallVirtual = function (name, ga, thisReference /
   return method.apply(thisReference, parameters);
 };
 
+JSIL.MethodSignature.prototype.get_GenericSuffix = function () {
+  if (this._genericSuffix !== null)
+    return this._genericSuffix;
+
+  if (this.genericArgumentNames.length > 0) {
+    return this._genericSuffix = "`" + this.genericArgumentNames.length.toString();
+  }
+
+  return this._genericSuffix = "";
+};
+
 JSIL.MethodSignature.prototype.get_Hash = function () {
   if (this._hash !== null)
     return this._hash;
 
-  var hash = JSIL.HashTypeArgumentArray(this.argumentTypes, this.context);
+  var hash = this.get_GenericSuffix() + "$";
+
+  hash += JSIL.HashTypeArgumentArray(this.argumentTypes, this.context);
 
   if (this.returnType !== null) {
     hash += "=" + JSIL.HashTypeArgumentArray([this.returnType], this.context);
@@ -3038,7 +3129,14 @@ JSIL.MethodSignature.prototype.get_Hash = function () {
 
 JSIL.MethodSignature.prototype.returnType = null;
 JSIL.MethodSignature.prototype.argumentTypes = [];
+JSIL.MethodSignature.prototype._genericSuffix = null;
 JSIL.MethodSignature.prototype._hash = null;
+
+Object.defineProperty(JSIL.MethodSignature.prototype, "GenericSuffix", {
+  configurable: false,
+  enumerable: true,
+  get: JSIL.MethodSignature.prototype.get_GenericSuffix
+});
 
 Object.defineProperty(JSIL.MethodSignature.prototype, "Hash", {
   configurable: false,
@@ -3155,14 +3253,14 @@ JSIL.ImplementExternals(
 JSIL.ImplementExternals(
   "System.Object", function ($) {
     $.Method({Static: false, Public: true}, "Equals",
-      new JSIL.MethodSignature("System.Boolean", ["System.Object"], $jsilcore),
+      new JSIL.MethodSignature("System.Boolean", ["System.Object"], [], $jsilcore),
       function (rhs) {
         return this === rhs;
       }
     );
 
     $.Method({Static: false, Public: false}, "MemberwiseClone",
-      new JSIL.MethodSignature("System.Object", [], $jsilcore),
+      new JSIL.MethodSignature("System.Object", [], [], $jsilcore),
       function () {
         var result = Object.create(Object.getPrototypeOf(this));
 
@@ -3206,7 +3304,7 @@ JSIL.ImplementExternals(
     );
 
     $.Method({Static: false, Public: true}, "toString",
-      new JSIL.MethodSignature("System.String", [], $jsilcore),
+      new JSIL.MethodSignature("System.String", [], [], $jsilcore),
       function () {
         return JSIL.GetTypeName(this);
       }
@@ -3219,27 +3317,27 @@ JSIL.MakeClass(Object, "System.Object", true, [], function ($) {
   $.Field({}, "__StructField__", Array, function ($) { return []; });
 
   $.ExternalMethod({Static: false, Public: true}, "_ctor",
-    new JSIL.MethodSignature(null, [], $jsilcore)
+    new JSIL.MethodSignature(null, [], [], $jsilcore)
   );
 
   $.ExternalMethod({Static: false, Public: true}, "GetType",
-    new JSIL.MethodSignature("System.Type", [], $jsilcore)
+    new JSIL.MethodSignature("System.Type", [], [], $jsilcore)
   );
 
   $.ExternalMethod({Static: false, Public: true}, "Equals",
-    new JSIL.MethodSignature("System.Boolean", [$.Type], $jsilcore)
+    new JSIL.MethodSignature("System.Boolean", [$.Type], [], $jsilcore)
   );
 
   $.ExternalMethod({Static: false, Public: true}, "MemberwiseClone",
-    new JSIL.MethodSignature($.Type, [], $jsilcore)
+    new JSIL.MethodSignature($.Type, [], [], $jsilcore)
   );
 
   $.ExternalMethod({Static: false, Public: true}, "toString",
-    new JSIL.MethodSignature("System.String", [], $jsilcore)
+    new JSIL.MethodSignature("System.String", [], [], $jsilcore)
   );
 
   $.ExternalMethod({Static: false, Public: false}, "__Initialize__",
-    new JSIL.MethodSignature(null, [], $jsilcore)
+    new JSIL.MethodSignature(null, [], [], $jsilcore)
   );
 
   $.ExternalMembers(false, "CheckType");

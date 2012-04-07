@@ -1496,10 +1496,11 @@ JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerable", true, [], function ($
   );
 });
 
+/*
 JSIL.ImplementExternals(
-  "System.Linq.Enumerable", false, {
-    Count$b1$0: JSIL.GenericMethod(
-      ["T"], 
+  "System.Linq.Enumerable", function ($) {
+    $.Method({Static: public, Public: true}, "Count$b1",
+      new JSIL.MethodSignature("IEnumerable`1", ["IEnumerable`1"], ["T"], $jsilcore),
       function (T, enumerable) {
         var e = JSIL.GetEnumerator(enumerable);
         var result = 0;
@@ -1511,9 +1512,10 @@ JSIL.ImplementExternals(
         }
         return result;
       }
-    ),
-    ToArray$b1: JSIL.GenericMethod(
-      ["T"],
+    );
+
+    $.Method({Static: public, Public: true}, "ToArray$b1",
+      new JSIL.MethodSignature("System.Array", ["IEnumerable`1"], ["T"], $jsilcore),
       function (T, enumerable) {
         var e = JSIL.GetEnumerator(enumerable);
         var result = [];
@@ -1525,9 +1527,10 @@ JSIL.ImplementExternals(
         }
         return result;
       }
-    ),
-    Select$b2$0: JSIL.GenericMethod(
-      ["TSource", "TResult"],
+    );
+
+    $.Method({Static: public, Public: true}, "Select$b2",
+      new JSIL.MethodSignature("System.Array", ["IEnumerable`1"], ["TSource", "TResult"], $jsilcore),
       function (TSource, TResult, enumerable, selector) {
         var state = {};
 
@@ -1547,7 +1550,8 @@ JSIL.ImplementExternals(
           }
         );
       }
-    ),
+    );
+
     First$b1$0: JSIL.GenericMethod(
       ["T"],
       function (T, enumerable) {
@@ -1561,7 +1565,8 @@ JSIL.ImplementExternals(
 
         throw new System.Exception("Enumerable contains no items");
       }
-    ),
+    );
+
     Any$b1$0: JSIL.GenericMethod(
       ["T"],
       function (T, enumerable) {
@@ -1576,7 +1581,8 @@ JSIL.ImplementExternals(
 
         return false;
       }
-    ),
+    );
+
     Any$b1$1: JSIL.GenericMethod(
       ["T"],
       function (T, enumerable, predicate) {
@@ -1593,9 +1599,10 @@ JSIL.ImplementExternals(
 
         return false;
       }
-    )
+    );
   }
 );
+*/
 
 JSIL.MakeStaticClass("System.Linq.Enumerable", true, [], function ($) {
   $.ExternalMembers(false, 

@@ -87,7 +87,11 @@ namespace JSIL.Internal {
                             sb.Append("+");
                     break;
                     case '`':
-                        sb.Append("$b");
+                        if (escapingMode != EscapingMode.String) {
+                            sb.Append("$b");
+                        } else {
+                            sb.Append("`");
+                        }
                         isEscaped = true;
                     break;
                     case '~':

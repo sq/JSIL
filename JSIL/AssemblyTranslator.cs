@@ -979,9 +979,7 @@ namespace JSIL {
                 output.Dot();
                 output.Identifier("ImplementInterfaces", null);
                 output.LPar();
-                output.NewLine();
                 output.CommaSeparatedList(interfaces, ListValueType.TypeReference);
-                output.NewLine();
                 output.RPar();
             }
         }
@@ -1545,32 +1543,20 @@ namespace JSIL {
             output.MemberDescriptor(method.IsPublic, method.IsStatic);
 
             output.Comma();
-            output.Value(Util.EscapeIdentifier(methodInfo.GetName(false), EscapingMode.String));
+            output.Value(Util.EscapeIdentifier(methodInfo.GetName(true), EscapingMode.String));
 
             output.Comma();
             output.NewLine();
 
             output.MethodSignature(
                 method.DeclaringType, methodInfo.ReturnType, 
-                (from p in methodInfo.Parameters select p.ParameterType), false
+                (from p in methodInfo.Parameters select p.ParameterType),
+                methodInfo.GenericParameterNames
             );
 
             if (!isExternal) {
                 output.Comma();
                 output.NewLine();
-
-                if (method.HasGenericParameters) {
-                    output.Identifier("JSIL.GenericMethod", null);
-                    output.LPar();
-                    output.NewLine();
-                    output.OpenBracket();
-
-                    output.CommaSeparatedList((from p in method.GenericParameters select p.Name), ListValueType.Primitive);
-
-                    output.CloseBracket();
-                    output.Comma();
-                    output.NewLine();
-                }
 
                 JSFunctionExpression function;
                 function = FunctionCache.GetExpression(new QualifiedMemberIdentifier(
@@ -1582,18 +1568,13 @@ namespace JSIL {
                     if (bodyTransformer != null)
                         bodyTransformer(function);
 
-                    function.DisplayName = methodInfo.GetName(true);
+                    function.DisplayName = methodInfo.GetName(false);
 
                     astEmitter.Visit(function);
                 } else {
                     output.Identifier("JSIL.UntranslatableFunction", null);
                     output.LPar();
                     output.Value(method.FullName);
-                    output.RPar();
-                }
-
-                if (method.HasGenericParameters) {
-                    output.NewLine();
                     output.RPar();
                 }
             }

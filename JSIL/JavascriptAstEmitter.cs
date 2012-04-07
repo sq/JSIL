@@ -991,9 +991,8 @@ namespace JSIL {
                 Output.LPar();
                 Output.MethodSignature(
                     null, null,
-                    from p in ctor.Parameters
-                    select p.ParameterType,
-                    true
+                    from p in ctor.Parameters select p.ParameterType,
+                    null, Output.CurrentMethod
                 );
                 Output.RPar();
                 Output.Dot();
@@ -1141,7 +1140,7 @@ namespace JSIL {
             };
 
             if (isOverloaded) {
-                var methodName = Util.EscapeIdentifier(method.Name, EscapingMode.MemberIdentifier);
+                var methodName = Util.EscapeIdentifier(method.GetName(true), EscapingMode.MemberIdentifier);
 
                 Output.LPar();
                 Output.MethodSignature(
@@ -1150,7 +1149,7 @@ namespace JSIL {
                     from p in method.Parameters select 
                         JSExpression.SubstituteTypeArgs(this.TypeInfo, p.ParameterType, jsm.Reference)
                     ),
-                    true
+                    method.GenericParameterNames, Output.CurrentMethod
                 );
                 Output.RPar();
                 Output.Dot();

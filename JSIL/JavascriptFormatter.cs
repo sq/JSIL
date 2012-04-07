@@ -116,80 +116,60 @@ namespace JSIL.Internal {
             WriteRaw(", ");
         }
 
-        public void CommaSeparatedList (IEnumerable<object> values, ListValueType valueType = ListValueType.Primitive) {
-            bool isFirst = true;
+        protected void CommaSeparatedListCore<T> (IEnumerable<T> _values, Action<T> writeValue, int lineSizeLimit = 2) {
+            var values = _values.ToArray();
+
+            var indentIt = values.Length > lineSizeLimit;
+
+            if (indentIt) {
+                Indent();
+                NewLine();
+            }
+
+            int i = 0;
             foreach (var value in values) {
-                if (!isFirst) {
+                if (i > 0) {
                     Comma();
 
-                    if ((valueType == ListValueType.TypeIdentifier) ||
-                        (valueType == ListValueType.TypeReference))
+                    if (indentIt && (i % lineSizeLimit) == 0)
                         NewLine();
                 }
 
-                if (valueType == ListValueType.Primitive)
-                    Value(value as dynamic);
-                else if (valueType == ListValueType.Identifier)
-                    Identifier(value as dynamic);
-                else if (valueType == ListValueType.TypeIdentifier)
-                    TypeIdentifier(value as dynamic, false, true);
-                else if (valueType == ListValueType.TypeReference)
-                    TypeReference(value as dynamic);
-                else
-                    WriteRaw(value.ToString());
+                writeValue(value);
+                i++;
+            }
 
-                isFirst = false;
+            if (indentIt) {
+                Unindent();
+                NewLine();
             }
         }
 
-        public void CommaSeparatedList<T, U> (
-            IEnumerable<KeyValuePair<T, U>> pairs, 
-            ListValueType keyType = ListValueType.Primitive,
-            ListValueType valueType = ListValueType.Primitive
-        ) {
-            bool isFirst = true;
-            foreach (var kvp in pairs) {
-                if (!isFirst)
-                    Comma();
+        public void CommaSeparatedList (IEnumerable<object> values, ListValueType valueType = ListValueType.Primitive) {
+            CommaSeparatedListCore(
+                values, (value) => {
+                    if (valueType == ListValueType.Primitive)
+                        Value(value as dynamic);
+                    else if (valueType == ListValueType.Identifier)
+                        Identifier(value as dynamic);
+                    else if (valueType == ListValueType.TypeIdentifier)
+                        TypeIdentifier(value as dynamic, false, true);
+                    else if (valueType == ListValueType.TypeReference)
+                        TypeReference(value as dynamic);
+                    else
+                        WriteRaw(value.ToString());
+                },
 
-                if (keyType == ListValueType.Primitive)
-                    Value(kvp.Key as dynamic);
-                else if (keyType == ListValueType.Identifier)
-                    Identifier(kvp.Key as dynamic);
-                else if (keyType == ListValueType.TypeIdentifier)
-                    TypeIdentifier(kvp.Key as dynamic, false, true);
-                else if (keyType == ListValueType.TypeReference)
-                    TypeReference(kvp.Key as dynamic);
-                else
-                    WriteRaw(kvp.Key.ToString());
-
-                WriteRaw(": ");
-
-                if (valueType == ListValueType.Primitive)
-                    Value(kvp.Value as dynamic);
-                else if (valueType == ListValueType.Identifier)
-                    Identifier(kvp.Value as dynamic);
-                else if (valueType == ListValueType.TypeIdentifier)
-                    TypeIdentifier(kvp.Value as dynamic, false, true);
-                else if (valueType == ListValueType.TypeReference)
-                    TypeReference(kvp.Value as dynamic);
-                else
-                    WriteRaw(kvp.Value.ToString());
-
-                isFirst = false;
-            }
+                ((valueType == ListValueType.TypeIdentifier) || (valueType == ListValueType.TypeReference)) ?
+                    2 : 4
+            );
         }
 
         public void CommaSeparatedList (IEnumerable<TypeReference> types, TypeReference context = null) {
-            bool isFirst = true;
-            foreach (var type in types) {
-                if (!isFirst)
-                    Comma();
-
-                TypeReference(type as dynamic, context);
-
-                isFirst = false;
-            }
+            CommaSeparatedListCore(
+                types, (type) => {
+                    TypeReference(type as dynamic, context);
+                });
         }
 
         public void OpenBracket (bool indent = false) {
@@ -751,13 +731,13 @@ namespace JSIL.Internal {
             NewLine();
         }
 
-        public void MethodSignature (TypeReference context, TypeReference returnType, IEnumerable<TypeReference> _parameterTypes, bool methodContext) {
+        public void MethodSignature (
+            TypeReference context, TypeReference returnType, 
+            IEnumerable<TypeReference> parameterTypes, 
+            IEnumerable<string> genericParameterNames = null, MethodReference methodBody = null
+        ) {
             WriteRaw("new JSIL.MethodSignature");
             LPar();
-
-            var parameterTypes = _parameterTypes.ToArray();
-            if (parameterTypes.Length > 2)
-                NewLine();
 
             if ((returnType == null) || (returnType.FullName == "System.Void"))
                 Identifier("null", null);
@@ -765,15 +745,22 @@ namespace JSIL.Internal {
                 TypeReference(returnType, context);
 
             Comma();
-            OpenBracket(parameterTypes.Length > 2);
+            OpenBracket(false);
 
-            if (methodContext) {
+            if (methodBody != null) {
                 CommaSeparatedList(parameterTypes, ListValueType.Identifier);
             } else {
                 CommaSeparatedList(parameterTypes, context);
             }
 
-            CloseBracket(parameterTypes.Length > 2);
+            CloseBracket(false);
+
+            if (genericParameterNames != null) {
+                Comma();
+                OpenBracket(false);
+                CommaSeparatedList(genericParameterNames, ListValueType.Primitive);
+                CloseBracket(false);
+            }
 
             RPar();
         }

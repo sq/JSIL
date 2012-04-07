@@ -1639,6 +1639,7 @@ namespace JSIL.Internal {
 
     public class MethodInfo : MemberInfo<MethodDefinition> {
         public readonly ParameterDefinition[] Parameters;
+        public readonly string[] GenericParameterNames;
         public readonly PropertyInfo Property = null;
         public readonly EventInfo Event = null;
         public readonly bool IsGeneric;
@@ -1663,6 +1664,7 @@ namespace JSIL.Internal {
         ) {
             ShortName = GetShortName(method);
             Parameters = method.Parameters.ToArray();
+            GenericParameterNames = (from p in method.GenericParameters select p.Name).ToArray();
             IsGeneric = method.HasGenericParameters;
             IsConstructor = method.Name == ".ctor";
             IsVirtual = method.IsVirtual;
@@ -1684,6 +1686,7 @@ namespace JSIL.Internal {
             Property = property;
             ShortName = GetShortName(method);
             Parameters = method.Parameters.ToArray();
+            GenericParameterNames = (from p in method.GenericParameters select p.Name).ToArray();
             IsGeneric = method.HasGenericParameters;
             IsConstructor = method.Name == ".ctor";
             IsVirtual = method.IsVirtual;
@@ -1704,6 +1707,7 @@ namespace JSIL.Internal {
             Event = evt;
             ShortName = GetShortName(method);
             Parameters = method.Parameters.ToArray();
+            GenericParameterNames = (from p in method.GenericParameters select p.Name).ToArray();
             IsGeneric = method.HasGenericParameters;
             IsConstructor = method.Name == ".ctor";
             IsVirtual = method.IsVirtual;
@@ -1711,7 +1715,7 @@ namespace JSIL.Internal {
         }
 
         protected override string GetName () {
-            return GetName(null);
+            return GetName(false);
         }
 
         public bool IsOverloaded {
@@ -1752,7 +1756,7 @@ namespace JSIL.Internal {
             }
         }
 
-        public string GetName (bool? nameMangling = null) {
+        public string GetName (bool stripGenericSuffix) {
             string result;
             var declType = Member.DeclaringType.Resolve();
             var over = Member.Overrides.FirstOrDefault();
@@ -1767,8 +1771,8 @@ namespace JSIL.Internal {
                 result = String.Format("{0}.{1}", over.DeclaringType.Name, ShortName);
             else
                 result = ShortName;
-
-            if (Member.HasGenericParameters)
+            
+            if (IsGeneric && !stripGenericSuffix)
                 result = String.Format("{0}`{1}", result, Member.GenericParameters.Count);
 
             return result;
