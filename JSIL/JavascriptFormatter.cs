@@ -351,12 +351,16 @@ namespace JSIL.Internal {
                     RPar();
                 }
             } else if (at != null) {
-                TypeIdentifier(at, false, true);
-                /*
-                TypeReference(ILBlockTranslator.GetTypeDefinition(at));
-                Space();
-                Comment("{0}", originalType);
-                */
+                Identifier("$jsilcore", null);
+                Dot();
+                Identifier("TypeRef", null);
+                LPar();
+                Value("System.Array");
+                Comma();
+                OpenBracket();
+                TypeReference(at.ElementType, context);
+                CloseBracket();
+                RPar();
             } else {
                 AssemblyReference(type);
                 Dot();

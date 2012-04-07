@@ -688,6 +688,17 @@ JSIL.TypeRef = function (context, name, genericArguments) {
       JSIL.Host.error(new Error("Invalid type reference"), context, name);
     }
   }
+
+  if (JSIL.IsArray(this.genericArguments)) {
+    for (var i = 0, l = this.genericArguments.length; i < l; i++) {
+      var ga = this.genericArguments[i];
+
+      if (typeof (ga) === "undefined")
+        throw new Error("Undefined passed as generic argument #" + i);
+      else if (ga === null)
+        throw new Error("Null passed as generic argument #" + i);
+    }
+  }
 };
 JSIL.TypeRef.prototype.toString = function () {
   if (this.typeName === null)
@@ -951,7 +962,13 @@ JSIL.ResolveGenericTypeReference = function (obj, context) {
   } else if (Object.getPrototypeOf(obj) === JSIL.TypeRef.prototype) {
     var resolvedGa = [];
     for (var i = 0, l = obj.genericArguments.length; i < l; i++) {
-      resolvedGa[i] = JSIL.ResolveGenericTypeReference(obj.genericArguments[i], context);
+      var unresolved = obj.genericArguments[i];
+      var resolved = JSIL.ResolveGenericTypeReference(unresolved, context);
+
+      if (resolved !== null)
+        resolvedGa[i] = resolved;
+      else
+        resolvedGa[i] = unresolved;
     }
 
     return new JSIL.TypeRef(obj.context, obj.typeName, resolvedGa);
@@ -3818,7 +3835,7 @@ JSIL.MakeClass("System.Object", "JSIL.AnyValueType", true, [], function ($) {
 JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
   var types = $.publicInterface.Types = {};
 
-  $.publicInterface.Of = function (type) {
+  $.publicInterface.Of$NoInitialize = $.publicInterface.Of = function (type) {
     if (typeof (type) === "undefined")
       throw new Error("Undefined reference type");
 
@@ -3991,7 +4008,7 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
   var publicInterface = $.publicInterface;
   var types = $.publicInterface.Types = {};
 
-  $.publicInterface.Of = function (elementType) {
+  $.publicInterface.Of$NoInitialize = $.publicInterface.Of = function (elementType) {
     if (typeof (elementType) === "undefined")
       throw new Error("Attempting to create an array of an undefined type");
 
@@ -4388,24 +4405,53 @@ JSIL.CompareNumbers = function (lhs, rhs) {
     return 0;
 };
 
-JSIL.ImplementExternals(
-  "System.Reflection.MemberInfo", true, {
-    get_DeclaringType: function () {
+$jsilcore.MemberInfoExternals = function ($) {
+  $.Method({Static:false, Public:true }, "get_DeclaringType", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [], []),
+    function () {
       return this._typeObject;
-    },
-    get_Name: function () {
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Name", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.String"), [], []),
+    function () {
       return this._descriptor.Name;
-    },
-    get_IsPublic: function () {
-      return this._descriptor.Public;
-    },
-    get_IsStatic: function () {
-      return this._descriptor.Static;
-    },
-    get_IsSpecialName: function () {
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_IsSpecialName", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [], []),
+    function () {
       return this._descriptor.SpecialName === true;
-    },
-  }
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_IsPublic", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [], []),
+    function () {
+      return this._descriptor.Public;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_IsStatic", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [], []),
+    function () {
+      return this._descriptor.Static;
+    }
+  );
+};
+
+JSIL.ImplementExternals(
+  "System.Reflection.MemberInfo", $jsilcore.MemberInfoExternals
+);
+
+JSIL.ImplementExternals(
+  "System.Reflection.PropertyInfo", $jsilcore.MemberInfoExternals
+);
+
+JSIL.ImplementExternals(
+  "System.Reflection.FieldInfo", $jsilcore.MemberInfoExternals
 );
 
 JSIL.ImplementExternals(
