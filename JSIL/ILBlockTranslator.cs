@@ -578,7 +578,6 @@ namespace JSIL {
             FullyDereferenceType(target, out targetDepth);
             FullyDereferenceType(source, out sourceDepth);
 
-            /*
             var targetGp = target as GenericParameter;
             var sourceGp = source as GenericParameter;
 
@@ -586,18 +585,24 @@ namespace JSIL {
                 if ((targetGp == null) || (sourceGp == null))
                     return false;
 
+                // https://github.com/jbevain/cecil/issues/97
+
                 var targetOwnerType = targetGp.Owner as TypeReference;
                 var sourceOwnerType = sourceGp.Owner as TypeReference;
 
-                if (!TypesAreEqual(targetOwnerType, sourceOwnerType))
-                    return false;
+                if ((targetOwnerType != null) || (sourceOwnerType != null)) {
+                    if (!TypesAreEqual(targetOwnerType, sourceOwnerType))
+                        return false;
+                } else {
+                    if (targetGp.Owner != sourceGp.Owner)
+                        return false;
+                }
 
-                if (targetGp.Owner != sourceGp.Owner)
+                if (targetGp.Type != sourceGp.Type)
                     return false;
 
                 return (targetGp.Name == sourceGp.Name);
             }
-             */
 
             var targetArray = target as ArrayType;
             var sourceArray = source as ArrayType;
@@ -624,12 +629,6 @@ namespace JSIL {
                 result = false;
             else if (target.IsPointer != source.IsPointer)
                 result = false;
-            /*
-            else if (target.IsGenericParameter != source.IsGenericParameter)
-                result = false;
-            else if (target.IsArray != source.IsArray)
-                result = false;
-             */
             else if (target.IsFunctionPointer != source.IsFunctionPointer)
                 result = false;
             else if (target.IsPinned != source.IsPinned)
