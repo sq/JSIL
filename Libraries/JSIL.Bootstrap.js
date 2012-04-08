@@ -786,15 +786,19 @@ $jsilcore.$ListExternals = function ($) {
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.List`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")]), [mscorlib.TypeRef("System.Predicate`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")])], []),
     function (predicate) {
       var thisType = this.GetType();
-      var result = JSIL.CreateInstanceOfType(thisType);
+
+      // Manually initialize the result since we don't want to hassle with overloaded ctors
+      var result = JSIL.CreateInstanceOfType(thisType, null);
+      result._items = [];
 
       for (var i = 0; i < this._size; i++) {
         var item = this._items[i];
 
         if (predicate(item))
-          result.Add(item);
+          result._items.push(item);
       }
 
+      result._size = result._items.length;
       return result;
     }
   );
@@ -1602,6 +1606,9 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary`2", true,
 });
 
 JSIL.GetEnumerator = function (enumerable) {
+  if ((typeof (enumerable) === "undefined") || (enumerable === null))
+    throw new Error("Enumerable is null or undefined");
+
   if (JSIL.IsArray(enumerable)) {
     var tEnumerator = JSIL.ArrayEnumerator.Of(System.Object);
     return new tEnumerator(enumerable);

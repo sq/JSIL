@@ -472,6 +472,17 @@ namespace JSIL {
             Output.RPar();
         }
 
+        public void VisitNode (JSMethodSignature methodSignature) {
+            Output.LPar();
+            Output.MethodSignature(
+                null,
+                methodSignature.ReturnType, 
+                methodSignature.ParameterTypes, 
+                methodSignature.GenericParameterNames
+            );
+            Output.RPar();
+        }
+
         public void VisitNode (JSDefaultValueLiteral defaultValue) {
             if (ILBlockTranslator.IsEnum(defaultValue.Value)) {
                 var enumInfo = TypeInfo.Get(defaultValue.Value);
@@ -1000,13 +1011,9 @@ namespace JSIL {
             bool hasArguments = newexp.Arguments.Count > 0;
 
             if (isOverloaded) {
-                Output.LPar();
-                Output.MethodSignature(
-                    null, null,
-                    from p in ctor.Parameters select p.ParameterType,
-                    null, Output.CurrentMethod
-                );
-                Output.RPar();
+                Visit(new JSMethodSignature(
+                    null, (from p in ctor.Parameters select p.ParameterType).ToArray(), null
+                ));
                 Output.Dot();
 
                 Output.Identifier("Construct");
@@ -1154,9 +1161,7 @@ namespace JSIL {
             if (isOverloaded) {
                 var methodName = Util.EscapeIdentifier(method.GetName(true), EscapingMode.MemberIdentifier);
 
-                Output.LPar();
-                Output.MethodSignatureForMethod(method, jsm.Reference, Output.CurrentMethod);
-                Output.RPar();
+                Visit(jsm.Signature);
                 Output.Dot();
 
                 Action genericArgs = () => {

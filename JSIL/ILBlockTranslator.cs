@@ -13,7 +13,7 @@ using Microsoft.CSharp.RuntimeBinder;
 using Mono.Cecil;
 
 namespace JSIL {
-    class ILBlockTranslator {
+    public class ILBlockTranslator {
         public readonly AssemblyTranslator Translator;
         public readonly DecompilerContext Context;
         public readonly MethodReference ThisMethodReference;
@@ -23,7 +23,7 @@ namespace JSIL {
 
         public readonly HashSet<string> ParameterNames = new HashSet<string>();
         public readonly Dictionary<string, JSVariable> Variables = new Dictionary<string, JSVariable>();
-        public readonly DynamicCallSiteInfoCollection DynamicCallSites = new DynamicCallSiteInfoCollection();
+        internal readonly DynamicCallSiteInfoCollection DynamicCallSites = new DynamicCallSiteInfoCollection();
 
         protected readonly Dictionary<ILVariable, JSVariable> RenamedVariables = new Dictionary<ILVariable, JSVariable>();
 
@@ -578,6 +578,40 @@ namespace JSIL {
             FullyDereferenceType(target, out targetDepth);
             FullyDereferenceType(source, out sourceDepth);
 
+            /*
+            var targetGp = target as GenericParameter;
+            var sourceGp = source as GenericParameter;
+
+            if ((targetGp != null) || (sourceGp != null)) {
+                if ((targetGp == null) || (sourceGp == null))
+                    return false;
+
+                var targetOwnerType = targetGp.Owner as TypeReference;
+                var sourceOwnerType = sourceGp.Owner as TypeReference;
+
+                if (!TypesAreEqual(targetOwnerType, sourceOwnerType))
+                    return false;
+
+                if (targetGp.Owner != sourceGp.Owner)
+                    return false;
+
+                return (targetGp.Name == sourceGp.Name);
+            }
+             */
+
+            var targetArray = target as ArrayType;
+            var sourceArray = source as ArrayType;
+
+            if ((targetArray != null) || (sourceArray != null)) {
+                if ((targetArray == null) || (sourceArray == null))
+                    return false;
+
+                if (targetArray.Rank != sourceArray.Rank)
+                    return false;
+
+                return TypesAreEqual(targetArray.ElementType, sourceArray.ElementType);
+            }
+
             var targetGit = target as GenericInstanceType;
             var sourceGit = source as GenericInstanceType;
 
@@ -590,10 +624,12 @@ namespace JSIL {
                 result = false;
             else if (target.IsPointer != source.IsPointer)
                 result = false;
+            /*
             else if (target.IsGenericParameter != source.IsGenericParameter)
                 result = false;
             else if (target.IsArray != source.IsArray)
                 result = false;
+             */
             else if (target.IsFunctionPointer != source.IsFunctionPointer)
                 result = false;
             else if (target.IsPinned != source.IsPinned)

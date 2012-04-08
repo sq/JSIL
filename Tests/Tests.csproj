@@ -63,6 +63,7 @@
     <None Include="ReflectionTestCases\ListInheritedMethods.cs" />
     <None Include="ReflectionTestCases\ListFields.cs" />
     <None Include="ReflectionTestCases\ListHiddenMethods.cs" />
+    <Compile Include="APITests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

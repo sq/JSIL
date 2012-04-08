@@ -792,8 +792,8 @@ namespace JSIL.Internal {
         }
 
         public void MethodSignature (
-            TypeReference context, TypeReference returnType, 
-            IEnumerable<TypeReference> parameterTypes, 
+            TypeReference context, TypeReference returnType,
+            IEnumerable<TypeReference> parameterTypes,
             IEnumerable<string> genericParameterNames = null, MethodReference methodBody = null
         ) {
             WriteRaw("new JSIL.MethodSignature");
