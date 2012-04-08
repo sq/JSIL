@@ -1892,10 +1892,13 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
       }
 
       if (active) {
-        if ((newValue.__IsPlaceholder__) && (!oldValue.__IsPlaceholder__))
-          throw new Error("Replacing real method with placeholder");
-
-        target[escapedName] = newValue;
+        if ((newValue.__IsPlaceholder__) && (!oldValue.__IsPlaceholder__)) {
+          if (trace) {
+            console.log("Not replacing real method with placeholder");
+          }
+        } else {
+          target[escapedName] = newValue;
+        }
       }
       
       continue;
