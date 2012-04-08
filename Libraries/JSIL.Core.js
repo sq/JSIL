@@ -1672,16 +1672,7 @@ JSIL.MakeStructFieldInitializer = function (typeObject) {
   return boundFunction;
 };
 
-JSIL.InitializeStructFields = function (instance, type) {
-  var typeObject, publicInterface;
-  if (typeof (type.__Type__) === "object") {
-    typeObject = type.__Type__;
-    publicInterface = type;
-  } else if (typeof (type.__PublicInterface__) !== "undefined") {
-    typeObject = type;
-    publicInterface = type.__PublicInterface__;
-  }
-
+JSIL.InitializeStructFields = function (instance, typeObject) {
   var sfi = typeObject.__StructFieldInitializer__;
   if (typeof (sfi) === "undefined")
     typeObject.__StructFieldInitializer__ = sfi = JSIL.MakeStructFieldInitializer(typeObject);
@@ -1700,27 +1691,50 @@ JSIL.CopyObjectValues = function (source, target) {
   }
 };
 
-JSIL.CopyMembers = function (source, target) {
-  var sf = JSIL.GetStructFieldList(source.__ThisType__);
+JSIL.MakeMemberCopier = function (typeObject) {
+  var sf = JSIL.GetStructFieldList(typeObject);
 
-  for (var key in source) {
-    if (!source.hasOwnProperty(key))
-      continue;
+  var fields = JSIL.GetMembersInternal(
+    typeObject, $jsilcore.BindingFlags.Instance, "FieldInfo"
+  );
 
-    target[key] = source[key];
-  }
+  var body = [];
 
-  for (var i = 0, l = sf.length; i < l; i++) {
-    var fieldName = sf[i][0];
-    var value;
+  for (var i = 0; i < fields.length; i++) {
+    var field = fields[i];
+    var isStruct = false;
 
-    if (
-      source.hasOwnProperty(fieldName) &&
-      typeof ((value = target[fieldName]).MemberwiseClone) === "function"
-    ) {
-      target[fieldName] = value.MemberwiseClone();
+    for (var j = 0; j < sf.length; j++) {
+      if (sf[j][0] == field.Name) {
+        isStruct = true;
+        break;
+      }
     }
+
+    var line = "target['" + field.Name + "'] = source['" + field.Name + "']";
+    if (isStruct)
+      line += ".MemberwiseClone();"
+    else
+      line += ";";
+
+    body.push(line);
   }
+
+  var rawFunction = new Function(
+    "source", "target",
+    "//@ sourceURL=jsil://memberCopier/" + typeObject.__FullName__ + "\r\n" + body.join("\r\n")
+  );
+
+  return rawFunction;
+};
+
+JSIL.CopyMembers = function (source, target) {
+  var thisType = source.__ThisType__;
+  var memberCopier = thisType.__MemberCopier__;
+  if (typeof (memberCopier) !== "function")
+    memberCopier = thisType.__MemberCopier__ = JSIL.MakeMemberCopier(thisType);
+
+  memberCopier(source, target);
 };
 
 JSIL.$BuildStructFieldList = function (typeObject) {
