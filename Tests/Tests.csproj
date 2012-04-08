@@ -329,6 +329,7 @@
     <None Include="TestCases\DynamicGenericMethods.cs" />
     <None Include="SpecialTestCases\GenericMethodSignatures.cs" />
     <None Include="TestCases\InheritOpenGenericInterface.cs" />
+    <None Include="TestCases\GenericInstanceCallGenericMethod.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

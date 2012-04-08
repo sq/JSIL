@@ -97,6 +97,7 @@ namespace JSIL.Tests {
                     @"TestCases\GenericTypeCasts.cs",
                     @"TestCases\GenericArgumentFromTypeReturnedByMethod.cs",
                     @"TestCases\GenericArgumentFromTypePassedToMethod.cs",
+                    @"TestCases\GenericInstanceCallGenericMethod.cs",
                     @"TestCases\GenericStructs.cs",
                     @"TestCases\InheritGenericClass.cs",
                     @"TestCases\InheritOpenGenericClass.cs",

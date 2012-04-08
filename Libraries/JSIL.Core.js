@@ -997,6 +997,9 @@ JSIL.ResolveGenericTypeReference = function (obj, context) {
       return obj;
 
     var openType = obj.__OpenType__;
+    if (typeof (openType) !== "object")
+      return obj;
+
     var openPublicInterface = openType.__PublicInterface__;
     var existingParameters = obj.__GenericArgumentValues__ || [];
     var closedParameters = new Array(existingParameters.length);
@@ -3593,7 +3596,7 @@ JSIL.MakeClass(Object, "System.Object", true, [], function ($) {
   );
 
   $.ExternalMethod({Static: false, Public: true}, "MemberwiseClone",
-    new JSIL.MethodSignature($.Type, [], [], $jsilcore)
+    new JSIL.MethodSignature("System.Object", [], [], $jsilcore)
   );
 
   $.ExternalMethod({Static: false, Public: true}, "toString",
@@ -3794,6 +3797,8 @@ JSIL.GetReflectionCache = function (typeObject) {
 
   for (var i = 0, l = members.length; i < l; i++) {
     var member = members[i];
+    if (!JSIL.IsArray(member))
+      continue;
 
     var type = member[0];
     var descriptor = member[1];

@@ -359,8 +359,13 @@ namespace JSIL.Internal {
                         }
 
                         if (resolved != null) {
-                            TypeReference(resolved, context);
-                            return;
+                            if (resolved != gp) {
+                                TypeReference(resolved, context);
+                                return;
+                            } else {
+                                TypeIdentifier(resolved, context, false);
+                                return;
+                            }
                         }
                     }
 

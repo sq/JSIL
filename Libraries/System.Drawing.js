@@ -213,7 +213,7 @@ JSIL.ImplementExternals(
     );
 
     $.Method({Static:false, Public:true }, "MemberwiseClone", 
-      new JSIL.MethodSignature($.Type, [], []),
+      new JSIL.MethodSignature("System.Object", [], [], $jsilcore),
       function () {
         if ((typeof (this.name) != "undefined") && (this.name != null)) {
           return this;
