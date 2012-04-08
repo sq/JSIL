@@ -3208,7 +3208,11 @@ JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames
 };
 
 JSIL.MethodSignature.prototype.GetKey = function (name) {
-  return name + this.Hash;
+  if (name === this._lastKeyName)
+    return this._lastKey;
+
+  this._lastKeyName = name;
+  return this._lastKey = (name + this.Hash);
 };
 
 JSIL.MethodSignature.prototype.ResolveTypeReference = function (typeReference) {
@@ -3395,6 +3399,8 @@ JSIL.MethodSignature.prototype.returnType = null;
 JSIL.MethodSignature.prototype.argumentTypes = [];
 JSIL.MethodSignature.prototype._genericSuffix = null;
 JSIL.MethodSignature.prototype._hash = null;
+JSIL.MethodSignature.prototype._lastKeyName = null;
+JSIL.MethodSignature.prototype._lastKey = null;
 
 Object.defineProperty(JSIL.MethodSignature.prototype, "GenericSuffix", {
   configurable: false,
