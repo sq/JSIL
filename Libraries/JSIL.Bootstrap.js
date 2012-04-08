@@ -1149,20 +1149,13 @@ JSIL.ImplementExternals(
   "System.Threading.Interlocked", function ($) {
     $.Method({Public: true , Static: true }, "CompareExchange", 
       new JSIL.MethodSignature("!!0", [JSIL.Reference.Of("!!0"), "!!0", "!!0"], ["T"]),
-      function (T, targetRef, value, comparand, succeeded) {
+      function (T, targetRef, value, comparand) {
         var currentValue = targetRef.value;
-        if (currentValue === comparand) {
+
+        if (currentValue === comparand)
           targetRef.value = value;
-          if (typeof (succeeded) != "undefined")
-            succeeded.value = true;
 
-          return comparand;
-        } else {
-          if (typeof (succeeded) != "undefined")
-            succeeded.value = false;
-
-          return currentValue;
-        }
+        return currentValue;
       }
     );
   }

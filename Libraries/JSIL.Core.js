@@ -2183,6 +2183,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   typeObject.__Properties__ = [];
   typeObject.__Initializers__ = [];
   typeObject.__Interfaces__ = [];
+  typeObject.__Members__ = [];
   typeObject.__TypeInitialized__ = false;
   typeObject.__GenericArguments__ = genericArguments || [];
 
@@ -3308,6 +3309,7 @@ JSIL.MethodSignature.prototype.Call = function (context, name, ga, thisReference
   }
 
   if (JSIL.IsArray(ga)) {
+    JSIL.ResolveTypeArgumentArray(ga);
     method = method.apply(thisReference, ga);  
   }
 
@@ -3329,6 +3331,7 @@ JSIL.MethodSignature.prototype.CallStatic = function (context, name, ga /*, ...p
   }
 
   if (JSIL.IsArray(ga)) {
+    JSIL.ResolveTypeArgumentArray(ga);
     method = method.apply(context, ga);  
   }
 
@@ -3350,6 +3353,7 @@ JSIL.MethodSignature.prototype.CallVirtual = function (name, ga, thisReference /
   }
 
   if (JSIL.IsArray(ga)) {
+    JSIL.ResolveTypeArgumentArray(ga);
     method = method.apply(thisReference, ga);  
   }
 
@@ -4096,28 +4100,37 @@ JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
 });
 
 JSIL.MakeClass("JSIL.Reference", "JSIL.Variable", true, [], function ($) {
-  $.publicInterface.prototype._ctor = function (value) {
-    this.value = value;
-  };
+  $.Method({Static: false, Public: true }, ".ctor",
+    new JSIL.MethodSignature(null, [JSIL.AnyType], [], $jsilcore),
+    function (value) {
+      this.value = value;
+    }
+  );
 });
 JSIL.MakeClass("JSIL.Reference", "JSIL.MemberReference", true, [], function ($) {
-  $.publicInterface.prototype._ctor = function (object, memberName) {
-    this.object = object;
-    this.memberName = memberName;
-  };
-  $.publicInterface.prototype.get_value = function () {
-    return this.object[this.memberName];
-  };
-  $.publicInterface.prototype.set_value = function (value) {
-    this.object[this.memberName] = value;
-  }
+  $.Method({Static: false, Public: true }, ".ctor",
+    new JSIL.MethodSignature(null, ["System.Object", "System.String"], [], $jsilcore),
+    function (object, memberName) {
+      this.object = object;
+      this.memberName = memberName;
+    }
+  );
 
-  Object.defineProperty($.publicInterface.prototype, "value", {
-    get: $.publicInterface.prototype.get_value,
-    set: $.publicInterface.prototype.set_value,
-    configurable: false,
-    enumerable: false
-  });
+  $.Method({Static: false, Public: true }, "get_value",
+    new JSIL.MethodSignature(JSIL.AnyType, [], [], $jsilcore),
+    function () {
+      return this.object[this.memberName];
+    }
+  );
+
+  $.Method({Static: false, Public: true }, "set_value",
+    new JSIL.MethodSignature(null, [JSIL.AnyType], [], $jsilcore),
+    function (value) {
+      this.object[this.memberName] = value;
+    }
+  );
+
+  $.Property({Static: false, Public: true }, "value");
 });
 
 JSIL.MakeClass("System.Object", "JSIL.CollectionInitializer", true, [], function ($) {
