@@ -1631,6 +1631,9 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
 JSIL.GetStructFieldList = function (typeObject) {
   var sf = typeObject.__StructFields__;
 
+  if (sf === null)
+    sf = JSIL.$BuildStructFieldList(typeObject);
+
   if (!JSIL.IsArray(sf))
     return [];
 
@@ -1758,6 +1761,8 @@ JSIL.$BuildStructFieldList = function (typeObject) {
       sf.push([field.Name, fieldType]);
     }
   }
+
+  return sf;
 };
 
 JSIL.$ResolveGenericTypeReferences = function (context, types) {
@@ -1967,8 +1972,6 @@ JSIL.InitializeType = function (type) {
 
   // Not entirely correct, but prevents recursive type initialization
   typeObject.__TypeInitialized__ = true;
-
-  JSIL.$BuildStructFieldList(typeObject);
 
   if (typeObject.__IsClosed__) {
     JSIL.$BuildMethodGroups(typeObject, classObject);
@@ -2291,7 +2294,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
 
     typeObject.__InheritanceDepth__ = (typeObject.__BaseType__.__InheritanceDepth__ || 0) + 1;
     typeObject.__IsArray__ = false;
-    typeObject.__StructFields__ = [];
+    typeObject.__StructFields__ = null;
     typeObject.__Properties__ = [];
     typeObject.__Initializers__ = [];
     typeObject.__Interfaces__ = Array.prototype.slice.call(baseTypeInterfaces);
@@ -3889,7 +3892,7 @@ JSIL.GetReflectionCache = function (typeObject) {
 
     // Construct the appropriate subclass of MemberInfo
     var parsedTypeName = JSIL.ParseTypeName("System.Reflection." + type);    
-    var infoType = JSIL.GetTypeInternal(parsedTypeName, JSIL.GlobalNamespace, true);
+    var infoType = JSIL.GetTypeInternal(parsedTypeName, $jsilcore, true);
     var info = JSIL.CreateInstanceOfType(infoType, null);
 
     info._typeObject = typeObject;
