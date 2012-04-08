@@ -2730,7 +2730,10 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
 };
 
 JSIL.IsArray = function (value) {
-  if ((typeof (value) === "object") && (value !== null)) {
+  if (value === null)
+    return false;
+
+  if (typeof (value) === "object") {
     var valueProto = Object.getPrototypeOf(value);
 
     if (valueProto === Array.prototype) {
@@ -3274,14 +3277,12 @@ JSIL.MethodSignature.prototype.toString = function (name) {
 };
 
 JSIL.MethodSignature.prototype.Construct = function (publicInterface /*, ...parameters */) {  
-  var constructorArguments = Array.prototype.slice.call(arguments, 1);
-
   var typeObject = publicInterface.__Type__;
   var result;
 
   if (typeObject.__IsNativeType__) {
     var ctor = publicInterface.prototype["_ctor"];
-    return ctor.apply(publicInterface, constructorArguments);
+    return ctor.apply(publicInterface, Array.prototype.slice.call(arguments, 1));
   } else {
     var proto = publicInterface.prototype;
     result = Object.create(proto);
@@ -3292,7 +3293,7 @@ JSIL.MethodSignature.prototype.Construct = function (publicInterface /*, ...para
   
   JSIL.InitializeStructFields(result, typeObject);
 
-  if (!typeObject.__IsReferenceType__ && (constructorArguments.length == 0)) {
+  if (!typeObject.__IsReferenceType__ && (arguments.length === 1)) {
   } else {
     var key = this.GetKey("_ctor");
     var ctor = proto[key];
@@ -3306,7 +3307,19 @@ JSIL.MethodSignature.prototype.Construct = function (publicInterface /*, ...para
       );
     }
 
-    ctor.apply(result, constructorArguments);
+    if (arguments.length === 1) {
+      ctor.call(result);
+    } else if (arguments.length === 2) {
+      ctor.call(result, arguments[1]);
+    } else if (arguments.length === 3) {
+      ctor.call(result, arguments[1], arguments[2]);
+    } else if (arguments.length === 4) {
+      ctor.call(result, arguments[1], arguments[2], arguments[3]);
+    } else if (arguments.length === 5) {
+      ctor.call(result, arguments[1], arguments[2], arguments[3], arguments[4]);
+    } else {
+      ctor.apply(result, Array.prototype.slice.call(arguments, 1));
+    }
   }
 
   return result;
@@ -3333,8 +3346,20 @@ JSIL.MethodSignature.prototype.Call = function (context, name, ga, thisReference
     method = method.apply(thisReference, ga);  
   }
 
-  var parameters = Array.prototype.slice.call(arguments, 4);
-  return method.apply(thisReference, parameters);
+  if (arguments.length === 4) {
+    return method.call(thisReference);
+  } else if (arguments.length === 5) {
+    return method.call(thisReference, arguments[4]);
+  } else if (arguments.length === 6) {
+    return method.call(thisReference, arguments[4], arguments[5]);
+  } else if (arguments.length === 7) {
+    return method.call(thisReference, arguments[4], arguments[5], arguments[6]);
+  } else if (arguments.length === 8) {
+    return method.call(thisReference, arguments[4], arguments[5], arguments[6], arguments[7]);
+  } else {
+    var parameters = Array.prototype.slice.call(arguments, 4);
+    return method.apply(thisReference, parameters);
+  }
 };
 
 JSIL.MethodSignature.prototype.CallStatic = function (context, name, ga /*, ...parameters */) {
@@ -3355,8 +3380,20 @@ JSIL.MethodSignature.prototype.CallStatic = function (context, name, ga /*, ...p
     method = method.apply(context, ga);  
   }
 
-  var parameters = Array.prototype.slice.call(arguments, 3);
-  return method.apply(context, parameters);
+  if (arguments.length === 3) {
+    return method.call(context);
+  } else if (arguments.length === 4) {
+    return method.call(context, arguments[3]);
+  } else if (arguments.length === 5) {
+    return method.call(context, arguments[3], arguments[4]);
+  } else if (arguments.length === 6) {
+    return method.call(context, arguments[3], arguments[4], arguments[5]);
+  } else if (arguments.length === 7) {
+    return method.call(context, arguments[3], arguments[4], arguments[5], arguments[6]);
+  } else {
+    var parameters = Array.prototype.slice.call(arguments, 3);
+    return method.apply(context, parameters);
+  }
 };
 
 JSIL.MethodSignature.prototype.CallVirtual = function (name, ga, thisReference /*, ...parameters */) {
@@ -3377,8 +3414,20 @@ JSIL.MethodSignature.prototype.CallVirtual = function (name, ga, thisReference /
     method = method.apply(thisReference, ga);  
   }
 
-  var parameters = Array.prototype.slice.call(arguments, 3);
-  return method.apply(thisReference, parameters);
+  if (arguments.length === 3) {
+    return method.call(thisReference);
+  } else if (arguments.length === 4) {
+    return method.call(thisReference, arguments[3]);
+  } else if (arguments.length === 5) {
+    return method.call(thisReference, arguments[3], arguments[4]);
+  } else if (arguments.length === 6) {
+    return method.call(thisReference, arguments[3], arguments[4], arguments[5]);
+  } else if (arguments.length === 7) {
+    return method.call(thisReference, arguments[3], arguments[4], arguments[5], arguments[6]);
+  } else {
+    var parameters = Array.prototype.slice.call(arguments, 3);
+    return method.apply(thisReference, parameters);
+  }
 };
 
 JSIL.MethodSignature.prototype.get_GenericSuffix = function () {
