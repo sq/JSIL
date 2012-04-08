@@ -1778,7 +1778,12 @@ JSIL.$ResolveGenericTypeReferences = function (context, types) {
 
 JSIL.$MakeMethodGroup = function (methodName, overloadSignatures) {
   var dispatcher = function () {
-    throw new Error("Cannot dispatch overloaded method '" + methodName + "'");
+    var text = "Found " + overloadSignatures.length + " ambiguous candidates for method invocation:";
+    for (var i = 0; i < overloadSignatures.length; i++) {
+      text += "\n" + overloadSignatures[i].toString(methodName);
+    }
+
+    throw new Error(text);
   };
 
   return JSIL.RenameFunction(methodName, dispatcher);
@@ -1946,6 +1951,8 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
       if (trace) {
         console.log(method._typeObject.__FullName__ + "::" + methodName + " | " + signature._hash);
       }
+
+      entries.push(method._data.signature);
     }
 
     var target = isStatic ? publicInterface : publicInterface.prototype;
