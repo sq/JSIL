@@ -1383,6 +1383,9 @@ JSIL.MakeStruct("System.ValueType", "System.Decimal", true, [], function ($) {
     decimalToNumber
   );
 
+  $.Field({Static: false, Public: false }, "value", mscorlib.TypeRef("System.Double"), function () {
+    return 0;
+  });
 });
 
 System.Environment.GetResourceFromDefault = function (key) {
