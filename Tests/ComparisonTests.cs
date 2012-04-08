@@ -145,6 +145,22 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void GetTypeByName () {
+            using (var test = new ComparisonTest(@"TestCases\GetTypeByName.cs"))
+                test.Run();
+            using (var test = new ComparisonTest(@"TestCases\GetGenericTypeByName.cs"))
+                test.Run();
+        }
+
+        [Test]
+        public void FieldSpecialCases () {
+            using (var test = new ComparisonTest(@"TestCases\FieldRecursiveInitialization.cs"))
+                test.Run();
+            using (var test = new ComparisonTest(@"TestCases\StringEmpty.cs"))
+                test.Run();
+        }
+
+        [Test]
         public void MulticastDelegates () {
             using (var test = new ComparisonTest(@"TestCases\MulticastDelegates.cs"))
                 test.Run();

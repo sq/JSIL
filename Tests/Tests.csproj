@@ -292,11 +292,11 @@
     <Content Include="TestCases\Events.vb" />
     <None Include="TestCases\GenericMethodThisReference.cs" />
     <None Include="SimpleTestCases\ArrayOfArrays.cs" />
-    <None Include="SimpleTestCases\StringEmpty.cs" />
-    <None Include="SimpleTestCases\GetTypeByName.cs" />
+    <None Include="TestCases\StringEmpty.cs" />
+    <None Include="TestCases\GetTypeByName.cs" />
     <None Include="TestCases\OverloadWithMultipleGenericThis.cs" />
     <None Include="TestCases\OverloadWithMultipleGenericThisRecursive.cs" />
-    <None Include="SimpleTestCases\GetGenericTypeByName.cs" />
+    <None Include="TestCases\GetGenericTypeByName.cs" />
     <None Include="SimpleTestCases\StringStartsAndEndsWith.cs" />
     <None Include="TestCases\InheritOpenGenericClassMultipleTimes.cs" />
     <None Include="SimpleTestCases\StringCompare.cs" />
@@ -309,7 +309,7 @@
     <None Include="SimpleTestCases\StringLastIndexOf.cs" />
     <None Include="SimpleTestCases\StringReplace.cs" />
     <None Include="TestCases\TernaryTypeInference.cs" />
-    <None Include="SimpleTestCases\FieldRecursiveInitialization.cs" />
+    <None Include="TestCases\FieldRecursiveInitialization.cs" />
     <None Include="TestCases\EnumCasts.cs" />
     <None Include="TestCases\EnumFieldDefaults.cs" />
     <None Include="TestCases\EnumFieldAssignment.cs" />

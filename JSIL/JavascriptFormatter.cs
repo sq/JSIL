@@ -354,7 +354,8 @@ namespace JSIL.Internal {
                                 }
                             }
 
-                            throw new NotImplementedException("Could not find generic parameter in type");
+                            if (resolved == null)
+                                throw new NotImplementedException("Could not find generic parameter in type");
                         }
 
                         if (resolved != null) {
