@@ -599,10 +599,10 @@ JSIL.ImplementExternals = function (namespaceName, isInstance, externals) {
         var target = descriptor.Static ? publicInterface : publicInterface.prototype;
 
         if (data.mangledName) {
-          obj[descriptor.Static ? data.mangledName : prefix + data.mangledName] = target[name];
+          obj[descriptor.Static ? data.mangledName : prefix + data.mangledName] = [m[i], target[name]];
         }
 
-        obj[descriptor.Static ? descriptor.EscapedName : prefix + descriptor.EscapedName] = target[name];
+        obj[descriptor.Static ? descriptor.EscapedName : prefix + descriptor.EscapedName] = [m[i], target[name]];
       }
     } else {
       var prefix = isInstance ? "instance$" : "";
@@ -613,7 +613,7 @@ JSIL.ImplementExternals = function (namespaceName, isInstance, externals) {
         if (typeof (external) === "function")
           external = JSIL.RenameFunction(namespaceName + "::" + k, external);
 
-        obj[prefix + k] = external;
+        obj[prefix + k] = [null, external];
       }
     }
   });
@@ -1429,7 +1429,7 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
 
     if (resolvedSignature.Hash != signature.Hash) {
       var oldName = data.mangledName;
-      var newName = resolvedSignature.GetKey(descriptor.Name);
+      var newName = resolvedSignature.GetKey(descriptor.EscapedName);
 
       var methodReference = target[oldName];
 
@@ -1698,7 +1698,7 @@ JSIL.CopyObjectValues = function (source, target) {
 };
 
 JSIL.CopyMembers = function (source, target) {
-  var sf = JSIL.GetStructFieldList(source.GetType());
+  var sf = JSIL.GetStructFieldList(source.__ThisType__);
 
   for (var key in source) {
     if (!source.hasOwnProperty(key))
@@ -1824,21 +1824,16 @@ JSIL.$ApplyMemberHiding = function (memberList) {
     }
   }
 
-  var count = memberList.length;
   // Perform a second pass through the member list and shrink it to eliminate the nulls.
-  for (var i = 0; i < count; i++) {
+  for (var i = originalCount - 1; i >= 0; i--) {
     var member = memberList[i];
 
-    if (member === null) {
-      memberList[i] = memberList[count - 1];
-      count--;
-      i--;
-    }
+    if (member === null)
+      memberList.splice(i, 1);
   }
 
-  if ((trace) && (originalCount != count)) {
-    memberList.length = count;
-    console.log("Shrank method group from " + originalCount + " item(s) to " + count);
+  if ((trace) && (originalCount != memberList.length)) {
+    console.log("Shrank method group from " + originalCount + " item(s) to " + memberList.length);
   }
 };
 
@@ -1847,14 +1842,19 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
     typeObject, 0, "MethodInfo", true
   );
 
+  if (typeObject.__FullName__.indexOf("List`1") >= 0) {
+    console.log("Building list method groups for " + typeObject.__FullName__);
+  }
+
   var trace = false;
+  var active = true;
 
   // Group up all the methods by name in preparation for building the method groups
   var methodsByName = {};
   for (var i = 0, l = methods.length; i < l; i++) {
     var method = methods[i];
 
-    var key = method.IsStatic + "$" + method._descriptor.EscapedName;
+    var key = (method._descriptor.Static ? "static" : "instance") + "$" + method._descriptor.EscapedName;
 
     var methodList = methodsByName[key];
     if (!JSIL.IsArray(methodList))
@@ -1888,10 +1888,14 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
       var oldValue = target[escapedName];
       var newValue = target[mangledName];
 
-      if (trace)
-        console.log(typeObject.__FullName__ + "::" + escapedName + " = " + theMethod._typeObject.__FullName__ + "::" + mangledName);
+      if (typeof (newValue) === "undefined")
+        continue;
 
-      if (false) {
+      if (trace) {
+        console.log(typeObject.__FullName__ + "::" + escapedName + " = " + theMethod._typeObject.__FullName__ + "::" + mangledName);
+      }
+
+      if (active) {
         if ((newValue.__IsPlaceholder__) && (!oldValue.__IsPlaceholder__))
           throw new Error("Replacing real method with placeholder");
 
@@ -1902,12 +1906,15 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
     }
 
     if (!printedTypeName) {
-      // print("-- " + typeObject.__FullName__ + " --");
+      if (trace) {
+        console.log("-- " + typeObject.__FullName__ + " --");
+      }
+
       printedTypeName = true;
     }
 
-    var methodName = methodList[0].Name;
-    var isStatic = methodList[0].IsStatic;
+    var methodName = methodList[0]._descriptor.Name;
+    var isStatic = methodList[0]._descriptor.Static;
     var signature = methodList[0]._data.signature;
 
     var entries = [];
@@ -1915,12 +1922,16 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
     for (var i = 0, l = methodList.length; i < l; i++) {
       var method = methodList[i];
 
-      // print(resolvedSignature.toString(method._typeObject.__FullName__ + "::" + methodName));
+      if (trace) {
+        console.log(method._typeObject.__FullName__ + "::" + methodName + " | " + signature._hash);
+      }
     }
 
     var target = isStatic ? publicInterface : publicInterface.prototype;
 
-    // target[methodName] = JSIL.$MakeMethodGroup(methodName, entries);
+    if (active) {
+      target[methodName] = JSIL.$MakeMethodGroup(methodName, entries);
+    }
   }
 };
 
@@ -2018,7 +2029,7 @@ JSIL.GetFunctionName = function (fn) {
   return fn.name || fn.__name__ || "unknown";
 };
 
-JSIL.ApplyExternals = function (publicInterface, fullName) {
+JSIL.ApplyExternals = function (publicInterface, typeObject, fullName) {
   var queue = JSIL.ExternalsQueue[fullName];
   if (JSIL.IsArray(queue)) {
     while (queue.length > 0) {
@@ -2038,7 +2049,8 @@ JSIL.ApplyExternals = function (publicInterface, fullName) {
       continue;
 
     var target = publicInterface;
-    var value = externals[k];
+    var member = externals[k][0]
+    var value = externals[k][1];
     var key = k;
 
     if (k.indexOf(instancePrefix) === 0) {
@@ -2050,6 +2062,9 @@ JSIL.ApplyExternals = function (publicInterface, fullName) {
         continue;
       }
     }
+
+    if (member !== null)
+      typeObject.__Members__.push(member);
 
     try {
       delete target[key];
@@ -2197,7 +2212,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   }
 
   var creator = function () {
-    JSIL.ApplyExternals(staticClassObject, fullName);
+    JSIL.ApplyExternals(staticClassObject, typeObject, fullName);
 
     return staticClassObject;
   };
@@ -2347,7 +2362,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
       );
     }
 
-    JSIL.ApplyExternals(staticClassObject, fullName);
+    JSIL.ApplyExternals(staticClassObject, typeObject, fullName);
 
     return staticClassObject;
   };
@@ -2580,8 +2595,8 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     };
 
     result.CheckType = function (v) {
-      if (typeof (v.GetType) === "function") {
-        if (v.GetType() === result)
+      if (typeof (v.__ThisType__) !== "undefined") {
+        if (v.__ThisType__ === result)
           return true;
       }
 
@@ -3001,7 +3016,7 @@ JSIL.InterfaceBuilder.prototype.ExternalMembers = function (isInstance /*, ...na
     var newValue = undefined;
 
     if (impl.hasOwnProperty(prefix + memberName)) {
-      newValue = impl[prefix + memberName];
+      newValue = impl[prefix + memberName][1];
     } else if (!target.hasOwnProperty(memberName)) {
       var getName = (function () { return this; }).bind(memberName);
       newValue = JSIL.MakeExternalMemberStub(this.namespace, getName, memberValue);
@@ -3111,7 +3126,7 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
   var fullName = this.namespace + "::" + methodName;
 
   if (impl.hasOwnProperty(prefix + mangledName)) {
-    newValue = impl[prefix + mangledName];
+    newValue = impl[prefix + mangledName][1];
 
     newValue.toString = function () {
       return "<External " + signature.toString(fullName) + ">";
@@ -3856,7 +3871,7 @@ JSIL.GetMembersInternal = function (typeObject, flags, memberType, allowConstruc
     else if (instanceOnly && member.IsStatic)
       continue;
 
-    if ((typeof (memberType) === "string") && (memberType != member.GetType().__ShortName__)) {
+    if ((typeof (memberType) === "string") && (memberType != member.__ThisType__.__ShortName__)) {
       continue;
     }
 
