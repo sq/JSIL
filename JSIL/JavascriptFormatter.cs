@@ -29,7 +29,25 @@ namespace JSIL.Internal {
         public MethodReference InvokingMethod;
         public MethodReference SignatureMethod;
 
-        public TypeReference InvokingType {
+        public TypeReference EnclosingMethodType {
+            get {
+                if (EnclosingMethod != null)
+                    return EnclosingMethod.DeclaringType;
+                else
+                    return null;
+            }
+        }
+
+        public TypeReference DefiningMethodType {
+            get {
+                if (DefiningMethod != null)
+                    return DefiningMethod.DeclaringType;
+                else
+                    return null;
+            }
+        }
+
+        public TypeReference InvokingMethodType {
             get {
                 if (InvokingMethod != null)
                     return InvokingMethod.DeclaringType;
@@ -38,7 +56,7 @@ namespace JSIL.Internal {
             }
         }
 
-        public TypeReference SignatureType {
+        public TypeReference SignatureMethodType {
             get {
                 if (SignatureMethod != null)
                     return SignatureMethod.DeclaringType;
@@ -323,15 +341,36 @@ namespace JSIL.Internal {
 
             if (context != null) {
                 if (ownerType != null) {
-                    Func<TypeReference, int> getPosition = (tr) => {
-                        var git = (GenericInstanceType)tr;
-                        return git.ElementType.GenericParameters.Where((innerGp) => innerGp.Name == gp.Name).Select((innerGp, i) => i).First();
+                    Func<TypeReference, TypeReference> get = (tr) => {
+                        var git = (tr as GenericInstanceType);
+                        if (git != null) {
+                            var position = git.ElementType.GenericParameters
+                                .Where((innerGp) => innerGp.Name == gp.Name)
+                                .Select((innerGp, i) => i).First();
+                            return git.GenericArguments[position];
+                        }
+
+                        return null;
                     };
 
-                    Func<TypeReference, int, TypeReference> getAtPosition = (tr, i) => {
-                        var git = (GenericInstanceType)tr;
-                        return git.GenericArguments[i];
-                    };
+                    if (ILBlockTranslator.TypesAreEqual(ownerType, context.SignatureMethodType)) {
+                        var resolved = get(context.SignatureMethodType);
+
+                        if (resolved != null) {
+                            TypeReference(resolved, context);
+                            return;
+                        }
+                    }
+
+                    if (ILBlockTranslator.TypesAreEqual(ownerType, context.EnclosingMethodType)) {
+                        TypeIdentifier(gp, context, false);
+                        return;
+                    }
+
+                    if (ILBlockTranslator.TypesAreEqual(ownerType, context.DefiningType)) {
+                        OpenGenericParameter(gp.Name, context.DefiningType.FullName);
+                        return;
+                    }
 
                     if (ILBlockTranslator.TypesAreEqual(ownerType, context.EnclosingType)) {
                         WriteRaw("$.GenericParameter");
@@ -339,17 +378,10 @@ namespace JSIL.Internal {
                         Value(gp.Name);
                         RPar();
 
-                    } else if (ILBlockTranslator.TypesAreEqual(ownerType, context.DefiningType)) {
-                        OpenGenericParameter(gp.Name, context.DefiningType.FullName);
-
-                    } else if (ILBlockTranslator.TypesAreEqual(ownerType, context.SignatureType)) {
-                        var position = getPosition(context.SignatureType);
-
-                        TypeReference(getAtPosition(context.SignatureType, position), context);
-
-                    } else {
-                        throw new NotImplementedException();
+                        return;
                     }
+
+                    throw new NotImplementedException("Unimplemented form of generic type parameter.");
 
                 } else if (ownerMethod != null) {
                     Func<MethodReference, int> getPosition = (mr) => mr.GenericParameters.Where((innerGp) => innerGp.Name == gp.Name).Select((innerGp, i) => i).First();
@@ -358,26 +390,32 @@ namespace JSIL.Internal {
                         new MemberIdentifier(TypeInfo, ownerMethod)
                     );
 
-                    if (ownerMethodIdentifier.Equals(ownerMethod, context.EnclosingMethod, TypeInfo)) {
-                        throw new NotImplementedException();
-
-                    } else if (ownerMethodIdentifier.Equals(ownerMethod, context.DefiningMethod, TypeInfo)) {
-                        Value(String.Format("!!{0}", getPosition(ownerMethod)));
-
-                    } else if (ownerMethodIdentifier.Equals(ownerMethod, context.InvokingMethod, TypeInfo)) {
+                    if (ownerMethodIdentifier.Equals(ownerMethod, context.InvokingMethod, TypeInfo)) {
                         var gim = (GenericInstanceMethod)context.InvokingMethod;
                         TypeReference(gim.GenericArguments[getPosition(ownerMethod)], context);
 
-                    } else {
+                        return;
+                    }
+
+                    if (ownerMethodIdentifier.Equals(ownerMethod, context.DefiningMethod, TypeInfo)) {
                         Value(String.Format("!!{0}", getPosition(ownerMethod)));
 
+                        return;
                     }
-                } else {
-                    throw new NotImplementedException();
+
+                    if (ownerMethodIdentifier.Equals(ownerMethod, context.EnclosingMethod, TypeInfo)) {
+                        throw new NotImplementedException("Unimplemented form of generic method parameter.");
+                    }
+
+                    Value(String.Format("!!{0}", getPosition(ownerMethod)));
+                    return;
+
                 }
             } else {
-                throw new NotImplementedException();
+                throw new NotImplementedException("Cannot resolve generic parameter without a TypeReferenceContext.");
             }
+
+            throw new NotImplementedException("Unimplemented form of generic parameter.");
         }
 
         protected void TypeReferenceInternal (ByReferenceType byref, TypeReferenceContext context) {
