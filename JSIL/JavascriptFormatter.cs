@@ -509,7 +509,7 @@ namespace JSIL.Internal {
 
             if (byref != null)
                 TypeReferenceInternal(byref, context);
-            if (gp != null)
+            else if (gp != null)
                 TypeReferenceInternal(gp, context);
             else if (at != null)
                 TypeReferenceInternal(at, context);
@@ -894,7 +894,7 @@ namespace JSIL.Internal {
                 Comma();
                 OpenBracket(false);
 
-                CommaSeparatedList(signature.ParameterTypes, context);
+                CommaSeparatedList(signature.ParameterTypes, context, ListValueType.TypeReference);
 
                 CloseBracket(false);
 
