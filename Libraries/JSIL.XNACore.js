@@ -2307,17 +2307,17 @@ JSIL.ImplementExternals(
       } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.BackToFront) {
         this.defer = true;
         this.deferSorter = function (lhs, rhs) {
-          return -JSIL.CompareNumbers(lhs.arguments[8], rhs.arguments[8]);
+          return -JSIL.CompareValues(lhs.arguments[8], rhs.arguments[8]);
         };
       } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.FrontToBack) {
         this.defer = true;
         this.deferSorter = function (lhs, rhs) {
-          return JSIL.CompareNumbers(lhs.arguments[8], rhs.arguments[8]);
+          return JSIL.CompareValues(lhs.arguments[8], rhs.arguments[8]);
         };
       } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Texture) {
         this.defer = true;
         this.deferSorter = function (lhs, rhs) {
-          return JSIL.CompareNumbers(lhs.arguments[0], rhs.arguments[0]);
+          return JSIL.CompareValues(lhs.arguments[0], rhs.arguments[0]);
         };
       } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Deferred) {
         this.defer = true;

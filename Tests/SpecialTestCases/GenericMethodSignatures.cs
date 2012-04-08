@@ -21,3 +21,23 @@ public static class Program {
         PrintValues(new[] { GenericMethod(1) });
     }
 }
+
+public static class GenericStatic<T> {
+    public static T NormalMethod (T value) {
+        return value;
+    }
+
+    public static T GenericMethod<U> (T value, U value2) {
+        return value;
+    }
+}
+
+public class GenericInstance<T> {
+    public T NormalMethod (T value) {
+        return value;
+    }
+
+    public T GenericMethod<U> (T value, U value2) {
+        return value;
+    }
+}
