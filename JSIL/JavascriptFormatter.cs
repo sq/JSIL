@@ -20,6 +20,34 @@ namespace JSIL.Internal {
         TypeIdentifier
     }
 
+    public class TypeReferenceContext {
+        public TypeReference EnclosingType;
+        public TypeReference DefiningType;
+
+        public MethodReference EnclosingMethod;
+        public MethodReference DefiningMethod;
+        public MethodReference InvokingMethod;
+        public MethodReference SignatureMethod;
+
+        public TypeReference InvokingType {
+            get {
+                if (InvokingMethod != null)
+                    return InvokingMethod.DeclaringType;
+                else
+                    return null;
+            }
+        }
+
+        public TypeReference SignatureType {
+            get {
+                if (SignatureMethod != null)
+                    return SignatureMethod.DeclaringType;
+                else
+                    return null;
+            }
+        }
+    }
+
     public class JavascriptFormatter {
         public readonly TextWriter Output;
         public readonly AssemblyManifest Manifest;
@@ -50,7 +78,7 @@ namespace JSIL.Internal {
             var token = Manifest.GetPrivateToken(key);
             Manifest.AssignIdentifiers();
 
-            Identifier(token.IDString, null);
+            WriteRaw(token.IDString);
         }
 
         public void AssemblyReference (TypeReference type) {
@@ -59,7 +87,7 @@ namespace JSIL.Internal {
             var token = Manifest.GetPrivateToken(key);
             Manifest.AssignIdentifiers();
 
-            Identifier(token.IDString, null);
+            WriteRaw(token.IDString);
         }
 
         public void Indent () {
@@ -95,7 +123,10 @@ namespace JSIL.Internal {
         public void WriteRaw (string format, params object[] arguments) {
             WriteIndentIfNeeded();
 
-            Output.Write(String.Format(format, arguments));
+            if (arguments == null)
+                Output.Write(format);
+            else
+                Output.Write(String.Format(format, arguments));
         }
 
         public void LPar () {
@@ -145,17 +176,17 @@ namespace JSIL.Internal {
             }
         }
 
-        public void CommaSeparatedList (IEnumerable<object> values, ListValueType valueType = ListValueType.Primitive) {
+        public void CommaSeparatedList (IEnumerable<object> values, TypeReferenceContext context, ListValueType valueType = ListValueType.Primitive) {
             CommaSeparatedListCore(
                 values, (value) => {
                     if (valueType == ListValueType.Primitive)
                         Value(value as dynamic);
                     else if (valueType == ListValueType.Identifier)
-                        Identifier(value as dynamic);
+                        Identifier(value as dynamic, context);
                     else if (valueType == ListValueType.TypeIdentifier)
-                        TypeIdentifier(value as dynamic, false, true);
+                        TypeIdentifier(value as dynamic, context, false);
                     else if (valueType == ListValueType.TypeReference)
-                        TypeReference((TypeReference)value);
+                        TypeReference((TypeReference)value, context);
                     else
                         WriteRaw(value.ToString());
                 },
@@ -165,7 +196,7 @@ namespace JSIL.Internal {
             );
         }
 
-        public void CommaSeparatedList (IEnumerable<TypeReference> types, TypeReference context = null) {
+        public void CommaSeparatedList (IEnumerable<TypeReference> types, TypeReferenceContext context) {
             CommaSeparatedListCore(
                 types, (type) => TypeReference(type, context)
             );
@@ -273,32 +304,86 @@ namespace JSIL.Internal {
                 return tr.Module.Assembly.FullName;
         }
 
-        protected void TypeReferenceInternal (GenericParameter gp, TypeReference context) {
-            if (gp.Owner == null) {
-                Value(gp.Name);
-            } else {
-                WriteRaw("new");
-                Space();
-                Identifier("JSIL.GenericParameter", null);
-                LPar();
-                Value(gp.Name);
+        protected void OpenGenericParameter (string name, string context) {
+            WriteRaw("new");
+            Space();
+            WriteRaw("JSIL.GenericParameter", null);
+            LPar();
 
-                if (gp.Owner is TypeReference) {
-                    Comma();
-                    Value(gp.Owner as TypeReference);
-                } else if (gp.Owner is MethodDefinition) {
-                    Comma();
-                    Value((gp.Owner as MethodDefinition).FullName);
+            Value(name);
+            Comma();
+            Value(context);
+
+            RPar();
+        }
+
+        protected void TypeReferenceInternal (GenericParameter gp, TypeReferenceContext context) {
+            var ownerType = gp.Owner as TypeReference;
+            var ownerMethod = gp.Owner as MethodReference;
+
+            if (context != null) {
+                if (ownerType != null) {
+                    Func<TypeReference, int> getPosition = (tr) => {
+                        var git = (GenericInstanceType)tr;
+                        return git.ElementType.GenericParameters.Where((innerGp) => innerGp.Name == gp.Name).Select((innerGp, i) => i).First();
+                    };
+
+                    Func<TypeReference, int, TypeReference> getAtPosition = (tr, i) => {
+                        var git = (GenericInstanceType)tr;
+                        return git.GenericArguments[i];
+                    };
+
+                    if (ILBlockTranslator.TypesAreEqual(ownerType, context.EnclosingType)) {
+                        WriteRaw("$.GenericParameter");
+                        LPar();
+                        Value(gp.Name);
+                        RPar();
+
+                    } else if (ILBlockTranslator.TypesAreEqual(ownerType, context.DefiningType)) {
+                        OpenGenericParameter(gp.Name, context.DefiningType.FullName);
+
+                    } else if (ILBlockTranslator.TypesAreEqual(ownerType, context.SignatureType)) {
+                        var position = getPosition(context.SignatureType);
+
+                        TypeReference(getAtPosition(context.SignatureType, position), context);
+
+                    } else {
+                        throw new NotImplementedException();
+                    }
+
+                } else if (ownerMethod != null) {
+                    Func<MethodReference, int> getPosition = (mr) => mr.GenericParameters.Where((innerGp) => innerGp.Name == gp.Name).Select((innerGp, i) => i).First();
+                    var ownerMethodIdentifier = new QualifiedMemberIdentifier(
+                        new TypeIdentifier(ownerMethod.DeclaringType),
+                        new MemberIdentifier(TypeInfo, ownerMethod)
+                    );
+
+                    if (ownerMethodIdentifier.Equals(ownerMethod, context.EnclosingMethod, TypeInfo)) {
+                        throw new NotImplementedException();
+
+                    } else if (ownerMethodIdentifier.Equals(ownerMethod, context.DefiningMethod, TypeInfo)) {
+                        Value(String.Format("!!{0}", getPosition(ownerMethod)));
+
+                    } else if (ownerMethodIdentifier.Equals(ownerMethod, context.InvokingMethod, TypeInfo)) {
+                        var gim = (GenericInstanceMethod)context.InvokingMethod;
+                        TypeReference(gim.GenericArguments[getPosition(ownerMethod)], context);
+
+                    } else {
+                        Value(String.Format("!!{0}", getPosition(ownerMethod)));
+
+                    }
+                } else {
+                    throw new NotImplementedException();
                 }
-
-                RPar();
+            } else {
+                throw new NotImplementedException();
             }
         }
 
-        protected void TypeReferenceInternal (ByReferenceType byref, TypeReference context) {
-            Identifier("$jsilcore", null);
+        protected void TypeReferenceInternal (ByReferenceType byref, TypeReferenceContext context) {
+            WriteRaw("$jsilcore");
             Dot();
-            Identifier("TypeRef", null);
+            WriteRaw("TypeRef");
             LPar();
 
             Value("JSIL.Reference");
@@ -311,7 +396,7 @@ namespace JSIL.Internal {
             RPar();
         }
 
-        protected void TypeReferenceInternal (TypeReference tr, TypeReference context) {
+        protected void TypeReferenceInternal (TypeReference tr, TypeReferenceContext context) {
             var type = ILBlockTranslator.DereferenceType(tr);
             var typeDef = ILBlockTranslator.GetTypeDefinition(type, false);
             var typeInfo = TypeInfo.Get(type);
@@ -324,7 +409,7 @@ namespace JSIL.Internal {
 
             AssemblyReference(type);
             Dot();
-            Identifier("TypeRef", null);
+            WriteRaw("TypeRef");
 
             LPar();
 
@@ -337,18 +422,18 @@ namespace JSIL.Internal {
             RPar();
         }
 
-        protected void EmitGenericTypeReferenceArguments (GenericInstanceType git, TypeReference context) {
+        protected void EmitGenericTypeReferenceArguments (GenericInstanceType git, TypeReferenceContext context) {
             Comma();
 
             OpenBracket();
-            CommaSeparatedList(git.GenericArguments, ListValueType.TypeReference);
+            CommaSeparatedList(git.GenericArguments, context);
             CloseBracket();
         }
 
-        protected void TypeReferenceInternal (ArrayType at, TypeReference context) {
-            Identifier("$jsilcore", null);
+        protected void TypeReferenceInternal (ArrayType at, TypeReferenceContext context) {
+            WriteRaw("$jsilcore");
             Dot();
-            Identifier("TypeRef", null);
+            WriteRaw("TypeRef");
             LPar();
             Value("System.Array");
             Comma();
@@ -358,10 +443,13 @@ namespace JSIL.Internal {
             RPar();
         }
 
-        public void TypeReference (TypeReference type, TypeReference context = null) {
-            if ((context != null) && ILBlockTranslator.TypesAreEqual(type, context)) {
+        public void TypeReference (TypeReference type, TypeReferenceContext context) {
+            if (
+                (context.EnclosingType != null) &&
+                ILBlockTranslator.TypesAreEqual(type, context.EnclosingType)
+            ) {
                 // If the field's type is its declaring type, we need to avoid recursively initializing it.
-                Identifier("$", null);
+                WriteRaw("$");
                 Dot();
                 Identifier("Type");
                 return;
@@ -391,14 +479,14 @@ namespace JSIL.Internal {
                 TypeReferenceInternal(type, context);
         }
 
-        public void TypeReference (TypeInfo type) {
-            TypeReference(type.Definition);
+        public void TypeReference (TypeInfo type, TypeReferenceContext context) {
+            TypeReference(type.Definition, context);
         }
 
         public void MemberDescriptor (bool isPublic, bool isStatic) {
             WriteRaw("{");
 
-            Identifier("Static", null);
+            WriteRaw("Static");
             WriteRaw(":");
             Value(isStatic);
             if (isStatic)
@@ -406,7 +494,7 @@ namespace JSIL.Internal {
 
             Comma();
 
-            Identifier("Public", null);
+            WriteRaw("Public");
             WriteRaw(":");
             Value(isPublic);
             if (isPublic)
@@ -424,7 +512,11 @@ namespace JSIL.Internal {
                 WriteRaw(name);
         }
 
-        public void Identifier (ILVariable variable) {
+        internal void Identifier (string name, TypeReferenceContext context, bool includeParens = false) {
+            Identifier(name);
+        }
+
+        public void Identifier (ILVariable variable, TypeReferenceContext context, bool includeParens = false) {
             if (variable.Type.IsByReference) {
                 Identifier(variable.Name);
                 Dot();
@@ -434,15 +526,15 @@ namespace JSIL.Internal {
             }
         }
 
-        public void Identifier (TypeReference type, bool includeParens = false, bool replaceGenerics = false) {
+        public void Identifier (TypeReference type, TypeReferenceContext context, bool includeParens = false) {
             if (type.FullName == "JSIL.Proxy.AnyType")
-                Identifier("JSIL.AnyType", null);
+                WriteRaw("JSIL.AnyType");
             else
-                TypeIdentifier(type as dynamic, includeParens, replaceGenerics);
+                TypeIdentifier(type as dynamic, context, includeParens);
         }
 
-        protected void TypeIdentifier (TypeInfo type, bool includeParens, bool replaceGenerics) {
-            TypeIdentifier(type.Definition as dynamic, includeParens, replaceGenerics);
+        protected void TypeIdentifier (TypeInfo type, TypeReferenceContext context, bool includeParens) {
+            TypeIdentifier(type.Definition as dynamic, context, includeParens);
         }
 
         protected bool EmitThisForParameter (GenericParameter gp) {
@@ -453,9 +545,9 @@ namespace JSIL.Internal {
             return false;
         }
 
-        protected void TypeIdentifier (TypeReference type, bool includeParens, bool replaceGenerics) {
+        protected void TypeIdentifier (TypeReference type, TypeReferenceContext context, bool includeParens) {
             if (type.FullName == "JSIL.Proxy.AnyType") {
-                Identifier("JSIL.AnyType", null);
+                WriteRaw("JSIL.AnyType");
                 return;
             }
 
@@ -472,7 +564,7 @@ namespace JSIL.Internal {
                     )
                 ) {
                     if (ownerType != null) {
-                        Identifier(ownerType);
+                        Identifier(ownerType, context);
                         Dot();
                         Identifier(gp.Name);
                         Dot();
@@ -483,11 +575,6 @@ namespace JSIL.Internal {
                     } else {
                         Identifier(gp.Name);
                     }
-                } else if (replaceGenerics) {
-                    if (type.IsValueType)
-                        Identifier("JSIL.AnyValueType", null);
-                    else
-                        Identifier("JSIL.AnyType", null);
                 } else {
                     if (EmitThisForParameter(gp)) {
                         WriteRaw("this");
@@ -520,13 +607,13 @@ namespace JSIL.Internal {
             }
         }
 
-        protected void TypeIdentifier (ByReferenceType type, bool includeParens, bool replaceGenerics) {
+        protected void TypeIdentifier (ByReferenceType type, TypeReferenceContext context, bool includeParens) {
             if (includeParens)
                 LPar();
 
-            Identifier("JSIL.Reference.Of", null);
+            WriteRaw("JSIL.Reference.Of");
             LPar();
-            TypeIdentifier(type.ElementType as dynamic, false, replaceGenerics);
+            TypeIdentifier(type.ElementType as dynamic, context, false);
             RPar();
 
             if (includeParens) {
@@ -535,13 +622,13 @@ namespace JSIL.Internal {
             }
         }
 
-        protected void TypeIdentifier (ArrayType type, bool includeParens, bool replaceGenerics) {
+        protected void TypeIdentifier (ArrayType type, TypeReferenceContext context, bool includeParens) {
             if (includeParens)
                 LPar();
 
-            Identifier("System.Array.Of", null);
+            WriteRaw("System.Array.Of");
             LPar();
-            TypeIdentifier(type.ElementType as dynamic, false, replaceGenerics);
+            TypeIdentifier(type.ElementType as dynamic, context, false);
             RPar();
 
             if (includeParens) {
@@ -550,28 +637,28 @@ namespace JSIL.Internal {
             }
         }
 
-        protected void TypeIdentifier (OptionalModifierType modopt, bool includeParens, bool replaceGenerics) {
-            Identifier(modopt.ElementType as dynamic, includeParens, replaceGenerics);
+        protected void TypeIdentifier (OptionalModifierType modopt, TypeReferenceContext context, bool includeParens) {
+            Identifier(modopt.ElementType as dynamic, context, includeParens);
         }
 
-        protected void TypeIdentifier (RequiredModifierType modreq, bool includeParens, bool replaceGenerics) {
-            Identifier(modreq.ElementType as dynamic, includeParens, replaceGenerics);
+        protected void TypeIdentifier (RequiredModifierType modreq, TypeReferenceContext context, bool includeParens) {
+            Identifier(modreq.ElementType as dynamic, context, includeParens);
         }
 
-        protected void TypeIdentifier (PointerType ptr, bool includeParens, bool replaceGenerics) {
-            Identifier(ptr.ElementType as dynamic, includeParens, replaceGenerics);
+        protected void TypeIdentifier (PointerType ptr, TypeReferenceContext context, bool includeParens) {
+            Identifier(ptr.ElementType as dynamic, context, includeParens);
         }
 
-        protected void TypeIdentifier (GenericInstanceType type, bool includeParens, bool replaceGenerics) {
+        protected void TypeIdentifier (GenericInstanceType type, TypeReferenceContext context, bool includeParens) {
             if (includeParens)
                 LPar();
 
-            Identifier(type.ElementType as dynamic, includeParens, replaceGenerics);
+            Identifier(type.ElementType as dynamic, context, includeParens);
 
             Dot();
-            Identifier("Of", null);
+            WriteRaw("Of");
             LPar();
-            CommaSeparatedList(type.GenericArguments, ListValueType.TypeIdentifier);
+            CommaSeparatedList(type.GenericArguments, context, ListValueType.TypeIdentifier);
             RPar();
 
             if (includeParens) {
@@ -580,9 +667,9 @@ namespace JSIL.Internal {
             }
         }
 
-        public void Identifier (MethodReference method, bool fullyQualified = true) {
+        public void Identifier (MethodReference method, TypeReferenceContext context, bool fullyQualified = true) {
             if (fullyQualified) {
-                Identifier(method.DeclaringType);
+                Identifier(method.DeclaringType, context);
                 Dot();
 
                 if (method.HasThis) {
@@ -674,7 +761,7 @@ namespace JSIL.Internal {
             WriteRaw("/* {0} */ ", commentText);
         }
 
-        public void DefaultValue (TypeReference typeReference) {
+        public void DefaultValue (TypeReference typeReference, TypeReferenceContext context) {
             string fullName = typeReference.FullName;
 
             if (TypeAnalysis.IsIntegerOrEnum(typeReference)) {
@@ -698,7 +785,7 @@ namespace JSIL.Internal {
 
             WriteRaw("new");
             Space();
-            Identifier(typeReference);
+            Identifier(typeReference, context);
             LPar();
             RPar();
         }
@@ -708,7 +795,7 @@ namespace JSIL.Internal {
             Space();
             Identifier(PrivateToken.IDString);
             WriteRaw(" = ");
-            Identifier("JSIL.DeclareAssembly", null);
+            WriteRaw("JSIL.DeclareAssembly");
             LPar();
             Value(Assembly.FullName);
             RPar();
@@ -736,7 +823,7 @@ namespace JSIL.Internal {
                 DeclareNamespace(parent);
             }
 
-            Identifier("JSIL.DeclareNamespace", null);
+            WriteRaw("JSIL.DeclareNamespace");
             LPar();
             Value(Util.EscapeIdentifier(ns, EscapingMode.String));
             RPar();
@@ -751,78 +838,39 @@ namespace JSIL.Internal {
             NewLine();
         }
 
-        public void MethodSignature (MethodSignature signature) {
+        public void MethodSignature (MethodReference method, MethodSignature signature, TypeReferenceContext context) {
             LPar();
-            MethodSignature(
-                null, signature.ReturnType, signature.ParameterTypes, signature.GenericParameterNames
-            );
-            RPar();
-        }
 
-        protected TypeReference MapTypeReferenceForMethod (MethodInfo method, MethodReference reference, TypeReference tr) {
-            var r = tr as ByReferenceType;
-            if (r != null)
-                return new ByReferenceType(MapTypeReferenceForMethod(method, reference, r.ElementType));
-
-            var gp = tr as GenericParameter;
-            if (gp != null) {
-                if (gp.Owner == method.Member)
-                    return new GenericParameter(gp.Position, GenericParameterType.Method, method.Member.Module);
-            }
-
-            var at = tr as ArrayType;
-            if (at != null)
-                return new ArrayType(MapTypeReferenceForMethod(method, reference, at.ElementType), at.Rank);
-
-            var git = tr as GenericInstanceType;
-            if (git != null) {
-                var result = new GenericInstanceType(git.ElementType);
-
-                foreach (var ga in git.GenericArguments)
-                    result.GenericArguments.Add(MapTypeReferenceForMethod(method, reference, ga));
-
-                return result;
-            }
-
-            try {
-                return JSExpression.SubstituteTypeArgs(TypeInfo, tr, reference);
-            } catch (Exception exc) {
-                // ILSpy really sucks sometimes :(
-                return tr;
-            }
-        }
-
-        public void MethodSignature (
-            TypeReference context, TypeReference returnType,
-            IEnumerable<TypeReference> parameterTypes,
-            IEnumerable<string> genericParameterNames = null, MethodReference methodBody = null
-        ) {
             WriteRaw("new JSIL.MethodSignature");
             LPar();
 
-            if ((returnType == null) || (returnType.FullName == "System.Void"))
-                Identifier("null", null);
-            else
-                TypeReference(returnType, context);
+            var oldSignature = context.SignatureMethod;
+            context.SignatureMethod = method;
 
-            Comma();
-            OpenBracket(false);
+            try {
+                if ((signature.ReturnType == null) || (signature.ReturnType.FullName == "System.Void"))
+                    WriteRaw("null");
+                else
+                    TypeReference(signature.ReturnType, context);
 
-            if (methodBody != null) {
-                CommaSeparatedList(parameterTypes, ListValueType.Identifier);
-            } else {
-                CommaSeparatedList(parameterTypes, context);
-            }
-
-            CloseBracket(false);
-
-            if (genericParameterNames != null) {
                 Comma();
                 OpenBracket(false);
-                CommaSeparatedList(genericParameterNames, ListValueType.Primitive);
+
+                CommaSeparatedList(signature.ParameterTypes, context);
+
                 CloseBracket(false);
+
+                if (signature.GenericParameterNames != null) {
+                    Comma();
+                    OpenBracket(false);
+                    CommaSeparatedList(signature.GenericParameterNames, context, ListValueType.Primitive);
+                    CloseBracket(false);
+                }
+            } finally {
+                context.SignatureMethod = oldSignature;
             }
 
+            RPar();
             RPar();
         }
     }

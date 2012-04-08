@@ -2079,7 +2079,7 @@ namespace JSIL {
                 return new JSIgnoredMemberReference(true, methodInfo, arguments);
 
             return new JSNewExpression(
-                constructor.DeclaringType, methodInfo, arguments
+                constructor.DeclaringType, constructor, methodInfo, arguments
             );
         }
 

@@ -2583,15 +2583,17 @@ namespace JSIL.Ast {
     }
 
     public class JSNewExpression : JSExpression {
+        public readonly MethodReference ConstructorReference;
         public readonly MethodInfo Constructor;
 
-        public JSNewExpression (TypeReference type, MethodInfo constructor, params JSExpression[] arguments)
-            : this (new JSType(type), constructor, arguments) {
+        public JSNewExpression (TypeReference type, MethodReference constructorReference, MethodInfo constructor, params JSExpression[] arguments)
+            : this (new JSType(type), constructorReference, constructor, arguments) {
         }
 
-        public JSNewExpression (JSExpression type, MethodInfo constructor, params JSExpression[] arguments) : base(
-            (new [] { type }).Concat(arguments).ToArray()
+        public JSNewExpression (JSExpression type, MethodReference constructorReference, MethodInfo constructor, params JSExpression[] arguments)
+            : base((new [] { type }).Concat(arguments).ToArray()
         ) {
+            ConstructorReference = constructorReference;
             Constructor = constructor;
         }
 

@@ -522,7 +522,6 @@ namespace JSIL {
             var js = new JSSpecialIdentifiers(FunctionCache.MethodTypes, context.CurrentModule.TypeSystem);
             var jsil = new JSILIdentifier(FunctionCache.MethodTypes, context.CurrentModule.TypeSystem, js);
 
-            // Probably should be an argument, not a member variable...
             var astEmitter = new JavascriptAstEmitter(
                 output, jsil, context.CurrentModule.TypeSystem, this._TypeInfoProvider
             );
@@ -544,7 +543,7 @@ namespace JSIL {
 
             output.OpenBracket();
             output.CommaSeparatedList(
-                (from p in iface.GenericParameters select p.Name), ListValueType.Primitive
+                (from p in iface.GenericParameters select p.Name), null, ListValueType.Primitive
             );
             output.CloseBracket();
             output.Comma();
@@ -597,7 +596,7 @@ namespace JSIL {
                     output.Comma();
                 }
 
-                output.TypeReference(i);
+                output.TypeReference(i, null);
 
                 isFirst = false;
             }
@@ -665,7 +664,7 @@ namespace JSIL {
             output.OpenBracket();
             if (del.HasGenericParameters)
                 output.CommaSeparatedList(
-                    (from p in del.GenericParameters select p.Name), ListValueType.Primitive
+                    (from p in del.GenericParameters select p.Name), null, ListValueType.Primitive
                 );
             output.CloseBracket();
 
@@ -682,155 +681,174 @@ namespace JSIL {
             if (declaredTypes.Contains(typedef))
                 return;
 
+            TypeReference oldEnclosing = astEmitter.ReferenceContext.EnclosingType;
+            TypeReference oldDefining = astEmitter.ReferenceContext.DefiningType;
+            astEmitter.ReferenceContext.DefiningType = typedef;
             context.CurrentType = typedef;
 
-            declaredTypes.Add(typedef);
+            try {
+                declaredTypes.Add(typedef);
 
-            // type has a JS replacement, we can't correctly emit a stub or definition for it.
-            // We do want to process nested types and the type definition, though.
-            if (typeInfo.Replacement != null) {
-                TranslateTypeDefinition(
-                    context, typedef, astEmitter, output, stubbed,
-                    (o) => o.WriteRaw(typeInfo.Replacement)
-                );
+                // type has a JS replacement, we can't correctly emit a stub or definition for it.
+                // We do want to process nested types and the type definition, though.
+                if (typeInfo.Replacement != null) {
+                    TranslateTypeDefinition(
+                        context, typedef, astEmitter, output, stubbed,
+                        (o) => o.WriteRaw(typeInfo.Replacement)
+                    );
 
-                output.NewLine();
+                    output.NewLine();
+
+                    oldEnclosing = astEmitter.ReferenceContext.EnclosingType;
+                    astEmitter.ReferenceContext.EnclosingType = typedef;
+
+                    try {
+                        foreach (var nestedTypeDef in typedef.NestedTypes)
+                            DeclareType(context, nestedTypeDef, astEmitter, output, declaredTypes, stubbed);
+                    } finally {
+                        astEmitter.ReferenceContext.EnclosingType = oldEnclosing;
+                    }
+
+                    return;
+                }
+
+                output.DeclareNamespace(typedef.Namespace);
+
+                if (typeInfo.IsExternal) {
+                    output.Identifier("JSIL.MakeExternalType", null);
+                    output.LPar();
+
+                    output.Value(typeInfo.FullName);
+                    output.Comma();
+                    output.Value(typedef.IsPublic);
+
+                    output.RPar();
+                    output.Semicolon();
+                    output.NewLine();
+                    return;
+                }
+
+                if (typedef.IsInterface) {
+                    TranslateInterface(context, output, typedef);
+                    return;
+                } else if (typedef.IsEnum) {
+                    TranslateEnum(context, output, typedef);
+                    return;
+                } else if (typeInfo.IsDelegate) {
+                    TranslateDelegate(context, output, typedef, typeInfo);
+                    return;
+                }
+
+                var declaringType = typedef.DeclaringType;
+                if (declaringType != null)
+                    DeclareType(context, declaringType, astEmitter, output, declaredTypes, IsStubbed(declaringType.Module.Assembly));
+
+                var baseClass = typedef.BaseType;
+                if (baseClass != null) {
+                    var resolved = baseClass.Resolve();
+                    if (
+                        (resolved != null) &&
+                        (resolved.Module.Assembly == typedef.Module.Assembly)
+                    ) {
+                        DeclareType(context, resolved, astEmitter, output, declaredTypes, IsStubbed(resolved.Module.Assembly));
+                    }
+                }
+
+                bool isStatic = typedef.IsAbstract && typedef.IsSealed;
+
+                if (isStatic) {
+                    output.Identifier("JSIL.MakeStaticClass", null);
+                    output.LPar();
+
+                    output.Value(typeInfo.FullName);
+                    output.Comma();
+                    output.Value(typedef.IsPublic);
+
+                    output.Comma();
+                    output.OpenBracket();
+                    if (typedef.HasGenericParameters)
+                        output.CommaSeparatedList(
+                            (from p in typedef.GenericParameters select p.Name), astEmitter.ReferenceContext, ListValueType.Primitive
+                        );
+                    output.CloseBracket();
+
+                } else {
+                    if (typedef.IsValueType)
+                        output.Identifier("JSIL.MakeStruct", null);
+                    else
+                        output.Identifier("JSIL.MakeClass", null);
+
+                    output.LPar();
+
+                    if (baseClass == null) {
+                        if (typedef.FullName != "System.Object")
+                            throw new InvalidDataException("Type without base class that isn't System.Object.");
+
+                        output.Identifier("$jsilcore");
+                        output.Dot();
+                        output.Identifier("System");
+                        output.Dot();
+                        output.Identifier("Object");
+                    } else if (typedef.FullName == "System.ValueType") {
+                        output.Identifier("$jsilcore");
+                        output.Dot();
+                        output.Identifier("System");
+                        output.Dot();
+                        output.Identifier("ValueType");
+                    } else {
+                        output.TypeReference(baseClass, astEmitter.ReferenceContext);
+                    }
+
+                    output.Comma();
+
+                    output.Value(typeInfo.FullName);
+                    output.Comma();
+                    output.Value(typedef.IsPublic);
+
+                    output.Comma();
+                    output.OpenBracket();
+                    if (typedef.HasGenericParameters)
+                        output.CommaSeparatedList(
+                            (from p in typedef.GenericParameters select p.Name), astEmitter.ReferenceContext, ListValueType.Primitive
+                        );
+                    output.CloseBracket();
+
+                }
+
+                astEmitter.ReferenceContext.EnclosingType = typedef;
+                try {
+                    // Hack to force the indent level for type definitions to be 1 instead of 2.
+                    output.Unindent();
+
+                    output.Comma();
+                    output.OpenFunction(null, (f) => {
+                        f.Identifier("$");
+                    });
+
+                    TranslateTypeDefinition(
+                        context, typedef, astEmitter, output, stubbed,
+                        (o) => o.Identifier("$", null)
+                    );
+
+                    output.NewLine();
+
+                    output.CloseBrace(false);
+
+                    // Hack to force the indent level for type definitions to be 1 instead of 2.
+                    output.Indent();
+
+                    output.RPar();
+                    output.Semicolon();
+                    output.NewLine();
+                } finally {
+                    astEmitter.ReferenceContext.EnclosingType = oldEnclosing;
+                }
 
                 foreach (var nestedTypeDef in typedef.NestedTypes)
                     DeclareType(context, nestedTypeDef, astEmitter, output, declaredTypes, stubbed);
-
-                return;
+            } finally {
+                astEmitter.ReferenceContext.DefiningType = oldDefining;
             }
-
-            output.DeclareNamespace(typedef.Namespace);
-
-            if (typeInfo.IsExternal) {
-                output.Identifier("JSIL.MakeExternalType", null);
-                output.LPar();
-
-                output.Value(typeInfo.FullName);
-                output.Comma();
-                output.Value(typedef.IsPublic);
-
-                output.RPar();
-                output.Semicolon();
-                output.NewLine();
-                return;
-            }
-
-            if (typedef.IsInterface) {
-                TranslateInterface(context, output, typedef);
-                return;
-            } else if (typedef.IsEnum) {
-                TranslateEnum(context, output, typedef);
-                return;
-            } else if (typeInfo.IsDelegate) {
-                TranslateDelegate(context, output, typedef, typeInfo);
-                return;
-            }
-
-            var declaringType = typedef.DeclaringType;
-            if (declaringType != null)
-                DeclareType(context, declaringType, astEmitter, output, declaredTypes, IsStubbed(declaringType.Module.Assembly));
-
-            var baseClass = typedef.BaseType;
-            if (baseClass != null) {
-                var resolved = baseClass.Resolve();
-                if (
-                    (resolved != null) &&
-                    (resolved.Module.Assembly == typedef.Module.Assembly)
-                ) {
-                    DeclareType(context, resolved, astEmitter, output, declaredTypes, IsStubbed(resolved.Module.Assembly));
-                }
-            }
-
-            bool isStatic = typedef.IsAbstract && typedef.IsSealed;
-
-            if (isStatic) {
-                output.Identifier("JSIL.MakeStaticClass", null);
-                output.LPar();
-
-                output.Value(typeInfo.FullName);
-                output.Comma();
-                output.Value(typedef.IsPublic);
-
-                output.Comma();
-                output.OpenBracket();
-                if (typedef.HasGenericParameters)
-                    output.CommaSeparatedList(
-                        (from p in typedef.GenericParameters select p.Name), ListValueType.Primitive
-                    );
-                output.CloseBracket();
-
-            } else {
-                if (typedef.IsValueType)
-                    output.Identifier("JSIL.MakeStruct", null);
-                else
-                    output.Identifier("JSIL.MakeClass", null);
-
-                output.LPar();
-
-                if (baseClass == null) {
-                    if (typedef.FullName != "System.Object")
-                        throw new InvalidDataException("Type without base class that isn't System.Object.");
-
-                    output.Identifier("$jsilcore");
-                    output.Dot();
-                    output.Identifier("System");
-                    output.Dot();
-                    output.Identifier("Object");
-                } else if (typedef.FullName == "System.ValueType") {
-                    output.Identifier("$jsilcore");
-                    output.Dot();
-                    output.Identifier("System");
-                    output.Dot();
-                    output.Identifier("ValueType");
-                } else {
-                    output.TypeReference(baseClass);
-                }
-
-                output.Comma();
-
-                output.Value(typeInfo.FullName);
-                output.Comma();
-                output.Value(typedef.IsPublic);
-
-                output.Comma();
-                output.OpenBracket();
-                if (typedef.HasGenericParameters)
-                    output.CommaSeparatedList(
-                        (from p in typedef.GenericParameters select p.Name), ListValueType.Primitive
-                    );
-                output.CloseBracket();
-
-            }
-
-            // Hack to force the indent level for type definitions to be 1 instead of 2.
-            output.Unindent();
-
-            output.Comma();
-            output.OpenFunction(null, (f) => {
-                f.Identifier("$");
-            });
-
-            TranslateTypeDefinition(
-                context, typedef, astEmitter, output, stubbed,
-                (o) => o.Identifier("$", null)
-            );
-
-            output.NewLine();
-
-            output.CloseBrace(false);
-
-            // Hack to force the indent level for type definitions to be 1 instead of 2.
-            output.Indent();
-
-            output.RPar();
-            output.Semicolon();
-            output.NewLine();
-
-            foreach (var nestedTypeDef in typedef.NestedTypes)
-                DeclareType(context, nestedTypeDef, astEmitter, output, declaredTypes, stubbed);
         }
 
         protected bool ShouldTranslateMethods (TypeDefinition typedef) {
@@ -977,7 +995,7 @@ namespace JSIL {
                 output.Dot();
                 output.Identifier("ImplementInterfaces", null);
                 output.LPar();
-                output.CommaSeparatedList(interfaces, ListValueType.TypeReference);
+                output.CommaSeparatedList(interfaces, astEmitter.ReferenceContext, ListValueType.TypeReference);
                 output.RPar();
             }
         }
@@ -1523,6 +1541,9 @@ namespace JSIL {
             if (!method.HasBody)
                 return;
 
+            astEmitter.ReferenceContext.EnclosingType = method.DeclaringType;
+            astEmitter.ReferenceContext.EnclosingMethod = null;
+
             output.NewLine();
 
             if (methodIsProxied) {
@@ -1530,53 +1551,65 @@ namespace JSIL {
                 output.NewLine();
             }
 
-            dollar(output);
-            output.Dot();
-            if (isExternal)
-                output.Identifier("ExternalMethod", null);
-            else
-                output.Identifier("Method", null);
-            output.LPar();
+            MethodReference oldDefining = astEmitter.ReferenceContext.DefiningMethod;
+            astEmitter.ReferenceContext.DefiningMethod = methodRef;
 
-            output.MemberDescriptor(method.IsPublic, method.IsStatic);
+            try {
+                dollar(output);
+                output.Dot();
+                if (isExternal)
+                    output.Identifier("ExternalMethod", null);
+                else
+                    output.Identifier("Method", null);
+                output.LPar();
 
-            output.Comma();
-            output.Value(Util.EscapeIdentifier(methodInfo.GetName(true), EscapingMode.String));
+                output.MemberDescriptor(method.IsPublic, method.IsStatic);
 
-            output.Comma();
-            output.NewLine();
+                output.Comma();
+                output.Value(Util.EscapeIdentifier(methodInfo.GetName(true), EscapingMode.String));
 
-            output.MethodSignature(methodInfo.Signature);
-
-            if (!isExternal) {
                 output.Comma();
                 output.NewLine();
 
-                JSFunctionExpression function;
-                function = FunctionCache.GetExpression(new QualifiedMemberIdentifier(
-                    methodInfo.DeclaringType.Identifier,
-                    methodInfo.Identifier
-                ));
+                output.MethodSignature(methodRef, methodInfo.Signature, astEmitter.ReferenceContext);
 
-                if (function != null) {
-                    if (bodyTransformer != null)
-                        bodyTransformer(function);
+                if (!isExternal) {
+                    output.Comma();
+                    output.NewLine();
 
-                    function.DisplayName = methodInfo.GetName(false);
+                    JSFunctionExpression function;
+                    function = FunctionCache.GetExpression(new QualifiedMemberIdentifier(
+                        methodInfo.DeclaringType.Identifier,
+                        methodInfo.Identifier
+                    ));
 
-                    astEmitter.Visit(function);
-                } else {
-                    output.Identifier("JSIL.UntranslatableFunction", null);
-                    output.LPar();
-                    output.Value(method.FullName);
-                    output.RPar();
+                    if (function != null) {
+                        if (bodyTransformer != null)
+                            bodyTransformer(function);
+
+                        function.DisplayName = methodInfo.GetName(false);
+
+                        if (astEmitter.ReferenceContext.EnclosingType != method.DeclaringType)
+                            Debugger.Break();
+
+                        astEmitter.ReferenceContext.EnclosingMethod = method;
+
+                        astEmitter.Visit(function);
+                    } else {
+                        output.Identifier("JSIL.UntranslatableFunction", null);
+                        output.LPar();
+                        output.Value(method.FullName);
+                        output.RPar();
+                    }
                 }
+
+                output.NewLine();
+                output.RPar();
+
+                output.Semicolon();
+            } finally {
+                astEmitter.ReferenceContext.DefiningMethod = oldDefining;
             }
-
-            output.NewLine();
-            output.RPar();
-
-            output.Semicolon();
         }
 
         protected void TranslateProperty (

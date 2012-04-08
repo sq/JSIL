@@ -108,10 +108,13 @@ namespace JSIL.Internal {
         }
 
         public override string ToString () {
-            if (DeclaringTypeName != null)
-                return String.Format("{0} {1}.{2}/{3}", Assembly, Namespace, DeclaringTypeName, Name);
-            else
-                return String.Format("{0} {1}.{2}", Assembly, Namespace, Name);
+            return String.Format(
+                "{0}{1}{2}{3}{4}{5}{6}", Assembly, String.IsNullOrWhiteSpace(Assembly) ? "" : " ",
+                Namespace, String.IsNullOrWhiteSpace(Namespace) ? "" : ".",
+                String.IsNullOrWhiteSpace(DeclaringTypeName) ? "" : "/",
+                String.IsNullOrWhiteSpace(DeclaringTypeName) ? "" : DeclaringTypeName,
+                Name
+            );
         }
     }
 
@@ -145,6 +148,23 @@ namespace JSIL.Internal {
 
         public override int GetHashCode () {
             return Type.GetHashCode() ^ Member.GetHashCode();
+        }
+
+        public bool Equals (MemberReference lhs, MemberReference rhs, ITypeInfoSource typeInfo) {
+            if ((lhs == null) || (rhs == null))
+                return lhs == rhs;
+
+            if (lhs == rhs)
+                return true;
+
+            var rhsType = new TypeIdentifier(rhs.DeclaringType);
+
+            if (!Type.Equals(rhsType))
+                return false;
+
+            var rhsMember = MemberIdentifier.New(typeInfo, rhs);
+
+            return Member.Equals(rhsMember, typeInfo);
         }
 
         public bool Equals (QualifiedMemberIdentifier rhs, ITypeInfoSource typeInfo) {
@@ -1642,7 +1662,9 @@ namespace JSIL.Internal {
         public readonly TypeReference[] ParameterTypes;
         public readonly string[] GenericParameterNames;
 
-        public MethodSignature (TypeReference returnType, TypeReference[] parameterTypes, string[] genericParameterNames) {
+        public MethodSignature (
+            TypeReference returnType, TypeReference[] parameterTypes, string[] genericParameterNames
+        ) {
             ReturnType = returnType;
             ParameterTypes = parameterTypes;
             GenericParameterNames = genericParameterNames;

@@ -152,7 +152,7 @@ namespace JSIL {
 
             return new JSNewExpression(
                 Dot("MemberReference", resultType),
-                null, target, member
+                null, null, target, member
             );
         }
 
@@ -161,14 +161,14 @@ namespace JSIL {
 
             return new JSNewExpression(
                 Dot("Variable", resultType),
-                null, initialValue
+                null, null, initialValue
             );
         }
 
         public JSNewExpression NewCollectionInitializer (IEnumerable<JSArrayExpression> values) {
             return new JSNewExpression(
                 Dot("CollectionInitializer", TypeSystem.Object),
-                null, values.ToArray()
+                null, null, values.ToArray()
             );
         }
 

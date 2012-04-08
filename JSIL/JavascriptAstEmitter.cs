@@ -26,6 +26,8 @@ namespace JSIL {
         public readonly TypeSystem TypeSystem;
         public readonly JSILIdentifier JSIL;
 
+        public readonly TypeReferenceContext ReferenceContext = new TypeReferenceContext();
+
         protected readonly Stack<JSExpression> ThisReplacementStack = new Stack<JSExpression>();
         protected readonly Stack<bool> IncludeTypeParens = new Stack<bool>();
         protected readonly Stack<Func<string, bool>> GotoStack = new Stack<Func<string, bool>>();
@@ -312,7 +314,7 @@ namespace JSIL {
             var ga = method.GenericArguments;
             if (ga != null) {
                 Output.LPar();
-                Output.CommaSeparatedList(ga, ListValueType.Identifier);
+                Output.CommaSeparatedList(ga, ReferenceContext, ListValueType.Identifier);
                 Output.RPar();
             }
         }
@@ -402,7 +404,7 @@ namespace JSIL {
                 if (!isFirst)
                     Output.WriteRaw(" | ");
 
-                Output.Identifier(enm.EnumType);
+                Output.Identifier(enm.EnumType, ReferenceContext);
                 Output.Dot();
                 Output.Identifier(name);
 
@@ -475,7 +477,7 @@ namespace JSIL {
         public void VisitNode (JSDefaultValueLiteral defaultValue) {
             if (ILBlockTranslator.IsEnum(defaultValue.Value)) {
                 var enumInfo = TypeInfo.Get(defaultValue.Value);
-                Output.Identifier(defaultValue.Value);
+                Output.Identifier(defaultValue.Value, ReferenceContext);
                 Output.Dot();
                 Output.Identifier(enumInfo.FirstEnumMember.Name);
             } else if (TypeAnalysis.IsIntegerOrEnum(defaultValue.Value)) {
@@ -496,7 +498,7 @@ namespace JSIL {
                         Output.WriteRaw("false");
                         break;
                     default:
-                        VisitNode(new JSNewExpression(new JSType(defaultValue.Value), null));
+                        VisitNode(new JSNewExpression(new JSType(defaultValue.Value), null, null));
                         break;
                 }
             }
@@ -507,12 +509,15 @@ namespace JSIL {
         }
 
         public void VisitNode (JSTypeReference tr) {
-            Output.TypeReference(tr.Type, tr.Context);
+            Output.TypeReference(tr.Type, new TypeReferenceContext {
+                EnclosingType = tr.Context,
+                EnclosingMethod = Output.CurrentMethod
+            });
         }
 
         public void VisitNode (JSType type) {
             Output.Identifier(
-                type.Type, IncludeTypeParens.Peek()
+                type.Type, ReferenceContext, IncludeTypeParens.Peek()
             );
         }
 
@@ -999,46 +1004,56 @@ namespace JSIL {
 
             bool hasArguments = newexp.Arguments.Count > 0;
 
-            if (isOverloaded) {
-                Output.MethodSignature(ctor.Signature);
-                Output.Dot();
+            var oldInvoking = ReferenceContext.InvokingMethod;
 
-                Output.Identifier("Construct");
-                Output.LPar();
+            try {
+                if (isOverloaded) {
+                    Output.MethodSignature(newexp.ConstructorReference, ctor.Signature, ReferenceContext);
+                    Output.Dot();
 
-                IncludeTypeParens.Push(false);
-                try {
-                    Visit(newexp.Type);
-                } finally {
-                    IncludeTypeParens.Pop();
-                }
+                    ReferenceContext.InvokingMethod = newexp.ConstructorReference;
 
-                if (hasArguments) {
-                    Output.Comma();
-                    CommaSeparatedList(newexp.Arguments);
-                }
-
-                Output.RPar();
-            } else {
-                if (parens)
+                    Output.Identifier("Construct");
                     Output.LPar();
 
-                Output.WriteRaw("new");
-                Output.Space();
+                    IncludeTypeParens.Push(false);
+                    try {
+                        Visit(newexp.Type);
+                    } finally {
+                        IncludeTypeParens.Pop();
+                    }
 
-                IncludeTypeParens.Push(true);
-                try {
-                    Visit(newexp.Type);
-                } finally {
-                    IncludeTypeParens.Pop();
-                }
+                    if (hasArguments) {
+                        Output.Comma();
+                        CommaSeparatedList(newexp.Arguments);
+                    }
 
-                Output.LPar();
-                CommaSeparatedList(newexp.Arguments);
-                Output.RPar();
-
-                if (parens)
                     Output.RPar();
+                } else {
+                    if (parens)
+                        Output.LPar();
+
+                    Output.WriteRaw("new");
+                    Output.Space();
+
+                    IncludeTypeParens.Push(true);
+                    try {
+                        Visit(newexp.Type);
+                    } finally {
+                        IncludeTypeParens.Pop();
+                    }
+
+                    ReferenceContext.InvokingMethod = newexp.ConstructorReference;
+
+                    Output.LPar();
+                    CommaSeparatedList(newexp.Arguments);
+                    Output.RPar();
+
+                    if (parens)
+                        Output.RPar();
+                }
+            } finally {
+                ReferenceContext.InvokingMethod = oldInvoking;
             }
         }
 
@@ -1145,109 +1160,122 @@ namespace JSIL {
                     Output.RPar();
             };
 
-            if (isOverloaded) {
-                var methodName = Util.EscapeIdentifier(method.GetName(true), EscapingMode.MemberIdentifier);
+            var oldInvoking = ReferenceContext.InvokingMethod;
+            try {
+                if (isOverloaded) {
+                    var methodName = Util.EscapeIdentifier(method.GetName(true), EscapingMode.MemberIdentifier);
 
-                Output.MethodSignature(method.Signature);
-                Output.Dot();
-
-                Action genericArgs = () => {
-                    if (hasGenericArguments) {
-                        Output.OpenBracket(false);
-                        Output.CommaSeparatedList(invocation.GenericArguments, ListValueType.TypeReference);
-                        Output.CloseBracket(false);
-                    } else
-                        Output.Identifier("null", null);
-                };
-
-                if (isStatic) {
-                    Output.Identifier("CallStatic");
-                    Output.LPar();
-
-                    Visit(invocation.Type);
-                    Output.Comma();
-
-                    Output.Value(methodName);
-                    Output.Comma();
-                    genericArgs();
-
-                    if (hasArguments)
-                        Output.Comma();
-                } else if (invocation.ExplicitThis) {
-                    Output.Identifier("Call");
-                    Output.LPar();
-
-                    Visit(invocation.Type);
+                    Output.MethodSignature(jsm.Reference, method.Signature, ReferenceContext);
                     Output.Dot();
-                    Output.Identifier("prototype", null);
-                    Output.Comma();
 
-                    Output.Value(methodName);
-                    Output.Comma();
-                    genericArgs();
-                    Output.Comma();
-                    Visit(invocation.ThisReference);
+                    ReferenceContext.InvokingMethod = jsm.Reference;
 
-                    if (hasArguments)
-                        Output.Comma();
-                } else {
-                    Output.Identifier("CallVirtual");
-                    Output.LPar();
+                    Action genericArgs = () => {
+                        if (hasGenericArguments) {
+                            Output.OpenBracket(false);
+                            Output.CommaSeparatedList(invocation.GenericArguments, ReferenceContext, ListValueType.TypeReference);
+                            Output.CloseBracket(false);
+                        } else
+                            Output.Identifier("null", null);
+                    };
 
-                    Output.Value(methodName);
-                    Output.Comma();
-                    genericArgs();
-                    Output.Comma();
-                    Visit(invocation.ThisReference);
+                    if (isStatic) {
+                        Output.Identifier("CallStatic");
+                        Output.LPar();
 
-                    if (hasArguments)
-                        Output.Comma();
-                }
-            } else {
-                if (isStatic) {
-                    if (!invocation.Type.IsNull) {
                         Visit(invocation.Type);
-                        Output.Dot();
-                    }
+                        Output.Comma();
 
-                    Visit(invocation.Method);
-                    Output.LPar();
-                } else if (invocation.ExplicitThis) {
-                    if (!invocation.Type.IsNull) {
+                        Output.Value(methodName);
+                        Output.Comma();
+                        genericArgs();
+
+                        if (hasArguments)
+                            Output.Comma();
+                    } else if (invocation.ExplicitThis) {
+                        Output.Identifier("Call");
+                        Output.LPar();
+
                         Visit(invocation.Type);
                         Output.Dot();
                         Output.Identifier("prototype", null);
-                        Output.Dot();
-                    }
-
-                    Visit(invocation.Method);
-                    Output.Dot();
-                    Output.Identifier("call", null);
-                    Output.LPar();
-
-                    Visit(invocation.ThisReference);
-
-                    if (hasArguments)
                         Output.Comma();
+
+                        Output.Value(methodName);
+                        Output.Comma();
+                        genericArgs();
+                        Output.Comma();
+                        Visit(invocation.ThisReference);
+
+                        if (hasArguments)
+                            Output.Comma();
+                    } else {
+                        Output.Identifier("CallVirtual");
+                        Output.LPar();
+
+                        Output.Value(methodName);
+                        Output.Comma();
+                        genericArgs();
+                        Output.Comma();
+                        Visit(invocation.ThisReference);
+
+                        if (hasArguments)
+                            Output.Comma();
+                    }
                 } else {
-                    thisRef();
-                    Output.Dot();
-                    Visit(invocation.Method);
-                    Output.LPar();
+                    if (isStatic) {
+                        if (!invocation.Type.IsNull) {
+                            Visit(invocation.Type);
+                            Output.Dot();
+                        }
+
+                        Visit(invocation.Method);
+                        Output.LPar();
+                    } else if (invocation.ExplicitThis) {
+                        if (!invocation.Type.IsNull) {
+                            Visit(invocation.Type);
+                            Output.Dot();
+                            Output.Identifier("prototype", null);
+                            Output.Dot();
+                        }
+
+                        Visit(invocation.Method);
+                        Output.Dot();
+                        Output.Identifier("call", null);
+                        Output.LPar();
+
+                        Visit(invocation.ThisReference);
+
+                        if (hasArguments)
+                            Output.Comma();
+                    } else {
+                        thisRef();
+                        Output.Dot();
+                        Visit(invocation.Method);
+                        Output.LPar();
+                    }
                 }
+
+                if (jsm != null) {
+                    ReferenceContext.InvokingMethod = jsm.Reference;
+                } else {
+                    ReferenceContext.InvokingMethod = null;
+                }
+
+                bool needLineBreak = ArgumentsNeedLineBreak(invocation.Arguments);
+
+                if (needLineBreak)
+                    Output.NewLine();
+
+                CommaSeparatedList(invocation.Arguments, needLineBreak);
+
+                if (needLineBreak)
+                    Output.NewLine();
+
+                Output.RPar();
+            } finally {
+                ReferenceContext.InvokingMethod = oldInvoking;
             }
-
-            bool needLineBreak = ArgumentsNeedLineBreak(invocation.Arguments);
-
-            if (needLineBreak)
-                Output.NewLine();
-
-            CommaSeparatedList(invocation.Arguments, needLineBreak);
-
-            if (needLineBreak)
-                Output.NewLine();
-
-            Output.RPar();
         }
 
         public void VisitNode (JSInitializerApplicationExpression iae) {
