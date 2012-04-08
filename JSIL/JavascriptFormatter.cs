@@ -341,20 +341,20 @@ namespace JSIL.Internal {
 
             if (context != null) {
                 if (ownerType != null) {
-                    Func<TypeReference, TypeReference> get = (tr) => {
-                        var git = (tr as GenericInstanceType);
+                    if (ILBlockTranslator.TypesAreEqual(ownerType, context.SignatureMethodType)) {
+                        TypeReference resolved = null;
+
+                        var git = (context.SignatureMethodType as GenericInstanceType);
                         if (git != null) {
                             var position = git.ElementType.GenericParameters
-                                .Where((innerGp) => innerGp.Name == gp.Name)
+                                .Where((innerGp) => 
+                                    (innerGp.Name == gp.Name) ||
+                                    (innerGp.Position == gp.Position)
+                                )
                                 .Select((innerGp, i) => i).First();
-                            return git.GenericArguments[position];
+
+                            resolved = git.GenericArguments[position];
                         }
-
-                        return null;
-                    };
-
-                    if (ILBlockTranslator.TypesAreEqual(ownerType, context.SignatureMethodType)) {
-                        var resolved = get(context.SignatureMethodType);
 
                         if (resolved != null) {
                             TypeReference(resolved, context);
@@ -483,6 +483,7 @@ namespace JSIL.Internal {
 
         public void TypeReference (TypeReference type, TypeReferenceContext context) {
             if (
+                (context != null) &&
                 (context.EnclosingType != null) &&
                 ILBlockTranslator.TypesAreEqual(type, context.EnclosingType)
             ) {

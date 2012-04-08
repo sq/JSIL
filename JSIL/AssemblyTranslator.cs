@@ -589,6 +589,11 @@ namespace JSIL {
             output.CloseBrace(false);
             output.Comma();
 
+            var refContext = new TypeReferenceContext {
+                EnclosingType = iface.DeclaringType,
+                DefiningType = iface
+            };
+
             output.OpenBracket();
             isFirst = true;
             foreach (var i in iface.Interfaces) {
@@ -596,7 +601,7 @@ namespace JSIL {
                     output.Comma();
                 }
 
-                output.TypeReference(i, null);
+                output.TypeReference(i, refContext);
 
                 isFirst = false;
             }
