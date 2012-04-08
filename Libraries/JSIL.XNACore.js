@@ -201,13 +201,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentManager", functi
   $.Method({
     Static: false,
     Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [$asms.corlib.TypeRef("System.IServiceProvider"), $asms.corlib.TypeRef("System.String")], []), function (serviceProvider, rootDirectory) {
+  }, ".ctor", new JSIL.MethodSignature(null, [$asms.corlib.TypeRef("System.IServiceProvider"), $.String], []), function (serviceProvider, rootDirectory) {
     this._rootDirectory = rootDirectory;
   });
   $.Method({
     Static: false,
     Public: true
-  }, "Load", new JSIL.MethodSignature("!!0", [$asms.corlib.TypeRef("System.String")], ["T"]), 
+  }, "Load", new JSIL.MethodSignature("!!0", [$.String], ["T"]), 
   function (T, assetName) {
     var asset;
 
@@ -242,13 +242,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentManager", functi
   $.Method({
     Static: false,
     Public: true
-  }, "set_RootDirectory", new JSIL.MethodSignature(null, [$asms.corlib.TypeRef("System.String")], []), function (rootDirectory) {
+  }, "set_RootDirectory", new JSIL.MethodSignature(null, [$.String], []), function (rootDirectory) {
     this._rootDirectory = rootDirectory;
   });
   $.Method({
     Static: false,
     Public: true
-  }, "get_RootDirectory", new JSIL.MethodSignature($asms.corlib.TypeRef("System.String"), [], []), function () {
+  }, "get_RootDirectory", new JSIL.MethodSignature($.String, [], []), function () {
     return this._rootDirectory;
   });
 });
@@ -862,7 +862,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", functio
   $.Method({
     Static: false,
     Public: true
-  }, "ReadHeader", new JSIL.MethodSignature(null, [], []), function () {
+  }, "ReadHeader", new JSIL.MethodSignature($.Int32, [], []), function () {
     var formatHeader = String.fromCharCode.apply(String, this.ReadBytes(3));
     if (formatHeader != "XNB") throw new Error("Invalid XNB format");
 
@@ -1351,20 +1351,18 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector2", function ($) {
   }, "op_Inequality", new JSIL.MethodSignature(null, [], []), function (lhs, rhs) {
     return (lhs.X !== rhs.X) || (lhs.Y !== rhs.Y);
   });
-});
 
-JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector2", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (x, y) {
+  }, ".ctor", new JSIL.MethodSignature(null, [$.Single, $.Single], []), function (x, y) {
     this.X = x;
     this.Y = y;
   });
   $.Method({
     Static: false,
     Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (value) {
+  }, ".ctor", new JSIL.MethodSignature(null, [$.Single], []), function (value) {
     this.X = this.Y = value;
   });
   $.Method({
@@ -1586,13 +1584,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector3", function ($) {
   }, "op_Inequality", new JSIL.MethodSignature(null, [], []), function (lhs, rhs) {
     return (lhs.X !== rhs.X) || (lhs.Y !== rhs.Y) || (lhs.Z !== rhs.Z);
   });
-});
 
-JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector3", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (x, y, z) {
+  }, ".ctor", new JSIL.MethodSignature(null, [$.Single, $.Single, $.Single], []), function (x, y, z) {
     this.X = x;
     this.Y = y;
     this.Z = z;
@@ -1600,7 +1596,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector3", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (value) {
+  }, ".ctor", new JSIL.MethodSignature(null, [$.Single], []), function (value) {
     this.X = this.Y = this.Z = value;
   });
   $.Method({
@@ -1765,13 +1761,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector4", function ($) {
   }, "op_Inequality", new JSIL.MethodSignature(null, [], []), function (lhs, rhs) {
     return (lhs.X !== rhs.X) || (lhs.Y !== rhs.Y) || (lhs.Z !== rhs.Z) || (lhs.W !== rhs.W);
   });
-});
 
-JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector4", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (x, y, z, w) {
+  }, ".ctor", new JSIL.MethodSignature(null, [$.Single, $.Single, $.Single, $.Single], []), function (x, y, z, w) {
     this.X = x;
     this.Y = y;
     this.Z = z;
@@ -1798,7 +1792,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector4", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (value) {
+  }, ".ctor", new JSIL.MethodSignature(null, [$.Single], []), function (value) {
     this.X = this.Y = this.Z = this.W = value;
   });
   $.Method({
@@ -2454,25 +2448,28 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GraphicsDeviceManager", functio
   $.Method({
     Static: false,
     Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function () {
+  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (game) {
+    this.game = game;
     this.device = new Microsoft.Xna.Framework.Graphics.GraphicsDevice();
+    game.graphicsDeviceService = this;
+    game.graphicsDeviceManager = this;
   });
   $.Method({
     Static: false,
     Public: true
-  }, "get_GraphicsDevice", new JSIL.MethodSignature(null, [], []), function () {
+  }, "get_GraphicsDevice", new JSIL.MethodSignature($asms.xnaGraphics.TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), [], []), function () {
     return this.device;
   });
   $.Method({
     Static: false,
     Public: true
-  }, "set_PreferredBackBufferWidth", new JSIL.MethodSignature(null, [$asms.corlib.TypeRef("System.Int32")], []), function (value) {
+  }, "set_PreferredBackBufferWidth", new JSIL.MethodSignature(null, [$.Int32], []), function (value) {
     this._width = value;
   });
   $.Method({
     Static: false,
     Public: true
-  }, "set_PreferredBackBufferHeight", new JSIL.MethodSignature(null, [$asms.corlib.TypeRef("System.Int32")], []), function (value) {
+  }, "set_PreferredBackBufferHeight", new JSIL.MethodSignature(null, [$.Int32], []), function (value) {
     this._height = value;
   });
 });
@@ -2483,49 +2480,49 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Viewport", function ($
   $.Method({
     Static: false,
     Public: true
-  }, "get_X", new JSIL.MethodSignature($asms.corlib.TypeRef("System.Int32"), [], []), function () {
+  }, "get_X", new JSIL.MethodSignature($.Int32, [], []), function () {
     return this._x;
   });
   $.Method({
     Static: false,
     Public: true
-  }, "get_Y", new JSIL.MethodSignature($asms.corlib.TypeRef("System.Int32"), [], []), function () {
+  }, "get_Y", new JSIL.MethodSignature($.Int32, [], []), function () {
     return this._y;
   });
   $.Method({
     Static: false,
     Public: true
-  }, "get_Width", new JSIL.MethodSignature($asms.corlib.TypeRef("System.Int32"), [], []), function () {
+  }, "get_Width", new JSIL.MethodSignature($.Int32, [], []), function () {
     return this._width;
   });
   $.Method({
     Static: false,
     Public: true
-  }, "get_Height", new JSIL.MethodSignature($asms.corlib.TypeRef("System.Int32"), [], []), function () {
+  }, "get_Height", new JSIL.MethodSignature($.Int32, [], []), function () {
     return this._height;
   });
   $.Method({
     Static: false,
     Public: true
-  }, "set_X", new JSIL.MethodSignature(null, [$asms.corlib.TypeRef("System.Int32")], []), function (value) {
+  }, "set_X", new JSIL.MethodSignature(null, [$.Int32], []), function (value) {
     this._x = value;
   });
   $.Method({
     Static: false,
     Public: true
-  }, "set_Y", new JSIL.MethodSignature(null, [$asms.corlib.TypeRef("System.Int32")], []), function (value) {
+  }, "set_Y", new JSIL.MethodSignature(null, [$.Int32], []), function (value) {
     this._y = value;
   });
   $.Method({
     Static: false,
     Public: true
-  }, "set_Width", new JSIL.MethodSignature(null, [$asms.corlib.TypeRef("System.Int32")], []), function (value) {
+  }, "set_Width", new JSIL.MethodSignature(null, [$.Int32], []), function (value) {
     this._width = value;
   });
   $.Method({
     Static: false,
     Public: true
-  }, "set_Height", new JSIL.MethodSignature(null, [$asms.corlib.TypeRef("System.Int32")], []), function (value) {
+  }, "set_Height", new JSIL.MethodSignature(null, [$.Int32], []), function (value) {
     this._height = value;
   });
   $.Method({
@@ -2811,42 +2808,42 @@ $jsilxna.Color = function ($) {
   $.Field({
     Static: false,
     Public: false
-  }, "_cachedCss", $asms.corlib.TypeRef("System.String"), function ($) {
+  }, "_cachedCss", $.String, function ($) {
     return null;
   });
 
   $.Field({
     Static: false,
     Public: false
-  }, "_cachedAlpha", $asms.corlib.TypeRef("System.Single"), function ($) {
+  }, "_cachedAlpha", $.Single, function ($) {
     return -1;
   });
 
   $.Field({
     Static: false,
     Public: false
-  }, "a", $asms.corlib.TypeRef("System.Int32"), function ($) {
+  }, "a", $.Int32, function ($) {
     return 0;
   });
 
   $.Field({
     Static: false,
     Public: false
-  }, "r", $asms.corlib.TypeRef("System.Int32"), function ($) {
+  }, "r", $.Int32, function ($) {
     return 0;
   });
 
   $.Field({
     Static: false,
     Public: false
-  }, "g", $asms.corlib.TypeRef("System.Int32"), function ($) {
+  }, "g", $.Int32, function ($) {
     return 0;
   });
 
   $.Field({
     Static: false,
     Public: false
-  }, "b", $asms.corlib.TypeRef("System.Int32"), function ($) {
+  }, "b", $.Int32, function ($) {
     return 0;
   });
 
@@ -2908,8 +2905,8 @@ $jsilxna.Color = function ($) {
     Static: false,
     Public: true
   }, ".ctor", $sig.get(843, null, [
-    $asms.corlib.TypeRef("System.Int32"), $asms.corlib.TypeRef("System.Int32"),
-    $asms.corlib.TypeRef("System.Int32")
+    $.Int32, $.Int32,
+    $.Int32
     ], []), function (r, g, b) {
     ctorRgba(this, r, g, b, 255);
   });
@@ -2918,8 +2915,8 @@ $jsilxna.Color = function ($) {
     Static: false,
     Public: true
   }, ".ctor", $sig.get(913, null, [
-    $asms.corlib.TypeRef("System.Int32"), $asms.corlib.TypeRef("System.Int32"),
-    $asms.corlib.TypeRef("System.Int32"), $asms.corlib.TypeRef("System.Int32")
+    $.Int32, $.Int32,
+    $.Int32, $.Int32
     ], []), function (r, g, b, a) {
     ctorRgba(this, r, g, b, a);
   });
@@ -2928,8 +2925,8 @@ $jsilxna.Color = function ($) {
     Static: false,
     Public: true
   }, ".ctor", $sig.get(85622, null, [
-    $asms.corlib.TypeRef("System.Single"), $asms.corlib.TypeRef("System.Single"),
-    $asms.corlib.TypeRef("System.Single")
+    $.Single, $.Single,
+    $.Single
     ], []), function (r, g, b) {
     ctorRgbaFloat(this, r, g, b, 1.0);
   });
@@ -2938,8 +2935,8 @@ $jsilxna.Color = function ($) {
     Static: false,
     Public: true
   }, ".ctor", $sig.get(85623, null, [
-    $asms.corlib.TypeRef("System.Single"), $asms.corlib.TypeRef("System.Single"),
-    $asms.corlib.TypeRef("System.Single"), $asms.corlib.TypeRef("System.Single")
+    $.Single, $.Single,
+    $.Single, $.Single
     ], []), function (r, g, b, a) {
     ctorRgbaFloat(this, r, g, b, a);
   });
@@ -2961,35 +2958,35 @@ $jsilxna.Color = function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, "get_A", $sig.get(85631, $asms.corlib.TypeRef("System.Byte"), [], []), function () {
+  }, "get_A", $sig.get(85631, $.Byte, [], []), function () {
     return this.a;
   });
 
   $.Method({
     Static: false,
     Public: true
-  }, "get_B", $sig.get(85637, $asms.corlib.TypeRef("System.Byte"), [], []), function () {
+  }, "get_B", $sig.get(85637, $.Byte, [], []), function () {
     return this.b;
   });
 
   $.Method({
     Static: false,
     Public: true
-  }, "get_G", $sig.get(85679, $asms.corlib.TypeRef("System.Byte"), [], []), function () {
+  }, "get_G", $sig.get(85679, $.Byte, [], []), function () {
     return this.g;
   });
 
   $.Method({
     Static: false,
     Public: true
-  }, "get_R", $sig.get(85748, $asms.corlib.TypeRef("System.Byte"), [], []), function () {
+  }, "get_R", $sig.get(85748, $.Byte, [], []), function () {
     return this.r;
   });
 
   $.Method({
     Static: false,
     Public: true
-  }, "set_A", $sig.get(85785, null, [$asms.corlib.TypeRef("System.Byte")], []), function (value) {
+  }, "set_A", $sig.get(85785, null, [$.Byte], []), function (value) {
     this.a = value;
     this._cachedCss = null;
   });
@@ -2997,7 +2994,7 @@ $jsilxna.Color = function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, "set_B", $sig.get(85786, null, [$asms.corlib.TypeRef("System.Byte")], []), function (value) {
+  }, "set_B", $sig.get(85786, null, [$.Byte], []), function (value) {
     this.b = value;
     this._cachedCss = null;
   });
@@ -3005,7 +3002,7 @@ $jsilxna.Color = function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, "set_G", $sig.get(85787, null, [$asms.corlib.TypeRef("System.Byte")], []), function (value) {
+  }, "set_G", $sig.get(85787, null, [$.Byte], []), function (value) {
     this.g = value;
     this._cachedCss = null;
   });
@@ -3013,7 +3010,7 @@ $jsilxna.Color = function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, "set_R", $sig.get(85790, null, [$asms.corlib.TypeRef("System.Byte")], []), function (value) {
+  }, "set_R", $sig.get(85790, null, [$.Byte], []), function (value) {
     this.r = value;
     this._cachedCss = null;
   });
@@ -3021,7 +3018,7 @@ $jsilxna.Color = function ($) {
   $.Method({
     Static: true,
     Public: true
-  }, "op_Multiply", $sig.get(85783, $.Type, [$.Type, $asms.corlib.TypeRef("System.Single")], []), function (color, multiplier) {
+  }, "op_Multiply", $sig.get(85783, $.Type, [$.Type, $.Single], []), function (color, multiplier) {
     var result = Object.create(Object.getPrototypeOf(color));
     result.a = Math.floor(color.a * multiplier);
     result.r = Math.floor(color.r * multiplier);
@@ -3033,7 +3030,7 @@ $jsilxna.Color = function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, "toCss", new JSIL.MethodSignature($asms.corlib.TypeRef("System.String"), [$asms.corlib.TypeRef("System.Single")], []), function (alpha) {
+  }, "toCss", new JSIL.MethodSignature($.String, [$.Single], []), function (alpha) {
     if ((this._cachedCss !== null) && (this._cachedAlpha == alpha)) {
       return this._cachedCss;
     }
@@ -3054,25 +3051,6 @@ $jsilxna.ClampByte = function (v) {
   else if (v > 255) return 255;
   else return Math.floor(v);
 }
-
-JSIL.ImplementExternals("Microsoft.Xna.Framework.GraphicsDeviceManager", function ($) {
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (game) {
-    this.game = game;
-    this.device = new Microsoft.Xna.Framework.Graphics.GraphicsDevice();
-    game.graphicsDeviceService = this;
-    game.graphicsDeviceManager = this;
-  });
-
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_GraphicsDevice", new JSIL.MethodSignature(null, [], []), function () {
-    return this.device;
-  });
-});
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function ($) {
   var $drawDebugRects = false,

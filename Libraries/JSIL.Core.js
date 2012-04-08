@@ -2967,6 +2967,18 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
     value: typeObject
   });
 
+  this.DefineTypeAliases(
+    JSIL.GetCorlib, [
+      "System.Byte", "System.SByte",
+      "System.Int16", "System.Int32",
+      "System.Int64", "System.UInt16",
+      "System.UInt32", "System.UInt64",
+      "System.Single", "System.Double", 
+      "System.String", "System.Array",
+      "System.Object", "System.Boolean"
+    ]
+  );
+
   this.memberDescriptorPrototype = {
     Static: false,
     Public: false,
@@ -3008,6 +3020,26 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
       return "<" + this.Name + " Descriptor>";
     }
   };
+};
+
+JSIL.InterfaceBuilder.prototype.DefineTypeAliases = function (getAssembly, names) {
+  var makeGetter = function (name) {
+    return function () {
+      var asm = getAssembly();
+      return asm.TypeRef(name);
+    };
+  };
+
+  for (var i = 0; i < names.length; i++) {
+    var name = names[i];
+    var key = JSIL.GetLocalName(name);
+
+    Object.defineProperty(this, key, {
+      configurable: false,
+      enumerable: false,
+      get: makeGetter(name)
+    });
+  }
 };
 
 JSIL.InterfaceBuilder.prototype.toString = function () {
