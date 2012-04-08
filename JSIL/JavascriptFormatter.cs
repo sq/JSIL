@@ -346,14 +346,15 @@ namespace JSIL.Internal {
 
                         var git = (context.SignatureMethodType as GenericInstanceType);
                         if (git != null) {
-                            var position = git.ElementType.GenericParameters
-                                .Where((innerGp) => 
-                                    (innerGp.Name == gp.Name) ||
-                                    (innerGp.Position == gp.Position)
-                                )
-                                .Select((innerGp, i) => i).First();
+                            for (var i = 0; i < git.ElementType.GenericParameters.Count; i++) {
+                                var _ = git.ElementType.GenericParameters[i];
+                                if ((_.Name == gp.Name) || (_.Position == gp.Position)) {
+                                    resolved = git.GenericArguments[i];
+                                    break;
+                                }
+                            }
 
-                            resolved = git.GenericArguments[position];
+                            throw new NotImplementedException("Could not find generic parameter in type");
                         }
 
                         if (resolved != null) {
@@ -384,7 +385,14 @@ namespace JSIL.Internal {
                     throw new NotImplementedException("Unimplemented form of generic type parameter.");
 
                 } else if (ownerMethod != null) {
-                    Func<MethodReference, int> getPosition = (mr) => mr.GenericParameters.Where((innerGp) => innerGp.Name == gp.Name).Select((innerGp, i) => i).First();
+                    Func<MethodReference, int> getPosition = (mr) => {
+                        for (var i = 0; i < mr.GenericParameters.Count; i++)
+                            if (mr.GenericParameters[i].Name == gp.Name)
+                                return i;
+
+                        throw new NotImplementedException("Generic parameter not found in method parameter list");
+                    };
+
                     var ownerMethodIdentifier = new QualifiedMemberIdentifier(
                         new TypeIdentifier(ownerMethod.DeclaringType),
                         new MemberIdentifier(TypeInfo, ownerMethod)

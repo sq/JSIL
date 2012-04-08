@@ -1842,10 +1842,6 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
     typeObject, 0, "MethodInfo", true
   );
 
-  if (typeObject.__FullName__.indexOf("List`1") >= 0) {
-    console.log("Building list method groups for " + typeObject.__FullName__);
-  }
-
   var trace = false;
   var active = true;
 
@@ -4134,21 +4130,28 @@ JSIL.MakeClass("JSIL.Reference", "JSIL.MemberReference", true, [], function ($) 
 });
 
 JSIL.MakeClass("System.Object", "JSIL.CollectionInitializer", true, [], function ($) {
-  $.publicInterface.prototype._ctor = function () {
-    this.values = Array.prototype.slice.call(arguments);
-  };
-  $.publicInterface.prototype.Apply = function (target) {
-    var values;
+  $.Method({Static: false, Public: true }, ".ctor",
+    new JSIL.MethodSignature(null, [], [], $jsilcore),
+    function () {
+      this.values = Array.prototype.slice.call(arguments);
+    }
+  );
 
-    // This method is designed to support being applied to a regular array as well
-    if (this.hasOwnProperty("values"))
-      values = this.values;
-    else
-      values = this;
+  $.Method({Static: false, Public: true }, "Apply",
+    new JSIL.MethodSignature(null, ["System.Object"], [], $jsilcore),
+    function (target) {
+      var values;
 
-    for (var i = 0, l = values.length; i < l; i++)
-      target.Add.apply(target, values[i]);
-  };
+      // This method is designed to support being applied to a regular array as well
+      if (this.hasOwnProperty("values"))
+        values = this.values;
+      else
+        values = this;
+
+      for (var i = 0, l = values.length; i < l; i++)
+        target.Add.apply(target, values[i]);
+    }
+  );
 });
 
 JSIL.MakeClass("System.Object", "System.ValueType", true, [], function ($) {
@@ -4352,143 +4355,149 @@ JSIL.Array.ShallowCopy = function (destination, source) {
 };
 
 JSIL.MakeClass("System.Array", "JSIL.MultidimensionalArray", true, [], function ($) {
-  $.publicInterface.prototype._ctor = function (type, dimensions, initializer) {
-    if (dimensions.length < 2)
-      throw new Error("Must have at least two dimensions: " + String(dimensions));
+  $.Method({Static: false, Public: true }, ".ctor",
+    new JSIL.MethodSignature(null, ["System.Type", "System.Array", "System.Array"], [], $jsilcore),
+    function (type, dimensions, initializer) {
+      if (dimensions.length < 2)
+        throw new Error("Must have at least two dimensions: " + String(dimensions));
 
-    var totalSize = dimensions[0];
-    for (var i = 1; i < dimensions.length; i++)
-      totalSize *= dimensions[i];
+      var totalSize = dimensions[0];
+      for (var i = 1; i < dimensions.length; i++)
+        totalSize *= dimensions[i];
 
-    this._dimensions = dimensions;
-    var items = this._items = new Array(totalSize);
+      this._dimensions = dimensions;
+      var items = this._items = new Array(totalSize);
 
-    Object.defineProperty(
-      this, "length", {
-        value: totalSize,
-        configurable: true,
-        enumerable: true
+      Object.defineProperty(
+        this, "length", {
+          value: totalSize,
+          configurable: true,
+          enumerable: true
+        }
+      );
+
+      var defaultValue = null;
+      if (type.__IsNumeric__)
+        defaultValue = 0;
+
+      if (JSIL.IsArray(initializer)) {
+        JSIL.Array.ShallowCopy(items, initializer);
+      } else {
+        for (var i = 0; i < totalSize; i++)
+          items[i] = defaultValue;
       }
-    );
 
-    var defaultValue = null;
-    if (type.__IsNumeric__)
-      defaultValue = 0;
+      switch (dimensions.length) {
+        case 2:
+          var height = this.length0 = dimensions[0];
+          var width = this.length1 = dimensions[1];
 
-    if (JSIL.IsArray(initializer)) {
-      JSIL.Array.ShallowCopy(items, initializer);
-    } else {
-      for (var i = 0; i < totalSize; i++)
-        items[i] = defaultValue;
+          Object.defineProperty(
+            this, "Get", {
+              configurable: true, enumerable: true, value: function Get (y, x) {
+                return items[(y * width) + x];
+              }
+            }
+          );
+          Object.defineProperty(
+            this, "GetReference", {
+              configurable: true, enumerable: true, value: function GetReference (y, x) {
+                return new JSIL.MemberReference(items, (y * width) + x);
+              }
+            }
+          );
+          Object.defineProperty(
+            this, "Set", {
+              configurable: true, enumerable: true, value: function Set (y, x, value) {
+                items[(y * width) + x] = value;
+              }
+            }
+          );
+          Object.defineProperty(
+            this, "GetLength", {
+              configurable: true, enumerable: true, value: function GetLength (i) {
+                return dimensions[i];
+              }
+            }
+          );
+          Object.defineProperty(
+            this, "GetUpperBound", {
+              configurable: true, enumerable: true, value: function GetUpperBound (i) {
+                return dimensions[i] - 1;
+              }
+            }
+          );
+          break;
+        case 3:
+          var depth = this.length0 = dimensions[0];
+          var height = this.length1 = dimensions[1];
+          var width = this.length2 = dimensions[2];
+          var heightxwidth = height * width;
+
+          Object.defineProperty(
+            this, "Get", {
+              configurable: true, enumerable: true, value: function Get (z, y, x) {
+                return items[(z * heightxwidth) + (y * width) + x];      
+              }
+            }
+          );
+          Object.defineProperty(
+            this, "GetReference", {
+              configurable: true, enumerable: true, value: function GetReference (z, y, x) {
+                return new JSIL.MemberReference(items, (z * heightxwidth) + (y * width) + x);
+              }
+            }
+          );
+          Object.defineProperty(
+            this, "Set", {
+              configurable: true, enumerable: true, value: function Set (z, y, x, value) {
+                items[(z * heightxwidth) + (y * width) + x] = value;
+              }
+            }
+          );
+          Object.defineProperty(
+            this, "GetLength", {
+              configurable: true, enumerable: true, value: function GetLength (i) {
+                return dimensions[i];
+              }
+            }
+          );
+          Object.defineProperty(
+            this, "GetUpperBound", {
+              configurable: true, enumerable: true, value: function GetUpperBound (i) {
+                return dimensions[i] - 1;
+              }
+            }
+          );
+          break;
+      }
     }
+  );
 
-    switch (dimensions.length) {
-      case 2:
-        var height = this.length0 = dimensions[0];
-        var width = this.length1 = dimensions[1];
+  $.Method({Static: Static, Public: true }, "New",
+    new JSIL.MethodSignature(null, ["System.Type"], [], $jsilcore),
+    function (type) {
+      var initializer = arguments[arguments.length - 1];
+      var numDimensions = arguments.length - 1;
 
-        Object.defineProperty(
-          this, "Get", {
-            configurable: true, enumerable: true, value: function Get (y, x) {
-              return items[(y * width) + x];
-            }
-          }
-        );
-        Object.defineProperty(
-          this, "GetReference", {
-            configurable: true, enumerable: true, value: function GetReference (y, x) {
-              return new JSIL.MemberReference(items, (y * width) + x);
-            }
-          }
-        );
-        Object.defineProperty(
-          this, "Set", {
-            configurable: true, enumerable: true, value: function Set (y, x, value) {
-              items[(y * width) + x] = value;
-            }
-          }
-        );
-        Object.defineProperty(
-          this, "GetLength", {
-            configurable: true, enumerable: true, value: function GetLength (i) {
-              return dimensions[i];
-            }
-          }
-        );
-        Object.defineProperty(
-          this, "GetUpperBound", {
-            configurable: true, enumerable: true, value: function GetUpperBound (i) {
-              return dimensions[i] - 1;
-            }
-          }
-        );
-        break;
-      case 3:
-        var depth = this.length0 = dimensions[0];
-        var height = this.length1 = dimensions[1];
-        var width = this.length2 = dimensions[2];
-        var heightxwidth = height * width;
+      if (JSIL.IsArray(initializer))
+        numDimensions -= 1;
+      else
+        initializer = null;
 
-        Object.defineProperty(
-          this, "Get", {
-            configurable: true, enumerable: true, value: function Get (z, y, x) {
-              return items[(z * heightxwidth) + (y * width) + x];      
-            }
-          }
-        );
-        Object.defineProperty(
-          this, "GetReference", {
-            configurable: true, enumerable: true, value: function GetReference (z, y, x) {
-              return new JSIL.MemberReference(items, (z * heightxwidth) + (y * width) + x);
-            }
-          }
-        );
-        Object.defineProperty(
-          this, "Set", {
-            configurable: true, enumerable: true, value: function Set (z, y, x, value) {
-              items[(z * heightxwidth) + (y * width) + x] = value;
-            }
-          }
-        );
-        Object.defineProperty(
-          this, "GetLength", {
-            configurable: true, enumerable: true, value: function GetLength (i) {
-              return dimensions[i];
-            }
-          }
-        );
-        Object.defineProperty(
-          this, "GetUpperBound", {
-            configurable: true, enumerable: true, value: function GetUpperBound (i) {
-              return dimensions[i] - 1;
-            }
-          }
-        );
-        break;
+      if (numDimensions < 1)
+        throw new Error("Must provide at least one dimension");
+      else if ((numDimensions == 1) && (initializer === null))
+        return System.Array.New(type, arguments[1]);
+
+      var dimensions = Array.prototype.slice.call(arguments, 1, 1 + numDimensions);
+
+      if (initializer != null)
+        return new JSIL.MultidimensionalArray(type, dimensions, initializer);
+      else
+        return new JSIL.MultidimensionalArray(type, dimensions);
     }
-  };
-
-  $.publicInterface.New = function (type) {
-    var initializer = arguments[arguments.length - 1];
-    var numDimensions = arguments.length - 1;
-
-    if (JSIL.IsArray(initializer))
-      numDimensions -= 1;
-    else
-      initializer = null;
-
-    if (numDimensions < 1)
-      throw new Error("Must provide at least one dimension");
-    else if ((numDimensions == 1) && (initializer === null))
-      return System.Array.New(type, arguments[1]);
-
-    var dimensions = Array.prototype.slice.call(arguments, 1, 1 + numDimensions);
-
-    if (initializer != null)
-      return new JSIL.MultidimensionalArray(type, dimensions, initializer);
-    else
-      return new JSIL.MultidimensionalArray(type, dimensions);
-  };
+  );
 });
 
 JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {

@@ -79,6 +79,16 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void Linq () {
+            RunComparisonTests(
+                new[] { 
+                    @"TestCases\LinqSelect.cs",
+                    @"TestCases\LinqToArray.cs",
+                }
+            );
+        }
+
+        [Test]
         public void Generics () {
             RunComparisonTests(
                 new[] { 

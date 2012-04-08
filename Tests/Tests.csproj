@@ -322,8 +322,8 @@
     <None Include="TestCases\SealedMethods.cs" />
     <None Include="TestCases\UnderivedMethods.cs" />
     <None Include="FailingTestCases\ElaborateSwitchControlFlow.cs" />
-    <None Include="SimpleTestCases\LinqSelect.cs" />
-    <None Include="SimpleTestCases\LinqToArray.cs" />
+    <None Include="TestCases\LinqSelect.cs" />
+    <None Include="TestCases\LinqToArray.cs" />
     <None Include="SpecialTestCases\AlternateSwitchForm.cs" />
     <None Include="TestCases\GenericMethodAsGenericDelegate.cs" />
     <None Include="TestCases\DynamicGenericMethods.cs" />
