@@ -4474,7 +4474,7 @@ JSIL.MakeClass("System.Array", "JSIL.MultidimensionalArray", true, [], function 
     }
   );
 
-  $.Method({Static: Static, Public: true }, "New",
+  $.Method({Static: true , Public: true }, "New",
     new JSIL.MethodSignature(null, ["System.Type"], [], $jsilcore),
     function (type) {
       var initializer = arguments[arguments.length - 1];
