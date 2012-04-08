@@ -1600,6 +1600,8 @@ namespace JSIL {
                         astEmitter.ReferenceContext.EnclosingMethod = method;
 
                         astEmitter.Visit(function);
+
+                        astEmitter.ReferenceContext.EnclosingMethod = null;
                     } else {
                         output.Identifier("JSIL.UntranslatableFunction", null);
                         output.LPar();
