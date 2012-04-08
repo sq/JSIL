@@ -1546,9 +1546,7 @@ namespace JSIL {
             output.Comma();
             output.NewLine();
 
-            output.MethodSignatureForMethod(
-                methodInfo, methodRef, null
-            );
+            output.MethodSignature(methodInfo.Signature);
 
             if (!isExternal) {
                 output.Comma();

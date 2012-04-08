@@ -2004,8 +2004,6 @@ namespace JSIL.Ast {
         public readonly MethodReference Reference;
         public readonly MethodInfo Method;
 
-        protected JSMethodSignature _Signature;
-
         public JSMethod (
             MethodReference reference, MethodInfo method, MethodTypeFactory methodTypes,
             IEnumerable<TypeReference> genericArguments = null          
@@ -2028,18 +2026,6 @@ namespace JSIL.Ast {
 
         public override string Identifier {
             get { return Method.Name; }
-        }
-
-        public JSMethodSignature Signature {
-            get {
-                if (_Signature == null)
-                    return _Signature = new JSMethodSignature(
-                        Method.ReturnType, (from p in Method.Parameters select p.ParameterType).ToArray(),
-                        Method.GenericParameterNames
-                    );
-
-                return _Signature;
-            }
         }
 
         public QualifiedMemberIdentifier QualifiedIdentifier {
@@ -3010,18 +2996,6 @@ namespace JSIL.Ast {
             get {
                 return Values.All((v) => v.IsConstant);
             }
-        }
-    }
-
-    public class JSMethodSignature : JSExpression {
-        public readonly TypeReference ReturnType;
-        public readonly TypeReference[] ParameterTypes;
-        public readonly string[] GenericParameterNames;
-
-        public JSMethodSignature (TypeReference returnType, TypeReference[] parameterTypes, string[] genericParameterNames) {
-            ReturnType = returnType;
-            ParameterTypes = parameterTypes;
-            GenericParameterNames = genericParameterNames;
         }
     }
 

@@ -601,7 +601,7 @@ namespace JSIL {
                 if (targetGp.Type != sourceGp.Type)
                     return false;
 
-                return (targetGp.Name == sourceGp.Name);
+                return (targetGp.Name == sourceGp.Name) && (targetGp.Position == sourceGp.Position);
             }
 
             var targetArray = target as ArrayType;

@@ -1637,6 +1637,18 @@ namespace JSIL.Internal {
         }
     }
 
+    public class MethodSignature {
+        public readonly TypeReference ReturnType;
+        public readonly TypeReference[] ParameterTypes;
+        public readonly string[] GenericParameterNames;
+
+        public MethodSignature (TypeReference returnType, TypeReference[] parameterTypes, string[] genericParameterNames) {
+            ReturnType = returnType;
+            ParameterTypes = parameterTypes;
+            GenericParameterNames = genericParameterNames;
+        }
+    }
+
     public class MethodInfo : MemberInfo<MethodDefinition> {
         public readonly ParameterDefinition[] Parameters;
         public readonly string[] GenericParameterNames;
@@ -1646,6 +1658,8 @@ namespace JSIL.Internal {
         public readonly bool IsConstructor;
         public readonly bool IsVirtual;
         public readonly bool IsSealed;
+
+        protected MethodSignature _Signature = null;
 
         protected MethodGroupInfo _MethodGroup = null;
         protected bool? _IsOverloadedRecursive;
@@ -1716,6 +1730,18 @@ namespace JSIL.Internal {
 
         protected override string GetName () {
             return GetName(false);
+        }
+
+        public MethodSignature Signature {
+            get {
+                if (_Signature == null)
+                    return _Signature = new MethodSignature(
+                        ReturnType, (from p in Parameters select p.ParameterType).ToArray(),
+                        GenericParameterNames
+                    );
+
+                return _Signature;
+            }
         }
 
         public override string ChangedName {

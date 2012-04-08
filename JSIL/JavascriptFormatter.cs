@@ -155,7 +155,7 @@ namespace JSIL.Internal {
                     else if (valueType == ListValueType.TypeIdentifier)
                         TypeIdentifier(value as dynamic, false, true);
                     else if (valueType == ListValueType.TypeReference)
-                        TypeReference(value as dynamic);
+                        TypeReference((TypeReference)value);
                     else
                         WriteRaw(value.ToString());
                 },
@@ -167,9 +167,8 @@ namespace JSIL.Internal {
 
         public void CommaSeparatedList (IEnumerable<TypeReference> types, TypeReference context = null) {
             CommaSeparatedListCore(
-                types, (type) => {
-                    TypeReference(type as dynamic, context);
-                });
+                types, (type) => TypeReference(type, context)
+            );
         }
 
         public void OpenBracket (bool indent = false) {
@@ -274,6 +273,91 @@ namespace JSIL.Internal {
                 return tr.Module.Assembly.FullName;
         }
 
+        protected void TypeReferenceInternal (GenericParameter gp, TypeReference context) {
+            if (gp.Owner == null) {
+                Value(gp.Name);
+            } else {
+                WriteRaw("new");
+                Space();
+                Identifier("JSIL.GenericParameter", null);
+                LPar();
+                Value(gp.Name);
+
+                if (gp.Owner is TypeReference) {
+                    Comma();
+                    Value(gp.Owner as TypeReference);
+                } else if (gp.Owner is MethodDefinition) {
+                    Comma();
+                    Value((gp.Owner as MethodDefinition).FullName);
+                }
+
+                RPar();
+            }
+        }
+
+        protected void TypeReferenceInternal (ByReferenceType byref, TypeReference context) {
+            Identifier("$jsilcore", null);
+            Dot();
+            Identifier("TypeRef", null);
+            LPar();
+
+            Value("JSIL.Reference");
+            Comma();
+            OpenBracket(false);
+
+            TypeReference(byref.ElementType, context);
+
+            CloseBracket(false);
+            RPar();
+        }
+
+        protected void TypeReferenceInternal (TypeReference tr, TypeReference context) {
+            var type = ILBlockTranslator.DereferenceType(tr);
+            var typeDef = ILBlockTranslator.GetTypeDefinition(type, false);
+            var typeInfo = TypeInfo.Get(type);
+            var fullName = (typeInfo != null) ? typeInfo.FullName
+                    : (typeDef != null) ? typeDef.FullName
+                        : type.FullName;
+            var identifier = Util.EscapeIdentifier(
+                fullName, EscapingMode.String
+            );
+
+            AssemblyReference(type);
+            Dot();
+            Identifier("TypeRef", null);
+
+            LPar();
+
+            Value(fullName);
+
+            var git = tr as GenericInstanceType;
+            if (git != null)
+                EmitGenericTypeReferenceArguments(git, context);
+
+            RPar();
+        }
+
+        protected void EmitGenericTypeReferenceArguments (GenericInstanceType git, TypeReference context) {
+            Comma();
+
+            OpenBracket();
+            CommaSeparatedList(git.GenericArguments, ListValueType.TypeReference);
+            CloseBracket();
+        }
+
+        protected void TypeReferenceInternal (ArrayType at, TypeReference context) {
+            Identifier("$jsilcore", null);
+            Dot();
+            Identifier("TypeRef", null);
+            LPar();
+            Value("System.Array");
+            Comma();
+            OpenBracket();
+            TypeReference(at.ElementType, context);
+            CloseBracket();
+            RPar();
+        }
+
         public void TypeReference (TypeReference type, TypeReference context = null) {
             if ((context != null) && ILBlockTranslator.TypesAreEqual(type, context)) {
                 // If the field's type is its declaring type, we need to avoid recursively initializing it.
@@ -287,99 +371,24 @@ namespace JSIL.Internal {
                 Value("JSIL.AnyType");
                 return;
             } else if (type.FullName == "JSIL.Proxy.AnyType[]") {
-                TypeReference(ILBlockTranslator.GetTypeDefinition(type));
+                TypeReference(ILBlockTranslator.GetTypeDefinition(type), context);
                 Space();
                 Comment("AnyType[]");
                 return;
             }
 
-            var isReference = type is ByReferenceType;
-            var originalType = type;
-            type = ILBlockTranslator.DereferenceType(type);
-            var typeDef = ILBlockTranslator.GetTypeDefinition(type, false);
-            var typeInfo = TypeInfo.Get(type);
-            var fullName = (typeInfo != null) ? typeInfo.FullName
-                    : (typeDef != null) ? typeDef.FullName
-                        : type.FullName;
-            var identifier = Util.EscapeIdentifier(
-                fullName, EscapingMode.String
-            );
-            var git = type as GenericInstanceType;
+            var byref = type as ByReferenceType;
+            var gp = type as GenericParameter;
             var at = type as ArrayType;
 
-            if (isReference) {
-                if (type is GenericParameter) {
-                    Value("JSIL.Reference");
-                    Space();
-                    Comment("{0}", originalType);
-                } else {
-
-                    Identifier("$jsilcore", null);
-                    Dot();
-                    Identifier("TypeRef", null);
-                    LPar();
-
-                    Value("JSIL.Reference");
-                    Comma();
-                    OpenBracket(false);
-
-                    TypeReference(type);
-
-                    CloseBracket(false);
-                    RPar();
-                }
-            } else if (type is GenericParameter) {
-                var gp = (GenericParameter)type;
-
-                if (gp.Owner == null) {
-                    Value(gp.Name);
-                } else {
-                    WriteRaw("new");
-                    Space();
-                    Identifier("JSIL.GenericParameter", null);
-                    LPar();
-                    Value(gp.Name);
-
-                    if (gp.Owner is TypeReference) {
-                        Comma();
-                        Value(gp.Owner as TypeReference);
-                    } else if (gp.Owner is MethodDefinition) {
-                        Comma();
-                        Value((gp.Owner as MethodDefinition).FullName);
-                    }
-
-                    RPar();
-                }
-            } else if (at != null) {
-                Identifier("$jsilcore", null);
-                Dot();
-                Identifier("TypeRef", null);
-                LPar();
-                Value("System.Array");
-                Comma();
-                OpenBracket();
-                TypeReference(at.ElementType, context);
-                CloseBracket();
-                RPar();
-            } else {
-                AssemblyReference(type);
-                Dot();
-                Identifier("TypeRef", null);
-
-                LPar();
-
-                Value(fullName);
-
-                if (git != null) {
-                    Comma();
-
-                    OpenBracket();
-                    CommaSeparatedList(git.GenericArguments, ListValueType.TypeReference);
-                    CloseBracket();
-                }
-
-                RPar();
-            }
+            if (byref != null)
+                TypeReferenceInternal(byref, context);
+            if (gp != null)
+                TypeReferenceInternal(gp, context);
+            else if (at != null)
+                TypeReferenceInternal(at, context);
+            else
+                TypeReferenceInternal(type, context);
         }
 
         public void TypeReference (TypeInfo type) {
@@ -742,6 +751,14 @@ namespace JSIL.Internal {
             NewLine();
         }
 
+        public void MethodSignature (MethodSignature signature) {
+            LPar();
+            MethodSignature(
+                null, signature.ReturnType, signature.ParameterTypes, signature.GenericParameterNames
+            );
+            RPar();
+        }
+
         protected TypeReference MapTypeReferenceForMethod (MethodInfo method, MethodReference reference, TypeReference tr) {
             var r = tr as ByReferenceType;
             if (r != null)
@@ -773,22 +790,6 @@ namespace JSIL.Internal {
                 // ILSpy really sucks sometimes :(
                 return tr;
             }
-        }
-
-        public void MethodSignatureForMethod (
-            MethodInfo method, MethodReference reference, MethodReference methodBody = null
-        ) {
-
-            var returnType = MapTypeReferenceForMethod(method, reference, method.ReturnType);
-            var parameterTypes = (from p in method.Parameters
-                                  select MapTypeReferenceForMethod(method, reference, p.ParameterType)).ToArray();
-
-            MethodSignature(
-                null,
-                returnType,
-                parameterTypes,
-                method.GenericParameterNames, methodBody
-            );
         }
 
         public void MethodSignature (
