@@ -137,6 +137,30 @@ JSIL.$PublicTypeAssemblies = {};
 JSIL.$AssignedTypeIds = {};
 JSIL.$GenericParameterTypeIds = {};
 
+JSIL.AssemblyCollection = function (obj) {
+  var makeGetter = function (assemblyName) {
+    var state = [null];
+
+    return function () {
+      if (state[0] === null)
+        state[0] = JSIL.GetAssembly(assemblyName, true);
+
+      if (state[0] === null)
+        return $jsilcore;
+
+      return state[0];
+    };
+  };
+
+  for (var k in obj) {
+    Object.defineProperty(this, k, {
+      configurable: false,
+      enumerable: false,
+      get: makeGetter(obj[k])
+    });
+  }
+};
+
 JSIL.AssignTypeId = function (assembly, typeName) {
   var typeName = JSIL.EscapeName(typeName);
 
@@ -1958,7 +1982,7 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
     var target = isStatic ? publicInterface : publicInterface.prototype;
 
     if (active) {
-      target[methodName] = JSIL.$MakeMethodGroup(methodName, entries);
+      target[methodName] = JSIL.$MakeMethodGroup(method._typeObject.__FullName__ + "::" + methodName, entries);
     }
   }
 };
