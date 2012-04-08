@@ -1990,7 +1990,7 @@ JSIL.InitializeType = function (type) {
   if (typeObject.__IsClosed__) {
     if (typeof (classObject._cctor) == "function") {
       try {
-        classObject._cctor();
+        classObject._cctor.call(classObject);
       } catch (e) {
         JSIL.Host.error(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(type) + ": ");
       }
@@ -1998,7 +1998,7 @@ JSIL.InitializeType = function (type) {
 
     if (typeof (classObject._cctor2) == "function") {
       try {
-        classObject._cctor2();
+        classObject._cctor2.call(classObject);
       } catch (e) {
         JSIL.Host.error(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(type) + ": ");
       }

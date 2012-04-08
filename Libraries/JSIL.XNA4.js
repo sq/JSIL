@@ -6,8 +6,5 @@ if (typeof (JSIL) === "undefined")
 var $jsilxna = JSIL.DeclareAssembly("JSIL.XNA");
 
 JSIL.ImplementExternals(
-  "Microsoft.Xna.Framework.Color", false, $jsilxna.Color
-);
-JSIL.ImplementExternals(
-  "Microsoft.Xna.Framework.Color", true, $jsilxna.ColorPrototype
+  "Microsoft.Xna.Framework.Color", $jsilxna.Color
 );
