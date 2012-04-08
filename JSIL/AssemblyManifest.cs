@@ -27,6 +27,7 @@ namespace JSIL {
             }
         }
 
+        public readonly MethodSignatureCache MethodSignatureCache = new MethodSignatureCache();
         protected readonly ConcurrentCache<string, Token> Tokens = new ConcurrentCache<string, Token>();
         protected bool AssignedIdentifiers = false;
 

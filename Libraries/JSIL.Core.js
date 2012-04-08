@@ -3408,6 +3408,20 @@ Object.defineProperty(JSIL.MethodSignature.prototype, "Hash", {
   get: JSIL.MethodSignature.prototype.get_Hash
 });
 
+JSIL.MethodSignatureCache = function () {
+  this._cache = {};
+};
+JSIL.MethodSignatureCache.prototype.get = function (id, returnType, argumentTypes, genericArgumentNames, context) {
+  var cachedSignature = this._cache[id];
+  if ((typeof (cachedSignature) === "object") && (cachedSignature !== null))
+    return cachedSignature;
+
+  return this._cache[id] = new JSIL.MethodSignature(returnType, argumentTypes, genericArgumentNames, context);
+};
+JSIL.MethodSignatureCache.prototype.toString = function () {
+  return "<Method Signature Cache>";
+};
+
 JSIL.FindOverload = function (prototype, args, name, overloads) {
   var l = args.length;
 

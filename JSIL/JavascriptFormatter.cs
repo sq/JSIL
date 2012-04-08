@@ -7,6 +7,7 @@ using System.Text;
 using ICSharpCode.Decompiler.ILAst;
 using JSIL.Ast;
 using JSIL.Internal;
+using JSIL.Translator;
 using Mono.Cecil;
 using System.Globalization;
 using JSIL;
@@ -72,6 +73,7 @@ namespace JSIL.Internal {
         public readonly ITypeInfoSource TypeInfo;
         public readonly AssemblyDefinition Assembly;
         public readonly AssemblyManifest.Token PrivateToken;
+        public readonly Configuration Configuration;
 
         public MethodReference CurrentMethod = null;
 
@@ -80,11 +82,16 @@ namespace JSIL.Internal {
         protected uint _IndentLevel = 0;
         protected bool _IndentNeeded = false;
 
-        public JavascriptFormatter (TextWriter output, ITypeInfoSource typeInfo, AssemblyManifest manifest, AssemblyDefinition assembly) {
+        public JavascriptFormatter (
+            TextWriter output, ITypeInfoSource typeInfo, 
+            AssemblyManifest manifest, AssemblyDefinition assembly,
+            Configuration configuration
+        ) {
             Output = output;
             TypeInfo = typeInfo;
             Manifest = manifest;
             Assembly = assembly;
+            Configuration = configuration;
 
             PrivateToken = Manifest.GetPrivateToken(assembly);
             Manifest.AssignIdentifiers();
@@ -892,10 +899,21 @@ namespace JSIL.Internal {
         }
 
         public void MethodSignature (MethodReference method, MethodSignature signature, TypeReferenceContext context) {
-            LPar();
+            var cached = Configuration.Optimizer.CacheMethodSignatures.GetValueOrDefault(true);
 
-            WriteRaw("new JSIL.MethodSignature");
-            LPar();
+            if (cached) {
+                WriteRaw("$sig.get");
+                LPar();
+
+                Value(Manifest.MethodSignatureCache.Get(signature));
+                Comma();
+
+            } else {
+                LPar();
+
+                WriteRaw("new JSIL.MethodSignature");
+                LPar();
+            }
 
             var oldSignature = context.SignatureMethod;
             context.SignatureMethod = method;
@@ -924,7 +942,9 @@ namespace JSIL.Internal {
             }
 
             RPar();
-            RPar();
+
+            if (!cached)
+                RPar();
         }
     }
 }

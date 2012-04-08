@@ -482,7 +482,7 @@ namespace JSIL {
             bool stubbed = IsStubbed(assembly);
 
             var tw = new StreamWriter(outputStream, Encoding.ASCII);
-            var formatter = new JavascriptFormatter(tw, this._TypeInfoProvider, Manifest, assembly);
+            var formatter = new JavascriptFormatter(tw, this._TypeInfoProvider, Manifest, assembly, Configuration);
 
             formatter.Comment(GetHeaderText());
             formatter.NewLine();
@@ -493,6 +493,13 @@ namespace JSIL {
             }
 
             formatter.DeclareAssembly();
+            formatter.NewLine();
+
+            if (Configuration.Optimizer.CacheMethodSignatures.GetValueOrDefault(true)) {
+                formatter.WriteRaw("var $sig = new JSIL.MethodSignatureCache();");
+                formatter.NewLine();
+                formatter.NewLine();
+            }
 
             var sealedTypes = new HashSet<TypeDefinition>();
             var declaredTypes = new HashSet<TypeDefinition>();

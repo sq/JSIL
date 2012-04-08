@@ -1657,20 +1657,6 @@ namespace JSIL.Internal {
         }
     }
 
-    public class MethodSignature {
-        public readonly TypeReference ReturnType;
-        public readonly TypeReference[] ParameterTypes;
-        public readonly string[] GenericParameterNames;
-
-        public MethodSignature (
-            TypeReference returnType, TypeReference[] parameterTypes, string[] genericParameterNames
-        ) {
-            ReturnType = returnType;
-            ParameterTypes = parameterTypes;
-            GenericParameterNames = genericParameterNames;
-        }
-    }
-
     public class MethodInfo : MemberInfo<MethodDefinition> {
         public readonly ParameterDefinition[] Parameters;
         public readonly string[] GenericParameterNames;

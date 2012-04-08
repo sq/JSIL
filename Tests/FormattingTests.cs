@@ -439,7 +439,7 @@ namespace JSIL.Tests {
             );
 
             try {
-                Assert.IsTrue(generatedJs.Contains("new JSIL.MethodSignature(\"!!0\", [\"!!0\"], [\"T\"]"));
+                Assert.IsTrue(generatedJs.Contains("\"!!0\", [\"!!0\"], [\"T\"]"));
             } catch {
                 Console.WriteLine(generatedJs);
 

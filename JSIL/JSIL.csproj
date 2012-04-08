@@ -76,6 +76,7 @@
     <Compile Include="JavascriptFormatter.cs" />
     <Compile Include="ILBlockTranslator.cs" />
     <Compile Include="AssemblyTranslator.cs" />
+    <Compile Include="MethodSignature.cs" />
     <Compile Include="Progress.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SpecialIdentifiers.cs" />

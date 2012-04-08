@@ -27,6 +27,7 @@ namespace JSIL.Translator {
             public bool? SimplifyLoops;
             public bool? EliminateTemporaries;
             public bool? EliminateRedundantControlFlow;
+            public bool? CacheMethodSignatures;
 
             public void MergeInto (OptimizerConfiguration result) {
                 if (EliminateStructCopies.HasValue)
@@ -39,6 +40,8 @@ namespace JSIL.Translator {
                     result.SimplifyOperators = SimplifyOperators;
                 if (EliminateRedundantControlFlow.HasValue)
                     result.EliminateRedundantControlFlow = EliminateRedundantControlFlow;
+                if (CacheMethodSignatures.HasValue)
+                    result.CacheMethodSignatures = CacheMethodSignatures;
             }
         }
 
