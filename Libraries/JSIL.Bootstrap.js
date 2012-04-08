@@ -1249,42 +1249,140 @@ JSIL.MakeStaticClass("System.Math", true, function ($) {
 });
 
 JSIL.MakeStruct("System.ValueType", "System.Decimal", true, [], function ($) {
-  $.publicInterface.CheckType = function (value) {
-    return (typeof (value) === "number") || 
-      JSIL.CheckType(value, System.Decimal, true);
-  };
-  $.publicInterface.prototype._ctor = function (value) {
+  var mscorlib = JSIL.GetCorlib();
+
+  var ctorImpl = function (value) {
     this.value = Number(value);
   };
-  $.publicInterface.prototype.toString = function (format) {
-    return this.value.toString();
-  };
-  $.publicInterface.op_Explicit = function (value) {
-    if (JSIL.CheckType(value, System.Decimal, true))
-      return value;
+
+  var decimalToNumber = function (decimal) {
+    if (JSIL.CheckType(decimal, $.Type))
+      return decimal.value;
     else
-      return new System.Decimal(value);
+      return decimal;
   };
-  $.publicInterface.op_Addition = function (lhs, rhs) {
-    lhs = System.Decimal.op_Explicit(lhs);
-    rhs = System.Decimal.op_Explicit(rhs);
-    return new System.Decimal(lhs.value + rhs.value);
+
+  var numberToDecimal = function (value) {
+    var result = JSIL.CreateInstanceOfType($.Type, null);
+    result.value = Number(value);
+    return result;
   };
-  $.publicInterface.op_Subtraction = function (lhs, rhs) {
-    lhs = System.Decimal.op_Explicit(lhs);
-    rhs = System.Decimal.op_Explicit(rhs);
-    return new System.Decimal(lhs.value - rhs.value);
-  };
-  $.publicInterface.op_Multiply = function (lhs, rhs) {
-    lhs = System.Decimal.op_Explicit(lhs);
-    rhs = System.Decimal.op_Explicit(rhs);
-    return new System.Decimal(lhs.value * rhs.value);
-  };
-  $.publicInterface.op_Division = function (lhs, rhs) {
-    lhs = System.Decimal.op_Explicit(lhs);
-    rhs = System.Decimal.op_Explicit(rhs);
-    return new System.Decimal(lhs.value / rhs.value);
-  };
+
+  $.Method({Static: false, Public: true }, "toString",
+    new JSIL.MethodSignature("System.String", []),
+    function (format) {
+      return this.value.toString();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32")], [])),
+    ctorImpl
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.UInt32")], [])),
+    ctorImpl
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int64")], [])),
+    ctorImpl
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.UInt64")], [])),
+    ctorImpl
+  );
+
+  $.Method({Static:true , Public:true }, "op_Addition", 
+    (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
+    function (lhs, rhs) {
+      return numberToDecimal(decimalToNumber(lhs) + decimalToNumber(rhs));
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Division", 
+    (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
+    function (lhs, rhs) {
+      return numberToDecimal(decimalToNumber(lhs) / decimalToNumber(rhs));
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Multiply", 
+    (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
+    function (lhs, rhs) {
+      return numberToDecimal(decimalToNumber(lhs) * decimalToNumber(rhs));
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Subtraction", 
+    (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
+    function (lhs, rhs) {
+      return numberToDecimal(decimalToNumber(lhs) - decimalToNumber(rhs));
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature($.Type, [mscorlib.TypeRef("System.Single")], [])),
+    numberToDecimal
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature($.Type, [mscorlib.TypeRef("System.Double")], [])),
+    numberToDecimal
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Byte"), [$.Type], [])),
+    decimalToNumber
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.SByte"), [$.Type], [])),
+    decimalToNumber
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Int16"), [$.Type], [])),
+    decimalToNumber
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.UInt16"), [$.Type], [])),
+    decimalToNumber
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Int32"), [$.Type], [])),
+    decimalToNumber
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.UInt32"), [$.Type], [])),
+    decimalToNumber
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Int64"), [$.Type], [])),
+    decimalToNumber
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.UInt64"), [$.Type], [])),
+    decimalToNumber
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Single"), [$.Type], [])),
+    decimalToNumber
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Double"), [$.Type], [])),
+    decimalToNumber
+  );
+
 });
 
 System.Environment.GetResourceFromDefault = function (key) {

@@ -51,16 +51,4 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
     }
-
-    [JSProxy(
-        typeof(Decimal),
-        JSProxyMemberPolicy.ReplaceDeclared
-    )]
-    public abstract class DecimalProxy {
-        [JSRuntimeDispatch]
-        [JSExternal]
-        public static Decimal op_Explicit (params AnyType[] arguments) {
-            throw new InvalidOperationException();
-        }
-    }
 }
