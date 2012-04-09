@@ -1002,7 +1002,7 @@ namespace JSIL.Internal {
                     WriteRaw("null");
                 else {
                     if ((context.EnclosingMethod != null) && !ILBlockTranslator.IsOpenType(signature.ReturnType))
-                        TypeIdentifier(signature.ReturnType, context, false);
+                        TypeIdentifier(signature.ReturnType as dynamic, context, false);
                     else
                         TypeReference(signature.ReturnType, context);
                 }
@@ -1013,7 +1013,7 @@ namespace JSIL.Internal {
                 CommaSeparatedListCore(
                     signature.ParameterTypes, (pt) => {
                         if ((context.EnclosingMethod != null) && !ILBlockTranslator.IsOpenType(pt))
-                            TypeIdentifier(pt, context, false);
+                            TypeIdentifier(pt as dynamic, context, false);
                         else
                             TypeReference(pt, context);
                     }
