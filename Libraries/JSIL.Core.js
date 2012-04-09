@@ -627,8 +627,6 @@ JSIL.ImplementExternals = function (namespaceName, externals) {
       if (data.mangledName) {
         obj[descriptor.Static ? data.mangledName : prefix + data.mangledName] = [m[i], target[name]];
       }
-
-      obj[descriptor.Static ? descriptor.EscapedName : prefix + descriptor.EscapedName] = [m[i], target[name]];
     }
 
     var rm = typeObject.__RawMethods__;
@@ -3132,38 +3130,6 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
     Public: false,
     SpecialName: false,
     Name: null,
-    IsUndefined: function (key) {
-      if (!this.Target.hasOwnProperty(key))
-        return true;
-
-      var existing = this.Target[key];
-      if (existing.__IsPlaceholder__)
-        return true;
-      else if (typeof (existing) === "undefined")
-        return true;
-      else if (existing === null)
-        return true;
-
-      return false;
-    },
-    SetIfUndefined: function (key, value) {
-      if (this.IsUndefined(key))
-        this.Target[key] = value;
-    },
-    SetExclusive: function (key, value) {
-      if (this.IsUndefined(key))
-        this.Target[key] = value;
-      else {
-        var placeholder = (function () {
-          throw new Error("Method '" + this.Name + "' is overloaded and must be called with a specific signature");
-        }).bind(this);
-        placeholder.toString = (function () {
-          return "<Overloaded Method '" + this.Name + "'>"
-        }).bind(this);
-
-        this.Target[key] = placeholder;
-      }
-    },
     toString: function () {
       return "<" + this.Name + " Descriptor>";
     }
