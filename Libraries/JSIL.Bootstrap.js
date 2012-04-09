@@ -479,7 +479,7 @@ JSIL.ImplementExternals("System.MulticastDelegate", function ($) {
   $.Method({Static:false, Public:true }, "GetInvocationList", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Delegate")]), [], [])), 
     function GetInvocationList () {
-      return this.Delegates;
+      return this.delegates;
     }
   );
 });
