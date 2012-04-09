@@ -1640,7 +1640,9 @@ namespace JSIL {
                     output.OpenFunction(
                         methodInfo.Name,
                         (o) => output.WriteParameterList(
-                            (from p in methodInfo.Parameters select 
+                            (from gpn in methodInfo.GenericParameterNames select 
+                             new JSParameter(gpn, methodRef.Module.TypeSystem.Object, methodRef))
+                            .Concat(from p in methodInfo.Parameters select 
                              new JSParameter(p.Name, p.ParameterType, methodRef))
                         )
                     );
