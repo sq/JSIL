@@ -1808,7 +1808,7 @@ JSIL.$ResolveGenericTypeReferences = function (context, types) {
   }
 };
 
-JSIL.$MakeMethodGroup = function (typeName, methodName, methodEscapedName, overloadSignatures) {
+JSIL.$MakeMethodGroup = function (target, typeName, methodName, methodEscapedName, overloadSignatures) {
   var groups = {};
   var methodFullName = typeName + "::" + methodName;
 
@@ -1817,10 +1817,14 @@ JSIL.$MakeMethodGroup = function (typeName, methodName, methodEscapedName, overl
   var makeSingleMethodGroup = function (group) {
     var singleMethod = group[0];
     var key = singleMethod.GetKey(methodEscapedName);
+    var method = target[key];
 
-    return function () {
-      return this[key].apply(this, arguments);
-    };
+    if (typeof (method) !== "function")
+      return function () {
+        throw new Error("Method not defined: " + methodFullName);
+      };
+
+    return method;
   };
 
   var makeGenericArgumentGroup = function (id, group, offset) {
@@ -2109,13 +2113,13 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
       if (trace) {
         console.log("Not overwriting " + method._typeObject.__FullName__ + "." + methodEscapedName);
       }
-      
+
       continue;
     }
 
     if (active) {
       var methodGroup = JSIL.$MakeMethodGroup(
-        typeObject.__FullName__, methodName, methodEscapedName, entries
+        target, typeObject.__FullName__, methodName, methodEscapedName, entries
       );
 
       if (isStatic) {
