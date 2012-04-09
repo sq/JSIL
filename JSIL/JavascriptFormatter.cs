@@ -915,7 +915,10 @@ namespace JSIL.Internal {
             var cached = Configuration.Optimizer.CacheMethodSignatures.GetValueOrDefault(true);
 
             if (cached && ((context.InvokingMethod != null) || (context.EnclosingMethod != null))) {
-                cached = true;
+                if (ILBlockTranslator.IsOpenType(signature.ReturnType))
+                    cached = false;
+                else if (signature.ParameterTypes.Any(ILBlockTranslator.IsOpenType))
+                    cached = false;
             }
 
             if (cached) {
