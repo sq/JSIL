@@ -1564,9 +1564,11 @@ namespace JSIL {
                 }
             }
 
+            var makeSkeleton = stubbed && isExternal && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false);
+
             if (methodInfo.IsIgnored)
                 return;
-            if (!method.HasBody)
+            if (!method.HasBody && !isExternal)
                 return;
 
             astEmitter.ReferenceContext.EnclosingType = method.DeclaringType;
@@ -1631,7 +1633,7 @@ namespace JSIL {
                         output.Value(method.FullName);
                         output.RPar();
                     }
-                } else if (Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false)) {
+                } else if (makeSkeleton) {
                     output.Comma();
                     output.NewLine();
 

@@ -295,6 +295,16 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void ExternalAbstractMethod () {
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\ExternalAbstractMethod.cs",
+                "Derived.Method()", "Derived.Method()"
+            );
+
+            Assert.IsTrue(generatedJs.Contains(".ExternalMethod"));
+        }
+
+        [Test]
         public void ExternalField () {
             var generatedJs = GenericTest(
                 @"SpecialTestCases\ExternalField.cs",
