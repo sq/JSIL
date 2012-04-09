@@ -478,18 +478,18 @@ JSIL.MakeDelegate("System.Func`4", true, ["T1", "T2", "T3", "TResult"]);
 
 JSIL.ImplementExternals(
   "System.Exception", function ($) {
-    $.Field({Static: false, Public: false}, "_Message", "System.String", null);
+    $.Field({Static: false, Public: false}, "_Message", $.String, null);
 
     $.Method({Static: false, Public: true }, ".ctor",
-      new JSIL.MethodSignature(null, ["System.String"]),
+      new JSIL.MethodSignature(null, [$.String]),
       function (message) {
-        if (typeof (message) != "undefined")
+        if (typeof (message) !== "undefined")
           this._Message = String(message);
       }
     );
 
     $.Method({Static: false, Public: true }, "get_Message",
-      new JSIL.MethodSignature(System.String, []),
+      new JSIL.MethodSignature($.String, []),
       function () {
         if ((typeof (this._Message) === "undefined") || (this._Message === null))
           return System.String.Format("Exception of type '{0}' was thrown.", JSIL.GetTypeName(this));
@@ -499,7 +499,7 @@ JSIL.ImplementExternals(
     );
 
     $.Method({Static: false, Public: true }, "toString",
-      new JSIL.MethodSignature(System.String, []),
+      new JSIL.MethodSignature($.String, []),
       function () {
         var message = this.Message;
         return System.String.Format("{0}: {1}", JSIL.GetTypeName(this), message);
@@ -509,13 +509,20 @@ JSIL.ImplementExternals(
 );
 
 JSIL.ImplementExternals(
-  "System.SystemException", true, {
-    _ctor$0: function () {
-      System.Exception.prototype._ctor.call(this);
-    },
-    _ctor$1: function (message) {
-      System.Exception.prototype._ctor.call(this, message);
-    }
+  "System.SystemException", function ($) {
+    $.Method({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [], []),
+      function () {
+        System.Exception.prototype._ctor.call(this);
+      }
+    );
+
+    $.Method({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [$.String], []),
+      function (message) {
+        System.Exception.prototype._ctor.call(this, message);
+      }
+    );
   }
 );
 
@@ -1396,25 +1403,29 @@ System.Environment.nativeGetTickCount = function () {
   return t.getTime();
 };
 
-JSIL.MakeClass("System.Object", "System.Text.Encoding", true, [], function ($) {
-  $.prototype._ctor = function () {
-    System.Object.prototype._ctor.call(this, arguments);
-  };
+JSIL.ImplementExternals("System.Text.Encoding", function ($) {
+  $.Method({Static:true , Public:true }, ".cctor2", 
+    (new JSIL.MethodSignature(null, [], [])),
+    function () {
+      // This type already has a cctor so we add a second one.
+      System.Text.Encoding.asciiEncoding = JSIL.CreateInstanceOfType(
+        System.Text.ASCIIEncoding.__Type__, null
+      );
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "get_ASCII", 
+    (new JSIL.MethodSignature($.Type, [], [])),
+    function () {
+      return System.Text.Encoding.asciiEncoding;
+    }
+  );
 });
-JSIL.ImplementExternals("System.Text.Encoding", false, {
-  _cctor2: function () {
-    // This type already has a cctor so we add a second one.
-    System.Text.Encoding.asciiEncoding = new System.Text.ASCIIEncoding();
-  },
-  get_ASCII: function () {
-    return System.Text.Encoding.asciiEncoding;
-  }
+
+JSIL.MakeClass("System.Object", "System.Text.Encoding", true, [], function ($) {
 });
 
 JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true, [], function ($) {
-  $.prototype._ctor = function () {
-    System.Text.Encoding.prototype._ctor.call(this, arguments);
-  };
 });
 
 JSIL.MakeStruct("System.ValueType", "System.TimeSpan", true, [], function ($) {

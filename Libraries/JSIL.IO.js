@@ -6,41 +6,72 @@ if (typeof (JSIL) === "undefined")
 JSIL.DeclareAssembly("JSIL.IO");
 
 JSIL.ImplementExternals(
-  "System.IO.File", false, {
-    Exists: function (filename) {
-      return JSIL.Host.doesFileExist(filename);
-    },
-    ReadAllText$0: function (filename) {
-      var file = JSIL.Host.getFile(filename);
-      return String.fromCharCode.apply(String, file);
-    }
+  "System.IO.File", function ($) {
+    $.Method({Static:true , Public:true }, "Exists", 
+      new JSIL.MethodSignature($.Boolean, [$.String], []),
+      function (filename) {
+        return JSIL.Host.doesFileExist(filename);
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "ReadAllText", 
+      new JSIL.MethodSignature($.String, [$.String], []),
+      function (filename) {
+        var file = JSIL.Host.getFile(filename);
+        return String.fromCharCode.apply(String, file);
+      }
+    );
   }
 );
 
 JSIL.ImplementExternals(
-  "System.IO.Path", false, {
-    Combine: function () {
+  "System.IO.Path", function ($) {
+    var combineImpl = function () {
       return Array.prototype.slice.call(arguments).join("/");
-    }
+    };
+
+    $.Method({Static:true , Public:true }, "Combine", 
+      new JSIL.MethodSignature($String, [$.String, $.String], []),
+      combineImpl
+    );
+
+    $.Method({Static:true , Public:true }, "Combine", 
+      new JSIL.MethodSignature($.String, [
+          $.String, $.String, 
+          $.String
+        ], []),
+      combineImpl
+    );
+
+    $.Method({Static:true , Public:true }, "Combine", 
+      new JSIL.MethodSignature($.String, [
+          $.String, $.String, 
+          $.String, $.String
+        ], []),
+      combineImpl
+    );
   }
 );
 
 JSIL.ImplementExternals(
-  "System.IO.Stream", true, {
-    ReadByte: function () {
-      var buffer = [];
-      var count = this.Read(buffer, 0, 1);
+  "System.IO.Stream", function ($) {
+    $.Method({Static:false, Public:true }, "ReadByte", 
+      new JSIL.MethodSignature($.Int32, [], []),
+      function () {
+        var buffer = [];
+        var count = this.Read(buffer, 0, 1);
 
-      if (count >= 1)
-        return buffer[0];
-      else
-        return -1;
-    },
+        if (count >= 1)
+          return buffer[0];
+        else
+          return -1;
+      }
+    );
   }
 );
 
-var $bytestream = {
-  Read: function (buffer, offset, count) {
+var $bytestream = function ($) {
+  Read = function (buffer, offset, count) {
     var startPos = this._pos;
     var endPos = this._pos + count;
 
@@ -59,16 +90,16 @@ var $bytestream = {
     this._pos += count;
 
     return count;
-  },
-  $PeekByte: function () {
+  };
+  $PeekByte = function () {
     if (this._pos >= this._length)
       return -1;
 
     return this._buffer[this._pos];
-  },
-  get_Position: function () {
+  };
+  get_Position = function () {
     return this._pos;
-  }  
+  };
 };
 
 JSIL.ImplementExternals(
@@ -99,7 +130,7 @@ JSIL.ImplementExternals(
 );
 
 JSIL.ImplementExternals(
-  "System.IO.FileStream", true, $bytestream
+  "System.IO.FileStream", $bytestream
 );
 
 JSIL.ImplementExternals(
@@ -119,7 +150,7 @@ JSIL.ImplementExternals(
 );
 
 JSIL.ImplementExternals(
-  "System.IO.MemoryStream", true, $bytestream
+  "System.IO.MemoryStream", $bytestream
 );
 
 JSIL.ImplementExternals(

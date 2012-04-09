@@ -2967,6 +2967,14 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
     value: typeObject
   });
 
+  Object.defineProperty(this, "prototype", {
+    configurable: false,
+    enumerable: false,
+    get: function () {
+      throw new Error("Old-style use of $.prototype");
+    }
+  });
+
   this.DefineTypeAliases(
     JSIL.GetCorlib, [
       "System.Byte", "System.SByte",
