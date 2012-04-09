@@ -505,14 +505,26 @@ namespace JSIL.Internal {
         public void TypeReference (TypeReference type, TypeReferenceContext context) {
             if (
                 (context != null) &&
-                (context.EnclosingType != null) &&
-                ILBlockTranslator.TypesAreEqual(type, context.EnclosingType)
+                (context.EnclosingType != null)
             ) {
-                // If the field's type is its declaring type, we need to avoid recursively initializing it.
-                WriteRaw("$");
-                Dot();
-                Identifier("Type");
-                return;
+                if (ILBlockTranslator.TypesAreEqual(type, context.EnclosingType)) {
+                    // Types can reference themselves, so this prevents recursive initialization.
+                    WriteRaw("$.Type");
+                    return;
+                }
+
+                var corlibTypes = new HashSet<string> {
+                    "System.Byte", "System.UInt16", "System.UInt32", "System.UInt64",
+                    "System.SByte", "System.Int16", "System.Int32", "System.Int64",
+                    "System.Single", "System.Double", "System.String", "System.Object"
+                };
+
+                // The interface builder provides helpful shorthand for corlib type references.
+                if (corlibTypes.Contains(type.FullName) && type.Scope.Name.Contains("mscorlib")) {
+                    WriteRaw("$.");
+                    WriteRaw(type.Name);
+                    return;
+                }
             }
 
             if (type.FullName == "JSIL.Proxy.AnyType") {

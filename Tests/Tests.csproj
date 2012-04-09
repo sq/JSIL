@@ -330,6 +330,7 @@
     <None Include="SpecialTestCases\GenericMethodSignatures.cs" />
     <None Include="TestCases\InheritOpenGenericInterface.cs" />
     <None Include="TestCases\GenericInstanceCallGenericMethod.cs" />
+    <None Include="SpecialTestCases\CorlibTypeRefs.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
