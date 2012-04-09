@@ -565,7 +565,7 @@ JSIL.MakeExternalMemberStub = function (namespaceName, getMemberName, inheritedM
   return result;
 };
 
-JSIL.ImplementExternals = function (namespaceName, isInstance, externals) {
+JSIL.ImplementExternals = function (namespaceName, externals) {
   if (typeof (namespaceName) !== "string") {
     JSIL.Host.error(new Error("ImplementExternals expected name of namespace"));
     return;
@@ -588,67 +588,57 @@ JSIL.ImplementExternals = function (namespaceName, isInstance, externals) {
     return;
   }
 
+  if (typeof (externals) !== "function") {
+    JSIL.Host.warning("Old-style ImplementExternals call for '" + namespaceName + "' ignored!");
+    return;
+  }
+
   // Deferring the execution of externals functions is important in case they reference
   //  other types or assemblies.
   queue.push(function ImplementExternalsImpl () {  
-    if (typeof (isInstance) === "function") {
-      externals = isInstance;
-
-      var typeId = JSIL.AssignTypeId(context, namespaceName);
-      var typeObject = {
-        __Members__: [],
-        __RawMethods__: [],
-        __TypeId__: typeId,
-        __FullName__: namespaceName
-      };
-      var publicInterface = {
-        prototype: {
-          __TypeId__: typeId
-        },
+    var typeId = JSIL.AssignTypeId(context, namespaceName);
+    var typeObject = {
+      __Members__: [],
+      __RawMethods__: [],
+      __TypeId__: typeId,
+      __FullName__: namespaceName
+    };
+    var publicInterface = {
+      prototype: {
         __TypeId__: typeId
-      };
-      var ib = new JSIL.InterfaceBuilder(context, typeObject, publicInterface);
-      externals(ib);
+      },
+      __TypeId__: typeId
+    };
+    var ib = new JSIL.InterfaceBuilder(context, typeObject, publicInterface);
+    externals(ib);
 
-      var prefix = "instance$";
+    var prefix = "instance$";
 
-      var m = typeObject.__Members__;
-      for (var i = 0; i < m.length; i++) {
-        var type = m[i][0];
-        var descriptor = m[i][1];
-        var data = m[i][2];
+    var m = typeObject.__Members__;
+    for (var i = 0; i < m.length; i++) {
+      var type = m[i][0];
+      var descriptor = m[i][1];
+      var data = m[i][2];
 
-        var name = data.mangledName || descriptor.EscapedName;
+      var name = data.mangledName || descriptor.EscapedName;
 
-        var target = descriptor.Static ? publicInterface : publicInterface.prototype;
+      var target = descriptor.Static ? publicInterface : publicInterface.prototype;
 
-        if (data.mangledName) {
-          obj[descriptor.Static ? data.mangledName : prefix + data.mangledName] = [m[i], target[name]];
-        }
-
-        obj[descriptor.Static ? descriptor.EscapedName : prefix + descriptor.EscapedName] = [m[i], target[name]];
+      if (data.mangledName) {
+        obj[descriptor.Static ? data.mangledName : prefix + data.mangledName] = [m[i], target[name]];
       }
 
-      var rm = typeObject.__RawMethods__;
-      for (var i = 0; i < rm.length; i++) {
-        var rawMethod = rm[i];
+      obj[descriptor.Static ? descriptor.EscapedName : prefix + descriptor.EscapedName] = [m[i], target[name]];
+    }
 
-        if (rawMethod[0]) {
-          obj[rawMethod[1]] = [null, publicInterface[rawMethod[1]]];
-        } else {
-          obj[prefix + rawMethod[1]] = [null, publicInterface.prototype[rawMethod[1]]];
-        }
-      }
-    } else {
-      var prefix = isInstance ? "instance$" : "";
+    var rm = typeObject.__RawMethods__;
+    for (var i = 0; i < rm.length; i++) {
+      var rawMethod = rm[i];
 
-      for (var k in externals) {
-        var external = externals[k];
-
-        if (typeof (external) === "function")
-          external = JSIL.RenameFunction(namespaceName + "::" + k, external);
-
-        obj[prefix + k] = [null, external];
+      if (rawMethod[0]) {
+        obj[rawMethod[1]] = [null, publicInterface[rawMethod[1]]];
+      } else {
+        obj[prefix + rawMethod[1]] = [null, publicInterface.prototype[rawMethod[1]]];
       }
     }
   });
@@ -1818,16 +1808,15 @@ JSIL.$ResolveGenericTypeReferences = function (context, types) {
   }
 };
 
-JSIL.$MakeMethodGroup = function (targetTypeName, methodTypeName, methodName, overloadSignatures) {
+JSIL.$MakeMethodGroup = function (typeName, methodName, methodEscapedName, overloadSignatures) {
   var groups = {};
-  var targetFullName = targetTypeName + "::" + methodName;
-  var methodFullName = methodTypeName + "::" + methodName;
+  var methodFullName = typeName + "::" + methodName;
 
   var makeDispatcher;
 
   var makeSingleMethodGroup = function (group) {
     var singleMethod = group[0];
-    var key = singleMethod.GetKey(methodName);
+    var key = singleMethod.GetKey(methodEscapedName);
 
     return function () {
       return this[key].apply(this, arguments);
@@ -1864,7 +1853,7 @@ JSIL.$MakeMethodGroup = function (targetTypeName, methodTypeName, methodName, ov
     var result;
 
     if (gaCount > 0) {
-      result = makeGenericArgumentGroup(targetFullName + "`" + gaCount, overloadSignatures, gaCount);
+      result = makeGenericArgumentGroup(methodFullName + "`" + gaCount, overloadSignatures, gaCount);
     } else {
       result = makeSingleMethodGroup(overloadSignatures);
     }
@@ -1970,7 +1959,7 @@ JSIL.$MakeMethodGroup = function (targetTypeName, methodTypeName, methodName, ov
     return boundDispatcher;    
   };
 
-  return makeDispatcher(targetFullName, groups, 0);
+  return makeDispatcher(methodFullName, groups, 0);
 };
 
 JSIL.$ApplyMemberHiding = function (memberList) {
@@ -2094,6 +2083,7 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
     var methodList = methodsByName[key];
 
     var methodName = methodList[0]._descriptor.Name;
+    var methodEscapedName = methodList[0]._descriptor.EscapedName;
     var isStatic = methodList[0]._descriptor.Static;
     var signature = methodList[0]._data.signature;
 
@@ -2111,8 +2101,22 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
 
     var target = isStatic ? publicInterface : publicInterface.prototype;
 
+    if (
+      target.hasOwnProperty(methodEscapedName) && 
+      (typeof (target[methodEscapedName]) === "function") && 
+      (target[methodEscapedName].__IsPlaceholder__ !== true)
+    ) {
+      if (trace) {
+        console.log("Not overwriting " + method._typeObject.__FullName__ + "." + methodEscapedName);
+      }
+      
+      continue;
+    }
+
     if (active) {
-      var methodGroup = JSIL.$MakeMethodGroup(typeObject.__FullName__, method._typeObject.__FullName__, methodName, entries);
+      var methodGroup = JSIL.$MakeMethodGroup(
+        typeObject.__FullName__, methodName, methodEscapedName, entries
+      );
 
       if (isStatic) {
         var _toString = methodGroup.toString;
@@ -2120,7 +2124,7 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
         methodGroup.toString = _toString;
       }
 
-      target[methodName] = methodGroup;
+      target[methodEscapedName] = methodGroup;
     }
   }
 };
@@ -2160,7 +2164,7 @@ JSIL.InitializeType = function (type) {
 
   // If the type is closed, invoke its static constructor(s)
   if (typeObject.__IsClosed__) {
-    if (typeof (classObject._cctor) == "function") {
+    if (typeof (classObject._cctor) === "function") {
       try {
         classObject._cctor.call(classObject);
       } catch (e) {
@@ -2168,7 +2172,7 @@ JSIL.InitializeType = function (type) {
       }
     }
 
-    if (typeof (classObject._cctor2) == "function") {
+    if (typeof (classObject._cctor2) === "function") {
       try {
         classObject._cctor2.call(classObject);
       } catch (e) {
@@ -3361,10 +3365,8 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
     isPlaceholder = true;
   }
 
-  if (newValue !== undefined) {
+  if (newValue !== undefined)
     descriptor.Target[mangledName] = newValue;
-    descriptor.SetIfUndefined(descriptor.EscapedName, newValue);
-  }
 
   this.PushMember("MethodInfo", descriptor, { 
     signature: signature, 
@@ -3400,7 +3402,6 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
   };
 
   descriptor.Target[mangledName] = fn;
-  descriptor.SetExclusive(descriptor.EscapedName, fn);
 
   this.PushMember("MethodInfo", descriptor, { 
     signature: signature, 
@@ -4512,11 +4513,12 @@ JSIL.MakeInterface("System.Collections.Generic.IEnumerable`1", true, ["T"], {
   "GetEnumerator": Function
 }, ["System.Collections.IEnumerable"]);
 
-JSIL.ImplementExternals("System.Array", false, {
-  CheckType: JSIL.IsArray,
-  Of: function (elementType) {
-    return $jsilcore.System.Array.Of(elementType);
-  }
+JSIL.ImplementExternals("System.Array", function ($) {
+  $.RawMethod(true, "CheckType", JSIL.IsArray);
+
+  $.RawMethod(true, "Of", function () {
+    return $jsilcore.System.Array.Of.apply($jsilcore.System.Array, arguments);
+  });
 });
   
 JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
@@ -4985,39 +4987,52 @@ JSIL.ImplementExternals(
 );
 
 JSIL.ImplementExternals(
-  "System.Reflection.MethodBase", true, {
-    GetParameterTypes: function () {
-      var signature = this._data.signature;
-      return signature.argumentTypes;
-    },
-    toString: function () {
-      return this._data.signature.toString(this.Name);
-    }
-  }
-);
-
-JSIL.ImplementExternals(
-  "System.Reflection.MethodInfo", true, {
-    get_ReturnType: function () {
-      var signature = this._data.signature;
-      return signature.returnType;
-    }
-  }
-);
-
-JSIL.ImplementExternals(
-  "System.Reflection.FieldInfo", true, {
-    get_FieldType: function () {
-      var result = this._cachedFieldType;
-
-      if (typeof (result) === "undefined") {
-        result = this._cachedFieldType = JSIL.ResolveTypeReference(
-          this._data.fieldType, this._typeObject.__Context__
-        )[1];
+  "System.Reflection.MethodBase", function ($) {
+    $.Method({Static:false, Public:false}, "GetParameterTypes", 
+      (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Type")]), [], [])), 
+      function GetParameterTypes () {
+        var signature = this._data.signature;
+        return signature.argumentTypes;
       }
+    );
 
-      return result;
-    }
+    $.Method({Static: false, Public: true}, "toString",
+      new JSIL.MethodSignature($.String, [], []),
+      function () {
+        return this._data.signature.toString(this.Name);
+      }
+    );
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.Reflection.MethodInfo", function ($) {
+    $.Method({Static:false, Public:true }, "get_ReturnType", 
+      (new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [], [])), 
+      function get_ReturnType () {
+        var signature = this._data.signature;
+        return signature.returnType;
+      }
+    );
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.Reflection.FieldInfo", function ($) {
+    $.Method({Static:false, Public:true }, "get_FieldType", 
+      (new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [], [])), 
+      function get_FieldType () {
+        var result = this._cachedFieldType;
+
+        if (typeof (result) === "undefined") {
+          result = this._cachedFieldType = JSIL.ResolveTypeReference(
+            this._data.fieldType, this._typeObject.__Context__
+          )[1];
+        }
+
+        return result;
+      }
+    );
   }
 );
 

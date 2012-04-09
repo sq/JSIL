@@ -10,28 +10,28 @@ JSIL.DeclareNamespace("System.Linq");
 JSIL.DeclareNamespace("System.Reflection");
 
 JSIL.ImplementExternals(
-  "System.Boolean", false, {
-    CheckType: function (value) {
+  "System.Boolean", function ($) {
+    $.RawMethod(true, "CheckType", function (value) {
       return (value === false) || (value === true);
-    }
+    });
   }
 );
 JSIL.MakeNumericType(Boolean, "System.Boolean", true);
 
 JSIL.ImplementExternals(
-  "System.Char", false, {
-    CheckType: function (value) {
+  "System.Char", function ($) {
+    $.RawMethod(true, "CheckType", function (value) {
       return (typeof (value) === "string") && (value.length == 1);
-    }
+    });
   }
 );
 JSIL.MakeNumericType(String, "System.Char", true);
 
 JSIL.ImplementExternals(
-  "System.Byte", false, {
-    CheckType: function (value) {
+  "System.Byte", function ($) {
+    $.RawMethod(true, "CheckType", function (value) {
       return (typeof (value) === "number") && (value >= 0) && (value <= 255);
-    }
+    });
   }
 );
 JSIL.MakeNumericType(Number, "System.Byte", true);
@@ -39,86 +39,122 @@ JSIL.MakeNumericType(Number, "System.Byte", true);
 $jsilcore.$ParseInt = function (text) {
   return Math.abs(parseInt(text, 10));
 };
-$jsilcore.$TryParseInt$0 = function (text, result) {
+$jsilcore.$TryParseInt = function (text, result) {
   result.value = parseInt(text, 10);
   return !isNaN(result.value);
 };
 
 JSIL.ImplementExternals(
-  "System.UInt16", false, {
-    CheckType: function (value) {
+  "System.UInt16", function ($) {
+    $.RawMethod(true, "CheckType", function (value) {
       return (typeof (value) === "number") && (value >= 0);
-    },
-    Parse: $jsilcore.$ParseInt,
-    TryParse$0: $jsilcore.$TryParseInt$0
+    });
+
+    $.Method({Static:true , Public:true }, "Parse", 
+      (new JSIL.MethodSignature($.UInt16, [$.String], [])), 
+      $jsilcore.$ParseInt
+    );
+
+    $.Method({Static:true , Public:true }, "TryParse", 
+      (new JSIL.MethodSignature($.Boolean, [$.String, $jsilcore.TypeRef("JSIL.Reference", [$.UInt16])], [])), 
+      $jsilcore.$TryParseInt
+    );
   }
 );
 JSIL.MakeNumericType(Number, "System.UInt16", true);
-System.UInt16.MaxValue = 65535;
 
 JSIL.ImplementExternals(
-  "System.Int16", false, {
-    CheckType: function (value) {
+  "System.Int16", function ($) {
+    $.RawMethod(true, "CheckType", function (value) {
       return (typeof (value) === "number");
-    },
-    Parse: $jsilcore.$ParseInt,
-    TryParse$0: $jsilcore.$TryParseInt$0
+    });
+
+    $.Method({Static:true , Public:true }, "Parse", 
+      (new JSIL.MethodSignature($.Int16, [$.String], [])), 
+      $jsilcore.$ParseInt
+    );
+
+    $.Method({Static:true , Public:true }, "TryParse", 
+      (new JSIL.MethodSignature($.Boolean, [$.String, $jsilcore.TypeRef("JSIL.Reference", [$.Int16])], [])), 
+      $jsilcore.$TryParseInt
+    );
   }
 );
 JSIL.MakeNumericType(Number, "System.Int16", true);
-System.Int16.MaxValue = 32767;
 
 JSIL.ImplementExternals(
-  "System.UInt32", false, {
-    CheckType: function (value) {
+  "System.UInt32", function ($) {
+    $.RawMethod(true, "CheckType", function (value) {
       return (typeof (value) === "number") && (value >= 0);
-    },
-    Parse: $jsilcore.$ParseInt,
-    TryParse$0: $jsilcore.$TryParseInt$0
+    });
+
+    $.Method({Static:true , Public:true }, "Parse", 
+      (new JSIL.MethodSignature($.UInt32, [$.String], [])), 
+      $jsilcore.$ParseInt
+    );
+
+    $.Method({Static:true , Public:true }, "TryParse", 
+      (new JSIL.MethodSignature($.Boolean, [$.String, $jsilcore.TypeRef("JSIL.Reference", [$.UInt32])], [])), 
+      $jsilcore.$TryParseInt
+    );
   }
 );
 JSIL.MakeNumericType(Number, "System.UInt32", true);
-System.UInt32.MaxValue = 4294967295;
 
 JSIL.ImplementExternals(
-  "System.Int32", false, {
-    CheckType: function (value) {
+  "System.Int32", function ($) {
+    $.RawMethod(true, "CheckType", function (value) {
       return (typeof (value) === "number");
-    },
-    Parse: $jsilcore.$ParseInt,
-    TryParse$0: $jsilcore.$TryParseInt$0
+    });
+
+    $.Method({Static:true , Public:true }, "Parse", 
+      (new JSIL.MethodSignature($.Int32, [$.String], [])), 
+      $jsilcore.$ParseInt
+    );
+
+    $.Method({Static:true , Public:true }, "TryParse", 
+      (new JSIL.MethodSignature($.Boolean, [$.String, $jsilcore.TypeRef("JSIL.Reference", [$.Int32])], [])), 
+      $jsilcore.$TryParseInt
+    );
   }
 );
 JSIL.MakeNumericType(Number, "System.Int32", true);
-System.Int32.MaxValue = 2147483647;
 
 JSIL.ImplementExternals(
-  "System.Int64", false, {
-    CheckType: function (value) {
+  "System.Int64", function ($) {
+    $.RawMethod(true, "CheckType", function (value) {
       return (typeof (value) === "number");
-    },
-    Parse: $jsilcore.$ParseInt,
-    TryParse$0: $jsilcore.$TryParseInt$0
+    });
+
+    $.Method({Static:true , Public:true }, "Parse", 
+      (new JSIL.MethodSignature($.Int64, [$.String], [])), 
+      $jsilcore.$ParseInt
+    );
+
+    $.Method({Static:true , Public:true }, "TryParse", 
+      (new JSIL.MethodSignature($.Boolean, [$.String, $jsilcore.TypeRef("JSIL.Reference", [$.Int64])], [])), 
+      $jsilcore.$TryParseInt
+    );
   }
 );
 JSIL.MakeNumericType(Number, "System.Int64", true);
 
 JSIL.ImplementExternals(
-  "System.Single", false, {
-    CheckType: function (value) {
+  "System.Single", function ($) {
+    $.RawMethod(true, "CheckType", function (value) {
       return (typeof (value) === "number");
-    },
-    IsNaN: isNaN
+    });
+    $.RawMethod(true, "IsNaN", isNaN);
   }
 );
 JSIL.MakeNumericType(Number, "System.Single", false);
 
 JSIL.ImplementExternals(
-  "System.Double", false, {
-    CheckType: function (value) {
+  "System.Double", function ($) {
+    $.RawMethod(true, "CheckType", function (value) {
       return (typeof (value) === "number");
-    },
-    IsNaN: isNaN
+    });
+    $.RawMethod(true, "IsNaN", isNaN);
   }
 );
 JSIL.MakeNumericType(Number, "System.Double", false);
@@ -408,42 +444,43 @@ $jsilcore.$Remove = function (lhs, rhs) {
     return JSIL.MulticastDelegate.New(newList);
 };
 
-JSIL.ImplementExternals(
-  "System.Delegate", true, {
-    Invoke: function () {
-      return this.__method__.apply(this.__object__, arguments);
-    },
-    GetInvocationList: function () {
+JSIL.ImplementExternals("System.Delegate", function ($) {
+  var tDelegate = $jsilcore.TypeRef("System.Delegate");
+
+  $.RawMethod(false, "Invoke", function () {
+    return this.__method__.apply(this.__object__, arguments);
+  });
+
+  $.Method({Static:false, Public:true }, "GetInvocationList", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [tDelegate]), [], [])), 
+    function GetInvocationList () {
       return [ this ];
     }
-  }
-);
+  );
 
-JSIL.ImplementExternals(
-  "System.MulticastDelegate", true, {
-    GetInvocationList: function () {
-      return this.delegates;
-    },
-    Invoke: function () {
-      return this.apply(null, arguments);
+  $.Method({Static:true , Public:true }, "Combine", 
+    (new JSIL.MethodSignature(tDelegate, [tDelegate, tDelegate], [])), 
+    $jsilcore.$Combine
+  );
+
+  $.Method({Static:true , Public:true }, "Remove", 
+    (new JSIL.MethodSignature(tDelegate, [tDelegate, tDelegate], [])), 
+    $jsilcore.$Remove
+  );
+});
+
+JSIL.ImplementExternals("System.MulticastDelegate", function ($) {
+  $.RawMethod(false, "Invoke", function () {
+    return this.apply(null, arguments);
+  });
+
+  $.Method({Static:false, Public:true }, "GetInvocationList", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Delegate")]), [], [])), 
+    function GetInvocationList () {
+      return this.Delegates;
     }
-  }
-);
-
-JSIL.ImplementExternals(
-  "System.Delegate", false, {
-    GetInvocationList: $jsilcore.$GetInvocationList,
-    Combine: $jsilcore.$Combine,
-    Remove: $jsilcore.$Remove
-  }
-);
-
-JSIL.ImplementExternals(
-  "System.MulticastDelegate", false, {
-    Combine: $jsilcore.$Combine,
-    Remove: $jsilcore.$Remove
-  }
-);
+  );
+});
 
 JSIL.MakeClass("System.Object", "System.Delegate", true, []);
 JSIL.MakeClass("System.Object", "System.MulticastDelegate", true, []);
@@ -532,24 +569,23 @@ JSIL.MakeClass(Error, "System.Exception", true, [], function ($) {
 JSIL.MakeClass("System.Exception", "System.InvalidCastException", true);
 JSIL.MakeClass("System.Exception", "System.InvalidOperationException", true);
 
-JSIL.ImplementExternals(
-  "System.Console", false, {
-    WriteLine: function () {
-      var text = "";
-      if (arguments.length > 0)
-        text = System.String.Format.apply(null, arguments);
+JSIL.ImplementExternals("System.Console", function ($) {
+  $.RawMethod(true, "WriteLine", function () {
+    var text = "";
+    if (arguments.length > 0)
+      text = System.String.Format.apply(null, arguments);
 
-      JSIL.Host.logWriteLine(text);
-    },
-    Write: function () {
-      var text = "";
-      if (arguments.length > 0)
-        text = System.String.Format.apply(null, arguments);
+    JSIL.Host.logWriteLine(text);
+  });
 
-      JSIL.Host.logWrite(text);
-    }
-  }
-);
+  $.RawMethod(true, "Write", function () {
+    var text = "";
+    if (arguments.length > 0)
+      text = System.String.Format.apply(null, arguments);
+
+    JSIL.Host.logWrite(text);
+  });
+});
 
 JSIL.ImplementExternals(
   "System.Diagnostics.Debug", false, {
@@ -588,13 +624,14 @@ JSIL.ConcatString = function (/* ...values */) {
 
 JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, ["T"], function ($) {
   $.Method({Public: true , Static: false}, ".ctor", 
-    new JSIL.MethodSignature(null, [System.Array]),
-    function (array) {
+    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", ["!!0"]), $.Int32]),
+    function (array, startPosition) {
       this._array = array;
       this._length = array.length;
-      this._index = -1;
+      this._index = startPosition;
     }
   );
+
   $.Method({Public: true , Static: false}, "Reset", 
     new JSIL.MethodSignature(null, []),
     function () {
@@ -1099,7 +1136,7 @@ JSIL.MakeClass("System.Object", "JSIL.EnumerableArray", true, [], function ($) {
     new JSIL.MethodSignature(System.Collections.IEnumerator$b1, []),
     function () {
       var tEnumerator = JSIL.ArrayEnumerator.Of(System.Object);
-      return new tEnumerator(this.array);
+      return new tEnumerator(this.array, -1);
     }
   );
 
@@ -1208,27 +1245,48 @@ JSIL.MakeStaticClass("System.Threading.Interlocked", true, [], function ($) {
 });
 JSIL.MakeStaticClass("System.Threading.Monitor", true, []);
 
-JSIL.MakeClass("System.Object", "System.Random", true, [], function ($) {
-  $.ExternalMembers(true,
-    "_ctor", "Next", "NextDouble"
+JSIL.ImplementExternals("System.Random", function ($) {
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.Int32], [])), 
+    function _ctor (Seed) {
+      JSIL.Host.warning("Cannot seed the JS random number generator.");
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Next", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function Next () {
+      return Math.floor(Math.random() * Int32.MaxValue);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Next", 
+    (new JSIL.MethodSignature($.Int32, [$.Int32, $.Int32], [])), 
+    function Next (minValue, maxValue) {
+      return Math.floor(Math.random() * (maxValue - minValue)) + minValue;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Next", 
+    (new JSIL.MethodSignature($.Int32, [$.Int32], [])), 
+    function Next (maxValue) {
+      return Math.floor(Math.random() * maxValue);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "NextDouble", 
+    (new JSIL.MethodSignature($.Double, [], [])), 
+    Math.random
   );
 });
 
-JSIL.ImplementExternals("System.Random", true, {
-  _ctor: function () {
-  },
-  Next: function (min, max) {
-    if (typeof (min) === "undefined") {
-      min = 0;
-      max = Int32.MaxValue;
-    } else if (typeof (max) === "undefined") {
-      max = min;
-      min = 0;
-    }
-
-    return Math.floor(Math.random() * (max - min)) + min;
-  },
-  NextDouble: Math.random
+JSIL.MakeClass("System.Object", "System.Random", true, [], function ($) {
 });
 
 JSIL.$MathSign = function (value) {
@@ -1240,23 +1298,42 @@ JSIL.$MathSign = function (value) {
     return 0;
 };
 
-JSIL.ImplementExternals(
-  "System.Math", false, {
-    Max: Math.max,
-    Min: Math.min,
-    Sign$0: JSIL.$MathSign,
-    Sign$1: JSIL.$MathSign,
-    Sign$2: JSIL.$MathSign,
-    Sign$3: JSIL.$MathSign,
-    Sign$4: JSIL.$MathSign,
-    Sign$5: JSIL.$MathSign
-  }
-);
+JSIL.ImplementExternals("System.Math", function ($) {
+  $.RawMethod(true, "Max", Math.max);
+  $.RawMethod(true, "Min", Math.min);
+
+  $.Method({Static:true , Public:true }, "Sign", 
+    (new JSIL.MethodSignature($.Int32, [$.SByte], [])), 
+    JSIL.$MathSign
+  );
+
+  $.Method({Static:true , Public:true }, "Sign", 
+    (new JSIL.MethodSignature($.Int32, [$.Int16], [])), 
+    JSIL.$MathSign
+  );
+
+  $.Method({Static:true , Public:true }, "Sign", 
+    (new JSIL.MethodSignature($.Int32, [$.Int32], [])), 
+    JSIL.$MathSign
+  );
+
+  $.Method({Static:true , Public:true }, "Sign", 
+    (new JSIL.MethodSignature($.Int32, [$.Int64], [])), 
+    JSIL.$MathSign
+  );
+
+  $.Method({Static:true , Public:true }, "Sign", 
+    (new JSIL.MethodSignature($.Int32, [$.Single], [])), 
+    JSIL.$MathSign
+  );
+
+  $.Method({Static:true , Public:true }, "Sign", 
+    (new JSIL.MethodSignature($.Int32, [$.Double], [])), 
+    JSIL.$MathSign
+  );
+});
 
 JSIL.MakeStaticClass("System.Math", true, function ($) {
-  $.ExternalMembers(false, 
-    "Min", "Max"
-  );
 });
 
 JSIL.MakeStruct("System.ValueType", "System.Decimal", true, [], function ($) {
@@ -1741,7 +1818,7 @@ JSIL.ImplementExternals(
           }
 
           var tEnumerator = JSIL.ArrayEnumerator.Of(this.TValue);
-          return new tEnumerator(values);
+          return new tEnumerator(values, -1);
         }).bind(this)
       );
     },
@@ -1760,7 +1837,7 @@ JSIL.ImplementExternals(
           }
 
           var tEnumerator = JSIL.ArrayEnumerator.Of(this.TKey);
-          return new tEnumerator(keys);
+          return new tEnumerator(keys, -1);
         }).bind(this)
       );
     },
@@ -1794,7 +1871,7 @@ JSIL.GetEnumerator = function (enumerable) {
 
   if (JSIL.IsArray(enumerable)) {
     var tEnumerator = JSIL.ArrayEnumerator.Of(System.Object);
-    return new tEnumerator(enumerable);
+    return new tEnumerator(enumerable, -1);
   } else if (typeof (enumerable.IEnumerable$b1_GetEnumerator) === "function")
     return enumerable.IEnumerable$b1_GetEnumerator();
   else if (typeof (enumerable.IEnumerable_GetEnumerator) === "function")

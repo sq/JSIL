@@ -11,12 +11,6 @@ namespace JSIL.Proxies {
         JSProxyMemberPolicy.ReplaceDeclared
     )]
     public abstract class IntegerProxy {
-        [JSRuntimeDispatch]
-        [JSExternal]
-        public static AnyType Parse (params AnyType[] arguments) {
-            throw new InvalidOperationException();
-        }
-
         [JSReplacement("($this).toString()")]
         public string ToString (params AnyType[] arguments) {
             return base.ToString();
@@ -35,12 +29,6 @@ namespace JSIL.Proxies {
         JSProxyMemberPolicy.ReplaceDeclared
     )]
     public abstract class NumberProxy {
-        [JSRuntimeDispatch]
-        [JSExternal]
-        public static AnyType Parse (params AnyType[] arguments) {
-            throw new InvalidOperationException();
-        }
-
         [JSReplacement("($this).toString()")]
         public string ToString (params AnyType[] arguments) {
             return base.ToString();

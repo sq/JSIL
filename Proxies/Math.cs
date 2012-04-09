@@ -65,22 +65,4 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
     }
-
-    [JSProxy(
-        typeof(Random),
-        JSProxyMemberPolicy.ReplaceDeclared
-    )]
-    public abstract class RandomProxy {
-        [JSRuntimeDispatch]
-        [JSExternal]
-        public RandomProxy (params AnyType[] values) {
-            throw new InvalidOperationException();
-        }
-
-        [JSRuntimeDispatch]
-        [JSExternal]
-        public static AnyType Next (params AnyType[] arguments) {
-            throw new InvalidOperationException();
-        }
-    }
 }
