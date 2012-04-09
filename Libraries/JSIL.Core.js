@@ -2054,9 +2054,15 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
 
   typeObject.__MethodGroupsBuilt__ = true;
 
-  var methods = JSIL.GetMembersInternal(
-    typeObject, 0, "MethodInfo", true
+  var instanceMethods = JSIL.GetMembersInternal(
+    typeObject, $jsilcore.BindingFlags.Instance, "MethodInfo", true
   );
+
+  var staticMethods = JSIL.GetMembersInternal(
+    typeObject, $jsilcore.BindingFlags.DeclaredOnly | $jsilcore.BindingFlags.Static, "MethodInfo", true
+  );
+
+  var methods = staticMethods.concat(instanceMethods);
 
   var trace = false;
   var active = true;
@@ -2123,11 +2129,13 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
         target, typeObject.__FullName__, methodName, methodEscapedName, entries
       );
 
+      /*
       if (isStatic) {
         var _toString = methodGroup.toString;
         methodGroup = methodGroup.bind(target);
         methodGroup.toString = _toString;
       }
+      */
 
       target[methodEscapedName] = methodGroup;
     }
@@ -4177,7 +4185,7 @@ JSIL.GetMembersInternal = function (typeObject, flags, memberType, allowConstruc
     var member = members[i];
 
     // Instance and static constructors are not enumerated like normal methods.
-    if (member.IsSpecialName) {
+    if (member._descriptor.SpecialName) {
       if (allowConstructors) {
       } else if (constructorsOnly === false) {
         continue;
@@ -4186,14 +4194,14 @@ JSIL.GetMembersInternal = function (typeObject, flags, memberType, allowConstruc
       continue;
     }
 
-    if (publicOnly && !member.IsPublic)
+    if (publicOnly && !member._descriptor.Public)
       continue;
-    else if (nonPublicOnly && member.IsPublic)
+    else if (nonPublicOnly && member._descriptor.Public)
       continue;
 
-    if (staticOnly && !member.IsStatic)
+    if (staticOnly && !member._descriptor.Static)
       continue;
-    else if (instanceOnly && member.IsStatic)
+    else if (instanceOnly && member._descriptor.Static)
       continue;
 
     if ((typeof (memberType) === "string") && (memberType != member.__ThisType__.__ShortName__)) {
