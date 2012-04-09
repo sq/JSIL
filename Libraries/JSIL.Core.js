@@ -4781,10 +4781,7 @@ JSIL.MakeClass("System.Array", "JSIL.MultidimensionalArray", true, [], function 
 
       var dimensions = Array.prototype.slice.call(arguments, 1, 1 + numDimensions);
 
-      if (initializer != null)
-        return new JSIL.MultidimensionalArray(type, dimensions, initializer);
-      else
-        return new JSIL.MultidimensionalArray(type, dimensions);
+      return new JSIL.MultidimensionalArray(type, dimensions, initializer);
     }
   );
 });
