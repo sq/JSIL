@@ -2053,14 +2053,18 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
   typeObject.__MethodGroupsBuilt__ = true;
 
   var instanceMethods = JSIL.GetMembersInternal(
-    typeObject, $jsilcore.BindingFlags.Instance, "MethodInfo", true
+    typeObject, $jsilcore.BindingFlags.Instance, "MethodInfo", false
+  );
+
+  var constructors = JSIL.GetMembersInternal(
+    typeObject, $jsilcore.BindingFlags.DeclaredOnly | $jsilcore.BindingFlags.Instance, "MethodInfo", true
   );
 
   var staticMethods = JSIL.GetMembersInternal(
     typeObject, $jsilcore.BindingFlags.DeclaredOnly | $jsilcore.BindingFlags.Static, "MethodInfo", true
   );
 
-  var methods = staticMethods.concat(instanceMethods);
+  var methods = staticMethods.concat(instanceMethods).concat(constructors);
 
   var trace = false;
   var active = true;
