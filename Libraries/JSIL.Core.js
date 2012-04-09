@@ -1250,7 +1250,6 @@ $jsilcore.$Of$NoInitialize = function () {
 
   var resultTypeObject = JSIL.CloneObject(typeObject);
 
-  resultTypeObject.__MethodGroupsBuilt__ = false;
   resultTypeObject.__PublicInterface__ = result = function () {
     var ctorArguments = Array.prototype.slice.call(arguments);
     return Function.prototype.apply.call(staticClassObject, this, ctorArguments);
@@ -1392,8 +1391,6 @@ $jsilcore.$Of$NoInitialize = function () {
 
   if (isClosed) {
     JSIL.RenameGenericMethods(result, resultTypeObject);
-    JSIL.InstantiateProperties(result, resultTypeObject);
-    JSIL.FixupInterfaces(result, resultTypeObject);
   }
 
   // Force the initialized state back to false
@@ -1635,7 +1632,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
 
   if (missingMembers.length > 0) {
     if (JSIL.SuppressInterfaceWarnings !== true)
-      JSIL.Host.warning("Type ", typeObject, " is missing implementation of interface member(s): ", missingMembers.join(", "));
+      JSIL.Host.warning("Type '" + typeObject.__FullName__ + "' is missing implementation of interface member(s): ", missingMembers.join(", "));
   }
 };
 
@@ -2047,11 +2044,6 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
   // This is called during type system initialization, so we can't rely on any of MemberInfo's
   //  properties or methods - we need to access the data members directly.
 
-  if (typeObject.__MethodGroupsBuilt__)
-    return;
-
-  typeObject.__MethodGroupsBuilt__ = true;
-
   var instanceMethods = JSIL.GetMembersInternal(
     typeObject, $jsilcore.BindingFlags.Instance, "MethodInfo", false
   );
@@ -2105,10 +2097,6 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
     for (var i = 0, l = methodList.length; i < l; i++) {
       var method = methodList[i];
 
-      if (trace) {
-        console.log(method._typeObject.__FullName__ + "::" + methodName + " | " + signature._hash);
-      }
-
       entries.push(method._data.signature);
     }
 
@@ -2120,7 +2108,7 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
       (target[methodEscapedName].__IsPlaceholder__ !== true)
     ) {
       if (trace) {
-        console.log("Not overwriting " + method._typeObject.__FullName__ + "." + methodEscapedName);
+        console.log("Not overwriting " + typeObject.__FullName__ + "." + methodEscapedName);
       }
 
       continue;
@@ -2138,6 +2126,10 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
         methodGroup.toString = _toString;
       }
       */
+
+      if (trace) {
+        console.log(typeObject.__FullName__ + "." + methodEscapedName + " = ", methodGroup);
+      }
 
       target[methodEscapedName] = methodGroup;
     }
@@ -2161,11 +2153,9 @@ JSIL.InitializeType = function (type) {
   // Not entirely correct, but prevents recursive type initialization
   typeObject.__TypeInitialized__ = true;
 
-  if (typeObject.__IsClosed__) {
+  if (typeObject.__IsClosed__ && (typeObject.IsInterface !== true)) {
     JSIL.$BuildMethodGroups(typeObject, classObject);
-
-    JSIL.InstantiateProperties(classObject, typeObject);    
-
+    JSIL.InstantiateProperties(classObject, typeObject);
     JSIL.FixupInterfaces(classObject, typeObject);
   }
 
@@ -2395,6 +2385,8 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   typeObject.__TypeInitialized__ = false;
   typeObject.__GenericArguments__ = genericArguments || [];
 
+  typeObject.IsInterface = false;
+
   var staticClassObject = JSIL.CloneObject(JSIL.StaticClassPrototype);
   staticClassObject.__Type__ = typeObject;
   staticClassObject.__TypeId__ = typeObject.__TypeId__ = JSIL.AssignTypeId(assembly, fullName);
@@ -2499,6 +2491,8 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__GenericArguments__ = genericArguments || [];
     var valueTypeName = "System.ValueType";
     typeObject.__IsStruct__ = (baseTypeName.indexOf(valueTypeName) == baseTypeName.length - valueTypeName.length);
+
+    typeObject.IsInterface = false;
 
     if (stack !== null)
       typeObject.__CallStack__ = stack;
