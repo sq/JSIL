@@ -2237,8 +2237,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     var failed = true;
     try {
       if (this.isFixedTimeStep) {
+        /*
         this._gameTime.elapsedRealTime._ticks = Math.floor(elapsed * millisecondInTicks);
         this._gameTime.totalRealTime._ticks = Math.floor(total * millisecondInTicks);
+        */
+
         this._gameTime.elapsedGameTime._ticks = (frameDelay * millisecondInTicks);
 
         if (elapsed > maxElapsedTimeMs) elapsed = maxElapsedTimeMs;
@@ -2252,8 +2255,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
           this.Update(this._gameTime);
         }
       } else {
+        /*
         this._gameTime.elapsedRealTime._ticks = this._gameTime.elapsedGameTime._ticks = Math.floor(elapsed * millisecondInTicks);
         this._gameTime.totalRealTime._ticks = this._gameTime.totalGameTime._ticks = Math.floor(total * millisecondInTicks);
+        */
+
         this.Update(this._gameTime);
       }
 
@@ -2600,56 +2606,49 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Viewport", function ($
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.GameTime", function ($) {
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function () {
-    this.totalRealTime = new System.TimeSpan();
-    this.elapsedRealTime = new System.TimeSpan();
-    this.totalGameTime = new System.TimeSpan();
-    this.elapsedGameTime = new System.TimeSpan();
-    this.isRunningSlowly = false;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (totalRealTime, elapsedRealTime, totalGameTime, elapsedGameTime, isRunningSlowly) {
-    this.totalRealTime = totalRealTime;
-    this.elapsedRealTime = elapsedRealTime;
-    this.totalGameTime = totalGameTime;
-    this.elapsedGameTime = elapsedGameTime;
-    this.isRunningSlowly = isRunningSlowly;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (totalRealTime, elapsedRealTime, totalGameTime, elapsedGameTime) {
-    Microsoft.Xna.Framework.GameTime.prototype._ctor$1.call(this, totalRealTime, elapsedRealTime, totalGameTime, elapsedGameTime, false);
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_TotalRealTime", new JSIL.MethodSignature(null, [], []), function () {
-    return this.totalRealTime;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_TotalGameTime", new JSIL.MethodSignature(null, [], []), function () {
-    return this.totalGameTime;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_ElapsedRealTime", new JSIL.MethodSignature(null, [], []), function () {
-    return this.elapsedRealTime;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_ElapsedGameTime", new JSIL.MethodSignature(null, [], []), function () {
-    return this.elapsedGameTime;
-  });
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      this.totalGameTime = new System.TimeSpan();
+      this.elapsedGameTime = new System.TimeSpan();
+      this.isRunningSlowly = false;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [
+          $asms[5].TypeRef("System.TimeSpan"), $asms[5].TypeRef("System.TimeSpan"), 
+          $.Boolean
+        ], [])), 
+    function _ctor (totalGameTime, elapsedGameTime, isRunningSlowly) {
+      this.totalGameTime = totalGameTime;
+      this.elapsedGameTime = elapsedGameTime;
+      this.isRunningSlowly = isRunningSlowly;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$asms[5].TypeRef("System.TimeSpan"), $asms[5].TypeRef("System.TimeSpan")], [])), 
+    function _ctor (totalGameTime, elapsedGameTime) {
+      this.totalGameTime = totalGameTime;
+      this.elapsedGameTime = elapsedGameTime;
+      this.isRunningSlowly = false;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_TotalGameTime", 
+    (new JSIL.MethodSignature($asms[5].TypeRef("System.TimeSpan"), [], [])), 
+    function get_TotalGameTime () {
+      return this.totalGameTime;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_ElapsedGameTime", 
+    (new JSIL.MethodSignature($asms[5].TypeRef("System.TimeSpan"), [], [])), 
+    function get_ElapsedGameTime () {
+      return this.elapsedGameTime;
+    }
+  );
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {

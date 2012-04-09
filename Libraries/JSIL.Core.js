@@ -3993,6 +3993,9 @@ JSIL.CreateInstanceOfType = function (type, constructorName, constructorArgument
   if (typeof (constructorName) === "string") {
     constructor = publicInterface.prototype[constructorName];
   } else if (constructorName === null) {
+    JSIL.InitializeType(type);
+    JSIL.InitializeStructFields(instance, type);
+
     return instance;
   } else {
     constructor = publicInterface.prototype["_ctor"];
