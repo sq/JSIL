@@ -152,8 +152,7 @@ JSIL.ImplementExternals(
       }
     );
 
-    $.Method({Static: true , Public: true }, "CheckType",
-      new JSIL.MethodSignature("System.Boolean", [JSIL.AnyType]),
+    $.RawMethod(true, "CheckType",
       function (value) {
         return (typeof (value) === "string") || (
           (typeof (value.text) === "string") && (value.__proto__ === prototype)
@@ -639,23 +638,28 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, ["T"], function ($
 });
 
 JSIL.ImplementExternals(
-  "System.Threading.Thread", true, {
-    _ctor: function () {}
-  }
-);
+  "System.Threading.Thread", function ($) {
+    $.Method({Static:true , Public:true }, ".cctor2", 
+      (new JSIL.MethodSignature(null, [], [])), 
+      function () {
+        // This type already has a cctor, so we add a second one.
+        System.Threading.Thread._currentThread = new System.Threading.Thread();
+      }
+    );
 
-JSIL.ImplementExternals(
-  "System.Threading.Thread", false, {
-    _cctor2: function () {
-      // This type already has a cctor, so we add a second one.
-      System.Threading.Thread._currentThread = new System.Threading.Thread();
-    },
-    get_CurrentThread: function () {
-      return System.Threading.Thread._currentThread;
-    },
-    get_ManagedThreadId: function () {
-      return 0;
-    }
+    $.Method({Static:true , Public:true }, "get_CurrentThread", 
+      (new JSIL.MethodSignature($jsilcore.TypeRef("System.Threading.Thread"), [], [])), 
+      function get_CurrentThread () {
+        return System.Threading.Thread._currentThread;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_ManagedThreadId", 
+      (new JSIL.MethodSignature($.Int32, [], [])), 
+      function get_ManagedThreadId () {
+        return 0;
+      }
+    );
   }
 );
 
@@ -1428,142 +1432,216 @@ JSIL.MakeClass("System.Object", "System.Text.Encoding", true, [], function ($) {
 JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true, [], function ($) {
 });
 
-JSIL.MakeStruct("System.ValueType", "System.TimeSpan", true, [], function ($) {
-    $.ExternalMembers(true, 
-      "get_Ticks", "get_Milliseconds", "get_TotalMilliseconds", "get_Seconds",
-      "get_Minutes", "get_Hours", "get_Days", "get_TotalSeconds", "get_TotalMinutes"
+JSIL.ImplementExternals(
+  "System.TimeSpan", function ($) {
+    $.Method({Static:true , Public:true }, "FromMilliseconds", 
+      (new JSIL.MethodSignature($.Type, [$.Double], [])), 
+      function FromMilliseconds (value) {
+        var result = Object.create(System.TimeSpan.prototype);
+        result._ticks = Math.floor(value * 10000);
+        return result;
+      }
     );
 
-    $.Property({Public: true , Static: false}, "Ticks");
+    $.Method({Static:true , Public:true }, "FromMinutes", 
+      (new JSIL.MethodSignature($.Type, [$.Double], [])), 
+      function FromMinutes (value) {
+        var result = Object.create(System.TimeSpan.prototype);
+        result._ticks = Math.floor(value * 60 * 10000000);
+        return result;
+      }
+    );
 
-    $.Property({Public: true , Static: false}, "Milliseconds");
+    $.Method({Static:true , Public:true }, "FromSeconds", 
+      (new JSIL.MethodSignature($.Type, [$.Double], [])), 
+      function FromSeconds (value) {
+        var result = Object.create(System.TimeSpan.prototype);
+        result._ticks = Math.floor(value * 10000000);
+        return result;
+      }
+    );
 
-    $.Property({Public: true , Static: false}, "TotalMilliseconds");
+    $.Method({Static:true , Public:true }, "FromTicks", 
+      (new JSIL.MethodSignature($.Type, [$.Int64], [])), 
+      function FromTicks (value) {
+        var result = Object.create(System.TimeSpan.prototype);
+        result._ticks = Math.floor(value);
+        return result;
+      }
+    );
 
-    $.Property({Public: true , Static: false}, "Seconds");
+    $.Method({Static:true , Public:true }, "op_Addition", 
+      (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])), 
+      function op_Addition (t1, t2) {
+        var result = Object.create(System.TimeSpan.prototype);
+        result._ticks = t1._ticks + t2._ticks;
+        return result;
+      }
+    );
 
-    $.Property({Public: true , Static: false}, "Minutes");
+    $.Method({Static:true , Public:true }, "op_Equality", 
+      (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])), 
+      function op_Equality (t1, t2) {
+        return t1._ticks === t2._ticks;
+      }
+    );
 
-    $.Property({Public: true , Static: false}, "Hours");
+    $.Method({Static:true , Public:true }, "op_GreaterThan", 
+      (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])), 
+      function op_GreaterThan (t1, t2) {
+        return t1._ticks > t2._ticks;
+      }
+    );
 
-    $.Property({Public: true , Static: false}, "Days");
+    $.Method({Static:true , Public:true }, "op_Inequality", 
+      (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])), 
+      function op_Inequality (t1, t2) {
+        return t1._ticks !== t2._ticks;
+      }
+    );
 
-    $.Property({Public: true , Static: false}, "TotalSeconds");
+    $.Method({Static:true , Public:true }, "op_LessThan", 
+      (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])), 
+      function op_LessThan (t1, t2) {
+        return t1._ticks < t2._ticks;
+      }
+    );
 
-    $.Property({Public: true , Static: false}, "TotalMinutes");
+    $.Method({Static:true , Public:true }, "op_Subtraction", 
+      (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])), 
+      function op_Subtraction (t1, t2) {
+        var result = Object.create(System.TimeSpan.prototype);
+        result._ticks = t1._ticks - t2._ticks;
+        return result;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, ".ctor", 
+      (new JSIL.MethodSignature(null, [$.Int64], [])), 
+      function _ctor (ticks) {
+        this._ticks = ticks;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, ".ctor", 
+      (new JSIL.MethodSignature(null, [
+            $.Int32, $.Int32, 
+            $.Int32
+          ], [])), 
+      function _ctor (hours, minutes, seconds) {
+        this._ticks = 10000 * (1000 * (seconds + 60 * (minutes + 60 * hours)));
+      }
+    );
+
+    $.Method({Static:false, Public:true }, ".ctor", 
+      (new JSIL.MethodSignature(null, [
+            $.Int32, $.Int32, 
+            $.Int32, $.Int32
+          ], [])), 
+      function _ctor (days, hours, minutes, seconds) {
+        this._ticks = 10000 * (1000 * (seconds + 60 * (minutes + 60 * (hours + 24 * days))));
+      }
+    );
+
+    $.Method({Static:false, Public:true }, ".ctor", 
+      (new JSIL.MethodSignature(null, [
+            $.Int32, $.Int32, 
+            $.Int32, $.Int32, 
+            $.Int32
+          ], [])), 
+      function _ctor (days, hours, minutes, seconds, milliseconds) {
+        this._ticks = 10000 * (milliseconds + 1000 * (seconds + 60 * (minutes + 60 * (hours + 24 * days))));
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_Days", 
+      (new JSIL.MethodSignature($.Int32, [], [])), 
+      function get_Days () {
+        return Math.floor((this._ticks / 10000000) / (60 * 60 * 24));
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_Hours", 
+      (new JSIL.MethodSignature($.Int32, [], [])), 
+      function get_Hours () {
+        return Math.floor((this._ticks / 10000000) / (60 * 60)) % 24;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_Milliseconds", 
+      (new JSIL.MethodSignature($.Int32, [], [])), 
+      function get_Milliseconds () {
+        return Math.floor(this._ticks / 10000) % 1000;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_Minutes", 
+      (new JSIL.MethodSignature($.Int32, [], [])), 
+      function get_Minutes () {
+        return Math.floor((this._ticks / 10000000) / 60) % 60;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_Seconds", 
+      (new JSIL.MethodSignature($.Int32, [], [])), 
+      function get_Seconds () {
+        return Math.floor(this._ticks / 10000000) % 60;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_Ticks", 
+      (new JSIL.MethodSignature($.Int64, [], [])), 
+      function get_Ticks () {
+        return this._ticks;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_TotalMilliseconds", 
+      (new JSIL.MethodSignature($.Double, [], [])), 
+      function get_TotalMilliseconds () {
+        return this._ticks / 10000;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_TotalMinutes", 
+      (new JSIL.MethodSignature($.Double, [], [])), 
+      function get_TotalMinutes () {
+        return this._ticks / 600000000;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_TotalSeconds", 
+      (new JSIL.MethodSignature($.Double, [], [])), 
+      function get_TotalSeconds () {
+        return this._ticks / 10000000;
+      }
+    );
+  }
+);
+
+JSIL.MakeStruct("System.ValueType", "System.TimeSpan", true, [], function ($) {
+  $.Field({Static:false, Public:false}, "_ticks", $.Int64, function ($) {
+    return 0;
+  });
+
+  $.Property({Public: true , Static: false}, "Ticks");
+
+  $.Property({Public: true , Static: false}, "Milliseconds");
+
+  $.Property({Public: true , Static: false}, "TotalMilliseconds");
+
+  $.Property({Public: true , Static: false}, "Seconds");
+
+  $.Property({Public: true , Static: false}, "Minutes");
+
+  $.Property({Public: true , Static: false}, "Hours");
+
+  $.Property({Public: true , Static: false}, "Days");
+
+  $.Property({Public: true , Static: false}, "TotalSeconds");
+
+  $.Property({Public: true , Static: false}, "TotalMinutes");
 });
-
-JSIL.ImplementExternals(
-  "System.TimeSpan", false, {
-    FromTicks: function (ticks) {
-      var result = Object.create(System.TimeSpan.prototype);
-      result._ticks = Math.floor(ticks);
-      return result;
-    },
-
-    FromMilliseconds: function (milliseconds) {
-      var result = Object.create(System.TimeSpan.prototype);
-      result._ticks = Math.floor(milliseconds * 10000);
-      return result;
-    },
-
-    FromSeconds: function (seconds) {
-      var result = Object.create(System.TimeSpan.prototype);
-      result._ticks = Math.floor(seconds * 10000000);
-      return result;
-    },
-
-    FromMinutes: function (minutes) {
-      var result = Object.create(System.TimeSpan.prototype);
-      result._ticks = Math.floor(minutes * 60 * 10000000);
-      return result;
-    },
-
-    op_Equality: function (lhs, rhs) {
-      return lhs._ticks === rhs._ticks;
-    },
-
-    op_Inequality: function (lhs, rhs) {
-      return lhs._ticks !== rhs._ticks;
-    },
-
-    op_GreaterThan: function (lhs, rhs) {
-      return lhs._ticks > rhs._ticks;
-    },
-
-    op_LessThan: function (lhs, rhs) {
-      return lhs._ticks < rhs._ticks;
-    },
-
-    op_Addition: function (lhs, rhs) {
-      var result = Object.create(System.TimeSpan.prototype);
-      result._ticks = lhs._ticks + rhs._ticks;
-      return result;
-    },
-
-    op_Subtraction: function (lhs, rhs) {
-      var result = Object.create(System.TimeSpan.prototype);
-      result._ticks = lhs._ticks - rhs._ticks;
-      return result;
-    }
-  }
-);
-
-JSIL.ImplementExternals(
-  "System.TimeSpan", true, {
-    _ctor$0: function (ticks) {
-      this._ticks = ticks;
-    },
-
-    _ctor$1: function (hours, minutes, seconds) {
-      this._ticks = 10000 * (1000 * (seconds + 60 * (minutes + 60 * hours)));
-    },
-
-    _ctor$2: function (days, hours, minutes, seconds) {
-      this._ticks = 10000 * (1000 * (seconds + 60 * (minutes + 60 * (hours + 24 * days))));
-    },
-
-    _ctor$3: function (days, hours, minutes, seconds, milliseconds) {
-      this._ticks = 10000 * (milliseconds + 1000 * (seconds + 60 * (minutes + 60 * (hours + 24 * days))));
-    },
-
-    get_Ticks: function () {
-      return this._ticks;
-    },
-
-    get_Milliseconds: function () {
-      return Math.floor(this._ticks / 10000) % 60;
-    },
-
-    get_Seconds: function () {
-      return Math.floor(this._ticks / 10000000) % 60;
-    },
-
-    get_Minutes: function () {
-      return Math.floor((this._ticks / 10000000) / 60) % 60;
-    },
-
-    get_Hours: function () {
-      return Math.floor((this._ticks / 10000000) / (60 * 60)) % 24;
-    },
-
-    get_Days: function () {
-      return Math.floor((this._ticks / 10000000) / (60 * 60 * 24));
-    },
-
-    get_TotalMilliseconds: function () {
-      return this._ticks / 10000;
-    },
-
-    get_TotalSeconds: function () {
-      return this._ticks / 10000000;
-    },
-
-    get_TotalMinutes: function () {
-      return this._ticks / 600000000;
-    }
-  }
-);
 
 JSIL.ImplementExternals(
   "System.Collections.Generic.Dictionary`2", true, {
@@ -2138,8 +2216,7 @@ JSIL.ImplementExternals(
 
 JSIL.ImplementExternals(
   "System.Enum", function ($) {    
-    $.Method({Static: true , Public: true }, "CheckType",
-      new JSIL.MethodSignature("System.Boolean", [JSIL.AnyType]),
+    $.RawMethod(true, "CheckType",
       function (value) {
         if (typeof (value) === "object") {
           if ((value !== null) && (typeof (value.GetType) === "function"))

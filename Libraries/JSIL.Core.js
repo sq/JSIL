@@ -229,11 +229,10 @@ JSIL.SplitName = function (name) {
   return name.split(JSIL.SplitRegex);
 };
 
-JSIL.ResolvedName = function (parent, parentName, key, localName, allowInheritance) {
+JSIL.ResolvedName = function (parent, parentName, key, allowInheritance) {
   this.parent = parent;
   this.parentName = parentName;
   this.key = key;
-  this.localName = localName;
   this.allowInheritance = allowInheritance;
 };
 JSIL.ResolvedName.prototype.exists = function () {
@@ -312,7 +311,7 @@ JSIL.ResolveName = function (root, name, allowInheritance) {
   var localName = parts[parts.length - 1];
   return new JSIL.ResolvedName(
     current, name.substr(0, name.length - (localName.length + 1)), 
-    JSIL.EscapeName(localName), localName, allowInheritance
+    JSIL.EscapeName(localName), allowInheritance
   );
 };
 
@@ -598,6 +597,7 @@ JSIL.ImplementExternals = function (namespaceName, isInstance, externals) {
       var typeId = JSIL.AssignTypeId(context, namespaceName);
       var typeObject = {
         __Members__: [],
+        __RawMethods__: [],
         __TypeId__: typeId,
         __FullName__: namespaceName
       };
@@ -627,6 +627,17 @@ JSIL.ImplementExternals = function (namespaceName, isInstance, externals) {
         }
 
         obj[descriptor.Static ? descriptor.EscapedName : prefix + descriptor.EscapedName] = [m[i], target[name]];
+      }
+
+      var rm = typeObject.__RawMethods__;
+      for (var i = 0; i < rm.length; i++) {
+        var rawMethod = rm[i];
+
+        if (rawMethod[0]) {
+          obj[rawMethod[1]] = [null, publicInterface[rawMethod[1]]];
+        } else {
+          obj[prefix + rawMethod[1]] = [null, publicInterface.prototype[rawMethod[1]]];
+        }
       }
     } else {
       var prefix = isInstance ? "instance$" : "";
@@ -836,7 +847,7 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
   if (isPublic)
     var publicName = JSIL.ResolveName(JSIL.GlobalNamespace, name, true);
 
-  var localName = privateName.localName;
+  var localName = JSIL.GetLocalName(name);
 
   if (privateName.exists()) {
     JSIL.DuplicateDefinitionWarning(name, false, privateName.get().__CallStack__ || null, privateNamespace);
@@ -1251,6 +1262,7 @@ $jsilcore.$Of$NoInitialize = function () {
 
   var resultTypeObject = JSIL.CloneObject(typeObject);
 
+  resultTypeObject.__MethodGroupsBuilt__ = false;
   resultTypeObject.__PublicInterface__ = result = function () {
     var ctorArguments = Array.prototype.slice.call(arguments);
     return Function.prototype.apply.call(staticClassObject, this, ctorArguments);
@@ -1689,9 +1701,12 @@ JSIL.MakeStructFieldInitializer = function (typeObject) {
     types[i] = fieldType;
   }
 
+  var subtypeRe = /[\+\/]/g;
+  var uri = typeObject.__FullName__.replace(subtypeRe, ".");
+
   var rawFunction = new Function(
     "types", "target", 
-    "//@ sourceURL=jsil://structFieldInitializer/" + typeObject.__FullName__ + "\r\n" + body.join("\r\n")
+    "//@ sourceURL=jsil://structFieldInitializer/" + uri + "\r\n" + body.join("\r\n")
   );
   var boundFunction = rawFunction.bind(null, types);
   boundFunction.__ThisType__ == typeObject;
@@ -1747,9 +1762,12 @@ JSIL.MakeMemberCopier = function (typeObject) {
     body.push(line);
   }
 
+  var subtypeRe = /[\+\/]/g;
+  var uri = typeObject.__FullName__.replace(subtypeRe, ".");
+
   var rawFunction = new Function(
     "source", "target",
-    "//@ sourceURL=jsil://memberCopier/" + typeObject.__FullName__ + "\r\n" + body.join("\r\n")
+    "//@ sourceURL=jsil://memberCopier/" + uri + "\r\n" + body.join("\r\n")
   );
 
   return rawFunction;
@@ -1800,9 +1818,65 @@ JSIL.$ResolveGenericTypeReferences = function (context, types) {
   }
 };
 
-JSIL.$MakeMethodGroup = function (typeName, methodName, overloadSignatures) {
+JSIL.$MakeMethodGroup = function (targetTypeName, methodTypeName, methodName, overloadSignatures) {
   var groups = {};
-  var methodFullName = typeName + "::" + methodName;
+  var targetFullName = targetTypeName + "::" + methodName;
+  var methodFullName = methodTypeName + "::" + methodName;
+
+  var makeDispatcher;
+
+  var makeSingleMethodGroup = function (group) {
+    var singleMethod = group[0];
+    var key = singleMethod.GetKey(methodName);
+
+    return function () {
+      return this[key].apply(this, arguments);
+    };
+  };
+
+  var makeGenericArgumentGroup = function (id, group, offset) {
+    var gaGroup;
+    if (group.length === 1) {
+      gaGroup = makeSingleMethodGroup(group);
+    } else {
+      gaGroup = makeDispatcher(id, group, offset);
+    }
+
+    return function () {
+      return JSIL.$BindGenericMethod(this, gaGroup, methodFullName, arguments);
+    };
+  };
+
+  var makeAmbiguousGroup = function (group) {
+    return function () {
+      var text = "Found " + group.length + " ambiguous candidates for method invocation:";
+      for (var i = 0; i < group.length; i++) {
+        text += "\n" + group[i].toString(methodFullName);
+      }
+
+      throw new Error(text);
+    };
+  };
+
+  if (overloadSignatures.length === 1) {
+    var signature = overloadSignatures[0];
+    var gaCount = signature.genericArgumentNames.length;
+    var result;
+
+    if (gaCount > 0) {
+      result = makeGenericArgumentGroup(targetFullName + "`" + gaCount, overloadSignatures, gaCount);
+    } else {
+      result = makeSingleMethodGroup(overloadSignatures);
+    }
+
+    result.toString = function () {
+      return "<Method " + methodFullName + ">";
+    };
+
+    JSIL.RenameFunction(methodFullName, result);
+
+    return result;
+  }
 
   for (var i = 0, l = overloadSignatures.length; i < l; i++) {
     var signature = overloadSignatures[i];
@@ -1825,36 +1899,6 @@ JSIL.$MakeMethodGroup = function (typeName, methodName, overloadSignatures) {
 
     group.push(signature);
   }
-
-  var makeDispatcher;
-
-  var makeSingleMethodGroup = function (group) {
-    var singleMethod = group[0];
-    var key = singleMethod.GetKey(methodName);
-
-    return function () {
-      return this[key].apply(this, arguments);
-    };
-  };
-
-  var makeGenericArgumentGroup = function (id, group, offset) {
-    var gaGroup = makeDispatcher(id, group, offset);
-
-    return function () {
-      return JSIL.$BindGenericMethod(this, gaGroup, methodFullName, arguments);
-    };
-  };
-
-  var makeAmbiguousGroup = function (group) {
-    return function () {
-      var text = "Found " + group.length + " ambiguous candidates for method invocation:";
-      for (var i = 0; i < group.length; i++) {
-        text += "\n" + group[i].toString(methodFullName);
-      }
-
-      throw new Error(text);
-    };
-  };
 
   makeDispatcher = function (id, g, offset) {
     var body = [];
@@ -1883,7 +1927,7 @@ JSIL.$MakeMethodGroup = function (typeName, methodName, overloadSignatures) {
       var method;
 
       if (group.ga === true) {
-        method = makeGenericArgumentGroup(id + "[" + k + "]", group, group.gaCount);
+        method = makeGenericArgumentGroup(id + "`" + k, group, group.gaCount);
       } else if (group.length === 1) {
         method = makeSingleMethodGroup(group);
       } else {
@@ -1898,24 +1942,41 @@ JSIL.$MakeMethodGroup = function (typeName, methodName, overloadSignatures) {
 
     body.push("  }");
     body.push("  ");
-    body.push("  throw new Error('Found no candidates for method invocation.')");
+    body.push("  throw new Error('No overload of ' + this.name + ' can accept ' + (args.length - this.offset) + ' argument(s).')");
+
+    var subtypeRe = /[\+\/]/g;
+    var idRe = /::/g;
+    var idUri = id.replace(subtypeRe, ".").replace(idRe, "/");
 
     var dispatcher = new Function(
       "self", "args",
-      "  //@ sourceURL=jsil://overloadDispatcher/" + id + "\r\n" + body.join("\r\n")
+      "  //@ sourceURL=jsil://overloadDispatcher/" + idUri + "\r\n" + body.join("\r\n")
     );
 
-    return function () {
+    methods.name = id;
+    methods.offset = offset;
+
+    // We can't use .bind() to bind arguments here because it breaks the 'this' parameter and breaks .call()/.apply().
+    var boundDispatcher = function () {
       return dispatcher.call(methods, this, arguments);
     };
+
+    boundDispatcher.toString = function () {
+      return "<Overloaded Method " + id + ">";
+    };
+
+    JSIL.RenameFunction(id, boundDispatcher);
+
+    return boundDispatcher;    
   };
 
-  var boundDispatcher = makeDispatcher(methodFullName, groups, 0);
-
-  return JSIL.RenameFunction(methodFullName, boundDispatcher);
+  return makeDispatcher(targetFullName, groups, 0);
 };
 
 JSIL.$ApplyMemberHiding = function (memberList) {
+  // This is called during type system initialization, so we can't rely on any of MemberInfo's
+  //  properties or methods - we need to access the data members directly.
+
   var comparer = function (lhs, rhs) {
     var lhsHash = lhs._data.signature.Hash;
     var rhsHash = rhs._data.signature.Hash;
@@ -1991,6 +2052,14 @@ JSIL.$ApplyMemberHiding = function (memberList) {
 };
 
 JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
+  // This is called during type system initialization, so we can't rely on any of MemberInfo's
+  //  properties or methods - we need to access the data members directly.
+
+  if (typeObject.__MethodGroupsBuilt__)
+    return;
+
+  typeObject.__MethodGroupsBuilt__ = true;
+
   var methods = JSIL.GetMembersInternal(
     typeObject, 0, "MethodInfo", true
   );
@@ -2018,52 +2087,11 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
     JSIL.$ApplyMemberHiding(methodList);
   }
 
-  // console.log("-- " + typeObject.__FullName__ + " --");
-
   var printedTypeName = false;
   var resolveContext = publicInterface.prototype;
 
   for (var key in methodsByName) {
     var methodList = methodsByName[key];
-
-    // Name hiding may have collapsed the overloaded method group into a single method.
-    // If so, we can grab the surviving method and assign it the name.
-    if (methodList.length < 2) {
-      var theMethod = methodList[0];
-      var escapedName = theMethod._descriptor.EscapedName;
-      var mangledName = theMethod._data.mangledName;
-      var target = theMethod.IsStatic ? publicInterface : publicInterface.prototype;
-
-      var oldValue = target[escapedName];
-      var newValue = target[mangledName];
-
-      if (typeof (newValue) === "undefined")
-        continue;
-
-      if (trace) {
-        console.log(typeObject.__FullName__ + "::" + escapedName + " = " + theMethod._typeObject.__FullName__ + "::" + mangledName);
-      }
-
-      if (active) {
-        if ((newValue.__IsPlaceholder__) && (!oldValue.__IsPlaceholder__)) {
-          if (trace) {
-            console.log("Not replacing real method with placeholder");
-          }
-        } else {
-          target[escapedName] = newValue;
-        }
-      }
-      
-      continue;
-    }
-
-    if (!printedTypeName) {
-      if (trace) {
-        console.log("-- " + typeObject.__FullName__ + " --");
-      }
-
-      printedTypeName = true;
-    }
 
     var methodName = methodList[0]._descriptor.Name;
     var isStatic = methodList[0]._descriptor.Static;
@@ -2084,7 +2112,15 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
     var target = isStatic ? publicInterface : publicInterface.prototype;
 
     if (active) {
-      target[methodName] = JSIL.$MakeMethodGroup(method._typeObject.__FullName__, methodName, entries);
+      var methodGroup = JSIL.$MakeMethodGroup(typeObject.__FullName__, method._typeObject.__FullName__, methodName, entries);
+
+      if (isStatic) {
+        var _toString = methodGroup.toString;
+        methodGroup = methodGroup.bind(target);
+        methodGroup.toString = _toString;
+      }
+
+      target[methodName] = methodGroup;
     }
   }
 };
@@ -2336,6 +2372,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   typeObject.__Initializers__ = [];
   typeObject.__Interfaces__ = [];
   typeObject.__Members__ = [];
+  typeObject.__RawMethods__ = [];
   typeObject.__TypeInitialized__ = false;
   typeObject.__GenericArguments__ = genericArguments || [];
 
@@ -2439,6 +2476,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__ShortName__ = localName;
     typeObject.__LockCount__ = 0;
     typeObject.__Members__ = [];
+    typeObject.__RawMethods__ = [];
     typeObject.__GenericArguments__ = genericArguments || [];
     var valueTypeName = "System.ValueType";
     typeObject.__IsStruct__ = (baseTypeName.indexOf(valueTypeName) == baseTypeName.length - valueTypeName.length);
@@ -3040,22 +3078,6 @@ JSIL.$BindGenericMethod = function (outerThis, body, methodName, genericArgument
   return result;
 };
 
-JSIL.GenericMethod = function (argumentNames, methodName, body) {
-  var result = function () {
-    if (arguments.length !== argumentNames.length)
-      throw new Error("Invalid number of generic arguments for method '" + methodName + "' (got " + arguments.length + ", expected " + argumentNames.length + ")");
-
-    return JSIL.$BindGenericMethod(this, body, methodName, arguments);
-  };
-
-  result.__IsGenericMethod__ = true;
-  result.toString = function () {
-    return "<Unbound Generic Method '" + methodName + "'>";
-  };
-
-  return result;
-};
-
 JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
   this.context = context;
   this.typeObject = typeObject;
@@ -3352,21 +3374,30 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
   });
 };
 
+JSIL.InterfaceBuilder.prototype.RawMethod = function (isStatic, methodName, fn) {
+  methodName = JSIL.EscapeName(methodName);
+
+  if (typeof (fn) !== "function")
+    throw new Error("RawMethod only accepts function arguments");
+
+  if (isStatic) {
+    this.publicInterface[methodName] = fn;
+  } else {
+    this.publicInterface.prototype[methodName] = fn;
+  }
+
+  this.typeObject.__RawMethods__.push([isStatic, methodName]);
+};
+
 JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, signature, fn) {
   var descriptor = this.ParseDescriptor(_descriptor, methodName, signature);
 
   var mangledName = signature.GetKey(descriptor.EscapedName);
 
-  if (signature.genericArgumentNames.length > 0) {
-    fn = JSIL.GenericMethod(
-      signature.genericArgumentNames, methodName, fn
-    );
-  } else {
-    var fullName = this.namespace + "::" + methodName;
-    fn.toString = function () {
-      return "<" + signature.toString(fullName) + ">";
-    };
-  }
+  var fullName = this.namespace + "::" + methodName;
+  fn.toString = function () {
+    return "<" + signature.toString(fullName) + ">";
+  };
 
   descriptor.Target[mangledName] = fn;
   descriptor.SetExclusive(descriptor.EscapedName, fn);
@@ -3524,7 +3555,8 @@ JSIL.MethodSignature.prototype.Call = function (context, name, ga, thisReference
 
   if (ga !== null) {
     JSIL.ResolveTypeArgumentArray(ga);
-    method = method.apply(thisReference, ga);  
+    var parameters = ga.concat(Array.prototype.slice.call(arguments, 4));
+    return method.apply(thisReference, parameters);
   }
 
   if (arguments.length === 4) {
@@ -3558,7 +3590,8 @@ JSIL.MethodSignature.prototype.CallStatic = function (context, name, ga /*, ...p
 
   if (ga !== null) {
     JSIL.ResolveTypeArgumentArray(ga);
-    method = method.apply(context, ga);  
+    var parameters = ga.concat(Array.prototype.slice.call(arguments, 3));
+    return method.apply(context, parameters);
   }
 
   if (arguments.length === 3) {
@@ -3592,7 +3625,8 @@ JSIL.MethodSignature.prototype.CallVirtual = function (name, ga, thisReference /
 
   if (ga !== null) {
     JSIL.ResolveTypeArgumentArray(ga);
-    method = method.apply(thisReference, ga);  
+    var parameters = ga.concat(Array.prototype.slice.call(arguments, 3));
+    return method.apply(thisReference, parameters);
   }
 
   if (arguments.length === 3) {
@@ -3775,12 +3809,44 @@ JSIL.OverloadedMethodCore = function (type, name, overloads, dispatcher) {
 
 JSIL.ImplementExternals(
   "System.Object", function ($) {
-    $.Method({Static: true, Public: true}, "CheckType",
-      new JSIL.MethodSignature("System.Boolean", [JSIL.AnyType], [], $jsilcore),
+    $.RawMethod(true, "CheckType",
       function (value) {
         return (typeof (value) === "object");
       }
     );
+
+    $.RawMethod(false, "__Initialize__",
+      function (initializer) {
+        var isInitializer = function (v) {
+          return (typeof (v) === "object") && (v !== null) && 
+            (Object.getPrototypeOf(v) === JSIL.CollectionInitializer.prototype);
+        };
+
+        if (JSIL.IsArray(initializer)) {
+          JSIL.ApplyCollectionInitializer(this, initializer);
+          return this;
+        } else if (isInitializer(initializer)) {
+          initializer.Apply(this);
+          return this;
+        }
+
+        for (var key in initializer) {
+          if (!initializer.hasOwnProperty(key))
+            continue;
+
+          var value = initializer[key];
+
+          if (isInitializer(value)) {
+            value.Apply(this[key]);
+          } else {
+            this[key] = value;
+          }
+        }
+
+        return this;
+      }
+    );
+
 
     $.Method({Static: false, Public: true}, "GetType",
       new JSIL.MethodSignature("System.Type", [], [], $jsilcore),
@@ -3803,34 +3869,6 @@ JSIL.ImplementExternals(
 
         JSIL.CopyMembers(this, result);
         return result;
-      }
-    );
-
-    $.Method({Static: false, Public: false}, "__Initialize__",
-      new JSIL.MethodSignature(null, []),
-      function (initializer) {
-        if (JSIL.IsArray(initializer)) {
-          JSIL.CollectionInitializer.prototype.Apply.call(initializer, this);
-          return this;
-        } else if (JSIL.CheckType(initializer, JSIL.CollectionInitializer)) {
-          initializer.Apply(this);
-          return this;
-        }
-
-        for (var key in initializer) {
-          if (!initializer.hasOwnProperty(key))
-            continue;
-
-          var value = initializer[key];
-
-          if (JSIL.CheckType(value, JSIL.CollectionInitializer)) {
-            value.Apply(this[key]);
-          } else {
-            this[key] = value;
-          }
-        }
-
-        return this;
       }
     );
 
@@ -3869,12 +3907,6 @@ JSIL.MakeClass(Object, "System.Object", true, [], function ($) {
   $.ExternalMethod({Static: false, Public: true}, "toString",
     new JSIL.MethodSignature("System.String", [], [], $jsilcore)
   );
-
-  $.ExternalMethod({Static: false, Public: false}, "__Initialize__",
-    new JSIL.MethodSignature(null, [], [], $jsilcore)
-  );
-
-  $.ExternalMembers(false, "CheckType");
 
   $jsilcore.SystemObjectInitialized = true;
 });
@@ -4374,31 +4406,27 @@ JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
 });
 
 JSIL.MakeClass("JSIL.Reference", "JSIL.Variable", true, [], function ($) {
-  $.Method({Static: false, Public: true }, ".ctor",
-    new JSIL.MethodSignature(null, [JSIL.AnyType], [], $jsilcore),
+  $.RawMethod(false, ".ctor",
     function (value) {
       this.value = value;
     }
   );
 });
 JSIL.MakeClass("JSIL.Reference", "JSIL.MemberReference", true, [], function ($) {
-  $.Method({Static: false, Public: true }, ".ctor",
-    new JSIL.MethodSignature(null, ["System.Object", "System.String"], [], $jsilcore),
+  $.RawMethod(false, ".ctor",
     function (object, memberName) {
       this.object = object;
       this.memberName = memberName;
     }
   );
 
-  $.Method({Static: false, Public: true }, "get_value",
-    new JSIL.MethodSignature(JSIL.AnyType, [], [], $jsilcore),
+  $.RawMethod(false, "get_value",
     function () {
       return this.object[this.memberName];
     }
   );
 
-  $.Method({Static: false, Public: true }, "set_value",
-    new JSIL.MethodSignature(null, [JSIL.AnyType], [], $jsilcore),
+  $.RawMethod(false, "set_value",
     function (value) {
       this.object[this.memberName] = value;
     }
@@ -4407,27 +4435,21 @@ JSIL.MakeClass("JSIL.Reference", "JSIL.MemberReference", true, [], function ($) 
   $.Property({Static: false, Public: true }, "value");
 });
 
+JSIL.ApplyCollectionInitializer = function (target, values) {
+  for (var i = 0, l = values.length; i < l; i++)
+    target.Add.apply(target, values[i]);
+};
+
 JSIL.MakeClass("System.Object", "JSIL.CollectionInitializer", true, [], function ($) {
-  $.Method({Static: false, Public: true }, ".ctor",
-    new JSIL.MethodSignature(null, [], [], $jsilcore),
+  $.RawMethod(false, ".ctor",
     function () {
       this.values = Array.prototype.slice.call(arguments);
     }
   );
 
-  $.Method({Static: false, Public: true }, "Apply",
-    new JSIL.MethodSignature(null, ["System.Object"], [], $jsilcore),
+  $.RawMethod(false, "Apply",
     function (target) {
-      var values;
-
-      // This method is designed to support being applied to a regular array as well
-      if (this.hasOwnProperty("values"))
-        values = this.values;
-      else
-        values = this;
-
-      for (var i = 0, l = values.length; i < l; i++)
-        target.Add.apply(target, values[i]);
+      JSIL.ApplyCollectionInitializer(target, this.values);
     }
   );
 });
@@ -4752,8 +4774,7 @@ JSIL.MakeClass("System.Array", "JSIL.MultidimensionalArray", true, [], function 
     }
   );
 
-  $.Method({Static: true , Public: true }, "New",
-    new JSIL.MethodSignature(null, ["System.Type"], [], $jsilcore),
+  $.RawMethod(true, "New",
     function (type) {
       var initializer = arguments[arguments.length - 1];
       var numDimensions = arguments.length - 1;
