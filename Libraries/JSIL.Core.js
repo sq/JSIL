@@ -81,7 +81,7 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
   var assemblyId;
 
   // Terrible hack to assign the mscorlib and JSIL.Core types the same IDs
-  if (shortName === "mscorlib") {
+  if ((shortName === "mscorlib") || (assemblyName.indexOf("mscorlib,") === 0)) {
     assemblyId = $jsilcore.__AssemblyId__;
   } else {
     assemblyId = ++JSIL.$NextAssemblyId;
@@ -1800,17 +1800,119 @@ JSIL.$ResolveGenericTypeReferences = function (context, types) {
   }
 };
 
-JSIL.$MakeMethodGroup = function (methodName, overloadSignatures) {
-  var dispatcher = function () {
-    var text = "Found " + overloadSignatures.length + " ambiguous candidates for method invocation:";
-    for (var i = 0; i < overloadSignatures.length; i++) {
-      text += "\n" + overloadSignatures[i].toString(methodName);
+JSIL.$MakeMethodGroup = function (typeName, methodName, overloadSignatures) {
+  var groups = {};
+  var methodFullName = typeName + "::" + methodName;
+
+  for (var i = 0, l = overloadSignatures.length; i < l; i++) {
+    var signature = overloadSignatures[i];
+    var argumentCount = signature.argumentTypes.length;
+    var gaCount = signature.genericArgumentNames.length;
+
+    if (gaCount > 0) {
+      var gaGroup = groups[gaCount];
+      if (!JSIL.IsArray(gaGroup))
+        gaGroup = groups[gaCount] = {ga: true, gaCount: gaCount};
+
+      var group = gaGroup[argumentCount];
+      if (!JSIL.IsArray(group))
+        group = gaGroup[argumentCount] = [];
+    } else {
+      var group = groups[argumentCount];
+      if (!JSIL.IsArray(group))
+        group = groups[argumentCount] = [];
     }
 
-    throw new Error(text);
+    group.push(signature);
+  }
+
+  var makeDispatcher;
+
+  var makeSingleMethodGroup = function (group) {
+    var singleMethod = group[0];
+    var key = singleMethod.GetKey(methodName);
+
+    return function () {
+      return this[key].apply(this, arguments);
+    };
   };
 
-  return JSIL.RenameFunction(methodName, dispatcher);
+  var makeGenericArgumentGroup = function (id, group, offset) {
+    var gaGroup = makeDispatcher(id, group, offset);
+
+    return function () {
+      return JSIL.$BindGenericMethod(this, gaGroup, methodFullName, arguments);
+    };
+  };
+
+  var makeAmbiguousGroup = function (group) {
+    return function () {
+      var text = "Found " + group.length + " ambiguous candidates for method invocation:";
+      for (var i = 0; i < group.length; i++) {
+        text += "\n" + group[i].toString(methodFullName);
+      }
+
+      throw new Error(text);
+    };
+  };
+
+  makeDispatcher = function (id, g, offset) {
+    var body = [];
+    var methods = [];
+
+    var isFirst = true;
+    for (var k in g) {
+      if (k == "ga")
+        continue;
+      else if (k == "gaCount")
+        continue;
+
+      var line = "";
+
+      if (isFirst) {
+        line += "  if (args.length === ";
+      } else {
+        line += "  } else if (args.length === ";
+      }
+
+      line += (parseInt(k) + offset) + ") {";
+
+      body.push(line);
+
+      var group = g[k];
+      var method;
+
+      if (group.ga === true) {
+        method = makeGenericArgumentGroup(id + "[" + k + "]", group, group.gaCount);
+      } else if (group.length === 1) {
+        method = makeSingleMethodGroup(group);
+      } else {
+        method = makeAmbiguousGroup(group);
+      }
+
+      body.push("    return this[" + methods.length + "].apply(self, args);");
+      methods.push(method);
+
+      isFirst = false;
+    }
+
+    body.push("  }");
+    body.push("  ");
+    body.push("  throw new Error('Found no candidates for method invocation.')");
+
+    var dispatcher = new Function(
+      "self", "args",
+      "  //@ sourceURL=jsil://overloadDispatcher/" + id + "\r\n" + body.join("\r\n")
+    );
+
+    return function () {
+      return dispatcher.call(methods, this, arguments);
+    };
+  };
+
+  var boundDispatcher = makeDispatcher(methodFullName, groups, 0);
+
+  return JSIL.RenameFunction(methodFullName, boundDispatcher);
 };
 
 JSIL.$ApplyMemberHiding = function (memberList) {
@@ -1982,7 +2084,7 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
     var target = isStatic ? publicInterface : publicInterface.prototype;
 
     if (active) {
-      target[methodName] = JSIL.$MakeMethodGroup(method._typeObject.__FullName__ + "::" + methodName, entries);
+      target[methodName] = JSIL.$MakeMethodGroup(method._typeObject.__FullName__, methodName, entries);
     }
   }
 };
@@ -2898,50 +3000,52 @@ JSIL.Dynamic.Cast = function (value, expectedType) {
   return value;
 };
 
+JSIL.$BindGenericMethod = function (outerThis, body, methodName, genericArguments) {
+  genericArguments = Array.prototype.slice.call(genericArguments);
+  // The user might pass in a public interface instead of a type object, so map that to the type object.
+  for (var i = 0, l = genericArguments.length; i < l; i++) {
+    var ga = genericArguments[i];
+
+    if ((typeof (ga) !== "undefined") && (ga !== null) && (typeof (ga.__Type__) === "object"))
+      genericArguments[i] = ga.__Type__;
+  }
+
+  var result = function () {
+    // concat doesn't work on the raw 'arguments' value :(
+    var invokeArguments = genericArguments.concat(
+      Array.prototype.slice.call(arguments)
+    );
+
+    return body.apply(outerThis, invokeArguments);
+  };
+
+  result.call = function (thisReference) {
+    // concat doesn't work on the raw 'arguments' value :(
+    var invokeArguments = genericArguments.concat(
+      Array.prototype.slice.call(arguments, 1)
+    );
+
+    return body.apply(thisReference, invokeArguments);
+  };
+
+  result.apply = function (thisReference, invokeArguments) {
+    invokeArguments = genericArguments.concat(invokeArguments);
+    return body.apply(thisReference, invokeArguments);
+  };
+
+  result.toString = function () {
+    return "<Bound Generic Method '" + methodName + "'>";
+  };
+
+  return result;
+};
+
 JSIL.GenericMethod = function (argumentNames, methodName, body) {
   var result = function () {
     if (arguments.length !== argumentNames.length)
       throw new Error("Invalid number of generic arguments for method '" + methodName + "' (got " + arguments.length + ", expected " + argumentNames.length + ")");
 
-    var genericArguments = Array.prototype.slice.call(arguments);
-    var outerThis = this;
-
-    // The user might pass in a public interface instead of a type object, so map that to the type object.
-    for (var i = 0, l = genericArguments.length; i < l; i++) {
-      var ga = genericArguments[i];
-
-      if ((typeof (ga) !== "undefined") && (ga !== null) && (typeof (ga.__Type__) === "object"))
-        genericArguments[i] = ga.__Type__;
-    }
-
-    var result = function () {
-      // concat doesn't work on the raw 'arguments' value :(
-      var invokeArguments = genericArguments.concat(
-        Array.prototype.slice.call(arguments)
-      );
-
-      return body.apply(outerThis, invokeArguments);
-    };
-
-    result.call = function (thisReference) {
-      // concat doesn't work on the raw 'arguments' value :(
-      var invokeArguments = genericArguments.concat(
-        Array.prototype.slice.call(arguments, 1)
-      );
-
-      return body.apply(thisReference, invokeArguments);
-    };
-
-    result.apply = function (thisReference, invokeArguments) {
-      invokeArguments = genericArguments.concat(invokeArguments);
-      return body.apply(thisReference, invokeArguments);
-    };
-
-    result.toString = function () {
-      return "<Bound Generic Method '" + methodName + "'>";      
-    };
-
-    return result;
+    return JSIL.$BindGenericMethod(this, body, methodName, arguments);
   };
 
   result.__IsGenericMethod__ = true;
@@ -3347,9 +3451,15 @@ JSIL.MethodSignature.prototype.toString = function (name) {
   return signature;
 };
 
-JSIL.MethodSignature.prototype.Construct = function (publicInterface /*, ...parameters */) {  
-  var typeObject = publicInterface.__Type__;
-  var result;
+JSIL.MethodSignature.prototype.Construct = function (type /*, ...parameters */) {  
+  var typeObject, publicInterface, result;
+  if (typeof (type.__Type__) === "object") {
+    typeObject = type.__Type__;
+    publicInterface = type;
+  } else if (typeof (type.__PublicInterface__) !== "undefined") {
+    typeObject = type;
+    publicInterface = type.__PublicInterface__;
+  }
 
   if (typeObject.__IsNativeType__) {
     var ctor = publicInterface.prototype["_ctor"];
@@ -3412,7 +3522,7 @@ JSIL.MethodSignature.prototype.Call = function (context, name, ga, thisReference
     );
   }
 
-  if (JSIL.IsArray(ga)) {
+  if (ga !== null) {
     JSIL.ResolveTypeArgumentArray(ga);
     method = method.apply(thisReference, ga);  
   }
@@ -3446,7 +3556,7 @@ JSIL.MethodSignature.prototype.CallStatic = function (context, name, ga /*, ...p
     );
   }
 
-  if (JSIL.IsArray(ga)) {
+  if (ga !== null) {
     JSIL.ResolveTypeArgumentArray(ga);
     method = method.apply(context, ga);  
   }
@@ -3480,7 +3590,7 @@ JSIL.MethodSignature.prototype.CallVirtual = function (name, ga, thisReference /
     );
   }
 
-  if (JSIL.IsArray(ga)) {
+  if (ga !== null) {
     JSIL.ResolveTypeArgumentArray(ga);
     method = method.apply(thisReference, ga);  
   }
@@ -3555,6 +3665,9 @@ JSIL.MethodSignatureCache.prototype.get = function (id, returnType, argumentType
   var cachedSignature = this._cache[id];
   if ((typeof (cachedSignature) === "object") && (cachedSignature !== null))
     return cachedSignature;
+
+  if ((typeof (returnType) === "undefined") || (typeof (argumentTypes) === "undefined"))
+    throw new Error("Signature '" + id + "' not in cache.");
 
   return this._cache[id] = new JSIL.MethodSignature(returnType, argumentTypes, genericArgumentNames, context);
 };
