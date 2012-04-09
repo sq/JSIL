@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
 using JSIL.Compiler.Extensibility;
 using JSIL.Translator;
+using Mono.Cecil;
 
 namespace JSIL.Compiler {
     class Program {
@@ -255,10 +256,29 @@ namespace JSIL.Compiler {
                 });
             }
 
+            var assemblyNames = (from fn in filenames
+                                 where Path.GetExtension(fn).Contains(",") ||
+                                    Path.GetExtension(fn).Contains(" ") ||
+                                    Path.GetExtension(fn).Contains("=")
+                                 select fn).ToArray();
+
+            var resolver = new Mono.Cecil.DefaultAssemblyResolver();
+            var resolverParameters = new ReaderParameters {
+                AssemblyResolver = resolver,
+                ReadSymbols = false,
+                ReadingMode = ReadingMode.Deferred
+            };
+            var resolvedAssemblyPaths = (from an in assemblyNames
+                                      let asm = resolver.Resolve(an, resolverParameters)
+                                      where asm != null
+                                      select asm.MainModule.FullyQualifiedName).ToArray();
+
             var mainGroup = (from fn in filenames
                              where
                                  (new[] { ".exe", ".dll" }.Contains(Path.GetExtension(fn)))
-                             select fn).ToArray();
+                             select fn)
+                             .Concat(resolvedAssemblyPaths)
+                             .ToArray();
 
             if (mainGroup.Length > 0)
                 buildGroups.Add(new BuildGroup {

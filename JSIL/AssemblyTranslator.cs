@@ -482,13 +482,19 @@ namespace JSIL {
             bool stubbed = IsStubbed(assembly);
 
             var tw = new StreamWriter(outputStream, Encoding.ASCII);
-            var formatter = new JavascriptFormatter(tw, this._TypeInfoProvider, Manifest, assembly, Configuration);
+            var formatter = new JavascriptFormatter(
+                tw, this._TypeInfoProvider, Manifest, assembly, Configuration, stubbed
+            );
 
             formatter.Comment(GetHeaderText());
             formatter.NewLine();
 
             if (stubbed) {
-                formatter.Comment("Generating type stubs only");
+                if (Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false)) {
+                    formatter.Comment("Generating type skeletons");
+                } else {
+                    formatter.Comment("Generating type stubs only");
+                }
                 formatter.NewLine();
             }
 
@@ -685,7 +691,11 @@ namespace JSIL {
             output.NewLine();
         }
 
-        protected void DeclareType (DecompilerContext context, TypeDefinition typedef, JavascriptAstEmitter astEmitter, JavascriptFormatter output, HashSet<TypeDefinition> declaredTypes, bool stubbed) {
+        protected void DeclareType (
+            DecompilerContext context, TypeDefinition typedef, 
+            JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
+            HashSet<TypeDefinition> declaredTypes, bool stubbed
+        ) {
             var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
                 return;
@@ -768,7 +778,13 @@ namespace JSIL {
 
                 bool isStatic = typedef.IsAbstract && typedef.IsSealed;
 
-                if (isStatic) {
+                if (stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false)) {
+                    output.Identifier("JSIL.ImplementExternals", null);
+                    output.LPar();
+
+                    output.Value(typeInfo.FullName);
+
+                } else if (isStatic) {
                     output.Identifier("JSIL.MakeStaticClass", null);
                     output.LPar();
 
@@ -1569,7 +1585,7 @@ namespace JSIL {
             try {
                 dollar(output);
                 output.Dot();
-                if (isExternal)
+                if (isExternal && !Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false))
                     output.Identifier("ExternalMethod", null);
                 else
                     output.Identifier("Method", null);
@@ -1615,6 +1631,22 @@ namespace JSIL {
                         output.Value(method.FullName);
                         output.RPar();
                     }
+                } else if (Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false)) {
+                    output.Comma();
+                    output.NewLine();
+
+                    output.OpenFunction(
+                        methodInfo.Name,
+                        (o) => output.WriteParameterList(
+                            (from p in methodInfo.Parameters select 
+                             new JSParameter(p.Name, p.ParameterType, methodRef))
+                        )
+                    );
+
+                    output.WriteRaw("throw new Error('Not implemented');");
+                    output.NewLine();
+
+                    output.CloseBrace(false);
                 }
 
                 output.NewLine();

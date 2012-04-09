@@ -78,6 +78,7 @@ namespace JSIL.Internal {
         public MethodReference CurrentMethod = null;
 
         protected readonly HashSet<string> DeclaredNamespaces = new HashSet<string>();
+        protected readonly bool Stubbed;
 
         protected uint _IndentLevel = 0;
         protected bool _IndentNeeded = false;
@@ -85,16 +86,26 @@ namespace JSIL.Internal {
         public JavascriptFormatter (
             TextWriter output, ITypeInfoSource typeInfo, 
             AssemblyManifest manifest, AssemblyDefinition assembly,
-            Configuration configuration
+            Configuration configuration, bool stubbed
         ) {
             Output = output;
             TypeInfo = typeInfo;
             Manifest = manifest;
             Assembly = assembly;
             Configuration = configuration;
+            Stubbed = stubbed;
 
             PrivateToken = Manifest.GetPrivateToken(assembly);
             Manifest.AssignIdentifiers();
+        }
+
+        protected void WriteToken (AssemblyManifest.Token token) {
+            if (Stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false)) {
+                int id = int.Parse(token.IDString.Replace("$asm", ""), NumberStyles.HexNumber);
+                WriteRaw("$asms[{0}]", id);
+            } else {
+                WriteRaw(token.IDString);
+            }
         }
 
         public void AssemblyReference (AssemblyDefinition assembly) {
@@ -103,7 +114,7 @@ namespace JSIL.Internal {
             var token = Manifest.GetPrivateToken(key);
             Manifest.AssignIdentifiers();
 
-            WriteRaw(token.IDString);
+            WriteToken(token);
         }
 
         public void AssemblyReference (TypeReference type) {
@@ -112,7 +123,7 @@ namespace JSIL.Internal {
             var token = Manifest.GetPrivateToken(key);
             Manifest.AssignIdentifiers();
 
-            WriteRaw(token.IDString);
+            WriteToken(token);
         }
 
         public void Indent () {
@@ -281,6 +292,21 @@ namespace JSIL.Internal {
             WriteRaw("}} {0} {{", midtext);
             NewLine();
             Indent();
+        }
+
+        public void WriteParameterList (IEnumerable<JSVariable> parameters) {
+            bool isFirst = true;
+            foreach (var p in parameters) {
+                if (!isFirst)
+                    Comma();
+
+                if (p.IsReference)
+                    Comment("ref");
+
+                Identifier(p.Identifier);
+
+                isFirst = false;
+            }
         }
 
         public void OpenFunction (string functionName, Action<JavascriptFormatter> emitParameters) {
@@ -516,14 +542,17 @@ namespace JSIL.Internal {
                 var corlibTypes = new HashSet<string> {
                     "System.Byte", "System.UInt16", "System.UInt32", "System.UInt64",
                     "System.SByte", "System.Int16", "System.Int32", "System.Int64",
-                    "System.Single", "System.Double", "System.String", "System.Object"
+                    "System.Single", "System.Double", "System.String", "System.Object",
+                    "System.Boolean", "System.Char"
                 };
 
                 // The interface builder provides helpful shorthand for corlib type references.
-                if (corlibTypes.Contains(type.FullName) && type.Scope.Name.Contains("mscorlib")) {
-                    WriteRaw("$.");
-                    WriteRaw(type.Name);
-                    return;
+                if (type.Scope.Name == "mscorlib" || type.Scope.Name == "CommonLanguageRuntimeLibrary") {
+                    if (corlibTypes.Contains(type.FullName)) {
+                        WriteRaw("$.");
+                        WriteRaw(type.Name);
+                        return;
+                    }
                 }
             }
 
@@ -665,7 +694,7 @@ namespace JSIL.Internal {
                 var typedef = type.Resolve();
                 if (typedef != null) {
                     if (GetContainingAssemblyName(typedef) == Assembly.FullName) {
-                        WriteRaw(PrivateToken.IDString);
+                        WriteToken(PrivateToken);
                         WriteRaw(".");
                     } else {
                         AssemblyReference(typedef);
@@ -863,15 +892,41 @@ namespace JSIL.Internal {
         }
 
         public void DeclareAssembly () {
-            WriteRaw("var");
-            Space();
-            Identifier(PrivateToken.IDString);
-            WriteRaw(" = ");
-            WriteRaw("JSIL.DeclareAssembly");
-            LPar();
-            Value(Assembly.FullName);
-            RPar();
-            Semicolon();
+            if (Stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false)) {
+                WriteRaw("var $asms = new JSIL.AssemblyCollection");
+                LPar();
+                OpenBrace();
+
+                bool isFirst = true;
+                foreach (var kvp in Manifest.Entries) {
+                    if (!isFirst) {
+                        Comma();
+                        NewLine();
+                    }
+
+                    Value(int.Parse(kvp.Key.Replace("$asm", ""), NumberStyles.HexNumber));
+                    WriteRaw(": ");
+                    Value(kvp.Value);
+
+                    isFirst = false;
+                }
+
+                NewLine();
+
+                CloseBrace(false);
+                RPar();
+                Semicolon();
+            } else {
+                WriteRaw("var");
+                Space();
+                Identifier(PrivateToken.IDString);
+                WriteRaw(" = ");
+                WriteRaw("JSIL.DeclareAssembly");
+                LPar();
+                Value(Assembly.FullName);
+                RPar();
+                Semicolon();
+            }
         }
 
         public void DeclareNamespace (string ns) {
@@ -913,6 +968,10 @@ namespace JSIL.Internal {
         public void MethodSignature (MethodReference method, MethodSignature signature, TypeReferenceContext context) {
             // The signature cache can cause problems inside methods for generic signatures.
             var cached = Configuration.Optimizer.CacheMethodSignatures.GetValueOrDefault(true);
+
+            // We also don't want to use the cache for method definitions in skeletons.
+            if (Stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false))
+                cached = false;
 
             if (cached && ((context.InvokingMethod != null) || (context.EnclosingMethod != null))) {
                 if (ILBlockTranslator.IsOpenType(signature.ReturnType))

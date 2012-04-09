@@ -2977,13 +2977,10 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
 
   this.DefineTypeAliases(
     JSIL.GetCorlib, [
-      "System.Byte", "System.SByte",
-      "System.Int16", "System.Int32",
-      "System.Int64", "System.UInt16",
-      "System.UInt32", "System.UInt64",
-      "System.Single", "System.Double", 
-      "System.String", "System.Array",
-      "System.Object", "System.Boolean"
+      "System.Byte", "System.UInt16", "System.UInt32", "System.UInt64",
+      "System.SByte", "System.Int16", "System.Int32", "System.Int64",
+      "System.Single", "System.Double", "System.String", "System.Object",
+      "System.Boolean", "System.Char"
     ]
   );
 

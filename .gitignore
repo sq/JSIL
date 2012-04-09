@@ -43,3 +43,4 @@ Tests/*Cases/*.js
 /Upstream/OggEnc
 /Upstream/XapParse/obj
 /Upstream/XapParse/bin
+Skeletons/*.js

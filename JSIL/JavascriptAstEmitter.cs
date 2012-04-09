@@ -618,23 +618,7 @@ namespace JSIL {
 
             Output.OpenFunction(
                 function.DisplayName,
-                (o) => {
-                    if (o != Output)
-                        throw new InvalidOperationException();
-
-                    bool isFirst = true;
-                    foreach (var p in function.Parameters) {
-                        if (!isFirst)
-                            o.Comma();
-
-                        if (p.IsReference)
-                            o.Comment("ref");
-
-                        o.Identifier(p.Identifier);
-
-                        isFirst = false;
-                    }
-                }
+                (o) => o.WriteParameterList(function.Parameters)
             );
 
             Visit(function.Body);

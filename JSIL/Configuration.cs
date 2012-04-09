@@ -49,6 +49,7 @@ namespace JSIL.Translator {
         public bool? IncludeDependencies;
         public bool? UseSymbols;
         public bool? UseThreads;
+        public bool? GenerateSkeletonsForStubbedAssemblies;
 
         public double? FrameworkVersion;
 
@@ -66,6 +67,8 @@ namespace JSIL.Translator {
                 result.UseThreads = UseThreads;
             if (FrameworkVersion.HasValue)
                 result.FrameworkVersion = FrameworkVersion;
+            if (GenerateSkeletonsForStubbedAssemblies.HasValue)
+                result.GenerateSkeletonsForStubbedAssemblies = GenerateSkeletonsForStubbedAssemblies;
 
             Assemblies.MergeInto(result.Assemblies);
             Optimizer.MergeInto(result.Optimizer);
