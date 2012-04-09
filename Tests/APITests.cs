@@ -67,6 +67,40 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void GenericInstanceEquality () {
+            var git1 = new GenericInstanceType(T1);
+            var git1_2 = new GenericInstanceType(T1_2);
+            var git2 = new GenericInstanceType(T2);
+
+            // FIXME: Is this correct?
+            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(git1, T1, true));
+            Assert.IsTrue(ILBlockTranslator.TypesAreEqual(git1, T1, false));
+
+            Assert.IsTrue(ILBlockTranslator.TypesAreEqual(git1, git1));
+            Assert.IsTrue(ILBlockTranslator.TypesAreEqual(git1, git1_2));
+            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(git1, git2));
+        }
+
+        [Test]
+        public void GenericInstanceParameterEquality () {
+            var git1 = new GenericInstanceType(T1);
+            git1.GenericArguments.Add(T1);
+            var git2 = new GenericInstanceType(T1);
+            git2.GenericArguments.Add(T1_2);
+            var git3 = new GenericInstanceType(T1);
+            git3.GenericArguments.Add(T2);
+            var git4 = new GenericInstanceType(T2);
+            git4.GenericArguments.Add(T1);
+
+            Assert.IsTrue(ILBlockTranslator.TypesAreEqual(git1, git1));
+            Assert.IsTrue(ILBlockTranslator.TypesAreEqual(git1, git2));
+            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(git1, git3, true));
+            Assert.IsTrue(ILBlockTranslator.TypesAreEqual(git1, git3, false));
+            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(git3, git4));
+            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(git1, git4));
+        }
+
+        [Test]
         public void GenericParameterEquality () {
             var gp1 = new GenericParameter("GP1", T1);
             var gp1_2 = new GenericParameter("GP1", T1_2);
@@ -79,7 +113,9 @@ namespace JSIL.Tests {
             Assert.IsTrue(ILBlockTranslator.TypesAreEqual(gp1, gp1));
             Assert.IsTrue(ILBlockTranslator.TypesAreEqual(gp1, gp1_2));
 
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(gp1, gp2));
+            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(gp1, gp2, true));
+            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(gp1, gp2, false));
+
             Assert.IsFalse(ILBlockTranslator.TypesAreEqual(gp1, gp3));
             Assert.IsFalse(ILBlockTranslator.TypesAreEqual(gp1, gp4));
 

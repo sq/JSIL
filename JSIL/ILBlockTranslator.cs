@@ -566,7 +566,66 @@ namespace JSIL {
             return false;
         }
 
-        public static bool TypesAreEqual (TypeReference target, TypeReference source) {
+        public static bool IsOpenType (TypeReference type) {
+            type = DereferenceType(type);
+
+            var gp = type as GenericParameter;
+            var git = type as GenericInstanceType;
+            var at = type as ArrayType;
+            var byref = type as ByReferenceType;
+
+            if (gp != null)
+                return true;
+
+            if (git != null) {
+                var elt = git.ElementType;
+
+                foreach (var ga in git.GenericArguments) {
+                    if (IsOpenType(ga))
+                        return true;
+                }
+
+                return IsOpenType(elt);
+            }
+
+            if (at != null)
+                return IsOpenType(at.ElementType);
+
+            if (byref != null)
+                return IsOpenType(byref.ElementType);
+
+            return false;
+        }
+
+        private static bool TypeInBases (TypeReference haystack, TypeReference needle, bool explicitGenericEquality) {
+            if ((haystack == null) || (needle == null))
+                return haystack == needle;
+
+            var dToWalk = haystack.Resolve();
+            var dSource = needle.Resolve();
+
+            if ((dToWalk == null) || (dSource == null))
+                return TypesAreEqual(haystack, needle, explicitGenericEquality);
+
+            var t = haystack;
+            while (t != null) {
+                if (TypesAreEqual(t, needle, explicitGenericEquality))
+                    return true;
+
+                var dT = t.Resolve();
+
+                if ((dT != null) && (dT.BaseType != null)) {
+                    var baseType = dT.BaseType;
+
+                    t = baseType;
+                } else
+                    break;
+            }
+
+            return false;
+        }
+
+        public static bool TypesAreEqual (TypeReference target, TypeReference source, bool explicitGenericEquality = false) {
             if (target == source)
                 return true;
             else if ((target == null) || (source == null))
@@ -591,7 +650,14 @@ namespace JSIL {
                 var sourceOwnerType = sourceGp.Owner as TypeReference;
 
                 if ((targetOwnerType != null) || (sourceOwnerType != null)) {
-                    if (!TypesAreEqual(targetOwnerType, sourceOwnerType))
+                    var basesEqual = false;
+
+                    if (TypeInBases(targetOwnerType, sourceOwnerType, explicitGenericEquality))
+                        basesEqual = true;
+                    else if (TypeInBases(sourceOwnerType, targetOwnerType, explicitGenericEquality))
+                        basesEqual = true;
+
+                    if (!basesEqual)
                         return false;
                 } else {
                     if (targetGp.Owner != sourceGp.Owner)
@@ -614,16 +680,33 @@ namespace JSIL {
                 if (targetArray.Rank != sourceArray.Rank)
                     return false;
 
-                return TypesAreEqual(targetArray.ElementType, sourceArray.ElementType);
+                return TypesAreEqual(targetArray.ElementType, sourceArray.ElementType, explicitGenericEquality);
             }
 
             var targetGit = target as GenericInstanceType;
             var sourceGit = source as GenericInstanceType;
 
-            if ((targetGit != null) && TypesAreEqual(targetGit.ElementType, source))
-                return true;
-            if ((sourceGit != null) && TypesAreEqual(target, sourceGit.ElementType))
-                return true;
+            if ((targetGit != null) || (sourceGit != null)) {
+                if (!explicitGenericEquality) {
+                    if ((targetGit != null) && TypesAreEqual(targetGit.ElementType, source))
+                        return true;
+                    if ((sourceGit != null) && TypesAreEqual(target, sourceGit.ElementType))
+                        return true;
+                }
+
+                if ((targetGit == null) || (sourceGit == null))
+                    return false;
+
+                if (targetGit.GenericArguments.Count != sourceGit.GenericArguments.Count)
+                    return false;
+
+                for (var i = 0; i < targetGit.GenericArguments.Count; i++) {
+                    if (!TypesAreEqual(targetGit.GenericArguments[i], sourceGit.GenericArguments[i], explicitGenericEquality))
+                        return false;
+                }
+
+                return TypesAreEqual(targetGit.ElementType, sourceGit.ElementType, explicitGenericEquality);
+            }
 
             if ((target.IsByReference != source.IsByReference) || (targetDepth != sourceDepth))
                 result = false;
@@ -638,7 +721,7 @@ namespace JSIL {
                     (target.Name == source.Name) &&
                     (target.Namespace == source.Namespace) &&
                     (target.Module == source.Module) &&
-                    TypesAreEqual(target.DeclaringType, source.DeclaringType)
+                    TypesAreEqual(target.DeclaringType, source.DeclaringType, explicitGenericEquality)
                 )
                     return true;
 
@@ -675,6 +758,9 @@ namespace JSIL {
         }
 
         public static bool TypesAreAssignable (ITypeInfoSource typeInfo, TypeReference target, TypeReference source) {
+            if ((target == null) || (source == null))
+                return false;
+
             // All values are assignable to object
             if (target.FullName == "System.Object")
                 return true;
@@ -702,7 +788,9 @@ namespace JSIL {
 
                     var dSource = GetTypeDefinition(source);
 
-                    if (dSource == null)
+                    if (TypeInBases(source, target, false))
+                        result = true;
+                    else if (dSource == null)
                         result = false;
                     else if (TypesAreEqual(target, dSource))
                         result = true;
@@ -844,6 +932,8 @@ namespace JSIL {
                 (expression.InferredType != null) &&
                 !TypesAreAssignable(TypeInfo, expression.ExpectedType, expression.InferredType)
             ) {
+                // ILSpy bug
+
                 return JSCastExpression.New(result, expression.ExpectedType, TypeSystem);
             }
 

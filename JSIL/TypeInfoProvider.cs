@@ -29,6 +29,10 @@ namespace JSIL {
             }
         }
 
+        public void ClearCaches () {
+            TypeAssignabilityCache.Clear();
+        }
+
         public void Dispose () {
             Assemblies.Clear();
             ProxyAssemblyNames.Clear();
@@ -37,6 +41,7 @@ namespace JSIL {
             TypeProxies.Clear();
             DirectProxiesByTypeName.Clear();
             ProxiesByName.Clear();
+            TypeAssignabilityCache.Clear();
         }
 
         bool ITypeInfoSource.TryGetProxyNames (string typeFullName, out string[] result) {

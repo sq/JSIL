@@ -348,7 +348,7 @@ namespace JSIL.Internal {
 
             if (context != null) {
                 if (ownerType != null) {
-                    if (ILBlockTranslator.TypesAreEqual(ownerType, context.SignatureMethodType)) {
+                    if (ILBlockTranslator.TypesAreAssignable(TypeInfo, ownerType, context.SignatureMethodType)) {
                         TypeReference resolved = null;
 
                         var git = (context.SignatureMethodType as GenericInstanceType);
@@ -911,7 +911,12 @@ namespace JSIL.Internal {
         }
 
         public void MethodSignature (MethodReference method, MethodSignature signature, TypeReferenceContext context) {
+            // The signature cache can cause problems inside methods for generic signatures.
             var cached = Configuration.Optimizer.CacheMethodSignatures.GetValueOrDefault(true);
+
+            if (cached && ((context.InvokingMethod != null) || (context.EnclosingMethod != null))) {
+                cached = true;
+            }
 
             if (cached) {
                 WriteRaw("$sig.get");

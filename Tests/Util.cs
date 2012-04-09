@@ -162,6 +162,9 @@ namespace JSIL.Tests {
             if (TestMethod == null)
                 throw new Exception("Test missing 'Main' method of 'Program' main class");
 
+            if (typeInfo != null)
+                typeInfo.ClearCaches();
+
             StubbedAssemblies = stubbedAssemblies;
             TypeInfo = typeInfo;
         }
