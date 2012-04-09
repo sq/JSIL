@@ -35,7 +35,14 @@ namespace JSIL.Transforms {
                     (type.Type.FullName == "System.Object")
                 ) {
                     switch (method.Method.Member.Name) {
-                        case "GetType":
+                        case ".ctor": {
+                            var replacement = new JSNullExpression();
+                            ParentNode.ReplaceChild(ie, replacement);
+                            VisitReplacement(replacement);
+
+                            return;
+                        }
+                        case "GetType": {
                             JSNode replacement;
 
                             var thisType = JSExpression.DeReferenceType(thisExpression.GetExpectedType(TypeSystem), false);
@@ -49,6 +56,7 @@ namespace JSIL.Transforms {
                             VisitReplacement(replacement);
 
                             return;
+                        }
                     }
                 } else if (
                     (type != null) &&

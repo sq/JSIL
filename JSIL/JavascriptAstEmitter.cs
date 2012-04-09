@@ -1157,7 +1157,7 @@ namespace JSIL {
                     Action genericArgs = () => {
                         if (hasGenericArguments) {
                             Output.OpenBracket(false);
-                            Output.CommaSeparatedList(invocation.GenericArguments, ReferenceContext, ListValueType.TypeReference);
+                            Output.CommaSeparatedList(invocation.GenericArguments, ReferenceContext, ListValueType.TypeIdentifier);
                             Output.CloseBracket(false);
                         } else
                             Output.Identifier("null", null);

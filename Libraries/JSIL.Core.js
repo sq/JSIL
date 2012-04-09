@@ -589,7 +589,7 @@ JSIL.ImplementExternals = function (namespaceName, externals) {
   }
 
   if (typeof (externals) !== "function") {
-    JSIL.Host.warning("Old-style ImplementExternals call for '" + namespaceName + "' ignored!");
+    // JSIL.Host.warning("Old-style ImplementExternals call for '" + namespaceName + "' ignored!");
     return;
   }
 
@@ -1636,7 +1636,8 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
   }
 
   if (missingMembers.length > 0) {
-    JSIL.Host.warning("Type ", typeObject, " is missing implementation of interface member(s): ", missingMembers.join(", "));
+    if (JSIL.SuppressInterfaceWarnings !== true)
+      JSIL.Host.warning("Type ", typeObject, " is missing implementation of interface member(s): ", missingMembers.join(", "));
   }
 };
 
@@ -3162,10 +3163,19 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
 };
 
 JSIL.InterfaceBuilder.prototype.DefineTypeAliases = function (getAssembly, names) {
+  var asm = [null];
+
   var makeGetter = function (name) {
+    var state = [null];
+
     return function () {
-      var asm = getAssembly();
-      return asm.TypeRef(name);
+      if (asm[0] === null)
+        asm[0] = getAssembly();
+
+      if (state[0] === null)
+        state[0] = asm[0].TypeRef(name);
+
+      return state[0];
     };
   };
 
@@ -3702,7 +3712,7 @@ JSIL.MethodSignatureCache = function () {
 };
 JSIL.MethodSignatureCache.prototype.get = function (id, returnType, argumentTypes, genericArgumentNames, context) {
   var cachedSignature = this._cache[id];
-  if ((typeof (cachedSignature) === "object") && (cachedSignature !== null))
+  if (cachedSignature)
     return cachedSignature;
 
   if ((typeof (returnType) === "undefined") || (typeof (argumentTypes) === "undefined"))

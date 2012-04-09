@@ -360,6 +360,8 @@ namespace JSIL {
                     );
                 }
 
+                tw.WriteLine("var $sig = new JSIL.MethodSignatureCache();");
+
                 tw.WriteLine();
                 tw.WriteLine("if (typeof (contentManifest) !== \"object\") { contentManifest = {}; };");
                 tw.WriteLine("contentManifest[\"" + Path.GetFileName(assemblyPath).Replace("\\", "\\\\") + "\"] = [");
@@ -500,12 +502,6 @@ namespace JSIL {
 
             formatter.DeclareAssembly();
             formatter.NewLine();
-
-            if (Configuration.Optimizer.CacheMethodSignatures.GetValueOrDefault(true)) {
-                formatter.WriteRaw("var $sig = new JSIL.MethodSignatureCache();");
-                formatter.NewLine();
-                formatter.NewLine();
-            }
 
             var sealedTypes = new HashSet<TypeDefinition>();
             var declaredTypes = new HashSet<TypeDefinition>();

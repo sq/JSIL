@@ -417,6 +417,8 @@ $jsilcore.$Combine = function (lhs, rhs) {
 $jsilcore.$Remove = function (lhs, rhs) {
   if (rhs === null)
     return lhs;
+  if (lhs === null)
+    return null;
 
   var newList = Array.prototype.slice.call($jsilcore.$GetInvocationList(lhs));
   var rhsList = $jsilcore.$GetInvocationList(rhs);

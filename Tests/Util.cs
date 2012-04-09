@@ -237,7 +237,7 @@ namespace JSIL.Tests {
             }
 
             var invocationJs = String.Format(
-                @"timeout({0}); JSIL.Initialize(); var started = elapsed(); {1}.Main({2}); var ended = elapsed(); print('// elapsed: ' + (ended - started));", 
+                @"timeout({0}); JSIL.SuppressInterfaceWarnings = true; JSIL.Initialize(); var started = elapsed(); {1}.Main({2}); var ended = elapsed(); print('// elapsed: ' + (ended - started));", 
                 JavascriptExecutionTimeout, declaringType, argsJson
             );
 

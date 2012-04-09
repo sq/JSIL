@@ -1000,13 +1000,24 @@ namespace JSIL.Internal {
             try {
                 if ((signature.ReturnType == null) || (signature.ReturnType.FullName == "System.Void"))
                     WriteRaw("null");
-                else
-                    TypeReference(signature.ReturnType, context);
+                else {
+                    if ((context.EnclosingMethod != null) && !ILBlockTranslator.IsOpenType(signature.ReturnType))
+                        TypeIdentifier(signature.ReturnType, context, false);
+                    else
+                        TypeReference(signature.ReturnType, context);
+                }
 
                 Comma();
                 OpenBracket(false);
 
-                CommaSeparatedList(signature.ParameterTypes, context, ListValueType.TypeReference);
+                CommaSeparatedListCore(
+                    signature.ParameterTypes, (pt) => {
+                        if ((context.EnclosingMethod != null) && !ILBlockTranslator.IsOpenType(pt))
+                            TypeIdentifier(pt, context, false);
+                        else
+                            TypeReference(pt, context);
+                    }
+                );
 
                 CloseBracket(false);
 
