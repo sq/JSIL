@@ -571,6 +571,8 @@ JSIL.ImplementExternals = function (namespaceName, externals) {
     return;
   }
 
+  var trace = true;
+
   var context = $private;
 
   var queue = JSIL.ExternalsQueue[namespaceName];
@@ -589,7 +591,7 @@ JSIL.ImplementExternals = function (namespaceName, externals) {
   }
 
   if (typeof (externals) !== "function") {
-    if (false)    
+    if (trace)    
       JSIL.Host.warning("Old-style ImplementExternals call for '" + namespaceName + "' ignored!");
 
     return;

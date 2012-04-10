@@ -2635,29 +2635,54 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
   );
 });
 
-JSIL.ImplementExternals(
-  "System.Diagnostics.StackTrace", true, {
-    _ctor$0: function () {
+JSIL.ImplementExternals("System.Diagnostics.StackTrace", function ($) {
+  var mscorlib = JSIL.GetCorlib();
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
       this.CaptureStackTrace(0, false, null, null);
-    },
-    CaptureStackTrace: function (framesToSkip, needFileInfo, thread, exception) {
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "CaptureStackTrace", 
+    (new JSIL.MethodSignature(null, [
+          $.Int32, $.Boolean, 
+          mscorlib.TypeRef("System.Threading.Thread"), mscorlib.TypeRef("System.Exception")
+        ], [])), 
+    function CaptureStackTrace (iSkip, fNeedFileInfo, targetThread, e) {
+      // FIXME
       this.frames = [];
-    },
-    GetFrame: function (index) {
+    }
+  );  
+
+  $.Method({Static:false, Public:true }, "GetFrame", 
+    (new JSIL.MethodSignature($asms[5].TypeRef("System.Diagnostics.StackFrame"), [$.Int32], [])), 
+    function GetFrame (index) {
       // FIXME
       return new System.Diagnostics.StackFrame();
     }
-  }
-);
+  );
 
-JSIL.ImplementExternals(
-  "System.Diagnostics.StackFrame", true, {
-    GetMethod: function () {
+});
+
+JSIL.ImplementExternals("System.Diagnostics.StackFrame", function ($) {
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      // FIXME
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetMethod", 
+    (new JSIL.MethodSignature($asms[5].TypeRef("System.Reflection.MethodBase"), [], [])), 
+    function GetMethod () {
       // FIXME
       return new System.Reflection.MethodBase();
     }
-  }
-);
+  );
+});
 
 JSIL.ImplementExternals(
   "System.Enum", function ($) {    
@@ -2763,52 +2788,99 @@ JSIL.ImplementExternals(
   }
 );
 
-JSIL.ImplementExternals(
-  "System.Activator", false, {
-    CreateInstance$2: function (type, constructorArguments) {
-      return JSIL.CreateInstanceOfType(type, constructorArguments);
+JSIL.ImplementExternals("System.Activator", function ($) {
+  var mscorlib = JSIL.GetCorlib();
+  
+  $.Method({Static:true , Public:true }, "CreateInstance", 
+    (new JSIL.MethodSignature($.Object, [mscorlib.TypeRef("System.Type"), mscorlib.TypeRef("System.Array", [$.Object])], [])), 
+    function CreateInstance (type, args) {
+      return JSIL.CreateInstanceOfType(type, args);
     }
-  }
-);
+  );
+});
 
-JSIL.ImplementExternals(
-  "System.Diagnostics.Stopwatch", false, {
-    StartNew: function () {
-      var result = new System.Diagnostics.Stopwatch();
-      result.Start();
-      return result;
-    }
-  }
-);
+JSIL.ImplementExternals("System.Diagnostics.Stopwatch", function ($) {
+  var mscorlib = JSIL.GetCorlib(); 
 
-JSIL.ImplementExternals(
-  "System.Diagnostics.Stopwatch", true, {
-    _ctor: function () {
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
       this.Reset();
-    },
-    get_IsRunning: function () {
-      return this.isRunning;
-    },
-    get_Elapsed: function () {
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Elapsed", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.TimeSpan"), [], [])), 
+    function get_Elapsed () {
       return System.TimeSpan.FromMilliseconds(this.get_ElapsedMilliseconds());
-    },
-    get_ElapsedMilliseconds: function () {
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_ElapsedMilliseconds", 
+    (new JSIL.MethodSignature($.Int64, [], [])), 
+    function get_ElapsedMilliseconds () {
       var result = this.elapsed;
       if (this.isRunning)
         result += Date.now() - this.startedWhen;
 
       return result;
-    },
-    get_ElapsedTicks: function () {
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_ElapsedTicks", 
+    (new JSIL.MethodSignature($.Int64, [], [])), 
+    function get_ElapsedTicks () {
       return this.get_ElapsedMilliseconds() * 10000;
-    },
-    Start: function () {
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_IsRunning", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsRunning () {
+      return this.isRunning;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Reset", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Reset () {
+      this.elapsed = 0;
+      this.isRunning = false;
+      this.startedWhen = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Restart", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Restart () {
+      this.elapsed = 0;
+      this.isRunning = true;
+      this.startedWhen = Date.now();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Start", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Start () {
       if (!this.isRunning) {
         this.startedWhen = Date.now();
         this.isRunning = true;
       }
-    },
-    Stop: function () {
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "StartNew", 
+    (new JSIL.MethodSignature($.Type, [], [])), 
+    function StartNew () {
+      var result = new System.Diagnostics.Stopwatch();
+      result.Start();
+      return result;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Stop", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Stop () {
       if (this.isRunning) {
         this.isRunning = false;
 
@@ -2819,16 +2891,7 @@ JSIL.ImplementExternals(
         if (this.elapsed < 0)
           this.elapsed = 0;
       }
-    },
-    Reset: function () {
-      this.elapsed = 0;
-      this.isRunning = false;
-      this.startedWhen = 0;
-    },
-    Restart: function () {
-      this.elapsed = 0;
-      this.isRunning = true;
-      this.startedWhen = Date.now();
-    },
-  }
-);
+    }
+  );
+
+});
