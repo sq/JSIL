@@ -2207,10 +2207,10 @@ JSIL.InitializeType = function (type) {
   }
 
   if (
-    (typeof (type.prototype) !== "undefined") &&
-    (typeof (type.prototype.__BaseType__) !== "undefined")
+    (typeof (type.__BaseType__) !== "undefined") &&
+    (type.__BaseType__ !== null)
   ) {
-    JSIL.InitializeType(type.prototype.__BaseType__);
+    JSIL.InitializeType(type.__BaseType__);
   }
 };
 
@@ -4018,17 +4018,19 @@ JSIL.CreateInstanceOfType = function (type, constructorName, constructorArgument
   var instance = JSIL.CloneObject(publicInterface.prototype);
   var constructor;
 
+  JSIL.InitializeType(type);
+  JSIL.InitializeStructFields(instance, type);
+
   if (typeof (constructorName) === "string") {
     constructor = publicInterface.prototype[constructorName];
   } else if (constructorName === null) {
-    JSIL.InitializeType(type);
-    JSIL.InitializeStructFields(instance, type);
-
     return instance;
   } else {
     constructor = publicInterface.prototype["_ctor"];
-    if ((typeof (constructor) !== "function") || (constructor.__IsPlaceholder__))
-      constructor = publicInterface;
+
+    if ((typeof (constructor) !== "function") || (constructor.__IsPlaceholder__)) {
+      return instance;
+    }
 
     constructorArguments = constructorName;
     constructorName = null;
