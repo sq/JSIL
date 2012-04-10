@@ -1228,11 +1228,18 @@ $jsilcore.$Of$NoInitialize = function () {
     Array.prototype.slice.call(arguments)
   );
 
+  var gaNames = typeObject.__GenericArgumentNames__;
+  if (!JSIL.IsArray(gaNames)) {
+    typeObject.__GenericArgumentNames__ = gaNames = [];
+
+    for (var i = 0; i < ga.length; i++)
+      gaNames[i] = new JSIL.Name(ga[i], typeObject.__FullName__);
+  }
+  
   if (typeof (staticClassObject.prototype) !== "undefined") {
     var resolveContext = JSIL.CloneObject(staticClassObject.prototype);
     for (var i = 0; i < resolvedArguments.length; i++) {
-      var name = new JSIL.Name(ga[i], typeObject.__FullName__);
-      name.set(resolveContext, resolvedArguments[i]);
+      gaNames[i].set(resolveContext, resolvedArguments[i]);
     }
 
     JSIL.$ResolveGenericTypeReferences(typeObject, resolvedArguments);

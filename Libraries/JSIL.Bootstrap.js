@@ -747,6 +747,7 @@ $jsilcore.$ListExternals = function ($) {
     function () {
       this._items = new Array();
       this._size = 0;
+      this.$thisEnumeratorType = null;
     }
   );
 
@@ -755,6 +756,7 @@ $jsilcore.$ListExternals = function ($) {
     function (size) {
       this._items = new Array(size);
       this._size = 0;
+      this.$thisEnumeratorType = null;
     }
   );
 
@@ -763,6 +765,7 @@ $jsilcore.$ListExternals = function ($) {
     function (values) {
       this._items = JSIL.EnumerableToArray(values);
       this._size = this._items.length;
+      this.$thisEnumeratorType = null;
     }
   );
 
@@ -791,12 +794,17 @@ $jsilcore.$ListExternals = function ($) {
     }
   );
 
+  var tCollection = [null];
+
   $.Method({Static:false, Public:true }, "AsReadOnly", 
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.ObjectModel.ReadOnlyCollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")]), [], []),
     function () {
       // FIXME
-      var tCollection = System.Collections.ObjectModel.ReadOnlyCollection$b1.Of(this.T);
-      return new tCollection(this);
+      if (tCollection[0] === null) {
+        tCollection[0] = System.Collections.ObjectModel.ReadOnlyCollection$b1.Of(this.T);
+      }
+
+      return new (tCollection[0])(this);
     }
   );
 
@@ -888,11 +896,15 @@ $jsilcore.$ListExternals = function ($) {
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.List`1/Enumerator", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")]), [], []),
     function () {
       // Detect whether we are a List<T> or an ArrayList.
-      var elementType = this.T;
-      if (typeof (elementType) === "undefined")
-        elementType = System.Object;
+      if (this.$thisEnumeratorType === null) {
+        var elementType = this.T;
+        if (typeof (elementType) === "undefined")
+          elementType = System.Object;
 
-      return new (System.Collections.Generic.List$b1_Enumerator.Of(elementType)) (this);
+        this.$thisEnumeratorType = System.Collections.Generic.List$b1_Enumerator.Of(elementType)
+      }
+
+      return new (this.$thisEnumeratorType)(this);
     }
   );
 
@@ -1068,6 +1080,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Stack`1", function ($) {
     function _ctor () {
       this._items = new Array();
       this._size = 0;
+      this.$thisEnumeratorType = null;
     }
   );
 
@@ -1076,6 +1089,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Stack`1", function ($) {
     function _ctor (capacity) {
       this._items = new Array(capacity);
       this._size = 0;
+      this.$thisEnumeratorType = null;
     }
   );
 
@@ -1096,8 +1110,12 @@ JSIL.ImplementExternals("System.Collections.Generic.Stack`1", function ($) {
   $.Method({Static:false, Public:true }, "GetEnumerator", 
     (new JSIL.MethodSignature(system.TypeRef("System.Collections.Generic.Stack`1/Enumerator", [new JSIL.GenericParameter("T", "System.Collections.Generic.Stack`1")]), [], [])), 
     function GetEnumerator () {
-      var elementType = this.T;
-      return new (System.Collections.Generic.List$b1_Enumerator.Of(elementType)) (this);
+      if (this.$thisEnumeratorType === null) {
+        var elementType = this.T;
+        this.$thisEnumeratorType = System.Collections.Generic.List$b1_Enumerator.Of(elementType)
+      }
+
+      return new (this.$thisEnumeratorType)(this);
     }
   );
 
@@ -1139,6 +1157,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Queue`1", function ($) {
     function _ctor () {
       this._items = new Array();
       this._size = 0;
+      this.$thisEnumeratorType = null;
     }
   );
 
@@ -1147,6 +1166,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Queue`1", function ($) {
     function _ctor (capacity) {
       this._items = new Array(capacity);
       this._size = 0;
+      this.$thisEnumeratorType = null;
     }
   );
 
@@ -1184,8 +1204,12 @@ JSIL.ImplementExternals("System.Collections.Generic.Queue`1", function ($) {
   $.Method({Static:false, Public:true }, "GetEnumerator", 
     (new JSIL.MethodSignature(system.TypeRef("System.Collections.Generic.Queue`1/Enumerator", [new JSIL.GenericParameter("T", "System.Collections.Generic.Queue`1")]), [], [])), 
     function GetEnumerator () {
-      var elementType = this.T;
-      return new (System.Collections.Generic.List$b1_Enumerator.Of(elementType)) (this);
+      if (this.$thisEnumeratorType === null) {
+        var elementType = this.T;
+        this.$thisEnumeratorType = System.Collections.Generic.List$b1_Enumerator.Of(elementType)
+      }
+
+      return new (this.$thisEnumeratorType)(this);
     }
   );
 
@@ -1198,11 +1222,17 @@ JSIL.MakeClass("System.Object", "JSIL.EnumerableArray", true, [], function ($) {
       this.array = array;
     }
   );
+
+  var tEnumerator = [null];
+
   $.Method({Public: true , Static: false}, "GetEnumerator", 
     new JSIL.MethodSignature(System.Collections.IEnumerator$b1, []),
     function () {
-      var tEnumerator = JSIL.ArrayEnumerator.Of(System.Object);
-      return new tEnumerator(this.array, -1);
+      if (tEnumerator[0] === null) {
+        tEnumerator[0] = JSIL.ArrayEnumerator.Of(System.Object);
+      }
+
+      return new (tEnumerator[0])(this.array, -1);
     }
   );
 
@@ -1855,6 +1885,8 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
     function _ctor () {
       this._dict = {};
       this._count = 0;
+      this.tKeysEnumerator = null;
+      this.tValuesEnumerator = null;
     }
   );
 
@@ -1863,6 +1895,8 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
     function _ctor (capacity) {
       this._dict = {};
       this._count = 0;
+      this.tKeysEnumerator = null;
+      this.tValuesEnumerator = null;
     }
   );
 
@@ -1914,6 +1948,10 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
   $.Method({Static:false, Public:true }, "get_Keys", 
     (new JSIL.MethodSignature($asms[5].TypeRef("System.Collections.Generic.Dictionary`2/KeyCollection", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")]), [], [])), 
     function get_Keys () {
+      if (this.tKeysEnumerator === null) {
+        this.tKeysEnumerator = JSIL.ArrayEnumerator.Of(this.TKey);
+      }
+
       return new JSIL.AbstractEnumerable(
         (function getKeysProxy () {
           var keys = [];
@@ -1927,8 +1965,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
               keys.push(bucket[i][0]);
           }
 
-          var tEnumerator = JSIL.ArrayEnumerator.Of(this.TKey);
-          return new tEnumerator(keys, -1);
+          return new (this.tKeysEnumerator)(keys, -1);
         }).bind(this)
       );
     }
@@ -1937,6 +1974,10 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
   $.Method({Static:false, Public:true }, "get_Values", 
     (new JSIL.MethodSignature($asms[5].TypeRef("System.Collections.Generic.Dictionary`2/ValueCollection", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")]), [], [])), 
     function get_Values () {
+      if (this.tValuesEnumerator === null) {
+        this.tValuesEnumerator = JSIL.ArrayEnumerator.Of(this.TValue);
+      }
+
       return new JSIL.AbstractEnumerable(
         (function getValuesProxy () {
           var values = [];
@@ -1950,8 +1991,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
               values.push(bucket[i][1]);
           }
 
-          var tEnumerator = JSIL.ArrayEnumerator.Of(this.TValue);
-          return new tEnumerator(values, -1);
+          return new (this.tValuesEnumerator)(values, -1);
         }).bind(this)
       );
     }
@@ -1988,13 +2028,17 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
 JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary`2", true, ["TKey", "TValue"], function ($) {
 });
 
+$jsilcore.$tArrayEnumerator = [null];
+
 JSIL.GetEnumerator = function (enumerable) {
   if ((typeof (enumerable) === "undefined") || (enumerable === null))
     throw new Error("Enumerable is null or undefined");
 
   if (JSIL.IsArray(enumerable)) {
-    var tEnumerator = JSIL.ArrayEnumerator.Of(System.Object);
-    return new tEnumerator(enumerable, -1);
+    if ($jsilcore.$tArrayEnumerator[0] === null)
+      $jsilcore.$tArrayEnumerator[0] = JSIL.ArrayEnumerator.Of(System.Object);
+
+    return new ($jsilcore.$tArrayEnumerator[0]) (enumerable, -1);
   } else if (typeof (enumerable.IEnumerable$b1_GetEnumerator) === "function")
     return enumerable.IEnumerable$b1_GetEnumerator();
   else if (typeof (enumerable.IEnumerable_GetEnumerator) === "function")
