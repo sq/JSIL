@@ -334,6 +334,7 @@
     <None Include="SpecialTestCases\CorlibTypeRefs.cs" />
     <None Include="SpecialTestCases\ExternalAbstractMethod.cs" />
     <None Include="TestCases\SealedMethods2.cs" />
+    <None Include="TestCases\OverloadWithGenericArgCount.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

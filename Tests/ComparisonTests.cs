@@ -106,6 +106,7 @@ namespace JSIL.Tests {
                     @"TestCases\GenericMethodThisReference.cs",
                     @"TestCases\NestedGenericMethodCalls.cs",
                     @"TestCases\OverloadWithGeneric.cs",
+                    @"TestCases\OverloadWithGenericArgCount.cs",
                     @"TestCases\OverloadWithMultipleGeneric.cs",
                     @"TestCases\OverloadWithMultipleGenericThis.cs",
                     @"TestCases\OverloadWithMultipleGenericThisRecursive.cs",

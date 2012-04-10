@@ -57,14 +57,18 @@ namespace JSIL.Compiler {
                 .Replace("/", "\\");
         }
 
-        static string MapAssemblyPath (string reference, string assemblyPath, bool ensureExists) {
+        static string MapAssemblyPath (string reference, string assemblyPath, bool ensureExists, bool reportErrors = false) {
             var result = reference
                 .Replace("%assemblypath%", assemblyPath)
                 .Replace("/", "\\");
 
             if (ensureExists) {
-                if (!File.Exists(result))
+                if (!File.Exists(result)) {
+                    if (reportErrors)
+                        Console.Error.WriteLine("// Could not find proxy assembly '{0}'!", reference);
+
                     return null;
+                }
             }
 
             return result;
@@ -389,7 +393,7 @@ namespace JSIL.Compiler {
                     var assemblyPath = Path.GetDirectoryName(Path.GetFullPath(filename));
 
                     var newProxies = (from p in localConfig.Assemblies.Proxies
-                                      let newP = MapAssemblyPath(p, assemblyPath, true)
+                                      let newP = MapAssemblyPath(p, assemblyPath, true, true)
                                       where newP != null
                                       select newP).ToArray();
 

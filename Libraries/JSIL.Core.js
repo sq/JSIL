@@ -1877,9 +1877,12 @@ JSIL.$MakeMethodGroup = function (target, typeName, methodName, methodEscapedNam
     var gaCount = signature.genericArgumentNames.length;
 
     if (gaCount > 0) {
-      var gaGroup = groups[gaCount];
-      if (!JSIL.IsArray(gaGroup))
-        gaGroup = groups[gaCount] = {ga: true, gaCount: gaCount};
+      var gaGroup = groups[gaCount];      
+      if (!JSIL.IsArray(gaGroup)) {
+        gaGroup = groups[gaCount] = []
+        gaGroup.ga = true;
+        gaGroup.gaCount = gaCount;
+      };
 
       var group = gaGroup[argumentCount];
       if (!JSIL.IsArray(group))
@@ -1956,7 +1959,7 @@ JSIL.$MakeMethodGroup = function (target, typeName, methodName, methodEscapedNam
 
     JSIL.SetValueProperty(boundDispatcher, "toString", 
       function () {
-        return "<Overloaded Method " + id + ">";
+        return "<Overloaded Method " + id + " - " + overloadSignatures.length + " overload(s)>";
       }
     );
 
@@ -2134,7 +2137,7 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
       */
 
       if (trace) {
-        console.log(typeObject.__FullName__ + "." + methodEscapedName + " = ", methodGroup);
+        console.log(typeObject.__FullName__ + "." + methodEscapedName + " =", methodGroup);
       }
 
       JSIL.SetValueProperty(target, methodEscapedName, methodGroup);
@@ -3389,6 +3392,47 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
   });
 };
 
+JSIL.InterfaceBuilder.prototype.InheritDefaultConstructor = function () {
+  var signature = new JSIL.MethodSignature(null, [], []);
+  var descriptor = this.ParseDescriptor({Public: true, Static: false}, ".ctor", signature);
+
+  var mangledName = signature.GetKey(descriptor.EscapedName);
+
+  var fn = [null];
+
+  fn[0] = function () {
+    var proto = Object.getPrototypeOf(this);
+    var baseCtor;
+
+    while (true) {
+      baseCtor = proto[mangledName];
+      if (baseCtor === fn[0])
+        proto = Object.getPrototypeOf(proto);
+      else
+        break;
+    }
+
+    if (typeof (baseCtor) === "function")
+      baseCtor.call(this);
+    else
+      JSIL.Host.warning("InheritDefaultConstructor() used but no default constructor was found to inherit!");
+  };
+
+  JSIL.SetValueProperty(fn[0], "toString", 
+    function () {
+      return "<Inherited Default Constructor>";
+    }
+  );
+
+  JSIL.SetValueProperty(descriptor.Target, mangledName, fn[0]);
+
+  this.PushMember("MethodInfo", descriptor, {
+    signature: signature, 
+    mangledName: mangledName,
+    isExternal: false
+  });
+};
+
 JSIL.InterfaceBuilder.prototype.ImplementInterfaces = function (/* ...interfacesToImplement */) {
   var interfaces = this.typeObject.__Interfaces__;
   if (typeof (interfaces) === "undefined")
@@ -4008,6 +4052,7 @@ JSIL.CreateInstanceOfType = function (type, constructorName, constructorArgument
     constructor = publicInterface.prototype["_ctor"];
 
     if ((typeof (constructor) !== "function") || (constructor.__IsPlaceholder__)) {
+      JSIL.Host.warning("Type '" + type.__FullName__ + "' has no default constructor!");
       return instance;
     }
 
