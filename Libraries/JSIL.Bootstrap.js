@@ -823,10 +823,10 @@ $jsilcore.$ListExternals = function ($) {
     function () {
       // FIXME
       if (tCollection[0] === null) {
-        tCollection[0] = System.Collections.ObjectModel.ReadOnlyCollection$b1.Of(this.T);
+        tCollection[0] = System.Collections.ObjectModel.ReadOnlyCollection$b1.Of(this.T).__Type__;
       }
 
-      return new (tCollection[0])(this);
+      return JSIL.CreateInstanceOfType(tCollection[0], "$listCtor", [this]);
     }
   );
 
@@ -1065,23 +1065,27 @@ $jsilcore.$ReadOnlyCollectionExternals = function ($) {
 
   var mscorlib = JSIL.GetCorlib();
 
+  var listCtor = function (list) {
+    this._list = list;
+
+    Object.defineProperty(this, "_items", {
+      get: function () {
+        return list._items;
+      }
+    });
+
+    Object.defineProperty(this, "_size", {
+      get: function () {
+        return list._size;
+      }
+    });
+  };
+
+  $.RawMethod(false, "$listCtor", listCtor);
+
   $.Method({Static:false, Public:true }, ".ctor", 
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Collections.Generic.IList`1", [new JSIL.GenericParameter("T", "System.Collections.ObjectModel.ReadOnlyCollection`1")])], []),
-    function (list) {
-      this._list = list;
-
-      Object.defineProperty(this, "_items", {
-        get: function () {
-          return list._items;
-        }
-      });
-
-      Object.defineProperty(this, "_size", {
-        get: function () {
-          return list._size;
-        }
-      });
-    }
+    listCtor
   );
 
   $.SetValue("Add", null);

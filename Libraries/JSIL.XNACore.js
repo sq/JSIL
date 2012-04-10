@@ -1361,12 +1361,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector2", function ($) {
   }, ".cctor", new JSIL.MethodSignature(null, [], []), function () {
     Microsoft.Xna.Framework.Vector2._zero = new Microsoft.Xna.Framework.Vector2();
   });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_Zero", new JSIL.MethodSignature(null, [], []), function () {
-    return Microsoft.Xna.Framework.Vector2._zero;
-  });
+
+  $.Method({Static:true , Public:true }, "get_Zero", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), [], [])), 
+    function get_Zero () {
+      return Microsoft.Xna.Framework.Vector2._zero;
+    }
+  );
+
   $.Method({
     Static: false,
     Public: true
@@ -1478,7 +1480,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector2", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, "MemberwiseClone", new JSIL.MethodSignature(null, [], []), function () {
+  }, "MemberwiseClone", new JSIL.MethodSignature($.Object, [], []), function () {
     var result = Object.create(Microsoft.Xna.Framework.Vector2.prototype);
     result.X = this.X;
     result.Y = this.Y;
@@ -1527,18 +1529,21 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector3", function ($) {
     $._forward = new $(0, 0, -1);
     $._backward = new $(0, 0, 1);
   });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_Zero", new JSIL.MethodSignature(null, [], []), function () {
-    return Microsoft.Xna.Framework.Vector3._zero;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_One", new JSIL.MethodSignature(null, [], []), function () {
-    return Microsoft.Xna.Framework.Vector3._one;
-  });
+
+  $.Method({Static:true , Public:true }, "get_Zero", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Vector3"), [], [])), 
+    function get_Zero () {
+      return Microsoft.Xna.Framework.Vector3._zero;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "get_One", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Vector3"), [], [])), 
+    function get_One () {
+      return Microsoft.Xna.Framework.Vector3._one;
+    }
+  );
+
   $.Method({
     Static: false,
     Public: true
@@ -1720,7 +1725,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector3", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, "MemberwiseClone", new JSIL.MethodSignature(null, [], []), function () {
+  }, "MemberwiseClone", new JSIL.MethodSignature($.Object, [], []), function () {
     var result = Object.create(Microsoft.Xna.Framework.Vector3.prototype);
     result.X = this.X;
     result.Y = this.Y;
@@ -1908,7 +1913,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector4", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, "MemberwiseClone", new JSIL.MethodSignature(null, [], []), function () {
+  }, "MemberwiseClone", new JSIL.MethodSignature($.Object, [], []), function () {
     var result = Object.create(Microsoft.Xna.Framework.Vector4.prototype);
     result.X = this.X;
     result.Y = this.Y;
@@ -2041,9 +2046,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       Microsoft.Xna.Framework.Game._QuitForced = true;
     }
   );
-});
 
-JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [], [])), 
     function _ctor () {
@@ -2173,10 +2176,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   }, "ResetElapsedTime", new JSIL.MethodSignature(null, [], []), function () {
     this.forceElapsedTimeToZero = true;
   });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "$ComponentsOfType", new JSIL.MethodSignature(null, [], []), function (type) {
+  $.RawMethod(false, "$ComponentsOfType", function (type) {
     var result = new Array();
     for (var i = 0, l = this.components._size; i < l; i++) {
       var item = this.components._items[i];
@@ -2185,32 +2185,35 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     }
     return result;
   });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "Draw", new JSIL.MethodSignature(null, [], []), function (gameTime) {
-    if (Microsoft.Xna.Framework.Game._QuitForced || this._isDead) return;
 
-    var drawableComponents = this.$ComponentsOfType(Microsoft.Xna.Framework.IDrawable);
-    for (var i = 0, l = drawableComponents.length; i < l; i++) {
-      var drawable = drawableComponents[i];
+  $.Method({Static:false, Public:false}, "Draw", 
+    (new JSIL.MethodSignature(null, [$asms[1].TypeRef("Microsoft.Xna.Framework.GameTime")], [])), 
+    function Draw (gameTime) {
+      if (Microsoft.Xna.Framework.Game._QuitForced || this._isDead) return;
 
-      if (drawable.Visible) drawable.Draw(gameTime);
+      var drawableComponents = this.$ComponentsOfType(Microsoft.Xna.Framework.IDrawable);
+      for (var i = 0, l = drawableComponents.length; i < l; i++) {
+        var drawable = drawableComponents[i];
+
+        if (drawable.Visible) drawable.Draw(gameTime);
+      }
     }
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "Update", new JSIL.MethodSignature(null, [], []), function (gameTime) {
-    if (Microsoft.Xna.Framework.Game._QuitForced || this._isDead) return;
+  );
 
-    var updateableComponents = this.$ComponentsOfType(Microsoft.Xna.Framework.IUpdateable);
-    for (var i = 0, l = updateableComponents.length; i < l; i++) {
-      var updateable = updateableComponents[i];
+  $.Method({Static:false, Public:false}, "Update", 
+    (new JSIL.MethodSignature(null, [$asms[1].TypeRef("Microsoft.Xna.Framework.GameTime")], [])), 
+    function Update (gameTime) {
+      if (Microsoft.Xna.Framework.Game._QuitForced || this._isDead) return;
 
-      if (updateable.Enabled) updateable.Update(gameTime);
+      var updateableComponents = this.$ComponentsOfType(Microsoft.Xna.Framework.IUpdateable);
+      for (var i = 0, l = updateableComponents.length; i < l; i++) {
+        var updateable = updateableComponents[i];
+
+        if (updateable.Enabled) updateable.Update(gameTime);
+      }
     }
-  });
+  );
+
   $.Method({
     Static: false,
     Public: true
@@ -2219,22 +2222,16 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     this.Initialize();
     this._QueueStep();
   });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "_GetNow", new JSIL.MethodSignature(null, [], []), function () {
+
+  $.RawMethod(false, "_GetNow", function () {
     return (new Date()).getTime();
   });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "_DeferCall", new JSIL.MethodSignature(null, [], []), function (callback, lng) {
+
+  $.RawMethod(false, "_DeferCall", function (callback, lng) {
     setTimeout(callback, 0);
   });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "_QueueStep", new JSIL.MethodSignature(null, [], []), function () {
+
+  $.RawMethod(false, "_QueueStep", function () {
     if (Microsoft.Xna.Framework.Game._QuitForced) return;
 
     var self = this;
@@ -2261,10 +2258,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       this._DeferCall(shouldStepCallback, true);
     }
   });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "_Step", new JSIL.MethodSignature(null, [], []), function () {
+
+  $.RawMethod(false, "_Step", function () {
     var now = this._GetNow();
     if (this._lastFrame === 0) {
       var elapsed = 0;
@@ -2325,12 +2320,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       else this._QueueStep();
     }
   });
+
   $.Method({
     Static: false,
     Public: true
   }, "Exit", new JSIL.MethodSignature(null, [], []), function () {
     this.Dispose();
   });
+
   $.Method({
     Static: false,
     Public: true
@@ -2913,12 +2910,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Point", function ($) {
   }, ".cctor", new JSIL.MethodSignature(null, [], []), function () {
     Microsoft.Xna.Framework.Point._zero = new Microsoft.Xna.Framework.Point();
   });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_Zero", new JSIL.MethodSignature(null, [], []), function () {
-    return Microsoft.Xna.Framework.Point._zero;
-  });
+  $.Method({Static:true , Public:true }, "get_Zero", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Point"), [], [])), 
+    function get_Zero () {
+      return Microsoft.Xna.Framework.Point._zero;
+    }
+  );
   $.Method({
     Static: false,
     Public: true
@@ -2950,7 +2947,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Point", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, "MemberwiseClone", new JSIL.MethodSignature(null, [], []), function () {
+  }, "MemberwiseClone", new JSIL.MethodSignature($.Object, [], []), function () {
     var result = Object.create(Microsoft.Xna.Framework.Point.prototype);
     result.X = this.X;
     result.Y = this.Y;
@@ -3220,264 +3217,267 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
   var $drawDebugRects = false,
     $drawDebugBoxes = false;
 
-  $.Method({
-    Static: false,
-    Public: true
-  }, "$canvasDrawImage", new JSIL.MethodSignature(null, [], []), function (image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, destW, destH) {
+  $.RawMethod(false, "$canvasDrawImage", function (image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, destW, destH) {
     this.device.context.drawImage(
     image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, destW, destH);
   });
 
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (device) {
-    this.device = device;
-    this.defer = false;
-    this.deferSorter = null;
-    this.deferredDraws = [];
-  });
-
-  $.Method({
-    Static: false,
-    Public: true
-  }, "Begin", new JSIL.MethodSignature(null, [], []), function (sortMode, blendState, samplerState, depthStencilState, rasterizerState, effect, transformMatrix) {
-    this.device.context.save();
-    this.deferSorter = null;
-
-    if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Immediate) {
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice")], [])), 
+    function _ctor (graphicsDevice) {
+      this.device = graphicsDevice;
       this.defer = false;
-    } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.BackToFront) {
-      this.defer = true;
-      this.deferSorter = function (lhs, rhs) {
-        return -JSIL.CompareValues(lhs.arguments[8], rhs.arguments[8]);
-      };
-    } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.FrontToBack) {
-      this.defer = true;
-      this.deferSorter = function (lhs, rhs) {
-        return JSIL.CompareValues(lhs.arguments[8], rhs.arguments[8]);
-      };
-    } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Texture) {
-      this.defer = true;
-      this.deferSorter = function (lhs, rhs) {
-        return JSIL.CompareValues(lhs.arguments[0], rhs.arguments[0]);
-      };
-    } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Deferred) {
-      this.defer = true;
+      this.deferSorter = null;
+      this.deferredDraws = [];
     }
+  );
 
-    if ((typeof (transformMatrix) === "object") && (transformMatrix !== null)) {
-      this.device.context.translate(transformMatrix.xTranslation, transformMatrix.yTranslation);
-      this.device.context.scale(transformMatrix.xScale, transformMatrix.yScale);
-    }
-  });
+  $.Method({Static:false, Public:true }, "Begin", 
+    (new JSIL.MethodSignature(null, [$asms[5].TypeRef("System.Array") /* AnyType[] */ ], [])), 
+    function (sortMode, blendState, samplerState, depthStencilState, rasterizerState, effect, transformMatrix) {
+      this.device.context.save();
+      this.deferSorter = null;
 
-  $.Method({
-    Static: false,
-    Public: true
-  }, "End", new JSIL.MethodSignature(null, [], []), function () {
-    if (this.defer) {
-      this.defer = false;
+      if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Immediate) {
+        this.defer = false;
+      } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.BackToFront) {
+        this.defer = true;
+        this.deferSorter = function (lhs, rhs) {
+          return -JSIL.CompareValues(lhs.arguments[8], rhs.arguments[8]);
+        };
+      } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.FrontToBack) {
+        this.defer = true;
+        this.deferSorter = function (lhs, rhs) {
+          return JSIL.CompareValues(lhs.arguments[8], rhs.arguments[8]);
+        };
+      } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Texture) {
+        this.defer = true;
+        this.deferSorter = function (lhs, rhs) {
+          return JSIL.CompareValues(lhs.arguments[0], rhs.arguments[0]);
+        };
+      } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Deferred) {
+        this.defer = true;
+      }
 
-      if (this.deferSorter !== null) this.deferredDraws.sort(this.deferSorter);
-
-      for (var i = 0, l = this.deferredDraws.length; i < l; i++) {
-        var draw = this.deferredDraws[i];
-        draw.fn.apply(this, draw.arguments);
+      if ((typeof (transformMatrix) === "object") && (transformMatrix !== null)) {
+        this.device.context.translate(transformMatrix.xTranslation, transformMatrix.yTranslation);
+        this.device.context.scale(transformMatrix.xScale, transformMatrix.yScale);
       }
     }
+  );
 
-    this.deferredDraws = [];
+  $.Method({Static:false, Public:true }, "End", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function End () {
+      if (this.defer) {
+        this.defer = false;
 
-    this.device.context.restore();
-  });
+        if (this.deferSorter !== null) this.deferredDraws.sort(this.deferSorter);
 
-  $.Method({
-    Static: false,
-    Public: true
-  }, "InternalDraw", new JSIL.MethodSignature(null, [], []), function (texture, position, sourceRectangle, color, rotation, origin, scale, effects, depth) {
-    if (typeof (scale) === "undefined") scale = 1;
-    if (typeof (depth) === "undefined") depth = 1;
-    if (typeof (rotation) === "undefined") rotation = 0;
-
-    if (this.defer) {
-      position = position.MemberwiseClone();
-
-      if (sourceRectangle !== null) sourceRectangle = sourceRectangle.MemberwiseClone();
-      if (color !== null) color = color.MemberwiseClone();
-      if (origin !== null) origin = origin.MemberwiseClone();
-
-      this.deferredDraws.push({
-        fn: this.InternalDraw,
-        index: this.deferredDraws.length,
-        arguments: [
-          texture, position,
-          sourceRectangle || null,
-          color || null,
-          rotation,
-          origin || null,
-          scale,
-          effects || null,
-          depth
-          ]
-      });
-
-      return;
-    }
-
-    var needRestore = false;
-    var image = texture.image,
-      originalImage = texture.image;
-    var imageWidth = image.naturalWidth,
-      imageHeight = image.naturalHeight;
-    var positionIsRect = typeof (position.Width) === "number";
-    var scaleX = 1,
-      scaleY = 1,
-      originX = 0,
-      originY = 0;
-    var sourceX = 0,
-      sourceY = 0,
-      sourceW = texture.Width,
-      sourceH = texture.Height;
-    var positionX, positionY;
-
-    if (typeof (scale) === "number") scaleX = scaleY = scale;
-    else if ((typeof (scale) === "object") && (scale !== null) && (typeof (scale.X) === "number")) {
-      scaleX = scale.X;
-      scaleY = scale.Y;
-    }
-
-    positionX = position.X;
-    positionY = position.Y;
-
-    effects = effects || Microsoft.Xna.Framework.Graphics.SpriteEffects.None;
-
-    if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) {
-      if (!needRestore) this.device.context.save();
-      needRestore = true;
-
-      this.device.context.scale(-1, 1);
-      positionX = -positionX;
-    }
-
-    if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) {
-      if (!needRestore) this.device.context.save();
-      needRestore = true;
-
-      this.device.context.scale(1, -1);
-      positionY = -positionY;
-    }
-
-    if ((typeof (origin) === "object") && (origin !== null) && (typeof (origin.X) === "number")) {
-      originX = origin.X;
-      positionX -= originX;
-      originY = origin.Y;
-      positionY -= originY;
-    }
-
-    if (sourceRectangle !== null) {
-      sourceX = sourceRectangle.X;
-      sourceY = sourceRectangle.Y;
-      sourceW = sourceRectangle.Width;
-      sourceH = sourceRectangle.Height;
-    }
-
-    if (sourceX < 0) {
-      sourceW += sourceX;
-      sourceX = 0;
-    }
-    if (sourceY < 0) {
-      sourceH += sourceY;
-      sourceY = 0;
-    }
-    if (sourceW > texture.Width - sourceX) sourceW = texture.Width - sourceX;
-    if (sourceH > texture.Height - sourceY) sourceH = texture.Height - sourceY;
-
-    if ((typeof (color) === "object") && (color !== null)) {
-      if ((color.r < 255) || (color.g < 255) || (color.b < 255)) {
-        var newImage = $jsilxna.getImageMultiplied(image, color);
-        if (newImage === image) {
-          // Broken browser
-        } else {
-          image = newImage;
-          sourceX += 1;
-          sourceY += 1;
+        for (var i = 0, l = this.deferredDraws.length; i < l; i++) {
+          var draw = this.deferredDraws[i];
+          draw.fn.apply(this, draw.arguments);
         }
       }
 
-      if (color.a < 255) {
-        if (!needRestore) this.device.context.save();
-        needRestore = true;
+      this.deferredDraws = [];
 
-        this.device.context.globalAlpha = color.a / 255;
-      }
+      this.device.context.restore();
     }
+  );
 
-    var destW, destH;
+  $.Method({Static:false, Public:false}, "InternalDraw", 
+    (new JSIL.MethodSignature(null, [
+          $asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.Texture2D"), $jsilcore.TypeRef("JSIL.Reference", [$asms[0].TypeRef("Microsoft.Xna.Framework.Vector4")]), 
+          $.Boolean, $jsilcore.TypeRef("JSIL.Reference", [$asms[5].TypeRef("System.Nullable`1", [$asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")])]), 
+          $asms[0].TypeRef("Microsoft.Xna.Framework.Color"), $.Single, 
+          $jsilcore.TypeRef("JSIL.Reference", [$asms[0].TypeRef("Microsoft.Xna.Framework.Vector2")]), $asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.SpriteEffects"), 
+          $.Single
+        ], [])),
+    function (texture, position, sourceRectangle, color, rotation, origin, scale, effects, depth) {
+      if (typeof (scale) === "undefined") scale = 1;
+      if (typeof (depth) === "undefined") depth = 1;
+      if (typeof (rotation) === "undefined") rotation = 0;
 
-    if (positionIsRect) {
-      destW = position.Width * scaleX;
-      destH = position.Height * scaleY;
-    } else {
-      destW = sourceW * scaleX;
-      destH = sourceH * scaleY;
-    }
+      if (this.defer) {
+        position = position.MemberwiseClone();
 
-    // Negative width/height cause an exception in Firefox
-    if (destW < 0) {
-      if (!needRestore) this.device.context.save();
-      needRestore = true;
+        if (sourceRectangle !== null) sourceRectangle = sourceRectangle.MemberwiseClone();
+        if (color !== null) color = color.MemberwiseClone();
+        if (origin !== null) origin = origin.MemberwiseClone();
 
-      this.device.context.scale(-1, 1);
-      positionX = -positionX;
-      destW = -destW;
-    }
-    if (destH < 0) {
-      if (!needRestore) this.device.context.save();
-      needRestore = true;
+        this.deferredDraws.push({
+          fn: this.InternalDraw,
+          index: this.deferredDraws.length,
+          arguments: [
+            texture, position,
+            sourceRectangle || null,
+            color || null,
+            rotation,
+            origin || null,
+            scale,
+            effects || null,
+            depth
+            ]
+        });
 
-      this.device.context.scale(1, -1);
-      positionY = -positionY;
-      destH = -destH;
-    }
-
-    // 0x0 blits cause an exception in IE
-    if (
-    (destW > 0) && (destH > 0) && (sourceW > 0) && (sourceH > 0)) {
-      if ($drawDebugRects) {
-        if (!needRestore) this.device.context.save();
-        needRestore = true;
-
-        this.device.context.fillStyle = "rgba(255, 0, 0, 0.33)";
-        this.device.context.fillRect(
-        positionX, positionY, destW, destH);
+        return;
       }
 
-      if ($drawDebugBoxes) {
-        if (!needRestore) this.device.context.save();
-        needRestore = true;
+      var needRestore = false;
+      var image = texture.image,
+        originalImage = texture.image;
+      var imageWidth = image.naturalWidth,
+        imageHeight = image.naturalHeight;
+      var positionIsRect = typeof (position.Width) === "number";
+      var scaleX = 1,
+        scaleY = 1,
+        originX = 0,
+        originY = 0;
+      var sourceX = 0,
+        sourceY = 0,
+        sourceW = texture.Width,
+        sourceH = texture.Height;
+      var positionX, positionY;
 
-        this.device.context.strokeStyle = "rgba(255, 255, 0, 0.66)";
-        this.device.context.strokeRect(
-        positionX, positionY, destW, destH);
+      if (typeof (scale) === "number") scaleX = scaleY = scale;
+      else if ((typeof (scale) === "object") && (scale !== null) && (typeof (scale.X) === "number")) {
+        scaleX = scale.X;
+        scaleY = scale.Y;
       }
 
-      if ((imageWidth === 1) && (imageHeight === 1)) {
+      positionX = position.X;
+      positionY = position.Y;
+
+      effects = effects || Microsoft.Xna.Framework.Graphics.SpriteEffects.None;
+
+      if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) {
         if (!needRestore) this.device.context.save();
         needRestore = true;
 
-        var imageColor = $jsilxna.getImageTopLeftPixelMultiplied(originalImage, color);
+        this.device.context.scale(-1, 1);
+        positionX = -positionX;
+      }
 
-        this.device.context.fillStyle = imageColor;
-        this.device.context.fillRect(positionX, positionY, destW, destH);
+      if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) {
+        if (!needRestore) this.device.context.save();
+        needRestore = true;
+
+        this.device.context.scale(1, -1);
+        positionY = -positionY;
+      }
+
+      if ((typeof (origin) === "object") && (origin !== null) && (typeof (origin.X) === "number")) {
+        originX = origin.X;
+        positionX -= originX;
+        originY = origin.Y;
+        positionY -= originY;
+      }
+
+      if (sourceRectangle !== null) {
+        sourceX = sourceRectangle.X;
+        sourceY = sourceRectangle.Y;
+        sourceW = sourceRectangle.Width;
+        sourceH = sourceRectangle.Height;
+      }
+
+      if (sourceX < 0) {
+        sourceW += sourceX;
+        sourceX = 0;
+      }
+      if (sourceY < 0) {
+        sourceH += sourceY;
+        sourceY = 0;
+      }
+      if (sourceW > texture.Width - sourceX) sourceW = texture.Width - sourceX;
+      if (sourceH > texture.Height - sourceY) sourceH = texture.Height - sourceY;
+
+      if ((typeof (color) === "object") && (color !== null)) {
+        if ((color.r < 255) || (color.g < 255) || (color.b < 255)) {
+          var newImage = $jsilxna.getImageMultiplied(image, color);
+          if (newImage === image) {
+            // Broken browser
+          } else {
+            image = newImage;
+            sourceX += 1;
+            sourceY += 1;
+          }
+        }
+
+        if (color.a < 255) {
+          if (!needRestore) this.device.context.save();
+          needRestore = true;
+
+          this.device.context.globalAlpha = color.a / 255;
+        }
+      }
+
+      var destW, destH;
+
+      if (positionIsRect) {
+        destW = position.Width * scaleX;
+        destH = position.Height * scaleY;
       } else {
-        this.$canvasDrawImage(
-        image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, destW, destH);
+        destW = sourceW * scaleX;
+        destH = sourceH * scaleY;
       }
-    }
 
-    if (needRestore) this.device.context.restore();
-  });
+      // Negative width/height cause an exception in Firefox
+      if (destW < 0) {
+        if (!needRestore) this.device.context.save();
+        needRestore = true;
+
+        this.device.context.scale(-1, 1);
+        positionX = -positionX;
+        destW = -destW;
+      }
+      if (destH < 0) {
+        if (!needRestore) this.device.context.save();
+        needRestore = true;
+
+        this.device.context.scale(1, -1);
+        positionY = -positionY;
+        destH = -destH;
+      }
+
+      // 0x0 blits cause an exception in IE
+      if (
+      (destW > 0) && (destH > 0) && (sourceW > 0) && (sourceH > 0)) {
+        if ($drawDebugRects) {
+          if (!needRestore) this.device.context.save();
+          needRestore = true;
+
+          this.device.context.fillStyle = "rgba(255, 0, 0, 0.33)";
+          this.device.context.fillRect(
+          positionX, positionY, destW, destH);
+        }
+
+        if ($drawDebugBoxes) {
+          if (!needRestore) this.device.context.save();
+          needRestore = true;
+
+          this.device.context.strokeStyle = "rgba(255, 255, 0, 0.66)";
+          this.device.context.strokeRect(
+          positionX, positionY, destW, destH);
+        }
+
+        if ((imageWidth === 1) && (imageHeight === 1)) {
+          if (!needRestore) this.device.context.save();
+          needRestore = true;
+
+          var imageColor = $jsilxna.getImageTopLeftPixelMultiplied(originalImage, color);
+
+          this.device.context.fillStyle = imageColor;
+          this.device.context.fillRect(positionX, positionY, destW, destH);
+        } else {
+          this.$canvasDrawImage(
+          image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, destW, destH);
+        }
+      }
+
+      if (needRestore) this.device.context.restore();
+    }
+  );
 
   $.Method({
     Static: false,
@@ -3587,47 +3587,41 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
     this.viewport.Height = this.canvas.clientHeight || this.canvas.height;
     this.$UpdateViewport();
   });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_Viewport", new JSIL.MethodSignature(null, [], []), function () {
-    return this.viewport;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "set_Viewport", new JSIL.MethodSignature(null, [], []), function (newViewport) {
-    this.viewport = newViewport.MemberwiseClone();
 
-    this.$UpdateViewport();
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "$UpdateViewport", new JSIL.MethodSignature(null, [], []), function () {
+  $.Method({Static:false, Public:true }, "get_Viewport", 
+    (new JSIL.MethodSignature($asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.Viewport"), [], [])), 
+    function get_Viewport () {
+      return this.viewport;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Viewport", 
+    (new JSIL.MethodSignature(null, [$asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.Viewport")], [])), 
+    function set_Viewport (value) {
+      this.viewport = newViewport.MemberwiseClone();
+
+      this.$UpdateViewport();
+    }
+  );
+
+  $.RawMethod(false, "$UpdateViewport", function () {
     this.context.setTransform(1, 0, 0, 1, 0, 0);
     this.context.translate(this.viewport.X, this.viewport.Y);
     this.context.scale(this.viewport.Width / this.canvas.width, this.viewport.Height / this.canvas.height);
   });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "$Clear", new JSIL.MethodSignature(null, [], []), function () {
+
+  $.RawMethod(false, "$Clear", function () {
     this.context.setTransform(1, 0, 0, 1, 0, 0);
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.$UpdateViewport();
   });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "InternalClear", new JSIL.MethodSignature(null, [], []), function (color) {
+
+  $.RawMethod(false, "InternalClear", function (color) {
     this.context.fillStyle = color.toCss();
     this.context.fillRect(0, 0, this.viewport.Width, this.viewport.Height);
   });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "InternalDrawUserPrimitives", new JSIL.MethodSignature(null, [], []), function (T, primitiveType, vertices, vertexOffset, primitiveCount) {
+
+  $.RawMethod(false, "InternalDrawUserPrimitives", function (T, primitiveType, vertices, vertexOffset, primitiveCount) {
     switch (primitiveType) {
     case Microsoft.Xna.Framework.Graphics.PrimitiveType.LineList:
       for (var i = 0; i < primitiveCount; i++) {
@@ -3647,6 +3641,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
       return;
     }
   });
+
   $.Method({
     Static: false,
     Public: true
@@ -3716,26 +3711,33 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.MathHelper", function ($) {
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function ($) {
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (texture, glyphs, cropping, charMap, lineSpacing, spacing, kerning, defaultCharacter) {
-    this.textureValue = texture;
-    this.glyphData = glyphs;
-    this.croppingData = cropping;
-    this.characterMap = charMap;
-    this.lineSpacing = lineSpacing;
-    this.spacing = spacing;
-    this.kerning = kerning;
-    this.defaultCharacter = defaultCharacter;
-    this.characters = this.characterMap.AsReadOnly();
-    this.charToIndex = {};
 
-    for (var i = 0; i < charMap.Count; i++) {
-      var ch = charMap.get_Item(i);
-      this.charToIndex[ch.charCodeAt(0)] = i;
+  $.Method({Static:false, Public:false}, ".ctor", 
+    (new JSIL.MethodSignature(null, [
+          $asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.Texture2D"), $asms[5].TypeRef("System.Collections.Generic.List`1", [$asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")]), 
+          $asms[5].TypeRef("System.Collections.Generic.List`1", [$asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")]), $asms[5].TypeRef("System.Collections.Generic.List`1", [$.Char]), 
+          $.Int32, $.Single, 
+          $asms[5].TypeRef("System.Collections.Generic.List`1", [$asms[0].TypeRef("Microsoft.Xna.Framework.Vector3")]), $asms[5].TypeRef("System.Nullable`1", [$.Char])
+        ], [])), 
+    function _ctor (texture, glyphs, cropping, charMap, lineSpacing, spacing, kerning, defaultCharacter) {
+      this.textureValue = texture;
+      this.glyphData = glyphs;
+      this.croppingData = cropping;
+      this.characterMap = charMap;
+      this.lineSpacing = lineSpacing;
+      this.spacing = spacing;
+      this.kerning = kerning;
+      this.defaultCharacter = defaultCharacter;
+      this.characters = this.characterMap.AsReadOnly();
+      this.charToIndex = {};
+
+      for (var i = 0; i < charMap.Count; i++) {
+        var ch = charMap.get_Item(i);
+        this.charToIndex[ch.charCodeAt(0)] = i;
+      }
     }
-  });
+  );
+
   $.Method({
     Static: false,
     Public: true
@@ -3760,128 +3762,135 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
   }, "get_Characters", new JSIL.MethodSignature(null, [], []), function () {
     return this.characters;
   });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "GetIndexForCharacter", new JSIL.MethodSignature(null, [], []), function (char) {
-    var result = this.charToIndex[char.charCodeAt(0)];
 
-    if ((typeof (result) === "undefined") && (this.defaultCharacter !== null)) result = this.charToIndex[this.defaultCharacter.charCodeAt(0)];
+  $.Method({Static:false, Public:false}, "GetIndexForCharacter", 
+    (new JSIL.MethodSignature($.Int32, [$.Char], [])), 
+    function GetIndexForCharacter (character) {
+      var result = this.charToIndex[character.charCodeAt(0)];
 
-    if (typeof (result) === "undefined") result = -1;
+      if ((typeof (result) === "undefined") && (this.defaultCharacter !== null)) result = this.charToIndex[this.defaultCharacter.charCodeAt(0)];
 
-    return result;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "MeasureString", new JSIL.MethodSignature(null, [], []), function (text) {
-    return this.InternalMeasure(text);
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "MeasureString", new JSIL.MethodSignature(null, [], []), function (stringBuilder) {
-    return this.InternalMeasure(stringBuilder.toString());
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "InternalMeasure", new JSIL.MethodSignature(null, [], []), function (text) {
-    var tVector2 = Microsoft.Xna.Framework.Vector2;
-    var result = new tVector2(0, 0);
-    var lineWidth = 0;
-    var lineCount = 1;
+      if (typeof (result) === "undefined") result = -1;
 
-    for (var i = 0, l = text.length; i < l; i++) {
-      var ch = text[i];
-      switch (ch) {
-      case "\r":
-        continue;
-      case "\n":
-        result.X = Math.max(lineWidth, result.X);
-        lineWidth = 0;
-
-        if (i < (l - 1)) lineCount += 1;
-
-        continue;
-      }
-
-      lineWidth += this.spacing;
-
-      var charIndex = this.GetIndexForCharacter(ch);
-      if (charIndex < 0) {
-        continue;
-      }
-
-      var kerning = this.kerning.get_Item(charIndex);
-      var beforeGlyph = kerning.X;
-      var glyphWidth = kerning.Y;
-      var afterGlyph = kerning.Z;
-
-      lineWidth += beforeGlyph;
-      lineWidth += glyphWidth;
-      lineWidth += afterGlyph;
+      return result;
     }
+  );
 
-    result.X = Math.max(lineWidth, result.X);
-    result.Y = lineCount * this.lineSpacing;
+  $.Method({Static:false, Public:false}, "InternalMeasure", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), [$jsilcore.TypeRef("JSIL.Reference", [$asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.SpriteFont/StringProxy")])], [])), 
+    function InternalMeasure (/* ref */ text) {
+      var tVector2 = Microsoft.Xna.Framework.Vector2;
+      var result = new tVector2(0, 0);
+      var lineWidth = 0;
+      var lineCount = 1;
 
-    return result;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "InternalDraw", new JSIL.MethodSignature(null, [], []), function (text, spriteBatch, textblockPosition, color, rotation, origin, scale, spriteEffects, depth) {
-    var tVector2 = Microsoft.Xna.Framework.Vector2;
-    var position = new tVector2(textblockPosition.X, textblockPosition.Y);
-    var drawPosition = new tVector2();
+      for (var i = 0, l = text.length; i < l; i++) {
+        var ch = text[i];
+        switch (ch) {
+        case "\r":
+          continue;
+        case "\n":
+          result.X = Math.max(lineWidth, result.X);
+          lineWidth = 0;
 
-    for (var i = 0, l = text.length; i < l; i++) {
-      var ch = text[i];
-      switch (ch) {
-      case "\r":
-        continue;
-      case "\n":
-        position.X = textblockPosition.X;
-        position.Y += this.lineSpacing * scale;
-        continue;
+          if (i < (l - 1)) lineCount += 1;
+
+          continue;
+        }
+
+        lineWidth += this.spacing;
+
+        var charIndex = this.GetIndexForCharacter(ch);
+        if (charIndex < 0) {
+          continue;
+        }
+
+        var kerning = this.kerning.get_Item(charIndex);
+        var beforeGlyph = kerning.X;
+        var glyphWidth = kerning.Y;
+        var afterGlyph = kerning.Z;
+
+        lineWidth += beforeGlyph;
+        lineWidth += glyphWidth;
+        lineWidth += afterGlyph;
       }
 
-      position.X += this.spacing;
+      result.X = Math.max(lineWidth, result.X);
+      result.Y = lineCount * this.lineSpacing;
 
-      var charIndex = this.GetIndexForCharacter(ch);
-      if (charIndex < 0) {
-        continue;
-      }
+      return result;
+    }
+  );
 
-      var kerning = this.kerning.get_Item(charIndex);
-      var beforeGlyph = kerning.X * scale;
-      var glyphWidth = kerning.Y * scale;
-      var afterGlyph = kerning.Z * scale;
+  $.Method({Static:false, Public:true }, "MeasureString", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), [$.String], [])), 
+    function MeasureString (text) {
+      return this.InternalMeasure(text);
+    }
+  );
 
-      position.X += beforeGlyph;
+  $.Method({Static:false, Public:true }, "MeasureString", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), [$asms[5].TypeRef("System.Text.StringBuilder")], [])), 
+    function MeasureString (text) {
+      return this.InternalMeasure(stringBuilder.toString());
+    }
+  );
 
-      var glyphRect = this.glyphData.get_Item(charIndex);
-      var cropRect = this.croppingData.get_Item(charIndex);
+  $.Method({Static:false, Public:false}, "InternalDraw", 
+    (new JSIL.MethodSignature(null, [
+          $jsilcore.TypeRef("JSIL.Reference", [$asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.SpriteFont/StringProxy")]), $asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.SpriteBatch"), 
+          $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), $asms[0].TypeRef("Microsoft.Xna.Framework.Color"), 
+          $.Single, $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), 
+          $jsilcore.TypeRef("JSIL.Reference", [$asms[0].TypeRef("Microsoft.Xna.Framework.Vector2")]), $asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.SpriteEffects"), 
+          $.Single
+        ], [])), 
+    function (text, spriteBatch, textblockPosition, color, rotation, origin, scale, spriteEffects, depth) {
+      var tVector2 = Microsoft.Xna.Framework.Vector2;
+      var position = new tVector2(textblockPosition.X, textblockPosition.Y);
+      var drawPosition = new tVector2();
 
-      drawPosition.X = position.X + cropRect.X * scale;
-      drawPosition.Y = position.Y + cropRect.Y * scale;
+      for (var i = 0, l = text.length; i < l; i++) {
+        var ch = text[i];
+        switch (ch) {
+        case "\r":
+          continue;
+        case "\n":
+          position.X = textblockPosition.X;
+          position.Y += this.lineSpacing * scale;
+          continue;
+        }
 
-      spriteBatch.InternalDraw(
-      this.textureValue, drawPosition, glyphRect, color, rotation, origin, scale, spriteEffects, depth);
+        position.X += this.spacing;
 
-      position.X += glyphWidth;
-      position.X += afterGlyph;
+        var charIndex = this.GetIndexForCharacter(ch);
+        if (charIndex < 0) {
+          continue;
+        }
+
+        var kerning = this.kerning.get_Item(charIndex);
+        var beforeGlyph = kerning.X * scale;
+        var glyphWidth = kerning.Y * scale;
+        var afterGlyph = kerning.Z * scale;
+
+        position.X += beforeGlyph;
+
+        var glyphRect = this.glyphData.get_Item(charIndex);
+        var cropRect = this.croppingData.get_Item(charIndex);
+
+        drawPosition.X = position.X + cropRect.X * scale;
+        drawPosition.Y = position.Y + cropRect.Y * scale;
+
+        spriteBatch.InternalDraw(
+        this.textureValue, drawPosition, glyphRect, color, rotation, origin, scale, spriteEffects, depth);
+
+        position.X += glyphWidth;
+        position.X += afterGlyph;
     }
   });
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function ($) {
-  $.Method({
-    Static: false,
-    Public: true
-  }, "$internalCtor", new JSIL.MethodSignature(null, [], []), function (graphicsDevice, width, height, mipMap, format) {
+  $.RawMethod(false, "$internalCtor", function (graphicsDevice, width, height, mipMap, format) {
     this._parent = graphicsDevice;
     this.width = width;
     this.height = height;
@@ -3896,34 +3905,41 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     var textures = document.getElementById("textures");
     if (textures) textures.appendChild(this.image);
   });
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function () {});
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (graphicsDevice, width, height) {
-    this.$internalCtor(graphicsDevice, width, height, false, Microsoft.Xna.Framework.Graphics.SurfaceFormat.Color);
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (graphicsDevice, width, height, mipMap, format) {
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [
+          $asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), $.Int32, 
+          $.Int32
+        ], [])), 
+    function _ctor (graphicsDevice, width, height) {
+      this.$internalCtor(graphicsDevice, width, height, false, Microsoft.Xna.Framework.Graphics.SurfaceFormat.Color);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [
+          $asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), $.Int32, 
+          $.Int32, $.Boolean, 
+          $asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.SurfaceFormat")
+        ], [])), 
+    function _ctor (graphicsDevice, width, height, mipMap, format) {
     this.$internalCtor(graphicsDevice, width, height, mipMap, format);
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_Width", new JSIL.MethodSignature(null, [], []), function () {
-    return this.width;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_Height", new JSIL.MethodSignature(null, [], []), function () {
-    return this.height;
-  });
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Height", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Height () {
+      return this.height;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Width", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Width () {
+      return this.width;
+    }
+  );
 
   $.RawMethod(false, "$setDataInternal", function (T, data, startIndex, elementCount) {
     var bytes = null;
