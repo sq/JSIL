@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -640,6 +641,7 @@ namespace JSIL.Internal {
         public readonly TypeIdentifier Identifier;
         public readonly TypeDefinition Definition;
         public readonly ITypeInfoSource Source;
+
         public readonly TypeInfo DeclaringType;
         public readonly TypeInfo BaseClass;
 
@@ -651,7 +653,7 @@ namespace JSIL.Internal {
         public readonly MetadataCollection Metadata;
         public readonly ProxyInfo[] Proxies;
 
-        public readonly Dictionary<string, int> MethodNameCounts = new Dictionary<string, int>();
+        public readonly MethodSignatureCollection MethodSignatures = new MethodSignatureCollection();
         public readonly HashSet<MethodGroupInfo> MethodGroups = new HashSet<MethodGroupInfo>();
 
         public readonly bool IsFlagsEnum;
@@ -991,7 +993,8 @@ namespace JSIL.Internal {
                     if (result.IsFromProxy)
                         Debug.WriteLine(String.Format("Warning: Proxy member '{0}' replacing proxy member '{1}'.", member, result));
 
-                    Members.Remove(identifier);
+                    lock (Members)
+                        Members.Remove(identifier);
                 } else {
                     throw new ArgumentException();
                 }
@@ -1142,22 +1145,19 @@ namespace JSIL.Internal {
             return false;
         }
 
-        protected void IncrementNameCount (string methodName) {
+        protected void UpdateSignatureSet (string methodName, MethodSignature signature) {
             foreach (var t in SelfAndBaseTypesRecursive) {
                 int existingCount;
 
-                lock (t.MethodNameCounts) {
-                    if (t.MethodNameCounts.TryGetValue(methodName, out existingCount))
-                        t.MethodNameCounts[methodName] = existingCount + 1;
-                    else
-                        t.MethodNameCounts[methodName] = 1;
-                }
+                var set = t.MethodSignatures.GetOrCreate(
+                    methodName, () => new MethodSignatureSet()
+                );
+
+                set.Add(signature);
             }
         }
 
         protected MethodInfo AddMember (MethodDefinition method, PropertyInfo property, bool isFromProxy = false) {
-            IncrementNameCount(method.Name);
-
             IMemberInfo result;
             var identifier = new MemberIdentifier(this.Source, method);
             if (Members.TryGetValue(identifier, out result))
@@ -1169,36 +1169,43 @@ namespace JSIL.Internal {
             else if (property.Member.SetMethod == method)
                 property.Setter = (MethodInfo)result;
 
-            Members.Add(identifier, result);
+            lock (Members)
+                Members.Add(identifier, result);
+
+            UpdateSignatureSet(method.Name, ((MethodInfo)result).Signature);
+
             return (MethodInfo)result;
         }
 
         protected MethodInfo AddMember (MethodDefinition method, EventInfo evt, bool isFromProxy = false) {
-            IncrementNameCount(method.Name);
-
             IMemberInfo result;
             var identifier = new MemberIdentifier(this.Source, method);
             if (Members.TryGetValue(identifier, out result))
                 return (MethodInfo)result;
 
             result = new MethodInfo(this, identifier, method, Proxies, evt, isFromProxy);
-            Members.Add(identifier, result);
+            lock (Members)
+                Members.Add(identifier, result);
+
+            UpdateSignatureSet(method.Name, ((MethodInfo)result).Signature);
+
             return (MethodInfo)result;
         }
 
         protected MethodInfo AddMember (MethodDefinition method, bool isFromProxy = false) {
-            IncrementNameCount(method.Name);
-
             IMemberInfo result;
             var identifier = new MemberIdentifier(this.Source, method);
             if (Members.TryGetValue(identifier, out result))
                 return (MethodInfo)result;
 
             result = new MethodInfo(this, identifier, method, Proxies, isFromProxy);
-            Members.Add(identifier, result);
+            lock (Members)
+                Members.Add(identifier, result);
 
             if (method.Name == ".cctor")
                 StaticConstructor = method;
+
+            UpdateSignatureSet(method.Name, ((MethodInfo)result).Signature);
 
             return (MethodInfo)result;
         }
@@ -1210,7 +1217,8 @@ namespace JSIL.Internal {
                 return (FieldInfo)result;
 
             result = new FieldInfo(this, identifier, field, Proxies);
-            Members.Add(identifier, result);
+            lock (Members)
+                Members.Add(identifier, result);
             return (FieldInfo)result;
         }
 
@@ -1221,7 +1229,8 @@ namespace JSIL.Internal {
                 return (PropertyInfo)result;
 
             result = new PropertyInfo(this, identifier, property, Proxies, isFromProxy);
-            Members.Add(identifier, result);
+            lock (Members)
+                Members.Add(identifier, result);
             return (PropertyInfo)result;
         }
 
@@ -1232,7 +1241,8 @@ namespace JSIL.Internal {
                 return (EventInfo)result;
 
             result = new EventInfo(this, identifier, evt, Proxies, isFromProxy);
-            Members.Add(identifier, result);
+            lock (Members)
+                Members.Add(identifier, result);
             return (EventInfo)result;
         }
 
@@ -1389,6 +1399,7 @@ namespace JSIL.Internal {
     }
 
     public interface IMemberInfo {
+        MemberIdentifier Identifier { get; }
         TypeInfo DeclaringType { get; }
         TypeReference ReturnType { get; }
         PropertyInfo DeclaringProperty { get; }
@@ -1486,6 +1497,10 @@ namespace JSIL.Internal {
 
         public ITypeInfoSource Source {
             get { return DeclaringType.Source; }
+        }
+
+        MemberIdentifier IMemberInfo.Identifier {
+            get { return Identifier; }
         }
 
         bool IMemberInfo.IsFromProxy {
@@ -1671,6 +1686,7 @@ namespace JSIL.Internal {
 
         protected MethodGroupInfo _MethodGroup = null;
         protected bool? _IsOverloadedRecursive;
+        protected bool? _IsRedefinedRecursive;
         protected bool? _ParametersIgnored;
         protected readonly string ShortName;
 
@@ -1770,22 +1786,25 @@ namespace JSIL.Internal {
             }
         }
 
+        public bool IsRedefinedRecursive {
+            get {
+                if (!_IsRedefinedRecursive.HasValue) {
+                    _IsRedefinedRecursive = 
+                        DeclaringType.MethodSignatures.GetDefinitionCountOf(this) > 1;
+                }
+
+                return _IsRedefinedRecursive.Value;
+            }
+        }
+
         public bool IsOverloadedRecursive {
             get {
                 if (IsOverloaded)
                     return true;
 
                 if (!_IsOverloadedRecursive.HasValue) {
-                    int count;
-                    bool found;
-
-                    lock (DeclaringType.MethodNameCounts)
-                        found = DeclaringType.MethodNameCounts.TryGetValue(Member.Name, out count);
-
-                    if (found)
-                        _IsOverloadedRecursive = (count >= 2);
-                    else
-                        _IsOverloadedRecursive = false;
+                    _IsOverloadedRecursive = 
+                        DeclaringType.MethodSignatures.GetOverloadCountOf(Member.Name) > 1;
                 }
 
                 return _IsOverloadedRecursive.Value;

@@ -2275,6 +2275,18 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSInitializedObject : JSExpression {
+        public readonly TypeReference Type;
+
+        public JSInitializedObject (TypeReference type) {
+            Type = type;
+        }
+
+        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+            return Type;
+        }
+    }
+
     public class JSThisParameter : JSParameter {
         public JSThisParameter (TypeReference type, MethodReference function) : 
             base("this", type, function) {

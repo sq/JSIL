@@ -2228,7 +2228,7 @@ namespace JSIL {
         protected JSExpression Translate_InitializedObject (ILExpression node) {
             // This should get eliminated by the handler for InitObject, but if we just return a null expression here,
             //  stfld treats us as an invalid assignment target.
-            return new JSUntranslatableExpression(node.Code);
+            return new JSInitializedObject(node.ExpectedType);
         }
 
         protected JSExpression Translate_InitCollection (ILExpression node) {
@@ -2330,12 +2330,74 @@ namespace JSIL {
             return new JSField(field, fieldInfo);
         }
 
+        protected bool NeedsExplicitThis (
+            TypeReference declaringType, TypeDefinition declaringTypeDef, TypeInfo declaringTypeInfo,
+            bool isSelf, TypeReference thisReferenceType, JSIL.Internal.MethodInfo methodInfo
+        ) {
+            /*
+             *  Use our type information to determine whether an invocation must be 
+             *      performed using an explicit this reference, through an object's 
+             *      prototype.
+             *  The isSelf parameter is used to identify whether the method performing
+             *      this invocation is a member of one of the involved types.
+             *  
+             *  (void (Base this)) (Base)
+             *      Statically resolved call to self method.
+             *      If the name is hidden in the type hierarchy, normal invoke is not ok.
+             *  
+             *  (void (Base this)) (Derived)
+             *      Statically resolved call to base method via derived reference.
+             *      If isSelf, normal invoke is only ok if the method is never redefined.
+             *      (If the method is redefined, we could infinitely call ourselves.)
+             *      If the method is virtual, normal invoke is ok.
+             *      If the method is never hidden in the type hierarchy, normal is ok.
+             *  
+             *  (void (Interface this)) (Anything)
+             *      Call to an interface method. Normal invoke is always OK!
+             *  
+             */
+
+            // System.Array's prototype isn't accessible to us in JS, and we don't
+            //     want to call through it anyway.
+            if (
+                (thisReferenceType is ArrayType) ||
+                ((thisReferenceType.Name == "Array") && (thisReferenceType.Namespace == "System"))
+            )
+                return false;
+
+            var sameThisReference = TypesAreEqual(declaringTypeDef, thisReferenceType, false);
+
+            var isInterfaceMethod = (declaringTypeDef != null) && (declaringTypeDef.IsInterface);
+
+            if (isInterfaceMethod)
+                return false;
+
+            if (methodInfo.IsSealed)
+                return false;
+
+            if (methodInfo.IsVirtual) {
+                if (sameThisReference)
+                    return false;
+                else
+                    return true;
+            } else {
+                if (sameThisReference && !isSelf)
+                    return false;
+
+                var definitionCount = declaringTypeInfo.MethodSignatures.GetDefinitionCountOf(methodInfo);
+
+                if (definitionCount < 2)
+                    return false;
+
+                return true;
+            }
+        }
+
         protected JSExpression Translate_Call (ILExpression node, MethodReference method) {
             var methodInfo = TypeInfo.GetMethod(method);
             if (methodInfo == null)
                 return new JSIgnoredMemberReference(true, null, JSLiteral.New(method.FullName));
 
-            var thisType = DereferenceType(ThisMethod.DeclaringType);
             var declaringType = DereferenceType(method.DeclaringType);
 
             var declaringTypeDef = GetTypeDefinition(declaringType);
@@ -2365,34 +2427,16 @@ namespace JSIL {
 
                 arguments = arguments.Skip(1).ToArray();
 
-                // If the call is of the form x.Method(...), we don't need to specify the this parameter
-                //  explicitly using the form type.Method.call(x, ...).
-                // Make sure that 'this' references only pass this check when they don't refer to 
-                //  members of base types. It's always okay to use thiscall form for interfaces, since we qualify 
-                //  the name of the method/property.
-                // If a method isn't virtual we always need to call it with an explicit this parameter
-                //  because it may be shadowed by a derived type. 
-                // It's okay to call a nonvirtual method without an explicit 'this' if the method is final or
-                //  if the type that defines it has no derived types.
-                if (
-                    (
-                        ((TypesAreEqual(declaringType, firstArgType)) &&
-                        (
-                            (ilv == null) || (ilv.Name != "this") ||
-                            (TypesAreEqual(thisType, firstArgType))
-                        )) || (
-                            (declaringTypeDef != null) &&
-                            (declaringTypeDef.IsInterface) &&
-                            TypesAreAssignable(TypeInfo, declaringTypeDef, thisType) &&
-                            TypesAreAssignable(TypeInfo, declaringTypeDef, firstArgType)
-                        )
-                    ) &&
-                    (methodInfo.IsVirtual || methodInfo.IsSealed || (declaringTypeInfo.DerivedTypeCount == 0))
-                ) {
-                    explicitThis = false;
-                } else {
-                    explicitThis = true;
-                }
+                var thisReferenceType = thisExpression.GetExpectedType(TypeSystem);
+
+                var isSelf = TypesAreAssignable(
+                    TypeInfo, thisReferenceType, ThisMethod.DeclaringType
+                );
+
+                explicitThis = NeedsExplicitThis(
+                    declaringType, declaringTypeDef, declaringTypeInfo,
+                    isSelf, thisReferenceType, methodInfo
+                );
             } else {
                 explicitThis = true;
                 thisExpression = new JSNullExpression();
@@ -2417,6 +2461,9 @@ namespace JSIL {
         }
 
         protected bool IsInvalidThisExpression (ILExpression thisNode) {
+            if (thisNode.Code == ILCode.InitializedObject)
+                return false;
+
             if (thisNode.InferredType == null)
                 return false;
 
@@ -2449,10 +2496,29 @@ namespace JSIL {
             if (methodInfo == null)
                 return new JSIgnoredMemberReference(true, null, JSLiteral.New(method.FullName));
 
+            var explicitThis = methodInfo.IsConstructor;
+            if (!methodInfo.IsVirtual) {
+                var declaringType = DereferenceType(method.DeclaringType);
+
+                var declaringTypeDef = GetTypeDefinition(declaringType);
+                var declaringTypeInfo = TypeInfo.Get(declaringType);
+
+                var thisReferenceType = thisExpression.GetExpectedType(TypeSystem);
+
+                var isSelf = TypesAreAssignable(
+                    TypeInfo, thisReferenceType, ThisMethod.DeclaringType
+                );
+
+                explicitThis = NeedsExplicitThis(
+                    declaringType, declaringTypeDef, declaringTypeInfo,
+                    isSelf, thisReferenceType, methodInfo
+                );
+            }
+
             var result = Translate_MethodReplacement(
                new JSMethod(method, methodInfo, MethodTypes), 
                thisExpression, translatedArguments, true, 
-               false, methodInfo.IsConstructor
+               false, explicitThis
             );
 
             if (method.ReturnType.MetadataType != MetadataType.Void) {

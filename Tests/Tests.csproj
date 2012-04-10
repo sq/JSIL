@@ -332,6 +332,7 @@
     <None Include="TestCases\GenericInstanceCallGenericMethod.cs" />
     <None Include="SpecialTestCases\CorlibTypeRefs.cs" />
     <None Include="SpecialTestCases\ExternalAbstractMethod.cs" />
+    <None Include="TestCases\SealedMethods2.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

@@ -1518,9 +1518,10 @@ namespace JSIL {
                 typeInfo.StaticConstructor = fakeCctor;
                 var identifier = MemberIdentifier.New(this._TypeInfoProvider, fakeCctor);
 
-                typeInfo.Members[identifier] = new Internal.MethodInfo(
-                    typeInfo, identifier, fakeCctor, new ProxyInfo[0], false
-                );
+                lock (typeInfo.Members)
+                    typeInfo.Members[identifier] = new Internal.MethodInfo(
+                        typeInfo, identifier, fakeCctor, new ProxyInfo[0], false
+                    );
 
                 // Generate the fake constructor, since it wasn't created during the analysis pass
                 TranslateMethodExpression(context, fakeCctor, fakeCctor);

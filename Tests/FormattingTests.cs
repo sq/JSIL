@@ -415,6 +415,34 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void SealedMethods2 () {
+            var output = "F1 F2 F1 F1 B1 B2 F2 F1 B3 B2 F2 F1";
+
+            var generatedJs = GenericTest(
+                @"TestCases\SealedMethods2.cs",
+                output, output
+            );
+
+            try {
+                Assert.IsTrue(generatedJs.Contains("Foo.prototype.Func1.call"), "Func1 was not called through the Foo prototype");
+                Assert.IsTrue(generatedJs.Contains("Foo.prototype.Func2.call"), "Func2 was not called through the Foo prototype");
+                Assert.IsTrue(generatedJs.Contains("this.Func2()"), "Func2 was not called through this");
+                Assert.IsTrue(generatedJs.Contains("this.Func2()"), "Func2 was not called through this");
+
+                Assert.IsTrue(generatedJs.Contains("test.Func1()"), "Func1 was not called directly on test");
+                Assert.IsTrue(generatedJs.Contains("test.Func2()"), "Func2 was not called directly on test");
+
+                Assert.IsTrue(generatedJs.Contains("test2.Func1()"), "Func1 was not called directly on test");
+                Assert.IsTrue(generatedJs.Contains("test2.Func2()"), "Func2 was not called directly on test");
+                Assert.IsTrue(generatedJs.Contains("test2.Func3()"), "Func3 was not called directly on test");
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
         public void UnderivedMethods () {
             var generatedJs = GetJavascript(
                 @"TestCases\UnderivedMethods.cs",
