@@ -24,6 +24,10 @@ namespace JSIL.Internal {
         void CacheProxyNames (MemberReference member);
         bool TryGetProxyNames (string typeFullName, out string[] result);
 
+        MethodSignatureCache MethodSignatureCache {
+            get;
+        }
+
         ConcurrentCache<Tuple<string, string>, bool> AssignabilityCache {
             get;
         }
@@ -1752,6 +1756,15 @@ namespace JSIL.Internal {
             IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
         }
 
+        protected void MakeSignature () {
+            _Signature = new MethodSignature(
+                ReturnType, (from p in Parameters select p.ParameterType).ToArray(),
+                GenericParameterNames
+            );
+
+            Source.MethodSignatureCache.AssignID(_Signature);
+        }
+
         protected override string GetName () {
             return GetName(false);
         }
@@ -1759,10 +1772,7 @@ namespace JSIL.Internal {
         public MethodSignature Signature {
             get {
                 if (_Signature == null)
-                    return _Signature = new MethodSignature(
-                        ReturnType, (from p in Parameters select p.ParameterType).ToArray(),
-                        GenericParameterNames
-                    );
+                    MakeSignature();
 
                 return _Signature;
             }

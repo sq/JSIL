@@ -211,26 +211,16 @@ namespace JSIL.Internal {
             }
         }
 
-        public static string EscapeString (string text, char? quoteCharacter = null) {
+        public static string EscapeString (string text, char quoteCharacter = '\"') {
             if (text == null)
                 return "null";
 
-            if (quoteCharacter == null) {
-                bool containsSingle = text.Contains("\'");
-                bool containsDouble = text.Contains("\"");
+            var sb = new StringBuilder(text.Length + 16);
 
-                if (containsDouble && !containsSingle)
-                    quoteCharacter = '\'';
-                else
-                    quoteCharacter = '"';
-            }
-
-            var sb = new StringBuilder();
-
-            sb.Append(quoteCharacter.Value);
+            sb.Append(quoteCharacter);
 
             foreach (var ch in text) {
-                if (ch == quoteCharacter.Value)
+                if (ch == quoteCharacter)
                     sb.Append(EscapeCharacter(ch));
                 else if (ch == '\\')
                     sb.Append(@"\\");
@@ -240,7 +230,7 @@ namespace JSIL.Internal {
                     sb.Append(ch);
             }
 
-            sb.Append(quoteCharacter.Value);
+            sb.Append(quoteCharacter);
 
             return sb.ToString();
         }

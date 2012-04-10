@@ -23,6 +23,8 @@ namespace JSIL.Internal {
         public readonly TypeReference[] ParameterTypes;
         public readonly string[] GenericParameterNames;
 
+        internal int? ID;
+
         protected int? _Hash;
 
         public MethodSignature (
@@ -85,9 +87,17 @@ namespace JSIL.Internal {
             if (_Hash.HasValue)
                 return _Hash.Value;
 
-            int hash = GenericParameterCount;
+            int hash = 0;
 
-            hash ^= (ParameterCount) << 8;
+            if ((ReturnType != null) && !ILBlockTranslator.IsOpenType(ReturnType))
+                hash = ReturnType.Name.GetHashCode();
+
+            if ((ParameterCount > 0) && !ILBlockTranslator.IsOpenType(ParameterTypes[0]))
+                hash ^= (ParameterTypes[0].Name.GetHashCode() << 16);
+
+            hash ^= (GenericParameterCount) << 24;
+
+            hash ^= (ParameterCount) << 28;
 
             _Hash = hash;
             return hash;
@@ -95,42 +105,49 @@ namespace JSIL.Internal {
     }
 
     public class MethodSignatureCache {
-        struct Key {
-            public readonly MethodSignature Signature;
-
-            public Key (MethodSignature signature) {
-                Signature = signature;
-            }
-
-            public bool Equals (Key rhs) {
-                return (Signature == rhs.Signature);
-            }
-
-            public override bool Equals (object rhs) {
-                if (rhs is Key)
-                    return Equals((Key)rhs);
-
-                return base.Equals(rhs);
-            }
-
-            public override int GetHashCode () {
-                return Signature.GetHashCode();
-            }
-        }
-
-        private readonly ConcurrentCache<Key, int> IDs;
+        // private readonly ConcurrentCache<MethodSignature, int> IDs;
         private int NextID = 0;
 
         public MethodSignatureCache () {
-            IDs = new ConcurrentCache<Key, int>();
+            /*
+            IDs = new ConcurrentCache<MethodSignature, int>(
+                Environment.ProcessorCount, 8192, new MethodSignature.EqualityComparer()
+            );
+             */
+        }
+
+        private int CreateEntry (MethodSignature signature) {
+            var id = Interlocked.Increment(ref NextID);
+            signature.ID = id;
+            return id;
+        }
+
+        public bool AssignID (MethodSignature signature) {
+            /*
+            return IDs.TryCreate(
+                signature, () => CreateEntry(signature)
+            );
+             */
+
+            CreateEntry(signature);
+
+            return true;
         }
 
         public int Get (MethodSignature signature) {
-            var key = new Key(signature);
+            if (signature.ID.HasValue)
+                return signature.ID.Value;
 
+            if (AssignID(signature))
+                return signature.ID.Value;
+            else
+                throw new InvalidOperationException();
+
+            /*
             return IDs.GetOrCreate(
-                key, () => Interlocked.Increment(ref NextID)
+                signature, () => CreateEntry(signature)
             );
+             */
         }
     }
 
@@ -144,7 +161,7 @@ namespace JSIL.Internal {
 
         public MethodSignatureSet () {
             Counts = new ConcurrentCache<MethodSignature, Count>(
-                2, 8, new MethodSignature.EqualityComparer()
+                1, 8, new MethodSignature.EqualityComparer()
             );
         }
 

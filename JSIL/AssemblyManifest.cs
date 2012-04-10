@@ -27,7 +27,6 @@ namespace JSIL {
             }
         }
 
-        public readonly MethodSignatureCache MethodSignatureCache = new MethodSignatureCache();
         protected readonly ConcurrentCache<string, Token> Tokens = new ConcurrentCache<string, Token>();
         protected bool AssignedIdentifiers = false;
 
@@ -47,6 +46,8 @@ namespace JSIL {
                         token.ID = i++;
                 }
             }
+
+            AssignedIdentifiers = true;
         }
 
         public Token GetPrivateToken (AssemblyDefinition assembly) {
@@ -54,11 +55,11 @@ namespace JSIL {
         }
 
         public Token GetPrivateToken (string assemblyFullName) {
-            if (AssignedIdentifiers)
-                throw new InvalidOperationException("Identifiers already assigned");
-
             Token result = Tokens.GetOrCreate(
-                assemblyFullName, () => new Token(assemblyFullName)
+                assemblyFullName, () => {
+                    AssignedIdentifiers = false;
+                    return new Token(assemblyFullName);
+                }
             );
 
             return result;

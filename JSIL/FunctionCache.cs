@@ -45,8 +45,12 @@ namespace JSIL {
 
         public FunctionCache (ITypeInfoSource typeInfo) {
             var comparer = new QualifiedMemberIdentifier.Comparer(typeInfo);
-            Cache = new ConcurrentCache<QualifiedMemberIdentifier, Entry>(Environment.ProcessorCount, 4096, comparer);
-            OptimizationQueue = new ConcurrentHashQueue<QualifiedMemberIdentifier>(Environment.ProcessorCount, 4096, comparer);
+            Cache = new ConcurrentCache<QualifiedMemberIdentifier, Entry>(
+                Environment.ProcessorCount, 4096, comparer
+            );
+            OptimizationQueue = new ConcurrentHashQueue<QualifiedMemberIdentifier>(
+                Math.Max(1, Environment.ProcessorCount / 4), 4096, comparer
+            );
             MethodTypes = new MethodTypeFactory();
         }
 

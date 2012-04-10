@@ -984,7 +984,7 @@ namespace JSIL.Internal {
                 WriteRaw("$sig.get");
                 LPar();
 
-                Value(Manifest.MethodSignatureCache.Get(signature));
+                Value(TypeInfo.MethodSignatureCache.Get(signature));
                 Comma();
 
             } else {
