@@ -240,16 +240,7 @@ JSIL.ResolvedName.prototype.del = function () {
   }
 };
 JSIL.ResolvedName.prototype.set = function (value) {
-  try {
-    delete this.parent[this.key];
-  } catch (e) {
-  }
-
-  try {
-    this.parent[this.key] = value;
-  } catch (e) {
-    JSIL.SetValueProperty(this.parent, this.key, value);
-  }
+  JSIL.SetValueProperty(this.parent, this.key, value);
 };
 JSIL.ResolvedName.prototype.define = function (declaration) {
   Object.defineProperty(this.parent, this.key, declaration);
@@ -1763,6 +1754,11 @@ JSIL.MakeMemberCopier = function (typeObject) {
 
 JSIL.CopyMembers = function (source, target) {
   var thisType = source.__ThisType__;
+  if (typeof (source.__CopyMembers__) === "function") {
+    source.__CopyMembers__(target);
+    return;
+  }
+
   var memberCopier = thisType.__MemberCopier__;
   if (typeof (memberCopier) !== "function")
     memberCopier = thisType.__MemberCopier__ = JSIL.MakeMemberCopier(thisType);

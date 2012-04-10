@@ -41,11 +41,9 @@
   <ItemGroup>
     <Compile Include="Content.cs" />
     <Compile Include="Primitives.cs" />
-    <Compile Include="Gamepad.cs" />
     <Compile Include="Game.cs" />
     <Compile Include="SpriteBatch.cs" />
     <Compile Include="GraphicsDevice.cs" />
-    <Compile Include="Keyboard.cs" />
     <Compile Include="UnsafeNativeMethods.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

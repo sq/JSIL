@@ -372,6 +372,7 @@ JSIL.MakeClass("HTML5Asset", "WebkitSoundAsset", true, [], function ($) {
 
 JSIL.MakeClass("HTML5Asset", "HTML5FontAsset", true, [], function ($) {
   $.prototype._cachedCss = null;
+
   $.Method({
     Static: false,
     Public: true
@@ -388,10 +389,8 @@ JSIL.MakeClass("HTML5Asset", "HTML5FontAsset", true, [], function ($) {
       }
     });
   });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "toCss", new JSIL.MethodSignature(null, [], []), function (scale) {
+
+  $.RawMethod(false, "toCss", function (scale) {
     scale = (scale || 1.0);
     if ((this._cachedCss != null) && (this._cachedScale === scale)) {
       return this._cachedScale;
@@ -400,6 +399,7 @@ JSIL.MakeClass("HTML5Asset", "HTML5FontAsset", true, [], function ($) {
       return this._cachedCss = (this.pointSize * scale) + 'pt "' + this.id + '"';
     }
   });
+
   $.Method({
     Static: false,
     Public: true
@@ -2426,36 +2426,53 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.DrawableGameComponent", functio
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Keyboard", function ($) {
-  $.Method({
-    Static: false,
-    Public: true
-  }, "GetState", new JSIL.MethodSignature(null, [], []), function (playerIndex) {
+  var getStateImpl = function (playerIndex) {
     var keys = JSIL.Host.getHeldKeys();
     return new Microsoft.Xna.Framework.Input.KeyboardState(keys);
-  });
+  };
+
+  $.Method({Static:true , Public:true }, "GetState", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Input.KeyboardState"), [], [])), 
+    getStateImpl
+  );
+
+  $.Method({Static:true , Public:true }, "GetState", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Input.KeyboardState"), [$asms[0].TypeRef("Microsoft.Xna.Framework.PlayerIndex")], [])), 
+    getStateImpl
+  );
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.KeyboardState", function ($) {
-  keys: [],
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (keys) {
-    // Note that these keys should be represented as raw integral key codes, not enumeration members
-    this.keys = keys;
+  $.RawMethod(false, "__CopyMembers__", function (target) {
+    if (this.keys)
+      target.keys = Array.prototype.slice.call(this.keys);
+    else
+      target.keys = [];
   });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "IsKeyDown", new JSIL.MethodSignature(null, [], []), function (key) {
-    return Array.prototype.indexOf.call(this.keys, key.value) !== -1;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "IsKeyUp", new JSIL.MethodSignature(null, [], []), function (key) {
-    return Array.prototype.indexOf.call(this.keys, key.value) === -1;
-  });
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [$asms[0].TypeRef("Microsoft.Xna.Framework.Input.Keys")])], [])), 
+    function _ctor (keys) {
+      this.keys = [];
+
+      for (var i = 0; i < keys.length; i++)
+        this.keys.push(Number(keys[i]));
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "IsKeyDown", 
+    (new JSIL.MethodSignature($.Boolean, [$asms[0].TypeRef("Microsoft.Xna.Framework.Input.Keys")], [])), 
+    function IsKeyDown (key) {
+      return this.keys.indexOf(key.value) !== -1;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "IsKeyUp", 
+    (new JSIL.MethodSignature($.Boolean, [$asms[0].TypeRef("Microsoft.Xna.Framework.Input.Keys")], [])), 
+    function IsKeyUp (key) {
+      return this.keys.indexOf(key.value) === -1;
+    }
+  );
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Mouse", function ($) {
@@ -2465,18 +2482,74 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Mouse", function ($) {
   }, "GetState", new JSIL.MethodSignature(null, [], []), function (playerIndex) {
     var buttons = JSIL.Host.getHeldButtons();
     var position = JSIL.Host.getMousePosition();
-    return new Microsoft.Xna.Framework.Input.MouseState(position, buttons);
+
+    var pressed = $asms[0].Microsoft.Xna.Framework.Input.ButtonState.Pressed;
+    var released = $asms[0].Microsoft.Xna.Framework.Input.ButtonState.Released;
+
+    // FIXME
+    return new Microsoft.Xna.Framework.Input.MouseState(
+      position[0], position[1], 0,
+      (buttons.indexOf(0) >= 0) ? pressed : released,
+      (buttons.indexOf(2) >= 0) ? pressed : released,
+      (buttons.indexOf(1) >= 0) ? pressed : released,
+      released, released
+    );
   });
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.MouseState", function ($) {
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (position, buttons) {
-    this.position = position;
-    this.buttons = buttons;
-  });
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [
+          $.Int32, $.Int32, 
+          $.Int32, $asms[0].TypeRef("Microsoft.Xna.Framework.Input.ButtonState"), 
+          $asms[0].TypeRef("Microsoft.Xna.Framework.Input.ButtonState"), $asms[0].TypeRef("Microsoft.Xna.Framework.Input.ButtonState"), 
+          $asms[0].TypeRef("Microsoft.Xna.Framework.Input.ButtonState"), $asms[0].TypeRef("Microsoft.Xna.Framework.Input.ButtonState")
+        ], [])), 
+    function _ctor (x, y, scrollWheel, leftButton, middleButton, rightButton, xButton1, xButton2) {
+      // FIXME
+      this.x = x;
+      this.y = y;
+      this.leftButton = leftButton;
+      this.middleButton = middleButton;
+      this.rightButton = rightButton;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_LeftButton", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Input.ButtonState"), [], [])), 
+    function get_LeftButton () {
+      return this.leftButton;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_MiddleButton", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Input.ButtonState"), [], [])), 
+    function get_MiddleButton () {
+      return this.middleButton;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_RightButton", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Input.ButtonState"), [], [])), 
+    function get_RightButton () {
+      return this.rightButton;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_X", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_X () {
+      return this.x;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Y", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Y () {
+      return this.y;
+    }
+  );
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePad", function ($) {
@@ -2484,49 +2557,82 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePad", function ($) {
     Static: false,
     Public: true
   }, "GetState", new JSIL.MethodSignature(null, [], []), function (playerIndex) {
-    return new Microsoft.Xna.Framework.Input.GamePadState();
+    var buttons = new Microsoft.Xna.Framework.Input.GamePadButtons();
+    var thumbs = new Microsoft.Xna.Framework.Input.GamePadThumbSticks();
+    var triggers = new Microsoft.Xna.Framework.Input.GamePadTriggers();
+    var dpad = new Microsoft.Xna.Framework.Input.GamePadDPad();
+
+    return new Microsoft.Xna.Framework.Input.GamePadState(thumbSticks, triggers, buttons, dpad);
   });
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadState", function ($) {
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function () {
-    this._buttons = new Microsoft.Xna.Framework.Input.GamePadButtons();
-    this._thumbs = new Microsoft.Xna.Framework.Input.GamePadThumbSticks();
-    this._triggers = new Microsoft.Xna.Framework.Input.GamePadTriggers();
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_IsConnected", new JSIL.MethodSignature(null, [], []), function () {
-    return false;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_Buttons", new JSIL.MethodSignature(null, [], []), function () {
-    return this._buttons;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "IsButtonDown", new JSIL.MethodSignature(null, [], []), function (button) {
-    return false;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_ThumbSticks", new JSIL.MethodSignature(null, [], []), function () {
-    return this._thumbs;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_Triggers", new JSIL.MethodSignature(null, [], []), function () {
-    return this._triggers;
-  });
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [
+          $asms[0].TypeRef("Microsoft.Xna.Framework.Input.GamePadThumbSticks"), $asms[0].TypeRef("Microsoft.Xna.Framework.Input.GamePadTriggers"), 
+          $asms[0].TypeRef("Microsoft.Xna.Framework.Input.GamePadButtons"), $asms[0].TypeRef("Microsoft.Xna.Framework.Input.GamePadDPad")
+        ], [])), 
+    function _ctor (thumbSticks, triggers, buttons, dPad) {
+      this._thumbs = thumbSticks;
+      this._buttons = buttons;
+      this._triggers = triggers;
+      this._dpad = dPad;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Buttons", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Input.GamePadButtons"), [], [])), 
+    function get_Buttons () {
+      return this._buttons;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_DPad", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Input.GamePadDPad"), [], [])), 
+    function get_DPad () {
+      return this._dpad;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_IsConnected", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsConnected () {
+      // FIXME
+      return false;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_ThumbSticks", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Input.GamePadThumbSticks"), [], [])), 
+    function get_ThumbSticks () {
+      return this._thumbs;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Triggers", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Input.GamePadTriggers"), [], [])), 
+    function get_Triggers () {
+      return this._triggers;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "IsButtonDown", 
+    (new JSIL.MethodSignature($.Boolean, [$asms[0].TypeRef("Microsoft.Xna.Framework.Input.Buttons")], [])), 
+    function IsButtonDown (button) {
+      // FIXME
+      return false;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "IsButtonUp", 
+    (new JSIL.MethodSignature($.Boolean, [$asms[0].TypeRef("Microsoft.Xna.Framework.Input.Buttons")], [])), 
+    function IsButtonUp (button) {
+      // FIXME
+      return false;
+    }
+  );
+
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadButtons", function ($) {
@@ -2966,46 +3072,11 @@ $jsilxna.makeColor = function (proto, r, g, b, a) {
 };
 
 $jsilxna.Color = function ($) {
-  $.Field({
-    Static: false,
-    Public: false
-  }, "_cachedCss", $.String, function ($) {
-    return null;
-  });
-
-  $.Field({
-    Static: false,
-    Public: false
-  }, "_cachedAlpha", $.Single, function ($) {
-    return -1;
-  });
-
-  $.Field({
-    Static: false,
-    Public: false
-  }, "a", $.Int32, function ($) {
-    return 0;
-  });
-
-  $.Field({
-    Static: false,
-    Public: false
-  }, "r", $.Int32, function ($) {
-    return 0;
-  });
-
-  $.Field({
-    Static: false,
-    Public: false
-  }, "g", $.Int32, function ($) {
-    return 0;
-  });
-
-  $.Field({
-    Static: false,
-    Public: false
-  }, "b", $.Int32, function ($) {
-    return 0;
+  $.RawMethod(false, "__CopyMembers__", function (target) {
+    target.a = this.a;
+    target.r = this.r;
+    target.g = this.g;
+    target.b = this.b;
   });
 
   $.Method({
@@ -3188,11 +3259,8 @@ $jsilxna.Color = function ($) {
     return result;
   });
 
-  $.Method({
-    Static: false,
-    Public: true
-  }, "toCss", new JSIL.MethodSignature($.String, [$.Single], []), function (alpha) {
-    if ((this._cachedCss !== null) && (this._cachedAlpha == alpha)) {
+  $.RawMethod(false, "toCss", function (alpha) {
+    if ((typeof(this._cachedCss) === "string") && (this._cachedAlpha === alpha)) {
       return this._cachedCss;
     }
 
