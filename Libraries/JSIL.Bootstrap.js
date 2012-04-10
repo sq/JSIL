@@ -564,6 +564,28 @@ JSIL.ImplementExternals(
   }
 );
 
+JSIL.ImplementExternals(
+  "System.InvalidCastException", function ($) {  
+    $.Method({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [$.String], []),
+      function (message) {
+        System.Exception.prototype._ctor.call(this, message);
+      }
+    );
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.InvalidOperationException", function ($) {  
+    $.Method({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [$.String], []),
+      function (message) {
+        System.Exception.prototype._ctor.call(this, message);
+      }
+    );
+  }
+);
+
 JSIL.MakeClass(Error, "System.Exception", true, [], function ($) {
   $.Property({Public: true , Static: false}, "Message");
 });

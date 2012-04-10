@@ -2146,15 +2146,14 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
 };
 
 JSIL.InitializeType = function (type) {
-  if (typeof (type) === "undefined")
-    throw new Error("Type is null");
-
   var classObject = type, typeObject = type;
 
-  if (typeof (type.__Type__) === "object")
-    typeObject = type.__Type__;
+  if (typeof (type) === "undefined")
+    throw new Error("Type is null");
   else if (typeof (type.__PublicInterface__) !== "undefined")
     classObject = type.__PublicInterface__;
+  else if (typeof (type.__Type__) === "object")
+    typeObject = type.__Type__;
 
   if (typeObject.__TypeInitialized__ || false)
     return;
@@ -2506,11 +2505,15 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     if (stack !== null)
       typeObject.__CallStack__ = stack;
 
+    var inited = [false];
+
     var staticClassObject = function () {
       var _typeObject = this.__ThisType__;
 
-      if ((_typeObject.__TypeInitialized__ || false) === false)
+      if (inited[0] === false) {
+        inited[0] = true;
         JSIL.InitializeType(_typeObject);
+      }
 
       if (_typeObject.__IsClosed__ === false)
         throw new Error("Cannot construct an instance of an open type");
@@ -3496,8 +3499,7 @@ JSIL.MethodSignature.prototype.Construct = function (type /*, ...parameters */) 
     result = Object.create(proto);
   }
 
-  if ((typeObject.__TypeInitialized__ || false) === false)
-    JSIL.InitializeType(publicInterface);
+  JSIL.InitializeType(typeObject);
   
   JSIL.InitializeStructFields(result, typeObject);
 
