@@ -2268,20 +2268,38 @@ JSIL.MakeStruct("System.ValueType", "System.Nullable`1", true, ["T"], function (
 
 JSIL.MakeEnum("System.Reflection.BindingFlags", true, $jsilcore.BindingFlags, true);
 
-JSIL.ImplementExternals(
-  "System.Xml.Serialization.XmlSerializer", true, {
-    "_ctor$6": function (type) {
-    }
-  }
-);
+JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializer", function ($) {
+});
 
-JSIL.ImplementExternals(
-  "System.IO.Path", false, {
-    Combine$0: function (lhs, rhs) {
-      return lhs + "\\" + rhs;
+JSIL.ImplementExternals("System.IO.Path", function ($) {
+  $.Method({Static:true , Public:true }, "Combine", 
+    (new JSIL.MethodSignature($.String, [$.String, $.String], [])), 
+    function Combine (path1, path2) {
+      return path1 + "\\" + path2;
     }
-  }
-);
+  );
+
+  $.Method({Static:true , Public:true }, "Combine", 
+    (new JSIL.MethodSignature($.String, [
+          $.String, $.String, 
+          $.String
+        ], [])), 
+    function Combine (path1, path2, path3) {
+      return path1 + "\\" + path2 + "\\" + path3;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Combine", 
+    (new JSIL.MethodSignature($.String, [
+          $.String, $.String, 
+          $.String, $.String
+        ], [])), 
+    function Combine (path1, path2, path3, path4) {
+      return path1 + "\\" + path2 + "\\" + path3 + "\\" + path4;
+    }
+  );
+
+});
 
 JSIL.MakeEnum(
   "System.StringComparison", true, {
@@ -2294,25 +2312,243 @@ JSIL.MakeEnum(
   }, false
 );
 
-JSIL.ImplementExternals(
-  "System.Text.StringBuilder", true, {
-    _ctor$0: function () {
-      System.Text.StringBuilder.prototype._ctor$1.call(this, 16);
-    },
-    _ctor$1: function (capacity) {
-      System.Text.StringBuilder.prototype._ctor$3.call(this, "", capacity);
-    },
-    _ctor$2: function (value) {
-      System.Text.StringBuilder.prototype._ctor$3.call(this, value, 16);
-    },
-    _ctor$3: function (value, capacity) {
+JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      this._str = "";
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.Int32], [])), 
+    function _ctor (capacity) {
+      this._str = "";
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.String], [])), 
+    function _ctor (value) {
       this._str = value;
-    },
-    get_Length: function () {
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.String, $.Int32], [])), 
+    function _ctor (value, capacity) {
+      this._str = value;
+    }
+  );
+
+  var appendString = function (self, str, startIndex, length, copies) {
+    if ((startIndex !== 0) || (length !== str.length)) {
+      for (var i = 0; i < copies; i++) {
+        this._str += str.substr(startIndex, length);
+      }
+
+    } else {
+      for (var i = 0; i < copies; i++) {
+        this._str += str;
+      }
+
+    }
+  };
+
+  var appendNumber = function (self, num) {
+    self._str += String(num);
+  };
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.Char, $.Int32], [])), 
+    function Append (value, repeatCount) {
+      appendString(this, value, 0, value.length, repeatCount);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [
+          $jsilcore.TypeRef("System.Array", [$.Char]), $.Int32, 
+          $.Int32
+        ], [])), 
+    function Append (value, startIndex, charCount) {
+      for (var i = 0; i < charCount; i++)
+        this._str += value[startIndex + i];
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.String], [])), 
+    function Append (value) {
+      appendString(this, value, 0, value.length, 1);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [
+          $.String, $.Int32, 
+          $.Int32
+        ], [])), 
+    function Append (value, startIndex, count) {
+      appendString(this, value, startIndex, count, 1);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.Boolean], [])), 
+    function Append (value) {
+      this._str += (value ? "True" : "False");
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.SByte], [])), 
+    function Append (value) {
+      appendNumber(this, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.Byte], [])), 
+    function Append (value) {
+      appendNumber(this, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.Char], [])), 
+    function Append (value) {
+      appendString(this, value, 0, value.length, 1);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.Int16], [])), 
+    function Append (value) {
+      appendNumber(this, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.Int32], [])), 
+    function Append (value) {
+      appendNumber(this, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.Int64], [])), 
+    function Append (value) {
+      appendNumber(this, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.Single], [])), 
+    function Append (value) {
+      appendNumber(this, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.Double], [])), 
+    function Append (value) {
+      appendNumber(this, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.UInt16], [])), 
+    function Append (value) {
+      appendNumber(this, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.UInt32], [])), 
+    function Append (value) {
+      appendNumber(this, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.UInt64], [])), 
+    function Append (value) {
+      appendNumber(this, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$jsilcore.TypeRef("System.Array", [$.Char])], [])), 
+    function Append (value) {
+      for (var i = 0; i < value.length; i++)
+        this._str += value[i];
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Clear", 
+    (new JSIL.MethodSignature($.Type, [], [])), 
+    function Clear () {
+      this._str = "";
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Length", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Length () {
       return this._str.length;
-    },
-    set_Length: function (value) {
+    }
+  );
+
+  var replace = function (self, oldText, newText, startIndex, count) {
+    var prefix = self._str.substr(0, startIndex);
+    var suffix = self._str.substr(startIndex + count);
+    var region = self._str.substr(startIndex, count);
+    var result = prefix + region.split(oldText).join(newText) + suffix;
+    self._str = result;
+    return self;
+  };
+
+  $.Method({Static:false, Public:true }, "Replace", 
+    (new JSIL.MethodSignature($.Type, [$.String, $.String], [])), 
+    function Replace (oldValue, newValue) {
+      return replace(this, oldValue, newValue, 0, this._str.length);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Replace", 
+    (new JSIL.MethodSignature($.Type, [
+          $.String, $.String, 
+          $.Int32, $.Int32
+        ], [])), 
+    function Replace (oldValue, newValue, startIndex, count) {
+      return replace(this, oldValue, newValue, startIndex, count);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Replace", 
+    (new JSIL.MethodSignature($.Type, [$.Char, $.Char], [])), 
+    function Replace (oldChar, newChar) {
+      return replace(this, oldChar, newChar, 0, this._str.length);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Replace", 
+    (new JSIL.MethodSignature($.Type, [
+          $.Char, $.Char, 
+          $.Int32, $.Int32
+        ], [])), 
+    function Replace (oldChar, newChar, startIndex, count) {
+      return replace(this, oldChar, newChar, 0, this._str.length);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Length", 
+    (new JSIL.MethodSignature(null, [$.Int32], [])), 
+    function set_Length (value) {
       var delta = value - this._str.length;
+
       if (delta < 0) {
         this._str = this._str.substr(0, value);
       } else if (delta > 0) {
@@ -2322,72 +2558,16 @@ JSIL.ImplementExternals(
 
         this._str += String.fromCharCode.apply(String, ch);
       }
-    },
-    Append$0: function (char, count) {
-      for (var i = 0; i < count; i++)
-        this._str += char;
-    },
-    Append$1: function (chars, startIndex, charCount) {
-      for (var i = 0; i < charCount; i++)
-        this._str += chars[startIndex + i];
-    },
-    Append$2: function (text) {
-      this._str += text;
-    },
-    Append$7: function (char) {
-      this._str += char;
-    },
-    Append$4: function (bool) {
-      this._str += (bool ? "True" : "False");
-    },
-    Append$8: function (int16) {
-      this._str += String(int16);
-    },
-    Append$9: function (int32) {
-      this._str += String(int32);
-    },
-    Append$10: function (int64) {
-      this._str += String(int64);
-    },
-    Append$11: function (single) {
-      this._str += String(single);
-    },
-    Append$12: function (double) {
-      this._str += String(double);
-    },
-    Append$14: function (uint16) {
-      this._str += String(uint16);
-    },
-    Append$15: function (uint32) {
-      this._str += String(uint32);
-    },
-    Append$16: function (uint64) {
-      this._str += String(uint64);
-    },
-    $Replace: function (oldText, newText, startIndex, count) {
-      var prefix = this._str.substr(0, startIndex);
-      var suffix = this._str.substr(startIndex + count);
-      var region = this._str.substr(startIndex, count);
-      var result = prefix + region.split(oldText).join(newText) + suffix;
-      this._str = result;
-    },
-    Replace$0: function (oldText, newText) {
-      return this.$Replace(oldText, newText, 0, this._str.length);
-    },
-    Replace$1: function (oldText, newText, startIndex, count) {
-      return this.$Replace(oldText, newText, startIndex, count);
-    },
-    Replace$2: function (oldChar, newChar) {
-      return this.$Replace(oldChar, newChar, 0, this._str.length);
-    },
-    Replace$3: function (oldChar, newChar, startIndex, count) {
-      return this.$Replace(oldChar, newChar, startIndex, count);
-    },
-    toString: function () {
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "toString", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function toString () {
       return this._str;
     }
-  }
-);
+  );
+});
 
 JSIL.ImplementExternals(
   "System.Diagnostics.StackTrace", true, {
