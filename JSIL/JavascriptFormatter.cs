@@ -535,8 +535,11 @@ namespace JSIL.Internal {
             ) {
                 if (ILBlockTranslator.TypesAreEqual(type, context.EnclosingType)) {
                     // Types can reference themselves, so this prevents recursive initialization.
-                    WriteRaw("$.Type");
-                    return;
+                    if (Stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false)) {
+                    } else {
+                        WriteRaw("$.Type");
+                        return;
+                    }
                 }
 
                 var corlibTypes = new HashSet<string> {

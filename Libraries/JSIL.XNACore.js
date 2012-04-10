@@ -653,8 +653,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ArrayReader`1", functio
     function _ctor () {
       var assembly = $asms.xna;
       assembly.Microsoft.Xna.Framework.Content.ContentTypeReader$b1.prototype._ctor.call(
-      this, System.Array.Of(
-      assembly.Microsoft.Xna.Framework.Content.ArrayReader$b1.T.get(this)).__Type__);
+        this, System.Array.Of(
+          assembly.Microsoft.Xna.Framework.Content.ArrayReader$b1.T.get(this)
+        ).__Type__
+      );
     }
   );
 
@@ -674,7 +676,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ArrayReader`1", functio
       }
 
       for (var i = 0; i < count; i++) {
-        existingInstance[i] = input.ReadObjectInternal$b1$1(this.T)(this.elementReader, null);
+        existingInstance[i] = input.ReadObjectInternal(this.T)(this.elementReader, null);
       }
 
       return existingInstance;
@@ -688,8 +690,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ListReader`1", function
     function _ctor () {
       var assembly = $asms.xna;
       assembly.Microsoft.Xna.Framework.Content.ContentTypeReader$b1.prototype._ctor.call(
-      this, System.Collections.Generic.List$b1.Of(
-      assembly.Microsoft.Xna.Framework.Content.ListReader$b1.T.get(this)).__Type__);
+        this, System.Collections.Generic.List$b1.Of(
+          assembly.Microsoft.Xna.Framework.Content.ListReader$b1.T.get(this)
+        ).__Type__
+      );
     }
   );
 
@@ -709,7 +713,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ListReader`1", function
       }
 
       while (count > 0) {
-        var item = input.ReadObjectInternal$b1$1(this.T)(this.elementReader, null);
+        var item = input.ReadObjectInternal(this.T)(this.elementReader, null);
         count--;
         existingInstance.Add(item);
       }
@@ -769,14 +773,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.SpriteFontReader", func
 
       var glyphs = input.ReadObject(tList.Of(tRectangle))();
 
-      var cropping = input.ReadObject$b1$0(tList.Of(tRectangle))();
+      var cropping = input.ReadObject(tList.Of(tRectangle))();
 
-      var charMap = input.ReadObject$b1$0(tList.Of(System.Char))();
+      var charMap = input.ReadObject(tList.Of(System.Char))();
 
       var lineSpacing = input.ReadInt32();
       var spacing = input.ReadSingle();
 
-      var kerning = input.ReadObject$b1$0(tList.Of(tVector3))();
+      var kerning = input.ReadObject(tList.Of(tVector3))();
 
       var defaultCharacter = null;
       if (input.ReadBoolean()) defaultCharacter = input.ReadChar();
@@ -887,7 +891,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManage
   $.Method({Static:false, Public:true }, "GetTypeReader", 
     (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Content.ContentTypeReader"), [$asms[5].TypeRef("System.Type")], [])), 
     function GetTypeReader (targetType) {
-      var typeName = type.toString();
+      var typeName = targetType.toString();
       var reader = this.knownReaders[typeName];
       if (typeof (reader) === "object") 
         return reader;
@@ -895,8 +899,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManage
       var assembly = $asms.xna;
       var thisType = assembly.Microsoft.Xna.Framework.Content.ContentTypeReaderManager;
 
-      reader = thisType.GetTypeReader$1(type, this.contentReader);
-      if (typeof (reader) === "object") 
+      reader = thisType.GetTypeReader(targetType, this.contentReader);
+      if (typeof (reader) === "object")
         return reader;
 
       JSIL.Host.error(new Error("No content type reader known for type '" + typeName + "'."));
@@ -1019,7 +1023,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", functio
 
   var readObjectImpl = function (self, T, typeReader, existingInstance) {
     if ((typeReader !== null) && (typeReader.TargetIsValueType))
-      return typeReader.Read(this, existingInstance);
+      return typeReader.Read(self, existingInstance);
 
     var typeId = self.Read7BitEncodedInt();
 
@@ -2711,28 +2715,29 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
   }, ".cctor", new JSIL.MethodSignature(null, [], []), function () {
     Microsoft.Xna.Framework.Rectangle._empty = new Microsoft.Xna.Framework.Rectangle();
   });
+
   $.Method({
     Static: false,
     Public: true
-  }, "get_Empty", new JSIL.MethodSignature(null, [], []), function () {
+  }, "get_Empty", new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle"), [], []), function () {
     return Microsoft.Xna.Framework.Rectangle._empty;
   });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "op_Equality", new JSIL.MethodSignature(null, [], []), function (lhs, rhs) {
-    return lhs.X === rhs.X && lhs.Y === rhs.Y && lhs.Width === rhs.Width && lhs.Height === rhs.Height;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "op_Inequality", new JSIL.MethodSignature(null, [], []), function (lhs, rhs) {
-    return lhs.X !== rhs.X || lhs.Y !== rhs.Y || lhs.Width !== rhs.Width || lhs.Height !== rhs.Height;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "Intersect", new JSIL.MethodSignature(null, [], []), function (lhs, rhs) {
+
+  $.Method({Static:true , Public:true }, "op_Equality", 
+    (new JSIL.MethodSignature($.Boolean, [$asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle"), $asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")], [])), 
+    function op_Equality (lhs, rhs) {
+      return lhs.X === rhs.X && lhs.Y === rhs.Y && lhs.Width === rhs.Width && lhs.Height === rhs.Height;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Inequality", 
+    (new JSIL.MethodSignature($.Boolean, [$asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle"), $asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")], [])), 
+    function op_Inequality (lhs, rhs) {
+      return lhs.X !== rhs.X || lhs.Y !== rhs.Y || lhs.Width !== rhs.Width || lhs.Height !== rhs.Height;
+    }
+  );
+
+  var intersectImpl = function (lhs, rhs) {
     var lhsX2 = lhs.X + lhs.Width;
     var rhsX2 = rhs.X + rhs.Width;
     var lhsY2 = lhs.Y + lhs.Height;
@@ -2746,118 +2751,159 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
     if (x2 > x1 && y2 > y1) return new Microsoft.Xna.Framework.Rectangle(x1, y1, x2 - x1, y2 - y1);
 
     return Microsoft.Xna.Framework.Rectangle._empty;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "Intersect", new JSIL.MethodSignature(null, [], []), function (lhs, rhs, result) {
-    result.value = Microsoft.Xna.Framework.Rectangle.Intersect$0(lhs.value, rhs.value);
-  });
-});
+  };
 
-JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (x, y, width, height) {
-    this.X = x;
-    this.Y = y;
-    this.Width = width;
-    this.Height = height;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_Left", new JSIL.MethodSignature(null, [], []), function () {
-    return this.X;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_Top", new JSIL.MethodSignature(null, [], []), function () {
-    return this.Y;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_Right", new JSIL.MethodSignature(null, [], []), function () {
-    return this.X + this.Width;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_Bottom", new JSIL.MethodSignature(null, [], []), function () {
-    return this.Y + this.Height;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_Center", new JSIL.MethodSignature(null, [], []), function () {
-    return new Microsoft.Xna.Framework.Point(
-    Math.floor(this.X + (this.Width / 2)), Math.floor(this.Y + (this.Height / 2)));
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "get_Location", new JSIL.MethodSignature(null, [], []), function () {
-    return new Microsoft.Xna.Framework.Point(
-    this.X, this.Y);
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "set_Location", new JSIL.MethodSignature(null, [], []), function (value) {
-    this.X = value.X;
-    this.Y = value.Y;
+  $.Method({Static:true , Public:true }, "Intersect", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle"), [$asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle"), $asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")], [])), 
+    intersectImpl
+  );
 
-    return value;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "Offset", new JSIL.MethodSignature(null, [], []), function (point) {
-    this.X += point.X;
-    this.Y += point.Y;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "Offset", new JSIL.MethodSignature(null, [], []), function (x, y) {
-    this.X += x;
-    this.Y += y;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "Inflate", new JSIL.MethodSignature(null, [], []), function (x, y) {
-    this.X -= x;
-    this.Y -= y;
-    this.Width += (x * 2);
-    this.Height += (y * 2);
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "Contains", new JSIL.MethodSignature(null, [], []), function (value) {
-    return this.X <= value.X && value.X < this.X + this.Width && this.Y <= value.Y && value.Y < this.Y + this.Height;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "Intersects", new JSIL.MethodSignature(null, [], []), function (value) {
-    return value.X < this.X + this.Width && this.X < value.X + value.Width && value.Y < this.Y + this.Height && this.Y < value.Y + value.Height;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "MemberwiseClone", new JSIL.MethodSignature(null, [], []), function () {
-    var result = Object.create(Microsoft.Xna.Framework.Rectangle.prototype);
-    result.X = this.X;
-    result.Y = this.Y;
-    result.Width = this.Width;
-    result.Height = this.Height;
-    return result;
-  });
+  $.Method({Static:true , Public:true }, "Intersect", 
+    (new JSIL.MethodSignature(null, [
+          $jsilcore.TypeRef("JSIL.Reference", [$asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")]), $jsilcore.TypeRef("JSIL.Reference", [$asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")]), 
+          $jsilcore.TypeRef("JSIL.Reference", [$asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")])
+        ], [])), 
+    function Intersect (/* ref */ value1, /* ref */ value2, /* ref */ result) {
+      result.value = intersectImpl(value1.value, value2.value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [
+          $.Int32, $.Int32, 
+          $.Int32, $.Int32
+        ], [])), 
+    function _ctor (x, y, width, height) {
+      this.X = x;
+      this.Y = y;
+      this.Width = width;
+      this.Height = height;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Contains", 
+    (new JSIL.MethodSignature($.Boolean, [$asms[0].TypeRef("Microsoft.Xna.Framework.Point")], [])), 
+    function Contains (value) {
+      return this.X <= value.X && value.X < this.X + this.Width && this.Y <= value.Y && value.Y < this.Y + this.Height;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Bottom", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Bottom () {
+      return this.Y + this.Height;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Center", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Point"), [], [])), 
+    function get_Center () {
+      return new Microsoft.Xna.Framework.Point(
+        Math.floor(this.X + (this.Width / 2)), 
+        Math.floor(this.Y + (this.Height / 2))
+      );
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "get_Empty", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle"), [], [])), 
+    function get_Empty () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_IsEmpty", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsEmpty () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Left", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Left () {
+      return this.X;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Location", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Point"), [], [])), 
+    function get_Location () {
+      return new Microsoft.Xna.Framework.Point(this.X, this.Y);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Right", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Right () {
+      return this.X + this.Width;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Top", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Top () {
+      return this.Y;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Inflate", 
+    (new JSIL.MethodSignature(null, [$.Int32, $.Int32], [])), 
+    function Inflate (x, y) {
+      this.X -= x;
+      this.Y -= y;
+      this.Width += (x * 2);
+      this.Height += (y * 2);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Intersects", 
+    (new JSIL.MethodSignature($.Boolean, [$asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")], [])), 
+    function Intersects (value) {
+      return value.X < this.X + this.Width && 
+              this.X < value.X + value.Width && 
+              value.Y < this.Y + this.Height && 
+              this.Y < value.Y + value.Height;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Offset", 
+    (new JSIL.MethodSignature(null, [$asms[0].TypeRef("Microsoft.Xna.Framework.Point")], [])), 
+    function Offset (amount) {
+      this.X += amount.X;
+      this.Y += amount.Y;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Offset", 
+    (new JSIL.MethodSignature(null, [$.Int32, $.Int32], [])), 
+    function Offset (offsetX, offsetY) {
+      this.X += offsetX;
+      this.Y += offsetY;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Location", 
+    (new JSIL.MethodSignature(null, [$asms[0].TypeRef("Microsoft.Xna.Framework.Point")], [])), 
+    function set_Location (value) {
+      this.X = value.X;
+      this.Y = value.Y;
+
+      return value;
+    }
+  );
+
+  $.Method({Static: false, Public: true }, "MemberwiseClone", 
+    new JSIL.MethodSignature($.Object, [], []), 
+    function () {
+      var result = Object.create(Microsoft.Xna.Framework.Rectangle.prototype);
+      result.X = this.X;
+      result.Y = this.Y;
+      result.Width = this.Width;
+      result.Height = this.Height;
+      return result;
+    }
+  );
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Point", function ($) {
