@@ -2001,8 +2001,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
         $asms.xnaGame, "Microsoft.Xna.Framework.GameTime", [], true
       );
 
-      this.content = JSIL.CreateInstanceOfType(tContentManager);
       this.gameServices = new Microsoft.Xna.Framework.GameServiceContainer();
+      this.content = JSIL.CreateInstanceOfType(tContentManager, [this.gameServices]);
       this.components = new Microsoft.Xna.Framework.GameComponentCollection();
       this.targetElapsedTime = System.TimeSpan.FromTicks(166667);
       this.isFixedTimeStep = true;

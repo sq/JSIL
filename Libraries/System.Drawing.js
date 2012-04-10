@@ -126,17 +126,11 @@ JSIL.ImplementExternals(
         var makeNamedColor = function (a, r, g, b, name) {
           var color = makeColor(a, r, g, b, name);
 
-          sdc["get_" + name] = function () {
+          JSIL.SetValueProperty(sdc, "get_" + name, function () {
             return color;
-          };
+          });
 
-          Object.defineProperty(
-            sdc, name, {
-              enumerable: true,
-              configurable: true,
-              value: color
-            }
-          );
+          JSIL.SetValueProperty(sdc, name, color);
         };
 
         makeNamedColor(0xFF, 0x00, 0x00, 0x00, "Black");
