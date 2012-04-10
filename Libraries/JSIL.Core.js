@@ -589,7 +589,9 @@ JSIL.ImplementExternals = function (namespaceName, externals) {
   }
 
   if (typeof (externals) !== "function") {
-    // JSIL.Host.warning("Old-style ImplementExternals call for '" + namespaceName + "' ignored!");
+    if (false)    
+      JSIL.Host.warning("Old-style ImplementExternals call for '" + namespaceName + "' ignored!");
+
     return;
   }
 

@@ -236,14 +236,20 @@ namespace JSIL.Tests {
                 argsJson = Encoding.UTF8.GetString(ms2.GetBuffer(), 0, (int)ms2.Length);
             }
 
+            var prefixJs =
+                @"JSIL.SuppressInterfaceWarnings = true; ";
+
             var invocationJs = String.Format(
-                @"timeout({0}); JSIL.SuppressInterfaceWarnings = true; JSIL.Initialize(); var started = elapsed(); {1}.Main({2}); var ended = elapsed(); print('// elapsed: ' + (ended - started));", 
+                @"timeout({0}); " +
+                @"JSIL.Initialize(); var started = elapsed(); " +
+                @"{1}.Main({2}); " +
+                @"var ended = elapsed(); print('// elapsed: ' + (ended - started));", 
                 JavascriptExecutionTimeout, declaringType, argsJson
             );
 
             generatedJavascript = translatedJs;
 
-            File.WriteAllText(tempFilename, translatedJs + Environment.NewLine + invocationJs);
+            File.WriteAllText(tempFilename, prefixJs + Environment.NewLine + translatedJs + Environment.NewLine + invocationJs);
 
             try {
                 // throw new Exception();

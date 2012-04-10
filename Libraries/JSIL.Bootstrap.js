@@ -590,17 +590,17 @@ JSIL.ImplementExternals("System.Console", function ($) {
 });
 
 JSIL.ImplementExternals(
-  "System.Diagnostics.Debug", false, {
-    WriteLine$0: function (text) {
+  "System.Diagnostics.Debug", function ($) {
+    $.Method({Static:true , Public:true }, "WriteLine", 
+      (new JSIL.MethodSignature(null, [$.String], [])), 
+      function WriteLine (message) {
       JSIL.Host.logWriteLine(text);
-    },
+      }
+    );
   }
 );
 
 JSIL.MakeStaticClass("System.Console", true, [], function ($) {
-  $.ExternalMembers(false, 
-    "Write", "WriteLine"
-  );
 });
 
 JSIL.SplitString = function (str, separators) {
@@ -1060,71 +1060,135 @@ $jsilcore.$ReadOnlyCollectionExternals = function ($) {
 
 JSIL.ImplementExternals("System.Collections.ObjectModel.ReadOnlyCollection`1", $jsilcore.$ReadOnlyCollectionExternals);
 
-JSIL.ImplementExternals("System.Collections.Generic.Stack`1", true, {
-  _ctor$0: function () {
-    this._items = new Array();
-    this._size = 0;
-  },
-  _ctor$1: function (size) {
-    this._items = new Array(size);
-    this._size = 0;
-  },
-  Clear: function () {
-    this._size = 0;
-  },
-  get_Count: function () {
-    return this._size;
-  },
-  Push: function (item) {
-    this._items.push(item)
-    this._size += 1;
-  },
-  Pop: function () {
-    var result = this._items.pop();
-    this._size -= 1;
+JSIL.ImplementExternals("System.Collections.Generic.Stack`1", function ($) {
+  var system = JSIL.GetAssembly("System", true);
 
-    return result;
-  },
-  Peek: function () {
-    if (this._size <= 0)
-      throw new System.InvalidOperationException("Stack is empty");
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      this._items = new Array();
+      this._size = 0;
+    }
+  );
 
-    return this._items[this._size - 1];
-  },
-  GetEnumerator: function () {
-    var elementType = this.T;
-    return new (System.Collections.Generic.List$b1_Enumerator.Of(elementType)) (this);
-  }
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.Int32], [])), 
+    function _ctor (capacity) {
+      this._items = new Array(capacity);
+      this._size = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Clear", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Clear () {
+      this._size = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Count", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Count () {
+      return this._size;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetEnumerator", 
+    (new JSIL.MethodSignature(system.TypeRef("System.Collections.Generic.Stack`1/Enumerator", [new JSIL.GenericParameter("T", "System.Collections.Generic.Stack`1")]), [], [])), 
+    function GetEnumerator () {
+      var elementType = this.T;
+      return new (System.Collections.Generic.List$b1_Enumerator.Of(elementType)) (this);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Peek", 
+    (new JSIL.MethodSignature(new JSIL.GenericParameter("T", "System.Collections.Generic.Stack`1"), [], [])), 
+    function Peek () {
+      if (this._size <= 0)
+        throw new System.InvalidOperationException("Stack is empty");
+
+      return this._items[this._size - 1];
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Pop", 
+    (new JSIL.MethodSignature(new JSIL.GenericParameter("T", "System.Collections.Generic.Stack`1"), [], [])), 
+    function Pop () {
+      var result = this._items.pop();
+      this._size -= 1;
+
+      return result;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Push", 
+    (new JSIL.MethodSignature(null, [new JSIL.GenericParameter("T", "System.Collections.Generic.Stack`1")], [])), 
+    function Push (item) {
+      this._items.push(item)
+      this._size += 1;
+    }
+  );
+
 });
 
-JSIL.ImplementExternals("System.Collections.Generic.Queue`1", true, {
-  _ctor$0: function () {
-    this._items = new Array();
-    this._size = 0;
-  },
-  _ctor$1: function (size) {
-    this._items = new Array(size);
-    this._size = 0;
-  },
-  Clear: function () {
-    this._size = 0;
-  },
-  get_Count: function () {
-    return this._size;
-  },
-  Enqueue: function (item) {
-    this._items.push(item);
-    this._size += 1;
-  },
-  Dequeue: function () {
-    var result = this._items.shift();
-    this._size -= 1;
-    return result;
-  },
-  GetEnumerator: function () {
-    var elementType = this.T;
-    return new (System.Collections.Generic.List$b1_Enumerator.Of(elementType)) (this);
-  }
+JSIL.ImplementExternals("System.Collections.Generic.Queue`1", function ($) {
+  var system = JSIL.GetAssembly("System", true);
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      this._items = new Array();
+      this._size = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.Int32], [])), 
+    function _ctor (capacity) {
+      this._items = new Array(capacity);
+      this._size = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Clear", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Clear () {
+      this._size = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Dequeue", 
+    (new JSIL.MethodSignature(new JSIL.GenericParameter("T", "System.Collections.Generic.Queue`1"), [], [])), 
+    function Dequeue () {
+      var result = this._items.shift();
+      this._size -= 1;
+      return result;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Enqueue", 
+    (new JSIL.MethodSignature(null, [new JSIL.GenericParameter("T", "System.Collections.Generic.Queue`1")], [])), 
+    function Enqueue (item) {
+      this._items.push(item);
+      this._size += 1;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Count", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Count () {
+      return this._size;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetEnumerator", 
+    (new JSIL.MethodSignature(system.TypeRef("System.Collections.Generic.Queue`1/Enumerator", [new JSIL.GenericParameter("T", "System.Collections.Generic.Queue`1")]), [], [])), 
+    function GetEnumerator () {
+      var elementType = this.T;
+      return new (System.Collections.Generic.List$b1_Enumerator.Of(elementType)) (this);
+    }
+  );
+
 });
 
 JSIL.MakeClass("System.Object", "JSIL.EnumerableArray", true, [], function ($) {
@@ -1211,34 +1275,43 @@ JSIL.ImplementExternals(
   }
 );
 
-JSIL.ImplementExternals(
-  "System.Threading.Monitor", function ($) {
-    $.Method({Public: true , Static: true }, "Enter", 
-      new JSIL.MethodSignature(null, ["System.Object", JSIL.Reference.Of(System.Boolean)]),
-      function (obj, lockTaken) {
-        var current = (obj.__LockCount__ || 0);
-        if (current >= 1)
-          JSIL.Host.warning("Warning: lock recursion ", obj);
+JSIL.ImplementExternals("System.Threading.Monitor", function ($) {
+  var enterImpl = function (obj) {
+    var current = (obj.__LockCount__ || 0);
+    if (current >= 1)
+      JSIL.Host.warning("Warning: lock recursion ", obj);
 
-        obj.__LockCount__ = current + 1;
+    obj.__LockCount__ = current + 1;
 
-        if (typeof (lockTaken) != "undefined")
-          lockTaken.value = true;
-      }
-    );
+    return true;
+  };
 
-    $.Method({Public: true , Static: true }, "Exit", 
-      new JSIL.MethodSignature(null, ["System.Object"]),
-      function (obj) {
-        var current = (obj.__LockCount__ || 0);
-        if (current <= 0)
-          JSIL.Host.warning("Warning: unlocking an object that is not locked ", obj);
+  $.Method({Static:true , Public:true }, "Enter", 
+    (new JSIL.MethodSignature(null, [$.Object], [])), 
+    function Enter (obj) {
+      enterImpl(obj);
+    }
+  );
 
-        obj.__LockCount__ = current - 1;
-      }
-    );
-  }
-);
+  $.Method({Static:true , Public:true }, "Enter", 
+    (new JSIL.MethodSignature(null, [$.Object, $jsilcore.TypeRef("JSIL.Reference", [$.Boolean])], [])), 
+    function Enter (obj, /* ref */ lockTaken) {
+      lockTaken.value = enterImpl(obj);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Exit", 
+    (new JSIL.MethodSignature(null, [$.Object], [])), 
+    function Exit (obj) {
+      var current = (obj.__LockCount__ || 0);
+      if (current <= 0)
+        JSIL.Host.warning("Warning: unlocking an object that is not locked ", obj);
+
+      obj.__LockCount__ = current - 1;
+    }
+  );
+
+});
 
 JSIL.MakeStaticClass("System.Threading.Interlocked", true, [], function ($) {
   $.ExternalMethod({Public: true , Static: true }, "CompareExchange", 
@@ -1722,109 +1795,125 @@ JSIL.MakeStruct("System.ValueType", "System.TimeSpan", true, [], function ($) {
   $.Property({Public: true , Static: false}, "TotalMinutes");
 });
 
-JSIL.ImplementExternals(
-  "System.Collections.Generic.Dictionary`2", true, {
-    _ctor$0: function () {
-      this._dict = {};
-      this._count = 0;
-    },
-    _ctor$1: function (count) {
-      this._dict = {};
-      this._count = 0;
-    },
-    $getHash: function (key) {
-      if ((typeof (key) !== "undefined") && (key !== null) && (typeof (key.GetHashCode) === "function") && (key.GetHashCode.__IsPlaceholder__ !== true)) {
-        return key.GetHashCode();
-      } else if ((typeof (key) === "string") || (typeof (key) === "number")) {
-        return String(key);
-      } else {
-        return "nohash";
-      }
-    },
-    $areEqual: function (lhs, rhs) {
-      if (lhs === rhs)
+JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) {
+  $.RawMethod(false, "$getHash", function (key) {
+    if ((typeof (key) !== "undefined") && (key !== null) && (typeof (key.GetHashCode) === "function") && (key.GetHashCode.__IsPlaceholder__ !== true)) {
+      return key.GetHashCode();
+    } else if ((typeof (key) === "string") || (typeof (key) === "number")) {
+      return String(key);
+    } else {
+      return "nohash";
+    }
+  });
+
+  $.RawMethod(false, "$areEqual", function (lhs, rhs) {
+    if (lhs === rhs)
+      return true;
+
+    if ((typeof (lhs) !== "undefined") && (lhs !== null) && (typeof (lhs.Equals) === "function") && (lhs.Equals.__IsPlaceholder__ !== true)) {
+      if (lhs.Equals(rhs))
         return true;
+    }
 
-      if ((typeof (lhs) !== "undefined") && (lhs !== null) && (typeof (lhs.Equals) === "function") && (lhs.Equals.__IsPlaceholder__ !== true)) {
-        if (lhs.Equals(rhs))
-          return true;
-      }
+    if ((typeof (rhs) !== "undefined") && (rhs !== null) && (typeof (rhs.Equals) === "function") && (rhs.Equals.__IsPlaceholder__ !== true)) {
+      if (rhs.Equals(lhs))
+        return true;
+    }
 
-      if ((typeof (rhs) !== "undefined") && (rhs !== null) && (typeof (rhs.Equals) === "function") && (rhs.Equals.__IsPlaceholder__ !== true)) {
-        if (rhs.Equals(lhs))
-          return true;
-      }
+    return lhs == rhs;
+  });
 
-      return lhs == rhs;
-    },
-    $searchBucket: function (key) {
-      var hashCode = this.$getHash(key);
-      var bucket = this._dict[hashCode];
-      if (!JSIL.IsArray(bucket))
-        return null;
-
-      for (var i = 0; i < bucket.length; i++) {
-        var bucketEntry = bucket[i];
-
-        if (this.$areEqual(bucketEntry[0], key))
-          return bucketEntry;
-      }
-
+  $.RawMethod(false, "$searchBucket", function (key) {
+    var hashCode = this.$getHash(key);
+    var bucket = this._dict[hashCode];
+    if (!JSIL.IsArray(bucket))
       return null;
-    },
-    $addToBucket: function (key, value) {
-      var hashCode = this.$getHash(key);
-      var bucket = this._dict[hashCode];
-      if (!JSIL.IsArray(bucket))
-        this._dict[hashCode] = bucket = [];
 
-      bucket.push([key, value]);
-      this._count += 1;
-      return value;
-    },
-    TryGetValue: function (key, result) {
+    for (var i = 0; i < bucket.length; i++) {
+      var bucketEntry = bucket[i];
+
+      if (this.$areEqual(bucketEntry[0], key))
+        return bucketEntry;
+    }
+
+    return null;
+  });
+
+  $.RawMethod(false, "$addToBucket", function (key, value) {
+    var hashCode = this.$getHash(key);
+    var bucket = this._dict[hashCode];
+    if (!JSIL.IsArray(bucket))
+      this._dict[hashCode] = bucket = [];
+
+    bucket.push([key, value]);
+    this._count += 1;
+    return value;
+  });
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      this._dict = {};
+      this._count = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.Int32], [])), 
+    function _ctor (capacity) {
+      this._dict = {};
+      this._count = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Add", 
+    (new JSIL.MethodSignature(null, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")], [])), 
+    function Add (key, value) {
       var bucketEntry = this.$searchBucket(key);
-      if (bucketEntry !== null) {
-        result.value = bucketEntry[1];
-        return true;
-      }
 
-      return false;
-    },
-    get_Item: function (key) {
+      if (bucketEntry !== null)
+        throw new System.ArgumentException("Key already exists");
+
+      return this.$addToBucket(key, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Clear", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Clear () {
+      this._dict = {}
+      this._count = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ContainsKey", 
+    (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2")], [])), 
+    function ContainsKey (key) {
+    return this.$searchBucket(key) !== null;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Count", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Count () {
+      return this._count;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Item", 
+    (new JSIL.MethodSignature(new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2"), [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2")], [])), 
+    function get_Item (key) {
       var bucketEntry = this.$searchBucket(key);
       if (bucketEntry !== null)
         return bucketEntry[1];
       else
         throw new System.Exception("Key not found");
-    },
-    set_Item: function (key, value) {
-      var bucketEntry = this.$searchBucket(key);
-      if (bucketEntry !== null)
-        return bucketEntry[1] = value;
-      else
-        return this.$addToBucket(key, value);
-    },
-    get_Values: function () {
-      return new JSIL.AbstractEnumerable(
-        (function getValuesProxy () {
-          var values = [];
+    }
+  );
 
-          for (var k in this._dict) {
-            if (!this._dict.hasOwnProperty(k))
-              continue;
-            var bucket = this._dict[k];
-
-            for (var i = 0; i < bucket.length; i++)
-              values.push(bucket[i][1]);
-          }
-
-          var tEnumerator = JSIL.ArrayEnumerator.Of(this.TValue);
-          return new tEnumerator(values, -1);
-        }).bind(this)
-      );
-    },
-    get_Keys: function () {
+  $.Method({Static:false, Public:true }, "get_Keys", 
+    (new JSIL.MethodSignature($asms[5].TypeRef("System.Collections.Generic.Dictionary`2/KeyCollection", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")]), [], [])), 
+    function get_Keys () {
       return new JSIL.AbstractEnumerable(
         (function getKeysProxy () {
           var keys = [];
@@ -1842,27 +1931,59 @@ JSIL.ImplementExternals(
           return new tEnumerator(keys, -1);
         }).bind(this)
       );
-    },
-    get_Count: function () {
-      return this._count;
-    },
-    ContainsKey: function (key) {
-      return this.$searchBucket(key) !== null;
-    },
-    Clear: function () {
-      this._dict = {}
-      this._count = 0;
-    },
-    Add: function (key, value) {
-      var bucketEntry = this.$searchBucket(key);
-
-      if (bucketEntry !== null)
-        throw new System.ArgumentException("Key already exists");
-
-      return this.$addToBucket(key, value);
     }
-  }
-);
+  );
+
+  $.Method({Static:false, Public:true }, "get_Values", 
+    (new JSIL.MethodSignature($asms[5].TypeRef("System.Collections.Generic.Dictionary`2/ValueCollection", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")]), [], [])), 
+    function get_Values () {
+      return new JSIL.AbstractEnumerable(
+        (function getValuesProxy () {
+          var values = [];
+
+          for (var k in this._dict) {
+            if (!this._dict.hasOwnProperty(k))
+              continue;
+            var bucket = this._dict[k];
+
+            for (var i = 0; i < bucket.length; i++)
+              values.push(bucket[i][1]);
+          }
+
+          var tEnumerator = JSIL.ArrayEnumerator.Of(this.TValue);
+          return new tEnumerator(values, -1);
+        }).bind(this)
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Item", 
+    (new JSIL.MethodSignature(null, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")], [])), 
+    function set_Item (key, value) {
+      var bucketEntry = this.$searchBucket(key);
+      if (bucketEntry !== null)
+        return bucketEntry[1] = value;
+      else
+        return this.$addToBucket(key, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "TryGetValue", 
+    (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), $jsilcore.TypeRef("JSIL.Reference", [new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")])], [])), 
+    function TryGetValue (key, /* ref */ value) {
+      var bucketEntry = this.$searchBucket(key);
+      if (bucketEntry !== null) {
+        value.value = bucketEntry[1];
+        return true;
+      } else {
+        value.value = JSIL.DefaultValue(this.TValue);
+      }
+
+      return false;
+    }
+  );
+
+});
 
 JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary`2", true, ["TKey", "TValue"], function ($) {
 });
@@ -2124,27 +2245,26 @@ JSIL.MakeStaticClass("System.Linq.Enumerable", true, [], function ($) {
   );
 });
 
-JSIL.MakeStaticClass("System.Nullable", true, [], function ($) {
-  $.ExternalMembers(false, 
-    "GetUnderlyingType"
-  );
-});
+JSIL.ImplementExternals("System.Nullable", function ($) {
+  var mscorlib = JSIL.GetCorlib();
 
-JSIL.ImplementExternals(
-  "System.Nullable", false, {
-    GetUnderlyingType: function (nullableType) {   
+  $.Method({Static:true , Public:true }, "GetUnderlyingType", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Type"), [mscorlib.TypeRef("System.Type")], [])), 
+    function GetUnderlyingType (nullableType) {
       if (nullableType.__FullName__.indexOf("System.Nullable`1") !== 0) {
         return null;
       } else {
         return nullableType.__PublicInterface__.T;
       }
     }
-  }
-);
+  );
+});
+
+JSIL.MakeStaticClass("System.Nullable", true, [], function ($) {
+});
 
 JSIL.MakeStruct("System.ValueType", "System.Nullable`1", true, ["T"], function ($) {
 });
-
 
 JSIL.MakeEnum("System.Reflection.BindingFlags", true, $jsilcore.BindingFlags, true);
 
