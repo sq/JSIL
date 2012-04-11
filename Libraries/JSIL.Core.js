@@ -3019,11 +3019,16 @@ JSIL.Cast = function (value, expectedType) {
     return null;
 
   if (expectedType.IsEnum) {
-    var result = expectedType.__ValueToName__[value];
+    if ((typeof (value.GetType) === "function") && (value.GetType() === expectedType))
+      return value;
+
+    var n = Number(value);
+
+    var result = expectedType.__ValueToName__[n];
     if (typeof (result) === "string")
       return expectedType[result];
 
-    result = JSIL.MakeEnumValue(expectedType, value, null);
+    result = JSIL.MakeEnumValue(expectedType, n, null);
     return result;
   } else if (JSIL.CheckType(value, expectedType)) {
     // If the user is casting to an integral type like Int32, we need to floor the value since JS stores all numbers as double

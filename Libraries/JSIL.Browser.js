@@ -42,8 +42,13 @@ JSIL.Host.logWriteLine = function (text) {
   }
 };
 JSIL.Host.translateFilename = function (filename) {
-  var root = JSIL.Host.getRootDirectory().toLowerCase();
-  filename = filename.toLowerCase().replace(root, "").replace(fileRoot.toLowerCase(), "");
+  var slashRe = /\\/g;
+
+  var root = JSIL.Host.getRootDirectory().toLowerCase().replace(slashRe, "/");
+  var _fileRoot = fileRoot.toLowerCase().replace(slashRe, "/");
+  var _filename = filename.toLowerCase().replace(slashRe, "/");
+
+  filename = _filename.replace(root, "").replace(_fileRoot, "");
   
   while (filename[0] === "/")
     filename = filename.substr(1);
@@ -65,14 +70,30 @@ JSIL.Host.getImage = function (filename) {
     throw new System.Exception("The image '" + key + "' is not in the asset manifest.");
   return allAssets[key].image;
 };
+JSIL.Host.doesAssetExist = function (filename, stripRoot) {
+  if (stripRoot === true) {
+    var backslashRe = /\\/g;
+
+    filename = filename.replace(backslashRe, "/").toLowerCase();
+    var croot = contentRoot.replace(backslashRe, "/").toLowerCase();
+
+    filename = filename.replace(croot, "").toLowerCase();
+  }
+
+  var key = getAssetName(filename, false);
+  if (!allAssets.hasOwnProperty(key))
+    return false;
+
+  return true;
+};
 JSIL.Host.getAsset = function (filename, stripRoot) {
   if (stripRoot === true) {
     var backslashRe = /\\/g;
 
-    filename = filename.replace(backslashRe, "/");
-    var croot = contentRoot.replace(backslashRe, "/");
+    filename = filename.replace(backslashRe, "/").toLowerCase();
+    var croot = contentRoot.replace(backslashRe, "/").toLowerCase();
 
-    filename = filename.replace(croot, "");
+    filename = filename.replace(croot, "").toLowerCase();
   }
 
   var key = getAssetName(filename, false);

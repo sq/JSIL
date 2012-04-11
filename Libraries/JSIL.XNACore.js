@@ -4146,6 +4146,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
     this.context.fillRect(0, 0, this.viewport.Width, this.viewport.Height);
   });
 
+  var warnedTypes = {};
+
   $.RawMethod(false, "InternalDrawUserPrimitives", function (T, primitiveType, vertices, vertexOffset, primitiveCount) {
     switch (primitiveType) {
     case Microsoft.Xna.Framework.Graphics.PrimitiveType.LineList:
@@ -4162,7 +4164,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
 
       break;
     default:
-      JSIL.Host.error(new Error("The primitive type " + primitiveType.toString() + " is not implemented."));
+      var ptype = primitiveType.toString();
+      if (warnedTypes[ptype])
+        return;
+
+      warnedTypes[ptype] = true;
+      JSIL.Host.error(new Error("The primitive type " + ptype + " is not implemented."));
       return;
     }
   });

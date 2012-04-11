@@ -85,5 +85,10 @@ namespace JSIL.Proxies {
         public static void Sort<T> (T[] array) {
             throw new InvalidOperationException();
         }
+
+        [JSReplacement("JSIL.GetEnumerator($this)")]
+        public System.Collections.IEnumerator GetEnumerator () {
+            throw new InvalidOperationException();
+        }
     }
 }

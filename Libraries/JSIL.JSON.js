@@ -11,8 +11,10 @@ JSIL.DeclareNamespace("JSIL.JSON");
 JSIL.JSON.MapObject = function (input) {
   var result;
   var mscorlib = JSIL.GetAssembly("mscorlib", true);
-  var tArrayList = JSIL.GetTypeFromAssembly(
-    mscorlib, "System.Collections.ArrayList", [], true
+  var tList = JSIL.GetTypeFromAssembly(
+    mscorlib, "System.Collections.Generic.List`1", [
+      JSIL.GetTypeFromAssembly(mscorlib, "System.Object", [], true)
+    ], true
   );
   var tDictionary = JSIL.GetTypeFromAssembly(
     mscorlib, "System.Collections.Generic.Dictionary`2", [
@@ -22,7 +24,7 @@ JSIL.JSON.MapObject = function (input) {
   );
 
   if (JSIL.IsArray(input)) {
-    result = JSIL.CreateInstanceOfType(tArrayList);
+    result = JSIL.CreateInstanceOfType(tList);
 
     for (var i = 0; i < input.length; i++)
       result.Add(JSIL.JSON.MapObject(input[i]));
@@ -34,7 +36,7 @@ JSIL.JSON.MapObject = function (input) {
       result.Add(k, JSIL.JSON.MapObject(input[k]));
 
   } else if (typeof (input) === "number") {
-    result = input.toString();
+    result = input;
   } else {
     result = input;
   }

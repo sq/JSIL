@@ -9,7 +9,8 @@ JSIL.ImplementExternals("System.IO.File", function ($) {
   $.Method({Static:true , Public:true }, "Exists", 
     new JSIL.MethodSignature($.Boolean, [$.String], []),
     function (filename) {
-      return JSIL.Host.doesFileExist(filename);
+      return JSIL.Host.doesFileExist(filename) || 
+        JSIL.Host.doesAssetExist(filename, true);
     }
   );
 
@@ -46,6 +47,46 @@ JSIL.ImplementExternals("System.IO.Path", function ($) {
         $.String, $.String
       ], []),
     combineImpl
+  );
+
+  $.Method({Static:true , Public:true }, "GetExtension", 
+    (new JSIL.MethodSignature($.String, [$.String], [])), 
+    function GetExtension (path) {
+      var index = path.lastIndexOf(".");
+      if (index >= 0) {
+        return path.substr(index + 1);
+      }
+
+      return "";
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "GetFileName", 
+    (new JSIL.MethodSignature($.String, [$.String], [])), 
+    function GetFileName (path) {
+      var index = path.lastIndexOf("\\");
+      if (index >= 0) {
+        return path.substr(index + 1);
+      }
+
+      return path;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "GetFileNameWithoutExtension", 
+    (new JSIL.MethodSignature($.String, [$.String], [])), 
+    function GetFileNameWithoutExtension (path) {
+      var index = path.lastIndexOf("\\");
+      if (index >= 0) {
+        path = path.substr(index + 1);
+      }
+
+      index = path.indexOf(".");
+      if (index >= 0)
+        path = path.substr(0, index);
+
+      return path;
+    }
   );
 });
 

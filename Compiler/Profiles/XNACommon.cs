@@ -729,13 +729,20 @@ public static class Common {
                 var metadata = item.DirectMetadata.ToDictionary((md) => md.Name);
 
                 if (item.ItemType == "None") {
-                    ProjectMetadata copyToOutputDirectory;
+                    string copyToOutputDirectory = "Always";
+                    ProjectMetadata temp2;
 
-                    if (
-                        metadata.TryGetValue("CopyToOutputDirectory", out copyToOutputDirectory) &&
-                        copyToOutputDirectory.EvaluatedValue == "Always"
-                    ) {
-                        copyRawFile(item);
+                    if (metadata.TryGetValue("CopyToOutputDirectory", out temp2)) {
+                        copyToOutputDirectory = temp2.EvaluatedValue;
+                    }
+
+                    switch (copyToOutputDirectory) {
+                        case "Always":
+                        case "PreserveNewest":
+                            copyRawFile(item);
+                            break;
+                        default:
+                            break;
                     }
 
                     continue;
