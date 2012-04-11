@@ -3436,7 +3436,15 @@ JSIL.InterfaceBuilder.prototype.ImplementInterfaces = function (/* ...interfaces
 JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames, context) {
   this.context = context || $private;
   this.returnType = returnType;
-  this.argumentTypes = argumentTypes;
+
+  if (!JSIL.IsArray(argumentTypes)) {
+    if (argumentTypes !== null)
+      throw new Error("ArgumentTypes must be an array or null");
+    else
+      this.argumentTypes = [];
+  } else {
+    this.argumentTypes = argumentTypes;
+  }
 
   if (JSIL.IsArray(genericArgumentNames))
     this.genericArgumentNames = genericArgumentNames;

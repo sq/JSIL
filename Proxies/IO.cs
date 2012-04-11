@@ -11,7 +11,7 @@ namespace JSIL.Proxies {
     )]
     public abstract class FileStreamProxy {
         [JSIgnore]
-        public FileStreamProxy (AnyType handle, AnyType access) {
+        public FileStreamProxy (IntPtr handle, AnyType access) {
             throw new NotImplementedException();
         }
         [JSIgnore]
@@ -27,11 +27,15 @@ namespace JSIL.Proxies {
             throw new NotImplementedException();
         }
         [JSIgnore]
-		public FileStreamProxy(AnyType handle, AnyType access, int bufferSize) {
+        public FileStreamProxy (SafeFileHandle handle, AnyType access) {
             throw new NotImplementedException();
         }
         [JSIgnore]
-		public FileStreamProxy(AnyType handle, AnyType access, int bufferSize, bool isAsync) {
+		public FileStreamProxy(SafeFileHandle handle, AnyType access, int bufferSize) {
+            throw new NotImplementedException();
+        }
+        [JSIgnore]
+        public FileStreamProxy (SafeFileHandle handle, AnyType access, int bufferSize, bool isAsync) {
             throw new NotImplementedException();
         }
 

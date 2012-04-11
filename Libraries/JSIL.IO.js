@@ -122,7 +122,7 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
   );
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [$.String, $asms[1].TypeRef("System.IO.FileMode")], [])), 
+    (new JSIL.MethodSignature(null, [$.String, $jsilcore.TypeRef("System.IO.FileMode")], [])), 
     function _ctor (path, mode) {
       System.IO.Stream.prototype._ctor.call(this);
 
@@ -175,14 +175,14 @@ JSIL.ImplementExternals(
 
 JSIL.ImplementExternals("System.IO.BinaryWriter", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [$asms[1].TypeRef("System.IO.Stream")], [])), 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream")], [])), 
     function _ctor (output) {
       this.m_stream = output;
     }
   );
 
   $.Method({Static:false, Public:true }, "get_BaseStream", 
-    (new JSIL.MethodSignature($asms[1].TypeRef("System.IO.Stream"), [], [])), 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.Stream"), [], [])), 
     function get_BaseStream () {
       return this.m_stream;
     }
@@ -191,7 +191,7 @@ JSIL.ImplementExternals("System.IO.BinaryWriter", function ($) {
 
 JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [$asms[1].TypeRef("System.IO.Stream")], [])), 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream")], [])), 
     function _ctor (input) {
       System.Object.prototype._ctor.call(this);
 
@@ -204,7 +204,7 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
   );
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [$asms[1].TypeRef("System.IO.Stream"), $asms[1].TypeRef("System.Text.Encoding")], [])), 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.IO.Stream"), $jsilcore.TypeRef("System.Text.Encoding")], [])), 
     function _ctor (input, encoding) {
       System.Object.prototype._ctor.call(this);
 
@@ -428,7 +428,7 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "get_BaseStream", 
-    (new JSIL.MethodSignature($asms[1].TypeRef("System.IO.Stream"), [], [])), 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.Stream"), [], [])), 
     function get_BaseStream () {
       return this.m_stream;
     }
