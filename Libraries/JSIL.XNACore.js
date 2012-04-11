@@ -2197,6 +2197,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       this._lastSecond = now;
       this._updateCount = this._drawCount = 0;
       this._extraTime = 0;
+      this.suppressFrameskip = false;
     } else {
       var elapsed = now - this._lastFrame;
       var total = now - this._started;
@@ -2214,6 +2215,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
 
     if (this.forceElapsedTimeToZero) {
       this.forceElapsedTimeToZero = false;
+      this._extraTime = 0;
       elapsed = 0;
     }
 
@@ -2224,15 +2226,23 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
 
     var millisecondInTicks = 10000;
     var maxElapsedTimeMs = 500;
+    var longFrame = frameDelay * 2;
 
     var failed = true;
     try {
-      if (this.isFixedTimeStep) {
-        /*
-        this._gameTime.elapsedRealTime._ticks = Math.floor(elapsed * millisecondInTicks);
-        this._gameTime.totalRealTime._ticks = Math.floor(total * millisecondInTicks);
-        */
 
+      var doUpdate = function () {
+        var updateStarted = this._GetNow();
+        this.Update(this._gameTime);
+        var updateEnded = this._GetNow();
+
+        // Detect long updates and suppress frameskip.
+        if ((updateEnded - updateStarted) > longFrame) {
+          this.suppressFrameskip = true;
+        }
+      }.bind(this);
+
+      if (this.isFixedTimeStep && !this.suppressFrameskip) {
         this._gameTime.elapsedGameTime._ticks = (frameDelay * millisecondInTicks);
 
         elapsed += this._extraTime;
@@ -2248,19 +2258,17 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
           for (var i = 0; i < numFrames; i++) {
             this._gameTime.totalGameTime._ticks += (frameDelay * millisecondInTicks);
 
-            this.Update(this._gameTime);
+            doUpdate();
             this._updateCount += 1;
           }
         } else {
           this._extraTime = elapsed;
         }
       } else {
-        /*
-        this._gameTime.elapsedRealTime._ticks = this._gameTime.elapsedGameTime._ticks = Math.floor(elapsed * millisecondInTicks);
-        this._gameTime.totalRealTime._ticks = this._gameTime.totalGameTime._ticks = Math.floor(total * millisecondInTicks);
-        */
+        this._extraTime = 0;
+        this.suppressFrameskip = false;
 
-        this.Update(this._gameTime);
+        doUpdate();
         this._updateCount += 1;
       }
 

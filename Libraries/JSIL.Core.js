@@ -404,23 +404,44 @@ JSIL.Host.getCanvas = function () {
   throw new Error("No canvas implementation");
 };
 
-if (typeof (console) !== "undefined")
-  JSIL.Host.logWrite = console.log.bind(console);
-else if (JSIL.HostType.IsBrowser)
+if (typeof (console) !== "undefined") {
+  try {
+    JSIL.Host.logWrite = console.log.bind(console);
+  } catch (e) {
+    // IE :(
+    JSIL.Host.logWrite = function () {
+      console.log(Array.prototype.slice.call(arguments));
+    }
+  }
+} else if (JSIL.HostType.IsBrowser)
   JSIL.Host.logWrite = function () {};
 else
   JSIL.Host.logWrite = putstr.bind(null);
 
-if (typeof (console) !== "undefined")
-  JSIL.Host.logWriteLine = console.log.bind(console);
-else if (JSIL.HostType.IsBrowser)
+if (typeof (console) !== "undefined") {
+  try {
+    JSIL.Host.logWriteLine = console.log.bind(console);
+  } catch (e) {
+    // IE :(
+    JSIL.Host.logWriteLine = function () {
+      console.log(Array.prototype.slice.call(arguments));
+    }
+  }
+} else if (JSIL.HostType.IsBrowser)
   JSIL.Host.logWriteLine = function () {};
 else
   JSIL.Host.logWriteLine = print.bind(null);
 
-if (typeof (console) !== "undefined")
-  JSIL.Host.warning = console.warn.bind(console);
-else
+if (typeof (console) !== "undefined") {
+  try {
+    JSIL.Host.warning = console.warn.bind(console);
+  } catch (e) {
+    // IE :(
+    JSIL.Host.warning = function () {
+      console.warn(Array.prototype.slice.call(arguments));
+    }
+  }
+} else
   JSIL.Host.warning = JSIL.Host.logWriteLine;
 
 JSIL.Host.error = function (exception, text) {
@@ -4911,16 +4932,17 @@ JSIL.StringToCharArray = function (text) {
   return result;
 };
 
-JSIL.ObjectEquals = function (lhs, rhs) {
-  if (lhs === rhs)
-    return true;
+var $equalsSignature = new JSIL.MethodSignature("System.Boolean", ["System.Object"], [], $jsilcore);
 
-  var signature = new JSIL.MethodSignature("System.Boolean", ["System.Object"], [], $jsilcore);
-  var key = signature.GetKey("Equals");
+JSIL.ObjectEquals = function (lhs, rhs) {
+  var key = $equalsSignature.GetKey("Equals");
 
   var impl = lhs[key];
   if (typeof (impl) === "function")
-    return signature.CallVirtual("Equals", null, lhs, rhs);
+    return $equalsSignature.CallVirtual("Equals", null, lhs, rhs);
+
+  if (lhs === rhs)
+    return true;
 
   switch (typeof (lhs)) {
     case "string":

@@ -337,6 +337,9 @@
     <None Include="TestCases\OverloadWithGenericArgCount.cs" />
     <None Include="SpecialTestCases\FastOverloadDispatch.cs" />
     <None Include="SpecialTestCases\FastConstructorOverloadDispatch.cs" />
+    <None Include="SimpleTestCases\ListFindAll.cs" />
+    <None Include="SimpleTestCases\ListExists.cs" />
+    <None Include="SimpleTestCases\ListRemoveAll.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

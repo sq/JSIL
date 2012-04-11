@@ -1025,6 +1025,8 @@ $jsilcore.$ListExternals = function ($, T, type) {
   $.Method({Static:false, Public:true }, "RemoveAll", 
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Int32"), [mscorlib.TypeRef("System.Predicate`1", [T])], []),
     function (predicate) {
+      var result = 0;
+
       for (var i = 0; i < this._size; i++) {
         var item = this._items[i];
 
@@ -1032,8 +1034,11 @@ $jsilcore.$ListExternals = function ($, T, type) {
           this._items.splice(i, 1);
           i -= 1;
           this._size -= 1;
+          result += 1;
         }
       }
+
+      return result;
     }
   );
 
