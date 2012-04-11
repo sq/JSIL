@@ -404,50 +404,44 @@ JSIL.Host.getCanvas = function () {
   throw new Error("No canvas implementation");
 };
 
-JSIL.Host.logWrite = function (text) {
-  if (typeof (console) !== "undefined")
-    Function.prototype.apply.call(console.log, console, arguments);
-  else if (JSIL.HostType.IsBrowser)
-    return;
-  else if (typeof (putstr) === "function")
-    putstr(text);
-};
+if (typeof (console) !== "undefined")
+  JSIL.Host.logWrite = console.log.bind(console);
+else if (JSIL.HostType.IsBrowser)
+  JSIL.Host.logWrite = function () {};
+else
+  JSIL.Host.logWrite = putstr.bind(null);
 
-JSIL.Host.logWriteLine = function (text) {
-  if (typeof (console) !== "undefined")
-    Function.prototype.apply.call(console.log, console, arguments);
-  else if (JSIL.HostType.IsBrowser)
-    return;
-  else if (typeof (print) === "function")
-    print(text);
-};
+if (typeof (console) !== "undefined")
+  JSIL.Host.logWriteLine = console.log.bind(console);
+else if (JSIL.HostType.IsBrowser)
+  JSIL.Host.logWriteLine = function () {};
+else
+  JSIL.Host.logWriteLine = print.bind(null);
 
-JSIL.Host.warning = function (text) {
-  if (typeof (console) !== "undefined")
-    Function.prototype.apply.call(console.warn, console, arguments);
-  else
-    JSIL.Host.logWriteLine(Array.prototype.join.call(arguments, ""));
-};
+if (typeof (console) !== "undefined")
+  JSIL.Host.warning = console.warn.bind(console);
+else
+  JSIL.Host.warning = JSIL.Host.logWriteLine;
 
 JSIL.Host.error = function (exception, text) {
-  var rest = Array.prototype.slice.call(arguments, 1);
-  rest.push(exception);
-
-  var stack = null;
-  try {
-    stack = exception.stack;
-  } catch (e) {
-    stack = null;
-  }
-
-  if ((typeof (stack) !== "undefined") && (stack !== null)) {
-    if (stack.indexOf(String(exception)) >= 0)
-      rest.pop();
-
-    rest.push(stack);
-  }
-
   if (typeof (console) !== "undefined") {
+    var rest = Array.prototype.slice.call(arguments, 1);
+    rest.push(exception);
+
+    var stack = null;
+    try {
+      stack = exception.stack;
+    } catch (e) {
+      stack = null;
+    }
+
+    if ((typeof (stack) !== "undefined") && (stack !== null)) {
+      if (stack.indexOf(String(exception)) >= 0)
+        rest.pop();
+
+      rest.push(stack);
+    }
+
     Function.prototype.apply.call(console.error, console, rest);
   }
 

@@ -28,7 +28,7 @@ JSIL.ImplementExternals("System.IO.Path", function ($) {
   };
 
   $.Method({Static:true , Public:true }, "Combine", 
-    new JSIL.MethodSignature($String, [$.String, $.String], []),
+    new JSIL.MethodSignature($.String, [$.String, $.String], []),
     combineImpl
   );
 
@@ -126,13 +126,13 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
     function _ctor (path, mode) {
       System.IO.Stream.prototype._ctor.call(this);
 
-      this._fileName = filename;
-      this._buffer = JSIL.Host.getFile(filename);
+      this._fileName = path;
+      this._buffer = JSIL.Host.getFile(path);
       if (
         (typeof (this._buffer) === "undefined") ||
         (typeof (this._buffer.length) !== "number")
       )
-        throw new System.Exception("Unable to get an array for the file '" + filename + "'");
+        throw new System.Exception("Unable to get an array for the file '" + path + "'");
 
       this._pos = 0;
       this._length = this._buffer.length;
