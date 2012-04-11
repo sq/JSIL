@@ -23,8 +23,8 @@ namespace JSIL.Compiler.Profiles {
         public virtual void WriteOutputs (TranslationResult result, string path, string manifestPrefix) {
             Console.WriteLine(manifestPrefix + "manifest.js");
 
-            foreach (var kvp in result.OrderedFiles)
-                Console.WriteLine(kvp.Key);
+            foreach (var fe in result.OrderedFiles)
+                Console.WriteLine(fe.Filename);
 
             result.WriteToDirectory(path, manifestPrefix);
         }

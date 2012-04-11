@@ -325,19 +325,29 @@ namespace JSIL {
                     var assembly = assemblies[i];
                     var outputPath = assembly.Name + ".js";
 
-                    using (var outputStream = new MemoryStream()) {
-                        var context = MakeDecompilerContext(assembly.MainModule);
-                        Translate(context, assembly, outputStream);
+                    long existingSize;
 
-                        var segment = new ArraySegment<byte>(
-                            outputStream.GetBuffer(), 0, (int)outputStream.Length
-                        );
+                    if (!Manifest.GetExistingSize(assembly, out existingSize)) {
+                        using (var outputStream = new MemoryStream()) {
+                            var context = MakeDecompilerContext(assembly.MainModule);
+                            Translate(context, assembly, outputStream);
 
-                        result.AddFile(outputPath, segment);
+                            var segment = new ArraySegment<byte>(
+                                outputStream.GetBuffer(), 0, (int)outputStream.Length
+                            );
+
+                            result.AddFile(outputPath, segment);
+
+                            Manifest.SetAlreadyTranslated(assembly, outputStream.Length);
+                        }
+
+                        lock (result.Assemblies)
+                            result.Assemblies.Add(assembly);
+                    } else {
+                        Debug.WriteLine(String.Format("Skipping '{0}' because it is already translated...", assembly.Name));
+
+                        result.AddExistingFile(outputPath, existingSize);
                     }
-
-                    lock (result.Assemblies)
-                        result.Assemblies.Add(assembly);
 
                     pr.OnProgressChanged(result.Assemblies.Count, assemblies.Length);
                 }
@@ -366,12 +376,12 @@ namespace JSIL {
                 tw.WriteLine("if (typeof (contentManifest) !== \"object\") { contentManifest = {}; };");
                 tw.WriteLine("contentManifest[\"" + Path.GetFileName(assemblyPath).Replace("\\", "\\\\") + "\"] = [");
 
-                foreach (var kvp in result.OrderedFiles) {
-                    var propertiesObject = String.Format("{{ \"sizeBytes\": {0} }}", kvp.Value.Count);
+                foreach (var fe in result.OrderedFiles) {
+                    var propertiesObject = String.Format("{{ \"sizeBytes\": {0} }}", fe.Size);
 
                     tw.WriteLine(String.Format(
                         "  [\"{0}\", \"{1}\", {2}],",
-                        "Script", kvp.Key.Replace("\\", "/"), propertiesObject
+                        "Script", fe.Filename.Replace("\\", "/"), propertiesObject
                     ));
                 }
 

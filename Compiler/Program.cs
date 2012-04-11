@@ -423,8 +423,9 @@ namespace JSIL.Compiler {
             logText.AppendLine(String.Format("// The following settings were used when translating '{0}':", inputFile));
             logText.AppendLine((new JavaScriptSerializer()).Serialize(configuration));
             logText.AppendLine("// The following outputs were produced:");
-            foreach (var kvp2 in outputs.OrderedFiles)
-                logText.AppendLine(kvp2.Key);
+
+            foreach (var fe in outputs.OrderedFiles)
+                logText.AppendLine(fe.Filename);
 
             File.WriteAllText(
                 Path.Combine(logPath, String.Format("{0}.jsillog", Path.GetFileName(inputFile))),

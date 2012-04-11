@@ -316,7 +316,7 @@ JSIL.ImplementExternals(
       }
     );
 
-    $.Method({Static:false, Public:true }, "IndexOfAny", 
+    $.Method({Static:true, Public:true }, "IndexOfAny", 
       new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [System.Array.Of($jsilcore.System.Char), $jsilcore.TypeRef("System.Int32")], []),
       function (str, chars) {
         var result = null;
@@ -347,7 +347,7 @@ JSIL.ImplementExternals(
       }
     );
 
-    $.Method({Static:false, Public:true }, "LastIndexOfAny", 
+    $.Method({Static:true , Public:true }, "LastIndexOfAny", 
       new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [System.Array.Of($jsilcore.System.Char), $jsilcore.TypeRef("System.Int32")], []),
       function (str, chars) {
         var result = null;
@@ -638,7 +638,7 @@ JSIL.ImplementExternals(
     $.Method({Static:true , Public:true }, "WriteLine", 
       (new JSIL.MethodSignature(null, [$.String], [])), 
       function WriteLine (message) {
-      JSIL.Host.logWriteLine(text);
+        JSIL.Host.logWriteLine(message);
       }
     );
   }
@@ -669,6 +669,12 @@ JSIL.ConcatString = function (/* ...values */) {
 };
 
 JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, ["T"], function ($) {
+  $.RawMethod(false, "__CopyMembers__", function (target) {
+    target._array = this._array;
+    target._length = this._length;
+    target._index = this._index;
+  });
+
   $.Method({Public: true , Static: false}, ".ctor", 
     new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", ["!!0"]), $.Int32]),
     function (array, startPosition) {
@@ -1343,11 +1349,6 @@ JSIL.MakeClass("System.Object", "JSIL.EnumerableArray", true, [], function ($) {
 });
 
 JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"], function ($) {
-  $.ExternalMembers(true, 
-    "_ctor", "Add", "AddRange", "Remove", "RemoveAt", "Clear", 
-    "get_Item", "get_Count", "get_Capacity", "GetEnumerator"
-  );
-
   $.Property({Public: true , Static: false}, "Count");
 
   $.ImplementInterfaces(
@@ -1357,10 +1358,6 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"]
 });
 
 JSIL.MakeClass("System.Object", "System.Collections.Generic.Stack`1", true, ["T"], function ($) {
-	$.ExternalMembers(true, 
-		"_ctor$0", "_ctor$1", "_ctor$2", "Clear", "Contains", "CopyTo", "get_Count", "GetEnumerator", "ICollection_CopyTo", "ICollection_get_IsSynchronized", "ICollection_get_SyncRoot", "IEnumerable$b1_GetEnumerator", "IEnumerable_GetEnumerator", "Peek", "Pop", "Push", "ToArray", "TrimExcess"
-	);
-
 	$.Property({Public: true , Static: false}, "Count");
 
 	$.ImplementInterfaces(
@@ -1682,13 +1679,17 @@ JSIL.MakeStruct("System.ValueType", "System.Decimal", true, [], function ($) {
   });
 });
 
-System.Environment.GetResourceFromDefault = function (key) {
-  return key;
-};
-System.Environment.nativeGetTickCount = function () {
-  var t = new Date();
-  return t.getTime();
-};
+JSIL.ImplementExternals("System.Environment", function ($) {
+
+  $.Method({Static:true , Public:true }, "GetFolderPath", 
+    (new JSIL.MethodSignature($.String, [$asms[5].TypeRef("System.Environment/SpecialFolder")], [])), 
+    function GetFolderPath (folder) {
+      // FIXME
+      return folder.name;
+    }
+  );
+
+});
 
 JSIL.ImplementExternals("System.Text.Encoding", function ($) {
   $.Method({Static:true , Public:true }, ".cctor2", 
@@ -2167,6 +2168,15 @@ JSIL.EnumerableToArray = function (enumerable) {
 };
 
 JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerator", true, [], function ($) {
+  $.RawMethod(false, "__CopyMembers__", function (target) {
+    target._getNextItem = this._getNextItem;
+    target._reset = this._reset;
+    target._dispose = this._dispose;
+    target._first = this._first;
+    target._needDispose = this._needDispose;
+    target._current = new JSIL.Variable(this._current.value);
+  });
+
   $.Method({Static: false, Public: true }, ".ctor",
     new JSIL.MethodSignature(null, [JSIL.AnyType, JSIL.AnyType, JSIL.AnyType]),
     function (getNextItem, reset, dispose) {

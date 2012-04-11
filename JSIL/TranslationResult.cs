@@ -7,15 +7,21 @@ using Mono.Cecil;
 
 namespace JSIL {
     public class TranslationResult {
+        public struct ResultFile {
+            public string Filename;
+            public long Size;
+            public ArraySegment<byte> Contents;
+        }
+
         public readonly List<AssemblyDefinition> Assemblies = new List<AssemblyDefinition>();
         public readonly List<string> FileOrder = new List<string>();
-        public readonly Dictionary<string, ArraySegment<byte>> Files = new Dictionary<string, ArraySegment<byte>>();
+        public readonly Dictionary<string, ResultFile> Files = new Dictionary<string, ResultFile>();
         public ArraySegment<byte> Manifest;
 
-        public IEnumerable<KeyValuePair<string, ArraySegment<byte>>> OrderedFiles {
+        public IEnumerable<ResultFile> OrderedFiles {
             get {
                 foreach (var filename in FileOrder)
-                    yield return new KeyValuePair<string, ArraySegment<byte>>(filename, Files[filename]);
+                    yield return Files[filename];
             }
         }
 
@@ -26,7 +32,11 @@ namespace JSIL {
                 else
                     FileOrder.Add(filename);
 
-                Files[filename] = bytes;
+                Files.Add(filename, new ResultFile {
+                    Filename = filename,
+                    Contents = bytes,
+                    Size = bytes.Count
+                });
             }
         }
 
@@ -40,7 +50,9 @@ namespace JSIL {
             output.Write(newline, 0, newline.Length);
 
             foreach (var file in Files.Values) {
-                output.Write(file.Array, file.Offset, file.Count);
+                if (file.Contents.Count > 0) {
+                    output.Write(file.Contents.Array, file.Contents.Offset, file.Contents.Count);
+                }
                 output.Write(newline, 0, newline.Length);
             }
 
@@ -76,8 +88,24 @@ namespace JSIL {
 
             WriteBytesToFile(path, manifestPrefix + "manifest.js", Manifest);
 
-            foreach (var kvp in Files)
-                WriteBytesToFile(path, kvp.Key, kvp.Value);
+            foreach (var kvp in Files) {
+                if (kvp.Value.Contents.Count > 0)
+                    WriteBytesToFile(path, kvp.Key, kvp.Value.Contents);
+            }
+        }
+
+        internal void AddExistingFile (string filename, long fileSize, int? position = null) {
+            lock (Files) {
+                if (position.HasValue)
+                    FileOrder.Insert(position.Value, filename);
+                else
+                    FileOrder.Add(filename);
+
+                Files.Add(filename, new ResultFile {
+                    Filename = filename,
+                    Size = fileSize
+                });
+            }
         }
     }
 }

@@ -30,6 +30,7 @@ namespace JSIL {
         // Signatures need to remain constant across an entire translation.
         public readonly MethodSignatureCache MethodSignatureCache = new MethodSignatureCache();
 
+        protected readonly Dictionary<string, long> TranslatedAssemblySizes = new Dictionary<string, long>();
         protected readonly ConcurrentCache<string, Token> Tokens = new ConcurrentCache<string, Token>();
         protected bool AssignedIdentifiers = false;
 
@@ -76,6 +77,16 @@ namespace JSIL {
                          kvp.Value.IDString, kvp.Key
                     ));
             }
+        }
+
+        public bool GetExistingSize (AssemblyDefinition assembly, out long fileSize) {
+            lock (TranslatedAssemblySizes)
+                return TranslatedAssemblySizes.TryGetValue(assembly.FullName, out fileSize);
+        }
+
+        public void SetAlreadyTranslated (AssemblyDefinition assembly, long fileSize) {
+            lock (TranslatedAssemblySizes)
+                TranslatedAssemblySizes.Add(assembly.FullName, fileSize);
         }
     }
 }
