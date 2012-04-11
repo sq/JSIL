@@ -1176,7 +1176,7 @@ namespace JSIL.Internal {
             lock (Members)
                 Members.Add(identifier, result);
 
-            UpdateSignatureSet(method.Name, ((MethodInfo)result).Signature);
+            UpdateSignatureSet(result.Name, ((MethodInfo)result).Signature);
 
             return (MethodInfo)result;
         }
@@ -1191,7 +1191,7 @@ namespace JSIL.Internal {
             lock (Members)
                 Members.Add(identifier, result);
 
-            UpdateSignatureSet(method.Name, ((MethodInfo)result).Signature);
+            UpdateSignatureSet(result.Name, ((MethodInfo)result).Signature);
 
             return (MethodInfo)result;
         }
@@ -1209,7 +1209,7 @@ namespace JSIL.Internal {
             if (method.Name == ".cctor")
                 StaticConstructor = method;
 
-            UpdateSignatureSet(method.Name, ((MethodInfo)result).Signature);
+            UpdateSignatureSet(result.Name, ((MethodInfo)result).Signature);
 
             return (MethodInfo)result;
         }
@@ -1814,7 +1814,7 @@ namespace JSIL.Internal {
 
                 if (!_IsOverloadedRecursive.HasValue) {
                     _IsOverloadedRecursive = 
-                        DeclaringType.MethodSignatures.GetOverloadCountOf(Member.Name) > 1;
+                        DeclaringType.MethodSignatures.GetOverloadCountOf(Name) > 1;
                 }
 
                 return _IsOverloadedRecursive.Value;

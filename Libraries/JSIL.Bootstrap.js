@@ -969,7 +969,7 @@ $jsilcore.$ListExternals = function ($, T, isArrayList) {
   );
 
   $.Method({Static:false, Public:true }, "IEnumerable$b1_GetEnumerator",
-    new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.List`1/Enumerator", [T]), [], []),
+    new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.IEnumerator`1", [T]), [], []),
     getEnumeratorImpl
   );
 
@@ -980,7 +980,7 @@ $jsilcore.$ListExternals = function ($, T, isArrayList) {
     );
   } else {
     $.Method({Static:false, Public:true }, "GetEnumerator",
-      new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.List`1/Enumerator", [T]), [], []),
+      new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.IEnumerator`1", [T]), [], []),
       getEnumeratorImpl
     );
   }

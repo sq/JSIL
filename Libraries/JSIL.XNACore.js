@@ -3085,45 +3085,45 @@ $jsilxna.Color = function ($) {
       _.b = $jsilxna.ClampByte(b * 255);
     };
 
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", $sig.get(843, null, [
-    $.Int32, $.Int32,
-    $.Int32
-    ], []), function (r, g, b) {
-    ctorRgba(this, r, g, b, 255);
-  });
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [
+          $.Int32, $.Int32, 
+          $.Int32
+        ], [])), 
+    function _ctor (r, g, b) {
+      ctorRgba(this, r, g, b, 255);
+    }
+  );
 
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", $sig.get(913, null, [
-    $.Int32, $.Int32,
-    $.Int32, $.Int32
-    ], []), function (r, g, b, a) {
-    ctorRgba(this, r, g, b, a);
-  });
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [
+          $.Int32, $.Int32, 
+          $.Int32, $.Int32
+        ], [])), 
+    function _ctor (r, g, b, a) {
+      ctorRgba(this, r, g, b, a);
+    }
+  );
 
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", $sig.get(85622, null, [
-    $.Single, $.Single,
-    $.Single
-    ], []), function (r, g, b) {
-    ctorRgbaFloat(this, r, g, b, 1.0);
-  });
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [
+          $.Single, $.Single, 
+          $.Single
+        ], [])), 
+    function _ctor (r, g, b) {
+      ctorRgbaFloat(this, r, g, b, 1);
+    }
+  );
 
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", $sig.get(85623, null, [
-    $.Single, $.Single,
-    $.Single, $.Single
-    ], []), function (r, g, b, a) {
-    ctorRgbaFloat(this, r, g, b, a);
-  });
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [
+          $.Single, $.Single, 
+          $.Single, $.Single
+        ], [])), 
+    function _ctor (r, g, b, a) {
+      ctorRgbaFloat(this, r, g, b, a);
+    }
+  );
 
   $.Method({
     Static: false,
@@ -3309,39 +3309,330 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
     }
   );
 
-  $.Method({Static:false, Public:false}, "InternalDraw", 
+  $.Method({Static:false, Public:true }, "Draw", 
     (new JSIL.MethodSignature(null, [
-          $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.Texture2D"), $jsilcore.TypeRef("JSIL.Reference", [$asms[0].TypeRef("Microsoft.Xna.Framework.Vector4")]), 
-          $.Boolean, $jsilcore.TypeRef("JSIL.Reference", [$asms[5].TypeRef("System.Nullable`1", [$asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")])]), 
-          $jsilxna.colorRef(), $.Single, 
-          $jsilcore.TypeRef("JSIL.Reference", [$asms[0].TypeRef("Microsoft.Xna.Framework.Vector2")]), $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.SpriteEffects"), 
+          $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.Texture2D"), $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), 
+          $jsilxna.colorRef()
+        ], [])), 
+    function Draw (texture, position, color) {
+      this.InternalDraw(
+        texture, position.X, position.Y, texture.Width, texture.Height,
+        0, 0, texture.Width, texture.Height, 
+        color, 0, 
+        0, 0, 
+        1, 1, 
+        null, 0
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Draw", 
+    (new JSIL.MethodSignature(null, [
+          $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.Texture2D"), $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), 
+          $asms[5].TypeRef("System.Nullable`1", [$asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")]), $jsilxna.colorRef()
+        ], [])), 
+    function Draw (texture, position, sourceRectangle, color) {
+      var sourceX, sourceY, sourceWidth, sourceHeight;
+      if (sourceRectangle !== null) {
+        sourceX = sourceRectangle.X;
+        sourceY = sourceRectangle.Y;
+        sourceWidth = sourceRectangle.Width;
+        sourceHeight = sourceRectangle.Height;
+      } else {
+        sourceX = sourceY = 0;
+        sourceWidth = texture.Width;
+        sourceHeight = texture.Height;
+      }
+
+      this.InternalDraw(
+        texture, position.X, position.Y, sourceWidth, sourceHeight,
+        sourceX, sourceY, sourceWidth, sourceHeight,
+        color, 0,
+        0, 0, 
+        1, 1,
+        null, 0
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "DrawScaleF", 
+    (new JSIL.MethodSignature(null, [
+          $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.Texture2D"), $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), 
+          $asms[5].TypeRef("System.Nullable`1", [$asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")]), $jsilxna.colorRef(), 
+          $.Single, $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), 
+          $.Single, $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.SpriteEffects"), 
           $.Single
-        ], [])),
-    function SpriteBatch_InternalDraw (texture, position, sourceRectangle, color, rotation, origin, scale, effects, depth) {
-      if (typeof (scale) === "undefined") scale = 1;
-      if (typeof (depth) === "undefined") depth = 1;
-      if (typeof (rotation) === "undefined") rotation = 0;
+        ], [])), 
+    function DrawScaleF (texture, position, sourceRectangle, color, rotation, origin, scale, effects, layerDepth) {
+      var sourceX, sourceY, sourceWidth, sourceHeight;
+      if (sourceRectangle !== null) {
+        sourceX = sourceRectangle.X;
+        sourceY = sourceRectangle.Y;
+        sourceWidth = sourceRectangle.Width;
+        sourceHeight = sourceRectangle.Height;
+      } else {
+        sourceX = sourceY = 0;
+        sourceWidth = texture.Width;
+        sourceHeight = texture.Height;
+      }
 
+      this.InternalDraw(
+        texture, position.X, position.Y, sourceWidth, sourceHeight,
+        sourceX, sourceY, sourceWidth, sourceHeight, 
+        color, rotation, 
+        origin.X, origin.Y, 
+        scale, scale, 
+        effects, layerDepth
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Draw", 
+    (new JSIL.MethodSignature(null, [
+          $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.Texture2D"), $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), 
+          $asms[5].TypeRef("System.Nullable`1", [$asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")]), $jsilxna.colorRef(), 
+          $.Single, $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), 
+          $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.SpriteEffects"), 
+          $.Single
+        ], [])), 
+    function Draw (texture, position, sourceRectangle, color, rotation, origin, scale, effects, layerDepth) {
+      var sourceX, sourceY, sourceWidth, sourceHeight;
+      if (sourceRectangle !== null) {
+        sourceX = sourceRectangle.X;
+        sourceY = sourceRectangle.Y;
+        sourceWidth = sourceRectangle.Width;
+        sourceHeight = sourceRectangle.Height;
+      } else {
+        sourceX = sourceY = 0;
+        sourceWidth = texture.Width;
+        sourceHeight = texture.Height;
+      }
+
+      this.InternalDraw(
+        texture, position.X, position.Y, sourceWidth, sourceHeight,
+        sourceX, sourceY, sourceWidth, sourceHeight, 
+        color, rotation, 
+        origin.X, origin.Y, 
+        scale.X, scale.Y, 
+        effects, layerDepth
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "DrawRect", 
+    (new JSIL.MethodSignature(null, [
+          $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.Texture2D"), $asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle"), 
+          $jsilxna.colorRef()
+        ], [])), 
+    function DrawRect (texture, destinationRectangle, color) {
+      this.InternalDraw(
+        texture, destinationRectangle.X, destinationRectangle.Y, destinationRectangle.Width, destinationRectangle.Height, 
+        0, 0, texture.Width, texture.Height,
+        color, 0, 
+        0, 0, 
+        1, 1,
+        null, 0
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "DrawRect", 
+    (new JSIL.MethodSignature(null, [
+          $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.Texture2D"), $asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle"), 
+          $asms[5].TypeRef("System.Nullable`1", [$asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")]), $jsilxna.colorRef()
+        ], [])), 
+    function DrawRect (texture, destinationRectangle, sourceRectangle, color) {
+      var sourceX, sourceY, sourceWidth, sourceHeight;
+      if (sourceRectangle !== null) {
+        sourceX = sourceRectangle.X;
+        sourceY = sourceRectangle.Y;
+        sourceWidth = sourceRectangle.Width;
+        sourceHeight = sourceRectangle.Height;
+      } else {
+        sourceX = sourceY = 0;
+        sourceWidth = texture.Width;
+        sourceHeight = texture.Height;
+      }
+
+      this.InternalDraw(
+        texture, destinationRectangle.X, destinationRectangle.Y, destinationRectangle.Width, destinationRectangle.Height, 
+        sourceX, sourceY, sourceWidth, sourceHeight, 
+        color, 0, 
+        0, 0, 
+        1, 1, 
+        null, 0
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "DrawRect", 
+    (new JSIL.MethodSignature(null, [
+          $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.Texture2D"), $asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle"), 
+          $asms[5].TypeRef("System.Nullable`1", [$asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")]), $jsilxna.colorRef(), 
+          $.Single, $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), 
+          $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.SpriteEffects"), $.Single
+        ], [])), 
+    function DrawRect (texture, destinationRectangle, sourceRectangle, color, rotation, origin, effects, layerDepth) {
+      var sourceX, sourceY, sourceWidth, sourceHeight;
+      if (sourceRectangle !== null) {
+        sourceX = sourceRectangle.X;
+        sourceY = sourceRectangle.Y;
+        sourceWidth = sourceRectangle.Width;
+        sourceHeight = sourceRectangle.Height;
+      } else {
+        sourceX = sourceY = 0;
+        sourceWidth = texture.Width;
+        sourceHeight = texture.Height;
+      }
+
+      this.InternalDraw(
+        texture, destinationRectangle.X, destinationRectangle.Y, destinationRectangle.Width, destinationRectangle.Height, 
+        sourceX, sourceY, sourceWidth, sourceHeight, 
+        color, rotation, 
+        origin.X, origin.Y, 
+        1, 1, 
+        effects, layerDepth
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "DrawString", 
+    (new JSIL.MethodSignature(null, [
+          $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.SpriteFont"), $.String, 
+          $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), $jsilxna.colorRef()
+        ], [])), 
+    function DrawString (spriteFont, text, position, color) {
+      this.InternalDrawString(
+        spriteFont, text, 
+        position.X, position.Y,
+        color, 0,
+        0, 0,
+        1, 1, 
+        null, 0
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "DrawStringBuilder", 
+    (new JSIL.MethodSignature(null, [
+          $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.SpriteFont"), $asms[5].TypeRef("System.Text.StringBuilder"), 
+          $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), $jsilxna.colorRef()
+        ], [])), 
+    function DrawStringBuilder (spriteFont, text, position, color) {
+      this.InternalDrawString(
+        spriteFont, text.toString(), 
+        position.X, position.Y,
+        color, 0,
+        0, 0,
+        1, 1, 
+        null, 0
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "DrawStringScaleF", 
+    (new JSIL.MethodSignature(null, [
+          $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.SpriteFont"), $.String, 
+          $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), $jsilxna.colorRef(), 
+          $.Single, $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), 
+          $.Single, $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.SpriteEffects"), 
+          $.Single
+        ], [])), 
+    function DrawStringScaleF (spriteFont, text, position, color, rotation, origin, scale, effects, layerDepth) {
+      this.InternalDrawString(
+        spriteFont, text, 
+        position.X, position.Y, 
+        color, rotation,
+        origin.X, origin.Y,
+        scale, scale, 
+        effects, layerDepth
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "DrawStringBuilderScaleF", 
+    (new JSIL.MethodSignature(null, [
+          $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.SpriteFont"), $asms[5].TypeRef("System.Text.StringBuilder"), 
+          $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), $jsilxna.colorRef(), 
+          $.Single, $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), 
+          $.Single, $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.SpriteEffects"), 
+          $.Single
+        ], [])), 
+    function DrawStringBuilderScaleF (spriteFont, text, position, color, rotation, origin, scale, effects, layerDepth) {
+      this.InternalDrawString(
+        spriteFont, text.toString(), 
+        position.X, position.Y, 
+        color, rotation,
+        origin.X, origin.Y,
+        scale, scale, 
+        effects, layerDepth
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "DrawString", 
+    (new JSIL.MethodSignature(null, [
+          $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.SpriteFont"), $.String, 
+          $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), $jsilxna.colorRef(), 
+          $.Single, $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), 
+          $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.SpriteEffects"), 
+          $.Single
+        ], [])), 
+    function DrawString (spriteFont, text, position, color, rotation, origin, scale, effects, layerDepth) {
+      this.InternalDrawString(
+        spriteFont, text, 
+        position.X, position.Y, 
+        color, rotation,
+        origin.X, origin.Y,
+        scale.X, scale.Y, 
+        effects, layerDepth
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "DrawStringBuilder", 
+    (new JSIL.MethodSignature(null, [
+          $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.SpriteFont"), $asms[5].TypeRef("System.Text.StringBuilder"), 
+          $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), $jsilxna.colorRef(), 
+          $.Single, $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), 
+          $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.SpriteEffects"), 
+          $.Single
+        ], [])), 
+    function DrawStringBuilder (spriteFont, text, position, color, rotation, origin, scale, effects, layerDepth) {
+      this.InternalDrawString(
+        spriteFont, text.toString(), 
+        position.X, position.Y, 
+        color, rotation,
+        origin.X, origin.Y,
+        scale.X, scale.Y, 
+        effects, layerDepth
+      );
+    }
+  );
+
+  $.RawMethod(false, "InternalDraw", 
+    function SpriteBatch_InternalDraw (
+      texture, positionX, positionY, width, height, 
+      sourceX, sourceY, sourceW, sourceH, 
+      color, rotation, 
+      originX, originY, 
+      scaleX, scaleY, 
+      effects, depth
+    ) {
       if (this.defer) {
-        position = position.MemberwiseClone();
-
-        if (sourceRectangle !== null) sourceRectangle = sourceRectangle.MemberwiseClone();
-        if (color !== null) color = color.MemberwiseClone();
-        if (origin !== null) origin = origin.MemberwiseClone();
+        color = color.MemberwiseClone();
 
         this.deferredDraws.push({
           fn: this.InternalDraw,
           index: this.deferredDraws.length,
           arguments: [
-            texture, position,
-            sourceRectangle || null,
-            color || null,
-            rotation,
-            origin || null,
-            scale,
-            effects || null,
-            depth
-            ]
+            texture, positionX, positionY, width, height, 
+            sourceX, sourceY, sourceW, sourceH, 
+            color, rotation, 
+            originX, originY, 
+            scaleX, scaleY, 
+            effects, depth
+          ]
         });
 
         return;
@@ -3350,32 +3641,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       var needRestore = false;
       var image = texture.image,
         originalImage = texture.image;
-      var imageWidth = image.naturalWidth,
-        imageHeight = image.naturalHeight;
-      var positionIsRect = typeof (position.Width) === "number";
-      var scaleX = 1,
-        scaleY = 1,
-        originX = 0,
-        originY = 0;
-      var sourceX = 0,
-        sourceY = 0,
-        sourceW = texture.Width,
-        sourceH = texture.Height;
-      var positionX, positionY;
-
-      if (typeof (scale) === "number") scaleX = scaleY = scale;
-      else if ((typeof (scale) === "object") && (scale !== null) && (typeof (scale.X) === "number")) {
-        scaleX = scale.X;
-        scaleY = scale.Y;
-      }
-
-      positionX = position.X;
-      positionY = position.Y;
 
       effects = effects || Microsoft.Xna.Framework.Graphics.SpriteEffects.None;
 
       if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) {
-        if (!needRestore) this.device.context.save();
+        if (!needRestore) 
+          this.device.context.save();
         needRestore = true;
 
         this.device.context.scale(-1, 1);
@@ -3383,26 +3654,16 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       }
 
       if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) {
-        if (!needRestore) this.device.context.save();
+        if (!needRestore) 
+          this.device.context.save();
         needRestore = true;
 
         this.device.context.scale(1, -1);
         positionY = -positionY;
       }
 
-      if ((typeof (origin) === "object") && (origin !== null) && (typeof (origin.X) === "number")) {
-        originX = origin.X;
-        positionX -= originX;
-        originY = origin.Y;
-        positionY -= originY;
-      }
-
-      if (sourceRectangle !== null) {
-        sourceX = sourceRectangle.X;
-        sourceY = sourceRectangle.Y;
-        sourceW = sourceRectangle.Width;
-        sourceH = sourceRectangle.Height;
-      }
+      positionX -= originX;
+      positionY -= originY;
 
       if (sourceX < 0) {
         sourceW += sourceX;
@@ -3412,143 +3673,149 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         sourceH += sourceY;
         sourceY = 0;
       }
-      if (sourceW > texture.Width - sourceX) sourceW = texture.Width - sourceX;
-      if (sourceH > texture.Height - sourceY) sourceH = texture.Height - sourceY;
+      if (sourceW > texture.Width - sourceX) 
+        sourceW = texture.Width - sourceX;
+      if (sourceH > texture.Height - sourceY) 
+        sourceH = texture.Height - sourceY;
 
-      if ((typeof (color) === "object") && (color !== null)) {
-        if ((color.r < 255) || (color.g < 255) || (color.b < 255)) {
-          var newImage = $jsilxna.getImageMultiplied(image, color);
-          if (newImage === image) {
-            // Broken browser
-          } else {
-            image = newImage;
-            sourceX += 1;
-            sourceY += 1;
-          }
-        }
-
-        if (color.a < 255) {
-          if (!needRestore) this.device.context.save();
-          needRestore = true;
-
-          this.device.context.globalAlpha = color.a / 255;
+      if ((color.r < 255) || (color.g < 255) || (color.b < 255)) {
+        var newImage = $jsilxna.getImageMultiplied(image, color);
+        if (newImage === image) {
+          // Broken browser
+        } else {
+          image = newImage;
+          sourceX += 1;
+          sourceY += 1;
         }
       }
 
-      var destW, destH;
+      if (color.a < 255) {
+        if (!needRestore)
+          this.device.context.save();
+        needRestore = true;
 
-      if (positionIsRect) {
-        destW = position.Width * scaleX;
-        destH = position.Height * scaleY;
-      } else {
-        destW = sourceW * scaleX;
-        destH = sourceH * scaleY;
+        this.device.context.globalAlpha = color.a / 255;
       }
 
       // Negative width/height cause an exception in Firefox
-      if (destW < 0) {
-        if (!needRestore) this.device.context.save();
+      if (width < 0) {
+        if (!needRestore) 
+          this.device.context.save();
         needRestore = true;
 
         this.device.context.scale(-1, 1);
         positionX = -positionX;
-        destW = -destW;
+        width = -width;
       }
-      if (destH < 0) {
-        if (!needRestore) this.device.context.save();
+      if (height < 0) {
+        if (!needRestore) 
+          this.device.context.save();
         needRestore = true;
 
         this.device.context.scale(1, -1);
         positionY = -positionY;
-        destH = -destH;
+        height = -height;
       }
 
       // 0x0 blits cause an exception in IE
       if (
-      (destW > 0) && (destH > 0) && (sourceW > 0) && (sourceH > 0)) {
+        (width > 0) && (height > 0) && 
+        (sourceW > 0) && (sourceH > 0)
+      ) {
         if ($drawDebugRects) {
-          if (!needRestore) this.device.context.save();
+          if (!needRestore)
+            this.device.context.save();
           needRestore = true;
 
           this.device.context.fillStyle = "rgba(255, 0, 0, 0.33)";
           this.device.context.fillRect(
-          positionX, positionY, destW, destH);
+            positionX, positionY, width, height
+          );
         }
 
         if ($drawDebugBoxes) {
-          if (!needRestore) this.device.context.save();
+          if (!needRestore) 
+            this.device.context.save();
           needRestore = true;
 
           this.device.context.strokeStyle = "rgba(255, 255, 0, 0.66)";
           this.device.context.strokeRect(
-          positionX, positionY, destW, destH);
+            positionX, positionY, width, height
+          );
         }
 
-        if ((imageWidth === 1) && (imageHeight === 1)) {
-          if (!needRestore) this.device.context.save();
+        if ((sourceX === 0) && (sourceY === 0) && (sourceW === 1) && (sourceH === 1)) {
+          if (!needRestore) 
+            this.device.context.save();
           needRestore = true;
 
           var imageColor = $jsilxna.getImageTopLeftPixelMultiplied(originalImage, color);
 
           this.device.context.fillStyle = imageColor;
-          this.device.context.fillRect(positionX, positionY, destW, destH);
+          this.device.context.fillRect(
+            positionX, positionY, width, height
+          );
         } else {
           this.$canvasDrawImage(
-          image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, destW, destH);
+            image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, width, height
+          );
         }
       }
 
-      if (needRestore) this.device.context.restore();
+      if (needRestore) 
+        this.device.context.restore();
     }
   );
 
-  $.Method({
-    Static: false,
-    Public: true
-  }, "InternalDrawString", new JSIL.MethodSignature(null, [], []), 
-  function SpriteBatch_InternalDrawString (font, text, position, color, scale, effects, depth) {
-    if (typeof (scale) === "undefined") scale = 1;
-    if (typeof (depth) === "undefined") depth = 1;
-
+  $.RawMethod(false, "InternalDrawString", 
+  function SpriteBatch_InternalDrawString (
+    font, text, 
+    positionX, positionY, 
+    color, rotation,
+    originX, originY,
+    scaleX, scaleY, 
+    effects, depth
+  ) {
     if (this.defer) {
-      position = position.MemberwiseClone();
-
-      if (color !== null) color = color.MemberwiseClone();
+      color = color.MemberwiseClone();
 
       this.deferredDraws.push({
         fn: this.InternalDrawString,
         index: this.deferredDraws.length,
         arguments: [
-          font, text, position,
-          color || null,
-          scale,
-          effects || null,
-          depth
-          ]
+          font, text, 
+          positionX, positionY, 
+          color, rotation,
+          originX, originY,
+          scaleX, scaleY, 
+          effects, depth
+        ]
       });
 
       return;
     }
 
-    // FIXME: Temporary work around for RPG demo expecting to have 7 lines of text but only having 5.
-    if ((typeof (text) === "undefined") || (text === null)) return;
-
     var asmGraphics = $asms.xnaGraphics || $asms.xna;
     var tSpriteFont = asmGraphics.Microsoft.Xna.Framework.Graphics.SpriteFont;
 
     if (Object.getPrototypeOf(font) === tSpriteFont.prototype) {
-      return font.InternalDraw(text, this, position, color, 0, 0, scale, effects, depth);
+      return font.InternalDraw(
+        text, this, 
+        positionX, positionY, 
+        color, rotation,
+        originX, originY, 
+        scaleX, scaleY, 
+        effects, depth
+      );
     }
 
     var needRestore = false;
-    var positionX = position.X;
-    var positionY = position.Y;
 
     effects = effects || Microsoft.Xna.Framework.Graphics.SpriteEffects.None;
 
     if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) {
       if (!needRestore) this.device.context.save();
-      needRestore = true;
+        needRestore = true;
 
       this.device.context.scale(-1, 1);
       positionX = -positionX;
@@ -3556,7 +3823,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
 
     if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) {
       if (!needRestore) this.device.context.save();
-      needRestore = true;
+        needRestore = true;
 
       this.device.context.scale(1, -1);
       positionY = -positionY;
@@ -3565,7 +3832,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
     this.device.context.textBaseline = "top";
     this.device.context.textAlign = "start";
 
-    var fontCss = font.toCss(scale || 1.0);
+    var fontCss = font.toCss(scaleX || 1.0);
     this.device.context.font = fontCss;
 
     if (this.device.context.font != fontCss) {
@@ -3585,7 +3852,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       positionY += font.LineSpacing;
     }
 
-    if (needRestore) this.device.context.restore();
+    if (needRestore) 
+      this.device.context.restore();
   });
 });
 
@@ -3864,18 +4132,18 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
     }
   );
 
-  $.Method({Static:false, Public:false}, "InternalDraw", 
-    (new JSIL.MethodSignature(null, [
-          $jsilcore.TypeRef("JSIL.Reference", [$jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.SpriteFont/StringProxy")]), $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.SpriteBatch"), 
-          $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), $jsilxna.colorRef(), 
-          $.Single, $asms[0].TypeRef("Microsoft.Xna.Framework.Vector2"), 
-          $jsilcore.TypeRef("JSIL.Reference", [$asms[0].TypeRef("Microsoft.Xna.Framework.Vector2")]), $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.SpriteEffects"), 
-          $.Single
-        ], [])), 
-    function (text, spriteBatch, textblockPosition, color, rotation, origin, scale, spriteEffects, depth) {
+  $.RawMethod(false, "InternalDraw", 
+    function (
+      text, spriteBatch, textblockPositionX, textblockPositionY, 
+      color, rotation, 
+      originX, originY, 
+      scaleX, scaleY, 
+      spriteEffects, layerDepth
+    ) {
       var tVector2 = Microsoft.Xna.Framework.Vector2;
-      var position = new tVector2(textblockPosition.X, textblockPosition.Y);
-      var drawPosition = new tVector2();
+      var positionX = textblockPositionX;
+      var positionY = textblockPositionY;
+      var drawX, drawY;
 
       for (var i = 0, l = text.length; i < l; i++) {
         var ch = text[i];
@@ -3883,12 +4151,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
         case "\r":
           continue;
         case "\n":
-          position.X = textblockPosition.X;
-          position.Y += this.lineSpacing * scale;
+          positionX = textblockPositionX;
+          positionY += (this.lineSpacing * scaleY);
           continue;
         }
 
-        position.X += this.spacing;
+        positionX += (this.spacing * scaleX);
 
         var charIndex = this.GetIndexForCharacter(ch);
         if (charIndex < 0) {
@@ -3896,23 +4164,29 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
         }
 
         var kerning = this.kerning.get_Item(charIndex);
-        var beforeGlyph = kerning.X * scale;
-        var glyphWidth = kerning.Y * scale;
-        var afterGlyph = kerning.Z * scale;
+        var beforeGlyph = kerning.X * scaleX;
+        var glyphWidth = kerning.Y * scaleX;
+        var afterGlyph = kerning.Z * scaleX;
 
-        position.X += beforeGlyph;
+        positionX += beforeGlyph;
 
         var glyphRect = this.glyphData.get_Item(charIndex);
         var cropRect = this.croppingData.get_Item(charIndex);
 
-        drawPosition.X = position.X + cropRect.X * scale;
-        drawPosition.Y = position.Y + cropRect.Y * scale;
+        drawX = positionX + (cropRect.X * scaleX);
+        drawY = positionY + (cropRect.Y * scaleY);
 
         spriteBatch.InternalDraw(
-        this.textureValue, drawPosition, glyphRect, color, rotation, origin, scale, spriteEffects, depth);
+          this.textureValue, drawX, drawY, glyphRect.Width, glyphRect.Height,
+          glyphRect.X, glyphRect.Y, glyphRect.Width, glyphRect.Height,
+          color, rotation, 
+          originX, originY, 
+          scaleX, scaleY, 
+          spriteEffects, layerDepth
+        );
 
-        position.X += glyphWidth;
-        position.X += afterGlyph;
+        positionX += glyphWidth;
+        positionX += afterGlyph;
     }
   });
 });
