@@ -1588,7 +1588,7 @@ var vectorUtil = {
 
     for (var i = 0; i < dataMembers.length; i++) {
       var dataMember = dataMembers[i];
-      var line = "this." + dataMember + " /= factor;";
+      var line = "this." + dataMember + " *= factor;";
       body.push(line);
     }
 
@@ -3250,10 +3250,9 @@ $jsilxna.ClampByte = function (v) {
   else return Math.floor(v);
 }
 
-JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function ($) {
-  var $drawDebugRects = false,
-    $drawDebugBoxes = false;
+var $drawDebugRects = false, $drawDebugBoxes = false;
 
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function ($) {
   var $canvasDrawImage = function canvasDrawImage (image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, destW, destH) {
     this.device.context.drawImage(
       image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, destW, destH
