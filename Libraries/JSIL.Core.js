@@ -2735,14 +2735,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
 };
 
 JSIL.MakeClass("System.ValueType", "System.Enum", true, [], function ($) {
-    $.ExternalMembers(true, 
-      "_ctor", "CompareTo", "Equals", "GetHashCode", "GetTypeCode", "GetValue", "HasFlag", "IConvertible_ToBoolean", "IConvertible_ToByte", "IConvertible_ToChar", "IConvertible_ToDateTime", "IConvertible_ToDecimal", "IConvertible_ToDouble", "IConvertible_ToInt16", "IConvertible_ToInt32", "IConvertible_ToInt64", "IConvertible_ToSByte", "IConvertible_ToSingle", "IConvertible_ToType", "IConvertible_ToUInt16", "IConvertible_ToUInt32", "IConvertible_ToUInt64", "InternalGetValue", "toString", "ToString$0", "ToString$1", "ToString$2"
-    );
-    $.ExternalMembers(false, 
-      "Format", "GetEnumValues", "GetHashEntry", "GetName", "GetNames", "GetUnderlyingType", "GetValues", "InternalBoxEnum", "InternalCompareTo", "InternalFlagsFormat", "InternalFormat", "InternalFormattedHexString", "InternalGetNames", "InternalGetUnderlyingType", "InternalGetValues", "IsDefined", "Parse$0", "Parse$1", "ToObject$0", "ToObject$1", "ToObject$2", "ToObject$3", "ToObject$4", "ToObject$5", "ToObject$6", "ToObject$7", "ToObject$8", "ToUInt64", "TryParse$b1$0", "TryParse$b1$1", "TryParseEnum"
-    );
-  }
-);
+});
 
 JSIL.MakeEnumValue = function (enumType, value, key) {
   var obj = new Number(value);
@@ -5091,14 +5084,6 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.PropertyInfo",
 });
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function ($) {
-    $.ExternalMembers(true, 
-      "_ctor", "_Type_GetIDsOfNames", "_Type_GetTypeInfo", "_Type_GetTypeInfoCount", "_Type_Invoke", "Equals$0", "Equals$1", "FindInterfaces", "FindMembers", "get_Assembly", "get_AssemblyQualifiedName", "get_Attributes", "get_BaseType", "get_ContainsGenericParameters", "get_DeclaringMethod", "get_DeclaringType", "get_GenericParameterAttributes", "get_GenericParameterPosition", "get_GUID", "get_HasElementType", "get_HasProxyAttribute", "get_IsAbstract", "get_IsAnsiClass", "get_IsArray", "get_IsAutoClass", "get_IsAutoLayout", "get_IsByRef", "get_IsClass", "get_IsCOMObject", "get_IsContextful", "get_IsEnum", "get_IsExplicitLayout", "get_IsGenericParameter", "get_IsGenericType", "get_IsGenericTypeDefinition", "get_IsImport", "get_IsInterface", "get_IsLayoutSequential", "get_IsMarshalByRef", "get_IsNested", "get_IsNestedAssembly", "get_IsNestedFamANDAssem", "get_IsNestedFamily", "get_IsNestedFamORAssem", "get_IsNestedPrivate", "get_IsNestedPublic", "get_IsNotPublic", "get_IsPointer", "get_IsPrimitive", "get_IsPublic", "get_IsSealed", "get_IsSerializable", "get_IsSpecialName", "get_IsSzArray", "get_IsUnicodeClass", "get_IsValueType", "get_IsVisible", "get_MemberType", "get_Module", "get_Namespace", "get_ReflectedType", "get_StructLayoutAttribute", "get_TypeHandle", "get_TypeInitializer", "get_UnderlyingSystemType", "GetArrayRank", "GetAttributeFlagsImpl", "GetConstructor$0", "GetConstructor$1", "GetConstructor$2", "GetConstructorImpl", "GetConstructors$0", "GetConstructors$1", "GetDefaultMemberName", "GetDefaultMembers", "GetElementType", "GetEvent$0", "GetEvent$1", "GetEvents$0", "GetEvents$1", "GetField$0", "GetField$1", "GetFields$0", "GetFields$1", "GetGenericArguments", "GetGenericParameterConstraints", "GetGenericTypeDefinition", "GetHashCode", "GetInterface$0", "GetInterface$1", "GetInterfaceMap", "GetInterfaces", "GetMember$0", "GetMember$1", "GetMember$2", "GetMethod$0", "GetMethod$1", "GetMethod$2", "GetMethod$3", "GetMethod$4", "GetMethod$5", "GetMethodImpl", "GetMethods$0", "GetMethods$1", "GetNestedType$0", "GetNestedType$1", "GetNestedTypes$0", "GetNestedTypes$1", "GetProperties$0", "GetProperties$1", "GetProperty$0", "GetProperty$1", "GetProperty$2", "GetProperty$3", "GetProperty$4", "GetProperty$5", "GetProperty$6", "GetPropertyImpl", "GetRootElementType", "GetTypeCodeInternal", "GetTypeHandleInternal", "HasElementTypeImpl", "HasProxyAttributeImpl", "InvokeMember$0", "InvokeMember$1", "InvokeMember$2", "IsArrayImpl", "IsByRefImpl", "IsCOMObjectImpl", "IsContextfulImpl", "IsInstanceOfType", "IsMarshalByRefImpl", "IsPointerImpl", "IsPrimitiveImpl", "IsSubclassOf", "IsValueTypeImpl", "MakeArrayType$0", "MakeArrayType$1", "MakeByRefType", "MakeGenericType", "MakePointerType", "QuickSerializationCastCheck", "SigToString"
-    );
-
-    $.ExternalMethod({Public: true , Static: false}, "toString",
-      new JSIL.MethodSignature("System.String", [])
-    );
-
     $.Property({Public: true , Static: false}, "Module");
     $.Property({Public: true , Static: false}, "Assembly");
     $.Property({Public: true , Static: false}, "FullName");
