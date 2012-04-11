@@ -17,17 +17,10 @@ namespace JSIL {
         protected readonly Dictionary<string, HashSet<ProxyInfo>> DirectProxiesByTypeName = new Dictionary<string, HashSet<ProxyInfo>>();
         protected readonly ConcurrentCache<string, string[]> ProxiesByName = new ConcurrentCache<string, string[]>();
         protected readonly ConcurrentCache<Tuple<string, string>, bool> TypeAssignabilityCache = new ConcurrentCache<Tuple<string, string>, bool>();
-        protected readonly MethodSignatureCache MethodSignatureCache = new MethodSignatureCache();
 
         public TypeInfoProvider () {
             TypeInformation = new ConcurrentCache<TypeIdentifier, TypeInfo>(Environment.ProcessorCount, 1024);
             ModuleInformation = new ConcurrentCache<string, ModuleInfo>(Environment.ProcessorCount, 128);
-        }
-
-        MethodSignatureCache ITypeInfoSource.MethodSignatureCache {
-            get {
-                return this.MethodSignatureCache;
-            }
         }
 
         ConcurrentCache<Tuple<string, string>, bool> ITypeInfoSource.AssignabilityCache {

@@ -27,6 +27,9 @@ namespace JSIL {
             }
         }
 
+        // Signatures need to remain constant across an entire translation.
+        public readonly MethodSignatureCache MethodSignatureCache = new MethodSignatureCache();
+
         protected readonly ConcurrentCache<string, Token> Tokens = new ConcurrentCache<string, Token>();
         protected bool AssignedIdentifiers = false;
 

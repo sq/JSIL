@@ -324,13 +324,6 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
     }
   );
 
-  $.Method({Static:false, Public:true }, "ReadInt64", 
-    (new JSIL.MethodSignature($.Int64, [], [])), 
-    function ReadInt64 () {
-      throw new Error('Not implemented');
-    }
-  );
-
   $.Method({Static:false, Public:true }, "ReadSByte", 
     (new JSIL.MethodSignature($.SByte, [], [])), 
     function ReadSByte () {
@@ -353,7 +346,12 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
   $.Method({Static:false, Public:true }, "ReadString", 
     (new JSIL.MethodSignature($.String, [], [])), 
     function ReadString () {
-      throw new Error('Not implemented');
+      var size = this.Read7BitEncodedInt();
+      if (size <= 0)
+        return "";
+
+      var bytes = this.ReadBytes(size);
+      return String.fromCharCode.apply(String, bytes);
     }
   );
 
