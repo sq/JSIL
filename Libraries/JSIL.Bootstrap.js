@@ -2101,6 +2101,50 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
     }
   );
 
+  $.Method({Static:false, Public:true }, "GetEnumerator", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.Dictionary`2/Enumerator", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")]), [], [])), 
+    function GetEnumerator () {
+      var dict = this._dict;
+      var tKvp = System.Collections.Generic.KeyValuePair$b2.Of(this.TKey, this.TValue);
+      var current = new tKvp(null, null);
+
+      return new JSIL.AbstractEnumerator(
+        function getNext (result) {
+          var keys = this._state.keys;
+          var valueIndex = ++(this._state.valueIndex);
+          var bucketIndex = this._state.bucketIndex;
+
+          while ((bucketIndex >= 0) && (bucketIndex < keys.length)) {
+            var bucketKey = keys[this._state.bucketIndex];
+            var bucket = dict[bucketKey];
+
+            if ((valueIndex >= 0) && (valueIndex < bucket.length)) {
+              current.key = bucket[valueIndex][0];
+              current.value = bucket[valueIndex][1];
+              result.value = current;
+              return true;
+            } else {
+              bucketIndex = ++(this._state.bucketIndex);
+              valueIndex = 0;
+            }
+          }
+
+          return false;
+        },
+        function reset () {
+          this._state = {
+            keys: Object.keys(dict),
+            bucketIndex: 0,
+            valueIndex: -1
+          };
+        },
+        function dispose () {
+          this._state = null;
+        }
+      );
+    }
+  );
+
   $.Method({Static:false, Public:true }, "set_Item", 
     (new JSIL.MethodSignature(null, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")], [])), 
     function set_Item (key, value) {
@@ -2127,6 +2171,41 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
     }
   );
 
+});
+
+JSIL.ImplementExternals("System.Collections.Generic.KeyValuePair`2", function ($) {
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.KeyValuePair`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.KeyValuePair`2")], [])), 
+    function _ctor (key, value) {
+      this.key = key;
+      this.value = value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Key", 
+    (new JSIL.MethodSignature(new JSIL.GenericParameter("TKey", "System.Collections.Generic.KeyValuePair`2"), [], [])), 
+    function get_Key () {
+      return this.key;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Value", 
+    (new JSIL.MethodSignature(new JSIL.GenericParameter("TValue", "System.Collections.Generic.KeyValuePair`2"), [], [])), 
+    function get_Value () {
+      return this.value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "toString", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function toString () {
+      return "[" + String(this.key) + ", " + String(this.value) + "]";
+    }
+  );
+
+});
+
+JSIL.MakeStruct("System.ValueType", "System.Collections.Generic.KeyValuePair`2", true, ["TKey", "TValue"], function ($) {
 });
 
 JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary`2", true, ["TKey", "TValue"], function ($) {
@@ -2175,6 +2254,7 @@ JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerator", true, [], function ($
     target._first = this._first;
     target._needDispose = this._needDispose;
     target._current = new JSIL.Variable(this._current.value);
+    target._state = this._state;
   });
 
   $.Method({Static: false, Public: true }, ".ctor",

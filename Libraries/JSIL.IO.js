@@ -109,6 +109,10 @@ JSIL.ImplementExternals("System.IO.Stream", function ($) {
     function Close () {
     }
   );
+
+  $.RawMethod(false, "$GetURI", function () {
+    throw new Error("Only valid on streams created from files!");
+  });
 });
 
 var $bytestream = function ($) {
@@ -185,6 +189,13 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
       this._length = this._buffer.length;
     }
   );
+
+  $.RawMethod(false, "$GetURI", function () {
+    var slashRe = /\\/g;
+    var uri = ("./" + this._fileName).replace(slashRe, "/");
+
+    return uri;
+  });
 });
 
 JSIL.ImplementExternals(

@@ -4454,12 +4454,35 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     this.format = format;
     this.isDisposed = false;
 
-    if (typeof ($jsilxna.ImageFormats[format.name]) === "undefined") throw new System.NotImplementedException("The pixel format '" + format.name + "' is not supported.");
+    if (typeof ($jsilxna.ImageFormats[format.name]) === "undefined") 
+      throw new System.NotImplementedException("The pixel format '" + format.name + "' is not supported.");
 
     this.image = document.createElement("img");
     this.image.src = this.$getDataUrlForBytes(null, 0, 0, false);
     var textures = document.getElementById("textures");
-    if (textures) textures.appendChild(this.image);
+    if (textures) 
+      textures.appendChild(this.image);
+  });
+
+  $.RawMethod(false, "$fromUri", function (graphicsDevice, uri) {
+    this._parent = graphicsDevice;
+    this.mipMap = false;
+    this.format = Microsoft.Xna.Framework.Graphics.SurfaceFormat.Color;
+    this.isDisposed = false;
+
+    this.image = document.createElement("img");
+    var self = this;
+    this.image.addEventListener("load", function () {
+      self.width = self.image.naturalWidth;
+      self.height = self.image.naturalHeight;
+    }, true);
+    this.image.src = uri;
+
+    this.width = this.height = 0;
+
+    var textures = document.getElementById("textures");
+    if (textures) 
+      textures.appendChild(this.image);
   });
 
   $.Method({Static:false, Public:true }, ".ctor", 
@@ -4479,7 +4502,35 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
           $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.SurfaceFormat")
         ], [])), 
     function _ctor (graphicsDevice, width, height, mipMap, format) {
-    this.$internalCtor(graphicsDevice, width, height, mipMap, format);
+      this.$internalCtor(graphicsDevice, width, height, mipMap, format);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "FromStream", 
+    (new JSIL.MethodSignature($asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.Texture2D"), [
+          $asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), $asms[5].TypeRef("System.IO.Stream"), 
+          $.Int32, $.Int32, 
+          $.Boolean
+        ], [])), 
+    function FromStream (graphicsDevice, stream, width, height, zoom) {
+      var uri = stream.$GetURI();
+
+      return JSIL.CreateInstanceOfType(
+        Microsoft.Xna.Framework.Graphics.Texture2D.__Type__, 
+        "$fromUri", [graphicsDevice, uri]
+      );
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "FromStream", 
+    (new JSIL.MethodSignature($asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.Texture2D"), [$asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), $asms[5].TypeRef("System.IO.Stream")], [])), 
+    function FromStream (graphicsDevice, stream) {
+      var uri = stream.$GetURI();
+
+      return JSIL.CreateInstanceOfType(
+        Microsoft.Xna.Framework.Graphics.Texture2D.__Type__, 
+        "$fromUri", [graphicsDevice, uri]
+      );
     }
   );
 

@@ -340,6 +340,8 @@
     <None Include="SimpleTestCases\ListFindAll.cs" />
     <None Include="SimpleTestCases\ListExists.cs" />
     <None Include="SimpleTestCases\ListRemoveAll.cs" />
+    <None Include="SimpleTestCases\ArrayEnumerator.cs" />
+    <None Include="SimpleTestCases\DictionaryEnumerator.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
