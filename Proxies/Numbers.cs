@@ -16,7 +16,7 @@ namespace JSIL.Proxies {
             return base.ToString();
         }
 
-        [JSReplacement("JSIL.CompareNumbers($this, $rhs)")]
+        [JSReplacement("JSIL.CompareValues($this, $rhs)")]
         public int CompareTo (AnyType rhs) {
             throw new InvalidOperationException();
         }
@@ -34,7 +34,7 @@ namespace JSIL.Proxies {
             return base.ToString();
         }
 
-        [JSReplacement("JSIL.CompareNumbers($this, $rhs)")]
+        [JSReplacement("JSIL.CompareValues($this, $rhs)")]
         public int CompareTo (AnyType rhs) {
             throw new InvalidOperationException();
         }

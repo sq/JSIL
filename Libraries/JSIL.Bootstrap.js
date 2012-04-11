@@ -2682,7 +2682,7 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
           $.Int32, $.Int32
         ], [])), 
     function Replace (oldChar, newChar, startIndex, count) {
-      return replace(this, oldChar, newChar, 0, this._str.length);
+      return replace(this, oldChar, newChar, startIndex, count);
     }
   );
 
