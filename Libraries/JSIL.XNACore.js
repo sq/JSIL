@@ -3798,17 +3798,22 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
     if (this.defer) {
       color = color.MemberwiseClone();
 
+      var args = [
+        font, text, 
+        positionX, positionY, 
+        color, rotation,
+        originX, originY,
+        scaleX, scaleY, 
+        effects, depth
+      ];
+
+      // Hack so depth sorting works
+      args[16] = depth;
+
       this.deferredDraws.push({
         fn: this.InternalDrawString,
         index: this.deferredDraws.length,
-        arguments: [
-          font, text, 
-          positionX, positionY, 
-          color, rotation,
-          originX, originY,
-          scaleX, scaleY, 
-          effects, depth
-        ]
+        arguments: args
       });
 
       return;
