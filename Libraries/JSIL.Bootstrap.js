@@ -8,6 +8,8 @@ var $jsilcore = JSIL.DeclareAssembly("JSIL.Core");
 JSIL.DeclareNamespace("System.ComponentModel");
 JSIL.DeclareNamespace("System.Linq");
 JSIL.DeclareNamespace("System.Reflection");
+JSIL.DeclareNamespace("System.Text");
+JSIL.DeclareNamespace("System.Text.RegularExpressions");
 
 JSIL.ImplementExternals(
   "System.Boolean", function ($) {
@@ -1944,17 +1946,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
     if (lhs === rhs)
       return true;
 
-    if ((typeof (lhs) !== "undefined") && (lhs !== null) && (typeof (lhs.Equals) === "function") && (lhs.Equals.__IsPlaceholder__ !== true)) {
-      if (lhs.Equals(rhs))
-        return true;
-    }
-
-    if ((typeof (rhs) !== "undefined") && (rhs !== null) && (typeof (rhs.Equals) === "function") && (rhs.Equals.__IsPlaceholder__ !== true)) {
-      if (rhs.Equals(lhs))
-        return true;
-    }
-
-    return lhs == rhs;
+    return JSIL.ObjectEquals(lhs, rhs);
   });
 
   $.RawMethod(false, "$searchBucket", function (key) {
@@ -1971,6 +1963,25 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
     }
 
     return null;
+  });
+
+  $.RawMethod(false, "$removeByKey", function (key) {
+    var hashCode = this.$getHash(key);
+    var bucket = this._dict[hashCode];
+    if (!JSIL.IsArray(bucket))
+      return false;
+
+    for (var i = 0; i < bucket.length; i++) {
+      var bucketEntry = bucket[i];
+
+      if (this.$areEqual(bucketEntry[0], key)) {
+        bucket.splice(i, 1);
+        this._count -= 1;
+        return true;
+      }
+    }
+
+    return false;
   });
 
   $.RawMethod(false, "$addToBucket", function (key, value) {
@@ -2027,7 +2038,14 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
   $.Method({Static:false, Public:true }, "ContainsKey", 
     (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2")], [])), 
     function ContainsKey (key) {
-    return this.$searchBucket(key) !== null;
+      return this.$searchBucket(key) !== null;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Remove", 
+    (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2")], [])), 
+    function Remove (key) {
+      return this.$removeByKey(key);
     }
   );
 
@@ -3066,4 +3084,148 @@ JSIL.ImplementExternals("System.Diagnostics.Stopwatch", function ($) {
     }
   );
 
+});
+
+JSIL.ImplementExternals("System.Text.RegularExpressions.Regex", function ($) {
+  var system = JSIL.GetAssembly("System", true);
+
+  var makeRegex = function (pattern, options) {
+    if ((options & System.Text.RegularExpressions.RegexOptions.ECMAScript) === 0) {
+      throw new Error("Non-ECMAScript regexes are not currently supported.");
+    }
+
+    var flags = "g";
+
+    if ((options & System.Text.RegularExpressions.RegexOptions.IgnoreCase) !== 0) {
+      flags += "i";
+    }
+
+    if ((options & System.Text.RegularExpressions.RegexOptions.Multiline) !== 0) {
+      flags += "m";
+    }
+
+    return new RegExp(pattern, flags);
+  };
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.String], [])), 
+    function _ctor (pattern) {
+      this._regex = makeRegex(pattern, System.Text.RegularExpressions.RegexOptions.None);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.String, system.TypeRef("System.Text.RegularExpressions.RegexOptions")], [])), 
+    function _ctor (pattern, options) {
+      this._regex = makeRegex(pattern, options);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Matches", 
+    (new JSIL.MethodSignature(system.TypeRef("System.Text.RegularExpressions.MatchCollection"), [$.String], [])), 
+    function Matches (input) {
+      var matches = input.match(this._regex);
+
+      var matchObjects = [];
+      var tMatch = System.Text.RegularExpressions.Match.__Type__;
+
+      if (JSIL.IsArray(matches)) {
+        for (var i = 0; i < matches.length; i++) {
+          matchObjects.push(
+            JSIL.CreateInstanceOfType(
+              tMatch, "$internalCtor", [matches[i]]
+            )
+          );
+        }
+      }
+
+      var result = JSIL.CreateInstanceOfType(
+        System.Text.RegularExpressions.MatchCollection.__Type__,
+        "$internalCtor", [matchObjects]
+      );
+
+      return result;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Replace", 
+    (new JSIL.MethodSignature($.String, [
+          $.String, $.String, 
+          $.String, system.TypeRef("System.Text.RegularExpressions.RegexOptions")
+        ], [])), 
+    function Replace (input, pattern, replacement, options) {
+      var re = makeRegex(pattern, options);
+
+      return input.replace(re, replacement);
+    }
+  );
+});
+
+JSIL.ImplementExternals("System.Text.RegularExpressions.MatchCollection", function ($) {
+  var system = JSIL.GetAssembly("System", true);
+  var mscorlib = JSIL.GetCorlib();
+  var tEnumerator = JSIL.ArrayEnumerator.Of(System.Text.RegularExpressions.Match);
+
+  $.RawMethod(false, "$internalCtor", function (matches) {
+    this._matches = matches;
+  });
+
+  $.Method({Static:false, Public:true }, "get_Count", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Count () {
+      return this._matches.length;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Item", 
+    (new JSIL.MethodSignature(system.TypeRef("System.Text.RegularExpressions.Match"), [$.Int32], [])), 
+    function get_Item (i) {
+      return this._matches[i];
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "GetMatch", 
+    (new JSIL.MethodSignature(system.TypeRef("System.Text.RegularExpressions.Match"), [$.Int32], [])), 
+    function GetMatch (i) {
+      return this._matches[i];
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetEnumerator", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.IEnumerator"), [], [])), 
+    function GetEnumerator () {
+      return new tEnumerator(this._matches);
+    }
+  );
+});
+
+JSIL.ImplementExternals("System.Text.RegularExpressions.Capture", function ($) {
+
+  $.Method({Static:false, Public:true }, "get_Length", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Length () {
+      return this._length;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Value", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_Value () {
+      return this._text;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "toString", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function toString () {
+      return this._text;
+    }
+  );
+});
+
+JSIL.ImplementExternals("System.Text.RegularExpressions.Match", function ($) {
+  $.RawMethod(false, "$internalCtor", function (text) {
+    this._text = text;
+    this._length = text.length;
+  });
 });

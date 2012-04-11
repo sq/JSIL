@@ -3040,6 +3040,38 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
     }
   );
 
+  var unionImpl = function (lhs, rhs) {
+    var lhsX2 = lhs.X + lhs.Width;
+    var rhsX2 = rhs.X + rhs.Width;
+    var lhsY2 = lhs.Y + lhs.Height;
+    var rhsY2 = rhs.Y + rhs.Height;
+
+    var x1 = (lhs.X < rhs.X) ? lhs.X : rhs.X;
+    var y1 = (lhs.Y < rhs.Y) ? lhs.Y : rhs.Y;
+    var x2 = (lhsX2 > rhsX2) ? lhsX2 : rhsX2;
+    var y2 = (lhsY2 > rhsY2) ? lhsY2 : rhsY2;
+    
+    if (x2 > x1 && y2 > y1) 
+      return new Microsoft.Xna.Framework.Rectangle(x1, y1, x2 - x1, y2 - y1);
+
+    return Microsoft.Xna.Framework.Rectangle._empty;
+  };
+
+  $.Method({Static:true , Public:true }, "Union", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle"), [$asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle"), $asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")], [])), 
+    unionImpl
+  );
+
+  $.Method({Static:true , Public:true }, "Union", 
+    (new JSIL.MethodSignature(null, [
+          $jsilcore.TypeRef("JSIL.Reference", [$asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")]), $jsilcore.TypeRef("JSIL.Reference", [$asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")]), 
+          $jsilcore.TypeRef("JSIL.Reference", [$asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")])
+        ], [])), 
+    function Union (/* ref */ value1, /* ref */ value2, /* ref */ result) {
+      result.value = unionImpl(value1.value, value2.value);
+    }
+  );
+
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [
           $.Int32, $.Int32, 
