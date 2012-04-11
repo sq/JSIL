@@ -2427,6 +2427,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
         this._extraTime = 0;
         this.suppressFrameskip = false;
 
+        this._gameTime.elapsedGameTime._ticks = (elapsed * millisecondInTicks);
+        this._gameTime.totalGameTime._ticks += (elapsed * millisecondInTicks);
+
         doUpdate();
         this._updateCount += 1;
       }

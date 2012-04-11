@@ -4333,6 +4333,14 @@ JSIL.ImplementExternals(
       }
     );
 
+    $.Method({Static:false, Public:true }, "GetMethod", 
+      (new JSIL.MethodSignature("System.Reflection.MethodInfo", [$.String], [])), 
+      function GetMethod (name) {
+        // FIXME
+        return null;
+      }
+    );
+
     $.Method({Public: true , Static: false}, "GetMethods",
       new JSIL.MethodSignature(methodArray, []),      
       function () {
