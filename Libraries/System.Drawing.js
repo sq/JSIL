@@ -46,6 +46,20 @@ if (JSIL.HostType.IsBrowser) {
       this.buffer = null;
     };
 
+    $.Method({Static:false, Public:true }, "get_Width", 
+      (new JSIL.MethodSignature($.Int32, [], [])), 
+      function get_Width () {
+        return this.canvas.width;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_Height", 
+      (new JSIL.MethodSignature($.Int32, [], [])), 
+      function get_Height () {
+        return this.canvas.height;
+      }
+    );
+
     $.Method({Static:false, Public:true }, ".ctor", 
       new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.String")], []),
       constructFromFile

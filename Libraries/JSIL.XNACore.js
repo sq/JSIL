@@ -4177,11 +4177,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
         drawY = positionY + (cropRect.Y * scaleY);
 
         spriteBatch.InternalDraw(
-          this.textureValue, drawX, drawY, glyphRect.Width, glyphRect.Height,
+          this.textureValue, drawX, drawY, glyphRect.Width * scaleX, glyphRect.Height * scaleY,
           glyphRect.X, glyphRect.Y, glyphRect.Width, glyphRect.Height,
           color, rotation, 
           originX, originY, 
-          scaleX, scaleY, 
+          1, 1, 
           spriteEffects, layerDepth
         );
 

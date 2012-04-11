@@ -62,6 +62,12 @@ JSIL.ImplementExternals("System.IO.Stream", function ($) {
         return -1;
     }
   );
+
+  $.Method({Static:false, Public:true }, "Close", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Close () {
+    }
+  );
 });
 
 var $bytestream = function ($) {
@@ -213,6 +219,14 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
 
       this.m_stream = input;
       this.m_encoding = encoding;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Close", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Close () {
+      this.m_stream = null;
+      this.m_encoding = null;
     }
   );
 
