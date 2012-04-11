@@ -2194,12 +2194,23 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       var elapsed = 0;
       var total = 0;
       this._started = now;
+      this._lastSecond = now;
+      this._updateCount = this._drawCount = 0;
+      this._extraTime = 0;
     } else {
-      var elapsed = now - this._lastFrame + this._extraTime;
+      var elapsed = now - this._lastFrame;
       var total = now - this._started;
     }
 
-    this._extraTime = 0;
+    if ((now - this._lastSecond) > 1000) {
+      this._lastSecond = now;
+      
+      if (typeof (JSIL.Host.reportFps) === "function") {
+        JSIL.Host.reportFps(this._drawCount, this._updateCount);
+      }
+
+      this._updateCount = this._drawCount = 0;
+    }
 
     if (this.forceElapsedTimeToZero) {
       this.forceElapsedTimeToZero = false;
@@ -2224,19 +2235,24 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
 
         this._gameTime.elapsedGameTime._ticks = (frameDelay * millisecondInTicks);
 
+        elapsed += this._extraTime;
+        this._extraTime = 0;
+
         if (elapsed > maxElapsedTimeMs) 
           elapsed = maxElapsedTimeMs;
 
         var numFrames = Math.floor(elapsed / frameDelay);
-        if (numFrames < 1) 
-          numFrames = 1;
 
-        this._extraTime = elapsed - (numFrames * frameDelay);
+        if (numFrames > 0) {
+          this._extraTime = elapsed - (numFrames * frameDelay);
+          for (var i = 0; i < numFrames; i++) {
+            this._gameTime.totalGameTime._ticks += (frameDelay * millisecondInTicks);
 
-        for (var i = 0; i < numFrames; i++) {
-          this._gameTime.totalGameTime._ticks += (frameDelay * millisecondInTicks);
-
-          this.Update(this._gameTime);
+            this.Update(this._gameTime);
+            this._updateCount += 1;
+          }
+        } else {
+          this._extraTime = elapsed;
         }
       } else {
         /*
@@ -2245,10 +2261,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
         */
 
         this.Update(this._gameTime);
+        this._updateCount += 1;
       }
 
       this.get_GraphicsDevice().$Clear();
       this.Draw(this._gameTime);
+      this._drawCount += 1;
       failed = false;
     } finally {
       if (failed || Microsoft.Xna.Framework.Game._QuitForced) this.Exit();

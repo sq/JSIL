@@ -110,6 +110,24 @@ JSIL.Host.throwException = function (e) {
     JSIL.Host.logWriteLine(stack);
 };
 
+var $logFps = false;
+
+JSIL.Host.reportFps = function (drawsPerSecond, updatesPerSecond) {
+  var e = document.getElementById("drawsPerSecond");
+  if (e) {
+    e.innerHTML = drawsPerSecond.toString();
+  }
+  
+  e = document.getElementById("updatesPerSecond");
+  if (e) {
+    e.innerHTML = updatesPerSecond.toString();
+  }
+
+  if ($logFps) {
+    console.log(drawsPerSecond + " draws/s, " + updatesPerSecond + " updates/s");
+  }
+};
+
 var allFiles = {};
 var allAssets = {};
 var heldKeys = [];

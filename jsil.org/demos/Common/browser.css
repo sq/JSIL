@@ -80,3 +80,19 @@ body {
 	background-color: white;
 	color: black;
 }
+#stats {	
+	position: absolute;
+	font-family: Consolas, Courier New, Courier;
+	font-size: 9pt;
+	margin: 0px;
+	padding: 0px;
+}
+#drawsPerSecond, #updatesPerSecond {
+	font-family: Consolas, Courier New, Courier;
+	font-size: 9pt;
+	margin: 0px;
+	padding: 2px;
+	text-align: right;
+	display: inline-block;
+	width: 2em;
+}
