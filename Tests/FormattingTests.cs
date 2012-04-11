@@ -494,5 +494,25 @@ namespace JSIL.Tests {
                 throw;
             }
         }
+
+        [Test]
+        public void FastOverloadDispatch () {
+            var output = "A()\r\nA(1)\r\nA(1, str)\r\nB()\r\nB(int 1)\r\nB(string str)";
+
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\FastOverloadDispatch.cs",
+                output, output
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("CallStatic($asm00.Program, \"A\", "));
+                Assert.IsTrue(generatedJs.Contains("$asm00.Program.B();"));
+                Assert.IsTrue(generatedJs.Contains("CallStatic($asm00.Program, \"B\", "));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
     }
 }

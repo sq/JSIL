@@ -335,6 +335,7 @@
     <None Include="SpecialTestCases\ExternalAbstractMethod.cs" />
     <None Include="TestCases\SealedMethods2.cs" />
     <None Include="TestCases\OverloadWithGenericArgCount.cs" />
+    <None Include="SpecialTestCases\FastOverloadDispatch.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

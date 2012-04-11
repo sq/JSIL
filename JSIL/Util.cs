@@ -412,6 +412,12 @@ namespace JSIL.Internal {
             States.Clear();
         }
 
+        public IEnumerable<TKey> Keys {
+            get {
+                return Storage.Keys;
+            }
+        }
+
         public bool MightContainKey (TKey key) {
             return Storage.ContainsKey(key) || States.ContainsKey(key);
         }

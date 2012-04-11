@@ -15,6 +15,8 @@ var $asms = new JSIL.AssemblyCollection({
   1: "Microsoft.Xna.Framework.Game", 
   3: "Microsoft.Xna.Framework.Graphics", 
   5: "mscorlib",
+  11: "System.Drawing", 
+  15: "System.Windows.Forms", 
 });
 
 $jsilxna.nextImageId = 0;
@@ -1875,15 +1877,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector4", function ($) {
   });
 });
 
-JSIL.ImplementExternals("Microsoft.Xna.Framework.Matrix", true, {
-  xScale: 1,
-  yScale: 1,
-  zScale: 1,
-  xTranslation: 0,
-  yTranslation: 0,
-  zTranslation: 0
-});
-
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Matrix", function ($) {
   $.Method({
     Static: true,
@@ -2407,10 +2400,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.KeyboardState", function 
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Mouse", function ($) {
-  $.Method({
-    Static: false,
-    Public: true
-  }, "GetState", new JSIL.MethodSignature(null, [], []), function (playerIndex) {
+  var getStateImpl = function (playerIndex) {
     var buttons = JSIL.Host.getHeldButtons();
     var position = JSIL.Host.getMousePosition();
 
@@ -2425,7 +2415,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Mouse", function ($) {
       (buttons.indexOf(1) >= 0) ? pressed : released,
       released, released
     );
-  });
+  };
+
+  $.Method({Static:true , Public:true }, "GetState", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Input.MouseState"), [], [])), 
+    getStateImpl
+  );
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.MouseState", function ($) {

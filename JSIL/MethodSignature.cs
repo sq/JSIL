@@ -165,6 +165,12 @@ namespace JSIL.Internal {
             );
         }
 
+        public IEnumerable<MethodSignature> Signatures {
+            get {
+                return Counts.Keys;
+            }
+        }
+
         public void Add (MethodSignature signature) {
             var count = Counts.GetOrCreate(
                 signature, () => new Count()

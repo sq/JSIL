@@ -3382,9 +3382,9 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
   });
 };
 
-JSIL.InterfaceBuilder.prototype.InheritDefaultConstructor = function () {
+JSIL.InterfaceBuilder.prototype.InheritBaseMethod = function (name) {
   var signature = new JSIL.MethodSignature(null, [], []);
-  var descriptor = this.ParseDescriptor({Public: true, Static: false}, ".ctor", signature);
+  var descriptor = this.ParseDescriptor({Public: true, Static: false}, name, signature);
 
   var mangledName = signature.GetKey(descriptor.EscapedName);
 
@@ -3392,25 +3392,25 @@ JSIL.InterfaceBuilder.prototype.InheritDefaultConstructor = function () {
 
   fn[0] = function () {
     var proto = Object.getPrototypeOf(this);
-    var baseCtor;
+    var baseMethod;
 
     while (true) {
-      baseCtor = proto[mangledName];
-      if (baseCtor === fn[0])
+      baseMethod = proto[mangledName];
+      if (baseMethod === fn[0])
         proto = Object.getPrototypeOf(proto);
       else
         break;
     }
 
-    if (typeof (baseCtor) === "function")
-      baseCtor.call(this);
+    if (typeof (baseMethod) === "function")
+      baseMethod.apply(this, arguments);
     else
-      JSIL.Host.warning("InheritDefaultConstructor() used but no default constructor was found to inherit!");
+      JSIL.Host.warning("InheritBaseMethod() used but no method was found to inherit!");
   };
 
   JSIL.SetValueProperty(fn[0], "toString", 
     function () {
-      return "<Inherited Default Constructor>";
+      return "<Inherited " + name + ">";
     }
   );
 
@@ -3421,6 +3421,10 @@ JSIL.InterfaceBuilder.prototype.InheritDefaultConstructor = function () {
     mangledName: mangledName,
     isExternal: false
   });
+};
+
+JSIL.InterfaceBuilder.prototype.InheritDefaultConstructor = function () {
+  this.InheritBaseMethod(".ctor");
 };
 
 JSIL.InterfaceBuilder.prototype.ImplementInterfaces = function (/* ...interfacesToImplement */) {

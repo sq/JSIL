@@ -1144,9 +1144,28 @@ namespace JSIL {
                     Output.RPar();
             };
 
+            // If there's only one overload with this argument count, we don't need to use
+            //  the expensive overloaded method dispatch path.
+            if (isOverloaded) {
+                MethodSignatureSet mss;
+                if (method.DeclaringType.MethodSignatures.TryGet(method.Name, out mss)) {
+                    int argCount = method.Parameters.Length;
+                    int overloadCount = 0;
+
+                    foreach (var signature in mss.Signatures) {
+                        if (signature.ParameterCount == argCount)
+                            overloadCount += 1;
+                    }
+
+                    if (overloadCount < 2)
+                        isOverloaded = false;
+                }
+            }
+
             var oldInvoking = ReferenceContext.InvokingMethod;
             try {
                 if (isOverloaded) {
+
                     var methodName = Util.EscapeIdentifier(method.GetName(true), EscapingMode.MemberIdentifier);
 
                     Output.MethodSignature(jsm.Reference, method.Signature, ReferenceContext);
