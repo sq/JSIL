@@ -162,42 +162,74 @@ var keyMappings = {
   18: [164, 165] // Left Alt, Right Alt
 };
 
-window.addEventListener(
-  "keydown", function (evt) {
-    evt.preventDefault();
-    var keyCode = evt.keyCode;
-    var codes = keyMappings[keyCode] || [keyCode];        
-    
-    for (var i = 0; i < codes.length; i++) {
-      var code = codes[i];
-      if (Array.prototype.indexOf.call(heldKeys, code) === -1)
-        heldKeys.push(code);
-    }
-  }, true
-);
+(function () {
+  var canvas = document.getElementById("canvas");
 
-window.addEventListener(
-  "keyup", function (evt) {
-    evt.preventDefault();
-    var keyCode = evt.keyCode;
-    var codes = keyMappings[keyCode] || [keyCode];        
-    
-    heldKeys = heldKeys.filter(function (element, index, array) {
-      return codes.indexOf(element) === -1;
-    });
-  }, true
-);
+  window.addEventListener(
+    "keydown", function (evt) {
+      evt.preventDefault();
+      var keyCode = evt.keyCode;
+      var codes = keyMappings[keyCode] || [keyCode];        
+      
+      for (var i = 0; i < codes.length; i++) {
+        var code = codes[i];
+        if (Array.prototype.indexOf.call(heldKeys, code) === -1)
+          heldKeys.push(code);
+      }
+    }, true
+  );
 
-window.addEventListener(
-  "mousemove", function (evt) {
-    var canvas = document.getElementById("canvas");
-    if ((typeof (canvas) !== "object") || (canvas === null))
-      return;
-    
-    mousePosition[0] = evt.clientX - canvas.offsetLeft;
-    mousePosition[1] = evt.clientY - canvas.offsetTop;
-  }, true
-);
+  window.addEventListener(
+    "keyup", function (evt) {
+      evt.preventDefault();
+      var keyCode = evt.keyCode;
+      var codes = keyMappings[keyCode] || [keyCode];        
+      
+      heldKeys = heldKeys.filter(function (element, index, array) {
+        return codes.indexOf(element) === -1;
+      });
+    }, true
+  );
+
+  canvas.addEventListener(
+    "mousedown", function (evt) {     
+      mousePosition[0] = evt.clientX - canvas.offsetLeft;
+      mousePosition[1] = evt.clientY - canvas.offsetTop;
+
+      var button = evt.button;
+      if (Array.prototype.indexOf.call(heldButtons, button) === -1)
+        heldButtons.push(button);
+
+      evt.preventDefault();
+      evt.stopPropagation();
+    }, true
+  );
+
+  canvas.addEventListener(
+    "mouseup", function (evt) {
+      mousePosition[0] = evt.clientX - canvas.offsetLeft;
+      mousePosition[1] = evt.clientY - canvas.offsetTop;
+      
+      var button = evt.button;
+      heldButtons = heldButtons.filter(function (element, index, array) {
+        (element !== button);
+      });
+
+      evt.preventDefault();
+      evt.stopPropagation();
+    }, true
+  );
+
+  canvas.addEventListener(
+    "mousemove", function (evt) {
+      mousePosition[0] = evt.clientX - canvas.offsetLeft;
+      mousePosition[1] = evt.clientY - canvas.offsetTop;
+      
+      evt.preventDefault();
+      evt.stopPropagation();
+    }, true
+  );
+})();
 
 function getAssetName (filename, preserveCase) {
   var backslashRe = /\\/g;

@@ -4843,7 +4843,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
           result.X = Math.max(lineWidth, result.X);
           lineWidth = 0;
 
-          if (i < (l - 1)) lineCount += 1;
+          if (i < (l - 1)) 
+            lineCount += 1;
 
           continue;
         }
@@ -4894,6 +4895,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
       scaleX, scaleY, 
       spriteEffects, layerDepth
     ) {
+      textblockPositionX -= (originX * scaleX);
+      textblockPositionY -= (originY * scaleY);
+      
       var tVector2 = Microsoft.Xna.Framework.Vector2;
       var positionX = textblockPositionX;
       var positionY = textblockPositionY;
@@ -4934,7 +4938,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
           this.textureValue, drawX, drawY, glyphRect.Width * scaleX, glyphRect.Height * scaleY,
           glyphRect.X, glyphRect.Y, glyphRect.Width, glyphRect.Height,
           color, rotation, 
-          originX, originY, 
+          0, 0, 
           1, 1, 
           spriteEffects, layerDepth
         );
