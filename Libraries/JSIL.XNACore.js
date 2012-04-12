@@ -91,7 +91,8 @@ $jsilxna.multipliedImageCache.evictExtraItems = function () {
 
   for (var i = 0, l = this.count; i < l; i++) {
     var age = now - this.accessHistory[keys[i]];
-    if (age <= this.evictionMinimumAge) continue;
+    if (age <= this.evictionMinimumAge) 
+      continue;
 
     var item = this[keys[i]];
 
@@ -99,9 +100,12 @@ $jsilxna.multipliedImageCache.evictExtraItems = function () {
     delete this[keys[i]];
 
     this.count -= 1;
-    this.countBytes -= (item.width * item.height * 4);
+    if ((typeof (item) !== "undefined") && (item !== null)) {
+      this.countBytes -= (item.width * item.height * 4);
+    }
 
-    if (this.count <= this.capacity) break;
+    if (this.count <= this.capacity) 
+      break;
   }
 }.bind($jsilxna.multipliedImageCache);
 
@@ -5634,3 +5638,14 @@ $jsilxna.ImageFormats = {
   "Dxt4": $jsilxna.DecodeDxt5,
   "Dxt5": $jsilxna.DecodeDxt5,
 };
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.TitleContainer", function ($) {
+
+  $.Method({Static:true , Public:true }, "OpenStream", 
+    (new JSIL.MethodSignature($asms[5].TypeRef("System.IO.Stream"), [$.String], [])), 
+    function OpenStream (name) {
+      return new System.IO.FileStream(name, null);
+    }
+  );
+
+});
