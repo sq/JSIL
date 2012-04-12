@@ -61,15 +61,26 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
   var attrProto = (window.Attr.prototype);
   var textProto = (window.Text.prototype);
 
+  var sAttribute = "attribute";
+  var sAttributes = "attributes";
+
+  var sNode = "node";
+  var sChildren = "children";
+  var sSiblings = "siblings";
+  var sClosing = "closing";
+
+  var sBeforeDocument = "before document";
+  var sAfterDocument = "after document";
+
   $.RawMethod(false, "$fromDOMNode", function (domNode) {
     this._domNode = domNode;
     this._eof = false;
-    this.$setCurrentNode(null);
+    this.$setCurrentNode(null, sBeforeDocument);
   });
 
-  $.RawMethod(false, "$setCurrentNode", function (node, closing) {
+  $.RawMethod(false, "$setCurrentNode", function (node, state) {
     this._current = node;
-    this._closing = closing;
+    this._state = state;
 
     if ((typeof (node) === "undefined") || (node === null)) {
       this._nodeType = ntNone;
@@ -87,11 +98,14 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
     } else if (proto === textProto) {
       this._nodeType = ntText;
     } else if (proto === elementProto) {
-      if (closing)
-        this._nodeType = ntEndElement;
-      else
-        this._nodeType = ntElement;
+      this._nodeType = ntElement;
     } else if (proto === docProto) {
+      if (closing) {
+        this._current = null;
+        this._closing = false;
+        return false;
+      }
+
       this._nodeType = ntDocument;
     } else {
       JSIL.Host.warning("Unknown node type: ", node);
@@ -105,22 +119,48 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
     var cur = this._current;
     if (cur === null) {
       if (this._eof) {
-        return this.$setCurrentNode(null);
+        return this.$setCurrentNode(null, sAfterDocument);
       } else {
-        return this.$setCurrentNode(this._domNode);
+        return this.$setCurrentNode(this._domNode, sNode);
       }
     }
 
-    if (!this._closing && (cur.firstChild !== null)) {
-      return this.$setCurrentNode(cur.firstChild, false);
-    } else if (!this._closing && (cur.nextSibling !== null)) {
-      return this.$setCurrentNode(cur.nextSibling, false);
-    } else {
-      return this.$setCurrentNode(cur.parentNode, true);
+    if (this._state === sNode) {
+      this._state = sAttributes;
+    }
+
+    if (this._state === sAttributes) {
+      if ((cur.attributes !== null) && (cur.attributes.length > 0))
+        return this.$setCurrentNode(cur.attributes[0], sAttribute);
+
+      this._state = sChildren;
+    }
+
+    if (this._state === sChildren) {
+      if (cur.firstChild !== null)
+        return this.$setCurrentNode(cur.firstChild, sNode);
+
+      this._state = sSiblings;
+    } else if (this._state === sAttribute) {
+      this._state = sSiblings;
+    }
+
+    if (this._state === sSiblings) {
+      if (cur.nextSibling !== null)
+        return this.$setCurrentNode(cur.nextSibling, sNode);
+
+      return this.$setCurrentNode(cur.parentNode, sClosing);
+    }
+
+    if (this._state === sClosing) {
+      if (cur.nextSibling !== null)
+        return this.$setCurrentNode(cur.nextSibling, sNode);
+
+      return this.$setCurrentNode(cur.parentNode, sClosing);
     }
 
     this._eof = true;
-    return this.$setCurrentNode(null);
+    return this.$setCurrentNode(null, sAfterDocument);
   });
 
   $.Method({Static:false, Public:true }, "Read", 

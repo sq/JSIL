@@ -51,6 +51,7 @@
     
       function runScript () {
         var scriptname = document.getElementById("scriptname").value;
+        window.location.hash = "#" + scriptname;
         
         var onError = function () {
           alert("Failed to load script.");
@@ -69,6 +70,10 @@
       }
       
       function onLoad () {
+        if ((typeof (window.location.hash) === "string") && (window.location.hash.length > 1)) {
+          document.getElementById("scriptname").value = window.location.hash.substr(1);
+        }
+
         document.getElementById("runscript").addEventListener("click", runScript, true);
       }
     </script>

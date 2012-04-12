@@ -65,6 +65,9 @@
     <None Include="ReflectionTestCases\ListHiddenMethods.cs" />
     <Compile Include="APITests.cs" />
     <None Include="SimpleTestCases\InterfaceInheritanceDifferentNames.cs" />
+    <None Include="XMLTestCases\SimpleDocument.cs" />
+    <None Include="SimpleTestCases\RecursiveArrayInitializer.cs" />
+    <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

@@ -69,7 +69,9 @@ namespace JSIL.Tests {
 
         private static Assembly Compile (CodeDomProvider provider, string[] sourceCode, out TempFileCollection temporaryFiles) {            
             var parameters = new CompilerParameters(new[] {
-                "mscorlib.dll", "System.dll", "System.Core.dll", "Microsoft.CSharp.dll",
+                "mscorlib.dll", "System.dll", 
+                "System.Core.dll", "System.Xml.dll", 
+                "Microsoft.CSharp.dll",
                 typeof(JSIL.Meta.JSIgnore).Assembly.Location
             }) {
                 CompilerOptions = "/unsafe",
@@ -103,7 +105,7 @@ namespace JSIL.Tests {
 
         public static readonly string TestSourceFolder;
         public static readonly string JSShellPath;
-        public static readonly string CoreJSPath, BootstrapJSPath;
+        public static readonly string CoreJSPath, BootstrapJSPath, XMLJSPath;
 
         public readonly TypeInfoProvider TypeInfo;
         public readonly string[] StubbedAssemblies;
@@ -119,6 +121,7 @@ namespace JSIL.Tests {
             JSShellPath = Path.GetFullPath(Path.Combine(assemblyPath, @"..\Upstream\SpiderMonkey\js.exe"));
             CoreJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.Core.js"));
             BootstrapJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.Bootstrap.js"));
+            XMLJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.XML.js"));
         }
 
         public ComparisonTest (string filename, string[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null)
@@ -254,7 +257,13 @@ namespace JSIL.Tests {
             try {
                 // throw new Exception();
 
-                var psi = new ProcessStartInfo(JSShellPath, String.Format("-j -m -n -f \"{0}\" -f \"{1}\" -f \"{2}\"", CoreJSPath, BootstrapJSPath, tempFilename)) {
+                var psi = new ProcessStartInfo(
+                    JSShellPath, 
+                    String.Format(
+                        "-j -m -n -f \"{0}\" -f \"{1}\" -f \"{2}\" -f \"{3}\"", 
+                        CoreJSPath, BootstrapJSPath, XMLJSPath, tempFilename
+                    )
+                ) {
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,
