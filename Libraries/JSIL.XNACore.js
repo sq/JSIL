@@ -348,7 +348,7 @@ JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true, [], function ($) {
     if (loopCount > 0) {
       var state = [loopCount];
 
-      instance.addEventListener("ended", function () {
+      node.addEventListener("ended", function () {
         result.isPlaying = false;
 
         if (state[0] > 0) {
@@ -357,7 +357,7 @@ JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true, [], function ($) {
         }
       }.bind(this), true);
     } else {
-      instance.addEventListener("ended", function () {
+      node.addEventListener("ended", function () {
         result.isPlaying = false;
 
         if (this.freeInstances.length < 16)
@@ -2664,16 +2664,18 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
 
         var numFrames = Math.floor(elapsed / frameDelay);
 
-        if (numFrames > 0) {
-          this._extraTime = elapsed - (numFrames * frameDelay);
-          for (var i = 0; i < numFrames; i++) {
-            this._gameTime.totalGameTime._ticks += (frameDelay * millisecondInTicks);
-
-            doUpdate();
-            this._updateCount += 1;
-          }
+        if (numFrames < 1) {
+          numFrames = 1;
+          this._extraTime = elapsed - frameDelay;
         } else {
-          this._extraTime = elapsed;
+          this._extraTime = elapsed - (numFrames * frameDelay);
+        }
+
+        for (var i = 0; i < numFrames; i++) {
+          this._gameTime.totalGameTime._ticks += (frameDelay * millisecondInTicks);
+
+          doUpdate();
+          this._updateCount += 1;
         }
       } else {
         this._extraTime = 0;
