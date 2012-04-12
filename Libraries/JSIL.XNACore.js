@@ -3790,8 +3790,16 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       this.defer = false;
       this.deferSorter = null;
       this.deferredDraws = [];
+      this.oldBlendState = null;
     }
   );
+
+  $.RawMethod(false, "$applyBlendState", function () {
+    if (this.blendState !== null)
+      this.device.BlendState = this.blendState;
+    else
+      this.device.BlendState = Microsoft.Xna.Framework.Graphics.BlendState.AlphaBlend;
+  });
 
   $.Method({Static:false, Public:true }, "Begin", 
     (new JSIL.MethodSignature(null, [$asms[5].TypeRef("System.Array") /* AnyType[] */ ], [])), 
@@ -3799,11 +3807,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       this.device.context.save();
       this.deferSorter = null;
 
+      this.blendState = blendState;
+
       var textureIndex = 0;
       var depthIndex = 16;
 
       if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Immediate) {
         this.defer = false;
+        this.$applyBlendState();
       } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.BackToFront) {
         this.defer = true;
         this.deferSorter = function (lhs, rhs) {
@@ -3836,7 +3847,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       if (this.defer) {
         this.defer = false;
 
-        if (this.deferSorter !== null) this.deferredDraws.sort(this.deferSorter);
+        this.$applyBlendState();
+
+        if (this.deferSorter !== null) 
+          this.deferredDraws.sort(this.deferSorter);
 
         for (var i = 0, l = this.deferredDraws.length; i < l; i++) {
           var draw = this.deferredDraws[i];
@@ -3847,6 +3861,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       this.deferredDraws = [];
 
       this.device.context.restore();
+      
+      this.$applyBlendState();
     }
   );
 
@@ -4428,6 +4444,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
     this.viewport = new Microsoft.Xna.Framework.Graphics.Viewport();
     this.viewport.Width = this.canvas.clientWidth || this.canvas.width;
     this.viewport.Height = this.canvas.clientHeight || this.canvas.height;
+    this.blendState = Microsoft.Xna.Framework.Graphics.BlendState.Opaque;
     this.samplerStates = new Microsoft.Xna.Framework.Graphics.SamplerStateCollection(this, 0, 4);
     this.vertexSamplerStates = new Microsoft.Xna.Framework.Graphics.SamplerStateCollection(this, 0, 4);
     this.textures = new Microsoft.Xna.Framework.Graphics.TextureCollection(this, 0, 4);
@@ -4436,6 +4453,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
       Microsoft.Xna.Framework.Graphics.PresentationParameters.__Type__, 
       "$internalCtor", [this]
     );
+
+    this.$UpdateBlendState();
     this.$UpdateViewport();
   });
 
@@ -4452,6 +4471,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
       this.viewport = newViewport.MemberwiseClone();
 
       this.$UpdateViewport();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_BlendState", 
+    (new JSIL.MethodSignature($asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.BlendState"), [], [])), 
+    function get_BlendState () {
+      return this.blendState;
     }
   );
 
@@ -4493,7 +4519,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
   $.Method({Static:false, Public:true }, "set_BlendState", 
     (new JSIL.MethodSignature(null, [$asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.BlendState")], [])), 
     function set_BlendState (value) {
-      // FIXME
+      this.blendState = value;
+      this.$UpdateBlendState();
     }
   );
 
@@ -4511,6 +4538,16 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
     }
   );
 
+  $.RawMethod(false, "$UpdateBlendState", function () {
+    if (this.blendState === Microsoft.Xna.Framework.Graphics.BlendState.Opaque) {
+      this.context.globalCompositeOperation = "copy";
+    } else if (this.blendState === Microsoft.Xna.Framework.Graphics.BlendState.Additive) {
+      this.context.globalCompositeOperation = "lighter";
+    } else {
+      this.context.globalCompositeOperation = "source-over";
+    }
+  });
+
   $.RawMethod(false, "$UpdateViewport", function () {
     this.context.setTransform(1, 0, 0, 1, 0, 0);
     this.context.translate(this.viewport.X, this.viewport.Y);
@@ -4520,12 +4557,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
   $.RawMethod(false, "$Clear", function () {
     this.context.setTransform(1, 0, 0, 1, 0, 0);
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.$UpdateBlendState();
     this.$UpdateViewport();
   });
 
   $.RawMethod(false, "InternalClear", function (color) {
     this.context.fillStyle = color.toCss();
     this.context.fillRect(0, 0, this.viewport.Width, this.viewport.Height);
+    this.$UpdateBlendState();
   });
 
   var warnedTypes = {};
@@ -4602,10 +4641,23 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
       this.viewport.Width = this.canvas.width;
       this.viewport.Height = this.canvas.height;
 
+      this.$UpdateBlendState();
       this.$UpdateViewport();
 
       if (oldRenderTarget !== null) 
         oldRenderTarget.$ResynthesizeImage();
+    }
+  );
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.BlendState", function ($) {
+  $.Method({Static: true, Public: true}, ".cctor", 
+    new JSIL.MethodSignature(null, [], []),
+    function () {
+      Microsoft.Xna.Framework.Graphics.BlendState.Opaque = new Microsoft.Xna.Framework.Graphics.BlendState();
+      Microsoft.Xna.Framework.Graphics.BlendState.AlphaBlend = new Microsoft.Xna.Framework.Graphics.BlendState();
+      Microsoft.Xna.Framework.Graphics.BlendState.Additive = new Microsoft.Xna.Framework.Graphics.BlendState();
+      Microsoft.Xna.Framework.Graphics.BlendState.NonPremultiplied = new Microsoft.Xna.Framework.Graphics.BlendState();
     }
   );
 });
@@ -4897,7 +4949,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
     ) {
       textblockPositionX -= (originX * scaleX);
       textblockPositionY -= (originY * scaleY);
-      
+
       var tVector2 = Microsoft.Xna.Framework.Vector2;
       var positionX = textblockPositionX;
       var positionY = textblockPositionY;
