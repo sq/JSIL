@@ -71,11 +71,22 @@
         elt.src = scriptname;
       }
       
-      function onLoad () {
+      var lastHash = null;
+      function checkHash () {
+        var currentHash = null;
         if ((typeof (window.location.hash) === "string") && (window.location.hash.length > 1)) {
-          document.getElementById("scriptname").value = window.location.hash.substr(1);
+          currentHash = window.location.hash.substr(1);
         }
 
+        if (currentHash !== lastHash) {
+          lastHash = currentHash;
+          document.getElementById("scriptname").value = currentHash;
+        }
+      }
+
+      function onLoad () {
+        checkHash();
+        setInterval(checkHash, 100);
         document.getElementById("runscript").addEventListener("click", runScript, true);
       }
     </script>

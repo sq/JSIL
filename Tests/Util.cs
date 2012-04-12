@@ -262,7 +262,14 @@ namespace JSIL.Tests {
 
             File.WriteAllText(tempFilename, prefixJs + Environment.NewLine + translatedJs + Environment.NewLine + invocationJs);
 
-            return tempFilename;
+            var jsFile = OutputPath;
+            if (File.Exists(jsFile))
+                File.Delete(jsFile);
+            File.Copy(tempFilename, jsFile);
+
+            File.Delete(tempFilename);
+
+            return OutputPath;
         }
 
         public string RunJavascript (
@@ -270,73 +277,62 @@ namespace JSIL.Tests {
         ) {
             var tempFilename = GenerateJavascript(args, out generatedJavascript, out elapsedTranslation);
 
-            try {
-                // throw new Exception();
+            var psi = new ProcessStartInfo(
+                JSShellPath, 
+                String.Format(
+                    "-j -m -n -f \"{0}\" -f \"{1}\" -f \"{2}\" -f \"{3}\"", 
+                    CoreJSPath, BootstrapJSPath, XMLJSPath, tempFilename
+                )
+            ) {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                WindowStyle = ProcessWindowStyle.Hidden
+            };
 
-                var psi = new ProcessStartInfo(
-                    JSShellPath, 
-                    String.Format(
-                        "-j -m -n -f \"{0}\" -f \"{1}\" -f \"{2}\" -f \"{3}\"", 
-                        CoreJSPath, BootstrapJSPath, XMLJSPath, tempFilename
-                    )
-                ) {
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true,
-                    UseShellExecute = false,
-                    WindowStyle = ProcessWindowStyle.Hidden
-                };
+            ManualResetEventSlim stdoutSignal, stderrSignal;
+            stdoutSignal = new ManualResetEventSlim(false);
+            stderrSignal = new ManualResetEventSlim(false);
+            var output = new string[2];
 
-                ManualResetEventSlim stdoutSignal, stderrSignal;
-                stdoutSignal = new ManualResetEventSlim(false);
-                stderrSignal = new ManualResetEventSlim(false);
-                var output = new string[2];
+            long startedJs = DateTime.UtcNow.Ticks;
+            using (var process = Process.Start(psi)) {
+                ThreadPool.QueueUserWorkItem((_) => {
+                    output[0] = process.StandardOutput.ReadToEnd();
+                    stdoutSignal.Set();
+                });
+                ThreadPool.QueueUserWorkItem((_) => {
+                    output[1] = process.StandardError.ReadToEnd();
+                    stderrSignal.Set();
+                });
 
-                long startedJs = DateTime.UtcNow.Ticks;
-                using (var process = Process.Start(psi)) {
-                    ThreadPool.QueueUserWorkItem((_) => {
-                        output[0] = process.StandardOutput.ReadToEnd();
-                        stdoutSignal.Set();
-                    });
-                    ThreadPool.QueueUserWorkItem((_) => {
-                        output[1] = process.StandardError.ReadToEnd();
-                        stderrSignal.Set();
-                    });
+                stdoutSignal.Wait();
+                stderrSignal.Wait();
+                process.WaitForExit();
 
-                    stdoutSignal.Wait();
-                    stderrSignal.Wait();
-                    process.WaitForExit();
-
-                    if (process.ExitCode != 0)
-                        throw new JavaScriptException(
-                            process.ExitCode,
-                            (output[0] ?? "").Trim(),
-                            (output[1] ?? "").Trim()
-                        );
-                }
-
-                long endedJs = DateTime.UtcNow.Ticks;
-                elapsedJs = endedJs - startedJs;
-
-                if (output[0] != null) {
-                    var m = ElapsedRegex.Match(output[0]);
-                    if (m.Success) {
-                        elapsedJs = TimeSpan.FromMilliseconds(
-                            double.Parse(m.Groups["elapsed"].Value)
-                        ).Ticks;
-                        output[0] = output[0].Replace(m.Value, "");
-                    }
-                }
-
-                return output[0] ?? "";
-            } finally {
-                var jsFile = OutputPath;
-                if (File.Exists(jsFile))
-                    File.Delete(jsFile);
-                File.Copy(tempFilename, jsFile);
-
-                File.Delete(tempFilename);
+                if (process.ExitCode != 0)
+                    throw new JavaScriptException(
+                        process.ExitCode,
+                        (output[0] ?? "").Trim(),
+                        (output[1] ?? "").Trim()
+                    );
             }
+
+            long endedJs = DateTime.UtcNow.Ticks;
+            elapsedJs = endedJs - startedJs;
+
+            if (output[0] != null) {
+                var m = ElapsedRegex.Match(output[0]);
+                if (m.Success) {
+                    elapsedJs = TimeSpan.FromMilliseconds(
+                        double.Parse(m.Groups["elapsed"].Value)
+                    ).Ticks;
+                    output[0] = output[0].Replace(m.Value, "");
+                }
+            }
+
+            return output[0] ?? "";
         }
 
         public void Run (params string[] args) {
@@ -512,8 +508,8 @@ namespace JSIL.Tests {
                             string js;
                             long elapsed;
                             var csOutput = test.RunCSharp(new string[0], out elapsed);
-                            Console.WriteLine(csOutput);
                             test.GenerateJavascript(new string[0], out js, out elapsed);
+                            Console.WriteLine(csOutput);
                         }
                     }
                 } catch (Exception ex) {

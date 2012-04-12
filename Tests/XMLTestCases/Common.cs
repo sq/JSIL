@@ -36,10 +36,11 @@ public static class Common {
     public static void PrintNodeText (XmlReader reader) {
         PrintNodesCore(reader,
             () => Console.WriteLine(
-                "{0}{1} {2}",
+                "{0}{1} {2}{3}",
                 reader.NodeType.ToString(),
                 reader.IsEmptyElement ? " Empty" : "",
-                reader.Value ?? "<null>"
+                reader.Name == null ? "" : reader.Name,
+                String.IsNullOrEmpty(reader.Value) ? "" : "'" + reader.Value + "'"
             )
         );
     }

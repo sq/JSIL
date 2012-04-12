@@ -145,7 +145,7 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
       if (cur.firstChild !== null)
         return this.$setCurrentNode(cur.firstChild, sNode);
 
-      this._state = sSiblings;
+      this._state = sClosing;
     } else if (this._state === sAttribute) {
       this._state = sSiblings;
     }
@@ -154,7 +154,7 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
       if (cur.nextSibling !== null)
         return this.$setCurrentNode(cur.nextSibling, sNode);
 
-      return this.$setCurrentNode(cur.parentNode, sClosing);
+      this._state = sClosing;
     }
 
     if (this._state === sClosing) {
@@ -213,6 +213,20 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
       return null;
     }
   );
+
+  $.Method({Static:false, Public:true }, "get_Value", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_Value () {
+      if (this._nodeType !== ntText)
+        return null;
+
+      if (this._current !== null)
+        return this._current.textContent || null;
+
+      return null;
+    }
+  );
+
 });
 
 JSIL.MakeEnum(
@@ -239,11 +253,14 @@ JSIL.MakeEnum(
 );
 
 JSIL.MakeClass("System.Object", "System.Xml.XmlReader", true, [], function ($) {
-  $.ExternalMembers(
-    false, "Read", "get_NodeType", "get_IsEmptyElement", "get_Name"
+  $.ExternalMembers(false, 
+    "Read", "get_NodeType", 
+    "get_IsEmptyElement", "get_Name", 
+    "get_Value"
   );
 
+  $.Property({Static:false, Public:true }, "NodeType");
   $.Property({Static:false, Public:true }, "IsEmptyElement");
   $.Property({Static:false, Public:true }, "Name");
-  $.Property({Static:false, Public:true }, "NodeType");
+  $.Property({Static:false, Public:true }, "Value");
 });
