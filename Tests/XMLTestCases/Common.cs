@@ -44,4 +44,18 @@ public static class Common {
             )
         );
     }
+
+    public static void PrintNodeAttributeCounts (XmlReader reader) {
+        PrintNodesCore(reader,
+            () => {
+                Console.WriteLine(
+                    "{0}{1} {2}{3}",
+                    reader.NodeType.ToString(),
+                    reader.IsEmptyElement ? " Empty" : "",
+                    reader.Name == null ? "" : reader.Name + " ",
+                    reader.AttributeCount
+                );
+            }
+        );
+    }
 }

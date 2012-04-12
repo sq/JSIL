@@ -70,6 +70,7 @@
     <None Include="XMLTestCases\Common.cs" />
     <None Include="XMLTestCases\TextContent.cs" />
     <None Include="XMLTestCases\Whitespace.cs" />
+    <None Include="XMLTestCases\AttributeCount.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

@@ -64,9 +64,6 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
   var attrProto = (window.Attr.prototype);
   var textProto = (window.Text.prototype);
 
-  var sAttribute = "attribute";
-  var sAttributes = "attributes";
-
   var sNode = "node";
   var sChildren = "children";
   var sSiblings = "siblings";
@@ -102,9 +99,6 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
           this._nodeType = ntElement;
         }
         break;
-      case Node.ATTRIBUTE_NODE:
-        this._nodeType = ntAttribute;
-        break;
       case Node.TEXT_NODE:
         if (System.String.IsNullOrWhiteSpace(node.nodeValue)) {
           this._nodeType = ntWhitespace;
@@ -138,13 +132,6 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
     }
 
     if (this._state === sNode) {
-      this._state = sAttributes;
-    }
-
-    if (this._state === sAttributes) {
-      if ((cur.attributes !== null) && (cur.attributes.length > 0))
-        return this.$setCurrentNode(cur.attributes[0], sAttribute);
-
       this._state = sChildren;
     }
 
@@ -153,8 +140,6 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
         return this.$setCurrentNode(cur.firstChild, sNode);
 
       this._state = sClosing;
-    } else if (this._state === sAttribute) {
-      this._state = sSiblings;
     }
 
     if (this._state === sSiblings) {
@@ -204,11 +189,7 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
         (this._current.childNodes === null) || 
         (this._current.childNodes.length === 0);
 
-      var noAttributes = (typeof (this._current.attributes) === "undefined") ||
-        (this._current.attributes === null) || 
-        (this._current.attributes.length === 0);
-
-      return noChildren && noAttributes;
+      return noChildren;
     }
   );
 
@@ -236,6 +217,23 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
         return this._current.nodeValue || null;
 
       return null;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_AttributeCount", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Value () {
+      switch (this._nodeType) {
+        case ntNone:
+        case ntText:
+        case ntWhitespace:
+          return 0;
+      }
+
+      if (this._current !== null)
+        return this._current.attributes.length;
+
+      return 0;
     }
   );
 
@@ -268,11 +266,12 @@ JSIL.MakeClass("System.Object", "System.Xml.XmlReader", true, [], function ($) {
   $.ExternalMembers(false, 
     "Read", "get_NodeType", 
     "get_IsEmptyElement", "get_Name", 
-    "get_Value"
+    "get_Value", "get_AttributeCount"
   );
 
-  $.Property({Static:false, Public:true }, "NodeType");
+  $.Property({Static:false, Public:true }, "AttributeCount");
   $.Property({Static:false, Public:true }, "IsEmptyElement");
+  $.Property({Static:false, Public:true }, "NodeType");
   $.Property({Static:false, Public:true }, "Name");
   $.Property({Static:false, Public:true }, "Value");
 });
