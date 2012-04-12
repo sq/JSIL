@@ -29,6 +29,9 @@ namespace JSIL.Tests {
 
             try {
                 foreach (var test in xmlTests) {
+                    if (Path.GetFileNameWithoutExtension(test) == "Common")
+                        continue;
+
                     var uri = new Uri(
                         Path.Combine(rootPath, "test_runner.html"), UriKind.Absolute
                     );
@@ -47,7 +50,7 @@ namespace JSIL.Tests {
                     xmlTests, null, typeInfo
                 );
             } catch (Exception exc) {
-                Console.WriteLine(exc);
+                Console.WriteLine(exc.Message);
             }
         }
     }

@@ -67,6 +67,7 @@
     <None Include="SimpleTestCases\InterfaceInheritanceDifferentNames.cs" />
     <None Include="XMLTestCases\SimpleDocument.cs" />
     <None Include="SimpleTestCases\RecursiveArrayInitializer.cs" />
+    <None Include="XMLTestCases\Common.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
