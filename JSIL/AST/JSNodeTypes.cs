@@ -1049,6 +1049,15 @@ namespace JSIL.Ast {
         /// Converts a constructed reference into the expression it refers to, turning it back into a regular expression.
         /// </summary>
         public static bool TryDereference (JSILIdentifier jsil, JSExpression reference, out JSExpression referent) {
+            var originalReference = reference;
+            var cast = reference as JSCastExpression;
+            var isCast = false;
+
+            if (cast != null) {
+                isCast = true;
+                reference = cast.Expression;
+            }
+
             var variable = reference as JSVariable;
             var rre = reference as JSResultReferenceExpression;
             var refe = reference as JSReferenceExpression;
@@ -1078,6 +1087,9 @@ namespace JSIL.Ast {
                     }
 
                     referent = rv;
+                    if (isCast)
+                        referent = JSCastExpression.New(referent, cast.NewType, jsil.TypeSystem);
+
                     return true;
                 }
             }
@@ -1085,9 +1097,15 @@ namespace JSIL.Ast {
             if (rre != null) {
                 if (rre.Depth == 1) {
                     referent = rre.Referent;
+                    if (isCast)
+                        referent = JSCastExpression.New(referent, cast.NewType, jsil.TypeSystem);
+
                     return true;
                 } else {
                     referent = rre.Dereference();
+                    if (isCast)
+                        referent = JSCastExpression.New(referent, cast.NewType, jsil.TypeSystem);
+
                     return true;
                 }
             }
@@ -1098,6 +1116,9 @@ namespace JSIL.Ast {
             }
 
             referent = refe.Referent;
+            if (isCast)
+                referent = JSCastExpression.New(referent, cast.NewType, jsil.TypeSystem);
+
             return true;
         }
 

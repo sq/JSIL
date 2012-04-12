@@ -329,24 +329,43 @@ JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true, [], function ($) {
   });
 
   $.RawMethod(false, "$createInstance", function (loopCount) {
-    var instance = this.sound.cloneNode(true);
+    var node = this.sound.cloneNode(true);
+
+    var result = {
+      source: node,
+      isPlaying: false
+    };
+
+    result.play = function () {
+      result.isPlaying = true;
+      node.play();
+    };
+    result.pause = function () {
+      result.isPlaying = false;
+      node.pause();
+    };
 
     if (loopCount > 0) {
       var state = [loopCount];
 
       instance.addEventListener("ended", function () {
+        result.isPlaying = false;
+
         if (state[0] > 0) {
           state[0]--;
-          instance.play();
+          result.play();
         }
       }.bind(this), true);
     } else {
       instance.addEventListener("ended", function () {
-        if (this.freeInstances.length < 16) this.freeInstances.push(instance);
+        result.isPlaying = false;
+
+        if (this.freeInstances.length < 16)
+          this.freeInstances.push(result);
       }.bind(this), true);
     }
 
-    return instance;
+    return result;
   });
 
   $.Method({Static:false, Public:true }, "Play", 
@@ -382,7 +401,8 @@ JSIL.MakeClass("HTML5Asset", "WebkitSoundAsset", true, [], function ($) {
     instance.buffer = this.buffer;
     instance.loop = loopCount > 0;
     instance.connect(this.audioContext.destination);
-    return {
+
+    var result = {
       source: instance,
       play: function () {
         instance.noteOn(0);
@@ -391,6 +411,16 @@ JSIL.MakeClass("HTML5Asset", "WebkitSoundAsset", true, [], function ($) {
         instance.noteOff(0);
       }
     };
+
+    Object.defineProperty(result, "isPlaying", {
+      configurable: true,
+      enumerable: true,
+      get: function () {
+        return (instance.playbackState == 2) || (instance.playbackState == 1);
+      }
+    });
+
+    return result;
   });
 
   $.Method({Static:false, Public:true }, "Play", 
@@ -1254,6 +1284,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.AudioCategory", function 
       return this._name;
     }
   );
+
+  $.Method({Static:false, Public:true }, "SetVolume", 
+    (new JSIL.MethodSignature(null, [$.Single], [])), 
+    function SetVolume (volume) {
+      // FIXME
+    }
+  );
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.WaveBank", function ($) {
@@ -1290,9 +1327,18 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
     return this._name;
   });
 
+  $.Method({Static:false, Public:true }, "SetVariable", 
+    (new JSIL.MethodSignature(null, [$.String, $.Single], [])), 
+    function SetVariable (name, value) {
+      // FIXME
+    }
+  );
+
   $.Method({Static:false, Public:true }, "Pause", 
     (new JSIL.MethodSignature(null, [], [])), 
     function Pause () {
+      this.$gc();
+
       for (var i = 0; i < this.wavesPlaying.length; i++) {
         var wave = this.wavesPlaying[i];
         wave.pause()
@@ -1303,6 +1349,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
   $.Method({Static:false, Public:true }, "Play", 
     (new JSIL.MethodSignature(null, [], [])), 
     function Play () {
+      this.$gc();
+
       var soundName = this.sounds[0];
       var sound = this.soundBank.sounds[soundName];
 
@@ -1331,9 +1379,31 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
     }
   );
 
+  $.RawMethod(false, "$gc", function () {
+    for (var i = 0; i < this.wavesPlaying.length; i++) {
+      var w = this.wavesPlaying[i];
+
+      if (!w.isPlaying) {
+        this.wavesPlaying.splice(i, 1);
+        i--;
+      }
+    }
+  });
+
+  $.Method({Static:false, Public:true }, "get_IsPlaying", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsPlaying () {
+      this.$gc();
+
+      return (this.wavesPlaying.length > 0);
+    }
+  );
+
   $.Method({Static:false, Public:true }, "Resume", 
     (new JSIL.MethodSignature(null, [], [])), 
     function Resume () {
+      this.$gc();
+
       for (var i = 0; i < this.wavesPlaying.length; i++) {
         var wave = this.wavesPlaying[i];
         wave.play()
@@ -1344,6 +1414,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
   $.Method({Static:false, Public:true }, "Stop", 
     (new JSIL.MethodSignature(null, [$asms[18].TypeRef("Microsoft.Xna.Framework.Audio.AudioStopOptions")], [])), 
     function Stop (options) {
+      this.$gc();
+
       while (this.wavesPlaying.length > 0) {
         var wave = this.wavesPlaying.shift();
         wave.pause()
@@ -2195,6 +2267,55 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectParameter", func
     function get_Elements () {
       // FIXME
       return new Microsoft.Xna.Framework.Graphics.EffectParameterCollection();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "SetValue", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [$asms[0].TypeRef("Microsoft.Xna.Framework.Vector4")])], [])), 
+    function SetValue (value) {
+      // FIXME
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "SetValue", 
+    (new JSIL.MethodSignature(null, [$asms[0].TypeRef("Microsoft.Xna.Framework.Vector4")], [])), 
+    function SetValue (value) {
+      // FIXME
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "SetValue", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [$asms[0].TypeRef("Microsoft.Xna.Framework.Vector3")])], [])), 
+    function SetValue (value) {
+      // FIXME
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "SetValue", 
+    (new JSIL.MethodSignature(null, [$asms[0].TypeRef("Microsoft.Xna.Framework.Vector3")], [])), 
+    function SetValue (value) {
+      // FIXME
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "SetValue", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [$asms[0].TypeRef("Microsoft.Xna.Framework.Vector2")])], [])), 
+    function SetValue (value) {
+      // FIXME
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "SetValue", 
+    (new JSIL.MethodSignature(null, [$asms[0].TypeRef("Microsoft.Xna.Framework.Vector2")], [])), 
+    function SetValue (value) {
+      // FIXME
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "SetValue", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [$.Single])], [])), 
+    function SetValue (value) {
+      // FIXME
     }
   );
 
@@ -3241,6 +3362,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "Contains", 
+    (new JSIL.MethodSignature($.Boolean, [$.Int32, $.Int32], [])), 
+    function Contains (x, y) {
+      return this.X <= x && x < this.X + this.Width && this.Y <= y && y < this.Y + this.Height;
+    }
+  );
   $.Method({Static:false, Public:true }, "Contains", 
     (new JSIL.MethodSignature($.Boolean, [$asms[0].TypeRef("Microsoft.Xna.Framework.Point")], [])), 
     function Contains (value) {
@@ -4301,10 +4428,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
     this.viewport = new Microsoft.Xna.Framework.Graphics.Viewport();
     this.viewport.Width = this.canvas.clientWidth || this.canvas.width;
     this.viewport.Height = this.canvas.clientHeight || this.canvas.height;
-    this.samplerStates = new Microsoft.Xna.Framework.Graphics.SamplerStateCollection();
-    this.vertexSamplerStates = new Microsoft.Xna.Framework.Graphics.SamplerStateCollection();
-    this.textures = new Microsoft.Xna.Framework.Graphics.TextureCollection();
-    this.vertexTextures = new Microsoft.Xna.Framework.Graphics.TextureCollection();
+    this.samplerStates = new Microsoft.Xna.Framework.Graphics.SamplerStateCollection(this, 0, 4);
+    this.vertexSamplerStates = new Microsoft.Xna.Framework.Graphics.SamplerStateCollection(this, 0, 4);
+    this.textures = new Microsoft.Xna.Framework.Graphics.TextureCollection(this, 0, 4);
+    this.vertexTextures = new Microsoft.Xna.Framework.Graphics.TextureCollection(this, 0, 4);
     this.presentationParameters = JSIL.CreateInstanceOfType(
       Microsoft.Xna.Framework.Graphics.PresentationParameters.__Type__, 
       "$internalCtor", [this]
@@ -4528,6 +4655,36 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.PresentationParameters
   );
 });
 
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.TextureCollection", function ($) {
+
+  $.Method({Static:false, Public:false}, ".ctor", 
+    (new JSIL.MethodSignature(null, [
+          $asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), $.Int32, 
+          $.Int32
+        ], [])), 
+    function _ctor (parent, textureOffset, maxTextures) {
+      this.textures = new Array(maxTextures);
+
+      for (var i = 0; i < maxTextures; i++)
+        this.textures[i] = null;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Item", 
+    (new JSIL.MethodSignature($asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.Texture"), [$.Int32], [])), 
+    function get_Item (index) {
+      return this.textures[index];
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Item", 
+    (new JSIL.MethodSignature(null, [$.Int32, $asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.Texture")], [])), 
+    function set_Item (index, value) {
+      this.textures[index] = value;
+    }
+  );
+});
+
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SamplerStateCollection", function ($) {
 
   $.Method({Static:false, Public:false}, ".ctor", 
@@ -4576,6 +4733,16 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.MathHelper", function ($) {
         return max;
       else 
         return value;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Lerp", 
+    (new JSIL.MethodSignature($.Single, [
+          $.Single, $.Single, 
+          $.Single
+        ], [])), 
+    function Lerp (value1, value2, amount) {
+      return value1 + (value2 - value1) * amount;
     }
   );
 

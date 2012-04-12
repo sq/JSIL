@@ -1536,6 +1536,7 @@ JSIL.$MathSign = function (value) {
 JSIL.ImplementExternals("System.Math", function ($) {
   $.RawMethod(true, "Max", Math.max);
   $.RawMethod(true, "Min", Math.min);
+  $.RawMethod(true, "Exp", Math.exp);
 
   $.Method({Static:true , Public:true }, "Sign", 
     (new JSIL.MethodSignature($.Int32, [$.SByte], [])), 
