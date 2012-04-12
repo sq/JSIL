@@ -40,7 +40,7 @@ namespace JSIL.Transforms {
                     JS.charCodeAt, ce.Expression, new[] { JSLiteral.New(0) }, true
                 );
             } else if (
-                ILBlockTranslator.IsEnum(currentType)
+                IntroduceEnumCasts.IsEnumOrNullableEnum(currentType)
             ) {
                 var enumInfo = TypeInfo.Get(currentType);
 

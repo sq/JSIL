@@ -345,6 +345,7 @@
     <None Include="SimpleTestCases\TryCastDelegate.cs" />
     <None Include="SimpleTestCases\TryCastGenericDelegate.cs" />
     <None Include="SimpleTestCases\ArrayOfNullable.cs" />
+    <None Include="TestCases\CastEnumNullableToInt.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

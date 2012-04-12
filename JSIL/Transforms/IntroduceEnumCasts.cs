@@ -28,12 +28,27 @@ namespace JSIL.Transforms {
             };
         }
 
+        public static bool IsEnumOrNullableEnum (TypeReference tr) {
+            tr = ILBlockTranslator.DereferenceType(tr, false);
+
+            if (ILBlockTranslator.IsEnum(tr))
+                return true;
+
+            var git = tr as GenericInstanceType;
+            if ((git != null) && (git.Name == "Nullable`1")) {
+                if (ILBlockTranslator.IsEnum(git.GenericArguments[0]))
+                    return true;
+            }
+
+            return false;
+        }
+
         public void VisitNode (JSIndexerExpression ie) {
             var indexType = ie.Index.GetExpectedType(TypeSystem);
 
             if (
                 !ILBlockTranslator.IsIntegral(indexType) &&
-                ILBlockTranslator.IsEnum(indexType)
+                IsEnumOrNullableEnum(indexType)
             ) {
                 var cast = JSInvocationExpression.InvokeMethod(
                     new JSFakeMethod("valueOf", TypeSystem.Int32, new[] { indexType }, MethodTypes), ie.Index, null, true
@@ -47,7 +62,7 @@ namespace JSIL.Transforms {
 
         public void VisitNode (JSUnaryOperatorExpression uoe) {
             var type = uoe.Expression.GetExpectedType(TypeSystem);
-            var isEnum = ILBlockTranslator.IsEnum(type);
+            var isEnum = IsEnumOrNullableEnum(type);
 
             if (isEnum) {
                 var cast = JSInvocationExpression.InvokeMethod(
@@ -66,9 +81,9 @@ namespace JSIL.Transforms {
 
         public void VisitNode (JSBinaryOperatorExpression boe) {
             var leftType = boe.Left.GetExpectedType(TypeSystem);
-            var leftIsEnum = ILBlockTranslator.IsEnum(leftType);
+            var leftIsEnum = IsEnumOrNullableEnum(leftType);
             var rightType = boe.Right.GetExpectedType(TypeSystem);
-            var rightIsEnum = ILBlockTranslator.IsEnum(rightType);
+            var rightIsEnum = IsEnumOrNullableEnum(rightType);
 
             if ((leftIsEnum || rightIsEnum) && LogicalOperators.Contains(boe.Operator)) {
                 if (leftIsEnum) {
@@ -96,7 +111,7 @@ namespace JSIL.Transforms {
 
             if (
                 !ILBlockTranslator.IsIntegral(conditionType) &&
-                ILBlockTranslator.IsEnum(conditionType)
+                IsEnumOrNullableEnum(conditionType)
             ) {
                 var cast = JSInvocationExpression.InvokeMethod(
                     new JSFakeMethod("valueOf", TypeSystem.Int32, new[] { conditionType }, MethodTypes), ss.Condition, null, true

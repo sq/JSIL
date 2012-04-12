@@ -199,7 +199,8 @@ namespace JSIL.Tests {
                     @"TestCases\EnumBooleanLogic.cs",
                     @"TestCases\EnumArrayLookup.cs",
                     @"TestCases\OverloadWithEnum.cs",
-                    @"TestCases\EnumIfStatement.cs"
+                    @"TestCases\EnumIfStatement.cs",
+                    @"TestCases\CastEnumNullableToInt.cs"
                 }, null, defaultProvider
             );
         }

@@ -931,7 +931,7 @@ JSIL.MakeProto = function (baseType, typeObject, typeName, isReferenceType, asse
   var baseTypeObject = _[1];
 
   var prototype = JSIL.CloneObject(baseTypePublicInterface.prototype);
-  prototype.__ThisType__ = typeObject;
+  JSIL.SetValueProperty(prototype, "__ThisType__", typeObject);
   prototype.__BaseType__ = baseTypeObject;
 
   prototype.__ShortName__ = JSIL.GetLocalName(typeName);
@@ -1330,7 +1330,7 @@ $jsilcore.$Of$NoInitialize = function () {
   result.__Self__ = result;
 
   if (typeof (result.prototype) !== "undefined") {
-    result.prototype.__ThisType__ = resultTypeObject;
+    JSIL.SetValueProperty(result.prototype, "__ThisType__", resultTypeObject);
     result.prototype.__FullName__ = fullName;
   }
 

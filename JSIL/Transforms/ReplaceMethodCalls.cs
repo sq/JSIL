@@ -275,7 +275,7 @@ namespace JSIL.Transforms {
         }
 
         protected bool IsNullable (TypeReference type) {
-            var git = type as GenericInstanceType;
+            var git = ILBlockTranslator.DereferenceType(type) as GenericInstanceType;
 
             return (git != null) && (git.Name == "Nullable`1");
         }

@@ -935,6 +935,8 @@ namespace JSIL {
                 // ILSpy bug
 
                 return JSCastExpression.New(result, expression.ExpectedType, TypeSystem);
+            } else {
+                return result;
             }
 
             return result;
@@ -1963,7 +1965,7 @@ namespace JSIL {
 
             if (IsNumericOrEnum(currentType) && IsNumericOrEnum(expectedType)) {
                 if (IsIntegral(expectedType)) {
-                    if (IsIntegral(currentType))
+                    if (IsIntegral(currentType) || IsEnum(currentType))
                         return value;
                     else
                         return JSInvocationExpression.InvokeStatic(JS.floor, new[] { value }, true);

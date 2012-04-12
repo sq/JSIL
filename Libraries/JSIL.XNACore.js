@@ -2016,7 +2016,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.BasicEffect", function
     }
   );
 
-
   $.Method({Static:false, Public:true }, "set_Alpha", 
     (new JSIL.MethodSignature(null, [$.Single], [])), 
     function set_Alpha (value) {
@@ -2152,6 +2151,60 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Effect", function ($) 
       return new Microsoft.Xna.Framework.Graphics.EffectTechnique();
     }
   );
+
+  $.Method({Static:false, Public:true }, "get_Parameters", 
+    (new JSIL.MethodSignature($asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.EffectParameterCollection"), [], [])), 
+    function get_Parameters () {
+      // FIXME
+      return new Microsoft.Xna.Framework.Graphics.EffectParameterCollection();
+    }
+  );
+
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectParameterCollection", function ($) {
+  $.Method({Static:false, Public:true }, "get_Count", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Count () {
+      // FIXME
+      return 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Item", 
+    (new JSIL.MethodSignature($asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.EffectParameter"), [$.Int32], [])), 
+    function get_Item (index) {
+      // FIXME
+      return new Microsoft.Xna.Framework.Graphics.EffectParameter();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Item", 
+    (new JSIL.MethodSignature($asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.EffectParameter"), [$.String], [])), 
+    function get_Item (name) {
+      // FIXME
+      return new Microsoft.Xna.Framework.Graphics.EffectParameter();
+    }
+  );
+
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectParameter", function ($) {  
+  $.Method({Static:false, Public:true }, "get_Elements", 
+    (new JSIL.MethodSignature($asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.EffectParameterCollection"), [], [])), 
+    function get_Elements () {
+      // FIXME
+      return new Microsoft.Xna.Framework.Graphics.EffectParameterCollection();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "SetValue", 
+    (new JSIL.MethodSignature(null, [$.Single], [])), 
+    function SetValue (value) {
+      // FIXME
+    }
+  );
+
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectTechnique", function ($) {
@@ -4252,6 +4305,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
     this.vertexSamplerStates = new Microsoft.Xna.Framework.Graphics.SamplerStateCollection();
     this.textures = new Microsoft.Xna.Framework.Graphics.TextureCollection();
     this.vertexTextures = new Microsoft.Xna.Framework.Graphics.TextureCollection();
+    this.presentationParameters = JSIL.CreateInstanceOfType(
+      Microsoft.Xna.Framework.Graphics.PresentationParameters.__Type__, 
+      "$internalCtor", [this]
+    );
     this.$UpdateViewport();
   });
 
@@ -4268,6 +4325,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
       this.viewport = newViewport.MemberwiseClone();
 
       this.$UpdateViewport();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_PresentationParameters", 
+    (new JSIL.MethodSignature($asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.PresentationParameters"), [], [])), 
+    function get_PresentationParameters () {
+      return this.presentationParameters;
     }
   );
 
@@ -4415,6 +4479,51 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
 
       if (oldRenderTarget !== null) 
         oldRenderTarget.$ResynthesizeImage();
+    }
+  );
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.PresentationParameters", function ($) {
+  $.RawMethod(false, "__CopyMembers__", function (target) {
+    target._device = this._device;
+  });
+
+  $.RawMethod(false, "$internalCtor", function (graphicsDevice) {
+    this._device = graphicsDevice;
+  });
+
+  $.Method({Static:false, Public:true }, "get_BackBufferFormat", 
+    (new JSIL.MethodSignature($asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.SurfaceFormat"), [], [])), 
+    function get_BackBufferFormat () {
+      return Microsoft.Xna.Framework.Graphics.SurfaceFormat.Color;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_BackBufferHeight", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_BackBufferHeight () {
+      return this._device.originalCanvas.height;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_BackBufferWidth", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_BackBufferWidth () {
+      return this._device.originalCanvas.width;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_DepthStencilFormat", 
+    (new JSIL.MethodSignature($asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.DepthFormat"), [], [])), 
+    function get_DepthStencilFormat () {
+      return Microsoft.Xna.Framework.Graphics.DepthFormat.None;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_MultiSampleCount", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_MultiSampleCount () {
+      return 0;
     }
   );
 });
