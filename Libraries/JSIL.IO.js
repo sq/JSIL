@@ -159,6 +159,13 @@ var $bytestream = function ($) {
       return this._pos;
     }
   );
+
+  $.Method({Static:false, Public:true }, "get_Length", 
+    (new JSIL.MethodSignature($.Int64, [], [])), 
+    function get_Length () {
+      return this._length;
+    }
+  );
 };
 
 JSIL.ImplementExternals("System.IO.FileStream", function ($) {
