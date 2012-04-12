@@ -2601,8 +2601,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   $.RawMethod(false, "_Step", function () {
     var now = this._GetNow();
 
+    var frameDelay = this.targetElapsedTime.get_TotalMilliseconds();
+
     if (this._lastFrame === 0) {
-      var elapsed = 0;
+      var elapsed = frameDelay;
       var total = 0;
       this._started = now;
       this._lastSecond = now;
@@ -2630,14 +2632,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       elapsed = 0;
     }
 
-    var frameDelay = this.targetElapsedTime.get_TotalMilliseconds();
-
     this._lastFrame = now;
     this._nextFrame = now + frameDelay;
 
     var millisecondInTicks = 10000;
-    var maxElapsedTimeMs = 500;
-    var longFrame = frameDelay * 2;
+    var maxElapsedTimeMs = 150;
+    var longFrame = frameDelay * 3;
 
     var failed = true;
     try {
@@ -2678,6 +2678,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       } else {
         this._extraTime = 0;
         this.suppressFrameskip = false;
+
+        if (elapsed > maxElapsedTimeMs)
+          elapsed = maxElapsedTimeMs;
 
         this._gameTime.elapsedGameTime._ticks = (elapsed * millisecondInTicks);
         this._gameTime.totalGameTime._ticks += (elapsed * millisecondInTicks);
