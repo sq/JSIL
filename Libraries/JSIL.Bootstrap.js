@@ -855,6 +855,10 @@ $jsilcore.$ListExternals = function ($, T, type) {
       this._items[this._size] = item;
     }
     this._size += 1;
+
+    if (typeof (this.$OnItemAdded) === "function")
+      this.$OnItemAdded(item);
+
     return this._size;
   };
 
@@ -3254,4 +3258,48 @@ JSIL.ImplementExternals("System.Text.RegularExpressions.Match", function ($) {
     this._text = text;
     this._length = text.length;
   });
+});
+
+JSIL.ImplementExternals("System.Resources.ResourceManager", function ($) {
+
+  $.Method({Static:false, Public:false}, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      // FIXME
+    }
+  );
+
+  $.Method({Static:false, Public:false}, ".ctor", 
+    (new JSIL.MethodSignature(null, [
+          $.String, $.String, 
+          $asms[5].TypeRef("System.Type")
+        ], [])), 
+    function _ctor (baseName, resourceDir, usingResourceSet) {
+      // FIXME
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.String, $asms[5].TypeRef("System.Reflection.Assembly")], [])), 
+    function _ctor (baseName, assembly) {
+      // FIXME
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetString", 
+    (new JSIL.MethodSignature($.String, [$.String], [])), 
+    function GetString (name) {
+      // FIXME
+      return name;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetString", 
+    (new JSIL.MethodSignature($.String, [$.String, $asms[5].TypeRef("System.Globalization.CultureInfo")], [])), 
+    function GetString (name, culture) {
+      // FIXME
+      return name;
+    }
+  );
+
 });

@@ -56,6 +56,10 @@ namespace Xap
                     m_xmaQuality = Parser.ParseInt(value, line);
                     break;
 
+                case "WMA Quality":
+                    m_wmaQuality = Parser.ParseInt(value, line);
+                    break;
+
 				default:
 					return false;
 			}
@@ -76,6 +80,7 @@ namespace Xap
 		public int m_loop;
 		public int m_samplesPerBlock;
         public int m_xmaQuality;
+        public int m_wmaQuality;
 
 		#endregion
 	}

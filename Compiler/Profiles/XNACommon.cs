@@ -792,6 +792,7 @@ public static class Common {
                         case "FontDescriptionProcessor":
                             copyRawXnb(item, xnbPath, "SpriteFont");
                             continue;
+
                         case "SoundEffectProcessor":
                         case "SongProcessor":
                             journal.AddRange(CompressAudioGroup(
@@ -799,6 +800,7 @@ public static class Common {
                                 configuration.ProfileSettings, existingJournal, logOutput
                             ));
                             continue;
+
                         case "TextureProcessor":
                             if (Path.GetExtension(sourcePath).ToLower() == ".tga") {
                                 copyRawXnb(item, xnbPath, "Texture2D");
@@ -815,6 +817,10 @@ public static class Common {
                                 logOutput("Image", result.Value.Filename, null);
                             }
 
+                            continue;
+
+                        case "EffectProcessor":
+                            copyRawXnb(item, xnbPath, "XNB");
                             continue;
                     }
                     

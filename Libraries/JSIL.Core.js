@@ -3854,85 +3854,91 @@ JSIL.OverloadedMethodCore = function (type, name, overloads, dispatcher) {
   );
 };
 
-JSIL.ImplementExternals(
-  "System.Object", function ($) {
-    $.RawMethod(true, "CheckType",
-      function (value) {
-        return (typeof (value) === "object");
-      }
-    );
+JSIL.ImplementExternals("System.Object", function ($) {
+  $.RawMethod(true, "CheckType",
+    function (value) {
+      return (typeof (value) === "object");
+    }
+  );
 
-    $.RawMethod(false, "__Initialize__",
-      function (initializer) {
-        var isInitializer = function (v) {
-          return (typeof (v) === "object") && (v !== null) && 
-            (Object.getPrototypeOf(v) === JSIL.CollectionInitializer.prototype);
-        };
+  $.RawMethod(false, "__Initialize__",
+    function (initializer) {
+      var isInitializer = function (v) {
+        return (typeof (v) === "object") && (v !== null) && 
+          (Object.getPrototypeOf(v) === JSIL.CollectionInitializer.prototype);
+      };
 
-        if (JSIL.IsArray(initializer)) {
-          JSIL.ApplyCollectionInitializer(this, initializer);
-          return this;
-        } else if (isInitializer(initializer)) {
-          initializer.Apply(this);
-          return this;
-        }
-
-        for (var key in initializer) {
-          if (!initializer.hasOwnProperty(key))
-            continue;
-
-          var value = initializer[key];
-
-          if (isInitializer(value)) {
-            value.Apply(this[key]);
-          } else {
-            this[key] = value;
-          }
-        }
-
+      if (JSIL.IsArray(initializer)) {
+        JSIL.ApplyCollectionInitializer(this, initializer);
+        return this;
+      } else if (isInitializer(initializer)) {
+        initializer.Apply(this);
         return this;
       }
-    );
 
+      for (var key in initializer) {
+        if (!initializer.hasOwnProperty(key))
+          continue;
 
-    $.Method({Static: false, Public: true}, "GetType",
-      new JSIL.MethodSignature("System.Type", [], [], $jsilcore),
-      function () {
-        return this.__ThisType__;
+        var value = initializer[key];
+
+        if (isInitializer(value)) {
+          value.Apply(this[key]);
+        } else {
+          this[key] = value;
+        }
       }
-    );
 
-    $.Method({Static: false, Public: true}, "Equals",
-      new JSIL.MethodSignature("System.Boolean", ["System.Object"], [], $jsilcore),
-      function (rhs) {
-        return this === rhs;
-      }
-    );
+      return this;
+    }
+  );
 
-    $.Method({Static: false, Public: false}, "MemberwiseClone",
-      new JSIL.MethodSignature("System.Object", [], [], $jsilcore),
-      function () {
-        var result = Object.create(Object.getPrototypeOf(this));
 
-        JSIL.CopyMembers(this, result);
-        return result;
-      }
-    );
+  $.Method({Static: false, Public: true}, "GetType",
+    new JSIL.MethodSignature("System.Type", [], [], $jsilcore),
+    function () {
+      return this.__ThisType__;
+    }
+  );
 
-    $.Method({Static: false, Public: true}, ".ctor",
-      new JSIL.MethodSignature(null, []),
-      function () {
-      }
-    );
+  $.Method({Static: false, Public: true}, "Equals",
+    new JSIL.MethodSignature("System.Boolean", ["System.Object"], [], $jsilcore),
+    function (rhs) {
+      return this === rhs;
+    }
+  );
 
-    $.Method({Static: false, Public: true}, "toString",
-      new JSIL.MethodSignature("System.String", [], [], $jsilcore),
-      function () {
-        return JSIL.GetTypeName(this);
-      }
-    );
-  }
-);
+  $.Method({Static: false, Public: false}, "MemberwiseClone",
+    new JSIL.MethodSignature("System.Object", [], [], $jsilcore),
+    function () {
+      var result = Object.create(Object.getPrototypeOf(this));
+
+      JSIL.CopyMembers(this, result);
+      return result;
+    }
+  );
+
+  $.Method({Static: false, Public: true}, ".ctor",
+    new JSIL.MethodSignature(null, []),
+    function () {
+    }
+  );
+
+  $.Method({Static: false, Public: true}, "toString",
+    new JSIL.MethodSignature("System.String", [], [], $jsilcore),
+    function () {
+      return JSIL.GetTypeName(this);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ReferenceEquals", 
+    (new JSIL.MethodSignature($.Boolean, [$.Object, $.Object], [])), 
+    function ReferenceEquals (objA, objB) {
+      return objA === objB;
+    }
+  );
+
+});
 
 JSIL.MakeClass(Object, "System.Object", true, [], function ($) {
   $.ExternalMethod({Static: false, Public: true}, ".ctor",

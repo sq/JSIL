@@ -125,9 +125,15 @@ $jsilxna.setCachedMultipliedImage = function (image, color, value) {
 $jsilxna.getImageMultiplied = function (image, color) {
   var cached = $jsilxna.getCachedMultipliedImage(image, color);
   if (cached !== null) {
-    if (typeof (cached.canvas) !== "undefined") return cached.canvas;
-    else return cached;
+    if (typeof (cached.canvas) !== "undefined") 
+      return cached.canvas;
+    else 
+      return cached;
   }
+
+  // Workaround for chromium bug where sometimes images aren't fully initialized.
+  if ((image.naturalWidth < 1) || (image.naturalHeight < 1))
+    return null;
 
   var canvas = document.createElement("canvas");
   var context = canvas.getContext("2d");
@@ -247,10 +253,17 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentManager", functi
     var rawXnb = JSIL.TryCast(asset, RawXNBAsset);
     if (rawXnb !== null) {
       rawXnb.contentManager = this;
-      return rawXnb.ReadAsset(T);
+      var result = rawXnb.ReadAsset(T);
+
+      if (result === null)
+        JSIL.Host.warning("Asset '" + assetName + "' loader returned null.");
+      return result;
     }
 
     if (JSIL.CheckType(asset, HTML5Asset)) {
+      if (asset === null)
+        JSIL.Host.warning("Asset '" + assetName + "' loader returned null.");
+
       return asset;
     }
 
@@ -815,6 +828,22 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.SpriteFontReader", func
   );
 });
 
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.EffectReader", function ($) {
+  $.InheritDefaultConstructor();
+
+  $.Method({Static:false, Public:false}, "Read", 
+    (new JSIL.MethodSignature($asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.Effect"), [$asms[0].TypeRef("Microsoft.Xna.Framework.Content.ContentReader"), $asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.Effect")], [])), 
+    function Read (input, existingInstance) {
+      var count = input.ReadInt32();
+      var effectCode = input.ReadBytes(count);
+
+      // FIXME
+      return JSIL.CreateInstanceOfType(Microsoft.Xna.Framework.Graphics.Effect.__Type__, null);
+    }
+  );
+
+});
+
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReaderManager", function ($) {
   $.Method({Static: true, Public: true}, ".cctor", 
     new JSIL.MethodSignature(null, [], []), 
@@ -1200,6 +1229,31 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.AudioEngine", function ($
     }
   );
 
+  $.Method({Static:false, Public:true }, "GetCategory", 
+    (new JSIL.MethodSignature($asms[18].TypeRef("Microsoft.Xna.Framework.Audio.AudioCategory"), [$.String], [])), 
+    function GetCategory (name) {
+      // FIXME
+      return new Microsoft.Xna.Framework.Audio.AudioCategory(this, name);
+    }
+  );
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.AudioCategory", function ($) {
+
+  $.Method({Static:false, Public:false}, ".ctor", 
+    (new JSIL.MethodSignature(null, [$asms[18].TypeRef("Microsoft.Xna.Framework.Audio.AudioEngine"), $.String], [])), 
+    function _ctor (engine, name) {
+      this._engine = engine;
+      this._name = name;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Name", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_Name () {
+      return this._name;
+    }
+  );
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.WaveBank", function ($) {
@@ -2126,6 +2180,21 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameServiceContainer", function
   }, ".ctor", new JSIL.MethodSignature(null, [], []), function () {});
 });
 
+JSIL.ImplementExternals("Microsoft.Xna.Framework.GameComponentCollection", function ($) {
+  $.RawMethod(false, "$internalCtor", function (game) {
+    this._game = game;
+
+    this._ctor();
+  });
+
+  $.RawMethod(false, "$OnItemAdded", function (item) {
+    if (this._game.initialized) {
+      if (typeof (item.Initialize) === "function")
+        item.Initialize();
+    }
+  });
+});
+
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   $.Method({Static: false, Public: true}, "ForceQuit", 
     new JSIL.MethodSignature(null, [], []), 
@@ -2147,11 +2216,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
 
       this.gameServices = new Microsoft.Xna.Framework.GameServiceContainer();
       this.content = JSIL.CreateInstanceOfType(tContentManager, [this.gameServices]);
-      this.components = new Microsoft.Xna.Framework.GameComponentCollection();
+      this.components = JSIL.CreateInstanceOfType(
+        Microsoft.Xna.Framework.GameComponentCollection.__Type__, "$internalCtor", [this]
+      );
       this.targetElapsedTime = System.TimeSpan.FromTicks(166667);
       this.isFixedTimeStep = true;
       this.forceElapsedTimeToZero = true;
       this._isDead = false;
+      this.initialized = false;
 
       if (typeof (Date.now) === "function") {
         Object.defineProperty(this, "_GetNow", {
@@ -2241,7 +2313,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, "Initialize", new JSIL.MethodSignature(null, [], []), function () {
+  }, "Initialize", new JSIL.MethodSignature(null, [], []), function () {    
+    this.initialized = true;
+
     for (var i = 0, l = this.components._size; i < l; i++) {
       var component = this.components._items[i];
       component.Initialize();
@@ -2252,11 +2326,15 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, "LoadContent", new JSIL.MethodSignature(null, [], []), function () {});
+  }, "LoadContent", new JSIL.MethodSignature(null, [], []), function () {
+
+  });
   $.Method({
     Static: false,
     Public: true
-  }, "UnloadContent", new JSIL.MethodSignature(null, [], []), function () {});
+  }, "UnloadContent", new JSIL.MethodSignature(null, [], []), function () {
+
+  });
   $.Method({
     Static: false,
     Public: true
@@ -2716,6 +2794,31 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePad", function ($) {
     (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Input.GamePadState"), [$asms[0].TypeRef("Microsoft.Xna.Framework.PlayerIndex"), $asms[0].TypeRef("Microsoft.Xna.Framework.Input.GamePadDeadZone")], [])), 
     getStateImpl
   );
+
+  $.Method({Static:true , Public:true }, "GetCapabilities", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Input.GamePadCapabilities"), [$asms[0].TypeRef("Microsoft.Xna.Framework.PlayerIndex")], [])), 
+    function GetCapabilities (playerIndex) {
+      return new Microsoft.Xna.Framework.Input.GamePadCapabilities(null, null);
+    }
+  );
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadCapabilities", function ($) {
+  
+  $.Method({Static:false, Public:false}, ".ctor", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("JSIL.Reference", [$asms[0].TypeRef("Microsoft.Xna.Framework.Input.XINPUT_CAPABILITIES")]), $asms[0].TypeRef("Microsoft.Xna.Framework.ErrorCodes")], [])), 
+    function _ctor (/* ref */ caps, result) {
+      // FIXME
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_IsConnected", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsConnected () {
+      return false;
+    }
+  );
+
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadState", function ($) {
@@ -3436,6 +3539,25 @@ $jsilxna.Color = function ($) {
     this._cachedCss = null;
   });
 
+  var equalsImpl = function (lhs, rhs) {
+    return (lhs.r === rhs.r) && (lhs.g === rhs.g) &&
+      (lhs.b === rhs.b) && (lhs.a === rhs.a);
+  };
+
+  $.Method({Static:true , Public:true }, "op_Equality", 
+    (new JSIL.MethodSignature($.Boolean, [$asms[0].TypeRef("Microsoft.Xna.Framework.Color"), $asms[0].TypeRef("Microsoft.Xna.Framework.Color")], [])), 
+    function op_Equality (a, b) {
+      return equalsImpl(a, b);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Inequality", 
+    (new JSIL.MethodSignature($.Boolean, [$asms[0].TypeRef("Microsoft.Xna.Framework.Color"), $asms[0].TypeRef("Microsoft.Xna.Framework.Color")], [])), 
+    function op_Inequality (a, b) {
+      return !equalsImpl(a, b);
+    }
+  );
+
   $.Method({
     Static: true,
     Public: true
@@ -3922,7 +4044,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       if (!isSinglePixel) {
         if ((color.r < 255) || (color.g < 255) || (color.b < 255)) {
           var newImage = $jsilxna.getImageMultiplied(image, color);
-          if (newImage === image) {
+
+          if ((newImage === image) || (newImage === null)) {
             // Broken browser
           } else {
             image = newImage;
@@ -4125,6 +4248,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
     this.viewport = new Microsoft.Xna.Framework.Graphics.Viewport();
     this.viewport.Width = this.canvas.clientWidth || this.canvas.width;
     this.viewport.Height = this.canvas.clientHeight || this.canvas.height;
+    this.samplerStates = new Microsoft.Xna.Framework.Graphics.SamplerStateCollection();
+    this.vertexSamplerStates = new Microsoft.Xna.Framework.Graphics.SamplerStateCollection();
+    this.textures = new Microsoft.Xna.Framework.Graphics.TextureCollection();
+    this.vertexTextures = new Microsoft.Xna.Framework.Graphics.TextureCollection();
     this.$UpdateViewport();
   });
 
@@ -4141,6 +4268,34 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
       this.viewport = newViewport.MemberwiseClone();
 
       this.$UpdateViewport();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_SamplerStates", 
+    (new JSIL.MethodSignature($asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.SamplerStateCollection"), [], [])), 
+    function get_SamplerStates () {
+      return this.samplerStates;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_VertexSamplerStates", 
+    (new JSIL.MethodSignature($asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.SamplerStateCollection"), [], [])), 
+    function get_VertexSamplerStates () {
+      return this.vertexSamplerStates;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Textures", 
+    (new JSIL.MethodSignature($asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.TextureCollection"), [], [])), 
+    function get_Textures () {
+      return this.textures;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_VertexTextures", 
+    (new JSIL.MethodSignature($asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.TextureCollection"), [], [])), 
+    function get_VertexTextures () {
+      return this.vertexTextures;
     }
   );
 
@@ -4262,6 +4417,39 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
         oldRenderTarget.$ResynthesizeImage();
     }
   );
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SamplerStateCollection", function ($) {
+
+  $.Method({Static:false, Public:false}, ".ctor", 
+    (new JSIL.MethodSignature(null, [
+          $asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), $.Int32, 
+          $.Int32
+        ], [])), 
+    function _ctor (pParent, samplerOffset, maxSamplers) {
+      // FIXME
+      this.states = new Array(maxSamplers);
+
+      for (var i = 0; i < maxSamplers; i++) {
+        this.states = new Microsoft.Xna.Framework.Graphics.SamplerState();
+      }
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Item", 
+    (new JSIL.MethodSignature($asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.SamplerState"), [$.Int32], [])), 
+    function get_Item (index) {
+      return this.states[index];
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Item", 
+    (new JSIL.MethodSignature(null, [$.Int32, $asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.SamplerState")], [])), 
+    function set_Item (index, value) {
+      this.states[index] = value;
+    }
+  );
+
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.MathHelper", function ($) {

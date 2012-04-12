@@ -59,9 +59,7 @@ namespace JSIL.Transforms {
                         }
                     }
                 } else if (
-                    (type != null) &&
-                    (type.Type.FullName.StartsWith("System.Nullable")) &&
-                    (type.Type is GenericInstanceType)
+                    IsNullable(type.Type)
                 ) {
                     var t = (type.Type as GenericInstanceType).GenericArguments[0];
                     var @null = JSLiteral.Null(t);
@@ -276,10 +274,16 @@ namespace JSIL.Transforms {
             VisitChildren(ie);
         }
 
+        protected bool IsNullable (TypeReference type) {
+            var git = type as GenericInstanceType;
+
+            return (git != null) && (git.Name == "Nullable`1");
+        }
+
         public void VisitNode (JSPropertyAccess pa) {
             var targetType = pa.Target.GetExpectedType(TypeSystem);
 
-            if (targetType.FullName.StartsWith("System.Nullable")) {
+            if (IsNullable(targetType)) {
                 var @null = JSLiteral.Null(targetType);
 
                 switch (pa.Property.Property.Member.Name) {
@@ -308,9 +312,9 @@ namespace JSIL.Transforms {
 
         public void VisitNode (JSDefaultValueLiteral dvl) {
             var expectedType = dvl.GetExpectedType(TypeSystem);
+
             if (
-                (expectedType != null) &&
-                expectedType.FullName.StartsWith("System.Nullable")
+                IsNullable(expectedType)
             ) {
                 ParentNode.ReplaceChild(
                     dvl, JSLiteral.Null(expectedType)
@@ -323,8 +327,7 @@ namespace JSIL.Transforms {
         public void VisitNode (JSNewExpression ne) {
             var expectedType = ne.GetExpectedType(TypeSystem);
             if (
-                (expectedType != null) &&
-                expectedType.FullName.StartsWith("System.Nullable")
+                IsNullable(expectedType)
             ) {
                 if (ne.Arguments.Count == 0) {
                     ParentNode.ReplaceChild(

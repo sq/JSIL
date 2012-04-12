@@ -37,6 +37,7 @@ Tests/*Cases/*.js
 /Examples/obj
 /jsil.org/demos/RPG/Content
 /jsil.org/demos/Sully/Content
+/jsil.org/demos/Lumberjack
 /Upstream/dxtc.cpp
 /Upstream/LAME
 /Upstream/FFMPEG
