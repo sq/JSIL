@@ -73,6 +73,10 @@
     <None Include="XMLTestCases\AttributeCount.cs" />
     <None Include="XMLTestCases\Comments.cs" />
     <None Include="XMLTestCases\MoveToContent.cs" />
+    <None Include="XMLTestCases\Namespaces.cs" />
+    <None Include="XMLTestCases\GetAttributeByIndex.cs" />
+    <None Include="XMLTestCases\GetAttributeByName.cs" />
+    <None Include="XMLTestCases\NamespacedAttributes.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
