@@ -7,6 +7,8 @@ JSIL.DeclareAssembly("JSIL.XML");
 
 JSIL.DeclareNamespace("JSIL");
 JSIL.DeclareNamespace("JSIL.XML");
+JSIL.DeclareNamespace("System");
+JSIL.DeclareNamespace("System.Xml");
 
 var $xmlasms = new JSIL.AssemblyCollection({
     5: "mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", 
@@ -98,15 +100,18 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
     } else if (proto === textProto) {
       this._nodeType = ntText;
     } else if (proto === elementProto) {
-      this._nodeType = ntElement;
-    } else if (proto === docProto) {
-      if (closing) {
-        this._current = null;
-        this._closing = false;
-        return false;
+      if (state === sClosing) {
+        this._nodeType = ntEndElement;
+      } else {
+        this._nodeType = ntElement;
       }
-
-      this._nodeType = ntDocument;
+    } else if (proto === docProto) {
+      if (state !== sClosing) {
+        // Skip directly to the root node
+        return this.$setCurrentNode(node.firstChild, "node");
+      } else {
+        return this.$setCurrentNode(null, sAfterDocument);
+      }
     } else {
       JSIL.Host.warning("Unknown node type: ", node);
       this._nodeType = ntNone;
@@ -178,9 +183,17 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
       else if (this._nodeType === ntNone)
         return true;
 
-      return (this._current.children.length === 0) && 
-        (this._current.attributes.length === 0) && 
-        ((this._current.textContent === null) || (this._current.textContent === ""));
+      var noChildren = (typeof (this._current.childNodes) === "undefined") ||
+        (this._current.childNodes === null) || 
+        (this._current.childNodes.length === 0);
+
+      var noAttributes = (typeof (this._current.attributes) === "undefined") ||
+        (this._current.attributes === null) || 
+        (this._current.attributes.length === 0);
+
+      var noText = ((this._current.textContent === null) || (this._current.textContent.length === 0));
+
+      return noChildren && noAttributes && noText;
     }
   );
 
@@ -191,4 +204,46 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
     }
   );  
 
+  $.Method({Static:false, Public:true }, "get_Name", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_Name () {
+      if (this._current !== null)
+        return this._current.tagName || null;
+
+      return null;
+    }
+  );
+});
+
+JSIL.MakeEnum(
+  "System.Xml.XmlNodeType", true, {
+    None: 0, 
+    Element: 1, 
+    Attribute: 2, 
+    Text: 3, 
+    CDATA: 4, 
+    EntityReference: 5, 
+    Entity: 6, 
+    ProcessingInstruction: 7, 
+    Comment: 8, 
+    Document: 9, 
+    DocumentType: 10, 
+    DocumentFragment: 11, 
+    Notation: 12, 
+    Whitespace: 13, 
+    SignificantWhitespace: 14, 
+    EndElement: 15, 
+    EndEntity: 16, 
+    XmlDeclaration: 17
+  }, false
+);
+
+JSIL.MakeClass("System.Object", "System.Xml.XmlReader", true, [], function ($) {
+  $.ExternalMembers(
+    false, "Read", "get_NodeType", "get_IsEmptyElement", "get_Name"
+  );
+
+  $.Property({Static:false, Public:true }, "IsEmptyElement");
+  $.Property({Static:false, Public:true }, "Name");
+  $.Property({Static:false, Public:true }, "NodeType");
 });

@@ -17,7 +17,7 @@ public static class Program {
         var xr = ReaderFromString(xml);
 
         while (xr.Read()) {
-            Console.WriteLine(xr.NodeType.ToString());
+            Console.WriteLine("{0}{1} {2}", xr.NodeType.ToString(), xr.IsEmptyElement ? " Empty" : "", xr.Name);
         }
     }
 }

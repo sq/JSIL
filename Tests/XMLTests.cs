@@ -36,6 +36,8 @@ namespace JSIL.Tests {
                     Console.WriteLine(
                         "{0}#{1}", uri, 
                         Path.GetFullPath(test)
+                            .Replace(".cs", ".js")
+                            .Replace(".vb", ".vb.js")
                             .Replace(rootPath, "")
                             .Replace("\\", "/")
                     );
