@@ -3743,10 +3743,10 @@ $jsilxna.Color = function ($) {
     Public: true
   }, "op_Multiply", new JSIL.MethodSignature($.Type, [$.Type, $.Single], []), function (color, multiplier) {
     var result = Object.create(Object.getPrototypeOf(color));
-    result.a = Math.floor(color.a * multiplier);
-    result.r = Math.floor(color.r * multiplier);
-    result.g = Math.floor(color.g * multiplier);
-    result.b = Math.floor(color.b * multiplier);
+    result.a = $jsilxna.ClampByte(color.a * multiplier);
+    result.r = $jsilxna.ClampByte(color.r * multiplier);
+    result.g = $jsilxna.ClampByte(color.g * multiplier);
+    result.b = $jsilxna.ClampByte(color.b * multiplier);
     return result;
   });
 
@@ -3861,7 +3861,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       this.deferredDraws = [];
 
       this.device.context.restore();
-      
+
       this.$applyBlendState();
     }
   );
@@ -4277,6 +4277,16 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         this.device.context.scale(1, -1);
         positionY = -positionY;
         height = -height;
+      }
+
+      if (Math.abs(rotation) >= 0.0001) {
+        if (!needRestore) 
+          this.device.context.save();
+        needRestore = true;
+
+        this.device.context.translate(positionX + originX, positionY + originY);
+        this.device.context.rotate(rotation);
+        this.device.context.translate(-positionX - originX, -positionY - originY);
       }
 
       // 0x0 blits cause an exception in IE
