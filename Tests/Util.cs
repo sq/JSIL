@@ -203,7 +203,9 @@ namespace JSIL.Tests {
             };
         }
 
-        public string RunJavascript (string[] args, out string generatedJavascript, out long elapsedTranslation, out long elapsedJs) {
+        public string GenerateJavascript (
+            string[] args, out string generatedJavascript, out long elapsedTranslation
+        ) {
             var tempFilename = Path.GetTempFileName();
             var configuration = MakeDefaultConfiguration();
 
@@ -215,17 +217,23 @@ namespace JSIL.Tests {
             string translatedJs;
             var translationStarted = DateTime.UtcNow.Ticks;
             var assemblyPath = Util.GetPathOfAssembly(Assembly);
-            var result = translator.Translate(
-                assemblyPath, TypeInfo == null
-            );
-            AssemblyTranslator.GenerateManifest(translator.Manifest, assemblyPath, result);
-            translatedJs = result.WriteToString();
+            translatedJs = null;
+            try {
+                var result = translator.Translate(
+                    assemblyPath, TypeInfo == null
+                );
 
-            // If we're using a preconstructed type information provider, we need to remove the type information
-            //  from the assembly we just translated
-            if (TypeInfo != null) {
-                Assert.AreEqual(1, result.Assemblies.Count);
-                TypeInfo.Remove(result.Assemblies.ToArray());
+                AssemblyTranslator.GenerateManifest(translator.Manifest, assemblyPath, result);
+                translatedJs = result.WriteToString();
+
+                // If we're using a preconstructed type information provider, we need to remove the type information
+                //  from the assembly we just translated
+                if (TypeInfo != null) {
+                    Assert.AreEqual(1, result.Assemblies.Count);
+                    TypeInfo.Remove(result.Assemblies.ToArray());
+                }
+            } finally {
+                translator.Dispose();
             }
 
             elapsedTranslation = DateTime.UtcNow.Ticks - translationStarted;
@@ -246,13 +254,21 @@ namespace JSIL.Tests {
                 @"timeout({0}); " +
                 @"JSIL.Initialize(); var started = elapsed(); " +
                 @"{1}.Main({2}); " +
-                @"var ended = elapsed(); print('// elapsed: ' + (ended - started));", 
+                @"var ended = elapsed(); print('// elapsed: ' + (ended - started));",
                 JavascriptExecutionTimeout, declaringType, argsJson
             );
 
             generatedJavascript = translatedJs;
 
             File.WriteAllText(tempFilename, prefixJs + Environment.NewLine + translatedJs + Environment.NewLine + invocationJs);
+
+            return tempFilename;
+        }
+
+        public string RunJavascript (
+            string[] args, out string generatedJavascript, out long elapsedTranslation, out long elapsedJs
+        ) {
+            var tempFilename = GenerateJavascript(args, out generatedJavascript, out elapsedTranslation);
 
             try {
                 // throw new Exception();
@@ -314,8 +330,6 @@ namespace JSIL.Tests {
 
                 return output[0] ?? "";
             } finally {
-                translator.Dispose();
-
                 var jsFile = OutputPath;
                 if (File.Exists(jsFile))
                     File.Delete(jsFile);
@@ -400,8 +414,19 @@ namespace JSIL.Tests {
             return (new AssemblyTranslator(ComparisonTest.MakeDefaultConfiguration())).GetTypeInfoProvider();
         }
 
+        /// <summary>
+        /// Runs one or more comparison tests by compiling the source C# or VB.net file,
+        ///     running the compiled test method, translating the compiled test method to JS,
+        ///     then running the translated JS and comparing the outputs.
+        /// </summary>
+        /// <param name="filenames">The path to one or more test files. If a test file is named 'Common.cs' it will be linked into all tests.</param>
+        /// <param name="stubbedAssemblies">The paths of assemblies to stub during translation, if any.</param>
+        /// <param name="typeInfo">A TypeInfoProvider to use for type info. Using this parameter is not advised if you use proxies or JSIL.Meta attributes in your tests.</param>
+        /// <param name="testPredicate">A predicate to invoke before running each test. If the predicate returns false, the JS version of the test will not be run (though it will be translated).</param>
         protected void RunComparisonTests (
-            string[] filenames, string[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null
+            string[] filenames, string[] stubbedAssemblies = null, 
+            TypeInfoProvider typeInfo = null, 
+            Func<string, bool> testPredicate = null
         ) {
             string commonFile = null;
             for (var i = 0; i < filenames.Length; i++) {
@@ -474,14 +499,23 @@ namespace JSIL.Tests {
                         testFilenames.Add(commonFile);
 
                     using (var test = new ComparisonTest(
-                        testFilenames, 
+                        testFilenames,
                         Path.Combine(
                             ComparisonTest.TestSourceFolder,
                             filename.Replace(".cs", ".js").Replace(".vb", "_vb.js")
                         ),
                         stubbedAssemblies, typeInfo)
-                    )
-                        test.Run();
+                    ) {
+                        if ((testPredicate == null) || (testPredicate(filename))) {
+                            test.Run();
+                        } else {
+                            string js;
+                            long elapsed;
+                            var csOutput = test.RunCSharp(new string[0], out elapsed);
+                            Console.WriteLine(csOutput);
+                            test.GenerateJavascript(new string[0], out js, out elapsed);
+                        }
+                    }
                 } catch (Exception ex) {
                     failureList.Add(Path.GetFileNameWithoutExtension(filename));
                     if (ex.Message == "JS test failed")

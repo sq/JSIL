@@ -11,19 +11,36 @@ public static class Common {
         return XmlReader.Create(ms);
     }
 
-    public static void PrintNodes (XmlReader reader) {
+    public static void PrintNodesCore (XmlReader reader, Action onNode) {
         int count = 0;
 
         while (reader.Read()) {
             count += 1;
-            Console.WriteLine(
-                "{0}{1} {2}", 
-                reader.NodeType.ToString(), 
-                reader.IsEmptyElement ? " Empty" : "", 
-                reader.Name
-            );
+            onNode();
         }
 
         Console.WriteLine("// {0} node(s)", count);
+    }
+
+    public static void PrintNodes (XmlReader reader) {
+        PrintNodesCore(reader,
+            () => Console.WriteLine(
+                "{0}{1} {2}",
+                reader.NodeType.ToString(),
+                reader.IsEmptyElement ? " Empty" : "",
+                reader.Name ?? "<null>"
+            )
+        );
+    }
+
+    public static void PrintNodeText (XmlReader reader) {
+        PrintNodesCore(reader,
+            () => Console.WriteLine(
+                "{0}{1} {2}",
+                reader.NodeType.ToString(),
+                reader.IsEmptyElement ? " Empty" : "",
+                reader.Value ?? "<null>"
+            )
+        );
     }
 }

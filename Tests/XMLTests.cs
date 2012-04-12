@@ -28,26 +28,24 @@ namespace JSIL.Tests {
             ));
 
             try {
-                foreach (var test in xmlTests) {
-                    if (Path.GetFileNameWithoutExtension(test) == "Common")
-                        continue;
-
-                    var uri = new Uri(
-                        Path.Combine(rootPath, "test_runner.html"), UriKind.Absolute
-                    );
-
-                    Console.WriteLine(
-                        "{0}#{1}", uri, 
-                        Path.GetFullPath(test)
-                            .Replace(".cs", ".js")
-                            .Replace(".vb", ".vb.js")
-                            .Replace(rootPath, "")
-                            .Replace("\\", "/")
-                    );
-                }
-
                 RunComparisonTests(
-                    xmlTests, null, typeInfo
+                    xmlTests, null, typeInfo,
+                    (testFile) => {
+                        var uri = new Uri(
+                            Path.Combine(rootPath, "test_runner.html"), UriKind.Absolute
+                        );
+
+                        Console.WriteLine(
+                            "{0}#{1}", uri,
+                            Path.GetFullPath(testFile)
+                                .Replace(".cs", ".js")
+                                .Replace(".vb", ".vb.js")
+                                .Replace(rootPath, "")
+                                .Replace("\\", "/")
+                        );
+
+                        return false;
+                    }
                 );
             } catch (Exception exc) {
                 Console.WriteLine(exc.Message);
