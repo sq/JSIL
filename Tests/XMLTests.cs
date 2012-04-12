@@ -45,7 +45,9 @@ namespace JSIL.Tests {
                         );
 
                         return false;
-                    }
+                    },
+                    (csharpOutput, js) =>
+                        Console.WriteLine(csharpOutput)
                 );
             } catch (Exception exc) {
                 Console.WriteLine(exc.Message);

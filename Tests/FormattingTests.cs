@@ -534,5 +534,22 @@ namespace JSIL.Tests {
                 throw;
             }
         }
+
+        [Test]
+        public void NoUnnecessaryCasts () {
+            var testNames = new string[] {
+                @"FailingTestCases\Arrays.cs",
+                @"SimpleTestCases\CollectionInitializers.cs",
+                @"TestCases\DictionaryInitializer.cs",
+            };
+
+            RunComparisonTests(testNames, null, null, 
+                (test) => false, 
+                (csharp, js) => Assert.IsFalse(
+                    js.Contains("JSIL.Cast("), 
+                    "JS output should not contain any casts"
+                )
+            );
+        }
     }
 }

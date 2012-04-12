@@ -92,6 +92,7 @@ namespace JSIL.Tests {
         public void Generics () {
             RunComparisonTests(
                 new[] { 
+                    @"TestCases\DelegateResultWithConstraints.cs",
                     @"TestCases\GenericStaticProperties.cs",
                     @"TestCases\GenericInnerClasses.cs",
                     @"TestCases\GenericTypeCasts.cs",

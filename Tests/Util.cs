@@ -422,7 +422,8 @@ namespace JSIL.Tests {
         protected void RunComparisonTests (
             string[] filenames, string[] stubbedAssemblies = null, 
             TypeInfoProvider typeInfo = null, 
-            Func<string, bool> testPredicate = null
+            Func<string, bool> testPredicate = null,
+            Action<string, string> errorCheckPredicate = null
         ) {
             string commonFile = null;
             for (var i = 0; i < filenames.Length; i++) {
@@ -514,8 +515,12 @@ namespace JSIL.Tests {
                             try {
                                 var csOutput = test.RunCSharp(new string[0], out elapsed);
                                 test.GenerateJavascript(new string[0], out js, out elapsed);
+
                                 Console.WriteLine("ok");
-                                Console.WriteLine(csOutput);
+
+                                if (errorCheckPredicate != null) {
+                                    errorCheckPredicate(csOutput, js);
+                                }
                             } catch (Exception _exc) {
                                 Console.WriteLine("error");
                                 throw;

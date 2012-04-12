@@ -52,7 +52,7 @@ namespace JSIL.Tests {
             Assert.IsFalse(ILBlockTranslator.TypesAreEqual(at1, at3));
 
             Assert.IsFalse(ILBlockTranslator.TypesAreEqual(at1, at4, true));
-            Assert.IsTrue(ILBlockTranslator.TypesAreEqual(at1, at4, false));
+            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(at1, at4, false));
         }
 
         [Test]

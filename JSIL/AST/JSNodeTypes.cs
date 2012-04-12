@@ -1411,6 +1411,14 @@ namespace JSIL.Ast {
             if (property != null)
                 return property.ReturnType;
 
+            var method = Member as MethodInfo;
+            if (method != null) {
+                if (method.Name == ".ctor")
+                    return method.DeclaringType.Definition;
+
+                return method.ReturnType;
+            }
+
             return typeSystem.Void;
         }
     }
@@ -3083,13 +3091,13 @@ namespace JSIL.Ast {
         where TOperator : JSOperator {
 
         public readonly TOperator Operator;
-        public readonly TypeReference ExpectedType;
+        public readonly TypeReference ActualType;
 
-        protected JSOperatorExpression (TOperator op, TypeReference expectedType, params JSExpression[] values)
+        protected JSOperatorExpression (TOperator op, TypeReference actualType, params JSExpression[] values)
             : base(values) {
 
             Operator = op;
-            ExpectedType = expectedType;
+            ActualType = actualType;
         }
 
         public override bool IsConstant {
@@ -3099,8 +3107,8 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
-            if (ExpectedType != null)
-                return ExpectedType;
+            if (ActualType != null)
+                return ActualType;
 
             TypeReference inferredType = null;
             foreach (var value in Values) {
@@ -3119,12 +3127,12 @@ namespace JSIL.Ast {
     }
 
     public class JSTernaryOperatorExpression : JSExpression {
-        public readonly TypeReference ExpectedType;
+        public readonly TypeReference ActualType;
 
-        public JSTernaryOperatorExpression (JSExpression condition, JSExpression trueValue, JSExpression falseValue, TypeReference expectedType)
+        public JSTernaryOperatorExpression (JSExpression condition, JSExpression trueValue, JSExpression falseValue, TypeReference actualType)
             : base (condition, trueValue, falseValue) {
 
-            ExpectedType = expectedType;
+            ActualType = actualType;
         }
 
         public JSExpression Condition {
@@ -3158,7 +3166,7 @@ namespace JSIL.Ast {
         }
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
-            return ExpectedType;
+            return ActualType;
         }
     }
 
@@ -3167,8 +3175,8 @@ namespace JSIL.Ast {
         /// Construct a binary operator expression with an explicit expected type.
         /// If the explicit expected type is null, expected type will be inferred to be the type of both sides if they share a type.
         /// </summary>
-        public JSBinaryOperatorExpression (JSBinaryOperator op, JSExpression lhs, JSExpression rhs, TypeReference expectedType) : base(
-            op, expectedType, lhs, rhs
+        public JSBinaryOperatorExpression (JSBinaryOperator op, JSExpression lhs, JSExpression rhs, TypeReference actualType) : base(
+            op, actualType, lhs, rhs
         ) {
         }
 
@@ -3229,8 +3237,8 @@ namespace JSIL.Ast {
     }
 
     public class JSUnaryOperatorExpression : JSOperatorExpression<JSUnaryOperator> {
-        public JSUnaryOperatorExpression (JSUnaryOperator op, JSExpression expression, TypeReference expectedType = null)
-            : base(op, expectedType, expression) {
+        public JSUnaryOperatorExpression (JSUnaryOperator op, JSExpression expression, TypeReference actualType = null)
+            : base(op, actualType, expression) {
         }
 
         public bool IsPostfix {
@@ -3278,9 +3286,26 @@ namespace JSIL.Ast {
         }
 
         public static JSExpression New (JSExpression inner, TypeReference newType, TypeSystem typeSystem) {
+            int temp;
+
             var currentType = inner.GetActualType(typeSystem);
-            if (ILBlockTranslator.TypesAreEqual(currentType, newType, false))
+            var currentDerefed = ILBlockTranslator.FullyDereferenceType(currentType, out temp);
+            var newDerefed = ILBlockTranslator.FullyDereferenceType(newType, out temp);
+
+            if (ILBlockTranslator.TypesAreEqual(currentDerefed, newDerefed, false))
                 return inner;
+
+            var newResolved = newDerefed.Resolve();
+            if ((newResolved != null) && newResolved.IsInterface) {
+                var currentResolved = currentDerefed.Resolve();
+
+                if (currentResolved != null) {
+                    foreach (var iface in currentResolved.Interfaces) {
+                        if (ILBlockTranslator.TypesAreEqual(newType, iface, false))
+                            return JSChangeTypeExpression.New(inner, typeSystem, newType);
+                    }
+                }
+            }
 
             var nullLiteral = inner as JSNullLiteral;
             if (nullLiteral != null)

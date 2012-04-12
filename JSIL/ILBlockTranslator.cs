@@ -1301,13 +1301,13 @@ namespace JSIL {
             if (boe != null) {
                 if (op != null) {
                     return new JSBinaryOperatorExpression(
-                        op, boe.Left, boe.Right, boe.ExpectedType
+                        op, boe.Left, boe.Right, boe.ActualType
                     );
                 } else {
                     // Unimplemented compound operators, and operators with semantics that don't match JS, must be emitted normally
                     return new JSBinaryOperatorExpression(
                         JSOperator.Assignment, boe.Left,
-                        boe, boe.ExpectedType
+                        boe, boe.ActualType
                     );
                 }
             } else if ((invocation != null) && (invocation.Arguments[0] is JSReferenceExpression)) {
@@ -2255,11 +2255,13 @@ namespace JSIL {
                 values
             );
 
+            var target = TranslateNode(node.Arguments[0]);
+
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
-                TranslateNode(node.Arguments[0]),
+                target,
                 initializer,
-                TypeSystem.Object
+                target.GetActualType(TypeSystem)
             );
         }
 

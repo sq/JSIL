@@ -81,6 +81,7 @@
     <None Include="XMLTestCases\Skip.cs" />
     <None Include="XMLTestCases\ReadElementString.cs" />
     <None Include="SimpleTestCases\NestedSwitchStatement.cs" />
+    <None Include="SimpleTestCases\ReturnNestedCasts.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
@@ -304,7 +305,7 @@
     <None Include="TestCases\MethodOfGenericTypeAsGenericDelegate.cs" />
     <None Include="TestCases\EnumIfStatement.cs" />
     <None Include="SimpleTestCases\IsAssignableFrom.cs" />
-    <None Include="SimpleTestCases\DelegateResultWithConstraints.cs" />
+    <None Include="TestCases\DelegateResultWithConstraints.cs" />
     <None Include="TestCases\GenericNestedTypeConstructedInParentStaticConstructor.cs" />
     <Content Include="SimpleTestCases\Constructors.vb" />
     <Content Include="TestCases\Events.vb" />

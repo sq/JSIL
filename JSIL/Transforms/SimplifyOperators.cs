@@ -58,7 +58,7 @@ namespace JSIL.Transforms {
                         InvertedOperators.TryGetValue(boe.Operator, out newOperator)
                     ) {
                         var newBoe = new JSBinaryOperatorExpression(
-                            newOperator, boe.Left, boe.Right, boe.ExpectedType
+                            newOperator, boe.Left, boe.Right, boe.ActualType
                         );
 
                         ParentNode.ReplaceChild(uoe, newBoe);
