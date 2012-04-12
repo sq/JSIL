@@ -3050,7 +3050,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
     var y1 = (lhs.Y < rhs.Y) ? lhs.Y : rhs.Y;
     var x2 = (lhsX2 > rhsX2) ? lhsX2 : rhsX2;
     var y2 = (lhsY2 > rhsY2) ? lhsY2 : rhsY2;
-    
+
     if (x2 > x1 && y2 > y1) 
       return new Microsoft.Xna.Framework.Rectangle(x1, y1, x2 - x1, y2 - y1);
 
@@ -3917,14 +3917,18 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       if (sourceH > texture.Height - sourceY) 
         sourceH = texture.Height - sourceY;
 
-      if ((color.r < 255) || (color.g < 255) || (color.b < 255)) {
-        var newImage = $jsilxna.getImageMultiplied(image, color);
-        if (newImage === image) {
-          // Broken browser
-        } else {
-          image = newImage;
-          sourceX += 1;
-          sourceY += 1;
+      var isSinglePixel = ((sourceX == 0) && (sourceY == 0) && (sourceW == 1) && (sourceH == 1));
+
+      if (!isSinglePixel) {
+        if ((color.r < 255) || (color.g < 255) || (color.b < 255)) {
+          var newImage = $jsilxna.getImageMultiplied(image, color);
+          if (newImage === image) {
+            // Broken browser
+          } else {
+            image = newImage;
+            sourceX += 1;
+            sourceY += 1;
+          }
         }
       }
 
@@ -3983,7 +3987,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
           );
         }
 
-        if ((sourceX === 0) && (sourceY === 0) && (sourceW === 1) && (sourceH === 1)) {
+        if (isSinglePixel) {
           if (!needRestore) 
             this.device.context.save();
           needRestore = true;

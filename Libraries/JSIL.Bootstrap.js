@@ -462,6 +462,32 @@ JSIL.ImplementExternals("System.Delegate", function ($) {
     }
   );
 
+  $.Method({Static:true , Public:true }, "CreateDelegate", 
+    (new JSIL.MethodSignature(tDelegate, [
+          $jsilcore.TypeRef("System.Type"), $.Object, 
+          $jsilcore.TypeRef("System.Reflection.MethodInfo")
+        ], [])), 
+    function CreateDelegate (delegateType, firstArgument, method) {
+      var isStatic = method._descriptor.Static;
+      var key = method._data.mangledName || method._descriptor.EscapedName;
+      var publicInterface = method._typeObject.__PublicInterface__;
+      var context = isStatic ? publicInterface : publicInterface.prototype;
+      var impl = context[key];
+
+      if (typeof (impl) !== "function") {
+        JSIL.Host.error(new Error("Failed to bind delegate: Method '" + key + "' not found in context"));
+      }
+
+      var delegatePublicInterface = delegateType.__PublicInterface__;
+
+      if (typeof (delegatePublicInterface.New) !== "function") {
+        JSIL.Host.error(new Error("Invalid delegate type"));
+      }
+
+      return delegatePublicInterface.New(firstArgument, impl);
+    }
+  );  
+
   $.Method({Static:true , Public:true }, "Combine", 
     (new JSIL.MethodSignature(tDelegate, [tDelegate, tDelegate], [])), 
     $jsilcore.$Combine

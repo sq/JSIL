@@ -4167,7 +4167,7 @@ JSIL.GetReflectionCache = function (typeObject) {
 // Scans the specified type (and its base types, as necessary) to retrieve all the MemberInfo instances appropriate for a request.
 // If any BindingFlags are specified in flags they are applied as filters to limit the number of members returned.
 // If memberType is specified and is the short name of a MemberInfo subclass like 'FieldInfo', only members of that type are returned.
-JSIL.GetMembersInternal = function (typeObject, flags, memberType, allowConstructors) {
+JSIL.GetMembersInternal = function (typeObject, flags, memberType, allowConstructors, name) {
   var result = [];
   var bindingFlags = $jsilcore.BindingFlags;
 
@@ -4225,6 +4225,10 @@ JSIL.GetMembersInternal = function (typeObject, flags, memberType, allowConstruc
       continue;
 
     if ((typeof (memberType) === "string") && (memberType != member.__ThisType__.__ShortName__)) {
+      continue;
+    }
+
+    if ((typeof (name) === "string") && (name != member._descriptor.Name)) {
       continue;
     }
 
@@ -4338,11 +4342,38 @@ JSIL.ImplementExternals(
       }
     );
 
+    var getMethodImpl = function (type, name, flags) {
+      var methods = JSIL.GetMembersInternal(
+        type, flags, "MethodInfo", false, name
+      );
+
+      JSIL.$ApplyMemberHiding(methods);
+
+      if (methods.length > 1) {
+        throw new System.Exception("Multiple methods named '" + name + "' were found.");
+      } else if (methods.length < 1) {
+        return null;
+      }
+
+      return methods[0];
+    };
+
+    $.Method({Static:false, Public:true }, "GetMethod", 
+      (new JSIL.MethodSignature("System.Reflection.MethodInfo", [$.String, "System.Reflection.BindingFlags"], [])), 
+      function GetMethod (name, flags) {
+        return getMethodImpl(this, name, flags);
+      }
+    );
+
     $.Method({Static:false, Public:true }, "GetMethod", 
       (new JSIL.MethodSignature("System.Reflection.MethodInfo", [$.String], [])), 
       function GetMethod (name) {
-        // FIXME
-        return null;
+        return getMethodImpl(
+          this, name, 
+          System.Reflection.BindingFlags.Instance | 
+          System.Reflection.BindingFlags.Static | 
+          System.Reflection.BindingFlags.Public
+        );
       }
     );
 
@@ -4862,47 +4893,47 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
     var staticClassObject = typeObject.__PublicInterface__ = Object.create(JSIL.StaticClassPrototype);
     staticClassObject.__Type__ = typeObject;
 
-    staticClassObject.CheckType = function (value) {
+    var toStringImpl = function () {
+      return this.__ThisType__.__FullName__;
+    };
+
+    JSIL.SetValueProperty(staticClassObject, "CheckType", function (value) {
       if (
         (
           (typeof (value) === "function") ||
           (typeof (value) === "object")
         ) &&
-        (typeof (value.GetType) === "function") &&
-        (value.GetType() === typeObject)
+        (value.__ThisType__ === typeObject)
       )
         return true;
 
       return false;
-    };
+    });
 
-    staticClassObject.New = function (object, method) {
+    JSIL.SetValueProperty(staticClassObject, "New", function (object, method) {
       if ((typeof (method) === "undefined") &&
           (typeof (object) === "function")
       ) {
         method = object;
         object = null;
 
-        if (
-          (typeof (method.GetType) === "function") &&
-          (method.GetType() === typeObject)
-        )
+        if (method.__ThisType__ === typeObject)
           return method;
       }
 
       var resultDelegate = method.bind(object);
       var self = this;
 
-      JSIL.SetValueProperty(resultDelegate, "toString", function () {
-        return self.__Type__.__FullName__;
-      });
+      JSIL.SetValueProperty(resultDelegate, "__ThisType__", self.__Type__);
+
+      JSIL.SetValueProperty(resultDelegate, "toString", toStringImpl);
 
       resultDelegate.__object__ = object;
       resultDelegate.__method__ = method;
 
       Object.seal(resultDelegate);
       return resultDelegate;
-    };
+    });
 
     staticClassObject.__TypeId__ = typeObject.__TypeId__ = JSIL.AssignTypeId(assembly, fullName);
 
@@ -5037,17 +5068,37 @@ JSIL.ImplementExternals(
   }
 );
 
-JSIL.ImplementExternals(
-  "System.Reflection.MethodInfo", function ($) {
-    $.Method({Static:false, Public:true }, "get_ReturnType", 
-      (new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [], [])), 
-      function get_ReturnType () {
-        var signature = this._data.signature;
-        return signature.returnType;
-      }
-    );
-  }
-);
+JSIL.ImplementExternals("System.Reflection.MethodInfo", function ($) {
+  $.Method({Static:false, Public:true }, "get_ReturnType", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [], [])), 
+    function get_ReturnType () {
+      var signature = this._data.signature;
+      return signature.returnType;
+    }
+  );
+
+  var equalsImpl = function (lhs, rhs) {
+    if (lhs === rhs)
+      return true;
+
+    return JSIL.ObjectEquals(lhs, rhs);
+  };
+
+  $.Method({Static:true , Public:true }, "op_Equality", 
+    (new JSIL.MethodSignature($.Boolean, ["System.Reflection.MethodInfo", "System.Reflection.MethodInfo"], [])), 
+    function op_Equality (left, right) {
+      return equalsImpl(left, right);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Inequality", 
+    (new JSIL.MethodSignature($.Boolean, ["System.Reflection.MethodInfo", "System.Reflection.MethodInfo"], [])), 
+    function op_Inequality (left, right) {
+      return !equalsImpl(left, right);
+    }
+  );
+
+});
 
 JSIL.ImplementExternals(
   "System.Reflection.FieldInfo", function ($) {
