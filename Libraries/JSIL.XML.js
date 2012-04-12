@@ -106,6 +106,9 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
           this._nodeType = ntText;
         }
         break;
+      case Node.COMMENT_NODE:
+        this._nodeType = ntComment;
+        break;
       case Node.DOCUMENT_NODE:
         if (state !== sClosing) {
           // Skip directly to the root node
@@ -167,18 +170,42 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "MoveToContent", 
+    (new JSIL.MethodSignature($xmlasms[16].TypeRef("System.Xml.XmlNodeType"), [], [])), 
+    function MoveToContent () {
+      while (true) {
+        switch (this._nodeType) {
+          case ntText:
+          case ntElement:
+          case ntEndElement:
+            return this._nodeType;
+        }
+
+        if (!this.Read())
+          return this._nodeType;
+      }
+    }
+  );
+
+  $.RawMethod(false, "$isTextualNode", function () {
+    switch (this._nodeType) {
+      case ntText:
+      case ntComment:
+      case ntWhitespace:
+        return true;
+    }
+
+    return false;
+  });
+
   $.Method({Static:false, Public:true }, "get_IsEmptyElement", 
     (new JSIL.MethodSignature($.Boolean, [], [])), 
     function get_IsEmptyElement () {
       if (this._current === null)
         return true;      
 
-      switch (this._nodeType) {
-        case ntNone:
-        case ntText:
-        case ntWhitespace:
-          return false;        
-      }
+      if (this.$isTextualNode())
+        return false;
 
       // The DOM makes it impossible to tell whether an element is actually an empty element.
       // Furthermore, all elements with no children become empty elements when being serialized
@@ -222,13 +249,9 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
 
   $.Method({Static:false, Public:true }, "get_AttributeCount", 
     (new JSIL.MethodSignature($.Int32, [], [])), 
-    function get_Value () {
-      switch (this._nodeType) {
-        case ntNone:
-        case ntText:
-        case ntWhitespace:
-          return 0;
-      }
+    function get_AttributeCount () {
+      if (this.$isTextualNode())
+        return 0;
 
       if (this._current !== null)
         return this._current.attributes.length;
@@ -264,9 +287,10 @@ JSIL.MakeEnum(
 
 JSIL.MakeClass("System.Object", "System.Xml.XmlReader", true, [], function ($) {
   $.ExternalMembers(false, 
-    "Read", "get_NodeType", 
-    "get_IsEmptyElement", "get_Name", 
-    "get_Value", "get_AttributeCount"
+    "Read", "MoveToContent",
+    "get_AttributeCount", "get_IsEmptyElement", 
+    "get_NodeType", "get_Name", 
+    "get_Value", 
   );
 
   $.Property({Static:false, Public:true }, "AttributeCount");

@@ -71,6 +71,8 @@
     <None Include="XMLTestCases\TextContent.cs" />
     <None Include="XMLTestCases\Whitespace.cs" />
     <None Include="XMLTestCases\AttributeCount.cs" />
+    <None Include="XMLTestCases\Comments.cs" />
+    <None Include="XMLTestCases\MoveToContent.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

@@ -487,6 +487,10 @@ namespace JSIL.Tests {
                 if (filename == commonFile)
                     continue;
 
+                bool shouldRunJs = true;
+                if (testPredicate != null)
+                    shouldRunJs = testPredicate(filename);
+
                 Console.Write("// {0} ... ", Path.GetFileName(filename));
 
                 try {
@@ -502,14 +506,20 @@ namespace JSIL.Tests {
                         ),
                         stubbedAssemblies, typeInfo)
                     ) {
-                        if ((testPredicate == null) || (testPredicate(filename))) {
+                        if (shouldRunJs) {
                             test.Run();
                         } else {
                             string js;
                             long elapsed;
-                            var csOutput = test.RunCSharp(new string[0], out elapsed);
-                            test.GenerateJavascript(new string[0], out js, out elapsed);
-                            Console.WriteLine(csOutput);
+                            try {
+                                var csOutput = test.RunCSharp(new string[0], out elapsed);
+                                test.GenerateJavascript(new string[0], out js, out elapsed);
+                                Console.WriteLine("ok");
+                                Console.WriteLine(csOutput);
+                            } catch (Exception _exc) {
+                                Console.WriteLine("error");
+                                throw;
+                            }
                         }
                     }
                 } catch (Exception ex) {
