@@ -44,6 +44,15 @@ JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializationReader", funct
         ], [])), 
     function Init (r, events, encodingStyle, tempAssembly) {
       this.r = r;
+
+      this.InitIDs();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Reader", 
+    (new JSIL.MethodSignature($xmlasms[16].TypeRef("System.Xml.XmlReader"), [], [])), 
+    function get_Reader () {
+      return this.r;
     }
   );
 
@@ -76,6 +85,7 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
     this._domNode = domNode;
     this._eof = false;
     this.$setCurrentNode(null, sBeforeDocument);
+    this.nameTable = new System.Xml.XmlNameTable();
   });
 
   $.RawMethod(false, "$setCurrentNode", function (node, state) {
@@ -227,6 +237,13 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
     }
   );  
 
+  $.Method({Static:false, Public:true }, "get_NameTable", 
+    (new JSIL.MethodSignature($xmlasms[16].TypeRef("System.Xml.XmlNameTable"), [], [])), 
+    function get_NameTable () {
+      return this.nameTable;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "get_Name", 
     (new JSIL.MethodSignature($.String, [], [])), 
     function get_Name () {
@@ -234,6 +251,26 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
         return this._current.tagName || null;
 
       return null;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_LocalName", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_LocalName () {
+      if (this._current !== null)
+        return this._current.localName || null;
+
+      return null;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_NamespaceURI", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_NamespaceURI () {
+      if (this._current !== null)
+        return this._current.namespaceURI || "";
+
+      return "";
     }
   );
 
@@ -257,6 +294,67 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
         return this._current.attributes.length;
 
       return 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetAttribute", 
+    (new JSIL.MethodSignature($.String, [$.String], [])), 
+    function GetAttribute (name) {
+      if (this._current.hasAttribute(name))
+        return this._current.getAttribute(name);
+
+      return null;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetAttribute", 
+    (new JSIL.MethodSignature($.String, [$.String, $.String], [])), 
+    function GetAttribute (name, namespaceURI) {
+      if (this._current.hasAttributeNS(namespaceURI, name))
+        return this._current.getAttributeNS(namespaceURI, name);
+
+      return null;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetAttribute", 
+    (new JSIL.MethodSignature($.String, [$.Int32], [])), 
+    function GetAttribute (i) {      
+      return this._current.attributes[i].value;
+    }
+  );
+
+});
+
+JSIL.ImplementExternals("System.Xml.XmlNameTable", function ($) {
+  $.Method({Static:false, Public:false}, ".ctor", 
+    new JSIL.MethodSignature(null, [], []),
+    function () {
+      this._names = {};
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Add", 
+    new JSIL.MethodSignature($.String, [$.String], []),
+    function Add (str) {
+      var result = this._names[str];
+      if (typeof (result) === "string")
+        return result;
+
+      this._names[str] = str;
+      return str;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Get", 
+    new JSIL.MethodSignature($.String, [$.String], []),
+    function Get (str) {
+      var result = this._names[str];
+
+      if (typeof (result) !== "string")
+        return null;
+
+      return result;
     }
   );
 
@@ -285,17 +383,27 @@ JSIL.MakeEnum(
   }, false
 );
 
+JSIL.MakeClass("System.Object", "System.Xml.XmlNameTable", true, [], function ($) {
+  $.ExternalMembers(false,
+    ".ctor", "Add", "Get"
+  );
+});
+
 JSIL.MakeClass("System.Object", "System.Xml.XmlReader", true, [], function ($) {
   $.ExternalMembers(false, 
     "Read", "MoveToContent",
     "get_AttributeCount", "get_IsEmptyElement", 
+    "get_LocalName", "get_NameTable",
     "get_NodeType", "get_Name", 
-    "get_Value", 
+    "get_NamespaceURI", "get_Value"
   );
 
   $.Property({Static:false, Public:true }, "AttributeCount");
   $.Property({Static:false, Public:true }, "IsEmptyElement");
+  $.Property({Static:false, Public:true }, "LocalName");
   $.Property({Static:false, Public:true }, "NodeType");
   $.Property({Static:false, Public:true }, "Name");
+  $.Property({Static:false, Public:true }, "NameTable");
+  $.Property({Static:false, Public:true }, "NamespaceURI");
   $.Property({Static:false, Public:true }, "Value");
 });
