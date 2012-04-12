@@ -1559,10 +1559,19 @@ var vectorUtil = {
 
     var uri = "jsil://operator/" + typeName + "/" + suffixedName;
 
-    return new Function(
-      "lhs", "rhs", 
-      "//@ sourceURL=" + uri + "\r\n" + js
-    );
+    if (argCount === 1) {
+      return new Function(
+        "value", 
+        "//@ sourceURL=" + uri + "\r\n" + js
+      );
+    } else if (argCount === 2) {
+      return new Function(
+        "lhs", "rhs", 
+        "//@ sourceURL=" + uri + "\r\n" + js
+      );
+    } else {
+      throw new Error("Invalid argument count");
+    }
   },
 
   bindToPrototype: function (fn, typeRef) {

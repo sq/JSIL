@@ -46,11 +46,32 @@ JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializationReader", funct
       this.r = r;
 
       this.typeID = r.NameTable.Add("type");
+      this.nullID = r.NameTable.Add("null");
+      this.nilID = r.NameTable.Add("nil");
+
       this.instanceNsID = r.NameTable.Add("http://www.w3.org/2001/XMLSchema-instance");
       this.instanceNs2000ID = r.NameTable.Add("http://www.w3.org/2000/10/XMLSchema-instance");
       this.instanceNs1999ID = r.NameTable.Add("http://www.w3.org/1999/XMLSchema-instance");
 
       this.InitIDs();
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "CheckReaderCount", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("JSIL.Reference", [$.Int32]), $jsilcore.TypeRef("JSIL.Reference", [$.Int32])], [])), 
+    function CheckReaderCount (/* ref */ whileIterations, /* ref */ readerCount) {
+      if (true) {
+        whileIterations.value += 1;
+
+        if ((whileIterations.value & 128) == 128) {
+          if (readerCount.value == this.ReaderCount) {
+            throw new InvalidOperationException("XmlReader is stuck");
+          }
+
+          readerCount.value = this.ReaderCount;
+        }
+      }
+
     }
   );
 
@@ -64,7 +85,35 @@ JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializationReader", funct
   $.Method({Static:false, Public:true }, "get_ReaderCount", 
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function get_ReaderCount () {
-      return this.r.AdvanceCount;
+      // Can't use the property because of type system nonsense.
+      return this.r.advanceCount;
+    }
+  );
+
+  $.RawMethod(false, "$getNullAttribute", function () {
+    var a = this.r.GetAttribute(this.nilID, this.instanceNsID);
+    if (a !== null)
+      return Microsoft.Xml.XmlConvert.ToBoolean(a);
+
+    a = this.r.GetAttribute(this.nilID, this.instanceNs2000ID);
+    if (a !== null)
+      return Microsoft.Xml.XmlConvert.ToBoolean(a);
+
+    a = this.r.GetAttribute(this.nilID, this.instanceNs1999ID);
+    if (a !== null)
+      return Microsoft.Xml.XmlConvert.ToBoolean(a);
+
+    return false;
+  });
+
+  $.Method({Static:false, Public:false}, "ReadNull", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function ReadNull () {
+      if (!this.$getNullAttribute())
+        return false;
+
+      this.r.Skip();
+      return true;
     }
   );
 
@@ -327,6 +376,30 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "MoveToElement", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function MoveToElement () {
+      // FIXME
+      return true;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "MoveToFirstAttribute", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function MoveToFirstAttribute () {
+      // FIXME
+      return false;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "MoveToNextAttribute", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function MoveToNextAttribute () {
+      // FIXME
+      return false;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "MoveToContent", 
     (new JSIL.MethodSignature($xmlasms[16].TypeRef("System.Xml.XmlNodeType"), [], [])), 
     function MoveToContent () {
@@ -558,7 +631,7 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
     }
   );
 
-  $.Method({Static:false, Public:true }, "get_AdvanceCount", 
+  $.Method({Static:false, Public:false}, "get_AdvanceCount", 
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function get_AdvanceCount () {
       return this.advanceCount;
@@ -680,7 +753,7 @@ JSIL.MakeClass("System.Object", "System.Xml.XmlReader", true, [], function ($) {
     "get_NamespaceURI", "get_Value"
   );
 
-  $.Property({Static:false, Public:true }, "AdvanceCount");
+  $.Property({Static:false, Public:false}, "AdvanceCount");
   $.Property({Static:false, Public:true }, "AttributeCount");
   $.Property({Static:false, Public:true }, "IsEmptyElement");
   $.Property({Static:false, Public:true }, "LocalName");
@@ -689,4 +762,116 @@ JSIL.MakeClass("System.Object", "System.Xml.XmlReader", true, [], function ($) {
   $.Property({Static:false, Public:true }, "NameTable");
   $.Property({Static:false, Public:true }, "NamespaceURI");
   $.Property({Static:false, Public:true }, "Value");
+});
+
+JSIL.ImplementExternals("System.Xml.XmlConvert", function ($) {
+
+  $.Method({Static:true , Public:true }, "ToDouble", 
+    (new JSIL.MethodSignature($.Double, [$.String], [])), 
+    function ToDouble (s) {
+      return parseFloat(s);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToSingle", 
+    (new JSIL.MethodSignature($.Single, [$.String], [])), 
+    function ToSingle (s) {
+      return parseFloat(s);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToInt16", 
+    (new JSIL.MethodSignature($.Int16, [$.String], [])), 
+    function ToInt16 (s) {
+      var i = parseInt(s, 10);
+      if (isNaN(i))
+        throw new Error("Invalid integer");
+
+      return i;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToInt32", 
+    (new JSIL.MethodSignature($.Int32, [$.String], [])), 
+    function ToInt32 (s) {
+      var i = parseInt(s, 10);
+      if (isNaN(i))
+        throw new Error("Invalid integer");
+
+      return i;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToInt64", 
+    (new JSIL.MethodSignature($.Int64, [$.String], [])), 
+    function ToInt64 (s) {
+      var i = parseInt(s, 10);
+      if (isNaN(i))
+        throw new Error("Invalid integer");
+
+      return i;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToUInt16", 
+    (new JSIL.MethodSignature($.UInt16, [$.String], [])), 
+    function ToUInt16 (s) {
+      var i = parseInt(s, 10);
+      if (isNaN(i) || i < 0)
+        throw new Error("Invalid unsigned integer");
+
+      return i;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToUInt32", 
+    (new JSIL.MethodSignature($.UInt32, [$.String], [])), 
+    function ToUInt32 (s) {
+      var i = parseInt(s, 10);
+      if (isNaN(i) || i < 0)
+        throw new Error("Invalid unsigned integer");
+
+      return i;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToUInt64", 
+    (new JSIL.MethodSignature($.UInt64, [$.String], [])), 
+    function ToUInt64 (s) {
+      var i = parseInt(s, 10);
+      if (isNaN(i) || i < 0)
+        throw new Error("Invalid unsigned integer");
+
+      return i;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToBoolean", 
+    (new JSIL.MethodSignature($.Boolean, [$.String], [])), 
+    function ToBoolean (s) {
+      var text = s.toLowerCase().trim();
+      if (text == "true")
+        return true;
+      else if (text == "false")
+        return false;
+
+      var i = parseInt(s, 10);
+      if (isNaN(i))
+        throw new Error("Invalid boolean");
+
+      return (i != 0);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToByte", 
+    (new JSIL.MethodSignature($.Byte, [$.String], [])), 
+    function ToByte (s) {
+      var i = parseInt(s, 10);
+      if (isNaN(i) || i < 0 || i > 255)
+        throw new Error("Invalid byte");
+
+      return i;
+    }
+  );
+
 });
