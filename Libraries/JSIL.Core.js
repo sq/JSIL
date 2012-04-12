@@ -1289,7 +1289,7 @@ $jsilcore.$Of$NoInitialize = function () {
   var ignoredNames = [
     "__Type__", "__ThisType__", "__TypeInitialized__", "__IsClosed__", "prototype", 
     "Of", "toString", "__FullName__", "__OfCache__", "Of$NoInitialize",
-    "GetType", "CheckType", "__ReflectionCache__", "__Members__"
+    "GetType", "__ReflectionCache__", "__Members__"
   ];
 
   for (var k in staticClassObject) {
@@ -1399,6 +1399,13 @@ $jsilcore.$Of$NoInitialize = function () {
 
   if (isClosed) {
     JSIL.RenameGenericMethods(result, resultTypeObject);
+  }
+
+  if (isClosed && resultTypeObject.__IsDelegate__) {
+    JSIL.SetValueProperty(
+      result, "CheckType", 
+      $jsilcore.CheckDelegateType.bind(resultTypeObject)
+    );
   }
 
   // Force the initialized state back to false
@@ -4862,6 +4869,13 @@ JSIL.MakeClass("System.Array", "JSIL.MultidimensionalArray", true, [], function 
   );
 });
 
+$jsilcore.CheckDelegateType = function (value) {
+  return (
+    (typeof (value) === "function") ||
+    (typeof (value) === "object")
+  ) && (value.__ThisType__ === this);
+};
+
 JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
   var assembly = $private;
   var localName = JSIL.GetLocalName(fullName);
@@ -4886,6 +4900,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
     typeObject.__FullName__ = fullName;
     typeObject.__CallStack__ = callStack;
     typeObject.__Interfaces__ = [];
+    typeObject.__IsDelegate__ = true;
     typeObject.IsEnum = false;
 
     typeObject.__GenericArguments__ = genericArguments || [];
@@ -4895,20 +4910,9 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
 
     var toStringImpl = function () {
       return this.__ThisType__.__FullName__;
-    };
+    };    
 
-    JSIL.SetValueProperty(staticClassObject, "CheckType", function (value) {
-      if (
-        (
-          (typeof (value) === "function") ||
-          (typeof (value) === "object")
-        ) &&
-        (value.__ThisType__ === typeObject)
-      )
-        return true;
-
-      return false;
-    });
+    JSIL.SetValueProperty(staticClassObject, "CheckType", $jsilcore.CheckDelegateType.bind(typeObject));
 
     JSIL.SetValueProperty(staticClassObject, "New", function (object, method) {
       if ((typeof (method) === "undefined") &&

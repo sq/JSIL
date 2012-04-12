@@ -343,6 +343,7 @@
     <None Include="SimpleTestCases\ArrayEnumerator.cs" />
     <None Include="SimpleTestCases\DictionaryEnumerator.cs" />
     <None Include="SimpleTestCases\TryCastDelegate.cs" />
+    <None Include="SimpleTestCases\TryCastGenericDelegate.cs" />
     <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />

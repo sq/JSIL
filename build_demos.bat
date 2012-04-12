@@ -4,4 +4,5 @@ JSILc "C:\Users\Kevin\Documents\Projects\XnaMannux\Mannux\Mannux.sln" "C:\Users\
 JSILc "C:\Users\Kevin\Documents\Projects\Tetris\tetris.sln" "C:\Users\Kevin\Documents\Projects\JSIL\jsil.org\demos\Tetris\Tetris.jsilconfig"
 JSILc "C:\Users\Kevin\Documents\Projects\PlatformerStarterKit\PlatformerStarterKit.sln" "C:\Users\Kevin\Documents\Projects\JSIL\jsil.org\demos\Platformer\Platformer.jsilconfig"
 JSILc "C:\Users\Kevin\Documents\Projects\RPGStarterKit\RolePlayingGameWindows.sln" "C:\Users\Kevin\Documents\Projects\JSIL\jsil.org\demos\RPG\RPG.jsilconfig"
+JSILc "C:\Users\Kevin\Documents\Projects\lumberjack\LumberjackPC.sln" "C:\Users\Kevin\Documents\Projects\JSIL\jsil.org\demos\Lumberjack\Lumberjack.jsilconfig"
 popd
