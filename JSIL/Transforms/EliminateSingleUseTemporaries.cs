@@ -27,7 +27,7 @@ namespace JSIL.Transforms {
             {
                 var replacer = new VariableEliminator(
                     variable,
-                    JSChangeTypeExpression.New(replaceWith, TypeSystem, variable.GetExpectedType(TypeSystem))
+                    JSChangeTypeExpression.New(replaceWith, TypeSystem, variable.GetActualType(TypeSystem))
                 );
                 replacer.Visit(context);
             }
@@ -199,7 +199,7 @@ namespace JSIL.Transforms {
                 if (v.IsThis || v.IsParameter)
                     continue;
 
-                var valueType = v.GetExpectedType(TypeSystem);
+                var valueType = v.GetActualType(TypeSystem);
                 if (ILBlockTranslator.IsIgnoredType(valueType))
                     continue;
 

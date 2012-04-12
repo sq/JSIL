@@ -35,6 +35,40 @@ JSIL.XML.ReaderFromString = function (xml) {
   return result;
 };
 
+JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializer", function ($) {
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$xmlasms[5].TypeRef("System.Type")], [])), 
+    function _ctor (type) {
+      this.type = type;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Deserialize", 
+    (new JSIL.MethodSignature($.Object, [$xmlasms[5].TypeRef("System.IO.Stream")], [])), 
+    function Deserialize (stream) {
+      var xmlReader = JSIL.XML.ReaderFromStream(stream);
+
+      var getType = function (name) {
+        var parsed = JSIL.ParseTypeName(name);
+        return JSIL.GetTypeInternal(parsed, JSIL.GlobalNamespace, true);
+      };
+
+      var readerName = "Microsoft.Xml.Serialization.GeneratedAssembly.XmlSerializationReader" + this.type.Name;
+      var readerType = getType(readerName);
+      var reader = JSIL.CreateInstanceOfType(readerType);
+      reader.Init(xmlReader, null, null, null); 
+
+      var serializerName = "Microsoft.Xml.Serialization.GeneratedAssembly." + this.type.Name + "Serializer";
+      var serializerType = getType(serializerName);
+      var serializer = JSIL.CreateInstanceOfType(serializerType);
+
+      var signature = new JSIL.MethodSignature($.Object, [$xmlasms[16].System.Xml.Serialization.XmlSerializationReader], []);
+
+      return signature.CallVirtual("Deserialize", null, serializer, reader);
+    }
+  );
+});
+
 JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializationReader", function ($) {
 
   $.Method({Static:false, Public:false}, "Init", 

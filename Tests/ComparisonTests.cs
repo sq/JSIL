@@ -185,6 +185,18 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void Dictionaries () {
+            var defaultProvider = MakeDefaultProvider();
+
+            RunComparisonTests(
+                new[] { 
+                    @"TestCases\DictionaryInitializer.cs",
+                    @"TestCases\DictionaryEnumerator.cs",
+                }, null, defaultProvider
+            );
+        }
+
+        [Test]
         public void Enums () {
             var defaultProvider = MakeDefaultProvider();
 

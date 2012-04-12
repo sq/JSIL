@@ -924,9 +924,9 @@ namespace JSIL {
             // We need to perform manual truncation to maintain the semantics of C#'s division operator
             if ((bop.Operator == JSOperator.Divide)) {
                 needsTruncation =                     
-                    (ILBlockTranslator.IsIntegral(bop.Left.GetExpectedType(TypeSystem)) &&
-                    ILBlockTranslator.IsIntegral(bop.Right.GetExpectedType(TypeSystem))) ||
-                    ILBlockTranslator.IsIntegral(bop.GetExpectedType(TypeSystem));
+                    (ILBlockTranslator.IsIntegral(bop.Left.GetActualType(TypeSystem)) &&
+                    ILBlockTranslator.IsIntegral(bop.Right.GetActualType(TypeSystem))) ||
+                    ILBlockTranslator.IsIntegral(bop.GetActualType(TypeSystem));
 
                 parens |= needsTruncation;
             }

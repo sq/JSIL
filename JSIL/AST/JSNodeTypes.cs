@@ -392,7 +392,7 @@ namespace JSIL.Ast {
             return EqualsImpl(obj, true);
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             if (Method != null) {
                 var delegateType = MethodTypes.Get(Method.Reference, typeSystem);
                 if (delegateType == null)
@@ -425,8 +425,8 @@ namespace JSIL.Ast {
             UseBind = useBind;
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return Value.GetExpectedType(typeSystem);
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return Value.GetActualType(typeSystem);
         }
 
         public override bool IsConstant {
@@ -922,7 +922,7 @@ namespace JSIL.Ast {
             );
         }
 
-        public virtual TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public virtual TypeReference GetActualType (TypeSystem typeSystem) {
             throw new NoExpectedTypeException(this);
         }
 
@@ -1063,7 +1063,7 @@ namespace JSIL.Ast {
             var refe = reference as JSReferenceExpression;
             var boe = reference as JSBinaryOperatorExpression;
 
-            var expressionType = reference.GetExpectedType(jsil.TypeSystem);
+            var expressionType = reference.GetActualType(jsil.TypeSystem);
             if (ILBlockTranslator.IsIgnoredType(expressionType)) {
                 referent = new JSUntranslatableExpression(expressionType.FullName);
                 return true;
@@ -1202,8 +1202,8 @@ namespace JSIL.Ast {
             }
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return new ByReferenceType(Referent.GetExpectedType(typeSystem));
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return new ByReferenceType(Referent.GetActualType(typeSystem));
         }
 
         public override string ToString () {
@@ -1241,8 +1241,8 @@ namespace JSIL.Ast {
             return new JSResultReferenceExpression(Referent, Depth + 1);
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            var result = Referent.GetExpectedType(typeSystem);
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            var result = Referent.GetActualType(typeSystem);
 
             for (var i = 0; i < Depth; i++)
                 result = new ByReferenceType(result);
@@ -1277,8 +1277,8 @@ namespace JSIL.Ast {
             }
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return Referent.GetExpectedType(typeSystem);
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return Referent.GetActualType(typeSystem);
         }
 
         public override string ToString () {
@@ -1307,7 +1307,7 @@ namespace JSIL.Ast {
             return "<Null>";
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             return typeSystem.Void;
         }
     
@@ -1402,7 +1402,7 @@ namespace JSIL.Ast {
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             var field = Member as FieldInfo;
             if (field != null)
                 return field.ReturnType;
@@ -1538,7 +1538,7 @@ namespace JSIL.Ast {
             : base(type) {
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             return Value;
         }
 
@@ -1562,7 +1562,7 @@ namespace JSIL.Ast {
             Type = type;
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             if (Type != null)
                 return Type;
             else
@@ -1579,7 +1579,7 @@ namespace JSIL.Ast {
             : base(value) {
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             return typeSystem.Boolean;
         }
     }
@@ -1589,7 +1589,7 @@ namespace JSIL.Ast {
             : base(value) {
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             return typeSystem.Char;
         }
 
@@ -1603,7 +1603,7 @@ namespace JSIL.Ast {
             : base(value) {
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             return typeSystem.String;
         }
 
@@ -1621,7 +1621,7 @@ namespace JSIL.Ast {
             OriginalType = originalType;
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             if (OriginalType != null) {
                 switch (OriginalType.FullName) {
                     case "System.Byte":
@@ -1663,7 +1663,7 @@ namespace JSIL.Ast {
             Names = (from m in members select m.Name).OrderBy((s) => s).ToArray();
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             return EnumType;
         }
 
@@ -1683,7 +1683,7 @@ namespace JSIL.Ast {
                 OriginalType = originalType;
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             if (OriginalType != null) {
                 switch (OriginalType.FullName) {
                     case "System.Single":
@@ -1705,7 +1705,7 @@ namespace JSIL.Ast {
             : base(value) {
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             return typeSystem.String;
         }
     }
@@ -1715,7 +1715,7 @@ namespace JSIL.Ast {
             : base(value) {
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             return typeSystem.String;
         }
     }
@@ -1746,7 +1746,7 @@ namespace JSIL.Ast {
             get { return Expression; }
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             if (Type != null)
                 return Type;
             else
@@ -1800,11 +1800,11 @@ namespace JSIL.Ast {
             return Identifier.GetHashCode();
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             if (_Type != null)
                 return _Type;
             else
-                return base.GetExpectedType(typeSystem);
+                return base.GetActualType(typeSystem);
         }
 
         public abstract string Identifier {
@@ -1869,7 +1869,7 @@ namespace JSIL.Ast {
             get { return Assembly.FullName; }
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             return typeSystem.Object;
         }
 
@@ -1901,7 +1901,7 @@ namespace JSIL.Ast {
             }
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             return new TypeReference(
                 typeSystem.Boolean.Namespace, "RuntimeTypeHandle",
                 typeSystem.Boolean.Module, typeSystem.Boolean.Scope
@@ -1950,8 +1950,8 @@ namespace JSIL.Ast {
             return Type.ToString();
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return Type.GetExpectedType(typeSystem);
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return Type.GetActualType(typeSystem);
         }
     }
 
@@ -1977,7 +1977,7 @@ namespace JSIL.Ast {
             get { return Field.Name; }
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             return Field.ReturnType;
         }
     }
@@ -2004,7 +2004,7 @@ namespace JSIL.Ast {
             get { return Property.Name; }
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             if (Property.ReturnType.IsGenericParameter)
                 return SubstituteTypeArgs(Property.Source, Property.ReturnType, Reference);
             else
@@ -2057,7 +2057,7 @@ namespace JSIL.Ast {
             }
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             return MethodTypes.Get(Reference, typeSystem);
         }
     }
@@ -2114,7 +2114,7 @@ namespace JSIL.Ast {
             }
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             return MethodTypes.Get(
                 ReturnType, ParameterTypes, typeSystem
             );
@@ -2193,7 +2193,7 @@ namespace JSIL.Ast {
                 throw new InvalidOperationException();
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             return Type;
         }
 
@@ -2303,7 +2303,7 @@ namespace JSIL.Ast {
             Type = type;
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             return Type;
         }
     }
@@ -2342,8 +2342,8 @@ namespace JSIL.Ast {
             Referent = referent;
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return DeReferenceType(Referent.GetExpectedType(typeSystem), true);
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return DeReferenceType(Referent.GetActualType(typeSystem), true);
         }
 
         public override TypeReference Type {
@@ -2388,8 +2388,8 @@ namespace JSIL.Ast {
             Variables = variables;
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return Variables[Identifier].GetExpectedType(typeSystem);
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return Variables[Identifier].GetActualType(typeSystem);
         }
 
         public override TypeReference Type {
@@ -2465,8 +2465,8 @@ namespace JSIL.Ast {
             Referent = referent;
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return new ByReferenceType(Referent.GetExpectedType(typeSystem));
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return new ByReferenceType(Referent.GetActualType(typeSystem));
         }
 
         public override TypeReference Type {
@@ -2521,8 +2521,8 @@ namespace JSIL.Ast {
             return result;
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            var result = Member.GetExpectedType(typeSystem);
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            var result = Member.GetActualType(typeSystem);
             if (result == null)
                 throw new ArgumentNullException();
 
@@ -2579,17 +2579,17 @@ namespace JSIL.Ast {
             ElementType = elementType;
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             if (ElementType != null)
                 return ElementType;
 
-            var targetType = DeReferenceType(Target.GetExpectedType(typeSystem));
+            var targetType = DeReferenceType(Target.GetActualType(typeSystem));
 
             var at = targetType as ArrayType;
             if (at != null)
                 return at.ElementType;
             else
-                return base.GetExpectedType(typeSystem);
+                return base.GetActualType(typeSystem);
         }
 
         public JSExpression Target {
@@ -2630,7 +2630,7 @@ namespace JSIL.Ast {
             Constructor = constructor;
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             var type = Type as JSType;
 
             if (type != null)
@@ -2817,8 +2817,8 @@ namespace JSIL.Ast {
             }
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            var targetType = Method.GetExpectedType(typeSystem);
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            var targetType = Method.GetActualType(typeSystem);
 
             var targetAbstractMethod = Method.SelfAndChildrenRecursive.OfType<JSIdentifier>()
                 .LastOrDefault((i) => {
@@ -2877,7 +2877,7 @@ namespace JSIL.Ast {
             }
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {            
+        public override TypeReference GetActualType (TypeSystem typeSystem) {            
             return ReturnType;
         }
 
@@ -2919,8 +2919,8 @@ namespace JSIL.Ast {
             }
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return Target.GetExpectedType(typeSystem);
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return Target.GetActualType(typeSystem);
         }
     }
 
@@ -2933,11 +2933,11 @@ namespace JSIL.Ast {
             ElementType = elementType;
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             if (ElementType != null)
                 return new ArrayType(ElementType);
             else
-                return base.GetExpectedType(typeSystem);
+                return base.GetActualType(typeSystem);
         }
 
         new public IEnumerable<JSExpression> Values {
@@ -3051,7 +3051,7 @@ namespace JSIL.Ast {
             }
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             return typeSystem.Object;
         }
     }
@@ -3068,7 +3068,7 @@ namespace JSIL.Ast {
             }
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             return typeSystem.Object;
         }
 
@@ -3098,20 +3098,20 @@ namespace JSIL.Ast {
             }
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             if (ExpectedType != null)
                 return ExpectedType;
 
             TypeReference inferredType = null;
             foreach (var value in Values) {
-                var valueType = value.GetExpectedType(typeSystem);
+                var valueType = value.GetActualType(typeSystem);
 
                 if (inferredType == null)
                     inferredType = valueType;
                 else if (valueType.FullName == inferredType.FullName)
                     continue;
                 else
-                    return base.GetExpectedType(typeSystem);
+                    return base.GetActualType(typeSystem);
             }
 
             return inferredType;
@@ -3157,7 +3157,7 @@ namespace JSIL.Ast {
             }
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             return ExpectedType;
         }
     }
@@ -3278,9 +3278,13 @@ namespace JSIL.Ast {
         }
 
         public static JSExpression New (JSExpression inner, TypeReference newType, TypeSystem typeSystem) {
-            var currentType = inner.GetExpectedType(typeSystem);
-            if (ILBlockTranslator.TypesAreEqual(currentType, newType))
+            var currentType = inner.GetActualType(typeSystem);
+            if (ILBlockTranslator.TypesAreEqual(currentType, newType, false))
                 return inner;
+
+            var nullLiteral = inner as JSNullLiteral;
+            if (nullLiteral != null)
+                return new JSNullLiteral(newType);
 
             return new JSCastExpression(inner, newType);
         }
@@ -3309,7 +3313,7 @@ namespace JSIL.Ast {
             }
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             return NewType;
         }
     }
@@ -3335,7 +3339,7 @@ namespace JSIL.Ast {
                 result = new JSChangeTypeExpression(inner, newType);
             }
 
-            var innerType = inner.GetExpectedType(typeSystem);
+            var innerType = inner.GetActualType(typeSystem);
             if (ILBlockTranslator.TypesAreEqual(newType, innerType))
                 return inner;
             else
@@ -3366,7 +3370,7 @@ namespace JSIL.Ast {
             }
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
             return NewType;
         }
     }
@@ -3394,8 +3398,8 @@ namespace JSIL.Ast {
             }
         }
 
-        public override TypeReference GetExpectedType (TypeSystem typeSystem) {
-            return Struct.GetExpectedType(typeSystem);
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return Struct.GetActualType(typeSystem);
         }
 
         public override bool IsNull {

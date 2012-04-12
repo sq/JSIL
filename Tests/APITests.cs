@@ -42,6 +42,7 @@ namespace JSIL.Tests {
             var at1 = new ArrayType(T1);
             var at2 = new ArrayType(T2);
             var at3 = new ArrayType(T3);
+            var at4 = new ArrayType(T1, 2);
 
             Assert.IsFalse(ILBlockTranslator.TypesAreEqual(at1, T1));
 
@@ -49,6 +50,9 @@ namespace JSIL.Tests {
             Assert.IsTrue(ILBlockTranslator.TypesAreEqual(at1, at1));
             Assert.IsFalse(ILBlockTranslator.TypesAreEqual(at1, at2));
             Assert.IsFalse(ILBlockTranslator.TypesAreEqual(at1, at3));
+
+            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(at1, at4, true));
+            Assert.IsTrue(ILBlockTranslator.TypesAreEqual(at1, at4, false));
         }
 
         [Test]

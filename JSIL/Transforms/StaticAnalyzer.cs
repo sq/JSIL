@@ -97,7 +97,7 @@ namespace JSIL.Transforms {
                         new FunctionAnalysis1stPass.Assignment(
                             StatementIndex, NodeIndex,
                             variable, uoe, uoe.Operator,
-                            variable.GetExpectedType(TypeSystem), uoe.GetExpectedType(TypeSystem)
+                            variable.GetActualType(TypeSystem), uoe.GetActualType(TypeSystem)
                         )
                     );
 
@@ -119,8 +119,8 @@ namespace JSIL.Transforms {
 
             if (isAssignment) {
                 if (leftVar != null) {
-                    var leftType = boe.Left.GetExpectedType(TypeSystem);
-                    var rightType = boe.Right.GetExpectedType(TypeSystem);
+                    var leftType = boe.Left.GetActualType(TypeSystem);
+                    var rightType = boe.Right.GetActualType(TypeSystem);
 
                     State.Assignments.Add(
                         new FunctionAnalysis1stPass.Assignment(

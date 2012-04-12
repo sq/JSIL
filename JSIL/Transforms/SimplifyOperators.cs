@@ -39,7 +39,7 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSUnaryOperatorExpression uoe) {
-            var isBoolean = ILBlockTranslator.IsBoolean(uoe.GetExpectedType(TypeSystem));
+            var isBoolean = ILBlockTranslator.IsBoolean(uoe.GetActualType(TypeSystem));
 
             if (isBoolean) {
                 if (uoe.Operator == JSOperator.IsTrue) {
@@ -117,7 +117,7 @@ namespace JSIL.Transforms {
                 ) {
                     var newUoe = new JSUnaryOperatorExpression(
                         prefixOperator, boe.Left,
-                        boe.GetExpectedType(TypeSystem)
+                        boe.GetActualType(TypeSystem)
                     );
 
                     ParentNode.ReplaceChild(boe, newUoe);
@@ -130,7 +130,7 @@ namespace JSIL.Transforms {
                 ) {
                     var newBoe = new JSBinaryOperatorExpression(
                         compoundOperator, boe.Left, nestedBoe.Right,
-                        boe.GetExpectedType(TypeSystem)
+                        boe.GetActualType(TypeSystem)
                     );
 
                     ParentNode.ReplaceChild(boe, newBoe);
@@ -163,7 +163,7 @@ namespace JSIL.Transforms {
                 isAssignment && (leftVar != null) &&
                 leftVar.IsThis
             ) {
-                var leftType = leftVar.GetExpectedType(TypeSystem);
+                var leftType = leftVar.GetActualType(TypeSystem);
                 if (!EmulateStructAssignment.IsStruct(leftType)) {
                     ParentNode.ReplaceChild(boe, new JSUntranslatableExpression(boe));
 

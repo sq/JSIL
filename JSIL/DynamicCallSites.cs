@@ -97,7 +97,7 @@ namespace JSIL {
             if (toe != null)
                 return toe.Type;
 
-            var expectedType = thisArgument.GetExpectedType(typeSystem);
+            var expectedType = thisArgument.GetActualType(typeSystem);
             if (expectedType.FullName == "System.Type")
                 return JSDotExpression.New(thisArgument, new JSStringIdentifier("__PublicInterface__"));
 
@@ -178,7 +178,7 @@ namespace JSIL {
                 return JSInvocationExpression.InvokeMethod(
                     new JSFakeMethod(
                         MemberName, returnType, 
-                        (from av in argumentValues select av.GetExpectedType(translator.TypeSystem)).ToArray(),
+                        (from av in argumentValues select av.GetActualType(translator.TypeSystem)).ToArray(),
                         translator.MethodTypes, TypeArguments
                     ), thisArgument,
                     arguments.Skip(2).ToArray()

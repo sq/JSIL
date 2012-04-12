@@ -44,7 +44,7 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSIndexerExpression ie) {
-            var indexType = ie.Index.GetExpectedType(TypeSystem);
+            var indexType = ie.Index.GetActualType(TypeSystem);
 
             if (
                 !ILBlockTranslator.IsIntegral(indexType) &&
@@ -61,7 +61,7 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSUnaryOperatorExpression uoe) {
-            var type = uoe.Expression.GetExpectedType(TypeSystem);
+            var type = uoe.Expression.GetActualType(TypeSystem);
             var isEnum = IsEnumOrNullableEnum(type);
 
             if (isEnum) {
@@ -80,9 +80,9 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSBinaryOperatorExpression boe) {
-            var leftType = boe.Left.GetExpectedType(TypeSystem);
+            var leftType = boe.Left.GetActualType(TypeSystem);
             var leftIsEnum = IsEnumOrNullableEnum(leftType);
-            var rightType = boe.Right.GetExpectedType(TypeSystem);
+            var rightType = boe.Right.GetActualType(TypeSystem);
             var rightIsEnum = IsEnumOrNullableEnum(rightType);
 
             if ((leftIsEnum || rightIsEnum) && LogicalOperators.Contains(boe.Operator)) {
@@ -107,7 +107,7 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSSwitchStatement ss) {
-            var conditionType = ss.Condition.GetExpectedType(TypeSystem);
+            var conditionType = ss.Condition.GetActualType(TypeSystem);
 
             if (
                 !ILBlockTranslator.IsIntegral(conditionType) &&

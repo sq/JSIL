@@ -23,7 +23,7 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSCastExpression ce) {
-            var currentType = ce.Expression.GetExpectedType(TypeSystem);
+            var currentType = ce.Expression.GetActualType(TypeSystem);
             var targetType = ce.NewType;
 
             JSExpression newExpression = null;

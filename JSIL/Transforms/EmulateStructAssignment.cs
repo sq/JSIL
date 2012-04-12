@@ -51,7 +51,7 @@ namespace JSIL.Transforms {
             while (value is JSReferenceExpression)
                 value = ((JSReferenceExpression)value).Referent;
 
-            var valueType = value.GetExpectedType(TypeSystem);
+            var valueType = value.GetActualType(TypeSystem);
 
             if (!IsStruct(valueType))
                 return false;

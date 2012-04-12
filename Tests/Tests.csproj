@@ -80,6 +80,7 @@
     <None Include="XMLTestCases\NameTable.cs" />
     <None Include="XMLTestCases\Skip.cs" />
     <None Include="XMLTestCases\ReadElementString.cs" />
+    <None Include="SimpleTestCases\NestedSwitchStatement.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
@@ -271,7 +272,7 @@
     <None Include="SpecialTestCases\ProxiedMethodInheritance2.cs" />
     <None Include="TestCases\StructLateDeclaration.cs" />
     <None Include="TestCases\StructCompoundAssignment.cs" />
-    <None Include="SimpleTestCases\DictionaryInitializer.cs" />
+    <None Include="TestCases\DictionaryInitializer.cs" />
     <None Include="SimpleTestCases\NestedLambdas.cs" />
     <None Include="SpecialTestCases\RenameMethod.cs" />
     <None Include="SpecialTestCases\RenameProperty.cs" />
@@ -357,7 +358,7 @@
     <None Include="SimpleTestCases\ListExists.cs" />
     <None Include="SimpleTestCases\ListRemoveAll.cs" />
     <None Include="SimpleTestCases\ArrayEnumerator.cs" />
-    <None Include="SimpleTestCases\DictionaryEnumerator.cs" />
+    <None Include="TestCases\DictionaryEnumerator.cs" />
     <None Include="SimpleTestCases\TryCastDelegate.cs" />
     <None Include="SimpleTestCases\TryCastGenericDelegate.cs" />
     <None Include="SimpleTestCases\ArrayOfNullable.cs" />

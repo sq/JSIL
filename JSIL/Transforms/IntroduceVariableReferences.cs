@@ -100,7 +100,7 @@ namespace JSIL.Transforms {
 
         protected void TransformVariableIntoReference (JSVariable variable, JSVariableDeclarationStatement statement, int declarationIndex, JSBlockStatement enclosingBlock) {
             var oldDeclaration = statement.Declarations[declarationIndex];
-            var valueType = oldDeclaration.Right.GetExpectedType(JSIL.TypeSystem);
+            var valueType = oldDeclaration.Right.GetActualType(JSIL.TypeSystem);
             var newVariable = variable.Reference();
             var enclosingFunction = Stack.OfType<JSFunctionExpression>().First();
 

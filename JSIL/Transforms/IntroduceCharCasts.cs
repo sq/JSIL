@@ -31,8 +31,8 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSBinaryOperatorExpression boe) {
-            var leftType = boe.Left.GetExpectedType(TypeSystem);
-            var rightType = boe.Right.GetExpectedType(TypeSystem);
+            var leftType = boe.Left.GetActualType(TypeSystem);
+            var rightType = boe.Right.GetActualType(TypeSystem);
 
             bool isArithmetic = !(boe.Operator is JSAssignmentOperator);
 
@@ -47,7 +47,7 @@ namespace JSIL.Transforms {
 
             if (
                 isArithmetic && 
-                (boe.GetExpectedType(TypeSystem).FullName == "System.Char") &&
+                (boe.GetActualType(TypeSystem).FullName == "System.Char") &&
                 !(
                     (parentInvocation != null) && 
                     (parentInvocationDot != null) &&

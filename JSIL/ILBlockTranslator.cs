@@ -200,7 +200,7 @@ namespace JSIL {
 
         protected JSExpression Translate_UnaryOp (ILExpression node, JSUnaryOperator op) {
             var inner = TranslateNode(node.Arguments[0]);
-            var innerType = JSExpression.DeReferenceType(inner.GetExpectedType(TypeSystem));
+            var innerType = JSExpression.DeReferenceType(inner.GetActualType(TypeSystem));
 
             // Detect the weird pattern '!(x = y as z)' and transform it into '(x = y as z) != null'
             if (
@@ -213,19 +213,19 @@ namespace JSIL {
             }
 
             // Insert correct casts when unary operators are applied to enums.
-            if (IsEnum(innerType) && IsEnum(node.ExpectedType ?? node.InferredType)) {
+            if (IsEnum(innerType) && IsEnum(node.InferredType ?? node.ExpectedType)) {
                 return JSCastExpression.New(
                     new JSUnaryOperatorExpression(
                         op,
                         JSCastExpression.New(inner, TypeSystem.Int32, TypeSystem),
                         TypeSystem.Int32
                     ),
-                    node.ExpectedType ?? node.InferredType, TypeSystem
+                    node.InferredType ?? node.ExpectedType, TypeSystem
                 );
             }
 
             return new JSUnaryOperatorExpression(
-                op, inner, node.ExpectedType ?? node.InferredType
+                op, inner, node.InferredType ?? node.ExpectedType
             );
         }
 
@@ -256,7 +256,7 @@ namespace JSIL {
                 return new JSUntranslatableExpression(node);
 
             return new JSBinaryOperatorExpression(
-                op, lhs, rhs, node.ExpectedType ?? node.InferredType
+                op, lhs, rhs, node.InferredType ?? node.ExpectedType
             );
         }
 
@@ -272,7 +272,7 @@ namespace JSIL {
                 if (parms != null) {
                     var argsDict = new Dictionary<string, JSExpression>();
                     argsDict["this"] = thisExpression;
-                    argsDict["typeof(this)"] = Translate_TypeOf(thisExpression.GetExpectedType(TypeSystem));
+                    argsDict["typeof(this)"] = Translate_TypeOf(thisExpression.GetActualType(TypeSystem));
 
                     foreach (var kvp in methodInfo.Parameters.Zip(arguments, (p, v) => new { p.Name, Value = v })) {
                         argsDict.Add(kvp.Name, kvp.Value);
@@ -353,7 +353,7 @@ namespace JSIL {
             if (parms != null) {
                 var argsDict = new Dictionary<string, JSExpression>();
                 argsDict["this"] = thisExpression;
-                argsDict["typeof(this)"] = Translate_TypeOf(thisExpression.GetExpectedType(TypeSystem));
+                argsDict["typeof(this)"] = Translate_TypeOf(thisExpression.GetActualType(TypeSystem));
 
                 foreach (var kvp in method.Method.Parameters.Zip(arguments, (p, v) => new { p.Name, Value = v })) {
                     argsDict.Add(kvp.Name, kvp.Value);
@@ -362,7 +362,7 @@ namespace JSIL {
                 return new JSVerbatimLiteral(method, (string)parms[0].Value, argsDict, propertyInfo.ReturnType);
             }
 
-            var thisType = GetTypeDefinition(thisExpression.GetExpectedType(TypeSystem));
+            var thisType = GetTypeDefinition(thisExpression.GetActualType(TypeSystem));
             Func<JSExpression> generate = () => {
                 var actualThis = @static ? new JSType(method.Method.DeclaringType.Definition) : thisExpression;
 
@@ -625,7 +625,7 @@ namespace JSIL {
             return false;
         }
 
-        public static bool TypesAreEqual (TypeReference target, TypeReference source, bool explicitGenericEquality = false) {
+        public static bool TypesAreEqual (TypeReference target, TypeReference source, bool strictEquality = false) {
             if (target == source)
                 return true;
             else if ((target == null) || (source == null))
@@ -652,9 +652,9 @@ namespace JSIL {
                 if ((targetOwnerType != null) || (sourceOwnerType != null)) {
                     var basesEqual = false;
 
-                    if (TypeInBases(targetOwnerType, sourceOwnerType, explicitGenericEquality))
+                    if (TypeInBases(targetOwnerType, sourceOwnerType, strictEquality))
                         basesEqual = true;
-                    else if (TypeInBases(sourceOwnerType, targetOwnerType, explicitGenericEquality))
+                    else if (TypeInBases(sourceOwnerType, targetOwnerType, strictEquality))
                         basesEqual = true;
 
                     if (!basesEqual)
@@ -680,14 +680,14 @@ namespace JSIL {
                 if (targetArray.Rank != sourceArray.Rank)
                     return false;
 
-                return TypesAreEqual(targetArray.ElementType, sourceArray.ElementType, explicitGenericEquality);
+                return TypesAreEqual(targetArray.ElementType, sourceArray.ElementType, strictEquality);
             }
 
             var targetGit = target as GenericInstanceType;
             var sourceGit = source as GenericInstanceType;
 
             if ((targetGit != null) || (sourceGit != null)) {
-                if (!explicitGenericEquality) {
+                if (!strictEquality) {
                     if ((targetGit != null) && TypesAreEqual(targetGit.ElementType, source))
                         return true;
                     if ((sourceGit != null) && TypesAreEqual(target, sourceGit.ElementType))
@@ -701,11 +701,11 @@ namespace JSIL {
                     return false;
 
                 for (var i = 0; i < targetGit.GenericArguments.Count; i++) {
-                    if (!TypesAreEqual(targetGit.GenericArguments[i], sourceGit.GenericArguments[i], explicitGenericEquality))
+                    if (!TypesAreEqual(targetGit.GenericArguments[i], sourceGit.GenericArguments[i], strictEquality))
                         return false;
                 }
 
-                return TypesAreEqual(targetGit.ElementType, sourceGit.ElementType, explicitGenericEquality);
+                return TypesAreEqual(targetGit.ElementType, sourceGit.ElementType, strictEquality);
             }
 
             if ((target.IsByReference != source.IsByReference) || (targetDepth != sourceDepth))
@@ -721,7 +721,7 @@ namespace JSIL {
                     (target.Name == source.Name) &&
                     (target.Namespace == source.Namespace) &&
                     (target.Module == source.Module) &&
-                    TypesAreEqual(target.DeclaringType, source.DeclaringType, explicitGenericEquality)
+                    TypesAreEqual(target.DeclaringType, source.DeclaringType, strictEquality)
                 )
                     return true;
 
@@ -879,8 +879,9 @@ namespace JSIL {
         public JSExpression TranslateNode (ILExpression expression) {
             JSExpression result = null;
 
-            var type = expression.ExpectedType ?? expression.InferredType;
-            if (ILBlockTranslator.IsIgnoredType(type))
+            if ((expression.InferredType != null) && ILBlockTranslator.IsIgnoredType(expression.InferredType))
+                return new JSUntranslatableExpression(expression);
+            if ((expression.ExpectedType != null) && ILBlockTranslator.IsIgnoredType(expression.ExpectedType))
                 return new JSUntranslatableExpression(expression);
 
             var methodName = String.Format("Translate_{0}", expression.Code);
@@ -1011,7 +1012,7 @@ namespace JSIL {
 
         public JSSwitchStatement TranslateNode (ILSwitch swtch) {
             var condition = TranslateNode(swtch.Condition);
-            var conditionType = condition.GetExpectedType(TypeSystem);
+            var conditionType = condition.GetActualType(TypeSystem);
             var result = new JSSwitchStatement(condition);
 
             Blocks.Push(result);
@@ -1144,7 +1145,7 @@ namespace JSIL {
 
         protected JSExpression Translate_NullableOf (ILExpression node) {
             var inner = TranslateNode(node.Arguments[0]);
-            var innerType = inner.GetExpectedType(TypeSystem);
+            var innerType = inner.GetActualType(TypeSystem);
 
             var nullableType = new TypeReference("System", "Nullable`1", TypeSystem.Object.Module, TypeSystem.Object.Scope);
             var nullableGenericType = new GenericInstanceType(nullableType);
@@ -1161,7 +1162,7 @@ namespace JSIL {
 
         protected JSExpression Translate_ValueOf (ILExpression node) {
             var inner = TranslateNode(node.Arguments[0]);
-            var innerType = DereferenceType(inner.GetExpectedType(TypeSystem));
+            var innerType = DereferenceType(inner.GetActualType(TypeSystem));
 
             var innerTypeGit = innerType as GenericInstanceType;
             if (innerTypeGit != null)
@@ -1195,7 +1196,8 @@ namespace JSIL {
                 // The C# expression 'x is y' translates into roughly '(x is y) > null' in IL, 
                 //  because there's no IL opcode for != and the IL isinst opcode returns object, not bool
                 var value = TranslateNode(node.Arguments[0].Arguments[0]);
-                var nullLiteral = TranslateNode(node.Arguments[1]) as JSNullLiteral;
+                var arg1 = TranslateNode(node.Arguments[1]);
+                var nullLiteral = arg1 as JSNullLiteral;
                 var targetType = (TypeReference)node.Arguments[0].Operand;
 
                 var targetInfo = TypeInfo.Get(targetType);
@@ -1312,7 +1314,7 @@ namespace JSIL {
                 // Some compound expressions involving structs produce a call instruction instead of a binary expression
                 return new JSBinaryOperatorExpression(
                     JSOperator.Assignment, invocation.Arguments[0],
-                    invocation, invocation.GetExpectedType(TypeSystem)
+                    invocation, invocation.GetActualType(TypeSystem)
                 );
             } else {
                 throw new NotImplementedException(String.Format("Compound assignments of this type not supported: '{0}'", node));
@@ -1490,8 +1492,8 @@ namespace JSIL {
             if ((value.IsNull) && !(value is JSUntranslatableExpression) && !(value is JSIgnoredMemberReference))
                 return new JSNullExpression();
 
-            var expectedType = node.ExpectedType ?? node.InferredType ?? variable.Type;
-            if (!TypesAreAssignable(TypeInfo, expectedType, value.GetExpectedType(TypeSystem)))
+            var expectedType = node.InferredType ?? node.ExpectedType ?? variable.Type;
+            if (!TypesAreAssignable(TypeInfo, expectedType, value.GetActualType(TypeSystem)))
                 value = Translate_Conv(value, expectedType);
 
             JSVariable jsv;
@@ -1512,7 +1514,7 @@ namespace JSIL {
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment, jsv,
                 value,
-                value.GetExpectedType(TypeSystem)
+                value.GetActualType(TypeSystem)
             );
         }
 
@@ -1556,7 +1558,7 @@ namespace JSIL {
                 JSOperator.Assignment,
                 Translate_Ldsfld(node, field),
                 rhs,
-                rhs.GetExpectedType(TypeSystem)
+                rhs.GetActualType(TypeSystem)
             );
         }
 
@@ -1601,7 +1603,7 @@ namespace JSIL {
             return new JSBinaryOperatorExpression(
                 JSOperator.Assignment,
                 Translate_Ldfld(node, field),
-                rhs, rhs.GetExpectedType(TypeSystem)
+                rhs, rhs.GetActualType(TypeSystem)
             );
         }
 
@@ -1641,7 +1643,7 @@ namespace JSIL {
             if (!JSReferenceExpression.TryDereference(JSIL, reference, out referent))
                 Console.Error.WriteLine(String.Format("Warning: unsupported reference type for ldobj: {0}", node.Arguments[0]));
 
-            if ((referent != null) && EmulateStructAssignment.IsStruct(referent.GetExpectedType(TypeSystem)))
+            if ((referent != null) && EmulateStructAssignment.IsStruct(referent.GetActualType(TypeSystem)))
                 return reference;
             else {
                 if (referent != null)
@@ -1668,11 +1670,11 @@ namespace JSIL {
                 if (!JSReferenceExpression.TryMaterialize(JSIL, target, out referent))
                     Console.Error.WriteLine(String.Format("Warning: unsupported target expression for stobj: {0}", node.Arguments[0]));
                 else
-                    target = new JSDotExpression(referent, new JSStringIdentifier("value", value.GetExpectedType(TypeSystem)));
+                    target = new JSDotExpression(referent, new JSStringIdentifier("value", value.GetActualType(TypeSystem)));
             }
 
             return new JSBinaryOperatorExpression(
-                JSOperator.Assignment, target, value, node.ExpectedType ?? node.InferredType
+                JSOperator.Assignment, target, value, node.InferredType ?? node.ExpectedType
             );
         }
 
@@ -1703,7 +1705,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldnull (ILExpression node) {
-            return JSLiteral.Null(node.ExpectedType ?? node.InferredType);
+            return JSLiteral.Null(node.InferredType ?? node.ExpectedType);
         }
 
         protected JSExpression Translate_Ldftn (ILExpression node, MethodReference method) {
@@ -1738,7 +1740,7 @@ namespace JSIL {
 
         protected JSExpression Translate_Ldc (ILExpression node, long value) {
             string typeName = null;
-            var expressionType = node.ExpectedType ?? node.InferredType;
+            var expressionType = node.InferredType ?? node.ExpectedType;
             TypeInfo typeInfo = null;
             if (expressionType != null) {
                 typeName = expressionType.FullName;
@@ -1816,7 +1818,7 @@ namespace JSIL {
             if (arg.IsNull)
                 return arg;
 
-            var argType = arg.GetExpectedType(TypeSystem);
+            var argType = arg.GetActualType(TypeSystem);
             var argTypeDef = GetTypeDefinition(argType);
             PropertyDefinition lengthProp = null;
             if (argTypeDef != null)
@@ -1829,7 +1831,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldelem (ILExpression node, TypeReference elementType) {
-            var expectedType = elementType ?? node.ExpectedType ?? node.InferredType;
+            var expectedType = elementType ?? node.InferredType ?? node.ExpectedType;
             var target = TranslateNode(node.Arguments[0]);
             if (target.IsNull)
                 return target;
@@ -1860,7 +1862,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Stelem (ILExpression node, TypeReference elementType) {
-            var expectedType = elementType ?? node.ExpectedType ?? node.InferredType;
+            var expectedType = elementType ?? node.InferredType ?? node.ExpectedType;
 
             var target = TranslateNode(node.Arguments[0]);
             if (target.IsNull)
@@ -1875,7 +1877,7 @@ namespace JSIL {
                     target, indexer,
                     expectedType
                 ),
-                rhs, elementType ?? rhs.GetExpectedType(TypeSystem)
+                rhs, elementType ?? rhs.GetActualType(TypeSystem)
             );
         }
 
@@ -1883,12 +1885,12 @@ namespace JSIL {
             return JSIL.Coalesce(
                 TranslateNode(node.Arguments[0]),
                 TranslateNode(node.Arguments[1]),
-                node.ExpectedType ?? node.InferredType
+                node.InferredType ?? node.ExpectedType
             );
         }
 
         protected JSExpression Translate_Castclass (ILExpression node, TypeReference targetType) {
-            if (IsDelegateType(targetType) && IsDelegateType(node.ExpectedType ?? node.InferredType)) {
+            if (IsDelegateType(targetType) && IsDelegateType(node.InferredType ?? node.ExpectedType)) {
                 // TODO: We treat all delegate types as equivalent, so we can skip these casts for now
                 return TranslateNode(node.Arguments[0]);
             }
@@ -1927,7 +1929,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Conv (JSExpression value, TypeReference expectedType) {
-            var currentType = value.GetExpectedType(TypeSystem);
+            var currentType = value.GetActualType(TypeSystem);
 
             if (TypesAreEqual(expectedType, currentType))
                 return value;
@@ -1998,9 +2000,11 @@ namespace JSIL {
 
         protected JSExpression Translate_Conv (ILExpression node, TypeReference targetType) {
             var value = TranslateNode(node.Arguments[0]);
-            var expectedType = node.ExpectedType ?? node.InferredType ?? targetType;
 
-            return Translate_Conv(value, expectedType);
+            if (!ILBlockTranslator.TypesAreAssignable(TypeInfo, targetType, value.GetActualType(TypeSystem)))
+                return Translate_Conv(value, targetType);
+            else
+                return value;
         }
 
         protected JSExpression Translate_Conv_I (ILExpression node) {
@@ -2107,7 +2111,7 @@ namespace JSIL {
                         ) || (
                             compilerGenerated &&
                             TypesAreEqual(
-                                thisArg.GetExpectedType(TypeSystem),
+                                thisArg.GetActualType(TypeSystem),
                                 methodDef.DeclaringType
                             )
                         ) || (
@@ -2203,25 +2207,23 @@ namespace JSIL {
             return result.ToArray();
         }
 
-        protected JSExpression Translate_InitArray (ILExpression node, TypeReference elementType) {
-            var initializer = new JSArrayExpression(elementType, Translate(node.Arguments));
-            var at = elementType as ArrayType;
+        protected JSExpression Translate_InitArray (ILExpression node, TypeReference _arrayType) {
+            var at = _arrayType as ArrayType;
+            var initializer = new JSArrayExpression(at, Translate(node.Arguments));
             int rank = 0;
             if (at != null)
                 rank = at.Rank;
 
-            if (TypesAreEqual(
-                TypeSystem.Object, elementType
-            ) && rank < 2)
+            if (TypesAreEqual(TypeSystem.Object, at) && rank < 2)
                 return initializer;
             else {
                 if (rank > 1) {
                     return JSIL.NewMultidimensionalArray(
-                        elementType, GetArrayDimensions(at), initializer
+                        at.ElementType, GetArrayDimensions(at), initializer
                     );
                 } else {
                     return JSIL.NewArray(
-                        elementType, initializer
+                        at.ElementType, initializer
                     );
                 }
             }
@@ -2263,7 +2265,7 @@ namespace JSIL {
 
         protected JSInitializerApplicationExpression Translate_InitObject (ILExpression node) {
             var target = TranslateNode(node.Arguments[0]);
-            var typeInfo = TypeInfo.Get(target.GetExpectedType(TypeSystem));
+            var typeInfo = TypeInfo.Get(target.GetActualType(TypeSystem));
 
             var initializers = new List<JSPairExpression>();
 
@@ -2429,7 +2431,7 @@ namespace JSIL {
 
                 arguments = arguments.Skip(1).ToArray();
 
-                var thisReferenceType = thisExpression.GetExpectedType(TypeSystem);
+                var thisReferenceType = thisExpression.GetActualType(TypeSystem);
 
                 var isSelf = TypesAreAssignable(
                     TypeInfo, thisReferenceType, ThisMethod.DeclaringType
@@ -2452,11 +2454,11 @@ namespace JSIL {
 
             if (method.ReturnType.MetadataType != MetadataType.Void) {
                 var expectedType = node.ExpectedType ?? node.InferredType ?? method.ReturnType;
-                if (!TypesAreAssignable(TypeInfo, expectedType, result.GetExpectedType(TypeSystem)))
+                if (!TypesAreAssignable(TypeInfo, expectedType, result.GetActualType(TypeSystem)))
                     result = Translate_Conv(result, expectedType);
             }
 
-            if (CopyOnReturn(result.GetExpectedType(TypeSystem)))
+            if (CopyOnReturn(result.GetActualType(TypeSystem)))
                 result = JSReferenceExpression.New(result);
 
             return result;
@@ -2505,7 +2507,7 @@ namespace JSIL {
                 var declaringTypeDef = GetTypeDefinition(declaringType);
                 var declaringTypeInfo = TypeInfo.Get(declaringType);
 
-                var thisReferenceType = thisExpression.GetExpectedType(TypeSystem);
+                var thisReferenceType = thisExpression.GetActualType(TypeSystem);
 
                 var isSelf = TypesAreAssignable(
                     TypeInfo, thisReferenceType, ThisMethod.DeclaringType
@@ -2525,11 +2527,11 @@ namespace JSIL {
 
             if (method.ReturnType.MetadataType != MetadataType.Void) {
                 var expectedType = node.ExpectedType ?? node.InferredType ?? method.ReturnType;
-                if (!TypesAreAssignable(TypeInfo, expectedType, result.GetExpectedType(TypeSystem)))
+                if (!TypesAreAssignable(TypeInfo, expectedType, result.GetActualType(TypeSystem)))
                     result = Translate_Conv(result, expectedType);
             }
 
-            if (CopyOnReturn(result.GetExpectedType(TypeSystem)))
+            if (CopyOnReturn(result.GetActualType(TypeSystem)))
                 result = JSReferenceExpression.New(result);
 
             return result;

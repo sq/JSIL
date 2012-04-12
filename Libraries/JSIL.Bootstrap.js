@@ -1554,6 +1554,11 @@ JSIL.ImplementExternals("System.Math", function ($) {
   $.RawMethod(true, "Min", Math.min);
   $.RawMethod(true, "Exp", Math.exp);
 
+  $.Method({Static:true , Public:true }, "Atan2", 
+    (new JSIL.MethodSignature($.Double, [$.Double, $.Double], [])), 
+    Math.atan2
+  );
+
   $.Method({Static:true , Public:true }, "Sign", 
     (new JSIL.MethodSignature($.Int32, [$.SByte], [])), 
     JSIL.$MathSign

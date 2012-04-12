@@ -45,7 +45,7 @@ namespace JSIL.Transforms {
                         case "GetType": {
                             JSNode replacement;
 
-                            var thisType = JSExpression.DeReferenceType(thisExpression.GetExpectedType(TypeSystem), false);
+                            var thisType = JSExpression.DeReferenceType(thisExpression.GetActualType(TypeSystem), false);
                             if ((thisType is GenericInstanceType) && thisType.FullName.StartsWith("System.Nullable")) {
                                 replacement = new JSType(thisType);
                             } else {
@@ -114,7 +114,7 @@ namespace JSIL.Transforms {
                     if (ie.Arguments.Count > 2) {
                         if (ie.Arguments.All(
                             (arg) => ILBlockTranslator.TypesAreEqual(
-                                TypeSystem.String, arg.GetExpectedType(TypeSystem)
+                                TypeSystem.String, arg.GetActualType(TypeSystem)
                             )
                         )) {
                             var boe = JSBinaryOperatorExpression.New(
@@ -134,7 +134,7 @@ namespace JSIL.Transforms {
                         ie.Arguments.Count == 2
                     ) {
                         var lhs = ie.Arguments[0];
-                        var lhsType = ILBlockTranslator.DereferenceType(lhs.GetExpectedType(TypeSystem));
+                        var lhsType = ILBlockTranslator.DereferenceType(lhs.GetActualType(TypeSystem));
                         if (!(
                             ILBlockTranslator.TypesAreEqual(TypeSystem.String, lhsType) ||
                             ILBlockTranslator.TypesAreEqual(TypeSystem.Char, lhsType)
@@ -143,7 +143,7 @@ namespace JSIL.Transforms {
                         }
 
                         var rhs = ie.Arguments[1];
-                        var rhsType = ILBlockTranslator.DereferenceType(rhs.GetExpectedType(TypeSystem));
+                        var rhsType = ILBlockTranslator.DereferenceType(rhs.GetActualType(TypeSystem));
                         if (!(
                             ILBlockTranslator.TypesAreEqual(TypeSystem.String, rhsType) ||
                             ILBlockTranslator.TypesAreEqual(TypeSystem.Char, rhsType)
@@ -161,7 +161,7 @@ namespace JSIL.Transforms {
 
                         VisitReplacement(boe);
                     } else if (
-                        ILBlockTranslator.GetTypeDefinition(ie.Arguments[0].GetExpectedType(TypeSystem)).FullName == "System.Array"
+                        ILBlockTranslator.GetTypeDefinition(ie.Arguments[0].GetActualType(TypeSystem)).FullName == "System.Array"
                     ) {
                     } else {
                         var firstArg = ie.Arguments.FirstOrDefault();
@@ -179,7 +179,7 @@ namespace JSIL.Transforms {
                     (method.Method.Name == "Invoke")
                 ) {
                     var newIe = new JSDelegateInvocationExpression(
-                        thisExpression, ie.GetExpectedType(TypeSystem), ie.Arguments.ToArray()
+                        thisExpression, ie.GetActualType(TypeSystem), ie.Arguments.ToArray()
                     );
                     ParentNode.ReplaceChild(ie, newIe);
 
@@ -199,7 +199,7 @@ namespace JSIL.Transforms {
                     (method.Method.Name == "InitializeArray")
                 ) {
                     var array = ie.Arguments[0];
-                    var arrayType = array.GetExpectedType(TypeSystem);
+                    var arrayType = array.GetActualType(TypeSystem);
                     var field = ie.Arguments[1].SelfAndChildrenRecursive.OfType<JSField>().First();
                     var initializer = JSArrayExpression.UnpackArrayInitializer(arrayType, field.Field.Member.InitialValue);
 
@@ -281,7 +281,7 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSPropertyAccess pa) {
-            var targetType = pa.Target.GetExpectedType(TypeSystem);
+            var targetType = pa.Target.GetActualType(TypeSystem);
 
             if (IsNullable(targetType)) {
                 var @null = JSLiteral.Null(targetType);
@@ -311,7 +311,7 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSDefaultValueLiteral dvl) {
-            var expectedType = dvl.GetExpectedType(TypeSystem);
+            var expectedType = dvl.GetActualType(TypeSystem);
 
             if (
                 IsNullable(expectedType)
@@ -325,7 +325,7 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSNewExpression ne) {
-            var expectedType = ne.GetExpectedType(TypeSystem);
+            var expectedType = ne.GetActualType(TypeSystem);
             if (
                 IsNullable(expectedType)
             ) {

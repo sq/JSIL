@@ -148,7 +148,7 @@ namespace JSIL {
         }
 
         public JSNewExpression NewMemberReference (JSExpression target, JSLiteral member) {
-            var resultType = new ByReferenceType(member.GetExpectedType(TypeSystem));
+            var resultType = new ByReferenceType(member.GetActualType(TypeSystem));
 
             return new JSNewExpression(
                 Dot("MemberReference", resultType),
@@ -157,7 +157,7 @@ namespace JSIL {
         }
 
         public JSNewExpression NewReference (JSExpression initialValue) {
-            var resultType = new ByReferenceType(initialValue.GetExpectedType(TypeSystem));
+            var resultType = new ByReferenceType(initialValue.GetActualType(TypeSystem));
 
             return new JSNewExpression(
                 Dot("Variable", resultType),

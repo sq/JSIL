@@ -22,6 +22,14 @@ namespace JSIL.Transforms {
             AbsoluteJumpsSeenStack.Add(0);
         }
 
+        public void VisitNode (JSSwitchStatement ss) {
+            AbsoluteJumpsSeenStack.Add(0);
+
+            VisitChildren(ss);
+
+            AbsoluteJumpsSeenStack.RemoveAt(AbsoluteJumpsSeenStack.Count - 1);
+        }
+
         public void VisitNode (JSSwitchCase sc) {
             SwitchCaseStack.Push(sc);
 
