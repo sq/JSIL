@@ -45,6 +45,11 @@ JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializationReader", funct
     function Init (r, events, encodingStyle, tempAssembly) {
       this.r = r;
 
+      this.typeID = r.NameTable.Add("type");
+      this.instanceNsID = r.NameTable.Add("http://www.w3.org/2001/XMLSchema-instance");
+      this.instanceNs2000ID = r.NameTable.Add("http://www.w3.org/2000/10/XMLSchema-instance");
+      this.instanceNs1999ID = r.NameTable.Add("http://www.w3.org/1999/XMLSchema-instance");
+
       this.InitIDs();
     }
   );
@@ -53,6 +58,122 @@ JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializationReader", funct
     (new JSIL.MethodSignature($xmlasms[16].TypeRef("System.Xml.XmlReader"), [], [])), 
     function get_Reader () {
       return this.r;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_ReaderCount", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_ReaderCount () {
+      return this.r.AdvanceCount;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ReadEndElement", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function ReadEndElement () {
+      while (this.r.NodeType == System.Xml.XmlNodeType.Whitespace)
+        this.r.Skip();
+
+      if (this.r.NodeType == System.Xml.XmlNodeType.None) {
+        this.r.Skip();
+        return;
+      }
+
+      this.r.ReadEndElement();
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "GetXsiType", 
+    (new JSIL.MethodSignature($xmlasms[16].TypeRef("System.Xml.XmlQualifiedName"), [], [])), 
+    function GetXsiType () {
+      var result = new System.Xml.XmlQualifiedName();
+
+      var r = this.r;
+      var a = r.GetAttribute(this.typeID, this.instanceNsID);
+      if (a !== null) {
+        result.name = a;
+        return result;
+      }
+
+      a = r.GetAttribute(this.typeID, this.instanceNs2000ID);
+      if (a !== null) {
+        result.name = a;
+        return result;
+      }
+
+      a = r.GetAttribute(this.typeID, this.instanceNs1999ID);
+      if (a !== null) {
+        result.name = a;
+        return result;
+      }
+
+      return null;
+    }
+  );
+
+});
+
+JSIL.ImplementExternals("System.Xml.XmlQualifiedName", function ($) {
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      this.name = "";
+      this.ns = "";
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.String], [])), 
+    function _ctor (name) {
+      this.name = name;
+      this.ns = "";
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.String, $.String], [])), 
+    function _ctor (name, ns) {
+      this.name = name;
+      this.ns = ns;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Name", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_Name () {
+      return this.name;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Namespace", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_Namespace () {
+      return this.ns;
+    }
+  );
+
+  var equalsImpl = function (lhs, rhs) {
+    if (lhs === rhs)
+      return true;
+
+    if ((lhs === null) || (rhs === null))
+      return lhs === rhs;
+
+    return (lhs.name == rhs.name) && (lhs.ns == rhs.ns);
+  }
+
+  $.Method({Static:true , Public:true }, "op_Equality", 
+    (new JSIL.MethodSignature($.Boolean, [$xmlasms[16].TypeRef("System.Xml.XmlQualifiedName"), $xmlasms[16].TypeRef("System.Xml.XmlQualifiedName")], [])), 
+    function op_Equality (a, b) {
+      return equalsImpl(a, b);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Inequality", 
+    (new JSIL.MethodSignature($.Boolean, [$xmlasms[16].TypeRef("System.Xml.XmlQualifiedName"), $xmlasms[16].TypeRef("System.Xml.XmlQualifiedName")], [])), 
+    function op_Inequality (a, b) {
+      return !equalsImpl(a, b);
     }
   );
 
@@ -86,6 +207,7 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
     this._eof = false;
     this.$setCurrentNode(null, sBeforeDocument);
     this.nameTable = new System.Xml.XmlNameTable();
+    this.advanceCount = 0;
   });
 
   $.RawMethod(false, "$setCurrentNode", function (node, state) {
@@ -173,10 +295,35 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
     return this.$setCurrentNode(null, sAfterDocument);
   });
 
+  $.RawMethod(false, "$skip", function () {
+    var cur = this._current;
+    if (cur === null) {
+      this._eof = true;
+      return this.$setCurrentNode(null, sAfterDocument);
+    }
+
+    if (cur.nextSibling !== null) {
+      return this.$setCurrentNode(cur.nextSibling, sNode);
+    } else if (cur.parentNode !== null) {
+      return this.$setCurrentNode(cur.parentNode, sClosing);
+    } else {
+      this._eof = true;
+      return this.$setCurrentNode(null, sAfterDocument);
+    }
+  });
+
   $.Method({Static:false, Public:true }, "Read", 
     (new JSIL.MethodSignature($.Boolean, [], [])), 
     function Read () {
+      this.advanceCount += 1;
       return this.$moveNext();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Skip", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Skip () {
+      this.$skip();
     }
   );
 
@@ -197,12 +344,13 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
     }
   );
 
-  $.RawMethod(false, "$isTextualNode", function () {
+  $.RawMethod(false, "$isTextualNode", function (includingComments) {
     switch (this._nodeType) {
       case ntText:
-      case ntComment:
       case ntWhitespace:
         return true;
+      case ntComment:
+        return includingComments;
     }
 
     return false;
@@ -214,7 +362,7 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
       if (this._current === null)
         return true;      
 
-      if (this.$isTextualNode())
+      if (this.$isTextualNode(true))
         return false;
 
       // The DOM makes it impossible to tell whether an element is actually an empty element.
@@ -227,6 +375,132 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
         (this._current.childNodes.length === 0);
 
       return noChildren;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "IsStartElement", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function IsStartElement () {
+      return this.MoveToContent() == ntElement;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "IsStartElement", 
+    (new JSIL.MethodSignature($.Boolean, [$.String], [])), 
+    function IsStartElement (name) {
+      return (this.MoveToContent() == ntElement) &&
+        (this.Name == name);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "IsStartElement", 
+    (new JSIL.MethodSignature($.Boolean, [$.String, $.String], [])), 
+    function IsStartElement (localname, ns) {
+      return (this.MoveToContent() == ntElement) &&
+        (this.LocalName == localname) &&
+        (this.NamespaceURI == ns);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ReadStartElement", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function ReadStartElement () {
+      if (!this.IsStartElement())
+        throw new Error("Start element not found");
+
+      this.Read();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ReadEndElement", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function ReadEndElement () {
+      if (this.MoveToContent() != ntEndElement)
+        throw new Error("End element not found");
+
+      this.Read();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ReadStartElement", 
+    (new JSIL.MethodSignature(null, [$.String], [])), 
+    function ReadStartElement (name) {
+      if (!this.IsStartElement(name))
+        throw new Error("Start element not found");
+
+      this.Read();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ReadStartElement", 
+    (new JSIL.MethodSignature(null, [$.String, $.String], [])), 
+    function ReadStartElement (localname, ns) {
+      if (!this.IsStartElement(localname, ns))
+        throw new Error("Start element not found");
+
+      this.Read();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ReadElementString", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function ReadElementString () {
+      this.ReadStartElement();
+
+      var result = this.ReadString();
+      this.ReadEndElement();
+      return result;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ReadElementString", 
+    (new JSIL.MethodSignature($.String, [$.String], [])), 
+    function ReadElementString (name) {
+      this.ReadStartElement(name);
+
+      var result = this.ReadString();
+      this.ReadEndElement();
+      return result;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ReadElementString", 
+    (new JSIL.MethodSignature($.String, [$.String, $.String], [])), 
+    function ReadElementString (localname, ns) {
+      this.ReadStartElement(localname, ns);
+
+      var result = this.ReadString();
+      this.ReadEndElement();
+      return result;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ReadString", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function ReadString () {
+      var result = "";
+      // this.MoveToElement();
+
+      // If we're positioned on a start element, advance into the body to find the text
+      if (this._nodeType == ntElement) {
+        if (this.get_IsEmptyElement())
+          return result;
+
+        if (!this.Read())
+          throw new Error("Failed to read string");
+
+        if (this._nodeType == ntEndElement)
+          return result;
+      }
+
+      while (this.$isTextualNode(false)) {
+        result += this._current.nodeValue;
+
+        if (!this.Read())
+          break;
+      }
+
+      return result;
     }
   );
 
@@ -284,10 +558,17 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "get_AdvanceCount", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_AdvanceCount () {
+      return this.advanceCount;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "get_AttributeCount", 
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function get_AttributeCount () {
-      if (this.$isTextualNode())
+      if (this.$isTextualNode(true))
         return 0;
 
       if (this._current !== null)
@@ -392,12 +673,14 @@ JSIL.MakeClass("System.Object", "System.Xml.XmlNameTable", true, [], function ($
 JSIL.MakeClass("System.Object", "System.Xml.XmlReader", true, [], function ($) {
   $.ExternalMembers(false, 
     "Read", "MoveToContent",
-    "get_AttributeCount", "get_IsEmptyElement", 
+    "get_AdvanceCount", "get_AttributeCount", 
+    "get_IsEmptyElement", 
     "get_LocalName", "get_NameTable",
     "get_NodeType", "get_Name", 
     "get_NamespaceURI", "get_Value"
   );
 
+  $.Property({Static:false, Public:true }, "AdvanceCount");
   $.Property({Static:false, Public:true }, "AttributeCount");
   $.Property({Static:false, Public:true }, "IsEmptyElement");
   $.Property({Static:false, Public:true }, "LocalName");

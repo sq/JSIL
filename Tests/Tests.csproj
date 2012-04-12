@@ -78,6 +78,8 @@
     <None Include="XMLTestCases\GetAttributeByName.cs" />
     <None Include="XMLTestCases\NamespacedAttributes.cs" />
     <None Include="XMLTestCases\NameTable.cs" />
+    <None Include="XMLTestCases\Skip.cs" />
+    <None Include="XMLTestCases\ReadElementString.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

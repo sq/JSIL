@@ -3034,6 +3034,19 @@ JSIL.ImplementExternals("System.Activator", function ($) {
       return JSIL.CreateInstanceOfType(type, args);
     }
   );
+
+  $.Method({Static:true , Public:true }, "CreateInstance", 
+    (new JSIL.MethodSignature($.Object, [
+          $asms[5].TypeRef("System.Type"), $asms[5].TypeRef("System.Reflection.BindingFlags"), 
+          $asms[5].TypeRef("System.Reflection.Binder"), $jsilcore.TypeRef("System.Array", [$.Object]), 
+          $asms[5].TypeRef("System.Globalization.CultureInfo")
+        ], [])), 
+    function CreateInstance (type, bindingAttr, binder, args, culture) {
+      // FIXME
+      return JSIL.CreateInstanceOfType(type, args);
+    }
+  );
+
 });
 
 JSIL.ImplementExternals("System.Diagnostics.Stopwatch", function ($) {

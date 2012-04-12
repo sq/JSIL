@@ -4085,21 +4085,24 @@ JSIL.CreateInstanceOfType = function (type, constructorName, constructorArgument
   } else {
     constructor = publicInterface.prototype["_ctor"];
 
-    if ((typeof (constructor) !== "function") || (constructor.__IsPlaceholder__)) {
-      JSIL.Host.warning("Type '" + type.__FullName__ + "' has no default constructor!");
-      return instance;
-    }
-
     constructorArguments = constructorName;
     constructorName = null;
+  }
+
+  if (type.__IsNativeType__) {
+    // Native types need to be constructed differently.
+    return constructor.apply(constructor, constructorArguments);
   }
 
   if (!JSIL.IsArray(constructorArguments))
     constructorArguments = [];
 
-  if (type.__IsNativeType__) {
-    // Native types need to be constructed differently.
-    return constructor.apply(constructor, constructorArguments);
+  if (type.__IsStruct__ && (constructorArguments.length === 0))
+    return instance;
+
+  if ((typeof (constructor) !== "function") || (constructor.__IsPlaceholder__)) {
+    JSIL.Host.warning("Type '" + type.__FullName__ + "' has no default constructor!");
+    return instance;
   }
 
   if (typeof (constructor) !== "function") {
