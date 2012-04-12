@@ -54,6 +54,7 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
   var ntElement = System.Xml.XmlNodeType.Element;
   var ntAttribute = System.Xml.XmlNodeType.Attribute;
   var ntText = System.Xml.XmlNodeType.Text;
+  var ntWhitespace = System.Xml.XmlNodeType.Whitespace;
   var ntComment = System.Xml.XmlNodeType.Comment;
   var ntDocument = System.Xml.XmlNodeType.Document;
   var ntEndElement = System.Xml.XmlNodeType.EndElement;
@@ -93,28 +94,34 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
       throw new Error("Non-object node:" + String(node));
     }
 
-    var proto = Object.getPrototypeOf(node);
-
-    if (proto === attrProto) {
-      this._nodeType = ntAttribute;
-    } else if (proto === textProto) {
-      this._nodeType = ntText;
-    } else if (proto === elementProto) {
-      if (state === sClosing) {
-        this._nodeType = ntEndElement;
-      } else {
-        this._nodeType = ntElement;
-      }
-    } else if (proto === docProto) {
-      if (state !== sClosing) {
-        // Skip directly to the root node
-        return this.$setCurrentNode(node.firstChild, "node");
-      } else {
-        return this.$setCurrentNode(null, sAfterDocument);
-      }
-    } else {
-      JSIL.Host.warning("Unknown node type: ", node);
-      this._nodeType = ntNone;
+    switch (node.nodeType) {
+      case Node.ELEMENT_NODE:
+        if (state === sClosing) {
+          this._nodeType = ntEndElement;
+        } else {
+          this._nodeType = ntElement;
+        }
+        break;
+      case Node.ATTRIBUTE_NODE:
+        this._nodeType = ntAttribute;
+        break;
+      case Node.TEXT_NODE:
+        if (System.String.IsNullOrWhiteSpace(node.nodeValue)) {
+          this._nodeType = ntWhitespace;
+        } else {
+          this._nodeType = ntText;
+        }
+        break;
+      case Node.DOCUMENT_NODE:
+        if (state !== sClosing) {
+          // Skip directly to the root node
+          return this.$setCurrentNode(node.firstChild, "node");
+        } else {
+          return this.$setCurrentNode(null, sAfterDocument);
+        }
+      default:
+        JSIL.Host.warning("Unsupported node type: ", node.nodeType, " ", node);
+        break;
     }
 
     return true;
@@ -180,8 +187,18 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
     function get_IsEmptyElement () {
       if (this._current === null)
         return true;      
-      else if (this._nodeType === ntNone)
-        return true;
+
+      switch (this._nodeType) {
+        case ntNone:
+        case ntText:
+        case ntWhitespace:
+          return false;        
+      }
+
+      // The DOM makes it impossible to tell whether an element is actually an empty element.
+      // Furthermore, all elements with no children become empty elements when being serialized
+      //  in Mozilla.
+      // So, that sucks. This is broken.
 
       var noChildren = (typeof (this._current.childNodes) === "undefined") ||
         (this._current.childNodes === null) || 
@@ -191,9 +208,7 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
         (this._current.attributes === null) || 
         (this._current.attributes.length === 0);
 
-      var noText = ((this._current.textContent === null) || (this._current.textContent.length === 0));
-
-      return noChildren && noAttributes && noText;
+      return noChildren && noAttributes;
     }
   );
 
@@ -217,11 +232,8 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
   $.Method({Static:false, Public:true }, "get_Value", 
     (new JSIL.MethodSignature($.String, [], [])), 
     function get_Value () {
-      if (this._nodeType !== ntText)
-        return null;
-
       if (this._current !== null)
-        return this._current.textContent || null;
+        return this._current.nodeValue || null;
 
       return null;
     }

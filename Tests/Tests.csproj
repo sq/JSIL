@@ -69,6 +69,7 @@
     <None Include="SimpleTestCases\RecursiveArrayInitializer.cs" />
     <None Include="XMLTestCases\Common.cs" />
     <None Include="XMLTestCases\TextContent.cs" />
+    <None Include="XMLTestCases\Whitespace.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

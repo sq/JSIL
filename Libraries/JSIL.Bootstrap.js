@@ -349,6 +349,22 @@ JSIL.ImplementExternals(
       }
     );
 
+    $.Method({Static:true , Public:true }, "IsNullOrWhiteSpace", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [$jsilcore.TypeRef("System.String")], []),
+      function (str) {
+        if (str === null)
+          return true;
+        else if (typeof (str) === "undefined")
+          return true;
+        else if (str.length === 0)
+          return true;
+        else if (str.trim().length === 0)
+          return true;
+
+        return false;
+      }
+    );
+
     $.Method({Static:true , Public:true }, "LastIndexOfAny", 
       new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [System.Array.Of($jsilcore.System.Char), $jsilcore.TypeRef("System.Int32")], []),
       function (str, chars) {
