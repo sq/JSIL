@@ -652,6 +652,8 @@ public static class Common {
 
             Action<string, string, Dictionary<string, object>> logOutput =
             (type, filename, properties) => {
+                var fileInfo = new FileInfo(filename);
+
                 var localPath = filename.Replace(localOutputDirectory, "");
                 if (localPath.StartsWith("\\"))
                     localPath = localPath.Substring(1);
@@ -662,7 +664,7 @@ public static class Common {
 
                 if (properties == null) {
                     properties = new Dictionary<string, object> {
-                        { "sizeBytes", new FileInfo(filename).Length }
+                        { "sizeBytes", fileInfo.Length }
                     };
                 }
 

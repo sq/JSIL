@@ -924,8 +924,8 @@ namespace JSIL {
             // We need to perform manual truncation to maintain the semantics of C#'s division operator
             if ((bop.Operator == JSOperator.Divide)) {
                 needsTruncation =                     
-                    (ILBlockTranslator.IsIntegral(bop.Left.GetActualType(TypeSystem)) &&
-                    ILBlockTranslator.IsIntegral(bop.Right.GetActualType(TypeSystem))) ||
+                    (ILBlockTranslator.IsIntegral(bop.Left.GetActualType(TypeSystem)) ||
+                    ILBlockTranslator.IsIntegral(bop.Right.GetActualType(TypeSystem))) &&
                     ILBlockTranslator.IsIntegral(bop.GetActualType(TypeSystem));
 
                 parens |= needsTruncation;
@@ -1129,8 +1129,14 @@ namespace JSIL {
 
                 // If there's only one overload with this argument count, we don't need to use
                 //  the expensive overloaded method dispatch path.
+                if ((method.Name == "Draw") && (overloadCount >= 2))
+                    Debugger.Break();
+
                 return overloadCount < 2;
             }
+
+            if (method.Name == "Draw")
+                Debugger.Break();
 
             return false;
         }

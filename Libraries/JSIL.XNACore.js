@@ -25,9 +25,9 @@ $jsilxna.nextImageId = 0;
 
 $jsilxna.multipliedImageCache = {};
 $jsilxna.multipliedImageCache.accessHistory = {};
-$jsilxna.multipliedImageCache.capacity = 256; // unique images
-$jsilxna.multipliedImageCache.capacityBytes = (1024 * 1024) * 16; // total image bytes (at 32bpp)
-$jsilxna.multipliedImageCache.evictionMinimumAge = 250; // milliseconds
+$jsilxna.multipliedImageCache.capacity = 1024; // unique images
+$jsilxna.multipliedImageCache.capacityBytes = (1024 * 1024) * 64; // total image bytes (at 32bpp)
+$jsilxna.multipliedImageCache.evictionMinimumAge = 500; // milliseconds
 $jsilxna.multipliedImageCache.count = 0;
 $jsilxna.multipliedImageCache.countBytes = 0;
 $jsilxna.multipliedImageCache.evictionPending = false;
@@ -2103,7 +2103,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Matrix", function ($) {
         ], [])), 
     function CreateOrthographicOffCenter (left, right, bottom, top, zNearPlane, zFarPlane) {
       // FIXME
-      return new Microsoft.Xna.Framework.Matrix._identity;
+      return Microsoft.Xna.Framework.Matrix._identity;
     }
   );
 
@@ -3978,7 +3978,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
   );
 
   $.RawMethod(false, "$applyBlendState", function () {
-    if (this.blendState !== null)
+    if ((typeof (this.blendState) === "object") && (this.blendState !== null))
       this.device.BlendState = this.blendState;
     else
       this.device.BlendState = Microsoft.Xna.Framework.Graphics.BlendState.AlphaBlend;
@@ -4421,7 +4421,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       var isSinglePixel = ((sourceX == 0) && (sourceY == 0) && (sourceW == 1) && (sourceH == 1));
 
       if (!isSinglePixel) {
-        if ((color.r < 255) || (color.g < 255) || (color.b < 255)) {
+        // Since the color is premultiplied, any r/g/b value >= alpha is basically white.
+        if ((color.r < color.a) || (color.g < color.a) || (color.b < color.a)) {
           var newImage = $jsilxna.getImageMultiplied(image, color);
 
           if ((newImage === image) || (newImage === null)) {
@@ -4469,6 +4470,16 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
 
         this.device.context.translate(positionX + originX, positionY + originY);
         this.device.context.rotate(rotation);
+        this.device.context.translate(-positionX - originX, -positionY - originY);
+      }
+
+      if ((scaleX != 1.0) || (scaleY != 1.0)) {
+        if (!needRestore) 
+          this.device.context.save();
+        needRestore = true;
+
+        this.device.context.translate(positionX + originX, positionY + originY);
+        this.device.context.scale(scaleX, scaleY);
         this.device.context.translate(-positionX - originX, -positionY - originY);
       }
 
@@ -4637,7 +4648,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
     this.viewport = new Microsoft.Xna.Framework.Graphics.Viewport();
     this.viewport.Width = this.canvas.clientWidth || this.canvas.width;
     this.viewport.Height = this.canvas.clientHeight || this.canvas.height;
-    this.blendState = Microsoft.Xna.Framework.Graphics.BlendState.Opaque;
+    this.blendState = Microsoft.Xna.Framework.Graphics.BlendState.AlphaBlend;
     this.samplerStates = new Microsoft.Xna.Framework.Graphics.SamplerStateCollection(this, 0, 4);
     this.vertexSamplerStates = new Microsoft.Xna.Framework.Graphics.SamplerStateCollection(this, 0, 4);
     this.textures = new Microsoft.Xna.Framework.Graphics.TextureCollection(this, 0, 4);
@@ -4843,6 +4854,33 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
   );
 });
 
+(function () {
+  // XNA3 doesn't have a BlendState class, so we substitute one.
+
+  var graphicsAsm = JSIL.GetAssembly("Microsoft.Xna.Framework.Graphics", true);
+  if (graphicsAsm === null) {
+    JSIL.DeclareNamespace("Microsoft");
+    JSIL.DeclareNamespace("Microsoft.Xna");
+    JSIL.DeclareNamespace("Microsoft.Xna.Framework");
+    JSIL.DeclareNamespace("Microsoft.Xna.Framework.Graphics");
+
+    JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "Microsoft.Xna.Framework.Graphics.BlendState", true, [], function ($) {
+      $.Field({Static:true , Public:true }, "Additive", $.Type, function ($) {
+          return null;
+        });
+      $.Field({Static:true , Public:true }, "AlphaBlend", $.Type, function ($) {
+          return null;
+        });
+      $.Field({Static:true , Public:true }, "NonPremultiplied", $.Type, function ($) {
+          return null;
+        });
+      $.Field({Static:true , Public:true }, "Opaque", $.Type, function ($) {
+          return null;
+        });
+    });
+  }
+}) ();
+
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.BlendState", function ($) {
   $.Method({Static: true, Public: true}, ".cctor", 
     new JSIL.MethodSignature(null, [], []),
@@ -4941,8 +4979,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SamplerStateCollection
       // FIXME
       this.states = new Array(maxSamplers);
 
+      var tState = Microsoft.Xna.Framework.Graphics.SamplerState.__Type__;
+
       for (var i = 0; i < maxSamplers; i++) {
-        this.states = new Microsoft.Xna.Framework.Graphics.SamplerState();
+        this.states = JSIL.CreateInstanceOfType(tState, null);
       }
     }
   );

@@ -713,7 +713,15 @@ function pollAssetQueue () {
       state.assetsLoaded += 1;
 
       allAssets[getAssetName(assetPath)] = null;
-      JSIL.Host.logWriteLine("The asset '" + assetSpec + "' could not be loaded:" + String(e));
+
+      var errorText;
+      try {
+        errorText = e.statusText;
+      } catch (exc) {
+        errorText = String(e);
+      }
+      
+      JSIL.Host.logWriteLine("The asset '" + assetSpec + "' could not be loaded:" + errorText);
     };    
   };
 

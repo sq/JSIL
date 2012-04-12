@@ -1087,9 +1087,6 @@ namespace JSIL {
                 if (allVariables == null)
                     return null;
 
-                if (method.Name.Contains("RandIntRange"))
-                    Debugger.Break();
-
                 var translator = new ILBlockTranslator(
                     this, context, method, methodDef, 
                     ilb, decompiler.Parameters, allVariables

@@ -82,6 +82,7 @@
     <None Include="XMLTestCases\ReadElementString.cs" />
     <None Include="SimpleTestCases\NestedSwitchStatement.cs" />
     <None Include="SimpleTestCases\ReturnNestedCasts.cs" />
+    <None Include="SimpleTestCases\IntegerDivideTruncation.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

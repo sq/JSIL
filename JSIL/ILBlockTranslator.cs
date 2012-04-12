@@ -1966,14 +1966,7 @@ namespace JSIL {
                 return value;
 
             if (IsNumericOrEnum(currentType) && IsNumericOrEnum(expectedType)) {
-                if (IsIntegral(expectedType)) {
-                    if (IsIntegral(currentType) || IsEnum(currentType))
-                        return value;
-                    else
-                        return JSInvocationExpression.InvokeStatic(JS.floor, new[] { value }, true);
-                } else {
-                    return value;
-                }
+                return JSCastExpression.New(value, expectedType, TypeSystem);
             } else if (!TypesAreAssignable(TypeInfo, expectedType, currentType)) {
                 if (expectedType.FullName == "System.Boolean") {
                     if (IsIntegral(currentType)) {
