@@ -26,9 +26,9 @@ $jsilxna.nextImageId = 0;
 $jsilxna.multipliedImageCache = {};
 $jsilxna.multipliedImageCache.accessHistory = {};
 $jsilxna.multipliedImageCache.capacity = 1024; // unique images
-$jsilxna.multipliedImageCache.capacityBytes = (1024 * 1024) * 128; // total image bytes (at 32bpp)
+$jsilxna.multipliedImageCache.capacityBytes = (1024 * 1024) * 256; // total image bytes (at 32bpp)
 $jsilxna.multipliedImageCache.evictionMinimumAge = 2500; // milliseconds
-$jsilxna.multipliedImageCache.evictionAutomaticAge = 15000; // milliseconds
+$jsilxna.multipliedImageCache.evictionAutomaticAge = 30000; // milliseconds
 $jsilxna.multipliedImageCache.evictionInterval = 500; // milliseconds
 $jsilxna.multipliedImageCache.count = 0;
 $jsilxna.multipliedImageCache.countBytes = 0;
@@ -456,21 +456,32 @@ JSIL.MakeClass("HTML5Asset", "WebkitSoundAsset", true, [], function ($) {
     instance.loop = loopCount > 0;
     instance.connect(this.audioContext.destination);
 
+    var context = this.audioContext;
+
     var result = {
       source: instance,
-      play: function () {
-        instance.noteOn(0);
-      },
-      pause: function () {
-        instance.noteOff(0);
-      }
+      started: null,
+      duration: this.buffer.duration
+    };
+
+    result.play = function () {
+      result.started = context.currentTime;
+      instance.noteOn(0);
+    };
+    result.pause = function () {
+      instance.noteOff(0);
+      result.started = null;
     };
 
     Object.defineProperty(result, "isPlaying", {
       configurable: true,
       enumerable: true,
       get: function () {
-        return (instance.playbackState == 2) || (instance.playbackState == 1);
+        if (result.started === null)
+          return false;
+
+        var elapsed = context.currentTime - result.started;
+        return (elapsed <= result.duration);
       }
     });
 
