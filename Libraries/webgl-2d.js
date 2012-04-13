@@ -1298,7 +1298,7 @@
       var imagePixelData = imagePixels.data;
 
       // WebGL and canvas don't like to touch each other because the spec is dumb
-      var l = image.width * image.height * 4;
+      var l = imagePixelData.length;
       var premultipliedData = new Uint8Array(l);
 
       for (var i = 0; i < l; i += 4) {
