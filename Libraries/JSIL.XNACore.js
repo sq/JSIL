@@ -5529,6 +5529,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
 
   $.RawMethod(false, "$getDataUrlForBytes", function (bytes, startIndex, elementCount, unpremultiply, swapRedAndBlue) {
     var canvas = document.createElement("canvas");
+    try {
+      document.getElementById("images").appendChild(canvas);
+    } catch (exc) {
+    }
     canvas.width = this.width;
     canvas.height = this.height;
     var ctx = canvas.getContext("2d");
