@@ -26,11 +26,14 @@ $jsilxna.nextImageId = 0;
 $jsilxna.multipliedImageCache = {};
 $jsilxna.multipliedImageCache.accessHistory = {};
 $jsilxna.multipliedImageCache.capacity = 1024; // unique images
-$jsilxna.multipliedImageCache.capacityBytes = (1024 * 1024) * 64; // total image bytes (at 32bpp)
-$jsilxna.multipliedImageCache.evictionMinimumAge = 500; // milliseconds
+$jsilxna.multipliedImageCache.capacityBytes = (1024 * 1024) * 128; // total image bytes (at 32bpp)
+$jsilxna.multipliedImageCache.evictionMinimumAge = 2500; // milliseconds
+$jsilxna.multipliedImageCache.evictionAutomaticAge = 15000; // milliseconds
+$jsilxna.multipliedImageCache.evictionInterval = 500; // milliseconds
 $jsilxna.multipliedImageCache.count = 0;
 $jsilxna.multipliedImageCache.countBytes = 0;
 $jsilxna.multipliedImageCache.evictionPending = false;
+$jsilxna.multipliedImageCache.lastEvicted = 0;
 
 $jsilxna.colorRef = function () {
   var graphicsAsm = JSIL.GetAssembly("Microsoft.Xna.Framework.Graphics", true);
@@ -59,7 +62,7 @@ $jsilxna.multipliedImageCache.getItem = function (key) {
 $jsilxna.multipliedImageCache.setItem = function (key, value) {
   if (typeof (this[key]) === "undefined") {
     this.count += 1;
-    this.countBytes += (value.width * value.height * 4);
+    this.countBytes += value.sizeBytes;
   }
 
   this.accessHistory[key] = Date.now();
@@ -69,9 +72,14 @@ $jsilxna.multipliedImageCache.setItem = function (key, value) {
 }.bind($jsilxna.multipliedImageCache);
 
 $jsilxna.multipliedImageCache.maybeEvictItems = function () {
-  if (this.evictionPending) return;
+  if (this.evictionPending) 
+    return;
 
-  if ((this.count >= this.capacity) || (this.countBytes >= this.capacityBytes)) {
+  var nextEviction = this.lastEvicted + this.evictionInterval;
+  var now = Date.now();
+
+  if (now >= nextEviction) {
+    this.lastEvicted = now;
     this.evictionPending = true;
     JSIL.Host.runLater(this.evictExtraItems);
   }
@@ -95,6 +103,12 @@ $jsilxna.multipliedImageCache.evictExtraItems = function () {
     if (age <= this.evictionMinimumAge) 
       continue;
 
+    if (age >= this.evictionAutomaticAge) {
+    } else {
+      if ((this.count <= this.capacity) && (this.countBytes <= this.capacityBytes))
+        continue;
+    }
+
     var item = this[keys[i]];
 
     delete this.accessHistory[keys[i]];
@@ -102,82 +116,117 @@ $jsilxna.multipliedImageCache.evictExtraItems = function () {
 
     this.count -= 1;
     if ((typeof (item) !== "undefined") && (item !== null)) {
-      this.countBytes -= (item.width * item.height * 4);
+      this.countBytes -= item.sizeBytes;
     }
-
-    if (this.count <= this.capacity) 
-      break;
   }
 }.bind($jsilxna.multipliedImageCache);
 
-$jsilxna.getCachedMultipliedImage = function (image, color) {
+$jsilxna.getCachedImageChannels = function (image) {
   var imageId = image.getAttribute("__imageId") || null;
   if (imageId === null) image.setAttribute("__imageId", imageId = new String($jsilxna.nextImageId++));
 
-  var key = imageId + color.toCss(255);
+  var key = imageId;
   var result = $jsilxna.multipliedImageCache.getItem(key) || null;
   return result;
 };
 
-$jsilxna.setCachedMultipliedImage = function (image, color, value) {
+$jsilxna.setCachedImageChannels = function (image, value) {
   var imageId = image.getAttribute("__imageId") || null;
   if (imageId === null) image.setAttribute("__imageId", imageId = new String($jsilxna.nextImageId++));
 
-  var key = imageId + color.toCss(255);
+  var key = imageId;
   $jsilxna.multipliedImageCache.setItem(key, value);
 };
 
-$jsilxna.getImageMultiplied = function (image, color) {
-  var cached = $jsilxna.getCachedMultipliedImage(image, color);
-  if (cached !== null) {
-    if (typeof (cached.canvas) !== "undefined") 
-      return cached.canvas;
-    else 
-      return cached;
-  }
+$jsilxna.imageChannels = function (image) {
+  this.sourceImage = image;
+  this.width = image.naturalWidth;
+  this.height = image.naturalHeight;
+  // 32BPP * one image per channel
+  this.sizeBytes = (this.width * this.height * 4) * 4;
+
+  var createChannel = (function (ch) {
+    var canvas = this[ch] = document.createElement("canvas");
+    var context = this[ch + "Context"] = canvas.getContext("2d");
+
+    canvas.width = image.naturalWidth + 2;
+    canvas.height = image.naturalHeight + 2;
+
+    context.globalCompositeOperation = "copy";
+    context.globalCompositeAlpha = 1.0;
+  }).bind(this);
+
+  createChannel("r");
+  createChannel("g");
+  createChannel("b");
+  createChannel("a");
+
+  // Workaround for bug in Firefox's canvas implementation that treats the outside of a canvas as solid white
+  this.aContext.clearRect(0, 0, this.width, this.height);
+  this.aContext.drawImage(image, 1, 1);
+
+  this.sourceImageData = this.aContext.getImageData(1, 1, image.naturalWidth, image.naturalHeight);
+  this.aContext.clearRect(0, 0, this.width, this.height);
+
+  this.makeImageData = (function () {
+    return this.aContext.createImageData(this.width, this.height);
+  }).bind(this);
+
+  this.putImageData = (function (ch, data) {
+    var context = this[ch + "Context"];
+
+    context.putImageData(data, 1, 1);
+  }).bind(this);
+};
+
+$jsilxna.getImageChannels = function (image) {
+  // Reduce the precision of the color values by 8x to avoid filling the cache rapidly with minor variations.
+  var cached = $jsilxna.getCachedImageChannels(image);
+  if (cached !== null)
+    return cached;
 
   // Workaround for chromium bug where sometimes images aren't fully initialized.
   if ((image.naturalWidth < 1) || (image.naturalHeight < 1))
     return null;
 
-  var canvas = document.createElement("canvas");
-  var context = canvas.getContext("2d");
-
-  // Workaround for bug in Firefox's canvas implementation that treats the outside of a canvas as solid white
-  canvas.width = image.naturalWidth + 2;
-  canvas.height = image.naturalHeight + 2;
-
-  context.globalCompositeOperation = "copy";
-  context.globalCompositeAlpha = 1.0;
-  context.clearRect(0, 0, image.naturalWidth + 2, image.naturalHeight + 2);
-  context.drawImage(image, 1, 1);
+  var result = new $jsilxna.imageChannels(image);
 
   try {
-    var imageData = context.getImageData(1, 1, image.naturalWidth, image.naturalHeight);
-    var rmul = color.r / 255;
-    var gmul = color.g / 255;
-    var bmul = color.b / 255;
-    var bytes = imageData.data;
+    var rData = result.makeImageData(), gData = result.makeImageData(), bData = result.makeImageData(), aData = result.sourceImageData;
+    var rBytes = rData.data, gBytes = gData.data, bBytes = bData.data, aBytes = aData.data;
 
-    for (var i = 0, l = image.naturalWidth * image.naturalHeight * 4; i < l; i += 4) {
-      bytes[i] *= rmul;
-      bytes[i + 1] *= gmul;
-      bytes[i + 2] *= bmul;
+    for (var i = 0, l = (result.width * result.height * 4); i < l; i += 4) {
+      var alpha = aBytes[i + 3];
+
+      rBytes[i + 0] = alpha;
+      rBytes[i + 3] = aBytes[i + 0]; 
+
+      gBytes[i + 1] = alpha;
+      gBytes[i + 3] = aBytes[i + 1];
+
+      bBytes[i + 2] = alpha;
+      bBytes[i + 3] = aBytes[i + 2];
+
+      aBytes[i + 0] = aBytes[i + 1] = aBytes[i + 2] = 0;
     }
 
-    context.putImageData(imageData, 1, 1);
+    result.putImageData("r", rData);
+    result.putImageData("g", gData);
+    result.putImageData("b", bData);
+    result.putImageData("a", aData);
 
-    $jsilxna.setCachedMultipliedImage(image, color, canvas);
+    $jsilxna.setCachedImageChannels(image, result);
   } catch (exc) {
-    return image;
+    return null;
   }
 
-  return canvas;
+  return result;
 };
 
 $jsilxna.getImageTopLeftPixelMultiplied = function (image, color) {
   var cached = image.topLeftPixel;
-  if (typeof (cached) === "string") return cached;
+  if (typeof (cached) === "string") 
+    return cached;
 
   var canvas = document.createElement("canvas");
   var context = canvas.getContext("2d");
@@ -2787,7 +2836,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       this._lastSecond = now;
       
       if (typeof (JSIL.Host.reportFps) === "function") {
-        JSIL.Host.reportFps(this._drawCount, this._updateCount);
+        JSIL.Host.reportFps(this._drawCount, this._updateCount, $jsilxna.multipliedImageCache.countBytes);
       }
 
       this._updateCount = this._drawCount = 0;
@@ -3874,7 +3923,7 @@ $jsilxna.Color = function ($) {
     Static: false,
     Public: true
   }, "set_A", new JSIL.MethodSignature(null, [$.Byte], []), function (value) {
-    this.a = value;
+    this.a = $jsilxna.ClampByte(value);
     this._cachedCss = null;
   });
 
@@ -3882,7 +3931,7 @@ $jsilxna.Color = function ($) {
     Static: false,
     Public: true
   }, "set_B", new JSIL.MethodSignature(null, [$.Byte], []), function (value) {
-    this.b = value;
+    this.b = $jsilxna.ClampByte(value);
     this._cachedCss = null;
   });
 
@@ -3890,7 +3939,7 @@ $jsilxna.Color = function ($) {
     Static: false,
     Public: true
   }, "set_G", new JSIL.MethodSignature(null, [$.Byte], []), function (value) {
-    this.g = value;
+    this.g = $jsilxna.ClampByte(value);
     this._cachedCss = null;
   });
 
@@ -3898,7 +3947,7 @@ $jsilxna.Color = function ($) {
     Static: false,
     Public: true
   }, "set_R", new JSIL.MethodSignature(null, [$.Byte], []), function (value) {
-    this.r = value;
+    this.r = $jsilxna.ClampByte(value);
     this._cachedCss = null;
   });
 
@@ -4419,28 +4468,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         sourceH = texture.Height - sourceY;
 
       var isSinglePixel = ((sourceX == 0) && (sourceY == 0) && (sourceW == 1) && (sourceH == 1));
+      var channels = null;
 
       if (!isSinglePixel) {
         // Since the color is premultiplied, any r/g/b value >= alpha is basically white.
         if ((color.r < color.a) || (color.g < color.a) || (color.b < color.a)) {
-          var newImage = $jsilxna.getImageMultiplied(image, color);
-
-          if ((newImage === image) || (newImage === null)) {
-            // Broken browser
-          } else {
-            image = newImage;
-            sourceX += 1;
-            sourceY += 1;
-          }
+          channels = $jsilxna.getImageChannels(image);
         }
-      }
-
-      if (color.a < 255) {
-        if (!needRestore)
-          this.device.context.save();
-        needRestore = true;
-
-        this.device.context.globalAlpha = color.a / 255;
       }
 
       // Negative width/height cause an exception in Firefox
@@ -4522,9 +4556,62 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
             positionX, positionY, width, height
           );
         } else {
-          this.$canvasDrawImage(
-            image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, width, height
-          );
+          if (channels !== null) {
+            if (!needRestore)
+              this.device.context.save();
+            needRestore = true;
+
+            var alpha = color.a / 255;
+
+            var compositeOperation = this.device.context.globalCompositeOperation;
+            if (compositeOperation !== "lighter") {
+              this.device.context.globalAlpha = alpha;
+              this.$canvasDrawImage(
+                channels.a, sourceX + 1, sourceY + 1, sourceW, sourceH, 
+                positionX, positionY, width, height
+              );
+            }
+
+            this.device.context.globalCompositeOperation = "lighter";
+
+            if (color.r > 0) {
+              this.device.context.globalAlpha = color.r / 255;
+              this.$canvasDrawImage(
+                channels.r, sourceX + 1, sourceY + 1, sourceW, sourceH, 
+                positionX, positionY, width, height
+              );
+            }
+
+            if (color.g > 0) {
+              this.device.context.globalAlpha = color.g / 255;
+              this.$canvasDrawImage(
+                channels.g, sourceX + 1, sourceY + 1, sourceW, sourceH, 
+                positionX, positionY, width, height
+              );
+            }
+
+            if (color.b > 0) {
+              this.device.context.globalAlpha = color.b / 255;
+              this.$canvasDrawImage(
+                channels.b, sourceX + 1, sourceY + 1, sourceW, sourceH, 
+                positionX, positionY, width, height
+              );
+            }
+
+            this.device.context.globalCompositeOperation = compositeOperation;
+          } else {
+            if (color.a < 255) {
+              if (!needRestore)
+                this.device.context.save();
+              needRestore = true;
+
+              this.device.context.globalAlpha = color.a / 255;
+            }
+
+            this.$canvasDrawImage(
+              image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, width, height
+            );
+          }
         }
       }
 

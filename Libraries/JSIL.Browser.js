@@ -133,7 +133,7 @@ JSIL.Host.throwException = function (e) {
 
 var $logFps = false;
 
-JSIL.Host.reportFps = function (drawsPerSecond, updatesPerSecond) {
+JSIL.Host.reportFps = function (drawsPerSecond, updatesPerSecond, cacheSize) {
   var e = document.getElementById("drawsPerSecond");
   if (e) {
     e.innerHTML = drawsPerSecond.toString();
@@ -142,6 +142,11 @@ JSIL.Host.reportFps = function (drawsPerSecond, updatesPerSecond) {
   e = document.getElementById("updatesPerSecond");
   if (e) {
     e.innerHTML = updatesPerSecond.toString();
+  }
+  
+  e = document.getElementById("cacheSize");
+  if (e) {
+    e.innerHTML = (cacheSize / (1024 * 1024)).toFixed(1);
   }
 
   if ($logFps) {
@@ -192,6 +197,14 @@ var keyMappings = {
   );
 
   canvas.addEventListener(
+    "contextmenu", function (evt) {
+      evt.preventDefault();
+      evt.stopPropagation();
+      return false;
+    }, true
+  );
+
+  canvas.addEventListener(
     "mousedown", function (evt) {     
       mousePosition[0] = evt.clientX - canvas.offsetLeft;
       mousePosition[1] = evt.clientY - canvas.offsetTop;
@@ -202,6 +215,7 @@ var keyMappings = {
 
       evt.preventDefault();
       evt.stopPropagation();
+      return false;
     }, true
   );
 
@@ -217,6 +231,7 @@ var keyMappings = {
 
       evt.preventDefault();
       evt.stopPropagation();
+      return false;
     }, true
   );
 
@@ -227,6 +242,7 @@ var keyMappings = {
       
       evt.preventDefault();
       evt.stopPropagation();
+      return false;
     }, true
   );
 })();
@@ -720,7 +736,7 @@ function pollAssetQueue () {
       } catch (exc) {
         errorText = String(e);
       }
-      
+
       JSIL.Host.logWriteLine("The asset '" + assetSpec + "' could not be loaded:" + errorText);
     };    
   };

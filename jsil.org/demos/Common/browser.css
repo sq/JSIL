@@ -87,12 +87,15 @@ body {
 	margin: 0px;
 	padding: 0px;
 }
-#drawsPerSecond, #updatesPerSecond {
+#drawsPerSecond, #updatesPerSecond, #cacheSize {
 	font-family: Consolas, Courier New, Courier;
 	font-size: 9pt;
 	margin: 0px;
 	padding: 2px;
 	text-align: right;
 	display: inline-block;
-	width: 2em;
+	width: 4em;
+}
+#stats, #stats span, #stats span span, #loadingProgress, #progressBar, #progressText, #quitButton, #loadButton, #welcomeMessage, #canvas {
+	cursor: default;
 }
