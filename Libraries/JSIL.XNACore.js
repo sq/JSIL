@@ -460,12 +460,18 @@ JSIL.MakeClass("HTML5Asset", "WebkitSoundAsset", true, [], function ($) {
     };
 
     result.play = function () {
+      if (result.started !== null)
+        return;
+
       result.started = context.currentTime;
       instance.noteOn(0);
     };
     result.pause = function () {
-      instance.noteOff(0);
+      if (result.started === null)
+        return;
+
       result.started = null;
+      instance.noteOff(0);
     };
 
     Object.defineProperty(result, "isPlaying", {
@@ -1403,6 +1409,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
         var wave = this.wavesPlaying[i];
         wave.pause()
       }
+
+      // FIXME: AudioContext sucks and has no way to pause streams.
+      this.wavesPlaying = [];
     }
   );
 
@@ -1444,6 +1453,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
       var w = this.wavesPlaying[i];
 
       if (!w.isPlaying) {
+        w.pause();
         this.wavesPlaying.splice(i, 1);
         i--;
       }
@@ -1453,8 +1463,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
   $.Method({Static:false, Public:true }, "get_IsPlaying", 
     (new JSIL.MethodSignature($.Boolean, [], [])), 
     function get_IsPlaying () {
-      this.$gc();
-
       return (this.wavesPlaying.length > 0);
     }
   );
@@ -1464,10 +1472,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
     function Resume () {
       this.$gc();
 
-      for (var i = 0; i < this.wavesPlaying.length; i++) {
-        var wave = this.wavesPlaying[i];
-        wave.play()
-      }
+      // FIXME: AudioContext sucks and has no way to pause streams.
+      this.Stop();
+      this.Play();
     }
   );
 
@@ -1478,8 +1485,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
 
       while (this.wavesPlaying.length > 0) {
         var wave = this.wavesPlaying.shift();
-        wave.pause()
+        wave.pause();
       }
+
+      this.wavesPlaying = [];
     }
   );
 
@@ -1487,6 +1496,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
     (new JSIL.MethodSignature(null, [], [])), 
     function Dispose () {
       this.Stop();
+      this.$gc();
     }
   );
 });
