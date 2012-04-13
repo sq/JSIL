@@ -143,27 +143,41 @@ JSIL.Host.throwException = function (e) {
 };
 
 var $logFps = false;
+var statsElement = document.getElementById("stats");
 
-JSIL.Host.reportFps = function (drawsPerSecond, updatesPerSecond, cacheSize) {
-  var e = document.getElementById("drawsPerSecond");
-  if (e) {
+if (statsElement !== null) {
+  statsElement.innerHTML = '<span title="Frames Per Second"><span id="drawsPerSecond">0</span> f/s</span><br>' +
+    '<span title="Updates Per Second"><span id="updatesPerSecond">0</span> u/s</span><br>' +
+    '<span title="Image Cache Size (megabytes)" id="cacheSpan"><span id="cacheSize">0.0</span >mb</span>';
+
+  JSIL.Host.reportFps = function (drawsPerSecond, updatesPerSecond, cacheSize) {
+    var e = document.getElementById("drawsPerSecond");
     e.innerHTML = drawsPerSecond.toString();
-  }
-  
-  e = document.getElementById("updatesPerSecond");
-  if (e) {
+    
+    e = document.getElementById("updatesPerSecond");
     e.innerHTML = updatesPerSecond.toString();
-  }
-  
-  e = document.getElementById("cacheSize");
-  if (e) {
-    e.innerHTML = (cacheSize / (1024 * 1024)).toFixed(1);
-  }
+    
+    if (cacheSize === "webgl") {
+      e = document.getElementById("cacheSpan");
+      e.className = "webgl-notice";
+      e.innerHTML = "WebGL";
+      e.title = "Using WebGL for rendering";
+    } else {
+      e = document.getElementById("cacheSize");
+      e.innerHTML = (cacheSize / (1024 * 1024)).toFixed(1);
+    }
 
-  if ($logFps) {
-    console.log(drawsPerSecond + " draws/s, " + updatesPerSecond + " updates/s");
-  }
-};
+    if ($logFps) {
+      console.log(drawsPerSecond + " draws/s, " + updatesPerSecond + " updates/s");
+    }
+  };
+} else {
+  JSIL.Host.reportFps = function () {
+    if ($logFps) {
+      console.log(drawsPerSecond + " draws/s, " + updatesPerSecond + " updates/s");
+    }  
+  };
+}
 
 var allFiles = {};
 var allAssets = {};

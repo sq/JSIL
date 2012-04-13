@@ -87,6 +87,11 @@ body {
 	margin: 0px;
 	padding: 0px;
 }
+.webgl-notice {
+	display: inline-block;
+	text-align: center;
+	width: 100%;
+}
 #drawsPerSecond, #updatesPerSecond, #cacheSize {
 	font-family: Consolas, Courier New, Courier;
 	font-size: 9pt;

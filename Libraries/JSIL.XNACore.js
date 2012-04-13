@@ -140,8 +140,8 @@ $jsilxna.setCachedImageChannels = function (image, value) {
 
 $jsilxna.imageChannels = function (image) {
   this.sourceImage = image;
-  this.width = image.naturalWidth;
-  this.height = image.naturalHeight;
+  this.width = image.naturalWidth || image.width;
+  this.height = image.naturalHeight || image.height;
   // 32BPP * one image per channel
   this.sizeBytes = (this.width * this.height * 4) * 4;
 
@@ -149,8 +149,8 @@ $jsilxna.imageChannels = function (image) {
     var canvas = this[ch] = document.createElement("canvas");
     var context = this[ch + "Context"] = canvas.getContext("2d");
 
-    canvas.width = image.naturalWidth + 2;
-    canvas.height = image.naturalHeight + 2;
+    canvas.width = this.width + 2;
+    canvas.height = this.height + 2;
 
     context.globalCompositeOperation = "copy";
     context.globalCompositeAlpha = 1.0;
@@ -161,12 +161,17 @@ $jsilxna.imageChannels = function (image) {
   createChannel("b");
   createChannel("a");
 
-  // Workaround for bug in Firefox's canvas implementation that treats the outside of a canvas as solid white
-  this.aContext.clearRect(0, 0, this.width, this.height);
-  this.aContext.drawImage(image, 1, 1);
+  if (image.tagName.toLowerCase() === "canvas") {
+    this.sourceImageData = image.getContext("2d").getImageData(0, 0, image.width, image.height);
+  } else {
+    // Workaround for bug in Firefox's canvas implementation that treats the outside of a canvas as solid white
+    this.aContext.clearRect(0, 0, this.width + 2, this.height + 2);
+    this.aContext.drawImage(image, 1, 1);
 
-  this.sourceImageData = this.aContext.getImageData(1, 1, image.naturalWidth, image.naturalHeight);
-  this.aContext.clearRect(0, 0, this.width, this.height);
+    this.sourceImageData = this.aContext.getImageData(1, 1, this.width, this.height);
+  }
+
+  this.aContext.clearRect(0, 0, this.width + 2, this.height + 2);
 
   this.makeImageData = (function () {
     return this.aContext.createImageData(this.width, this.height);
@@ -185,8 +190,11 @@ $jsilxna.getImageChannels = function (image) {
   if (cached !== null)
     return cached;
 
+  var width = image.naturalWidth || image.width;
+  var height = image.naturalHeight || image.height;
+
   // Workaround for chromium bug where sometimes images aren't fully initialized.
-  if ((image.naturalWidth < 1) || (image.naturalHeight < 1))
+  if ((width < 1) || (height < 1))
     return null;
 
   var result = new $jsilxna.imageChannels(image);
@@ -236,15 +244,19 @@ $jsilxna.getImageTopLeftPixel = function (image, color) {
   canvas.width = 1;
   canvas.height = 1;
 
-  context.globalCompositeOperation = "copy";
-  context.globalCompositeAlpha = 1.0;
-  context.clearRect(0, 0, 1, 1);
-  context.drawImage(image, 0, 0);
+  var imageData;
+  if (image.tagName.toLowerCase() === "canvas") {
+    imageData = image.getContext("2d").getImageData(0, 0, 1, 1);
+  } else {
+    context.globalCompositeOperation = "copy";
+    context.globalCompositeAlpha = 1.0;
+    context.clearRect(0, 0, 1, 1);
+    context.drawImage(image, 0, 0);
+    imageData = context.getImageData(0, 0, 1, 1);
+  }
 
   var result = "rgba(0, 0, 0, 0)";
   try {
-    var imageData = context.getImageData(0, 0, 1, 1);
-
     var r = imageData.data[0];
     var g = imageData.data[1];
     var b = imageData.data[2];
@@ -2859,7 +2871,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       this._lastSecond = now;
       
       if (typeof (JSIL.Host.reportFps) === "function") {
-        JSIL.Host.reportFps(this._drawCount, this._updateCount, $jsilxna.multipliedImageCache.countBytes);
+        var isWebGL = this.graphicsDeviceService.GraphicsDevice.context.isWebGL || false;
+        JSIL.Host.reportFps(
+          this._drawCount, this._updateCount, 
+          isWebGL ? "webgl" : $jsilxna.multipliedImageCache.countBytes
+        );
       }
 
       this._updateCount = this._drawCount = 0;
@@ -4511,7 +4527,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         return;
       }
 
-      var isWebGL = (typeof (WebGL2D) !== "undefined");
+      var isWebGL = this.device.context.isWebGL || false;
 
       if (!isSinglePixel && !isWebGL) {
         // Since the color is premultiplied, any r/g/b value >= alpha is basically white.
@@ -5392,7 +5408,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
       throw new System.NotImplementedException("The pixel format '" + format.name + "' is not supported.");
 
     this.image = document.createElement("img");
-    this.image.src = this.$getDataUrlForBytes(null, 0, 0, false);
     var textures = document.getElementById("textures");
     if (textures) 
       textures.appendChild(this.image);
@@ -5502,7 +5517,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     }
 
     var shouldUnpremultiply = true;
-    this.image.src = this.$getDataUrlForBytes(bytes, startIndex, elementCount, shouldUnpremultiply, swapRedAndBlue);
+    var textures = document.getElementById("textures");
+    if (textures) 
+      textures.removeChild(this.image);
+
+    this.image = this.$getImageForBytes(bytes, startIndex, elementCount, shouldUnpremultiply, swapRedAndBlue);
+    if (textures) 
+      textures.appendChild(this.image);
   });
 
   $.Method({Static:false, Public:true }, "SetData", 
@@ -5527,7 +5548,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     }
   );
 
-  $.RawMethod(false, "$getDataUrlForBytes", function (bytes, startIndex, elementCount, unpremultiply, swapRedAndBlue) {
+  $.RawMethod(false, "$getImageForBytes", function (bytes, startIndex, elementCount, unpremultiply, swapRedAndBlue) {
     var canvas = document.createElement("canvas");
     try {
       document.getElementById("images").appendChild(canvas);
@@ -5580,7 +5601,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
       ctx.putImageData(imageData, 0, 0);
     }
 
-    return canvas.toDataURL();
+    return canvas;
   });
 
   $.Method({

@@ -280,6 +280,10 @@
 
           var gl = gl2d.gl = gl2d.canvas.$getContext("experimental-webgl");
 
+          if ((typeof (gl) === "undefined") || (gl === null)) {
+            return gl2d.canvas.$getContext("2d");
+          }
+
           gl2d.initShaders();
           gl2d.initBuffers();
 
@@ -476,12 +480,7 @@
   var pathVertexColorBuffer;
 
   // 2D Vertices and Texture UV coords
-  var rectVerts = new Float32Array([
-      0,0, 0,0,
-      0,1, 0,1,
-      1,1, 1,1,
-      1,0, 1,0
-  ]);
+  var rectVerts;
 
   WebGL2D.prototype.initBuffers = function initBuffers() {
     var gl = this.gl;
@@ -491,6 +490,13 @@
 
     pathVertexPositionBuffer  = gl.createBuffer();
     pathVertexColorBuffer     = gl.createBuffer();
+
+    rectVerts = new Float32Array([
+      0,0, 0,0,
+      0,1, 0,1,
+      1,1, 1,1,
+      1,0, 1,0
+    ]);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, rectVertexPositionBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, rectVerts, gl.STATIC_DRAW);
@@ -1276,23 +1282,20 @@
       // gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 
       // Premultiply the image pixels
-
-      var isZero = (image.width == 0) || (image.height == 0);
-      if (isZero) {
+      var imagePixels;
+      if (image.tagName.toLowerCase() === "canvas") {
+        imagePixels = image.getContext("2d").getImageData(0, 0, image.width, image.height);
+      } else {
+        tempCanvas.width = image.width;
+        tempCanvas.height = image.height;
+        tempCtx.clearRect(0, 0, image.width, image.height);
+        tempCtx.globalCompositeOperation = "copy";
         tempCtx.drawImage(image, 0, 0);
+
+        imagePixels = tempCtx.getImageData(0, 0, image.width, image.height);
+        tempCanvas.width = tempCanvas.height = 1;
       }
-
-      // Chrome is stupid and delays decoding images until first use, which means their dimensions start as 0
-      tempCanvas.width = image.width;
-      tempCanvas.height = image.height;
-      tempCtx.clearRect(0, 0, image.width, image.height);
-      tempCtx.globalCompositeOperation = "copy";
-      tempCtx.drawImage(image, 0, 0);
-
-      var imagePixels = tempCtx.getImageData(0, 0, image.width, image.height);
       var imagePixelData = imagePixels.data;
-
-      tempCanvas.width = tempCanvas.height = 1;
 
       // WebGL and canvas don't like to touch each other because the spec is dumb
       var l = image.width * image.height * 4;
