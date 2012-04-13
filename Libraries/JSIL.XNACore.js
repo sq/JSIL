@@ -513,7 +513,12 @@ JSIL.MakeClass("HTML5Asset", "HTML5FontAsset", true, [], function ($) {
     this.pointSize = pointSize;
     this.lineHeight = lineHeight;
     this.canvas = JSIL.Host.getCanvas();
-    this.context = this.canvas.getContext("2d");
+
+    if (typeof (WebGL2D) !== "undefined")
+      this.context = this.canvas.getContext("webgl-2d");
+    else
+      this.context = this.canvas.getContext("2d");
+
     Object.defineProperty(this, "LineSpacing", {
       get: function () {
         return this.lineHeight;
@@ -1463,6 +1468,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.Cue", function ($) {
   $.Method({Static:false, Public:true }, "get_IsPlaying", 
     (new JSIL.MethodSignature($.Boolean, [], [])), 
     function get_IsPlaying () {
+      this.$gc();
+      
       return (this.wavesPlaying.length > 0);
     }
   );
@@ -4492,13 +4499,23 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       var isSinglePixel = ((sourceX == 0) && (sourceY == 0) && (sourceW == 1) && (sourceH == 1));
       var channels = null;
 
-      var colorR = color.rUnpremultiplied || color.r;
-      var colorG = color.gUnpremultiplied || color.g;
-      var colorB = color.bUnpremultiplied || color.b;
+      var colorR = (color.rUnpremultiplied || color.r) / 255;
+      var colorG = (color.gUnpremultiplied || color.g) / 255;
+      var colorB = (color.bUnpremultiplied || color.b) / 255;
+      var colorA = color.a / 255;
 
-      if (!isSinglePixel) {
+      if (colorA <= 0) {
+        if (needRestore) 
+          this.device.context.restore();
+
+        return;
+      }
+
+      var isWebGL = (typeof (WebGL2D) !== "undefined");
+
+      if (!isSinglePixel && !isWebGL) {
         // Since the color is premultiplied, any r/g/b value >= alpha is basically white.
-        if ((colorR < color.a) || (colorG < color.a) || (colorB < color.a)) {
+        if ((colorR < colorA) || (colorG < colorA) || (colorB < colorA)) {
           channels = $jsilxna.getImageChannels(image);
         }
       }
@@ -4577,7 +4594,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
 
           var imageColor = $jsilxna.getImageTopLeftPixel(originalImage, color);
 
-          this.device.context.globalAlpha = color.a / 255;
+          this.device.context.globalAlpha = colorA;
           this.device.context.fillStyle = imageColor;
           this.device.context.fillRect(
             positionX, positionY, width, height
@@ -4588,7 +4605,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
               this.device.context.save();
             needRestore = true;
 
-            var alpha = color.a / 255;
+            var alpha = colorA;
 
             var compositeOperation = this.device.context.globalCompositeOperation;
             if (compositeOperation !== "lighter") {
@@ -4603,7 +4620,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
             this.device.context.globalCompositeOperation = "lighter";
 
             if (colorR > 0) {
-              this.device.context.globalAlpha = colorR / 255;
+              this.device.context.globalAlpha = colorR;
               this.$canvasDrawImage(
                 channels.r, sourceX + 1, sourceY + 1, sourceW, sourceH, 
                 positionX, positionY, width, height
@@ -4611,7 +4628,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
             }
 
             if (colorG > 0) {
-              this.device.context.globalAlpha = colorG / 255;
+              this.device.context.globalAlpha = colorG;
               this.$canvasDrawImage(
                 channels.g, sourceX + 1, sourceY + 1, sourceW, sourceH, 
                 positionX, positionY, width, height
@@ -4619,7 +4636,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
             }
 
             if (colorB > 0) {
-              this.device.context.globalAlpha = colorB / 255;
+              this.device.context.globalAlpha = colorB;
               this.$canvasDrawImage(
                 channels.b, sourceX + 1, sourceY + 1, sourceW, sourceH, 
                 positionX, positionY, width, height
@@ -4628,17 +4645,25 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
 
             this.device.context.globalCompositeOperation = compositeOperation;
           } else {
-            if (color.a < 255) {
-              if (!needRestore)
-                this.device.context.save();
-              needRestore = true;
+            if (isWebGL) {
+              this.device.context.drawImage(
+                image, sourceX, sourceY, sourceW, sourceH, 
+                positionX, positionY, width, height, 
+                colorR, colorG, colorB, colorA
+              );
+            } else {
+              if (colorA < 1) {
+                if (!needRestore)
+                  this.device.context.save();
+                needRestore = true;
 
-              this.device.context.globalAlpha = color.a / 255;
+                this.device.context.globalAlpha = colorA;
+              }
+
+              this.$canvasDrawImage(
+                image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, width, height
+              );
             }
-
-            this.$canvasDrawImage(
-              image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, width, height
-            );
           }
         }
       }
@@ -4759,7 +4784,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
   }, ".ctor", new JSIL.MethodSignature(null, [], []), function () {
     this.originalCanvas = this.canvas = JSIL.Host.getCanvas();
     this.renderTarget = null;
-    this.originalContext = this.context = this.canvas.getContext("2d");
+
+    if (typeof (WebGL2D) !== "undefined")
+      this.originalContext = this.context = this.canvas.getContext("webgl-2d");
+    else
+      this.originalContext = this.context = this.canvas.getContext("2d");
+
     this.viewport = new Microsoft.Xna.Framework.Graphics.Viewport();
     this.viewport.Width = this.canvas.clientWidth || this.canvas.width;
     this.viewport.Height = this.canvas.clientHeight || this.canvas.height;
@@ -5567,10 +5597,16 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.RenderTarget2D", funct
     this.format = format;
     this.isDisposed = false;
 
-    this.image = this.canvas = document.createElement("canvas");
-    this.canvas.naturalWidth = this.canvas.width = width;
-    this.canvas.naturalHeight = this.canvas.height = height;
-    this.context = this.canvas.getContext("2d");
+    this.image = this.canvas = JSIL.Host.createCanvas(width, height);
+    this.canvas.naturalWidth = width;
+    this.canvas.naturalHeight = height;
+
+    if (typeof (WebGL2D) !== "undefined") {
+      WebGL2D.enable(this.canvas);
+      this.context = this.canvas.getContext("webgl-2d");
+    } else {
+      this.context = this.canvas.getContext("2d");
+    }
 
     var targets = document.getElementById("rendertargets");
     if (targets) targets.appendChild(this.canvas);

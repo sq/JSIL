@@ -1,6 +1,8 @@
 "use strict";
 
 var currentLogLine = null;
+
+var webglEnabled = false;
     
 JSIL.Host.getCanvas = function (desiredWidth, desiredHeight) {
   var e = document.getElementById("canvas");
@@ -8,6 +10,13 @@ JSIL.Host.getCanvas = function (desiredWidth, desiredHeight) {
     e.width = desiredWidth;
   if (typeof (desiredHeight) === "number")
     e.height = desiredHeight;
+
+  if (typeof (WebGL2D) !== "undefined") {
+    if (!webglEnabled) {
+      webglEnabled = true;
+      WebGL2D.enable(e);
+    }
+  }
   
   return e;
 };
@@ -15,7 +24,9 @@ JSIL.Host.createCanvas = function (desiredWidth, desiredHeight) {
   var e = document.createElement("canvas");
   e.width = desiredWidth;
   e.height = desiredHeight;
-  document.getElementById("images").appendChild(e);
+
+  if (typeof (WebGL2D) !== "undefined")
+    WebGL2D.enable(e);
   
   return e;
 };
