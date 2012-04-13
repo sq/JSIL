@@ -1277,9 +1277,11 @@
         image = canvas;
       }
 
-      gl.bindTexture(gl.TEXTURE_2D, this.obj);
+      this.updateCachedImage(image);
+    };
 
-      // gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+    Texture.prototype.updateCachedImage = function (image) {
+      gl.bindTexture(gl.TEXTURE_2D, this.obj);
 
       // Premultiply the image pixels
       var imagePixels;
@@ -1331,7 +1333,7 @@
 
       // Unbind texture
       gl.bindTexture(gl.TEXTURE_2D, null);
-    }
+    };
 
     gl.drawImage = function drawImage(image, a, b, c, d, e, f, g, h, colorR, colorG, colorB, colorA) {
       var transform = gl2d.transform;
@@ -1373,10 +1375,16 @@
 
       var texture, cacheIndex = imageCache.indexOf(image);
 
-      if (cacheIndex !== -1) {
+      if ((cacheIndex !== -1)) {
         texture = textureCache[cacheIndex];
       } else {
+        image.isDirty = false;
         texture = new Texture(image);
+      }
+
+      if (image.isDirty === true) {
+        texture.updateCachedImage(image);
+        image.isDirty = false;
       }
 
       if (doCrop) {

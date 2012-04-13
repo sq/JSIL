@@ -5626,12 +5626,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.RenderTarget2D", funct
     this.canvas.naturalWidth = width;
     this.canvas.naturalHeight = height;
 
-    if (typeof (WebGL2D) !== "undefined") {
-      WebGL2D.enable(this.canvas);
-      this.context = this.canvas.getContext("webgl-2d");
-    } else {
-      this.context = this.canvas.getContext("2d");
-    }
+    // Can't use WebGL here since it'll disable the ability to copy from the RT to the framebuffer.
+    this.context = this.canvas.getContext("2d");
 
     var targets = document.getElementById("rendertargets");
     if (targets) targets.appendChild(this.canvas);
@@ -5683,7 +5679,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.RenderTarget2D", funct
   }), $.Method({
     Static: false,
     Public: true
-  }, "$ResynthesizeImage", new JSIL.MethodSignature(null, [], []), function () {});
+  }, "$ResynthesizeImage", new JSIL.MethodSignature(null, [], []), function () {
+    this.image.isDirty = true;
+  });
   $.Method({
     Static: false,
     Public: true
