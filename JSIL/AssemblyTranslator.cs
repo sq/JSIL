@@ -1197,7 +1197,7 @@ namespace JSIL {
             ).Visit(function);
 
             new IntroduceEnumCasts(
-                si.TypeSystem, _TypeInfoProvider, FunctionCache.MethodTypes
+                si.TypeSystem, si.JS, _TypeInfoProvider, FunctionCache.MethodTypes
             ).Visit(function);
 
             new ExpandCastExpressions(

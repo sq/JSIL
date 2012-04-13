@@ -63,8 +63,8 @@ namespace JSIL.Transforms {
                         ));
                     }
                 } else if (ILBlockTranslator.IsNumeric(targetType)) {
-                    newExpression = new JSDotExpression(
-                        ce.Expression, new JSStringIdentifier("value", targetType)
+                    newExpression = JSInvocationExpression.InvokeStatic(
+                        JS.Number(targetType), new[] { ce.Expression }, true
                     );
                 } else if (targetType.FullName == "System.Enum") {
                     newExpression = ce.Expression;

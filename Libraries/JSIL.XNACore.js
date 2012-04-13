@@ -208,6 +208,7 @@ $jsilxna.getImageChannels = function (image) {
       bBytes[i + 3] = aBytes[i + 2];
 
       aBytes[i + 0] = aBytes[i + 1] = aBytes[i + 2] = 0;
+      aBytes[i + 3] = alpha;
     }
 
     result.putImageData("r", rData);
@@ -223,7 +224,7 @@ $jsilxna.getImageChannels = function (image) {
   return result;
 };
 
-$jsilxna.getImageTopLeftPixelMultiplied = function (image, color) {
+$jsilxna.getImageTopLeftPixel = function (image, color) {
   var cached = image.topLeftPixel;
   if (typeof (cached) === "string") 
     return cached;
@@ -249,17 +250,11 @@ $jsilxna.getImageTopLeftPixelMultiplied = function (image, color) {
     var b = imageData.data[2];
     var a = imageData.data[3] / 255;
 
-    var m = 1.0 / a;
-
     if ((typeof (color) === "object") && (color !== null)) {
-      r = (r * color.R) / 255;
-      g = (g * color.G) / 255;
-      b = (b * color.B) / 255;
+      r = (r * (color.rUnpremultiplied || color.r)) / 255;
+      g = (g * (color.gUnpremultiplied || color.g)) / 255;
+      b = (b * (color.bUnpremultiplied || color.b)) / 255;
     }
-
-    r = $jsilxna.ClampByte(r * m);
-    g = $jsilxna.ClampByte(g * m);
-    b = $jsilxna.ClampByte(b * m);
 
     image.topLeftPixel = result = "rgba(" + r + ", " + g + ", " + b + ", " + a + ")";
   } catch (exc) {}
@@ -3090,14 +3085,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.KeyboardState", function 
   $.Method({Static:false, Public:true }, "IsKeyDown", 
     (new JSIL.MethodSignature($.Boolean, [$asms[0].TypeRef("Microsoft.Xna.Framework.Input.Keys")], [])), 
     function IsKeyDown (key) {
-      return this.keys.indexOf(key.value) !== -1;
+      return this.keys.indexOf(Number(key)) !== -1;
     }
   );
 
   $.Method({Static:false, Public:true }, "IsKeyUp", 
     (new JSIL.MethodSignature($.Boolean, [$asms[0].TypeRef("Microsoft.Xna.Framework.Input.Keys")], [])), 
     function IsKeyUp (key) {
-      return this.keys.indexOf(key.value) === -1;
+      return this.keys.indexOf(Number(key)) === -1;
     }
   );
 });
@@ -3781,6 +3776,9 @@ $jsilxna.Color = function ($) {
     target.r = this.r;
     target.g = this.g;
     target.b = this.b;
+    target.rUnpremultiplied = this.rUnpremultiplied;
+    target.gUnpremultiplied = this.gUnpremultiplied;
+    target.bUnpremultiplied = this.bUnpremultiplied;
   });
 
   $.Method({
@@ -3986,6 +3984,9 @@ $jsilxna.Color = function ($) {
     Public: true
   }, "op_Multiply", new JSIL.MethodSignature($.Type, [$.Type, $.Single], []), function (color, multiplier) {
     var result = Object.create(Object.getPrototypeOf(color));
+    result.rUnpremultiplied = color.r;
+    result.gUnpremultiplied = color.g;
+    result.bUnpremultiplied = color.b;
     result.a = $jsilxna.ClampByte(color.a * multiplier);
     result.r = $jsilxna.ClampByte(color.r * multiplier);
     result.g = $jsilxna.ClampByte(color.g * multiplier);
@@ -4481,9 +4482,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       var isSinglePixel = ((sourceX == 0) && (sourceY == 0) && (sourceW == 1) && (sourceH == 1));
       var channels = null;
 
+      var colorR = color.rUnpremultiplied || color.r;
+      var colorG = color.gUnpremultiplied || color.g;
+      var colorB = color.bUnpremultiplied || color.b;
+
       if (!isSinglePixel) {
         // Since the color is premultiplied, any r/g/b value >= alpha is basically white.
-        if ((color.r < color.a) || (color.g < color.a) || (color.b < color.a)) {
+        if ((colorR < color.a) || (colorG < color.a) || (colorB < color.a)) {
           channels = $jsilxna.getImageChannels(image);
         }
       }
@@ -4560,8 +4565,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
             this.device.context.save();
           needRestore = true;
 
-          var imageColor = $jsilxna.getImageTopLeftPixelMultiplied(originalImage, color);
+          var imageColor = $jsilxna.getImageTopLeftPixel(originalImage, color);
 
+          this.device.context.globalAlpha = color.a / 255;
           this.device.context.fillStyle = imageColor;
           this.device.context.fillRect(
             positionX, positionY, width, height
@@ -4576,6 +4582,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
 
             var compositeOperation = this.device.context.globalCompositeOperation;
             if (compositeOperation !== "lighter") {
+              this.device.context.globalCompositeOperation = "source-over";
               this.device.context.globalAlpha = alpha;
               this.$canvasDrawImage(
                 channels.a, sourceX + 1, sourceY + 1, sourceW, sourceH, 
@@ -4585,24 +4592,24 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
 
             this.device.context.globalCompositeOperation = "lighter";
 
-            if (color.r > 0) {
-              this.device.context.globalAlpha = color.r / 255;
+            if (colorR > 0) {
+              this.device.context.globalAlpha = colorR / 255;
               this.$canvasDrawImage(
                 channels.r, sourceX + 1, sourceY + 1, sourceW, sourceH, 
                 positionX, positionY, width, height
               );
             }
 
-            if (color.g > 0) {
-              this.device.context.globalAlpha = color.g / 255;
+            if (colorG > 0) {
+              this.device.context.globalAlpha = colorG / 255;
               this.$canvasDrawImage(
                 channels.g, sourceX + 1, sourceY + 1, sourceW, sourceH, 
                 positionX, positionY, width, height
               );
             }
 
-            if (color.b > 0) {
-              this.device.context.globalAlpha = color.b / 255;
+            if (colorB > 0) {
+              this.device.context.globalAlpha = colorB / 255;
               this.$canvasDrawImage(
                 channels.b, sourceX + 1, sourceY + 1, sourceW, sourceH, 
                 positionX, positionY, width, height

@@ -13,13 +13,15 @@ namespace JSIL.Transforms {
         public readonly TypeSystem TypeSystem;
         public readonly TypeInfoProvider TypeInfo;
         public readonly MethodTypeFactory MethodTypes;
+        public readonly JSSpecialIdentifiers JS;
 
         private readonly HashSet<JSOperator> LogicalOperators;
 
-        public IntroduceEnumCasts (TypeSystem typeSystem, TypeInfoProvider typeInfo, MethodTypeFactory methodTypes) {
+        public IntroduceEnumCasts (TypeSystem typeSystem, JSSpecialIdentifiers js, TypeInfoProvider typeInfo, MethodTypeFactory methodTypes) {
             TypeSystem = typeSystem;
             TypeInfo = typeInfo;
             MethodTypes = methodTypes;
+            JS = js;
 
             LogicalOperators = new HashSet<JSOperator>() {
                 JSOperator.LogicalAnd,
@@ -50,8 +52,8 @@ namespace JSIL.Transforms {
                 !ILBlockTranslator.IsIntegral(indexType) &&
                 IsEnumOrNullableEnum(indexType)
             ) {
-                var cast = JSInvocationExpression.InvokeMethod(
-                    new JSFakeMethod("valueOf", TypeSystem.Int32, new[] { indexType }, MethodTypes), ie.Index, null, true
+                var cast = JSInvocationExpression.InvokeStatic(
+                    JS.Number(TypeSystem.Int32), new[] { ie.Index }, true
                 );
 
                 ie.ReplaceChild(ie.Index, cast);
@@ -65,8 +67,8 @@ namespace JSIL.Transforms {
             var isEnum = IsEnumOrNullableEnum(type);
 
             if (isEnum) {
-                var cast = JSInvocationExpression.InvokeMethod(
-                    new JSFakeMethod("valueOf", TypeSystem.Int32, new[] { type }, MethodTypes), uoe.Expression, null, true
+                var cast = JSInvocationExpression.InvokeStatic(
+                    JS.Number(TypeSystem.Int32), new[] { uoe.Expression }, true
                 );
 
                 if (LogicalOperators.Contains(uoe.Operator)) {
@@ -87,16 +89,16 @@ namespace JSIL.Transforms {
 
             if ((leftIsEnum || rightIsEnum) && LogicalOperators.Contains(boe.Operator)) {
                 if (leftIsEnum) {
-                    var cast = JSInvocationExpression.InvokeMethod(
-                        new JSFakeMethod("valueOf", TypeSystem.Int32, new[] { leftType }, MethodTypes), boe.Left, null, true
+                    var cast = JSInvocationExpression.InvokeStatic(
+                        JS.Number(TypeSystem.Int32), new[] { boe.Left }, true
                     );
 
                     boe.ReplaceChild(boe.Left, cast);
                 }
 
                 if (rightIsEnum) {
-                    var cast = JSInvocationExpression.InvokeMethod(
-                        new JSFakeMethod("valueOf", TypeSystem.Int32, new[] { rightType }, MethodTypes), boe.Right, null, true
+                    var cast = JSInvocationExpression.InvokeStatic(
+                        JS.Number(TypeSystem.Int32), new[] { boe.Right }, true
                     );
 
                     boe.ReplaceChild(boe.Right, cast);
@@ -113,8 +115,8 @@ namespace JSIL.Transforms {
                 !ILBlockTranslator.IsIntegral(conditionType) &&
                 IsEnumOrNullableEnum(conditionType)
             ) {
-                var cast = JSInvocationExpression.InvokeMethod(
-                    new JSFakeMethod("valueOf", TypeSystem.Int32, new[] { conditionType }, MethodTypes), ss.Condition, null, true
+                var cast = JSInvocationExpression.InvokeStatic(
+                    JS.Number(TypeSystem.Int32), new[] { ss.Condition }, true
                 );
 
                 ss.ReplaceChild(ss.Condition, cast);

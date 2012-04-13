@@ -199,7 +199,7 @@ JSIL.ImplementExternals(
     );
 
     var compareInternal = function (lhs, rhs, comparison) {
-      switch (comparison.valueOf()) {
+      switch (Number(comparison)) {
         case 1: // System.StringComparison.CurrentCultureIgnoreCase:
         case 3: // System.StringComparison.InvariantCultureIgnoreCase:
         case 5: // System.StringComparison.OrdinalIgnoreCase:

@@ -203,6 +203,7 @@ namespace JSIL.Tests {
 
             RunComparisonTests(
                 new[] { 
+                    @"TestCases\EnumComplexArithmetic.cs",
                     @"TestCases\EnumSwitch.cs",
                     @"TestCases\EnumCasts.cs",
                     @"TestCases\Enums.cs",
