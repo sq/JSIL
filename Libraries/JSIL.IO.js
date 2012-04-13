@@ -110,6 +110,12 @@ JSIL.ImplementExternals("System.IO.Stream", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "Dispose", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Dispose () {
+    }
+  );
+
   $.RawMethod(false, "$GetURI", function () {
     throw new Error("Only valid on streams created from files!");
   });
