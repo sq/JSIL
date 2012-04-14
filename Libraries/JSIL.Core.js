@@ -2163,6 +2163,8 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
   }
 };
 
+$jsilcore.cctorKeys = ["_cctor", "_cctor2", "_cctor3", "_cctor4", "_cctor5"];
+
 JSIL.InitializeType = function (type) {
   var classObject = type, typeObject = type;
 
@@ -2195,19 +2197,16 @@ JSIL.InitializeType = function (type) {
 
   // If the type is closed, invoke its static constructor(s)
   if (typeObject.__IsClosed__) {
-    if (typeof (classObject._cctor) === "function") {
-      try {
-        classObject._cctor.call(classObject);
-      } catch (e) {
-        JSIL.Host.error(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(type) + ": ");
-      }
-    }
+    for (var i = 0; i < $jsilcore.cctorKeys.length; i++) {
+      var key = $jsilcore.cctorKeys[i];
+      var cctor = classObject[key];
 
-    if (typeof (classObject._cctor2) === "function") {
-      try {
-        classObject._cctor2.call(classObject);
-      } catch (e) {
-        JSIL.Host.error(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(type) + ": ");
+      if (typeof (cctor) === "function") {
+        try {
+          cctor.call(classObject);
+        } catch (e) {
+          JSIL.Host.error(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(type) + ": ");
+        }
       }
     }
   }

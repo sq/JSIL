@@ -21,6 +21,21 @@ using MethodInfo = JSIL.Internal.MethodInfo;
 
 namespace JSIL {
     public class AssemblyTranslator : IDisposable {
+        struct MethodToAnalyze {
+            public readonly MethodDefinition MD;
+            public readonly MethodInfo MI;
+
+            public MethodToAnalyze (MethodDefinition md) {
+                MD = md;
+                MI = null;
+            }
+
+            public MethodToAnalyze (MethodInfo mi) {
+                MD = mi.Member;
+                MI = mi;
+            }
+        }
+
         public const int LargeMethodThreshold = 20 * 1024;
 
         public readonly Configuration Configuration;
@@ -276,7 +291,7 @@ namespace JSIL {
             if (Decompiling != null)
                 Decompiling(pr);
 
-            var methodsToAnalyze = new ConcurrentBag<MethodDefinition>();
+            var methodsToAnalyze = new ConcurrentBag<MethodToAnalyze>();
             for (int i = 0; i < assemblies.Length; i++) {
                 pr.OnProgressChanged(i, assemblies.Length * 2);
                 GetMethodsToAnalyze(assemblies[i], methodsToAnalyze);
@@ -288,15 +303,15 @@ namespace JSIL {
                     0, methodsToAnalyze.Count, parallelOptions,
                     () => MakeDecompilerContext(assemblies[0].MainModule),
                     (_, loopState, ctx) => {
-                        MethodDefinition m;
+                        MethodToAnalyze m;
                         if (!methodsToAnalyze.TryTake(out m))
                             throw new InvalidOperationException("Method collection mutated during analysis");
 
-                        ctx.CurrentModule = m.Module;
-                        ctx.CurrentType = m.DeclaringType;
-                        ctx.CurrentMethod = m;
+                        ctx.CurrentModule = m.MD.Module;
+                        ctx.CurrentType = m.MD.DeclaringType;
+                        ctx.CurrentMethod = m.MD;
 
-                        TranslateMethodExpression(ctx, m, m);
+                        TranslateMethodExpression(ctx, m.MD, m.MD, m.MI);
 
                         var j = Interlocked.Increment(ref i);
                         pr.OnProgressChanged(mc + j, mc * 2);
@@ -416,7 +431,7 @@ namespace JSIL {
             pr.OnFinished();
         }
 
-        protected void GetMethodsToAnalyze (AssemblyDefinition assembly, ConcurrentBag<MethodDefinition> allMethods) {
+        private void GetMethodsToAnalyze (AssemblyDefinition assembly, ConcurrentBag<MethodToAnalyze> allMethods) {
             bool isStubbed = IsStubbed(assembly);
 
             var parallelOptions = GetParallelOptions();
@@ -447,8 +462,14 @@ namespace JSIL {
                         IEnumerable<MethodDefinition> methods = type.Methods;
 
                         var typeInfo = _TypeInfoProvider.GetExisting(type);
-                        if ((typeInfo != null) && (typeInfo.StaticConstructor != null)) {
-                            methods = methods.Concat(new[] { typeInfo.StaticConstructor });
+                        if (typeInfo != null) {
+                            if (typeInfo.StaticConstructor != null) {
+                                methods = methods.Concat(new[] { typeInfo.StaticConstructor });
+                            }
+
+                            foreach (var esc in typeInfo.ExtraStaticConstructors) {
+                                allMethods.Add(new MethodToAnalyze(esc));
+                            }
                         }
 
                         foreach (var m in methods) {
@@ -467,7 +488,7 @@ namespace JSIL {
                                     continue;
                             }
 
-                            allMethods.Add(m);
+                            allMethods.Add(new MethodToAnalyze(m));
                         }
                     }
                 );
@@ -1038,7 +1059,10 @@ namespace JSIL {
             }
         }
 
-        internal JSFunctionExpression TranslateMethodExpression (DecompilerContext context, MethodReference method, MethodDefinition methodDef) {
+        internal JSFunctionExpression TranslateMethodExpression (
+            DecompilerContext context, MethodReference method, 
+            MethodDefinition methodDef, MethodInfo methodInfo = null
+        ) {
             var oldMethod = context.CurrentMethod;
             try {
                 if (method == null)
@@ -1046,7 +1070,11 @@ namespace JSIL {
                 if (methodDef == null)
                     throw new ArgumentNullException("methodDef");
 
-                var methodInfo = _TypeInfoProvider.GetMemberInformation<JSIL.Internal.MethodInfo>(methodDef);
+                if (methodInfo == null)
+                    methodInfo = _TypeInfoProvider.GetMemberInformation<JSIL.Internal.MethodInfo>(methodDef);
+
+                if (methodInfo == null)
+                    throw new InvalidOperationException("Translating a method with no info");
 
                 var identifier = new QualifiedMemberIdentifier(
                     methodInfo.DeclaringType.Identifier, methodInfo.Identifier
@@ -1352,6 +1380,7 @@ namespace JSIL {
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
             MethodDefinition cctor, bool stubbed, Action<JavascriptFormatter> dollar
         ) {
+            var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             var typeSystem = context.CurrentModule.TypeSystem;
             var staticFields = 
                 (from f in typedef.Fields
@@ -1526,12 +1555,11 @@ namespace JSIL {
             }
 
             if ((cctor != null) && !stubbed) {
-                TranslateMethod(context, cctor, cctor, astEmitter, output, false, dollar, fixupCctor);
+                TranslateMethod(context, cctor, cctor, astEmitter, output, false, dollar, null, fixupCctor);
             } else if (fieldsToEmit.Length > 0) {
                 var fakeCctor = new MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static, typeSystem.Void);
                 fakeCctor.DeclaringType = typedef;
 
-                var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
                 typeInfo.StaticConstructor = fakeCctor;
                 var identifier = MemberIdentifier.New(this._TypeInfoProvider, fakeCctor);
 
@@ -1543,17 +1571,40 @@ namespace JSIL {
                 // Generate the fake constructor, since it wasn't created during the analysis pass
                 TranslateMethodExpression(context, fakeCctor, fakeCctor);
 
-                TranslateMethod(context, fakeCctor, fakeCctor, astEmitter, output, false, dollar, fixupCctor);
+                TranslateMethod(context, fakeCctor, fakeCctor, astEmitter, output, false, dollar, null, fixupCctor);
+            }
+
+            foreach (var extraCctor in typeInfo.ExtraStaticConstructors) {
+                var declaringType = extraCctor.Member.DeclaringType;
+                var newJSType = new JSType(typedef);
+
+                TranslateMethod(
+                    context, extraCctor.Member, extraCctor.Member, astEmitter,
+                    output, false, dollar, extraCctor,
+                    // The static constructor may have references to the proxy type that declared it.
+                    //  If so, replace them with references to the target type.
+                    (fn) => {
+                        var types = fn.AllChildrenRecursive.OfType<JSType>();
+
+                        foreach (var t in types) {
+                            if (ILBlockTranslator.TypesAreEqual(t.Type, declaringType))
+                                fn.ReplaceChildRecursive(t, newJSType);
+                        }
+                    }
+                );
             }
         }
 
         protected void TranslateMethod (
             DecompilerContext context, MethodReference methodRef, MethodDefinition method,
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed, 
-            Action<JavascriptFormatter> dollar,
+            Action<JavascriptFormatter> dollar, MethodInfo methodInfo = null,
             Action<JSFunctionExpression> bodyTransformer = null
         ) {
-            var methodInfo = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
+            if (methodInfo == null) {
+                methodInfo = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
+            }
+
             if (methodInfo == null)
                 return;
 
@@ -1591,7 +1642,7 @@ namespace JSIL {
             output.NewLine();
 
             if (methodIsProxied) {
-                output.Comment("Implementation from {0}", methodInfo.DeclaringType.FullName);
+                output.Comment("Implementation from {0}", methodInfo.Member.DeclaringType.FullName);
                 output.NewLine();
             }
 

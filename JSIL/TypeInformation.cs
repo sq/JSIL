@@ -240,9 +240,9 @@ namespace JSIL.Internal {
                 throw new NotImplementedException();
         }
 
-        public MemberIdentifier (ITypeInfoSource ti, MethodReference mr) {
+        public MemberIdentifier (ITypeInfoSource ti, MethodReference mr, string newName = null) {
             Type = MemberType.Method;
-            Name = mr.Name;
+            Name = newName ?? mr.Name;
             ReturnType = mr.ReturnType;
             ParameterCount = mr.Parameters.Count;
             ParameterTypes = GetParameterTypes(mr.Parameters);
@@ -492,6 +492,8 @@ namespace JSIL.Internal {
         public readonly Dictionary<MemberIdentifier, EventDefinition> Events;
         public readonly Dictionary<MemberIdentifier, MethodDefinition> Methods;
 
+        public readonly MethodDefinition ExtraStaticConstructor;
+
         public readonly bool IsInheritable;
 
         protected readonly ITypeInfoSource TypeInfo;
@@ -504,6 +506,8 @@ namespace JSIL.Internal {
             Properties = new Dictionary<MemberIdentifier, PropertyDefinition>(comparer);
             Events = new Dictionary<MemberIdentifier, EventDefinition>(comparer);
             Methods = new Dictionary<MemberIdentifier, MethodDefinition>(comparer);
+
+            ExtraStaticConstructor = null;
 
             Definition = proxyType;
             Metadata = new MetadataCollection(proxyType);
@@ -577,7 +581,11 @@ namespace JSIL.Internal {
                 if (!ILBlockTranslator.TypesAreEqual(method.DeclaringType, proxyType))
                     continue;
 
-                Methods.Add(new MemberIdentifier(typeInfo, method), method);
+                if ((method.Name == ".cctor") && method.CustomAttributes.Any((ca) => ca.AttributeType.FullName == "JSIL.Meta.JSExtraStaticConstructor")) {
+                    ExtraStaticConstructor = method;
+                } else {
+                    Methods.Add(new MemberIdentifier(typeInfo, method), method);
+                }
             }
         }
 
@@ -649,6 +657,9 @@ namespace JSIL.Internal {
 
         // This needs to be mutable so we can introduce a constructed cctor later
         public MethodDefinition StaticConstructor;
+
+        public readonly List<MethodInfo> ExtraStaticConstructors = new List<MethodInfo>();
+
         public readonly HashSet<MethodDefinition> Constructors = new HashSet<MethodDefinition>();
         public readonly MetadataCollection Metadata;
         public readonly ProxyInfo[] Proxies;
@@ -853,6 +864,14 @@ namespace JSIL.Internal {
                         continue;
 
                     AddProxyMember(proxy, method);
+                }
+
+                if (proxy.ExtraStaticConstructor != null) {
+                    var name = String.Format(".cctor{0}", ExtraStaticConstructors.Count + 2);
+                    var escIdentifier = new MemberIdentifier(source, proxy.ExtraStaticConstructor, name);
+                    var escInfo = new MethodInfo(this, escIdentifier, proxy.ExtraStaticConstructor, Proxies, true);
+                    escInfo.ForcedNewName = name;
+                    ExtraStaticConstructors.Add(escInfo);
                 }
             }
         }
@@ -1772,8 +1791,16 @@ namespace JSIL.Internal {
             }
         }
 
+        public string ForcedNewName {
+            private get;
+            set;
+        }
+
         public override string ChangedName {
             get {
+                if (ForcedNewName != null)
+                    return ForcedNewName;
+
                 if (Property != null) {
                     var propertyChangedName = Property.ChangedName;
                     if (propertyChangedName != null)

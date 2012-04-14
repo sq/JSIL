@@ -106,4 +106,14 @@ namespace JSIL.Meta {
     )]
     public class JSExternal : Attribute {
     }
+
+    /// <summary>
+    /// Specifies that this method should be renamed to .cctor2 so that it runs as a second static constructor for the containing
+    ///  type in JS. If the method is part of a proxy, it will run as the second static constructor for the proxied type(s).
+    /// </summary>
+    [AttributeUsage(
+        AttributeTargets.Constructor
+    )]
+    public class JSExtraStaticConstructor : Attribute {
+    }
 }
