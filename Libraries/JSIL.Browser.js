@@ -195,8 +195,13 @@ var keyMappings = {
 (function () {
   var canvas = document.getElementById("canvas");
 
+  var f11 = 122;
+
   window.addEventListener(
     "keydown", function (evt) {
+      if (evt.keyCode === f11)
+        return;
+
       evt.preventDefault();
       var keyCode = evt.keyCode;
       var codes = keyMappings[keyCode] || [keyCode];        
@@ -211,6 +216,9 @@ var keyMappings = {
 
   window.addEventListener(
     "keyup", function (evt) {
+      if (evt.keyCode === f11)
+        return;
+      
       evt.preventDefault();
       var keyCode = evt.keyCode;
       var codes = keyMappings[keyCode] || [keyCode];        
