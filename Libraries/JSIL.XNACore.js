@@ -51,6 +51,36 @@ $jsilxna.graphicsRef = function (name) {
     return $asms.xna.TypeRef(name);
 };
 
+$jsilxna.testedWebGL = false;
+$jsilxna.workingWebGL = false;
+$jsilxna.get2DContext = function (canvas, enableWebGL) {
+  var hasWebGL = typeof (WebGL2D) !== "undefined";
+
+  if (hasWebGL && enableWebGL) {
+    if (!$jsilxna.testedWebGL) {
+      var testCanvas = document.createElement("canvas");
+      WebGL2D.enable(testCanvas);
+      var testContext = testCanvas.getContext("webgl-2d");
+
+      $jsilxna.workingWebGL = (testContext != null) && (testContext.isWebGL);
+      $jsilxna.testedWebGL = true;
+    }
+
+    if ($jsilxna.workingWebGL) {
+      WebGL2D.enable(canvas);
+      return canvas.getContext("webgl-2d");
+    } else {
+      var msg = "WARNING: WebGL not available or broken. Using HTML5 canvas instead.";
+      if ((typeof (console) !== undefined) && (typeof (console.error) === "function")) {
+        console.error(msg);
+      }
+      JSIL.Host.logWriteLine(msg);
+    }
+  }
+
+  return canvas.getContext("2d");
+};
+
 $jsilxna.multipliedImageCache.getItem = function (key) {
   this.accessHistory[key] = Date.now();
 
@@ -147,7 +177,7 @@ $jsilxna.imageChannels = function (image) {
 
   var createChannel = (function (ch) {
     var canvas = this[ch] = document.createElement("canvas");
-    var context = this[ch + "Context"] = canvas.getContext("2d");
+    var context = this[ch + "Context"] = $jsilxna.get2DContext(canvas, false);
 
     canvas.width = this.width + 2;
     canvas.height = this.height + 2;
@@ -162,7 +192,7 @@ $jsilxna.imageChannels = function (image) {
   createChannel("a");
 
   if (image.tagName.toLowerCase() === "canvas") {
-    this.sourceImageData = image.getContext("2d").getImageData(0, 0, image.width, image.height);
+    this.sourceImageData = $jsilxna.get2DContext(image, false).getImageData(0, 0, image.width, image.height);
   } else {
     // Workaround for bug in Firefox's canvas implementation that treats the outside of a canvas as solid white
     this.aContext.clearRect(0, 0, this.width + 2, this.height + 2);
@@ -238,14 +268,14 @@ $jsilxna.getImageTopLeftPixel = function (image) {
     return cached;
 
   var canvas = document.createElement("canvas");
-  var context = canvas.getContext("2d");
+  var context = $jsilxna.get2DContext(image, false);
 
   canvas.width = 1;
   canvas.height = 1;
 
   var imageData;
   if (image.tagName.toLowerCase() === "canvas") {
-    imageData = image.getContext("2d").getImageData(0, 0, 1, 1);
+    imageData = $jsilxna.get2DContext(image, false).getImageData(0, 0, 1, 1);
   } else {
     context.globalCompositeOperation = "copy";
     context.globalCompositeAlpha = 1.0;
@@ -518,11 +548,7 @@ JSIL.MakeClass("HTML5Asset", "HTML5FontAsset", true, [], function ($) {
     this.pointSize = pointSize;
     this.lineHeight = lineHeight;
     this.canvas = JSIL.Host.getCanvas();
-
-    if (typeof (WebGL2D) !== "undefined")
-      this.context = this.canvas.getContext("webgl-2d");
-    else
-      this.context = this.canvas.getContext("2d");
+    this.context = $jsilxna.get2DContext(this.canvas, true);
 
     Object.defineProperty(this, "LineSpacing", {
       get: function () {
@@ -4801,10 +4827,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
     this.originalWidth = this.canvas.width;
     this.originalHeight = this.canvas.height;
 
-    if (typeof (WebGL2D) !== "undefined")
-      this.originalContext = this.context = this.canvas.getContext("webgl-2d");
-    else
-      this.originalContext = this.context = this.canvas.getContext("2d");
+    this.originalContext = this.context = $jsilxna.get2DContext(this.canvas, true);
 
     this.viewport = new Microsoft.Xna.Framework.Graphics.Viewport();
     this.viewport.Width = this.canvas.clientWidth || this.canvas.width;
@@ -5567,7 +5590,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     }
     canvas.width = this.width;
     canvas.height = this.height;
-    var ctx = canvas.getContext("2d");
+    var ctx = $jsilxna.get2DContext(canvas, false);
 
     if (bytes !== null) {
       var decoder = $jsilxna.ImageFormats[this.format.name];
@@ -5638,7 +5661,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.RenderTarget2D", funct
     this.canvas.naturalHeight = height;
 
     // Can't use WebGL here since it'll disable the ability to copy from the RT to the framebuffer.
-    this.context = this.canvas.getContext("2d");
+    this.context = $jsilxna.get2DContext(this.canvas, false);
 
     var targets = document.getElementById("rendertargets");
     if (targets) targets.appendChild(this.canvas);

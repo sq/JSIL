@@ -29,6 +29,10 @@ JSIL.XML.ReaderFromString = function (xml) {
   var parser = new DOMParser();
   var root = parser.parseFromString(xml, "application/xml");
 
+  if ((root === null) || (root.documentElement.localName == "parsererror")) {
+    throw new Error("Failed to parse XML document");
+  }
+
   var result = JSIL.CreateInstanceOfType(
     System.Xml.XmlReader.__Type__, "$fromDOMNode", [root]
   );

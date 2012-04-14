@@ -255,6 +255,8 @@
     */
   };
 
+  var initFailure = false;
+
   var WebGL2D = this.WebGL2D = function WebGL2D(canvas, options) {
     this.canvas         = canvas;
     this.options        = options || {};
@@ -280,35 +282,41 @@
 
           var gl = gl2d.gl = gl2d.canvas.$getContext("experimental-webgl");
 
-          if ((typeof (gl) === "undefined") || (gl === null)) {
+          if ((typeof (gl) === "undefined") || (gl === null) || initFailure) {
             return gl2d.canvas.$getContext("2d");
           }
 
-          gl2d.initShaders();
-          gl2d.initBuffers();
+          try {
+            gl2d.initShaders();
+            gl2d.initBuffers();
 
-          // Append Canvas2D API features to the WebGL context
-          gl2d.initCanvas2DAPI();
+            // Append Canvas2D API features to the WebGL context
+            gl2d.initCanvas2DAPI();
 
-          gl.viewport(0, 0, gl2d.canvas.width, gl2d.canvas.height);
+            gl.viewport(0, 0, gl2d.canvas.width, gl2d.canvas.height);
 
-          // Default white background
-          gl.clearColor(1, 1, 1, 1);
-          gl.clear(gl.COLOR_BUFFER_BIT); // | gl.DEPTH_BUFFER_BIT);
+            // Default white background
+            gl.clearColor(1, 1, 1, 1);
+            gl.clear(gl.COLOR_BUFFER_BIT); // | gl.DEPTH_BUFFER_BIT);
 
-          // Disables writing to dest-alpha
-          gl.colorMask(1,1,1,0);
+            // Disables writing to dest-alpha
+            gl.colorMask(1,1,1,0);
 
-          // Depth options
-          //gl.enable(gl.DEPTH_TEST);
-          //gl.depthFunc(gl.LEQUAL);
+            // Depth options
+            //gl.enable(gl.DEPTH_TEST);
+            //gl.depthFunc(gl.LEQUAL);
 
-          // Blending options
-          gl.enable(gl.BLEND);
-          // Premultiplied
-          gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+            // Blending options
+            gl.enable(gl.BLEND);
+            // Premultiplied
+            gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
-          gl2d.maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+            gl2d.maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+          } catch (exc) {
+            console.warn("Failed to initialize webgl-2d context. Library disabled. ", exc);
+            initFailure = true;
+            return null;
+          }
 
           return gl;
         } else {
