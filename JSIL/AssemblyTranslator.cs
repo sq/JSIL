@@ -444,10 +444,14 @@ namespace JSIL {
                         if (!ShouldTranslateMethods(type))
                             return;
 
-                        var methods = (from m in type.Methods
-                                    select m);
+                        IEnumerable<MethodDefinition> methods = type.Methods;
 
-                        foreach (var m in type.Methods) {
+                        var typeInfo = _TypeInfoProvider.GetExisting(type);
+                        if ((typeInfo != null) && (typeInfo.StaticConstructor != null)) {
+                            methods = methods.Concat(new[] { typeInfo.StaticConstructor });
+                        }
+
+                        foreach (var m in methods) {
                             if (!m.HasBody)
                                 continue;
 
