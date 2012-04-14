@@ -194,6 +194,8 @@ var keyMappings = {
 
 (function () {
   var canvas = document.getElementById("canvas");
+  var originalWidth = canvas.width;
+  var originalHeight = canvas.height;
 
   var f11 = 122;
 
@@ -218,7 +220,7 @@ var keyMappings = {
     "keyup", function (evt) {
       if (evt.keyCode === f11)
         return;
-      
+
       evt.preventDefault();
       var keyCode = evt.keyCode;
       var codes = keyMappings[keyCode] || [keyCode];        
@@ -237,10 +239,23 @@ var keyMappings = {
     }, true
   );
 
+  var mapMouseCoords = function (evt) {
+      var x = evt.clientX - canvas.offsetLeft;
+      var y = evt.clientY - canvas.offsetTop;
+
+      var currentWidth = canvas.width;
+      var currentHeight = canvas.height;
+
+      x = x * originalWidth / currentWidth;
+      y = y * originalHeight / currentHeight;
+
+      mousePosition[0] = x;
+      mousePosition[1] = y;
+  };
+
   canvas.addEventListener(
     "mousedown", function (evt) {     
-      mousePosition[0] = evt.clientX - canvas.offsetLeft;
-      mousePosition[1] = evt.clientY - canvas.offsetTop;
+      mapMouseCoords(evt);
 
       var button = evt.button;
       if (Array.prototype.indexOf.call(heldButtons, button) === -1)
@@ -254,8 +269,7 @@ var keyMappings = {
 
   canvas.addEventListener(
     "mouseup", function (evt) {
-      mousePosition[0] = evt.clientX - canvas.offsetLeft;
-      mousePosition[1] = evt.clientY - canvas.offsetTop;
+      mapMouseCoords(evt);
       
       var button = evt.button;
       heldButtons = heldButtons.filter(function (element, index, array) {
@@ -270,8 +284,7 @@ var keyMappings = {
 
   canvas.addEventListener(
     "mousemove", function (evt) {
-      mousePosition[0] = evt.clientX - canvas.offsetLeft;
-      mousePosition[1] = evt.clientY - canvas.offsetTop;
+      mapMouseCoords(evt);
       
       evt.preventDefault();
       evt.stopPropagation();
@@ -886,8 +899,10 @@ function loadAssets (assets, onDoneLoading) {
 function beginLoading () {
   var progressBar = document.getElementById("progressBar");
   var loadButton = document.getElementById("loadButton");
+  var fullscreenButton = document.getElementById("fullscreenButton");
   var quitButton = document.getElementById("quitButton");
   var loadingProgress = document.getElementById("loadingProgress");
+  var stats = document.getElementById("stats");
   
   if (progressBar)
     progressBar.style.width = "0px";
@@ -918,6 +933,12 @@ function beginLoading () {
       
       if (quitButton)
         quitButton.style.display = "";
+
+      if (fullscreenButton && canGoFullscreen)
+        fullscreenButton.style.display = "";
+
+      if (stats)
+        stats.style.display = "";
       
       runMain();
       // Main doesn't block since we're using the browser's event loop          
@@ -933,12 +954,16 @@ function quitGame () {
   document.getElementById("quitButton").style.display = "none";
 }
 
+var canGoFullscreen = false;
+
 function onLoad () {
   var log = document.getElementById("log");
   var loadButton = document.getElementById("loadButton");
   var quitButton = document.getElementById("quitButton");
   var loadingProgress = document.getElementById("loadingProgress");
-  
+  var fullscreenButton = document.getElementById("fullscreenButton");
+  var statsElement = document.getElementById("stats");
+
   if (log)
     log.value = "";
   
@@ -948,6 +973,52 @@ function onLoad () {
       "click", quitGame, true
     );
   }
+
+  if (statsElement)
+    statsElement.style.display = "none";
+
+  if (fullscreenButton) {
+    fullscreenButton.style.display = "none";
+
+    var canvas = document.getElementById("canvas");
+    var originalWidth = canvas.width;
+    var originalHeight = canvas.height;
+
+    var reqFullscreen = canvas.requestFullScreenWithKeys || 
+      canvas.mozRequestFullScreenWithKeys ||
+      canvas.webkitRequestFullScreenWithKeys ||
+      canvas.requestFullscreen || 
+      canvas.mozRequestFullScreen || 
+      canvas.webkitRequestFullScreen;
+
+    if (reqFullscreen) {
+      canGoFullscreen = true;
+
+      var onFullscreenChange = function () {
+        var isFullscreen = document.fullscreen || 
+          document.mozFullScreen || 
+          document.webkitIsFullScreen;
+
+        if (isFullscreen) {
+          canvas.width = screen.width;
+          canvas.height = screen.height;
+        } else {
+          canvas.width = originalWidth;
+          canvas.height = originalHeight;
+        }
+      };
+
+      document.addEventListener("fullscreenchange", onFullscreenChange, false);
+      document.addEventListener("mozfullscreenchange", onFullscreenChange, false);
+      document.addEventListener("webkitfullscreenchange", onFullscreenChange, false);
+
+      fullscreenButton.addEventListener(
+        "click", function () {
+          reqFullscreen.call(canvas, Element.ALLOW_KEYBOARD_INPUT);
+        }, true
+      );
+    }
+  };
   
   if (loadButton) {
     loadButton.addEventListener(

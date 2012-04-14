@@ -4798,6 +4798,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
     this.originalCanvas = this.canvas = JSIL.Host.getCanvas();
     this.renderTarget = null;
 
+    this.originalWidth = this.canvas.width;
+    this.originalHeight = this.canvas.height;
+
     if (typeof (WebGL2D) !== "undefined")
       this.originalContext = this.context = this.canvas.getContext("webgl-2d");
     else
@@ -4912,20 +4915,31 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
 
   $.RawMethod(false, "$UpdateViewport", function () {
     this.context.setTransform(1, 0, 0, 1, 0, 0);
+    var scaleX = this.canvas.width / this.originalWidth;
+    var scaleY = this.canvas.height / this.originalHeight;
     this.context.translate(this.viewport.X, this.viewport.Y);
     this.context.scale(this.viewport.Width / this.canvas.width, this.viewport.Height / this.canvas.height);
+    if (this.context.isWebGL) {
+      this.context.viewport(0, 0, this.canvas.width, this.canvas.height);
+    }
   });
 
   $.RawMethod(false, "$Clear", function () {
     this.context.setTransform(1, 0, 0, 1, 0, 0);
-    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.context.globalCompositeOperation = "copy";
+    this.context.globalAlpha = 1.0;
+    this.context.fillStyle = "rgba(0, 0, 0, 1)";
+    this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
     this.$UpdateBlendState();
     this.$UpdateViewport();
   });
 
   $.RawMethod(false, "InternalClear", function (color) {
+    this.context.setTransform(1, 0, 0, 1, 0, 0);
+    this.context.globalCompositeOperation = "copy";
+    this.context.globalAlpha = 1.0;
     this.context.fillStyle = color.toCss();
-    this.context.fillRect(0, 0, this.viewport.Width, this.viewport.Height);
+    this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
     this.$UpdateBlendState();
   });
 

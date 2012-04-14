@@ -1,9 +1,12 @@
+html, body {
+	margin: 0px;
+	padding: 0px;
+}
 body {
 	overflow: hidden;
 }
 #canvas {
 	background-color: black;
-	position: absolute;
 	margin: 0px;
 	border: 0px;
 	padding: 0px;
@@ -23,12 +26,9 @@ body {
 #welcomeMessage a {
 	color: #BFBFFF;
 }
-#loadButton {
+#fullscreenButton, #loadButton, #quitButton {
 	position: absolute;	
 	z-index: 90;
-}
-#quitButton {
-	position: absolute;	
 }
 #loadingProgress {
 	background-color: black;
@@ -101,6 +101,6 @@ body {
 	display: inline-block;
 	width: 4em;
 }
-#stats, #stats span, #stats span span, #loadingProgress, #progressBar, #progressText, #quitButton, #loadButton, #welcomeMessage, #canvas {
+#stats, #stats span, #stats span span, #loadingProgress, #progressBar, #progressText, #fullscreenButton, #quitButton, #loadButton, #welcomeMessage, #canvas {
 	cursor: default;
 }

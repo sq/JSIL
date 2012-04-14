@@ -1,8 +1,14 @@
+html {
+	margin: 0px;
+	padding: 0px;
+}
 body {
 	background-color: black;
 	color: white;
 	overflow-x: hidden;
 	overflow-y: auto;
+	margin: 0px;
+	padding: 0px;
 }
 a, a:visited {
 	color: silver;
@@ -45,6 +51,11 @@ a, a:visited {
 	top: 724px;
 	overflow-x: hidden;
 	overflow-y: scroll;
+}
+#fullscreenButton {
+	left: 1284px;
+	top: 2px;
+	height: 45px;
 }
 #stats {
 	left: 1284px;
