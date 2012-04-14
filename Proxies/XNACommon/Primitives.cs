@@ -86,6 +86,96 @@ namespace JSIL.Proxies {
     )]
     public abstract class VectorProxy {
         [JSIsPure]
+        public static AnyType Dot (VectorProxy a, VectorProxy b) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static void Dot (ref VectorProxy a, ref VectorProxy b, out AnyType result) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static VectorProxy Multiply (VectorProxy a, VectorProxy b) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static void Multiply (ref VectorProxy a, ref VectorProxy b, out VectorProxy result) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static VectorProxy Multiply (VectorProxy a, float b) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static void Multiply (ref VectorProxy a, float b, out VectorProxy result) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static VectorProxy Divide (VectorProxy a, VectorProxy b) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static void Divide (ref VectorProxy a, ref VectorProxy b, out VectorProxy result) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static VectorProxy Divide (VectorProxy a, float b) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static void Divide (ref VectorProxy a, float b, out VectorProxy result) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static VectorProxy Add (VectorProxy a, VectorProxy b) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static void Add (ref VectorProxy a, ref VectorProxy b, out VectorProxy result) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static VectorProxy Subtract (VectorProxy a, VectorProxy b) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static void Subtract (ref VectorProxy a, ref VectorProxy b, out VectorProxy result) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static float Distance (VectorProxy a, VectorProxy b) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static void Distance (ref VectorProxy a, ref VectorProxy b, out float result) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static float DistanceSquared (VectorProxy a, VectorProxy b) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static void DistanceSquared (ref VectorProxy a, ref VectorProxy b, out float result) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
         public static bool operator == (VectorProxy a, VectorProxy b) {
             throw new InvalidOperationException();
         }
@@ -127,6 +217,11 @@ namespace JSIL.Proxies {
 
         [JSIsPure]
         public static VectorProxy operator + (VectorProxy a, VectorProxy b) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public static VectorProxy operator - (VectorProxy a) {
             throw new InvalidOperationException();
         }
 

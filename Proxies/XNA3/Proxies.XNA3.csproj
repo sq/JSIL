@@ -38,12 +38,12 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Content.cs" />
+    <Compile Include="..\XNACommon\Primitives.cs" />
+    <Compile Include="..\XNACommon\UnsafeNativeMethods.cs" />
+    <Compile Include="..\XNACommon\Content.cs" />
     <Compile Include="Game.cs" />
     <Compile Include="SpriteBatch.cs" />
     <Compile Include="GraphicsDevice.cs" />
-    <Compile Include="Primitives.cs" />
-    <Compile Include="UnsafeNativeMethods.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

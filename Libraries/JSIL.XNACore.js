@@ -232,7 +232,7 @@ $jsilxna.getImageChannels = function (image) {
   return result;
 };
 
-$jsilxna.getImageTopLeftPixel = function (image, color) {
+$jsilxna.getImageTopLeftPixel = function (image) {
   var cached = image.topLeftPixel;
   if (typeof (cached) === "string") 
     return cached;
@@ -240,7 +240,6 @@ $jsilxna.getImageTopLeftPixel = function (image, color) {
   var canvas = document.createElement("canvas");
   var context = canvas.getContext("2d");
 
-  // Workaround for bug in Firefox's canvas implementation that treats the outside of a canvas as solid white
   canvas.width = 1;
   canvas.height = 1;
 
@@ -255,20 +254,14 @@ $jsilxna.getImageTopLeftPixel = function (image, color) {
     imageData = context.getImageData(0, 0, 1, 1);
   }
 
-  var result = "rgba(0, 0, 0, 0)";
+  var result = "0,0,0,0";
   try {
     var r = imageData.data[0];
     var g = imageData.data[1];
     var b = imageData.data[2];
     var a = imageData.data[3] / 255;
 
-    if ((typeof (color) === "object") && (color !== null)) {
-      r = (r * (color.rUnpremultiplied || color.r)) / 255;
-      g = (g * (color.gUnpremultiplied || color.g)) / 255;
-      b = (b * (color.bUnpremultiplied || color.b)) / 255;
-    }
-
-    image.topLeftPixel = result = "rgba(" + r + ", " + g + ", " + b + ", " + a + ")";
+    image.topLeftPixel = result = r + "," + g + "," + b + "," + a;
   } catch (exc) {}
 
   return result;
@@ -3809,9 +3802,6 @@ $jsilxna.Color = function ($) {
     target.r = this.r;
     target.g = this.g;
     target.b = this.b;
-    target.rUnpremultiplied = this.rUnpremultiplied;
-    target.gUnpremultiplied = this.gUnpremultiplied;
-    target.bUnpremultiplied = this.bUnpremultiplied;
   });
 
   $.Method({
@@ -4017,9 +4007,6 @@ $jsilxna.Color = function ($) {
     Public: true
   }, "op_Multiply", new JSIL.MethodSignature($.Type, [$.Type, $.Single], []), function (color, multiplier) {
     var result = Object.create(Object.getPrototypeOf(color));
-    result.rUnpremultiplied = color.r;
-    result.gUnpremultiplied = color.g;
-    result.bUnpremultiplied = color.b;
     result.a = $jsilxna.ClampByte(color.a * multiplier);
     result.r = $jsilxna.ClampByte(color.r * multiplier);
     result.g = $jsilxna.ClampByte(color.g * multiplier);
@@ -4515,9 +4502,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       var isSinglePixel = ((sourceX == 0) && (sourceY == 0) && (sourceW == 1) && (sourceH == 1));
       var channels = null;
 
-      var colorR = (color.rUnpremultiplied || color.r) / 255;
-      var colorG = (color.gUnpremultiplied || color.g) / 255;
-      var colorB = (color.bUnpremultiplied || color.b) / 255;
+      var colorR = (color.r) / 255;
+      var colorG = (color.g) / 255;
+      var colorB = (color.b) / 255;
       var colorA = color.a / 255;
 
       if (colorA <= 0) {
@@ -4608,7 +4595,17 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
             this.device.context.save();
           needRestore = true;
 
-          var imageColor = $jsilxna.getImageTopLeftPixel(originalImage, color);
+          var topLeftPixelText = $jsilxna.getImageTopLeftPixel(originalImage);
+          var topLeftPixel = topLeftPixelText.split(",");
+
+          var unpremultiplyFactor = 1 / colorA;
+
+          var imageColor = "rgba(" + 
+            $jsilxna.ClampByte(parseFloat(topLeftPixel[0] * colorR * unpremultiplyFactor)) + ", " + 
+            $jsilxna.ClampByte(parseFloat(topLeftPixel[1] * colorG * unpremultiplyFactor)) + ", " + 
+            $jsilxna.ClampByte(parseFloat(topLeftPixel[2] * colorB * unpremultiplyFactor)) + ", " + 
+            topLeftPixel[3] + 
+          ")";
 
           this.device.context.globalAlpha = colorA;
           this.device.context.fillStyle = imageColor;

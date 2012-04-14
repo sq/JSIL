@@ -945,8 +945,10 @@ function onLoad () {
     loadButton.addEventListener(
       "click", beginLoading, true
     );
-  }
   
-  if (loadingProgress)
-    loadingProgress.style.display = "none";
+    if (loadingProgress)
+      loadingProgress.style.display = "none";
+  } else {
+    beginLoading();
+  }
 }
