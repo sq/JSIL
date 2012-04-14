@@ -1375,16 +1375,19 @@ namespace JSIL {
 
             var fieldDefaults = new Dictionary<FieldDefinition, JSExpression>();
 
-            if ((cctor != null) && (cctor.HasBody)) {
+            // It's possible for a proxy to replace the cctor, so we need to pull default values
+            //  from the real cctor (if the type has one)
+            var realCctor = typedef.Methods.FirstOrDefault((m) => m.Name == ".cctor");
+            if ((realCctor != null) && (realCctor.HasBody)) {
                 // Do the simplest possible IL disassembly of the static cctor, 
                 //  because all we're looking for is static field assignments.
-                var ctx = new DecompilerContext(cctor.Module) {
-                    CurrentMethod = cctor,
-                    CurrentType = cctor.DeclaringType
+                var ctx = new DecompilerContext(realCctor.Module) {
+                    CurrentMethod = realCctor,
+                    CurrentType = realCctor.DeclaringType
                 };
 
                 var astBuilder = new ILAstBuilder();
-                var block = new ILBlock(astBuilder.Build(cctor, true, ctx));
+                var block = new ILBlock(astBuilder.Build(realCctor, true, ctx));
 
                 // We need to run the optimizer on the method to strip out the
                 //  temporary locals created by field assignments.
@@ -1400,7 +1403,7 @@ namespace JSIL {
                     // We need a translator to map the IL expressions for the default
                     //  values into JSAst expressions.
                     var translator = new ILBlockTranslator(
-                        this, ctx, cctor, cctor, block, astBuilder.Parameters, variables
+                        this, ctx, realCctor, realCctor, block, astBuilder.Parameters, variables
                     );
 
                     foreach (var node in block.Body) {
@@ -1415,7 +1418,7 @@ namespace JSIL {
                         if (targetField == null)
                             continue;
 
-                        if (targetField.DeclaringType != cctor.DeclaringType)
+                        if (targetField.DeclaringType != realCctor.DeclaringType)
                             continue;
 
                         var expectedType = ile.Arguments[0].ExpectedType;
@@ -1449,8 +1452,8 @@ namespace JSIL {
 
                         var typeReferences = defaultValue.AllChildrenRecursive.OfType<JSType>();
                         foreach (var typeReference in typeReferences) {
-                            if (ILBlockTranslator.TypesAreEqual(typeReference.Type, cctor.DeclaringType))
-                                defaultValue.ReplaceChildRecursive(typeReference, new JSStringIdentifier("$", cctor.DeclaringType));
+                            if (ILBlockTranslator.TypesAreEqual(typeReference.Type, realCctor.DeclaringType))
+                                defaultValue.ReplaceChildRecursive(typeReference, new JSStringIdentifier("$", realCctor.DeclaringType));
                         }
 
                         var es = new JSExpressionStatement(defaultValue);
