@@ -33,7 +33,8 @@ namespace JSIL.Compiler {
 
                 result.Path = Path.GetDirectoryName(Path.GetFullPath(filename));
 
-                result.OutputDirectory = MapConfigPath(result.OutputDirectory, result.Path);
+                if (result.OutputDirectory != null)
+                    result.OutputDirectory = MapConfigPath(result.OutputDirectory, result.Path);
 
                 var newProxies = (from p in result.Assemblies.Proxies
                                  let newP = MapConfigPath(p, result.Path)
@@ -402,6 +403,9 @@ namespace JSIL.Compiler {
 
                     var translator = CreateTranslator(localConfig, manifest);
                     var outputs = buildGroup.Profile.Translate(translator, filename, localConfig.UseLocalProxies.GetValueOrDefault(true));
+                    if (localConfig.OutputDirectory == null)
+                        throw new Exception("No output directory was specified!");
+
                     var outputDir = MapAssemblyPath(localConfig.OutputDirectory, assemblyPath, false);
 
                     Console.Error.WriteLine("// Saving output to '{0}'.", ShortenPath(outputDir) + "\\");
