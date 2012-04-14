@@ -1,0 +1,82 @@
+<!DOCTYPE html> 
+<html>
+  <head>
+    <title>Bytown Lumberjack</title>
+
+    <link rel="stylesheet" href="../Common/browser.css">
+    <link rel="stylesheet" href="lumberjack.css">
+
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  </head>
+  <body onload="onLoad()">
+    <!-- <script src="../Libraries/printStackTrace.js" type="text/javascript"></script> -->
+    
+    <script src="../Libraries/webgl-2d.js" type="text/javascript"></script>
+    
+    <script src="../Libraries/JSIL.Core.js" type="text/javascript"></script>
+    <script src="../Libraries/JSIL.Bootstrap.js" type="text/javascript"></script>
+    <script src="Lumberjack.exe.manifest.js" type="text/javascript"></script>
+    <script src="LumberjackContent.contentproj.manifest.js" type="text/javascript"></script>
+    
+    <!-- workaround for chromium bug -->
+    <div id="scripts"></div>
+    <div id="images"></div>
+    <div id="sounds"></div>
+    <div id="fonts"></div>
+    
+    <canvas id="canvas" width="1280" height="720">
+    </canvas><br>
+    <div id="stats"></div>
+    <div id="welcomeMessage">
+      <p align="center"><a href="http://jsil.org/"><img src="http://jsil.org/images/jsil_48px.png" alt="JSIL logo" border="0"></a></p>
+    </div>
+    <div id="loadingProgress">
+      <div id="progressBar"></div>
+      <span id="progressText"></span>
+    </div>
+    <div id="log"><center><span style="font-size: 18pt; text-align: center; display: inline-block">Arrow keys to move. Z for light attack, X for heavy attack. Escape to cancel.<br>For best performance, play in <a href="https://www.google.com/chrome">Google Chrome</a> on a PC with WebGL support.</span></center><br></div>
+
+    <script type="text/javascript">
+      var scriptRoot = "";
+      var libraryRoot = "../Libraries/";
+      var fileRoot = "Content/";
+      var contentRoot = "Content/";
+      
+      var assetsToLoad = [
+        ["Library", "JSIL.XNACore.js"],
+        ["Library", "JSIL.XNA4.js"],
+        ["Library", "JSIL.IO.js"],
+        ["Library", "JSIL.XML.js"],
+        
+        // Used to read the levels
+        ["Script", "Lumberjack.XmlSerializers, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null.js", { "sizeBytes": 446028 }]
+      ];
+
+      function runMain () {
+        try {
+          document.getElementById("welcomeMessage").setAttribute("style", "display: none");
+        } catch (ex) {
+        }
+
+        // We can't invoke Main() since it disposes the Game immediately, breaking everything.
+        var asm = JSIL.GetAssembly("Lumberjack, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null");
+        asm.Lumberjack.Globals.DEBUG = false;
+        var game = new asm.Lumberjack.Lumberjack();
+        game.Run();
+      };
+    </script>
+    <script src="../Libraries/JSIL.Browser.js" type="text/javascript"></script>
+    <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-6375004-2']);
+    _gaq.push(['_setDomainName', '.luminance.org']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+    </script>
+  </body>
+</html>
