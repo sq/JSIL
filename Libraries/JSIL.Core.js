@@ -46,7 +46,8 @@ JSIL.SetValueProperty = function (target, key, value, enumerable) {
   var descriptor = {
     configurable: true,
     enumerable: !(enumerable === false),
-    value: value
+    value: value,
+    writable: false
   };
 
   Object.defineProperty(target, key, descriptor);
@@ -173,14 +174,12 @@ JSIL.Name = function (name, context) {
   this.humanReadable = String(context) + "::" + String(name);
   this.key = JSIL.EscapeName(String(context)) + "$" + JSIL.EscapeName(String(name));
 };
-JSIL.Name.prototype.del = function (target) {
-  delete target[this.key];
-};
 JSIL.Name.prototype.get = function (target) {
   return target[this.key];
 };
 JSIL.Name.prototype.set = function (target, value) {
-  return target[this.key] = value;
+  target[this.key] = value;
+  return value;
 };
 JSIL.Name.prototype.defineProperty = function (target, decl) {
   Object.defineProperty(
@@ -233,14 +232,9 @@ JSIL.ResolvedName.prototype.exists = function () {
 JSIL.ResolvedName.prototype.get = function () {
   return this.parent[this.key];
 };
-JSIL.ResolvedName.prototype.del = function () {
-  try {
-    delete this.parent[this.key];
-  } catch (e) {
-  }
-};
 JSIL.ResolvedName.prototype.set = function (value) {
   JSIL.SetValueProperty(this.parent, this.key, value);
+  return value;
 };
 JSIL.ResolvedName.prototype.define = function (declaration) {
   Object.defineProperty(this.parent, this.key, declaration);
@@ -865,7 +859,7 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
       } catch (exc) {
         JSIL.Host.error(exc);
       } finally {
-        delete state.creator;
+        state.creator = null;
         state.constructing = false;
       }
     } else {
@@ -884,7 +878,7 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
       } catch (exc) {
         JSIL.Host.error(exc);
       } finally {
-        delete state.initializer;
+        state.initializer = null;
         state.constructing = false;
       }
     }
@@ -899,13 +893,10 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
       JSIL.InitializeType(result);
 
       JSIL.Host.runLater(function () {
-        privateName.del();
         privateName.set(result);
 
-        if (isPublic) {
-          publicName.del();
+        if (isPublic)
           publicName.set(result);
-        }
       });
     }
 
@@ -953,18 +944,18 @@ JSIL.MakeNumericType = function (baseType, typeName, isIntegral) {
 };
 
 JSIL.MakeIndirectProperty = function (target, key, source) {
+  var state = [];
+
   var getter = function () {
-    return source[key];
+    if (state.length === 0)
+      return source[key];
+    else
+      return state[0];
   };
 
   var setter = function (value) {
-    // Remove the indirect property
-    try {
-      delete target[key];
-    } catch (e) {
-    }
-    // Set on result instead of self so that the value is unique to this specialized type instance
-    target[key] = value;
+    state[0] = value;
+    return value;
   };
 
   Object.defineProperty(target, key, {
@@ -1287,7 +1278,7 @@ $jsilcore.$Of$NoInitialize = function () {
   }
 
   var ignoredNames = [
-    "__Type__", "__ThisType__", "__TypeInitialized__", "__IsClosed__", "prototype", 
+    "__Type__", "__TypeId__", "__ThisType__", "__TypeInitialized__", "__IsClosed__", "prototype", 
     "Of", "toString", "__FullName__", "__OfCache__", "Of$NoInitialize",
     "GetType", "__ReflectionCache__", "__Members__"
   ];
@@ -1439,6 +1430,8 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
   var members = typeObject.__Members__ = Array.prototype.slice.call(members);
   var resolveContext = publicInterface.prototype;
 
+  typeObject.__RenamedMethods__ = Object.create(typeObject.__RenamedMethods__ || {});
+
   _loop:
   for (var i = 0, l = members.length; i < l; i++) {
     var member = members[i];
@@ -1472,14 +1465,12 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
 
       var methodReference = target[oldName];
 
-      try {
-        delete target[oldName];
-      } catch (e) {
-      }
+      typeObject.__RenamedMethods__[oldName] = newName;
 
-      target[newName] = methodReference;
+      JSIL.SetValueProperty(target, oldName, null);
+      JSIL.SetValueProperty(target, newName, methodReference);
 
-      // print(oldName + " -> " + newName);
+      // console.log(oldName + " -> " + newName);
     }
   }
 };
@@ -1824,7 +1815,7 @@ JSIL.$ResolveGenericTypeReferences = function (context, types) {
   }
 };
 
-JSIL.$MakeMethodGroup = function (target, typeName, methodName, methodEscapedName, overloadSignatures) {
+JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, methodEscapedName, overloadSignatures) {
   var groups = {};
   var methodFullName = typeName + "::" + methodName;
 
@@ -1833,6 +1824,10 @@ JSIL.$MakeMethodGroup = function (target, typeName, methodName, methodEscapedNam
   var makeSingleMethodGroup = function (group) {
     var singleMethod = group[0];
     var key = singleMethod.GetKey(methodEscapedName);
+
+    if (typeof (renamedMethods[key]) === "string")
+      key = renamedMethods[key];
+
     var method = target[key];
 
     if (typeof (method) !== "function")
@@ -2084,6 +2079,7 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
   );
 
   var methods = staticMethods.concat(instanceMethods).concat(constructors);
+  var renamedMethods = typeObject.__RenamedMethods__ || {};
 
   var trace = false;
   var active = true;
@@ -2143,7 +2139,7 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
 
     if (active) {
       var methodGroup = JSIL.$MakeMethodGroup(
-        target, typeObject.__FullName__, methodName, methodEscapedName, entries
+        target, typeObject.__FullName__, renamedMethods, methodName, methodEscapedName, entries
       );
 
       /*
@@ -2287,11 +2283,6 @@ JSIL.ApplyExternals = function (publicInterface, typeObject, fullName) {
 
     if (member !== null)
       typeObject.__Members__.push(member);
-
-    try {
-      delete target[key];
-    } catch (e) {
-    }
 
     JSIL.SetValueProperty(target, key, value);
   }

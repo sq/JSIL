@@ -172,6 +172,26 @@ namespace JSIL.Tests {
             TypeInfo = typeInfo;
         }
 
+        public static string GetTestRunnerLink (string testFile) {
+            var rootPath = Path.GetFullPath(Path.Combine(
+                Path.GetDirectoryName(CoreJSPath),
+                @"..\"
+            ));
+
+            var uri = new Uri(
+                Path.Combine(rootPath, "test_runner.html"), UriKind.Absolute
+            );
+
+            return String.Format(
+                "{0}#{1}", uri,
+                Path.GetFullPath(testFile)
+                    .Replace(".cs", ".js")
+                    .Replace(".vb", ".vb.js")
+                    .Replace(rootPath, "")
+                    .Replace("\\", "/")
+            );
+        }
+
         public void Dispose () {
             foreach (string filename in TemporaryFiles)
                 try {
@@ -280,7 +300,7 @@ namespace JSIL.Tests {
             var psi = new ProcessStartInfo(
                 JSShellPath, 
                 String.Format(
-                    "-j -m -n -f \"{0}\" -f \"{1}\" -f \"{2}\" -f \"{3}\"", 
+                    "--methodjit --typeinfer --always-mjit -f \"{0}\" -f \"{1}\" -f \"{2}\" -f \"{3}\"", 
                     CoreJSPath, BootstrapJSPath, XMLJSPath, tempFilename
                 )
             ) {
@@ -385,6 +405,9 @@ namespace JSIL.Tests {
                 );
             } catch {
                 Console.WriteLine("failed");
+
+                Console.WriteLine("// {0}", GetTestRunnerLink(OutputPath));
+
                 if (outputs[0] != null) {
                     Console.WriteLine("// C# output begins //");
                     Console.WriteLine(outputs[0]);

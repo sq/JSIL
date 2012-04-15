@@ -22,27 +22,11 @@ namespace JSIL.Tests {
             var testPath = Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "XMLTestCases"));
             var xmlTests = Directory.GetFiles(testPath, "*.cs").Concat(Directory.GetFiles(testPath, "*.vb")).ToArray();
 
-            var rootPath = Path.GetFullPath(Path.Combine(
-                Path.GetDirectoryName(ComparisonTest.CoreJSPath),
-                @"..\"
-            ));
-
             try {
                 RunComparisonTests(
                     xmlTests, null, typeInfo,
                     (testFile) => {
-                        var uri = new Uri(
-                            Path.Combine(rootPath, "test_runner.html"), UriKind.Absolute
-                        );
-
-                        Console.WriteLine(
-                            "{0}#{1}", uri,
-                            Path.GetFullPath(testFile)
-                                .Replace(".cs", ".js")
-                                .Replace(".vb", ".vb.js")
-                                .Replace(rootPath, "")
-                                .Replace("\\", "/")
-                        );
+                        Console.WriteLine(ComparisonTest.GetTestRunnerLink(testFile));
 
                         return false;
                     },
