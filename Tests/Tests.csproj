@@ -84,6 +84,7 @@
     <None Include="SimpleTestCases\ReturnNestedCasts.cs" />
     <None Include="SimpleTestCases\IntegerDivideTruncation.cs" />
     <None Include="TestCases\EnumComplexArithmetic.cs" />
+    <None Include="TestCases\NestedGenericInheritance.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

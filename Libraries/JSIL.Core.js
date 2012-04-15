@@ -555,7 +555,7 @@ JSIL.ImplementExternals = function (namespaceName, externals) {
     return;
   }
 
-  var trace = true;
+  var trace = false;
 
   var context = $private;
 
@@ -1249,6 +1249,8 @@ $jsilcore.$Of$NoInitialize = function () {
   resultTypeObject.__OpenType__ = typeObject;
   result.__Type__ = resultTypeObject;
 
+  resultTypeObject.__RenamedMethods__ = JSIL.CloneObject(typeObject.__RenamedMethods__ || {});
+
   // Prevents recursion when Of is called indirectly during initialization of the new closed type
   ofCache[cacheKey] = result;
 
@@ -1419,6 +1421,20 @@ JSIL.StaticClassPrototype.toString = function () {
   return JSIL.GetTypeName(JSIL.GetType(this));
 };
 
+JSIL.$ResolveGenericMethodSignature = function (typeObject, signature, resolveContext) {
+  var returnType = [signature.returnType];
+  var argumentTypes = Array.prototype.slice.call(signature.argumentTypes);
+  var genericArgumentNames = signature.genericArgumentNames;
+
+  var changed = JSIL.$ResolveGenericTypeReferences(resolveContext, returnType);
+  changed = JSIL.$ResolveGenericTypeReferences(resolveContext, argumentTypes) || changed;
+
+  if (changed)
+    return new JSIL.MethodSignature(returnType[0], argumentTypes, genericArgumentNames, typeObject.__Context__);
+
+  return null;
+};
+
 // Any methods with generic parameters as their return type or argument type(s) must be renamed
 //  after the generic type is closed; otherwise overload resolution will fail to locate them because
 //  the method signature won't match.
@@ -1430,7 +1446,8 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
   var members = typeObject.__Members__ = Array.prototype.slice.call(members);
   var resolveContext = publicInterface.prototype;
 
-  typeObject.__RenamedMethods__ = Object.create(typeObject.__RenamedMethods__ || {});
+  var rm = typeObject.__RenamedMethods__;
+  var trace = false;
 
   _loop:
   for (var i = 0, l = members.length; i < l; i++) {
@@ -1448,19 +1465,17 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
     var data = member[2];
     var signature = data.signature;
 
+    var oldName = data.mangledName;
     var target = descriptor.Static ? publicInterface : publicInterface.prototype;
 
-    var returnType = [signature.returnType];
-    var argumentTypes = Array.prototype.slice.call(signature.argumentTypes);
-    var genericArgumentNames = signature.genericArgumentNames;
+    // If the method is already renamed, don't bother trying to rename it again.
+    // Renaming it again would clobber the rename target with null.
+    if (typeof (rm[oldName]) !== "undefined")
+      continue;
 
-    JSIL.$ResolveGenericTypeReferences(resolveContext, returnType);
-    JSIL.$ResolveGenericTypeReferences(resolveContext, argumentTypes);
+    var resolvedSignature = JSIL.$ResolveGenericMethodSignature(typeObject, signature, resolveContext);
 
-    var resolvedSignature = new JSIL.MethodSignature(returnType[0], argumentTypes, genericArgumentNames, typeObject.__Context__);
-
-    if (resolvedSignature.Hash != signature.Hash) {
-      var oldName = data.mangledName;
+    if ((resolvedSignature !== null) && (resolvedSignature.Hash != signature.Hash)) {
       var newName = resolvedSignature.GetKey(descriptor.EscapedName);
 
       var methodReference = target[oldName];
@@ -1470,7 +1485,8 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
       JSIL.SetValueProperty(target, oldName, null);
       JSIL.SetValueProperty(target, newName, methodReference);
 
-      // console.log(oldName + " -> " + newName);
+      if (trace)
+        console.log(typeObject.__FullName__ + ": " + oldName + " -> " + newName);
     }
   }
 };
@@ -1805,14 +1821,19 @@ JSIL.$BuildStructFieldList = function (typeObject) {
 };
 
 JSIL.$ResolveGenericTypeReferences = function (context, types) {
+  var result = false;
+
   for (var i = 0; i < types.length; i++) {
     var resolved = JSIL.ResolveGenericTypeReference(types[i], context);
     
     if ((resolved !== types[i]) && (resolved !== null)) {
       // console.log("ga[" + i + "] " + types[i] + " -> " + resolved);
       types[i] = resolved;
+      result = true;
     }
   }
+
+  return result;
 };
 
 JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, methodEscapedName, overloadSignatures) {
@@ -1830,10 +1851,12 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
 
     var method = target[key];
 
-    if (typeof (method) !== "function")
+    if (typeof (method) !== "function") {
+      JSIL.Host.warning("Method not defined: " + methodFullName);
       return function () {
         throw new Error("Method not defined: " + methodFullName);
       };
+    }
 
     return method;
   };
@@ -1984,7 +2007,7 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
   return makeDispatcher(methodFullName, groups, 0);
 };
 
-JSIL.$ApplyMemberHiding = function (memberList) {
+JSIL.$ApplyMemberHiding = function (typeObject, memberList, resolveContext) {
   // This is called during type system initialization, so we can't rely on any of MemberInfo's
   //  properties or methods - we need to access the data members directly.
 
@@ -2020,7 +2043,7 @@ JSIL.$ApplyMemberHiding = function (memberList) {
 
   var originalCount = memberList.length;
 
-  var currentSignature = null;
+  var currentSignatureHash = null;
   var currentGroupStart;
 
   var trace = false;
@@ -2028,11 +2051,16 @@ JSIL.$ApplyMemberHiding = function (memberList) {
   // Sweep through the member list and replace any hidden members with null.
   for (var i = 0, l = memberList.length; i < l; i++) {
     var member = memberList[i];
-    var memberSignature = member._data.signature.Hash;
 
-    if ((currentSignature === null) || (currentSignature != memberSignature)) {
+    // We need to resolve generic parameters in the signature so that the hashes match up.
+    var memberSignature = member._data.signature;
+    memberSignature = JSIL.$ResolveGenericMethodSignature(typeObject, memberSignature, resolveContext) || memberSignature;
+
+    var memberSignatureHash = memberSignature.Hash;
+
+    if ((currentSignatureHash === null) || (currentSignatureHash != memberSignatureHash)) {
       // New group
-      currentSignature = memberSignature;
+      currentSignatureHash = memberSignatureHash;
       currentGroupStart = i;
     } else {
       var hidingMember = memberList[currentGroupStart];
@@ -2084,6 +2112,9 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
   var trace = false;
   var active = true;
 
+  var printedTypeName = false;
+  var resolveContext = publicInterface.prototype;
+
   // Group up all the methods by name in preparation for building the method groups
   var methodsByName = {};
   for (var i = 0, l = methods.length; i < l; i++) {
@@ -2101,11 +2132,8 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
   for (var key in methodsByName) {
     var methodList = methodsByName[key];
 
-    JSIL.$ApplyMemberHiding(methodList);
+    JSIL.$ApplyMemberHiding(typeObject, methodList, resolveContext);
   }
-
-  var printedTypeName = false;
-  var resolveContext = publicInterface.prototype;
 
   for (var key in methodsByName) {
     var methodList = methodsByName[key];
@@ -2387,6 +2415,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   typeObject.__Initializers__ = [];
   typeObject.__Interfaces__ = [];
   typeObject.__Members__ = [];
+  typeObject.__RenamedMethods__ = {};
   typeObject.__RawMethods__ = [];
   typeObject.__TypeInitialized__ = false;
   typeObject.__GenericArguments__ = genericArguments || [];
@@ -2488,6 +2517,12 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__ShortName__ = localName;
     typeObject.__LockCount__ = 0;
     typeObject.__Members__ = [];
+
+    if (typeof(typeObject.__BaseType__.__RenamedMethods__) === "object")
+      typeObject.__RenamedMethods__ = JSIL.CloneObject(typeObject.__BaseType__.__RenamedMethods__);
+    else
+      typeObject.__RenamedMethods__ = {};
+
     typeObject.__RawMethods__ = [];
     typeObject.__GenericArguments__ = genericArguments || [];
     var valueTypeName = "System.ValueType";
@@ -2644,6 +2679,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
     typeObject.__CallStack__ = callStack;
     publicInterface.__TypeId__ = typeObject.__TypeId__ = JSIL.AssignTypeId(assembly, fullName);
     typeObject.__Members__ = members;
+    typeObject.__RenamedMethods__ = {};
     typeObject.__ShortName__ = localName;
     typeObject.__Context__ = $private;
     typeObject.__FullName__ = fullName;
@@ -4353,7 +4389,7 @@ JSIL.ImplementExternals(
         type, flags, "MethodInfo", false, name
       );
 
-      JSIL.$ApplyMemberHiding(methods);
+      JSIL.$ApplyMemberHiding(type, methods, type.__PublicInterface__.prototype);
 
       if (methods.length > 1) {
         throw new System.Exception("Multiple methods named '" + name + "' were found.");

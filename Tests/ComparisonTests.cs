@@ -92,6 +92,7 @@ namespace JSIL.Tests {
         public void Generics () {
             RunComparisonTests(
                 new[] { 
+                    @"TestCases\NestedGenericInheritance.cs",
                     @"TestCases\DelegateResultWithConstraints.cs",
                     @"TestCases\GenericStaticProperties.cs",
                     @"TestCases\GenericInnerClasses.cs",
