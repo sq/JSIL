@@ -245,7 +245,7 @@ namespace JSIL.Internal {
             }
 
             public int IndexOf (T item) {
-                throw new NotImplementedException();
+                throw new NotImplementedException("ListSkipAdapter.IndexOf not implemented");
             }
 
             public void Insert (int index, T item) {
@@ -270,11 +270,11 @@ namespace JSIL.Internal {
             }
 
             public void Clear () {
-                throw new NotImplementedException();
+                throw new NotImplementedException("ListSkipAdapter.Clear not implemented");
             }
 
             public bool Contains (T item) {
-                throw new NotImplementedException();
+                throw new NotImplementedException("ListSkipAdapter.Contains not implemented");
             }
 
             public void CopyTo (T[] array, int arrayIndex) {
@@ -291,7 +291,7 @@ namespace JSIL.Internal {
             }
 
             public bool Remove (T item) {
-                throw new NotImplementedException();
+                throw new NotImplementedException("ListSkipAdapter.Remove not implemented");
             }
 
             public IEnumerator<T> GetEnumerator () {

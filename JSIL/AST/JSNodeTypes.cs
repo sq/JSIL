@@ -84,7 +84,7 @@ namespace JSIL.Ast {
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
-                throw new ArgumentNullException();
+                throw new ArgumentNullException("oldChild");
 
             throw new NotImplementedException(
                 String.Format("Statements of type '{0}' do not support child replacement", GetType().Name)
@@ -146,7 +146,8 @@ namespace JSIL.Ast {
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
-                throw new ArgumentNullException();
+                throw new ArgumentNullException("oldChild");
+
             var stmt = newChild as JSStatement;
             if (stmt == null)
                 return;
@@ -238,7 +239,8 @@ namespace JSIL.Ast {
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
-                throw new ArgumentNullException();
+                throw new ArgumentNullException("oldChild");
+
             var stmt = newChild as JSStatement;
             if (stmt == null)
                 return;
@@ -289,7 +291,7 @@ namespace JSIL.Ast {
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
-                throw new ArgumentNullException();
+                throw new ArgumentNullException("oldChild");
 
             var boe = newChild as JSBinaryOperatorExpression;
 
@@ -331,7 +333,7 @@ namespace JSIL.Ast {
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
-                throw new ArgumentNullException();
+                throw new ArgumentNullException("oldChild");
 
             if (oldChild == _Expression)
                 _Expression = (JSExpression)newChild;
@@ -584,7 +586,7 @@ namespace JSIL.Ast {
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
-                throw new ArgumentNullException();
+                throw new ArgumentNullException("oldChild");
 
             if (_Condition == oldChild)
                 _Condition = (JSExpression)newChild;
@@ -629,7 +631,7 @@ namespace JSIL.Ast {
 
         public static JSIfStatement New (params KeyValuePair<JSExpression, JSStatement>[] conditions) {
             if ((conditions == null) || (conditions.Length == 0))
-                throw new ArgumentException("conditions");
+                throw new ArgumentNullException("conditions");
 
             JSIfStatement result = new JSIfStatement(
                 conditions[0].Key, conditions[0].Value
@@ -680,7 +682,7 @@ namespace JSIL.Ast {
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
-                throw new ArgumentNullException();
+                throw new ArgumentNullException("oldChild");
 
             if (_Condition == oldChild)
                 _Condition = (JSExpression)newChild;
@@ -725,7 +727,7 @@ namespace JSIL.Ast {
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
-                throw new ArgumentNullException();
+                throw new ArgumentNullException("oldChild");
 
             if (_Condition == oldChild)
                 _Condition = (JSExpression)newChild;
@@ -767,7 +769,7 @@ namespace JSIL.Ast {
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
-                throw new ArgumentNullException();
+                throw new ArgumentNullException("oldChild");
 
             if (_Condition == oldChild)
                 _Condition = (JSExpression)newChild;
@@ -831,7 +833,7 @@ namespace JSIL.Ast {
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
-                throw new ArgumentNullException();
+                throw new ArgumentNullException("oldChild");
 
             if (_Initializer == oldChild)
                 _Initializer = (JSStatement)newChild;
@@ -883,7 +885,7 @@ namespace JSIL.Ast {
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
-                throw new ArgumentNullException();
+                throw new ArgumentNullException("oldChild");
 
             if (CatchVariable == oldChild)
                 CatchVariable = (JSVariable)newChild;
@@ -968,7 +970,8 @@ namespace JSIL.Ast {
 
         public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
             if (oldChild == null)
-                throw new ArgumentNullException();
+                throw new ArgumentNullException("oldChild");
+
             if (newChild == this)
                 throw new InvalidOperationException("Infinite recursion");
 
@@ -1042,7 +1045,7 @@ namespace JSIL.Ast {
             : base (referent) {
 
             if (referent is JSResultReferenceExpression)
-                throw new InvalidOperationException();
+                throw new InvalidOperationException("Cannot take a reference to a result-reference");
         }
 
         /// <summary>
@@ -1232,7 +1235,7 @@ namespace JSIL.Ast {
 
         internal JSResultReferenceExpression Dereference () {
             if (Depth <= 1)
-                throw new InvalidOperationException();
+                throw new InvalidOperationException("Dereferencing a non-reference");
             else
                 return new JSResultReferenceExpression(Referent, Depth - 1);
         }
@@ -1649,7 +1652,10 @@ namespace JSIL.Ast {
                     case "System.Int64":
                         return typeSystem.Int64;
                     default:
-                        throw new NotImplementedException();
+                        throw new NotImplementedException(String.Format(
+                            "Unsupported integer literal type: {0}",
+                            OriginalType.FullName
+                        ));
                 }
             } else
                 return typeSystem.Int64;
@@ -1701,7 +1707,10 @@ namespace JSIL.Ast {
                     case "System.Decimal":
                         return new TypeReference(typeSystem.Double.Namespace, "Decimal", typeSystem.Double.Module, typeSystem.Double.Scope, true);
                     default:
-                        throw new NotImplementedException();
+                        throw new NotImplementedException(String.Format(
+                            "Unsupported number literal type: {0}",
+                            OriginalType.FullName
+                        ));
                 }
             } else
                 return typeSystem.Double;
@@ -1968,8 +1977,10 @@ namespace JSIL.Ast {
         public readonly FieldInfo Field;
 
         public JSField (FieldReference reference, FieldInfo field) {
-            if ((reference == null) || (field == null))
-                throw new ArgumentNullException();
+            if (reference == null)
+                throw new ArgumentNullException("reference");
+            if (field == null)
+                throw new ArgumentNullException("field");
 
             Reference = reference;
             Field = field;
@@ -1995,8 +2006,10 @@ namespace JSIL.Ast {
         public readonly PropertyInfo Property;
 
         public JSProperty (MemberReference reference, PropertyInfo property) {
-            if ((reference == null) || (property == null))
-                throw new ArgumentNullException();
+            if (reference == null)
+                throw new ArgumentNullException("reference");
+            if (property == null)
+                throw new ArgumentNullException("property");
 
             Reference = reference;
             Property = property;
@@ -2037,8 +2050,10 @@ namespace JSIL.Ast {
             MethodReference reference, MethodInfo method, MethodTypeFactory methodTypes,
             IEnumerable<TypeReference> genericArguments = null          
         ) {
-            if ((reference == null) || (method == null))
-                throw new ArgumentNullException();
+            if (reference == null)
+                throw new ArgumentNullException("reference");
+            if (method == null)
+                throw new ArgumentNullException("method");
 
             Reference = reference;
             Method = method;
@@ -2173,7 +2188,7 @@ namespace JSIL.Ast {
         }
 
         public virtual JSParameter GetParameter () {
-            throw new InvalidOperationException();
+            throw new InvalidOperationException("Variable is not a parameter");
         }
 
         public virtual bool IsThis {
@@ -2198,7 +2213,7 @@ namespace JSIL.Ast {
             if (IsReference)
                 return new JSVariableDereference(this, Function);
             else
-                throw new InvalidOperationException();
+                throw new InvalidOperationException("Dereferencing a non-reference");
         }
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
@@ -2846,7 +2861,7 @@ namespace JSIL.Ast {
             // Any invocation expression targeting a method or delegate will have an expected type that is a delegate.
             // This should be handled by replacing the JSInvocationExpression with a JSDelegateInvocationExpression
             if (ILBlockTranslator.IsDelegateType(targetType))
-                throw new NotImplementedException();                
+                throw new NotImplementedException("Invocation with a target type that is a delegate");                
 
             return targetType;
         }
@@ -3102,7 +3117,7 @@ namespace JSIL.Ast {
 
         public override bool IsConstant {
             get {
-                throw new NotImplementedException();
+                throw new NotImplementedException("IsConstant was not implemented");
             }
         }
 

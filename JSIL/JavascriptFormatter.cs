@@ -340,7 +340,7 @@ namespace JSIL.Internal {
                 case MetadataScopeType.AssemblyNameReference:
                     return ((AssemblyNameReference)scope).FullName;
                 case MetadataScopeType.ModuleReference:
-                    throw new NotImplementedException();
+                    throw new NotImplementedException("Module references not implemented");
                 case MetadataScopeType.ModuleDefinition:
                     var assembly = ((ModuleDefinition)scope).Assembly;
                     if (assembly != null)
@@ -388,7 +388,10 @@ namespace JSIL.Internal {
                             }
 
                             if (resolved == null)
-                                throw new NotImplementedException("Could not find generic parameter in type");
+                                throw new NotImplementedException(String.Format(
+                                    "Could not find generic parameter '{0}' in type {1}",
+                                    gp, context.SignatureMethodType
+                                ));
                         }
 
                         if (resolved != null) {
@@ -421,7 +424,10 @@ namespace JSIL.Internal {
                         return;
                     }
 
-                    throw new NotImplementedException("Unimplemented form of generic type parameter.");
+                    throw new NotImplementedException(String.Format(
+                        "Unimplemented form of generic type parameter: '{0}'.",
+                        gp
+                    ));
 
                 } else if (ownerMethod != null) {
                     Func<MethodReference, int> getPosition = (mr) => {
@@ -429,7 +435,10 @@ namespace JSIL.Internal {
                             if (mr.GenericParameters[i].Name == gp.Name)
                                 return i;
 
-                        throw new NotImplementedException("Generic parameter not found in method parameter list");
+                        throw new NotImplementedException(String.Format(
+                            "Generic parameter '{0}' not found in method '{1}' parameter list",
+                            gp, ownerMethod
+                        ));
                     };
 
                     var ownerMethodIdentifier = new QualifiedMemberIdentifier(
@@ -451,7 +460,10 @@ namespace JSIL.Internal {
                     }
 
                     if (ownerMethodIdentifier.Equals(ownerMethod, context.EnclosingMethod, TypeInfo)) {
-                        throw new NotImplementedException("Unimplemented form of generic method parameter.");
+                        throw new NotImplementedException(String.Format(
+                            "Unimplemented form of generic method parameter: '{0}'.",
+                            gp
+                        ));
                     }
 
                     Value(String.Format("!!{0}", getPosition(ownerMethod)));
@@ -462,7 +474,10 @@ namespace JSIL.Internal {
                 throw new NotImplementedException("Cannot resolve generic parameter without a TypeReferenceContext.");
             }
 
-            throw new NotImplementedException("Unimplemented form of generic parameter.");
+            throw new NotImplementedException(String.Format(
+                "Unimplemented form of generic parameter: '{0}'.",
+                gp
+            ));
         }
 
         protected void TypeReferenceInternal (ByReferenceType byref, TypeReferenceContext context) {

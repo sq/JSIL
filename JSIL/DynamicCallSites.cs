@@ -85,8 +85,12 @@ namespace JSIL {
                 ReturnType = null;
             } else if (targetTypeName.StartsWith("System.Func`")) {
                 ReturnType = git.GenericArguments[git.GenericArguments.Count - 1];
-            } else
-                throw new NotImplementedException("This type of call site target is not implemented");
+            } else {
+                throw new NotImplementedException(String.Format(
+                    "This type of call site target is not implemented: {0}",
+                    targetTypeName
+                ));
+            }
 
             if ((BinderFlags & CSharpBinderFlags.ResultDiscarded) == CSharpBinderFlags.ResultDiscarded)
                 ReturnType = null;
@@ -121,7 +125,10 @@ namespace JSIL {
             if (type != null)
                 return type.Type;
 
-            throw new NotImplementedException("Unrecognized type expression");
+            throw new NotImplementedException(String.Format(
+                "Unrecognized type expression: {0}",
+                expression
+            ));
         }
 
         public abstract JSExpression Translate (ILBlockTranslator translator, JSExpression[] arguments);

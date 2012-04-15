@@ -283,13 +283,19 @@ namespace JSIL {
             if (type.BaseType != null) {
                 baseType = GetExisting(type.BaseType);
                 if (baseType == null)
-                    throw new InvalidOperationException("Missing type info for base type");
+                    throw new InvalidOperationException(String.Format(
+                        "Missing type info for base type '{0}' of type '{1}'",
+                        type.BaseType, type
+                    ));
             }
 
             if (type.DeclaringType != null) {
                 declaringType = GetExisting(type.DeclaringType);
                 if (declaringType == null)
-                    throw new InvalidOperationException("Missing type info for declaring type");
+                    throw new InvalidOperationException(String.Format(
+                        "Missing type info for declaring type '{0}' of type '{1}'",
+                        type.DeclaringType, type
+                    ));
             }
 
             var result = new TypeInfo(this, moduleInfo, type, declaringType, baseType, identifier);

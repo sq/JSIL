@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -140,21 +141,44 @@ namespace JSIL {
             }
 
 
-            if (result.Any((je) => je == null))
-                throw new InvalidOperationException();
+            if (result.Any((je) => je == null)) {
+                var errorString = new StringBuilder();
+                errorString.AppendLine("The following expressions failed to translate:");
+
+                for (var i = 0; i < values.Count; i++) {
+                    if (result[i] == null)
+                        errorString.AppendLine(values[i].ToString());
+                }
+
+                throw new InvalidDataException(errorString.ToString());
+            }
 
             return result.ToArray();
         }
 
         public JSExpression[] Translate (IEnumerable<ILExpression> values) {
-            var result = (
-                from value in values select TranslateNode(value)
-            ).ToArray();
+            var result = new List<JSExpression>();
+            StringBuilder errorString = null;
 
-            if (result.Any((je) => je == null))
-                throw new InvalidOperationException();
+            foreach (var value in values) {
+                var translated = TranslateNode(value);
 
-            return result;
+                if (translated == null) {
+                    if (errorString == null) {
+                        errorString = new StringBuilder();
+                        errorString.AppendLine("The following expressions failed to translate:");
+                    }
+
+                    errorString.AppendLine(value.ToString());
+                } else {
+                    result.Add(translated);
+                }
+            }
+
+            if (errorString != null)
+                throw new InvalidDataException(errorString.ToString());
+
+            return result.ToArray();
         }
 
         public static JSVariable[] Translate (IEnumerable<ParameterDefinition> parameters, MethodReference function) {
@@ -170,10 +194,17 @@ namespace JSIL {
         protected JSVariable DeclareVariable (JSVariable variable) {
             JSVariable existing;
             if (Variables.TryGetValue(variable.Identifier, out existing)) {
-                if (!TypesAreEqual(variable.Type, existing.Type))
-                    throw new InvalidOperationException("A variable with that name is already declared in this scope, with a different type.");
-                if (!variable.DefaultValue.Equals(existing.DefaultValue))
-                    throw new InvalidOperationException("A variable with that name is already declared in this scope, with a different default value.");
+                if (!TypesAreEqual(variable.Type, existing.Type)) {
+                    throw new InvalidOperationException(String.Format(
+                        "A variable with the name '{0}' is already declared in this scope, with a different type.",
+                        variable.Identifier
+                    ));
+                } else if (!variable.DefaultValue.Equals(existing.DefaultValue)) {
+                    throw new InvalidOperationException(String.Format(
+                        "A variable with the name '{0}' is already declared in this scope, with a different default value.",
+                        variable.Identifier
+                    ));
+                }
 
                 return existing;
             }
@@ -375,8 +406,12 @@ namespace JSIL {
                         actualThis, new JSProperty(method.Reference, propertyInfo)
                     );
                 } else {
-                    if (arguments.Length == 0)
-                        throw new InvalidOperationException("Attempting to invoke a property setter with no arguments");
+                    if (arguments.Length == 0) {
+                        throw new InvalidOperationException(String.Format(
+                            "The property setter '{0}' was invoked without arguments",
+                            method
+                        ));
+                    }
 
                     return new JSBinaryOperatorExpression(
                         JSOperator.Assignment,
@@ -925,6 +960,9 @@ namespace JSIL {
 
                 Console.Error.WriteLine("Error occurred while translating node {0}", expression);
                 throw;
+            } catch (Exception exc) {
+                Console.Error.WriteLine("Error occurred while translating node {0}", expression);
+                throw;
             }
 
             if (
@@ -1457,7 +1495,7 @@ namespace JSIL {
             } else if (node.Arguments.Count == 0) {
                 return new JSReturnExpression();
             } else {
-                throw new NotImplementedException();
+                throw new NotImplementedException("Invalid return expression");
             }
         }
 
@@ -1638,7 +1676,10 @@ namespace JSIL {
             JSExpression referent;
 
             if (reference == null)
-                throw new InvalidOperationException();
+                throw new InvalidDataException(String.Format(
+                    "Failed to translate the target of a ldobj expression: {0}",
+                    node.Arguments[0]
+                ));
 
             if (!JSReferenceExpression.TryDereference(JSIL, reference, out referent))
                 Console.Error.WriteLine(String.Format("Warning: unsupported reference type for ldobj: {0}", node.Arguments[0]));
@@ -1783,7 +1824,10 @@ namespace JSIL {
                             return new JSIntegerLiteral(value, typeof(long));
                     }
 
-                    throw new NotImplementedException();
+                    throw new NotImplementedException(String.Format(
+                        "This form of enum constant loading is not implemented: {0}",
+                        node
+                    ));
                 }
             } else if (typeName == "System.Boolean") {
                 return JSLiteral.New(value != 0);
@@ -1797,7 +1841,10 @@ namespace JSIL {
                         return new JSIntegerLiteral(value, typeof(long));
                 }
 
-                throw new NotImplementedException();
+                throw new InvalidDataException(String.Format(
+                    "This form of constant loading is not implemented: {0}",
+                    node
+                ));
             }
         }
 
@@ -2418,7 +2465,10 @@ namespace JSIL {
                         if (arguments[0].IsNull)
                             thisExpression = arguments[0];
                         else
-                            throw new InvalidOperationException("this-expression for method invocation on value type must be a reference");
+                            throw new InvalidOperationException(String.Format(
+                                "The method '{0}' was invoked on a value type, but the this-reference was not a reference: {1}",
+                                method, node.Arguments[0]
+                            ));
                     }
                 } else {
                     thisExpression = arguments[0];
@@ -2483,7 +2533,10 @@ namespace JSIL {
                     if (translated.IsNull)
                         thisExpression = translated;
                     else
-                        throw new InvalidOperationException("this-expression for method invocation on value type must be a reference");
+                        throw new InvalidOperationException(String.Format(
+                            "The method '{0}' was invoked on a value type, but the this-reference was not a reference: {1}",
+                            method, node.Arguments[0]
+                        ));
                 }
             } else {
                 thisExpression = translated;
@@ -2589,8 +2642,11 @@ namespace JSIL {
         }
 
         protected JSUnaryOperatorExpression Translate_PostIncrement (ILExpression node, int arg) {
-            if (Math.Abs(arg) != 1)
-                throw new NotImplementedException("No idea what this means...");
+            if (Math.Abs(arg) != 1) {
+                throw new NotImplementedException(String.Format(
+                    "Unsupported form of post-increment: {0}", node
+                ));
+            }
 
             JSExpression target;
             if (!JSReferenceExpression.TryDereference(

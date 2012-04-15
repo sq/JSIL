@@ -141,7 +141,7 @@ namespace JSIL.Internal {
             if (AssignID(signature))
                 return signature.ID.Value;
             else
-                throw new InvalidOperationException();
+                throw new InvalidOperationException("Signature ID assignment failed");
 
             /*
             return IDs.GetOrCreate(

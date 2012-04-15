@@ -3,7 +3,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using JSIL.Ast;
@@ -237,7 +239,10 @@ namespace JSIL.Internal {
             else if ((evt = mr as EventReference) != null)
                 return new MemberIdentifier(ti, evt);
             else
-                throw new NotImplementedException();
+                throw new NotImplementedException(String.Format(
+                    "Unsupported member reference type: {0}",
+                    mr
+                ));
         }
 
         public MemberIdentifier (ITypeInfoSource ti, MethodReference mr, string newName = null) {
@@ -552,7 +557,10 @@ namespace JSIL.Internal {
                         break;
                     }
                     default:
-                        throw new NotImplementedException();
+                        throw new NotImplementedException(String.Format(
+                            "Invalid argument to JSProxy attribute: {0}",
+                            arg.Type.FullName
+                        ));
                 }
             }
 
@@ -705,12 +713,30 @@ namespace JSIL.Internal {
                 (type.BaseType.FullName == "System.MulticastDelegate")
             );
 
-            var interfaces = new HashSet<Tuple<TypeInfo, TypeReference>>(
-                from i in type.Interfaces select Tuple.Create(source.GetExisting(i), i)
-            );
+            var interfaces = new HashSet<Tuple<TypeInfo, TypeReference>>();
+            {
+                StringBuilder errorString = null;
 
-            if (interfaces.Any((ii) => ii.Item1 == null))
-                throw new InvalidOperationException("Missing type info for one or more interfaces");
+                foreach (var i in type.Interfaces) {
+                    var ii = Tuple.Create(source.GetExisting(i), i);
+                    if (ii.Item1 == null) {
+                        if (errorString == null) {
+                            errorString = new StringBuilder();
+                            errorString.AppendFormat(
+                                "Missing type information for the following interface(s) of type '{0}':{1}",
+                                type.FullName, Environment.NewLine
+                            );
+                        }
+
+                        errorString.AppendLine(i.FullName);
+                    } else {
+                        interfaces.Add(ii);
+                    }
+                }
+
+                if (errorString != null)
+                    throw new InvalidDataException(errorString.ToString());
+            }
 
             foreach (var proxy in Proxies) {
                 Metadata.Update(proxy.Metadata, proxy.AttributePolicy == JSProxyAttributePolicy.ReplaceAll);
@@ -1015,7 +1041,9 @@ namespace JSIL.Internal {
                     lock (Members)
                         Members.Remove(identifier);
                 } else {
-                    throw new ArgumentException();
+                    throw new ArgumentException(String.Format(
+                        "Member '{0}' not found", member.Name
+                    ), "member");
                 }
             }
 

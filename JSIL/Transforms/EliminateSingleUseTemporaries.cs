@@ -191,7 +191,10 @@ namespace JSIL.Transforms {
             var nullList = new List<int>();
             FirstPass = FunctionSource.GetFirstPass(fn.Method.QualifiedIdentifier);
             if (FirstPass == null)
-                throw new InvalidOperationException();
+                throw new InvalidOperationException(String.Format(
+                    "No first pass static analysis data for method '{0}'",
+                    fn.Method.QualifiedIdentifier
+                ));
 
             VisitChildren(fn);
 

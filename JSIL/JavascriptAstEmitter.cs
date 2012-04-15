@@ -565,7 +565,10 @@ namespace JSIL {
                     if (JSExpression.DeReferenceType(variable.Type).IsValueType)
                         return;
                     else
-                        throw new InvalidOperationException("The this-reference should never be a reference to a non-value type");
+                        throw new InvalidOperationException(String.Format(
+                            "The this-reference '{0}' was a reference to a non-value type: {1}",
+                            variable, variable.Type
+                        ));
                 }
 
                 Output.Dot();
@@ -696,7 +699,7 @@ namespace JSIL {
                 if (nestedIf != null) {
                     Output.CloseAndReopenBrace((o) => {
                         if (o != this.Output)
-                            throw new InvalidOperationException();
+                            throw new InvalidOperationException("Output mismatch");
 
                         o.WriteRaw("else if");
                         o.Space();
@@ -733,7 +736,7 @@ namespace JSIL {
             if (tcb.Catch != null) {
                 Output.CloseAndReopenBrace((o) => {
                     if (o != Output)
-                        throw new InvalidOperationException();
+                        throw new InvalidOperationException("Output mismatch");
 
                     o.WriteRaw("catch");
                     o.Space();
@@ -854,7 +857,7 @@ namespace JSIL {
             }
 
             if (BlockStack.Count == 0) {
-                throw new NotImplementedException();
+                throw new NotImplementedException("Break expression found outside of block");
             }
 
             switch (BlockStack.Peek()) {
@@ -862,7 +865,7 @@ namespace JSIL {
                     Output.WriteRaw("break");
                     break;
                 default:
-                    throw new NotImplementedException("Invalid break statement");
+                    throw new NotImplementedException("Break statement found outside of switch statement or loop");
                     break;
             }
         }
@@ -933,7 +936,7 @@ namespace JSIL {
 
             if (needsTruncation) {
                 if (bop.Operator is JSAssignmentOperator)
-                    throw new NotImplementedException();
+                    throw new NotImplementedException("Truncation of assignment operations not implemented");
 
                 Output.Identifier("Math.floor", null);
             }

@@ -48,14 +48,17 @@
     <ProjectReference Include="..\..\..\JSIL\JSIL.csproj">
       <Project>{DA03D241-B70C-44D7-A465-3CEB5A9416AE}</Project>
       <Name>JSIL</Name>
+      <Private>False</Private>
     </ProjectReference>
     <ProjectReference Include="..\..\..\Upstream\xapparse\XapParse.csproj">
       <Project>{10D0D83E-59A8-421C-9C83-3108074B1A9C}</Project>
       <Name>XapParse</Name>
+      <Private>True</Private>
     </ProjectReference>
     <ProjectReference Include="..\..\Compiler.csproj">
       <Project>{C7BF4561-20DD-4E49-8B5A-4E8AF032C47A}</Project>
       <Name>Compiler</Name>
+      <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

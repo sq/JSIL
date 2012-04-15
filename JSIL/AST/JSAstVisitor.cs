@@ -187,7 +187,7 @@ namespace JSIL.Ast {
         /// </summary>
         protected virtual void VisitChildren (JSNode node) {
             if (node == null)
-                throw new ArgumentNullException();
+                throw new ArgumentNullException("node");
 
             var oldPreviousSibling = PreviousSibling;
             var oldNextSibling = NextSibling;

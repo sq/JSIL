@@ -88,7 +88,10 @@ namespace JSIL {
                 } else if (configuration.FrameworkVersion <= 3.5) {
                     proxyAssembly = Assembly.LoadFile(Path.Combine(proxyPath, "JSIL.Proxies.3.5.dll"));
                 } else {
-                    throw new ArgumentOutOfRangeException("FrameworkVersion", "Framework version not supported");
+                    throw new ArgumentOutOfRangeException(
+                        "FrameworkVersion", 
+                        String.Format("Framework version '{0}' not supported", configuration.FrameworkVersion.Value)
+                    );
                 }
 
                 if (proxyAssembly == null)
@@ -178,7 +181,7 @@ namespace JSIL {
 
         protected AssemblyDefinition[] LoadAssembly (string path, bool useSymbols, bool includeDependencies) {
             if (String.IsNullOrWhiteSpace(path))
-                throw new InvalidDataException("Path was empty.");
+                throw new InvalidDataException("Assembly path was empty.");
 
             var readerParameters = GetReaderParameters(useSymbols, path);
 
@@ -305,7 +308,7 @@ namespace JSIL {
                     (_, loopState, ctx) => {
                         MethodToAnalyze m;
                         if (!methodsToAnalyze.TryTake(out m))
-                            throw new InvalidOperationException("Method collection mutated during analysis");
+                            throw new InvalidDataException("Method collection mutated during analysis. Try setting UseThreads=false (and report an issue!)");
 
                         ctx.CurrentModule = m.MD.Module;
                         ctx.CurrentType = m.MD.DeclaringType;
@@ -673,7 +676,10 @@ namespace JSIL {
 
             var typeInformation = _TypeInfoProvider.GetTypeInformation(enm);
             if (typeInformation == null)
-                throw new InvalidOperationException();
+                throw new InvalidDataException(String.Format(
+                    "No type information for enum '{0}'!",
+                    enm.FullName
+                ));
 
             bool isFirst = true;
             foreach (var em in typeInformation.EnumMembers.Values) {
@@ -840,8 +846,12 @@ namespace JSIL {
                     output.LPar();
 
                     if (baseClass == null) {
-                        if (typedef.FullName != "System.Object")
-                            throw new InvalidDataException("Type without base class that isn't System.Object.");
+                        if (typedef.FullName != "System.Object") {
+                            throw new InvalidDataException(String.Format(
+                                "Type '{0}' has no base class and isn't System.Object.",
+                                typedef.FullName
+                            ));
+                        }
 
                         output.Identifier("$jsilcore");
                         output.Dot();
@@ -1074,7 +1084,10 @@ namespace JSIL {
                     methodInfo = _TypeInfoProvider.GetMemberInformation<JSIL.Internal.MethodInfo>(methodDef);
 
                 if (methodInfo == null)
-                    throw new InvalidOperationException("Translating a method with no info");
+                    throw new InvalidDataException(String.Format(
+                        "Method '{0}' has no method information!",
+                        method.FullName
+                    ));
 
                 var identifier = new QualifiedMemberIdentifier(
                     methodInfo.DeclaringType.Identifier, methodInfo.Identifier
@@ -1123,7 +1136,16 @@ namespace JSIL {
                     this, context, method, methodDef, 
                     ilb, decompiler.Parameters, allVariables
                 );
-                var body = translator.Translate();
+
+                JSBlockStatement body = null;
+                try {
+                    body = translator.Translate();
+                } catch (Exception exc) {
+                    if (CouldNotDecompileMethod != null)
+                        CouldNotDecompileMethod(bodyDef.FullName, exc);
+
+                    body = null;
+                }
 
                 if (body == null) {
                     FunctionCache.CreateNull(methodInfo, method, identifier);
