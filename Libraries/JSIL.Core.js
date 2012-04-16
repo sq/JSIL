@@ -120,7 +120,13 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
 
 
 var $jsilcore = JSIL.DeclareAssembly("JSIL.Core");
+
+// Object.freeze and Object.seal make reads *slower* in modern versions of Chrome and older versions of Firefox.
+// WTF? Maybe they won't suck sometime in the distant future.
+$jsilcore.SealInitializedTypes = false;
+
 $jsilcore.SystemObjectInitialized = false;
+$jsilcore.NotInitialized = "not initialized";
 JSIL.$NextTypeId = 0;
 JSIL.$PublicTypes = {};
 JSIL.$PublicTypeAssemblies = {};
@@ -1675,7 +1681,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
 JSIL.GetStructFieldList = function (typeObject) {
   var sf = typeObject.__StructFields__;
 
-  if (sf === null)
+  if (sf === $jsilcore.NotInitialized)
     sf = JSIL.$BuildStructFieldList(typeObject);
 
   if (!JSIL.IsArray(sf))
@@ -1724,7 +1730,7 @@ JSIL.MakeStructFieldInitializer = function (typeObject) {
 
 JSIL.InitializeStructFields = function (instance, typeObject) {
   var sfi = typeObject.__StructFieldInitializer__;
-  if (typeof (sfi) === "undefined")
+  if (sfi === $jsilcore.NotInitialized)
     typeObject.__StructFieldInitializer__ = sfi = JSIL.MakeStructFieldInitializer(typeObject);
   if (sfi === null)
     return;
@@ -1789,10 +1795,11 @@ JSIL.CopyMembers = function (source, target) {
   }
 
   var memberCopier = thisType.__MemberCopier__;
-  if (typeof (memberCopier) !== "function")
+  if (memberCopier === $jsilcore.NotInitialized)
     memberCopier = thisType.__MemberCopier__ = JSIL.MakeMemberCopier(thisType);
 
-  memberCopier(source, target);
+  if (memberCopier !== null)
+    memberCopier(source, target);
 };
 
 JSIL.$BuildStructFieldList = function (typeObject) {
@@ -2198,6 +2205,8 @@ JSIL.InitializeType = function (type) {
     classObject = type.__PublicInterface__;
   else if (typeof (type.__Type__) === "object")
     typeObject = type.__Type__;
+  else
+    return;
 
   if (typeObject.__TypeInitialized__ || false)
     return;
@@ -2251,6 +2260,13 @@ JSIL.InitializeType = function (type) {
     (type.__BaseType__ !== null)
   ) {
     JSIL.InitializeType(type.__BaseType__);
+  }
+
+  if ($jsilcore.SealInitializedTypes) {
+    Object.seal(type);
+
+    if (typeof(type.__PublicInterface__) === "object")
+      Object.seal(type.__PublicInterface__);
   }
 };
 
@@ -2505,7 +2521,9 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
 
     typeObject.__InheritanceDepth__ = (typeObject.__BaseType__.__InheritanceDepth__ || 0) + 1;
     typeObject.__IsArray__ = false;
-    typeObject.__StructFields__ = null;
+    typeObject.__StructFields__ = $jsilcore.NotInitialized;
+    typeObject.__StructFieldInitializer__ = $jsilcore.NotInitialized;
+    typeObject.__MemberCopier__ = $jsilcore.NotInitialized;
     typeObject.__Properties__ = [];
     typeObject.__Initializers__ = [];
     typeObject.__Interfaces__ = Array.prototype.slice.call(baseTypeInterfaces);

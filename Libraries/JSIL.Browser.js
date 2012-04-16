@@ -187,11 +187,32 @@ var keyMappings = {
   var originalWidth = canvas.width;
   var originalHeight = canvas.height;
 
-  var f11 = 122;
+  // Be a good browser citizen!
+  // Disabling commonly used hotkeys makes people rage.
+  var shouldIgnoreEvent = function (evt) {
+    switch (evt.keyCode) {
+      case 116: // F5
+      case 122: // F11
+        return true;
+    }
+
+    if (evt.ctrlKey) {
+      switch (evt.keyCode) {
+        case 67: // C
+        case 78: // N
+        case 84: // T
+        case 86: // V
+        case 88: // X
+          return true;
+      }
+    }
+
+    return false;
+  };
 
   window.addEventListener(
     "keydown", function (evt) {
-      if (evt.keyCode === f11)
+      if (shouldIgnoreEvent(evt))
         return;
 
       evt.preventDefault();
@@ -208,7 +229,7 @@ var keyMappings = {
 
   window.addEventListener(
     "keyup", function (evt) {
-      if (evt.keyCode === f11)
+      if (shouldIgnoreEvent(evt))
         return;
 
       evt.preventDefault();
