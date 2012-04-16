@@ -1,0 +1,58 @@
+<!DOCTYPE html> 
+<html>
+  <head>
+    <title>JSIL Pathtracer Demo</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  </head>
+  <body onload="onLoad()">
+    <script src="../Libraries/JSIL.Core.js" type="text/javascript"></script>
+    <script src="../Libraries/JSIL.Bootstrap.js" type="text/javascript"></script>
+    <script src="SimplePathtracer.exe.manifest.js" type="text/javascript"></script>
+    
+    <a href="https://github.com/kevingadd/JSIL/blob/master/Examples/SimplePathtracer.cs">Source C#</a> | <a href="SimplePathtracer, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null.js">Compiled JS</a>
+    <br><hr>
+    <button id="loadButton">Load pathtracer</button> <button id="runButton" style="display:none">Run pathtracer again</button><br>
+    
+    <!-- workaround for chromium bug -->
+    <div id="scripts"></div>
+    <div id="images"></div>
+    <div id="sounds"></div>
+    <div id="fonts"></div>
+    
+    <canvas id="canvas"></canvas><br>
+    <span id="speed" style="font-family: Consolas, Courier New, Courier"></span><br>
+    <label for="raysPerPixel">Rays/Pixel:</label> <input id="raysPerPixel" value="512" ></value><br>
+    <label for="depth">Depth:</label> <input id="depth" value="4" ></value><br>
+    
+    <div id="log" style="font-family: Consolas, Courier New, monospace"></div>
+    
+    <script type="text/javascript">
+      var scriptRoot = "";
+      var libraryRoot = "../Libraries/";
+      var fileRoot = "";
+      var contentRoot = "Content/";
+      
+      var assetsToLoad = [
+        ["Library", "System.Drawing.js"],
+      ];
+            
+      function runMain () {
+        document.getElementById("runButton").style.display = "none";
+        document.getElementById("log").innerHTML = "";
+        var renderer = JSIL.GetAssembly("SimplePathtracer, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null").simpleray.Renderer;
+        renderer.RAYS_PER_PIXEL = parseInt(document.getElementById("raysPerPixel").value);
+        renderer.DEPTH = parseInt(document.getElementById("depth").value);
+        renderer.Main([]);
+        document.getElementById("runButton").style.display = "";
+      };
+    </script>
+    <script src="../Libraries/JSIL.Browser.js" type="text/javascript"></script>    
+    <script type="text/javascript">
+    document.getElementById("runButton").addEventListener(
+      "click", runMain
+    );
+    
+    JSIL.Initialize();
+    </script>
+  </body>
+</html>

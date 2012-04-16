@@ -212,8 +212,8 @@ namespace simpleray {
         static List<RTObject> objects;                                          // all RTObjects in the scene
         static List<Light> lights;                                              // all lights
         static Random random;                                                   // global random for repeatability
-        static Stopwatch stopwatch;
         
+        static Stopwatch stopwatch;        
         static double minSpeed = double.MaxValue, maxSpeed = double.MinValue;
         static List<double> speedSamples;
 

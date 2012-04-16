@@ -29,6 +29,7 @@ using System.Drawing;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Diagnostics;
 using JSIL.Meta;
 
 namespace simpleray {
@@ -202,8 +203,9 @@ namespace simpleray {
         const int CANVAS_HEIGHT = 240;
         
         const float TINY = 0.0001f;                                             // a very short distance in world space coords
-        const int MAX_DEPTH = 4;                                                // max recursion for reflections
-        const int RAYS_PER_PIXEL = 512;                                         // how many rays to shoot per pixel?
+        const float BRIGHTNESS = 1.5f;
+        static int MAX_DEPTH = 4;                                               // max recursion for reflections
+        static int RAYS_PER_PIXEL = 512;                                        // how many rays to shoot per pixel?
 
         static Vector3f eyePos = new Vector3f(0, 2.0f, -5.0f);                  // eye pos in world space coords
         static Vector3f screenTopLeftPos = new Vector3f(-4.0f, 5.5f, 0);        // top-left corner of screen in world coords - note aspect ratio should match image
@@ -213,11 +215,17 @@ namespace simpleray {
 
         static List<RTObject> objects;                                          // all RTObjects in the scene
         static Random random;                                                   // global random for repeatability
+      
+        static Stopwatch stopwatch;        
+        static double minSpeed = double.MaxValue, maxSpeed = double.MinValue;
+        static List<double> speedSamples;
 
         static void Main(string[] args) {
             // init structures
             objects = new List<RTObject>();
             random = new Random(45734);
+            stopwatch = new Stopwatch();
+            speedSamples = new List<double>();
             Bitmap canvas = new Bitmap(CANVAS_WIDTH, CANVAS_HEIGHT);
             
             // add some objects
@@ -253,31 +261,80 @@ namespace simpleray {
             System.Console.WriteLine("Rendering...\n");
             System.Console.WriteLine("|0%-----------100%|"); 
             
-            RenderRow(canvas, dotPeriod, 0);
-
+            Func<object> next = () =>
+              RenderRowChunk(canvas, dotPeriod, 0, 0);
+              
+            while (next != null) {
+              next = (Func<object>)(next());
+            }
+            
             // save the pretties
             canvas.Save("output.png");
         }
         
-        static void RenderRow (System.Drawing.Bitmap canvas, int dotPeriod, int y) {            
+        static object RenderRowChunk (System.Drawing.Bitmap canvas, int dotPeriod, int x, int y) {            
             if (y >= CANVAS_HEIGHT)
-                return;
+                return null;
             
-            if ((y % dotPeriod) == 0) 
-                System.Console.Write("*");
-          
-            for (int x = 0; x < CANVAS_WIDTH; x++) {
+            if ((x == 0) && ((y % dotPeriod) == 0)) {
+              System.Console.Write("*");
+            }
+            
+            int chunkSize = 32;
+            JSIL.Verbatim.Expression("canvas.flushInterval = chunkSize");
+            
+            stopwatch.Restart();
+            int x1 = x, x2 = Math.Min(x + chunkSize, CANVAS_WIDTH);
+            for (; x < x2; x++) {
                 Color c = RenderPixel(x, y);
                 canvas.SetPixel(x, y, c);
             }
+            var elapsed = stopwatch.ElapsedMilliseconds;
+            double msPerPixel = (double)elapsed / chunkSize;
             
-            SetTimeout(0, () => 
-                RenderRow(canvas, dotPeriod, y + 1)
-            );
+            if (x2 >= CANVAS_WIDTH) {
+              y += 1;
+              x2 = 0;
+            }
+            
+            ReportSpeed(msPerPixel);
+            
+            bool useSetTimeout = false;
+            JSIL.Verbatim.Expression("useSetTimeout = true");
+            
+            Func<object> next = () => 
+                  RenderRowChunk(canvas, dotPeriod, x2, y);
+            
+            if (useSetTimeout) {
+              SetTimeout(0, next);
+              return null;
+            } else
+              return next;
+        }
+        
+        static void ReportSpeed (double msPerPixel) {
+          minSpeed = Math.Min(msPerPixel, minSpeed);
+          maxSpeed = Math.Max(msPerPixel, maxSpeed);
+          speedSamples.Add(msPerPixel);
+          
+          double average = 0;
+          foreach (var d in speedSamples)
+            average += d;
+          average /= speedSamples.Count;
+          
+          WriteSpeedText(String.Format(
+            "min: {0:F3} ms/pixel, max: {1:F3} ms/pixel, avg: {2:F3} ms/pixel",
+            minSpeed, maxSpeed, average
+          ));
+        }
+        
+        [JSReplacement("document.getElementById('speed').innerHTML = $text")]
+        static void WriteSpeedText (string text) {
+          Debug.WriteLine(text);
         }
         
         [JSReplacement("setTimeout($action, $timeoutMs)")]
-        static void SetTimeout (int timeoutMs, Action action) {
+        static void SetTimeout (int timeoutMs, Func<object> action) {
           action();
         }
         
@@ -317,9 +374,21 @@ namespace simpleray {
                 g += c.G;
                 b += c.B;
             }
+            
+            r *= BRIGHTNESS;
+            g *= BRIGHTNESS;
+            b *= BRIGHTNESS;
             r /= RAYS_PER_PIXEL;
             g /= RAYS_PER_PIXEL;
             b /= RAYS_PER_PIXEL;
+            
+            if (r > 255)
+              r = 255;
+            if (g > 255)
+              g = 255;
+            if (b > 255)
+              b = 255;
+            
             return (Color.FromArgb(255, (int)r, (int)g, (int)b));
         }
 

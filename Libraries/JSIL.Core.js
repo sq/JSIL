@@ -1249,8 +1249,7 @@ $jsilcore.$Of$NoInitialize = function () {
   var resultTypeObject = JSIL.CloneObject(typeObject);
 
   resultTypeObject.__PublicInterface__ = result = function () {
-    var ctorArguments = Array.prototype.slice.call(arguments);
-    return Function.prototype.apply.call(staticClassObject, this, ctorArguments);
+    return Function.prototype.apply.call(staticClassObject, this, arguments);
   };
   resultTypeObject.__OpenType__ = typeObject;
   result.__Type__ = resultTypeObject;
