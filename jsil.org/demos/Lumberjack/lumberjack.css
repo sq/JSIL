@@ -5,8 +5,6 @@ html {
 body {
 	background-color: black;
 	color: white;
-	overflow-x: hidden;
-	overflow-y: auto;
 	margin: 0px;
 	padding: 0px;
 }

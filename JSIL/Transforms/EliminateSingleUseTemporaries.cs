@@ -8,7 +8,7 @@ using Mono.Cecil;
 
 namespace JSIL.Transforms {
     public class EliminateSingleUseTemporaries : JSAstVisitor {
-        public static int TraceLevel = 0;
+        public static int TraceLevel = 4;
 
         public readonly TypeSystem TypeSystem;
         public readonly IFunctionSource FunctionSource;
@@ -208,6 +208,7 @@ namespace JSIL.Transforms {
 
                 var assignments = (from a in FirstPass.Assignments where v.Equals(a.Target) select a).ToArray();
                 var accesses = (from a in FirstPass.Accesses where v.Equals(a.Source) select a).ToArray();
+                var invocations = (from i in FirstPass.Invocations where v.Name == i.ThisVariable select i).ToArray();
 
                 if (FirstPass.VariablesPassedByRef.Contains(v.Name)) {
                     if (TraceLevel >= 2)
@@ -227,6 +228,13 @@ namespace JSIL.Transforms {
                         if (TraceLevel >= 2)
                             Debug.WriteLine(String.Format("Never found an initial assignment for {0}.", v));
                     }
+
+                    continue;
+                }
+
+                if (invocations.Length > 0) {
+                    if (TraceLevel >= 2)
+                        Debug.WriteLine(String.Format("Cannot eliminate {0}; methods are invoked on it.", v));
 
                     continue;
                 }
@@ -288,6 +296,14 @@ namespace JSIL.Transforms {
                             transferDataTo, assignment.NewValue, assignment.Operator,
                             assignment.TargetType, assignment.SourceType                            
                        ));
+                    }
+
+                    foreach (var invocation in invocations) {
+                        FirstPass.Invocations.Remove(invocation);
+                        FirstPass.Invocations.Add(new FunctionAnalysis1stPass.Invocation(
+                            invocation.StatementIndex, invocation.NodeIndex,
+                            transferDataTo, invocation.Method, invocation.Variables
+                        ));
                     }
                 }
 

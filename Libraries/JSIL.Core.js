@@ -1942,6 +1942,8 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
     var body = [];
     var methods = [];
 
+    body.push("var argc = args.length;");
+
     var isFirst = true;
     for (var k in g) {
       if (k == "ga")
@@ -1952,9 +1954,9 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
       var line = "";
 
       if (isFirst) {
-        line += "  if (args.length === ";
+        line += "  if (argc === ";
       } else {
-        line += "  } else if (args.length === ";
+        line += "  } else if (argc === ";
       }
 
       line += (parseInt(k) + offset) + ") {";
@@ -1972,7 +1974,7 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
         method = makeAmbiguousGroup(group);
       }
 
-      body.push("    return this[" + methods.length + "].apply(self, args);");
+      body.push("    return methods[" + methods.length + "].apply(self, args);");
       methods.push(method);
 
       isFirst = false;
@@ -1980,14 +1982,14 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
 
     body.push("  }");
     body.push("  ");
-    body.push("  throw new Error('No overload of ' + this.name + ' can accept ' + (args.length - this.offset) + ' argument(s).')");
+    body.push("  throw new Error('No overload of ' + methods.name + ' can accept ' + (argc - methods.offset) + ' argument(s).')");
 
     var subtypeRe = /[\+\/]/g;
     var idRe = /::/g;
     var idUri = id.replace(subtypeRe, ".").replace(idRe, "/");
 
     var dispatcher = new Function(
-      "self", "args",
+      "methods", "self", "args",
       "  //@ sourceURL=jsil://overloadDispatcher/" + idUri + "\r\n" + body.join("\r\n")
     );
 
@@ -1996,7 +1998,7 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
 
     // We can't use .bind() to bind arguments here because it breaks the 'this' parameter and breaks .call()/.apply().
     var boundDispatcher = function () {
-      return dispatcher.call(methods, this, arguments);
+      return dispatcher.call(null, methods, this, arguments);
     };
 
     JSIL.SetValueProperty(boundDispatcher, "toString", 
@@ -3599,7 +3601,9 @@ JSIL.MethodSignature.prototype.Construct = function (type /*, ...parameters */) 
   
   JSIL.InitializeStructFields(result, typeObject);
 
-  if (!typeObject.__IsReferenceType__ && (arguments.length === 1)) {
+  var argc = arguments.length;
+
+  if (!typeObject.__IsReferenceType__ && (argc === 1)) {
   } else {
     var key = this.GetKey("_ctor");
     var ctor = proto[key];
@@ -3613,15 +3617,15 @@ JSIL.MethodSignature.prototype.Construct = function (type /*, ...parameters */) 
       );
     }
 
-    if (arguments.length === 1) {
+    if (argc === 1) {
       ctor.call(result);
-    } else if (arguments.length === 2) {
+    } else if (argc === 2) {
       ctor.call(result, arguments[1]);
-    } else if (arguments.length === 3) {
+    } else if (argc === 3) {
       ctor.call(result, arguments[1], arguments[2]);
-    } else if (arguments.length === 4) {
+    } else if (argc === 4) {
       ctor.call(result, arguments[1], arguments[2], arguments[3]);
-    } else if (arguments.length === 5) {
+    } else if (argc === 5) {
       ctor.call(result, arguments[1], arguments[2], arguments[3], arguments[4]);
     } else {
       ctor.apply(result, Array.prototype.slice.call(arguments, 1));
@@ -3653,15 +3657,17 @@ JSIL.MethodSignature.prototype.Call = function (context, name, ga, thisReference
     return method.apply(thisReference, parameters);
   }
 
-  if (arguments.length === 4) {
+  var argc = arguments.length;
+
+  if (argc === 4) {
     return method.call(thisReference);
-  } else if (arguments.length === 5) {
+  } else if (argc === 5) {
     return method.call(thisReference, arguments[4]);
-  } else if (arguments.length === 6) {
+  } else if (argc === 6) {
     return method.call(thisReference, arguments[4], arguments[5]);
-  } else if (arguments.length === 7) {
+  } else if (argc === 7) {
     return method.call(thisReference, arguments[4], arguments[5], arguments[6]);
-  } else if (arguments.length === 8) {
+  } else if (argc === 8) {
     return method.call(thisReference, arguments[4], arguments[5], arguments[6], arguments[7]);
   } else {
     var parameters = Array.prototype.slice.call(arguments, 4);
@@ -3688,15 +3694,17 @@ JSIL.MethodSignature.prototype.CallStatic = function (context, name, ga /*, ...p
     return method.apply(context, parameters);
   }
 
-  if (arguments.length === 3) {
+  var argc = arguments.length;
+
+  if (argc === 3) {
     return method.call(context);
-  } else if (arguments.length === 4) {
+  } else if (argc === 4) {
     return method.call(context, arguments[3]);
-  } else if (arguments.length === 5) {
+  } else if (argc === 5) {
     return method.call(context, arguments[3], arguments[4]);
-  } else if (arguments.length === 6) {
+  } else if (argc === 6) {
     return method.call(context, arguments[3], arguments[4], arguments[5]);
-  } else if (arguments.length === 7) {
+  } else if (argc === 7) {
     return method.call(context, arguments[3], arguments[4], arguments[5], arguments[6]);
   } else {
     var parameters = Array.prototype.slice.call(arguments, 3);
@@ -3723,15 +3731,17 @@ JSIL.MethodSignature.prototype.CallVirtual = function (name, ga, thisReference /
     return method.apply(thisReference, parameters);
   }
 
-  if (arguments.length === 3) {
+  var argc = arguments.length;
+
+  if (argc === 3) {
     return method.call(thisReference);
-  } else if (arguments.length === 4) {
+  } else if (argc === 4) {
     return method.call(thisReference, arguments[3]);
-  } else if (arguments.length === 5) {
+  } else if (argc === 5) {
     return method.call(thisReference, arguments[3], arguments[4]);
-  } else if (arguments.length === 6) {
+  } else if (argc === 6) {
     return method.call(thisReference, arguments[3], arguments[4], arguments[5]);
-  } else if (arguments.length === 7) {
+  } else if (argc === 7) {
     return method.call(thisReference, arguments[3], arguments[4], arguments[5], arguments[6]);
   } else {
     var parameters = Array.prototype.slice.call(arguments, 3);

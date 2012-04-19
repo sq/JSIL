@@ -190,8 +190,18 @@ var keyMappings = {
   // Be a good browser citizen!
   // Disabling commonly used hotkeys makes people rage.
   var shouldIgnoreEvent = function (evt) {
-    if ((document.activeElement !== null) && (document.activeElement.tagName !== "canvas"))
-      return true;
+    if ((document.activeElement !== null)) {
+      switch (document.activeElement.tagName.toLowerCase()) {
+        case "canvas":
+        case "body":
+        case "document":
+        case "button":
+        case "span":
+          break;
+        default:
+          return true;
+      }
+    }
 
     switch (evt.keyCode) {
       case 116: // F5

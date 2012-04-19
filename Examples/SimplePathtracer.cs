@@ -33,7 +33,7 @@ using System.Diagnostics;
 using JSIL.Meta;
 
 namespace simpleray {
-    public class Vector3f {
+    public struct Vector3f {
         public float x, y, z;
 
         public Vector3f(float x = 0, float y = 0, float z = 0) {
@@ -98,7 +98,7 @@ namespace simpleray {
         }
     }
     
-    public class Ray {
+    public struct Ray {
         public const float WORLD_MAX = 1000.0f;
 
         public Vector3f origin;
@@ -109,10 +109,11 @@ namespace simpleray {
         public Vector3f hitPoint;
 
         public Ray(Vector3f o, Vector3f d) {
-            origin = o;
-            direction = d;
-            closestHitDistance = WORLD_MAX;
-            closestHitObject = null;
+          origin = o;
+          direction = d;
+          closestHitDistance = WORLD_MAX;
+          closestHitObject = null;
+          hitPoint = new Vector3f();
         }
     }
     
@@ -121,7 +122,7 @@ namespace simpleray {
         public bool isEmitter;  // If true, this object's an emitter
 
         // return distance at which this object is intersected by a ray, or -1 if no intersection
-        public abstract float Intersect(Ray ray);
+        public abstract float Intersect(ref Ray ray);
 
         // return the surface normal (perpendicular vector to the surface) for a given point on the surface on the object
         public abstract Vector3f GetSurfaceNormalAtPoint(Vector3f p);
@@ -140,7 +141,7 @@ namespace simpleray {
             isEmitter = false;
         }
 
-        public override float Intersect(Ray ray) {
+        public override float Intersect(ref Ray ray) {
             float normalDotRayDir = normal.Dot(ray.direction);
             if (normalDotRayDir == 0)   // Ray is parallel to plane (this early-out won't help very often!)
                 return -1;
@@ -172,7 +173,7 @@ namespace simpleray {
             isEmitter = false;
         }
 
-        public override float Intersect(Ray ray) {
+        public override float Intersect(ref Ray ray) {
             Vector3f lightFromOrigin = position - ray.origin;               // dir from origin to us
             float v = lightFromOrigin.Dot(ray.direction);                   // cos of angle between dirs from origin to us and from origin to where the ray's pointing
 
@@ -339,7 +340,7 @@ namespace simpleray {
         // Given a ray with origin and direction set, fill in the intersection info
         static void CheckIntersection(ref Ray ray) {
             foreach (RTObject obj in objects) {                     // loop through objects, test for intersection
-                float hitDistance = obj.Intersect(ray);             // check for intersection with this object and find distance
+                float hitDistance = obj.Intersect(ref ray);             // check for intersection with this object and find distance
                 if (hitDistance < ray.closestHitDistance && hitDistance > 0) {
                     ray.closestHitObject = obj;                     // object hit and closest yet found - store it
                     ray.closestHitDistance = hitDistance;
