@@ -2171,7 +2171,7 @@ namespace JSIL.Internal {
         }
 
         public void Dispose () {
-            Cache.Clear();
+            Cache.Dispose();
         }
     }
 }

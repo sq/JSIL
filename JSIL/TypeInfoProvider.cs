@@ -36,11 +36,11 @@ namespace JSIL {
         public void Dispose () {
             Assemblies.Clear();
             ProxyAssemblyNames.Clear();
-            TypeInformation.Clear();
-            ModuleInformation.Clear();
+            TypeInformation.Dispose();
+            ModuleInformation.Dispose();
             TypeProxies.Clear();
             DirectProxiesByTypeName.Clear();
-            ProxiesByName.Clear();
+            ProxiesByName.Dispose();
             TypeAssignabilityCache.Clear();
         }
 

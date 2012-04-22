@@ -151,7 +151,7 @@ namespace JSIL.Internal {
         }
     }
 
-    public class MethodSignatureSet {
+    public class MethodSignatureSet : IDisposable {
         private class Count {
             public int Value = 0;
         }
@@ -169,6 +169,10 @@ namespace JSIL.Internal {
             get {
                 return Counts.Keys;
             }
+        }
+
+        public void Dispose () {
+            Counts.Dispose();
         }
 
         public void Add (MethodSignature signature) {
@@ -201,7 +205,7 @@ namespace JSIL.Internal {
         }
     }
 
-    public class MethodSignatureCollection : ConcurrentCache<string, MethodSignatureSet> {
+    public class MethodSignatureCollection : ConcurrentCache<string, MethodSignatureSet>, IDisposable {
         public MethodSignatureCollection ()
             : base() {
         }
@@ -220,6 +224,14 @@ namespace JSIL.Internal {
                 return set.GetCountOf(method.Signature);
 
             return 0;
+        }
+
+        public override void Dispose () {
+            foreach (var kvp in this) {
+                kvp.Value.Dispose();
+            }
+
+            base.Dispose();
         }
     }
 }

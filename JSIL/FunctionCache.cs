@@ -190,7 +190,7 @@ namespace JSIL {
         }
 
         public void Dispose () {
-            Cache.Clear();
+            Cache.Dispose();
             OptimizationQueue.Clear();
             MethodTypes.Dispose();
         }

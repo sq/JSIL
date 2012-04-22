@@ -7,7 +7,7 @@ using JSIL.Internal;
 using Mono.Cecil;
 
 namespace JSIL {
-    public class AssemblyManifest {
+    public class AssemblyManifest : IDisposable {
         public class Token {
             public readonly string Assembly;
 
@@ -33,6 +33,10 @@ namespace JSIL {
         protected readonly Dictionary<string, long> TranslatedAssemblySizes = new Dictionary<string, long>();
         protected readonly ConcurrentCache<string, Token> Tokens = new ConcurrentCache<string, Token>();
         protected bool AssignedIdentifiers = false;
+
+        public void Dispose () {
+            Tokens.Dispose();
+        }
 
         public void AssignIdentifiers () {
             if (AssignedIdentifiers)

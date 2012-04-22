@@ -958,10 +958,10 @@ namespace JSIL {
                 if (tie.InnerException is AbortTranslation)
                     throw tie.InnerException;
 
-                Console.Error.WriteLine("Error occurred while translating node {0}", expression);
+                Console.Error.WriteLine("Error occurred while translating node {0}: {1}", expression, tie.InnerException);
                 throw;
             } catch (Exception exc) {
-                Console.Error.WriteLine("Error occurred while translating node {0}", expression);
+                Console.Error.WriteLine("Error occurred while translating node {0}: {1}", expression, exc);
                 throw;
             }
 

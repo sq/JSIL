@@ -370,20 +370,59 @@ namespace JSIL.Internal {
         }
     }
 
-    public class ConcurrentCache<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>> {
+    public class ConcurrentCache<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>, IDisposable {
         protected class ConstructionState : IDisposable {
-            public readonly ManualResetEventSlim Signal = new ManualResetEventSlim(false);
+            private bool IsDisposed;
+            private int WaiterCount = 0, DisposePending;
+            private readonly ManualResetEventSlim Signal = new ManualResetEventSlim(false);
+
             public readonly Thread ConstructingThread = Thread.CurrentThread;
 
-            public void Wait () {
+            public bool Wait () {
                 if (ConstructingThread == Thread.CurrentThread)
                     throw new InvalidOperationException("Recursive construction of cache entry");
 
-                Signal.Wait();
+                if (IsDisposed)
+                    return false;
+
+                try {
+                    Interlocked.Increment(ref WaiterCount);
+                    Signal.Wait();
+                    return true;
+                } catch (ObjectDisposedException) {
+                    return false;
+                } finally {
+                    var newCount = Interlocked.Decrement(ref WaiterCount);
+
+                    if (newCount <= 0) {
+
+                        if (Interlocked.CompareExchange(ref DisposePending, 0, 1) == 1) {
+                            IsDisposed = true;
+                            Thread.MemoryBarrier();
+                            Signal.Dispose();
+                        }
+                    }
+                }
+            }
+
+            public void Set () {
+                try {
+                    if (!IsDisposed)
+                        Signal.Set();
+                } catch (ObjectDisposedException) {
+                    // Threading is hard and I'm lazy.
+                }
             }
 
             public void Dispose () {
-                Signal.Dispose();
+                if (Interlocked.Exchange(ref DisposePending, 1) == 0) {
+                    if (WaiterCount <= 0) {
+                        DisposePending = 0;
+                        IsDisposed = true;
+                        Thread.MemoryBarrier();
+                        Signal.Dispose();
+                    }
+                }
             }
         }
 
@@ -409,6 +448,10 @@ namespace JSIL.Internal {
             get {
                 return Storage.Count + States.Count;
             }
+        }
+
+        public virtual void Dispose () {
+            Clear();
         }
 
         public void Clear () {
@@ -437,8 +480,12 @@ namespace JSIL.Internal {
         public bool TryGet (TKey key, out TValue result) {
             ConstructionState state;
 
-            while (States.TryGetValue(key, out state))
-                state.Wait();
+            while (States.TryGetValue(key, out state)) {
+                if (!state.Wait()) {
+                    result = default(TValue);
+                    return false;
+                }
+            }
 
             return Storage.TryGetValue(key, out result);
         }
@@ -463,7 +510,8 @@ namespace JSIL.Internal {
                     return true;
                 } finally {
                     States.TryRemove(key, out state);
-                    state.Signal.Set();
+                    state.Set();
+                    state.Dispose();
                 }
             } else {
                 state.Dispose();
@@ -476,12 +524,17 @@ namespace JSIL.Internal {
             while (true) {
                 ConstructionState state;
 
-                while (States.TryGetValue(key, out state))
-                    state.Wait();
+                bool waitFailed = false;
+
+                while (States.TryGetValue(key, out state)) {
+                    waitFailed = !state.Wait();
+                }
 
                 TValue result;
                 if (Storage.TryGetValue(key, out result))
                     return result;
+                else if (waitFailed)
+                    throw new ObjectDisposedException("Cache", "The cache was cleared or disposed.");
 
                 TryCreate(key, creator);
             }
@@ -490,8 +543,10 @@ namespace JSIL.Internal {
         public bool TryRemove (TKey key) {
             ConstructionState state;
 
-            while (States.TryGetValue(key, out state))
-                state.Wait();
+            while (States.TryGetValue(key, out state)) {
+                if (!state.Wait())
+                    return false;
+            }
 
             TValue temp;
             return Storage.TryRemove(key, out temp);
