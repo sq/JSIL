@@ -66,8 +66,12 @@
   <ItemGroup>
     <Compile Include="AssemblyManifest.cs" />
     <Compile Include="AST\JSAstVisitor.cs" />
+    <Compile Include="AST\JSExpressionTypes.cs" />
+    <Compile Include="AST\JSIdentifierTypes.cs" />
+    <Compile Include="AST\JSLiteralTypes.cs" />
     <Compile Include="AST\JSOperators.cs" />
     <Compile Include="AST\JSNodeTypes.cs" />
+    <Compile Include="AST\JSStatementTypes.cs" />
     <Compile Include="CILSupport.cs" />
     <Compile Include="Configuration.cs" />
     <Compile Include="FunctionCache.cs" />
