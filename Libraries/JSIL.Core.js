@@ -2174,24 +2174,42 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
       continue;
     }
 
+    // We defer construction of the actual method group dispatcher(s) until the first
+    //  time the method is used. This reduces the up-front cost of BuildMethodGroups
+    //  and reduces the amount of memory used for methods that are never invoked via
+    //  dynamic dispatch.
+    var makeMethodGroupGetter = function (
+      target, fullName, renamedMethods, methodName, methodEscapedName, entries
+    ) {
+      var state = [null];
+
+      return function () {
+        if (state[0] === null) {
+          state[0] = JSIL.$MakeMethodGroup(
+            target, fullName, renamedMethods, methodName, methodEscapedName, entries
+          );
+
+          if (trace)
+            console.log(fullName + "." + methodEscapedName + " =", state[0]);
+
+        }
+
+        return state[0];
+      };
+    };
+
     if (active) {
-      var methodGroup = JSIL.$MakeMethodGroup(
+      var getter = makeMethodGroupGetter(
         target, typeObject.__FullName__, renamedMethods, methodName, methodEscapedName, entries
       );
 
-      /*
-      if (isStatic) {
-        var _toString = methodGroup.toString;
-        methodGroup = methodGroup.bind(target);
-        methodGroup.toString = _toString;
-      }
-      */
+      var decl = {
+        configurable: true,
+        enumerable: true,
+        get: getter
+      };
 
-      if (trace) {
-        console.log(typeObject.__FullName__ + "." + methodEscapedName + " =", methodGroup);
-      }
-
-      JSIL.SetValueProperty(target, methodEscapedName, methodGroup);
+      Object.defineProperty(target, methodEscapedName, decl);
     }
   }
 };
