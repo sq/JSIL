@@ -538,7 +538,7 @@ namespace JSIL.Tests {
         [Test]
         public void NoUnnecessaryCasts () {
             var testNames = new string[] {
-                @"FailingTestCases\Arrays.cs",
+                @"FailingTestCases\ArrayToString.cs",
                 @"SimpleTestCases\CollectionInitializers.cs",
                 @"TestCases\DictionaryInitializer.cs",
             };
