@@ -16,7 +16,7 @@ namespace JSIL.Tests {
                     ComparisonTest.TestSourceFolder,
                     @"SpecialTestCases\EnumeratesAssemblyDependencies.cs"
                 )
-            }, "EnumeratesAssemblyDependencies");
+            }, "DependencyTests\\EnumeratesAssemblyDependencies");
 
             var translator = new AssemblyTranslator(
                 new Translator.Configuration {

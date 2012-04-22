@@ -20,18 +20,19 @@ namespace JSIL.Tests {
             List<string> passedTests = new List<string>();
 
             foreach (var filename in simpleTests) {
-                Console.Write("// {0} ... ", Path.GetFileName(filename));
+                Console.WriteLine("// {0} ... ", Path.GetFileName(filename));
 
                 try {
                     using (var test = new ComparisonTest(filename)) {
                         test.JavascriptExecutionTimeout = 5.0f;
                         test.Run();
+                        Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
                     }
 
                     passedTests.Add(Path.GetFileName(filename));
                 } catch (JavaScriptException jse) {
                     Console.WriteLine(jse.ToString());
-                } catch (Exception ex) {
+                } catch (AssertionException ex) {
                     Console.WriteLine(ex.ToString());
                 }
             }
