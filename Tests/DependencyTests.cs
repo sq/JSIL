@@ -11,14 +11,12 @@ namespace JSIL.Tests {
     public class DependencyTests {
         [Test]
         public void EnumeratesAssemblyDependencies () {
-            TempFileCollection temporaryFiles;
-
             var assembly = CompilerUtil.CompileCS(new[] { 
                 Path.Combine(
                     ComparisonTest.TestSourceFolder,
                     @"SpecialTestCases\EnumeratesAssemblyDependencies.cs"
                 )
-            }, "EnumeratesAssemblyDependencies", out temporaryFiles);
+            }, "EnumeratesAssemblyDependencies");
 
             var translator = new AssemblyTranslator(
                 new Translator.Configuration {

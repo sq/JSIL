@@ -16,6 +16,7 @@ using Microsoft.VisualBasic;
 using NUnit.Framework;
 using System.Globalization;
 using Microsoft.Win32;
+using System.Web.Script.Serialization;
 using MethodInfo = System.Reflection.MethodInfo;
 
 namespace JSIL.Tests {
@@ -51,25 +52,87 @@ namespace JSIL.Tests {
                 }
         }
 
-        public static Assembly CompileCS (IEnumerable<string> filenames, string assemblyName, out TempFileCollection temporaryFiles) {
+        public static Assembly CompileCS (
+            IEnumerable<string> filenames, string assemblyName
+        ) {
             using (var csc = new CSharpCodeProvider(new Dictionary<string, string>() { 
                 { "CompilerVersion", "v4.0" } 
             })) {
-                return Compile(csc, filenames, assemblyName, out temporaryFiles);
+                return Compile(
+                    csc, filenames, assemblyName
+                );
             }
         }
 
-        public static Assembly CompileVB (IEnumerable<string> filenames, string assemblyName, out TempFileCollection temporaryFiles) {
+        public static Assembly CompileVB (
+            IEnumerable<string> filenames, string assemblyName
+        ) {
             using (var vbc = new VBCodeProvider(new Dictionary<string, string>() { 
                 { "CompilerVersion", "v4.0" } 
             })) {
-                return Compile(vbc, filenames, assemblyName, out temporaryFiles);
+                return Compile(
+                    vbc, filenames, assemblyName
+                );
             }
         }
 
-        private static Assembly Compile (CodeDomProvider provider, IEnumerable<string> filenames, string assemblyName, out TempFileCollection temporaryFiles) {
+        private static bool CheckCompileManifest (IEnumerable<string> inputs, string outputDirectory) {
+            var manifestPath = Path.Combine(outputDirectory, "compileManifest.json");
+            if (!File.Exists(manifestPath))
+                return false;
+
+            var jss = new JavaScriptSerializer();
+            var manifest = jss.Deserialize<Dictionary<string, string>>(File.ReadAllText(manifestPath));
+
+            foreach (var input in inputs) {
+                var fi = new FileInfo(input);
+                var key = Path.GetFileName(input);
+
+                if (!manifest.ContainsKey(key))
+                    return false;
+
+                var previousTimestamp = DateTime.Parse(manifest[key]);
+
+                var delta = fi.LastWriteTime - previousTimestamp;
+                if (Math.Abs(delta.TotalSeconds) >= 1) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static void WriteCompileManifest (IEnumerable<string> inputs, string outputDirectory) {
+            var manifest = new Dictionary<string, string>();
+
+            foreach (var input in inputs) {
+                var fi = new FileInfo(input);
+                var key = Path.GetFileName(input);
+                manifest[key] = fi.LastWriteTime.ToString("O");
+            }
+
+            var manifestPath = Path.Combine(outputDirectory, "compileManifest.json");
+            var jss = new JavaScriptSerializer();
+            File.WriteAllText(manifestPath, jss.Serialize(manifest));
+        }
+
+        private static Assembly Compile (
+            CodeDomProvider provider, IEnumerable<string> filenames, string assemblyName
+        ) {
             var tempPath = Path.Combine(TempPath, assemblyName);
             Directory.CreateDirectory(tempPath);
+
+            var outputAssembly = Path.Combine(
+                tempPath,
+                Path.GetFileNameWithoutExtension(assemblyName) + ".dll"
+            );
+
+            if (
+                File.Exists(outputAssembly) &&
+                CheckCompileManifest(filenames, tempPath)
+            ) {
+                return Assembly.LoadFile(outputAssembly);
+            }
 
             var files = Directory.GetFiles(tempPath);
             foreach (var file in files) {
@@ -86,14 +149,11 @@ namespace JSIL.Tests {
                 typeof(JSIL.Meta.JSIgnore).Assembly.Location
             }) {
                 CompilerOptions = "/unsafe",
-                GenerateExecutable = true,
+                GenerateExecutable = false,
                 GenerateInMemory = false,
                 IncludeDebugInformation = true,
                 TempFiles = new TempFileCollection(tempPath, true),
-                OutputAssembly = Path.Combine(
-                    tempPath,
-                    Path.GetFileNameWithoutExtension(assemblyName) + ".dll"
-                )
+                OutputAssembly = outputAssembly
             };
 
             var results = provider.CompileAssemblyFromFile(
@@ -107,7 +167,8 @@ namespace JSIL.Tests {
                 );
             }
 
-            temporaryFiles = results.TempFiles;
+            WriteCompileManifest(filenames, tempPath);
+
             return results.CompiledAssembly;
         }
     }
@@ -118,8 +179,6 @@ namespace JSIL.Tests {
         public static readonly Regex ElapsedRegex = new Regex(
             @"// elapsed: (?'elapsed'[0-9]*(\.[0-9]*)?)", RegexOptions.Compiled | RegexOptions.ExplicitCapture
         );
-
-        protected TempFileCollection TemporaryFiles;
 
         public static readonly string TestSourceFolder;
         public static readonly string JSShellPath;
@@ -174,10 +233,10 @@ namespace JSIL.Tests {
 
             switch (extensions[0]) {
                 case ".cs":
-                    Assembly = CompilerUtil.CompileCS(absoluteFilenames, assemblyName, out TemporaryFiles);
+                    Assembly = CompilerUtil.CompileCS(absoluteFilenames, assemblyName);
                     break;
                 case ".vb":
-                    Assembly = CompilerUtil.CompileVB(absoluteFilenames, assemblyName, out TemporaryFiles);
+                    Assembly = CompilerUtil.CompileVB(absoluteFilenames, assemblyName);
                     break;
                 default:
                     throw new ArgumentException("Unsupported source file type for test");
