@@ -1181,6 +1181,25 @@ namespace JSIL {
             return new JSUntranslatableExpression("Sizeof");
         }
 
+        protected bool UnwrapValueOfExpression (ref JSExpression expression) {
+            var valueOf = expression as JSValueOfNullableExpression;
+            if (valueOf != null) {
+                expression = valueOf.Expression;
+                return true;
+            }
+
+            var cast = expression as JSCastExpression;
+            if (cast != null) {
+                var temp = cast.Expression;
+                if (UnwrapValueOfExpression(ref temp)) {
+                    expression = JSCastExpression.New(temp, cast.NewType, TypeSystem);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         // Represents an arithmetic or logic expression on nullable operands.
         // Inside are one or more ValueOf expressions.
         protected JSExpression Translate_NullableOf (ILExpression node) {
@@ -1194,37 +1213,30 @@ namespace JSIL {
             var innerBoe = inner as JSBinaryOperatorExpression;
 
             if (innerBoe == null)
-                return new JSUntranslatableExpression(node.Arguments[0]);
+                return new JSUntranslatableExpression(node);
 
             var left = innerBoe.Left;
             var right = innerBoe.Right;
-            var leftValueOf = left as JSValueOfNullableExpression;
-            var rightValueOf = right as JSValueOfNullableExpression;
-            JSExpression leftConditional = null, rightConditional = null, conditional = null;
+            JSExpression conditional = null;
 
-            if (leftValueOf != null) {
-                left = leftValueOf.Expression;
-                leftConditional = new JSBinaryOperatorExpression(
-                    JSOperator.Equal, left, new JSNullLiteral(nullableType), TypeSystem.Boolean
+            Func<JSExpression, JSBinaryOperatorExpression> makeNullCheck =
+                (expr) => new JSBinaryOperatorExpression(
+                    JSOperator.Equal, expr, new JSNullLiteral(nullableType), TypeSystem.Boolean
                 );
-            }
 
-            if (rightValueOf != null) {
-                right = rightValueOf.Expression;
-                rightConditional = new JSBinaryOperatorExpression(
-                    JSOperator.Equal, right, new JSNullLiteral(nullableType), TypeSystem.Boolean
-                );
-            }
+            var unwrappedLeft = UnwrapValueOfExpression(ref left);
+            var unwrappedRight = UnwrapValueOfExpression(ref right);
 
-            if ((leftConditional ?? rightConditional) == null)
-                return new JSUntranslatableExpression(node.Arguments[0]);
-
-            if ((leftConditional != null) && (rightConditional != null))
+            if (unwrappedLeft && unwrappedRight)
                 conditional = new JSBinaryOperatorExpression(
-                    JSOperator.LogicalOr, leftConditional, rightConditional, TypeSystem.Boolean
+                    JSOperator.LogicalOr, makeNullCheck(left), makeNullCheck(right), TypeSystem.Boolean
                 );
+            else if (unwrappedLeft)
+                conditional = makeNullCheck(left);
+            else if (unwrappedRight)
+                conditional = makeNullCheck(right);
             else
-                conditional = leftConditional ?? rightConditional;
+                return new JSUntranslatableExpression(node);
 
             var arithmeticExpression = new JSBinaryOperatorExpression(
                 innerBoe.Operator, left, right, nullableType
@@ -1240,7 +1252,24 @@ namespace JSIL {
         protected JSExpression Translate_Wrap (ILExpression node) {
             var inner = TranslateNode(node.Arguments[0]);
 
-            return inner;
+            var innerBoe = inner as JSBinaryOperatorExpression;
+
+            if ((innerBoe != null) && (innerBoe.Operator is JSComparisonOperator)) {
+                var left = innerBoe.Left;
+                var right = innerBoe.Right;
+
+                var unwrappedLeft = UnwrapValueOfExpression(ref left);
+                var unwrappedRight = UnwrapValueOfExpression(ref right);
+
+                if (!(unwrappedLeft || unwrappedRight))
+                    return new JSUntranslatableExpression(node);
+
+                return new JSBinaryOperatorExpression(
+                    innerBoe.Operator, left, right, TypeSystem.Boolean
+                );
+            } else {
+                return inner;
+            }
         }
 
         // Represents a nullable operand in an arithmetic/logic expression that is wrapped by a NullableOf expression.

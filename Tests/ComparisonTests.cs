@@ -364,7 +364,9 @@ namespace JSIL.Tests {
             RunComparisonTests(
                 new[] { 
                     @"TestCases\Nullables.cs",
-                    @"TestCases\NullableArithmetic.cs"
+                    @"TestCases\NullableArithmetic.cs",
+                    @"TestCases\NullableComparison.cs",
+                    @"TestCases\NullableComparisonWithCast.cs"
                 }
             );
         }

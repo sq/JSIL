@@ -196,15 +196,21 @@ JSIL.Name.prototype.toString = function () {
   return this.humanReadable;
 };
 
+JSIL.SplitRegex = /[\.]/g;
+JSIL.UnderscoreRegex = /[\.\/\+]/g;
+JSIL.AngleGroupRegex = /\<([^<>]*)\>/g;
+
 JSIL.EscapeName = function (name) {
-  var underscoreRe = /[\.\/\+]/g;
   var caretRe = /\`/g;
   var ltRe = /\</g;
   var gtRe = /\>/g;
-  return name.replace(caretRe, "$$b").replace(underscoreRe, "_").replace(ltRe, "$$l").replace(gtRe, "$$g");
-};
 
-JSIL.SplitRegex = new RegExp("[\.]");
+  name = name.replace(JSIL.AngleGroupRegex, function (match, group1) {
+    return "$l" + group1.replace(JSIL.UnderscoreRegex, "_") + "$g";
+  });
+
+  return name.replace(caretRe, "$$b").replace(JSIL.UnderscoreRegex, "_").replace(ltRe, "$$l").replace(gtRe, "$$g");
+};
 
 JSIL.GetParentName = function (name) {
   var parts = JSIL.SplitName(name);
@@ -220,7 +226,11 @@ JSIL.SplitName = function (name) {
   if (typeof (name) !== "string")
     JSIL.Host.error(new Error("Not a name: " + name));
 
-  return name.split(JSIL.SplitRegex);
+  var escapedName = name.replace(JSIL.AngleGroupRegex, function (match, group1) {
+    return "$l" + group1.replace(JSIL.UnderscoreRegex, "_") + "$g";
+  });
+
+  return escapedName.split(JSIL.SplitRegex);
 };
 
 JSIL.ResolvedName = function (parent, parentName, key, allowInheritance) {
@@ -2336,6 +2346,17 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
 
 $jsilcore.cctorKeys = ["_cctor", "_cctor2", "_cctor3", "_cctor4", "_cctor5"];
 
+JSIL.InitializeFields = function (type, publicInterface) {
+  var fti = type.__FieldsToInitialize__;
+  if (!JSIL.IsArray(fti))
+    return;
+
+  for (var i = 0; i < fti.length; i++) {
+    var initializer = fti[i];
+    initializer(publicInterface);
+  }
+};
+
 JSIL.InitializeType = function (type) {
   var classObject = type, typeObject = type;
 
@@ -2358,6 +2379,7 @@ JSIL.InitializeType = function (type) {
     JSIL.$BuildMethodGroups(typeObject, classObject);
     JSIL.InstantiateProperties(classObject, typeObject);
     JSIL.FixupInterfaces(classObject, typeObject);
+    JSIL.InitializeFields(typeObject, classObject);
   }
 
   // Run any queued initializers for the type
@@ -2571,6 +2593,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   typeObject.__Initializers__ = [];
   typeObject.__Interfaces__ = [];
   typeObject.__Members__ = [];
+  typeObject.__FieldsToInitialize__ = [];
   typeObject.__RenamedMethods__ = {};
   typeObject.__RawMethods__ = [];
   typeObject.__TypeInitialized__ = false;
@@ -2675,6 +2698,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__ShortName__ = localName;
     typeObject.__LockCount__ = 0;
     typeObject.__Members__ = [];
+    typeObject.__FieldsToInitialize__ = [];
 
     if (typeof(typeObject.__BaseType__.__RenamedMethods__) === "object")
       typeObject.__RenamedMethods__ = JSIL.CloneObject(typeObject.__BaseType__.__RenamedMethods__);
@@ -3558,8 +3582,13 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
   var data = { fieldType: fieldType };
 
   if (typeof (defaultValueExpression) === "function") {
-    data.defaultValue = defaultValueExpression(descriptor.Target);
-    descriptor.Target[descriptor.EscapedName] = data.defaultValue;
+    descriptor.Target[descriptor.EscapedName] = $jsilcore.NotInitialized;
+    data.defaultValueExpression = defaultValueExpression;
+
+    this.typeObject.__FieldsToInitialize__.push(function (publicInterface) {
+      var target = descriptor.Static ? publicInterface : publicInterface.prototype;
+      target[descriptor.EscapedName] = data.defaultValue = defaultValueExpression(target);
+    });
   }
 
   this.PushMember("FieldInfo", descriptor, data);
@@ -5128,6 +5157,10 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
 
         if (method.__ThisType__ === typeObject)
           return method;
+      }
+
+      if (typeof (method) !== "function") {
+        throw new Error("Non-function passed to Delegate.New");
       }
 
       var resultDelegate = method.bind(object);

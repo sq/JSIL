@@ -44,12 +44,15 @@ namespace JSIL.Ast {
         public static readonly JSAssignmentOperator BitwiseOrAssignment = new JSAssignmentOperator("|=");
         public static readonly JSAssignmentOperator BitwiseXorAssignment = new JSAssignmentOperator("^=");
 
-        public static readonly JSBinaryOperator Equal = new JSBinaryOperator("===");
-        public static readonly JSBinaryOperator NotEqual = new JSBinaryOperator("!==");
-        public static readonly JSBinaryOperator LessThan = new JSBinaryOperator("<");
-        public static readonly JSBinaryOperator GreaterThan = new JSBinaryOperator(">");
-        public static readonly JSBinaryOperator LessThanOrEqual = new JSBinaryOperator("<=");
-        public static readonly JSBinaryOperator GreaterThanOrEqual = new JSBinaryOperator(">=");
+        public static readonly JSComparisonOperator Equal = new JSComparisonOperator("===");
+        public static readonly JSComparisonOperator NotEqual = new JSComparisonOperator("!==");
+        public static readonly JSComparisonOperator LessThan = new JSComparisonOperator("<");
+        public static readonly JSComparisonOperator GreaterThan = new JSComparisonOperator(">");
+        public static readonly JSComparisonOperator LessThanOrEqual = new JSComparisonOperator("<=");
+        public static readonly JSComparisonOperator GreaterThanOrEqual = new JSComparisonOperator(">=");
+
+        public static readonly JSComparisonOperator EqualLoose = new JSComparisonOperator("==");
+        public static readonly JSComparisonOperator NotEqualLoose = new JSComparisonOperator("!=");
 
         public static readonly JSBinaryOperator Add = new JSBinaryOperator("+");
         public static readonly JSBinaryOperator Subtract = new JSBinaryOperator("-");
@@ -104,6 +107,12 @@ namespace JSIL.Ast {
 
         public override string ToString () {
             return String.Format("{0}", Token);
+        }
+    }
+
+    public class JSComparisonOperator : JSBinaryOperator {
+        public JSComparisonOperator (string token)
+            : base(token) {
         }
     }
 

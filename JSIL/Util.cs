@@ -372,8 +372,8 @@ namespace JSIL.Internal {
 
     public class ConcurrentCache<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>, IDisposable {
         protected class ConstructionState : IDisposable {
-            private bool IsDisposed;
-            private int WaiterCount = 0, DisposePending;
+            private volatile bool IsDisposed;
+            private int WaiterCount = 0, DisposePending = 0;
             private readonly ManualResetEventSlim Signal = new ManualResetEventSlim(false);
 
             public readonly Thread ConstructingThread = Thread.CurrentThread;
@@ -382,11 +382,11 @@ namespace JSIL.Internal {
                 if (ConstructingThread == Thread.CurrentThread)
                     throw new InvalidOperationException("Recursive construction of cache entry");
 
-                if (IsDisposed)
-                    return false;
-
                 try {
                     Interlocked.Increment(ref WaiterCount);
+                    if (IsDisposed)
+                        return false;
+
                     Signal.Wait();
                     return true;
                 } catch (ObjectDisposedException) {

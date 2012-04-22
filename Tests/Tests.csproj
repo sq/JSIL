@@ -92,6 +92,9 @@
     <None Include="TestCases\EnumCheckType.cs" />
     <None Include="FailingTestCases\FlagsEnumOperators.cs" />
     <None Include="TestCases\NullableArithmetic.cs" />
+    <None Include="TestCases\NullableComparison.cs" />
+    <None Include="TestCases\NullableComparisonWithCast.cs" />
+    <None Include="SimpleTestCases\DelegateFieldInitializer.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
