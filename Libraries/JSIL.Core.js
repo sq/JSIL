@@ -2898,6 +2898,9 @@ JSIL.CheckDerivation = function (haystack, needle) {
     if (proto === needle)
       return true;
 
+    if (typeof (proto) !== "object")
+      return false;
+    
     proto = Object.getPrototypeOf(proto);
   }
 

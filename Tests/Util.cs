@@ -51,23 +51,34 @@ namespace JSIL.Tests {
                 }
         }
 
-        public static Assembly CompileCS (string[] sourceCode, out TempFileCollection temporaryFiles) {
+        public static Assembly CompileCS (IEnumerable<string> filenames, string assemblyName, out TempFileCollection temporaryFiles) {
             using (var csc = new CSharpCodeProvider(new Dictionary<string, string>() { 
                 { "CompilerVersion", "v4.0" } 
             })) {
-                return Compile(csc, sourceCode, out temporaryFiles);
+                return Compile(csc, filenames, assemblyName, out temporaryFiles);
             }
         }
 
-        public static Assembly CompileVB (string[] sourceCode, out TempFileCollection temporaryFiles) {
+        public static Assembly CompileVB (IEnumerable<string> filenames, string assemblyName, out TempFileCollection temporaryFiles) {
             using (var vbc = new VBCodeProvider(new Dictionary<string, string>() { 
                 { "CompilerVersion", "v4.0" } 
             })) {
-                return Compile(vbc, sourceCode, out temporaryFiles);
+                return Compile(vbc, filenames, assemblyName, out temporaryFiles);
             }
         }
 
-        private static Assembly Compile (CodeDomProvider provider, string[] sourceCode, out TempFileCollection temporaryFiles) {            
+        private static Assembly Compile (CodeDomProvider provider, IEnumerable<string> filenames, string assemblyName, out TempFileCollection temporaryFiles) {
+            var tempPath = Path.Combine(TempPath, assemblyName);
+            Directory.CreateDirectory(tempPath);
+
+            var files = Directory.GetFiles(tempPath);
+            foreach (var file in files) {
+                try {
+                    File.Delete(file);
+                } catch {
+                }
+            }
+
             var parameters = new CompilerParameters(new[] {
                 "mscorlib.dll", "System.dll", 
                 "System.Core.dll", "System.Xml.dll", 
@@ -78,10 +89,17 @@ namespace JSIL.Tests {
                 GenerateExecutable = true,
                 GenerateInMemory = false,
                 IncludeDebugInformation = true,
-                TempFiles = new TempFileCollection(TempPath, true)
+                TempFiles = new TempFileCollection(tempPath, true),
+                OutputAssembly = Path.Combine(
+                    tempPath,
+                    Path.GetFileNameWithoutExtension(assemblyName) + ".dll"
+                )
             };
 
-            var results = provider.CompileAssemblyFromSource(parameters, sourceCode);
+            var results = provider.CompileAssemblyFromFile(
+                parameters, 
+                filenames.ToArray()
+            );
 
             if (results.Errors.Count > 0) {
                 throw new Exception(
@@ -112,6 +130,7 @@ namespace JSIL.Tests {
         public readonly string OutputPath;
         public readonly Assembly Assembly;
         public readonly MethodInfo TestMethod;
+        public readonly TimeSpan CompilationElapsed;
 
         static ComparisonTest () {
             var testAssembly = typeof(ComparisonTest).Assembly;
@@ -124,34 +143,41 @@ namespace JSIL.Tests {
             XMLJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.XML.js"));
         }
 
+        public static string MapSourceFileToTestFile (string sourceFile) {
+            return Regex.Replace(
+                sourceFile, "(\\.cs|\\.vb)$", "$0.js"
+            );
+        }
+
         public ComparisonTest (string filename, string[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null)
             : this (
                 new[] { filename }, 
                 Path.Combine(
-                    TestSourceFolder, 
-                    filename.Replace(".cs", ".js").Replace(".vb", "_vb.js")
+                    TestSourceFolder,
+                    MapSourceFileToTestFile(filename)
                 ), 
                 stubbedAssemblies, typeInfo
             ) {
         }
 
         public ComparisonTest (IEnumerable<string> filenames, string outputPath, string[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null) {
+            var started = DateTime.UtcNow.Ticks;
             OutputPath = outputPath;
 
-            var sourceCode = (from f in filenames
-                              let fullPath = Path.Combine(TestSourceFolder, f)
-                              select File.ReadAllText(fullPath)).ToArray();
             var extensions = (from f in filenames select Path.GetExtension(f).ToLower()).Distinct().ToArray();
+            var absoluteFilenames = (from f in filenames select Path.Combine(TestSourceFolder, f));
 
             if (extensions.Length != 1)
                 throw new InvalidOperationException("Mixture of different source languages provided.");
 
+            var assemblyName = Path.GetFileName(outputPath).Replace(".js", "");
+
             switch (extensions[0]) {
                 case ".cs":
-                    Assembly = CompilerUtil.CompileCS(sourceCode, out TemporaryFiles);
+                    Assembly = CompilerUtil.CompileCS(absoluteFilenames, assemblyName, out TemporaryFiles);
                     break;
                 case ".vb":
-                    Assembly = CompilerUtil.CompileVB(sourceCode, out TemporaryFiles);
+                    Assembly = CompilerUtil.CompileVB(absoluteFilenames, assemblyName, out TemporaryFiles);
                     break;
                 default:
                     throw new ArgumentException("Unsupported source file type for test");
@@ -170,6 +196,9 @@ namespace JSIL.Tests {
 
             StubbedAssemblies = stubbedAssemblies;
             TypeInfo = typeInfo;
+
+            var ended = DateTime.UtcNow.Ticks;
+            CompilationElapsed = TimeSpan.FromTicks(ended - started);
         }
 
         public static string GetTestRunnerLink (string testFile) {
@@ -184,20 +213,13 @@ namespace JSIL.Tests {
 
             return String.Format(
                 "{0}#{1}", uri,
-                Path.GetFullPath(testFile)
-                    .Replace(".cs", ".js")
-                    .Replace(".vb", ".vb.js")
+                MapSourceFileToTestFile(Path.GetFullPath(testFile))
                     .Replace(rootPath, "")
                     .Replace("\\", "/")
             );
         }
 
         public void Dispose () {
-            foreach (string filename in TemporaryFiles)
-                try {
-                    File.Delete(filename);
-                } catch {
-                }
         }
 
         public string RunCSharp (string[] args, out long elapsed) {
@@ -398,10 +420,11 @@ namespace JSIL.Tests {
                     Assert.AreEqual(outputs[0], outputs[1]);
 
                 Console.WriteLine(
-                    "passed: C#:{0:00.00}s JSIL:{1:00.00}s JS:{2:00.00}s",
-                    TimeSpan.FromTicks(elapsed[0]).TotalSeconds,
-                    TimeSpan.FromTicks(elapsed[1]).TotalSeconds,
-                    TimeSpan.FromTicks(elapsed[2]).TotalSeconds
+                    "passed: CL:{0:0000}ms TR:{2:0000}ms C#:{1:0000}ms JS:{3:0000}ms",
+                    CompilationElapsed.TotalMilliseconds,
+                    TimeSpan.FromTicks(elapsed[0]).TotalMilliseconds,
+                    TimeSpan.FromTicks(elapsed[1]).TotalMilliseconds,
+                    TimeSpan.FromTicks(elapsed[2]).TotalMilliseconds
                 );
             } catch {
                 Console.WriteLine("failed");
@@ -515,7 +538,7 @@ namespace JSIL.Tests {
                 if (testPredicate != null)
                     shouldRunJs = testPredicate(filename);
 
-                Console.Write("// {0} ... ", Path.GetFileName(filename));
+                Console.WriteLine("// {0} ... ", Path.GetFileName(filename));
 
                 try {
                     var testFilenames = new List<string>() { filename };
@@ -526,7 +549,7 @@ namespace JSIL.Tests {
                         testFilenames,
                         Path.Combine(
                             ComparisonTest.TestSourceFolder,
-                            filename.Replace(".cs", ".js").Replace(".vb", "_vb.js")
+                            ComparisonTest.MapSourceFileToTestFile(filename)
                         ),
                         stubbedAssemblies, typeInfo)
                     ) {
