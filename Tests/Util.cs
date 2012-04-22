@@ -298,9 +298,12 @@ namespace JSIL.Tests {
         }
 
         public string RunCSharp (string[] args, out long elapsed) {
-            var oldStdout = Console.Out;
-            using (var sw = new StringWriter())
+            TextWriter oldStdout = null;
+
+            using (var sw = new StringWriter()) {
+                oldStdout = Console.Out;
                 try {
+                    oldStdout.Flush();
                     Console.SetOut(sw);
 
                     var testMethod = GetTestMethod();
@@ -309,10 +312,12 @@ namespace JSIL.Tests {
                     long endedCs = DateTime.UtcNow.Ticks;
 
                     elapsed = endedCs - startedCs;
+                    sw.Flush();
                     return sw.ToString();
                 } finally {
                     Console.SetOut(oldStdout);
                 }
+            }
         }
 
         public static Configuration MakeDefaultConfiguration () {
