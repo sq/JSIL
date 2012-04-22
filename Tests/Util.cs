@@ -188,7 +188,6 @@ namespace JSIL.Tests {
         public readonly string[] StubbedAssemblies;
         public readonly string OutputPath;
         public readonly Assembly Assembly;
-        public readonly MethodInfo TestMethod;
         public readonly TimeSpan CompilationElapsed;
 
         static ComparisonTest () {
@@ -246,14 +245,6 @@ namespace JSIL.Tests {
                     throw new ArgumentException("Unsupported source file type for test");
             }
 
-            var program = Assembly.GetType("Program");
-            if (program == null)
-                throw new Exception("Test missing 'Program' main class");
-
-            TestMethod = program.GetMethod("Main");
-            if (TestMethod == null)
-                throw new Exception("Test missing 'Main' method of 'Program' main class");
-
             if (typeInfo != null)
                 typeInfo.ClearCaches();
 
@@ -285,14 +276,30 @@ namespace JSIL.Tests {
         public void Dispose () {
         }
 
+        protected MethodInfo GetTestMethod () {
+            var program = Assembly.GetType("Program");
+            if (program == null)
+                throw new Exception("Test missing 'Program' main class");
+
+            var testMethod = program.GetMethod("Main");
+            if (testMethod == null)
+                throw new Exception("Test missing 'Main' method of 'Program' main class");
+
+            return testMethod;
+        }
+
         public string RunCSharp (string[] args, out long elapsed) {
+            var testMethod = GetTestMethod();
+
             var oldStdout = Console.Out;
             using (var sw = new StringWriter())
                 try {
                     Console.SetOut(sw);
+
                     long startedCs = DateTime.UtcNow.Ticks;
-                    TestMethod.Invoke(null, new object[] { args });
+                    testMethod.Invoke(null, new object[] { args });
                     long endedCs = DateTime.UtcNow.Ticks;
+
                     elapsed = endedCs - startedCs;
                     return sw.ToString();
                 } finally {
@@ -343,7 +350,8 @@ namespace JSIL.Tests {
 
             elapsedTranslation = DateTime.UtcNow.Ticks - translationStarted;
 
-            var declaringType = JSIL.Internal.Util.EscapeIdentifier(TestMethod.DeclaringType.FullName, Internal.EscapingMode.TypeIdentifier);
+            var testMethod = GetTestMethod();
+            var declaringType = JSIL.Internal.Util.EscapeIdentifier(testMethod.DeclaringType.FullName, Internal.EscapingMode.TypeIdentifier);
 
             string argsJson;
             var jsonSerializer = new DataContractJsonSerializer(typeof(string[]));

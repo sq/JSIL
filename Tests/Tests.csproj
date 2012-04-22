@@ -92,7 +92,7 @@
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
     <Compile Include="FormattingTests.cs" />
-    <None Include="FailingTestCases\Arrays.cs" />
+    <None Include="FailingTestCases\ArrayToString.cs" />
     <Compile Include="FailingTests.cs" />
     <Compile Include="MetadataTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
