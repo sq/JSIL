@@ -1963,7 +1963,7 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
 
         for (var j = 0; j < argc; j++) {
           var expectedType = argTypes[j];
-          var arg = arguments[j];
+          var arg = arguments[j + offset];
 
           if ((typeof (expectedType) === "undefined") || (expectedType === null)) {
             // Specific types, like generic parameters, resolve to null or undefined.
@@ -4655,7 +4655,28 @@ JSIL.AnyValueType = JSIL.AnyType = {
 JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
   var types = {};
 
-  var of = function (type) {
+  var checkType = function Reference_CheckType (value) {
+    var type = this;
+
+    var isReference = JSIL.CheckType(value, JSIL.Reference, true);
+    if (!isReference)
+      return false;
+
+    var typeProto = Object.getPrototypeOf(type);
+    if (
+      (typeProto === JSIL.GenericParameter.prototype) ||
+      (typeProto === JSIL.PositionalGenericParameter.prototype)
+    ) {
+      return true;
+    }
+
+    if ((type.__IsReferenceType__) && (value.value === null))
+      return true;
+
+    return JSIL.CheckType(value.value, type, false);
+  };
+
+  var of = function Reference_Of (type) {
     if (typeof (type) === "undefined")
       throw new Error("Undefined reference type");
 
@@ -4677,14 +4698,9 @@ JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
         return "ref " + typeObject.toString(context);
       };
 
-      compositePublicInterface.CheckType = function (value) {
-        var isReference = JSIL.CheckType(value, JSIL.Reference, true);
-        var isRightType = JSIL.CheckType(value.value, type, false);
-        if (!isRightType && (type === System.Object) && (value.value === null))
-          isRightType = true;
-        return isReference && isRightType;
-      };
       compositePublicInterface.prototype = JSIL.MakeProto(JSIL.Reference, compositeTypeObject, typeName, true, typeObject.__Context__);
+
+      JSIL.SetValueProperty(compositePublicInterface, "CheckType", checkType.bind(type));
 
       JSIL.SetValueProperty(compositePublicInterface, "toString", function () {
         return "<JSIL.Reference.Of(" + typeObject.toString() + ") Public Interface>";
@@ -4714,6 +4730,7 @@ JSIL.MakeClass("JSIL.Reference", "JSIL.Variable", true, [], function ($) {
     }
   );
 });
+
 JSIL.MakeClass("JSIL.Reference", "JSIL.MemberReference", true, [], function ($) {
   $.RawMethod(false, ".ctor",
     function (object, memberName) {
@@ -4835,13 +4852,15 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
     return this.length - 1;
   });
 
-  $.RawMethod(true, "CheckType", function (value) {
-    return JSIL.IsArray(value);
-  });
-
   var typeObject = $.typeObject;
   var publicInterface = $.publicInterface;
   var types = {};
+
+  var checkType = function Array_CheckType (value) {
+    return JSIL.IsArray(value);
+  };
+
+  $.RawMethod(true, "CheckType", checkType);
 
   var of = function Array_Of (elementType) {
     if (typeof (elementType) === "undefined")
@@ -4875,6 +4894,7 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
       compositeTypeObject.__IsReferenceType__ = true;
       compositeTypeObject.__IsArray__ = true;
 
+      JSIL.SetValueProperty(compositePublicInterface, "CheckType", checkType);
       JSIL.SetValueProperty(compositeTypeObject, "toString", function () {
         return typeName;
       });
