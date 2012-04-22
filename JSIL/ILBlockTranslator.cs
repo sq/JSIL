@@ -1181,6 +1181,8 @@ namespace JSIL {
             return new JSUntranslatableExpression("Sizeof");
         }
 
+        // Represents an arithmetic or logic expression on nullable operands.
+        // Inside are one or more ValueOf expressions.
         protected JSExpression Translate_NullableOf (ILExpression node) {
             var inner = TranslateNode(node.Arguments[0]);
             var innerType = inner.GetActualType(TypeSystem);
@@ -1189,22 +1191,66 @@ namespace JSIL {
             var nullableGenericType = new GenericInstanceType(nullableType);
             nullableGenericType.GenericArguments.Add(innerType);
 
-            return JSChangeTypeExpression.New(inner, TypeSystem, nullableGenericType);
+            var innerBoe = inner as JSBinaryOperatorExpression;
+
+            if (innerBoe == null)
+                return new JSUntranslatableExpression(node.Arguments[0]);
+
+            var left = innerBoe.Left;
+            var right = innerBoe.Right;
+            var leftValueOf = left as JSValueOfNullableExpression;
+            var rightValueOf = right as JSValueOfNullableExpression;
+            JSExpression leftConditional = null, rightConditional = null, conditional = null;
+
+            if (leftValueOf != null) {
+                left = leftValueOf.Expression;
+                leftConditional = new JSBinaryOperatorExpression(
+                    JSOperator.Equal, left, new JSNullLiteral(nullableType), TypeSystem.Boolean
+                );
+            }
+
+            if (rightValueOf != null) {
+                right = rightValueOf.Expression;
+                rightConditional = new JSBinaryOperatorExpression(
+                    JSOperator.Equal, right, new JSNullLiteral(nullableType), TypeSystem.Boolean
+                );
+            }
+
+            if ((leftConditional ?? rightConditional) == null)
+                return new JSUntranslatableExpression(node.Arguments[0]);
+
+            if ((leftConditional != null) && (rightConditional != null))
+                conditional = new JSBinaryOperatorExpression(
+                    JSOperator.LogicalOr, leftConditional, rightConditional, TypeSystem.Boolean
+                );
+            else
+                conditional = leftConditional ?? rightConditional;
+
+            var arithmeticExpression = new JSBinaryOperatorExpression(
+                innerBoe.Operator, left, right, nullableType
+            );
+            var result = new JSTernaryOperatorExpression(
+                conditional, new JSNullLiteral(innerBoe.ActualType), arithmeticExpression, nullableType
+            );
+
+            return result;
         }
 
+        // Acts as a barrier to prevent this expression from being combined with its parent(s).
         protected JSExpression Translate_Wrap (ILExpression node) {
             var inner = TranslateNode(node.Arguments[0]);
 
             return inner;
         }
 
+        // Represents a nullable operand in an arithmetic/logic expression that is wrapped by a NullableOf expression.
         protected JSExpression Translate_ValueOf (ILExpression node) {
             var inner = TranslateNode(node.Arguments[0]);
             var innerType = DereferenceType(inner.GetActualType(TypeSystem));
 
             var innerTypeGit = innerType as GenericInstanceType;
             if (innerTypeGit != null)
-                return JSChangeTypeExpression.New(inner, TypeSystem, innerTypeGit.GenericArguments.First());
+                return new JSValueOfNullableExpression(inner);
             else
                 return new JSUntranslatableExpression(node);
         }

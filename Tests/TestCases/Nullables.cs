@@ -1,7 +1,6 @@
 ﻿using System;
 
-public static class Program
-{
+public static class Program {
     public static void PrintNullable (int? i) {
         Console.WriteLine("{0} * 2 = {1}", i, i * 2);
     }

@@ -718,6 +718,12 @@ namespace JSIL.Internal {
                 StringBuilder errorString = null;
 
                 foreach (var i in type.Interfaces) {
+                    var resolved = i.Resolve();
+                    if (resolved == null) {
+                        Console.Error.WriteLine("Warning: Could not resolve interface reference '{0}' for type '{1}'!", i.FullName, type.FullName);
+                        continue;
+                    }
+
                     var ii = Tuple.Create(source.GetExisting(i), i);
                     if (ii.Item1 == null) {
                         if (errorString == null) {

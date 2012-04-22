@@ -91,6 +91,7 @@
     <None Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields2.cs" />
     <None Include="TestCases\EnumCheckType.cs" />
     <None Include="FailingTestCases\FlagsEnumOperators.cs" />
+    <None Include="TestCases\NullableArithmetic.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
@@ -271,7 +272,7 @@
     <None Include="TestCases\StaticArrayInitializer.cs" />
     <None Include="TestCases\TernaryArithmetic.cs" />
     <None Include="SpecialTestCases\OuterThisDelegateNew.cs" />
-    <None Include="SimpleTestCases\Nullables.cs" />
+    <None Include="TestCases\Nullables.cs" />
     <None Include="SpecialTestCases\NewParentheses.cs" />
     <None Include="TestCases\StructEquals.cs" />
     <None Include="SimpleTestCases\ClassEquals.cs" />
