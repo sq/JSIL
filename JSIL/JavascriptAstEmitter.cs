@@ -397,22 +397,22 @@ namespace JSIL {
         public void VisitNode (JSEnumLiteral enm) {
             bool isFirst = true;
 
-            if (enm.Names.Length > 1)
-                Output.LPar();
-
-            foreach (var name in enm.Names) {
-                if (!isFirst)
-                    Output.WriteRaw(" | ");
-
+            if (enm.Names.Length == 1) {
                 Output.Identifier(enm.EnumType, ReferenceContext);
                 Output.Dot();
-                Output.Identifier(name);
+                Output.Identifier(enm.Names[0]);
+            } else {
+                Output.Identifier(enm.EnumType, ReferenceContext);
+                Output.Dot();
+                Output.Identifier("Flags");
+                Output.LPar();
 
-                isFirst = false;
-            }
+                Output.CommaSeparatedList(
+                    enm.Names, ReferenceContext, ListValueType.Primitive
+                );
 
-            if (enm.Names.Length > 1)
                 Output.RPar();
+            }
         }
 
         public void VisitNode (JSNullLiteral nil) {

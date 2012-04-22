@@ -3020,6 +3020,24 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
       return result;
     };
 
+    if (isFlagsEnum) {
+      result.Flags = function FlagsEnum_Flags () {
+        var argc = arguments.length;
+        var resultValue = 0;
+
+        for (var i = 0; i < argc; i++) {
+          var flagName = arguments[i];
+          resultValue = resultValue | result[flagName].value;
+        }
+
+        return JSIL.MakeEnumValue(result, resultValue, null, isFlagsEnum);
+      };
+    } else {
+      result.Flags = function Enum_Flags () {
+        throw new Error("Enumeration is not a flags enumeration.");
+      };
+    }
+
     result.CheckType = function Enum_CheckType (v) {
       if (typeof (v.__ThisType__) !== "undefined") {
         if (v.__ThisType__ === result)

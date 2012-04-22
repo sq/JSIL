@@ -90,6 +90,7 @@
     <None Include="TestCases\GenericStaticConstructorOrdering2.cs" />
     <None Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields2.cs" />
     <None Include="TestCases\EnumCheckType.cs" />
+    <None Include="FailingTestCases\FlagsEnumOperators.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
@@ -177,7 +178,7 @@
     <None Include="SimpleTestCases\StaticMemberRefParameters.cs" />
     <None Include="SimpleTestCases\Operators.cs" />
     <None Include="SimpleTestCases\DefaultValue.cs" />
-    <None Include="FailingTestCases\FlagsEnums.cs" />
+    <None Include="SimpleTestCases\FlagsEnums.cs" />
     <None Include="SimpleTestCases\Constants.cs" />
     <None Include="TestCases\DynamicStaticOverloadedMethods.cs" />
     <None Include="TestCases\DynamicReturnTypes.cs" />
