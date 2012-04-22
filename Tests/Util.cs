@@ -229,7 +229,11 @@ namespace JSIL.Tests {
             if (extensions.Length != 1)
                 throw new InvalidOperationException("Mixture of different source languages provided.");
 
-            var assemblyName = Path.GetFileName(outputPath).Replace(".js", "");
+            var assemblyNamePrefix = Path.GetDirectoryName(outputPath).Split(new char[] { '\\', '/' }).Last();
+            var assemblyName = Path.Combine(
+                assemblyNamePrefix,
+                Path.GetFileName(outputPath).Replace(".js", "")
+            );
 
             switch (extensions[0]) {
                 case ".cs":
