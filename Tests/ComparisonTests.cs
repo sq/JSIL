@@ -283,13 +283,14 @@ namespace JSIL.Tests {
         public void StaticConstructors () {
             var defaultProvider = MakeDefaultProvider();
 
+            // We need a separate copy of these tests otherwise they may share a loaded assembly with the other test fixture.
             RunComparisonTests(
                 new[] { 
-                    @"TestCases\GenericStaticConstructorOrdering.cs",
+                    @"TestCases\GenericStaticConstructorOrdering2.cs",
                     // This breaks all the time and has yet to cause actual breakage.
                     // Furthermore, I'm not sure it's meaningful to rely on the ordering. So, it's in failing tests now.
                     // @"TestCases\StaticConstructorOrdering.cs", 
-                    @"TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs"
+                    @"TestCases\StaticInitializersInGenericTypesSettingStaticFields2.cs"
                 }, null, defaultProvider
             );
         }

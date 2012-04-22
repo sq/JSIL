@@ -87,6 +87,8 @@
     <None Include="TestCases\EnumComplexArithmetic.cs" />
     <None Include="TestCases\NestedGenericInheritance.cs" />
     <None Include="SpecialTestCases\EnumeratesAssemblyDependencies.cs" />
+    <None Include="TestCases\GenericStaticConstructorOrdering2.cs" />
+    <None Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields2.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
@@ -313,7 +315,7 @@
     <None Include="TestCases\DelegateResultWithConstraints.cs" />
     <None Include="TestCases\GenericNestedTypeConstructedInParentStaticConstructor.cs" />
     <Content Include="SimpleTestCases\Constructors.vb" />
-    <Content Include="TestCases\Events.vb" />
+    <None Include="TestCases\Events.vb" />
     <None Include="TestCases\GenericMethodThisReference.cs" />
     <None Include="SimpleTestCases\ArrayOfArrays.cs" />
     <None Include="TestCases\StringEmpty.cs" />
@@ -369,7 +371,7 @@
     <None Include="SimpleTestCases\TryCastGenericDelegate.cs" />
     <None Include="SimpleTestCases\ArrayOfNullable.cs" />
     <None Include="TestCases\CastEnumNullableToInt.cs" />
-    <Compile Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
+    <None Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
