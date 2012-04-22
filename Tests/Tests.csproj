@@ -89,6 +89,7 @@
     <None Include="SpecialTestCases\EnumeratesAssemblyDependencies.cs" />
     <None Include="TestCases\GenericStaticConstructorOrdering2.cs" />
     <None Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields2.cs" />
+    <None Include="TestCases\EnumCheckType.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

@@ -1869,6 +1869,8 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
     return new Error(text);
   };
 
+  // If the method group contains only a single method, we call this to fetch the method implementation
+  //  and then use that as the method group.
   var makeSingleMethodGroup = function (group) {
     var singleMethod = group[0];
     var key = singleMethod.GetKey(methodEscapedName);
@@ -1888,8 +1890,13 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
     return method;
   };
 
+  // For methods with generic arguments we figure out whether there are multiple options for the generic
+  //  argument dispatcher, and bind the appropriate generic method dispatcher.
   makeGenericArgumentGroup = function (id, group, offset) {
     var gaGroup;
+
+    // We don't need to do any argument count checks if there is only one possible method.
+    // BindGenericMethod will throw an error if it gets the wrong number of generic args.
     if (group.length === 1) {
       gaGroup = makeSingleMethodGroup(group);
     } else {
@@ -1901,10 +1908,16 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
     };
   };
 
+  // For methods with multiple candidate signatures that all have the same number of arguments, we do
+  //  dynamic dispatch at runtime on each invocation by comparing the types of the actual argument
+  //  values against the expected type objects for each signature, in order to select the right
+  //  method to call.
   var makeMultipleMethodGroup = function (id, group, offset) {
     // [resolvedSignatures, differentReturnTypeError]
     var resolvedGroup = [null, false];
 
+    // Take the method signature(s) in this group and resolve all their type references.
+    // We do this once and cache it since type reference resolution takes time.
     var getResolvedGroup = function () {
       if (resolvedGroup[1] === true)
         return null;
@@ -1943,6 +1956,7 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
       var argc = arguments.length;
       var resolvedGroup = getResolvedGroup();
 
+      // If resolving the group fails, it will return null.
       if (resolvedGroup === null)
         throw makeNoMatchFoundError(group);
 
@@ -1961,6 +1975,8 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
 
         var argTypes = resolvedMethod.argumentTypes;
 
+        // Check the types of the passed in argument values against the types expected for
+        //  this particular signature.
         for (var j = 0; j < argc; j++) {
           var expectedType = argTypes[j];
           var arg = arguments[j + offset];
@@ -1984,6 +2000,8 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
       }
 
       // None of the normal overloads matched, but if we found a generic dispatcher, call that.
+      // This isn't quite right, but the alternative (check to see if the arg is System.Type) is
+      //  worse since it would break for methods that actually take Type instances as arguments.
       if (genericDispatcher !== null) {
         return genericDispatcher.apply(this, arguments);
       }
@@ -2912,21 +2930,24 @@ JSIL.MakeClass("System.ValueType", "System.Enum", true, [], function ($) {
 
 JSIL.MakeEnumValue = function (enumType, value, key) {
   var obj = new Number(value);
+  var toStringImpl;
+
   if (key !== null)
-    obj.toString = function () {
+    toStringImpl = function () {
       return key;
     };
   else
-    obj.toString = function () {
+    toStringImpl = function () {
       return value.toString();
     };
 
-  obj.GetType = function () {
+  JSIL.SetValueProperty(obj, "toString", toStringImpl);
+  JSIL.SetValueProperty(obj, "GetType", function () {
     return enumType;
-  };
-
-  obj.value = value;
-  obj.name = key;
+  });
+  JSIL.SetValueProperty(obj, "__ThisType__", enumType);
+  JSIL.SetValueProperty(obj, "value", value);
+  JSIL.SetValueProperty(obj, "name", key);
 
   return obj;
 };
@@ -3957,100 +3978,6 @@ JSIL.MethodSignatureCache.prototype.get = function (id, returnType, argumentType
 };
 JSIL.MethodSignatureCache.prototype.toString = function () {
   return "<Method Signature Cache>";
-};
-
-JSIL.FindOverload = function (prototype, args, name, overloads) {
-  var l = args.length;
-
-  find_overload:
-  for (var i = 0; i < overloads.length; i++) {
-    var overloadArgs = overloads[i][1];
-    if (overloadArgs.length != l)
-      continue find_overload;
-
-    for (var j = 0; j < l; j++) {
-      var expectedType = overloadArgs[j];
-      var arg = args[j];
-
-      if ((typeof (expectedType) === "undefined") || (expectedType === null)) {
-        // Specific types, like generic parameters, resolve to null or undefined.
-      } else if (expectedType.__IsReferenceType__ && (arg === null)) {
-        // Null is a valid value for any reference type.
-      } else if (!JSIL.CheckType(arg, expectedType)) {
-        continue find_overload;
-      }
-    }
-
-    var overloadName = name + "$" + String(overloads[i][0]);
-    var overloadMethod;
-
-    if (typeof (overloadName) === "function") {
-      overloadMethod = overloadName;
-    } else {
-      overloadMethod = prototype[overloadName];
-      if (typeof (overloadMethod) === "undefined")
-        throw new Error("No method named '" + overloadName + "' could be found.");
-    }
-
-    return overloadMethod;
-  }
-
-  return null;
-};
-
-JSIL.MakeOverloadResolver = function (raw, assembly) {
-  var state = [null];
-
-  return function (self) {
-    if (state[0] !== null)
-      return state[0];
-
-    var resolved = new Array();
-    for (var i = 0, l = raw.length; i < l; i++) {      
-      var names = raw[i][1];
-      var types = new Array(names.length);
-
-      for (var j = 0, m = names.length; j < m; j++) {
-        var name = names[j];
-
-        if (typeof (name) === "string")
-          types[j] = JSIL.GetTypeByName(name, assembly);
-        else if (typeof (name.get) === "function")
-          types[j] = name.get(self);
-        else if (typeof (name) === "function")
-          types[j] = name;
-        else
-          throw new Error("Invalid argument type for overload: " + String(name));
-      }
-
-      resolved[i] = new Array(
-        raw[i][0], types
-      );
-    }
-
-    return state[0] = resolved;
-  };
-};
-
-JSIL.OverloadedMethodCore = function (type, name, overloads, dispatcher) {
-  if (overloads.length < 1)
-    return type[name] = null;
-  else if (overloads.length < 2) {
-    var overload = overloads[0][0];
-    if (typeof (overload) === "function")
-      return type[name] = overload;
-    else
-      return type[name] = type[overload];
-  }
-
-  for (var i = 0; i < overloads.length; i++) {
-    if (overloads[i][0] === name)
-      throw new Error("Recursive definition of overloaded method " + JSIL.GetTypeName(type) + "." + name);
-  }
-  
-  JSIL.SetValueProperty(
-    type, name, dispatcher
-  );
 };
 
 JSIL.ImplementExternals("System.Object", function ($) {

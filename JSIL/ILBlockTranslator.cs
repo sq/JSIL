@@ -1955,8 +1955,12 @@ namespace JSIL {
             var targetInfo = TypeInfo.Get(targetType);
             if ((targetInfo != null) && targetInfo.IsIgnored)
                 return new JSNullLiteral(targetType);
-            else
+
+            if (targetType.IsValueType) {
+                return JSIL.CheckType(firstArg, targetType);
+            } else {
                 return JSIL.TryCast(firstArg, targetType);
+            }
         }
 
         protected JSExpression Translate_Unbox_Any (ILExpression node, TypeReference targetType) {
