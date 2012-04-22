@@ -55,25 +55,23 @@ namespace JSIL.Tests {
         public static Assembly CompileCS (
             IEnumerable<string> filenames, string assemblyName
         ) {
-            using (var csc = new CSharpCodeProvider(new Dictionary<string, string>() { 
-                { "CompilerVersion", "v4.0" } 
-            })) {
-                return Compile(
-                    csc, filenames, assemblyName
-                );
-            }
+            return Compile(
+                () => new CSharpCodeProvider(new Dictionary<string, string>() { 
+                    { "CompilerVersion", "v4.0" } 
+                }),
+                filenames, assemblyName
+            );
         }
 
         public static Assembly CompileVB (
             IEnumerable<string> filenames, string assemblyName
         ) {
-            using (var vbc = new VBCodeProvider(new Dictionary<string, string>() { 
-                { "CompilerVersion", "v4.0" } 
-            })) {
-                return Compile(
-                    vbc, filenames, assemblyName
-                );
-            }
+            return Compile(
+                () => new VBCodeProvider(new Dictionary<string, string>() { 
+                    { "CompilerVersion", "v4.0" } 
+                }), 
+                filenames, assemblyName
+            );
         }
 
         private static bool CheckCompileManifest (IEnumerable<string> inputs, string outputDirectory) {
@@ -117,7 +115,7 @@ namespace JSIL.Tests {
         }
 
         private static Assembly Compile (
-            CodeDomProvider provider, IEnumerable<string> filenames, string assemblyName
+            Func<CodeDomProvider> getProvider, IEnumerable<string> filenames, string assemblyName
         ) {
             var tempPath = Path.Combine(TempPath, assemblyName);
             Directory.CreateDirectory(tempPath);
@@ -156,10 +154,13 @@ namespace JSIL.Tests {
                 OutputAssembly = outputAssembly
             };
 
-            var results = provider.CompileAssemblyFromFile(
-                parameters, 
-                filenames.ToArray()
-            );
+            CompilerResults results;
+            using (var provider = getProvider()) {
+                results = provider.CompileAssemblyFromFile(
+                    parameters,
+                    filenames.ToArray()
+                );
+            }
 
             if (results.Errors.Count > 0) {
                 throw new Exception(
