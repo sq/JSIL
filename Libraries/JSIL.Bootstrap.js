@@ -2939,7 +2939,43 @@ JSIL.ImplementExternals(
       }
     );
 
-    var internalTryParse = function (TEnum, text, ignoreCase, result) {      
+    var internalTryParse;
+
+    var internalTryParseFlags = function (TEnum, text, ignoreCase, result) {
+      var items = text.split(",");
+
+      var resultValue = 0;
+      var temp = new JSIL.Variable();
+
+      for (var i = 0, l = items.length; i < l; i++) {
+        var item = items[i].trim();
+        if (item.length === 0)
+          continue;
+
+        if (internalTryParse(TEnum, item, ignoreCase, temp)) {
+          resultValue = resultValue | temp.value;
+        } else {
+          return false;
+        }
+      }
+
+      var name = TEnum.__ValueToName__[resultValue];
+
+      if (typeof (name) === "undefined") {
+        result.value = JSIL.MakeEnumValue(TEnum, resultValue, null);
+        return true;
+      } else {
+        result.value = TEnum[name];
+        return true;
+      }
+    };
+
+    internalTryParse = function (TEnum, text, ignoreCase, result) {
+      // Detect and handle flags enums
+      var commaPos = text.indexOf(",");
+      if (commaPos >= 0)
+        return internalTryParseFlags(TEnum, text, ignoreCase, result);
+
       var num = Number(text);
 
       if (isNaN(num)) {
@@ -2961,9 +2997,10 @@ JSIL.ImplementExternals(
       } else {
         var name = TEnum.__ValueToName__[num];
 
-        if (typeof (name) === "undefined")
-          return false;
-        else {
+        if (typeof (name) === "undefined") {
+          result.value = JSIL.MakeEnumValue(TEnum, num, null);
+          return true;
+        } else {
           result.value = TEnum[name];
           return true;
         }
