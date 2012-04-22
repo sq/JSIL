@@ -1990,15 +1990,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector2", function ($) {
   }, ".ctor", new JSIL.MethodSignature(null, [$.Single], []), function (value) {
     this.X = this.Y = value;
   });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "MemberwiseClone", new JSIL.MethodSignature($.Object, [], []), function () {
-    var result = Object.create(Microsoft.Xna.Framework.Vector2.prototype);
-    result.X = this.X;
-    result.Y = this.Y;
-    return result;
-  });
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector3", function ($) {
@@ -2043,16 +2034,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector3", function ($) {
     this.X = xy.X;
     this.Y = xy.Y;
     this.Z = z;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "MemberwiseClone", new JSIL.MethodSignature($.Object, [], []), function () {
-    var result = Object.create(Microsoft.Xna.Framework.Vector3.prototype);
-    result.X = this.X;
-    result.Y = this.Y;
-    result.Z = this.Z;
-    return result;
   });
 });
 
@@ -2106,16 +2087,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector4", function ($) {
     Public: true
   }, ".ctor", new JSIL.MethodSignature(null, [$.Single], []), function (value) {
     this.X = this.Y = this.Z = this.W = value;
-  });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "MemberwiseClone", new JSIL.MethodSignature($.Object, [], []), function () {
-    var result = Object.create(Microsoft.Xna.Framework.Vector4.prototype);
-    result.X = this.X;
-    result.Y = this.Y;
-    result.Z = this.Z;
-    return result;
   });
 });
 
@@ -3744,18 +3715,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
       return value;
     }
   );
-
-  $.Method({Static: false, Public: true }, "MemberwiseClone", 
-    new JSIL.MethodSignature($.Object, [], []), 
-    function () {
-      var result = Object.create(Microsoft.Xna.Framework.Rectangle.prototype);
-      result.X = this.X;
-      result.Y = this.Y;
-      result.Width = this.Width;
-      result.Height = this.Height;
-      return result;
-    }
-  );
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Point", function ($) {
@@ -4489,9 +4448,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       var image = texture.image,
         originalImage = texture.image;
 
-      effects = effects || Microsoft.Xna.Framework.Graphics.SpriteEffects.None;
+      var _spriteEffects = Microsoft.Xna.Framework.Graphics.SpriteEffects;
 
-      if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally) {
+      effects = effects || _spriteEffects.None;
+
+      if ((effects & _spriteEffects.FlipHorizontally) == _spriteEffects.FlipHorizontally) {
         if (!needRestore) 
           this.device.context.save();
         needRestore = true;
@@ -4500,7 +4461,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         positionX = -positionX;
       }
 
-      if ((effects & Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) == Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipVertically) {
+      if ((effects & _spriteEffects.FlipVertically) == _spriteEffects.FlipVertically) {
         if (!needRestore) 
           this.device.context.save();
         needRestore = true;
@@ -4525,7 +4486,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       if (sourceH > texture.Height - sourceY) 
         sourceH = texture.Height - sourceY;
 
-      var isSinglePixel = ((sourceX == 0) && (sourceY == 0) && (sourceW == 1) && (sourceH == 1));
+      var isSinglePixel = ((sourceX === 0) && (sourceY === 0) && (sourceW === 1) && (sourceH === 1));
       var channels = null;
 
       var colorR = (color.r) / 255;
@@ -4569,7 +4530,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         height = -height;
       }
 
-      if (Math.abs(rotation) >= 0.0001) {
+      if ((rotation !== 0) && (Math.abs(rotation) >= 0.0001)) {
         if (!needRestore) 
           this.device.context.save();
         needRestore = true;
@@ -4579,7 +4540,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         this.device.context.translate(-positionX - originX, -positionY - originY);
       }
 
-      if ((scaleX != 1.0) || (scaleY != 1.0)) {
+      if ((scaleX !== 1.0) || (scaleY !== 1.0)) {
         if (!needRestore) 
           this.device.context.save();
         needRestore = true;

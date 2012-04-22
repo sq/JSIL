@@ -126,7 +126,7 @@ var $jsilcore = JSIL.DeclareAssembly("JSIL.Core");
 $jsilcore.SealInitializedTypes = false;
 
 $jsilcore.SystemObjectInitialized = false;
-$jsilcore.NotInitialized = "not initialized";
+$jsilcore.NotInitialized = function () { throw new Error("Not initialized"); };
 JSIL.$NextTypeId = 0;
 JSIL.$PublicTypes = {};
 JSIL.$PublicTypeAssemblies = {};
@@ -1399,6 +1399,7 @@ $jsilcore.$Of$NoInitialize = function () {
     JSIL.RenameGenericMethods(result, resultTypeObject);
   }
 
+  // Rebind CheckType for delegate types so that it uses the new closed delegate type
   if (isClosed && resultTypeObject.__IsDelegate__) {
     JSIL.SetValueProperty(
       result, "CheckType", 
@@ -2893,7 +2894,7 @@ JSIL.MakeInterfaceMemberGetter = function (thisReference, name) {
 JSIL.CheckDerivation = function (haystack, needle) {
   var proto = haystack;
 
-  while (proto != null) {
+  while (proto !== null) {
     if (proto === needle)
       return true;
 
@@ -2919,7 +2920,9 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
     expectedTypePublicInterface = expectedType.__PublicInterface__;
   }
 
-  if (typeof (value) === "undefined")
+  var typeofValue = typeof(value);
+
+  if (typeofValue === "undefined")
     return false;
   else if (value === null)
     return false;
@@ -2944,19 +2947,20 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
 
   var ct = expectedTypePublicInterface.CheckType;
   if (
-    (typeof (ct) != "undefined") &&
-    !Boolean(bypassCustomCheckMethod)
+    (typeof (ct) !== "undefined") &&
+    (bypassCustomCheckMethod !== true)
   ) {
     if (ct(value))
       return true;
   }
 
   var expectedProto = expectedTypePublicInterface.prototype;
-  if ((typeof (expectedProto) === "undefined") ||
-      (typeof (expectedProto) === "null"))
+  var typeofExpectedProto = typeof (expectedProto);
+  if ((typeofExpectedProto === "undefined") ||
+      (typeofExpectedProto === "null"))
     return false;
 
-  if ((typeof (value) === "object") || (typeof (value) === "function")) {
+  if ((typeofValue === "object") || (typeofValue === "function")) {
     if (JSIL.CheckDerivation(Object.getPrototypeOf(value), expectedProto))
       return true;
   }

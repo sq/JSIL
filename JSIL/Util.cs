@@ -371,7 +371,7 @@ namespace JSIL.Internal {
     }
 
     public class ConcurrentCache<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>> {
-        protected class ConstructionState {
+        protected class ConstructionState : IDisposable {
             public readonly ManualResetEventSlim Signal = new ManualResetEventSlim(false);
             public readonly Thread ConstructingThread = Thread.CurrentThread;
 
@@ -380,6 +380,10 @@ namespace JSIL.Internal {
                     throw new InvalidOperationException("Recursive construction of cache entry");
 
                 Signal.Wait();
+            }
+
+            public void Dispose () {
+                Signal.Dispose();
             }
         }
 
@@ -409,6 +413,10 @@ namespace JSIL.Internal {
 
         public void Clear () {
             Storage.Clear();
+
+            foreach (var kvp in States)
+                kvp.Value.Dispose();
+
             States.Clear();
         }
 
@@ -441,7 +449,8 @@ namespace JSIL.Internal {
             if (Storage.ContainsKey(key))
                 return false;
 
-            if (States.TryAdd(key, state = new ConstructionState())) {
+            state = new ConstructionState();
+            if (States.TryAdd(key, state)) {
                 try {
                     if (Storage.ContainsKey(key))
                         return false;
@@ -456,6 +465,8 @@ namespace JSIL.Internal {
                     States.TryRemove(key, out state);
                     state.Signal.Set();
                 }
+            } else {
+                state.Dispose();
             }
 
             return false;

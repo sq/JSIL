@@ -970,35 +970,21 @@ namespace JSIL {
                     break;
             }
 
-            dollar(output);
-            output.Dot();
-            output.Identifier("SetValue", null);
-            output.LPar();
-            output.Value("__IsNativeType__");
-            output.Comma();
-            output.Value(true);
-            output.RPar();
-            output.Semicolon(true);
+            var setValue = (Action<string, bool>)((name, value) => {
+                dollar(output);
+                output.Dot();
+                output.Identifier("SetValue", null);
+                output.LPar();
+                output.Value(name);
+                output.Comma();
+                output.Value(value);
+                output.RPar();
+                output.Semicolon(true);
+            });
 
-            dollar(output);
-            output.Dot();
-            output.Identifier("SetValue", null);
-            output.LPar();
-            output.Value("__IsIntegral__");
-            output.Comma();
-            output.Value(isIntegral);
-            output.RPar();
-            output.Semicolon(true);
-
-            dollar(output);
-            output.Dot();
-            output.Identifier("SetValue", null);
-            output.LPar();
-            output.Value("__IsNumeric__");
-            output.Comma();
-            output.Value(isNumeric);
-            output.RPar();
-            output.Semicolon(true);
+            setValue("__IsNativeType__", true);
+            setValue("__IsIntegral__", isIntegral);
+            setValue("__IsNumeric__", isNumeric);
         }
 
         protected void TranslateTypeDefinition (

@@ -101,7 +101,7 @@ namespace JSIL.Transforms {
             }
         }
 
-        public void VisitNode (JSContinueExpression ce) {
+        protected void VisitControlFlowNode (JSNode node) {
             var stackSlice = Stack.Take(3).ToArray();
             var parentEs = stackSlice[1] as JSExpressionStatement;
             var parentBlock = stackSlice[2] as JSBlockStatement;
@@ -111,66 +111,30 @@ namespace JSIL.Transforms {
 
                 if (AbsoluteJumpsSeen > 1) {
                     if (TraceLevel >= 1)
-                        Console.WriteLine("// Eliminating {0}", ce);
+                        Console.WriteLine("// Eliminating {0}", node);
 
                     var replacement = new JSNullExpression();
-                    ParentNode.ReplaceChild(ce, replacement);
+                    ParentNode.ReplaceChild(node, replacement);
                     return;
                 } else {
                     if (TraceLevel >= 3)
-                        Console.WriteLine("// Not eliminating {0}", ce);
+                        Console.WriteLine("// Not eliminating {0}", node);
                 }
             }
 
-            VisitChildren(ce);
+            VisitChildren(node);
+        }
+
+        public void VisitNode (JSContinueExpression ce) {
+            VisitControlFlowNode(ce);
         }
 
         public void VisitNode (JSBreakExpression be) {
-            var stackSlice = Stack.Take(3).ToArray();
-            var parentEs = stackSlice[1] as JSExpressionStatement;
-            var parentBlock = stackSlice[2] as JSBlockStatement;
-
-            if ((parentEs != null) && (parentBlock == BlockStack.Peek())) {
-                AbsoluteJumpsSeen += 1;
-
-                if (AbsoluteJumpsSeen > 1) {
-                    if (TraceLevel >= 1)
-                        Console.WriteLine("// Eliminating {0}", be);
-
-                    var replacement = new JSNullExpression();
-                    ParentNode.ReplaceChild(be, replacement);
-                    return;
-                } else {
-                    if (TraceLevel >= 3)
-                        Console.WriteLine("// Not eliminating {0}", be);
-                }
-            }
-
-            VisitChildren(be);
+            VisitControlFlowNode(be);
         }
 
         public void VisitNode (JSGotoExpression ge) {
-            var stackSlice = Stack.Take(3).ToArray();
-            var parentEs = stackSlice[1] as JSExpressionStatement;
-            var parentBlock = stackSlice[2] as JSBlockStatement;
-
-            if ((parentEs != null) && (parentBlock == BlockStack.Peek())) {
-                AbsoluteJumpsSeen += 1;
-
-                if (AbsoluteJumpsSeen > 1) {
-                    if (TraceLevel >= 1)
-                        Console.WriteLine("// Eliminating {0}", ge);
-
-                    var replacement = new JSNullExpression();
-                    ParentNode.ReplaceChild(ge, replacement);
-                    return;
-                } else {
-                    if (TraceLevel >= 3)
-                        Console.WriteLine("// Not eliminating {0}", ge);
-                }
-            }
-
-            VisitChildren(ge);
+            VisitControlFlowNode(ge);
         }
     }
 }
