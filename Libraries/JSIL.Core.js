@@ -2928,18 +2928,50 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
 JSIL.MakeClass("System.ValueType", "System.Enum", true, [], function ($) {
 });
 
-JSIL.MakeEnumValue = function (enumType, value, key) {
+JSIL.MakeEnumValue = function (enumType, value, key, isFlagsEnum) {
   var obj = new Number(value);
   var toStringImpl;
 
-  if (key !== null)
+  if (key !== null) {
     toStringImpl = function EnumValue_ToString () {
       return key;
     };
-  else
+
+  } else if (isFlagsEnum) {
+    var state = [null];
+    var names = enumType.__Names__;
+
+    toStringImpl = function FlagsEnumValue_ToString () {
+      if (state[0] === null) {
+        var result = [];
+
+        for (var i = 0, l = names.length; i < l; i++) {
+          var name = names[i];
+          var nameValue = enumType[name].value;
+
+          if ((value & nameValue) === nameValue)
+            result.push(name);
+        }
+
+        if (result.length === 0)
+          state[0] = value.toString();
+        else
+          state[0] = result.join(", ");
+      }
+
+      return state[0];
+    };    
+
+  } else {
     toStringImpl = function NumericEnumValue_ToString () {
-      return value.toString();
+      if (state[0] === null) {
+        state[0] = value.toString();
+      }
+
+      return state[0];
     };
+
+  }
 
   JSIL.SetValueProperty(obj, "toString", toStringImpl);
   JSIL.SetValueProperty(obj, "GetType", function EnumValue_GetType () {
@@ -3019,7 +3051,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
 
       $.__Names__.push(key);
       $.__ValueToName__[value] = key;
-      $[key] = JSIL.MakeEnumValue($, value, key);
+      $[key] = JSIL.MakeEnumValue($, value, key, isFlagsEnum);
     }
   };
 
@@ -3228,7 +3260,7 @@ JSIL.Cast = function (value, expectedType) {
     if (typeof (result) === "string")
       return expectedType[result];
 
-    result = JSIL.MakeEnumValue(expectedType, n, null);
+    result = JSIL.MakeEnumValue(expectedType, n, null, expectedType.__IsFlagsEnum__);
     return result;
   } else if (JSIL.CheckType(value, expectedType)) {
     // If the user is casting to an integral type like Int32, we need to floor the value since JS stores all numbers as double
