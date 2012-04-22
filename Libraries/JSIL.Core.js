@@ -5142,6 +5142,9 @@ JSIL.MakeClass("System.Array", "JSIL.MultidimensionalArray", true, [], function 
 });
 
 $jsilcore.CheckDelegateType = function (value) {
+  if (value === null)
+    return false;
+
   return (
     (typeof (value) === "function") ||
     (typeof (value) === "object")
