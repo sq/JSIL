@@ -686,6 +686,18 @@ JSIL.PositionalGenericParameter = function (name, context) {
   this.index = parseInt(name.substr(2));
   this.__TypeId__ = name;
   this.__Context__ = context || $jsilcore;
+
+  var fullNameDecl = {
+    configurable: true,
+    enumerable: true,
+    get: this.getFullName
+  };
+
+  Object.defineProperty(this, "__FullName__", fullNameDecl);
+  Object.defineProperty(this, "__FullNameWithoutArguments__", fullNameDecl);
+};
+JSIL.PositionalGenericParameter.prototype.getFullName = function () {
+  return "!!" + this.index;
 };
 JSIL.PositionalGenericParameter.prototype.get = function (context) {
   if ((typeof (context) !== "object") && (typeof (context) !== "function")) {
@@ -1844,10 +1856,18 @@ JSIL.$ResolveGenericTypeReferences = function (context, types) {
 };
 
 JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, methodEscapedName, overloadSignatures) {
-  var groups = {};
   var methodFullName = typeName + "::" + methodName;
 
-  var makeDispatcher;
+  var makeDispatcher, makeGenericArgumentGroup;
+
+  var makeNoMatchFoundError = function (group) {
+    var text = group.length + " candidate(s) for method invocation:";
+    for (var i = 0; i < group.length; i++) {
+      text += "\n" + group[i].toString(methodFullName);
+    }
+
+    return new Error(text);
+  };
 
   var makeSingleMethodGroup = function (group) {
     var singleMethod = group[0];
@@ -1859,16 +1879,16 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
     var method = target[key];
 
     if (typeof (method) !== "function") {
-      JSIL.Host.warning("Method not defined: " + methodFullName);
+      JSIL.Host.warning("Method not defined: " + typeName + "::" + key);
       return function () {
-        throw new Error("Method not defined: " + methodFullName);
+        throw new Error("Method not defined: " + typeName + "::" + key);
       };
     }
 
     return method;
   };
 
-  var makeGenericArgumentGroup = function (id, group, offset) {
+  makeGenericArgumentGroup = function (id, group, offset) {
     var gaGroup;
     if (group.length === 1) {
       gaGroup = makeSingleMethodGroup(group);
@@ -1881,16 +1901,172 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
     };
   };
 
-  var makeAmbiguousGroup = function (group) {
-    return function () {
-      var text = "Found " + group.length + " ambiguous candidates for method invocation:";
+  var makeMultipleMethodGroup = function (id, group, offset) {
+    // [resolvedSignatures, differentReturnTypeError]
+    var resolvedGroup = [null, false];
+
+    var getResolvedGroup = function () {
+      if (resolvedGroup[1] === true)
+        return null;
+
+      if (resolvedGroup[0] !== null)
+        return resolvedGroup[0];
+
+      var returnType;
+      var result = [];
       for (var i = 0; i < group.length; i++) {
-        text += "\n" + group[i].toString(methodFullName);
+        var groupEntry = group[i];
+
+        if (JSIL.IsArray(groupEntry)) {
+          // Generic method group with N generic argument(s).
+          var gaCount = groupEntry[0].argumentTypes.length;
+
+          result[i] = makeGenericArgumentGroup(id + "`" + gaCount, groupEntry, gaCount + offset);
+        } else {
+          // Normal method.
+          result[i] = groupEntry.Resolve(methodEscapedName);
+
+          if (i === 0) {
+            returnType = result[i].returnType;
+          } else if (returnType !== result[i].returnType) {
+            // This group contains multiple return types and cannot be runtime dispatched.
+            resolvedGroup[1] = true;
+            return null;
+          }
+        }
       }
 
-      throw new Error(text);
+      return (resolvedGroup[0] = result);
+    };
+
+    return function () {
+      var argc = arguments.length;
+      var resolvedGroup = getResolvedGroup();
+
+      if (resolvedGroup === null)
+        throw makeNoMatchFoundError(group);
+
+      var genericDispatcher = null;
+
+      scan_methods:
+      for (var i = 0, l = resolvedGroup.length; i < l; i++) {
+        var resolvedMethod = resolvedGroup[i];
+
+        // We've got a generic dispatcher for a generic method with N generic arguments.
+        // Store it to use as a fallback if none of the normal overloads match.
+        if (typeof (resolvedMethod) === "function") {
+          genericDispatcher = resolvedMethod;
+          continue;
+        }
+
+        var argTypes = resolvedMethod.argumentTypes;
+
+        for (var j = 0; j < argc; j++) {
+          var expectedType = argTypes[j];
+          var arg = arguments[j];
+
+          if ((typeof (expectedType) === "undefined") || (expectedType === null)) {
+            // Specific types, like generic parameters, resolve to null or undefined.
+          } else if (expectedType.__IsReferenceType__ && (arg === null)) {
+            // Null is a valid value for any reference type.
+          } else if (!JSIL.CheckType(arg, expectedType)) {
+            continue scan_methods;
+          }
+        }
+
+        var foundOverload = target[resolvedMethod.key];
+
+        if (typeof (foundOverload) !== "function") {
+          throw new Error("Method not defined: " + typeName + "::" + resolvedMethod.key);
+        } else {
+          return foundOverload.apply(this, arguments);
+        }
+      }
+
+      // None of the normal overloads matched, but if we found a generic dispatcher, call that.
+      if (genericDispatcher !== null) {
+        return genericDispatcher.apply(this, arguments);
+      }
+
+      throw makeNoMatchFoundError(group);
     };
   };
+
+  makeDispatcher = function (id, g, offset) {
+    var body = [];
+    var methods = [];
+
+    body.push("var argc = args.length;");
+
+    var isFirst = true;
+    for (var k in g) {
+      if (k == "ga")
+        continue;
+      else if (k == "gaCount")
+        continue;
+
+      var line = "";
+
+      if (isFirst) {
+        line += "  if (argc === ";
+      } else {
+        line += "  } else if (argc === ";
+      }
+
+      line += (parseInt(k) + offset) + ") {";
+
+      body.push(line);
+
+      var group = g[k];
+      var method;
+
+      if (group.ga === true) {
+        method = makeGenericArgumentGroup(id + "`" + k, group, group.gaCount + offset);
+      } else if (group.length === 1) {
+        method = makeSingleMethodGroup(group);
+      } else {
+        method = makeMultipleMethodGroup(id, group, offset);
+      }
+
+      body.push("    return methods[" + methods.length + "].apply(self, args);");
+      methods.push(method);
+
+      isFirst = false;
+    }
+
+    body.push("  }");
+    body.push("  ");
+    body.push("  throw new Error('No overload of ' + methods.name + ' can accept ' + (argc - methods.offset) + ' argument(s).')");
+
+    var subtypeRe = /[\+\/]/g;
+    var idRe = /::/g;
+    var idUri = id.replace(subtypeRe, ".").replace(idRe, "/");
+
+    var dispatcher = new Function(
+      "methods", "self", "args",
+      "  //@ sourceURL=jsil://overloadDispatcher/" + idUri + "\r\n" + body.join("\r\n")
+    );
+
+    methods.name = id;
+    methods.offset = offset;
+
+    // We can't use .bind() to bind arguments here because it breaks the 'this' parameter and breaks .call()/.apply().
+    var boundDispatcher = function () {
+      return dispatcher.call(null, methods, this, arguments);
+    };
+
+    JSIL.SetValueProperty(boundDispatcher, "toString", 
+      function () {
+        return "<Overloaded Method " + id + " - " + overloadSignatures.length + " overload(s)>";
+      }
+    );
+
+    JSIL.RenameFunction(id, boundDispatcher);
+
+    return boundDispatcher;    
+  };
+
+  var groups = {};
 
   if (overloadSignatures.length === 1) {
     var signature = overloadSignatures[0];
@@ -1938,80 +2114,6 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
 
     group.push(signature);
   }
-
-  makeDispatcher = function (id, g, offset) {
-    var body = [];
-    var methods = [];
-
-    body.push("var argc = args.length;");
-
-    var isFirst = true;
-    for (var k in g) {
-      if (k == "ga")
-        continue;
-      else if (k == "gaCount")
-        continue;
-
-      var line = "";
-
-      if (isFirst) {
-        line += "  if (argc === ";
-      } else {
-        line += "  } else if (argc === ";
-      }
-
-      line += (parseInt(k) + offset) + ") {";
-
-      body.push(line);
-
-      var group = g[k];
-      var method;
-
-      if (group.ga === true) {
-        method = makeGenericArgumentGroup(id + "`" + k, group, group.gaCount);
-      } else if (group.length === 1) {
-        method = makeSingleMethodGroup(group);
-      } else {
-        method = makeAmbiguousGroup(group);
-      }
-
-      body.push("    return methods[" + methods.length + "].apply(self, args);");
-      methods.push(method);
-
-      isFirst = false;
-    }
-
-    body.push("  }");
-    body.push("  ");
-    body.push("  throw new Error('No overload of ' + methods.name + ' can accept ' + (argc - methods.offset) + ' argument(s).')");
-
-    var subtypeRe = /[\+\/]/g;
-    var idRe = /::/g;
-    var idUri = id.replace(subtypeRe, ".").replace(idRe, "/");
-
-    var dispatcher = new Function(
-      "methods", "self", "args",
-      "  //@ sourceURL=jsil://overloadDispatcher/" + idUri + "\r\n" + body.join("\r\n")
-    );
-
-    methods.name = id;
-    methods.offset = offset;
-
-    // We can't use .bind() to bind arguments here because it breaks the 'this' parameter and breaks .call()/.apply().
-    var boundDispatcher = function () {
-      return dispatcher.call(null, methods, this, arguments);
-    };
-
-    JSIL.SetValueProperty(boundDispatcher, "toString", 
-      function () {
-        return "<Overloaded Method " + id + " - " + overloadSignatures.length + " overload(s)>";
-      }
-    );
-
-    JSIL.RenameFunction(id, boundDispatcher);
-
-    return boundDispatcher;    
-  };
 
   return makeDispatcher(methodFullName, groups, 0);
 };
@@ -3552,6 +3654,25 @@ JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames
     this.genericArgumentNames = [];
 };
 
+JSIL.MethodSignature.prototype.Resolve = function (name) {
+  var argTypes = [];
+  var resolvedReturnType = null;
+
+  if (this.returnType !== null) {
+    resolvedReturnType = JSIL.ResolveTypeReference(this.returnType, this)[1];
+  }
+
+  for (var i = 0; i < this.argumentTypes.length; i++) {
+    argTypes[i] = JSIL.ResolveTypeReference(this.argumentTypes[i], this)[1];
+  }
+
+  return {
+    key: this.GetKey(name),
+    returnType: resolvedReturnType, 
+    argumentTypes: argTypes
+  };
+};
+
 JSIL.MethodSignature.prototype.GetKey = function (name) {
   if (name === this._lastKeyName)
     return this._lastKey;
@@ -4722,7 +4843,7 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
   var publicInterface = $.publicInterface;
   var types = {};
 
-  var of = function (elementType) {
+  var of = function Array_Of (elementType) {
     if (typeof (elementType) === "undefined")
       throw new Error("Attempting to create an array of an undefined type");
 
@@ -4775,7 +4896,7 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
   $.RawMethod(true, "Of", of);
 });
 
-JSIL.Array.New = function (elementType, sizeOrInitializer) {
+JSIL.Array.New = function Array_New (elementType, sizeOrInitializer) {
   var elementTypeObject, elementTypePublicInterface;
 
   if (typeof (elementType.__Type__) === "object") {
