@@ -2031,7 +2031,9 @@ namespace JSIL {
             if ((targetInfo != null) && targetInfo.IsIgnored)
                 return new JSNullLiteral(targetType);
 
-            if (targetType.IsValueType) {
+            var expectedType = node.ExpectedType ?? node.InferredType ?? targetType;
+
+            if (expectedType.IsValueType) {
                 return JSIL.CheckType(firstArg, targetType);
             } else {
                 return JSIL.TryCast(firstArg, targetType);

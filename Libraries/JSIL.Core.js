@@ -636,11 +636,12 @@ JSIL.ImplementExternals = function (namespaceName, externals) {
     var rm = typeObject.__RawMethods__;
     for (var i = 0; i < rm.length; i++) {
       var rawMethod = rm[i];
+      var suffix = "$raw";
 
       if (rawMethod[0]) {
-        obj[rawMethod[1]] = [null, publicInterface[rawMethod[1]]];
+        obj[rawMethod[1] + suffix] = [null, publicInterface[rawMethod[1]]];
       } else {
-        obj[prefix + rawMethod[1]] = [null, publicInterface.prototype[rawMethod[1]]];
+        obj[prefix + rawMethod[1] + suffix] = [null, publicInterface.prototype[rawMethod[1]]];
       }
     }
   });
@@ -1419,14 +1420,7 @@ $jsilcore.$Of$NoInitialize = function () {
 
   if (isClosed) {
     JSIL.RenameGenericMethods(result, resultTypeObject);
-  }
-
-  // Rebind CheckType for delegate types so that it uses the new closed delegate type
-  if (isClosed && resultTypeObject.__IsDelegate__) {
-    JSIL.SetValueProperty(
-      result, "CheckType", 
-      $jsilcore.CheckDelegateType.bind(resultTypeObject)
-    );
+    JSIL.RebindRawMethods(result, resultTypeObject);
   }
 
   // Force the initialized state back to false
@@ -1462,6 +1456,35 @@ JSIL.$ResolveGenericMethodSignature = function (typeObject, signature, resolveCo
 
   return null;
 };
+
+// Static RawMethods need to be rebound so that their 'this' reference is the publicInterface
+//  of the type object.
+JSIL.RebindRawMethods = function (publicInterface, typeObject) {
+  var rm = typeObject.__RawMethods__;
+  if (JSIL.IsArray(rm)) {
+    for (var i = 0; i < rm.length; i++) {
+      var item = rm[i];
+
+      // Only static methods
+      if (!item[0])
+        continue;
+
+      var methodName = item[1];
+      var method = publicInterface[methodName];
+
+      var boundMethod = method.bind(publicInterface);
+      JSIL.SetValueProperty(publicInterface, methodName, boundMethod);
+    }
+  }
+
+  // Rebind CheckType for delegate types so that it uses the new closed delegate type
+  if (typeObject.__IsDelegate__) {
+    JSIL.SetValueProperty(
+      publicInterface, "CheckType", 
+      $jsilcore.CheckDelegateType.bind(typeObject)
+    );
+  }
+}
 
 // Any methods with generic parameters as their return type or argument type(s) must be renamed
 //  after the generic type is closed; otherwise overload resolution will fail to locate them because
@@ -2380,6 +2403,7 @@ JSIL.InitializeType = function (type) {
     JSIL.InstantiateProperties(classObject, typeObject);
     JSIL.FixupInterfaces(classObject, typeObject);
     JSIL.InitializeFields(typeObject, classObject);
+    JSIL.RebindRawMethods(classObject, typeObject);
   }
 
   // Run any queued initializers for the type
@@ -2464,6 +2488,7 @@ JSIL.ApplyExternals = function (publicInterface, typeObject, fullName) {
 
   var externals = JSIL.AllImplementedExternals[fullName];
   var instancePrefix = "instance$";
+  var rawSuffix = "$raw";
 
   var hasPrototype = typeof (publicInterface.prototype) === "object";
   var prototype = hasPrototype ? publicInterface.prototype : null;
@@ -2476,19 +2501,31 @@ JSIL.ApplyExternals = function (publicInterface, typeObject, fullName) {
     var member = externals[k][0]
     var value = externals[k][1];
     var key = k;
+    var isRaw = false, isStatic;
 
-    if (k.indexOf(instancePrefix) === 0) {
+    if (key.indexOf(instancePrefix) === 0) {
+      isStatic = false;
       if (hasPrototype) {
-        key = k.replace(instancePrefix, "");
+        key = key.replace(instancePrefix, "");
         target = prototype;
       } else {
         JSIL.Host.warning("Type '" + fullName + "' has no prototype to apply instance externals to.");
         continue;
       }
+    } else {
+      isStatic = true;
+    }
+
+    if (key.indexOf(rawSuffix) === key.length - rawSuffix.length) {
+      key = key.replace(rawSuffix, "");
+      isRaw = true;
     }
 
     if (member !== null)
       typeObject.__Members__.push(member);
+
+    if (isRaw)
+      typeObject.__RawMethods__.push([isStatic, key]);
 
     JSIL.SetValueProperty(target, key, value);
   }
@@ -3142,8 +3179,6 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
 
   if (typeofValue === "undefined")
     return false;
-  else if (value === null)
-    return false;
 
   if (expectedTypeObject.IsInterface === true) {
     var interfaces = JSIL.GetType(value).__Interfaces__;
@@ -3171,6 +3206,9 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
     if (ct(value))
       return true;
   }
+
+  if (value === null)
+    return false;
 
   var expectedProto = expectedTypePublicInterface.prototype;
   var typeofExpectedProto = typeof (expectedProto);

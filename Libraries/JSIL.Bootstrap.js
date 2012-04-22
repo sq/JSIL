@@ -192,9 +192,7 @@ JSIL.ImplementExternals(
 
     $.RawMethod(true, "CheckType",
       function (value) {
-        return (typeof (value) === "string") || (
-          (typeof (value.text) === "string") && (value.__proto__ === prototype)
-        );
+        return (typeof (value) === "string");
       }
     );
 
@@ -2568,6 +2566,15 @@ JSIL.ImplementExternals("System.Nullable", function ($) {
 });
 
 JSIL.MakeStaticClass("System.Nullable", true, [], function ($) {
+});
+
+JSIL.ImplementExternals("System.Nullable`1", function ($) {
+  $.RawMethod(true, "CheckType", function (value) {
+    if (JSIL.CheckType(value, this.T))
+      return true;
+
+    return false;    
+  });
 });
 
 JSIL.MakeStruct("System.ValueType", "System.Nullable`1", true, ["T"], function ($) {

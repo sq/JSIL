@@ -366,7 +366,9 @@ namespace JSIL.Tests {
                     @"TestCases\Nullables.cs",
                     @"TestCases\NullableArithmetic.cs",
                     @"TestCases\NullableComparison.cs",
-                    @"TestCases\NullableComparisonWithCast.cs"
+                    @"TestCases\NullableComparisonWithCast.cs",
+                    @"TestCases\NullableObjectCast.cs",
+                    @"TestCases\CastEnumNullableToInt.cs"
                 }
             );
         }
