@@ -41,7 +41,7 @@ namespace JSIL {
         public readonly Configuration Configuration;
 
         public readonly SymbolProvider SymbolProvider = new SymbolProvider();
-        public readonly AssemblyCache AssemblyCache = new AssemblyCache();
+        public readonly AssemblyCache AssemblyCache;
         public readonly FunctionCache FunctionCache;
         public readonly AssemblyManifest Manifest;
 
@@ -57,12 +57,15 @@ namespace JSIL {
         public event Action<string, Exception> CouldNotDecompileMethod;
 
         internal readonly TypeInfoProvider _TypeInfoProvider;
+
+        protected bool OwnsAssemblyCache;
         protected bool OwnsTypeInfoProvider;
 
         public AssemblyTranslator (
             Configuration configuration,
             TypeInfoProvider typeInfoProvider = null,
-            AssemblyManifest manifest = null
+            AssemblyManifest manifest = null,
+            AssemblyCache assemblyCache = null
         ) {
             Configuration = configuration;
             if (manifest != null)
@@ -103,6 +106,12 @@ namespace JSIL {
                     AddProxyAssembly(fn);
             }
 
+            OwnsAssemblyCache = (assemblyCache == null);
+            if (assemblyCache != null)
+                AssemblyCache = assemblyCache;
+            else
+                AssemblyCache = new AssemblyCache();
+
             FunctionCache = new FunctionCache(_TypeInfoProvider);
         }
 
@@ -117,6 +126,7 @@ namespace JSIL {
                     Path.GetDirectoryName(mainAssemblyPath),
                     Path.GetDirectoryName(Util.GetPathOfAssembly(Assembly.GetExecutingAssembly())) 
                 }, AssemblyCache);
+                readerParameters.MetadataResolver = new CachingMetadataResolver(readerParameters.AssemblyResolver);
             }
 
             if (useSymbols)
@@ -236,12 +246,6 @@ namespace JSIL {
                     Parallel.For(
                         0, assembliesToLoad.Count, parallelOptions, (i) => {
                             var anr = assembliesToLoad[i];
-
-                            var childParameters = new ReaderParameters {
-                                ReadingMode = ReadingMode.Deferred,
-                                ReadSymbols = true,
-                                SymbolReaderProvider = SymbolProvider
-                            };
 
                             AssemblyDefinition refAssembly = null;
                             refAssembly = AssemblyLoadErrorWrapper(
@@ -1772,7 +1776,9 @@ namespace JSIL {
                 _TypeInfoProvider.Dispose();
 
             FunctionCache.Dispose();
-            AssemblyCache.Dispose();
+
+            if (OwnsAssemblyCache)
+                AssemblyCache.Dispose();
         }
 
         public TypeInfoProvider GetTypeInfoProvider () {

@@ -624,7 +624,7 @@ namespace JSIL.Internal {
             return false;
         }
 
-        public bool IsMatch (TypeReference type, bool? forcedInheritable) {
+        public bool IsMatch (TypeDefinition type, bool? forcedInheritable) {
             bool inheritable = forcedInheritable.GetValueOrDefault(IsInheritable);
 
             foreach (var pt in ProxiedTypes) {

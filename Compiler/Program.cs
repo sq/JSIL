@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
 using JSIL.Compiler.Extensibility;
+using JSIL.Internal;
 using JSIL.Translator;
 using Mono.Cecil;
 
@@ -268,10 +269,12 @@ namespace JSIL.Compiler {
                                  select fn).ToArray();
 
             var resolver = new Mono.Cecil.DefaultAssemblyResolver();
+            var metaResolver = new CachingMetadataResolver(resolver);
             var resolverParameters = new ReaderParameters {
                 AssemblyResolver = resolver,
+                MetadataResolver = metaResolver,
                 ReadSymbols = false,
-                ReadingMode = ReadingMode.Deferred
+                ReadingMode = ReadingMode.Deferred,
             };
             var resolvedAssemblyPaths = (from an in assemblyNames
                                       let asm = resolver.Resolve(an, resolverParameters)

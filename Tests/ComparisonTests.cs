@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading;
+using JSIL.Internal;
 using NUnit.Framework;
 
 namespace JSIL.Tests {

@@ -186,6 +186,7 @@ namespace JSIL.Tests {
         public static readonly string CoreJSPath, BootstrapJSPath, XMLJSPath;
 
         public readonly TypeInfoProvider TypeInfo;
+        public readonly AssemblyCache AssemblyCache;
         public readonly string[] StubbedAssemblies;
         public readonly string OutputPath;
         public readonly Assembly Assembly;
@@ -208,18 +209,24 @@ namespace JSIL.Tests {
             );
         }
 
-        public ComparisonTest (string filename, string[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null)
-            : this (
+        public ComparisonTest (
+            string filename, string[] stubbedAssemblies = null, 
+            TypeInfoProvider typeInfo = null, AssemblyCache assemblyCache = null
+        ) : this (
                 new[] { filename }, 
                 Path.Combine(
                     TestSourceFolder,
                     MapSourceFileToTestFile(filename)
                 ), 
-                stubbedAssemblies, typeInfo
+                stubbedAssemblies, typeInfo, assemblyCache
             ) {
         }
 
-        public ComparisonTest (IEnumerable<string> filenames, string outputPath, string[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null) {
+        public ComparisonTest (
+            IEnumerable<string> filenames, string outputPath, 
+            string[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null,
+            AssemblyCache assemblyCache = null
+        ) {
             var started = DateTime.UtcNow.Ticks;
             OutputPath = outputPath;
 
@@ -251,6 +258,7 @@ namespace JSIL.Tests {
 
             StubbedAssemblies = stubbedAssemblies;
             TypeInfo = typeInfo;
+            AssemblyCache = assemblyCache;
 
             var ended = DateTime.UtcNow.Ticks;
             CompilationElapsed = TimeSpan.FromTicks(ended - started);
@@ -290,13 +298,12 @@ namespace JSIL.Tests {
         }
 
         public string RunCSharp (string[] args, out long elapsed) {
-            var testMethod = GetTestMethod();
-
             var oldStdout = Console.Out;
             using (var sw = new StringWriter())
                 try {
                     Console.SetOut(sw);
 
+                    var testMethod = GetTestMethod();
                     long startedCs = DateTime.UtcNow.Ticks;
                     testMethod.Invoke(null, new object[] { args });
                     long endedCs = DateTime.UtcNow.Ticks;
@@ -325,7 +332,7 @@ namespace JSIL.Tests {
             if (StubbedAssemblies != null)
                 configuration.Assemblies.Stubbed.AddRange(StubbedAssemblies);
 
-            var translator = new JSIL.AssemblyTranslator(configuration, TypeInfo);
+            var translator = new JSIL.AssemblyTranslator(configuration, TypeInfo, null, AssemblyCache);
 
             string translatedJs;
             var translationStarted = DateTime.UtcNow.Ticks;
@@ -344,6 +351,12 @@ namespace JSIL.Tests {
                 if (TypeInfo != null) {
                     Assert.AreEqual(1, result.Assemblies.Count);
                     TypeInfo.Remove(result.Assemblies.ToArray());
+                }
+
+                // If we're using a preconstructed assembly cache, make sure the test case assembly didn't get into
+                //  the cache, since that would leak memory.
+                if (AssemblyCache != null) {
+                    AssemblyCache.TryRemove(Assembly.FullName);
                 }
             } finally {
                 translator.Dispose();
@@ -543,6 +556,8 @@ namespace JSIL.Tests {
             Func<string, bool> testPredicate = null,
             Action<string, string> errorCheckPredicate = null
         ) {
+            var started = DateTime.UtcNow.Ticks;
+
             string commonFile = null;
             for (var i = 0; i < filenames.Length; i++) {
                 if (filenames[i].Contains("\\Common.")) {
@@ -602,6 +617,8 @@ namespace JSIL.Tests {
                 }
             );
 
+            var asmCache = new AssemblyCache();
+
             foreach (var filename in sortedFilenames) {
                 if (filename == commonFile)
                     continue;
@@ -623,7 +640,7 @@ namespace JSIL.Tests {
                             ComparisonTest.TestSourceFolder,
                             ComparisonTest.MapSourceFileToTestFile(filename)
                         ),
-                        stubbedAssemblies, typeInfo)
+                        stubbedAssemblies, typeInfo, asmCache)
                     ) {
                         if (shouldRunJs) {
                             test.Run();
@@ -662,6 +679,10 @@ namespace JSIL.Tests {
                     Console.WriteLine("Warning: Could not open registry key: {0}", ex);
                 }
             }
+
+            var ended = DateTime.UtcNow.Ticks;
+            var elapsedTotalSeconds = TimeSpan.FromTicks(ended - started).TotalSeconds;
+            Console.WriteLine("// Ran {0} test(s) in {1:000.00}s.", sortedFilenames.Count, elapsedTotalSeconds);
 
             Assert.AreEqual(0, failureList.Count,
                 String.Format("{0} test(s) failed:\r\n{1}", failureList.Count, String.Join("\r\n", failureList.ToArray()))
