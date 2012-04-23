@@ -39,7 +39,7 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSUnaryOperatorExpression uoe) {
-            var isBoolean = ILBlockTranslator.IsBoolean(uoe.GetActualType(TypeSystem));
+            var isBoolean = TypeUtil.IsBoolean(uoe.GetActualType(TypeSystem));
 
             if (isBoolean) {
                 if (uoe.Operator == JSOperator.IsTrue) {

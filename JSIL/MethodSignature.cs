@@ -57,7 +57,7 @@ namespace JSIL.Internal {
             if (this == rhs)
                 return true;
 
-            if (!ILBlockTranslator.TypesAreEqual(ReturnType, rhs.ReturnType, true))
+            if (!TypeUtil.TypesAreEqual(ReturnType, rhs.ReturnType, true))
                 return false;
 
             if (GenericParameterCount != rhs.GenericParameterCount)
@@ -67,7 +67,7 @@ namespace JSIL.Internal {
                 return false;
 
             for (int i = 0, c = ParameterCount; i < c; i++) {
-                if (!ILBlockTranslator.TypesAreEqual(ParameterTypes[i], rhs.ParameterTypes[i], true))
+                if (!TypeUtil.TypesAreEqual(ParameterTypes[i], rhs.ParameterTypes[i], true))
                     return false;
             }
 
@@ -89,10 +89,10 @@ namespace JSIL.Internal {
 
             int hash = 0;
 
-            if ((ReturnType != null) && !ILBlockTranslator.IsOpenType(ReturnType))
+            if ((ReturnType != null) && !TypeUtil.IsOpenType(ReturnType))
                 hash = ReturnType.Name.GetHashCode();
 
-            if ((ParameterCount > 0) && !ILBlockTranslator.IsOpenType(ParameterTypes[0]))
+            if ((ParameterCount > 0) && !TypeUtil.IsOpenType(ParameterTypes[0]))
                 hash ^= (ParameterTypes[0].Name.GetHashCode() << 16);
 
             hash ^= (GenericParameterCount) << 24;

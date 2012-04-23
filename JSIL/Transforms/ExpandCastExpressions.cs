@@ -34,7 +34,7 @@ namespace JSIL.Transforms {
                 );
             } else if (
                 (currentType.MetadataType == MetadataType.Char) &&
-                ILBlockTranslator.IsIntegral(targetType)
+                TypeUtil.IsIntegral(targetType)
             ) {
                 newExpression = JSInvocationExpression.InvokeMethod(
                     JS.charCodeAt, ce.Expression, new[] { JSLiteral.New(0) }, true
@@ -62,7 +62,7 @@ namespace JSIL.Transforms {
                             currentType.FullName
                         ));
                     }
-                } else if (ILBlockTranslator.IsNumeric(targetType)) {
+                } else if (TypeUtil.IsNumeric(targetType)) {
                     newExpression = JSInvocationExpression.InvokeStatic(
                         JS.Number(targetType), new[] { ce.Expression }, true
                     );
@@ -80,12 +80,12 @@ namespace JSIL.Transforms {
                     TypeSystem.Boolean
                 );
             } else if (
-                ILBlockTranslator.IsNumeric(targetType) &&
-                ILBlockTranslator.IsNumeric(currentType)
+                TypeUtil.IsNumeric(targetType) &&
+                TypeUtil.IsNumeric(currentType)
             ) {
                 if (
-                    ILBlockTranslator.IsIntegral(currentType) ||
-                    !ILBlockTranslator.IsIntegral(targetType)
+                    TypeUtil.IsIntegral(currentType) ||
+                    !TypeUtil.IsIntegral(targetType)
                 )
                     newExpression = ce.Expression;
                 else

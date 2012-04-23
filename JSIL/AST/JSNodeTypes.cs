@@ -222,7 +222,7 @@ namespace JSIL.Ast {
 
             if (id != null) {
                 return String.Equals(Identifier, id.Identifier) &&
-                    ILBlockTranslator.TypesAreEqual(Type, id.Type) &&
+                    TypeUtil.TypesAreEqual(Type, id.Type) &&
                     EqualsImpl(obj, true);
             } else {
                 return EqualsImpl(obj, true);

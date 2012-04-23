@@ -31,10 +31,10 @@ namespace JSIL.Transforms {
             if (type == null)
                 return false;
 
-            type = ILBlockTranslator.DereferenceType(type);
+            type = TypeUtil.DereferenceType(type);
             MetadataType etype = type.MetadataType;
 
-            if (ILBlockTranslator.IsEnum(type))
+            if (TypeUtil.IsEnum(type))
                 return false;
 
             var git = type as GenericInstanceType;

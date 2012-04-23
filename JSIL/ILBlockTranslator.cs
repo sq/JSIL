@@ -194,7 +194,7 @@ namespace JSIL {
         protected JSVariable DeclareVariable (JSVariable variable) {
             JSVariable existing;
             if (Variables.TryGetValue(variable.Identifier, out existing)) {
-                if (!TypesAreEqual(variable.Type, existing.Type)) {
+                if (!TypeUtil.TypesAreEqual(variable.Type, existing.Type)) {
                     throw new InvalidOperationException(String.Format(
                         "A variable with the name '{0}' is already declared in this scope, with a different type.",
                         variable.Identifier
@@ -236,7 +236,7 @@ namespace JSIL {
             // Detect the weird pattern '!(x = y as z)' and transform it into '(x = y as z) != null'
             if (
                 (op == JSOperator.LogicalNot) && 
-                !TypesAreAssignable(TypeInfo, TypeSystem.Boolean, innerType)
+                !TypeUtil.TypesAreAssignable(TypeInfo, TypeSystem.Boolean, innerType)
             ) {
                 return new JSBinaryOperatorExpression(
                     JSOperator.Equal, inner, new JSDefaultValueLiteral(innerType), TypeSystem.Boolean
@@ -244,7 +244,7 @@ namespace JSIL {
             }
 
             // Insert correct casts when unary operators are applied to enums.
-            if (IsEnum(innerType) && IsEnum(node.InferredType ?? node.ExpectedType)) {
+            if (TypeUtil.IsEnum(innerType) && TypeUtil.IsEnum(node.InferredType ?? node.ExpectedType)) {
                 return JSCastExpression.New(
                     new JSUnaryOperatorExpression(
                         op,
@@ -262,10 +262,10 @@ namespace JSIL {
 
         protected JSExpression Translate_BinaryOp (ILExpression node, JSBinaryOperator op) {
             // Detect attempts to perform pointer arithmetic
-            if (IsIgnoredType(node.Arguments[0].ExpectedType) ||
-                IsIgnoredType(node.Arguments[1].ExpectedType) ||
-                IsIgnoredType(node.Arguments[0].InferredType) ||
-                IsIgnoredType(node.Arguments[1].InferredType)
+            if (TypeUtil.IsIgnoredType(node.Arguments[0].ExpectedType) ||
+                TypeUtil.IsIgnoredType(node.Arguments[1].ExpectedType) ||
+                TypeUtil.IsIgnoredType(node.Arguments[0].InferredType) ||
+                TypeUtil.IsIgnoredType(node.Arguments[1].InferredType)
             ) {
                 return new JSUntranslatableExpression(node);
             }
@@ -393,7 +393,7 @@ namespace JSIL {
                 return new JSVerbatimLiteral(method, (string)parms[0].Value, argsDict, propertyInfo.ReturnType);
             }
 
-            var thisType = GetTypeDefinition(thisExpression.GetActualType(TypeSystem));
+            var thisType = TypeUtil.GetTypeDefinition(thisExpression.GetActualType(TypeSystem));
             Func<JSExpression> generate = () => {
                 var actualThis = @static ? new JSType(method.Method.DeclaringType.Definition) : thisExpression;
 
@@ -426,7 +426,7 @@ namespace JSIL {
             // Accesses to a base property should go through a regular method invocation, since
             //  javascript properties do not have a mechanism for base access
             if (method.Method.Member.HasThis) {                
-                if (!TypesAreEqual(method.Method.DeclaringType.Definition, thisType) && !@virtual) {
+                if (!TypeUtil.TypesAreEqual(method.Method.DeclaringType.Definition, thisType) && !@virtual) {
                     return null;
                 } else {
                     return generate();
@@ -434,415 +434,6 @@ namespace JSIL {
             }
 
             return generate();
-        }
-
-        public static TypeDefinition GetTypeDefinition (TypeReference typeRef, bool mapAllArraysToSystemArray = true) {
-            if (typeRef == null)
-                return null;
-
-            var ts = typeRef.Module.TypeSystem;
-            typeRef = DereferenceType(typeRef);
-
-            bool unwrapped = false;
-            do {
-                var rmt = typeRef as RequiredModifierType;
-                var omt = typeRef as OptionalModifierType;
-
-                if (rmt != null) {
-                    typeRef = rmt.ElementType;
-                    unwrapped = true;
-                } else if (omt != null) {
-                    typeRef = omt.ElementType;
-                    unwrapped = true;
-                } else {
-                    unwrapped = false;
-                }
-            } while (unwrapped);
-
-            var at = typeRef as ArrayType;
-            if (at != null) {
-                if (mapAllArraysToSystemArray)
-                    return new TypeReference(ts.Object.Namespace, "Array", ts.Object.Module, ts.Object.Scope).ResolveOrThrow();
-
-                var inner = GetTypeDefinition(at.ElementType, mapAllArraysToSystemArray);
-                if (inner != null)
-                    return (new ArrayType(inner, at.Rank)).Resolve();
-                else
-                    return null;
-            }
-
-            var gp = typeRef as GenericParameter;
-            if ((gp != null) && (gp.Owner == null))
-                return null;
-
-            else if (IsIgnoredType(typeRef))
-                return null;
-            else 
-                return typeRef.Resolve();
-        }
-
-        public static TypeReference FullyDereferenceType (TypeReference type, out int depth) {
-            depth = 0;
-
-            var brt = type as ByReferenceType;
-            while (brt != null) {
-                depth += 1;
-                type = brt.ElementType;
-                brt = type as ByReferenceType;
-            }
-
-            return type;
-        }
-
-        public static TypeReference DereferenceType (TypeReference type, bool dereferencePointers = false) {
-            var brt = type as ByReferenceType;
-            if (brt != null)
-                return brt.ElementType;
-
-            if (dereferencePointers) {
-                var pt = type as PointerType;
-                if (pt != null)
-                    return pt.ElementType;
-            }
-
-            return type;
-        }
-
-        public static bool IsNumeric (TypeReference type) {
-            type = DereferenceType(type);
-
-            switch (type.MetadataType) {
-                case MetadataType.Byte:
-                case MetadataType.SByte:
-                case MetadataType.Double:
-                case MetadataType.Single:
-                case MetadataType.Int16:
-                case MetadataType.Int32:
-                case MetadataType.Int64:
-                case MetadataType.UInt16:
-                case MetadataType.UInt32:
-                case MetadataType.UInt64:
-                    return true;
-                // Blech
-                case MetadataType.UIntPtr:
-                case MetadataType.IntPtr:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        public static bool IsIntegral (TypeReference type) {
-            type = DereferenceType(type);
-
-            switch (type.MetadataType) {
-                case MetadataType.Byte:
-                case MetadataType.SByte:
-                case MetadataType.Int16:
-                case MetadataType.Int32:
-                case MetadataType.Int64:
-                case MetadataType.UInt16:
-                case MetadataType.UInt32:
-                case MetadataType.UInt64:
-                    return true;
-                // Blech
-                case MetadataType.UIntPtr:
-                case MetadataType.IntPtr:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        public static bool IsEnum (TypeReference type) {
-            var typedef = GetTypeDefinition(type);
-            return (typedef != null) && (typedef.IsEnum);
-        }
-
-        public static bool IsBoolean (TypeReference type) {
-            type = DereferenceType(type);
-            return type.MetadataType == MetadataType.Boolean;
-        }
-
-        public static bool IsIgnoredType (TypeReference type) {
-            type = DereferenceType(type);
-
-            if (type == null)
-                return false;
-            else if (type.IsPointer)
-                return true;
-            else if (type.IsPinned)
-                return true;
-            else if (type.IsFunctionPointer)
-                return true;
-            else
-                return false;
-        }
-
-        public static bool IsDelegateType (TypeReference type) {
-            type = DereferenceType(type);
-
-            var typedef = GetTypeDefinition(type);
-            if (typedef == null)
-                return false;
-            if (typedef.FullName == "System.Delegate")
-                return true;
-
-            if (
-                (typedef != null) && (typedef.BaseType != null) &&
-                (
-                    (typedef.BaseType.FullName == "System.Delegate") ||
-                    (typedef.BaseType.FullName == "System.MulticastDelegate")
-                )
-            ) {
-                return true;
-            }
-
-            return false;
-        }
-
-        public static bool IsOpenType (TypeReference type) {
-            type = DereferenceType(type);
-
-            var gp = type as GenericParameter;
-            var git = type as GenericInstanceType;
-            var at = type as ArrayType;
-            var byref = type as ByReferenceType;
-
-            if (gp != null)
-                return true;
-
-            if (git != null) {
-                var elt = git.ElementType;
-
-                foreach (var ga in git.GenericArguments) {
-                    if (IsOpenType(ga))
-                        return true;
-                }
-
-                return IsOpenType(elt);
-            }
-
-            if (at != null)
-                return IsOpenType(at.ElementType);
-
-            if (byref != null)
-                return IsOpenType(byref.ElementType);
-
-            return false;
-        }
-
-        private static bool TypeInBases (TypeReference haystack, TypeReference needle, bool explicitGenericEquality) {
-            if ((haystack == null) || (needle == null))
-                return haystack == needle;
-
-            var dToWalk = haystack.Resolve();
-            var dSource = needle.Resolve();
-
-            if ((dToWalk == null) || (dSource == null))
-                return TypesAreEqual(haystack, needle, explicitGenericEquality);
-
-            var t = haystack;
-            while (t != null) {
-                if (TypesAreEqual(t, needle, explicitGenericEquality))
-                    return true;
-
-                var dT = t.Resolve();
-
-                if ((dT != null) && (dT.BaseType != null)) {
-                    var baseType = dT.BaseType;
-
-                    t = baseType;
-                } else
-                    break;
-            }
-
-            return false;
-        }
-
-        public static bool TypesAreEqual (TypeReference target, TypeReference source, bool strictEquality = false) {
-            if (target == source)
-                return true;
-            else if ((target == null) || (source == null))
-                return (target == source);
-
-            bool result;
-
-            int targetDepth, sourceDepth;
-            FullyDereferenceType(target, out targetDepth);
-            FullyDereferenceType(source, out sourceDepth);
-
-            var targetGp = target as GenericParameter;
-            var sourceGp = source as GenericParameter;
-
-            if ((targetGp != null) || (sourceGp != null)) {
-                if ((targetGp == null) || (sourceGp == null))
-                    return false;
-
-                // https://github.com/jbevain/cecil/issues/97
-
-                var targetOwnerType = targetGp.Owner as TypeReference;
-                var sourceOwnerType = sourceGp.Owner as TypeReference;
-
-                if ((targetOwnerType != null) || (sourceOwnerType != null)) {
-                    var basesEqual = false;
-
-                    if (TypeInBases(targetOwnerType, sourceOwnerType, strictEquality))
-                        basesEqual = true;
-                    else if (TypeInBases(sourceOwnerType, targetOwnerType, strictEquality))
-                        basesEqual = true;
-
-                    if (!basesEqual)
-                        return false;
-                } else {
-                    if (targetGp.Owner != sourceGp.Owner)
-                        return false;
-                }
-
-                if (targetGp.Type != sourceGp.Type)
-                    return false;
-
-                return (targetGp.Name == sourceGp.Name) && (targetGp.Position == sourceGp.Position);
-            }
-
-            var targetArray = target as ArrayType;
-            var sourceArray = source as ArrayType;
-
-            if ((targetArray != null) || (sourceArray != null)) {
-                if ((targetArray == null) || (sourceArray == null))
-                    return false;
-
-                if (targetArray.Rank != sourceArray.Rank)
-                    return false;
-
-                return TypesAreEqual(targetArray.ElementType, sourceArray.ElementType, strictEquality);
-            }
-
-            var targetGit = target as GenericInstanceType;
-            var sourceGit = source as GenericInstanceType;
-
-            if ((targetGit != null) || (sourceGit != null)) {
-                if (!strictEquality) {
-                    if ((targetGit != null) && TypesAreEqual(targetGit.ElementType, source))
-                        return true;
-                    if ((sourceGit != null) && TypesAreEqual(target, sourceGit.ElementType))
-                        return true;
-                }
-
-                if ((targetGit == null) || (sourceGit == null))
-                    return false;
-
-                if (targetGit.GenericArguments.Count != sourceGit.GenericArguments.Count)
-                    return false;
-
-                for (var i = 0; i < targetGit.GenericArguments.Count; i++) {
-                    if (!TypesAreEqual(targetGit.GenericArguments[i], sourceGit.GenericArguments[i], strictEquality))
-                        return false;
-                }
-
-                return TypesAreEqual(targetGit.ElementType, sourceGit.ElementType, strictEquality);
-            }
-
-            if ((target.IsByReference != source.IsByReference) || (targetDepth != sourceDepth))
-                result = false;
-            else if (target.IsPointer != source.IsPointer)
-                result = false;
-            else if (target.IsFunctionPointer != source.IsFunctionPointer)
-                result = false;
-            else if (target.IsPinned != source.IsPinned)
-                result = false;
-            else {
-                if (
-                    (target.Name == source.Name) &&
-                    (target.Namespace == source.Namespace) &&
-                    (target.Module == source.Module) &&
-                    TypesAreEqual(target.DeclaringType, source.DeclaringType, strictEquality)
-                )
-                    return true;
-
-                var dTarget = GetTypeDefinition(target);
-                var dSource = GetTypeDefinition(source);
-
-                if (Object.Equals(dTarget, dSource) && (dSource != null))
-                    result = true;
-                else if (Object.Equals(target, source))
-                    result = true;
-                else if (
-                    (dTarget != null) && (dSource != null) &&
-                    (dTarget.FullName == dSource.FullName)
-                )
-                    result = true;
-                else
-                    result = false;
-            }
-
-            return result;
-        }
-
-        public static IEnumerable<TypeDefinition> AllBaseTypesOf (TypeDefinition type) {
-            if (type == null)
-                yield break;
-
-            var baseType = GetTypeDefinition(type.BaseType);
-
-            while (baseType != null) {
-                yield return baseType;
-
-                baseType = GetTypeDefinition(baseType.BaseType);
-            }
-        }
-
-        public static bool TypesAreAssignable (ITypeInfoSource typeInfo, TypeReference target, TypeReference source) {
-            if ((target == null) || (source == null))
-                return false;
-
-            // All values are assignable to object
-            if (target.FullName == "System.Object")
-                return true;
-
-            int targetDepth, sourceDepth;
-            if (TypesAreEqual(FullyDereferenceType(target, out targetDepth), FullyDereferenceType(source, out sourceDepth))) {
-                if (targetDepth == sourceDepth)
-                    return true;
-            }
-
-            // Complex hack necessary because System.Array and T[] do not implement IEnumerable<T>
-            var targetGit = target as GenericInstanceType;
-            if (
-                (targetGit != null) &&
-                (targetGit.Name == "IEnumerable`1") &&
-                source.IsArray &&
-                (targetGit.GenericArguments.FirstOrDefault() == source.GetElementType())
-            )
-                return true;
-
-            var cacheKey = new Tuple<string, string>(target.FullName, source.FullName);
-            return typeInfo.AssignabilityCache.GetOrCreate(
-                cacheKey, () => {
-                    bool result = false;
-
-                    var dSource = GetTypeDefinition(source);
-
-                    if (TypeInBases(source, target, false))
-                        result = true;
-                    else if (dSource == null)
-                        result = false;
-                    else if (TypesAreEqual(target, dSource))
-                        result = true;
-                    else if ((dSource.BaseType != null) && TypesAreAssignable(typeInfo, target, dSource.BaseType))
-                        result = true;
-                    else {
-                        foreach (var iface in dSource.Interfaces) {
-                            if (TypesAreAssignable(typeInfo, target, iface)) {
-                                result = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    return result;
-                }
-            );
         }
 
         protected bool ContainsLabels (ILNode root) {
@@ -914,9 +505,9 @@ namespace JSIL {
         public JSExpression TranslateNode (ILExpression expression) {
             JSExpression result = null;
 
-            if ((expression.InferredType != null) && ILBlockTranslator.IsIgnoredType(expression.InferredType))
+            if ((expression.InferredType != null) && TypeUtil.IsIgnoredType(expression.InferredType))
                 return new JSUntranslatableExpression(expression);
-            if ((expression.ExpectedType != null) && ILBlockTranslator.IsIgnoredType(expression.ExpectedType))
+            if ((expression.ExpectedType != null) && TypeUtil.IsIgnoredType(expression.ExpectedType))
                 return new JSUntranslatableExpression(expression);
 
             var methodName = String.Format("Translate_{0}", expression.Code);
@@ -969,7 +560,7 @@ namespace JSIL {
                 (result != null) &&
                 (expression.ExpectedType != null) &&
                 (expression.InferredType != null) &&
-                !TypesAreAssignable(TypeInfo, expression.ExpectedType, expression.InferredType)
+                !TypeUtil.TypesAreAssignable(TypeInfo, expression.ExpectedType, expression.InferredType)
             ) {
                 // ILSpy bug
 
@@ -1275,7 +866,7 @@ namespace JSIL {
         // Represents a nullable operand in an arithmetic/logic expression that is wrapped by a NullableOf expression.
         protected JSExpression Translate_ValueOf (ILExpression node) {
             var inner = TranslateNode(node.Arguments[0]);
-            var innerType = DereferenceType(inner.GetActualType(TypeSystem));
+            var innerType = TypeUtil.DereferenceType(inner.GetActualType(TypeSystem));
 
             var innerTypeGit = innerType as GenericInstanceType;
             if (innerTypeGit != null)
@@ -1444,8 +1035,8 @@ namespace JSIL {
             // FIXME: ILSpy generates invalid type information for ternary operators.
             //  Detect invalid type information and replace it with less-invalid type information.
             if (
-                (!TypesAreEqual(left.ExpectedType, right.ExpectedType)) ||
-                (!TypesAreEqual(left.InferredType, right.InferredType))
+                (!TypeUtil.TypesAreEqual(left.ExpectedType, right.ExpectedType)) ||
+                (!TypeUtil.TypesAreEqual(left.InferredType, right.InferredType))
             ) {
                 left.ExpectedType = left.InferredType;
                 right.ExpectedType = right.InferredType;
@@ -1584,7 +1175,7 @@ namespace JSIL {
                 result = new JSIndirectVariable(Variables, variable.Name, ThisMethodReference);
 
             var expectedType = node.ExpectedType ?? node.InferredType ?? variable.Type;
-            if (!TypesAreAssignable(TypeInfo, expectedType, variable.Type))
+            if (!TypeUtil.TypesAreAssignable(TypeInfo, expectedType, variable.Type))
                 result = Translate_Conv(result, expectedType);
 
             return result;
@@ -1606,7 +1197,7 @@ namespace JSIL {
                 return new JSNullExpression();
 
             var expectedType = node.InferredType ?? node.ExpectedType ?? variable.Type;
-            if (!TypesAreAssignable(TypeInfo, expectedType, value.GetActualType(TypeSystem)))
+            if (!TypeUtil.TypesAreAssignable(TypeInfo, expectedType, value.GetActualType(TypeSystem)))
                 value = Translate_Conv(value, expectedType);
 
             JSVariable jsv;
@@ -1635,7 +1226,7 @@ namespace JSIL {
             var fieldInfo = TypeInfo.GetField(field);
             if (fieldInfo == null)
                 return new JSIgnoredMemberReference(true, null, JSLiteral.New(field.FullName));
-            else if (IsIgnoredType(field.FieldType) || fieldInfo.IsIgnored)
+            else if (TypeUtil.IsIgnoredType(field.FieldType) || fieldInfo.IsIgnored)
                 return new JSIgnoredMemberReference(true, fieldInfo);
 
             JSExpression result = new JSDotExpression(
@@ -1653,7 +1244,7 @@ namespace JSIL {
             var fieldInfo = TypeInfo.GetField(field);
             if (fieldInfo == null)
                 return new JSIgnoredMemberReference(true, null, JSLiteral.New(field.FullName));
-            else if (IsIgnoredType(field.FieldType) || fieldInfo.IsIgnored)
+            else if (TypeUtil.IsIgnoredType(field.FieldType) || fieldInfo.IsIgnored)
                 return new JSIgnoredMemberReference(true, fieldInfo);
 
             return new JSMemberReferenceExpression(
@@ -1684,7 +1275,7 @@ namespace JSIL {
                 return new JSNullExpression();
 
             var fieldInfo = TypeInfo.GetField(field);
-            if (IsIgnoredType(field.FieldType) || (fieldInfo == null) || fieldInfo.IsIgnored)
+            if (TypeUtil.IsIgnoredType(field.FieldType) || (fieldInfo == null) || fieldInfo.IsIgnored)
                 return new JSIgnoredMemberReference(true, fieldInfo, translated);
 
             JSExpression thisExpression;
@@ -1725,7 +1316,7 @@ namespace JSIL {
             var translated = TranslateNode(firstArg);
 
             var fieldInfo = TypeInfo.GetField(field);
-            if (IsIgnoredType(field.FieldType) || (fieldInfo == null) || fieldInfo.IsIgnored)
+            if (TypeUtil.IsIgnoredType(field.FieldType) || (fieldInfo == null) || fieldInfo.IsIgnored)
                 return new JSIgnoredMemberReference(true, fieldInfo, translated);
 
             JSExpression thisExpression;
@@ -1941,7 +1532,7 @@ namespace JSIL {
                 return arg;
 
             var argType = arg.GetActualType(TypeSystem);
-            var argTypeDef = GetTypeDefinition(argType);
+            var argTypeDef = TypeUtil.GetTypeDefinition(argType);
             PropertyDefinition lengthProp = null;
             if (argTypeDef != null)
                 lengthProp = (from p in argTypeDef.Properties where p.Name == "Length" select p).FirstOrDefault();
@@ -2012,7 +1603,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Castclass (ILExpression node, TypeReference targetType) {
-            if (IsDelegateType(targetType) && IsDelegateType(node.InferredType ?? node.ExpectedType)) {
+            if (TypeUtil.IsDelegateType(targetType) && TypeUtil.IsDelegateType(node.InferredType ?? node.ExpectedType)) {
                 // TODO: We treat all delegate types as equivalent, so we can skip these casts for now
                 return TranslateNode(node.Arguments[0]);
             }
@@ -2051,24 +1642,19 @@ namespace JSIL {
                 return result;
         }
 
-        protected bool IsNumericOrEnum (TypeReference type) {
-            var typedef = GetTypeDefinition(type);
-            return IsNumeric(type) || ((typedef != null) && typedef.IsEnum);
-        }
-
         protected JSExpression Translate_Conv (JSExpression value, TypeReference expectedType) {
             var currentType = value.GetActualType(TypeSystem);
 
-            if (TypesAreEqual(expectedType, currentType))
+            if (TypeUtil.TypesAreEqual(expectedType, currentType))
                 return value;
 
             int currentDepth, expectedDepth;
-            var currentDerefed = FullyDereferenceType(currentType, out currentDepth);
-            var expectedDerefed = FullyDereferenceType(expectedType, out expectedDepth);
+            var currentDerefed = TypeUtil.FullyDereferenceType(currentType, out currentDepth);
+            var expectedDerefed = TypeUtil.FullyDereferenceType(expectedType, out expectedDepth);
 
             // Handle assigning a value of type 'T&&' to a variable of type 'T&', etc.
             // 'AreTypesAssignable' will return false, because the types are not equivalent, but no cast is necessary.
-            if (TypesAreEqual(expectedDerefed, currentDerefed)) {
+            if (TypeUtil.TypesAreEqual(expectedDerefed, currentDerefed)) {
                 if (currentDepth > expectedDepth) {
                     // If the current expression has more levels of reference than the target type, we must dereference
                     //  the current expression one or more times to strip off the reference levels.
@@ -2090,14 +1676,14 @@ namespace JSIL {
                 }
             }
 
-            if (IsDelegateType(expectedType) && IsDelegateType(currentType))
+            if (TypeUtil.IsDelegateType(expectedType) && TypeUtil.IsDelegateType(currentType))
                 return value;
 
-            if (IsNumericOrEnum(currentType) && IsNumericOrEnum(expectedType)) {
+            if (TypeUtil.IsNumericOrEnum(currentType) && TypeUtil.IsNumericOrEnum(expectedType)) {
                 return JSCastExpression.New(value, expectedType, TypeSystem);
-            } else if (!TypesAreAssignable(TypeInfo, expectedType, currentType)) {
+            } else if (!TypeUtil.TypesAreAssignable(TypeInfo, expectedType, currentType)) {
                 if (expectedType.FullName == "System.Boolean") {
-                    if (IsIntegral(currentType)) {
+                    if (TypeUtil.IsIntegral(currentType)) {
                         // i != 0 sometimes becomes (bool)i, so we want to generate the explicit form
                         return new JSBinaryOperatorExpression(
                             JSOperator.NotEqual, value, JSLiteral.New(0), TypeSystem.Boolean
@@ -2122,7 +1708,7 @@ namespace JSIL {
         protected JSExpression Translate_Conv (ILExpression node, TypeReference targetType) {
             var value = TranslateNode(node.Arguments[0]);
 
-            if (!ILBlockTranslator.TypesAreAssignable(TypeInfo, targetType, value.GetActualType(TypeSystem)))
+            if (!TypeUtil.TypesAreAssignable(TypeInfo, targetType, value.GetActualType(TypeSystem)))
                 return Translate_Conv(value, targetType);
             else
                 return value;
@@ -2231,7 +1817,7 @@ namespace JSIL {
                             methodDef.IsPrivate && compilerGenerated
                         ) || (
                             compilerGenerated &&
-                            TypesAreEqual(
+                            TypeUtil.TypesAreEqual(
                                 thisArg.GetActualType(TypeSystem),
                                 methodDef.DeclaringType
                             )
@@ -2283,7 +1869,7 @@ namespace JSIL {
         protected JSExpression Translate_Newobj (ILExpression node, MethodReference constructor) {
             var arguments = Translate(node.Arguments);
 
-            if (IsDelegateType(constructor.DeclaringType)) {
+            if (TypeUtil.IsDelegateType(constructor.DeclaringType)) {
                 return Translate_Newobj_Delegate(node, constructor, arguments);
             } else if (constructor.DeclaringType.IsArray) {
                 return JSIL.NewMultidimensionalArray(
@@ -2335,7 +1921,7 @@ namespace JSIL {
             if (at != null)
                 rank = at.Rank;
 
-            if (TypesAreEqual(TypeSystem.Object, at) && rank < 2)
+            if (TypeUtil.TypesAreEqual(TypeSystem.Object, at) && rank < 2)
                 return initializer;
             else {
                 if (rank > 1) {
@@ -2492,7 +2078,7 @@ namespace JSIL {
             )
                 return false;
 
-            var sameThisReference = TypesAreEqual(declaringTypeDef, thisReferenceType, false);
+            var sameThisReference = TypeUtil.TypesAreEqual(declaringTypeDef, thisReferenceType, false);
 
             var isInterfaceMethod = (declaringTypeDef != null) && (declaringTypeDef.IsInterface);
 
@@ -2525,9 +2111,9 @@ namespace JSIL {
             if (methodInfo == null)
                 return new JSIgnoredMemberReference(true, null, JSLiteral.New(method.FullName));
 
-            var declaringType = DereferenceType(method.DeclaringType);
+            var declaringType = TypeUtil.DereferenceType(method.DeclaringType);
 
-            var declaringTypeDef = GetTypeDefinition(declaringType);
+            var declaringTypeDef = TypeUtil.GetTypeDefinition(declaringType);
             var declaringTypeInfo = TypeInfo.Get(declaringType);
 
             var arguments = Translate(node.Arguments, method.Parameters, method.HasThis);
@@ -2539,7 +2125,7 @@ namespace JSIL {
                 var firstArg =  node.Arguments.First();
                 var ilv = firstArg.Operand as ILVariable;
 
-                var firstArgType = DereferenceType(firstArg.ExpectedType);
+                var firstArgType = TypeUtil.DereferenceType(firstArg.ExpectedType);
 
                 if (IsInvalidThisExpression(firstArg)) {
                     if (!JSReferenceExpression.TryDereference(JSIL, arguments[0], out thisExpression)) {
@@ -2559,7 +2145,7 @@ namespace JSIL {
 
                 var thisReferenceType = thisExpression.GetActualType(TypeSystem);
 
-                var isSelf = TypesAreAssignable(
+                var isSelf = TypeUtil.TypesAreAssignable(
                     TypeInfo, thisReferenceType, ThisMethod.DeclaringType
                 );
 
@@ -2580,7 +2166,7 @@ namespace JSIL {
 
             if (method.ReturnType.MetadataType != MetadataType.Void) {
                 var expectedType = node.ExpectedType ?? node.InferredType ?? method.ReturnType;
-                if (!TypesAreAssignable(TypeInfo, expectedType, result.GetActualType(TypeSystem)))
+                if (!TypeUtil.TypesAreAssignable(TypeInfo, expectedType, result.GetActualType(TypeSystem)))
                     result = Translate_Conv(result, expectedType);
             }
 
@@ -2597,7 +2183,7 @@ namespace JSIL {
             if (thisNode.InferredType == null)
                 return false;
 
-            var dereferenced = DereferenceType(thisNode.InferredType);
+            var dereferenced = TypeUtil.DereferenceType(thisNode.InferredType);
             if ((dereferenced != null) && dereferenced.IsValueType)
                 return true;
 
@@ -2631,14 +2217,14 @@ namespace JSIL {
 
             var explicitThis = methodInfo.IsConstructor;
             if (!methodInfo.IsVirtual) {
-                var declaringType = DereferenceType(method.DeclaringType);
+                var declaringType = TypeUtil.DereferenceType(method.DeclaringType);
 
-                var declaringTypeDef = GetTypeDefinition(declaringType);
+                var declaringTypeDef = TypeUtil.GetTypeDefinition(declaringType);
                 var declaringTypeInfo = TypeInfo.Get(declaringType);
 
                 var thisReferenceType = thisExpression.GetActualType(TypeSystem);
 
-                var isSelf = TypesAreAssignable(
+                var isSelf = TypeUtil.TypesAreAssignable(
                     TypeInfo, thisReferenceType, ThisMethod.DeclaringType
                 );
 
@@ -2656,7 +2242,7 @@ namespace JSIL {
 
             if (method.ReturnType.MetadataType != MetadataType.Void) {
                 var expectedType = node.ExpectedType ?? node.InferredType ?? method.ReturnType;
-                if (!TypesAreAssignable(TypeInfo, expectedType, result.GetActualType(TypeSystem)))
+                if (!TypeUtil.TypesAreAssignable(TypeInfo, expectedType, result.GetActualType(TypeSystem)))
                     result = Translate_Conv(result, expectedType);
             }
 

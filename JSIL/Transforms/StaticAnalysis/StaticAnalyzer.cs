@@ -351,7 +351,7 @@ namespace JSIL.Transforms {
                 SourceType = sourceType;
                 TargetType = targetType;
                 Operator = @operator;
-                IsConversion = !ILBlockTranslator.TypesAreEqual(targetType, sourceType);
+                IsConversion = !TypeUtil.TypesAreEqual(targetType, sourceType);
             }
 
             public override string ToString () {

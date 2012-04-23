@@ -203,7 +203,7 @@ namespace JSIL.Transforms {
                     continue;
 
                 var valueType = v.GetActualType(TypeSystem);
-                if (ILBlockTranslator.IsIgnoredType(valueType))
+                if (TypeUtil.IsIgnoredType(valueType))
                     continue;
 
                 var assignments = (from a in FirstPass.Assignments where v.Equals(a.Target) select a).ToArray();

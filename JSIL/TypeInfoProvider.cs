@@ -201,7 +201,7 @@ namespace JSIL {
                 return;
 
             if (!TypeInformation.ContainsKey(identifier)) {
-                var typedef = ILBlockTranslator.GetTypeDefinition(typeReference);
+                var typedef = TypeUtil.GetTypeDefinition(typeReference);
                 if (typedef == null)
                     return;
 
@@ -310,7 +310,7 @@ namespace JSIL {
                 else if (moreTypes.ContainsKey(_identifier))
                     return;
 
-                var td = ILBlockTranslator.GetTypeDefinition(tr);
+                var td = TypeUtil.GetTypeDefinition(tr);
                 if (td == null)
                     return;
 

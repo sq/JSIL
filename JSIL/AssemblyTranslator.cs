@@ -1169,7 +1169,7 @@ namespace JSIL {
                 .Where(v => v != null && !v.IsParameter).Distinct().ToArray();
 
             foreach (var v in allVariables) {
-                if (ILBlockTranslator.IsIgnoredType(v.Type)) {
+                if (TypeUtil.IsIgnoredType(v.Type)) {
                     return null; // return null;
                 }
             }
@@ -1465,7 +1465,7 @@ namespace JSIL {
                         var expectedType = ile.Arguments[0].ExpectedType;
 
                         // If the field's value is of an ignored type then we ignore the initialization since it probably won't translate anyway.
-                        if (ILBlockTranslator.IsIgnoredType(expectedType))
+                        if (TypeUtil.IsIgnoredType(expectedType))
                             continue;
 
                         JSExpression defaultValue = null;
@@ -1493,7 +1493,7 @@ namespace JSIL {
 
                         var typeReferences = defaultValue.AllChildrenRecursive.OfType<JSType>();
                         foreach (var typeReference in typeReferences) {
-                            if (ILBlockTranslator.TypesAreEqual(typeReference.Type, realCctor.DeclaringType))
+                            if (TypeUtil.TypesAreEqual(typeReference.Type, realCctor.DeclaringType))
                                 defaultValue.ReplaceChildRecursive(typeReference, new JSStringIdentifier("$", realCctor.DeclaringType));
                         }
 
@@ -1599,7 +1599,7 @@ namespace JSIL {
                         var types = fn.AllChildrenRecursive.OfType<JSType>();
 
                         foreach (var t in types) {
-                            if (ILBlockTranslator.TypesAreEqual(t.Type, declaringType))
+                            if (TypeUtil.TypesAreEqual(t.Type, declaringType))
                                 fn.ReplaceChildRecursive(t, newJSType);
                         }
                     }

@@ -108,12 +108,12 @@ namespace JSIL.Transforms {
                     return;
                 } else if (
                     (type != null) &&
-                    ILBlockTranslator.TypesAreEqual(TypeSystem.String, type.Type) &&
+                    TypeUtil.TypesAreEqual(TypeSystem.String, type.Type) &&
                     (method.Method.Name == "Concat")
                 ) {
                     if (ie.Arguments.Count > 2) {
                         if (ie.Arguments.All(
-                            (arg) => ILBlockTranslator.TypesAreEqual(
+                            (arg) => TypeUtil.TypesAreEqual(
                                 TypeSystem.String, arg.GetActualType(TypeSystem)
                             )
                         )) {
@@ -134,19 +134,19 @@ namespace JSIL.Transforms {
                         ie.Arguments.Count == 2
                     ) {
                         var lhs = ie.Arguments[0];
-                        var lhsType = ILBlockTranslator.DereferenceType(lhs.GetActualType(TypeSystem));
+                        var lhsType = TypeUtil.DereferenceType(lhs.GetActualType(TypeSystem));
                         if (!(
-                            ILBlockTranslator.TypesAreEqual(TypeSystem.String, lhsType) ||
-                            ILBlockTranslator.TypesAreEqual(TypeSystem.Char, lhsType)
+                            TypeUtil.TypesAreEqual(TypeSystem.String, lhsType) ||
+                            TypeUtil.TypesAreEqual(TypeSystem.Char, lhsType)
                         )) {
                             lhs = JSInvocationExpression.InvokeMethod(lhsType, JS.toString, lhs, null);
                         }
 
                         var rhs = ie.Arguments[1];
-                        var rhsType = ILBlockTranslator.DereferenceType(rhs.GetActualType(TypeSystem));
+                        var rhsType = TypeUtil.DereferenceType(rhs.GetActualType(TypeSystem));
                         if (!(
-                            ILBlockTranslator.TypesAreEqual(TypeSystem.String, rhsType) ||
-                            ILBlockTranslator.TypesAreEqual(TypeSystem.Char, rhsType)
+                            TypeUtil.TypesAreEqual(TypeSystem.String, rhsType) ||
+                            TypeUtil.TypesAreEqual(TypeSystem.Char, rhsType)
                         )) {
                             rhs = JSInvocationExpression.InvokeMethod(rhsType, JS.toString, rhs, null);
                         }
@@ -161,7 +161,7 @@ namespace JSIL.Transforms {
 
                         VisitReplacement(boe);
                     } else if (
-                        ILBlockTranslator.GetTypeDefinition(ie.Arguments[0].GetActualType(TypeSystem)).FullName == "System.Array"
+                        TypeUtil.GetTypeDefinition(ie.Arguments[0].GetActualType(TypeSystem)).FullName == "System.Array"
                     ) {
                     } else {
                         var firstArg = ie.Arguments.FirstOrDefault();
@@ -175,7 +175,7 @@ namespace JSIL.Transforms {
                     }
                     return;
                 } else if (
-                    ILBlockTranslator.IsDelegateType(method.Reference.DeclaringType) &&
+                    TypeUtil.IsDelegateType(method.Reference.DeclaringType) &&
                     (method.Method.Name == "Invoke")
                 ) {
                     var newIe = new JSDelegateInvocationExpression(
@@ -275,7 +275,7 @@ namespace JSIL.Transforms {
         }
 
         protected bool IsNullable (TypeReference type) {
-            var git = ILBlockTranslator.DereferenceType(type) as GenericInstanceType;
+            var git = TypeUtil.DereferenceType(type) as GenericInstanceType;
 
             return (git != null) && (git.Name == "Nullable`1");
         }

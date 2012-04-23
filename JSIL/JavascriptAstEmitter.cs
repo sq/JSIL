@@ -475,12 +475,12 @@ namespace JSIL {
         }
 
         public void VisitNode (JSDefaultValueLiteral defaultValue) {
-            if (ILBlockTranslator.IsEnum(defaultValue.Value)) {
+            if (TypeUtil.IsEnum(defaultValue.Value)) {
                 var enumInfo = TypeInfo.Get(defaultValue.Value);
                 Output.Identifier(defaultValue.Value, ReferenceContext);
                 Output.Dot();
                 Output.Identifier(enumInfo.FirstEnumMember.Name);
-            } else if (TypeAnalysis.IsIntegerOrEnum(defaultValue.Value)) {
+            } else if (TypeUtil.IsIntegralOrEnum(defaultValue.Value)) {
                 Output.Value(0);
             } else if (!defaultValue.Value.IsValueType) {
                 Output.WriteRaw("null");
@@ -927,9 +927,9 @@ namespace JSIL {
             // We need to perform manual truncation to maintain the semantics of C#'s division operator
             if ((bop.Operator == JSOperator.Divide)) {
                 needsTruncation =                     
-                    (ILBlockTranslator.IsIntegral(bop.Left.GetActualType(TypeSystem)) ||
-                    ILBlockTranslator.IsIntegral(bop.Right.GetActualType(TypeSystem))) &&
-                    ILBlockTranslator.IsIntegral(bop.GetActualType(TypeSystem));
+                    (TypeUtil.IsIntegral(bop.Left.GetActualType(TypeSystem)) ||
+                    TypeUtil.IsIntegral(bop.Right.GetActualType(TypeSystem))) &&
+                    TypeUtil.IsIntegral(bop.GetActualType(TypeSystem));
 
                 parens |= needsTruncation;
             }

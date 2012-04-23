@@ -30,11 +30,11 @@ namespace JSIL.Tests {
 
         [Test]
         public void BasicTypeEquality () {
-            Assert.IsTrue(ILBlockTranslator.TypesAreEqual(T1, T1));
-            Assert.IsTrue(ILBlockTranslator.TypesAreEqual(T1, T1_2));
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(T1, T2));
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(T2, T3));
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(T1, T3));
+            Assert.IsTrue(TypeUtil.TypesAreEqual(T1, T1));
+            Assert.IsTrue(TypeUtil.TypesAreEqual(T1, T1_2));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(T1, T2));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(T2, T3));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(T1, T3));
         }
 
         [Test]
@@ -44,15 +44,15 @@ namespace JSIL.Tests {
             var at3 = new ArrayType(T3);
             var at4 = new ArrayType(T1, 2);
 
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(at1, T1));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(at1, T1));
 
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(at1, T1));
-            Assert.IsTrue(ILBlockTranslator.TypesAreEqual(at1, at1));
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(at1, at2));
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(at1, at3));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(at1, T1));
+            Assert.IsTrue(TypeUtil.TypesAreEqual(at1, at1));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(at1, at2));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(at1, at3));
 
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(at1, at4, true));
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(at1, at4, false));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(at1, at4, true));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(at1, at4, false));
         }
 
         [Test]
@@ -62,12 +62,12 @@ namespace JSIL.Tests {
             var rt2 = new ByReferenceType(T2);
             var rt3 = new ByReferenceType(T3);
 
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(rt1, T1));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(rt1, T1));
 
-            Assert.IsTrue(ILBlockTranslator.TypesAreEqual(rt1, rt1));
-            Assert.IsTrue(ILBlockTranslator.TypesAreEqual(rt1, rt1_2));
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(rt1, rt2));
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(rt1, rt3));
+            Assert.IsTrue(TypeUtil.TypesAreEqual(rt1, rt1));
+            Assert.IsTrue(TypeUtil.TypesAreEqual(rt1, rt1_2));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(rt1, rt2));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(rt1, rt3));
         }
 
         [Test]
@@ -77,12 +77,12 @@ namespace JSIL.Tests {
             var git2 = new GenericInstanceType(T2);
 
             // FIXME: Is this correct?
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(git1, T1, true));
-            Assert.IsTrue(ILBlockTranslator.TypesAreEqual(git1, T1, false));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(git1, T1, true));
+            Assert.IsTrue(TypeUtil.TypesAreEqual(git1, T1, false));
 
-            Assert.IsTrue(ILBlockTranslator.TypesAreEqual(git1, git1));
-            Assert.IsTrue(ILBlockTranslator.TypesAreEqual(git1, git1_2));
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(git1, git2));
+            Assert.IsTrue(TypeUtil.TypesAreEqual(git1, git1));
+            Assert.IsTrue(TypeUtil.TypesAreEqual(git1, git1_2));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(git1, git2));
         }
 
         [Test]
@@ -96,12 +96,12 @@ namespace JSIL.Tests {
             var git4 = new GenericInstanceType(T2);
             git4.GenericArguments.Add(T1);
 
-            Assert.IsTrue(ILBlockTranslator.TypesAreEqual(git1, git1));
-            Assert.IsTrue(ILBlockTranslator.TypesAreEqual(git1, git2));
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(git1, git3, true));
-            Assert.IsTrue(ILBlockTranslator.TypesAreEqual(git1, git3, false));
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(git3, git4));
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(git1, git4));
+            Assert.IsTrue(TypeUtil.TypesAreEqual(git1, git1));
+            Assert.IsTrue(TypeUtil.TypesAreEqual(git1, git2));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(git1, git3, true));
+            Assert.IsTrue(TypeUtil.TypesAreEqual(git1, git3, false));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(git3, git4));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(git1, git4));
         }
 
         [Test]
@@ -112,21 +112,21 @@ namespace JSIL.Tests {
             var gp3 = new GenericParameter("GP1", T2);
             var gp4 = new GenericParameter("GP1", T3);
 
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(gp1, T1));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(gp1, T1));
 
-            Assert.IsTrue(ILBlockTranslator.TypesAreEqual(gp1, gp1));
-            Assert.IsTrue(ILBlockTranslator.TypesAreEqual(gp1, gp1_2));
+            Assert.IsTrue(TypeUtil.TypesAreEqual(gp1, gp1));
+            Assert.IsTrue(TypeUtil.TypesAreEqual(gp1, gp1_2));
 
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(gp1, gp2, true));
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(gp1, gp2, false));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(gp1, gp2, true));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(gp1, gp2, false));
 
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(gp1, gp3));
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(gp1, gp4));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(gp1, gp3));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(gp1, gp4));
 
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(gp2, gp3));
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(gp2, gp4));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(gp2, gp3));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(gp2, gp4));
 
-            Assert.IsFalse(ILBlockTranslator.TypesAreEqual(gp3, gp4));
+            Assert.IsFalse(TypeUtil.TypesAreEqual(gp3, gp4));
         }
     }
 }

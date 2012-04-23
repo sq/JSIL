@@ -406,7 +406,7 @@ namespace JSIL.Internal {
             if (IsAnyType(lhs) || IsAnyType(rhs))
                 return true;
 
-            return ILBlockTranslator.TypesAreEqual(lhs, rhs);
+            return TypeUtil.TypesAreEqual(lhs, rhs);
         }
 
         public bool Equals (MemberIdentifier rhs, ITypeInfoSource typeInfo) {
@@ -565,28 +565,28 @@ namespace JSIL.Internal {
             }
 
             foreach (var field in proxyType.Fields) {
-                if (!ILBlockTranslator.TypesAreEqual(field.DeclaringType, proxyType))
+                if (!TypeUtil.TypesAreEqual(field.DeclaringType, proxyType))
                     continue;
 
                 Fields.Add(new MemberIdentifier(typeInfo, field), field);
             }
 
             foreach (var property in proxyType.Properties) {
-                if (!ILBlockTranslator.TypesAreEqual(property.DeclaringType, proxyType))
+                if (!TypeUtil.TypesAreEqual(property.DeclaringType, proxyType))
                     continue;
 
                 Properties.Add(new MemberIdentifier(typeInfo, property), property);
             }
 
             foreach (var evt in proxyType.Events) {
-                if (!ILBlockTranslator.TypesAreEqual(evt.DeclaringType, proxyType))
+                if (!TypeUtil.TypesAreEqual(evt.DeclaringType, proxyType))
                     continue;
 
                 Events.Add(new MemberIdentifier(typeInfo, evt), evt);
             }
 
             foreach (var method in proxyType.Methods) {
-                if (!ILBlockTranslator.TypesAreEqual(method.DeclaringType, proxyType))
+                if (!TypeUtil.TypesAreEqual(method.DeclaringType, proxyType))
                     continue;
 
                 if ((method.Name == ".cctor") && method.CustomAttributes.Any((ca) => ca.AttributeType.FullName == "JSIL.Meta.JSExtraStaticConstructor")) {
@@ -630,9 +630,9 @@ namespace JSIL.Internal {
             foreach (var pt in ProxiedTypes) {
                 bool isMatch;
                 if (inheritable)
-                    isMatch = ILBlockTranslator.TypesAreAssignable(TypeInfo, pt, type);
+                    isMatch = TypeUtil.TypesAreAssignable(TypeInfo, pt, type);
                 else
-                    isMatch = ILBlockTranslator.TypesAreEqual(pt, type);
+                    isMatch = TypeUtil.TypesAreEqual(pt, type);
 
                 if (isMatch)
                     return true;
@@ -643,7 +643,7 @@ namespace JSIL.Internal {
                     return true;
 
                 if (inheritable)
-                    foreach (var baseType in ILBlockTranslator.AllBaseTypesOf(ILBlockTranslator.GetTypeDefinition(type))) {
+                    foreach (var baseType in TypeUtil.AllBaseTypesOf(TypeUtil.GetTypeDefinition(type))) {
                         if (ProxiedTypeNames.Contains(baseType.FullName))
                             return true;
                     }
@@ -1305,7 +1305,7 @@ namespace JSIL.Internal {
 
         internal bool IsTypeIgnored (TypeReference t, out TypeInfo typeInfo) {
             typeInfo = null;
-            if (ILBlockTranslator.IsIgnoredType(t))
+            if (TypeUtil.IsIgnoredType(t))
                 return true;
 
             if (t.IsPrimitive)
@@ -1644,7 +1644,7 @@ namespace JSIL.Internal {
             FieldDefinition field, ProxyInfo[] proxies
         ) : base(
             parent, identifier, field, proxies, 
-            ILBlockTranslator.IsIgnoredType(field.FieldType), false, false
+            TypeUtil.IsIgnoredType(field.FieldType), false, false
         ) {
             OriginalName = TypeInfo.GetOriginalName(Name);
         }
@@ -1674,7 +1674,7 @@ namespace JSIL.Internal {
             PropertyDefinition property, ProxyInfo[] proxies, bool isFromProxy
         ) : base(
             parent, identifier, property, proxies, 
-            ILBlockTranslator.IsIgnoredType(property.PropertyType), false, isFromProxy
+            TypeUtil.IsIgnoredType(property.PropertyType), false, isFromProxy
         ) {
             ShortName = GetShortName(property);
         }
@@ -1748,8 +1748,8 @@ namespace JSIL.Internal {
             MethodDefinition method, ProxyInfo[] proxies, bool isFromProxy
         ) : base (
             parent, identifier, method, proxies,
-            ILBlockTranslator.IsIgnoredType(method.ReturnType) || 
-                method.Parameters.Any((p) => ILBlockTranslator.IsIgnoredType(p.ParameterType)),
+            TypeUtil.IsIgnoredType(method.ReturnType) || 
+                method.Parameters.Any((p) => TypeUtil.IsIgnoredType(p.ParameterType)),
             method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall || method.IsPInvokeImpl,
             isFromProxy
         ) {
@@ -1768,8 +1768,8 @@ namespace JSIL.Internal {
             PropertyInfo property, bool isFromProxy
         ) : base (
             parent, identifier, method, proxies,
-            ILBlockTranslator.IsIgnoredType(method.ReturnType) || 
-                method.Parameters.Any((p) => ILBlockTranslator.IsIgnoredType(p.ParameterType)),
+            TypeUtil.IsIgnoredType(method.ReturnType) || 
+                method.Parameters.Any((p) => TypeUtil.IsIgnoredType(p.ParameterType)),
             method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || 
                 method.IsInternalCall || method.IsPInvokeImpl || property.IsExternal,
             isFromProxy
@@ -1790,8 +1790,8 @@ namespace JSIL.Internal {
             EventInfo evt, bool isFromProxy
         ) : base(
             parent, identifier, method, proxies,
-            ILBlockTranslator.IsIgnoredType(method.ReturnType) ||
-                method.Parameters.Any((p) => ILBlockTranslator.IsIgnoredType(p.ParameterType)),
+            TypeUtil.IsIgnoredType(method.ReturnType) ||
+                method.Parameters.Any((p) => TypeUtil.IsIgnoredType(p.ParameterType)),
             method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall || method.IsPInvokeImpl,
             isFromProxy
         ) {
@@ -2084,7 +2084,7 @@ namespace JSIL.Internal {
             }
 
             public bool Equals (MethodSignature rhs) {
-                if (!ILBlockTranslator.TypesAreEqual(
+                if (!TypeUtil.TypesAreEqual(
                     ReturnType, rhs.ReturnType
                 ))
                     return false;
@@ -2095,7 +2095,7 @@ namespace JSIL.Internal {
                 using (var e1 = ParameterTypes.GetEnumerator())
                 using (var e2 = rhs.ParameterTypes.GetEnumerator())
                     while (e1.MoveNext() && e2.MoveNext()) {
-                        if (!ILBlockTranslator.TypesAreEqual(e1.Current, e2.Current))
+                        if (!TypeUtil.TypesAreEqual(e1.Current, e2.Current))
                             return false;
                     }
 
@@ -2132,7 +2132,7 @@ namespace JSIL.Internal {
                     var systemModule = typeSystem.Boolean.Resolve().Module;
                     bool hasReturnType;
 
-                    if (ILBlockTranslator.TypesAreEqual(typeSystem.Void, returnType)) {
+                    if (TypeUtil.TypesAreEqual(typeSystem.Void, returnType)) {
                         hasReturnType = false;
                         var name = String.Format("System.Action`{0}", signature.ParameterCount);
                         genericDelegateType = systemModule.GetType(

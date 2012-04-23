@@ -374,7 +374,7 @@ namespace JSIL.Internal {
 
             if (context != null) {
                 if (ownerType != null) {
-                    if (ILBlockTranslator.TypesAreAssignable(TypeInfo, ownerType, context.SignatureMethodType)) {
+                    if (TypeUtil.TypesAreAssignable(TypeInfo, ownerType, context.SignatureMethodType)) {
                         TypeReference resolved = null;
 
                         var git = (context.SignatureMethodType as GenericInstanceType);
@@ -405,17 +405,17 @@ namespace JSIL.Internal {
                         }
                     }
 
-                    if (ILBlockTranslator.TypesAreEqual(ownerType, context.EnclosingMethodType)) {
+                    if (TypeUtil.TypesAreEqual(ownerType, context.EnclosingMethodType)) {
                         TypeIdentifier(gp, context, false);
                         return;
                     }
 
-                    if (ILBlockTranslator.TypesAreEqual(ownerType, context.DefiningType)) {
+                    if (TypeUtil.TypesAreEqual(ownerType, context.DefiningType)) {
                         OpenGenericParameter(gp.Name, context.DefiningType.FullName);
                         return;
                     }
 
-                    if (ILBlockTranslator.TypesAreEqual(ownerType, context.EnclosingType)) {
+                    if (TypeUtil.TypesAreEqual(ownerType, context.EnclosingType)) {
                         WriteRaw("$.GenericParameter");
                         LPar();
                         Value(gp.Name);
@@ -497,8 +497,8 @@ namespace JSIL.Internal {
         }
 
         protected void TypeReferenceInternal (TypeReference tr, TypeReferenceContext context) {
-            var type = ILBlockTranslator.DereferenceType(tr);
-            var typeDef = ILBlockTranslator.GetTypeDefinition(type, false);
+            var type = TypeUtil.DereferenceType(tr);
+            var typeDef = TypeUtil.GetTypeDefinition(type, false);
             var typeInfo = TypeInfo.Get(type);
             var fullName = (typeInfo != null) ? typeInfo.FullName
                     : (typeDef != null) ? typeDef.FullName
@@ -548,7 +548,7 @@ namespace JSIL.Internal {
                 (context != null) &&
                 (context.EnclosingType != null)
             ) {
-                if (ILBlockTranslator.TypesAreEqual(type, context.EnclosingType)) {
+                if (TypeUtil.TypesAreEqual(type, context.EnclosingType)) {
                     // Types can reference themselves, so this prevents recursive initialization.
                     if (Stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false)) {
                     } else {
@@ -578,7 +578,7 @@ namespace JSIL.Internal {
                 Value("JSIL.AnyType");
                 return;
             } else if (type.FullName == "JSIL.Proxy.AnyType[]") {
-                TypeReference(ILBlockTranslator.GetTypeDefinition(type), context);
+                TypeReference(TypeUtil.GetTypeDefinition(type), context);
                 Space();
                 Comment("AnyType[]");
                 return;
@@ -883,7 +883,7 @@ namespace JSIL.Internal {
         public void DefaultValue (TypeReference typeReference, TypeReferenceContext context) {
             string fullName = typeReference.FullName;
 
-            if (TypeAnalysis.IsIntegerOrEnum(typeReference)) {
+            if (TypeUtil.IsIntegralOrEnum(typeReference)) {
                 Value(0);
                 return;
             } else if (!typeReference.IsValueType) {
@@ -992,9 +992,9 @@ namespace JSIL.Internal {
                 cached = false;
 
             if (cached && ((context.InvokingMethod != null) || (context.EnclosingMethod != null))) {
-                if (ILBlockTranslator.IsOpenType(signature.ReturnType))
+                if (TypeUtil.IsOpenType(signature.ReturnType))
                     cached = false;
-                else if (signature.ParameterTypes.Any(ILBlockTranslator.IsOpenType))
+                else if (signature.ParameterTypes.Any(TypeUtil.IsOpenType))
                     cached = false;
             }
 
@@ -1019,7 +1019,7 @@ namespace JSIL.Internal {
                 if ((signature.ReturnType == null) || (signature.ReturnType.FullName == "System.Void"))
                     WriteRaw("null");
                 else {
-                    if ((context.EnclosingMethod != null) && !ILBlockTranslator.IsOpenType(signature.ReturnType))
+                    if ((context.EnclosingMethod != null) && !TypeUtil.IsOpenType(signature.ReturnType))
                         TypeIdentifier(signature.ReturnType as dynamic, context, false);
                     else
                         TypeReference(signature.ReturnType, context);
@@ -1030,7 +1030,7 @@ namespace JSIL.Internal {
 
                 CommaSeparatedListCore(
                     signature.ParameterTypes, (pt) => {
-                        if ((context.EnclosingMethod != null) && !ILBlockTranslator.IsOpenType(pt))
+                        if ((context.EnclosingMethod != null) && !TypeUtil.IsOpenType(pt))
                             TypeIdentifier(pt as dynamic, context, false);
                         else
                             TypeReference(pt, context);

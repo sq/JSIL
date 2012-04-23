@@ -67,7 +67,7 @@ namespace JSIL.Ast {
             var rhs = obj as JSDefaultValueLiteral;
 
             if (rhs != null) {
-                return ILBlockTranslator.TypesAreEqual(Value, rhs.Value);
+                return TypeUtil.TypesAreEqual(Value, rhs.Value);
             } else {
                 return base.Equals(obj);
             }

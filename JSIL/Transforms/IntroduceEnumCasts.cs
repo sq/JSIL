@@ -31,14 +31,14 @@ namespace JSIL.Transforms {
         }
 
         public static bool IsEnumOrNullableEnum (TypeReference tr) {
-            tr = ILBlockTranslator.DereferenceType(tr, false);
+            tr = TypeUtil.DereferenceType(tr, false);
 
-            if (ILBlockTranslator.IsEnum(tr))
+            if (TypeUtil.IsEnum(tr))
                 return true;
 
             var git = tr as GenericInstanceType;
             if ((git != null) && (git.Name == "Nullable`1")) {
-                if (ILBlockTranslator.IsEnum(git.GenericArguments[0]))
+                if (TypeUtil.IsEnum(git.GenericArguments[0]))
                     return true;
             }
 
@@ -49,7 +49,7 @@ namespace JSIL.Transforms {
             var indexType = ie.Index.GetActualType(TypeSystem);
 
             if (
-                !ILBlockTranslator.IsIntegral(indexType) &&
+                !TypeUtil.IsIntegral(indexType) &&
                 IsEnumOrNullableEnum(indexType)
             ) {
                 var cast = JSInvocationExpression.InvokeStatic(
@@ -112,7 +112,7 @@ namespace JSIL.Transforms {
             var conditionType = ss.Condition.GetActualType(TypeSystem);
 
             if (
-                !ILBlockTranslator.IsIntegral(conditionType) &&
+                !TypeUtil.IsIntegral(conditionType) &&
                 IsEnumOrNullableEnum(conditionType)
             ) {
                 var cast = JSInvocationExpression.InvokeStatic(

@@ -174,7 +174,7 @@ namespace JSIL.Ast {
             var boe = reference as JSBinaryOperatorExpression;
 
             var expressionType = reference.GetActualType(jsil.TypeSystem);
-            if (ILBlockTranslator.IsIgnoredType(expressionType)) {
+            if (TypeUtil.IsIgnoredType(expressionType)) {
                 referent = new JSUntranslatableExpression(expressionType.FullName);
                 return true;
             }
@@ -248,7 +248,7 @@ namespace JSIL.Ast {
                     //  assigns into that reference later on to fill the array element. This only makes sense because
                     //  for Array.Get to return a struct via the stack, it has to return a reference to the struct,
                     //  and that reference happens to point directly into the array storage. Evil!
-                    if (ILBlockTranslator.GetTypeDefinition(jsm.Reference.DeclaringType).FullName == "System.Array") {
+                    if (TypeUtil.GetTypeDefinition(jsm.Reference.DeclaringType).FullName == "System.Array") {
                         materialized = JSInvocationExpression.InvokeMethod(
                             invocation.JSType, new JSFakeMethod(
                                 "GetReference", new ByReferenceType(jsm.Reference.ReturnType),
@@ -902,7 +902,7 @@ namespace JSIL.Ast {
 
             // Any invocation expression targeting a method or delegate will have an expected type that is a delegate.
             // This should be handled by replacing the JSInvocationExpression with a JSDelegateInvocationExpression
-            if (ILBlockTranslator.IsDelegateType(targetType))
+            if (TypeUtil.IsDelegateType(targetType))
                 throw new NotImplementedException("Invocation with a target type that is a delegate");
 
             return targetType;
@@ -1025,7 +1025,7 @@ namespace JSIL.Ast {
         }
 
         public static JSExpression UnpackArrayInitializer (TypeReference arrayType, byte[] data) {
-            var elementType = ILBlockTranslator.DereferenceType(arrayType).GetElementType();
+            var elementType = TypeUtil.DereferenceType(arrayType).GetElementType();
             JSExpression[] values;
 
             using (var ms = new MemoryStream(data, false))
@@ -1348,10 +1348,10 @@ namespace JSIL.Ast {
             int temp;
 
             var currentType = inner.GetActualType(typeSystem);
-            var currentDerefed = ILBlockTranslator.FullyDereferenceType(currentType, out temp);
-            var newDerefed = ILBlockTranslator.FullyDereferenceType(newType, out temp);
+            var currentDerefed = TypeUtil.FullyDereferenceType(currentType, out temp);
+            var newDerefed = TypeUtil.FullyDereferenceType(newType, out temp);
 
-            if (ILBlockTranslator.TypesAreEqual(currentDerefed, newDerefed, false))
+            if (TypeUtil.TypesAreEqual(currentDerefed, newDerefed, false))
                 return inner;
 
             var newResolved = newDerefed.Resolve();
@@ -1360,7 +1360,7 @@ namespace JSIL.Ast {
 
                 if (currentResolved != null) {
                     foreach (var iface in currentResolved.Interfaces) {
-                        if (ILBlockTranslator.TypesAreEqual(newType, iface, false))
+                        if (TypeUtil.TypesAreEqual(newType, iface, false))
                             return JSChangeTypeExpression.New(inner, typeSystem, newType);
                     }
                 }
@@ -1462,7 +1462,7 @@ namespace JSIL.Ast {
             }
 
             var innerType = inner.GetActualType(typeSystem);
-            if (ILBlockTranslator.TypesAreEqual(newType, innerType))
+            if (TypeUtil.TypesAreEqual(newType, innerType))
                 return inner;
             else
                 return result;

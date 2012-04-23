@@ -389,7 +389,7 @@ namespace JSIL.Ast {
                     return false;
                 else if (rhs.IsThis != IsThis)
                     return false;
-                else if (!ILBlockTranslator.TypesAreEqual(Type, rhs.Type))
+                else if (!TypeUtil.TypesAreEqual(Type, rhs.Type))
                     return false;
                 else
                     return true;
