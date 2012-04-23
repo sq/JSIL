@@ -325,8 +325,8 @@ namespace JSIL.Compiler {
             };
         }
 
-        static AssemblyTranslator CreateTranslator (Configuration configuration, AssemblyManifest manifest) {
-            var translator = new AssemblyTranslator(configuration, null, manifest);
+        static AssemblyTranslator CreateTranslator (Configuration configuration, AssemblyManifest manifest, AssemblyCache assemblyCache) {
+            var translator = new AssemblyTranslator(configuration, null, manifest, assemblyCache);
 
             translator.Decompiling += MakeProgressHandler("Decompiling   ");
             translator.Optimizing += MakeProgressHandler ("Optimizing    ");
@@ -351,6 +351,7 @@ namespace JSIL.Compiler {
             var buildGroups = new List<BuildGroup>();
             var profiles = new Dictionary<string, IProfile>();
             var manifest = new AssemblyManifest();
+            var assemblyCache = new AssemblyCache();
 
             ParseCommandLine(arguments, buildGroups, profiles);
 
@@ -404,7 +405,7 @@ namespace JSIL.Compiler {
                     localConfig.Assemblies.Proxies.Clear();
                     localConfig.Assemblies.Proxies.AddRange(newProxies);
 
-                    var translator = CreateTranslator(localConfig, manifest);
+                    var translator = CreateTranslator(localConfig, manifest, assemblyCache);
                     var outputs = buildGroup.Profile.Translate(translator, filename, localConfig.UseLocalProxies.GetValueOrDefault(true));
                     if (localConfig.OutputDirectory == null)
                         throw new Exception("No output directory was specified!");

@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using ICSharpCode.Decompiler;
+using JSIL.Ast;
 using JSIL.Internal;
 using Mono.Cecil;
 
 namespace JSIL {
     public static class TypeUtil {
         public static bool IsNumeric (TypeReference type) {
-            type = TypeUtil.DereferenceType(type);
+            type = DereferenceType(type);
 
             switch (type.MetadataType) {
                 case MetadataType.Byte:
@@ -33,7 +34,7 @@ namespace JSIL {
         }
 
         public static bool IsIntegral (TypeReference type) {
-            type = TypeUtil.DereferenceType(type);
+            type = DereferenceType(type);
 
             switch (type.MetadataType) {
                 case MetadataType.Byte:
@@ -55,17 +56,17 @@ namespace JSIL {
         }
 
         public static bool IsEnum (TypeReference type) {
-            var typedef = TypeUtil.GetTypeDefinition(type);
+            var typedef = GetTypeDefinition(type);
             return (typedef != null) && (typedef.IsEnum);
         }
 
         public static bool IsBoolean (TypeReference type) {
-            type = TypeUtil.DereferenceType(type);
+            type = DereferenceType(type);
             return type.MetadataType == MetadataType.Boolean;
         }
 
         public static bool IsIgnoredType (TypeReference type) {
-            type = TypeUtil.DereferenceType(type);
+            type = DereferenceType(type);
 
             if (type == null)
                 return false;
@@ -80,9 +81,9 @@ namespace JSIL {
         }
 
         public static bool IsDelegateType (TypeReference type) {
-            type = TypeUtil.DereferenceType(type);
+            type = DereferenceType(type);
 
-            var typedef = TypeUtil.GetTypeDefinition(type);
+            var typedef = GetTypeDefinition(type);
             if (typedef == null)
                 return false;
             if (typedef.FullName == "System.Delegate")
@@ -102,7 +103,7 @@ namespace JSIL {
         }
 
         public static bool IsOpenType (TypeReference type) {
-            type = TypeUtil.DereferenceType(type);
+            type = DereferenceType(type);
 
             var gp = type as GenericParameter;
             var git = type as GenericInstanceType;
@@ -171,7 +172,7 @@ namespace JSIL {
             if ((gp != null) && (gp.Owner == null))
                 return null;
 
-            else if (TypeUtil.IsIgnoredType(typeRef))
+            else if (IsIgnoredType(typeRef))
                 return null;
             else
                 return typeRef.Resolve();
@@ -335,9 +336,9 @@ namespace JSIL {
                 var dTarget = GetTypeDefinition(target);
                 var dSource = GetTypeDefinition(source);
 
-                if (Object.Equals(dTarget, dSource) && (dSource != null))
+                if (Equals(dTarget, dSource) && (dSource != null))
                     result = true;
-                else if (Object.Equals(target, source))
+                else if (Equals(target, source))
                     result = true;
                 else if (
                     (dTarget != null) && (dSource != null) &&
@@ -418,13 +419,30 @@ namespace JSIL {
         }
 
         public static bool IsIntegralOrEnum (TypeReference type) {
-            var typedef = TypeUtil.GetTypeDefinition(type);
-            return TypeUtil.IsIntegral(type) || ((typedef != null) && typedef.IsEnum);
+            var typedef = GetTypeDefinition(type);
+            return IsIntegral(type) || ((typedef != null) && typedef.IsEnum);
         }
 
         public static bool IsNumericOrEnum (TypeReference type) {
-            var typedef = TypeUtil.GetTypeDefinition(type);
-            return TypeUtil.IsNumeric(type) || ((typedef != null) && typedef.IsEnum);
+            var typedef = GetTypeDefinition(type);
+            return IsNumeric(type) || ((typedef != null) && typedef.IsEnum);
+        }
+
+        public static JSExpression[] GetArrayDimensions (TypeReference arrayType) {
+            var at = arrayType as ArrayType;
+            if (at == null)
+                return null;
+
+            var result = new List<JSExpression>();
+            for (var i = 0; i < at.Dimensions.Count; i++) {
+                var dim = at.Dimensions[i];
+                if (dim.IsSized)
+                    result.Add(JSLiteral.New(dim.UpperBound.Value));
+                else
+                    return null;
+            }
+
+            return result.ToArray();
         }
     }
 }

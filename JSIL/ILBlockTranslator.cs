@@ -218,17 +218,6 @@ namespace JSIL {
             return EmulateStructAssignment.IsStruct(type);
         }
 
-        protected void CommaSeparatedList (IEnumerable<ILExpression> values) {
-            bool isFirst = true;
-            foreach (var value in values) {
-                if (!isFirst)
-                    Output.Comma();
-
-                TranslateNode(value);
-                isFirst = false;
-            }
-        }
-
         protected JSExpression Translate_UnaryOp (ILExpression node, JSUnaryOperator op) {
             var inner = TranslateNode(node.Arguments[0]);
             var innerType = JSExpression.DeReferenceType(inner.GetActualType(TypeSystem));
@@ -1897,23 +1886,6 @@ namespace JSIL {
             );
         }
 
-        public static JSExpression[] GetArrayDimensions (TypeReference arrayType) {
-            var at = arrayType as ArrayType;
-            if (at == null)
-                return null;
-
-            var result = new List<JSExpression>();
-            for (var i = 0; i < at.Dimensions.Count; i++) {
-                var dim = at.Dimensions[i];
-                if (dim.IsSized)
-                    result.Add(JSLiteral.New(dim.UpperBound.Value));
-                else
-                    return null;
-            }
-
-            return result.ToArray();
-        }
-
         protected JSExpression Translate_InitArray (ILExpression node, TypeReference _arrayType) {
             var at = _arrayType as ArrayType;
             var initializer = new JSArrayExpression(at, Translate(node.Arguments));
@@ -1926,7 +1898,7 @@ namespace JSIL {
             else {
                 if (rank > 1) {
                     return JSIL.NewMultidimensionalArray(
-                        at.ElementType, GetArrayDimensions(at), initializer
+                        at.ElementType, TypeUtil.GetArrayDimensions(at), initializer
                     );
                 } else {
                     return JSIL.NewArray(
