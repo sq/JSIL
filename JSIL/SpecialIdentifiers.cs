@@ -25,7 +25,7 @@ namespace JSIL {
 
         public readonly JSIdentifier prototype, eval;
         public readonly JSFakeMethod toString, charCodeAt;
-        public readonly JSDotExpression floor, fromCharCode;
+        public readonly JSDotExpressionBase floor, fromCharCode;
 
         public JSSpecialIdentifiers (MethodTypeFactory methodTypes, TypeSystem typeSystem) {
             TypeSystem = typeSystem;
@@ -57,7 +57,7 @@ namespace JSIL {
         public readonly MethodTypeFactory MethodTypes;
         public readonly JSSpecialIdentifiers JS;
 
-        public readonly JSDotExpression GlobalNamespace, CopyMembers;
+        public readonly JSDotExpressionBase GlobalNamespace, CopyMembers;
 
         public JSILIdentifier (MethodTypeFactory methodTypes, TypeSystem typeSystem, JSSpecialIdentifiers js) {
             TypeSystem = typeSystem;
@@ -72,11 +72,11 @@ namespace JSIL {
             get { return "JSIL"; }
         }
 
-        protected JSDotExpression Dot (JSIdentifier rhs) {
+        protected JSDotExpressionBase Dot (JSIdentifier rhs) {
             return new JSDotExpression(this, rhs);
         }
 
-        protected JSDotExpression Dot (string rhs, TypeReference rhsType = null) {
+        protected JSDotExpressionBase Dot (string rhs, TypeReference rhsType = null) {
             return Dot(new JSFakeMethod(rhs, rhsType, null, MethodTypes));
         }
 

@@ -29,6 +29,10 @@ namespace JSIL.Transforms {
 
             var result = State;
             State = null;
+
+            var bg = new StaticAnalysis.BarrierGenerator(TypeSystem);
+            bg.Visit(function);
+
             return result;
         }
 
@@ -86,7 +90,7 @@ namespace JSIL.Transforms {
 
         public void VisitNode (JSUnaryOperatorExpression uoe) {
             var variable = uoe.Expression as JSVariable;
-            var dot = uoe.Expression as JSDotExpression;
+            var dot = uoe.Expression as JSDotExpressionBase;
             var isMutator = uoe.Operator is JSUnaryMutationOperator;
 
             VisitChildren(uoe);
@@ -113,7 +117,7 @@ namespace JSIL.Transforms {
         public void VisitNode (JSBinaryOperatorExpression boe) {
             var isAssignment = boe.Operator is JSAssignmentOperator;
             var leftVar = boe.Left as JSVariable;
-            var leftDot = boe.Left as JSDotExpression;
+            var leftDot = boe.Left as JSDotExpressionBase;
 
             VisitChildren(boe);
 
@@ -149,7 +153,7 @@ namespace JSIL.Transforms {
             }
         }
 
-        public void VisitNode (JSDotExpression dot) {
+        public void VisitNode (JSDotExpressionBase dot) {
             var field = dot.Member as JSField;
             var v = dot.Target as JSVariable;
 

@@ -98,7 +98,7 @@ namespace JSIL.Transforms {
 
             if (
                 isAssignment && (nestedBoe != null) && 
-                (left.IsConstant || (leftVar != null) || left is JSDotExpression) &&
+                (left.IsConstant || (leftVar != null) || left is JSDotExpressionBase) &&
                 !(ParentNode is JSVariableDeclarationStatement)
             ) {
                 JSUnaryOperator prefixOperator;
@@ -142,7 +142,7 @@ namespace JSIL.Transforms {
                 isAssignment && (leftNew != null) &&
                 (rightNew != null)
             ) {
-                var rightType = rightNew.Type as JSDotExpression;
+                var rightType = rightNew.Type as JSDotExpressionBase;
                 if (
                     (rightType != null) &&
                     (rightType.Member.Identifier == "CollectionInitializer")

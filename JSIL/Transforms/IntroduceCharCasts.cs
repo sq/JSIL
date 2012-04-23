@@ -43,7 +43,7 @@ namespace JSIL.Transforms {
                 boe.ReplaceChild(boe.Right, CastToInteger(boe.Right));
 
             var parentInvocation = ParentNode as JSInvocationExpression;
-            JSDotExpression parentInvocationDot = (parentInvocation != null) ? parentInvocation.Method as JSDotExpression : null;
+            JSDotExpressionBase parentInvocationDot = (parentInvocation != null) ? parentInvocation.Method as JSDotExpressionBase : null;
 
             if (
                 isArithmetic && 

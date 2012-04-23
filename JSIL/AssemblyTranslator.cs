@@ -1300,7 +1300,6 @@ namespace JSIL {
             FieldDefinition field, Dictionary<FieldDefinition, JSExpression> defaultValues, 
             bool cctorContext, Action<JavascriptFormatter> dollar
         ) {
-            JSDotExpression target;
             var fieldInfo = _TypeInfoProvider.GetMemberInformation<Internal.FieldInfo>(field);
             if ((fieldInfo == null) || fieldInfo.IsIgnored || fieldInfo.IsExternal)
                 return null;
@@ -1369,7 +1368,7 @@ namespace JSIL {
 
                     return new JSBinaryOperatorExpression(
                         JSBinaryOperator.Assignment,
-                        JSDotExpression.New(
+                        new JSFieldAccess(
                             thisParameter,
                             new JSField(field, fieldInfo)
                         ),
@@ -1520,15 +1519,11 @@ namespace JSIL {
                     if (boe == null)
                         continue;
 
-                    var theDot = boe.Left as JSDotExpression;
-                    if (theDot == null)
+                    var fieldAccess = boe.Left as JSFieldAccess;
+                    if (fieldAccess == null)
                         continue;
 
-                    var theField = boe.Left.AllChildrenRecursive.OfType<JSField>().FirstOrDefault();
-                    if (theField == null)
-                        continue;
-
-                    if (!fieldsToStrip.Contains(theField.Field.Member))
+                    if (!fieldsToStrip.Contains(fieldAccess.Field.Field.Member))
                         continue;
 
                     // We simply strip the initialization, which leaves the field undefined at runtime.

@@ -266,7 +266,7 @@ namespace JSIL.Ast {
                 while (referent is JSReferenceExpression)
                     referent = ((JSReferenceExpression)referent).Referent;
 
-                var dot = referent as JSDotExpression;
+                var dot = referent as JSDotExpressionBase;
 
                 if (dot != null) {
                     materialized = jsil.NewMemberReference(
@@ -565,23 +565,12 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSDotExpression : JSExpression {
-        public JSDotExpression (JSExpression target, JSIdentifier member)
+    public abstract class JSDotExpressionBase : JSExpression {
+        protected JSDotExpressionBase (JSExpression target, JSIdentifier member)
             : base(target, member) {
 
             if ((target == null) || (member == null))
                 throw new ArgumentNullException();
-        }
-
-        public static JSDotExpression New (JSExpression leftMost, params JSIdentifier[] memberNames) {
-            if ((memberNames == null) || (memberNames.Length == 0))
-                throw new ArgumentException("memberNames");
-
-            var result = new JSDotExpression(leftMost, memberNames[0]);
-            for (var i = 1; i < memberNames.Length; i++)
-                result = new JSDotExpression(result, memberNames[i]);
-
-            return result;
         }
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
@@ -621,9 +610,72 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSPropertyAccess : JSDotExpression {
+    public class JSDotExpression : JSDotExpressionBase {
+        public JSDotExpression (JSExpression target, JSIdentifier member)
+            : base(target, member) {
+        }
+
+        public static JSDotExpression New (JSExpression leftMost, params JSIdentifier[] memberNames) {
+            if ((memberNames == null) || (memberNames.Length == 0))
+                throw new ArgumentException("memberNames");
+
+            var result = new JSDotExpression(leftMost, memberNames[0]);
+            for (var i = 1; i < memberNames.Length; i++)
+                result = new JSDotExpression(result, memberNames[i]);
+
+            return result;
+        }
+    }
+
+    // Represents a reference to a method of a type.
+    public class JSMethodAccess : JSDotExpressionBase {
+        public readonly bool IsStatic;
+
+        public JSMethodAccess (JSExpression type, JSMethod method, bool isStatic)
+            : base(type, method) {
+            IsStatic = isStatic;
+        }
+
+        public JSExpression Type {
+            get {
+                return Values[0];
+            }
+        }
+
+        public JSMethod Method {
+            get {
+                return (JSMethod)Values[1];
+            }
+        }
+    }
+
+    public class JSFieldAccess : JSDotExpressionBase {
+        public JSFieldAccess (JSExpression thisReference, JSField field)
+            : base(thisReference, field) {
+        }
+
+        public JSExpression ThisReference {
+            get {
+                return Values[0];
+            }
+        }
+
+        public JSField Field {
+            get {
+                return (JSField)Values[1];
+            }
+        }
+    }
+
+    public class JSPropertyAccess : JSDotExpressionBase {
         public JSPropertyAccess (JSExpression thisReference, JSProperty property)
             : base(thisReference, property) {
+        }
+
+        public JSExpression ThisReference {
+            get {
+                return Values[0];
+            }
         }
 
         public JSProperty Property {

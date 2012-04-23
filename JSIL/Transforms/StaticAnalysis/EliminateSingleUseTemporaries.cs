@@ -86,7 +86,7 @@ namespace JSIL.Transforms {
             }
 
             {
-                var de = source as JSDotExpression;
+                var de = source as JSDotExpressionBase;
                 if (
                     (de != null) &&
                     IsEffectivelyConstant(target, de.Target) &&

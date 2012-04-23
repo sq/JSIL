@@ -263,6 +263,10 @@ namespace JSIL {
         }
 
         public void VisitNode (JSDotExpression dot) {
+            VisitDotExpression(dot);
+        }
+
+        protected void VisitDotExpression (JSDotExpressionBase dot) {
             var parens = (dot.Target is JSNumberLiteral) ||
                 (dot.Target is JSIntegerLiteral);
 
@@ -276,6 +280,35 @@ namespace JSIL {
 
             Output.Dot();
             Visit(dot.Member);
+        }
+
+        public void VisitNode (JSFieldAccess fa) {
+            VisitDotExpression(fa);
+        }
+
+        public void VisitNode (JSPropertyAccess pa) {
+            VisitDotExpression(pa);
+        }
+
+        public void VisitNode (JSMethodAccess ma) {
+            var parens = (ma.Target is JSNumberLiteral) ||
+                (ma.Target is JSIntegerLiteral);
+
+            if (parens)
+                Output.LPar();
+
+            Visit(ma.Target);
+
+            if (parens)
+                Output.RPar();
+
+            if (!ma.IsStatic) {
+                Output.Dot();
+                Output.Identifier("prototype");
+            }
+
+            Output.Dot();
+            Visit(ma.Member);
         }
 
         public void VisitNode (JSChangeTypeExpression cte) {
@@ -979,7 +1012,7 @@ namespace JSIL {
         public void VisitNode (JSNewExpression newexp) {
             var outer = Stack.Skip(1).FirstOrDefault();
             var outerInvocation = outer as JSInvocationExpression;
-            var outerDot = outer as JSDotExpression;
+            var outerDot = outer as JSDotExpressionBase;
 
             bool parens = ((outerDot != null) && (outerDot.Target == newexp)) ||
                 ((outerInvocation != null) && (outerInvocation.ThisReference == newexp));

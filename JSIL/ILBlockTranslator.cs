@@ -1218,7 +1218,7 @@ namespace JSIL {
             else if (TypeUtil.IsIgnoredType(field.FieldType) || fieldInfo.IsIgnored)
                 return new JSIgnoredMemberReference(true, fieldInfo);
 
-            JSExpression result = new JSDotExpression(
+            JSExpression result = new JSFieldAccess(
                 new JSType(field.DeclaringType),
                 new JSField(field, fieldInfo)
             );
@@ -1237,7 +1237,7 @@ namespace JSIL {
                 return new JSIgnoredMemberReference(true, fieldInfo);
 
             return new JSMemberReferenceExpression(
-                new JSDotExpression(
+                new JSFieldAccess(
                     new JSType(field.DeclaringType),
                     new JSField(field, fieldInfo)
                 )
@@ -1279,7 +1279,7 @@ namespace JSIL {
                 thisExpression = translated;
             }
 
-            JSExpression result = new JSDotExpression(
+            JSExpression result = new JSFieldAccess(
                 thisExpression,
                 new JSField(field, fieldInfo)
             );
@@ -1320,7 +1320,7 @@ namespace JSIL {
                 thisExpression = translated;
             }
 
-            return new JSMemberReferenceExpression(new JSDotExpression(
+            return new JSMemberReferenceExpression(new JSFieldAccess(
                 thisExpression,
                 new JSField(field, fieldInfo)
             ));
@@ -1409,17 +1409,11 @@ namespace JSIL {
             if (methodInfo == null)
                 return new JSIgnoredMemberReference(true, null, new JSStringLiteral(method.FullName));
 
-            if (method.HasThis)
-                return JSDotExpression.New(
-                    new JSType(method.DeclaringType),
-                    JS.prototype,
-                    new JSMethod(method, methodInfo, MethodTypes)
-                );
-            else
-                return new JSDotExpression(
-                    new JSType(method.DeclaringType),
-                    new JSMethod(method, methodInfo, MethodTypes)
-                );
+            return new JSMethodAccess(
+                new JSType(method.DeclaringType),
+                new JSMethod(method, methodInfo, MethodTypes),
+                !method.HasThis
+            );
         }
 
         protected JSExpression Translate_Ldvirtftn (ILExpression node, MethodReference method) {
@@ -1427,10 +1421,10 @@ namespace JSIL {
             if (methodInfo == null)
                 return new JSIgnoredMemberReference(true, null, new JSStringLiteral(method.FullName));
 
-            return JSDotExpression.New(
+            return new JSMethodAccess(
                 new JSType(method.DeclaringType),
-                JS.prototype,
-                new JSMethod(method, methodInfo, MethodTypes)
+                new JSMethod(method, methodInfo, MethodTypes),
+                false
             );
         }
 
@@ -1792,7 +1786,7 @@ namespace JSIL {
             var thisArg = arguments[0];
             var methodRef = arguments[1];
 
-            var methodDot = methodRef as JSDotExpression;
+            var methodDot = methodRef as JSDotExpressionBase;
 
             // Detect compiler-generated lambda methods
             if (methodDot != null) {
@@ -1965,7 +1959,7 @@ namespace JSIL {
                     while (left is JSReferenceExpression)
                         left = ((JSReferenceExpression)left).Referent;
 
-                    var leftDot = left as JSDotExpression;
+                    var leftDot = left as JSDotExpressionBase;
 
                     if (leftDot != null) {
                         var key = leftDot.Member;
