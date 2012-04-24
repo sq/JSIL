@@ -1,6 +1,7 @@
 
 *.user
 *.suo
+*.metaproj
 _ReSharper.*
 *.ReSharper
 Compiler/obj
