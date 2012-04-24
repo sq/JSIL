@@ -51,6 +51,8 @@
     <None Include="AnalysisTestCases\IncrementArgumentField.cs" />
     <None Include="AnalysisTestCases\NestedReturn.cs" />
     <None Include="AnalysisTestCases\ReturnMutatedStructArgument.cs" />
+    <None Include="AnalysisTestCases\ReturnMutatedNestedStruct.cs" />
+    <None Include="AnalysisTestCases\MutateNestedStruct.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="FailingTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />

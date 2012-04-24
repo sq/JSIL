@@ -207,7 +207,7 @@ namespace JSIL.Transforms.StaticAnalysis {
         }
 
         public void VisitNode (JSVariable v) {
-            if (ParentNode is JSFunctionExpression) {
+            if (CurrentName == "Parameter") {
                 // In argument list
                 return;
             }

@@ -53,7 +53,6 @@ namespace JSIL.Ast {
         }
     }
 
-
     public class JSDefaultValueLiteral : JSLiteralBase<TypeReference> {
         public JSDefaultValueLiteral (TypeReference type)
             : base(type) {

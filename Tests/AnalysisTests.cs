@@ -64,9 +64,45 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void ReturnMutatedNestedStruct () {
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\ReturnMutatedNestedStruct.cs",
+                "a=2, b=1\r\na=2, b=4\r\na=3, b=4",
+                "a=2, b=1\r\na=2, b=4\r\na=3, b=4"
+            );
+
+            Console.WriteLine(generatedJs);
+            Assert.IsFalse(Regex.IsMatch(
+                generatedJs,
+                @"(\$asm([0-9A-F])*).Program.ReturnMutatedArgument\(a.MemberwiseClone\(\), 0\)"
+            ));
+            Assert.IsTrue(Regex.IsMatch(
+                generatedJs,
+                @"b = (\$asm([0-9A-F])*).Program.ReturnMutatedArgument\(a, 0\).MemberwiseClone\(\);"
+            ));
+        }
+
+        [Test]
         public void IncrementArgumentField () {
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\IncrementArgumentField.cs",
+                "a=2, b=1\r\na=2, b=1\r\na=2, b=3\r\na=3, b=3",
+                "a=2, b=1\r\na=2, b=1\r\na=2, b=3\r\na=3, b=3"
+            );
+
+            Console.WriteLine(generatedJs);
+            Assert.IsFalse(generatedJs.Contains(
+                @".IncrementArgumentValue(a)"
+            ));
+            Assert.IsTrue(generatedJs.Contains(
+                @".IncrementArgumentValue(a.MemberwiseClone())"
+            ));
+        }
+
+        [Test]
+        public void MutateNestedStruct () {
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\MutateNestedStruct.cs",
                 "a=2, b=1\r\na=2, b=1\r\na=2, b=3\r\na=3, b=3",
                 "a=2, b=1\r\na=2, b=1\r\na=2, b=3\r\na=3, b=3"
             );

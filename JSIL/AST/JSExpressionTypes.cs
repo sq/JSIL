@@ -9,7 +9,7 @@ using JSIL.Internal;
 using Mono.Cecil;
 
 namespace JSIL.Ast {
-    public class JSFunctionExpression : JSExpression {
+    public class JSFunctionExpression : JSAnnotatedExpression {
         public readonly MethodTypeFactory MethodTypes;
 
         public readonly JSMethod Method;
@@ -34,12 +34,12 @@ namespace JSIL.Ast {
             MethodTypes = methodTypes;
         }
 
-        public override IEnumerable<JSNode> Children {
+        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 foreach (var parameter in Parameters)
-                    yield return parameter;
+                    yield return new AnnotatedNode("Parameter", parameter);
 
-                yield return Body;
+                yield return new AnnotatedNode("Body", Body);
             }
         }
 
@@ -565,7 +565,7 @@ namespace JSIL.Ast {
         }
     }
 
-    public abstract class JSDotExpressionBase : JSExpression {
+    public abstract class JSDotExpressionBase : JSAnnotatedExpression {
         protected JSDotExpressionBase (JSExpression target, JSIdentifier member)
             : base(target, member) {
 
@@ -602,6 +602,13 @@ namespace JSIL.Ast {
         public override bool IsConstant {
             get {
                 return Target.IsConstant && Member.IsConstant;
+            }
+        }
+
+        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
+            get {
+                yield return new AnnotatedNode("Target", Values[0]);
+                yield return new AnnotatedNode("Member", Values[1]);
             }
         }
 
@@ -685,7 +692,7 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSIndexerExpression : JSExpression {
+    public class JSIndexerExpression : JSAnnotatedExpression {
         public TypeReference ElementType;
 
         public JSIndexerExpression (JSExpression target, JSExpression index, TypeReference elementType = null)
@@ -722,6 +729,13 @@ namespace JSIL.Ast {
         public override bool IsConstant {
             get {
                 return Target.IsConstant && Index.IsConstant;
+            }
+        }
+
+        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
+            get {
+                yield return new AnnotatedNode("Target", Values[0]);
+                yield return new AnnotatedNode("Index", Values[1]);
             }
         }
 
@@ -769,7 +783,7 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSInvocationExpressionBase : JSExpression {
+    public class JSInvocationExpressionBase : JSAnnotatedExpression {
         protected JSInvocationExpressionBase (params JSExpression[] values)
             : base(values) {
 
@@ -960,6 +974,17 @@ namespace JSIL.Ast {
             return targetType;
         }
 
+        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
+            get {
+                yield return new AnnotatedNode("Type", Values[0]);
+                yield return new AnnotatedNode("Method", Values[1]);
+                yield return new AnnotatedNode("ThisReference", Values[2]);
+
+                foreach (var argument in Values.Skip(3))
+                    yield return new AnnotatedNode("Argument", argument);
+            }
+        }
+
         public override string ToString () {
             return String.Format(
                 "{0}(this={1}, args={2})",
@@ -974,21 +999,21 @@ namespace JSIL.Ast {
         public readonly TypeReference ReturnType;
 
         public JSDelegateInvocationExpression (
-            JSExpression thisReference, TypeReference returnType, JSExpression[] arguments
+            JSExpression @delegate, TypeReference returnType, JSExpression[] arguments
         )
             : base(
-                (new[] { thisReference }).Concat(arguments).ToArray()
+                (new[] { @delegate }).Concat(arguments).ToArray()
             ) {
 
-            if (thisReference == null)
-                throw new ArgumentNullException("thisReference");
+            if (@delegate == null)
+                throw new ArgumentNullException("delegate");
             if (returnType == null)
                 throw new ArgumentNullException("returnType");
 
             ReturnType = returnType;
         }
 
-        public JSExpression ThisReference {
+        public JSExpression Delegate {
             get {
                 return Values[0];
             }
@@ -1004,10 +1029,19 @@ namespace JSIL.Ast {
             }
         }
 
+        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
+            get {
+                yield return new AnnotatedNode("Delegate", Values[0]);
+
+                foreach (var argument in Values.Skip(1))
+                    yield return new AnnotatedNode("Argument", argument);
+            }
+        }
+
         public override string ToString () {
             return String.Format(
                 "{0}:({1})",
-                ThisReference,
+                Delegate,
                 String.Join(", ", (from a in Arguments select String.Concat(a)).ToArray())
             );
         }
@@ -1121,7 +1155,7 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSPairExpression : JSExpression {
+    public class JSPairExpression : JSAnnotatedExpression {
         public JSPairExpression (JSExpression key, JSExpression value)
             : base(key, value) {
         }
@@ -1141,6 +1175,13 @@ namespace JSIL.Ast {
             }
             set {
                 Values[1] = value;
+            }
+        }
+
+        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
+            get {
+                yield return new AnnotatedNode("Key", Values[0]);
+                yield return new AnnotatedNode("Value", Values[1]);
             }
         }
 
@@ -1197,7 +1238,7 @@ namespace JSIL.Ast {
         }
     }
 
-    public abstract class JSOperatorExpression<TOperator> : JSExpression
+    public abstract class JSOperatorExpression<TOperator> : JSAnnotatedExpression
         where TOperator : JSOperator {
 
         public readonly TOperator Operator;
@@ -1236,13 +1277,21 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSTernaryOperatorExpression : JSExpression {
+    public class JSTernaryOperatorExpression : JSAnnotatedExpression {
         public readonly TypeReference ActualType;
 
         public JSTernaryOperatorExpression (JSExpression condition, JSExpression trueValue, JSExpression falseValue, TypeReference actualType)
             : base(condition, trueValue, falseValue) {
 
             ActualType = actualType;
+        }
+
+        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
+            get {
+                yield return new AnnotatedNode("Condition", Condition);
+                yield return new AnnotatedNode("True Clause", True);
+                yield return new AnnotatedNode("False Clause", False);
+            }
         }
 
         public JSExpression Condition {
@@ -1289,6 +1338,13 @@ namespace JSIL.Ast {
             : base(
                 op, actualType, lhs, rhs
                 ) {
+        }
+
+        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
+            get {
+                yield return new AnnotatedNode("Left", Left);
+                yield return new AnnotatedNode("Right", Right);
+            }
         }
 
         public JSExpression Left {
@@ -1370,6 +1426,12 @@ namespace JSIL.Ast {
                     return false;
 
                 return Expression.IsConstant;
+            }
+        }
+
+        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
+            get {
+                yield return new AnnotatedNode("Expression", Expression);
             }
         }
 

@@ -335,7 +335,7 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSVariable variable) {
-            if (ParentNode is JSFunctionExpression) {
+            if (CurrentName == "Parameter") {
                 // In argument list
                 return;
             }

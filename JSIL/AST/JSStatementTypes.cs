@@ -21,7 +21,7 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSBlockStatement : JSStatement {
+    public class JSBlockStatement : JSAnnotatedStatement {
         public readonly List<JSStatement> Statements;
         private bool _IsControlFlow = false;
 
@@ -29,10 +29,10 @@ namespace JSIL.Ast {
             Statements = new List<JSStatement>(statements);
         }
 
-        public override IEnumerable<JSNode> Children {
+        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 for (int i = 0, c = Statements.Count; i < c; i++)
-                    yield return Statements[i];
+                    yield return new AnnotatedNode("Statement", Statements[i]);
             }
         }
 
@@ -236,7 +236,7 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSSwitchCase : JSStatement {
+    public class JSSwitchCase : JSAnnotatedStatement {
         public readonly JSExpression[] Values;
         public readonly JSBlockStatement Body;
 
@@ -248,14 +248,14 @@ namespace JSIL.Ast {
             Body = body;
         }
 
-        public override IEnumerable<JSNode> Children {
+        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 if (Values != null) {
                     foreach (var value in Values)
-                        yield return value;
+                        yield return new AnnotatedNode("Case Value", value);
                 }
 
-                yield return Body;
+                yield return new AnnotatedNode("Body", Body);
             }
         }
 
@@ -289,7 +289,7 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSSwitchStatement : JSStatement {
+    public class JSSwitchStatement : JSAnnotatedStatement {
         protected JSExpression _Condition;
         public readonly List<JSSwitchCase> Cases = new List<JSSwitchCase>();
 
@@ -298,12 +298,12 @@ namespace JSIL.Ast {
             Cases.AddRange(cases);
         }
 
-        public override IEnumerable<JSNode> Children {
+        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
-                yield return _Condition;
+                yield return new AnnotatedNode("Condition", _Condition);
 
                 foreach (var c in Cases)
-                    yield return c;
+                    yield return new AnnotatedNode("Case", c);
             }
         }
 
@@ -340,7 +340,7 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSIfStatement : JSStatement {
+    public class JSIfStatement : JSAnnotatedStatement {
         protected JSExpression _Condition;
         protected JSStatement _TrueClause, _FalseClause;
 
@@ -381,13 +381,14 @@ namespace JSIL.Ast {
             return result;
         }
 
-        public override IEnumerable<JSNode> Children {
+        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
-                yield return _Condition;
-                yield return _TrueClause;
+                yield return new AnnotatedNode("Condition", _Condition);
+
+                yield return new AnnotatedNode("True Clause", _TrueClause);
 
                 if (_FalseClause != null)
-                    yield return _FalseClause;
+                    yield return new AnnotatedNode("False Clause", _FalseClause);
             }
         }
 
@@ -439,11 +440,11 @@ namespace JSIL.Ast {
             Statements.AddRange(body);
         }
 
-        public override IEnumerable<JSNode> Children {
+        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
-                yield return _Condition;
+                yield return new AnnotatedNode("Condition", _Condition);
 
-                foreach (var s in base.Children)
+                foreach (var s in base.AnnotatedChildren)
                     yield return s;
             }
         }
@@ -481,12 +482,12 @@ namespace JSIL.Ast {
             Statements.AddRange(body);
         }
 
-        public override IEnumerable<JSNode> Children {
+        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
-                yield return _Condition;
-
-                foreach (var s in base.Children)
+                foreach (var s in base.AnnotatedChildren)
                     yield return s;
+
+                yield return new AnnotatedNode("Condition", _Condition);
             }
         }
 
@@ -526,18 +527,18 @@ namespace JSIL.Ast {
             Statements.AddRange(body);
         }
 
-        public override IEnumerable<JSNode> Children {
+        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 if (_Initializer != null)
-                    yield return _Initializer;
+                    yield return new AnnotatedNode("Initializer", _Initializer);
 
                 if (_Condition != null)
-                    yield return _Condition;
+                    yield return new AnnotatedNode("Condition", _Condition);
 
                 if (_Increment != null)
-                    yield return _Increment;
+                    yield return new AnnotatedNode("Increment", _Increment);
 
-                foreach (var s in base.Children)
+                foreach (var s in base.AnnotatedChildren)
                     yield return s;
             }
         }
@@ -586,7 +587,7 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSTryCatchBlock : JSStatement {
+    public class JSTryCatchBlock : JSAnnotatedStatement {
         public readonly JSStatement Body;
         public JSVariable CatchVariable;
         public JSStatement Catch;
@@ -599,16 +600,18 @@ namespace JSIL.Ast {
             Finally = @finally;
         }
 
-        public override IEnumerable<JSNode> Children {
+        public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
-                yield return Body;
+                yield return new AnnotatedNode("Body", Body);
 
                 if (CatchVariable != null)
-                    yield return CatchVariable;
+                    yield return new AnnotatedNode("Catch Variable", CatchVariable);
+
                 if (Catch != null)
-                    yield return Catch;
+                    yield return new AnnotatedNode("Catch Block", Catch);
+
                 if (Finally != null)
-                    yield return Finally;
+                    yield return new AnnotatedNode("Finally Block", Finally);
             }
         }
 

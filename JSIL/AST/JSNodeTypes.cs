@@ -411,4 +411,56 @@ namespace JSIL.Ast {
             : base(String.Format("Node of type {0} has no expected type: {1}", node.GetType().Name, node)) {
         }
     }
+
+    public struct AnnotatedNode {
+        public readonly string Name;
+        public readonly JSNode Node;
+
+        public AnnotatedNode (string name, JSNode node) {
+            Name = name;
+            Node = node;
+        }
+    }
+
+    public interface IAnnotatedChildren {
+        IEnumerable<AnnotatedNode> AnnotatedChildren {
+            get;
+        }
+    }
+
+    public abstract class JSAnnotatedStatement : JSStatement, IAnnotatedChildren {
+        public override IEnumerable<JSNode> Children {
+            get {
+                foreach (var child in AnnotatedChildren)
+                    yield return child.Node;
+            }
+        }
+
+        public virtual IEnumerable<AnnotatedNode> AnnotatedChildren {
+            get {
+                foreach (var child in base.Children)
+                    yield return new AnnotatedNode(null, child);
+            }
+        }
+    }
+
+    public abstract class JSAnnotatedExpression : JSExpression, IAnnotatedChildren {
+        protected JSAnnotatedExpression (params JSExpression[] values)
+            : base (values) {
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                foreach (var child in AnnotatedChildren)
+                    yield return child.Node;
+            }
+        }
+
+        public virtual IEnumerable<AnnotatedNode> AnnotatedChildren {
+            get {
+                foreach (var child in base.Children)
+                    yield return new AnnotatedNode(null, child);
+            }
+        }
+    }
 }

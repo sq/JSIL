@@ -1126,12 +1126,12 @@ namespace JSIL {
 
         public void VisitNode (JSDelegateInvocationExpression invocation) {
             bool needsParens =
-                CountOfMatchingSubtrees<JSFunctionExpression>(new[] { invocation.ThisReference }) > 0;
+                CountOfMatchingSubtrees<JSFunctionExpression>(new[] { invocation.Delegate }) > 0;
 
             if (needsParens)
                 Output.LPar();
 
-            Visit(invocation.ThisReference);
+            Visit(invocation.Delegate);
 
             if (needsParens)
                 Output.RPar();

@@ -12,6 +12,8 @@ using MethodInfo = System.Reflection.MethodInfo;
 namespace JSIL.Ast {
     public abstract class JSAstVisitor {
         public readonly Stack<JSNode> Stack = new Stack<JSNode>();
+        public readonly Stack<string> NameStack = new Stack<string>(); 
+        
         protected int NodeIndex, NextNodeIndex;
         protected int StatementIndex, NextStatementIndex;
         protected JSNode PreviousSibling = null;
@@ -136,7 +138,8 @@ namespace JSIL.Ast {
         /// Visits a node and its children (if any), updating the traversal stack.
         /// </summary>
         /// <param name="node">The node to visit.</param>
-        public void Visit (JSNode node) {
+        /// <param name="name">The name to annotate the node with, if any.</param>
+        public void Visit (JSNode node, string name = null) {
             var oldNodeIndex = NodeIndex;
             var oldStatementIndex = StatementIndex;
 
@@ -146,6 +149,7 @@ namespace JSIL.Ast {
 #endif
 
             Stack.Push(node);
+            NameStack.Push(name);
 
             try {
                 NodeIndex = NextNodeIndex;
@@ -164,6 +168,7 @@ namespace JSIL.Ast {
                     VisitNode(node);
             } finally {
                 Stack.Pop();
+                NameStack.Pop();
                 NodeIndex = oldNodeIndex;
                 StatementIndex = oldStatementIndex;
             }
@@ -195,7 +200,24 @@ namespace JSIL.Ast {
             try {
                 PreviousSibling = NextSibling = null;
 
-                using (var e = node.Children.GetEnumerator()) {
+                var annotated = node as IAnnotatedChildren;
+                if (annotated != null) {
+                    string nextSiblingName = null;
+
+                    using (var e = annotated.AnnotatedChildren.GetEnumerator())
+                    while (e.MoveNext()) {
+                        var toVisit = NextSibling;
+                        var toVisitName = nextSiblingName;
+                        NextSibling = e.Current.Node;
+                        nextSiblingName = e.Current.Name;
+
+                        if (toVisit != null)
+                            Visit(toVisit, toVisitName);
+
+                        PreviousSibling = toVisit;
+                    }
+                } else {
+                    using (var e = node.Children.GetEnumerator())
                     while (e.MoveNext()) {
                         var toVisit = NextSibling;
                         NextSibling = e.Current;
@@ -206,13 +228,14 @@ namespace JSIL.Ast {
                         PreviousSibling = toVisit;
                     }
 
-                    if (NextSibling != null) {
-                        var toVisit = NextSibling;
-                        NextSibling = null;
+                }
 
-                        if (toVisit != null)
-                            Visit(toVisit);
-                    }
+                if (NextSibling != null) {
+                    var toVisit = NextSibling;
+                    NextSibling = null;
+
+                    if (toVisit != null)
+                        Visit(toVisit);
                 }
             } finally {
                 PreviousSibling = oldPreviousSibling;
@@ -226,9 +249,27 @@ namespace JSIL.Ast {
             }
         }
 
+        protected string CurrentName {
+            get {
+                return NameStack.FirstOrDefault();
+            }
+        }
+
         protected JSNode ParentNode {
             get {
                 using (var e = Stack.GetEnumerator()) {
+                    if (e.MoveNext())
+                        if (e.MoveNext())
+                            return e.Current;
+
+                    return null;
+                }
+            }
+        }
+
+        protected string ParentName {
+            get {
+                using (var e = NameStack.GetEnumerator()) {
                     if (e.MoveNext())
                         if (e.MoveNext())
                             return e.Current;

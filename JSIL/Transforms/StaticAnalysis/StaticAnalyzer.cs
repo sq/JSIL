@@ -116,14 +116,29 @@ namespace JSIL.Transforms {
 
         public void VisitNode (JSBinaryOperatorExpression boe) {
             var isAssignment = boe.Operator is JSAssignmentOperator;
-            var leftVar = boe.Left as JSVariable;
-            var leftDot = boe.Left as JSDotExpressionBase;
+
+            var left = boe.Left;
+            // If the LHS is a reference expression, climb through the reference(s) to find the actual target.
+            while (left is JSReferenceExpression) {
+                left = ((JSReferenceExpression)left).Referent;
+            }
+
+            var leftDot = left as JSDotExpressionBase;
+            // If the LHS is one or more nested dot expressions, unnest them (leftward) to find the root variable.
+            while (leftDot != null) {
+                if (leftDot.Target is JSDotExpressionBase)
+                    leftDot = (JSDotExpressionBase)leftDot.Target;
+                else
+                    break;
+            }
+
+            var leftVar = left as JSVariable;
 
             VisitChildren(boe);
 
             if (isAssignment) {
                 if (leftVar != null) {
-                    var leftType = boe.Left.GetActualType(TypeSystem);
+                    var leftType = left.GetActualType(TypeSystem);
                     var rightType = boe.Right.GetActualType(TypeSystem);
 
                     State.Assignments.Add(
@@ -139,6 +154,8 @@ namespace JSIL.Transforms {
 
                     if (leftVar != null)
                         State.ModifiedVariables.Add(leftVar.Identifier);
+                } else {
+                    Debugger.Break();
                 }
 
                 if (
@@ -153,23 +170,21 @@ namespace JSIL.Transforms {
             }
         }
 
-        public void VisitNode (JSDotExpressionBase dot) {
-            var field = dot.Member as JSField;
-            var v = dot.Target as JSVariable;
+        public void VisitNode (JSFieldAccess fa) {
+            var field = fa.Field;
+            var v = fa.ThisReference as JSVariable;
 
-            if (field != null) {
-                if (dot.HasGlobalStateDependency) {
-                    State.StaticReferences.Add(new FunctionAnalysis1stPass.StaticReference(
-                        StatementIndex, NodeIndex, field.Field.DeclaringType
-                    ));
-                } else if (v != null) {
-                    State.SideEffects.Add(new FunctionAnalysis1stPass.SideEffect(
-                        StatementIndex, NodeIndex, v
-                    ));
-                }
+            if (fa.HasGlobalStateDependency) {
+                State.StaticReferences.Add(new FunctionAnalysis1stPass.StaticReference(
+                    StatementIndex, NodeIndex, field.Field.DeclaringType
+                ));
+            } else if (v != null) {
+                State.SideEffects.Add(new FunctionAnalysis1stPass.SideEffect(
+                    StatementIndex, NodeIndex, v
+                ));
             }
 
-            VisitChildren(dot);
+            VisitChildren(fa);
         }
 
         public void VisitNode (JSPropertyAccess prop) {
@@ -260,7 +275,7 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSVariable variable) {
-            if (ParentNode is JSFunctionExpression) {
+            if (CurrentName == "Parameter") {
                 // In argument list
                 return;
             }
