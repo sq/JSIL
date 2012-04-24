@@ -154,8 +154,6 @@ namespace JSIL.Transforms {
 
                     if (leftVar != null)
                         State.ModifiedVariables.Add(leftVar.Identifier);
-                } else {
-                    Debugger.Break();
                 }
 
                 if (
