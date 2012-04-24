@@ -453,18 +453,21 @@ namespace JSIL {
             }
 
             while (allTypes.Count > 0) {
-                var types = allTypes.ToArray();
+                var types = new HashSet<TypeDefinition>(allTypes).ToArray();
                 allTypes.Clear();
 
                 Parallel.For(
-                    0, types.Length, parallelOptions, (i) => {
+                    0, types.Length, parallelOptions,
+                    () => {
+                        return new List<TypeDefinition>();
+                    },
+                    (i, loopState, typeList) => {
                         var type = types[i];
 
-                        lock (allTypes)
-                            allTypes.AddRange(type.NestedTypes);
+                        typeList.AddRange(type.NestedTypes);
 
                         if (!ShouldTranslateMethods(type))
-                            return;
+                            return typeList;
 
                         IEnumerable<MethodDefinition> methods = type.Methods;
 
@@ -497,6 +500,12 @@ namespace JSIL {
 
                             allMethods.Add(new MethodToAnalyze(m));
                         }
+
+                        return typeList;
+                    },
+                    (typeList) => {
+                        lock (allTypes)
+                            allTypes.AddRange(typeList);
                     }
                 );
             }
@@ -1690,9 +1699,6 @@ namespace JSIL {
                             bodyTransformer(function);
 
                         function.DisplayName = methodInfo.GetName(false);
-
-                        if (astEmitter.ReferenceContext.EnclosingType != method.DeclaringType)
-                            Debugger.Break();
 
                         astEmitter.ReferenceContext.EnclosingMethod = method;
 

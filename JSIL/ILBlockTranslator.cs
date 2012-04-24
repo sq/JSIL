@@ -34,6 +34,8 @@ namespace JSIL {
 
         protected readonly Stack<JSStatement> Blocks = new Stack<JSStatement>();
 
+        static readonly ConcurrentCache<ILCode, System.Reflection.MethodInfo[]> NodeTranslatorCache = new ConcurrentCache<ILCode, System.Reflection.MethodInfo[]>();
+
         public ILBlockTranslator (
             AssemblyTranslator translator, DecompilerContext context, 
             MethodReference methodReference, MethodDefinition methodDefinition, 
@@ -491,6 +493,60 @@ namespace JSIL {
             throw new AbortTranslation("Fixed statements not implemented");
         }
 
+        static System.Reflection.MethodInfo[] GetNodeTranslators (ILCode code) {
+            return NodeTranslatorCache.GetOrCreate(
+                code, () => {
+                    var methodName = String.Format("Translate_{0}", code);
+                    var bindingFlags = System.Reflection.BindingFlags.Instance |
+                                System.Reflection.BindingFlags.InvokeMethod |
+                                System.Reflection.BindingFlags.NonPublic;
+
+                    var t = typeof(ILBlockTranslator);
+
+                    var alternateMethodName = methodName.Substring(0, methodName.LastIndexOf("_"));
+                    var methods = t.GetMember(
+                            methodName, MemberTypes.Method, bindingFlags
+                        ).Concat(
+                            t.GetMember(
+                                alternateMethodName, MemberTypes.Method, bindingFlags
+                            )
+                        ).OfType<System.Reflection.MethodInfo>()
+                        .ToArray();
+
+                    if (methods.Length == 0)
+                        return null;
+
+                    return methods;
+                }
+            );
+        }
+
+        static object InvokeNodeTranslator (ILCode code, object thisReference, object[] arguments) {
+            MethodBase boundMethod = null;
+            var methods = GetNodeTranslators(code);
+
+            if (methods != null) {
+                var bindingFlags = System.Reflection.BindingFlags.Instance |
+                            System.Reflection.BindingFlags.InvokeMethod |
+                            System.Reflection.BindingFlags.NonPublic;
+
+                var binder = Type.DefaultBinder;
+                object state;
+                boundMethod = binder.BindToMethod(
+                    bindingFlags, methods, ref arguments,
+                    null, null, null, out state
+                );
+            }
+
+            if (boundMethod == null) {
+                throw new MissingMethodException(
+                    String.Format("Could not find a node translator for the node type '{0}'.", code)
+                );
+            }
+
+            return boundMethod.Invoke(thisReference, arguments);
+        }
+
         public JSExpression TranslateNode (ILExpression expression) {
             JSExpression result = null;
 
@@ -499,11 +555,6 @@ namespace JSIL {
             if ((expression.ExpectedType != null) && TypeUtil.IsIgnoredType(expression.ExpectedType))
                 return new JSUntranslatableExpression(expression);
 
-            var methodName = String.Format("Translate_{0}", expression.Code);
-            var bindingFlags = System.Reflection.BindingFlags.Instance |
-                        System.Reflection.BindingFlags.InvokeMethod |
-                        System.Reflection.BindingFlags.NonPublic;
-
             try {
                 object[] arguments;
                 if (expression.Operand != null)
@@ -511,18 +562,7 @@ namespace JSIL {
                 else
                     arguments = new object[] { expression };
 
-                var t = GetType();
-
-                if (t.GetMember(methodName, bindingFlags).Length == 0) {
-                    var newMethodName = methodName.Substring(0, methodName.LastIndexOf("_"));
-                    if (t.GetMember(newMethodName, bindingFlags).Length != 0)
-                        methodName = newMethodName;
-                }
-
-                var invokeResult = GetType().InvokeMember(
-                    methodName, bindingFlags,
-                    null, this, arguments
-                );
+                var invokeResult = InvokeNodeTranslator(expression.Code, this, arguments);
                 result = invokeResult as JSExpression;
 
                 if (result == null)

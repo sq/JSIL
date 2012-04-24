@@ -83,6 +83,13 @@ namespace JSIL.Internal {
         protected uint _IndentLevel = 0;
         protected bool _IndentNeeded = false;
 
+        protected readonly static HashSet<string> CorlibTypes = new HashSet<string> {
+            "System.Byte", "System.UInt16", "System.UInt32", "System.UInt64",
+            "System.SByte", "System.Int16", "System.Int32", "System.Int64",
+            "System.Single", "System.Double", "System.String", "System.Object",
+            "System.Boolean", "System.Char"
+        }; 
+
         public JavascriptFormatter (
             TextWriter output, ITypeInfoSource typeInfo, 
             AssemblyManifest manifest, AssemblyDefinition assembly,
@@ -557,16 +564,9 @@ namespace JSIL.Internal {
                     }
                 }
 
-                var corlibTypes = new HashSet<string> {
-                    "System.Byte", "System.UInt16", "System.UInt32", "System.UInt64",
-                    "System.SByte", "System.Int16", "System.Int32", "System.Int64",
-                    "System.Single", "System.Double", "System.String", "System.Object",
-                    "System.Boolean", "System.Char"
-                };
-
                 // The interface builder provides helpful shorthand for corlib type references.
                 if (type.Scope.Name == "mscorlib" || type.Scope.Name == "CommonLanguageRuntimeLibrary") {
-                    if (corlibTypes.Contains(type.FullName)) {
+                    if (CorlibTypes.Contains(type.FullName)) {
                         WriteRaw("$.");
                         WriteRaw(type.Name);
                         return;

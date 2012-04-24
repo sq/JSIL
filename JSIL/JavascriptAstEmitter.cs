@@ -1165,14 +1165,8 @@ namespace JSIL {
 
                 // If there's only one overload with this argument count, we don't need to use
                 //  the expensive overloaded method dispatch path.
-                if ((method.Name == "Draw") && (overloadCount >= 2))
-                    Debugger.Break();
-
                 return overloadCount < 2;
             }
-
-            if (method.Name == "Draw")
-                Debugger.Break();
 
             return false;
         }
