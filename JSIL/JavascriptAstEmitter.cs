@@ -510,9 +510,13 @@ namespace JSIL {
         public void VisitNode (JSDefaultValueLiteral defaultValue) {
             if (TypeUtil.IsEnum(defaultValue.Value)) {
                 var enumInfo = TypeInfo.Get(defaultValue.Value);
-                Output.Identifier(defaultValue.Value, ReferenceContext);
-                Output.Dot();
-                Output.Identifier(enumInfo.FirstEnumMember.Name);
+                if (enumInfo.FirstEnumMember != null) {
+                    Output.Identifier(defaultValue.Value, ReferenceContext);
+                    Output.Dot();
+                    Output.Identifier(enumInfo.FirstEnumMember.Name);
+                } else {
+                    Output.WriteRaw("0");
+                }
             } else if (TypeUtil.IsIntegralOrEnum(defaultValue.Value)) {
                 Output.Value(0);
             } else if (!defaultValue.Value.IsValueType) {

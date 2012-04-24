@@ -113,6 +113,12 @@ namespace JSIL.Compiler {
                     {"platform=", 
                         "When building one or more solution files, specifies the build platform to use (like 'x86').",
                         (v) => baseConfig.SolutionBuilder.Platform = v },
+                    {"target=", 
+                        "When building one or more solution files, specifies the build target to use (like 'Build'). The default is 'Build'.",
+                        (v) => baseConfig.SolutionBuilder.Target = v },
+                    {"logVerbosity=", 
+                        "When building one or more solution files, specifies the level of log verbosity. Valid options are 'Quiet', 'Minimal', 'Normal', 'Detailed', and 'Diagnostic'.",
+                        (v) => baseConfig.SolutionBuilder.LogVerbosity = v },
 
                     "Assembly options",
                     {"p=|proxy=", 
@@ -236,7 +242,8 @@ namespace JSIL.Compiler {
                 var buildResult = SolutionBuilder.Build(
                     solution,
                     config.SolutionBuilder.Configuration,
-                    config.SolutionBuilder.Platform
+                    config.SolutionBuilder.Platform,
+                    config.SolutionBuilder.Target ?? "Build"
                 );
 
                 IProfile profile = defaultProfile;
@@ -255,11 +262,13 @@ namespace JSIL.Compiler {
                     buildResult
                 );
 
-                buildGroups.Add(new BuildGroup {
-                    BaseConfiguration = config,
-                    FilesToBuild = buildResult.OutputFiles,
-                    Profile = profile
-                });
+                if (buildResult.OutputFiles.Length > 0) {
+                    buildGroups.Add(new BuildGroup {
+                        BaseConfiguration = config,
+                        FilesToBuild = buildResult.OutputFiles,
+                        Profile = profile
+                    });
+                }
             }
 
             var assemblyNames = (from fn in filenames
@@ -288,12 +297,13 @@ namespace JSIL.Compiler {
                              .Concat(resolvedAssemblyPaths)
                              .ToArray();
 
-            if (mainGroup.Length > 0)
+            if (mainGroup.Length > 0) {
                 buildGroups.Add(new BuildGroup {
                     BaseConfiguration = baseConfig,
                     FilesToBuild = mainGroup,
                     Profile = defaultProfile
                 });
+            }
         }
 
         static Action<ProgressReporter> MakeProgressHandler (string description) {
@@ -355,8 +365,10 @@ namespace JSIL.Compiler {
 
             ParseCommandLine(arguments, buildGroups, profiles);
 
-            if (buildGroups.Count < 1)
+            if (buildGroups.Count < 1) {
+                Console.Error.WriteLine("// No assemblies specified to translate. Exiting.");
                 return;
+            }
 
             foreach (var buildGroup in buildGroups) {
                 var config = buildGroup.BaseConfiguration;

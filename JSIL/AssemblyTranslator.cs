@@ -1441,7 +1441,10 @@ namespace JSIL {
                 // We need to run the optimizer on the method to strip out the
                 //  temporary locals created by field assignments.
                 var optimizer = new ILAstOptimizer();
-                optimizer.Optimize(ctx, block);
+                // Save time by not running all the optimization stages.
+                // Since we're generating an AST for *every* static constructor in the entire type graph,
+                //  this adds up.
+                optimizer.Optimize(ctx, block, ILAstOptimizationStep.SimplifyShortCircuit);
 
                 // We need the set of variables used by the method in order to
                 //  properly map default values.

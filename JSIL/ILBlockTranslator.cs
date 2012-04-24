@@ -503,15 +503,16 @@ namespace JSIL {
 
                     var t = typeof(ILBlockTranslator);
 
-                    var alternateMethodName = methodName.Substring(0, methodName.LastIndexOf("_"));
                     var methods = t.GetMember(
                             methodName, MemberTypes.Method, bindingFlags
-                        ).Concat(
-                            t.GetMember(
+                        ).OfType<System.Reflection.MethodInfo>().ToArray();
+
+                    if (methods.Length == 0) {
+                        var alternateMethodName = methodName.Substring(0, methodName.LastIndexOf("_"));
+                        methods = t.GetMember(
                                 alternateMethodName, MemberTypes.Method, bindingFlags
-                            )
-                        ).OfType<System.Reflection.MethodInfo>()
-                        .ToArray();
+                            ).OfType<System.Reflection.MethodInfo>().ToArray();
+                    }
 
                     if (methods.Length == 0)
                         return null;

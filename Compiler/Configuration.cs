@@ -10,6 +10,8 @@ namespace JSIL.Compiler {
         public sealed class SolutionBuildConfiguration {
             public string Configuration;
             public string Platform;
+            public string Target;
+            public string LogVerbosity;
 
             public void MergeInto (SolutionBuildConfiguration result) {
                 if (Configuration != null)
@@ -17,6 +19,12 @@ namespace JSIL.Compiler {
 
                 if (Platform != null)
                     result.Platform = Platform;
+
+                if (Target != null)
+                    result.Target = Target;
+
+                if (LogVerbosity != null)
+                    result.LogVerbosity = LogVerbosity;
             }
         }
 
