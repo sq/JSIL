@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>JSIL</title>
+    <title>JSIL - .NET to JavaScript compiler</title>
+    <meta name="description" content="JSIL is an open source compiler that turns .NET applications, written in C# or VB.NET, into fast readable JavaScript.">
     <link rel="stylesheet" type="text/css" href="reset.css">
     <link rel="stylesheet" type="text/css" href="common.css">
     <link rel="stylesheet" type="text/css" href="index.css">
@@ -10,7 +11,7 @@
     <div id="content_box">
       <div id="introduction" class="rounded-box">
         <h1><img src="images/jsil_48px.png" id="logo">JSIL</h1>
-        <p>JSIL is a compiler that transforms .NET applications and libraries from their native executable format - <a href="http://en.wikipedia.org/wiki/Common_Intermediate_Language">CIL bytecode</a> - into standards-compliant, cross-browser JavaScript. You can take this JavaScript and run it in a web browser or any other modern JavaScript runtime. Unlike other cross-compiler tools targeting JavaScript, JSIL produces readable, easy-to-debug JavaScript that resembles the code a developer might write by hand, while still maintaining the behavior and structure of the original .NET code.</p>
+        <p>JSIL is a compiler that transforms .NET applications and libraries from their native executable format - <a href="http://en.wikipedia.org/wiki/Common_Intermediate_Language">CIL bytecode</a> - into standards-compliant, cross-browser JavaScript. You can take this JavaScript and run it in a web browser or any other modern JavaScript runtime. Unlike other cross-compiler tools targeting JavaScript, JSIL produces readable, easy-to-debug JavaScript that resembles the code a developer might write by hand, while still maintaining the behavior and structure of the original .NET code. Because JSIL transforms bytecode, it can support most .NET-based languages - C# to JavaScript and VB.NET to JavaScript work right out of the box.</p>
       </div>
       <div id="demos" class="rounded-box">
         <h2>Demos</h2>
@@ -58,7 +59,21 @@
           <li>Profit!</li>
         </ol>
         <h3>Complain about JSIL</h3>
-        <p>Not everybody has time to write code! That's okay. You can <a href="https://github.com/kevingadd/JSIL/issues">report issues</a>, or just talk about JSIL on Twitter or something. It's cool!</p>
+        <p>Not everybody has time to write code! That's okay. You can <a href="https://github.com/kevingadd/JSIL/issues">report issues</a>, or just talk about JSIL on the internet or something!</p>
+        <p>
+<div class="g-plusone" data-size="medium" data-href="http://jsil.org/"></div>
+<a href="https://twitter.com/share" class="twitter-share-button" data-url="http://jsil.org/" data-via="antumbral">Tweet</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+<!-- Place this tag where you want the +1 button to render -->
+
+<!-- Place this render call where appropriate -->
+<script type="text/javascript">
+  (function() {
+    var po = document.createElement('script'); po.type = 'text/javascript'; po.async = true;
+    po.src = 'https://apis.google.com/js/plusone.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
+  })();
+</script></p>
       </div>
       <div id="changelog" class="rounded-box">
         <h2>Changelog <span id="branch_list"></span> <a href="https://github.com/kevingadd/JSIL/commits/master" id="view_on_github">View on GitHub</a></h2>        
