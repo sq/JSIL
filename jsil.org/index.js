@@ -115,4 +115,15 @@ function onLoad () {
   
   loadChangelog();
   loadNewSample();
+  
+  var carouselE = $("#demo_carousel");
+  carouselE.carousel({
+    loop: true,
+    direction: "horizontal",
+    dispItems: 1,
+    pagination: false,
+    autoSlide: true,
+    autoSlideInterval: 5000    
+  });
+  carouselE.fadeIn();
 }

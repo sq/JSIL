@@ -115,15 +115,95 @@ a#view_on_github {
 	font-size: 0.5em;
 }
 
-div#demos ul {
-	-moz-column-count: 2;
-	-moz-column-gap: 2em;
-	-webkit-column-count: 2;
-	-webkit-column-gap: 2em;
-	column-count: 2;
-	column-gap: 2em;
-	list-style-type: circle;
-	list-style-position: inside;
+input.carousel-previous {
+	left: 0;
+	background-image: url(images/previous.png);
+}
+
+input.carousel-next {
+	right: 0;
+	background-image: url(images/next.png);
+}
+
+input.carousel-control {
+	position: absolute;
+	overflow: hidden;
+	display: block;
+	top: 0;
+	bottom: 0;
+	margin-top: auto;
+	margin-bottom: auto;
+	width: 48px;
+	height: 48px;
+	cursor: pointer;
+	line-height: 999px;
+	border: 0px none;
+	text-indent: -9999px;
+	border-width: 1px;
+   -moz-box-sizing:    border-box;
+   -webkit-box-sizing: border-box;
+    box-sizing:        border-box;
+   -moz-border-radius: 16px;
+   -webkit-border-radius: 16px;
+	border-radius: 16px;
+	background-position: center;
+	background-repeat: no-repeat;
+	opacity: 0.8;
+}
+
+div.carousel-wrap {
+	width: 300px;
+	height: 300px;
+	display: block;
+	position: absolute;
+	left: 49px;
+	top: 0;
+	bottom: 0;
+	padding: 0px;
+	margin: 0px;
+   -moz-border-radius: 16px;
+   -webkit-border-radius: 16px;
+	border-radius: 16px;
+	background-color: black;
+}
+
+div#demo_carousel {
+	position: relative;
+	margin-left: auto;
+	margin-right: auto;
+	width: 398px;
+	height: 300px;
+}
+
+div#demo_carousel, div#demo_carousel a {
+   -moz-box-sizing:    border-box;
+   -webkit-box-sizing: border-box;
+    box-sizing:        border-box;
+}
+
+div#carousel_items {
+	text-align: left;
+	height: 300px;
+}
+
+div#demo_carousel a {
+	display: block;
+	float: left;
+	margin: 0px;
+	padding: 16px;
+	width: 300px;
+	height: 300px;
+	border: 0px;
+	text-align: center;
+	color: white;
+	text-shadow: black 1px 1px 2px;
+	font-weight: bold;
+	font-size: 1.2em;
+	opacity: 0.8;
+}
+
+div#demo_carousel a:hover {
+	opacity: 1.0;
 }
 
 ul#sample_list {
