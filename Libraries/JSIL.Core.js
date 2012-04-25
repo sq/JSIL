@@ -207,7 +207,7 @@ JSIL.AssignTypeId = function (assembly, typeName) {
 };
 
 JSIL.Name = function (name, context) {
-  this.humanReadable = String(context) + "::" + String(name);
+  this.humanReadable = String(context) + "." + String(name);
   this.key = JSIL.EscapeName(String(context)) + "$" + JSIL.EscapeName(String(name));
 };
 JSIL.Name.prototype.get = function (target) {
@@ -560,7 +560,8 @@ JSIL.RenameFunction = function (name, fn) {
   var decl = {
     value: name,
     enumerable: true,
-    configurable: true
+    configurable: true,
+    writable: false
   };
   
   Object.defineProperty(fn, "displayName", decl);
@@ -1765,6 +1766,22 @@ JSIL.GetStructFieldList = function (typeObject) {
   return sf;
 };
 
+JSIL.CreateNamedFunction = function (name, argumentNames, body) {
+  var uriRe = /[\<\>\+\/\\\.]/g;
+  var nameRe = /[^A-Za-z_0-9]/g;
+
+  var result = eval(
+    "//@ sourceURL=jsil://generatedFunction/" + name + "\r\n" + 
+    "(function " + name.replace(nameRe, "_") + "(" +
+    argumentNames.join(", ") +
+    ") {\r\n" +
+    body +
+    "\r\n})\r\n"
+  );
+
+  return JSIL.RenameFunction(name, result);
+};
+
 JSIL.MakeStructFieldInitializer = function (typeObject) {
   // The definition for native types often includes a self-typed struct field, which is just plain busted.
   if (typeObject.__IsNativeType__)
@@ -1790,12 +1807,10 @@ JSIL.MakeStructFieldInitializer = function (typeObject) {
     types[i] = fieldType;
   }
 
-  var subtypeRe = /[\+\/]/g;
-  var uri = typeObject.__FullName__.replace(subtypeRe, ".");
-
-  var rawFunction = new Function(
-    "types", "target", 
-    "//@ sourceURL=jsil://structFieldInitializer/" + uri + "\r\n" + body.join("\r\n")
+  var rawFunction = JSIL.CreateNamedFunction(
+    typeObject.__FullName__ + ".InitializeStructFields",
+    ["types", "target"],
+    body.join("\r\n")
   );
   var boundFunction = rawFunction.bind(null, types);
   boundFunction.__ThisType__ == typeObject;
@@ -1822,62 +1837,91 @@ JSIL.CopyObjectValues = function (source, target) {
   }
 };
 
-JSIL.MakeMemberCopier = function (typeObject) {
-  var sf = JSIL.GetStructFieldList(typeObject);
+JSIL.CopyMembers = function (source, target) {
+  var thisType = source.__ThisType__;
+  var copier = thisType.__MemberCopier__;
+  if (copier === $jsilcore.FunctionNotInitialized)
+    copier = thisType.__MemberCopier__ = JSIL.$MakeMemberCopier(thisType, thisType.__PublicInterface__);
 
+  copier(source, target);
+};
+
+JSIL.$MakeCopierCore = function (typeObject, context, body) {
+  var sf = JSIL.GetStructFieldList(typeObject);
   var fields = JSIL.GetMembersInternal(
     typeObject, $jsilcore.BindingFlags.Instance, "FieldInfo"
   );
 
-  if (fields.length === 0)
-    return $jsilcore.FunctionNull;
+  if ("__CopyMembers__" in context.prototype) {
+    context.copier = context.prototype.__CopyMembers__;
+    body.push("  context.copier(source, result);");
+  } else {
+    for (var i = 0; i < fields.length; i++) {
+      var field = fields[i];
+      var isStruct = false;
+
+      for (var j = 0; j < sf.length; j++) {
+        if (sf[j][0] == field.Name) {
+          isStruct = true;
+          break;
+        }
+      }
+
+      var line = "  result['" + field.Name + "'] = source['" + field.Name + "']";
+      if (isStruct)
+        line += ".MemberwiseClone();"
+      else
+        line += ";";
+
+      body.push(line);
+    }
+  }
+};
+
+JSIL.$MakeMemberCopier = function (typeObject, publicInterface) {
+  var prototype = publicInterface.prototype;
+  var context = {
+    prototype: prototype
+  };
 
   var body = [];
 
-  for (var i = 0; i < fields.length; i++) {
-    var field = fields[i];
-    var isStruct = false;
+  JSIL.$MakeCopierCore(typeObject, context, body);
 
-    for (var j = 0; j < sf.length; j++) {
-      if (sf[j][0] == field.Name) {
-        isStruct = true;
-        break;
-      }
-    }
-
-    var line = "target['" + field.Name + "'] = source['" + field.Name + "']";
-    if (isStruct)
-      line += ".MemberwiseClone();"
-    else
-      line += ";";
-
-    body.push(line);
-  }
-
-  var subtypeRe = /[\+\/]/g;
-  var uri = typeObject.__FullName__.replace(subtypeRe, ".");
-
-  var rawFunction = new Function(
-    "source", "target",
-    "//@ sourceURL=jsil://memberCopier/" + uri + "\r\n" + body.join("\r\n")
+  return JSIL.CreateNamedFunction(
+    typeObject.__FullName__ + ".MemberCopier",
+    ["source", "result"], 
+    body.join("\r\n")
   );
-
-  return rawFunction;
 };
 
-JSIL.CopyMembers = function (source, target) {
-  if ("__CopyMembers__" in source) {
-    source.__CopyMembers__(target);
-    return;
-  }
+JSIL.$MakeMemberwiseCloner = function (typeObject, publicInterface) {
+  var prototype = publicInterface.prototype;
+  var context = {
+    prototype: prototype,
+    create: Object.create.bind(Object, prototype)
+  };
 
-  var thisType = source.__ThisType__;
-  var memberCopier = thisType.__MemberCopier__;
-  if (memberCopier === $jsilcore.FunctionNotInitialized)
-    memberCopier = thisType.__MemberCopier__ = JSIL.MakeMemberCopier(thisType);
+  var body = [];
+  body.push("  var result = context.create();");
 
-  if (memberCopier !== $jsilcore.FunctionNull)
-    memberCopier(source, target);
+  JSIL.$MakeCopierCore(typeObject, context, body);
+
+  body.push("  return result;");
+
+  var subtypeRe = /[\+\/]/g;
+  var nameRe = /[^A-Za-z_0-9]/g;
+  var uri = typeObject.__FullName__.replace(subtypeRe, ".");
+
+  var memberwiseCloner = JSIL.CreateNamedFunction(
+    typeObject.__FullName__ + ".MemberwiseClone",
+    ["context", "source"],
+    body.join("\r\n")
+  );
+
+  return function MemberwiseClone_Stub () {
+    return memberwiseCloner(context, this);
+  };
 };
 
 JSIL.$BuildStructFieldList = function (typeObject) {
@@ -1922,7 +1966,7 @@ JSIL.$ResolveGenericTypeReferences = function (context, types) {
 };
 
 JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, methodEscapedName, overloadSignatures) {
-  var methodFullName = typeName + "::" + methodName;
+  var methodFullName = typeName + "." + methodName;
 
   var makeDispatcher, makeGenericArgumentGroup;
 
@@ -1947,9 +1991,9 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
     var method = target[key];
 
     if (typeof (method) !== "function") {
-      JSIL.Host.warning("Method not defined: " + typeName + "::" + key);
+      JSIL.Host.warning("Method not defined: " + typeName + "." + key);
       return function MissingMethodInvoked () {
-        throw new Error("Method not defined: " + typeName + "::" + key);
+        throw new Error("Method not defined: " + typeName + "." + key);
       };
     }
 
@@ -2053,7 +2097,7 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
         var foundOverload = target[resolvedMethod.key];
 
         if (typeof (foundOverload) !== "function") {
-          throw new Error("Method not defined: " + typeName + "::" + resolvedMethod.key);
+          throw new Error("Method not defined: " + typeName + "." + resolvedMethod.key);
         } else {
           return foundOverload.apply(this, arguments);
         }
@@ -2074,7 +2118,7 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
     var body = [];
     var methods = {};
 
-    body.push("var argc = args.length;");
+    body.push("  var argc = args.length;");
 
     var isFirst = true;
     var methodIndex = 0;
@@ -2121,13 +2165,10 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
     body.push("  ");
     body.push("  throw new Error('No overload of ' + methods.name + ' can accept ' + (argc - methods.offset) + ' argument(s).')");
 
-    var subtypeRe = /[\+\/]/g;
-    var idRe = /::/g;
-    var idUri = id.replace(subtypeRe, ".").replace(idRe, "/");
-
-    var dispatcher = new Function(
-      "methods", "self", "args",
-      "  //@ sourceURL=jsil://overloadDispatcher/" + idUri + "\r\n" + body.join("\r\n")
+    var dispatcher = JSIL.CreateNamedFunction(
+      id, 
+      ["methods", "self", "args"],
+      body.join("\r\n")
     );
 
     methods.name = id;
@@ -2500,6 +2541,14 @@ JSIL.InitializeType = function (type) {
     }
 
     JSIL.BuildTypeList(typeObject, classObject);
+
+    if (typeof (classObject.prototype) === "object") {
+      JSIL.SetLazyValueProperty(
+        classObject.prototype, "MemberwiseClone", function () {
+          return JSIL.$MakeMemberwiseCloner(typeObject, classObject);
+        }
+      );
+    }
   }
 
   // Run any queued initializers for the type
@@ -3281,15 +3330,16 @@ JSIL.GetType = function (value) {
       return value.__ThisType__;
     else if ("GetType" in value)
       return value.GetType();
-    
+    else if (JSIL.IsArray(value))
+      return System.Array.__Type__;
+    else
+      return System.Object.__Type__;
+
   } else if (type === "string") {
     return System.String.__Type__;
 
   } else if (type === "number") {
     return System.Double.__Type__;
-
-  } else if (JSIL.IsArray(value)) {
-    return System.Array.__Type__;
 
   } else {
     return System.Object.__Type__;
@@ -3642,7 +3692,7 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
 
   var isPlaceholder;
 
-  var fullName = this.namespace + "::" + methodName;
+  var fullName = this.namespace + "." + methodName;
 
   if (impl.hasOwnProperty(prefix + mangledName)) {
     newValue = impl[prefix + mangledName][1];
@@ -3698,7 +3748,7 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
 
   var mangledName = signature.GetKey(descriptor.EscapedName);
 
-  var fullName = this.namespace + "::" + methodName;
+  var fullName = this.namespace + "." + methodName;
   JSIL.SetValueProperty(fn, "toString", 
     function Method_ToString () {
       return "<" + signature.toString(fullName) + ">";
@@ -4150,10 +4200,7 @@ JSIL.ImplementExternals("System.Object", function ($) {
   $.Method({Static: false, Public: false}, "MemberwiseClone",
     new JSIL.MethodSignature("System.Object", [], [], $jsilcore),
     function Object_MemberwiseClone () {
-      var result = Object.create(Object.getPrototypeOf(this));
-
-      JSIL.CopyMembers(this, result);
-      return result;
+      return new System.Object();
     }
   );
 
@@ -4765,7 +4812,7 @@ JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
 
 JSIL.MakeClass("JSIL.Reference", "JSIL.Variable", true, [], function ($) {
   $.RawMethod(false, ".ctor",
-    function (value) {
+    function Variable_ctor (value) {
       this.value = value;
     }
   );
@@ -4773,7 +4820,7 @@ JSIL.MakeClass("JSIL.Reference", "JSIL.Variable", true, [], function ($) {
 
 JSIL.MakeClass("JSIL.Reference", "JSIL.MemberReference", true, [], function ($) {
   $.RawMethod(false, ".ctor",
-    function (object, memberName) {
+    function MemberReference_ctor (object, memberName) {
       this.object = object;
       this.memberName = memberName;
     }

@@ -215,19 +215,13 @@ JSIL.ImplementExternals("System.Drawing.Color", function ($) {
     }
   );
 
-  $.Method({Static:false, Public:true }, "MemberwiseClone", 
-    new JSIL.MethodSignature("System.Object", [], [], $jsilcore),
-    function () {
-      if ((typeof (this.name) != "undefined") && (this.name != null)) {
-        return this;
-      } else {
-        var result = Object.create(systemDrawing.System.Drawing.Color.prototype);
-        result.a = this.a;
-        result.r = this.r;
-        result.g = this.g;
-        result.b = this.b;
-        return result;
-      }
+  $.RawMethod(false, "__CopyMembers__", 
+    function Color_CopyMembers (source, target) {
+      target.a = source.a;
+      target.r = source.r;
+      target.g = source.g;
+      target.b = source.b;
+      target.name = source.name;
     }
   );
 });

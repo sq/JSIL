@@ -1661,22 +1661,26 @@ var vectorUtil = {
       suffixedName += "]";
     }
 
-    var uri = "jsil://operator/" + typeName + "/" + suffixedName;
+    var functionName = typeName + "." + suffixedName;
 
     switch (argCount) {
       case 0:
-        return new Function(
-          "//@ sourceURL=" + uri + "\r\n" + js
+        return JSIL.CreateNamedFunction(
+          functionName,
+          [],
+          js
         );
       case 1:
-        return new Function(
-          "value", 
-          "//@ sourceURL=" + uri + "\r\n" + js
+        return JSIL.CreateNamedFunction(
+          functionName,
+          ["value"],
+          js
         );
       case 2:
-        return new Function(
-          "lhs", "rhs", 
-          "//@ sourceURL=" + uri + "\r\n" + js
+        return JSIL.CreateNamedFunction(
+          functionName,
+          ["lhs", "rhs"],
+          js
         );
       default:
         throw new Error("Invalid argument count");
@@ -1981,14 +1985,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector2", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [$.Single, $.Single], []), function (x, y) {
+  }, ".ctor", new JSIL.MethodSignature(null, [$.Single, $.Single], []), function Vector2_ctor (x, y) {
     this.X = x;
     this.Y = y;
   });
   $.Method({
     Static: false,
     Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [$.Single], []), function (value) {
+  }, ".ctor", new JSIL.MethodSignature(null, [$.Single], []), function Vector2_ctor (value) {
     this.X = this.Y = value;
   });
 });
@@ -2017,7 +2021,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector3", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [$.Single, $.Single, $.Single], []), function (x, y, z) {
+  }, ".ctor", new JSIL.MethodSignature(null, [$.Single, $.Single, $.Single], []), function Vector3_ctor (x, y, z) {
     this.X = x;
     this.Y = y;
     this.Z = z;
@@ -2025,13 +2029,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector3", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [$.Single], []), function (value) {
+  }, ".ctor", new JSIL.MethodSignature(null, [$.Single], []), function Vector3_ctor (value) {
     this.X = this.Y = this.Z = value;
   });
   $.Method({
     Static: false,
     Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (xy, z) {
+  }, ".ctor", new JSIL.MethodSignature(null, [], []), function Vector3_ctor (xy, z) {
     this.X = xy.X;
     this.Y = xy.Y;
     this.Z = z;
@@ -2059,7 +2063,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector4", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [$.Single, $.Single, $.Single, $.Single], []), function (x, y, z, w) {
+  }, ".ctor", new JSIL.MethodSignature(null, [$.Single, $.Single, $.Single, $.Single], []), function Vector4_ctor (x, y, z, w) {
     this.X = x;
     this.Y = y;
     this.Z = z;
@@ -2068,7 +2072,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector4", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (xy, z, w) {
+  }, ".ctor", new JSIL.MethodSignature(null, [], []), function Vector4_ctor (xy, z, w) {
     this.X = xy.X;
     this.Y = xy.Y;
     this.Z = z;
@@ -2077,7 +2081,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector4", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (xyz, w) {
+  }, ".ctor", new JSIL.MethodSignature(null, [], []), function Vector4_ctor (xyz, w) {
     this.X = xyz.X;
     this.Y = xyz.Y;
     this.Z = xyz.Z;
@@ -2086,7 +2090,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Vector4", function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [$.Single], []), function (value) {
+  }, ".ctor", new JSIL.MethodSignature(null, [$.Single], []), function Vector4_ctor (value) {
     this.X = this.Y = this.Z = this.W = value;
   });
 });
@@ -2106,17 +2110,19 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Matrix", function ($) {
     identity.xScale = identity.yScale = identity.zScale = 1;
   });
 
-  $.RawMethod(false, "__CopyMembers__", function (target) {
-    target.xScale = this.xScale || 0;
-    target.yScale = this.yScale || 0;
-    target.zScale = this.zScale || 0;
-    target.xTranslation = this.xTranslation || 0;
-    target.yTranslation = this.yTranslation || 0;
-    target.zTranslation = this.zTranslation || 0;
-    target.xRotation = this.xRotation || 0;
-    target.yRotation = this.yRotation || 0;
-    target.zRotation = this.zRotation || 0;
-  });
+  $.RawMethod(false, "__CopyMembers__", 
+    function Matrix_CopyMembers (source, target) {
+      target.xScale = source.xScale || 0;
+      target.yScale = source.yScale || 0;
+      target.zScale = source.zScale || 0;
+      target.xTranslation = source.xTranslation || 0;
+      target.yTranslation = source.yTranslation || 0;
+      target.zTranslation = source.zTranslation || 0;
+      target.xRotation = source.xRotation || 0;
+      target.yRotation = source.yRotation || 0;
+      target.zRotation = source.zRotation || 0;
+    }
+  );
 
   $.Method({Static:true , Public:true }, "get_Identity", 
     (new JSIL.MethodSignature(matrix, [], [])), 
@@ -3089,9 +3095,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.Keyboard", function ($) {
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.KeyboardState", function ($) {
-  $.RawMethod(false, "__CopyMembers__", function (target) {
-    if (this.keys)
-      target.keys = Array.prototype.slice.call(this.keys);
+  $.RawMethod(false, "__CopyMembers__", function (source, target) {
+    if (source.keys)
+      target.keys = Array.prototype.slice.call(source.keys);
     else
       target.keys = [];
   });
@@ -3777,17 +3783,21 @@ $jsilxna.makeColor = function (proto, r, g, b, a) {
   result.r = r;
   result.g = g;
   result.b = b;
-  if (typeof (a) === "number") result.a = a;
-  else result.a = 255;
+
+  if (typeof (a) === "number") 
+    result.a = a;
+  else 
+    result.a = 255;
+
   return result;
 };
 
 $jsilxna.Color = function ($) {
-  $.RawMethod(false, "__CopyMembers__", function (target) {
-    target.a = this.a;
-    target.r = this.r;
-    target.g = this.g;
-    target.b = this.b;
+  $.RawMethod(false, "__CopyMembers__", function Color_CopyMembers (source, target) {
+    target.a = source.a;
+    target.r = source.r;
+    target.g = source.g;
+    target.b = source.b;
   });
 
   $.Method({
@@ -5051,8 +5061,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.BlendState", function 
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.PresentationParameters", function ($) {
-  $.RawMethod(false, "__CopyMembers__", function (target) {
-    target._device = this._device;
+  $.RawMethod(false, "__CopyMembers__", function (source, target) {
+    target._device = source._device;
   });
 
   $.RawMethod(false, "$internalCtor", function (graphicsDevice) {

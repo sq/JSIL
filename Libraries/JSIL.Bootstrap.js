@@ -709,11 +709,13 @@ JSIL.ConcatString = function (/* ...values */) {
 };
 
 JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, ["T"], function ($) {
-  $.RawMethod(false, "__CopyMembers__", function (target) {
-    target._array = this._array;
-    target._length = this._length;
-    target._index = this._index;
-  });
+  $.RawMethod(false, "__CopyMembers__", 
+    function ArrayEnumerator_CopyMembers (source, target) {
+      target._array = source._array;
+      target._length = source._length;
+      target._index = source._index;
+    }
+  );
 
   $.Method({Public: true , Static: false}, ".ctor", 
     new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", ["!!0"]), $.Int32]),
@@ -2313,15 +2315,17 @@ JSIL.EnumerableToArray = function (enumerable) {
 };
 
 JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerator", true, [], function ($) {
-  $.RawMethod(false, "__CopyMembers__", function (target) {
-    target._getNextItem = this._getNextItem;
-    target._reset = this._reset;
-    target._dispose = this._dispose;
-    target._first = this._first;
-    target._needDispose = this._needDispose;
-    target._current = new JSIL.Variable(this._current.value);
-    target._state = this._state;
-  });
+  $.RawMethod(false, "__CopyMembers__", 
+    function AbstractEnumerator_CopyMembers (source, target) {
+      target._getNextItem = source._getNextItem;
+      target._reset = source._reset;
+      target._dispose = source._dispose;
+      target._first = source._first;
+      target._needDispose = source._needDispose;
+      target._current = new JSIL.Variable(source._current.value);
+      target._state = source._state;
+    }
+  );
 
   $.Method({Static: false, Public: true }, ".ctor",
     new JSIL.MethodSignature(null, [JSIL.AnyType, JSIL.AnyType, JSIL.AnyType]),
