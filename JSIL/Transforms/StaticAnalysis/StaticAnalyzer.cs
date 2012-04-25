@@ -524,8 +524,15 @@ namespace JSIL.Transforms {
             ResultVariable = Data.ResultVariable;
             ResultIsNew = Data.ResultIsNew;
 
+            var seenMethods = new HashSet<string>();
             var rm = Data.ResultMethod;
             while (rm != null) {
+                var currentMethod = rm.QualifiedIdentifier.ToString();
+                if (seenMethods.Contains(currentMethod))
+                    break;
+
+                seenMethods.Add(currentMethod);
+
                 var rmfp = functionSource.GetFirstPass(data.ResultMethod.QualifiedIdentifier);
                 if (rmfp == null)
                     break;
