@@ -533,9 +533,11 @@ namespace JSIL.Transforms {
 
                 seenMethods.Add(currentMethod);
 
-                var rmfp = functionSource.GetFirstPass(data.ResultMethod.QualifiedIdentifier);
-                if (rmfp == null)
+                var rmfp = functionSource.GetFirstPass(rm.QualifiedIdentifier);
+                if (rmfp == null) {
+                    ResultIsNew = rm.Method.Metadata.HasAttribute("JSIL.Meta.JSResultIsNew");
                     break;
+                }
 
                 rm = rmfp.ResultMethod;
                 ResultIsNew = rmfp.ResultIsNew;
