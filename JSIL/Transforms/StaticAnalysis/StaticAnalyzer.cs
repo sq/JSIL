@@ -12,6 +12,8 @@ namespace JSIL.Transforms {
         public readonly TypeSystem TypeSystem;
         public readonly IFunctionSource FunctionSource;
 
+        protected int ReturnsSeen = 0;
+
         protected FunctionAnalysis1stPass State;
 
         public StaticAnalyzer (TypeSystem typeSystem, IFunctionSource functionSource) {
@@ -37,11 +39,25 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSReturnExpression ret) {
+            ReturnsSeen++;
+
             var retVar = ret.Value as JSVariable;
             if (retVar != null) {
                 State.EscapingVariables.Add(retVar.Identifier);
-                State.ResultVariable = retVar.Identifier;
+
+                if (ReturnsSeen == 1)
+                    State.ResultVariable = retVar.Identifier;
+                else if (State.ResultVariable != retVar.Identifier)
+                    State.ResultVariable = null;
+            } else {
+                State.ResultVariable = null;
             }
+
+            var retNew = ret.Value as JSNewExpression;
+            if (ReturnsSeen == 1)
+                State.ResultIsNew = (retNew != null);
+            else
+                State.ResultIsNew &= (retNew != null);
 
             VisitChildren(ret);
         }
@@ -427,6 +443,7 @@ namespace JSIL.Transforms {
         public readonly List<StaticReference> StaticReferences = new List<StaticReference>();
         public readonly List<Invocation> Invocations = new List<Invocation>();
         public string ResultVariable = null;
+        public bool ResultIsNew = false;
 
         public FunctionAnalysis1stPass (JSFunctionExpression function) {
             Function = function;
@@ -452,6 +469,7 @@ namespace JSIL.Transforms {
         public readonly HashSet<string> ModifiedVariables;
         public readonly HashSet<string> EscapingVariables;
         public readonly string ResultVariable;
+        public readonly bool ResultIsNew;
 
         public readonly IFunctionSource FunctionSource;
         public readonly FunctionAnalysis1stPass Data;
@@ -476,6 +494,7 @@ namespace JSIL.Transforms {
             ModifiedVariables = Data.ModifiedVariables;
             EscapingVariables = Data.EscapingVariables;
             ResultVariable = Data.ResultVariable;
+            ResultIsNew = Data.ResultIsNew;
 
             Trace(data.Function.Method.Reference.FullName);
         }
@@ -516,6 +535,7 @@ namespace JSIL.Transforms {
             VariableAliases = new Dictionary<string, HashSet<string>>();
 
             ResultVariable = null;
+            ResultIsNew = method.Metadata.HasAttribute("JSIL.Meta.JSResultIsNew");
 
             Trace(method.Member.FullName);
         }

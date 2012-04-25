@@ -334,7 +334,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentManager", functi
       }
     }
 
-    var rawXnb = JSIL.TryCast(asset, RawXNBAsset);
+    var rawXnb = JSIL.TryCast(asset, RawXNBAsset.__Type__);
     if (rawXnb !== null) {
       rawXnb.contentManager = this;
       var result = rawXnb.ReadAsset(T);
@@ -344,7 +344,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentManager", functi
       return result;
     }
 
-    if (JSIL.CheckType(asset, HTML5Asset)) {
+    if (JSIL.CheckType(asset, HTML5Asset.__Type__)) {
       if (asset === null)
         JSIL.Host.warning("Asset '" + assetName + "' loader returned null.");
 
@@ -898,7 +898,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.Texture2DReader", funct
     function Read (input, existingInstance) {
       var asmGraphics = $asms.xnaGraphics || $asms.xna;
       var tTexture2D = JSIL.GetTypeFromAssembly(asmGraphics, "Microsoft.Xna.Framework.Graphics.Texture2D", [], true);
-      var tSurfaceFormat = asmGraphics.Microsoft.Xna.Framework.Graphics.SurfaceFormat;
+      var tSurfaceFormat = asmGraphics.Microsoft.Xna.Framework.Graphics.SurfaceFormat.__Type__;
 
       var surfaceFormat = JSIL.Cast(input.ReadInt32(), tSurfaceFormat);
       var width = input.ReadInt32();
@@ -2771,7 +2771,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     function Draw (gameTime) {
       if (Microsoft.Xna.Framework.Game._QuitForced || this._isDead) return;
 
-      var drawableComponents = this.$ComponentsOfType(Microsoft.Xna.Framework.IDrawable);
+      var drawableComponents = this.$ComponentsOfType(Microsoft.Xna.Framework.IDrawable.__Type__);
       for (var i = 0, l = drawableComponents.length; i < l; i++) {
         var drawable = drawableComponents[i];
 
@@ -2785,7 +2785,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     function Update (gameTime) {
       if (Microsoft.Xna.Framework.Game._QuitForced || this._isDead) return;
 
-      var updateableComponents = this.$ComponentsOfType(Microsoft.Xna.Framework.IUpdateable);
+      var updateableComponents = this.$ComponentsOfType(Microsoft.Xna.Framework.IUpdateable.__Type__);
       for (var i = 0, l = updateableComponents.length; i < l; i++) {
         var updateable = updateableComponents[i];
 

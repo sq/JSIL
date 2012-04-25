@@ -521,9 +521,9 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSTypeOfExpression : JSExpression {
-        public JSTypeOfExpression (JSType type)
-            : base(type) {
+    public class JSTypeOfExpression : JSType {
+        public JSTypeOfExpression (TypeReference type) 
+            : base (type) {
         }
 
         public override bool HasGlobalStateDependency {
@@ -538,18 +538,8 @@ namespace JSIL.Ast {
             }
         }
 
-        public JSType Type {
-            get {
-                return (JSType)Values[0];
-            }
-        }
-
         public override string ToString () {
-            return Type.ToString();
-        }
-
-        public override TypeReference GetActualType (TypeSystem typeSystem) {
-            return Type.GetActualType(typeSystem);
+            return String.Format("typeof ({0})", base.ToString());
         }
     }
 

@@ -127,13 +127,16 @@ namespace JSIL.Tests {
             Console.WriteLine(generatedJs);
             Assert.IsFalse(generatedJs.Contains(
                 @".op_Addition(a.MemberwiseClone()"
-            ));
+            ), "Argument to op_Addition was cloned");
+            Assert.IsFalse(generatedJs.ContainsRegex(
+                @"\.op_Addition\([^\)]*\)\.MemberwiseClone\("
+            ), "Return value of op_Addition was cloned");
             Assert.IsFalse(generatedJs.Contains(
                 @"b.MemberwiseClone())"
-            ));
+            ), "Argument to op_Addition was cloned");
             Assert.IsFalse(generatedJs.Contains(
                 @"c.MemberwiseClone())"
-            ));
+            ), "Argument to op_Addition was cloned");
             Assert.IsTrue(generatedJs.Contains(
                 @".op_Addition(a, b)"
             ));

@@ -86,6 +86,7 @@ namespace JSIL.Proxies {
     )]
     public abstract class VectorProxy {
         [JSIsPure]
+        [JSResultIsNew]
         public static AnyType Dot (VectorProxy a, VectorProxy b) {
             throw new InvalidOperationException();
         }
@@ -96,6 +97,7 @@ namespace JSIL.Proxies {
         }
 
         [JSIsPure]
+        [JSResultIsNew]
         public static VectorProxy Multiply (VectorProxy a, VectorProxy b) {
             throw new InvalidOperationException();
         }
@@ -106,6 +108,7 @@ namespace JSIL.Proxies {
         }
 
         [JSIsPure]
+        [JSResultIsNew]
         public static VectorProxy Multiply (VectorProxy a, float b) {
             throw new InvalidOperationException();
         }
@@ -116,6 +119,7 @@ namespace JSIL.Proxies {
         }
 
         [JSIsPure]
+        [JSResultIsNew]
         public static VectorProxy Divide (VectorProxy a, VectorProxy b) {
             throw new InvalidOperationException();
         }
@@ -126,6 +130,7 @@ namespace JSIL.Proxies {
         }
 
         [JSIsPure]
+        [JSResultIsNew]
         public static VectorProxy Divide (VectorProxy a, float b) {
             throw new InvalidOperationException();
         }
@@ -136,6 +141,7 @@ namespace JSIL.Proxies {
         }
 
         [JSIsPure]
+        [JSResultIsNew]
         public static VectorProxy Add (VectorProxy a, VectorProxy b) {
             throw new InvalidOperationException();
         }
@@ -146,6 +152,7 @@ namespace JSIL.Proxies {
         }
 
         [JSIsPure]
+        [JSResultIsNew]
         public static VectorProxy Subtract (VectorProxy a, VectorProxy b) {
             throw new InvalidOperationException();
         }
@@ -186,41 +193,49 @@ namespace JSIL.Proxies {
         }
 
         [JSIsPure]
+        [JSResultIsNew]
         public static VectorProxy operator / (VectorProxy a, VectorProxy b) {
             throw new InvalidOperationException();
         }
 
         [JSIsPure]
+        [JSResultIsNew]
         public static VectorProxy operator / (VectorProxy a, float b) {
             throw new InvalidOperationException();
         }
 
         [JSIsPure]
+        [JSResultIsNew]
         public static VectorProxy operator * (VectorProxy a, VectorProxy b) {
             throw new InvalidOperationException();
         }
 
         [JSIsPure]
+        [JSResultIsNew]
         public static VectorProxy operator * (VectorProxy a, float b) {
             throw new InvalidOperationException();
         }
 
         [JSIsPure]
+        [JSResultIsNew]
         public static VectorProxy operator * (float a, VectorProxy b) {
             throw new InvalidOperationException();
         }
 
         [JSIsPure]
+        [JSResultIsNew]
         public static VectorProxy operator - (VectorProxy a, VectorProxy b) {
             throw new InvalidOperationException();
         }
 
         [JSIsPure]
+        [JSResultIsNew]
         public static VectorProxy operator + (VectorProxy a, VectorProxy b) {
             throw new InvalidOperationException();
         }
 
         [JSIsPure]
+        [JSResultIsNew]
         public static VectorProxy operator - (VectorProxy a) {
             throw new InvalidOperationException();
         }

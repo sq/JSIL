@@ -2964,6 +2964,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
     typeObject.__Context__ = $private;
     typeObject.__FullName__ = fullName;
     typeObject.__GenericArguments__ = genericArguments || [];
+    typeObject.__IsReferenceType__ = true;
     typeObject.IsInterface = true;
     typeObject.__Interfaces__ = interfaces || [];
 
@@ -3166,26 +3167,28 @@ JSIL.CheckDerivation = function (haystack, needle) {
   return false;
 };
 
-JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
-  var expectedTypeObject, expectedTypePublicInterface;
-
-  if (typeof (expectedType) === "undefined") {
-    JSIL.Host.warning("Warning: Comparing value against an undefined type: ", value);
+JSIL.$SlowCheckType = function (value, expectedTypePublicInterface) {
+  var expectedProto = expectedTypePublicInterface.prototype;
+  var typeofExpectedProto = typeof (expectedProto);
+  if ((typeofExpectedProto === "undefined") ||
+      (typeofExpectedProto === "null"))
     return false;
-  }
 
-  if (typeof (expectedType.__Type__) === "object") {
-    expectedTypeObject = expectedType.__Type__;
-    expectedTypePublicInterface = expectedType;
-  } else if (typeof (expectedType.__PublicInterface__) !== "undefined") {
-    expectedTypeObject = expectedType;
-    expectedTypePublicInterface = expectedType.__PublicInterface__;
-  }
+  return JSIL.CheckDerivation(Object.getPrototypeOf(value), expectedProto);
+};
+
+JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
+  if (value === null)
+    return false;
 
   var typeofValue = typeof(value);
-
   if (typeofValue === "undefined")
     return false;
+
+  var expectedTypeObject, expectedTypePublicInterface;
+
+  expectedTypeObject = expectedType;
+  expectedTypePublicInterface = expectedType.__PublicInterface__ || expectedType;
 
   if (expectedTypeObject.IsEnum === true) {
     return expectedTypePublicInterface.CheckType(value);
@@ -3193,30 +3196,19 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
 
   var ct = expectedTypePublicInterface.CheckType;
   if (
-    (typeof (ct) !== "undefined") &&
+    (typeof (ct) === "function") &&
     (bypassCustomCheckMethod !== true)
   ) {
     if (ct(value))
       return true;
   }
 
-  if (value === null)
-    return false;
+  var valueType = JSIL.GetType(value);
 
-  if ((typeofValue === "object") || (typeofValue === "function")) {
-    var valueType = JSIL.GetType(value);
-
-    if (valueType !== null) {
-      return JSIL.$TypeIsAssignable(valueType, expectedTypeObject);
-    } else {
-      var expectedProto = expectedTypePublicInterface.prototype;
-      var typeofExpectedProto = typeof (expectedProto);
-      if ((typeofExpectedProto === "undefined") ||
-          (typeofExpectedProto === "null"))
-        return false;
-
-      return JSIL.CheckDerivation(Object.getPrototypeOf(value), expectedProto);
-    }
+  if (valueType !== null) {
+    return JSIL.$TypeIsAssignable(valueType, expectedTypeObject);
+  } else if ((typeofValue === "object") || (typeofValue === "function")) {
+    return JSIL.$SlowCheckType(value, expectedTypePublicInterface);
   }
 
   return false;
@@ -3257,30 +3249,31 @@ JSIL.GetBaseType = function (typeObject) {
 
 JSIL.GetType = function (value) {
   var result;
-
-  if ((typeof (value) !== "undefined") && (value !== null) && (typeof (value.GetType) === "function"))
-    return value.GetType();
-
-  if ((typeof (value) === "object") && (value !== null) && (typeof (value.__ThisType__) === "object"))
-    return value.__ThisType__;
-
   var type = typeof (value);
 
+  if (value === null)
+    return null;
+  else if (type === "undefined")
+    return null;
+
+  if (value.__ThisType__)
+    return value.__ThisType__;
+  else if (typeof (value.GetType) === "function")
+    return value.GetType();
+
   switch (type) {
-    case "undefined":
-      return null;
     case "string":
       return System.String.__Type__;
+      
     case "number":
       return System.Double.__Type__;
+
     default:
       if (JSIL.IsArray(value))
         return System.Array.__Type__;
-
-      break;
+      else
+        return System.Object.__Type__;
   }
-
-  return System.Object.__Type__;
 };
 
 JSIL.GetTypeName = function (type) {
@@ -4693,7 +4686,7 @@ JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
   var checkType = function Reference_CheckType (value) {
     var type = this;
 
-    var isReference = JSIL.CheckType(value, JSIL.Reference, true);
+    var isReference = JSIL.CheckType(value, JSIL.Reference.__Type__, true);
     if (!isReference)
       return false;
 
