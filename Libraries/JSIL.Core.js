@@ -3276,23 +3276,24 @@ JSIL.GetType = function (value) {
   else if (type === "undefined")
     return null;
 
-  if ("__ThisType__" in value)
-    return value.__ThisType__;
-  else if ("GetType" in value)
-    return value.GetType();
+  if ((type === "object") || (type === "function")) {
+    if ("__ThisType__" in value)
+      return value.__ThisType__;
+    else if ("GetType" in value)
+      return value.GetType();
+    
+  } else if (type === "string") {
+    return System.String.__Type__;
 
-  switch (type) {
-    case "string":
-      return System.String.__Type__;
+  } else if (type === "number") {
+    return System.Double.__Type__;
 
-    case "number":
-      return System.Double.__Type__;
+  } else if (JSIL.IsArray(value)) {
+    return System.Array.__Type__;
 
-    default:
-      if (JSIL.IsArray(value))
-        return System.Array.__Type__;
-      else
-        return System.Object.__Type__;
+  } else {
+    return System.Object.__Type__;
+
   }
 };
 
