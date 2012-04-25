@@ -146,7 +146,6 @@ JSIL.ImplementExternals(
     $.RawMethod(true, "CheckType", function (value) {
       return (typeof (value) === "number");
     });
-    $.RawMethod(true, "IsNaN", isNaN);
   }
 );
 JSIL.MakeNumericType(Number, "System.Single", false);
@@ -156,7 +155,6 @@ JSIL.ImplementExternals(
     $.RawMethod(true, "CheckType", function (value) {
       return (typeof (value) === "number");
     });
-    $.RawMethod(true, "IsNaN", isNaN);
   }
 );
 JSIL.MakeNumericType(Number, "System.Double", false);

@@ -53,6 +53,8 @@
     <None Include="AnalysisTestCases\ReturnMutatedStructArgument.cs" />
     <None Include="AnalysisTestCases\ReturnMutatedNestedStruct.cs" />
     <None Include="AnalysisTestCases\MutateNestedStruct.cs" />
+    <None Include="AnalysisTestCases\CopyGetEnumerator.cs" />
+    <None Include="AnalysisTestCases\NestedReturnNew.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="FailingTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />

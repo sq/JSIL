@@ -97,10 +97,6 @@ namespace JSIL {
         }
 
         protected JSExpression FixupThisArgument (JSExpression thisArgument, TypeSystem typeSystem) {
-            var toe = thisArgument as JSTypeOfExpression;
-            if (toe != null)
-                return toe.Type;
-
             var expectedType = thisArgument.GetActualType(typeSystem);
             if (expectedType.FullName == "System.Type")
                 return JSDotExpression.New(thisArgument, new JSStringIdentifier("__PublicInterface__"));
@@ -110,17 +106,12 @@ namespace JSIL {
 
         protected TypeReference UnwrapType (JSExpression expression) {
             var type = expression as JSType;
-            var toe = expression as JSTypeOfExpression;
 
             var invocation = expression as JSInvocationExpression;
             if (invocation != null) {
                 var firstArg = invocation.Arguments.FirstOrDefault();
                 type = type ?? firstArg as JSType;
-                toe = toe ?? firstArg as JSTypeOfExpression;
             }
-
-            if (toe != null)
-                type = toe.Type;
 
             if (type != null)
                 return type.Type;

@@ -83,7 +83,7 @@ namespace JSIL {
         public JSInvocationExpression CheckType (JSExpression expression, TypeReference targetType) {
             return JSInvocationExpression.InvokeStatic(
                 Dot("CheckType", TypeSystem.Boolean),
-                new[] { expression, new JSType(targetType) }, true
+                new[] { expression, new JSTypeOfExpression(targetType) }, true
             );
         }
 
@@ -104,14 +104,14 @@ namespace JSIL {
         public JSInvocationExpression TryCast (JSExpression expression, TypeReference targetType) {
             return JSInvocationExpression.InvokeStatic(
                 Dot("TryCast", targetType),
-                new[] { expression, new JSType(targetType) }, true
+                new[] { expression, new JSTypeOfExpression(targetType) }, true
             );
         }
 
         public JSExpression Cast (JSExpression expression, TypeReference targetType) {
             return JSInvocationExpression.InvokeStatic(
                 Dot("Cast", targetType),
-                new[] { expression, new JSType(targetType) }, true
+                new[] { expression, new JSTypeOfExpression(targetType) }, true
             );
         }
 

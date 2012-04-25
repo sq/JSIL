@@ -127,16 +127,47 @@ namespace JSIL.Tests {
             Console.WriteLine(generatedJs);
             Assert.IsFalse(generatedJs.Contains(
                 @".op_Addition(a.MemberwiseClone()"
-            ));
+            ), "Argument to op_Addition was cloned");
+            Assert.IsFalse(generatedJs.ContainsRegex(
+                @"\.op_Addition\([^\)]*\)\.MemberwiseClone\("
+            ), "Return value of op_Addition was cloned");
             Assert.IsFalse(generatedJs.Contains(
                 @"b.MemberwiseClone())"
-            ));
+            ), "Argument to op_Addition was cloned");
             Assert.IsFalse(generatedJs.Contains(
                 @"c.MemberwiseClone())"
-            ));
+            ), "Argument to op_Addition was cloned");
             Assert.IsTrue(generatedJs.Contains(
                 @".op_Addition(a, b)"
             ));
+        }
+
+        [Test]
+        public void CopyGetEnumerator () {
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\CopyGetEnumerator.cs",
+                "1\r\n2\r\n3",
+                "1\r\n2\r\n3"
+            );
+
+            Console.WriteLine(generatedJs);
+            Assert.IsFalse(generatedJs.Contains(
+                @"GetEnumerator().MemberwiseClone()"
+            ), "The enumerator was cloned");
+        }
+
+        [Test]
+        public void NestedReturnNew () {
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\NestedReturnNew.cs",
+                "a=1, b=2, c=3, d=6\r\na=1, b=2, c=3, d=6",
+                "a=1, b=2, c=3, d=6\r\na=1, b=2, c=3, d=6"
+            );
+
+            Console.WriteLine(generatedJs);
+            Assert.IsFalse(generatedJs.Contains(
+                @".MemberwiseClone()"
+            ), "A struct was cloned");
         }
 
         [Test]

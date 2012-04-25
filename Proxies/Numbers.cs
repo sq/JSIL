@@ -31,7 +31,12 @@ namespace JSIL.Proxies {
     public abstract class NumberProxy {
         [JSReplacement("($this).toString()")]
         public string ToString (params AnyType[] arguments) {
-            return base.ToString();
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("isNaN($value)")]
+        public static bool IsNaN (NumberProxy value) {
+            throw new InvalidOperationException();
         }
 
         [JSReplacement("JSIL.CompareValues($this, $rhs)")]

@@ -334,7 +334,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentManager", functi
       }
     }
 
-    var rawXnb = JSIL.TryCast(asset, RawXNBAsset);
+    var rawXnb = JSIL.TryCast(asset, RawXNBAsset.__Type__);
     if (rawXnb !== null) {
       rawXnb.contentManager = this;
       var result = rawXnb.ReadAsset(T);
@@ -344,7 +344,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentManager", functi
       return result;
     }
 
-    if (JSIL.CheckType(asset, HTML5Asset)) {
+    if (JSIL.CheckType(asset, HTML5Asset.__Type__)) {
       if (asset === null)
         JSIL.Host.warning("Asset '" + assetName + "' loader returned null.");
 
@@ -898,7 +898,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.Texture2DReader", funct
     function Read (input, existingInstance) {
       var asmGraphics = $asms.xnaGraphics || $asms.xna;
       var tTexture2D = JSIL.GetTypeFromAssembly(asmGraphics, "Microsoft.Xna.Framework.Graphics.Texture2D", [], true);
-      var tSurfaceFormat = asmGraphics.Microsoft.Xna.Framework.Graphics.SurfaceFormat;
+      var tSurfaceFormat = asmGraphics.Microsoft.Xna.Framework.Graphics.SurfaceFormat.__Type__;
 
       var surfaceFormat = JSIL.Cast(input.ReadInt32(), tSurfaceFormat);
       var width = input.ReadInt32();
@@ -1689,16 +1689,17 @@ var vectorUtil = {
       typeRef: typeRef
     };
 
-    Object.defineProperty(state, "prototype", {
-      configurable: true,
-      enumerable: false,
-      get: function () {
+    JSIL.SetLazyValueProperty(
+      state, "create", 
+      function VectorMethod_GetCreator () {
         if (state.resolvedType === null)
           state.resolvedType = state.typeRef.get();
         
-        return state.resolvedType.prototype;
+        var create = Object.create;
+        var proto = state.resolvedType.prototype;
+        return create.bind(Object, proto);
       }
-    });
+    );
 
     return fn.bind(state);
   },
@@ -1711,7 +1712,7 @@ var vectorUtil = {
       throw new Error("Invalid type combination");
 
     var body = [];
-    body.push("var result = Object.create( this.prototype );");
+    body.push("var result = this.create();");
 
     for (var i = 0; i < dataMembers.length; i++) {
       var dataMember = dataMembers[i];
@@ -1789,7 +1790,7 @@ var vectorUtil = {
 
   makeNegationOperator: function ($, dataMembers, tVector) {
     var body = [];
-    body.push("var result = Object.create( this.prototype );");
+    body.push("var result = this.create();");
 
     for (var i = 0; i < dataMembers.length; i++) {
       var dataMember = dataMembers[i];
@@ -2768,10 +2769,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
 
   $.Method({Static:false, Public:false}, "Draw", 
     (new JSIL.MethodSignature(null, [$asms[1].TypeRef("Microsoft.Xna.Framework.GameTime")], [])), 
-    function Draw (gameTime) {
+    function Game_Draw (gameTime) {
       if (Microsoft.Xna.Framework.Game._QuitForced || this._isDead) return;
 
-      var drawableComponents = this.$ComponentsOfType(Microsoft.Xna.Framework.IDrawable);
+      var drawableComponents = this.$ComponentsOfType(Microsoft.Xna.Framework.IDrawable.__Type__);
       for (var i = 0, l = drawableComponents.length; i < l; i++) {
         var drawable = drawableComponents[i];
 
@@ -2782,10 +2783,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
 
   $.Method({Static:false, Public:false}, "Update", 
     (new JSIL.MethodSignature(null, [$asms[1].TypeRef("Microsoft.Xna.Framework.GameTime")], [])), 
-    function Update (gameTime) {
+    function Game_Update (gameTime) {
       if (Microsoft.Xna.Framework.Game._QuitForced || this._isDead) return;
 
-      var updateableComponents = this.$ComponentsOfType(Microsoft.Xna.Framework.IUpdateable);
+      var updateableComponents = this.$ComponentsOfType(Microsoft.Xna.Framework.IUpdateable.__Type__);
       for (var i = 0, l = updateableComponents.length; i < l; i++) {
         var updateable = updateableComponents[i];
 
@@ -2803,15 +2804,15 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     this._QueueStep();
   });
 
-  $.RawMethod(false, "_GetNow", function () {
+  $.RawMethod(false, "_GetNow", function Game_GetNow () {
     return (new Date()).getTime();
   });
 
-  $.RawMethod(false, "_DeferCall", function (callback, lng) {
+  $.RawMethod(false, "_DeferCall", function Game_DeferCall (callback, lng) {
     setTimeout(callback, 0);
   });
 
-  $.RawMethod(false, "_QueueStep", function () {
+  $.RawMethod(false, "_QueueStep", function Game_EnqueueTick () {
     if (Microsoft.Xna.Framework.Game._QuitForced) return;
 
     var self = this;
@@ -2839,7 +2840,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     }
   });
 
-  $.RawMethod(false, "_Step", function () {
+  $.RawMethod(false, "_Step", function Game_Tick () {
     var now = this._GetNow();
 
     var frameDelay = this.targetElapsedTime.get_TotalMilliseconds();
@@ -2887,7 +2888,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     var failed = true;
     try {
 
-      var doUpdate = function () {
+      var doUpdate = function Game_TimedUpdate () {
         var updateStarted = this._GetNow();
         this.Update(this._gameTime);
         var updateEnded = this._GetNow();

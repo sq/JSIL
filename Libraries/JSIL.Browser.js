@@ -486,7 +486,8 @@ var assetLoaders = {
     e.addEventListener("error", onError, true);
     e.addEventListener("load", onDoneLoading.bind(null, finisher), true);
     e.src = contentRoot + filename;
-    document.getElementById("images").appendChild(e);
+
+    // document.getElementById("images").appendChild(e);
   },
   "File": function loadFile (filename, data, onError, onDoneLoading) {
     loadBinaryFileAsync(fileRoot + filename, function (result, error) {
@@ -679,7 +680,7 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
     e.appendChild(source);
   }
   
-  document.getElementById("sounds").appendChild(e);
+  // document.getElementById("sounds").appendChild(e);
   
   // Events on <audio> elements are inconsistent at best across browsers, so we poll instead. :/    
 

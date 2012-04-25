@@ -1650,8 +1650,16 @@ namespace JSIL {
 
             var expectedType = node.ExpectedType ?? node.InferredType ?? targetType;
 
-            if (expectedType.IsValueType) {
-                return JSIL.CheckType(firstArg, targetType);
+            if (targetType.IsValueType) {
+                if ((expectedType.Name == "Object") && (expectedType.Namespace == "System")) {
+                    return new JSTernaryOperatorExpression(
+                        JSIL.CheckType(firstArg, targetType),
+                        firstArg, new JSNullLiteral(targetType),
+                        targetType
+                    );
+                } else {
+                    return JSIL.CheckType(firstArg, targetType);
+                }
             } else {
                 return JSIL.TryCast(firstArg, targetType);
             }
@@ -2035,7 +2043,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_TypeOf (TypeReference type) {
-            return new JSTypeOfExpression(new JSType(type));
+            return new JSTypeOfExpression(type);
         }
 
         protected JSExpression Translate_Ldtoken (ILExpression node, TypeReference type) {

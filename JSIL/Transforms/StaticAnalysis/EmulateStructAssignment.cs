@@ -66,7 +66,9 @@ namespace JSIL.Transforms {
             ) {
                 return false;
             }
-
+            
+            // If the expression is a parameter that is only used once and isn't aliased,
+            //  we don't need to copy it.
             var rightVar = value as JSVariable;
             if (rightVar != null) {
                 int referenceCount;
@@ -80,6 +82,43 @@ namespace JSIL.Transforms {
 
                     return false;
                 }
+            }
+
+            var rightInvocation = value as JSInvocationExpression;
+            if (rightInvocation == null)
+                return true;
+
+            var invokeMethod = rightInvocation.JSMethod;
+            if (invokeMethod == null)
+                return true;
+
+            var secondPass = FunctionSource.GetSecondPass(invokeMethod);
+            if (secondPass == null)
+                return true;
+
+            // If this expression is the return value of a function invocation, we can eliminate struct
+            //  copies if the return value is a 'new' expression.
+            if (secondPass.ResultIsNew)
+                return false;
+
+            // We can also eliminate a return value copy if the return value is one of the function's 
+            //  arguments, and we are sure that argument does not need a copy either.
+            if (secondPass.ResultVariable != null) {
+                var parameters = invokeMethod.Method.Parameters;
+                int parameterIndex = -1;
+
+                for (var i = 0; i < parameters.Length; i++) {
+                    if (parameters[i].Name != secondPass.ResultVariable)
+                        continue;
+
+                    parameterIndex = i;
+                    break;
+                }
+
+                if (parameterIndex < 0)
+                    return true;
+
+                return IsCopyNeeded(rightInvocation.Arguments[parameterIndex]);
             }
  
             return true;
@@ -105,10 +144,26 @@ namespace JSIL.Transforms {
             if (IsCopyNeeded(pair.Value)) {
                 if (Tracing)
                     Debug.WriteLine(String.Format("struct copy introduced for object value {0}", pair.Value));
+
                 pair.Value = new JSStructCopyExpression(pair.Value);
             }
 
             VisitChildren(pair);
+        }
+
+        protected bool IsParameterCopyNeeded (FunctionAnalysis2ndPass sa, string parameterName, JSExpression expression) {
+            if (!IsCopyNeeded(expression))
+                return false;
+
+            bool modified = true, escapes = true, isResult = false;
+
+            if (parameterName != null) {
+                modified = sa.ModifiedVariables.Contains(parameterName);
+                escapes = sa.EscapingVariables.Contains(parameterName);
+                isResult = sa.ResultVariable == parameterName;
+            }
+
+            return modified || (escapes && !isResult);
         }
 
         public void VisitNode (JSInvocationExpression invocation) {
@@ -123,25 +178,18 @@ namespace JSIL.Transforms {
                 var pd = parms[i].Key;
                 var argument = parms[i].Value;
 
-                if (IsCopyNeeded(argument)) {
-                    bool modified = true, escapes = true, isResult = false;
+                string parameterName = null;
+                if (pd != null)
+                    parameterName = pd.Name;
 
-                    if ((sa != null) && (pd != null)) {
-                        var varName = pd.Name;
-                        modified = sa.ModifiedVariables.Contains(varName);
-                        escapes = sa.EscapingVariables.Contains(varName);
-                        isResult = sa.ResultVariable == varName;
-                    }
+                if (IsParameterCopyNeeded(sa, parameterName, argument)) {
+                    if (Tracing)
+                        Debug.WriteLine(String.Format("struct copy introduced for argument {0}", argument));
 
-                    if (modified || (escapes && !isResult)) {
-                        if (Tracing)
-                            Debug.WriteLine(String.Format("struct copy introduced for argument {0}", argument));
-
-                        invocation.Arguments[i] = new JSStructCopyExpression(argument);
-                    } else {
-                        if (Tracing)
-                            Debug.WriteLine(String.Format("struct copy elided for argument {0}", argument));
-                    }
+                    invocation.Arguments[i] = new JSStructCopyExpression(argument);
+                } else {
+                    if (Tracing)
+                        Debug.WriteLine(String.Format("struct copy elided for argument {0}", argument));
                 }
             }
 
@@ -155,6 +203,7 @@ namespace JSIL.Transforms {
                 if (IsCopyNeeded(argument)) {
                     if (Tracing)
                         Debug.WriteLine(String.Format("struct copy introduced for argument {0}", argument));
+
                     invocation.Arguments[i] = new JSStructCopyExpression(argument);
                 }
             }

@@ -559,9 +559,11 @@ namespace JSIL {
         }
 
         public void VisitNode (JSTypeOfExpression toe) {
-            Visit(toe.Type);
+            Output.Identifier(
+                toe.Type, ReferenceContext, IncludeTypeParens.Peek()
+            );
 
-            if (toe.Type.Type is GenericParameter) {
+            if (toe.Type is GenericParameter) {
                 // Generic parameters are type objects, not public interfaces
             } else {
                 Output.Dot();

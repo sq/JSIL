@@ -12,6 +12,8 @@ namespace JSIL.Transforms {
         public readonly TypeSystem TypeSystem;
         public readonly IFunctionSource FunctionSource;
 
+        protected int ReturnsSeen = 0;
+
         protected FunctionAnalysis1stPass State;
 
         public StaticAnalyzer (TypeSystem typeSystem, IFunctionSource functionSource) {
@@ -37,10 +39,47 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSReturnExpression ret) {
-            var retVar = ret.Value as JSVariable;
-            if (retVar != null) {
-                State.EscapingVariables.Add(retVar.Identifier);
-                State.ResultVariable = retVar.Identifier;
+            ReturnsSeen++;
+
+            var returnValue = ret.Value;
+            JSResultReferenceExpression rre;
+
+            while ((rre = returnValue as JSResultReferenceExpression) != null) {
+                returnValue = rre.Referent;
+            }
+
+            var retInvocation = returnValue as JSInvocationExpression;
+            if (retInvocation != null) {
+                State.ResultVariable = null;
+                State.ResultIsNew = false;
+
+                if (retInvocation.JSMethod != null) {
+                    if (ReturnsSeen == 1)
+                        State.ResultMethod = retInvocation.JSMethod;
+                    else if (retInvocation.JSMethod != State.ResultMethod)
+                        State.ResultMethod = null;
+                } else {
+                    State.ResultMethod = null;
+                }
+
+            } else {
+                var retVar = returnValue as JSVariable;
+                if (retVar != null) {
+                    State.EscapingVariables.Add(retVar.Identifier);
+
+                    if (ReturnsSeen == 1)
+                        State.ResultVariable = retVar.Identifier;
+                    else if (State.ResultVariable != retVar.Identifier)
+                        State.ResultVariable = null;
+                } else {
+                    State.ResultVariable = null;
+                }
+
+                var retNew = returnValue as JSNewExpression;
+                if (ReturnsSeen == 1)
+                    State.ResultIsNew = (retNew != null);
+                else
+                    State.ResultIsNew &= (retNew != null);
             }
 
             VisitChildren(ret);
@@ -426,7 +465,13 @@ namespace JSIL.Transforms {
         public readonly List<SideEffect> SideEffects = new List<SideEffect>();
         public readonly List<StaticReference> StaticReferences = new List<StaticReference>();
         public readonly List<Invocation> Invocations = new List<Invocation>();
+
+        // If not null, this method's return value is always the result of a call to a particular method.
+        public JSMethod ResultMethod = null;
+        // If not null, this method's return value is always a particular variable.
         public string ResultVariable = null;
+        // If true, this method's return value is always a 'new' expression.
+        public bool ResultIsNew = false;
 
         public FunctionAnalysis1stPass (JSFunctionExpression function) {
             Function = function;
@@ -452,6 +497,7 @@ namespace JSIL.Transforms {
         public readonly HashSet<string> ModifiedVariables;
         public readonly HashSet<string> EscapingVariables;
         public readonly string ResultVariable;
+        public readonly bool ResultIsNew;
 
         public readonly IFunctionSource FunctionSource;
         public readonly FunctionAnalysis1stPass Data;
@@ -476,6 +522,26 @@ namespace JSIL.Transforms {
             ModifiedVariables = Data.ModifiedVariables;
             EscapingVariables = Data.EscapingVariables;
             ResultVariable = Data.ResultVariable;
+            ResultIsNew = Data.ResultIsNew;
+
+            var seenMethods = new HashSet<string>();
+            var rm = Data.ResultMethod;
+            while (rm != null) {
+                var currentMethod = rm.QualifiedIdentifier.ToString();
+                if (seenMethods.Contains(currentMethod))
+                    break;
+
+                seenMethods.Add(currentMethod);
+
+                var rmfp = functionSource.GetFirstPass(rm.QualifiedIdentifier);
+                if (rmfp == null) {
+                    ResultIsNew = rm.Method.Metadata.HasAttribute("JSIL.Meta.JSResultIsNew");
+                    break;
+                }
+
+                rm = rmfp.ResultMethod;
+                ResultIsNew = rmfp.ResultIsNew;
+            }
 
             Trace(data.Function.Method.Reference.FullName);
         }
@@ -516,6 +582,7 @@ namespace JSIL.Transforms {
             VariableAliases = new Dictionary<string, HashSet<string>>();
 
             ResultVariable = null;
+            ResultIsNew = method.Metadata.HasAttribute("JSIL.Meta.JSResultIsNew");
 
             Trace(method.Member.FullName);
         }
