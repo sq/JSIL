@@ -3229,25 +3229,24 @@ JSIL.IsArray = function (value) {
     return false;
 
   if (typeof (value) === "object") {
-    var valueProto = Object.getPrototypeOf(value);
-
-    if (valueProto === Array.prototype) {
-    } else if (typeof (ArrayBuffer) === "function") {
-      if ((typeof (value.buffer) === "object") && (Object.getPrototypeOf(value.buffer) === ArrayBuffer.prototype))
-        ;
-      else
-        return false;
-    } else {
-      return false;
-    }
-
-    var length = null;
-    try {
-      length = value.length;
-    } catch (e) {
-    }
-    if (typeof (length) === "number")
+    // Only way to reliably check to see if something is an array in Node.js
+    if (Array.isArray(value))
       return true;
+
+    var valueProto = Object.getPrototypeOf(value);
+    var isArrayBuffer = false;
+    var lengthIsNumber = false;
+
+    if (typeof (ArrayBuffer) === "function") {
+      isArrayBuffer = ((typeof (value.buffer) === "object") && (Object.getPrototypeOf(value.buffer) === ArrayBuffer.prototype));
+    }
+
+    if (isArrayBuffer)
+      return true;
+
+    lengthIsNumber = typeof (value.length) === "number";
+
+    return (hasArrayPrototype && lengthIsNumber);
   }
 
   return false;
@@ -3778,9 +3777,10 @@ JSIL.MethodSignature = function (returnType, argumentTypes, genericArgumentNames
   this.returnType = returnType;
 
   if (!JSIL.IsArray(argumentTypes)) {
-    if (argumentTypes !== null)
-      throw new Error("ArgumentTypes must be an array or null");
-    else
+    if (argumentTypes !== null) {
+      var argumentTypesString = typeof(argumentTypes) + " " + String(argumentTypes);
+      throw new Error("ArgumentTypes must be an array or null, was: " + argumentTypesString);
+    } else
       this.argumentTypes = [];
   } else {
     this.argumentTypes = argumentTypes;
