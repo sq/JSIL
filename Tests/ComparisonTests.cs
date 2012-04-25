@@ -15,7 +15,7 @@ namespace JSIL.Tests {
     public class ComparisonTests : GenericTestFixture {
         [Test]
         public void HelloWorld () {
-            using (var test = new ComparisonTest(@"TestCases\HelloWorld.cs")) {
+            using (var test = MakeTest(@"TestCases\HelloWorld.cs")) {
                 test.Run();
                 test.Run("hello", "world");
             }
@@ -23,15 +23,15 @@ namespace JSIL.Tests {
 
         [Test]
         public void Casts() {
-            using (var test = new ComparisonTest(@"TestCases\CastToBoolean.cs"))
+            using (var test = MakeTest(@"TestCases\CastToBoolean.cs"))
                 test.Run();
-            using (var test = new ComparisonTest(@"TestCases\CastingFromNull.cs"))
+            using (var test = MakeTest(@"TestCases\CastingFromNull.cs"))
                 test.Run();
         }
 
         [Test]
         public void BinaryTrees () {
-            using (var test = new ComparisonTest(@"TestCases\BinaryTrees.cs")) {
+            using (var test = MakeTest(@"TestCases\BinaryTrees.cs")) {
                 test.Run();
                 test.Run("8");
             }
@@ -39,21 +39,21 @@ namespace JSIL.Tests {
 
         [Test]
         public void ForEach () {
-            using (var test = new ComparisonTest(@"TestCases\ForEach.cs"))
+            using (var test = MakeTest(@"TestCases\ForEach.cs"))
                 test.Run();
         }
 
         [Test]
         public void Events () {
-            using (var test = new ComparisonTest(@"TestCases\Events.cs"))
+            using (var test = MakeTest(@"TestCases\Events.cs"))
                 test.Run();
-            using (var test = new ComparisonTest(@"TestCases\Events.vb"))
+            using (var test = MakeTest(@"TestCases\Events.vb"))
                 test.Run();
         }
 
         [Test]
         public void ValueTypeMethods () {
-            using (var test = new ComparisonTest(@"TestCases\ValueTypeMethods.cs"))
+            using (var test = MakeTest(@"TestCases\ValueTypeMethods.cs"))
                 test.Run();
         }
 
@@ -152,23 +152,23 @@ namespace JSIL.Tests {
 
         [Test]
         public void GetTypeByName () {
-            using (var test = new ComparisonTest(@"TestCases\GetTypeByName.cs"))
+            using (var test = MakeTest(@"TestCases\GetTypeByName.cs"))
                 test.Run();
-            using (var test = new ComparisonTest(@"TestCases\GetGenericTypeByName.cs"))
+            using (var test = MakeTest(@"TestCases\GetGenericTypeByName.cs"))
                 test.Run();
         }
 
         [Test]
         public void FieldSpecialCases () {
-            using (var test = new ComparisonTest(@"TestCases\FieldRecursiveInitialization.cs"))
+            using (var test = MakeTest(@"TestCases\FieldRecursiveInitialization.cs"))
                 test.Run();
-            using (var test = new ComparisonTest(@"TestCases\StringEmpty.cs"))
+            using (var test = MakeTest(@"TestCases\StringEmpty.cs"))
                 test.Run();
         }
 
         [Test]
         public void MulticastDelegates () {
-            using (var test = new ComparisonTest(@"TestCases\MulticastDelegates.cs"))
+            using (var test = MakeTest(@"TestCases\MulticastDelegates.cs"))
                 test.Run();
         }
 
@@ -239,7 +239,7 @@ namespace JSIL.Tests {
 
         [Test]
         public void NBody () {
-            using (var test = new ComparisonTest(@"TestCases\NBody.cs")) {
+            using (var test = MakeTest(@"TestCases\NBody.cs")) {
                 test.Run();
                 test.Run("300000");
             }
@@ -247,7 +247,7 @@ namespace JSIL.Tests {
 
         [Test]
         public void FannkuchRedux () {
-            using (var test = new ComparisonTest(@"TestCases\FannkuchRedux.cs")) {
+            using (var test = MakeTest(@"TestCases\FannkuchRedux.cs")) {
                 test.Run();
                 test.Run("10");
             }
@@ -298,19 +298,19 @@ namespace JSIL.Tests {
 
         [Test]
         public void Goto () {
-            using (var test = new ComparisonTest(@"TestCases\Goto.cs"))
+            using (var test = MakeTest(@"TestCases\Goto.cs"))
                 test.Run();
         }
 
         [Test]
         public void YieldReturn () {
-            using (var test = new ComparisonTest(@"TestCases\YieldReturn.cs"))
+            using (var test = MakeTest(@"TestCases\YieldReturn.cs"))
                 test.Run();
         }
 
         [Test]
         public void FaultBlock () {
-            using (var test = new ComparisonTest(@"TestCases\FaultBlock.cs"))
+            using (var test = MakeTest(@"TestCases\FaultBlock.cs"))
                 test.Run();
         }
 
@@ -318,12 +318,12 @@ namespace JSIL.Tests {
         public void SwitchStatements () {
             var defaultProvider = MakeDefaultProvider();
 
-            using (var test = new ComparisonTest(@"SpecialTestCases\BigStringSwitch.cs")) {
+            using (var test = MakeTest(@"SpecialTestCases\BigStringSwitch.cs")) {
                 test.Run();
                 test.Run("howdy", "hello", "world", "what", "why", "who", "where", "when");
             }
 
-            using (var test = new ComparisonTest(@"SpecialTestCases\AlternateSwitchForm.cs")) {
+            using (var test = MakeTest(@"SpecialTestCases\AlternateSwitchForm.cs")) {
                 test.Run();
                 test.Run("HP", "MP", "STK", "MAG");
             }
@@ -340,7 +340,7 @@ namespace JSIL.Tests {
 
         [Test]
         public void StaticArrays () {
-            using (var test = new ComparisonTest(@"TestCases\StaticArrayInitializer.cs"))
+            using (var test = MakeTest(@"TestCases\StaticArrayInitializer.cs"))
                 test.Run();
         }
 

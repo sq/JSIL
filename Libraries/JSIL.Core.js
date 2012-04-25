@@ -3235,7 +3235,6 @@ JSIL.IsArray = function (value) {
 
     var valueProto = Object.getPrototypeOf(value);
     var isArrayBuffer = false;
-    var lengthIsNumber = false;
 
     if (typeof (ArrayBuffer) === "function") {
       isArrayBuffer = ((typeof (value.buffer) === "object") && (Object.getPrototypeOf(value.buffer) === ArrayBuffer.prototype));
@@ -3243,10 +3242,6 @@ JSIL.IsArray = function (value) {
 
     if (isArrayBuffer)
       return true;
-
-    lengthIsNumber = typeof (value.length) === "number";
-
-    return (hasArrayPrototype && lengthIsNumber);
   }
 
   return false;

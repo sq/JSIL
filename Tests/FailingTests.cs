@@ -11,7 +11,7 @@ using NUnit.Framework;
 
 namespace JSIL.Tests {
     [TestFixture]
-    public class FailingTests {
+    public class FailingTests : GenericTestFixture {
         [Test]
         public void AllFailingTests () {
             var testPath = Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "FailingTestCases"));
@@ -23,7 +23,7 @@ namespace JSIL.Tests {
                 Console.WriteLine("// {0} ... ", Path.GetFileName(filename));
 
                 try {
-                    using (var test = new ComparisonTest(filename)) {
+                    using (var test = MakeTest(filename)) {
                         test.JavascriptExecutionTimeout = 5.0f;
                         test.Run();
                         Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));

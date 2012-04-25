@@ -284,7 +284,7 @@ namespace JSIL.Tests {
 
         [Test]
         public void PrivateNames () {
-            using (var test = new ComparisonTest(@"SpecialTestCases\PrivateNames.cs"))
+            using (var test = MakeTest(@"SpecialTestCases\PrivateNames.cs"))
                 test.Run();
         }
 

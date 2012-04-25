@@ -191,6 +191,7 @@ namespace JSIL.Tests {
         public readonly string OutputPath;
         public readonly Assembly Assembly;
         public readonly TimeSpan CompilationElapsed;
+        public readonly EvaluatorPool EvaluatorPool;
 
         static ComparisonTest () {
             var testAssembly = typeof(ComparisonTest).Assembly;
@@ -210,9 +211,11 @@ namespace JSIL.Tests {
         }
 
         public ComparisonTest (
+            EvaluatorPool pool, 
             string filename, string[] stubbedAssemblies = null, 
             TypeInfoProvider typeInfo = null, AssemblyCache assemblyCache = null
         ) : this (
+                pool,
                 new[] { filename }, 
                 Path.Combine(
                     TestSourceFolder,
@@ -223,12 +226,14 @@ namespace JSIL.Tests {
         }
 
         public ComparisonTest (
+            EvaluatorPool pool,
             IEnumerable<string> filenames, string outputPath, 
             string[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null,
             AssemblyCache assemblyCache = null
         ) {
             var started = DateTime.UtcNow.Ticks;
             OutputPath = outputPath;
+            EvaluatorPool = pool;
 
             var extensions = (from f in filenames select Path.GetExtension(f).ToLower()).Distinct().ToArray();
             var absoluteFilenames = (from f in filenames select Path.Combine(TestSourceFolder, f));
@@ -409,62 +414,62 @@ namespace JSIL.Tests {
         ) {
             var tempFilename = GenerateJavascript(args, out generatedJavascript, out elapsedTranslation);
 
-            var psi = new ProcessStartInfo(
-                JSShellPath, 
-                String.Format(
-                    "--methodjit --typeinfer --always-mjit -f \"{0}\" -f \"{1}\" -f \"{2}\" -f \"{3}\"", 
-                    CoreJSPath, BootstrapJSPath, XMLJSPath, tempFilename
-                )
-            ) {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                WindowStyle = ProcessWindowStyle.Hidden
-            };
+            using (var evaluator = EvaluatorPool.Get()) {
+                var startedJs = DateTime.UtcNow.Ticks;
+                var sentinelStart = "// Test output begins here //";
+                var sentinelEnd = "// Test output ends here //";
 
-            ManualResetEventSlim stdoutSignal, stderrSignal;
-            stdoutSignal = new ManualResetEventSlim(false);
-            stderrSignal = new ManualResetEventSlim(false);
-            var output = new string[2];
+                evaluator.WriteInput(
+                    "print({1}); load({0}); print({2});",
+                    Util.EscapeString(tempFilename),
+                    Util.EscapeString(sentinelStart),
+                    Util.EscapeString(sentinelEnd)
+                );
 
-            long startedJs = DateTime.UtcNow.Ticks;
-            using (var process = Process.Start(psi)) {
-                ThreadPool.QueueUserWorkItem((_) => {
-                    output[0] = process.StandardOutput.ReadToEnd();
-                    stdoutSignal.Set();
-                });
-                ThreadPool.QueueUserWorkItem((_) => {
-                    output[1] = process.StandardError.ReadToEnd();
-                    stderrSignal.Set();
-                });
+                evaluator.Join();
 
-                stdoutSignal.Wait();
-                stderrSignal.Wait();
-                process.WaitForExit();
+                long endedJs = DateTime.UtcNow.Ticks;
+                elapsedJs = endedJs - startedJs;
 
-                if (process.ExitCode != 0)
+                if (evaluator.ExitCode != 0) {
                     throw new JavaScriptException(
-                        process.ExitCode,
-                        (output[0] ?? "").Trim(),
-                        (output[1] ?? "").Trim()
+                        evaluator.ExitCode,
+                        (evaluator.StandardOutput ?? "").Trim(),
+                        (evaluator.StandardError ?? "").Trim()
                     );
-            }
-
-            long endedJs = DateTime.UtcNow.Ticks;
-            elapsedJs = endedJs - startedJs;
-
-            if (output[0] != null) {
-                var m = ElapsedRegex.Match(output[0]);
-                if (m.Success) {
-                    elapsedJs = TimeSpan.FromMilliseconds(
-                        double.Parse(m.Groups["elapsed"].Value)
-                    ).Ticks;
-                    output[0] = output[0].Replace(m.Value, "");
                 }
-            }
 
-            return output[0] ?? "";
+                var stdout = evaluator.StandardOutput;
+
+                if (stdout != null) {
+                    var m = ElapsedRegex.Match(stdout);
+                    if (m.Success) {
+                        elapsedJs = TimeSpan.FromMilliseconds(
+                            double.Parse(m.Groups["elapsed"].Value)
+                        ).Ticks;
+                        stdout = stdout.Replace(m.Value, "");
+                    }
+                }
+
+                // Strip spurious output from the JS.exe REPL and from the standard libraries
+                if (stdout != null) {
+                    var startOffset = stdout.IndexOf(sentinelStart);
+
+                    if (startOffset >= 0) {
+                        startOffset += sentinelStart.Length;
+
+                        // End sentinel might not be there if the test case calls quit().
+                        var endOffset = stdout.IndexOf(sentinelEnd, startOffset);
+                        if (endOffset >= 0) {
+                            stdout = stdout.Substring(startOffset, endOffset - startOffset);
+                        } else {
+                            stdout = stdout.Substring(startOffset);
+                        }
+                    }
+                }
+
+                return stdout ?? "";
+            }
         }
 
         public void Run (params string[] args) {
@@ -541,6 +546,42 @@ namespace JSIL.Tests {
     }
 
     public class GenericTestFixture {
+        public EvaluatorPool EvaluatorPool {
+            get;
+            private set;
+        }
+
+        [TestFixtureSetUp]
+        public void FixtureSetUp () {
+            EvaluatorPool = new EvaluatorPool(
+                ComparisonTest.JSShellPath, "",
+                (e) =>
+                    e.WriteInput(
+                        "load({0}, {1}, {2});",
+                        Util.EscapeString(ComparisonTest.CoreJSPath),
+                        Util.EscapeString(ComparisonTest.BootstrapJSPath),
+                        Util.EscapeString(ComparisonTest.XMLJSPath)
+                    )
+            );
+        }
+
+        [TestFixtureTearDown]
+        public void FixtureTearDown () {
+            EvaluatorPool.Dispose();
+        }
+
+        protected ComparisonTest MakeTest (
+            string filename, string[] stubbedAssemblies = null, 
+            TypeInfoProvider typeInfo = null,
+            AssemblyCache assemblyCache = null
+        ) {
+            return new ComparisonTest(
+                EvaluatorPool, 
+                filename, stubbedAssemblies, 
+                typeInfo, assemblyCache
+            );
+        }
+
         protected TypeInfoProvider MakeDefaultProvider () {
             // Construct a type info provider with default proxies loaded (kind of a hack)
             return (new AssemblyTranslator(ComparisonTest.MakeDefaultConfiguration())).GetTypeInfoProvider();
@@ -640,6 +681,7 @@ namespace JSIL.Tests {
                         testFilenames.Add(commonFile);
 
                     using (var test = new ComparisonTest(
+                        EvaluatorPool,
                         testFilenames,
                         Path.Combine(
                             ComparisonTest.TestSourceFolder,
@@ -698,7 +740,7 @@ namespace JSIL.Tests {
             long elapsed, temp;
             string generatedJs = null, output;
 
-            using (var test = new ComparisonTest(fileName)) {
+            using (var test = MakeTest(fileName)) {
                 try {
                     output = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed);
                 } catch {
@@ -717,7 +759,7 @@ namespace JSIL.Tests {
             long elapsed, temp;
             string generatedJs = null;
 
-            using (var test = new ComparisonTest(fileName, stubbedAssemblies)) {
+            using (var test = new ComparisonTest(EvaluatorPool, fileName, stubbedAssemblies)) {
                 var csOutput = test.RunCSharp(new string[0], out elapsed);
 
                 try {
@@ -738,7 +780,7 @@ namespace JSIL.Tests {
             long elapsed, temp;
             string generatedJs = null, jsOutput = null;
 
-            using (var test = new ComparisonTest(fileName, stubbedAssemblies)) {
+            using (var test = new ComparisonTest(EvaluatorPool, fileName, stubbedAssemblies)) {
                 var csOutput = test.RunCSharp(new string[0], out elapsed);
                 Assert.AreEqual(workingOutput, csOutput.Trim());
 
