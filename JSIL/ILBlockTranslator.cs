@@ -1706,37 +1706,7 @@ namespace JSIL {
                 return value;
 
             if (TypeUtil.IsNumericOrEnum(currentType) && TypeUtil.IsNumericOrEnum(expectedType)) {
-
-                if (currentType == TypeSystem.Int64) {
-                    if (TypeUtil.IsIntegral(expectedType)) {
-                        return JSInvocationExpression
-                            .InvokeMethod(TypeSystem.Int64, new JSFakeMethod("toInt", TypeSystem.Int32, new TypeReference [] {}, Translator.FunctionCache.MethodTypes), value);
-                    }
-                    else {
-                        return JSInvocationExpression
-                            .InvokeMethod(TypeSystem.Int64, new JSFakeMethod("toNumber", TypeSystem.Double, new TypeReference[]{}, Translator.FunctionCache.MethodTypes), value);
-                    }
-                }
-                else if (expectedType == TypeSystem.Int64) {
-                    if (TypeUtil.IsIntegral(currentType)) {
-                        return JSInvocationExpression.InvokeStatic(
-                            JSAstBuilder.StringIdentifier("goog").Dot("math").Dot("Long").FakeMethod("fromInt", TypeSystem.Int64, new []{currentType}, Translator.FunctionCache.MethodTypes).GetExpression(),
-                            new[] { value });
-                    }
-                    else { 
-                        return JSInvocationExpression.InvokeStatic(
-                            JSAstBuilder.StringIdentifier("goog").Dot("math").Dot("Long").FakeMethod("fromNumber", TypeSystem.Int64, new []{currentType}, Translator.FunctionCache.MethodTypes).GetExpression(),
-                            new[] { value });
-                    }
-                }
-                else if (TypeUtil.IsIntegral(expectedType)) {
-                    if (TypeUtil.IsIntegral(currentType))
-                        return value;
-                    else
-                        return JSInvocationExpression.InvokeStatic(JS.floor, new[] { value }, true);
-                } else {
-                    return value;
-                }
+                return JSCastExpression.New(value, expectedType, TypeSystem);
             } else if (!TypeUtil.TypesAreAssignable(TypeInfo, expectedType, currentType)) {
                 if (expectedType.FullName == "System.Boolean") {
                     if (TypeUtil.IsIntegral(currentType)) {

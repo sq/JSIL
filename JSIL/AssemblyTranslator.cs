@@ -1259,7 +1259,7 @@ namespace JSIL {
             ).Visit(function);
 
             new ExpandCastExpressions(
-                si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider
+                si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider, FunctionCache.MethodTypes
             ).Visit(function);
             
             // We need another operator simplification pass to simplify expressions created by cast expressions
@@ -1290,7 +1290,7 @@ namespace JSIL {
             lnd.EliminateUnusedLoopNames();
 
             new ExpandCastExpressions(
-                si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider
+                si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider, FunctionCache.MethodTypes
             ).Visit(function);
         }
 
@@ -1519,7 +1519,7 @@ namespace JSIL {
 
                             var es = new JSExpressionStatement(defaultValue);
                             var ece = new ExpandCastExpressions(
-                                translator.TypeSystem, translator.SpecialIdentifiers.JS, translator.SpecialIdentifiers.JSIL, translator.TypeInfo
+                                translator.TypeSystem, translator.SpecialIdentifiers.JS, translator.SpecialIdentifiers.JSIL, translator.TypeInfo, FunctionCache.MethodTypes
                             );
                             ece.Visit(es);
 

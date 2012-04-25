@@ -14,12 +14,14 @@ namespace JSIL.Transforms {
         public readonly JSSpecialIdentifiers JS;
         public readonly JSILIdentifier JSIL;
         public readonly ITypeInfoSource TypeInfo;
+        public readonly MethodTypeFactory MethodTypeFactory;
 
-        public ExpandCastExpressions (TypeSystem typeSystem, JSSpecialIdentifiers js, JSILIdentifier jsil, ITypeInfoSource typeInfo) {
+        public ExpandCastExpressions (TypeSystem typeSystem, JSSpecialIdentifiers js, JSILIdentifier jsil, ITypeInfoSource typeInfo, MethodTypeFactory methodTypeFactory) {
             TypeSystem = typeSystem;
             JS = js;
             JSIL = jsil;
             TypeInfo = typeInfo;
+            MethodTypeFactory = methodTypeFactory;
         }
 
         public void VisitNode (JSCastExpression ce) {
@@ -83,13 +85,36 @@ namespace JSIL.Transforms {
                 TypeUtil.IsNumeric(targetType) &&
                 TypeUtil.IsNumeric(currentType)
             ) {
-                if (
+                if (currentType == TypeSystem.Int64) {
+                    if (TypeUtil.IsIntegral(targetType)) {
+                        newExpression = JSInvocationExpression
+                            .InvokeMethod(TypeSystem.Int64, new JSFakeMethod("toInt", TypeSystem.Int32, new TypeReference[] { }, MethodTypeFactory), ce.Expression);
+                    }
+                    else {
+                        newExpression = JSInvocationExpression
+                            .InvokeMethod(TypeSystem.Int64, new JSFakeMethod("toNumber", TypeSystem.Double, new TypeReference[] { }, MethodTypeFactory), ce.Expression);
+                    }
+                }
+                else if (targetType == TypeSystem.Int64) {
+                    if (TypeUtil.IsIntegral(currentType)) {
+                        newExpression = JSInvocationExpression.InvokeStatic(
+                            JSAstBuilder.StringIdentifier("goog").Dot("math").Dot("Long").FakeMethod("fromInt", TypeSystem.Int64, new[] { currentType }, MethodTypeFactory).GetExpression(),
+                            new[] { ce.Expression });
+                    }
+                    else {
+                        newExpression = JSInvocationExpression.InvokeStatic(
+                            JSAstBuilder.StringIdentifier("goog").Dot("math").Dot("Long").FakeMethod("fromNumber", TypeSystem.Int64, new[] { currentType }, MethodTypeFactory).GetExpression(),
+                            new[] { ce.Expression });
+                    }
+                }
+                else if (
                     TypeUtil.IsIntegral(currentType) ||
-                    !TypeUtil.IsIntegral(targetType)
-                )
+                    !TypeUtil.IsIntegral(targetType)) {
                     newExpression = ce.Expression;
-                else
+                }
+                else {
                     newExpression = JSInvocationExpression.InvokeStatic(JS.floor, new[] { ce.Expression }, true);
+                }
             } else {
                 newExpression = JSIL.Cast(ce.Expression, targetType);
             }
