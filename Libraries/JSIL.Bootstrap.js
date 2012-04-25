@@ -7,47 +7,437 @@ var $jsilcore = JSIL.DeclareAssembly("JSIL.Core");
 
 JSIL.DeclareNamespace("System.ComponentModel");
 JSIL.DeclareNamespace("System.Linq");
+JSIL.DeclareNamespace("System.Reflection");
+JSIL.DeclareNamespace("System.Text");
+JSIL.DeclareNamespace("System.Text.RegularExpressions");
+
+JSIL.ImplementExternals(
+  "System.Boolean", function ($) {
+    $.RawMethod(true, "CheckType", function (value) {
+      return (value === false) || (value === true);
+    });
+  }
+);
+JSIL.MakeNumericType(Boolean, "System.Boolean", true);
+
+JSIL.ImplementExternals(
+  "System.Char", function ($) {
+    $.RawMethod(true, "CheckType", function (value) {
+      return (typeof (value) === "string") && (value.length == 1);
+    });
+  }
+);
+JSIL.MakeNumericType(String, "System.Char", true);
+
+JSIL.ImplementExternals(
+  "System.Byte", function ($) {
+    $.RawMethod(true, "CheckType", function (value) {
+      return (typeof (value) === "number") && (value >= 0) && (value <= 255);
+    });
+  }
+);
+JSIL.MakeNumericType(Number, "System.Byte", true);
+
+$jsilcore.$ParseInt = function (text) {
+  return Math.abs(parseInt(text, 10));
+};
+$jsilcore.$TryParseInt = function (text, result) {
+  result.value = parseInt(text, 10);
+  return !isNaN(result.value);
+};
+
+JSIL.ImplementExternals(
+  "System.UInt16", function ($) {
+    $.RawMethod(true, "CheckType", function (value) {
+      return (typeof (value) === "number") && (value >= 0);
+    });
+
+    $.Method({Static:true , Public:true }, "Parse", 
+      (new JSIL.MethodSignature($.UInt16, [$.String], [])), 
+      $jsilcore.$ParseInt
+    );
+
+    $.Method({Static:true , Public:true }, "TryParse", 
+      (new JSIL.MethodSignature($.Boolean, [$.String, $jsilcore.TypeRef("JSIL.Reference", [$.UInt16])], [])), 
+      $jsilcore.$TryParseInt
+    );
+  }
+);
+JSIL.MakeNumericType(Number, "System.UInt16", true);
+
+JSIL.ImplementExternals(
+  "System.Int16", function ($) {
+    $.RawMethod(true, "CheckType", function (value) {
+      return (typeof (value) === "number");
+    });
+
+    $.Method({Static:true , Public:true }, "Parse", 
+      (new JSIL.MethodSignature($.Int16, [$.String], [])), 
+      $jsilcore.$ParseInt
+    );
+
+    $.Method({Static:true , Public:true }, "TryParse", 
+      (new JSIL.MethodSignature($.Boolean, [$.String, $jsilcore.TypeRef("JSIL.Reference", [$.Int16])], [])), 
+      $jsilcore.$TryParseInt
+    );
+  }
+);
+JSIL.MakeNumericType(Number, "System.Int16", true);
+
+JSIL.ImplementExternals(
+  "System.UInt32", function ($) {
+    $.RawMethod(true, "CheckType", function (value) {
+      return (typeof (value) === "number") && (value >= 0);
+    });
+
+    $.Method({Static:true , Public:true }, "Parse", 
+      (new JSIL.MethodSignature($.UInt32, [$.String], [])), 
+      $jsilcore.$ParseInt
+    );
+
+    $.Method({Static:true , Public:true }, "TryParse", 
+      (new JSIL.MethodSignature($.Boolean, [$.String, $jsilcore.TypeRef("JSIL.Reference", [$.UInt32])], [])), 
+      $jsilcore.$TryParseInt
+    );
+  }
+);
+JSIL.MakeNumericType(Number, "System.UInt32", true);
+
+JSIL.ImplementExternals(
+  "System.Int32", function ($) {
+    $.RawMethod(true, "CheckType", function (value) {
+      return (typeof (value) === "number");
+    });
+
+    $.Method({Static:true , Public:true }, "Parse", 
+      (new JSIL.MethodSignature($.Int32, [$.String], [])), 
+      $jsilcore.$ParseInt
+    );
+
+    $.Method({Static:true , Public:true }, "TryParse", 
+      (new JSIL.MethodSignature($.Boolean, [$.String, $jsilcore.TypeRef("JSIL.Reference", [$.Int32])], [])), 
+      $jsilcore.$TryParseInt
+    );
+  }
+);
+JSIL.MakeNumericType(Number, "System.Int32", true);
+
+JSIL.ImplementExternals(
+  "System.Int64", function ($) {
+    $.RawMethod(true, "CheckType", function (value) {
+      return (typeof (value) === "number");
+    });
+
+    $.Method({Static:true , Public:true }, "Parse", 
+      (new JSIL.MethodSignature($.Int64, [$.String], [])), 
+      $jsilcore.$ParseInt
+    );
+
+    $.Method({Static:true , Public:true }, "TryParse", 
+      (new JSIL.MethodSignature($.Boolean, [$.String, $jsilcore.TypeRef("JSIL.Reference", [$.Int64])], [])), 
+      $jsilcore.$TryParseInt
+    );
+  }
+);
+JSIL.MakeNumericType(Number, "System.Int64", true);
+
+JSIL.ImplementExternals(
+  "System.Single", function ($) {
+    $.RawMethod(true, "CheckType", function (value) {
+      return (typeof (value) === "number");
+    });
+    $.RawMethod(true, "IsNaN", isNaN);
+  }
+);
+JSIL.MakeNumericType(Number, "System.Single", false);
+
+JSIL.ImplementExternals(
+  "System.Double", function ($) {
+    $.RawMethod(true, "CheckType", function (value) {
+      return (typeof (value) === "number");
+    });
+    $.RawMethod(true, "IsNaN", isNaN);
+  }
+);
+JSIL.MakeNumericType(Number, "System.Double", false);
+
+JSIL.ImplementExternals(
+  "System.String", function ($) {
+    var fromCharArray = function (chars, startIndex, length) {
+      var arr = chars.slice(startIndex, length);
+      return arr.join("");
+    };
+
+    $.Method({Static: false, Public: true }, ".ctor",
+      new JSIL.MethodSignature(null, [System.Array.Of($jsilcore.TypeRef("System.Char")), "System.Int32", "System.Int32"], [], $jsilcore),
+      fromCharArray
+    );
+
+    $.Method({Static: false, Public: true }, ".ctor",
+      new JSIL.MethodSignature(null, [System.Array.Of($jsilcore.TypeRef("System.Char"))], [], $jsilcore),
+      function (chars) {
+        return fromCharArray.call(this, chars, 0, chars.length);
+      }
+    );
+
+    $.Method({Static: false, Public: true }, ".ctor",
+      new JSIL.MethodSignature(null, ["System.Char", "System.Int32"], [], $jsilcore),
+      function (ch, length) {
+        var arr = new Array(length);
+        for (var i = 0; i < length; i++)
+          arr[i] = ch;
+        return arr.join("");
+      }
+    );
+
+    $.RawMethod(true, "CheckType",
+      function (value) {
+        return (typeof (value) === "string");
+      }
+    );
+
+    var compareInternal = function (lhs, rhs, comparison) {
+      switch (Number(comparison)) {
+        case 1: // System.StringComparison.CurrentCultureIgnoreCase:
+        case 3: // System.StringComparison.InvariantCultureIgnoreCase:
+        case 5: // System.StringComparison.OrdinalIgnoreCase:
+          lhs = lhs.toLowerCase();
+          rhs = rhs.toLowerCase();
+          break;
+      }
+
+      if (lhs < rhs)
+        return -1;
+      else if (lhs > rhs)
+        return 1;
+      else
+        return 0;
+    };
+
+    $.Method({Static:true , Public:true }, "Compare", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [$jsilcore.TypeRef("System.String"), $jsilcore.TypeRef("System.String")], []),
+      function (lhs, rhs) {
+        return compareInternal(lhs, rhs, System.StringComparison.Ordinal);
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "Compare", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [
+          $jsilcore.TypeRef("System.String"), $jsilcore.TypeRef("System.String"), 
+          $jsilcore.TypeRef("System.Boolean")
+        ], []),
+      function (lhs, rhs, ignoreCase) {
+        return compareInternal(
+          lhs, rhs, ignoreCase ? 
+            System.StringComparison.OrdinalIgnoreCase : 
+            System.StringComparison.Ordinal
+        );
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "Compare", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [
+          $jsilcore.TypeRef("System.String"), $jsilcore.TypeRef("System.String"), 
+          $jsilcore.TypeRef("System.StringComparison")
+        ], []),
+      compareInternal
+    );
+
+    var concatInternal = function (firstValue) {
+      if (JSIL.IsArray(firstValue) && arguments.length == 1) {
+        return JSIL.ConcatString.apply(null, firstValue);
+      } else {
+        return JSIL.ConcatString(Array.prototype.slice.call(arguments));
+      }
+    };
+
+    $.Method({Static:true , Public:true }, "Concat", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.String"), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["T"]),
+      concatInternal
+    );
+
+    $.Method({Static:true , Public:true }, "Concat", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.String"), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$jsilcore.TypeRef("System.String")])], []),
+      concatInternal
+    );
+
+    $.Method({Static: true , Public: true }, "EndsWith",
+      new JSIL.MethodSignature("System.Boolean", ["System.String", "System.String"], [], $jsilcore),
+      function (str, text) {
+        return str.lastIndexOf(text) === str.length - text.length;
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "Format", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.String"), [$jsilcore.TypeRef("System.Array") /* AnyType[] */ ], []),
+      function (format) {
+        format = String(format);
+
+        var regex = new RegExp("{([0-9]*)(?::([^}]*))?}", "g");
+        var match = null;
+
+        var values = Array.prototype.slice.call(arguments, 1);
+
+        if ((values.length == 1) && JSIL.IsArray(values[0]))
+          values = values[0];
+
+        var matcher = function (match, index, valueFormat, offset, str) {
+          index = parseInt(index);
+
+          var value = values[index];
+
+          if (valueFormat) {
+
+            switch (valueFormat[0]) {
+              case 'f':
+              case 'F':
+              case 'n':
+              case 'N':
+                var digits = parseInt(valueFormat.substr(1));
+                return parseFloat(value).toFixed(digits);
+
+              default:
+                throw new Error("Unsupported format string: " + valueFormat);
+            }
+          } else {
+
+            if (typeof (value) === "boolean") {
+              if (value)
+                return "True";
+              else
+                return "False";
+            } else {
+              return String(value);
+            }
+          }
+        };
+
+        return format.replace(regex, matcher);
+      }
+    );
+
+    $.Method({Static:true, Public:true }, "IndexOfAny", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [System.Array.Of($jsilcore.System.Char), $jsilcore.TypeRef("System.Int32")], []),
+      function (str, chars) {
+        var result = null;
+        for (var i = 0; i < chars.length; i++) {
+          var index = str.indexOf(chars[i]);
+          if ((result === null) || (index < result))
+            result = index;
+        }
+
+        if (result === null)
+          return -1;
+        else
+          return result;
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "IsNullOrEmpty", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [$jsilcore.TypeRef("System.String")], []),
+      function (str) {
+        if (str === null)
+          return true;
+        else if (typeof (str) === "undefined")
+          return true;
+        else if (str.length === 0)
+          return true;
+
+        return false;
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "IsNullOrWhiteSpace", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [$jsilcore.TypeRef("System.String")], []),
+      function (str) {
+        if (str === null)
+          return true;
+        else if (typeof (str) === "undefined")
+          return true;
+        else if (str.length === 0)
+          return true;
+        else if (str.trim().length === 0)
+          return true;
+
+        return false;
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "LastIndexOfAny", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [System.Array.Of($jsilcore.System.Char), $jsilcore.TypeRef("System.Int32")], []),
+      function (str, chars) {
+        var result = null;
+        for (var i = 0; i < chars.length; i++) {
+          var index = str.lastIndexOf(chars[i]);
+          if ((result === null) || (index > result))
+            result = index;
+        }
+
+        if (result === null)
+          return -1;
+        else
+          return result;
+      }
+    );
+
+    $.Method({Static: true , Public: true }, "Replace",
+      new JSIL.MethodSignature("System.String", ["System.String", "System.String", "System.String"], [], $jsilcore),
+      function (str, oldText, newText) {
+        return str.split(oldText).join(newText);
+      }
+    );
+
+    $.Method({Static: true , Public: true }, "StartsWith",
+      new JSIL.MethodSignature("System.Boolean", ["System.String", "System.String"], [], $jsilcore),
+      function (str, text) {
+        return str.indexOf(text) === 0;
+      }
+    );
+  }
+);
+
+JSIL.MakeClass("System.Object", "System.String", true, [], function ($) {
+  $.__IsNativeType__ = true;
+
+  $.Constant({Static: true , Public: true }, "Empty", "");
+});
 
 JSIL.MakeClass("System.Object", "System.ComponentModel.MemberDescriptor", true);
 JSIL.MakeClass("System.ComponentModel.MemberDescriptor", "System.ComponentModel.PropertyDescriptor", true);
 JSIL.MakeClass("System.Object", "System.ComponentModel.TypeConverter", true);
 JSIL.MakeClass("System.ComponentModel.TypeConverter", "System.ComponentModel.ExpandableObjectConverter", true);
 
-System.Delegate.prototype = JSIL.MakeProto(Function, System.Delegate, "System.Delegate", true);
-System.Delegate.prototype.Invoke = function () {
-  return this.__method__.apply(this.__object__, arguments);
+$jsilcore.$GetInvocationList = function (delegate) {
+    if (delegate === null) {
+      return [ ];
+    } else if (typeof (delegate.GetInvocationList) === "function") {
+      return delegate.GetInvocationList();
+    } else if (typeof (delegate) === "function") {
+      return [ delegate ];
+    } else {
+      throw new Error("Unsupported target for GetInvocationList");
+    }
 };
-System.Delegate.prototype.toString = System.Object.prototype.toString;
-System.Delegate.prototype.GetInvocationList = function () {
-  return [ this ];
-};
-System.Delegate.GetInvocationList = function (delegate) {
-  if (delegate === null) {
-    return [ ];
-  } else if (typeof (delegate.GetInvocationList) === "function") {
-    return delegate.GetInvocationList();
-  } else if (typeof (delegate) === "function") {
-    return [ delegate ];
-  }
-};
-System.Delegate.Combine = function (lhs, rhs) {
+$jsilcore.$Combine = function (lhs, rhs) {
   if (rhs === null) {
     return lhs;
   } else if (lhs === null) {
     return rhs;
   }
 
-  var newList = Array.prototype.slice.call(System.Delegate.GetInvocationList(lhs));
-  newList.push.apply(newList, System.Delegate.GetInvocationList(rhs));
+  var newList = Array.prototype.slice.call($jsilcore.$GetInvocationList(lhs));
+  newList.push.apply(newList, $jsilcore.$GetInvocationList(rhs));
   var result = JSIL.MulticastDelegate.New(newList);
   return result;
 };
-System.Delegate.Remove = function (lhs, rhs) {
+$jsilcore.$Remove = function (lhs, rhs) {
   if (rhs === null)
     return lhs;
+  if (lhs === null)
+    return null;
 
-  var newList = Array.prototype.slice.call(System.Delegate.GetInvocationList(lhs));
-  var rhsList = System.Delegate.GetInvocationList(rhs);
+  var newList = Array.prototype.slice.call($jsilcore.$GetInvocationList(lhs));
+  var rhsList = $jsilcore.$GetInvocationList(rhs);
 
   for (var i = 0; i < rhsList.length; i++) {
     var needle = rhsList[i];
@@ -72,15 +462,72 @@ System.Delegate.Remove = function (lhs, rhs) {
     return JSIL.MulticastDelegate.New(newList);
 };
 
-System.MulticastDelegate.prototype = JSIL.MakeProto(System.Delegate, System.MulticastDelegate, "System.MulticastDelegate", true);
-System.MulticastDelegate.prototype.GetInvocationList = function () {
-  return this.delegates;
-};
-System.MulticastDelegate.prototype.Invoke = function () {
-  return this.apply(null, arguments);
-};
-System.MulticastDelegate.Combine = System.Delegate.Combine;
-System.MulticastDelegate.Remove = System.Delegate.Remove;
+JSIL.ImplementExternals("System.Delegate", function ($) {
+  var tDelegate = $jsilcore.TypeRef("System.Delegate");
+
+  $.RawMethod(false, "Invoke", function () {
+    return this.__method__.apply(this.__object__, arguments);
+  });
+
+  $.Method({Static:false, Public:true }, "GetInvocationList", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [tDelegate]), [], [])), 
+    function GetInvocationList () {
+      return [ this ];
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "CreateDelegate", 
+    (new JSIL.MethodSignature(tDelegate, [
+          $jsilcore.TypeRef("System.Type"), $.Object, 
+          $jsilcore.TypeRef("System.Reflection.MethodInfo")
+        ], [])), 
+    function CreateDelegate (delegateType, firstArgument, method) {
+      var isStatic = method._descriptor.Static;
+      var key = method._data.mangledName || method._descriptor.EscapedName;
+      var publicInterface = method._typeObject.__PublicInterface__;
+      var context = isStatic ? publicInterface : publicInterface.prototype;
+      var impl = context[key];
+
+      if (typeof (impl) !== "function") {
+        JSIL.Host.error(new Error("Failed to bind delegate: Method '" + key + "' not found in context"));
+      }
+
+      var delegatePublicInterface = delegateType.__PublicInterface__;
+
+      if (typeof (delegatePublicInterface.New) !== "function") {
+        JSIL.Host.error(new Error("Invalid delegate type"));
+      }
+
+      return delegatePublicInterface.New(firstArgument, impl);
+    }
+  );  
+
+  $.Method({Static:true , Public:true }, "Combine", 
+    (new JSIL.MethodSignature(tDelegate, [tDelegate, tDelegate], [])), 
+    $jsilcore.$Combine
+  );
+
+  $.Method({Static:true , Public:true }, "Remove", 
+    (new JSIL.MethodSignature(tDelegate, [tDelegate, tDelegate], [])), 
+    $jsilcore.$Remove
+  );
+});
+
+JSIL.ImplementExternals("System.MulticastDelegate", function ($) {
+  $.RawMethod(false, "Invoke", function () {
+    return this.apply(null, arguments);
+  });
+
+  $.Method({Static:false, Public:true }, "GetInvocationList", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.Delegate")]), [], [])), 
+    function GetInvocationList () {
+      return this.delegates;
+    }
+  );
+});
+
+JSIL.MakeClass("System.Object", "System.Delegate", true, []);
+JSIL.MakeClass("System.Object", "System.MulticastDelegate", true, []);
 
 JSIL.MulticastDelegate.New = function (delegates) {
   var invoker = function () {
@@ -99,158 +546,155 @@ JSIL.MulticastDelegate.New = function (delegates) {
   return result;
 };
 
-System.Action = JSIL.MakeDelegateType("System.Action", "Action");
-System.Action$b1 = JSIL.MakeDelegateType("System.Action`1", "Action`1");
-System.Action$b2 = JSIL.MakeDelegateType("System.Action`2", "Action`2");
-System.Action$b3 = JSIL.MakeDelegateType("System.Action`3", "Action`3");
+JSIL.MakeDelegate("System.Action", true, []);
+JSIL.MakeDelegate("System.Action`1", true, ["T"]);
+JSIL.MakeDelegate("System.Action`2", true, ["T1", "T2"]);
+JSIL.MakeDelegate("System.Action`3", true, ["T1", "T2", "T3"]);
 
-System.Func = JSIL.MakeDelegateType("System.Func", "Func");
-System.Func$b1 = JSIL.MakeDelegateType("System.Func`1", "Func`1");
-System.Func$b2 = JSIL.MakeDelegateType("System.Func`2", "Func`2");
-System.Func$b3 = JSIL.MakeDelegateType("System.Func`3", "Func`3");
+JSIL.MakeDelegate("System.Func`1", true, ["TResult"]);
+JSIL.MakeDelegate("System.Func`2", true, ["T", "TResult"]);
+JSIL.MakeDelegate("System.Func`3", true, ["T1", "T2", "TResult"]);
+JSIL.MakeDelegate("System.Func`4", true, ["T1", "T2", "T3", "TResult"]);
+
+JSIL.ImplementExternals(
+  "System.Exception", function ($) {
+    var mscorlib = JSIL.GetCorlib();
+
+    $.Method({Static:false, Public:true }, ".ctor", 
+      (new JSIL.MethodSignature(null, [], [])), 
+      function _ctor () {
+        this._message = null;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, ".ctor", 
+      (new JSIL.MethodSignature(null, [$.String], [])), 
+      function _ctor (message) {
+        this._message = message;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, ".ctor", 
+      (new JSIL.MethodSignature(null, [$.String, mscorlib.TypeRef("System.Exception")], [])), 
+      function _ctor (message, innerException) {
+        this._message = message;
+        this._innerException = innerException;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_InnerException", 
+      (new JSIL.MethodSignature(mscorlib.TypeRef("System.Exception"), [], [])), 
+      function get_InnerException () {
+        return this._innerException;
+      }
+    );
+
+    $.Method({Static: false, Public: true }, "get_Message",
+      new JSIL.MethodSignature($.String, []),
+      function () {
+        if ((typeof (this._message) === "undefined") || (this._message === null))
+          return System.String.Format("Exception of type '{0}' was thrown.", JSIL.GetTypeName(this));
+        else
+          return this._message;
+      }
+    );
+
+    $.Method({Static: false, Public: true }, "toString",
+      new JSIL.MethodSignature($.String, []),
+      function () {
+        var message = this.Message;
+        return System.String.Format("{0}: {1}", JSIL.GetTypeName(this), message);
+      }
+    );
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.SystemException", function ($) {
+    $.Method({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [], []),
+      function () {
+        System.Exception.prototype._ctor.call(this);
+      }
+    );
+
+    $.Method({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [$.String], []),
+      function (message) {
+        System.Exception.prototype._ctor.call(this, message);
+      }
+    );
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.InvalidCastException", function ($) {  
+    $.Method({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [$.String], []),
+      function (message) {
+        System.Exception.prototype._ctor.call(this, message);
+      }
+    );
+  }
+);
+
+JSIL.ImplementExternals(
+  "System.InvalidOperationException", function ($) {  
+    $.Method({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [$.String], []),
+      function (message) {
+        System.Exception.prototype._ctor.call(this, message);
+      }
+    );
+  }
+);
 
 JSIL.MakeClass(Error, "System.Exception", true, [], function ($) {
-  $.prototype._Message = null;
-  $.prototype._ctor = function (message) {
-    if (typeof (message) != "undefined")
-      this._Message = String(message);
-  };
-  $.prototype.get_Message = function () {  
-    if ((typeof (this._Message) === "undefined") || (this._Message === null))
-      return System.String.Format("Exception of type '{0}' was thrown.", JSIL.GetTypeName(this));
-    else
-      return this._Message;
-  };
-
-  JSIL.MakeProperty($.prototype, "Message", 
-    $.prototype.get_Message, null);
-
-  $.prototype.toString = function () {
-    var message = this.Message;
-    return System.String.Format("{0}: {1}", JSIL.GetTypeName(this), message);
-  };
+  $.Property({Public: true , Static: false}, "Message");
+  $.Property({Public: true , Static: false}, "InnerException");
 });
 
 JSIL.MakeClass("System.Exception", "System.InvalidCastException", true);
 JSIL.MakeClass("System.Exception", "System.InvalidOperationException", true);
 
-JSIL.MakeClass("System.Object", "System.Console", true, [], function ($) {
-  JSIL.ExternalMembers($, false, 
-    "Write", "WriteLine"
-  );
+JSIL.ImplementExternals("System.Console", function ($) {
+  $.RawMethod(true, "WriteLine", function () {
+    var text = "";
+    if (arguments.length > 0)
+      text = System.String.Format.apply(null, arguments);
+
+    JSIL.Host.logWriteLine(text);
+  });
+
+  $.RawMethod(true, "Write", function () {
+    var text = "";
+    if (arguments.length > 0)
+      text = System.String.Format.apply(null, arguments);
+
+    JSIL.Host.logWrite(text);
+  });
 });
 
 JSIL.ImplementExternals(
-  "System.Console", false, {
-    WriteLine: function () {
-      JSIL.Host.logWriteLine(System.String.Format.apply(null, arguments));
-    },
-    Write: function () {
-      JSIL.Host.logWrite(System.String.Format.apply(null, arguments));
-    }
+  "System.Diagnostics.Debug", function ($) {
+    $.Method({Static:true , Public:true }, "WriteLine", 
+      (new JSIL.MethodSignature(null, [$.String], [])), 
+      function WriteLine (message) {
+        JSIL.Host.logWriteLine(message);
+      }
+    );
   }
 );
 
-String.prototype.Split = function (separators) {
+JSIL.MakeStaticClass("System.Console", true, [], function ($) {
+});
+
+JSIL.SplitString = function (str, separators) {
   if (separators.length > 1)
     throw new Error("Split cannot handle more than one separator");
 
-  return this.split(separators[0]);
+  return str.split(separators[0]);
 };
-
-JSIL.MakeClass("System.Object", "System.String", true, [], function ($) {
-  $.__IsNativeType__ = true;
-
-  JSIL.ExternalMembers($, false, 
-    "Concat", "Format"
-  );
-  JSIL.ExternalMembers($, true,
-    "_ctor", "_ctor$0", "_ctor$1", "_ctor$2"
-  );
-});
-
-JSIL.ImplementExternals(
-  "System.String", false, {
-    CheckType: function (value) {
-      return (typeof (value) === "string") || (
-        (typeof (value.text) === "string") && (value.__proto__ === prototype)
-      );
-    },
-    Concat: function (firstValue) {
-      if (JSIL.IsArray(firstValue) && arguments.length == 1) {
-        return JSIL.ConcatString.apply(null, firstValue);
-      } else {
-        return JSIL.ConcatString(Array.prototype.slice.call(arguments));
-      }
-    },
-    Format: function (format) {
-      format = String(format);
-
-      var regex = new RegExp("{([0-9]*)(?::([^}]*))?}", "g");
-      var match = null;
-
-      var values = Array.prototype.slice.call(arguments, 1);
-
-      if ((values.length == 1) && JSIL.IsArray(values[0]))
-        values = values[0];
-
-      var matcher = function (match, index, valueFormat, offset, str) {
-        index = parseInt(index);
-
-        var value = values[index];
-
-        if (valueFormat) {
-
-          switch (valueFormat[0]) {
-            case 'f':
-            case 'F':
-              var digits = parseInt(valueFormat.substr(1));
-              return parseFloat(value).toFixed(digits);
-
-            default:
-              throw new Error("Unsupported format string: " + valueFormat);
-          }
-        } else {
-
-          if (typeof (value) === "boolean") {
-            if (value)
-              return "True";
-            else
-              return "False";
-          } else {
-            return String(value);
-          }
-        }
-      };
-
-      return format.replace(regex, matcher);
-    }
-  }
-);
-
-JSIL.ImplementExternals(
-  "System.String", true, {
-    _ctor: function (text) {
-      if (typeof (text) === "string")
-        return text;
-      else
-        return String(text);
-    },
-    _ctor$0: function (chars, startIndex, length) {
-      var arr = chars.slice(startIndex, length);
-      return arr.join("");
-    },
-    _ctor$1: function (chars) {
-      return _ctor$0.call(this, chars, 0, chars.length);
-    },
-    _ctor$2: function (ch, length) {
-      var arr = new Array(length);
-      for (var i = 0; i < length; i++)
-        arr[i] = ch;
-      return arr.join("");
-    }
-  }
-);
 
 JSIL.ConcatString = function (/* ...values */) {
   var result = String(arguments[0]);
@@ -265,602 +709,1758 @@ JSIL.ConcatString = function (/* ...values */) {
 
   return result;
 };
-System.String.Empty = '';
 
-JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, [], function ($) {
-  $.prototype._ctor = function (array) {
-    this._array = array;
-    this._length = array.length;
-    this._index = -1;
-  };
-  $.prototype.Reset = function () {
-    if (this._array === null)
-      throw new Error("Enumerator is disposed or not initialized");
+JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, ["T"], function ($) {
+  $.RawMethod(false, "__CopyMembers__", function (target) {
+    target._array = this._array;
+    target._length = this._length;
+    target._index = this._index;
+  });
 
-    this._index = -1;
-  };
-  $.prototype.MoveNext = function () {
-    if (this._index >= this._length)
-      return false;
-
-    this._index += 1;
-    return (this._index < this._length);
-  };
-  $.prototype.Dispose = function () {
-    this._array = null;
-    this._index = 0;
-    this._length = -1;
-  };
-  $.prototype.get_Current = function () {
-    return this._array[this._index];
-  };
-  Object.defineProperty(
-      $.prototype, "Current", { 
-        get: $.prototype.get_Current,
-        configurable: true
-      }
+  $.Method({Public: true , Static: false}, ".ctor", 
+    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", ["!!0"]), $.Int32]),
+    function (array, startPosition) {
+      this._array = array;
+      this._length = array.length;
+      this._index = startPosition;
+    }
   );
-  JSIL.ImplementInterfaces($, [
-    System.IDisposable, System.Collections.IEnumerator, System.Collections.Generic.IEnumerator$b1
-  ]);
+
+  $.Method({Public: true , Static: false}, "Reset", 
+    new JSIL.MethodSignature(null, []),
+    function () {
+      if (this._array === null)
+        throw new Error("Enumerator is disposed or not initialized");
+
+      this._index = -1;
+    }
+  );
+  $.Method({Public: true , Static: false}, "MoveNext", 
+    new JSIL.MethodSignature(System.Boolean, []),
+    function () {
+      if (this._index >= this._length)
+        return false;
+
+      this._index += 1;
+      return (this._index < this._length);
+    }
+  );
+  $.Method({Public: true , Static: false}, "Dispose", 
+    new JSIL.MethodSignature(null, []),
+    function () {
+      this._array = null;
+      this._index = 0;
+      this._length = -1;
+    }
+  );
+  $.Method({Public: true , Static: false}, "get_Current", 
+    new JSIL.MethodSignature(System.Object, []),
+    function () {
+      return this._array[this._index];
+    }
+  );
+
+  $.Property({Public: true , Static: false}, "Current");
+
+  $.ImplementInterfaces(
+    System.IDisposable, System.Collections.IEnumerator,
+    $jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [new JSIL.GenericParameter("T", "JSIL.ArrayEnumerator")])
+  );
 });
 
-JSIL.MakeClass("System.Object", "System.Threading.Thread", true);
-System.Threading.Thread._cctor2 = function () {
-  // This type already has a cctor, so we add a second one.
-  System.Threading.Thread._currentThread = new System.Threading.Thread();
-};
-System.Threading.Thread.prototype._ctor = function () {
-};
-System.Threading.Thread.get_CurrentThread = function () {
-  return System.Threading.Thread._currentThread;
-};
-System.Threading.Thread._currentThread = null;
-System.Threading.Thread.prototype.ManagedThreadId = 0;
-JSIL.MakeProperty(
-  System.Threading.Thread, "CurrentThread", 
-  System.Threading.Thread.get_CurrentThread, null
+JSIL.ImplementExternals(
+  "System.Threading.Thread", function ($) {
+    $.Method({Static:true , Public:true }, ".cctor2", 
+      (new JSIL.MethodSignature(null, [], [])), 
+      function () {
+        // This type already has a cctor, so we add a second one.
+        System.Threading.Thread._currentThread = new System.Threading.Thread();
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "get_CurrentThread", 
+      (new JSIL.MethodSignature($jsilcore.TypeRef("System.Threading.Thread"), [], [])), 
+      function get_CurrentThread () {
+        return System.Threading.Thread._currentThread;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_ManagedThreadId", 
+      (new JSIL.MethodSignature($.Int32, [], [])), 
+      function get_ManagedThreadId () {
+        return 0;
+      }
+    );
+  }
 );
 
-$jsilcore.$ListExternals = {
-  _ctor: function (sizeOrInitializer) {
-    var size = Number(sizeOrInitializer);
+JSIL.MakeClass("System.Object", "System.Threading.Thread", true, [], function ($) {
+  $.Field({Public: false, Static: true}, "_currentThread", $.Type, function ($) { return null; });
 
-    if (isNaN(size)) {
-      this._items = new Array();
-      this._items.push.apply(this._items, sizeOrInitializer);
-      this._size = this._items.length;
-    } else {
-      this._items = new Array(size);
-      this._size = size;
+  $.ExternalMethod(
+    {Public: true , Static: true }, "get_CurrentThread",
+    new JSIL.MethodSignature($.Type, [])
+  );
+  $.ExternalMethod(
+    {Public: true , Static: true }, "get_ManagedThreadId",
+    new JSIL.MethodSignature(System.Int32, [])
+  );
+
+  $.Property({Public: true , Static: true }, "CurrentThread");
+  $.Property({Public: true , Static: true }, "ManagedThreadId");
+});
+
+$jsilcore.$ListExternals = function ($, T, type) {
+  var mscorlib = JSIL.GetCorlib();
+
+  if ((typeof (T) === "undefined") || (T === null)) {
+    T = new JSIL.GenericParameter("T", "System.Collections.Generic.List`1");
+  }
+
+  var indexOfImpl = function (value) {
+    for (var i = 0; i < this._size; i++) {
+      var item = this._items[i];
+
+      if (JSIL.ObjectEquals(item, value))
+        return i;
     }
-  },
-  Add: function (item) {
+
+    return -1;
+  };
+
+  var findIndexImpl = function (predicate) {
+    for (var i = 0; i < this._size; i++) {
+      var item = this._items[i];
+      if (predicate(item))
+        return i;
+    }
+
+    return -1;
+  };
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    new JSIL.MethodSignature(null, [], []),
+    function () {
+      this._items = new Array();
+      this._size = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32")], []),
+    function (size) {
+      this._items = new Array(size);
+      this._size = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")])], []),
+    function (values) {
+      this._items = JSIL.EnumerableToArray(values);
+      this._size = this._items.length;
+    }
+  );
+
+  var addImpl = function (item) {
     if (this._size >= this._items.length) {
       this._items.push(item);
     } else {
       this._items[this._size] = item;
     }
     this._size += 1;
-  },
-  AddRange: function (items) {
-    var e = items.IEnumerable_GetEnumerator();
-    try {
-      while (e.MoveNext()) {
-        if (this._size >= this._items.length) {
-          this._items.push(e.Current);
-        } else {
-          this._items[this._size] = e.Current;
-        }
-        this._size += 1;
+
+    if (typeof (this.$OnItemAdded) === "function")
+      this.$OnItemAdded(item);
+
+    return this._size;
+  };
+
+  switch (type) {
+    case "ArrayList":
+    case "ObjectCollection":
+      $.Method({Static:false, Public:true }, "Add", 
+        new JSIL.MethodSignature($.Int32, [T], []),
+        addImpl
+      );
+      break;
+    default:
+      $.Method({Static:false, Public:true }, "Add", 
+        new JSIL.MethodSignature(null, [T], []),
+        addImpl
+      );
+      break;
+  }
+
+  $.Method({Static:false, Public:true }, "AddRange", 
+    new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Collections.Generic.IEnumerable`1", [T])], []),
+    function (items) {
+      var e = JSIL.GetEnumerator(items);
+      try {
+        while (e.MoveNext())
+          this.Add(e.Current);
+      } finally {
+        e.IDisposable_Dispose();
       }
-    } finally {
-      e.IDisposable_Dispose();
     }
-  },
-  Remove: function (item) {
+  );
+
+  $.Method({Static:false, Public:true }, "AsReadOnly", 
+    new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.ObjectModel.ReadOnlyCollection`1", [T]), [], []),
+    function () {
+      // FIXME
+      if (typeof (this.tReadOnlyCollection) === "undefined") {
+        this.tReadOnlyCollection = System.Collections.ObjectModel.ReadOnlyCollection$b1.Of(this.T).__Type__;
+      }
+
+      return JSIL.CreateInstanceOfType(this.tReadOnlyCollection , "$listCtor", [this]);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Clear", 
+    new JSIL.MethodSignature(null, [], []),
+    function () {
+      this._size = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Contains", 
+    new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [T], []),
+    function (value) {
+      return indexOfImpl.call(this, value) >= 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Exists", 
+    new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [mscorlib.TypeRef("System.Predicate`1", [T])], []),
+    function (predicate) {
+      return findIndexImpl.call(this, predicate) >= 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Find", 
+    new JSIL.MethodSignature(new JSIL.GenericParameter("T", "System.Collections.Generic.List`1"), [mscorlib.TypeRef("System.Predicate`1", [T])], []),
+    function (predicate) {
+      var index = this.FindIndex(predicate);
+      if (index >= 0)
+        return this._items[index];
+      else
+        return JSIL.DefaultValue(this.T);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "FindAll", 
+    new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.List`1", [T]), [mscorlib.TypeRef("System.Predicate`1", [T])], []),
+    function (predicate) {
+      var thisType = this.GetType();
+
+      // Manually initialize the result since we don't want to hassle with overloaded ctors
+      var result = JSIL.CreateInstanceOfType(thisType, null);
+      result._items = [];
+
+      for (var i = 0; i < this._size; i++) {
+        var item = this._items[i];
+
+        if (predicate(item))
+          result._items.push(item);
+      }
+
+      result._size = result._items.length;
+      return result;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "FindIndex", 
+    new JSIL.MethodSignature(mscorlib.TypeRef("System.Int32"), [mscorlib.TypeRef("System.Predicate`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")])], []),
+    findIndexImpl
+  );
+
+  $.Method({Static:false, Public:true }, "get_Capacity", 
+    new JSIL.MethodSignature(mscorlib.TypeRef("System.Int32"), [], []),
+    function () {
+      return this._items.length;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Count", 
+    new JSIL.MethodSignature(mscorlib.TypeRef("System.Int32"), [], []),
+    function () {
+      return this._size;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Item", 
+    new JSIL.MethodSignature(T, [mscorlib.TypeRef("System.Int32")], []),
+    function (index) {
+      if (index < 0)
+        throw new System.ArgumentOutOfRangeException("index");
+      else if (index >= this._size)
+        throw new System.ArgumentOutOfRangeException("index");
+
+      return this._items[index];
+    }
+  );
+
+  var getEnumeratorImpl = function () {
+    // Detect whether we are a List<T> or an ArrayList.
+    if (typeof(this.$thisEnumeratorType) === "undefined") {
+      var elementType = this.T;
+      if (typeof (elementType) === "undefined")
+        elementType = System.Object;
+
+      this.$thisEnumeratorType = System.Collections.Generic.List$b1_Enumerator.Of(elementType)
+    }
+
+    return new (this.$thisEnumeratorType)(this);
+  };
+
+  $.Method({Static:false, Public:true }, "IEnumerable_GetEnumerator", 
+    new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.IEnumerator"), [], []),
+    getEnumeratorImpl
+  );
+
+  $.Method({Static:false, Public:true }, "IEnumerable$b1_GetEnumerator",
+    new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.IEnumerator`1", [T]), [], []),
+    getEnumeratorImpl
+  );
+
+  switch (type) {
+    case "ArrayList":
+      $.Method({Static:false, Public:true }, "GetEnumerator", 
+        new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.IEnumerator"), [], []),
+        getEnumeratorImpl
+      );
+      break;
+    case "List":
+      $.Method({Static:false, Public:true }, "GetEnumerator", 
+        (new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.List`1/Enumerator", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")]), [], [])), 
+        getEnumeratorImpl
+      );
+      break;
+    default:
+      $.Method({Static:false, Public:true }, "GetEnumerator",
+        new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.IEnumerator`1", [T]), [], []),
+        getEnumeratorImpl
+      );
+      break;
+  }
+
+  $.Method({Static:false, Public:true }, "IndexOf", 
+    new JSIL.MethodSignature(mscorlib.TypeRef("System.Int32"), [T], []),
+    indexOfImpl
+  );
+
+  var removeImpl = function (item) {
     var index = this._items.indexOf(item);
     if (index === -1)
       return false;
 
-    this.RemoveAt(index);
-  },
-  RemoveAt: function (index) {
-    this._items.splice(index, 1);
-    this._size -= 1;
-  },
-  Clear: function () {
-    this._size = 0;
-  },
-  get_Item: function (index) {
-    return this._items[index];
-  },
-  get_Count: function () {
-    return this._size;
-  },
-  get_Capacity: function () {
-    return this._items.length;
-  },
-  GetEnumerator: function () {
-    // Detect whether we are a List<T> or an ArrayList.
-    var elementType = this.T;
-    if (typeof (elementType) === "undefined")
-      elementType = System.Object;
+    return this.RemoveAt(index);
+  };
 
-    return new (System.Collections.Generic.List$b1_Enumerator.Of(elementType)) (this);
+  switch (type) {
+    case "ArrayList":
+    case "ObjectCollection":
+      $.Method({Static:false, Public:true }, "Remove", 
+        new JSIL.MethodSignature(null, [T], []),
+        removeImpl
+      );
+      break;
+    default:
+      $.Method({Static:false, Public:true }, "Remove", 
+        new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [T], []),
+        removeImpl
+      );
+      break;
   }
+
+  $.Method({Static:false, Public:true }, "RemoveAll", 
+    new JSIL.MethodSignature(mscorlib.TypeRef("System.Int32"), [mscorlib.TypeRef("System.Predicate`1", [T])], []),
+    function (predicate) {
+      var result = 0;
+
+      for (var i = 0; i < this._size; i++) {
+        var item = this._items[i];
+
+        if (predicate(item)) {
+          this._items.splice(i, 1);
+          i -= 1;
+          this._size -= 1;
+          result += 1;
+        }
+      }
+
+      return result;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "RemoveAt", 
+    new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32")], []),
+    function (index) {
+      this._items.splice(index, 1);
+      this._size -= 1;
+      return true;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Sort", 
+    new JSIL.MethodSignature(null, [], []),
+    function () {
+      this._items.sort();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Sort", 
+    new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Comparison`1", [T])], []),
+    function (comparison) {
+      this._items.sort(comparison);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ToArray", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [T]), [], []),
+    function () {
+      return Array.prototype.slice.call(this._items, 0, this._size);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "TrueForAll", 
+    new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [mscorlib.TypeRef("System.Predicate`1", [T])], []),
+    function (predicate) {
+      for (var i = 0; i < this._size; i++) {
+        var item = this._items[i];
+
+        if (!predicate(item))
+          return false;
+      }
+
+      return true;
+    }
+  );
 };
 
-JSIL.ImplementExternals("System.Collections.Generic.List`1", true, $jsilcore.$ListExternals);
+JSIL.ImplementExternals("System.Collections.Generic.List`1", function ($) {
+  $jsilcore.$ListExternals($, null, "List");
+});
 
-// Lazy way of sharing method implementations between ArrayList and List<T>.
-JSIL.ImplementExternals("System.Collections.ArrayList", true, $jsilcore.$ListExternals);
+$jsilcore.$ArrayListExternals = function ($) {
+  $jsilcore.$ListExternals($, $.Object, "ArrayList");
+
+  var mscorlib = JSIL.GetCorlib();
+  var toArrayImpl = function () {
+    return Array.prototype.slice.call(this._items, 0, this._size);
+  };
+
+  $.Method({Static:false, Public:true }, "ToArray", 
+    new JSIL.MethodSignature(mscorlib.TypeRef("System.Array", [mscorlib.TypeRef("System.Object")]), [], []),
+    toArrayImpl
+  );
+
+  $.Method({Static:false, Public:true }, "ToArray", 
+    new JSIL.MethodSignature(mscorlib.TypeRef("System.Array"), [mscorlib.TypeRef("System.Type")], []),
+    toArrayImpl
+  );
+};
+
+// Lazy way of sharing method implementations between ArrayList, Collection<T> and List<T>.
+JSIL.ImplementExternals("System.Collections.ArrayList", $jsilcore.$ArrayListExternals);
+
+$jsilcore.$CollectionExternals = function ($) {
+  var T = new JSIL.GenericParameter("T", "System.Collections.ObjectModel.Collection`1");
+  $jsilcore.$ListExternals($, T, "List");
+
+  var mscorlib = JSIL.GetCorlib();
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    new JSIL.MethodSignature(null, [], []),
+    function () {
+      this._items = new Array();
+      this._size = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Collections.Generic.IList`1", [T])], []),
+    function (list) {
+      this._items = JSIL.EnumerableToArray(list);
+      this._size = this._items.length;
+    }
+  );
+};
+
+JSIL.ImplementExternals("System.Collections.ObjectModel.Collection`1", $jsilcore.$CollectionExternals);
+
+$jsilcore.$ReadOnlyCollectionExternals = function ($) {
+  var T = new JSIL.GenericParameter("T", "System.Collections.ObjectModel.ReadOnlyCollection`1");
+  $jsilcore.$ListExternals($, T, "ReadOnlyCollection");
+
+  var mscorlib = JSIL.GetCorlib();
+
+  var listCtor = function (list) {
+    this._list = list;
+
+    Object.defineProperty(this, "_items", {
+      get: function () {
+        return list._items;
+      }
+    });
+
+    Object.defineProperty(this, "_size", {
+      get: function () {
+        return list._size;
+      }
+    });
+  };
+
+  $.RawMethod(false, "$listCtor", listCtor);
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Collections.Generic.IList`1", [T])], []),
+    listCtor
+  );
+
+  $.SetValue("Add", null);
+  $.SetValue("Clear", null);
+  $.SetValue("Remove", null);
+  $.SetValue("RemoveAt", null);
+  $.SetValue("RemoveAll", null);
+  $.SetValue("Sort", null);
+};
+
+JSIL.ImplementExternals("System.Collections.ObjectModel.ReadOnlyCollection`1", $jsilcore.$ReadOnlyCollectionExternals);
+
+JSIL.ImplementExternals("System.Collections.Generic.Stack`1", function ($) {
+  var system = JSIL.GetAssembly("System", true);
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      this._items = new Array();
+      this._size = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.Int32], [])), 
+    function _ctor (capacity) {
+      this._items = new Array(capacity);
+      this._size = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Clear", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Clear () {
+      this._size = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Count", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Count () {
+      return this._size;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetEnumerator", 
+    (new JSIL.MethodSignature(system.TypeRef("System.Collections.Generic.Stack`1/Enumerator", [new JSIL.GenericParameter("T", "System.Collections.Generic.Stack`1")]), [], [])), 
+    function GetEnumerator () {
+      if (typeof (this.$thisEnumeratorType) === "undefined") {
+        var elementType = this.T;
+        this.$thisEnumeratorType = System.Collections.Generic.List$b1_Enumerator.Of(elementType)
+      }
+
+      return new (this.$thisEnumeratorType)(this);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Peek", 
+    (new JSIL.MethodSignature(new JSIL.GenericParameter("T", "System.Collections.Generic.Stack`1"), [], [])), 
+    function Peek () {
+      if (this._size <= 0)
+        throw new System.InvalidOperationException("Stack is empty");
+
+      return this._items[this._size - 1];
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Pop", 
+    (new JSIL.MethodSignature(new JSIL.GenericParameter("T", "System.Collections.Generic.Stack`1"), [], [])), 
+    function Pop () {
+      var result = this._items.pop();
+      this._size -= 1;
+
+      return result;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Push", 
+    (new JSIL.MethodSignature(null, [new JSIL.GenericParameter("T", "System.Collections.Generic.Stack`1")], [])), 
+    function Push (item) {
+      this._items.push(item)
+      this._size += 1;
+    }
+  );
+
+});
+
+JSIL.ImplementExternals("System.Collections.Generic.Queue`1", function ($) {
+  var system = JSIL.GetAssembly("System", true);
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      this._items = new Array();
+      this._size = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.Int32], [])), 
+    function _ctor (capacity) {
+      this._items = new Array(capacity);
+      this._size = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Clear", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Clear () {
+      this._size = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Dequeue", 
+    (new JSIL.MethodSignature(new JSIL.GenericParameter("T", "System.Collections.Generic.Queue`1"), [], [])), 
+    function Dequeue () {
+      var result = this._items.shift();
+      this._size -= 1;
+      return result;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Enqueue", 
+    (new JSIL.MethodSignature(null, [new JSIL.GenericParameter("T", "System.Collections.Generic.Queue`1")], [])), 
+    function Enqueue (item) {
+      this._items.push(item);
+      this._size += 1;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Count", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Count () {
+      return this._size;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetEnumerator", 
+    (new JSIL.MethodSignature(system.TypeRef("System.Collections.Generic.Queue`1/Enumerator", [new JSIL.GenericParameter("T", "System.Collections.Generic.Queue`1")]), [], [])), 
+    function GetEnumerator () {
+      if (typeof (this.$thisEnumeratorType) === "undefined") {
+        var elementType = this.T;
+        this.$thisEnumeratorType = System.Collections.Generic.List$b1_Enumerator.Of(elementType)
+      }
+
+      return new (this.$thisEnumeratorType)(this);
+    }
+  );
+
+});
+
+JSIL.MakeClass("System.Object", "JSIL.EnumerableArray", true, [], function ($) {
+  $.Method({Public: true , Static: false}, ".ctor", 
+    new JSIL.MethodSignature(null, [System.Array]),
+    function (array) {
+      this.array = array;
+    }
+  );
+
+  var tEnumerator = [null];
+
+  $.Method({Public: true , Static: false}, "GetEnumerator", 
+    new JSIL.MethodSignature(System.Collections.IEnumerator$b1, []),
+    function () {
+      if (tEnumerator[0] === null) {
+        tEnumerator[0] = JSIL.ArrayEnumerator.Of(System.Object);
+      }
+
+      return new (tEnumerator[0])(this.array, -1);
+    }
+  );
+
+  $.ImplementInterfaces(
+    System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
+  );
+});
 
 JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"], function ($) {
-  JSIL.ExternalMembers($, true, 
-    "_ctor", "Add", "AddRange", "Remove", "RemoveAt", "Clear", 
-    "get_Item", "get_Count", "get_Capacity", "GetEnumerator"
-  );
+  $.Property({Public: true , Static: false}, "Count");
 
-  JSIL.MakeProperty(
-    $.prototype, "Count", 
-    $.prototype.get_Count, null
+  $.ImplementInterfaces(
+    $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")]),
+    "System.Collections.IEnumerable"
   );
+});
 
-  JSIL.ImplementInterfaces($, [
-    System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
-  ]);
+JSIL.MakeClass("System.Object", "System.Collections.Generic.Stack`1", true, ["T"], function ($) {
+	$.Property({Public: true , Static: false}, "Count");
+
+	$.ImplementInterfaces(
+		$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.Stack`1")]), 
+    "System.Collections.IEnumerable"
+	);
 });
 
 // TODO: This type is actually a struct in the CLR
-JSIL.MakeClass("JSIL.ArrayEnumerator", "System.Collections.Generic.List`1/Enumerator", true, ["T"], function ($) {
-  $.prototype._array = null;
-  $.prototype._length = 0;
-  $.prototype._index = -1;
-  $.prototype._ctor = function (list) {
-    if (typeof (list) != "undefined") {
-      this._array = list._items;
-      this._length = list.Count;
+JSIL.MakeClass($jsilcore.TypeRef("JSIL.ArrayEnumerator", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1/Enumerator")]), "System.Collections.Generic.List`1/Enumerator", true, ["T"], function ($) {
+  $.Field({Public: false, Static: false}, "_array", Array, function ($) { return null; });
+  $.Field({Public: false, Static: false}, "_length", Number, function ($) { return 0; });
+  $.Field({Public: false, Static: false}, "_index", Number, function ($) { return -1; });
+
+  $.Method({Public: true, Static: false}, ".ctor", 
+    new JSIL.MethodSignature(null, ["System.Collections.Generic.List`1"]),
+    function (list) {
+      if (typeof (list) != "undefined") {
+        this._array = list._items;
+        this._length = list.Count;
+      }
     }
-  };
-  $.prototype.MoveNext = JSIL.ArrayEnumerator.prototype.MoveNext;
-  $.prototype.Dispose = JSIL.ArrayEnumerator.prototype.Dispose;
-  $.prototype.Reset = JSIL.ArrayEnumerator.prototype.Reset;
-  $.prototype.get_Current = JSIL.ArrayEnumerator.prototype.get_Current;
+  );
+
+  $.ImplementInterfaces(
+    $jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1/Enumerator")])
+  );
 });
 
-System.Threading.Interlocked.CompareExchange$b1 = JSIL.GenericMethod(
-  ["T"], 
-  function (T, targetRef, value, comparand, succeeded) {
-    var currentValue = targetRef.value;
-    if (currentValue === comparand) {
-      targetRef.value = value;
-      if (typeof (succeeded) != "undefined")
-        succeeded.value = true;
+JSIL.ImplementExternals(
+  "System.Threading.Interlocked", function ($) {
+    $.Method({Public: true , Static: true }, "CompareExchange", 
+      new JSIL.MethodSignature("!!0", [JSIL.Reference.Of("!!0"), "!!0", "!!0"], ["T"]),
+      function (T, targetRef, value, comparand) {
+        var currentValue = targetRef.value;
 
-      return comparand;
-    } else {
-      if (typeof (succeeded) != "undefined")
-        succeeded.value = false;
+        if (currentValue === comparand)
+          targetRef.value = value;
 
-      return currentValue;
-    }
+        return currentValue;
+      }
+    );
   }
 );
 
-System.Threading.Monitor.Enter = function (obj, lockTaken) {
-  var current = (obj.__LockCount__ || 0);
-  if (current >= 1)
-    JSIL.Host.warning("Warning: lock recursion ", obj);
+JSIL.ImplementExternals("System.Threading.Monitor", function ($) {
+  var enterImpl = function (obj) {
+    var current = (obj.__LockCount__ || 0);
+    if (current >= 1)
+      JSIL.Host.warning("Warning: lock recursion ", obj);
 
-  obj.__LockCount__ = current + 1;
+    obj.__LockCount__ = current + 1;
 
-  if (typeof (lockTaken) != "undefined")
-    lockTaken.value = true;
-};
+    return true;
+  };
 
-System.Threading.Monitor.Exit = function (obj) {
-  var current = (obj.__LockCount__ || 0);
-  if (current <= 0)
-    JSIL.Host.warning("Warning: unlocking an object that is not locked ", obj);
+  $.Method({Static:true , Public:true }, "Enter", 
+    (new JSIL.MethodSignature(null, [$.Object], [])), 
+    function Enter (obj) {
+      enterImpl(obj);
+    }
+  );
 
-  obj.__LockCount__ = current - 1;
-};
+  $.Method({Static:true , Public:true }, "Enter", 
+    (new JSIL.MethodSignature(null, [$.Object, $jsilcore.TypeRef("JSIL.Reference", [$.Boolean])], [])), 
+    function Enter (obj, /* ref */ lockTaken) {
+      lockTaken.value = enterImpl(obj);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Exit", 
+    (new JSIL.MethodSignature(null, [$.Object], [])), 
+    function Exit (obj) {
+      var current = (obj.__LockCount__ || 0);
+      if (current <= 0)
+        JSIL.Host.warning("Warning: unlocking an object that is not locked ", obj);
+
+      obj.__LockCount__ = current - 1;
+    }
+  );
+
+});
+
+JSIL.MakeStaticClass("System.Threading.Interlocked", true, [], function ($) {
+  $.ExternalMethod({Public: true , Static: true }, "CompareExchange", 
+    new JSIL.MethodSignature("!!0", [JSIL.Reference.Of("!!0"), "!!0", "!!0"], ["T"])
+  );
+});
+JSIL.MakeStaticClass("System.Threading.Monitor", true, []);
+
+JSIL.ImplementExternals("System.Random", function ($) {
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.Int32], [])), 
+    function _ctor (Seed) {
+      JSIL.Host.warning("Cannot seed the JS random number generator.");
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Next", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function Next () {
+      return Math.floor(Math.random() * Int32.MaxValue);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Next", 
+    (new JSIL.MethodSignature($.Int32, [$.Int32, $.Int32], [])), 
+    function Next (minValue, maxValue) {
+      return Math.floor(Math.random() * (maxValue - minValue)) + minValue;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Next", 
+    (new JSIL.MethodSignature($.Int32, [$.Int32], [])), 
+    function Next (maxValue) {
+      return Math.floor(Math.random() * maxValue);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "NextDouble", 
+    (new JSIL.MethodSignature($.Double, [], [])), 
+    Math.random
+  );
+});
 
 JSIL.MakeClass("System.Object", "System.Random", true, [], function ($) {
-  JSIL.ExternalMembers($, true,
-    "_ctor", "Next", "NextDouble"
+});
+
+JSIL.$MathSign = function (value) {
+  if (value > 0)
+    return 1;
+  else if (value < 0)
+    return -1;
+  else
+    return 0;
+};
+
+JSIL.ImplementExternals("System.Math", function ($) {
+  $.RawMethod(true, "Max", Math.max);
+  $.RawMethod(true, "Min", Math.min);
+  $.RawMethod(true, "Exp", Math.exp);
+
+  $.Method({Static:true , Public:true }, "Atan2", 
+    (new JSIL.MethodSignature($.Double, [$.Double, $.Double], [])), 
+    Math.atan2
+  );
+
+  $.Method({Static:true , Public:true }, "Sign", 
+    (new JSIL.MethodSignature($.Int32, [$.SByte], [])), 
+    JSIL.$MathSign
+  );
+
+  $.Method({Static:true , Public:true }, "Sign", 
+    (new JSIL.MethodSignature($.Int32, [$.Int16], [])), 
+    JSIL.$MathSign
+  );
+
+  $.Method({Static:true , Public:true }, "Sign", 
+    (new JSIL.MethodSignature($.Int32, [$.Int32], [])), 
+    JSIL.$MathSign
+  );
+
+  $.Method({Static:true , Public:true }, "Sign", 
+    (new JSIL.MethodSignature($.Int32, [$.Int64], [])), 
+    JSIL.$MathSign
+  );
+
+  $.Method({Static:true , Public:true }, "Sign", 
+    (new JSIL.MethodSignature($.Int32, [$.Single], [])), 
+    JSIL.$MathSign
+  );
+
+  $.Method({Static:true , Public:true }, "Sign", 
+    (new JSIL.MethodSignature($.Int32, [$.Double], [])), 
+    JSIL.$MathSign
   );
 });
-
-JSIL.ImplementExternals("System.Random", true, {
-  _ctor: function () {
-  },
-  Next: function (min, max) {
-    if (typeof (min) === "undefined") {
-      min = 0;
-      max = Int32.MaxValue;
-    } else if (typeof (max) === "undefined") {
-      max = min;
-      min = 0;
-    }
-
-    return Math.floor(Math.random() * (max - min)) + min;
-  },
-  NextDouble: Math.random
-});
-
-JSIL.ImplementExternals(
-  "System.Math", false, {
-    Max: Math.max,
-    Min: Math.min
-  }
-);
 
 JSIL.MakeStaticClass("System.Math", true, function ($) {
-  JSIL.ExternalMembers($, false, 
-    "Min", "Max"
+});
+
+JSIL.MakeStruct("System.ValueType", "System.Decimal", true, [], function ($) {
+  var mscorlib = JSIL.GetCorlib();
+
+  var ctorImpl = function (value) {
+    this.value = Number(value);
+  };
+
+  var decimalToNumber = function (decimal) {
+    if (JSIL.CheckType(decimal, $.Type))
+      return decimal.value;
+    else
+      return decimal;
+  };
+
+  var numberToDecimal = function (value) {
+    var result = JSIL.CreateInstanceOfType($.Type, null);
+    result.value = Number(value);
+    return result;
+  };
+
+  $.Method({Static: false, Public: true }, "toString",
+    new JSIL.MethodSignature("System.String", []),
+    function (format) {
+      return this.value.toString();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32")], [])),
+    ctorImpl
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.UInt32")], [])),
+    ctorImpl
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int64")], [])),
+    ctorImpl
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.UInt64")], [])),
+    ctorImpl
+  );
+
+  $.Method({Static:true , Public:true }, "op_Addition", 
+    (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
+    function (lhs, rhs) {
+      return numberToDecimal(decimalToNumber(lhs) + decimalToNumber(rhs));
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Division", 
+    (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
+    function (lhs, rhs) {
+      return numberToDecimal(decimalToNumber(lhs) / decimalToNumber(rhs));
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Multiply", 
+    (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
+    function (lhs, rhs) {
+      return numberToDecimal(decimalToNumber(lhs) * decimalToNumber(rhs));
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Subtraction", 
+    (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
+    function (lhs, rhs) {
+      return numberToDecimal(decimalToNumber(lhs) - decimalToNumber(rhs));
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature($.Type, [mscorlib.TypeRef("System.Single")], [])),
+    numberToDecimal
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature($.Type, [mscorlib.TypeRef("System.Double")], [])),
+    numberToDecimal
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Byte"), [$.Type], [])),
+    decimalToNumber
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.SByte"), [$.Type], [])),
+    decimalToNumber
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Int16"), [$.Type], [])),
+    decimalToNumber
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.UInt16"), [$.Type], [])),
+    decimalToNumber
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Int32"), [$.Type], [])),
+    decimalToNumber
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.UInt32"), [$.Type], [])),
+    decimalToNumber
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Int64"), [$.Type], [])),
+    decimalToNumber
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.UInt64"), [$.Type], [])),
+    decimalToNumber
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Single"), [$.Type], [])),
+    decimalToNumber
+  );
+
+  $.Method({Static:true , Public:true }, "op_Explicit", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Double"), [$.Type], [])),
+    decimalToNumber
+  );
+
+  $.Field({Static: false, Public: false }, "value", mscorlib.TypeRef("System.Double"), function () {
+    return 0;
+  });
+});
+
+JSIL.ImplementExternals("System.Environment", function ($) {
+
+  $.Method({Static:true , Public:true }, "GetFolderPath", 
+    (new JSIL.MethodSignature($.String, [$asms[5].TypeRef("System.Environment/SpecialFolder")], [])), 
+    function GetFolderPath (folder) {
+      // FIXME
+      return folder.name;
+    }
+  );
+
+});
+
+JSIL.ImplementExternals("System.Text.Encoding", function ($) {
+  $.Method({Static:true , Public:true }, ".cctor2", 
+    (new JSIL.MethodSignature(null, [], [])),
+    function () {
+      // This type already has a cctor so we add a second one.
+      System.Text.Encoding.asciiEncoding = JSIL.CreateInstanceOfType(
+        System.Text.ASCIIEncoding.__Type__, null
+      );
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "get_ASCII", 
+    (new JSIL.MethodSignature($.Type, [], [])),
+    function () {
+      return System.Text.Encoding.asciiEncoding;
+    }
   );
 });
 
-JSIL.ImplementExternals(
-  "System.Boolean", false, {
-    CheckType: function (value) {
-      return (value === false) || (value === true);
-    }
-  }
-);
-JSIL.MakeNumericType(Boolean, "System.Boolean", true);
-
-JSIL.ImplementExternals(
-  "System.Char", false, {
-    CheckType: function (value) {
-      return (typeof (value) === "string") && (value.length == 1);
-    }
-  }
-);
-JSIL.MakeNumericType(String, "System.Char", true);
-
-JSIL.ImplementExternals(
-  "System.Byte", false, {
-    CheckType: function (value) {
-      return (typeof (value) === "number") && (value >= 0) && (value <= 255);
-    }
-  }
-);
-JSIL.MakeNumericType(Number, "System.Byte", true);
-
-JSIL.ImplementExternals(
-  "System.UInt16", false, {
-    CheckType: function (value) {
-      return (typeof (value) === "number") && (value >= 0);
-    },
-    Parse: function (text) {
-      return Math.abs(parseInt(text, 10));
-    }
-  }
-);
-JSIL.MakeNumericType(Number, "System.UInt16", true);
-System.UInt16.MaxValue = 65535;
-
-JSIL.ImplementExternals(
-  "System.Int16", false, {
-    CheckType: function (value) {
-      return (typeof (value) === "number");
-    },
-    Parse: function (text) {
-      return Math.abs(parseInt(text, 10));
-    }
-  }
-);
-JSIL.MakeNumericType(Number, "System.Int16", true);
-System.Int16.MaxValue = 32767;
-
-JSIL.ImplementExternals(
-  "System.UInt32", false, {
-    CheckType: function (value) {
-      return (typeof (value) === "number") && (value >= 0);
-    },
-    Parse: function (text) {
-      return Math.abs(parseInt(text, 10));
-    }
-  }
-);
-JSIL.MakeNumericType(Number, "System.UInt32", true);
-System.UInt32.MaxValue = 4294967295;
-
-JSIL.ImplementExternals(
-  "System.Int32", false, {
-    CheckType: function (value) {
-      return (typeof (value) === "number");
-    },
-    Parse: function (text) {
-      return parseInt(text, 10);
-    }
-  }
-);
-JSIL.MakeNumericType(Number, "System.Int32", true);
-System.Int32.MaxValue = 2147483647;
-
-JSIL.ImplementExternals(
-  "System.Int64", false, {
-    CheckType: function (value) {
-      return (typeof (value) === "number");
-    },
-    Parse: function (text) {
-      return parseInt(text, 10);
-    }
-  }
-);
-JSIL.MakeNumericType(Number, "System.Int64", true);
-
-JSIL.ImplementExternals(
-  "System.Single", false, {
-    CheckType: function (value) {
-      return (typeof (value) === "number");
-    },
-    IsNaN: isNaN
-  }
-);
-JSIL.MakeNumericType(Number, "System.Single", false);
-
-JSIL.ImplementExternals(
-  "System.Double", false, {
-    CheckType: function (value) {
-      return (typeof (value) === "number");
-    },
-    IsNaN: isNaN
-  }
-);
-JSIL.MakeNumericType(Number, "System.Double", false);
-
-JSIL.MakeStruct("System.ValueType", "System.Decimal", true);
-System.Decimal.CheckType = function (value) {
-  return (typeof (value) === "number") || 
-    JSIL.CheckType(value, System.Decimal, true);
-};
-System.Decimal.prototype._ctor = function (value) {
-  this.value = Number(value);
-};
-System.Decimal.prototype.toString = function (format) {
-  return this.value.toString();
-};
-System.Decimal.op_Explicit = function (value) {
-  if (JSIL.CheckType(value, System.Decimal, true))
-    return value;
-  else
-    return new System.Decimal(value);
-};
-System.Decimal.op_Addition = function (lhs, rhs) {
-  lhs = System.Decimal.op_Explicit(lhs);
-  rhs = System.Decimal.op_Explicit(rhs);
-  return new System.Decimal(lhs.value + rhs.value);
-};
-System.Decimal.op_Subtraction = function (lhs, rhs) {
-  lhs = System.Decimal.op_Explicit(lhs);
-  rhs = System.Decimal.op_Explicit(rhs);
-  return new System.Decimal(lhs.value - rhs.value);
-};
-System.Decimal.op_Multiply = function (lhs, rhs) {
-  lhs = System.Decimal.op_Explicit(lhs);
-  rhs = System.Decimal.op_Explicit(rhs);
-  return new System.Decimal(lhs.value * rhs.value);
-};
-System.Decimal.op_Division = function (lhs, rhs) {
-  lhs = System.Decimal.op_Explicit(lhs);
-  rhs = System.Decimal.op_Explicit(rhs);
-  return new System.Decimal(lhs.value / rhs.value);
-};
-
-System.Environment.GetResourceFromDefault = function (key) {
-  return key;
-};
-System.Environment.nativeGetTickCount = function () {
-  var t = new Date();
-  return t.getTime();
-};
-
 JSIL.MakeClass("System.Object", "System.Text.Encoding", true, [], function ($) {
-  $.prototype._ctor = function () {
-    System.Object.prototype._ctor.call(this, arguments);
-  };
-});
-JSIL.ImplementExternals("System.Text.Encoding", false, {
-  _cctor2: function () {
-    // This type already has a cctor so we add a second one.
-    System.Text.Encoding.asciiEncoding = new System.Text.ASCIIEncoding();
-  },
-  get_ASCII: function () {
-    return System.Text.Encoding.asciiEncoding;
-  }
 });
 
 JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true, [], function ($) {
-  $.prototype._ctor = function () {
-    System.Text.Encoding.prototype._ctor.call(this, arguments);
-  };
 });
 
-JSIL.MakeStruct("System.ValueType", "System.TimeSpan", true, [], function ($) {
-    JSIL.ExternalMembers($, true, 
-      "get_Ticks", "get_Milliseconds", "get_TotalMilliseconds", "get_Seconds",
-      "get_Minutes", "get_Hours", "get_Days", "get_TotalSeconds", "get_TotalMinutes"
+JSIL.ImplementExternals(
+  "System.TimeSpan", function ($) {
+    $.Method({Static:true , Public:true }, "FromMilliseconds", 
+      (new JSIL.MethodSignature($.Type, [$.Double], [])), 
+      function FromMilliseconds (value) {
+        var result = Object.create(System.TimeSpan.prototype);
+        result._ticks = Math.floor(value * 10000);
+        return result;
+      }
     );
 
-    JSIL.MakeProperty($.prototype, "Ticks",
-      $.prototype.get_Ticks);
+    $.Method({Static:true , Public:true }, "FromMinutes", 
+      (new JSIL.MethodSignature($.Type, [$.Double], [])), 
+      function FromMinutes (value) {
+        var result = Object.create(System.TimeSpan.prototype);
+        result._ticks = Math.floor(value * 60 * 10000000);
+        return result;
+      }
+    );
 
-    JSIL.MakeProperty($.prototype, "Milliseconds",
-      $.prototype.get_Milliseconds);
+    $.Method({Static:true , Public:true }, "FromSeconds", 
+      (new JSIL.MethodSignature($.Type, [$.Double], [])), 
+      function FromSeconds (value) {
+        var result = Object.create(System.TimeSpan.prototype);
+        result._ticks = Math.floor(value * 10000000);
+        return result;
+      }
+    );
 
-    JSIL.MakeProperty($.prototype, "TotalMilliseconds",
-      $.prototype.get_TotalMilliseconds);
+    $.Method({Static:true , Public:true }, "FromTicks", 
+      (new JSIL.MethodSignature($.Type, [$.Int64], [])), 
+      function FromTicks (value) {
+        var result = Object.create(System.TimeSpan.prototype);
+        result._ticks = Math.floor(value);
+        return result;
+      }
+    );
 
-    JSIL.MakeProperty($.prototype, "Seconds",
-      $.prototype.get_Seconds);
+    $.Method({Static:true , Public:true }, "op_Addition", 
+      (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])), 
+      function op_Addition (t1, t2) {
+        var result = Object.create(System.TimeSpan.prototype);
+        result._ticks = t1._ticks + t2._ticks;
+        return result;
+      }
+    );
 
-    JSIL.MakeProperty($.prototype, "Minutes",
-      $.prototype.get_Minutes);
+    $.Method({Static:true , Public:true }, "op_Equality", 
+      (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])), 
+      function op_Equality (t1, t2) {
+        return t1._ticks === t2._ticks;
+      }
+    );
 
-    JSIL.MakeProperty($.prototype, "Hours",
-      $.prototype.get_Hours);
+    $.Method({Static:true , Public:true }, "op_GreaterThan", 
+      (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])), 
+      function op_GreaterThan (t1, t2) {
+        return t1._ticks > t2._ticks;
+      }
+    );
 
-    JSIL.MakeProperty($.prototype, "Days",
-      $.prototype.get_Days);
+    $.Method({Static:true , Public:true }, "op_Inequality", 
+      (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])), 
+      function op_Inequality (t1, t2) {
+        return t1._ticks !== t2._ticks;
+      }
+    );
 
-    JSIL.MakeProperty($.prototype, "TotalSeconds",
-      $.prototype.get_TotalSeconds);
+    $.Method({Static:true , Public:true }, "op_LessThan", 
+      (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])), 
+      function op_LessThan (t1, t2) {
+        return t1._ticks < t2._ticks;
+      }
+    );
 
-    JSIL.MakeProperty($.prototype, "TotalMinutes",
-      $.prototype.get_TotalMinutes);
+    $.Method({Static:true , Public:true }, "op_Subtraction", 
+      (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])), 
+      function op_Subtraction (t1, t2) {
+        var result = Object.create(System.TimeSpan.prototype);
+        result._ticks = t1._ticks - t2._ticks;
+        return result;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, ".ctor", 
+      (new JSIL.MethodSignature(null, [$.Int64], [])), 
+      function _ctor (ticks) {
+        this._ticks = ticks;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, ".ctor", 
+      (new JSIL.MethodSignature(null, [
+            $.Int32, $.Int32, 
+            $.Int32
+          ], [])), 
+      function _ctor (hours, minutes, seconds) {
+        this._ticks = 10000 * (1000 * (seconds + 60 * (minutes + 60 * hours)));
+      }
+    );
+
+    $.Method({Static:false, Public:true }, ".ctor", 
+      (new JSIL.MethodSignature(null, [
+            $.Int32, $.Int32, 
+            $.Int32, $.Int32
+          ], [])), 
+      function _ctor (days, hours, minutes, seconds) {
+        this._ticks = 10000 * (1000 * (seconds + 60 * (minutes + 60 * (hours + 24 * days))));
+      }
+    );
+
+    $.Method({Static:false, Public:true }, ".ctor", 
+      (new JSIL.MethodSignature(null, [
+            $.Int32, $.Int32, 
+            $.Int32, $.Int32, 
+            $.Int32
+          ], [])), 
+      function _ctor (days, hours, minutes, seconds, milliseconds) {
+        this._ticks = 10000 * (milliseconds + 1000 * (seconds + 60 * (minutes + 60 * (hours + 24 * days))));
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_Days", 
+      (new JSIL.MethodSignature($.Int32, [], [])), 
+      function get_Days () {
+        return Math.floor((this._ticks / 10000000) / (60 * 60 * 24));
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_Hours", 
+      (new JSIL.MethodSignature($.Int32, [], [])), 
+      function get_Hours () {
+        return Math.floor((this._ticks / 10000000) / (60 * 60)) % 24;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_Milliseconds", 
+      (new JSIL.MethodSignature($.Int32, [], [])), 
+      function get_Milliseconds () {
+        return Math.floor(this._ticks / 10000) % 1000;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_Minutes", 
+      (new JSIL.MethodSignature($.Int32, [], [])), 
+      function get_Minutes () {
+        return Math.floor((this._ticks / 10000000) / 60) % 60;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_Seconds", 
+      (new JSIL.MethodSignature($.Int32, [], [])), 
+      function get_Seconds () {
+        return Math.floor(this._ticks / 10000000) % 60;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_Ticks", 
+      (new JSIL.MethodSignature($.Int64, [], [])), 
+      function get_Ticks () {
+        return this._ticks;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_TotalMilliseconds", 
+      (new JSIL.MethodSignature($.Double, [], [])), 
+      function get_TotalMilliseconds () {
+        return this._ticks / 10000;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_TotalMinutes", 
+      (new JSIL.MethodSignature($.Double, [], [])), 
+      function get_TotalMinutes () {
+        return this._ticks / 600000000;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_TotalSeconds", 
+      (new JSIL.MethodSignature($.Double, [], [])), 
+      function get_TotalSeconds () {
+        return this._ticks / 10000000;
+      }
+    );
+  }
+);
+
+JSIL.MakeStruct("System.ValueType", "System.TimeSpan", true, [], function ($) {
+  $.Field({Static:false, Public:false}, "_ticks", $.Int64, function ($) {
+    return 0;
+  });
+
+  $.Property({Public: true , Static: false}, "Ticks");
+
+  $.Property({Public: true , Static: false}, "Milliseconds");
+
+  $.Property({Public: true , Static: false}, "TotalMilliseconds");
+
+  $.Property({Public: true , Static: false}, "Seconds");
+
+  $.Property({Public: true , Static: false}, "Minutes");
+
+  $.Property({Public: true , Static: false}, "Hours");
+
+  $.Property({Public: true , Static: false}, "Days");
+
+  $.Property({Public: true , Static: false}, "TotalSeconds");
+
+  $.Property({Public: true , Static: false}, "TotalMinutes");
 });
 
-JSIL.ImplementExternals(
-  "System.TimeSpan", false, {
-    FromTicks: function (ticks) {
-      var result = Object.create(System.TimeSpan.prototype);
-      result._ticks = Math.floor(ticks);
-      return result;
-    },
+JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) {
+  var mscorlib = JSIL.GetCorlib();
 
-    FromMilliseconds: function (milliseconds) {
-      var result = Object.create(System.TimeSpan.prototype);
-      result._ticks = Math.floor(milliseconds * 10000);
-      return result;
-    },
-
-    FromSeconds: function (seconds) {
-      var result = Object.create(System.TimeSpan.prototype);
-      result._ticks = Math.floor(seconds * 10000000);
-      return result;
-    },
-
-    FromMinutes: function (minutes) {
-      var result = Object.create(System.TimeSpan.prototype);
-      result._ticks = Math.floor(minutes * 60 * 10000000);
-      return result;
-    },
-
-    op_Equality: function (lhs, rhs) {
-      return lhs._ticks === rhs._ticks;
-    },
-
-    op_Inequality: function (lhs, rhs) {
-      return lhs._ticks !== rhs._ticks;
-    },
-
-    op_GreaterThan: function (lhs, rhs) {
-      return lhs._ticks > rhs._ticks;
-    },
-
-    op_LessThan: function (lhs, rhs) {
-      return lhs._ticks < rhs._ticks;
-    },
-
-    op_Addition: function (lhs, rhs) {
-      var result = Object.create(System.TimeSpan.prototype);
-      result._ticks = lhs._ticks + rhs._ticks;
-      return result;
-    },
-
-    op_Subtraction: function (lhs, rhs) {
-      var result = Object.create(System.TimeSpan.prototype);
-      result._ticks = lhs._ticks - rhs._ticks;
-      return result;
+  $.RawMethod(false, "$getHash", function (key) {
+    if ((typeof (key) !== "undefined") && (key !== null) && (typeof (key.GetHashCode) === "function") && (key.GetHashCode.__IsPlaceholder__ !== true)) {
+      return key.GetHashCode();
+    } else if ((typeof (key) === "string") || (typeof (key) === "number")) {
+      return String(key);
+    } else {
+      return "nohash";
     }
-  }
-);
+  });
 
-JSIL.ImplementExternals(
-  "System.TimeSpan", true, {
-    _ctor$0: function (ticks) {
-      this._ticks = ticks;
-    },
+  $.RawMethod(false, "$areEqual", function (lhs, rhs) {
+    if (lhs === rhs)
+      return true;
 
-    _ctor$1: function (hours, minutes, seconds) {
-      this._ticks = 10000 * (1000 * (seconds + 60 * (minutes + 60 * hours)));
-    },
+    return JSIL.ObjectEquals(lhs, rhs);
+  });
 
-    _ctor$2: function (days, hours, minutes, seconds) {
-      this._ticks = 10000 * (1000 * (seconds + 60 * (minutes + 60 * (hours + 24 * days))));
-    },
+  $.RawMethod(false, "$searchBucket", function (key) {
+    var hashCode = this.$getHash(key);
+    var bucket = this._dict[hashCode];
+    if (!JSIL.IsArray(bucket))
+      return null;
 
-    _ctor$3: function (days, hours, minutes, seconds, milliseconds) {
-      this._ticks = 10000 * (milliseconds + 1000 * (seconds + 60 * (minutes + 60 * (hours + 24 * days))));
-    },
+    for (var i = 0; i < bucket.length; i++) {
+      var bucketEntry = bucket[i];
 
-    get_Ticks: function () {
-      return this._ticks;
-    },
-
-    get_Milliseconds: function () {
-      return Math.floor(this._ticks / 10000) % 60;
-    },
-
-    get_Seconds: function () {
-      return Math.floor(this._ticks / 10000000) % 60;
-    },
-
-    get_Minutes: function () {
-      return Math.floor((this._ticks / 10000000) / 60) % 60;
-    },
-
-    get_Hours: function () {
-      return Math.floor((this._ticks / 10000000) / (60 * 60)) % 24;
-    },
-
-    get_Days: function () {
-      return Math.floor((this._ticks / 10000000) / (60 * 60 * 24));
-    },
-
-    get_TotalMilliseconds: function () {
-      return this._ticks / 10000;
-    },
-
-    get_TotalSeconds: function () {
-      return this._ticks / 10000000;
-    },
-
-    get_TotalMinutes: function () {
-      return this._ticks / 600000000;
+      if (this.$areEqual(bucketEntry[0], key))
+        return bucketEntry;
     }
-  }
-);
 
-JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary`2", true, ["TKey", "TValue"]);
+    return null;
+  });
 
-JSIL.ImplementExternals(
-  "System.Collections.Generic.Dictionary`2", true, {
-    _ctor$0: function () {
+  $.RawMethod(false, "$removeByKey", function (key) {
+    var hashCode = this.$getHash(key);
+    var bucket = this._dict[hashCode];
+    if (!JSIL.IsArray(bucket))
+      return false;
+
+    for (var i = 0; i < bucket.length; i++) {
+      var bucketEntry = bucket[i];
+
+      if (this.$areEqual(bucketEntry[0], key)) {
+        bucket.splice(i, 1);
+        this._count -= 1;
+        return true;
+      }
+    }
+
+    return false;
+  });
+
+  $.RawMethod(false, "$addToBucket", function (key, value) {
+    var hashCode = this.$getHash(key);
+    var bucket = this._dict[hashCode];
+    if (!JSIL.IsArray(bucket))
+      this._dict[hashCode] = bucket = [];
+
+    bucket.push([key, value]);
+    this._count += 1;
+    return value;
+  });
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
       this._dict = {};
-    },
-    _ctor$1: function (count) {
-      this._dict = {};
-    },
-    get_Item: function (key) {
-      return this._dict[String(key)];
-    },
-    set_Item: function (key, value) {
-      this._dict[String(key)] = value;
-    },
-    ContainsKey: function (key) {
-      return this._dict.hasOwnProperty(key);
+      this._count = 0;
+      this.tKeysEnumerator = null;
+      this.tValuesEnumerator = null;
     }
-  }
-);
+  );
 
-JSIL.MakeStaticClass("System.Linq.Enumerable", true, [], function ($) {
-  JSIL.ExternalMembers($, false, 
-    "Count$b1$0"
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.Int32], [])), 
+    function _ctor (capacity) {
+      this._dict = {};
+      this._count = 0;
+      this.tKeysEnumerator = null;
+      this.tValuesEnumerator = null;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Add", 
+    (new JSIL.MethodSignature(null, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")], [])), 
+    function Add (key, value) {
+      var bucketEntry = this.$searchBucket(key);
+
+      if (bucketEntry !== null)
+        throw new System.ArgumentException("Key already exists");
+
+      return this.$addToBucket(key, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Clear", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Clear () {
+      this._dict = {}
+      this._count = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ContainsKey", 
+    (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2")], [])), 
+    function ContainsKey (key) {
+      return this.$searchBucket(key) !== null;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Remove", 
+    (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2")], [])), 
+    function Remove (key) {
+      return this.$removeByKey(key);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Count", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Count () {
+      return this._count;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Item", 
+    (new JSIL.MethodSignature(new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2"), [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2")], [])), 
+    function get_Item (key) {
+      var bucketEntry = this.$searchBucket(key);
+      if (bucketEntry !== null)
+        return bucketEntry[1];
+      else
+        throw new System.Exception("Key not found");
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Keys", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.Dictionary`2/KeyCollection", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")]), [], [])), 
+    function get_Keys () {
+      if (this.tKeysEnumerator === null) {
+        this.tKeysEnumerator = JSIL.ArrayEnumerator.Of(this.TKey);
+      }
+
+      return new JSIL.AbstractEnumerable(
+        (function getKeysProxy () {
+          var keys = [];
+
+          for (var k in this._dict) {
+            if (!this._dict.hasOwnProperty(k))
+              continue;
+            var bucket = this._dict[k];
+
+            for (var i = 0; i < bucket.length; i++)
+              keys.push(bucket[i][0]);
+          }
+
+          return new (this.tKeysEnumerator)(keys, -1);
+        }).bind(this)
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Values", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.Dictionary`2/ValueCollection", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")]), [], [])), 
+    function get_Values () {
+      if (this.tValuesEnumerator === null) {
+        this.tValuesEnumerator = JSIL.ArrayEnumerator.Of(this.TValue);
+      }
+
+      return new JSIL.AbstractEnumerable(
+        (function getValuesProxy () {
+          var values = [];
+
+          for (var k in this._dict) {
+            if (!this._dict.hasOwnProperty(k))
+              continue;
+            var bucket = this._dict[k];
+
+            for (var i = 0; i < bucket.length; i++)
+              values.push(bucket[i][1]);
+          }
+
+          return new (this.tValuesEnumerator)(values, -1);
+        }).bind(this)
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetEnumerator", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.Dictionary`2/Enumerator", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")]), [], [])), 
+    function GetEnumerator () {
+      var dict = this._dict;
+      var tKvp = System.Collections.Generic.KeyValuePair$b2.Of(this.TKey, this.TValue);
+      var current = new tKvp(null, null);
+
+      return new JSIL.AbstractEnumerator(
+        function getNext (result) {
+          var keys = this._state.keys;
+          var valueIndex = ++(this._state.valueIndex);
+          var bucketIndex = this._state.bucketIndex;
+
+          while ((bucketIndex >= 0) && (bucketIndex < keys.length)) {
+            var bucketKey = keys[this._state.bucketIndex];
+            var bucket = dict[bucketKey];
+
+            if ((valueIndex >= 0) && (valueIndex < bucket.length)) {
+              current.key = bucket[valueIndex][0];
+              current.value = bucket[valueIndex][1];
+              result.value = current;
+              return true;
+            } else {
+              bucketIndex = ++(this._state.bucketIndex);
+              valueIndex = 0;
+            }
+          }
+
+          return false;
+        },
+        function reset () {
+          this._state = {
+            keys: Object.keys(dict),
+            bucketIndex: 0,
+            valueIndex: -1
+          };
+        },
+        function dispose () {
+          this._state = null;
+        }
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Item", 
+    (new JSIL.MethodSignature(null, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")], [])), 
+    function set_Item (key, value) {
+      var bucketEntry = this.$searchBucket(key);
+      if (bucketEntry !== null)
+        return bucketEntry[1] = value;
+      else
+        return this.$addToBucket(key, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "TryGetValue", 
+    (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2"), $jsilcore.TypeRef("JSIL.Reference", [new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2")])], [])), 
+    function TryGetValue (key, /* ref */ value) {
+      var bucketEntry = this.$searchBucket(key);
+      if (bucketEntry !== null) {
+        value.value = bucketEntry[1];
+        return true;
+      } else {
+        value.value = JSIL.DefaultValue(this.TValue);
+      }
+
+      return false;
+    }
+  );
+
+});
+
+JSIL.ImplementExternals("System.Collections.Generic.KeyValuePair`2", function ($) {
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [new JSIL.GenericParameter("TKey", "System.Collections.Generic.KeyValuePair`2"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.KeyValuePair`2")], [])), 
+    function _ctor (key, value) {
+      this.key = key;
+      this.value = value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Key", 
+    (new JSIL.MethodSignature(new JSIL.GenericParameter("TKey", "System.Collections.Generic.KeyValuePair`2"), [], [])), 
+    function get_Key () {
+      return this.key;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Value", 
+    (new JSIL.MethodSignature(new JSIL.GenericParameter("TValue", "System.Collections.Generic.KeyValuePair`2"), [], [])), 
+    function get_Value () {
+      return this.value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "toString", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function toString () {
+      return "[" + String(this.key) + ", " + String(this.value) + "]";
+    }
+  );
+
+});
+
+JSIL.MakeStruct("System.ValueType", "System.Collections.Generic.KeyValuePair`2", true, ["TKey", "TValue"], function ($) {
+});
+
+JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary`2", true, ["TKey", "TValue"], function ($) {
+});
+
+$jsilcore.$tArrayEnumerator = [null];
+
+JSIL.GetEnumerator = function (enumerable) {
+  if ((typeof (enumerable) === "undefined") || (enumerable === null))
+    throw new Error("Enumerable is null or undefined");
+
+  if (JSIL.IsArray(enumerable)) {
+    if ($jsilcore.$tArrayEnumerator[0] === null)
+      $jsilcore.$tArrayEnumerator[0] = JSIL.ArrayEnumerator.Of(System.Object);
+
+    return new ($jsilcore.$tArrayEnumerator[0]) (enumerable, -1);
+  } else if (typeof (enumerable.IEnumerable$b1_GetEnumerator) === "function")
+    return enumerable.IEnumerable$b1_GetEnumerator();
+  else if (typeof (enumerable.IEnumerable_GetEnumerator) === "function")
+    return enumerable.IEnumerable_GetEnumerator();    
+  else if (typeof (enumerable.GetEnumerator) === "function")
+    return enumerable.GetEnumerator();    
+  else
+    throw new Error("Value is not enumerable");
+};
+
+JSIL.EnumerableToArray = function (enumerable) {
+  var e = JSIL.GetEnumerator(enumerable);
+  var result = [];
+
+  try {
+    while (e.MoveNext())
+      result.push(e.Current);
+  } finally {
+    e.IDisposable_Dispose();
+  }
+
+  return result;
+};
+
+JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerator", true, [], function ($) {
+  $.RawMethod(false, "__CopyMembers__", function (target) {
+    target._getNextItem = this._getNextItem;
+    target._reset = this._reset;
+    target._dispose = this._dispose;
+    target._first = this._first;
+    target._needDispose = this._needDispose;
+    target._current = new JSIL.Variable(this._current.value);
+    target._state = this._state;
+  });
+
+  $.Method({Static: false, Public: true }, ".ctor",
+    new JSIL.MethodSignature(null, [JSIL.AnyType, JSIL.AnyType, JSIL.AnyType]),
+    function (getNextItem, reset, dispose) {
+      this._getNextItem = getNextItem;
+      this._reset = reset;
+      this._dispose = dispose;
+      this._first = true;
+      this._needDispose = false;
+      this._current = new JSIL.Variable(null);
+    }
+  );
+
+  $.Method({Static: false, Public: true }, "Reset",
+    new JSIL.MethodSignature(null, []),
+    function () {
+      if (this._needDispose)
+        this._dispose();
+
+      this._first = false;
+      this._needDispose = true;
+      this._reset();
+    }
+  );
+
+  $.Method({Static: false, Public: true }, "MoveNext",
+    new JSIL.MethodSignature("System.Boolean", []),
+    function () {
+      if (this._first) {
+        this._reset();
+        this._needDispose = true;
+        this._first = false;
+      }
+
+      return this._getNextItem(this._current);
+    }
+  );
+
+  $.Method({Static: false, Public: true }, "Dispose",
+    new JSIL.MethodSignature(null, []),
+    function () {
+      if (this._needDispose)
+        this._dispose();
+
+      this._needDispose = false;
+    }
+  );
+
+
+  $.Method({Static: false, Public: true }, "get_Current",
+    new JSIL.MethodSignature(JSIL.AnyType, []),
+    function () {
+      return this._current.value;
+    }
+  );
+
+  $.Property({Static: false, Public: true }, "Current");
+
+  $.ImplementInterfaces(
+    System.IDisposable, System.Collections.IEnumerator, System.Collections.Generic.IEnumerator$b1
+  );
+});
+
+JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerable", true, [], function ($) {
+  $.Method({Static: false, Public: true }, ".ctor",
+    new JSIL.MethodSignature(null, [JSIL.AnyType, JSIL.AnyType, JSIL.AnyType]),
+    function (getNextItem, reset, dispose) {
+      if (arguments.length === 1) {
+        this._getEnumerator = getNextItem;
+      } else {
+        this._getEnumerator = null;
+        this._getNextItem = getNextItem;
+        this._reset = reset;
+        this._dispose = dispose;
+      }
+    }
+  );
+
+  $.Method({Static: false, Public: true }, "GetEnumerator",
+    new JSIL.MethodSignature("System.Collections.IEnumerator", []),
+    function () {
+      if (this._getEnumerator !== null)
+        return this._getEnumerator();
+      else
+        return new JSIL.AbstractEnumerator(this._getNextItem, this._reset, this._dispose);
+    }
+  );
+
+  $.ImplementInterfaces(
+    System.Collections.IEnumerable, System.Collections.Generic.IEnumerable$b1
   );
 });
 
 JSIL.ImplementExternals(
-  "System.Linq.Enumerable", false, {
-    Count$b1$0: JSIL.GenericMethod(
-      ["T"], 
+  "System.Linq.Enumerable", function ($) {
+    $.Method({Static:true , Public:true }, "Any", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["TSource"]),
       function (T, enumerable) {
-        var e = enumerable.IEnumerable$b1_GetEnumerator();
+        var enumerator = JSIL.GetEnumerator(enumerable);
+
+        try {
+          if (enumerator.MoveNext())
+            return true;
+        } finally {
+          enumerator.IDisposable_Dispose();
+        }
+
+        return false;
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "Any", 
+      new JSIL.MethodSignature(
+        $jsilcore.TypeRef("System.Boolean"), 
+        [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]), $jsilcore.TypeRef("System.Func`2", ["!!0", $jsilcore.TypeRef("System.Boolean")])], 
+        ["TSource"]
+      ),
+      function (T, enumerable, predicate) {
+        var enumerator = JSIL.GetEnumerator(enumerable);
+        
+        try {
+          while (enumerator.MoveNext()) {
+            if (predicate(enumerator.Current))
+              return true;
+          }
+        } finally {
+          enumerator.IDisposable_Dispose();
+        }
+
+        return false;
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "Count", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["TSource"]),
+      function (T, enumerable) {
+        var e = JSIL.GetEnumerator(enumerable);
         var result = 0;
         try {
           while (e.MoveNext())
@@ -870,27 +2470,915 @@ JSIL.ImplementExternals(
         }
         return result;
       }
-    )
+    );
+
+    $.Method({Static:true , Public:true }, "First", 
+      new JSIL.MethodSignature("!!0", [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["TSource"]),
+      function (T, enumerable) {
+        var enumerator = JSIL.GetEnumerator(enumerable);
+        try {
+          if (enumerator.MoveNext())
+            return enumerator.Current;
+        } finally {
+          enumerator.IDisposable_Dispose();
+        }
+
+        throw new System.Exception("Enumerable contains no items");
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "Select", 
+      new JSIL.MethodSignature(
+        $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!1"]), 
+        [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]), $jsilcore.TypeRef("System.Func`2", ["!!0", "!!1"])], 
+        ["TSource", "TResult"]
+      ),
+      function (TSource, TResult, enumerable, selector) {
+        var state = {};
+
+        return new JSIL.AbstractEnumerable(
+          function getNext (result) {
+            var ok = state.enumerator.MoveNext();
+            if (ok)
+              result.value = selector(state.enumerator.Current);
+
+            return ok;
+          },
+          function reset () {
+            state.enumerator = JSIL.GetEnumerator(enumerable);
+          },
+          function dispose () {
+            state.enumerator.IDisposable_Dispose();
+          }
+        );
+      }
+    );
+    
+    $.Method({Static:true , Public:true }, "ToArray", 
+      new JSIL.MethodSignature(System.Array.Of("!!0"), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["TSource"]),
+      function (T, enumerable) {
+        return JSIL.EnumerableToArray(enumerable);
+      }
+    );
+
   }
 );
 
+JSIL.MakeStaticClass("System.Linq.Enumerable", true, [], function ($) {
+  $.ExternalMethod({Static:true , Public:true }, "Any", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["TSource"])
+  );
+
+  $.ExternalMethod({Static:true , Public:true }, "Any", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]), $jsilcore.TypeRef("System.Func`2", ["!!0", $jsilcore.TypeRef("System.Boolean")])], ["TSource"])
+  );
+
+  $.ExternalMethod({Static:true , Public:true }, "Count", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Int32"), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["TSource"])
+  );
+
+  $.ExternalMethod({Static:true , Public:true }, "First", 
+    new JSIL.MethodSignature("!!0", [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["TSource"])
+  );
+
+  $.ExternalMethod({Static:true , Public:true }, "Select", 
+    new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!1"]), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]), $jsilcore.TypeRef("System.Func`2", ["!!0", "!!1"])], ["TSource", "TResult"])
+  );
+
+  $.ExternalMethod({Static:true , Public:true }, "ToArray", 
+    new JSIL.MethodSignature(System.Array.Of("!!0"), [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"])], ["TSource"])
+  );
+});
+
+JSIL.ImplementExternals("System.Nullable", function ($) {
+  var mscorlib = JSIL.GetCorlib();
+
+  $.Method({Static:true , Public:true }, "GetUnderlyingType", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Type"), [mscorlib.TypeRef("System.Type")], [])), 
+    function GetUnderlyingType (nullableType) {
+      if (nullableType.__FullName__.indexOf("System.Nullable`1") !== 0) {
+        return null;
+      } else {
+        return nullableType.__PublicInterface__.T;
+      }
+    }
+  );
+});
+
 JSIL.MakeStaticClass("System.Nullable", true, [], function ($) {
-  JSIL.ExternalMembers($, false, 
-    "GetUnderlyingType"
+});
+
+JSIL.ImplementExternals("System.Nullable`1", function ($) {
+  $.RawMethod(true, "CheckType", function (value) {
+    if (JSIL.CheckType(value, this.T))
+      return true;
+
+    return false;    
+  });
+});
+
+JSIL.MakeStruct("System.ValueType", "System.Nullable`1", true, ["T"], function ($) {
+});
+
+JSIL.MakeEnum("System.Reflection.BindingFlags", true, $jsilcore.BindingFlags, true);
+
+JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializer", function ($) {
+});
+
+JSIL.ImplementExternals("System.IO.Path", function ($) {
+  $.Method({Static:true , Public:true }, "Combine", 
+    (new JSIL.MethodSignature($.String, [$.String, $.String], [])), 
+    function Combine (path1, path2) {
+      return path1 + "\\" + path2;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Combine", 
+    (new JSIL.MethodSignature($.String, [
+          $.String, $.String, 
+          $.String
+        ], [])), 
+    function Combine (path1, path2, path3) {
+      return path1 + "\\" + path2 + "\\" + path3;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Combine", 
+    (new JSIL.MethodSignature($.String, [
+          $.String, $.String, 
+          $.String, $.String
+        ], [])), 
+    function Combine (path1, path2, path3, path4) {
+      return path1 + "\\" + path2 + "\\" + path3 + "\\" + path4;
+    }
+  );
+
+});
+
+JSIL.MakeEnum(
+  "System.StringComparison", true, {
+    CurrentCulture: 0, 
+    CurrentCultureIgnoreCase: 1, 
+    InvariantCulture: 2, 
+    InvariantCultureIgnoreCase: 3, 
+    Ordinal: 4, 
+    OrdinalIgnoreCase: 5
+  }, false
+);
+
+JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      this._str = "";
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.Int32], [])), 
+    function _ctor (capacity) {
+      this._str = "";
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.String], [])), 
+    function _ctor (value) {
+      this._str = value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.String, $.Int32], [])), 
+    function _ctor (value, capacity) {
+      this._str = value;
+    }
+  );
+
+  var appendString = function (self, str, startIndex, length, copies) {
+    if ((startIndex !== 0) || (length !== str.length)) {
+      for (var i = 0; i < copies; i++) {
+        self._str += str.substr(startIndex, length);
+      }
+
+    } else {
+      for (var i = 0; i < copies; i++) {
+        self._str += str;
+      }
+
+    }
+  };
+
+  var appendNumber = function (self, num) {
+    self._str += String(num);
+  };
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.Char, $.Int32], [])), 
+    function Append (value, repeatCount) {
+      appendString(this, value, 0, value.length, repeatCount);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [
+          $jsilcore.TypeRef("System.Array", [$.Char]), $.Int32, 
+          $.Int32
+        ], [])), 
+    function Append (value, startIndex, charCount) {
+      for (var i = 0; i < charCount; i++)
+        this._str += value[startIndex + i];
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.String], [])), 
+    function Append (value) {
+      appendString(this, value, 0, value.length, 1);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [
+          $.String, $.Int32, 
+          $.Int32
+        ], [])), 
+    function Append (value, startIndex, count) {
+      appendString(this, value, startIndex, count, 1);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.Boolean], [])), 
+    function Append (value) {
+      this._str += (value ? "True" : "False");
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.SByte], [])), 
+    function Append (value) {
+      appendNumber(this, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.Byte], [])), 
+    function Append (value) {
+      appendNumber(this, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.Char], [])), 
+    function Append (value) {
+      appendString(this, value, 0, value.length, 1);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.Int16], [])), 
+    function Append (value) {
+      appendNumber(this, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.Int32], [])), 
+    function Append (value) {
+      appendNumber(this, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.Int64], [])), 
+    function Append (value) {
+      appendNumber(this, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.Single], [])), 
+    function Append (value) {
+      appendNumber(this, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.Double], [])), 
+    function Append (value) {
+      appendNumber(this, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.UInt16], [])), 
+    function Append (value) {
+      appendNumber(this, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.UInt32], [])), 
+    function Append (value) {
+      appendNumber(this, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$.UInt64], [])), 
+    function Append (value) {
+      appendNumber(this, value);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Append", 
+    (new JSIL.MethodSignature($.Type, [$jsilcore.TypeRef("System.Array", [$.Char])], [])), 
+    function Append (value) {
+      for (var i = 0; i < value.length; i++)
+        this._str += value[i];
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Clear", 
+    (new JSIL.MethodSignature($.Type, [], [])), 
+    function Clear () {
+      this._str = "";
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Length", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Length () {
+      return this._str.length;
+    }
+  );
+
+  var replace = function (self, oldText, newText, startIndex, count) {
+    var prefix = self._str.substr(0, startIndex);
+    var suffix = self._str.substr(startIndex + count);
+    var region = self._str.substr(startIndex, count);
+    var result = prefix + region.split(oldText).join(newText) + suffix;
+    self._str = result;
+    return self;
+  };
+
+  $.Method({Static:false, Public:true }, "Replace", 
+    (new JSIL.MethodSignature($.Type, [$.String, $.String], [])), 
+    function Replace (oldValue, newValue) {
+      return replace(this, oldValue, newValue, 0, this._str.length);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Replace", 
+    (new JSIL.MethodSignature($.Type, [
+          $.String, $.String, 
+          $.Int32, $.Int32
+        ], [])), 
+    function Replace (oldValue, newValue, startIndex, count) {
+      return replace(this, oldValue, newValue, startIndex, count);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Replace", 
+    (new JSIL.MethodSignature($.Type, [$.Char, $.Char], [])), 
+    function Replace (oldChar, newChar) {
+      return replace(this, oldChar, newChar, 0, this._str.length);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Replace", 
+    (new JSIL.MethodSignature($.Type, [
+          $.Char, $.Char, 
+          $.Int32, $.Int32
+        ], [])), 
+    function Replace (oldChar, newChar, startIndex, count) {
+      return replace(this, oldChar, newChar, startIndex, count);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Length", 
+    (new JSIL.MethodSignature(null, [$.Int32], [])), 
+    function set_Length (value) {
+      var delta = value - this._str.length;
+
+      if (delta < 0) {
+        this._str = this._str.substr(0, value);
+      } else if (delta > 0) {
+        var ch = new Array(delta);
+        for (var i = 0; i < delta; i++)
+          ch[i] = '\0';
+
+        this._str += String.fromCharCode.apply(String, ch);
+      }
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "toString", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function toString () {
+      return this._str;
+    }
+  );
+});
+
+JSIL.ImplementExternals("System.Diagnostics.StackTrace", function ($) {
+  var mscorlib = JSIL.GetCorlib();
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      this.CaptureStackTrace(0, false, null, null);
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "CaptureStackTrace", 
+    (new JSIL.MethodSignature(null, [
+          $.Int32, $.Boolean, 
+          mscorlib.TypeRef("System.Threading.Thread"), mscorlib.TypeRef("System.Exception")
+        ], [])), 
+    function CaptureStackTrace (iSkip, fNeedFileInfo, targetThread, e) {
+      // FIXME
+      this.frames = [];
+    }
+  );  
+
+  $.Method({Static:false, Public:true }, "GetFrame", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Diagnostics.StackFrame"), [$.Int32], [])), 
+    function GetFrame (index) {
+      // FIXME
+      return new System.Diagnostics.StackFrame();
+    }
+  );
+
+});
+
+JSIL.ImplementExternals("System.Diagnostics.StackFrame", function ($) {
+  var mscorlib = JSIL.GetCorlib();
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      // FIXME
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetMethod", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Reflection.MethodBase"), [], [])), 
+    function GetMethod () {
+      // FIXME
+      return new System.Reflection.MethodBase();
+    }
   );
 });
 
 JSIL.ImplementExternals(
-  "System.Nullable", false, {
-    GetUnderlyingType: function (nullableType) {   
-      if (JSIL.GetTypeName(nullableType).indexOf("System.Nullable`1") !== 0) {
-        return null;
-      } else {
-        return nullableType.T;
+  "System.Enum", function ($) {    
+    $.RawMethod(true, "CheckType",
+      function (value) {
+        if (typeof (value) === "object") {
+          if ((value !== null) && (typeof (value.GetType) === "function"))
+            return value.GetType().IsEnum;
+        }
+
+        return false;
       }
-    }
+    );
+
+    var internalTryParse;
+
+    var internalTryParseFlags = function (TEnum, text, ignoreCase, result) {
+      var items = text.split(",");
+
+      var resultValue = 0;
+      var temp = new JSIL.Variable();
+
+      for (var i = 0, l = items.length; i < l; i++) {
+        var item = items[i].trim();
+        if (item.length === 0)
+          continue;
+
+        if (internalTryParse(TEnum, item, ignoreCase, temp)) {
+          resultValue = resultValue | temp.value;
+        } else {
+          return false;
+        }
+      }
+
+      var name = TEnum.__ValueToName__[resultValue];
+
+      if (typeof (name) === "undefined") {
+        result.value = JSIL.MakeEnumValue(TEnum, resultValue, null, TEnum.__IsFlagsEnum__);
+        return true;
+      } else {
+        result.value = TEnum[name];
+        return true;
+      }
+    };
+
+    internalTryParse = function (TEnum, text, ignoreCase, result) {
+      // Detect and handle flags enums
+      var commaPos = text.indexOf(",");
+      if (commaPos >= 0)
+        return internalTryParseFlags(TEnum, text, ignoreCase, result);
+
+      var num = Number(text);
+
+      if (isNaN(num)) {
+        if (ignoreCase) {
+          var names = TEnum.__Names__;
+          for (var i = 0; i < names.length; i++) {
+            var isMatch = (names[i].toLowerCase() == text.toLowerCase());
+
+            if (isMatch) {
+              result.value = TEnum[names[i]];
+              break;
+            }
+          }
+        } else {
+          result.value = TEnum[text];
+        }
+
+        return (typeof (result.value) !== "undefined");
+      } else {
+        var name = TEnum.__ValueToName__[num];
+
+        if (typeof (name) === "undefined") {
+          result.value = JSIL.MakeEnumValue(TEnum, num, null, TEnum.__IsFlagsEnum__);
+          return true;
+        } else {
+          result.value = TEnum[name];
+          return true;
+        }
+      }
+    };
+
+    var internalParse = function (enm, text, ignoreCase) {
+      var result = new JSIL.Variable();
+      if (internalTryParse(enm, text, ignoreCase, result))
+        return result.value;
+
+      throw new System.Exception("Failed to parse enum");
+    };
+
+    $.Method({Static:true , Public:true }, "Parse", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Object"), [$jsilcore.TypeRef("System.Type"), $jsilcore.TypeRef("System.String")], []),
+      function (enm, text) {
+        return internalParse(enm, text, false);
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "Parse", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Object"), [
+          $jsilcore.TypeRef("System.Type"), $jsilcore.TypeRef("System.String"), 
+          $jsilcore.TypeRef("System.Boolean")
+        ], []),
+      internalParse
+    );    
+
+    $.Method({Static:true , Public:true }, "TryParse", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [$jsilcore.TypeRef("System.String"), "JSIL.Reference" /* !!0& */ ], ["TEnum"]),
+      function (TEnum, text, result) {
+        return internalTryParse(TEnum, text, result);
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "TryParse", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [
+          $jsilcore.TypeRef("System.String"), $jsilcore.TypeRef("System.Boolean"), 
+          "JSIL.Reference" /* !!0& */ 
+        ], ["TEnum"]),
+      internalTryParse
+    );
+
+    $.Method({Static:true , Public:true }, "GetNames", 
+      new JSIL.MethodSignature(System.Array.Of($jsilcore.System.String), [$jsilcore.TypeRef("System.Type")], []),
+      function (enm) {
+        return enm.__Names__;
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "GetValues", 
+      new JSIL.MethodSignature($jsilcore.TypeRef("System.Array"), [$jsilcore.TypeRef("System.Type")], []),
+      function (enm) {
+        var names = enm.__Names__;
+        var result = new Array(names.length);
+
+        for (var i = 0; i < result.length; i++)
+          result[i] = enm[names[i]];
+
+        return result;
+      }
+    );
   }
 );
 
-JSIL.MakeStruct("System.ValueType", "System.Nullable`1", true, ["T"], function ($) {
+JSIL.ImplementExternals("System.Activator", function ($) {
+  var mscorlib = JSIL.GetCorlib();
+  
+  $.Method({Static:true , Public:true }, "CreateInstance", 
+    (new JSIL.MethodSignature($.Object, [mscorlib.TypeRef("System.Type"), mscorlib.TypeRef("System.Array", [$.Object])], [])), 
+    function CreateInstance (type, args) {
+      return JSIL.CreateInstanceOfType(type, args);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "CreateInstance", 
+    (new JSIL.MethodSignature($.Object, [
+          $asms[5].TypeRef("System.Type"), $asms[5].TypeRef("System.Reflection.BindingFlags"), 
+          $asms[5].TypeRef("System.Reflection.Binder"), $jsilcore.TypeRef("System.Array", [$.Object]), 
+          $asms[5].TypeRef("System.Globalization.CultureInfo")
+        ], [])), 
+    function CreateInstance (type, bindingAttr, binder, args, culture) {
+      // FIXME
+      return JSIL.CreateInstanceOfType(type, args);
+    }
+  );
+
+});
+
+JSIL.ImplementExternals("System.Diagnostics.Stopwatch", function ($) {
+  var mscorlib = JSIL.GetCorlib(); 
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      this.Reset();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Elapsed", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.TimeSpan"), [], [])), 
+    function get_Elapsed () {
+      return System.TimeSpan.FromMilliseconds(this.get_ElapsedMilliseconds());
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_ElapsedMilliseconds", 
+    (new JSIL.MethodSignature($.Int64, [], [])), 
+    function get_ElapsedMilliseconds () {
+      var result = this.elapsed;
+      if (this.isRunning)
+        result += Date.now() - this.startedWhen;
+
+      return result;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_ElapsedTicks", 
+    (new JSIL.MethodSignature($.Int64, [], [])), 
+    function get_ElapsedTicks () {
+      return this.get_ElapsedMilliseconds() * 10000;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_IsRunning", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsRunning () {
+      return this.isRunning;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Reset", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Reset () {
+      this.elapsed = 0;
+      this.isRunning = false;
+      this.startedWhen = 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Restart", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Restart () {
+      this.elapsed = 0;
+      this.isRunning = true;
+      this.startedWhen = Date.now();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Start", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Start () {
+      if (!this.isRunning) {
+        this.startedWhen = Date.now();
+        this.isRunning = true;
+      }
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "StartNew", 
+    (new JSIL.MethodSignature($.Type, [], [])), 
+    function StartNew () {
+      var result = new System.Diagnostics.Stopwatch();
+      result.Start();
+      return result;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Stop", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Stop () {
+      if (this.isRunning) {
+        this.isRunning = false;
+
+        var now = Date.now();
+        var elapsed = now - this.startedWhen;
+
+        this.elapsed += elapsed;
+        if (this.elapsed < 0)
+          this.elapsed = 0;
+      }
+    }
+  );
+
+});
+
+JSIL.ImplementExternals("System.Text.RegularExpressions.Regex", function ($) {
+  var system = JSIL.GetAssembly("System", true);
+
+  var makeRegex = function (pattern, options) {
+    if ((options & System.Text.RegularExpressions.RegexOptions.ECMAScript) === 0) {
+      throw new Error("Non-ECMAScript regexes are not currently supported.");
+    }
+
+    var flags = "g";
+
+    if ((options & System.Text.RegularExpressions.RegexOptions.IgnoreCase) !== 0) {
+      flags += "i";
+    }
+
+    if ((options & System.Text.RegularExpressions.RegexOptions.Multiline) !== 0) {
+      flags += "m";
+    }
+
+    return new RegExp(pattern, flags);
+  };
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.String], [])), 
+    function _ctor (pattern) {
+      this._regex = makeRegex(pattern, System.Text.RegularExpressions.RegexOptions.None);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.String, system.TypeRef("System.Text.RegularExpressions.RegexOptions")], [])), 
+    function _ctor (pattern, options) {
+      this._regex = makeRegex(pattern, options);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Matches", 
+    (new JSIL.MethodSignature(system.TypeRef("System.Text.RegularExpressions.MatchCollection"), [$.String], [])), 
+    function Matches (input) {
+      var matches = input.match(this._regex);
+
+      var matchObjects = [];
+      var tMatch = System.Text.RegularExpressions.Match.__Type__;
+
+      if (JSIL.IsArray(matches)) {
+        for (var i = 0; i < matches.length; i++) {
+          matchObjects.push(
+            JSIL.CreateInstanceOfType(
+              tMatch, "$internalCtor", [matches[i]]
+            )
+          );
+        }
+      }
+
+      var result = JSIL.CreateInstanceOfType(
+        System.Text.RegularExpressions.MatchCollection.__Type__,
+        "$internalCtor", [matchObjects]
+      );
+
+      return result;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Replace", 
+    (new JSIL.MethodSignature($.String, [
+          $.String, $.String, 
+          $.String, system.TypeRef("System.Text.RegularExpressions.RegexOptions")
+        ], [])), 
+    function Replace (input, pattern, replacement, options) {
+      var re = makeRegex(pattern, options);
+
+      return input.replace(re, replacement);
+    }
+  );
+});
+
+JSIL.ImplementExternals("System.Text.RegularExpressions.MatchCollection", function ($) {
+  var system = JSIL.GetAssembly("System", true);
+  var mscorlib = JSIL.GetCorlib();
+  var tEnumerator = JSIL.ArrayEnumerator.Of(System.Text.RegularExpressions.Match);
+
+  $.RawMethod(false, "$internalCtor", function (matches) {
+    this._matches = matches;
+  });
+
+  $.Method({Static:false, Public:true }, "get_Count", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Count () {
+      return this._matches.length;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Item", 
+    (new JSIL.MethodSignature(system.TypeRef("System.Text.RegularExpressions.Match"), [$.Int32], [])), 
+    function get_Item (i) {
+      return this._matches[i];
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "GetMatch", 
+    (new JSIL.MethodSignature(system.TypeRef("System.Text.RegularExpressions.Match"), [$.Int32], [])), 
+    function GetMatch (i) {
+      return this._matches[i];
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetEnumerator", 
+    (new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.IEnumerator"), [], [])), 
+    function GetEnumerator () {
+      return new tEnumerator(this._matches);
+    }
+  );
+});
+
+JSIL.ImplementExternals("System.Text.RegularExpressions.Capture", function ($) {
+
+  $.Method({Static:false, Public:true }, "get_Length", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Length () {
+      return this._length;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Value", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_Value () {
+      return this._text;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "toString", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function toString () {
+      return this._text;
+    }
+  );
+});
+
+JSIL.ImplementExternals("System.Text.RegularExpressions.Match", function ($) {
+  $.RawMethod(false, "$internalCtor", function (text) {
+    this._text = text;
+    this._length = text.length;
+  });
+});
+
+JSIL.ImplementExternals("System.Resources.ResourceManager", function ($) {
+
+  $.Method({Static:false, Public:false}, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      // FIXME
+    }
+  );
+
+  $.Method({Static:false, Public:false}, ".ctor", 
+    (new JSIL.MethodSignature(null, [
+          $.String, $.String, 
+          $asms[5].TypeRef("System.Type")
+        ], [])), 
+    function _ctor (baseName, resourceDir, usingResourceSet) {
+      // FIXME
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.String, $asms[5].TypeRef("System.Reflection.Assembly")], [])), 
+    function _ctor (baseName, assembly) {
+      // FIXME
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetString", 
+    (new JSIL.MethodSignature($.String, [$.String], [])), 
+    function GetString (name) {
+      // FIXME
+      return name;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetString", 
+    (new JSIL.MethodSignature($.String, [$.String, $asms[5].TypeRef("System.Globalization.CultureInfo")], [])), 
+    function GetString (name, culture) {
+      // FIXME
+      return name;
+    }
+  );
+
 });

@@ -65,5 +65,30 @@ namespace JSIL.Proxies {
         public static int IndexOf<T> (T[] array, T value, int startIndex) {
             throw new InvalidOperationException();
         }
+
+        [JSReplacement("Array.prototype.slice.call($this)")]
+        public object Clone () {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("$array.splice.apply($array, [$destinationIndex, $this.length].concat($this))")]
+        public void CopyTo (Array array, int destinationIndex) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("Array.prototype.sort.call($array)")]
+        public static void Sort (AnyType[] array) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("Array.prototype.sort.call($array)")]
+        public static void Sort<T> (T[] array) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("JSIL.GetEnumerator($this)")]
+        public System.Collections.IEnumerator GetEnumerator () {
+            throw new InvalidOperationException();
+        }
     }
 }

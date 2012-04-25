@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using JSIL.Meta;
 using JSIL.Proxy;
 using Microsoft.Xna.Framework;
@@ -15,34 +16,64 @@ namespace JSIL.Proxies {
         [JSExternal]
         public abstract void Begin (params AnyType[] values);
 
-        [JSReplacement("$this.InternalDraw($image, $position, null, $color, 0, null, 1)")]
+        [JSMutatedArguments()]
+        [JSEscapingArguments()]
         public abstract void Draw (Texture2D image, Vector2 position, Color color);
 
-        [JSReplacement("$this.InternalDraw($image, $position, $sourceRectangle, $color, 0, null, 1)")]
+        [JSMutatedArguments()]
+        [JSEscapingArguments()]
         public abstract void Draw (Texture2D image, Vector2 position, Rectangle? sourceRectangle, Color color);
 
-        [JSReplacement("$this.InternalDraw($image, $position, $sourceRectangle, $color, $rotation, $origin, $scale, $effects)")]
+        [JSChangeName("DrawScaleF")]
+        [JSMutatedArguments()]
+        [JSEscapingArguments()]
         public abstract void Draw (Texture2D image, Vector2 position, Rectangle? sourceRectangle, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth);
 
-        [JSReplacement("$this.InternalDraw($image, $position, $sourceRectangle, $color, $rotation, $origin, $scale, $effects)")]
+        [JSMutatedArguments()]
+        [JSEscapingArguments()]
         public abstract void Draw (Texture2D texture, Vector2 position, Rectangle? sourceRectangle, Color color, float rotation, Vector2 origin, Vector2 scale, SpriteEffects effects, float layerDepth);
 
-        [JSReplacement("$this.InternalDraw($image, $destinationRectangle, null, $color, 0, null)")]
+        [JSChangeName("DrawRect")]
+        [JSMutatedArguments()]
+        [JSEscapingArguments()]
         public abstract void Draw (Texture2D image, Rectangle destinationRectangle, Color color);
 
-        [JSReplacement("$this.InternalDraw($image, $destinationRectangle, $sourceRectangle, $color, 0, null)")]
+        [JSChangeName("DrawRect")]
+        [JSMutatedArguments()]
+        [JSEscapingArguments()]
         public abstract void Draw (Texture2D image, Rectangle destinationRectangle, Rectangle? sourceRectangle, Color color);
 
-        [JSReplacement("$this.InternalDraw($image, $destinationRectangle, $sourceRectangle, $color, $rotation, $origin, 1, $effects)")]
+        [JSChangeName("DrawRect")]
+        [JSMutatedArguments()]
+        [JSEscapingArguments()]
         public abstract void Draw (Texture2D image, Rectangle destinationRectangle, Rectangle? sourceRectangle, Color color, float rotation, Vector2 origin, SpriteEffects effects, float layerDepth);
 
-        [JSReplacement("$this.InternalDrawString($font, $text, $position, $color)")]
+        [JSMutatedArguments()]
+        [JSEscapingArguments()]
         public abstract void DrawString (SpriteFont font, string text, Vector2 position, Color color);
 
-        [JSReplacement("$this.InternalDrawString($font, $text, $position, $color, $scale, $effects)")]
+        [JSMutatedArguments()]
+        [JSEscapingArguments()]
         public abstract void DrawString (SpriteFont font, string text, Vector2 position, Color color, float rotation, Vector2 origin, Vector2 scale, SpriteEffects effects, float layerDepth);
 
-        [JSReplacement("$this.InternalDrawString($font, $text, $position, $color, $scale, $effects)")]
+        [JSChangeName("DrawStringScaleF")]
+        [JSMutatedArguments()]
+        [JSEscapingArguments()]
         public abstract void DrawString (SpriteFont font, string text, Vector2 position, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth);
+
+        [JSChangeName("DrawStringBuilder")]
+        [JSMutatedArguments()]
+        [JSEscapingArguments()]
+        public abstract void DrawString (SpriteFont font, StringBuilder text, Vector2 position, Color color);
+
+        [JSChangeName("DrawStringBuilder")]
+        [JSMutatedArguments()]
+        [JSEscapingArguments()]
+        public abstract void DrawString (SpriteFont font, StringBuilder text, Vector2 position, Color color, float rotation, Vector2 origin, Vector2 scale, SpriteEffects effects, float layerDepth);
+
+        [JSChangeName("DrawStringBuilderScaleF")]
+        [JSMutatedArguments()]
+        [JSEscapingArguments()]
+        public abstract void DrawString (SpriteFont font, StringBuilder text, Vector2 position, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth);
     }
 }

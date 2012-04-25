@@ -11,29 +11,35 @@ using NUnit.Framework;
 
 namespace JSIL.Tests {
     [TestFixture]
-    public class FailingTests {
+    public class FailingTests : GenericTestFixture {
         [Test]
         public void AllFailingTests () {
-            var simpleTests = Directory.GetFiles(
-                Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "FailingTestCases")),
-                "*.cs"
-            );
-            int passCount = 0;
+            var testPath = Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "FailingTestCases"));
+            var simpleTests = Directory.GetFiles(testPath, "*.cs").Concat(Directory.GetFiles(testPath, "*.vb")).ToArray();
+
+            List<string> passedTests = new List<string>();
 
             foreach (var filename in simpleTests) {
-                Console.Write("// {0} ... ", Path.GetFileName(filename));
+                Console.WriteLine("// {0} ... ", Path.GetFileName(filename));
 
                 try {
-                    using (var test = new ComparisonTest(filename))
+                    using (var test = MakeTest(filename)) {
+                        test.JavascriptExecutionTimeout = 5.0f;
                         test.Run();
+                        Console.WriteLine("// {0}", ComparisonTest.GetTestRunnerLink(test.OutputPath));
+                    }
 
-                    passCount += 1;
-                } catch (Exception ex) {
-                    Console.WriteLine("{0}: {1}", ex.GetType().Name, ex.Message);
+                    passedTests.Add(Path.GetFileName(filename));
+                } catch (JavaScriptException jse) {
+                    Console.WriteLine(jse.ToString());
+                } catch (AssertionException ex) {
+                    Console.WriteLine(ex.ToString());
                 }
             }
 
-            Assert.AreEqual(0, passCount, "One or more tests passed that should have failed");
+            if (passedTests.Count > 0) {
+                Assert.Fail("One or more tests passed that should have failed:\r\n" + String.Join("\r\n", passedTests));
+            }
         }
     }
 }

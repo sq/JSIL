@@ -7,60 +7,261 @@ JSIL.DeclareAssembly("JSIL.Windows");
 
 JSIL.DeclareNamespace("JSIL");
 
-JSIL.ImplementExternals(
-  "System.Windows.Forms.Control", true, {
-    clientWidth: 16,
-    clientHeight: 16,
-    SetStyle: function (styles, newState) {
-    },
-    _ctor: function () {
-      this._controls = new (System.Collections.Generic.List$b1.Of(System.Object)) ();
-    },
-    get_Controls: function () {
+JSIL.ImplementExternals("System.Windows.Forms.Control", function ($) {
+  var coreCtor = function _ctor (text) {
+    this._controls = new $asms[15].System.Windows.Forms.Control_ControlCollection ();
+    this.clientSize = new System.Drawing.Size(0, 0);
+    this.size = new System.Drawing.Size(0, 0);
+    this.location = new System.Drawing.Point(0, 0);
+
+    if (text)
+      this.text = text;
+    else
+      this.text = null;
+  };
+
+  $.RawMethod(false, "$coreCtor", coreCtor);
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    coreCtor
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.String], [])), 
+    coreCtor
+  );
+
+  $.Method({Static:false, Public:true }, "Show", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Show () {
+      // FIXME
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Controls", 
+    (new JSIL.MethodSignature($asms[15].TypeRef("System.Windows.Forms.Control/ControlCollection"), [], [])), 
+    function get_Controls () {
       return this._controls;
-    },
-    get_ClientSize: function () {
-      return new System.Drawing.Size(this.clientWidth, this.clientHeight);
-    },
-    set_ClientSize: function (size) {
-      this.clientWidth = size.Width;
-      this.clientHeight = size.Height;
-    },
-    add_Paint: function (handler) {
-    },
-    Show: function () {
-    },
-    Refresh: function () {
     }
-  }
-);
+  );
 
-JSIL.ImplementExternals(
-  "System.Windows.Forms.Form", true, {
-    _ctor: function () {
-      System.Windows.Forms.Control.prototype._ctor.call(this);
+  $.Method({Static:false, Public:true }, "get_ClientSize", 
+    (new JSIL.MethodSignature($asms[11].TypeRef("System.Drawing.Size"), [], [])), 
+    function get_ClientSize () {
+      return this.clientSize;
     }
-  }
-);
+  );
 
-JSIL.ImplementExternals(
-  "System.Windows.Forms.StatusBar", true, {
-    _ctor: function () {
-      this._panels = new (System.Collections.Generic.List$b1.Of(System.Object)) ();
-    },
-    get_Panels: function () {
+  $.Method({Static:false, Public:true }, "set_ClientSize", 
+    (new JSIL.MethodSignature(null, [$asms[11].TypeRef("System.Drawing.Size")], [])), 
+    function set_ClientSize (value) {
+      this.clientSize = value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Size", 
+    (new JSIL.MethodSignature($asms[11].TypeRef("System.Drawing.Size"), [], [])), 
+    function get_Size () {
+      return this.size;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Size", 
+    (new JSIL.MethodSignature(null, [$asms[11].TypeRef("System.Drawing.Size")], [])), 
+    function set_Size (value) {
+      this.size = value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Text", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_Text () {
+      return this.text;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Text", 
+    (new JSIL.MethodSignature(null, [$.String], [])), 
+    function set_Text (value) {
+      this.text = value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Left", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Left () {
+      return this.location.X;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Location", 
+    (new JSIL.MethodSignature($asms[11].TypeRef("System.Drawing.Point"), [], [])), 
+    function get_Location () {
+      return this.location;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Top", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Top () {
+      return this.location.Y;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Height", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Height () {
+      return this.size.Height;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Width", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Width () {
+      return this.size.Width;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Bottom", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Bottom () {
+      return this.location.Y + this.size.Height;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Right", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Right () {
+      return this.location.X + this.size.Width;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Left", 
+    (new JSIL.MethodSignature(null, [$.Int32], [])), 
+    function set_Left (value) {
+      this.location.X = value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Location", 
+    (new JSIL.MethodSignature(null, [$asms[11].TypeRef("System.Drawing.Point")], [])), 
+    function set_Location (value) {
+      this.location = value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Top", 
+    (new JSIL.MethodSignature(null, [$.Int32], [])), 
+    function set_Top (value) {
+      this.location.Y = value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Height", 
+    (new JSIL.MethodSignature(null, [$.Int32], [])), 
+    function set_Height (value) {
+      this.size.Height = value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Width", 
+    (new JSIL.MethodSignature(null, [$.Int32], [])), 
+    function set_Width (value) {
+      this.size.Width = value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Dock", 
+    (new JSIL.MethodSignature(null, [$asms[15].TypeRef("System.Windows.Forms.DockStyle")], [])), 
+    function set_Dock (value) {
+      // FIXME
+    }
+  );
+
+});
+
+JSIL.ImplementExternals("System.Windows.Forms.Control/ControlCollection", function ($) {
+  $jsilcore.$ListExternals($, $asms[15].TypeRef("System.Windows.Forms.Control"), "ArrangedElementCollection");
+});
+
+JSIL.ImplementExternals("System.Windows.Forms.StatusBar/StatusBarPanelCollection", function ($) {
+  $jsilcore.$ListExternals($, $asms[15].TypeRef("System.Windows.Forms.StatusBarPanel"), "ObjectCollection");
+});
+
+JSIL.ImplementExternals("System.Windows.Forms.TabControl/TabPageCollection", function ($) {
+  $jsilcore.$ListExternals($, $asms[15].TypeRef("System.Windows.Forms.TabPage"), "ArrangedElementCollection");
+});
+
+JSIL.ImplementExternals("System.Windows.Forms.ListBox/ObjectCollection", function ($) {
+  $jsilcore.$ListExternals($, $.Object, "ObjectCollection");
+});
+
+JSIL.ImplementExternals("System.Windows.Forms.Form", function ($) {
+  $.InheritDefaultConstructor();
+});
+
+JSIL.ImplementExternals("System.Windows.Forms.ListBox", function ($) {
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      this.$coreCtor();
+      this._items = new $asms[15].System.Windows.Forms.ListBox_ObjectCollection ();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Items", 
+    (new JSIL.MethodSignature($asms[15].TypeRef("System.Windows.Forms.ListBox/ObjectCollection"), [], [])), 
+    function get_Items () {
+      return this._items;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_SelectedIndex", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_SelectedIndex () {
+      return 0;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_SelectedItem", 
+    (new JSIL.MethodSignature($.Object, [], [])), 
+    function get_SelectedItem () {
+      return null;
+    }
+  );
+});
+
+JSIL.ImplementExternals("System.Windows.Forms.StatusBar", function ($) {
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      this.$coreCtor();
+      this._panels = new $asms[15].System.Windows.Forms.StatusBar_StatusBarPanelCollection ();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Panels", 
+    (new JSIL.MethodSignature($asms[15].TypeRef("System.Windows.Forms.StatusBar/StatusBarPanelCollection"), [], [])), 
+    function get_Panels () {
       return this._panels;
     }
-  }
-);
+  );
+});
 
-JSIL.ImplementExternals(
-  "System.Windows.Forms.TabControl", true, {
-    _ctor: function () {
-      this._tabPages = new (System.Collections.Generic.List$b1.Of(System.Object)) ();
-    },
-    get_TabPages: function () {
+JSIL.ImplementExternals("System.Windows.Forms.TabControl", function ($) {
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      this.$coreCtor();
+      this._tabPages = new $asms[15].System.Windows.Forms.TabControl_TabPageCollection ();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_TabPages", 
+    (new JSIL.MethodSignature($asms[15].TypeRef("System.Windows.Forms.TabControl/TabPageCollection"), [], [])), 
+    function get_TabPages () {
       return this._tabPages;
     }
-  }
-);
+  );
+});

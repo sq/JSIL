@@ -85,26 +85,50 @@ namespace JSIL {
                 ReturnType = null;
             } else if (targetTypeName.StartsWith("System.Func`")) {
                 ReturnType = git.GenericArguments[git.GenericArguments.Count - 1];
-            } else
-                throw new NotImplementedException("This type of call site target is not implemented");
+            } else {
+                throw new NotImplementedException(String.Format(
+                    "This type of call site target is not implemented: {0}",
+                    targetTypeName
+                ));
+            }
 
             if ((BinderFlags & CSharpBinderFlags.ResultDiscarded) == CSharpBinderFlags.ResultDiscarded)
                 ReturnType = null;
         }
 
+        protected JSExpression FixupThisArgument (JSExpression thisArgument, TypeSystem typeSystem) {
+            var toe = thisArgument as JSTypeOfExpression;
+            if (toe != null)
+                return toe.Type;
+
+            var expectedType = thisArgument.GetActualType(typeSystem);
+            if (expectedType.FullName == "System.Type")
+                return JSDotExpression.New(thisArgument, new JSStringIdentifier("__PublicInterface__"));
+
+            return thisArgument;
+        }
+
         protected TypeReference UnwrapType (JSExpression expression) {
             var type = expression as JSType;
-            if (type != null)
-                return type.Type;
+            var toe = expression as JSTypeOfExpression;
 
             var invocation = expression as JSInvocationExpression;
             if (invocation != null) {
-                type = invocation.Arguments.FirstOrDefault() as JSType;
-                if (type != null)
-                    return type.Type;
+                var firstArg = invocation.Arguments.FirstOrDefault();
+                type = type ?? firstArg as JSType;
+                toe = toe ?? firstArg as JSTypeOfExpression;
             }
 
-            throw new NotImplementedException("Unrecognized type expression");
+            if (toe != null)
+                type = toe.Type;
+
+            if (type != null)
+                return type.Type;
+
+            throw new NotImplementedException(String.Format(
+                "Unrecognized type expression: {0}",
+                expression
+            ));
         }
 
         public abstract JSExpression Translate (ILBlockTranslator translator, JSExpression[] arguments);
@@ -126,9 +150,14 @@ namespace JSIL {
                 }
             }
 
-            public JSExpression TypeArguments {
+            public JSExpression[] TypeArguments {
                 get {
-                    return Arguments[2];
+                    var invocation = Arguments[2] as JSInvocationExpression;
+                    if (invocation == null)
+                        return null;
+
+                    var array = (JSArrayExpression)invocation.Arguments[1];
+                    return array.Values.ToArray();
                 }
             }
 
@@ -145,14 +174,20 @@ namespace JSIL {
             }
 
             public override JSExpression Translate (ILBlockTranslator translator, JSExpression[] arguments) {
-                var thisArgument = arguments[1];
+                var thisArgument = FixupThisArgument(arguments[1], translator.TypeSystem);
 
                 var returnType = ReturnType;
                 if (returnType == null)
                     returnType = translator.TypeSystem.Void;
 
+                var argumentValues = arguments.Skip(2).ToArray();
+
                 return JSInvocationExpression.InvokeMethod(
-                    new JSStringIdentifier(MemberName, returnType), thisArgument,
+                    new JSFakeMethod(
+                        MemberName, returnType, 
+                        (from av in argumentValues select av.GetActualType(translator.TypeSystem)).ToArray(),
+                        translator.MethodTypes, TypeArguments
+                    ), thisArgument,
                     arguments.Skip(2).ToArray()
                 );
             }
@@ -379,9 +414,10 @@ namespace JSIL {
             }
 
             public override JSExpression Translate (ILBlockTranslator translator, JSExpression[] arguments) {
-                return translator.SpecialIdentifiers.JSIL.Cast(
+                return JSCastExpression.New(
                     arguments[1],
-                    TargetType
+                    TargetType,
+                    translator.TypeSystem
                 );
             }
         }
@@ -410,7 +446,7 @@ namespace JSIL {
             }
 
             public override JSExpression Translate (ILBlockTranslator translator, JSExpression[] arguments) {
-                var thisArgument = arguments[1];
+                var thisArgument = FixupThisArgument(arguments[1], translator.TypeSystem);
 
                 var returnType = ReturnType;
                 if (returnType == null)
@@ -447,7 +483,7 @@ namespace JSIL {
             }
 
             public override JSExpression Translate (ILBlockTranslator translator, JSExpression[] arguments) {
-                var thisArgument = arguments[1];
+                var thisArgument = FixupThisArgument(arguments[1], translator.TypeSystem);
 
                 var returnType = ReturnType;
                 if (returnType == null)

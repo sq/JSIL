@@ -11,20 +11,49 @@ using Mono.Cecil;
 namespace JSIL.Transforms {
     public class IntroduceEnumCasts : JSAstVisitor {
         public readonly TypeSystem TypeSystem;
+        public readonly TypeInfoProvider TypeInfo;
+        public readonly MethodTypeFactory MethodTypes;
+        public readonly JSSpecialIdentifiers JS;
 
-        public IntroduceEnumCasts (TypeSystem typeSystem) {
+        private readonly HashSet<JSOperator> LogicalOperators;
+
+        public IntroduceEnumCasts (TypeSystem typeSystem, JSSpecialIdentifiers js, TypeInfoProvider typeInfo, MethodTypeFactory methodTypes) {
             TypeSystem = typeSystem;
+            TypeInfo = typeInfo;
+            MethodTypes = methodTypes;
+            JS = js;
+
+            LogicalOperators = new HashSet<JSOperator>() {
+                JSOperator.LogicalAnd,
+                JSOperator.LogicalOr,
+                JSOperator.LogicalNot
+            };
+        }
+
+        public static bool IsEnumOrNullableEnum (TypeReference tr) {
+            tr = TypeUtil.DereferenceType(tr, false);
+
+            if (TypeUtil.IsEnum(tr))
+                return true;
+
+            var git = tr as GenericInstanceType;
+            if ((git != null) && (git.Name == "Nullable`1")) {
+                if (TypeUtil.IsEnum(git.GenericArguments[0]))
+                    return true;
+            }
+
+            return false;
         }
 
         public void VisitNode (JSIndexerExpression ie) {
-            var indexType = ie.Index.GetExpectedType(TypeSystem);
+            var indexType = ie.Index.GetActualType(TypeSystem);
 
             if (
-                !ILBlockTranslator.IsIntegral(indexType) &&
-                ILBlockTranslator.IsEnum(indexType)
+                !TypeUtil.IsIntegral(indexType) &&
+                IsEnumOrNullableEnum(indexType)
             ) {
                 var cast = JSInvocationExpression.InvokeStatic(
-                    new JSFakeMethod("Number", TypeSystem.Int32, indexType), new[] { ie.Index }, true
+                    JS.Number(TypeSystem.Int32), new[] { ie.Index }, true
                 );
 
                 ie.ReplaceChild(ie.Index, cast);
@@ -33,15 +62,61 @@ namespace JSIL.Transforms {
             VisitChildren(ie);
         }
 
+        public void VisitNode (JSUnaryOperatorExpression uoe) {
+            var type = uoe.Expression.GetActualType(TypeSystem);
+            var isEnum = IsEnumOrNullableEnum(type);
+
+            if (isEnum) {
+                var cast = JSInvocationExpression.InvokeStatic(
+                    JS.Number(TypeSystem.Int32), new[] { uoe.Expression }, true
+                );
+
+                if (LogicalOperators.Contains(uoe.Operator)) {
+                    uoe.ReplaceChild(uoe.Expression, cast);
+                } else if (uoe.Operator == JSOperator.Negation) {
+                    uoe.ReplaceChild(uoe.Expression, cast);
+                }
+            }
+
+            VisitChildren(uoe);
+        }
+
+        public void VisitNode (JSBinaryOperatorExpression boe) {
+            var leftType = boe.Left.GetActualType(TypeSystem);
+            var leftIsEnum = IsEnumOrNullableEnum(leftType);
+            var rightType = boe.Right.GetActualType(TypeSystem);
+            var rightIsEnum = IsEnumOrNullableEnum(rightType);
+
+            if ((leftIsEnum || rightIsEnum) && LogicalOperators.Contains(boe.Operator)) {
+                if (leftIsEnum) {
+                    var cast = JSInvocationExpression.InvokeStatic(
+                        JS.Number(TypeSystem.Int32), new[] { boe.Left }, true
+                    );
+
+                    boe.ReplaceChild(boe.Left, cast);
+                }
+
+                if (rightIsEnum) {
+                    var cast = JSInvocationExpression.InvokeStatic(
+                        JS.Number(TypeSystem.Int32), new[] { boe.Right }, true
+                    );
+
+                    boe.ReplaceChild(boe.Right, cast);
+                }
+            }
+
+            VisitChildren(boe);
+        }
+
         public void VisitNode (JSSwitchStatement ss) {
-            var conditionType = ss.Condition.GetExpectedType(TypeSystem);
+            var conditionType = ss.Condition.GetActualType(TypeSystem);
 
             if (
-                !ILBlockTranslator.IsIntegral(conditionType) &&
-                ILBlockTranslator.IsEnum(conditionType)
+                !TypeUtil.IsIntegral(conditionType) &&
+                IsEnumOrNullableEnum(conditionType)
             ) {
                 var cast = JSInvocationExpression.InvokeStatic(
-                    new JSFakeMethod("Number", TypeSystem.Int32, conditionType), new[] { ss.Condition }, true
+                    JS.Number(TypeSystem.Int32), new[] { ss.Condition }, true
                 );
 
                 ss.ReplaceChild(ss.Condition, cast);

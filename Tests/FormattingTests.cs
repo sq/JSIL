@@ -44,6 +44,57 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void SwitchWithMultipleDefaults () {
+            var generatedJs = GetJavascript(
+                @"TestCases\ComplexSwitch.cs",
+                "zero\r\none\r\ntwo or three\r\ntwo or three"
+            );
+            try {
+                // TODO: The following will only work if switch statements with multiple default cases are collapsed into a single default case.
+
+                /*
+                Assert.IsFalse(generatedJs.Contains("__ = \"IL_"));
+                Assert.IsFalse(generatedJs.Contains("case 1:"));
+                 */
+
+                Assert.IsTrue(generatedJs.Contains("default:"));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
+        public void BigStringSwitch () {
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\BigStringSwitch.cs",
+                ""
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains(".TryGetValue"));
+
+                // TODO: The following will only work if optimized switches are fully deoptimized back into a normal switch.
+                // At present this isn't possible because JSIL cannot fully untangle the flow control graph produced by the optimized switch.
+
+                /*
+                Assert.IsFalse(generatedJs.Contains("break "));
+                Assert.IsFalse(generatedJs.Contains("continue "));
+                 */
+                // Assert.IsTrue(generatedJs.Contains("for (var i = 0; i < args.length; ++i)"));
+
+                Assert.IsTrue(generatedJs.Contains("for (var i = 0; i < args.length;"));
+                Assert.IsTrue(generatedJs.Contains("switch (text)"));
+                Assert.IsTrue(generatedJs.Contains("case \"howdy\""));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
         public void StringConcat () {
             var generatedJs = GetJavascript(
                 @"SpecialTestCases\StringConcat.cs",
@@ -233,7 +284,7 @@ namespace JSIL.Tests {
 
         [Test]
         public void PrivateNames () {
-            using (var test = new ComparisonTest(@"SpecialTestCases\PrivateNames.cs"))
+            using (var test = MakeTest(@"SpecialTestCases\PrivateNames.cs"))
                 test.Run();
         }
 
@@ -296,16 +347,209 @@ namespace JSIL.Tests {
             );
 
             try {
-                Assert.IsFalse(generatedJs.Contains("for ("));
+                Assert.IsFalse(generatedJs.Contains("for ("), "A for loop failed conversion to a do-loop");
                 Assert.AreEqual(3, generatedJs.Split(new string[] { "do {" }, StringSplitOptions.RemoveEmptyEntries).Length);
                 Assert.AreEqual(3, generatedJs.Split(new string[] { "} while (" }, StringSplitOptions.RemoveEmptyEntries).Length);
                 Assert.IsTrue(generatedJs.Contains("while (true)"));
-                Assert.IsTrue(generatedJs.Contains("break __loop2__"));
+                Assert.IsTrue(generatedJs.Contains("break $loop2"));
             } catch {
                 Console.WriteLine(generatedJs);
 
                 throw;
             }
+        }
+
+        [Test]
+        public void UntranslatableGotos () {
+            var generatedJs = GetJavascript(
+                @"TestCases\UntranslatableGotoOutParameters.cs",
+                ": null"
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("JSIL.UntranslatableInstruction"), "A goto failed translation");
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
+        public void UntranslatableGotos2 () {
+            var generatedJs = GetJavascript(
+                @"TestCases\RepeatIterator.cs",
+                "a\r\na\r\na\r\na\r\na"
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("JSIL.UntranslatableInstruction"), "A goto failed translation");
+                var m = Regex.Match(
+                    generatedJs,
+                    @"if \(this.i \>\= this.count\) \{[^}]*\} else \{"
+                );
+                Assert.IsTrue((m != null) && m.Success);
+                Assert.IsTrue(m.Value.Contains("continue $labelgroup0;"), "If block true clause left empty when hoisting out label");
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
+        public void SealedMethods () {
+            var generatedJs = GetJavascript(
+                @"TestCases\SealedMethods.cs",
+                "Foo.Func1\r\nFoo.Func2\r\nFoo.Func1"
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("Foo.prototype.Func1.call"), "Func1 was called through the prototype with an explicit this");
+                Assert.IsTrue(generatedJs.Contains("this.Func1"), "Func1 was not called on this");
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
+        public void SealedMethods2 () {
+            var output = "F1 F2 F1 F1 B1 B2 F2 F1 B3 B2 F2 F1";
+
+            var generatedJs = GenericTest(
+                @"TestCases\SealedMethods2.cs",
+                output, output
+            );
+
+            try {
+                Assert.IsTrue(generatedJs.Contains("Foo.prototype.Func1.call"), "Func1 was not called through the Foo prototype");
+                Assert.IsTrue(generatedJs.Contains("Foo.prototype.Func2.call"), "Func2 was not called through the Foo prototype");
+                Assert.IsTrue(generatedJs.Contains("this.Func2()"), "Func2 was not called through this");
+                Assert.IsTrue(generatedJs.Contains("this.Func2()"), "Func2 was not called through this");
+
+                Assert.IsTrue(generatedJs.Contains("test.Func1()"), "Func1 was not called directly on test");
+                Assert.IsTrue(generatedJs.Contains("test.Func2()"), "Func2 was not called directly on test");
+
+                Assert.IsTrue(generatedJs.Contains("test2.Func1()"), "Func1 was not called directly on test");
+                Assert.IsTrue(generatedJs.Contains("test2.Func2()"), "Func2 was not called directly on test");
+                Assert.IsTrue(generatedJs.Contains("test2.Func3()"), "Func3 was not called directly on test");
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
+        public void UnderivedMethods () {
+            var generatedJs = GetJavascript(
+                @"TestCases\UnderivedMethods.cs",
+                "Foo.Func1\r\nFoo.Func2\r\nFoo.Func1"
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("Foo.prototype.Func1.call"), "Func1 was called through the prototype with an explicit this");
+                Assert.IsTrue(generatedJs.Contains("this.Func1"), "Func1 was not called on this");
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
+        public void GenericMethodSignatures () {
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\GenericMethodSignatures.cs",
+                "1"
+            );
+
+            try {
+                Assert.IsTrue(generatedJs.Contains("\"!!0\", [\"!!0\"], [\"T\"]"));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
+        public void CorlibTypeRefs () {
+            var generatedJs = GetJavascript(
+                @"SpecialTestCases\CorlibTypeRefs.cs",
+                "Method(hello)\r\nMethod(MyType(world))"
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains(".TypeRef(\"System.String\")"), "Long-form string typeref");
+                Assert.IsTrue(generatedJs.Contains(".TypeRef(\"MyType\")"), "Long-form custom typeref");
+
+                // Maybe this can be improved?
+                Assert.IsTrue(generatedJs.Contains(".TypeRef(\"System.Array\""), "Long-form array typeref");
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
+        public void FastOverloadDispatch () {
+            var output = "A()\r\nA(1)\r\nA(1, str)\r\nB()\r\nB(int 1)\r\nB(string str)";
+
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\FastOverloadDispatch.cs",
+                output, output
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("CallStatic($asm00.Program, \"A\", "));
+                Assert.IsTrue(generatedJs.Contains("$asm00.Program.B();"));
+                Assert.IsTrue(generatedJs.Contains("CallStatic($asm00.Program, \"B\", "));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
+        public void FastConstructorOverloadDispatch () {
+            var output = "A()\r\nA(1)\r\nB()\r\nB(int 1)\r\nB(string s)";
+
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\FastConstructorOverloadDispatch.cs",
+                output, output
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains(".Construct($asm00.A"));
+                Assert.IsFalse(generatedJs.Contains(".Construct($asm00.B)"));
+                Assert.IsTrue(generatedJs.Contains(".Construct($asm00.B, "));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
+        public void NoUnnecessaryCasts () {
+            var testNames = new string[] {
+                @"FailingTestCases\ArrayToString.cs",
+                @"SimpleTestCases\CollectionInitializers.cs",
+                @"TestCases\DictionaryInitializer.cs",
+            };
+
+            RunComparisonTests(testNames, null, null, 
+                (test) => false, 
+                (csharp, js) => Assert.IsFalse(
+                    js.Contains("JSIL.Cast("), 
+                    "JS output should not contain any casts"
+                )
+            );
         }
     }
 }

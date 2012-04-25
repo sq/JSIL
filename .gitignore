@@ -1,9 +1,12 @@
 
 *.user
 *.suo
+*.metaproj
 _ReSharper.*
 *.ReSharper
 Compiler/obj
+Compiler/Profiles/*/obj
+Compiler/Profiles/*/bin
 JSIL/obj
 JSIL/bin
 Meta/obj
@@ -28,6 +31,20 @@ Tests/*Cases/*.js
 /jsil.org/demos/Platformer/*.js
 /jsil.org/demos/Tetris/*.js
 /jsil.org/demos/Raytracer/*.js
+/jsil.org/demos/Pathtracer/*.js
+/jsil.org/demos/RPG/*.js
+/jsil.org/demos/Sully/*
 /jsil.org/demos/Libraries
 *.jsillog
 /Examples/obj
+/jsil.org/demos/RPG/Content
+/jsil.org/demos/Sully/Content
+/jsil.org/demos/Lumberjack/Content
+/jsil.org/demos/Lumberjack/*.js
+/Upstream/dxtc.cpp
+/Upstream/LAME
+/Upstream/FFMPEG
+/Upstream/OggEnc
+/Upstream/XapParse/obj
+/Upstream/XapParse/bin
+Skeletons/*.js

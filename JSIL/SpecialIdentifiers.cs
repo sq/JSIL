@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using JSIL.Ast;
+using JSIL.Internal;
 using Mono.Cecil;
 
 namespace JSIL {
@@ -20,24 +21,30 @@ namespace JSIL {
 
     public class JSSpecialIdentifiers {
         protected readonly TypeSystem TypeSystem;
+        protected readonly MethodTypeFactory MethodTypes;
 
         public readonly JSIdentifier prototype, eval;
         public readonly JSFakeMethod toString, charCodeAt;
-        public readonly JSDotExpression floor, fromCharCode;
+        public readonly JSDotExpressionBase floor, fromCharCode;
 
-        public JSSpecialIdentifiers (TypeSystem typeSystem) {
+        public JSSpecialIdentifiers (MethodTypeFactory methodTypes, TypeSystem typeSystem) {
             TypeSystem = typeSystem;
+            MethodTypes = methodTypes;
 
             prototype = Object("prototype");
-            eval = new JSFakeMethod("eval", TypeSystem.Object, TypeSystem.String);
-            toString = new JSFakeMethod("toString", TypeSystem.String);
-            floor = new JSDotExpression(Object("Math"), new JSFakeMethod("floor", TypeSystem.Int32));
-            fromCharCode = new JSDotExpression(Object("String"), new JSFakeMethod("fromCharCode", TypeSystem.Char, TypeSystem.Int32));
-            charCodeAt = new JSFakeMethod("charCodeAt", TypeSystem.Int32, TypeSystem.Char);
+            eval = new JSFakeMethod("eval", TypeSystem.Object, new[] { TypeSystem.String }, methodTypes);
+            toString = new JSFakeMethod("toString", TypeSystem.String, null, methodTypes);
+            floor = new JSDotExpression(Object("Math"), new JSFakeMethod("floor", TypeSystem.Int32, null, methodTypes));
+            fromCharCode = new JSDotExpression(Object("String"), new JSFakeMethod("fromCharCode", TypeSystem.Char, new[] { TypeSystem.Int32 }, methodTypes));
+            charCodeAt = new JSFakeMethod("charCodeAt", TypeSystem.Int32, new[] { TypeSystem.Char }, methodTypes);
+        }
+
+        public JSFakeMethod Number (TypeReference returnType) {
+            return new JSFakeMethod("Number", returnType, null, MethodTypes);
         }
 
         public JSFakeMethod call (TypeReference returnType) {
-            return new JSFakeMethod("call", returnType);
+            return new JSFakeMethod("call", returnType, null, MethodTypes);
         }
 
         protected JSIdentifier Object (string name) {
@@ -47,12 +54,14 @@ namespace JSIL {
 
     public class JSILIdentifier : JSIdentifier {
         public readonly TypeSystem TypeSystem;
+        public readonly MethodTypeFactory MethodTypes;
         public readonly JSSpecialIdentifiers JS;
 
-        public readonly JSDotExpression GlobalNamespace, CopyMembers;
+        public readonly JSDotExpressionBase GlobalNamespace, CopyMembers;
 
-        public JSILIdentifier (TypeSystem typeSystem, JSSpecialIdentifiers js) {
+        public JSILIdentifier (MethodTypeFactory methodTypes, TypeSystem typeSystem, JSSpecialIdentifiers js) {
             TypeSystem = typeSystem;
+            MethodTypes = methodTypes;
             JS = js;
 
             GlobalNamespace = Dot("GlobalNamespace", TypeSystem.Object);
@@ -63,12 +72,12 @@ namespace JSIL {
             get { return "JSIL"; }
         }
 
-        protected JSDotExpression Dot (JSIdentifier rhs) {
+        protected JSDotExpressionBase Dot (JSIdentifier rhs) {
             return new JSDotExpression(this, rhs);
         }
 
-        protected JSDotExpression Dot (string rhs, TypeReference rhsType = null) {
-            return Dot(new JSFakeMethod(rhs, rhsType));
+        protected JSDotExpressionBase Dot (string rhs, TypeReference rhsType = null) {
+            return Dot(new JSFakeMethod(rhs, rhsType, null, MethodTypes));
         }
 
         public JSInvocationExpression CheckType (JSExpression expression, TypeReference targetType) {
@@ -78,7 +87,14 @@ namespace JSIL {
             );
         }
 
-        public JSInvocationExpression GetType (JSExpression expression) {
+        public JSInvocationExpression GetTypeFromAssembly (JSExpression assembly, JSExpression typeName, JSExpression throwOnFail) {
+            return JSInvocationExpression.InvokeStatic(
+                Dot("GetTypeFromAssembly", new TypeReference("System", "Type", TypeSystem.Object.Module, TypeSystem.Object.Scope)),
+                new[] { assembly, typeName, new JSNullLiteral(TypeSystem.Object), throwOnFail }, true
+            );
+        }
+
+        public JSInvocationExpression GetTypeOf (JSExpression expression) {
             return JSInvocationExpression.InvokeStatic(
                 Dot("GetType", new TypeReference("System", "Type", TypeSystem.Object.Module, TypeSystem.Object.Scope)),
                 new[] { expression }, true
@@ -93,29 +109,10 @@ namespace JSIL {
         }
 
         public JSExpression Cast (JSExpression expression, TypeReference targetType) {
-            var currentType = ILBlockTranslator.DereferenceType(expression.GetExpectedType(TypeSystem));
-            targetType = ILBlockTranslator.DereferenceType(targetType);
-
-            if (targetType.MetadataType == MetadataType.Char) {
-                return JSInvocationExpression.InvokeStatic(JS.fromCharCode, new[] { expression }, true);
-            } else if (
-                (currentType.MetadataType == MetadataType.Char) &&
-                ILBlockTranslator.IsIntegral(targetType)
-            ) {
-                return JSInvocationExpression.InvokeMethod(JS.charCodeAt, expression, new[] { JSLiteral.New(0) }, true);
-            } else if (
-                ILBlockTranslator.IsEnum(currentType) &&
-                ILBlockTranslator.IsIntegral(targetType)
-            ) {
-                return new JSDotExpression(
-                    expression, new JSStringIdentifier("value", targetType)
-                );
-            } else {
-                return JSInvocationExpression.InvokeStatic(
-                    Dot("Cast", targetType),
-                    new [] { expression, new JSType(targetType) }, true
-                );
-            }
+            return JSInvocationExpression.InvokeStatic(
+                Dot("Cast", targetType),
+                new[] { expression, new JSType(targetType) }, true
+            );
         }
 
         public JSInvocationExpression NewArray (TypeReference elementType, JSExpression sizeOrArrayInitializer) {
@@ -124,7 +121,7 @@ namespace JSIL {
             return JSInvocationExpression.InvokeStatic(
                 new JSDotExpression(
                     Dot("Array", TypeSystem.Object), 
-                    new JSFakeMethod("New", arrayType, arrayType)
+                    new JSFakeMethod("New", arrayType, new[] { arrayType }, MethodTypes)
                 ), new [] { new JSType(elementType), sizeOrArrayInitializer }, 
                 true
             );
@@ -139,7 +136,7 @@ namespace JSIL {
             return JSInvocationExpression.InvokeStatic(
                 new JSDotExpression(
                     Dot("MultidimensionalArray", TypeSystem.Object), 
-                    new JSFakeMethod("New", arrayType, TypeSystem.Object, TypeSystem.Object)
+                    new JSFakeMethod("New", arrayType, new[] { TypeSystem.Object, TypeSystem.Object }, MethodTypes)
                 ), arguments.ToArray(), true
             );
         }
@@ -147,35 +144,35 @@ namespace JSIL {
         public JSInvocationExpression NewDelegate (TypeReference delegateType, JSExpression thisReference, JSExpression targetMethod) {
             return JSInvocationExpression.InvokeStatic(
                 new JSDotExpression(
-                    Dot("Delegate", TypeSystem.Object),
-                    new JSFakeMethod("New", delegateType, TypeSystem.String, TypeSystem.Object, TypeSystem.Object)
-                ), new [] { JSLiteral.New(delegateType), thisReference, targetMethod },
+                    new JSType(delegateType),
+                    new JSFakeMethod("New", delegateType, new[] { TypeSystem.Object, TypeSystem.Object }, MethodTypes)
+                ), new [] { thisReference, targetMethod },
                 true
             );
         }
 
         public JSNewExpression NewMemberReference (JSExpression target, JSLiteral member) {
-            var resultType = new ByReferenceType(member.GetExpectedType(TypeSystem));
+            var resultType = new ByReferenceType(member.GetActualType(TypeSystem));
 
             return new JSNewExpression(
                 Dot("MemberReference", resultType),
-                null, target, member
+                null, null, target, member
             );
         }
 
         public JSNewExpression NewReference (JSExpression initialValue) {
-            var resultType = new ByReferenceType(initialValue.GetExpectedType(TypeSystem));
+            var resultType = new ByReferenceType(initialValue.GetActualType(TypeSystem));
 
             return new JSNewExpression(
                 Dot("Variable", resultType),
-                null, initialValue
+                null, null, initialValue
             );
         }
 
         public JSNewExpression NewCollectionInitializer (IEnumerable<JSArrayExpression> values) {
             return new JSNewExpression(
                 Dot("CollectionInitializer", TypeSystem.Object),
-                null, values.ToArray()
+                null, null, values.ToArray()
             );
         }
 
@@ -190,7 +187,7 @@ namespace JSIL {
             return JSInvocationExpression.InvokeStatic(
                 new JSDotExpression(
                     Dot("Array", TypeSystem.Object),
-                    new JSFakeMethod("ShallowCopy", TypeSystem.Void, arrayType, arrayType)
+                    new JSFakeMethod("ShallowCopy", TypeSystem.Void, new[] { arrayType, arrayType }, MethodTypes)
                 ), new[] { array, initializer }
             );
         }
@@ -202,11 +199,11 @@ namespace JSIL {
         public readonly CLRSpecialIdentifiers CLR;
         public readonly JSILIdentifier JSIL;
 
-        public SpecialIdentifiers (TypeSystem typeSystem) {
+        public SpecialIdentifiers (MethodTypeFactory methodTypes, TypeSystem typeSystem) {
             TypeSystem = typeSystem;
-            JS = new JSSpecialIdentifiers(typeSystem);
+            JS = new JSSpecialIdentifiers(methodTypes, typeSystem);
             CLR = new CLRSpecialIdentifiers(typeSystem);
-            JSIL = new JSILIdentifier(typeSystem, JS);
+            JSIL = new JSILIdentifier(methodTypes, typeSystem, JS);
         }
     }
 }

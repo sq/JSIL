@@ -17,7 +17,7 @@ namespace JSIL {
         void InvalidateSecondPass (QualifiedMemberIdentifier method);
     }
 
-    public class FunctionCache : IFunctionSource {
+    public class FunctionCache : IFunctionSource, IDisposable {
         public class Entry {
             public QualifiedMemberIdentifier Identifier;
             public MethodInfo Info;
@@ -39,12 +39,19 @@ namespace JSIL {
             }
         }
 
+        public readonly MethodTypeFactory MethodTypes;
         public readonly ConcurrentHashQueue<QualifiedMemberIdentifier> OptimizationQueue;
         protected readonly ConcurrentCache<QualifiedMemberIdentifier, Entry> Cache;
 
-        public FunctionCache () {
-            Cache = new ConcurrentCache<QualifiedMemberIdentifier, Entry>(Environment.ProcessorCount, 4096);
-            OptimizationQueue = new ConcurrentHashQueue<QualifiedMemberIdentifier>(Environment.ProcessorCount, 4096);
+        public FunctionCache (ITypeInfoSource typeInfo) {
+            var comparer = new QualifiedMemberIdentifier.Comparer(typeInfo);
+            Cache = new ConcurrentCache<QualifiedMemberIdentifier, Entry>(
+                Environment.ProcessorCount, 4096, comparer
+            );
+            OptimizationQueue = new ConcurrentHashQueue<QualifiedMemberIdentifier>(
+                Math.Max(1, Environment.ProcessorCount / 4), 4096, comparer
+            );
+            MethodTypes = new MethodTypeFactory();
         }
 
         public bool TryGetExpression (QualifiedMemberIdentifier method, out JSFunctionExpression function) {
@@ -67,11 +74,12 @@ namespace JSIL {
         }
 
         public JSFunctionExpression GetExpression (QualifiedMemberIdentifier method) {
-            return GetCacheEntry(method).Expression;
+            var entry = GetCacheEntry(method);
+            return entry.Expression;
         }
 
         public FunctionAnalysis1stPass GetFirstPass (QualifiedMemberIdentifier method) {
-            Entry entry = GetCacheEntry(method);
+            var entry = GetCacheEntry(method);
 
             if (entry.Expression == null)
                 return null;
@@ -146,10 +154,11 @@ namespace JSIL {
         ) {
             return Cache.GetOrCreate(identifier, () => {
                 var result = new JSFunctionExpression(
-                    new JSMethod(method, info),
+                    new JSMethod(method, info, MethodTypes),
                     translator.Variables,
                     parameters,
-                    body
+                    body,
+                    MethodTypes
                 );
 
                 OptimizationQueue.TryEnqueue(identifier);
@@ -178,6 +187,12 @@ namespace JSIL {
                     Expression = null
                 };
             });
+        }
+
+        public void Dispose () {
+            Cache.Dispose();
+            OptimizationQueue.Clear();
+            MethodTypes.Dispose();
         }
     }
 }

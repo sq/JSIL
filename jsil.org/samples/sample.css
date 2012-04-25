@@ -6,10 +6,14 @@ body {
 
 .gist, .gist-data {
 	background-color: transparent !important;
+	tab-size: 2;
+	-moz-tab-size: 2;
 }
 
 .gist-meta {
 	font-size: 0.7em !important;
+	tab-size: 2;
+	-moz-tab-size: 2;
 }
 
 #csharp, #javascript {

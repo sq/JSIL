@@ -4,12 +4,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-using ICSharpCode.Decompiler;
-using ICSharpCode.Decompiler.Ast;
 using ICSharpCode.Decompiler.ILAst;
-using ICSharpCode.NRefactory.CSharp;
 using JSIL.Ast;
 using JSIL.Internal;
+using JSIL.Translator;
 using Mono.Cecil;
 using System.Globalization;
 using JSIL;
@@ -23,182 +21,306 @@ namespace JSIL.Internal {
         TypeIdentifier
     }
 
+    public class TypeReferenceContext {
+        public TypeReference EnclosingType;
+        public TypeReference DefiningType;
+
+        public MethodReference EnclosingMethod;
+        public MethodReference DefiningMethod;
+        public MethodReference InvokingMethod;
+        public MethodReference SignatureMethod;
+
+        public TypeReference EnclosingMethodType {
+            get {
+                if (EnclosingMethod != null)
+                    return EnclosingMethod.DeclaringType;
+                else
+                    return null;
+            }
+        }
+
+        public TypeReference DefiningMethodType {
+            get {
+                if (DefiningMethod != null)
+                    return DefiningMethod.DeclaringType;
+                else
+                    return null;
+            }
+        }
+
+        public TypeReference InvokingMethodType {
+            get {
+                if (InvokingMethod != null)
+                    return InvokingMethod.DeclaringType;
+                else
+                    return null;
+            }
+        }
+
+        public TypeReference SignatureMethodType {
+            get {
+                if (SignatureMethod != null)
+                    return SignatureMethod.DeclaringType;
+                else
+                    return null;
+            }
+        }
+    }
+
     public class JavascriptFormatter {
         public readonly TextWriter Output;
-        public readonly PlainTextOutput PlainTextOutput;
-        public readonly TextOutputFormatter PlainTextFormatter;
         public readonly AssemblyManifest Manifest;
         public readonly ITypeInfoSource TypeInfo;
         public readonly AssemblyDefinition Assembly;
-        public readonly string PrivateToken;
+        public readonly AssemblyManifest.Token PrivateToken;
+        public readonly Configuration Configuration;
 
         public MethodReference CurrentMethod = null;
 
         protected readonly HashSet<string> DeclaredNamespaces = new HashSet<string>();
+        protected readonly bool Stubbed;
 
-        public JavascriptFormatter (TextWriter output, ITypeInfoSource typeInfo, AssemblyManifest manifest, AssemblyDefinition assembly) {
+        protected uint _IndentLevel = 0;
+        protected bool _IndentNeeded = false;
+
+        protected readonly static HashSet<string> CorlibTypes = new HashSet<string> {
+            "System.Byte", "System.UInt16", "System.UInt32", "System.UInt64",
+            "System.SByte", "System.Int16", "System.Int32", "System.Int64",
+            "System.Single", "System.Double", "System.String", "System.Object",
+            "System.Boolean", "System.Char"
+        }; 
+
+        public JavascriptFormatter (
+            TextWriter output, ITypeInfoSource typeInfo, 
+            AssemblyManifest manifest, AssemblyDefinition assembly,
+            Configuration configuration, bool stubbed
+        ) {
             Output = output;
-            PlainTextOutput = new PlainTextOutput(Output);
-            PlainTextFormatter = new TextOutputFormatter(PlainTextOutput);
             TypeInfo = typeInfo;
             Manifest = manifest;
             Assembly = assembly;
+            Configuration = configuration;
+            Stubbed = stubbed;
+
             PrivateToken = Manifest.GetPrivateToken(assembly);
+            Manifest.AssignIdentifiers();
+        }
+
+        protected void WriteToken (AssemblyManifest.Token token) {
+            if (Stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false)) {
+                int id = int.Parse(token.IDString.Replace("$asm", ""), NumberStyles.HexNumber);
+                WriteRaw("$asms[{0}]", id);
+            } else {
+                WriteRaw(token.IDString);
+            }
+        }
+
+        public void AssemblyReference (AssemblyDefinition assembly) {
+            string key = assembly.FullName;
+
+            var token = Manifest.GetPrivateToken(key);
+            Manifest.AssignIdentifiers();
+
+            WriteToken(token);
         }
 
         public void AssemblyReference (TypeReference type) {
             string key = GetContainingAssemblyName(type);
 
-            Identifier(Manifest.GetPrivateToken(key), null);
+            var token = Manifest.GetPrivateToken(key);
+            Manifest.AssignIdentifiers();
+
+            WriteToken(token);
+        }
+
+        public void Indent () {
+            _IndentLevel += 1;
+        }
+
+        public void Unindent () {
+            if (_IndentLevel == 0)
+                Debug.WriteLine("WARNING: Indent level is already 0");
+
+            _IndentLevel -= 1;
+        }
+
+        public void NewLine () {
+            Output.Write(Environment.NewLine);
+            _IndentNeeded = true;
+        }
+
+        protected void WriteIndentIfNeeded () {
+            if (!_IndentNeeded)
+                return;
+
+            _IndentNeeded = false;
+            Output.Write(new string(' ', (int)(_IndentLevel * 2)));
+        }
+
+        public void WriteRaw (string characters) {
+            WriteIndentIfNeeded();
+
+            Output.Write(characters);
+        }
+
+        public void WriteRaw (string format, params object[] arguments) {
+            WriteIndentIfNeeded();
+
+            if (arguments == null)
+                Output.Write(format);
+            else
+                Output.Write(String.Format(format, arguments));
         }
 
         public void LPar () {
-            PlainTextOutput.Write("(");
-            PlainTextOutput.Indent();
+            WriteRaw("(");
+            Indent();
         }
 
         public void RPar () {
-            PlainTextOutput.Unindent();
-            PlainTextOutput.Write(")");
+            Unindent();
+            WriteRaw(")");
         }
 
         public void Space () {
-            PlainTextOutput.Write(" ");
+            WriteRaw(" ");
         }
 
         public void Comma () {
-            PlainTextOutput.Write(", ");
+            WriteRaw(", ");
         }
 
-        public void CommaSeparatedList (IEnumerable<object> values, ListValueType valueType = ListValueType.Primitive) {
-            bool isFirst = true;
+        protected void CommaSeparatedListCore<T> (IEnumerable<T> _values, Action<T> writeValue, int lineSizeLimit = 2) {
+            var values = _values.ToArray();
+
+            var indentIt = values.Length > lineSizeLimit;
+
+            if (indentIt) {
+                Indent();
+                NewLine();
+            }
+
+            int i = 0;
             foreach (var value in values) {
-                if (!isFirst)
+                if (i > 0) {
                     Comma();
 
-                if (valueType == ListValueType.Primitive)
-                    Value(value as dynamic);
-                else if (valueType == ListValueType.Identifier)
-                    Identifier(value as dynamic);
-                else if (valueType == ListValueType.TypeIdentifier)
-                    TypeIdentifier(value as dynamic, false, true);
-                else if (valueType == ListValueType.TypeReference)
-                    TypeReference(value as dynamic);
-                else
-                    PlainTextOutput.Write(value.ToString());
+                    if (indentIt && (i % lineSizeLimit) == 0)
+                        NewLine();
+                }
 
-                isFirst = false;
+                writeValue(value);
+                i++;
+            }
+
+            if (indentIt) {
+                Unindent();
+                NewLine();
             }
         }
 
-        public void CommaSeparatedList<T, U> (
-            IEnumerable<KeyValuePair<T, U>> pairs, 
-            ListValueType keyType = ListValueType.Primitive,
-            ListValueType valueType = ListValueType.Primitive
-        ) {
-            bool isFirst = true;
-            foreach (var kvp in pairs) {
-                if (!isFirst)
-                    Comma();
+        public void CommaSeparatedList (IEnumerable<object> values, TypeReferenceContext context, ListValueType valueType = ListValueType.Primitive) {
+            CommaSeparatedListCore(
+                values, (value) => {
+                    if (valueType == ListValueType.Primitive)
+                        Value(value as dynamic);
+                    else if (valueType == ListValueType.Identifier)
+                        Identifier(value as dynamic, context);
+                    else if (valueType == ListValueType.TypeIdentifier)
+                        TypeIdentifier(value as dynamic, context, false);
+                    else if (valueType == ListValueType.TypeReference)
+                        TypeReference((TypeReference)value, context);
+                    else
+                        WriteRaw(value.ToString());
+                },
 
-                if (keyType == ListValueType.Primitive)
-                    Value(kvp.Key as dynamic);
-                else if (keyType == ListValueType.Identifier)
-                    Identifier(kvp.Key as dynamic);
-                else if (keyType == ListValueType.TypeIdentifier)
-                    TypeIdentifier(kvp.Key as dynamic, false, true);
-                else if (keyType == ListValueType.TypeReference)
-                    TypeReference(kvp.Key as dynamic);
-                else
-                    PlainTextOutput.Write(kvp.Key.ToString());
-
-                Token(": ");
-
-                if (valueType == ListValueType.Primitive)
-                    Value(kvp.Value as dynamic);
-                else if (valueType == ListValueType.Identifier)
-                    Identifier(kvp.Value as dynamic);
-                else if (valueType == ListValueType.TypeIdentifier)
-                    TypeIdentifier(kvp.Value as dynamic, false, true);
-                else if (valueType == ListValueType.TypeReference)
-                    TypeReference(kvp.Value as dynamic);
-                else
-                    PlainTextOutput.Write(kvp.Value.ToString());
-
-                isFirst = false;
-            }
+                ((valueType == ListValueType.TypeIdentifier) || (valueType == ListValueType.TypeReference)) ?
+                    2 : 4
+            );
         }
 
-        public void CommaSeparatedList (IEnumerable<TypeReference> types) {
-            bool isFirst = true;
-            foreach (var type in types) {
-                if (!isFirst)
-                    Comma();
-
-                Identifier(type, false);
-
-                isFirst = false;
-            }
+        public void CommaSeparatedList (IEnumerable<TypeReference> types, TypeReferenceContext context) {
+            CommaSeparatedListCore(
+                types, (type) => TypeReference(type, context)
+            );
         }
 
         public void OpenBracket (bool indent = false) {
-            PlainTextOutput.Write("[");
+            WriteRaw("[");
 
             if (indent) {
-                PlainTextOutput.Indent();
-                PlainTextOutput.WriteLine();
+                Indent();
+                NewLine();
             }
         }
 
         public void CloseBracket (bool indent = false, Action newline = null) {
             if (indent) {
-                PlainTextOutput.Unindent();
-                PlainTextOutput.WriteLine();
+                Unindent();
+                NewLine();
             }
 
-            PlainTextOutput.Write("]");
+            WriteRaw("]");
 
             if (indent) {
                 if (newline != null)
                     newline();
                 else
-                    PlainTextOutput.WriteLine();
+                    NewLine();
             }
         }
 
         public void OpenBrace () {
-            PlainTextOutput.WriteLine("{");
-            PlainTextOutput.Indent();
+            WriteRaw("{");
+            Indent();
+            NewLine();
         }
 
         public void CloseBrace (bool newLine = true) {
-            PlainTextOutput.Unindent();
+            Unindent();
+
+            WriteRaw("}");
+
             if (newLine)
-                PlainTextOutput.WriteLine("}");
-            else
-                PlainTextOutput.Write("}");
+                NewLine();
         }
 
         public void CloseAndReopenBrace (Action<JavascriptFormatter> midtext) {
-            PlainTextOutput.Unindent();
-            PlainTextOutput.Write("} ");
+            Unindent();
+            WriteRaw("} ");
             midtext(this);
-            PlainTextOutput.WriteLine(" {");
-            PlainTextOutput.Indent();
+            WriteRaw(" {");
+            NewLine();
+            Indent();
         }
 
         public void CloseAndReopenBrace (string midtext) {
-            PlainTextOutput.Unindent();
-            PlainTextOutput.WriteLine(String.Format("}} {0} {{", midtext));
-            PlainTextOutput.Indent();
+            Unindent();
+            WriteRaw("}} {0} {{", midtext);
+            NewLine();
+            Indent();
+        }
+
+        public void WriteParameterList (IEnumerable<JSVariable> parameters) {
+            bool isFirst = true;
+            foreach (var p in parameters) {
+                if (!isFirst)
+                    Comma();
+
+                if (p.IsReference)
+                    Comment("ref");
+
+                Identifier(p.Identifier);
+
+                isFirst = false;
+            }
         }
 
         public void OpenFunction (string functionName, Action<JavascriptFormatter> emitParameters) {
-            PlainTextOutput.Write("function");
-            Space();
+            WriteRaw("function ");
 
             if (functionName != null) {
-                PlainTextOutput.Write(Util.EscapeIdentifier(functionName));
+                WriteRaw(Util.EscapeIdentifier(functionName));
                 Space();
             }
 
@@ -212,97 +334,308 @@ namespace JSIL.Internal {
         }
 
         public static string GetContainingAssemblyName (TypeReference tr) {
-            var scope = tr.Scope;
+            var resolved = tr.Resolve();
+
+            IMetadataScope scope;
+
+            if (resolved != null)
+                scope = resolved.Scope;
+            else
+                scope = tr.Scope;
+
             switch (scope.MetadataScopeType) {
                 case MetadataScopeType.AssemblyNameReference:
                     return ((AssemblyNameReference)scope).FullName;
                 case MetadataScopeType.ModuleReference:
-                    throw new NotImplementedException();
+                    throw new NotImplementedException("Module references not implemented");
                 case MetadataScopeType.ModuleDefinition:
-                    return ((ModuleDefinition)scope).Assembly.FullName;
+                    var assembly = ((ModuleDefinition)scope).Assembly;
+                    if (assembly != null)
+                        return assembly.FullName;
+                    else
+                        return "<Assembly Not Loaded>";
             }
 
-            return tr.Module.Assembly.FullName;
+            if (resolved != null)
+                return resolved.Module.Assembly.FullName;
+            else
+                return tr.Module.Assembly.FullName;
         }
 
-        public void TypeReference (TypeReference type) {
+        protected void OpenGenericParameter (string name, string context) {
+            WriteRaw("new");
+            Space();
+            WriteRaw("JSIL.GenericParameter", null);
+            LPar();
+
+            Value(name);
+            Comma();
+            Value(context);
+
+            RPar();
+        }
+
+        protected void TypeReferenceInternal (GenericParameter gp, TypeReferenceContext context) {
+            var ownerType = gp.Owner as TypeReference;
+            var ownerMethod = gp.Owner as MethodReference;
+
+            if (context != null) {
+                if (ownerType != null) {
+                    if (TypeUtil.TypesAreAssignable(TypeInfo, ownerType, context.SignatureMethodType)) {
+                        TypeReference resolved = null;
+
+                        var git = (context.SignatureMethodType as GenericInstanceType);
+                        if (git != null) {
+                            for (var i = 0; i < git.ElementType.GenericParameters.Count; i++) {
+                                var _ = git.ElementType.GenericParameters[i];
+                                if ((_.Name == gp.Name) || (_.Position == gp.Position)) {
+                                    resolved = git.GenericArguments[i];
+                                    break;
+                                }
+                            }
+
+                            if (resolved == null)
+                                throw new NotImplementedException(String.Format(
+                                    "Could not find generic parameter '{0}' in type {1}",
+                                    gp, context.SignatureMethodType
+                                ));
+                        }
+
+                        if (resolved != null) {
+                            if (resolved != gp) {
+                                TypeReference(resolved, context);
+                                return;
+                            } else {
+                                TypeIdentifier(resolved, context, false);
+                                return;
+                            }
+                        }
+                    }
+
+                    if (TypeUtil.TypesAreEqual(ownerType, context.EnclosingMethodType)) {
+                        TypeIdentifier(gp, context, false);
+                        return;
+                    }
+
+                    if (TypeUtil.TypesAreEqual(ownerType, context.DefiningType)) {
+                        OpenGenericParameter(gp.Name, context.DefiningType.FullName);
+                        return;
+                    }
+
+                    if (TypeUtil.TypesAreEqual(ownerType, context.EnclosingType)) {
+                        WriteRaw("$.GenericParameter");
+                        LPar();
+                        Value(gp.Name);
+                        RPar();
+
+                        return;
+                    }
+
+                    throw new NotImplementedException(String.Format(
+                        "Unimplemented form of generic type parameter: '{0}'.",
+                        gp
+                    ));
+
+                } else if (ownerMethod != null) {
+                    Func<MethodReference, int> getPosition = (mr) => {
+                        for (var i = 0; i < mr.GenericParameters.Count; i++)
+                            if (mr.GenericParameters[i].Name == gp.Name)
+                                return i;
+
+                        throw new NotImplementedException(String.Format(
+                            "Generic parameter '{0}' not found in method '{1}' parameter list",
+                            gp, ownerMethod
+                        ));
+                    };
+
+                    var ownerMethodIdentifier = new QualifiedMemberIdentifier(
+                        new TypeIdentifier(ownerMethod.DeclaringType),
+                        new MemberIdentifier(TypeInfo, ownerMethod)
+                    );
+
+                    if (ownerMethodIdentifier.Equals(ownerMethod, context.InvokingMethod, TypeInfo)) {
+                        var gim = (GenericInstanceMethod)context.InvokingMethod;
+                        TypeReference(gim.GenericArguments[getPosition(ownerMethod)], context);
+
+                        return;
+                    }
+
+                    if (ownerMethodIdentifier.Equals(ownerMethod, context.DefiningMethod, TypeInfo)) {
+                        Value(String.Format("!!{0}", getPosition(ownerMethod)));
+
+                        return;
+                    }
+
+                    if (ownerMethodIdentifier.Equals(ownerMethod, context.EnclosingMethod, TypeInfo)) {
+                        throw new NotImplementedException(String.Format(
+                            "Unimplemented form of generic method parameter: '{0}'.",
+                            gp
+                        ));
+                    }
+
+                    Value(String.Format("!!{0}", getPosition(ownerMethod)));
+                    return;
+
+                }
+            } else {
+                throw new NotImplementedException("Cannot resolve generic parameter without a TypeReferenceContext.");
+            }
+
+            throw new NotImplementedException(String.Format(
+                "Unimplemented form of generic parameter: '{0}'.",
+                gp
+            ));
+        }
+
+        protected void TypeReferenceInternal (ByReferenceType byref, TypeReferenceContext context) {
+            WriteRaw("$jsilcore");
+            Dot();
+            WriteRaw("TypeRef");
+            LPar();
+
+            Value("JSIL.Reference");
+            Comma();
+            OpenBracket(false);
+
+            TypeReference(byref.ElementType, context);
+
+            CloseBracket(false);
+            RPar();
+        }
+
+        protected void TypeReferenceInternal (TypeReference tr, TypeReferenceContext context) {
+            var type = TypeUtil.DereferenceType(tr);
+            var typeDef = TypeUtil.GetTypeDefinition(type, false);
+            var typeInfo = TypeInfo.Get(type);
+            var fullName = (typeInfo != null) ? typeInfo.FullName
+                    : (typeDef != null) ? typeDef.FullName
+                        : type.FullName;
+            var identifier = Util.EscapeIdentifier(
+                fullName, EscapingMode.String
+            );
+
+            AssemblyReference(type);
+            Dot();
+            WriteRaw("TypeRef");
+
+            LPar();
+
+            Value(fullName);
+
+            var git = tr as GenericInstanceType;
+            if (git != null)
+                EmitGenericTypeReferenceArguments(git, context);
+
+            RPar();
+        }
+
+        protected void EmitGenericTypeReferenceArguments (GenericInstanceType git, TypeReferenceContext context) {
+            Comma();
+
+            OpenBracket();
+            CommaSeparatedList(git.GenericArguments, context);
+            CloseBracket();
+        }
+
+        protected void TypeReferenceInternal (ArrayType at, TypeReferenceContext context) {
+            WriteRaw("$jsilcore");
+            Dot();
+            WriteRaw("TypeRef");
+            LPar();
+            Value("System.Array");
+            Comma();
+            OpenBracket();
+            TypeReference(at.ElementType, context);
+            CloseBracket();
+            RPar();
+        }
+
+        public void TypeReference (TypeReference type, TypeReferenceContext context) {
+            if (
+                (context != null) &&
+                (context.EnclosingType != null)
+            ) {
+                if (TypeUtil.TypesAreEqual(type, context.EnclosingType)) {
+                    // Types can reference themselves, so this prevents recursive initialization.
+                    if (Stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false)) {
+                    } else {
+                        WriteRaw("$.Type");
+                        return;
+                    }
+                }
+
+                // The interface builder provides helpful shorthand for corlib type references.
+                if (type.Scope.Name == "mscorlib" || type.Scope.Name == "CommonLanguageRuntimeLibrary") {
+                    if (CorlibTypes.Contains(type.FullName)) {
+                        WriteRaw("$.");
+                        WriteRaw(type.Name);
+                        return;
+                    }
+                }
+            }
+
             if (type.FullName == "JSIL.Proxy.AnyType") {
                 Value("JSIL.AnyType");
                 return;
             } else if (type.FullName == "JSIL.Proxy.AnyType[]") {
-                Value("System.Array");
+                TypeReference(TypeUtil.GetTypeDefinition(type), context);
                 Space();
                 Comment("AnyType[]");
                 return;
             }
 
-            var isReference = type is ByReferenceType;
-            var originalType = type;
-            type = ILBlockTranslator.DereferenceType(type);
-            var typeDef = ILBlockTranslator.GetTypeDefinition(type, false);
-            var typeInfo = TypeInfo.Get(type);
-            var identifier = Util.EscapeIdentifier(
-                (typeInfo != null) ? typeInfo.FullName 
-                    : (typeDef != null) ? typeDef.FullName 
-                        : type.FullName
-                , EscapingMode.String
-            );
-            var git = type as GenericInstanceType;
+            var byref = type as ByReferenceType;
+            var gp = type as GenericParameter;
             var at = type as ArrayType;
 
-            if (isReference) {
-                Value("JSIL.Reference");
-                Space();
-                Comment("{0}", originalType);
-            } else if (type is GenericParameter) {
-                Keyword("new");
-                Space();
-                Identifier("JSIL.GenericParameter", null);
-                LPar();
-                Value(identifier);
-                RPar();
-            } else if ((git != null) || (GetContainingAssemblyName(type) != Assembly.FullName)) {
-                Keyword("new");
-                Space();
-                Identifier("JSIL.TypeRef", null);
-                LPar();
-
-                AssemblyReference(type);
-                Comma();
-
-                Value(identifier);
-
-                if (git != null) {
-                    Comma();
-                    OpenBracket();
-                    CommaSeparatedList(git.GenericArguments, ListValueType.TypeReference);
-                    CloseBracket();
-                }
-
-                RPar();
-            } else if (at != null) {
-                Value("System.Array");
-                Space();
-                Comment("{0}", originalType);
-            } else {
-                Value(identifier);
-            }
+            if (byref != null)
+                TypeReferenceInternal(byref, context);
+            else if (gp != null)
+                TypeReferenceInternal(gp, context);
+            else if (at != null)
+                TypeReferenceInternal(at, context);
+            else
+                TypeReferenceInternal(type, context);
         }
 
-        public void TypeReference (TypeInfo type) {
-            TypeReference(type.Definition);
+        public void TypeReference (TypeInfo type, TypeReferenceContext context) {
+            TypeReference(type.Definition, context);
+        }
+
+        public void MemberDescriptor (bool isPublic, bool isStatic) {
+            WriteRaw("{");
+
+            WriteRaw("Static");
+            WriteRaw(":");
+            Value(isStatic);
+            if (isStatic)
+                WriteRaw(" ");
+
+            Comma();
+
+            WriteRaw("Public");
+            WriteRaw(":");
+            Value(isPublic);
+            if (isPublic)
+                WriteRaw(" ");
+
+            WriteRaw("}");
         }
 
         public void Identifier (string name, EscapingMode? escapingMode = EscapingMode.MemberIdentifier) {
             if (escapingMode.HasValue)
-                PlainTextOutput.Write(Util.EscapeIdentifier(
+                WriteRaw(Util.EscapeIdentifier(
                     name, escapingMode.Value
                 ));
             else
-                PlainTextOutput.Write(name);
+                WriteRaw(name);
         }
 
-        public void Identifier (ILVariable variable) {
+        internal void Identifier (string name, TypeReferenceContext context, bool includeParens = false) {
+            Identifier(name);
+        }
+
+        public void Identifier (ILVariable variable, TypeReferenceContext context, bool includeParens = false) {
             if (variable.Type.IsByReference) {
                 Identifier(variable.Name);
                 Dot();
@@ -312,15 +645,15 @@ namespace JSIL.Internal {
             }
         }
 
-        public void Identifier (TypeReference type, bool includeParens = false, bool replaceGenerics = false) {
+        public void Identifier (TypeReference type, TypeReferenceContext context, bool includeParens = false) {
             if (type.FullName == "JSIL.Proxy.AnyType")
-                Identifier("JSIL.AnyType", null);
+                WriteRaw("JSIL.AnyType");
             else
-                TypeIdentifier(type as dynamic, includeParens, replaceGenerics);
+                TypeIdentifier(type as dynamic, context, includeParens);
         }
 
-        protected void TypeIdentifier (TypeInfo type, bool includeParens, bool replaceGenerics) {
-            TypeIdentifier(type.Definition as dynamic, includeParens, replaceGenerics);
+        protected void TypeIdentifier (TypeInfo type, TypeReferenceContext context, bool includeParens) {
+            TypeIdentifier(type.Definition as dynamic, context, includeParens);
         }
 
         protected bool EmitThisForParameter (GenericParameter gp) {
@@ -331,35 +664,39 @@ namespace JSIL.Internal {
             return false;
         }
 
-        protected void TypeIdentifier (TypeReference type, bool includeParens, bool replaceGenerics) {
+        protected void TypeIdentifier (TypeReference type, TypeReferenceContext context, bool includeParens) {
             if (type.FullName == "JSIL.Proxy.AnyType") {
-                Identifier("JSIL.AnyType", null);
+                WriteRaw("JSIL.AnyType");
                 return;
             }
 
             if (type.IsGenericParameter) {
                 var gp = (GenericParameter)type;
+                var ownerType = gp.Owner as TypeReference;
 
-                if (
+                if (gp.Owner == null) {
+                    Value(gp.Name);
+                } else if (
                     (CurrentMethod != null) &&
                     ((CurrentMethod.Equals(gp.Owner)) ||
                      (CurrentMethod.DeclaringType.Equals(gp.Owner))
                     )
                 ) {
-                    if (EmitThisForParameter(gp)) {
-                        Keyword("this");
+                    if (ownerType != null) {
+                        Identifier(ownerType, context);
                         Dot();
+                        Identifier(gp.Name);
+                        Dot();
+                        Identifier("get");
+                        LPar();
+                        WriteRaw("this");
+                        RPar();
+                    } else {
+                        Identifier(gp.Name);
                     }
-
-                    Identifier(type.FullName);
-                } else if (replaceGenerics) {
-                    if (type.IsValueType)
-                        Identifier("JSIL.AnyValueType", null);
-                    else
-                        Identifier("JSIL.AnyType", null);
                 } else {
                     if (EmitThisForParameter(gp)) {
-                        Keyword("this");
+                        WriteRaw("this");
                         Dot();
                     }
 
@@ -368,34 +705,34 @@ namespace JSIL.Internal {
             } else {
                 var info = TypeInfo.Get(type);
                 if (info.Replacement != null) {
-                    PlainTextOutput.Write(info.Replacement);
+                    WriteRaw(info.Replacement);
                     return;
                 }
 
                 var typedef = type.Resolve();
                 if (typedef != null) {
                     if (GetContainingAssemblyName(typedef) == Assembly.FullName) {
-                        PlainTextOutput.Write(PrivateToken);
-                        PlainTextOutput.Write(".");
+                        WriteToken(PrivateToken);
+                        WriteRaw(".");
                     } else {
                         AssemblyReference(typedef);
-                        PlainTextOutput.Write(".");
+                        WriteRaw(".");
                     }
                 }
 
-                PlainTextOutput.Write(Util.EscapeIdentifier(
+                WriteRaw(Util.EscapeIdentifier(
                     info.FullName, EscapingMode.TypeIdentifier
                 ));
             }
         }
 
-        protected void TypeIdentifier (ByReferenceType type, bool includeParens, bool replaceGenerics) {
+        protected void TypeIdentifier (ByReferenceType type, TypeReferenceContext context, bool includeParens) {
             if (includeParens)
                 LPar();
 
-            Identifier("JSIL.Reference.Of", null);
+            WriteRaw("JSIL.Reference.Of");
             LPar();
-            TypeIdentifier(type.ElementType as dynamic, false, replaceGenerics);
+            TypeIdentifier(type.ElementType as dynamic, context, false);
             RPar();
 
             if (includeParens) {
@@ -404,13 +741,13 @@ namespace JSIL.Internal {
             }
         }
 
-        protected void TypeIdentifier (ArrayType type, bool includeParens, bool replaceGenerics) {
+        protected void TypeIdentifier (ArrayType type, TypeReferenceContext context, bool includeParens) {
             if (includeParens)
                 LPar();
 
-            Identifier("System.Array.Of", null);
+            WriteRaw("System.Array.Of");
             LPar();
-            TypeIdentifier(type.ElementType as dynamic, false, replaceGenerics);
+            TypeIdentifier(type.ElementType as dynamic, context, false);
             RPar();
 
             if (includeParens) {
@@ -419,28 +756,28 @@ namespace JSIL.Internal {
             }
         }
 
-        protected void TypeIdentifier (OptionalModifierType modopt, bool includeParens, bool replaceGenerics) {
-            Identifier(modopt.ElementType as dynamic, includeParens, replaceGenerics);
+        protected void TypeIdentifier (OptionalModifierType modopt, TypeReferenceContext context, bool includeParens) {
+            Identifier(modopt.ElementType as dynamic, context, includeParens);
         }
 
-        protected void TypeIdentifier (RequiredModifierType modreq, bool includeParens, bool replaceGenerics) {
-            Identifier(modreq.ElementType as dynamic, includeParens, replaceGenerics);
+        protected void TypeIdentifier (RequiredModifierType modreq, TypeReferenceContext context, bool includeParens) {
+            Identifier(modreq.ElementType as dynamic, context, includeParens);
         }
 
-        protected void TypeIdentifier (PointerType ptr, bool includeParens, bool replaceGenerics) {
-            Identifier(ptr.ElementType as dynamic, includeParens, replaceGenerics);
+        protected void TypeIdentifier (PointerType ptr, TypeReferenceContext context, bool includeParens) {
+            Identifier(ptr.ElementType as dynamic, context, includeParens);
         }
 
-        protected void TypeIdentifier (GenericInstanceType type, bool includeParens, bool replaceGenerics) {
+        protected void TypeIdentifier (GenericInstanceType type, TypeReferenceContext context, bool includeParens) {
             if (includeParens)
                 LPar();
 
-            Identifier(type.ElementType as dynamic, includeParens, replaceGenerics);
+            Identifier(type.ElementType as dynamic, context, includeParens);
 
             Dot();
-            Identifier("Of", null);
+            WriteRaw("Of");
             LPar();
-            CommaSeparatedList(type.GenericArguments, ListValueType.TypeIdentifier);
+            CommaSeparatedList(type.GenericArguments, context, ListValueType.TypeIdentifier);
             RPar();
 
             if (includeParens) {
@@ -449,9 +786,9 @@ namespace JSIL.Internal {
             }
         }
 
-        public void Identifier (MethodReference method, bool fullyQualified = true) {
+        public void Identifier (MethodReference method, TypeReferenceContext context, bool fullyQualified = true) {
             if (fullyQualified) {
-                Identifier(method.DeclaringType);
+                Identifier(method.DeclaringType, context);
                 Dot();
 
                 if (method.HasThis) {
@@ -469,16 +806,8 @@ namespace JSIL.Internal {
             }
         }
 
-        public void Keyword (string keyword) {
-            PlainTextOutput.Write(keyword);
-        }
-
-        public void Token (string token) {
-            PlainTextOutput.Write(token);
-        }
-
         public void Dot () {
-            PlainTextOutput.Write(".");
+            WriteRaw(".");
         }
 
         public void Semicolon () {
@@ -486,49 +815,51 @@ namespace JSIL.Internal {
         }
 
         public void Semicolon (bool lineBreak) {
-            if (lineBreak)
-                PlainTextOutput.WriteLine(";");
-            else
-                PlainTextOutput.Write("; ");
-        }
+            WriteRaw(";");
 
-        public void NewLine () {
-            PlainTextOutput.WriteLine();
+            if (lineBreak)
+                NewLine();
+            else
+                Space();
         }
 
         public void Value (bool value) {
-            if (value)
-                PlainTextOutput.Write("true");
-            else
-                PlainTextOutput.Write("false");
+            WriteRaw(value ? "true" : "false");
         }
 
         public void Value (string value) {
-            PlainTextOutput.Write(Util.EscapeString(value));
+            WriteRaw(Util.EscapeString(value));
         }
 
         public void Value (char value) {
-            PlainTextOutput.Write(Util.EscapeString("" + value));
+            WriteRaw(Util.EscapeString(new string(value, 1)));
         }
 
         public void Value (long value) {
-            PlainTextOutput.Write(value.ToString());
+            WriteRaw(value.ToString());
         }
 
         public void Value (ulong value) {
-            PlainTextOutput.Write(value.ToString());
+            WriteRaw(value.ToString());
         }
 
         public void Value (double value) {
-            PlainTextOutput.Write(value.ToString("R", CultureInfo.InvariantCulture));
+            WriteRaw(value.ToString("R", CultureInfo.InvariantCulture));
         }
 
         public void Value (TypeReference type) {
             Value(GetNameOfType(type as dynamic));
         }
 
+        protected string GetNameOfType (GenericParameter gp) {
+            return gp.Name;
+        }
+
         protected string GetNameOfType (TypeReference type) {
             var info = TypeInfo.Get(type);
+            if (info == null)
+                throw new InvalidOperationException("No type information for type " + type);
+
             return info.FullName;
         }
 
@@ -545,27 +876,24 @@ namespace JSIL.Internal {
         }
 
         public void Comment (string commentFormat, params object[] values) {
-            var commentText = String.Format(" " + commentFormat + " ", values);
-            PlainTextFormatter.WriteComment(
-                CommentType.MultiLine, commentText
-            );
-            PlainTextFormatter.Space();
+            var commentText = String.Format(commentFormat, values);
+            WriteRaw("/* {0} */ ", commentText);
         }
 
-        public void DefaultValue (TypeReference typeReference) {
+        public void DefaultValue (TypeReference typeReference, TypeReferenceContext context) {
             string fullName = typeReference.FullName;
 
-            if (TypeAnalysis.IsIntegerOrEnum(typeReference)) {
+            if (TypeUtil.IsIntegralOrEnum(typeReference)) {
                 Value(0);
                 return;
             } else if (!typeReference.IsValueType) {
-                Keyword("null");
+                WriteRaw("null");
                 return;
             }
 
             switch (fullName) {
                 case "System.Nullable`1":
-                    Keyword("null");
+                    WriteRaw("null");
                     return;
                 case "System.Single":
                 case "System.Double":
@@ -574,23 +902,49 @@ namespace JSIL.Internal {
                     return;
             }
 
-            Keyword("new");
+            WriteRaw("new");
             Space();
-            Identifier(typeReference);
+            Identifier(typeReference, context);
             LPar();
             RPar();
         }
 
         public void DeclareAssembly () {
-            Keyword("var");
-            Space();
-            Identifier(PrivateToken);
-            Token(" = ");
-            Identifier("JSIL.DeclareAssembly", null);
-            LPar();
-            Value(Assembly.FullName);
-            RPar();
-            Semicolon();
+            if (Stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false)) {
+                WriteRaw("var $asms = new JSIL.AssemblyCollection");
+                LPar();
+                OpenBrace();
+
+                bool isFirst = true;
+                foreach (var kvp in Manifest.Entries) {
+                    if (!isFirst) {
+                        Comma();
+                        NewLine();
+                    }
+
+                    Value(int.Parse(kvp.Key.Replace("$asm", ""), NumberStyles.HexNumber));
+                    WriteRaw(": ");
+                    Value(kvp.Value);
+
+                    isFirst = false;
+                }
+
+                NewLine();
+
+                CloseBrace(false);
+                RPar();
+                Semicolon();
+            } else {
+                WriteRaw("var");
+                Space();
+                Identifier(PrivateToken.IDString);
+                WriteRaw(" = ");
+                WriteRaw("JSIL.DeclareAssembly");
+                LPar();
+                Value(Assembly.FullName);
+                RPar();
+                Semicolon();
+            }
         }
 
         public void DeclareNamespace (string ns) {
@@ -614,7 +968,7 @@ namespace JSIL.Internal {
                 DeclareNamespace(parent);
             }
 
-            Identifier("JSIL.DeclareNamespace", null);
+            WriteRaw("JSIL.DeclareNamespace");
             LPar();
             Value(Util.EscapeIdentifier(ns, EscapingMode.String));
             RPar();
@@ -622,11 +976,83 @@ namespace JSIL.Internal {
         }
 
         public void Label (string labelName) {
-            PlainTextFormatter.Unindent();
+            Unindent();
             Identifier(labelName);
-            Token(": ");
-            PlainTextFormatter.Indent();
+            WriteRaw(": ");
+            Indent();
             NewLine();
+        }
+
+        public void MethodSignature (MethodReference method, MethodSignature signature, TypeReferenceContext context) {
+            // The signature cache can cause problems inside methods for generic signatures.
+            var cached = Configuration.Optimizer.CacheMethodSignatures.GetValueOrDefault(true);
+
+            // We also don't want to use the cache for method definitions in skeletons.
+            if (Stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false))
+                cached = false;
+
+            if (cached && ((context.InvokingMethod != null) || (context.EnclosingMethod != null))) {
+                if (TypeUtil.IsOpenType(signature.ReturnType))
+                    cached = false;
+                else if (signature.ParameterTypes.Any(TypeUtil.IsOpenType))
+                    cached = false;
+            }
+
+            if (cached) {
+                WriteRaw("$sig.get");
+                LPar();
+
+                Value(Manifest.MethodSignatureCache.Get(signature));
+                Comma();
+
+            } else {
+                LPar();
+
+                WriteRaw("new JSIL.MethodSignature");
+                LPar();
+            }
+
+            var oldSignature = context.SignatureMethod;
+            context.SignatureMethod = method;
+
+            try {
+                if ((signature.ReturnType == null) || (signature.ReturnType.FullName == "System.Void"))
+                    WriteRaw("null");
+                else {
+                    if ((context.EnclosingMethod != null) && !TypeUtil.IsOpenType(signature.ReturnType))
+                        TypeIdentifier(signature.ReturnType as dynamic, context, false);
+                    else
+                        TypeReference(signature.ReturnType, context);
+                }
+
+                Comma();
+                OpenBracket(false);
+
+                CommaSeparatedListCore(
+                    signature.ParameterTypes, (pt) => {
+                        if ((context.EnclosingMethod != null) && !TypeUtil.IsOpenType(pt))
+                            TypeIdentifier(pt as dynamic, context, false);
+                        else
+                            TypeReference(pt, context);
+                    }
+                );
+
+                CloseBracket(false);
+
+                if (signature.GenericParameterNames != null) {
+                    Comma();
+                    OpenBracket(false);
+                    CommaSeparatedList(signature.GenericParameterNames, context, ListValueType.Primitive);
+                    CloseBracket(false);
+                }
+            } finally {
+                context.SignatureMethod = oldSignature;
+            }
+
+            RPar();
+
+            if (!cached)
+                RPar();
         }
     }
 }

@@ -27,6 +27,7 @@
 using System;
 using System.Drawing;
 using System.Collections.Generic;
+using System.Diagnostics;
 using JSIL.Meta;
 
 namespace simpleray {
@@ -211,12 +212,18 @@ namespace simpleray {
         static List<RTObject> objects;                                          // all RTObjects in the scene
         static List<Light> lights;                                              // all lights
         static Random random;                                                   // global random for repeatability
+        
+        static Stopwatch stopwatch;        
+        static double minSpeed = double.MaxValue, maxSpeed = double.MinValue;
+        static List<double> speedSamples;
 
         static void Main(string[] args) {
             // init structures
             objects = new List<RTObject>();
             lights = new List<Light>();
             random = new Random(01478650229);
+            stopwatch = new Stopwatch();
+            speedSamples = new List<double>();
             Bitmap canvas = new Bitmap(CANVAS_WIDTH, CANVAS_HEIGHT);
            
             // add some objects
@@ -257,15 +264,41 @@ namespace simpleray {
                 return;
             
             if ((y % dotPeriod) == 0) System.Console.Write("*");
-          
+            
+            stopwatch.Restart();
             for (int x = 0; x < CANVAS_WIDTH; x++) {
                 Color c = RenderPixel(x, y);
                 canvas.SetPixel(x, y, c);
             }
+            var elapsed = stopwatch.ElapsedMilliseconds;
+            double msPerPixel = (double)elapsed / CANVAS_WIDTH;
+            
+            ReportSpeed(msPerPixel);
             
             SetTimeout(0, () => 
                 RenderRow(canvas, dotPeriod, y + 1)
             );
+        }
+        
+        static void ReportSpeed (double msPerPixel) {
+          minSpeed = Math.Min(msPerPixel, minSpeed);
+          maxSpeed = Math.Max(msPerPixel, maxSpeed);
+          speedSamples.Add(msPerPixel);
+          
+          double average = 0;
+          foreach (var d in speedSamples)
+            average += d;
+          average /= speedSamples.Count;
+          
+          WriteSpeedText(String.Format(
+            "min: {0:F3} ms/pixel, max: {1:F3} ms/pixel, avg: {2:F3} ms/pixel",
+            minSpeed, maxSpeed, average
+          ));
+        }
+        
+        [JSReplacement("document.getElementById('speed').innerHTML = $text")]
+        static void WriteSpeedText (string text) {
+          Debug.WriteLine(text);
         }
         
         [JSReplacement("setTimeout($action, $timeoutMs)")]

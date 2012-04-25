@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using ICSharpCode.NRefactory.CSharp;
+using JSIL.Ast;
 using Mono.Cecil;
 
 namespace JSIL.Internal {
@@ -42,6 +43,8 @@ namespace JSIL.Internal {
             var result = Uri.UnescapeDataString(uri.AbsolutePath);
             if (String.IsNullOrWhiteSpace(result))
                 result = assembly.Location;
+
+            result = result.Replace("/", "\\");
 
             return result;
         }
@@ -84,7 +87,11 @@ namespace JSIL.Internal {
                             sb.Append("+");
                     break;
                     case '`':
-                        sb.Append("$b");
+                        if (escapingMode != EscapingMode.String) {
+                            sb.Append("$b");
+                        } else {
+                            sb.Append("`");
+                        }
                         isEscaped = true;
                     break;
                     case '~':
@@ -204,26 +211,16 @@ namespace JSIL.Internal {
             }
         }
 
-        public static string EscapeString (string text, char? quoteCharacter = null) {
+        public static string EscapeString (string text, char quoteCharacter = '\"') {
             if (text == null)
                 return "null";
 
-            if (quoteCharacter == null) {
-                bool containsSingle = text.Contains("\'");
-                bool containsDouble = text.Contains("\"");
+            var sb = new StringBuilder(text.Length + 16);
 
-                if (containsDouble && !containsSingle)
-                    quoteCharacter = '\'';
-                else
-                    quoteCharacter = '"';
-            }
-
-            var sb = new StringBuilder();
-
-            sb.Append(quoteCharacter.Value);
+            sb.Append(quoteCharacter);
 
             foreach (var ch in text) {
-                if (ch == quoteCharacter.Value)
+                if (ch == quoteCharacter)
                     sb.Append(EscapeCharacter(ch));
                 else if (ch == '\\')
                     sb.Append(@"\\");
@@ -233,7 +230,7 @@ namespace JSIL.Internal {
                     sb.Append(ch);
             }
 
-            sb.Append(quoteCharacter.Value);
+            sb.Append(quoteCharacter);
 
             return sb.ToString();
         }
@@ -248,7 +245,7 @@ namespace JSIL.Internal {
             }
 
             public int IndexOf (T item) {
-                throw new NotImplementedException();
+                throw new NotImplementedException("ListSkipAdapter.IndexOf not implemented");
             }
 
             public void Insert (int index, T item) {
@@ -273,11 +270,11 @@ namespace JSIL.Internal {
             }
 
             public void Clear () {
-                throw new NotImplementedException();
+                throw new NotImplementedException("ListSkipAdapter.Clear not implemented");
             }
 
             public bool Contains (T item) {
-                throw new NotImplementedException();
+                throw new NotImplementedException("ListSkipAdapter.Contains not implemented");
             }
 
             public void CopyTo (T[] array, int arrayIndex) {
@@ -294,7 +291,7 @@ namespace JSIL.Internal {
             }
 
             public bool Remove (T item) {
-                throw new NotImplementedException();
+                throw new NotImplementedException("ListSkipAdapter.Remove not implemented");
             }
 
             public IEnumerator<T> GetEnumerator () {
@@ -328,14 +325,22 @@ namespace JSIL.Internal {
         protected readonly ConcurrentDictionary<TValue, bool> Dictionary;
         protected readonly ConcurrentQueue<TValue> Queue;
 
-        public ConcurrentHashQueue () {
+        public ConcurrentHashQueue (IEqualityComparer<TValue> comparer) {
             Queue = new ConcurrentQueue<TValue>();
-            Dictionary = new ConcurrentDictionary<TValue, bool>();
+            Dictionary = new ConcurrentDictionary<TValue, bool>(comparer);
         }
 
-        public ConcurrentHashQueue (int concurrencyLevel, int capacity) {
+        public ConcurrentHashQueue (int concurrencyLevel, int capacity, IEqualityComparer<TValue> comparer) {
             Queue = new ConcurrentQueue<TValue>();
-            Dictionary = new ConcurrentDictionary<TValue, bool>(concurrencyLevel, capacity);
+            Dictionary = new ConcurrentDictionary<TValue, bool>(concurrencyLevel, capacity, comparer);
+        }
+
+        public void Clear () {
+            Dictionary.Clear();
+
+            TValue temp;
+            while (Queue.Count > 0)
+                Queue.TryDequeue(out temp);
         }
 
         public bool TryEnqueue (TValue value) {
@@ -365,16 +370,59 @@ namespace JSIL.Internal {
         }
     }
 
-    public class ConcurrentCache<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>> {
-        protected class ConstructionState {
-            public readonly ManualResetEventSlim Signal = new ManualResetEventSlim(false);
+    public class ConcurrentCache<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>, IDisposable {
+        protected class ConstructionState : IDisposable {
+            private volatile bool IsDisposed;
+            private int WaiterCount = 0, DisposePending = 0;
+            private readonly ManualResetEventSlim Signal = new ManualResetEventSlim(false);
+
             public readonly Thread ConstructingThread = Thread.CurrentThread;
 
-            public void Wait () {
+            public bool Wait () {
                 if (ConstructingThread == Thread.CurrentThread)
                     throw new InvalidOperationException("Recursive construction of cache entry");
 
-                Signal.Wait();
+                try {
+                    Interlocked.Increment(ref WaiterCount);
+                    if (IsDisposed)
+                        return true;
+
+                    Signal.Wait();
+                    return true;
+                } catch (ObjectDisposedException) {
+                    return false;
+                } finally {
+                    var newCount = Interlocked.Decrement(ref WaiterCount);
+
+                    if (newCount <= 0) {
+
+                        if (Interlocked.CompareExchange(ref DisposePending, 0, 1) == 1) {
+                            IsDisposed = true;
+                            Thread.MemoryBarrier();
+                            Signal.Dispose();
+                        }
+                    }
+                }
+            }
+
+            public void Set () {
+                try {
+                    if (!IsDisposed)
+                        Signal.Set();
+                } catch (ObjectDisposedException) {
+                    // Threading is hard and I'm lazy.
+                }
+            }
+
+            public void Dispose () {
+                if (Interlocked.Exchange(ref DisposePending, 1) == 0) {
+                    if (WaiterCount <= 0) {
+                        DisposePending = 0;
+                        IsDisposed = true;
+                        Thread.MemoryBarrier();
+                        Signal.Dispose();
+                    }
+                }
             }
         }
 
@@ -396,9 +444,29 @@ namespace JSIL.Internal {
             States = new ConcurrentDictionary<TKey, ConstructionState>(concurrencyLevel, concurrencyLevel, comparer);
         }
 
+        public int Count {
+            get {
+                return Storage.Count + States.Count;
+            }
+        }
+
+        public virtual void Dispose () {
+            Clear();
+        }
+
         public void Clear () {
-            States.Clear();
             Storage.Clear();
+
+            foreach (var kvp in States)
+                kvp.Value.Dispose();
+
+            States.Clear();
+        }
+
+        public IEnumerable<TKey> Keys {
+            get {
+                return Storage.Keys;
+            }
         }
 
         public bool MightContainKey (TKey key) {
@@ -412,8 +480,12 @@ namespace JSIL.Internal {
         public bool TryGet (TKey key, out TValue result) {
             ConstructionState state;
 
-            while (States.TryGetValue(key, out state))
-                state.Wait();
+            while (States.TryGetValue(key, out state)) {
+                if (!state.Wait()) {
+                    result = default(TValue);
+                    return false;
+                }
+            }
 
             return Storage.TryGetValue(key, out result);
         }
@@ -424,7 +496,8 @@ namespace JSIL.Internal {
             if (Storage.ContainsKey(key))
                 return false;
 
-            if (States.TryAdd(key, state = new ConstructionState())) {
+            state = new ConstructionState();
+            if (States.TryAdd(key, state)) {
                 try {
                     if (Storage.ContainsKey(key))
                         return false;
@@ -437,8 +510,11 @@ namespace JSIL.Internal {
                     return true;
                 } finally {
                     States.TryRemove(key, out state);
-                    state.Signal.Set();
+                    state.Set();
+                    state.Dispose();
                 }
+            } else {
+                state.Dispose();
             }
 
             return false;
@@ -448,12 +524,17 @@ namespace JSIL.Internal {
             while (true) {
                 ConstructionState state;
 
-                while (States.TryGetValue(key, out state))
-                    state.Wait();
+                bool waitFailed = false;
+
+                while (States.TryGetValue(key, out state)) {
+                    waitFailed = !state.Wait();
+                }
 
                 TValue result;
                 if (Storage.TryGetValue(key, out result))
                     return result;
+                else if (waitFailed)
+                    throw new ObjectDisposedException("Cache", "The cache was cleared or disposed.");
 
                 TryCreate(key, creator);
             }
@@ -462,8 +543,10 @@ namespace JSIL.Internal {
         public bool TryRemove (TKey key) {
             ConstructionState state;
 
-            while (States.TryGetValue(key, out state))
-                state.Wait();
+            while (States.TryGetValue(key, out state)) {
+                if (!state.Wait())
+                    return false;
+            }
 
             TValue temp;
             return Storage.TryRemove(key, out temp);
@@ -475,6 +558,18 @@ namespace JSIL.Internal {
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator () {
             return Storage.GetEnumerator();
+        }
+    }
+
+    public class ReferenceComparer<T> : IEqualityComparer<T>
+        where T : class {
+
+        public bool Equals (T x, T y) {
+            return x == y;
+        }
+
+        public int GetHashCode (T obj) {
+            return obj.GetHashCode();
         }
     }
 }

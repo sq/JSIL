@@ -4,8 +4,14 @@
     "Stubbed": [
       "mscorlib,",
       "System.*",
-      "Microsoft.*",
-      "Accessibility,"
+      "Microsoft.*"
+    ],
+    "Ignored": [
+      "Microsoft.VisualC,",
+      "Accessibility,",
+      "SMDiagnostics,",
+      "System.EnterpriseServices,",
+      "JSIL.Meta,"
     ]
   }
 }

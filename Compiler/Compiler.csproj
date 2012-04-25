@@ -74,7 +74,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\Upstream\Options.cs" />
+    <Compile Include="BuildGroup.cs" />
     <Compile Include="Configuration.cs" />
+    <Compile Include="Profiles\Base.cs" />
+    <Compile Include="Profiles\Default.cs" />
+    <Compile Include="Extensibility\IProfile.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="SolutionBuilder.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -93,14 +97,28 @@
     <Content Include="jsil.ico" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="app.config" />
+    <None Include="app.config">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="defaults.jsilconfig">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy $(ProjectDir)\..\Upstream\Spidermonkey\*.* $(OutDir)</PostBuildEvent>
+    <PostBuildEvent>copy "$(ProjectDir)\..\Upstream\Spidermonkey\*.*" "$(OutDir)"
+copy "$(ProjectDir)\..\Upstream\PNGQuant\*.exe" "$(OutDir)"</PostBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PreBuildEvent>IF "$(PlatformName)"=="x86" GOTO goodPlatform
+ECHO JSIL must be built with the platform set to x86.
+EXIT /b 1
+:goodPlatform
+IF "$(ConfigurationName)"=="Debug" GOTO goodConfiguration
+IF "$(ConfigurationName)"=="Release" GOTO goodConfiguration
+ECHO JSIL must be built with the configuration set to Debug or Release.
+EXIT /b 2
+:goodConfiguration</PreBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using ICSharpCode.Decompiler.Ast;
 using ICSharpCode.Decompiler.ILAst;
 using JSIL.Ast;
 using JSIL.Internal;
@@ -26,6 +25,8 @@ namespace JSIL {
 
         public readonly TypeSystem TypeSystem;
         public readonly JSILIdentifier JSIL;
+
+        public readonly TypeReferenceContext ReferenceContext = new TypeReferenceContext();
 
         protected readonly Stack<JSExpression> ThisReplacementStack = new Stack<JSExpression>();
         protected readonly Stack<bool> IncludeTypeParens = new Stack<bool>();
@@ -76,37 +77,39 @@ namespace JSIL {
             if (includeBraces)
                 Output.OpenBrace();
 
-            foreach (var stmt in block.Statements)
-                Visit(stmt);
+            for (var i = 0; i < block.Statements.Count; i++)
+                Visit(block.Statements[i]);
 
             if (includeBraces)
                 Output.CloseBrace();
         }
 
         public void VisitNode (JSLabelGroupStatement labelGroup) {
-            var stepLabel = String.Format("__step{0}__", labelGroup.GroupIndex);
-            var labelVar = String.Format("__label{0}__", labelGroup.GroupIndex);
-            var firstLabel = labelGroup.Statements.First().Label;
+            Output.NewLine();
 
-            Output.Keyword("var");
+            var stepLabel = String.Format("$labelgroup{0}", labelGroup.GroupIndex);
+            var labelVar = String.Format("$label{0}", labelGroup.GroupIndex);
+            var firstLabel = labelGroup.Labels.First().Key;
+
+            Output.WriteRaw("var");
             Output.Space();
             Output.Identifier(labelVar);
-            Output.Token(" = ");
+            Output.WriteRaw(" = ");
             Output.Value(firstLabel);
             Output.Semicolon();
 
             Output.Label(stepLabel);
-            Output.Keyword("while");
+            Output.WriteRaw("while");
             Output.Space();
             Output.LPar();
 
-            Output.Keyword("true");
+            Output.WriteRaw("true");
 
             Output.RPar();
             Output.Space();
             Output.OpenBrace();
 
-            Output.Keyword("switch");
+            Output.WriteRaw("switch");
             Output.Space();
             Output.LPar();
 
@@ -119,57 +122,108 @@ namespace JSIL {
             bool isFirst = true;
             Func<string, bool> emitGoto = (labelName) => {
                 if (labelName != null) {
-                    if (!labelGroup.Statements.Any(
-                        (l) => l.Label == labelName
-                    ))
+                    if (!labelGroup.Labels.ContainsKey(labelName))
                         return false;
 
                     Output.Identifier(labelVar);
-                    Output.Token(" = ");
+                    Output.WriteRaw(" = ");
                     Output.Value(labelName);
                     Output.Semicolon();
                 }
 
-                Output.Keyword("continue");
+                Output.WriteRaw("continue");
                 Output.Space();
                 Output.Identifier(stepLabel);
-                Output.Semicolon();
 
                 return true;
             };
 
             GotoStack.Push(emitGoto);
 
-            foreach (var block in labelGroup.Statements) {
-                if (!isFirst) {
-                    emitGoto(block.Label);
+            bool needsTrailingBreak = true;
 
-                    Output.Keyword("break");
-                    Output.Semicolon();
-
-                    Output.PlainTextFormatter.Unindent();
+            foreach (var kvp in labelGroup.Labels) {
+                if (!isFirst && needsTrailingBreak) {
+                    Output.Indent();
+                    emitGoto(kvp.Key);
+                    Output.Semicolon(true);
+                    Output.Unindent();
                 }
 
-                Output.Keyword("case");
+                Output.WriteRaw("case");
                 Output.Space();
-                Output.Value(block.Label);
-                Output.Token(":");
-                Output.PlainTextFormatter.Indent();
+                Output.Value(kvp.Key);
+                Output.WriteRaw(":");
+                Output.Indent();
                 Output.NewLine();
 
-                Visit(block);
+                Visit(kvp.Value);
+
+                Func<JSNode, bool> isNotNull = (n) => {
+                    if (n.IsNull)
+                        return false;
+                    if (n is JSNullStatement)
+                        return false;
+                    if (n is JSNullExpression)
+                        return false;
+
+                    var es = n as JSExpressionStatement;
+                    if (es != null) {
+                        if (es.Expression.IsNull)
+                            return false;
+                        if (es.Expression is JSNullExpression)
+                            return false;
+                    }
+
+                    return true;
+                };
+
+                var nonNullChildren = kvp.Value.Children.Where(isNotNull);
+
+                var lastStatement = nonNullChildren.LastOrDefault();
+                JSBlockStatement lastBlockStatement;
+
+                while ((lastBlockStatement = lastStatement as JSBlockStatement) != null) {
+                    if (lastBlockStatement.IsControlFlow)
+                        break;
+                    else {
+                        nonNullChildren = lastStatement.Children.Where(isNotNull);
+                        lastStatement = nonNullChildren.LastOrDefault();
+                    }
+                }
+
+                var lastExpressionStatement = lastStatement as JSExpressionStatement;
+
+                if (
+                    (lastExpressionStatement != null) &&
+                    (
+                        (lastExpressionStatement.Expression is JSContinueExpression) || 
+                        (lastExpressionStatement.Expression is JSBreakExpression) ||
+                        (lastExpressionStatement.Expression is JSGotoExpression)
+                    )
+                ) {
+                    needsTrailingBreak = false;
+                } else {
+                    needsTrailingBreak = true;
+                }
 
                 isFirst = false;
+
+                Output.Unindent();
+
+                Output.NewLine();
             }
 
             GotoStack.Pop();
 
-            Output.Keyword("break");
-            Output.Space();
-            Output.Identifier(stepLabel);
-            Output.Semicolon();
-
-            Output.PlainTextFormatter.Unindent();
+            if (needsTrailingBreak) {
+                Output.Indent();
+                Output.WriteRaw("break");
+                Output.Space();
+                Output.Identifier(stepLabel);
+                Output.Semicolon(true);
+                Output.Unindent();
+            }
 
             Output.CloseBrace();
 
@@ -180,7 +234,7 @@ namespace JSIL {
             if (vars.Declarations.Count == 0)
                 return;
 
-            Output.Keyword("var");
+            Output.WriteRaw("var");
             Output.Space();
 
             CommaSeparatedList(vars.Declarations);
@@ -209,6 +263,10 @@ namespace JSIL {
         }
 
         public void VisitNode (JSDotExpression dot) {
+            VisitDotExpression(dot);
+        }
+
+        protected void VisitDotExpression (JSDotExpressionBase dot) {
             var parens = (dot.Target is JSNumberLiteral) ||
                 (dot.Target is JSIntegerLiteral);
 
@@ -222,6 +280,35 @@ namespace JSIL {
 
             Output.Dot();
             Visit(dot.Member);
+        }
+
+        public void VisitNode (JSFieldAccess fa) {
+            VisitDotExpression(fa);
+        }
+
+        public void VisitNode (JSPropertyAccess pa) {
+            VisitDotExpression(pa);
+        }
+
+        public void VisitNode (JSMethodAccess ma) {
+            var parens = (ma.Target is JSNumberLiteral) ||
+                (ma.Target is JSIntegerLiteral);
+
+            if (parens)
+                Output.LPar();
+
+            Visit(ma.Target);
+
+            if (parens)
+                Output.RPar();
+
+            if (!ma.IsStatic) {
+                Output.Dot();
+                Output.Identifier("prototype");
+            }
+
+            Output.Dot();
+            Visit(ma.Member);
         }
 
         public void VisitNode (JSChangeTypeExpression cte) {
@@ -243,13 +330,24 @@ namespace JSIL {
             Output.CloseBracket();
         }
 
+        public void VisitNode (JSFakeMethod fakeMethod) {
+            Output.Identifier(fakeMethod.Name);
+
+            var ga = fakeMethod.GenericArguments;
+            if (ga != null) {
+                Output.LPar();
+                CommaSeparatedList(ga);
+                Output.RPar();
+            }
+        }
+
         public void VisitNode (JSMethod method) {
-            Output.Identifier(method.Method.Name);
+            Output.Identifier(method.Method.GetName(true));
 
             var ga = method.GenericArguments;
             if (ga != null) {
                 Output.LPar();
-                Output.CommaSeparatedList(ga, ListValueType.Identifier);
+                Output.CommaSeparatedList(ga, ReferenceContext, ListValueType.Identifier);
                 Output.RPar();
             }
         }
@@ -285,20 +383,20 @@ namespace JSIL {
                     continue;
 
                 if (!isFirst)
-                    Output.PlainTextOutput.WriteLine();
+                    Output.NewLine();
 
                 var matches = regex.Matches(line);
 
                 foreach (Match m in matches) {
                     if (m.Groups["text"].Success) {
-                        Output.PlainTextOutput.Write(m.Groups["text"].Value);
+                        Output.WriteRaw(m.Groups["text"].Value);
                     } else if (m.Groups["name"].Success) {
                         var key = m.Groups["name"].Value;
 
                         if (verbatim.Variables.ContainsKey(key))
                             Visit(verbatim.Variables[key]);
                         else
-                            Output.PlainTextOutput.Write("null");
+                            Output.WriteRaw("null");
                     }
                 }
 
@@ -311,6 +409,10 @@ namespace JSIL {
 
         public void VisitNode (JSTypeNameLiteral type) {
             Output.Value(type.Value);
+        }
+
+        public void VisitNode (JSAssemblyNameLiteral asm) {
+            Output.Value(asm.Value.FullName);
         }
 
         public void VisitNode (JSIntegerLiteral integer) {
@@ -328,26 +430,26 @@ namespace JSIL {
         public void VisitNode (JSEnumLiteral enm) {
             bool isFirst = true;
 
-            if (enm.Names.Length > 1)
+            if (enm.Names.Length == 1) {
+                Output.Identifier(enm.EnumType, ReferenceContext);
+                Output.Dot();
+                Output.Identifier(enm.Names[0]);
+            } else {
+                Output.Identifier(enm.EnumType, ReferenceContext);
+                Output.Dot();
+                Output.Identifier("Flags");
                 Output.LPar();
 
-            foreach (var name in enm.Names) {
-                if (!isFirst)
-                    Output.Token(" | ");
+                Output.CommaSeparatedList(
+                    enm.Names, ReferenceContext, ListValueType.Primitive
+                );
 
-                Output.Identifier(enm.EnumType);
-                Output.Dot();
-                Output.Identifier(name);
-
-                isFirst = false;
-            }
-
-            if (enm.Names.Length > 1)
                 Output.RPar();
+            }
         }
 
         public void VisitNode (JSNullLiteral nil) {
-            Output.Keyword("null");
+            Output.WriteRaw("null");
         }
 
         public void VisitNode (JSGotoExpression go) {
@@ -358,15 +460,10 @@ namespace JSIL {
                 }
             }
 
-            Console.Error.WriteLine("Warning: Untranslatable goto encountered: " + go);
-
             Output.Identifier("JSIL.UntranslatableInstruction", null);
             Output.LPar();
-            Output.Value("goto");
-            Output.Comma();
-            Output.Value(go.TargetLabel);
+            Output.Value(go.ToString());
             Output.RPar();
-            Output.Semicolon();
         }
 
         public void VisitNode (JSUntranslatableStatement us) {
@@ -411,14 +508,23 @@ namespace JSIL {
         }
 
         public void VisitNode (JSDefaultValueLiteral defaultValue) {
-            if (TypeAnalysis.IsIntegerOrEnum(defaultValue.Value)) {
+            if (TypeUtil.IsEnum(defaultValue.Value)) {
+                var enumInfo = TypeInfo.Get(defaultValue.Value);
+                if (enumInfo.FirstEnumMember != null) {
+                    Output.Identifier(defaultValue.Value, ReferenceContext);
+                    Output.Dot();
+                    Output.Identifier(enumInfo.FirstEnumMember.Name);
+                } else {
+                    Output.WriteRaw("0");
+                }
+            } else if (TypeUtil.IsIntegralOrEnum(defaultValue.Value)) {
                 Output.Value(0);
             } else if (!defaultValue.Value.IsValueType) {
-                Output.Keyword("null");
+                Output.WriteRaw("null");
             } else {
                 switch (defaultValue.Value.FullName) {
                     case "System.Nullable`1":
-                        Output.Keyword("null");
+                        Output.WriteRaw("null");
                         break;
                     case "System.Single":
                     case "System.Double":
@@ -426,19 +532,41 @@ namespace JSIL {
                         Output.Value(0.0);
                         break;
                     case "System.Boolean":
-                        Output.Keyword("false");
+                        Output.WriteRaw("false");
                         break;
                     default:
-                        VisitNode(new JSNewExpression(new JSType(defaultValue.Value), null));
+                        VisitNode(new JSNewExpression(new JSType(defaultValue.Value), null, null));
                         break;
                 }
             }
         }
 
+        public void VisitNode (JSAssembly asm) {
+            Output.AssemblyReference(asm.Assembly);
+        }
+
+        public void VisitNode (JSTypeReference tr) {
+            Output.TypeReference(tr.Type, new TypeReferenceContext {
+                EnclosingType = tr.Context,
+                EnclosingMethod = Output.CurrentMethod
+            });
+        }
+
         public void VisitNode (JSType type) {
             Output.Identifier(
-                type.Type, IncludeTypeParens.Peek()
+                type.Type, ReferenceContext, IncludeTypeParens.Peek()
             );
+        }
+
+        public void VisitNode (JSTypeOfExpression toe) {
+            Visit(toe.Type);
+
+            if (toe.Type.Type is GenericParameter) {
+                // Generic parameters are type objects, not public interfaces
+            } else {
+                Output.Dot();
+                Output.Identifier("__Type__");
+            }
         }
 
         public void VisitNode (JSEliminatedVariable variable) {
@@ -451,12 +579,10 @@ namespace JSIL {
                     var thisRef = ThisReplacementStack.Peek();
                     if (thisRef != null)
                         Visit(thisRef);
-                    else
-                        Debugger.Break();
 
                     return;
                 } else {
-                    Output.Keyword("this");
+                    Output.WriteRaw("this");
                 }
             } else
                 Output.Identifier(variable.Identifier);
@@ -476,7 +602,10 @@ namespace JSIL {
                     if (JSExpression.DeReferenceType(variable.Type).IsValueType)
                         return;
                     else
-                        throw new InvalidOperationException("The this-reference should never be a reference to a non-value type");
+                        throw new InvalidOperationException(String.Format(
+                            "The this-reference '{0}' was a reference to a non-value type: {1}",
+                            variable, variable.Type
+                        ));
                 }
 
                 Output.Dot();
@@ -509,7 +638,7 @@ namespace JSIL {
 
             if (lambda.UseBind) {
                 Output.Dot();
-                Output.Keyword("bind");
+                Output.WriteRaw("bind");
                 Output.LPar();
                 Visit(lambda.This);
                 Output.RPar();
@@ -520,27 +649,16 @@ namespace JSIL {
 
         public void VisitNode (JSFunctionExpression function) {
             var oldCurrentMethod = Output.CurrentMethod;
-            Output.CurrentMethod = function.Method.Reference;
+
+            if (function.Method != null) {
+                Output.CurrentMethod = function.Method.Reference;
+            } else {
+                Output.CurrentMethod = null;
+            }
 
             Output.OpenFunction(
-                null,
-                (o) => {
-                    if (o != Output)
-                        throw new InvalidOperationException();
-
-                    bool isFirst = true;
-                    foreach (var p in function.Parameters) {
-                        if (!isFirst)
-                            o.Comma();
-
-                        if (p.IsReference)
-                            o.Comment("ref");
-
-                        o.Identifier(p.Identifier);
-
-                        isFirst = false;
-                    }
-                }
+                function.DisplayName,
+                (o) => o.WriteParameterList(function.Parameters)
             );
 
             Visit(function.Body);
@@ -551,9 +669,9 @@ namespace JSIL {
 
         public void VisitNode (JSSwitchStatement swtch) {
             BlockStack.Push(BlockType.Switch);
-            WriteLabel(swtch, true);
+            WriteLabel(swtch);
 
-            Output.Keyword("switch");
+            Output.WriteRaw("switch");
             Output.Space();
 
             Output.LPar();
@@ -566,40 +684,38 @@ namespace JSIL {
             foreach (var c in swtch.Cases) {
                 if (c.Values != null) {
                     foreach (var value in c.Values) {
-                        Output.Token("case ");
+                        Output.WriteRaw("case ");
                         Visit(value);
-                        Output.Token(": ");
+                        Output.WriteRaw(": ");
                         Output.NewLine();
                     }
                 } else {
-                    Output.Token("default: ");
+                    Output.WriteRaw("default: ");
                     Output.NewLine();
                 }
 
-                Output.PlainTextFormatter.Indent();
+                Output.Indent();
                 Visit(c.Body);
-                Output.PlainTextFormatter.Unindent();
+                Output.Unindent();
+                Output.NewLine();
             }
 
             Output.CloseBrace();
             BlockStack.Pop();
         }
 
-        protected void WriteLabel (JSStatement stmt, bool generateLabels) {
-            if (String.IsNullOrWhiteSpace(stmt.Label)) {
-                if (!generateLabels)
-                    return;
-            } else {
-                Output.Label(stmt.Label);
-            }
+        protected void WriteLoopLabel (JSLoopStatement loop) {
+            if (loop.Index.HasValue)
+                Output.Label(String.Format("$loop{0}", loop.Index.Value));
         }
 
-        public void VisitNode (JSLabelStatement label) {
-            WriteLabel(label, false);
+        protected void WriteLabel (JSStatement stmt) {
+            if (!String.IsNullOrWhiteSpace(stmt.Label))
+                Output.Label(stmt.Label);
         }
 
         public void VisitNode (JSIfStatement ifs) {
-            Output.Keyword("if");
+            Output.WriteRaw("if");
             Output.Space();
 
             Output.LPar();
@@ -620,9 +736,9 @@ namespace JSIL {
                 if (nestedIf != null) {
                     Output.CloseAndReopenBrace((o) => {
                         if (o != this.Output)
-                            throw new InvalidOperationException();
+                            throw new InvalidOperationException("Output mismatch");
 
-                        o.Keyword("else if");
+                        o.WriteRaw("else if");
                         o.Space();
                         o.LPar();
                         Visit(nestedIf.Condition);
@@ -648,7 +764,7 @@ namespace JSIL {
                 return;
             }
 
-            Output.Keyword("try");
+            Output.WriteRaw("try");
             Output.Space();
             Output.OpenBrace();
 
@@ -657,9 +773,9 @@ namespace JSIL {
             if (tcb.Catch != null) {
                 Output.CloseAndReopenBrace((o) => {
                     if (o != Output)
-                        throw new InvalidOperationException();
+                        throw new InvalidOperationException("Output mismatch");
 
-                    o.Keyword("catch");
+                    o.WriteRaw("catch");
                     o.Space();
                     o.LPar();
                     Visit(tcb.CatchVariable);
@@ -679,10 +795,12 @@ namespace JSIL {
         }
 
         public void VisitNode (JSForLoop loop) {
-            BlockStack.Push(BlockType.ForHeader);
-            WriteLabel(loop, true);
+            Output.NewLine();
 
-            Output.Keyword("for");
+            BlockStack.Push(BlockType.ForHeader);
+            WriteLoopLabel(loop);
+
+            Output.WriteRaw("for");
             Output.Space();
 
             Output.LPar();
@@ -709,10 +827,12 @@ namespace JSIL {
         }
 
         public void VisitNode (JSWhileLoop loop) {
-            BlockStack.Push(BlockType.While);
-            WriteLabel(loop, true);
+            Output.NewLine();
 
-            Output.Keyword("while");
+            BlockStack.Push(BlockType.While);
+            WriteLoopLabel(loop);
+
+            Output.WriteRaw("while");
             Output.Space();
 
             Output.LPar();
@@ -726,10 +846,12 @@ namespace JSIL {
         }
 
         public void VisitNode (JSDoLoop loop) {
-            BlockStack.Push(BlockType.Do);
-            WriteLabel(loop, true);
+            Output.NewLine();
 
-            Output.Keyword("do");
+            BlockStack.Push(BlockType.Do);
+            WriteLoopLabel(loop);
+
+            Output.WriteRaw("do");
             Output.Space();
             Output.OpenBrace();
 
@@ -737,7 +859,7 @@ namespace JSIL {
 
             Output.CloseBrace(false);
             Output.Space();
-            Output.Keyword("while");
+            Output.WriteRaw("while");
             Output.Space();
 
             Output.LPar();
@@ -749,7 +871,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSReturnExpression ret) {
-            Output.Keyword("return");
+            Output.WriteRaw("return");
 
             if (ret.Value != null) {
                 Output.Space();
@@ -758,53 +880,53 @@ namespace JSIL {
         }
 
         public void VisitNode (JSThrowExpression ret) {
-            Output.Keyword("throw");
+            Output.WriteRaw("throw");
             Output.Space();
             Visit(ret.Exception);
         }
 
         public void VisitNode (JSBreakExpression brk) {
-            if (!String.IsNullOrWhiteSpace(brk.TargetLabel)) {
-                Output.Keyword("break");
+            if (brk.TargetLoop.HasValue) {
+                Output.WriteRaw("break");
                 Output.Space();
-                Output.Identifier(brk.TargetLabel);
+                Output.Identifier(String.Format("$loop{0}", brk.TargetLoop.Value));
                 return;
             }
 
             if (BlockStack.Count == 0) {
-                throw new NotImplementedException();
+                throw new NotImplementedException("Break expression found outside of block");
             }
 
             switch (BlockStack.Peek()) {
                 case BlockType.Switch:
-                    Output.Keyword("break");
+                    Output.WriteRaw("break");
                     break;
                 default:
-                    Debugger.Break();
+                    throw new NotImplementedException("Break statement found outside of switch statement or loop");
                     break;
             }
         }
 
         public void VisitNode (JSContinueExpression cont) {
-            if (!String.IsNullOrWhiteSpace(cont.TargetLabel)) {
-                Output.Keyword("continue");
+            if (cont.TargetLoop.HasValue) {
+                Output.WriteRaw("continue");
                 Output.Space();
-                Output.Identifier(cont.TargetLabel);
+                Output.Identifier(String.Format("$loop{0}", cont.TargetLoop.Value));
             } else if (GotoStack.Count > 0) {
                 GotoStack.Peek()(null);
             } else {
-                Output.Keyword("continue");
+                Output.WriteRaw("continue");
             }
         }
 
         public void VisitNode (JSUnaryOperatorExpression uop) {
             if (!uop.IsPostfix)
-                Output.Token(uop.Operator.Token);
+                Output.WriteRaw(uop.Operator.Token);
 
             Visit(uop.Expression);
 
             if (uop.IsPostfix)
-                Output.Token(uop.Operator.Token);
+                Output.WriteRaw(uop.Operator.Token);
         }
 
         public void VisitNode (JSBinaryOperatorExpression bop) {
@@ -842,16 +964,16 @@ namespace JSIL {
             // We need to perform manual truncation to maintain the semantics of C#'s division operator
             if ((bop.Operator == JSOperator.Divide)) {
                 needsTruncation =                     
-                    (ILBlockTranslator.IsIntegral(bop.Left.GetExpectedType(TypeSystem)) &&
-                    ILBlockTranslator.IsIntegral(bop.Right.GetExpectedType(TypeSystem))) ||
-                    ILBlockTranslator.IsIntegral(bop.GetExpectedType(TypeSystem));
+                    (TypeUtil.IsIntegral(bop.Left.GetActualType(TypeSystem)) ||
+                    TypeUtil.IsIntegral(bop.Right.GetActualType(TypeSystem))) &&
+                    TypeUtil.IsIntegral(bop.GetActualType(TypeSystem));
 
                 parens |= needsTruncation;
             }
 
             if (needsTruncation) {
                 if (bop.Operator is JSAssignmentOperator)
-                    throw new NotImplementedException();
+                    throw new NotImplementedException("Truncation of assignment operations not implemented");
 
                 Output.Identifier("Math.floor", null);
             }
@@ -861,7 +983,7 @@ namespace JSIL {
 
             Visit(bop.Left);
             Output.Space();
-            Output.Token(bop.Operator.Token);
+            Output.WriteRaw(bop.Operator.Token);
             Output.Space();
 
             if (
@@ -882,10 +1004,10 @@ namespace JSIL {
 
             Visit(ternary.Condition);
 
-            Output.Token(" ? ");
+            Output.WriteRaw(" ? ");
             Visit(ternary.True);
 
-            Output.Token(" : ");
+            Output.WriteRaw(" : ");
             Visit(ternary.False);
 
             Output.RPar();
@@ -894,62 +1016,77 @@ namespace JSIL {
         public void VisitNode (JSNewExpression newexp) {
             var outer = Stack.Skip(1).FirstOrDefault();
             var outerInvocation = outer as JSInvocationExpression;
-            var outerDot = outer as JSDotExpression;
+            var outerDot = outer as JSDotExpressionBase;
 
             bool parens = ((outerDot != null) && (outerDot.Target == newexp)) ||
                 ((outerInvocation != null) && (outerInvocation.ThisReference == newexp));
 
-            if (
-                (newexp.Constructor != null) && 
-                newexp.Constructor.OverloadIndex.HasValue &&
-                newexp.Constructor.Name.Contains("$")
-            ) {
-                Output.Identifier("JSIL.New", null);
-                Output.LPar();
+            var ctor = newexp.Constructor;
+            var isOverloaded = (ctor != null) &&
+                ctor.IsOverloadedRecursive &&
+                !ctor.Metadata.HasAttribute("JSIL.Meta.JSRuntimeDispatch");
 
-                IncludeTypeParens.Push(false);
-                try {
-                    Visit(newexp.Type);
-                } finally {
-                    IncludeTypeParens.Pop();
-                }
+            bool hasArguments = newexp.Arguments.Count > 0;
 
-                Output.Comma();
-                Output.Value(Util.EscapeIdentifier(newexp.Constructor.Name, EscapingMode.MemberIdentifier));
+            var oldInvoking = ReferenceContext.InvokingMethod;
 
-                Output.Comma();
-                Output.OpenBracket(false);
-                if (newexp.Arguments.Count > 0) {
-                    CommaSeparatedList(newexp.Arguments);
-                }
-                Output.CloseBracket();
-                Output.RPar();
-            } else {
-                if (parens)
+            if (isOverloaded && CanUseFastOverloadDispatch(ctor))
+                isOverloaded = false;
+
+            try {
+                if (isOverloaded) {
+                    Output.MethodSignature(newexp.ConstructorReference, ctor.Signature, ReferenceContext);
+                    Output.Dot();
+
+                    ReferenceContext.InvokingMethod = newexp.ConstructorReference;
+
+                    Output.Identifier("Construct");
                     Output.LPar();
 
-                Output.Keyword("new");
-                Output.Space();
+                    IncludeTypeParens.Push(false);
+                    try {
+                        Visit(newexp.Type);
+                    } finally {
+                        IncludeTypeParens.Pop();
+                    }
 
-                IncludeTypeParens.Push(true);
-                try {
-                    Visit(newexp.Type);
-                } finally {
-                    IncludeTypeParens.Pop();
-                }
+                    if (hasArguments) {
+                        Output.Comma();
+                        CommaSeparatedList(newexp.Arguments);
+                    }
 
-                Output.LPar();
-                CommaSeparatedList(newexp.Arguments);
-                Output.RPar();
-
-                if (parens)
                     Output.RPar();
+                } else {
+                    if (parens)
+                        Output.LPar();
+
+                    Output.WriteRaw("new");
+                    Output.Space();
+
+                    IncludeTypeParens.Push(true);
+                    try {
+                        Visit(newexp.Type);
+                    } finally {
+                        IncludeTypeParens.Pop();
+                    }
+
+                    ReferenceContext.InvokingMethod = newexp.ConstructorReference;
+
+                    Output.LPar();
+                    CommaSeparatedList(newexp.Arguments);
+                    Output.RPar();
+
+                    if (parens)
+                        Output.RPar();
+                }
+            } finally {
+                ReferenceContext.InvokingMethod = oldInvoking;
             }
         }
 
         public void VisitNode (JSPairExpression pair) {
             Visit(pair.Key);
-            Output.Token(": ");
+            Output.WriteRaw(": ");
             Visit(pair.Value);
         }
 
@@ -957,6 +1094,10 @@ namespace JSIL {
             Output.OpenBracket();
             CommaSeparatedList(array.Values);
             Output.CloseBracket();
+        }
+
+        public void VisitNode (JSMemberDescriptor desc) {
+            Output.MemberDescriptor(desc.IsPublic, desc.IsStatic);
         }
 
         public void VisitNode (JSObjectExpression obj) {
@@ -989,12 +1130,12 @@ namespace JSIL {
 
         public void VisitNode (JSDelegateInvocationExpression invocation) {
             bool needsParens =
-                CountOfMatchingSubtrees<JSFunctionExpression>(new[] { invocation.ThisReference }) > 0;
+                CountOfMatchingSubtrees<JSFunctionExpression>(new[] { invocation.Delegate }) > 0;
 
             if (needsParens)
                 Output.LPar();
 
-            Visit(invocation.ThisReference);
+            Visit(invocation.Delegate);
 
             if (needsParens)
                 Output.RPar();
@@ -1014,60 +1155,188 @@ namespace JSIL {
             Output.RPar();
         }
 
-        public void VisitNode (JSInvocationExpression invocation) {
-            bool isStatic = false;
-            if (invocation.ExplicitThis && invocation.ThisReference.IsNull) {
-                isStatic = true;
+        protected bool CanUseFastOverloadDispatch (MethodInfo method) {
+            MethodSignatureSet mss;
 
-                if (!invocation.Type.IsNull) {
-                    Visit(invocation.Type);
-                    Output.Dot();
+            if (method.DeclaringType.MethodSignatures.TryGet(method.Name, out mss)) {
+                int argCount = method.Parameters.Length;
+                int overloadCount = 0;
+
+                foreach (var signature in mss.Signatures) {
+                    if (signature.ParameterCount == argCount)
+                        overloadCount += 1;
                 }
 
-                Visit(invocation.Method);
-            } else if (invocation.ExplicitThis) {
-                Visit(invocation.Type);
-                Output.Dot();
-                Output.Identifier("prototype");
-                Output.Dot();
-                Visit(invocation.Method);
-                Output.Dot();
-                Output.Identifier("call");
-            } else {
-                bool needsParens =
-                    (CountOfMatchingSubtrees<JSFunctionExpression>(new[] { invocation.ThisReference }) > 0) ||
-                    (CountOfMatchingSubtrees<JSIntegerLiteral>(new[] { invocation.ThisReference }) > 0) ||
-                    (CountOfMatchingSubtrees<JSNumberLiteral>(new[] { invocation.ThisReference }) > 0);
+                // If there's only one overload with this argument count, we don't need to use
+                //  the expensive overloaded method dispatch path.
+                return overloadCount < 2;
+            }
 
+            return false;
+        }
+
+        public void VisitNode (JSInvocationExpression invocation) {
+            TypeReference typeOfThisReference = null;
+
+            var jsm = invocation.JSMethod;
+            MethodInfo method = null;
+            if (jsm != null)
+                method = jsm.Method;
+
+            bool isOverloaded = (method != null) &&
+                method.IsOverloadedRecursive &&
+                !method.Metadata.HasAttribute("JSIL.Meta.JSRuntimeDispatch");
+
+            bool isStatic = invocation.ExplicitThis && invocation.ThisReference.IsNull;
+
+            bool hasArguments = invocation.Arguments.Count > 0;
+            bool hasGenericArguments = invocation.GenericArguments != null;
+
+            bool needsParens =
+                (CountOfMatchingSubtrees<JSFunctionExpression>(new[] { invocation.ThisReference }) > 0) ||
+                (CountOfMatchingSubtrees<JSIntegerLiteral>(new[] { invocation.ThisReference }) > 0) ||
+                (CountOfMatchingSubtrees<JSNumberLiteral>(new[] { invocation.ThisReference }) > 0);
+
+            Action thisRef = () => {
                 if (needsParens)
                     Output.LPar();
+
                 Visit(invocation.ThisReference);
+
                 if (needsParens)
                     Output.RPar();
+            };
 
-                Output.Dot();
-                Visit(invocation.Method);
+            if (isOverloaded && CanUseFastOverloadDispatch(method))
+                isOverloaded = false;
+
+            var oldInvoking = ReferenceContext.InvokingMethod;
+            try {
+                if (isOverloaded) {
+
+                    var methodName = Util.EscapeIdentifier(method.GetName(true), EscapingMode.MemberIdentifier);
+
+                    Output.MethodSignature(jsm.Reference, method.Signature, ReferenceContext);
+                    Output.Dot();
+
+                    ReferenceContext.InvokingMethod = jsm.Reference;
+
+                    Action genericArgs = () => {
+                        if (hasGenericArguments) {
+                            Output.OpenBracket(false);
+                            Output.CommaSeparatedList(invocation.GenericArguments, ReferenceContext, ListValueType.TypeIdentifier);
+                            Output.CloseBracket(false);
+                        } else
+                            Output.Identifier("null", null);
+                    };
+
+                    if (isStatic) {
+                        Output.Identifier("CallStatic");
+                        Output.LPar();
+
+                        Visit(invocation.Type);
+                        Output.Comma();
+
+                        Output.Value(methodName);
+                        Output.Comma();
+                        genericArgs();
+
+                        if (hasArguments)
+                            Output.Comma();
+                    } else if (invocation.ExplicitThis) {
+                        Output.Identifier("Call");
+                        Output.LPar();
+
+                        Visit(invocation.Type);
+                        Output.Dot();
+                        Output.Identifier("prototype", null);
+                        Output.Comma();
+
+                        Output.Value(methodName);
+                        Output.Comma();
+                        genericArgs();
+                        Output.Comma();
+                        Visit(invocation.ThisReference);
+
+                        if (hasArguments)
+                            Output.Comma();
+                    } else {
+                        Output.Identifier("CallVirtual");
+                        Output.LPar();
+
+                        Output.Value(methodName);
+                        Output.Comma();
+                        genericArgs();
+                        Output.Comma();
+                        Visit(invocation.ThisReference);
+
+                        if (hasArguments)
+                            Output.Comma();
+                    }
+                } else {
+                    if (isStatic) {
+                        if (!invocation.Type.IsNull) {
+                            Visit(invocation.Type);
+                            Output.Dot();
+                        }
+
+                        Visit(invocation.Method);
+                        Output.LPar();
+                    } else if (invocation.ExplicitThis) {
+                        if (!invocation.Type.IsNull) {
+                            Visit(invocation.Type);
+                            Output.Dot();
+                            Output.Identifier("prototype", null);
+                            Output.Dot();
+                        }
+
+                        Visit(invocation.Method);
+                        Output.Dot();
+                        Output.Identifier("call", null);
+                        Output.LPar();
+
+                        Visit(invocation.ThisReference);
+
+                        if (hasArguments)
+                            Output.Comma();
+                    } else {
+                        thisRef();
+                        Output.Dot();
+                        Visit(invocation.Method);
+                        Output.LPar();
+                    }
+                }
+
+                if (jsm != null) {
+                    ReferenceContext.InvokingMethod = jsm.Reference;
+                } else {
+                    ReferenceContext.InvokingMethod = null;
+                }
+
+                bool needLineBreak = ArgumentsNeedLineBreak(invocation.Arguments);
+
+                if (needLineBreak)
+                    Output.NewLine();
+
+                CommaSeparatedList(invocation.Arguments, needLineBreak);
+
+                if (needLineBreak)
+                    Output.NewLine();
+
+                Output.RPar();
+            } finally {
+                ReferenceContext.InvokingMethod = oldInvoking;
             }
+        }
 
+        public void VisitNode (JSInitializerApplicationExpression iae) {
             Output.LPar();
-
-            bool needLineBreak = ArgumentsNeedLineBreak(invocation.Arguments);
-
-            if (needLineBreak)
-                Output.NewLine();
-
-            if (invocation.ExplicitThis && !isStatic && !invocation.ThisReference.IsNull) {
-                Visit(invocation.ThisReference);
-
-                if (invocation.Arguments.Count > 0)
-                    Output.Comma();
-            }
-
-            CommaSeparatedList(invocation.Arguments, needLineBreak);
-
-            if (needLineBreak)
-                Output.NewLine();
-
+            Visit(iae.Target);
+            Output.RPar();
+            Output.Dot();
+            Output.Identifier("__Initialize__");
+            Output.LPar();
+            Visit(iae.Initializer);
             Output.RPar();
         }
     }

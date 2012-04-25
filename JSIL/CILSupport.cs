@@ -11,45 +11,34 @@ using Mono.Cecil.Mdb;
 using Mono.Cecil.Pdb;
 
 namespace JSIL.Internal {
-    public class AssemblyResolver : BaseAssemblyResolver {
-        protected readonly Dictionary<string, AssemblyDefinition> Cache = new Dictionary<string, AssemblyDefinition>();
+    public class AssemblyCache : ConcurrentCache<string, AssemblyDefinition> {
+    }
 
-        public AssemblyResolver (IEnumerable<string> dirs) {
+    public class AssemblyResolver : BaseAssemblyResolver, IDisposable {
+        protected readonly AssemblyCache Cache = new AssemblyCache();
+        protected readonly bool OwnsCache;
+
+        public AssemblyResolver (IEnumerable<string> dirs, AssemblyCache cache = null) {
+            OwnsCache = (cache == null);
+            if (cache != null)
+                Cache = cache;
+            else
+                Cache = new AssemblyCache();
+
             foreach (var dir in dirs)
                 AddSearchDirectory(dir);
+        }
+
+        public void Dispose () {
+            if (OwnsCache)
+                Cache.Dispose();
         }
 
         public override AssemblyDefinition Resolve (AssemblyNameReference name, ReaderParameters parameters) {
             if (name == null)
                 throw new ArgumentNullException("name");
 
-            AssemblyDefinition assembly;
-            bool keyExists;
-
-            lock (Cache)
-                keyExists = Cache.ContainsKey(name.FullName);
-
-            if (keyExists) {
-                while (true) {
-                    lock (Cache)
-                        assembly = Cache[name.FullName];
-
-                    if (assembly != null)
-                        return assembly;
-
-                    Monitor.Wait(Cache);
-                }
-            }
-
-            assembly = base.Resolve(name, parameters);
-
-            lock (Cache) {
-                Cache[name.FullName] = assembly;
-
-                Monitor.PulseAll(Cache);
-            }
-
-            return assembly;
+            return Cache.GetOrCreate(name.FullName, () => base.Resolve(name, parameters));
         }
 
         protected void RegisterAssembly (AssemblyDefinition assembly) {
@@ -58,12 +47,7 @@ namespace JSIL.Internal {
 
             var name = assembly.Name.FullName;
 
-            lock (Cache) {
-                if (Cache.ContainsKey(name))
-                    return;
-
-                Cache[name] = assembly;
-            }
+            Cache.TryCreate(name, () => assembly);
         }
     }
 
@@ -101,6 +85,77 @@ namespace JSIL.Internal {
         public ISymbolReader GetSymbolReader (ModuleDefinition module, Stream symbolStream) {
             // Internal constructor for no reason! Thanks!
             return (new PdbReaderProvider()).GetSymbolReader(module, symbolStream);
+        }
+    }
+
+    public class CachingMetadataResolver : MetadataResolver {
+        public struct Key {
+            public readonly int HashCode;
+
+            public readonly string Namespace;
+            public readonly string Name;
+            public readonly string DeclaringTypeName;
+
+            public Key (TypeReference tr) {
+                Namespace = tr.Namespace;
+                Name = tr.Name;
+
+                HashCode = Namespace.GetHashCode() ^ Name.GetHashCode();
+
+                if (tr.DeclaringType != null) {
+                    DeclaringTypeName = tr.DeclaringType.FullName;
+                    HashCode = HashCode ^ DeclaringTypeName.GetHashCode();
+                } else {
+                    DeclaringTypeName = null;
+                }
+            }
+
+            public bool Equals (Key rhs) {
+                return (Namespace == rhs.Namespace) &&
+                    (DeclaringTypeName == rhs.DeclaringTypeName) &&
+                    (Name == rhs.Name);
+            }
+
+            public override bool Equals (object obj) {
+                if (obj is Key) {
+                    return Equals((Key)obj);
+                }
+
+                return base.Equals(obj);
+            }
+
+            public override int GetHashCode() {
+                return HashCode;
+            }
+        }
+
+        public class KeyComparer : IEqualityComparer<Key> {
+            public bool Equals (Key x, Key y) {
+                return x.Equals(y);
+            }
+
+            public int GetHashCode (Key obj) {
+                return obj.HashCode;
+            }
+        }
+
+        public readonly ConcurrentCache<Key, TypeDefinition> Cache;
+
+        public CachingMetadataResolver (IAssemblyResolver assemblyResolver) :
+            base(assemblyResolver) {
+
+            Cache = new ConcurrentCache<Key, TypeDefinition>(
+                Environment.ProcessorCount, 4096, new KeyComparer()
+            );
+        }
+
+        public override TypeDefinition Resolve (TypeReference type) {
+            var key = new Key(type);
+
+            return Cache.GetOrCreate(
+                key, () =>
+                    base.Resolve(type)
+            );
         }
     }
 }

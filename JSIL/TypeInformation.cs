@@ -1,9 +1,13 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using JSIL.Ast;
 using JSIL.Meta;
 using JSIL.Proxy;
@@ -15,9 +19,17 @@ namespace JSIL.Internal {
         ModuleInfo Get (ModuleDefinition module);
         TypeInfo Get (TypeReference type);
         TypeInfo GetExisting (TypeReference type);
+        TypeInfo GetExisting (TypeIdentifier type);
         IMemberInfo Get (MemberReference member);
 
         ProxyInfo[] GetProxies (TypeDefinition type);
+
+        void CacheProxyNames (MemberReference member);
+        bool TryGetProxyNames (string typeFullName, out string[] result);
+
+        ConcurrentCache<Tuple<string, string>, bool> AssignabilityCache {
+            get;
+        }
     }
 
     public static class TypeInfoSourceExtensions {
@@ -100,14 +112,36 @@ namespace JSIL.Internal {
         }
 
         public override string ToString () {
-            if (DeclaringTypeName != null)
-                return String.Format("{0} {1}.{2}/{3}", Assembly, Namespace, DeclaringTypeName, Name);
-            else
-                return String.Format("{0} {1}.{2}", Assembly, Namespace, Name);
+            return String.Format(
+                "{0}{1}{2}{3}{4}{5}{6}", Assembly, String.IsNullOrWhiteSpace(Assembly) ? "" : " ",
+                Namespace, String.IsNullOrWhiteSpace(Namespace) ? "" : ".",
+                String.IsNullOrWhiteSpace(DeclaringTypeName) ? "" : "/",
+                String.IsNullOrWhiteSpace(DeclaringTypeName) ? "" : DeclaringTypeName,
+                Name
+            );
         }
     }
 
     public class QualifiedMemberIdentifier {
+        public class Comparer : IEqualityComparer<QualifiedMemberIdentifier> {
+            public readonly ITypeInfoSource TypeInfo;
+
+            public Comparer (ITypeInfoSource typeInfo) {
+                TypeInfo = typeInfo;
+            }
+
+            public bool Equals (QualifiedMemberIdentifier x, QualifiedMemberIdentifier y) {
+                if (x == null)
+                    return x == y;
+
+                return x.Equals(y, TypeInfo);
+            }
+
+            public int GetHashCode (QualifiedMemberIdentifier obj) {
+                return obj.GetHashCode();
+            }
+        }
+
         public readonly TypeIdentifier Type;
         public readonly MemberIdentifier Member;
 
@@ -120,19 +154,32 @@ namespace JSIL.Internal {
             return Type.GetHashCode() ^ Member.GetHashCode();
         }
 
-        public bool Equals (QualifiedMemberIdentifier rhs) {
+        public bool Equals (MemberReference lhs, MemberReference rhs, ITypeInfoSource typeInfo) {
+            if ((lhs == null) || (rhs == null))
+                return lhs == rhs;
+
+            if (lhs == rhs)
+                return true;
+
+            var rhsType = new TypeIdentifier(rhs.DeclaringType);
+
+            if (!Type.Equals(rhsType))
+                return false;
+
+            var rhsMember = MemberIdentifier.New(typeInfo, rhs);
+
+            return Member.Equals(rhsMember, typeInfo);
+        }
+
+        public bool Equals (QualifiedMemberIdentifier rhs, ITypeInfoSource typeInfo) {
             if (!Type.Equals(rhs.Type))
                 return false;
 
-            return Member.Equals(rhs.Member);
+            return Member.Equals(rhs.Member, typeInfo);
         }
 
         public override bool Equals (object obj) {
-            var rhs = obj as QualifiedMemberIdentifier;
-            if (rhs != null)
-                return Equals(rhs);
-            else
-                return base.Equals(obj);
+            throw new InvalidOperationException("Use QualifiedMemberIdentifier.Equals(...) explicitly.");
         }
 
         public override string ToString () {
@@ -141,14 +188,31 @@ namespace JSIL.Internal {
     }
 
     public class MemberIdentifier {
+        public class Comparer : IEqualityComparer<MemberIdentifier> {
+            public readonly ITypeInfoSource TypeInfo;
+
+            public Comparer (ITypeInfoSource typeInfo) {
+                TypeInfo = typeInfo;
+            }
+
+            public bool Equals (MemberIdentifier x, MemberIdentifier y) {
+                if (x == null)
+                    return x == y;
+
+                return x.Equals(y, TypeInfo);
+            }
+
+            public int GetHashCode (MemberIdentifier obj) {
+                return obj.GetHashCode();
+            }
+        }
+
         public enum MemberType : byte {
             Field = 0,
             Method = 1,
             Property = 2,
             Event = 3,
         }
-
-        public static readonly ConcurrentCache<string, string[]> Proxies = new ConcurrentCache<string, string[]>();
 
         public readonly MemberType Type;
         public readonly string Name;
@@ -161,31 +225,30 @@ namespace JSIL.Internal {
 
         public static readonly TypeReference[] AnyParameterTypes = new TypeReference[] {};
 
-        public static void ResetProxies () {
-            Proxies.Clear();
-        }
-
-        public static MemberIdentifier New (MemberReference mr) {
+        public static MemberIdentifier New (ITypeInfoSource ti, MemberReference mr) {
             MethodReference method;
             PropertyReference property;
             EventReference evt;
             FieldReference field;
 
             if ((method = mr as MethodReference) != null)
-                return new MemberIdentifier(method);
+                return new MemberIdentifier(ti, method);
             else if ((field = mr as FieldReference) != null)
-                return new MemberIdentifier(field);
+                return new MemberIdentifier(ti, field);
             else if ((property = mr as PropertyReference) != null)
-                return new MemberIdentifier(property);
+                return new MemberIdentifier(ti, property);
             else if ((evt = mr as EventReference) != null)
-                return new MemberIdentifier(evt);
+                return new MemberIdentifier(ti, evt);
             else
-                throw new NotImplementedException();
+                throw new NotImplementedException(String.Format(
+                    "Unsupported member reference type: {0}",
+                    mr
+                ));
         }
 
-        public MemberIdentifier (MethodReference mr) {
+        public MemberIdentifier (ITypeInfoSource ti, MethodReference mr, string newName = null) {
             Type = MemberType.Method;
-            Name = mr.Name;
+            Name = newName ?? mr.Name;
             ReturnType = mr.ReturnType;
             ParameterCount = mr.Parameters.Count;
             ParameterTypes = GetParameterTypes(mr.Parameters);
@@ -197,19 +260,19 @@ namespace JSIL.Internal {
             else
                 GenericArgumentCount = 0;
 
-            LocateProxy(mr);
+            ti.CacheProxyNames(mr);
 
             HashCode = Type.GetHashCode() ^ Name.GetHashCode();
         }
 
-        public MemberIdentifier (PropertyReference pr) {
+        public MemberIdentifier (ITypeInfoSource ti, PropertyReference pr) {
             Type = MemberType.Property;
             Name = pr.Name;
             ReturnType = pr.PropertyType;
             ParameterCount = 0;
             GenericArgumentCount = 0;
             ParameterTypes = null;
-            LocateProxy(pr);
+            ti.CacheProxyNames(pr);
 
             var pd = pr.Resolve();
             if (pd != null) {
@@ -225,83 +288,28 @@ namespace JSIL.Internal {
             HashCode = Type.GetHashCode() ^ Name.GetHashCode();
         }
 
-        public MemberIdentifier (FieldReference fr) {
+        public MemberIdentifier (ITypeInfoSource ti, FieldReference fr) {
             Type = MemberType.Field;
             Name = fr.Name;
             ReturnType = fr.FieldType;
             ParameterCount = 0;
             GenericArgumentCount = 0;
             ParameterTypes = null;
-            LocateProxy(fr);
+            ti.CacheProxyNames(fr);
 
             HashCode = Type.GetHashCode() ^ Name.GetHashCode();
         }
 
-        public MemberIdentifier (EventReference er) {
+        public MemberIdentifier (ITypeInfoSource ti, EventReference er) {
             Type = MemberType.Event;
             Name = er.Name;
             ReturnType = er.EventType;
             ParameterCount = 0;
             GenericArgumentCount = 0;
             ParameterTypes = null;
-            LocateProxy(er);
+            ti.CacheProxyNames(er);
 
             HashCode = Type.GetHashCode() ^ Name.GetHashCode();
-        }
-
-        protected static void LocateProxy (MemberReference mr) {
-            var fullName = mr.DeclaringType.FullName;
-
-            Proxies.TryCreate(fullName, () => {
-                var icap = mr.DeclaringType as ICustomAttributeProvider;
-                if (icap == null)
-                    return null;
-
-                CustomAttribute proxyAttribute = null;
-                for (int i = 0, c = icap.CustomAttributes.Count; i < c; i++) {
-                    var ca = icap.CustomAttributes[i];
-                    if ((ca.AttributeType.Name == "JSProxy") && (ca.AttributeType.Namespace == "JSIL.Proxy")) {
-                        proxyAttribute = ca;
-                        break;
-                    }
-                }
-
-                if (proxyAttribute == null)
-                    return null;
-
-                string[] proxyTargets = null;
-                var args = proxyAttribute.ConstructorArguments;
-
-                foreach (var arg in args) {
-                    switch (arg.Type.FullName) {
-                        case "System.Type":
-                            proxyTargets = new string[] { ((TypeReference)arg.Value).FullName };
-
-                            break;
-                        case "System.Type[]": {
-                            var values = (CustomAttributeArgument[])arg.Value;
-                            proxyTargets = new string[values.Length];
-                            for (var i = 0; i < proxyTargets.Length; i++)
-                                proxyTargets[i] = ((TypeReference)values[i].Value).FullName;
-
-                            break;
-                        }
-                        case "System.String": {
-                            proxyTargets = new string[] { (string)arg.Value };
-
-                            break;
-                        }
-                        case "System.String[]": {
-                            var values = (CustomAttributeArgument[])arg.Value;
-                            proxyTargets = (from v in values select (string)v.Value).ToArray();
-
-                            break;
-                        }
-                    }
-                }
-
-                return proxyTargets;
-            });
         }
 
         static TypeReference[] GetParameterTypes (IList<ParameterDefinition> parameters) {
@@ -335,7 +343,7 @@ namespace JSIL.Internal {
             return (t.Name == "AnyType" && t.Namespace == "JSIL.Proxy") || (t.IsGenericParameter);
         }
 
-        bool TypesAreEqual (TypeReference lhs, TypeReference rhs) {
+        bool TypesAreEqual (ITypeInfoSource typeInfo, TypeReference lhs, TypeReference rhs) {
             if (lhs == rhs)
                 return true;
             else if (lhs == null || rhs == null)
@@ -348,7 +356,7 @@ namespace JSIL.Internal {
                 if ((lhsReference == null) || (rhsReference == null))
                     return false;
 
-                return TypesAreEqual(lhsReference.ElementType, rhsReference.ElementType);
+                return TypesAreEqual(typeInfo, lhsReference.ElementType, rhsReference.ElementType);
             }
 
             var lhsArray = lhs as ArrayType;
@@ -358,7 +366,7 @@ namespace JSIL.Internal {
                 if ((lhsArray == null) || (rhsArray == null))
                     return false;
 
-                return TypesAreEqual(lhsArray.ElementType, rhsArray.ElementType);
+                return TypesAreEqual(typeInfo, lhsArray.ElementType, rhsArray.ElementType);
             }
 
             var lhsGit = lhs as GenericInstanceType;
@@ -368,13 +376,13 @@ namespace JSIL.Internal {
                 if (lhsGit.GenericArguments.Count != rhsGit.GenericArguments.Count)
                     return false;
 
-                if (!TypesAreEqual(lhsGit.ElementType, rhsGit.ElementType))
+                if (!TypesAreEqual(typeInfo, lhsGit.ElementType, rhsGit.ElementType))
                     return false;
 
                 using (var eLeft = lhsGit.GenericArguments.GetEnumerator())
                 using (var eRight = rhsGit.GenericArguments.GetEnumerator())
                 while (eLeft.MoveNext() && eRight.MoveNext()) {
-                    if (!TypesAreEqual(eLeft.Current, eRight.Current))
+                    if (!TypesAreEqual(typeInfo, eLeft.Current, eRight.Current))
                         return false;
                 }
 
@@ -383,13 +391,13 @@ namespace JSIL.Internal {
 
             string[] proxyTargets;
             if (
-                Proxies.TryGet(lhs.FullName, out proxyTargets) &&
+                typeInfo.TryGetProxyNames(lhs.FullName, out proxyTargets) &&
                 (proxyTargets != null) &&
                 proxyTargets.Contains(rhs.FullName)
             ) {
                 return true;
             } else if (
-                Proxies.TryGet(rhs.FullName, out proxyTargets) &&
+                typeInfo.TryGetProxyNames(rhs.FullName, out proxyTargets) &&
                 (proxyTargets != null) &&
                 proxyTargets.Contains(lhs.FullName)
             ) {
@@ -399,10 +407,10 @@ namespace JSIL.Internal {
             if (IsAnyType(lhs) || IsAnyType(rhs))
                 return true;
 
-            return ILBlockTranslator.TypesAreEqual(lhs, rhs);
+            return TypeUtil.TypesAreEqual(lhs, rhs);
         }
 
-        public bool Equals (MemberIdentifier rhs) {
+        public bool Equals (MemberIdentifier rhs, ITypeInfoSource typeInfo) {
             if (this == rhs)
                 return true;
 
@@ -412,7 +420,7 @@ namespace JSIL.Internal {
             if (!String.Equals(Name, rhs.Name))
                 return false;
 
-            if (!TypesAreEqual(ReturnType, rhs.ReturnType))
+            if (!TypesAreEqual(typeInfo, ReturnType, rhs.ReturnType))
                 return false;
 
             if (GenericArgumentCount != rhs.GenericArgumentCount)
@@ -427,7 +435,7 @@ namespace JSIL.Internal {
                     return false;
 
                 for (int i = 0, c = ParameterCount; i < c; i++) {
-                    if (!TypesAreEqual(ParameterTypes[i], rhs.ParameterTypes[i]))
+                    if (!TypesAreEqual(typeInfo, ParameterTypes[i], rhs.ParameterTypes[i]))
                         return false;
                 }
             }
@@ -436,11 +444,7 @@ namespace JSIL.Internal {
         }
 
         public override bool Equals (object obj) {
-            var rhs = obj as MemberIdentifier;
-            if (rhs != null)
-                return Equals(rhs);
-
-            return base.Equals(obj);
+            throw new InvalidOperationException("Use MemberIdentifier.Equals(...) explicitly.");
         }
 
         public override int GetHashCode () {
@@ -489,14 +493,28 @@ namespace JSIL.Internal {
         public readonly JSProxyMemberPolicy MemberPolicy;
         public readonly JSProxyInterfacePolicy InterfacePolicy;
 
-        public readonly Dictionary<MemberIdentifier, FieldDefinition> Fields = new Dictionary<MemberIdentifier, FieldDefinition>();
-        public readonly Dictionary<MemberIdentifier, PropertyDefinition> Properties = new Dictionary<MemberIdentifier, PropertyDefinition>();
-        public readonly Dictionary<MemberIdentifier, EventDefinition> Events = new Dictionary<MemberIdentifier, EventDefinition>();
-        public readonly Dictionary<MemberIdentifier, MethodDefinition> Methods = new Dictionary<MemberIdentifier, MethodDefinition>();
+        public readonly Dictionary<MemberIdentifier, FieldDefinition> Fields;
+        public readonly Dictionary<MemberIdentifier, PropertyDefinition> Properties;
+        public readonly Dictionary<MemberIdentifier, EventDefinition> Events;
+        public readonly Dictionary<MemberIdentifier, MethodDefinition> Methods;
+
+        public readonly MethodDefinition ExtraStaticConstructor;
 
         public readonly bool IsInheritable;
 
-        public ProxyInfo (TypeDefinition proxyType) {
+        protected readonly ITypeInfoSource TypeInfo;
+
+        public ProxyInfo (ITypeInfoSource typeInfo, TypeDefinition proxyType) {
+            TypeInfo = typeInfo;
+            var comparer = new MemberIdentifier.Comparer(typeInfo);
+
+            Fields = new Dictionary<MemberIdentifier, FieldDefinition>(comparer);
+            Properties = new Dictionary<MemberIdentifier, PropertyDefinition>(comparer);
+            Events = new Dictionary<MemberIdentifier, EventDefinition>(comparer);
+            Methods = new Dictionary<MemberIdentifier, MethodDefinition>(comparer);
+
+            ExtraStaticConstructor = null;
+
             Definition = proxyType;
             Metadata = new MetadataCollection(proxyType);
             Interfaces = proxyType.Interfaces.ToArray();
@@ -540,36 +558,43 @@ namespace JSIL.Internal {
                         break;
                     }
                     default:
-                        throw new NotImplementedException();
+                        throw new NotImplementedException(String.Format(
+                            "Invalid argument to JSProxy attribute: {0}",
+                            arg.Type.FullName
+                        ));
                 }
             }
 
             foreach (var field in proxyType.Fields) {
-                if (!ILBlockTranslator.TypesAreEqual(field.DeclaringType, proxyType))
+                if (!TypeUtil.TypesAreEqual(field.DeclaringType, proxyType))
                     continue;
 
-                Fields.Add(new MemberIdentifier(field), field);
+                Fields.Add(new MemberIdentifier(typeInfo, field), field);
             }
 
             foreach (var property in proxyType.Properties) {
-                if (!ILBlockTranslator.TypesAreEqual(property.DeclaringType, proxyType))
+                if (!TypeUtil.TypesAreEqual(property.DeclaringType, proxyType))
                     continue;
 
-                Properties.Add(new MemberIdentifier(property), property);
+                Properties.Add(new MemberIdentifier(typeInfo, property), property);
             }
 
             foreach (var evt in proxyType.Events) {
-                if (!ILBlockTranslator.TypesAreEqual(evt.DeclaringType, proxyType))
+                if (!TypeUtil.TypesAreEqual(evt.DeclaringType, proxyType))
                     continue;
 
-                Events.Add(new MemberIdentifier(evt), evt);
+                Events.Add(new MemberIdentifier(typeInfo, evt), evt);
             }
 
             foreach (var method in proxyType.Methods) {
-                if (!ILBlockTranslator.TypesAreEqual(method.DeclaringType, proxyType))
+                if (!TypeUtil.TypesAreEqual(method.DeclaringType, proxyType))
                     continue;
 
-                Methods.Add(new MemberIdentifier(method), method);
+                if ((method.Name == ".cctor") && method.CustomAttributes.Any((ca) => ca.AttributeType.FullName == "JSIL.Meta.JSExtraStaticConstructor")) {
+                    ExtraStaticConstructor = method;
+                } else {
+                    Methods.Add(new MemberIdentifier(typeInfo, method), method);
+                }
             }
         }
 
@@ -600,15 +625,15 @@ namespace JSIL.Internal {
             return false;
         }
 
-        public bool IsMatch (TypeReference type, bool? forcedInheritable) {
+        public bool IsMatch (TypeDefinition type, bool? forcedInheritable) {
             bool inheritable = forcedInheritable.GetValueOrDefault(IsInheritable);
 
             foreach (var pt in ProxiedTypes) {
                 bool isMatch;
                 if (inheritable)
-                    isMatch = ILBlockTranslator.TypesAreAssignable(pt, type);
+                    isMatch = TypeUtil.TypesAreAssignable(TypeInfo, pt, type);
                 else
-                    isMatch = ILBlockTranslator.TypesAreEqual(pt, type);
+                    isMatch = TypeUtil.TypesAreEqual(pt, type);
 
                 if (isMatch)
                     return true;
@@ -619,7 +644,7 @@ namespace JSIL.Internal {
                     return true;
 
                 if (inheritable)
-                    foreach (var baseType in ILBlockTranslator.AllBaseTypesOf(ILBlockTranslator.GetTypeDefinition(type))) {
+                    foreach (var baseType in TypeUtil.AllBaseTypesOf(TypeUtil.GetTypeDefinition(type))) {
                         if (ProxiedTypeNames.Contains(baseType.FullName))
                             return true;
                     }
@@ -633,20 +658,26 @@ namespace JSIL.Internal {
         public readonly TypeIdentifier Identifier;
         public readonly TypeDefinition Definition;
         public readonly ITypeInfoSource Source;
+
         public readonly TypeInfo DeclaringType;
         public readonly TypeInfo BaseClass;
 
-        public readonly TypeInfo[] Interfaces;
+        public readonly System.Tuple<TypeInfo, TypeReference>[] Interfaces;
 
         // This needs to be mutable so we can introduce a constructed cctor later
         public MethodDefinition StaticConstructor;
+
+        public readonly List<MethodInfo> ExtraStaticConstructors = new List<MethodInfo>();
+
         public readonly HashSet<MethodDefinition> Constructors = new HashSet<MethodDefinition>();
         public readonly MetadataCollection Metadata;
         public readonly ProxyInfo[] Proxies;
 
+        public readonly MethodSignatureCollection MethodSignatures = new MethodSignatureCollection();
         public readonly HashSet<MethodGroupInfo> MethodGroups = new HashSet<MethodGroupInfo>();
 
         public readonly bool IsFlagsEnum;
+        public readonly EnumMemberInfo FirstEnumMember = null;
         public readonly Dictionary<long, EnumMemberInfo> ValueToEnumMember;
         public readonly Dictionary<string, EnumMemberInfo> EnumMembers;
         public readonly Dictionary<MemberIdentifier, IMemberInfo> Members;
@@ -654,6 +685,7 @@ namespace JSIL.Internal {
         public readonly bool IsDelegate;
         public readonly string Replacement;
 
+        protected int _DerivedTypeCount = 0;
         protected string _FullName = null;
         protected bool _FullyInitialized = false;
         protected bool _IsIgnored = false;
@@ -668,6 +700,9 @@ namespace JSIL.Internal {
             Definition = type;
             bool isStatic = type.IsSealed && type.IsAbstract;
 
+            if (baseClass != null)
+                Interlocked.Increment(ref baseClass._DerivedTypeCount);
+
             Proxies = source.GetProxies(type);
             Metadata = new MetadataCollection(type);
 
@@ -679,12 +714,36 @@ namespace JSIL.Internal {
                 (type.BaseType.FullName == "System.MulticastDelegate")
             );
 
-            var interfaces = new HashSet<TypeInfo>(
-                from i in type.Interfaces select source.GetExisting(i)
-            );
+            var interfaces = new HashSet<Tuple<TypeInfo, TypeReference>>();
+            {
+                StringBuilder errorString = null;
 
-            if (interfaces.Any((ii) => ii == null))
-                throw new InvalidOperationException("Missing type info for one or more interfaces");
+                foreach (var i in type.Interfaces) {
+                    var resolved = i.Resolve();
+                    if (resolved == null) {
+                        Console.Error.WriteLine("Warning: Could not resolve interface reference '{0}' for type '{1}'!", i.FullName, type.FullName);
+                        continue;
+                    }
+
+                    var ii = Tuple.Create(source.GetExisting(i), i);
+                    if (ii.Item1 == null) {
+                        if (errorString == null) {
+                            errorString = new StringBuilder();
+                            errorString.AppendFormat(
+                                "Missing type information for the following interface(s) of type '{0}':{1}",
+                                type.FullName, Environment.NewLine
+                            );
+                        }
+
+                        errorString.AppendLine(i.FullName);
+                    } else {
+                        interfaces.Add(ii);
+                    }
+                }
+
+                if (errorString != null)
+                    throw new InvalidDataException(errorString.ToString());
+            }
 
             foreach (var proxy in Proxies) {
                 Metadata.Update(proxy.Metadata, proxy.AttributePolicy == JSProxyAttributePolicy.ReplaceAll);
@@ -696,7 +755,7 @@ namespace JSIL.Internal {
 
                     foreach (var i in proxy.Interfaces) {
                         var ii = source.Get(i);
-                        interfaces.Add(ii);
+                        interfaces.Add(Tuple.Create(ii, i));
                     }
                 }
             }
@@ -725,7 +784,8 @@ namespace JSIL.Internal {
 
             {
                 var capacity = type.Fields.Count + type.Properties.Count + type.Events.Count + type.Methods.Count;
-                Members = new Dictionary<MemberIdentifier, IMemberInfo>(capacity);
+                var comparer = new MemberIdentifier.Comparer(source);
+                Members = new Dictionary<MemberIdentifier, IMemberInfo>(capacity, comparer);
             }
 
             foreach (var field in type.Fields)
@@ -774,6 +834,10 @@ namespace JSIL.Internal {
                         enumValue = Convert.ToInt64(field.Constant);
 
                     var info = new EnumMemberInfo(type, field.Name, enumValue);
+
+                    if (FirstEnumMember == null)
+                        FirstEnumMember = info;
+
                     ValueToEnumMember[enumValue] = info;
                     EnumMembers[field.Name] = info;
 
@@ -834,6 +898,14 @@ namespace JSIL.Internal {
 
                     AddProxyMember(proxy, method);
                 }
+
+                if (proxy.ExtraStaticConstructor != null) {
+                    var name = String.Format(".cctor{0}", ExtraStaticConstructors.Count + 2);
+                    var escIdentifier = new MemberIdentifier(source, proxy.ExtraStaticConstructor, name);
+                    var escInfo = new MethodInfo(this, escIdentifier, proxy.ExtraStaticConstructor, Proxies, true);
+                    escInfo.ForcedNewName = name;
+                    ExtraStaticConstructors.Add(escInfo);
+                }
             }
         }
 
@@ -850,6 +922,25 @@ namespace JSIL.Internal {
                     return (string)parms[0].Value;
 
                 return null;
+            }
+        }
+
+        public IEnumerable<TypeInfo> SelfAndBaseTypesRecursive {
+            get {
+                yield return this;
+
+                var baseType = BaseClass;
+                while (baseType != null) {
+                    yield return baseType;
+
+                    baseType = baseType.BaseClass;
+                }
+            }
+        }
+
+        public int DerivedTypeCount {
+            get {
+                return _DerivedTypeCount;
             }
         }
 
@@ -881,17 +972,15 @@ namespace JSIL.Internal {
                 if (filtered.Length <= 1)
                     continue;
 
-                int i = 0;
                 var groupName = filtered.First().Name;
-
-                foreach (var item in filtered.OrderBy((m) => m.Member.MetadataToken.ToUInt32())) {
-                    item.OverloadIndex = i;
-                    i += 1;
-                }
-
-                MethodGroups.Add(new MethodGroupInfo(
+                var mgi = new MethodGroupInfo(
                     this, filtered.ToArray(), groupName
-                ));
+                );
+
+                foreach (var m in mg)
+                    m.MethodGroup = mgi;
+
+                MethodGroups.Add(mgi);
             }
         }
 
@@ -936,7 +1025,7 @@ namespace JSIL.Internal {
         protected bool BeforeAddProxyMember<T> (ProxyInfo proxy, T member, out IMemberInfo result, ICustomAttributeProvider owningMember = null)
             where T : MemberReference, ICustomAttributeProvider
         {
-            var identifier = MemberIdentifier.New(member);
+            var identifier = MemberIdentifier.New(this.Source, member);
 
             if (member.CustomAttributes.Any(ShouldNeverInherit)) {
                 if (!proxy.IsMatch(this.Definition, false)) {
@@ -956,9 +1045,12 @@ namespace JSIL.Internal {
                     if (result.IsFromProxy)
                         Debug.WriteLine(String.Format("Warning: Proxy member '{0}' replacing proxy member '{1}'.", member, result));
 
-                    Members.Remove(identifier);
+                    lock (Members)
+                        Members.Remove(identifier);
                 } else {
-                    throw new ArgumentException();
+                    throw new ArgumentException(String.Format(
+                        "Member '{0}' not found", member.Name
+                    ), "member");
                 }
             }
 
@@ -1107,9 +1199,21 @@ namespace JSIL.Internal {
             return false;
         }
 
+        protected void UpdateSignatureSet (string methodName, MethodSignature signature) {
+            foreach (var t in SelfAndBaseTypesRecursive) {
+                int existingCount;
+
+                var set = t.MethodSignatures.GetOrCreate(
+                    methodName, () => new MethodSignatureSet()
+                );
+
+                set.Add(signature);
+            }
+        }
+
         protected MethodInfo AddMember (MethodDefinition method, PropertyInfo property, bool isFromProxy = false) {
             IMemberInfo result;
-            var identifier = new MemberIdentifier(method);
+            var identifier = new MemberIdentifier(this.Source, method);
             if (Members.TryGetValue(identifier, out result))
                 return (MethodInfo)result;
 
@@ -1119,81 +1223,102 @@ namespace JSIL.Internal {
             else if (property.Member.SetMethod == method)
                 property.Setter = (MethodInfo)result;
 
-            Members.Add(identifier, result);
+            lock (Members)
+                Members.Add(identifier, result);
+
+            UpdateSignatureSet(result.Name, ((MethodInfo)result).Signature);
+
             return (MethodInfo)result;
         }
 
         protected MethodInfo AddMember (MethodDefinition method, EventInfo evt, bool isFromProxy = false) {
             IMemberInfo result;
-            var identifier = new MemberIdentifier(method);
+            var identifier = new MemberIdentifier(this.Source, method);
             if (Members.TryGetValue(identifier, out result))
                 return (MethodInfo)result;
 
             result = new MethodInfo(this, identifier, method, Proxies, evt, isFromProxy);
-            Members.Add(identifier, result);
+            lock (Members)
+                Members.Add(identifier, result);
+
+            UpdateSignatureSet(result.Name, ((MethodInfo)result).Signature);
+
             return (MethodInfo)result;
         }
 
         protected MethodInfo AddMember (MethodDefinition method, bool isFromProxy = false) {
             IMemberInfo result;
-            var identifier = new MemberIdentifier(method);
+            var identifier = new MemberIdentifier(this.Source, method);
             if (Members.TryGetValue(identifier, out result))
                 return (MethodInfo)result;
 
             result = new MethodInfo(this, identifier, method, Proxies, isFromProxy);
-            Members.Add(identifier, result);
+            lock (Members)
+                Members.Add(identifier, result);
 
             if (method.Name == ".cctor")
                 StaticConstructor = method;
+
+            UpdateSignatureSet(result.Name, ((MethodInfo)result).Signature);
 
             return (MethodInfo)result;
         }
 
         protected FieldInfo AddMember (FieldDefinition field) {
             IMemberInfo result;
-            var identifier = new MemberIdentifier(field);
+            var identifier = new MemberIdentifier(this.Source, field);
             if (Members.TryGetValue(identifier, out result))
                 return (FieldInfo)result;
 
             result = new FieldInfo(this, identifier, field, Proxies);
-            Members.Add(identifier, result);
+            lock (Members)
+                Members.Add(identifier, result);
             return (FieldInfo)result;
         }
 
         protected PropertyInfo AddMember (PropertyDefinition property, bool isFromProxy = false) {
             IMemberInfo result;
-            var identifier = new MemberIdentifier(property);
+            var identifier = new MemberIdentifier(this.Source, property);
             if (Members.TryGetValue(identifier, out result))
                 return (PropertyInfo)result;
 
             result = new PropertyInfo(this, identifier, property, Proxies, isFromProxy);
-            Members.Add(identifier, result);
+            lock (Members)
+                Members.Add(identifier, result);
             return (PropertyInfo)result;
         }
 
         protected EventInfo AddMember (EventDefinition evt, bool isFromProxy = false) {
             IMemberInfo result;
-            var identifier = new MemberIdentifier(evt);
+            var identifier = new MemberIdentifier(this.Source, evt);
             if (Members.TryGetValue(identifier, out result))
                 return (EventInfo)result;
 
             result = new EventInfo(this, identifier, evt, Proxies, isFromProxy);
-            Members.Add(identifier, result);
+            lock (Members)
+                Members.Add(identifier, result);
             return (EventInfo)result;
         }
 
         internal bool IsTypeIgnored (ParameterDefinition pd, out TypeInfo typeInfo) {
-            return IsTypeIgnored(pd.ParameterType, out typeInfo);
+            var pt = pd.ParameterType;
+            pt = TypeUtil.DereferenceType(pt, false);
+
+            return IsTypeIgnored(pt, out typeInfo);
         }
 
         internal bool IsTypeIgnored (TypeReference t, out TypeInfo typeInfo) {
             typeInfo = null;
-            if (ILBlockTranslator.IsIgnoredType(t))
+            if (TypeUtil.IsIgnoredType(t))
                 return true;
 
             if (t.IsPrimitive)
                 return false;
-            else if (t.FullName == "System.Void")
+            else if ((t.Name == "Void") && (t.Namespace == "System"))
+                return false;
+            else if (t is ArrayType)
+                return false;
+            else if (t is GenericParameter)
                 return false;
 
             typeInfo = Source.GetExisting(t);
@@ -1212,39 +1337,47 @@ namespace JSIL.Internal {
         }
     }
 
-    public class AttributeEntry {
+    public class AttributeGroup {
+        public class Entry {
+            public readonly CustomAttributeArgument[] Arguments;
+
+            public Entry (CustomAttribute ca) {
+                Arguments = ca.ConstructorArguments.ToArray();
+            }
+        }
+
         public bool Inherited;
         public string Name;
-        public readonly List<CustomAttribute> Attributes = new List<CustomAttribute>();
+        public readonly List<Entry> Entries = new List<Entry>();
     }
 
-    public class MetadataCollection : IEnumerable<KeyValuePair<string, AttributeEntry>> {
-        protected Dictionary<string, AttributeEntry> Attributes = null;
+    public class MetadataCollection : IEnumerable<KeyValuePair<string, AttributeGroup>> {
+        protected Dictionary<string, AttributeGroup> Attributes = null;
 
         public MetadataCollection (ICustomAttributeProvider target) {
             if (target.CustomAttributes.Count == 0)
                 return;
 
             foreach (var ca in target.CustomAttributes) {
-                AttributeEntry existing;
+                AttributeGroup existing;
                 if (TryGetValue(ca.AttributeType.FullName, out existing))
-                    existing.Attributes.Add(ca);
+                    existing.Entries.Add(new AttributeGroup.Entry(ca));
                 else
-                    Add(ca.AttributeType.FullName, new AttributeEntry {
-                        Attributes = { ca },
+                    Add(ca.AttributeType.FullName, new AttributeGroup {
+                        Entries = { new AttributeGroup.Entry(ca) },
                         Inherited = false
                     });
             }
         }
 
-        public void Add (string name, AttributeEntry entry) {
+        public void Add (string name, AttributeGroup entry) {
             if (Attributes == null)
-                Attributes = new Dictionary<string, AttributeEntry>();
+                Attributes = new Dictionary<string, AttributeGroup>();
 
             Attributes.Add(name, entry);
         }
 
-        public bool TryGetValue (string name, out AttributeEntry entry) {
+        public bool TryGetValue (string name, out AttributeGroup entry) {
             if (Attributes == null) {
                 entry = null;
                 return false;
@@ -1269,7 +1402,7 @@ namespace JSIL.Internal {
             if (replaceAll)
                 Clear();
 
-            AttributeEntry existing;
+            AttributeGroup existing;
             if (rhs.Attributes != null) {
                 foreach (var kvp in rhs.Attributes) {
                     if (TryGetValue(kvp.Key, out existing)) {
@@ -1279,10 +1412,10 @@ namespace JSIL.Internal {
                             continue;
                     }
 
-                    var inherited = new AttributeEntry {
+                    var inherited = new AttributeGroup {
                         Inherited = true,
                     };
-                    inherited.Attributes.AddRange(kvp.Value.Attributes);
+                    inherited.Entries.AddRange(kvp.Value.Entries);
                     Add(kvp.Key, inherited);
                 }
             }
@@ -1300,8 +1433,8 @@ namespace JSIL.Internal {
             return false;
         }
 
-        public AttributeEntry GetAttribute (string fullName) {
-            AttributeEntry entry;
+        public AttributeGroup GetAttribute (string fullName) {
+            AttributeGroup entry;
 
             if (TryGetValue(fullName, out entry))
                 return entry;
@@ -1314,10 +1447,10 @@ namespace JSIL.Internal {
             if (attr == null)
                 return null;
 
-            return attr.Attributes[0].ConstructorArguments;
+            return attr.Entries[0].Arguments;
         }
 
-        public IEnumerator<KeyValuePair<string, AttributeEntry>> GetEnumerator () {
+        public IEnumerator<KeyValuePair<string, AttributeGroup>> GetEnumerator () {
             return Attributes.GetEnumerator();
         }
 
@@ -1327,6 +1460,7 @@ namespace JSIL.Internal {
     }
 
     public interface IMemberInfo {
+        MemberIdentifier Identifier { get; }
         TypeInfo DeclaringType { get; }
         TypeReference ReturnType { get; }
         PropertyInfo DeclaringProperty { get; }
@@ -1422,6 +1556,14 @@ namespace JSIL.Internal {
             return ChangedName ?? Member.Name;
         }
 
+        public ITypeInfoSource Source {
+            get { return DeclaringType.Source; }
+        }
+
+        MemberIdentifier IMemberInfo.Identifier {
+            get { return Identifier; }
+        }
+
         bool IMemberInfo.IsFromProxy {
             get { return IsFromProxy; }
         }
@@ -1453,7 +1595,7 @@ namespace JSIL.Internal {
             }
         }
 
-        public string ChangedName {
+        public virtual string ChangedName {
             get {
                 var parms = Metadata.GetAttributeParameters("JSIL.Meta.JSChangeName");
                 if (parms != null)
@@ -1510,7 +1652,7 @@ namespace JSIL.Internal {
             FieldDefinition field, ProxyInfo[] proxies
         ) : base(
             parent, identifier, field, proxies, 
-            ILBlockTranslator.IsIgnoredType(field.FieldType), false, false
+            TypeUtil.IsIgnoredType(field.FieldType), false, false
         ) {
             OriginalName = TypeInfo.GetOriginalName(Name);
         }
@@ -1540,7 +1682,7 @@ namespace JSIL.Internal {
             PropertyDefinition property, ProxyInfo[] proxies, bool isFromProxy
         ) : base(
             parent, identifier, property, proxies, 
-            ILBlockTranslator.IsIgnoredType(property.PropertyType), false, isFromProxy
+            TypeUtil.IsIgnoredType(property.PropertyType), false, isFromProxy
         ) {
             ShortName = GetShortName(property);
         }
@@ -1562,6 +1704,10 @@ namespace JSIL.Internal {
 
         public override TypeReference ReturnType {
             get { return Member.PropertyType; }
+        }
+
+        public bool IsPublic {
+            get { return (Member.GetMethod ?? Member.SetMethod).IsPublic; }
         }
 
         public override bool IsStatic {
@@ -1589,11 +1735,19 @@ namespace JSIL.Internal {
 
     public class MethodInfo : MemberInfo<MethodDefinition> {
         public readonly ParameterDefinition[] Parameters;
+        public readonly string[] GenericParameterNames;
         public readonly PropertyInfo Property = null;
         public readonly EventInfo Event = null;
         public readonly bool IsGeneric;
+        public readonly bool IsConstructor;
+        public readonly bool IsVirtual;
+        public readonly bool IsSealed;
 
-        public int? OverloadIndex;
+        protected MethodSignature _Signature = null;
+
+        protected MethodGroupInfo _MethodGroup = null;
+        protected bool? _IsOverloadedRecursive;
+        protected bool? _IsRedefinedRecursive;
         protected bool? _ParametersIgnored;
         protected readonly string ShortName;
 
@@ -1602,14 +1756,18 @@ namespace JSIL.Internal {
             MethodDefinition method, ProxyInfo[] proxies, bool isFromProxy
         ) : base (
             parent, identifier, method, proxies,
-            ILBlockTranslator.IsIgnoredType(method.ReturnType) || 
-                method.Parameters.Any((p) => ILBlockTranslator.IsIgnoredType(p.ParameterType)),
+            TypeUtil.IsIgnoredType(method.ReturnType) || 
+                method.Parameters.Any((p) => TypeUtil.IsIgnoredType(p.ParameterType)),
             method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall || method.IsPInvokeImpl,
             isFromProxy
         ) {
             ShortName = GetShortName(method);
             Parameters = method.Parameters.ToArray();
+            GenericParameterNames = (from p in method.GenericParameters select p.Name).ToArray();
             IsGeneric = method.HasGenericParameters;
+            IsConstructor = method.Name == ".ctor";
+            IsVirtual = method.IsVirtual;
+            IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
         }
 
         public MethodInfo (
@@ -1618,8 +1776,8 @@ namespace JSIL.Internal {
             PropertyInfo property, bool isFromProxy
         ) : base (
             parent, identifier, method, proxies,
-            ILBlockTranslator.IsIgnoredType(method.ReturnType) || 
-                method.Parameters.Any((p) => ILBlockTranslator.IsIgnoredType(p.ParameterType)),
+            TypeUtil.IsIgnoredType(method.ReturnType) || 
+                method.Parameters.Any((p) => TypeUtil.IsIgnoredType(p.ParameterType)),
             method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || 
                 method.IsInternalCall || method.IsPInvokeImpl || property.IsExternal,
             isFromProxy
@@ -1627,7 +1785,11 @@ namespace JSIL.Internal {
             Property = property;
             ShortName = GetShortName(method);
             Parameters = method.Parameters.ToArray();
+            GenericParameterNames = (from p in method.GenericParameters select p.Name).ToArray();
             IsGeneric = method.HasGenericParameters;
+            IsConstructor = method.Name == ".ctor";
+            IsVirtual = method.IsVirtual;
+            IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
         }
 
         public MethodInfo (
@@ -1636,22 +1798,103 @@ namespace JSIL.Internal {
             EventInfo evt, bool isFromProxy
         ) : base(
             parent, identifier, method, proxies,
-            ILBlockTranslator.IsIgnoredType(method.ReturnType) ||
-                method.Parameters.Any((p) => ILBlockTranslator.IsIgnoredType(p.ParameterType)),
+            TypeUtil.IsIgnoredType(method.ReturnType) ||
+                method.Parameters.Any((p) => TypeUtil.IsIgnoredType(p.ParameterType)),
             method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall || method.IsPInvokeImpl,
             isFromProxy
         ) {
             Event = evt;
             ShortName = GetShortName(method);
             Parameters = method.Parameters.ToArray();
+            GenericParameterNames = (from p in method.GenericParameters select p.Name).ToArray();
             IsGeneric = method.HasGenericParameters;
+            IsConstructor = method.Name == ".ctor";
+            IsVirtual = method.IsVirtual;
+            IsSealed = method.IsFinal || method.DeclaringType.IsSealed;
+        }
+
+        protected void MakeSignature () {
+            _Signature = new MethodSignature(
+                ReturnType, (from p in Parameters select p.ParameterType).ToArray(),
+                GenericParameterNames
+            );
         }
 
         protected override string GetName () {
-            return GetName(null);
+            return GetName(false);
         }
 
-        public string GetName (bool? nameMangling = null) {
+        public MethodSignature Signature {
+            get {
+                if (_Signature == null)
+                    MakeSignature();
+
+                return _Signature;
+            }
+        }
+
+        public string ForcedNewName {
+            private get;
+            set;
+        }
+
+        public override string ChangedName {
+            get {
+                if (ForcedNewName != null)
+                    return ForcedNewName;
+
+                if (Property != null) {
+                    var propertyChangedName = Property.ChangedName;
+                    if (propertyChangedName != null)
+                        return ShortName.Substring(0, ShortName.IndexOf('_') + 1) + propertyChangedName;
+                }
+
+                return base.ChangedName;
+            }
+        }
+
+        public bool IsOverloaded {
+            get {
+                return _MethodGroup != null;
+            }
+        }
+
+        public bool IsRedefinedRecursive {
+            get {
+                if (!_IsRedefinedRecursive.HasValue) {
+                    _IsRedefinedRecursive = 
+                        DeclaringType.MethodSignatures.GetDefinitionCountOf(this) > 1;
+                }
+
+                return _IsRedefinedRecursive.Value;
+            }
+        }
+
+        public bool IsOverloadedRecursive {
+            get {
+                if (IsOverloaded)
+                    return true;
+
+                if (!_IsOverloadedRecursive.HasValue) {
+                    _IsOverloadedRecursive = 
+                        DeclaringType.MethodSignatures.GetOverloadCountOf(Name) > 1;
+                }
+
+                return _IsOverloadedRecursive.Value;
+            }
+        }
+
+        public MethodGroupInfo MethodGroup {
+            get {
+                return _MethodGroup;
+            }
+            internal set {
+                _IsOverloadedRecursive = null;
+                _MethodGroup = value;
+            }
+        }
+
+        public string GetName (bool stripGenericSuffix) {
             string result;
             var declType = Member.DeclaringType.Resolve();
             var over = Member.Overrides.FirstOrDefault();
@@ -1666,14 +1909,9 @@ namespace JSIL.Internal {
                 result = String.Format("{0}.{1}", over.DeclaringType.Name, ShortName);
             else
                 result = ShortName;
-
-            if (Member.HasGenericParameters)
+            
+            if (IsGeneric && !stripGenericSuffix)
                 result = String.Format("{0}`{1}", result, Member.GenericParameters.Count);
-
-            if (OverloadIndex.HasValue) {
-                if (nameMangling.GetValueOrDefault(!Metadata.HasAttribute("JSIL.Meta.JSRuntimeDispatch")))
-                    result = String.Format("{0}${1}", result, OverloadIndex.Value);
-            }
 
             return result;
         }
@@ -1825,6 +2063,129 @@ namespace JSIL.Internal {
             }
 
             return false;
+        }
+    }
+
+    public class MethodTypeFactory : IDisposable {
+        protected struct MethodSignature {
+            public readonly TypeReference ReturnType;
+            public readonly IEnumerable<TypeReference> ParameterTypes;
+            public readonly int ParameterCount;
+            private readonly int HashCode;
+
+            public MethodSignature (TypeReference returnType, IEnumerable<TypeReference> parameterTypes) {
+                ReturnType = returnType;
+                ParameterTypes = parameterTypes;
+                ParameterCount = parameterTypes.Count();
+
+                HashCode = ReturnType.FullName.GetHashCode() ^ ParameterCount;
+
+                int i = 0;
+                foreach (var p in ParameterTypes) {
+                    HashCode ^= (p.FullName.GetHashCode() << i);
+                    i += 1;
+                }
+            }
+
+            public override int GetHashCode () {
+                return HashCode;
+            }
+
+            public bool Equals (MethodSignature rhs) {
+                if (!TypeUtil.TypesAreEqual(
+                    ReturnType, rhs.ReturnType
+                ))
+                    return false;
+
+                if (ParameterCount != rhs.ParameterCount)
+                    return false;
+
+                using (var e1 = ParameterTypes.GetEnumerator())
+                using (var e2 = rhs.ParameterTypes.GetEnumerator())
+                    while (e1.MoveNext() && e2.MoveNext()) {
+                        if (!TypeUtil.TypesAreEqual(e1.Current, e2.Current))
+                            return false;
+                    }
+
+                return true;
+            }
+
+            public override bool Equals (object obj) {
+                if (obj is MethodSignature)
+                    return Equals((MethodSignature)obj);
+                else
+                    return base.Equals(obj);
+            }
+        }
+
+        protected readonly ConcurrentCache<MethodSignature, TypeReference> Cache = new ConcurrentCache<MethodSignature, TypeReference>();
+
+        public TypeReference Get (MethodReference method, TypeSystem typeSystem) {
+            return Get(
+                method.ReturnType,
+                (from p in method.Parameters select p.ParameterType),
+                typeSystem
+            );
+        }
+
+        public TypeReference Get (TypeReference returnType, IEnumerable<TypeReference> parameterTypes, TypeSystem typeSystem) {
+            TypeReference result;
+            var ptypes = parameterTypes.ToArray();
+            var signature = new MethodSignature(returnType, ptypes);
+
+            return Cache.GetOrCreate(
+                signature, () => {
+                    TypeReference genericDelegateType;
+
+                    var systemModule = typeSystem.Boolean.Resolve().Module;
+                    bool hasReturnType;
+
+                    if (TypeUtil.TypesAreEqual(typeSystem.Void, returnType)) {
+                        hasReturnType = false;
+                        var name = String.Format("System.Action`{0}", signature.ParameterCount);
+                        genericDelegateType = systemModule.GetType(
+                            signature.ParameterCount == 0 ? "System.Action" : name
+                        );
+                    } else {
+                        hasReturnType = true;
+                        genericDelegateType = systemModule.GetType(String.Format(
+                            "System.Func`{0}", signature.ParameterCount + 1
+                        ));
+                    }
+
+                    if (genericDelegateType != null) {
+                        var git = new GenericInstanceType(genericDelegateType);
+                        foreach (var pt in ptypes)
+                            git.GenericArguments.Add(pt);
+
+                        if (hasReturnType)
+                            git.GenericArguments.Add(returnType);
+
+                        return git;
+                    } else {
+                        var baseType = systemModule.GetType("System.MulticastDelegate");
+
+                        var td = new TypeDefinition(
+                            "JSIL.Meta", "MethodSignature", TypeAttributes.Class | TypeAttributes.NotPublic, baseType
+                        );
+                        td.DeclaringType = baseType;
+
+                        var invoke = new MethodDefinition(
+                            "Invoke", MethodAttributes.Public, returnType
+                        );
+                        foreach (var pt in ptypes)
+                            invoke.Parameters.Add(new ParameterDefinition(pt));
+
+                        td.Methods.Add(invoke);
+
+                        return td;
+                    }
+                }
+            );
+        }
+
+        public void Dispose () {
+            Cache.Dispose();
         }
     }
 }

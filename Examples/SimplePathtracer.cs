@@ -29,10 +29,11 @@ using System.Drawing;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Diagnostics;
 using JSIL.Meta;
 
 namespace simpleray {
-    public class Vector3f {
+    public struct Vector3f {
         public float x, y, z;
 
         public Vector3f(float x = 0, float y = 0, float z = 0) {
@@ -89,17 +90,15 @@ namespace simpleray {
 
         public static Vector3f CrossProduct(Vector3f v1, Vector3f v2)
         {
-            Vector3f v = new Vector3f();
-
-            v.x = v1.y * v2.z - v1.z * v2.y;
-            v.y = v1.z * v2.x - v1.x * v2.z;
-            v.z = v1.x * v2.y - v1.y * v2.x;
-
-            return v;
+            return new Vector3f(
+                v1.y * v2.z - v1.z * v2.y,
+                v1.z * v2.x - v1.x * v2.z,
+                v1.x * v2.y - v1.y * v2.x
+            );
         }
     }
     
-    public class Ray {
+    public struct Ray {
         public const float WORLD_MAX = 1000.0f;
 
         public Vector3f origin;
@@ -110,10 +109,11 @@ namespace simpleray {
         public Vector3f hitPoint;
 
         public Ray(Vector3f o, Vector3f d) {
-            origin = o;
-            direction = d;
-            closestHitDistance = WORLD_MAX;
-            closestHitObject = null;
+          origin = o;
+          direction = d;
+          closestHitDistance = WORLD_MAX;
+          closestHitObject = null;
+          hitPoint = new Vector3f();
         }
     }
     
@@ -122,7 +122,7 @@ namespace simpleray {
         public bool isEmitter;  // If true, this object's an emitter
 
         // return distance at which this object is intersected by a ray, or -1 if no intersection
-        public abstract float Intersect(Ray ray);
+        public abstract float Intersect(ref Ray ray);
 
         // return the surface normal (perpendicular vector to the surface) for a given point on the surface on the object
         public abstract Vector3f GetSurfaceNormalAtPoint(Vector3f p);
@@ -141,7 +141,7 @@ namespace simpleray {
             isEmitter = false;
         }
 
-        public override float Intersect(Ray ray) {
+        public override float Intersect(ref Ray ray) {
             float normalDotRayDir = normal.Dot(ray.direction);
             if (normalDotRayDir == 0)   // Ray is parallel to plane (this early-out won't help very often!)
                 return -1;
@@ -173,7 +173,7 @@ namespace simpleray {
             isEmitter = false;
         }
 
-        public override float Intersect(Ray ray) {
+        public override float Intersect(ref Ray ray) {
             Vector3f lightFromOrigin = position - ray.origin;               // dir from origin to us
             float v = lightFromOrigin.Dot(ray.direction);                   // cos of angle between dirs from origin to us and from origin to where the ray's pointing
 
@@ -202,8 +202,9 @@ namespace simpleray {
         const int CANVAS_HEIGHT = 240;
         
         const float TINY = 0.0001f;                                             // a very short distance in world space coords
-        const int MAX_DEPTH = 4;                                                // max recursion for reflections
-        const int RAYS_PER_PIXEL = 512;                                         // how many rays to shoot per pixel?
+        const float BRIGHTNESS = 1.5f;
+        static int MAX_DEPTH = 4;                                               // max recursion for reflections
+        static int RAYS_PER_PIXEL = 512;                                        // how many rays to shoot per pixel?
 
         static Vector3f eyePos = new Vector3f(0, 2.0f, -5.0f);                  // eye pos in world space coords
         static Vector3f screenTopLeftPos = new Vector3f(-4.0f, 5.5f, 0);        // top-left corner of screen in world coords - note aspect ratio should match image
@@ -213,11 +214,17 @@ namespace simpleray {
 
         static List<RTObject> objects;                                          // all RTObjects in the scene
         static Random random;                                                   // global random for repeatability
+      
+        static Stopwatch stopwatch;        
+        static double minSpeed = double.MaxValue, maxSpeed = double.MinValue;
+        static List<double> speedSamples;
 
         static void Main(string[] args) {
             // init structures
             objects = new List<RTObject>();
             random = new Random(45734);
+            stopwatch = new Stopwatch();
+            speedSamples = new List<double>();
             Bitmap canvas = new Bitmap(CANVAS_WIDTH, CANVAS_HEIGHT);
             
             // add some objects
@@ -253,38 +260,87 @@ namespace simpleray {
             System.Console.WriteLine("Rendering...\n");
             System.Console.WriteLine("|0%-----------100%|"); 
             
-            RenderRow(canvas, dotPeriod, 0);
-
+            Func<object> next = () =>
+              RenderRowChunk(canvas, dotPeriod, 0, 0);
+              
+            while (next != null) {
+              next = (Func<object>)(next());
+            }
+            
             // save the pretties
             canvas.Save("output.png");
         }
         
-        static void RenderRow (System.Drawing.Bitmap canvas, int dotPeriod, int y) {            
+        static object RenderRowChunk (System.Drawing.Bitmap canvas, int dotPeriod, int x, int y) {            
             if (y >= CANVAS_HEIGHT)
-                return;
+                return null;
             
-            if ((y % dotPeriod) == 0) 
-                System.Console.Write("*");
-          
-            for (int x = 0; x < CANVAS_WIDTH; x++) {
+            if ((x == 0) && ((y % dotPeriod) == 0)) {
+              System.Console.Write("*");
+            }
+            
+            int chunkSize = 32;
+            JSIL.Verbatim.Expression("canvas.flushInterval = chunkSize");
+            
+            stopwatch.Restart();
+            int x1 = x, x2 = Math.Min(x + chunkSize, CANVAS_WIDTH);
+            for (; x < x2; x++) {
                 Color c = RenderPixel(x, y);
                 canvas.SetPixel(x, y, c);
             }
+            var elapsed = stopwatch.ElapsedMilliseconds;
+            double msPerPixel = (double)elapsed / chunkSize;
             
-            SetTimeout(0, () => 
-                RenderRow(canvas, dotPeriod, y + 1)
-            );
+            if (x2 >= CANVAS_WIDTH) {
+              y += 1;
+              x2 = 0;
+            }
+            
+            ReportSpeed(msPerPixel);
+            
+            bool useSetTimeout = false;
+            JSIL.Verbatim.Expression("useSetTimeout = true");
+            
+            Func<object> next = () => 
+                  RenderRowChunk(canvas, dotPeriod, x2, y);
+            
+            if (useSetTimeout) {
+              SetTimeout(0, next);
+              return null;
+            } else
+              return next;
+        }
+        
+        static void ReportSpeed (double msPerPixel) {
+          minSpeed = Math.Min(msPerPixel, minSpeed);
+          maxSpeed = Math.Max(msPerPixel, maxSpeed);
+          speedSamples.Add(msPerPixel);
+          
+          double average = 0;
+          foreach (var d in speedSamples)
+            average += d;
+          average /= speedSamples.Count;
+          
+          WriteSpeedText(String.Format(
+            "min: {0:F3} ms/pixel, max: {1:F3} ms/pixel, avg: {2:F3} ms/pixel",
+            minSpeed, maxSpeed, average
+          ));
+        }
+        
+        [JSReplacement("document.getElementById('speed').innerHTML = $text")]
+        static void WriteSpeedText (string text) {
+          Debug.WriteLine(text);
         }
         
         [JSReplacement("setTimeout($action, $timeoutMs)")]
-        static void SetTimeout (int timeoutMs, Action action) {
+        static void SetTimeout (int timeoutMs, Func<object> action) {
           action();
         }
         
         // Given a ray with origin and direction set, fill in the intersection info
         static void CheckIntersection(ref Ray ray) {
             foreach (RTObject obj in objects) {                     // loop through objects, test for intersection
-                float hitDistance = obj.Intersect(ray);             // check for intersection with this object and find distance
+                float hitDistance = obj.Intersect(ref ray);             // check for intersection with this object and find distance
                 if (hitDistance < ray.closestHitDistance && hitDistance > 0) {
                     ray.closestHitObject = obj;                     // object hit and closest yet found - store it
                     ray.closestHitDistance = hitDistance;
@@ -317,9 +373,21 @@ namespace simpleray {
                 g += c.G;
                 b += c.B;
             }
+            
+            r *= BRIGHTNESS;
+            g *= BRIGHTNESS;
+            b *= BRIGHTNESS;
             r /= RAYS_PER_PIXEL;
             g /= RAYS_PER_PIXEL;
             b /= RAYS_PER_PIXEL;
+            
+            if (r > 255)
+              r = 255;
+            if (g > 255)
+              g = 255;
+            if (b > 255)
+              b = 255;
+            
             return (Color.FromArgb(255, (int)r, (int)g, (int)b));
         }
 

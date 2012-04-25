@@ -13,8 +13,12 @@ namespace JSIL.Transforms {
         public readonly TypeSystem TypeSystem;
         public readonly JSILIdentifier JSIL;
         public readonly JSSpecialIdentifiers JS;
+        public readonly MethodReference Method;
 
-        public ReplaceMethodCalls (JSILIdentifier jsil, JSSpecialIdentifiers js, TypeSystem typeSystem) {
+        public ReplaceMethodCalls (
+            MethodReference method, JSILIdentifier jsil, JSSpecialIdentifiers js, TypeSystem typeSystem
+        ) {
+            Method = method;
             JSIL = jsil;
             JS = js;
             TypeSystem = typeSystem;
@@ -31,25 +35,31 @@ namespace JSIL.Transforms {
                     (type.Type.FullName == "System.Object")
                 ) {
                     switch (method.Method.Member.Name) {
-                        case "GetType":
+                        case ".ctor": {
+                            var replacement = new JSNullExpression();
+                            ParentNode.ReplaceChild(ie, replacement);
+                            VisitReplacement(replacement);
+
+                            return;
+                        }
+                        case "GetType": {
                             JSNode replacement;
 
-                            var thisType = JSExpression.DeReferenceType(thisExpression.GetExpectedType(TypeSystem), false);
+                            var thisType = JSExpression.DeReferenceType(thisExpression.GetActualType(TypeSystem), false);
                             if ((thisType is GenericInstanceType) && thisType.FullName.StartsWith("System.Nullable")) {
                                 replacement = new JSType(thisType);
                             } else {
-                                replacement = JSIL.GetType(thisExpression);
+                                replacement = JSIL.GetTypeOf(thisExpression);
                             }
 
                             ParentNode.ReplaceChild(ie, replacement);
                             VisitReplacement(replacement);
 
                             return;
+                        }
                     }
                 } else if (
-                    (type != null) &&
-                    (type.Type.FullName.StartsWith("System.Nullable")) &&
-                    (type.Type is GenericInstanceType)
+                    IsNullable(type.Type)
                 ) {
                     var t = (type.Type as GenericInstanceType).GenericArguments[0];
                     var @null = JSLiteral.Null(t);
@@ -98,13 +108,13 @@ namespace JSIL.Transforms {
                     return;
                 } else if (
                     (type != null) &&
-                    ILBlockTranslator.TypesAreEqual(TypeSystem.String, type.Type) &&
+                    TypeUtil.TypesAreEqual(TypeSystem.String, type.Type) &&
                     (method.Method.Name == "Concat")
                 ) {
                     if (ie.Arguments.Count > 2) {
                         if (ie.Arguments.All(
-                            (arg) => ILBlockTranslator.TypesAreEqual(
-                                TypeSystem.String, arg.GetExpectedType(TypeSystem)
+                            (arg) => TypeUtil.TypesAreEqual(
+                                TypeSystem.String, arg.GetActualType(TypeSystem)
                             )
                         )) {
                             var boe = JSBinaryOperatorExpression.New(
@@ -124,19 +134,19 @@ namespace JSIL.Transforms {
                         ie.Arguments.Count == 2
                     ) {
                         var lhs = ie.Arguments[0];
-                        var lhsType = ILBlockTranslator.DereferenceType(lhs.GetExpectedType(TypeSystem));
+                        var lhsType = TypeUtil.DereferenceType(lhs.GetActualType(TypeSystem));
                         if (!(
-                            ILBlockTranslator.TypesAreEqual(TypeSystem.String, lhsType) ||
-                            ILBlockTranslator.TypesAreEqual(TypeSystem.Char, lhsType)
+                            TypeUtil.TypesAreEqual(TypeSystem.String, lhsType) ||
+                            TypeUtil.TypesAreEqual(TypeSystem.Char, lhsType)
                         )) {
                             lhs = JSInvocationExpression.InvokeMethod(lhsType, JS.toString, lhs, null);
                         }
 
                         var rhs = ie.Arguments[1];
-                        var rhsType = ILBlockTranslator.DereferenceType(rhs.GetExpectedType(TypeSystem));
+                        var rhsType = TypeUtil.DereferenceType(rhs.GetActualType(TypeSystem));
                         if (!(
-                            ILBlockTranslator.TypesAreEqual(TypeSystem.String, rhsType) ||
-                            ILBlockTranslator.TypesAreEqual(TypeSystem.Char, rhsType)
+                            TypeUtil.TypesAreEqual(TypeSystem.String, rhsType) ||
+                            TypeUtil.TypesAreEqual(TypeSystem.Char, rhsType)
                         )) {
                             rhs = JSInvocationExpression.InvokeMethod(rhsType, JS.toString, rhs, null);
                         }
@@ -151,7 +161,7 @@ namespace JSIL.Transforms {
 
                         VisitReplacement(boe);
                     } else if (
-                        ILBlockTranslator.GetTypeDefinition(ie.Arguments[0].GetExpectedType(TypeSystem)).FullName == "System.Array"
+                        TypeUtil.GetTypeDefinition(ie.Arguments[0].GetActualType(TypeSystem)).FullName == "System.Array"
                     ) {
                     } else {
                         var firstArg = ie.Arguments.FirstOrDefault();
@@ -165,11 +175,11 @@ namespace JSIL.Transforms {
                     }
                     return;
                 } else if (
-                    ILBlockTranslator.IsDelegateType(method.Reference.DeclaringType) &&
+                    TypeUtil.IsDelegateType(method.Reference.DeclaringType) &&
                     (method.Method.Name == "Invoke")
                 ) {
                     var newIe = new JSDelegateInvocationExpression(
-                        thisExpression, ie.GetExpectedType(TypeSystem), ie.Arguments.ToArray()
+                        thisExpression, ie.GetActualType(TypeSystem), ie.Arguments.ToArray()
                     );
                     ParentNode.ReplaceChild(ie, newIe);
 
@@ -189,7 +199,7 @@ namespace JSIL.Transforms {
                     (method.Method.Name == "InitializeArray")
                 ) {
                     var array = ie.Arguments[0];
-                    var arrayType = array.GetExpectedType(TypeSystem);
+                    var arrayType = array.GetActualType(TypeSystem);
                     var field = ie.Arguments[1].SelfAndChildrenRecursive.OfType<JSField>().First();
                     var initializer = JSArrayExpression.UnpackArrayInitializer(arrayType, field.Field.Member.InitialValue);
 
@@ -197,6 +207,38 @@ namespace JSIL.Transforms {
                     ParentNode.ReplaceChild(ie, copy);
                     VisitReplacement(copy);
                     return;
+                } else if (
+                    method.Reference.DeclaringType.FullName == "System.Reflection.Assembly"
+                ) {
+                    switch (method.Reference.Name) {
+                        case "GetExecutingAssembly": {
+                            var assembly = Method.DeclaringType.Module.Assembly;
+                            var asmNode = new JSAssembly(assembly);
+                            ParentNode.ReplaceChild(ie, asmNode);
+                            VisitReplacement(asmNode);
+
+                            return;
+                        }
+                        case "GetType": {
+                            switch (method.Method.Parameters.Length) {
+                                case 1:
+                                case 2:
+                                    JSExpression throwOnFail = new JSBooleanLiteral(false);
+                                    if (method.Method.Parameters.Length == 2)
+                                        throwOnFail = ie.Arguments[1];
+
+                                    var invocation = JSIL.GetTypeFromAssembly(
+                                        ie.ThisReference, ie.Arguments[0], throwOnFail
+                                    );
+                                    ParentNode.ReplaceChild(ie, invocation);
+                                    VisitReplacement(invocation);
+
+                                    return;
+                            }
+
+                            break;
+                        }
+                    }
                 } else if (
                     method.Method.DeclaringType.Definition.FullName == "System.Array" &&
                     (ie.Arguments.Count == 1)
@@ -232,10 +274,16 @@ namespace JSIL.Transforms {
             VisitChildren(ie);
         }
 
-        public void VisitNode (JSPropertyAccess pa) {
-            var targetType = pa.Target.GetExpectedType(TypeSystem);
+        protected bool IsNullable (TypeReference type) {
+            var git = TypeUtil.DereferenceType(type) as GenericInstanceType;
 
-            if (targetType.FullName.StartsWith("System.Nullable")) {
+            return (git != null) && (git.Name == "Nullable`1");
+        }
+
+        public void VisitNode (JSPropertyAccess pa) {
+            var targetType = pa.Target.GetActualType(TypeSystem);
+
+            if (IsNullable(targetType)) {
                 var @null = JSLiteral.Null(targetType);
 
                 switch (pa.Property.Property.Member.Name) {
@@ -263,10 +311,10 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSDefaultValueLiteral dvl) {
-            var expectedType = dvl.GetExpectedType(TypeSystem);
+            var expectedType = dvl.GetActualType(TypeSystem);
+
             if (
-                (expectedType != null) &&
-                expectedType.FullName.StartsWith("System.Nullable")
+                IsNullable(expectedType)
             ) {
                 ParentNode.ReplaceChild(
                     dvl, JSLiteral.Null(expectedType)
@@ -277,10 +325,9 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSNewExpression ne) {
-            var expectedType = ne.GetExpectedType(TypeSystem);
+            var expectedType = ne.GetActualType(TypeSystem);
             if (
-                (expectedType != null) &&
-                expectedType.FullName.StartsWith("System.Nullable")
+                IsNullable(expectedType)
             ) {
                 if (ne.Arguments.Count == 0) {
                     ParentNode.ReplaceChild(

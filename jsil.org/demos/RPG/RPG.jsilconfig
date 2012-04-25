@@ -1,0 +1,12 @@
+{
+  "OutputDirectory": "%configpath%",
+  "ProfileSettings": {
+    "OverwriteExistingContent": true,
+    "ContentOutputDirectory": "%configpath%/Content",
+    "UsePNGQuant": true,
+    "FileSettings": {
+      "Textures\\Maps\\NonCombat\\ForestTiles.png": "NoPNGQuant",
+      "Textures\\Maps\\NonCombat\\DungeonTiles.png": "NoPNGQuant"
+    }
+  }
+}

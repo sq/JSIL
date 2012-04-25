@@ -11,9 +11,11 @@ using Mono.Cecil;
 namespace JSIL.Transforms {
     public class SimplifyLoops : JSAstVisitor {
         public readonly TypeSystem TypeSystem;
+        public readonly bool PostSwitchTransform;
 
-        public SimplifyLoops (TypeSystem typeSystem) {
+        public SimplifyLoops (TypeSystem typeSystem, bool postSwitchTransform) {
             TypeSystem = typeSystem;
+            PostSwitchTransform = postSwitchTransform;
         }
 
         public void VisitNode (JSWhileLoop whileLoop) {
@@ -91,14 +93,14 @@ namespace JSIL.Transforms {
 
                 if (eStmt != null) {
                     var breakExpr = eStmt.Expression as JSBreakExpression;
-                    if ((breakExpr != null) && (breakExpr.TargetLabel == whileLoop.Label)) {
+                    if ((breakExpr != null) && (breakExpr.TargetLoop == whileLoop.Index)) {
                         whileLoop.ReplaceChildRecursive(lastIfStatement, new JSNullStatement());
 
                         var doLoop = new JSDoLoop(
                             new JSUnaryOperatorExpression(JSOperator.LogicalNot, lastIfStatement.Condition),
                             whileLoop.Statements.ToArray()
                         );
-                        doLoop.Label = whileLoop.Label;
+                        doLoop.Index = whileLoop.Index;
 
                         ParentNode.ReplaceChild(whileLoop, doLoop);
                         VisitChildren(doLoop);
@@ -118,6 +120,13 @@ namespace JSIL.Transforms {
             } else if (!whileLoop.Condition.SelfAndChildrenRecursive.Any(
                     (n) => (initVariable ?? lastVariable).Equals(n)
             )) {
+                cantBeFor = true;
+            } else if (
+                !PostSwitchTransform && (
+                    (lastStatement is JSSwitchStatement) ||
+                    (lastStatement is JSLabelGroupStatement)
+                )
+            ) {
                 cantBeFor = true;
             }
 
@@ -140,7 +149,7 @@ namespace JSIL.Transforms {
                     initializer, whileLoop.Condition, increment,
                     whileLoop.Statements.ToArray()
                 );
-                forLoop.Label = whileLoop.Label;
+                forLoop.Index = whileLoop.Index;
 
                 ParentNode.ReplaceChild(whileLoop, forLoop);
                 VisitChildren(forLoop);

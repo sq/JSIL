@@ -1,11 +1,14 @@
 body {
-	font-family: Calibri, Tahoma, Verdana, sans-serif;
-	font-size: 13pt;
-	font-weight: normal;
 	margin: 2px;
 	padding: 0px;
 	background-color: #F4FFF9;
 	color: #002821;
+}
+
+body, input.carousel-control {
+	font-family: Calibri, Tahoma, Verdana, sans-serif;
+	font-size: 13pt;
+	font-weight: normal;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -13,7 +16,7 @@ h1, h2, h3, h4, h5, h6 {
 	font-weight: bold;
 }
 
-a {
+a, input.carousel-control {
 	color: #AD4E00;
 	border-radius: 6px;
 	border-top-right-radius: 2px;
@@ -33,10 +36,12 @@ a:visited {
 	color: #5B2A00;
 }
 
-a:hover {
+a:hover, input.carousel-control:hover {
 	background-color: rgba(255, 229, 209, 0.8);
 	border-color: #C68D61;
+	border-style: solid;
 	color: #703200;
+	opacity: 1.0;
 }
 
 em {
@@ -115,7 +120,7 @@ ol {
 	clear: left;
 }
 
-div#content-box {
+div#content_box {
 	position: relative;
 	padding: 0px;
 	width: 56em;

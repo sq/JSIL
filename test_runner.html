@@ -26,6 +26,8 @@
   <body onload="onLoad()">
     <script src="Libraries/JSIL.Core.js" type="text/javascript"></script>
     <script src="Libraries/JSIL.Bootstrap.js" type="text/javascript"></script>
+    <script src="Libraries/JSIL.IO.js" type="text/javascript"></script>
+    <script src="Libraries/JSIL.XML.js" type="text/javascript"></script>
     
     <label for="scriptname">Test Script To Run:</label> <input type="text" name="scriptname" id="scriptname" value="Tests/SimpleTestCases/If.js"></input><br>
     <button id="runscript" name="runscript">Run</button>
@@ -51,6 +53,7 @@
     
       function runScript () {
         var scriptname = document.getElementById("scriptname").value;
+        window.location.hash = "#" + scriptname;
         
         var onError = function () {
           alert("Failed to load script.");
@@ -68,7 +71,22 @@
         elt.src = scriptname;
       }
       
+      var lastHash = null;
+      function checkHash () {
+        var currentHash = null;
+        if ((typeof (window.location.hash) === "string") && (window.location.hash.length > 1)) {
+          currentHash = window.location.hash.substr(1);
+        }
+
+        if (currentHash !== lastHash) {
+          lastHash = currentHash;
+          document.getElementById("scriptname").value = currentHash;
+        }
+      }
+
       function onLoad () {
+        checkHash();
+        setInterval(checkHash, 100);
         document.getElementById("runscript").addEventListener("click", runScript, true);
       }
     </script>

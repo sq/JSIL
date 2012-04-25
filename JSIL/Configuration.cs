@@ -26,6 +26,8 @@ namespace JSIL.Translator {
             public bool? SimplifyOperators;
             public bool? SimplifyLoops;
             public bool? EliminateTemporaries;
+            public bool? EliminateRedundantControlFlow;
+            public bool? CacheMethodSignatures;
 
             public void MergeInto (OptimizerConfiguration result) {
                 if (EliminateStructCopies.HasValue)
@@ -36,6 +38,10 @@ namespace JSIL.Translator {
                     result.SimplifyLoops = SimplifyLoops;
                 if (SimplifyOperators.HasValue)
                     result.SimplifyOperators = SimplifyOperators;
+                if (EliminateRedundantControlFlow.HasValue)
+                    result.EliminateRedundantControlFlow = EliminateRedundantControlFlow;
+                if (CacheMethodSignatures.HasValue)
+                    result.CacheMethodSignatures = CacheMethodSignatures;
             }
         }
 
@@ -43,6 +49,7 @@ namespace JSIL.Translator {
         public bool? IncludeDependencies;
         public bool? UseSymbols;
         public bool? UseThreads;
+        public bool? GenerateSkeletonsForStubbedAssemblies;
 
         public double? FrameworkVersion;
 
@@ -60,6 +67,8 @@ namespace JSIL.Translator {
                 result.UseThreads = UseThreads;
             if (FrameworkVersion.HasValue)
                 result.FrameworkVersion = FrameworkVersion;
+            if (GenerateSkeletonsForStubbedAssemblies.HasValue)
+                result.GenerateSkeletonsForStubbedAssemblies = GenerateSkeletonsForStubbedAssemblies;
 
             Assemblies.MergeInto(result.Assemblies);
             Optimizer.MergeInto(result.Optimizer);

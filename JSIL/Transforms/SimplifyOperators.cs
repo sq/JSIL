@@ -39,7 +39,7 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSUnaryOperatorExpression uoe) {
-            var isBoolean = ILBlockTranslator.IsBoolean(uoe.GetExpectedType(TypeSystem));
+            var isBoolean = TypeUtil.IsBoolean(uoe.GetActualType(TypeSystem));
 
             if (isBoolean) {
                 if (uoe.Operator == JSOperator.IsTrue) {
@@ -58,7 +58,7 @@ namespace JSIL.Transforms {
                         InvertedOperators.TryGetValue(boe.Operator, out newOperator)
                     ) {
                         var newBoe = new JSBinaryOperatorExpression(
-                            newOperator, boe.Left, boe.Right, boe.ExpectedType
+                            newOperator, boe.Left, boe.Right, boe.ActualType
                         );
 
                         ParentNode.ReplaceChild(uoe, newBoe);
@@ -98,7 +98,7 @@ namespace JSIL.Transforms {
 
             if (
                 isAssignment && (nestedBoe != null) && 
-                (left.IsConstant || (leftVar != null) || left is JSDotExpression) &&
+                (left.IsConstant || (leftVar != null) || left is JSDotExpressionBase) &&
                 !(ParentNode is JSVariableDeclarationStatement)
             ) {
                 JSUnaryOperator prefixOperator;
@@ -117,7 +117,7 @@ namespace JSIL.Transforms {
                 ) {
                     var newUoe = new JSUnaryOperatorExpression(
                         prefixOperator, boe.Left,
-                        boe.GetExpectedType(TypeSystem)
+                        boe.GetActualType(TypeSystem)
                     );
 
                     ParentNode.ReplaceChild(boe, newUoe);
@@ -130,7 +130,7 @@ namespace JSIL.Transforms {
                 ) {
                     var newBoe = new JSBinaryOperatorExpression(
                         compoundOperator, boe.Left, nestedBoe.Right,
-                        boe.GetExpectedType(TypeSystem)
+                        boe.GetActualType(TypeSystem)
                     );
 
                     ParentNode.ReplaceChild(boe, newBoe);
@@ -142,21 +142,20 @@ namespace JSIL.Transforms {
                 isAssignment && (leftNew != null) &&
                 (rightNew != null)
             ) {
-                var rightType = rightNew.Type as JSDotExpression;
+                var rightType = rightNew.Type as JSDotExpressionBase;
                 if (
                     (rightType != null) &&
                     (rightType.Member.Identifier == "CollectionInitializer")
                 ) {
-                    var newInvocation = JSInvocationExpression.InvokeMethod(
-                        new JSStringIdentifier("__Initialize__", boe.Left.GetExpectedType(TypeSystem)), 
-                        boe.Left, new [] { new JSArrayExpression(
+                    var newInitializer = new JSInitializerApplicationExpression(
+                        boe.Left, new JSArrayExpression(
                             TypeSystem.Object,
                             rightNew.Arguments.ToArray()
-                        ) }
+                        )
                     );
 
-                    ParentNode.ReplaceChild(boe, newInvocation);
-                    VisitReplacement(newInvocation);
+                    ParentNode.ReplaceChild(boe, newInitializer);
+                    VisitReplacement(newInitializer);
 
                     return;
                 }
@@ -164,7 +163,7 @@ namespace JSIL.Transforms {
                 isAssignment && (leftVar != null) &&
                 leftVar.IsThis
             ) {
-                var leftType = leftVar.GetExpectedType(TypeSystem);
+                var leftType = leftVar.GetActualType(TypeSystem);
                 if (!EmulateStructAssignment.IsStruct(leftType)) {
                     ParentNode.ReplaceChild(boe, new JSUntranslatableExpression(boe));
 

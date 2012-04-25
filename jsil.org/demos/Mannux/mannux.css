@@ -1,91 +1,41 @@
-body {
-	overflow: hidden;
-}
 #canvas {
-	background-color: black;
-	position: absolute;
 	left: 2px;
 	top: 2px;
-	margin: 0px;
-	border: 0px;
-	padding: 0px;
 }
 #welcomeMessage {
-	font-family: Calibri, Tahoma, Verdana, sans-serif;
-	background-color: rgba(32, 32, 32, 1);
-	border-color: black;
-	border-width: 0px;
-	border-radius: 16px;
-	color: white;
 	width: 680px;
 	height: 300px;
-	position: absolute;
 	left: 60px;
 	top: 50px;
-	z-index: 80;
-	padding: 8px;
-	margin: -8px;
-}
-#welcomeMessage a {
-	color: #BFBFFF;
 }
 #loadButton {
 	width: 200px;
 	height: 40px;
-	position: absolute;	
 	left: 300px;
 	top: 280px;
-	z-index: 90;
 }
 #quitButton {
 	width: 32px;
 	height: 32px;
-	position: absolute;	
 	left: 804px;
 	top: 2px;
 }
 #loadingProgress {
-	background-color: black;
-	border: 3px solid white;
-	border-radius: 6px;
-	width: 200px;
+	width: 400px;
 	height: 40px;
-	position: absolute;	
-	left: 300px;
+	left: 200px;
 	top: 280px;
-	z-index: 99;
 }
 #progressBar {
-	background-color: white;
-	border: 1px solid white;
 	height: 40px;
-	margin: -1px;
-	padding: 0px;
 }
 #log {
-	font-family: Consolas, Courier New, Courier;
-	font-size: 9pt;
-	margin: 0px;
-	border: 0px;
-	padding: 0px;
 	width: 800px;
 	height: 150px;
-	overflow-x: hidden;
-	overflow-y: scroll;
-	position: absolute;
 	left: 2px;
 	top: 604px;
 }
-#images, #scripts, #sounds {
-	display: none;
-}
-#fonts {
-	position: absolute;
-	z-index: -99;
-	left: 2px;
-	top: 2px;
-	width: 16px;
-	height: 16px;
-	background-color: white;
-	color: black;
+#stats {
+	left: 804px;
+	top: 50px;
 }

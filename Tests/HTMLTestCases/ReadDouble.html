@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+  <head>
+    <script type="text/javascript" src="../../Libraries/JSIL.Core.js"></script>
+    <script type="text/javascript" src="../../Libraries/JSIL.Bootstrap.js"></script>
+    <script type="text/javascript" src="../../Libraries/JSIL.IO.js"></script>
+    <script type="text/javascript" src="../../Libraries/JSIL.Browser.js"></script>
+    <script type="text/javascript" src="../../jsil.org/demos/RPG/mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+      JSIL.Initialize();
+      
+      loadBinaryFileAsync("../Data/DoubleTest.bin", function (result, error) {
+        var bytes = result;
+        console.log(bytes);
+        var stream = new System.IO.MemoryStream(bytes);
+        console.log(stream);
+        var binaryReader = new System.IO.BinaryReader(stream);
+        console.log(binaryReader);
+        var f1 = binaryReader.ReadDouble();
+        var f2 = binaryReader.ReadDouble();
+        console.log(f1 + ", " + f2);
+      });
+    </script>
+  </body>
+</html>

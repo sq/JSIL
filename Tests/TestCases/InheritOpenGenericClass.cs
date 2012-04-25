@@ -15,7 +15,11 @@ public class MyClass<T> : GenericClass<T> {
 
 public static class Program {
     public static void Main (string[] args) {
-        (new MyClass<int>()).Method(1);
-        (new MyClass<string>()).Method("a");
+        var a = (new MyClass<int>());
+        var b = (new MyClass<string>());
+        a.Method(1);
+        b.Method("a");
+        a.Method(1);
+        b.Method("a");
     }
 }

@@ -38,15 +38,9 @@
   <ItemGroup>
     <Compile Include="Array.cs" />
     <Compile Include="Console.cs" />
-    <Compile Include="Text.cs" />
-    <Compile Include="List.cs" />
+    <Compile Include="IO.cs" />
     <Compile Include="Forms.cs" />
-    <Compile Include="Drawing.cs" />
     <Compile Include="Type.cs" />
-    <Compile Include="Threading.cs" />
-    <Compile Include="Delegate.cs" />
-    <Compile Include="Enum.cs" />
-    <Compile Include="Exceptions.cs" />
     <Compile Include="Math.cs" />
     <Compile Include="Numbers.cs" />
     <Compile Include="Object.cs" />
