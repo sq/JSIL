@@ -87,6 +87,8 @@ namespace JSIL.Proxies {
         }
 
         [JSReplacement("JSIL.GetEnumerator($this)")]
+        [JSIsPure]
+        [JSResultIsNew]
         public System.Collections.IEnumerator GetEnumerator () {
             throw new InvalidOperationException();
         }

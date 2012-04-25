@@ -143,6 +143,20 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void CopyGetEnumerator () {
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\CopyGetEnumerator.cs",
+                "1\r\n2\r\n3",
+                "1\r\n2\r\n3"
+            );
+
+            Console.WriteLine(generatedJs);
+            Assert.IsFalse(generatedJs.Contains(
+                @"GetEnumerator().MemberwiseClone()"
+            ), "The enumerator was cloned");
+        }
+
+        [Test]
         public void NestedReturn () {
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\NestedReturn.cs",

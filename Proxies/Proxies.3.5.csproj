@@ -38,6 +38,7 @@
   <ItemGroup>
     <Compile Include="Array.cs" />
     <Compile Include="Console.cs" />
+    <Compile Include="Collections.cs" />
     <Compile Include="Forms.cs" />
     <Compile Include="IO.cs" />
     <Compile Include="Type.cs" />
