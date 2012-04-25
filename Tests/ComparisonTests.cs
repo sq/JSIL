@@ -241,7 +241,7 @@ namespace JSIL.Tests {
         public void NBody () {
             using (var test = MakeTest(@"TestCases\NBody.cs")) {
                 test.Run();
-                test.Run("300000");
+                test.Run("100000");
             }
         }
 
@@ -249,7 +249,7 @@ namespace JSIL.Tests {
         public void FannkuchRedux () {
             using (var test = MakeTest(@"TestCases\FannkuchRedux.cs")) {
                 test.Run();
-                test.Run("10");
+                test.Run("8");
             }
         }
 
