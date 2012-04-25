@@ -37,10 +37,10 @@ public class Program
         Console.WriteLine(1000000000000L - x);
         Console.WriteLine(1L - 0L);
         Console.WriteLine(1L - x);
-        //Console.WriteLine(1L - -x);
+        Console.WriteLine(1L - -x);
         Console.WriteLine(1 - 0L);
         Console.WriteLine(1 - x);
-        //Console.WriteLine(1 - -x);
+        Console.WriteLine(1 - -x);
 
         // conversion
         Console.WriteLine(((long)Math.Round(40.1d)) * x);
@@ -55,7 +55,7 @@ public class Program
         WriteBool(x > y);
         WriteBool(x >= x);
 
-        //Console.WriteLine(-x);
+        Console.WriteLine(-x);
         Console.WriteLine(x);
         Console.WriteLine(y);
         Console.WriteLine(x + y);

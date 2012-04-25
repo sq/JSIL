@@ -40,8 +40,7 @@ namespace JSIL.Transforms
                 {
                     // TODO: use constructor instead of fromString
 
-                    expression = JSInvocationExpression.InvokeStatic(fromString,
-                        new[] { new JSStringLiteral(literal.Value.ToString()) });
+                    expression = GetLiteral(literal.Value);
                 }
                 else
                 {
@@ -50,6 +49,40 @@ namespace JSIL.Transforms
 
                 ParentNode.ReplaceChild(literal, expression);
             }
+        }
+
+        public void VisitNode(JSUnaryOperatorExpression uoe)
+        {
+            var exType = uoe.Expression.GetActualType(TypeSystem);
+            var opType = uoe.ActualType;
+            if (exType == TypeSystem.Int64 && opType == TypeSystem.Int64)
+            {
+                string verb = null;
+                switch (uoe.Operator.Token)
+                {
+                    case "-":
+                        verb = "negate";
+                        break;
+                    case "~":
+                        verb = "not";
+                        break;
+                    default:
+                        throw new NotSupportedException();
+                }
+
+                if (verb != null)
+                {
+                    var method = new JSFakeMethod(verb, TypeSystem.Int64, new[] { TypeSystem.Int64 }, MethodTypeFactory);
+                    ParentNode.ReplaceChild(uoe,
+                        JSInvocationExpression.InvokeMethod(method, uoe.Expression));
+                    return;
+                }
+            }
+        }
+
+        private JSExpression GetLiteral(long p)
+        {
+            return JSInvocationExpression.InvokeStatic(fromString, new[] { new JSStringLiteral(p.ToString()) });
         }
 
         public void VisitNode(JSBinaryOperatorExpression boe)

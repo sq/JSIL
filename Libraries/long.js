@@ -101,7 +101,6 @@ goog.math.Long.fromInt = function (value) {
 * @param {number} value The number in question.
 * @return {!goog.math.Long} The corresponding Long value.
 */
-goog_math_Long_fromNumber = 
 goog.math.Long.fromNumber = function (value) {
     if (isNaN(value) || !isFinite(value)) {
         return goog.math.Long.ZERO;
