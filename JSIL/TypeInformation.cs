@@ -19,6 +19,7 @@ namespace JSIL.Internal {
         ModuleInfo Get (ModuleDefinition module);
         TypeInfo Get (TypeReference type);
         TypeInfo GetExisting (TypeReference type);
+        TypeInfo GetExisting (TypeIdentifier type);
         IMemberInfo Get (MemberReference member);
 
         ProxyInfo[] GetProxies (TypeDefinition type);
@@ -1300,7 +1301,10 @@ namespace JSIL.Internal {
         }
 
         internal bool IsTypeIgnored (ParameterDefinition pd, out TypeInfo typeInfo) {
-            return IsTypeIgnored(pd.ParameterType, out typeInfo);
+            var pt = pd.ParameterType;
+            pt = TypeUtil.DereferenceType(pt, false);
+
+            return IsTypeIgnored(pt, out typeInfo);
         }
 
         internal bool IsTypeIgnored (TypeReference t, out TypeInfo typeInfo) {
@@ -1310,7 +1314,11 @@ namespace JSIL.Internal {
 
             if (t.IsPrimitive)
                 return false;
-            else if (t.FullName == "System.Void")
+            else if ((t.Name == "Void") && (t.Namespace == "System"))
+                return false;
+            else if (t is ArrayType)
+                return false;
+            else if (t is GenericParameter)
                 return false;
 
             typeInfo = Source.GetExisting(t);

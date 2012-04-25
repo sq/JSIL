@@ -385,7 +385,7 @@ namespace JSIL.Internal {
                 try {
                     Interlocked.Increment(ref WaiterCount);
                     if (IsDisposed)
-                        return false;
+                        return true;
 
                     Signal.Wait();
                     return true;

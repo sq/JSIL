@@ -382,7 +382,7 @@
     <None Include="SimpleTestCases\ArrayOfNullable.cs" />
     <None Include="TestCases\CastEnumNullableToInt.cs" />
     <None Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields.cs" />
-    <Compile Include="Util.cs" />
+    <Compile Include="TestUtil.cs" />
     <Compile Include="VerbatimTests.cs" />
   </ItemGroup>
   <ItemGroup>

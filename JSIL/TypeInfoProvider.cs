@@ -211,11 +211,11 @@ namespace JSIL {
                 else
                     before2 = queue.Enqueue(identifier, typedef);
 
-                if (typedef.DeclaringType != null)
-                    EnqueueType(queue, typedef.DeclaringType, before2);
-
                 if (typedef.BaseType != null)
                     EnqueueType(queue, typedef.BaseType, before2);
+
+                if (typedef.DeclaringType != null)
+                    EnqueueType(queue, typedef.DeclaringType, before2);
 
                 foreach (var iface in typedef.Interfaces)
                     EnqueueType(queue, iface, before2);
@@ -390,17 +390,21 @@ namespace JSIL {
             return GetTypeInformation(type);
         }
 
+        public TypeInfo GetExisting (TypeIdentifier identifier) {
+            TypeInfo result;
+            if (!TypeInformation.TryGet(identifier, out result))
+                return null;
+
+            return result;
+        }
+
         public TypeInfo GetExisting (TypeReference type) {
             if (type == null)
                 throw new ArgumentNullException("type");
 
             var identifier = new TypeIdentifier(type);
 
-            TypeInfo result;
-            if (!TypeInformation.TryGet(identifier, out result))
-                return null;
-
-            return result;
+            return GetExisting(identifier);
         }
 
         public T GetMemberInformation<T> (MemberReference member)
