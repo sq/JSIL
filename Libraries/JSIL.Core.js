@@ -3347,11 +3347,11 @@ JSIL.Cast = function (value, expectedType) {
     return result;
   } else if (JSIL.CheckType(value, expectedType)) {
     // If the user is casting to an integral type like Int32, we need to floor the value since JS stores all numbers as double
-    if (JSIL.CheckDerivation(expectedType.prototype, Number.prototype) && (expectedType.prototype.__IsIntegral__)) {
+    if (expectedType.__IsIntegral__) {
       return Math.floor(value);
+    } else {
+      return value;
     }
-
-    return value;
   } else
     throw new System.InvalidCastException("Unable to cast object of type '" + JSIL.GetTypeName(JSIL.GetType(value)) + "' to type '" + JSIL.GetTypeName(expectedType) + "'.");
 };
