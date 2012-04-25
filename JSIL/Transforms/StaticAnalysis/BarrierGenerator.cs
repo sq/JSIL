@@ -10,38 +10,40 @@ using Mono.Cecil;
 namespace JSIL.Transforms.StaticAnalysis {
     public class Barrier {
         public readonly int NodeIndex;
+        public readonly BarrierFlags Flags;
         public readonly BarrierSlot[] Slots;
 
-        private Barrier (int node, BarrierSlot[] slots) {
+        private Barrier (int node, BarrierFlags flags, BarrierSlot[] slots) {
             NodeIndex = node;
+            Flags = flags;
             Slots = slots;
         }
 
         public override string ToString () {
             return String.Format(
-                "{0} = [{1}]", NodeIndex,
+                "{0} = [{1}, {2}]", NodeIndex, Flags,
                 String.Join(", ", from s in Slots select s.ToString())
             );
         }
 
-        public static Barrier New (int node, SlotDictionary slots) {
-            return new Barrier(node, slots.ToArray());
+        public static Barrier New (int node, BarrierFlags flags, SlotDictionary slots) {
+            return new Barrier(node, flags, slots.ToArray());
         }
 
         /// <summary>
         /// Creates an empty barrier usable for search operations.
         /// </summary>
         public static Barrier Key (int node) {
-            return new Barrier(node, null);
+            return new Barrier(node, BarrierFlags.None, null);
         }
 
-        public static int Compare (Barrier lhs, Barrier rhs) {
+        public static int Order (Barrier lhs, Barrier rhs) {
             return lhs.NodeIndex.CompareTo(rhs.NodeIndex);
         }
 
-        public class Comparer : IComparer<Barrier> {
+        public class Sorter : IComparer<Barrier> {
             public int Compare (Barrier x, Barrier y) {
-                return Barrier.Compare(x, y);
+                return Barrier.Order(x, y);
             }
         }
     }
@@ -49,12 +51,17 @@ namespace JSIL.Transforms.StaticAnalysis {
     [Flags]
     public enum BarrierFlags : byte {
         None = 0x0,
+        Invoke = 0x1,
+        Return = 0x2
+    }
+
+    [Flags]
+    public enum SlotFlags : byte {
+        None = 0x0,
         Read = 0x1,
         Write = 0x2,
-        Invoke = 0x4,
-        Return = 0x8,
-        GlobalState = 0x10,
-        PassByReference = 0x20,
+        PassByReference = 0x4,
+        GlobalState = 0x8,
 
         ReadWrite = Read | Write,
 
@@ -65,9 +72,9 @@ namespace JSIL.Transforms.StaticAnalysis {
 
     public struct BarrierSlot {
         public readonly string Name;
-        public readonly BarrierFlags Flags;
+        public readonly SlotFlags Flags;
 
-        public BarrierSlot (string name, BarrierFlags flags) {
+        public BarrierSlot (string name, SlotFlags flags) {
             Name = name;
             Flags = flags;
         }
@@ -78,7 +85,7 @@ namespace JSIL.Transforms.StaticAnalysis {
     }
 
     public class BarrierCollection {
-        protected readonly IComparer<Barrier> Comparer = new Barrier.Comparer();
+        protected readonly IComparer<Barrier> Comparer = new Barrier.Sorter();
         protected readonly List<Barrier> Barriers = new List<Barrier>();
         protected bool _SortNeeded = false;
 
@@ -109,7 +116,7 @@ namespace JSIL.Transforms.StaticAnalysis {
         protected void SortIfNeeded () {
             if (_SortNeeded) {
                 _SortNeeded = false;
-                Barriers.Sort(Barrier.Compare);
+                Barriers.Sort(Barrier.Order);
             }
         }
 
@@ -128,38 +135,38 @@ namespace JSIL.Transforms.StaticAnalysis {
     }
 
     public class SlotDictionary : IEnumerable {
-        protected readonly Dictionary<string, BarrierFlags> Dictionary = new Dictionary<string, BarrierFlags>();
+        protected readonly Dictionary<string, SlotFlags> Dictionary = new Dictionary<string, SlotFlags>();
 
         public void Clear () {
             Dictionary.Clear();
         }
 
-        public void Add (string key, BarrierFlags flags) {
+        public void Add (string key, SlotFlags flags) {
             this[key] = flags;
         }
 
-        public void Add (ILVariable key, BarrierFlags flags) {
+        public void Add (ILVariable key, SlotFlags flags) {
             this[key] = flags;
         }
 
-        public void Add (JSVariable key, BarrierFlags flags) {
+        public void Add (JSVariable key, SlotFlags flags) {
             this[key] = flags;
         }
 
-        public BarrierFlags this[string key] {
+        public SlotFlags this[string key] {
             get {
-                BarrierFlags result;
+                SlotFlags result;
                 if (Dictionary.TryGetValue(key, out result))
                     return result;
 
-                return BarrierFlags.None;
+                return SlotFlags.None;
             }
             set {
                 Dictionary[key] = value;
             }
         }
 
-        public BarrierFlags this[ILVariable v] {
+        public SlotFlags this[ILVariable v] {
             get {
                 return this[v.Name];
             }
@@ -168,7 +175,7 @@ namespace JSIL.Transforms.StaticAnalysis {
             }
         }
 
-        public BarrierFlags this[JSVariable v] {
+        public SlotFlags this[JSVariable v] {
             get {
                 return this[v.Name];
             }
@@ -200,9 +207,9 @@ namespace JSIL.Transforms.StaticAnalysis {
             TypeSystem = typeSystem;
         }
 
-        protected void CreateBarrier (SlotDictionary slots) {
+        protected void CreateBarrier (SlotDictionary slots, BarrierFlags flags = BarrierFlags.None) {
             Result.Add(Barrier.New(
-                NodeIndex, slots
+                NodeIndex, flags, slots
             ));
         }
 
@@ -213,7 +220,7 @@ namespace JSIL.Transforms.StaticAnalysis {
             }
 
             CreateBarrier(new SlotDictionary {
-                {v, BarrierFlags.Read}
+                {v, SlotFlags.Read}
             });
 
             VisitChildren(v);
@@ -222,7 +229,7 @@ namespace JSIL.Transforms.StaticAnalysis {
         public void VisitNode (JSField f) {
             if (f.HasGlobalStateDependency) {
                 CreateBarrier(new SlotDictionary {
-                    {f.Identifier, BarrierFlags.ReadGlobalState}
+                    {f.Identifier, SlotFlags.ReadGlobalState}
                 });
             }
 

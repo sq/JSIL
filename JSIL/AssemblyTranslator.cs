@@ -1458,63 +1458,68 @@ namespace JSIL {
                         this, ctx, realCctor, realCctor, block, astBuilder.Parameters, variables
                     );
 
-                    foreach (var node in block.Body) {
-                        var ile = node as ILExpression;
-                        if (ile == null)
-                            continue;
+                    // We may end up with nested blocks since we didn't run all the optimization passes.
+                    var blocks = block.GetSelfAndChildrenRecursive<ILBasicBlock>();
+                    foreach (var b in blocks) {
 
-                        if (ile.Code != ILCode.Stsfld)
-                            continue;
-
-                        var targetField = ile.Operand as FieldDefinition;
-                        if (targetField == null)
-                            continue;
-
-                        if (targetField.DeclaringType != realCctor.DeclaringType)
-                            continue;
-
-                        var expectedType = ile.Arguments[0].ExpectedType;
-
-                        // If the field's value is of an ignored type then we ignore the initialization since it probably won't translate anyway.
-                        if (TypeUtil.IsIgnoredType(expectedType))
-                            continue;
-
-                        JSExpression defaultValue = null;
-
-                        try {
-                            defaultValue = translator.TranslateNode(ile.Arguments[0]);
-                        } catch (Exception ex) {
-                            Console.Error.WriteLine("Warning: failed to translate default value for static field '{0}': {1}", targetField, ex);
-                            continue;
-                        }
-
-                        if (defaultValue == null)
-                            continue;
-
-                        try {
-                            // TODO: Expand this to include 'new X' expressions that are effectively constant, by using static analysis to ensure that
-                            //  the new-expression doesn't have any global state dependencies and doesn't perform mutation.
-                            if (!defaultValue.IsConstant)
+                        foreach (var node in b.Body) {
+                            var ile = node as ILExpression;
+                            if (ile == null)
                                 continue;
-                        } catch (Exception ex) {
-                            // This may fail because we didn't do a full translation.
-                            Console.Error.WriteLine("Warning: failed to translate default value for static field '{0}': {1}", targetField, ex);
-                            continue;
+
+                            if (ile.Code != ILCode.Stsfld)
+                                continue;
+
+                            var targetField = ile.Operand as FieldDefinition;
+                            if (targetField == null)
+                                continue;
+
+                            if (targetField.DeclaringType != realCctor.DeclaringType)
+                                continue;
+
+                            var expectedType = ile.Arguments[0].ExpectedType;
+
+                            // If the field's value is of an ignored type then we ignore the initialization since it probably won't translate anyway.
+                            if (TypeUtil.IsIgnoredType(expectedType))
+                                continue;
+
+                            JSExpression defaultValue = null;
+
+                            try {
+                                defaultValue = translator.TranslateNode(ile.Arguments[0]);
+                            } catch (Exception ex) {
+                                Console.Error.WriteLine("Warning: failed to translate default value for static field '{0}': {1}", targetField, ex);
+                                continue;
+                            }
+
+                            if (defaultValue == null)
+                                continue;
+
+                            try {
+                                // TODO: Expand this to include 'new X' expressions that are effectively constant, by using static analysis to ensure that
+                                //  the new-expression doesn't have any global state dependencies and doesn't perform mutation.
+                                if (!defaultValue.IsConstant)
+                                    continue;
+                            } catch (Exception ex) {
+                                // This may fail because we didn't do a full translation.
+                                Console.Error.WriteLine("Warning: failed to translate default value for static field '{0}': {1}", targetField, ex);
+                                continue;
+                            }
+
+                            var typeReferences = defaultValue.AllChildrenRecursive.OfType<JSType>();
+                            foreach (var typeReference in typeReferences) {
+                                if (TypeUtil.TypesAreEqual(typeReference.Type, realCctor.DeclaringType))
+                                    defaultValue.ReplaceChildRecursive(typeReference, new JSStringIdentifier("$", realCctor.DeclaringType));
+                            }
+
+                            var es = new JSExpressionStatement(defaultValue);
+                            var ece = new ExpandCastExpressions(
+                                translator.TypeSystem, translator.SpecialIdentifiers.JS, translator.SpecialIdentifiers.JSIL, translator.TypeInfo
+                            );
+                            ece.Visit(es);
+
+                            fieldDefaults[targetField] = es.Expression;
                         }
-
-                        var typeReferences = defaultValue.AllChildrenRecursive.OfType<JSType>();
-                        foreach (var typeReference in typeReferences) {
-                            if (TypeUtil.TypesAreEqual(typeReference.Type, realCctor.DeclaringType))
-                                defaultValue.ReplaceChildRecursive(typeReference, new JSStringIdentifier("$", realCctor.DeclaringType));
-                        }
-
-                        var es = new JSExpressionStatement(defaultValue);
-                        var ece = new ExpandCastExpressions(
-                            translator.TypeSystem, translator.SpecialIdentifiers.JS, translator.SpecialIdentifiers.JSIL, translator.TypeInfo
-                        );
-                        ece.Visit(es);
-
-                        fieldDefaults[targetField] = es.Expression;
                     }
                 }
             }
