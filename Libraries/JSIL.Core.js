@@ -170,8 +170,8 @@ JSIL.AssignTypeId = function (assembly, typeName) {
   var key = assembly.__AssemblyId__ + "$" + typeName;
   var result = JSIL.$AssignedTypeIds[key];
 
-  if (typeof (result) !== "number")
-    result = JSIL.$AssignedTypeIds[key] = ++(JSIL.$NextTypeId);
+  if (typeof (result) !== "string")
+    result = JSIL.$AssignedTypeIds[key] = String(++(JSIL.$NextTypeId));
   
   return result;
 };
@@ -2367,7 +2367,64 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
   }
 };
 
-$jsilcore.cctorKeys = ["_cctor", "_cctor2", "_cctor3", "_cctor4", "_cctor5"];
+JSIL.BuildTypeList = function (type, publicInterface) {
+  var typeList = type.__AssignableTypes__ = [];
+
+  var toVisit = [];
+
+  var current = type;
+  while ((typeof (current) === "object") && (current !== null)) {
+    toVisit.push(current);
+
+    current = current.__BaseType__;
+  }
+
+  while (toVisit.length > 0) {
+    current = toVisit.shift();
+
+    var id = current.__TypeId__;
+
+    // Avoid adding duplicates.
+    if (typeList.indexOf(id) < 0)
+      typeList.push(id);
+
+    var interfaces = current.__Interfaces__;
+    if (JSIL.IsArray(interfaces)) {
+      for (var i = 0; i < interfaces.length; i++) {
+        var iface = JSIL.ResolveTypeReference(interfaces[i])[1];
+        toVisit.push(iface);
+      }
+    }
+  }
+
+  // Sort the list so that we can binary search it if necessary
+  typeList.sort();
+};
+
+// Efficiently search a sourceType's assignable types list to see if it is assignable to targetType.
+JSIL.$TypeIsAssignable = function (sourceType, targetType) {
+  var sourceTypeList = sourceType.__AssignableTypes__;
+  var targetTypeId = targetType.__TypeId__;
+
+  var low = 0, high = sourceTypeList.length - 1;
+
+  while (low <= high) {
+    var pivotPoint = Math.floor((low + high) / 2);
+    var pivot = sourceTypeList[pivotPoint];
+
+    if (pivot < targetTypeId) {
+      low = pivotPoint + 1; 
+      continue;
+    } else if (pivot > targetTypeId) {
+      high = pivotPoint - 1; 
+      continue;
+    }
+
+    return true;
+  }
+
+  return false;
+};
 
 JSIL.InitializeFields = function (type, publicInterface) {
   var fti = type.__FieldsToInitialize__;
@@ -2379,6 +2436,8 @@ JSIL.InitializeFields = function (type, publicInterface) {
     initializer(publicInterface);
   }
 };
+
+$jsilcore.cctorKeys = ["_cctor", "_cctor2", "_cctor3", "_cctor4", "_cctor5"];
 
 JSIL.InitializeType = function (type) {
   var classObject = type, typeObject = type;
@@ -2398,12 +2457,20 @@ JSIL.InitializeType = function (type) {
   // Not entirely correct, but prevents recursive type initialization
   typeObject.__TypeInitialized__ = true;
 
-  if (typeObject.__IsClosed__ && (typeObject.IsInterface !== true)) {
-    JSIL.$BuildMethodGroups(typeObject, classObject);
+  if (typeObject.__IsClosed__) {
+    if (typeObject.IsInterface !== true) {
+      JSIL.$BuildMethodGroups(typeObject, classObject);
+    }
+
     JSIL.InstantiateProperties(classObject, typeObject);
-    JSIL.FixupInterfaces(classObject, typeObject);
-    JSIL.InitializeFields(typeObject, classObject);
-    JSIL.RebindRawMethods(classObject, typeObject);
+
+    if (typeObject.IsInterface !== true) {
+      JSIL.FixupInterfaces(classObject, typeObject);
+      JSIL.InitializeFields(typeObject, classObject);
+      JSIL.RebindRawMethods(classObject, typeObject);
+    }
+
+    JSIL.BuildTypeList(typeObject, classObject);
   }
 
   // Run any queued initializers for the type
@@ -2729,6 +2796,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__Interfaces__ = Array.prototype.slice.call(baseTypeInterfaces);
     typeObject.__TypeInitialized__ = false;
     typeObject.__IsNativeType__ = false;
+    typeObject.__AssignableTypes__ = null;
     typeObject.__IsReferenceType__ = isReferenceType;
     typeObject.__Context__ = assembly;
     typeObject.__FullName__ = fullName;
@@ -2802,15 +2870,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__PublicInterface__ = staticClassObject;
 
     typeObject._IsAssignableFrom = function (typeOfValue) {
-      var t = typeOfValue;
-      while (typeof (t) !== "undefined") {
-        if (t === typeObject)
-          return true;
-
-        t = JSIL.GetBaseType(t);
-      }
-
-      return false;
+      return JSIL.$TypeIsAssignable(typeOfValue, this);
     };
 
     for (var i = 0, l = typeObject.__GenericArguments__.length; i < l; i++) {
@@ -2919,65 +2979,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
     }
 
     typeObject._IsAssignableFrom = function (typeOfValue) {
-      if (typeObject === typeOfValue)
-        return true;
-
-      var getInterfaceTypeObject = function (iface) {
-        if (typeof (iface) === "undefined") {
-          throw new Error("Attempting to resolve undefined interface");
-        } else if (typeof (iface) === "string") {
-          var resolved = JSIL.ResolveName(
-            typeOfValue.__Context__ || JSIL.GlobalNamespace, iface, true
-          );
-          if (resolved.exists())
-            return resolved.get().__Type__;
-          else {
-            throw new Error("Attempting to resolve undefined interface named '" + iface + "'.");
-          }
-        } else if ((typeof (iface) === "object") && (typeof (iface.get) === "function")) {
-          return iface.get().__Type__;
-        }
-      };
-
-      var matchInterfacesRecursive = function (iface, needle) {
-        if (iface === needle)
-          return true;
-
-        if (!JSIL.IsArray(iface.__Interfaces__))
-          return false;
-
-        var interfaces = iface.__Interfaces__;
-        for (var i = 0; i < interfaces.length; i++) {
-          var baseIface = getInterfaceTypeObject(interfaces[i]);
-
-          if (matchInterfacesRecursive(baseIface, needle))
-            return true;
-        }
-        return false;
-      };
-
-      if (typeOfValue.IsInterface) {
-        if (matchInterfacesRecursive(typeOfValue, typeObject))
-          return true;
-      }
-      else {
-        var value = typeOfValue;
-        var interfaces = typeOfValue.__Interfaces__;
-
-        while (JSIL.IsArray(interfaces)) {
-          for (var i = 0; i < interfaces.length; i++) {
-            if (interfaces[i] === typeObject)
-              return true;
-          }
-
-          value = JSIL.GetBaseType(value);
-
-          if (typeof (value) !== "undefined")
-            interfaces = value.__Interfaces__;
-        }
-      }
-
-      return false;
+      return JSIL.$TypeIsAssignable(typeOfValue, this);
     };
 
     return publicInterface;
@@ -3065,8 +3067,12 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
       __TypeId__: JSIL.AssignTypeId(context, fullName),
       __IsFlagsEnum__: isFlagsEnum,
       __ValueToName__: {},
+      __Interfaces__: null,
       __Names__: []
     };
+
+    result.__AssignableTypes__ = [result.__TypeId__, JSIL.AssignTypeId($jsilcore, "System.Enum")];
+    result.__AssignableTypes__.sort();
 
     result.__Type__ = result; // HACK
 
@@ -3180,21 +3186,7 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
   if (typeofValue === "undefined")
     return false;
 
-  if (expectedTypeObject.IsInterface === true) {
-    var interfaces = JSIL.GetType(value).__Interfaces__;
-
-    while (JSIL.IsArray(interfaces)) {
-      for (var i = 0; i < interfaces.length; i++) {
-        if (interfaces[i] === expectedTypeObject)
-          return true;
-      }
-
-      value = Object.getPrototypeOf(value);
-      interfaces = JSIL.GetType(value).__Interfaces__;
-    }
-
-    return false;
-  } else if (expectedTypeObject.IsEnum === true) {
+  if (expectedTypeObject.IsEnum === true) {
     return expectedTypePublicInterface.CheckType(value);
   }
 
@@ -3210,15 +3202,20 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
   if (value === null)
     return false;
 
-  var expectedProto = expectedTypePublicInterface.prototype;
-  var typeofExpectedProto = typeof (expectedProto);
-  if ((typeofExpectedProto === "undefined") ||
-      (typeofExpectedProto === "null"))
-    return false;
-
   if ((typeofValue === "object") || (typeofValue === "function")) {
-    if (JSIL.CheckDerivation(Object.getPrototypeOf(value), expectedProto))
-      return true;
+    var valueType = JSIL.GetType(value);
+
+    if (valueType !== null) {
+      return JSIL.$TypeIsAssignable(valueType, expectedTypeObject);
+    } else {
+      var expectedProto = expectedTypePublicInterface.prototype;
+      var typeofExpectedProto = typeof (expectedProto);
+      if ((typeofExpectedProto === "undefined") ||
+          (typeofExpectedProto === "null"))
+        return false;
+
+      return JSIL.CheckDerivation(Object.getPrototypeOf(value), expectedProto);
+    }
   }
 
   return false;
@@ -3227,12 +3224,10 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
 JSIL.IsArray = function (value) {
   if (value === null)
     return false;
+  else if (Array.isArray(value))
+    return true;
 
   if (typeof (value) === "object") {
-    // Only way to reliably check to see if something is an array in Node.js
-    if (Array.isArray(value))
-      return true;
-
     var valueProto = Object.getPrototypeOf(value);
     var isArrayBuffer = false;
 
@@ -3272,19 +3267,19 @@ JSIL.GetType = function (value) {
 
   switch (type) {
     case "undefined":
-      return "JavaScript.Undefined";
+      return null;
     case "string":
-      return System.String;
+      return System.String.__Type__;
     case "number":
-      return System.Double;
+      return System.Double.__Type__;
     default:
       if (JSIL.IsArray(value))
-        return System.Array;
+        return System.Array.__Type__;
 
       break;
   }
 
-  return System.Object;
+  return System.Object.__Type__;
 };
 
 JSIL.GetTypeName = function (type) {
@@ -4569,7 +4564,7 @@ JSIL.ImplementExternals(
           return true;
 
         if (this._IsAssignableFrom)
-          return this._IsAssignableFrom(type);
+          return this._IsAssignableFrom.call(this, type);
         else
           return false;
       }
