@@ -12,7 +12,7 @@ public class Program
         var x = 100000000000L;
         var y = 10000053450L;
 
-        // litterals
+        // literals
         Console.WriteLine(0L);
         Console.WriteLine(1000000000000L);
         Console.WriteLine(long.MaxValue);

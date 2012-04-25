@@ -1,11 +1,12 @@
 using System;
 using JSIL.Ast;
 using Mono.Cecil;
+using JSIL.Internal;
 
 namespace JSIL.Ast {
     public class JSAstBuilder {
         private JSExpression _expression;
-
+        
         private JSAstBuilder(JSExpression expression)
         {
             _expression = expression;
@@ -16,9 +17,9 @@ namespace JSIL.Ast {
             return _expression;
         }
 
-        public JSAstBuilder FakeMethod(string name, TypeReference returnType, params TypeReference[] parameterTypes)
+        public JSAstBuilder FakeMethod(string name, TypeReference returnType, TypeReference[] parameterTypes, MethodTypeFactory methodTypeFactory)
         {
-            return Dot(new JSFakeMethod(name, returnType, parameterTypes));
+            return Dot(new JSFakeMethod(name, returnType, parameterTypes, methodTypeFactory));
         }
 
         public static JSAstBuilder StringIdentifier(string name, TypeReference type = null)

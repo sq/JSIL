@@ -1212,6 +1212,7 @@ namespace JSIL {
             temporaryEliminationPass();
 
             new EmulateInt64(
+                FunctionCache.MethodTypes,
                 si.TypeSystem
             ).Visit(function);
 

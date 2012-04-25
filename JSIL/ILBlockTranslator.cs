@@ -1705,39 +1705,39 @@ namespace JSIL {
             if (TypeUtil.IsDelegateType(expectedType) && TypeUtil.IsDelegateType(currentType))
                 return value;
 
-            if (IsNumericOrEnum(currentType) && IsNumericOrEnum(expectedType)) {
+            if (TypeUtil.IsNumericOrEnum(currentType) && TypeUtil.IsNumericOrEnum(expectedType)) {
 
                 if (currentType == TypeSystem.Int64) {
-                    if (IsIntegral(expectedType)) {
+                    if (TypeUtil.IsIntegral(expectedType)) {
                         return JSInvocationExpression
-                            .InvokeMethod(TypeSystem.Int64, new JSFakeMethod("toInt", TypeSystem.Int32), value);
+                            .InvokeMethod(TypeSystem.Int64, new JSFakeMethod("toInt", TypeSystem.Int32, new TypeReference [] {}, Translator.FunctionCache.MethodTypes), value);
                     }
                     else {
                         return JSInvocationExpression
-                            .InvokeMethod(TypeSystem.Int64, new JSFakeMethod("toNumber", TypeSystem.Double), value);
+                            .InvokeMethod(TypeSystem.Int64, new JSFakeMethod("toNumber", TypeSystem.Double, new TypeReference[]{}, Translator.FunctionCache.MethodTypes), value);
                     }
                 }
                 else if (expectedType == TypeSystem.Int64) {
-                    if (IsIntegral(currentType)) {
+                    if (TypeUtil.IsIntegral(currentType)) {
                         return JSInvocationExpression.InvokeStatic(
-                            JSAstBuilder.StringIdentifier("goog").Dot("math").Dot("Long").FakeMethod("fromInt", TypeSystem.Int64, currentType).GetExpression(),
+                            JSAstBuilder.StringIdentifier("goog").Dot("math").Dot("Long").FakeMethod("fromInt", TypeSystem.Int64, new []{currentType}, Translator.FunctionCache.MethodTypes).GetExpression(),
                             new[] { value });
                     }
                     else { 
                         return JSInvocationExpression.InvokeStatic(
-                            JSAstBuilder.StringIdentifier("goog").Dot("math").Dot("Long").FakeMethod("fromNumber", TypeSystem.Int64, currentType).GetExpression(),
+                            JSAstBuilder.StringIdentifier("goog").Dot("math").Dot("Long").FakeMethod("fromNumber", TypeSystem.Int64, new []{currentType}, Translator.FunctionCache.MethodTypes).GetExpression(),
                             new[] { value });
                     }
                 }
-                else if (IsIntegral(expectedType)) {
-                    if (IsIntegral(currentType))
+                else if (TypeUtil.IsIntegral(expectedType)) {
+                    if (TypeUtil.IsIntegral(currentType))
                         return value;
                     else
                         return JSInvocationExpression.InvokeStatic(JS.floor, new[] { value }, true);
                 } else {
                     return value;
                 }
-            } else if (!TypesAreAssignable(expectedType, currentType)) {
+            } else if (!TypeUtil.TypesAreAssignable(TypeInfo, expectedType, currentType)) {
                 if (expectedType.FullName == "System.Boolean") {
                     if (TypeUtil.IsIntegral(currentType)) {
                         // i != 0 sometimes becomes (bool)i, so we want to generate the explicit form

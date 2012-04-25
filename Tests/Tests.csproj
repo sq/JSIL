@@ -99,6 +99,7 @@
     <None Include="SimpleTestCases\DelegateFieldInitializer.cs" />
     <None Include="TestCases\NullableObjectCast.cs" />
     <Compile Include="EvaluatorPool.cs" />
+    <None Include="SimpleTestCases\Int64.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

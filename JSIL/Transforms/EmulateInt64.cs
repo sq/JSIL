@@ -2,6 +2,7 @@
 using JSIL.Ast;
 using Mono.Cecil;
 using System.Diagnostics;
+using JSIL.Internal;
 
 namespace JSIL.Transforms
 {
@@ -10,24 +11,27 @@ namespace JSIL.Transforms
         public const bool Tracing = true;
 
         private readonly TypeSystem TypeSystem;
+        private readonly MethodTypeFactory MethodTypeFactory;
 
         public readonly JSAstBuilder googMathLong;
         public readonly JSExpression fromString;
         public readonly JSExpression fromNumber;
         public readonly JSExpression fromInt;
 
-        public EmulateInt64(TypeSystem typeSystem)
+        public EmulateInt64(MethodTypeFactory methodTypeFactory, TypeSystem typeSystem)
         {
             TypeSystem = typeSystem;
+            MethodTypeFactory = methodTypeFactory;
+
             googMathLong = JSAstBuilder.StringIdentifier("goog").Dot("math").Dot("Long");
-            fromString = googMathLong.FakeMethod("fromString", TypeSystem.Int64, TypeSystem.String).GetExpression();
-            fromNumber = googMathLong.FakeMethod("fromNumber", TypeSystem.Int64, TypeSystem.Double).GetExpression();
-            fromInt = googMathLong.FakeMethod("fromInt", TypeSystem.Int64, TypeSystem.Double).GetExpression();
+            fromString = googMathLong.FakeMethod("fromString", TypeSystem.Int64, new [] { TypeSystem.String }, MethodTypeFactory).GetExpression();
+            fromNumber = googMathLong.FakeMethod("fromNumber", TypeSystem.Int64, new [] { TypeSystem.Double }, MethodTypeFactory).GetExpression();
+            fromInt = googMathLong.FakeMethod("fromInt", TypeSystem.Int64, new [] { TypeSystem.Double }, MethodTypeFactory).GetExpression();
         }
 
         public void VisitNode(JSIntegerLiteral literal)
         {
-            if (literal.GetExpectedType(TypeSystem) == TypeSystem.Int64)
+            if (literal.GetActualType(TypeSystem) == TypeSystem.Int64)
             {
                 JSExpression expression;
 
@@ -50,8 +54,8 @@ namespace JSIL.Transforms
 
         public void VisitNode(JSBinaryOperatorExpression boe)
         {
-            var leftType = boe.Left.GetExpectedType(TypeSystem);
-            var rightType = boe.Right.GetExpectedType(TypeSystem);
+            var leftType = boe.Left.GetActualType(TypeSystem);
+            var rightType = boe.Right.GetActualType(TypeSystem);
 
             var int64 = TypeSystem.Int64;
 
@@ -60,7 +64,7 @@ namespace JSIL.Transforms
             {
                 // GetExpectedType can throw NoExpectedTypeException
                 // Shouldn't it return null or something like a NoType instead?
-                expectedType = boe.GetExpectedType(TypeSystem);
+                expectedType = boe.GetActualType(TypeSystem);
             }
             catch (NoExpectedTypeException)
             {
@@ -101,9 +105,9 @@ namespace JSIL.Transforms
                 JSIdentifier method;
 
                 if (expectedType == TypeSystem.Boolean)
-                    method = new JSFakeMethod(verb, TypeSystem.Boolean, TypeSystem.Int64, TypeSystem.Int64);
+                    method = new JSFakeMethod(verb, TypeSystem.Boolean, new [] { TypeSystem.Int64, TypeSystem.Int64 }, MethodTypeFactory);
                 else
-                    method = new JSFakeMethod(verb, TypeSystem.Int64, TypeSystem.Int64, TypeSystem.Int64);
+                    method = new JSFakeMethod(verb, TypeSystem.Int64, new[] { TypeSystem.Int64, TypeSystem.Int64 }, MethodTypeFactory);
 
                 var left = GetExpression(boe.Left);
                 var right = GetExpression(boe.Right);
@@ -115,7 +119,7 @@ namespace JSIL.Transforms
                 if (IsLesserIntegral(expectedType))
                 {
                     replacement = JSInvocationExpression
-                        .InvokeMethod(TypeSystem.Int64, new JSFakeMethod("toInt", expectedType), replacement);
+                        .InvokeMethod(TypeSystem.Int64, new JSFakeMethod("toInt", expectedType, new TypeReference[] {}, MethodTypeFactory), replacement);
                 }
 
                 ParentNode.ReplaceChild(boe, replacement);
@@ -129,7 +133,7 @@ namespace JSIL.Transforms
 
         private JSExpression GetExpression(JSExpression expression)
         {
-            var type = expression.GetExpectedType(TypeSystem);
+            var type = expression.GetActualType(TypeSystem);
 
             if (type == TypeSystem.Int64)
             {
@@ -140,11 +144,11 @@ namespace JSIL.Transforms
 
             if (IsLesserIntegral(type))
             {
-                conversionMethod = googMathLong.FakeMethod("fromInt", TypeSystem.Int64, type);
+                conversionMethod = googMathLong.FakeMethod("fromInt", TypeSystem.Int64, new [] { type }, MethodTypeFactory);
             }
             else if (type == TypeSystem.UInt64 || type == TypeSystem.Double || type == TypeSystem.Single)
             {
-                conversionMethod = googMathLong.FakeMethod("fromNumber", TypeSystem.Int64, type);
+                conversionMethod = googMathLong.FakeMethod("fromNumber", TypeSystem.Int64, new[] { type }, MethodTypeFactory);
             }
             else
             {
