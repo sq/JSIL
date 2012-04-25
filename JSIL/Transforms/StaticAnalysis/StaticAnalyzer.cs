@@ -41,23 +41,46 @@ namespace JSIL.Transforms {
         public void VisitNode (JSReturnExpression ret) {
             ReturnsSeen++;
 
-            var retVar = ret.Value as JSVariable;
-            if (retVar != null) {
-                State.EscapingVariables.Add(retVar.Identifier);
+            var returnValue = ret.Value;
+            JSResultReferenceExpression rre;
 
-                if (ReturnsSeen == 1)
-                    State.ResultVariable = retVar.Identifier;
-                else if (State.ResultVariable != retVar.Identifier)
-                    State.ResultVariable = null;
-            } else {
-                State.ResultVariable = null;
+            while ((rre = returnValue as JSResultReferenceExpression) != null) {
+                returnValue = rre.Referent;
             }
 
-            var retNew = ret.Value as JSNewExpression;
-            if (ReturnsSeen == 1)
-                State.ResultIsNew = (retNew != null);
-            else
-                State.ResultIsNew &= (retNew != null);
+            var retInvocation = returnValue as JSInvocationExpression;
+            if (retInvocation != null) {
+                State.ResultVariable = null;
+                State.ResultIsNew = false;
+
+                if (retInvocation.JSMethod != null) {
+                    if (ReturnsSeen == 1)
+                        State.ResultMethod = retInvocation.JSMethod;
+                    else if (retInvocation.JSMethod != State.ResultMethod)
+                        State.ResultMethod = null;
+                } else {
+                    State.ResultMethod = null;
+                }
+
+            } else {
+                var retVar = returnValue as JSVariable;
+                if (retVar != null) {
+                    State.EscapingVariables.Add(retVar.Identifier);
+
+                    if (ReturnsSeen == 1)
+                        State.ResultVariable = retVar.Identifier;
+                    else if (State.ResultVariable != retVar.Identifier)
+                        State.ResultVariable = null;
+                } else {
+                    State.ResultVariable = null;
+                }
+
+                var retNew = returnValue as JSNewExpression;
+                if (ReturnsSeen == 1)
+                    State.ResultIsNew = (retNew != null);
+                else
+                    State.ResultIsNew &= (retNew != null);
+            }
 
             VisitChildren(ret);
         }
@@ -442,7 +465,12 @@ namespace JSIL.Transforms {
         public readonly List<SideEffect> SideEffects = new List<SideEffect>();
         public readonly List<StaticReference> StaticReferences = new List<StaticReference>();
         public readonly List<Invocation> Invocations = new List<Invocation>();
+
+        // If not null, this method's return value is always the result of a call to a particular method.
+        public JSMethod ResultMethod = null;
+        // If not null, this method's return value is always a particular variable.
         public string ResultVariable = null;
+        // If true, this method's return value is always a 'new' expression.
         public bool ResultIsNew = false;
 
         public FunctionAnalysis1stPass (JSFunctionExpression function) {
@@ -495,6 +523,16 @@ namespace JSIL.Transforms {
             EscapingVariables = Data.EscapingVariables;
             ResultVariable = Data.ResultVariable;
             ResultIsNew = Data.ResultIsNew;
+
+            var rm = Data.ResultMethod;
+            while (rm != null) {
+                var rmfp = functionSource.GetFirstPass(data.ResultMethod.QualifiedIdentifier);
+                if (rmfp == null)
+                    break;
+
+                rm = rmfp.ResultMethod;
+                ResultIsNew = rmfp.ResultIsNew;
+            }
 
             Trace(data.Function.Method.Reference.FullName);
         }

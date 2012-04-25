@@ -157,6 +157,20 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void NestedReturnNew () {
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\NestedReturnNew.cs",
+                "a=1, b=2, c=3, d=6\r\na=1, b=2, c=3, d=6",
+                "a=1, b=2, c=3, d=6\r\na=1, b=2, c=3, d=6"
+            );
+
+            Console.WriteLine(generatedJs);
+            Assert.IsFalse(generatedJs.Contains(
+                @".MemberwiseClone()"
+            ), "A struct was cloned");
+        }
+
+        [Test]
         public void NestedReturn () {
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\NestedReturn.cs",

@@ -65,10 +65,14 @@ namespace JSIL {
             return true;
         }
 
-        public Entry GetCacheEntry (QualifiedMemberIdentifier method) {
+        public Entry GetCacheEntry (QualifiedMemberIdentifier method, bool throwOnFail = true) {
             Entry entry;
-            if (!Cache.TryGet(method, out entry))
-                throw new KeyNotFoundException("No cache entry for method '" + method + "'.");
+            if (!Cache.TryGet(method, out entry)) {
+                if (throwOnFail)
+                    throw new KeyNotFoundException("No cache entry for method '" + method + "'.");
+                else
+                    return null;
+            }
 
             return entry;
         }
@@ -79,9 +83,9 @@ namespace JSIL {
         }
 
         public FunctionAnalysis1stPass GetFirstPass (QualifiedMemberIdentifier method) {
-            var entry = GetCacheEntry(method);
+            var entry = GetCacheEntry(method, false);
 
-            if (entry.Expression == null)
+            if ((entry == null) || (entry.Expression == null))
                 return null;
 
             if (entry.InProgress)
