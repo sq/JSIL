@@ -1153,12 +1153,12 @@ JSIL.ResolveTypeReference = function (typeReference, context) {
   }
 };
 
-JSIL.ResolveTypeArgumentArray = function (typeArgs) {
+JSIL.ResolveTypeArgumentArray = function (typeArgs, context) {
   var resolvedArguments = typeArgs;
 
   // Ensure that each argument is the public interface of a type (not the type object or a type reference)
   for (var i = 0, l = resolvedArguments.length; i < l; i++) {
-    resolvedArguments[i] = JSIL.ResolveTypeReference(resolvedArguments[i])[1];
+    resolvedArguments[i] = JSIL.ResolveTypeReference(resolvedArguments[i], context)[1];
 
     if (typeof(resolvedArguments[i]) === "undefined")
       throw new Error("Undefined passed as type argument");
@@ -2369,6 +2369,7 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
 
 JSIL.BuildTypeList = function (type, publicInterface) {
   var typeList = type.__AssignableTypes__ = [];
+  var context = type.__Context__;
 
   var toVisit = [];
 
@@ -2391,7 +2392,7 @@ JSIL.BuildTypeList = function (type, publicInterface) {
     var interfaces = current.__Interfaces__;
     if (JSIL.IsArray(interfaces)) {
       for (var i = 0; i < interfaces.length; i++) {
-        var iface = JSIL.ResolveTypeReference(interfaces[i])[1];
+        var iface = JSIL.ResolveTypeReference(interfaces[i], context)[1];
         toVisit.push(iface);
       }
     }
