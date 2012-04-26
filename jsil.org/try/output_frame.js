@@ -65,16 +65,16 @@ JSIL.Host.throwException = function (e) {
     JSIL.Host.logWriteLine(stack);
 };
 
-runScript = function (text, entryPoint) {
+runScript = function (args) {
   try {
-    eval.call(this, text);
+    eval.call(this, args.javascript);
 
     JSIL.Initialize();
 
-    var entryPointFunction = eval.call(this, entryPoint);
+    var entryPointFunction = eval.call(this, args.entryPoint);
 
     if (typeof (entryPointFunction) !== "function") {
-      throw new Error("The entry point '" + entryPoint + "' is not a function.");
+      throw new Error("The entry point '" + args.entryPoint + "' is not a function.");
     }
 
     entryPointFunction();

@@ -81,17 +81,22 @@ function runInOutputWindow (javascript, entryPoint, warnings) {
   var outputDoc = document.getElementById("iframe").contentDocument;
 
   setOutputThrobberVisible(outputDoc, true);
-  try {
-    if (warnings && warnings.length > 0) {
-      outputWindow.JSIL.Host.logWriteLine("// Begin Warnings //");
-      outputWindow.JSIL.Host.logWriteLine(warnings);
-      outputWindow.JSIL.Host.logWriteLine("// End Warnings //");
-    }
+  window.setTimeout(function runTranslatedJS () {
+    try {
+      if (warnings && warnings.length > 0) {
+        outputWindow.JSIL.Host.logWriteLine("// Begin Warnings //");
+        outputWindow.JSIL.Host.logWriteLine(warnings);
+        outputWindow.JSIL.Host.logWriteLine("// End Warnings //");
+      }
 
-    outputWindow.runScript(javascript, entryPoint);
-  } finally {
-    setOutputThrobberVisible(outputDoc, false);
-  }
+      outputWindow.runScript({
+        javascript: javascript, 
+        entryPoint: entryPoint
+      });
+    } finally {
+      setOutputThrobberVisible(outputDoc, false);
+    }
+  }, 10);
 };
 
 function setOutputThrobberVisible (doc, isVisible) {
