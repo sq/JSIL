@@ -7,7 +7,7 @@ function beginCompile () {
 
   clearOutputWindow();
 
-  var sourceCode = document.getElementById("sourcecode").value;
+  var sourceCode = window.cseditor.getValue() || document.getElementById("sourcecode").value;
   setStatus("Compiling...");
 
   $.ajax({
@@ -30,7 +30,7 @@ function compileComplete (data, status) {
   btn.fadeIn();
 
   if (data && data.ok) {
-    document.getElementById("javascript").value = data.javascript;
+    setJavascript(data.javascript);
     setStatus(
       "Compile successful.<br>" +
       "C# compile took " + data.compileElapsed + " second(s).<br>" +
@@ -99,6 +99,11 @@ function runInOutputWindow (javascript, entryPoint, warnings) {
   }, 10);
 };
 
+function setJavascript (text) {
+  document.getElementById("javascript").value = text;
+  window.jseditor.setValue(text);
+};
+
 function setOutputThrobberVisible (doc, isVisible) {
   doc.getElementById("throbber").style.display = isVisible ? "block" : "none";
 };
@@ -113,8 +118,6 @@ var leftColumnWidthStart = 0;
 
 function onLoad () {
   $("#throbber").hide();
-
-  document.getElementById("javascript").value = "";
 
   $("#compile").click(beginCompile);
 
@@ -149,6 +152,21 @@ function onLoad () {
     }
   }, true);
 
+  window.cseditor = CodeMirror.fromTextArea(document.getElementById("sourcecode"), {
+    mode: "clike",
+    lineNumbers: false,
+    lineWrapping: true
+  });
+
+  window.jseditor = CodeMirror.fromTextArea(document.getElementById("javascript"), {
+    mode: "javascript",
+    lineNumbers: false,
+    lineWrapping: true
+  });
+
+  setJavascript("");
+
   initSplitter(0, 0);
   updateSplitter(0);
+
 };

@@ -128,13 +128,17 @@ textarea {
 	padding: 0px;
 }
 
-textarea#sourcecode, textarea#javascript, iframe#iframe {
+div.CodeMirror-wrap {
+	background-color: rgb(248, 253, 251)
+}
+
+textarea#sourcecode, textarea#javascript, iframe#iframe, div.CodeMirror-wrap {
 	width: 100%;
 	font-family: Consolas, Courier New, Courier, monospace;
 	font-size: 13pt;
 }
 
-textarea#sourcecode, textarea#javascript {
+textarea#sourcecode, textarea#javascript, div.CodeMirror-wrap, div.CodeMirror-scroll {
 	height: 400px;
 }
 
