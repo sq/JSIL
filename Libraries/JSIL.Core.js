@@ -3074,6 +3074,7 @@ JSIL.MakeClass("System.ValueType", "System.Enum", true, [], function ($) {
 JSIL.MakeEnumValue = function (enumType, value, key, isFlagsEnum) {
   var obj = new Number(value);
   var toStringImpl;
+  var state = null;
 
   if (key !== null) {
     toStringImpl = function EnumValue_ToString () {
@@ -3081,7 +3082,6 @@ JSIL.MakeEnumValue = function (enumType, value, key, isFlagsEnum) {
     };
 
   } else if (isFlagsEnum) {
-    var state = null;
     var names = enumType.__Names__;
 
     toStringImpl = function FlagsEnumValue_ToString () {

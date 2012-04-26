@@ -103,6 +103,7 @@
     <Compile Include="EvaluatorPool.cs" />
     <None Include="SimpleTestCases\NestedInterfaces.cs" />
     <None Include="SimpleTestCases\OverloadedConstructorDelegation.cs" />
+    <None Include="TestCases\EnumNullableArithmetic.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

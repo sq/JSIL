@@ -97,7 +97,7 @@ namespace JSIL.Transforms {
                         whileLoop.ReplaceChildRecursive(lastIfStatement, new JSNullStatement());
 
                         var doLoop = new JSDoLoop(
-                            new JSUnaryOperatorExpression(JSOperator.LogicalNot, lastIfStatement.Condition),
+                            new JSUnaryOperatorExpression(JSOperator.LogicalNot, lastIfStatement.Condition, TypeSystem.Boolean),
                             whileLoop.Statements.ToArray()
                         );
                         doLoop.Index = whileLoop.Index;

@@ -1237,6 +1237,9 @@ namespace JSIL.Ast {
         protected JSOperatorExpression (TOperator op, TypeReference actualType, params JSExpression[] values)
             : base(values) {
 
+            if (actualType == null)
+                throw new ArgumentNullException("actualType");
+
             Operator = op;
             ActualType = actualType;
         }
@@ -1394,7 +1397,7 @@ namespace JSIL.Ast {
     }
 
     public class JSUnaryOperatorExpression : JSOperatorExpression<JSUnaryOperator> {
-        public JSUnaryOperatorExpression (JSUnaryOperator op, JSExpression expression, TypeReference actualType = null)
+        public JSUnaryOperatorExpression (JSUnaryOperator op, JSExpression expression, TypeReference actualType)
             : base(op, actualType, expression) {
         }
 

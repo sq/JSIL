@@ -86,6 +86,8 @@ namespace JSIL.Transforms {
             var leftIsEnum = IsEnumOrNullableEnum(leftType);
             var rightType = boe.Right.GetActualType(TypeSystem);
             var rightIsEnum = IsEnumOrNullableEnum(rightType);
+            var resultType = boe.GetActualType(TypeSystem);
+            var resultIsEnum = IsEnumOrNullableEnum(resultType);
 
             if ((leftIsEnum || rightIsEnum) && LogicalOperators.Contains(boe.Operator)) {
                 if (leftIsEnum) {

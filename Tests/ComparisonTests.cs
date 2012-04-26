@@ -218,6 +218,7 @@ namespace JSIL.Tests {
                     @"TestCases\EnumIfStatement.cs",
                     @"TestCases\CastEnumNullableToInt.cs",
                     @"TestCases\EnumCheckType.cs",
+                    @"TestCases\EnumNullableArithmetic.cs"
                 }, null, defaultProvider
             );
         }
@@ -368,7 +369,8 @@ namespace JSIL.Tests {
                     @"TestCases\NullableComparison.cs",
                     @"TestCases\NullableComparisonWithCast.cs",
                     @"TestCases\NullableObjectCast.cs",
-                    @"TestCases\CastEnumNullableToInt.cs"
+                    @"TestCases\CastEnumNullableToInt.cs",
+                    @"TestCases\EnumNullableArithmetic.cs",
                 }
             );
         }

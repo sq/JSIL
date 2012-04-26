@@ -933,7 +933,7 @@ namespace JSIL {
 
         public void VisitNode (JSBinaryOperatorExpression bop) {
             bool parens = true;
-            bool needsTruncation = false;
+            bool needsTruncation = false, needsCast = false;
 
             if (ParentNode is JSIfStatement)
                 parens = false;
@@ -963,22 +963,36 @@ namespace JSIL {
             else if (ParentNode is JSExpressionStatement)
                 parens = false;
 
+            var leftType = bop.Left.GetActualType(TypeSystem);
+            var rightType = bop.Right.GetActualType(TypeSystem);
+            var resultType = bop.GetActualType(TypeSystem);
+
             // We need to perform manual truncation to maintain the semantics of C#'s division operator
             if ((bop.Operator == JSOperator.Divide)) {
                 needsTruncation =                     
-                    (TypeUtil.IsIntegral(bop.Left.GetActualType(TypeSystem)) ||
-                    TypeUtil.IsIntegral(bop.Right.GetActualType(TypeSystem))) &&
-                    TypeUtil.IsIntegral(bop.GetActualType(TypeSystem));
+                    (TypeUtil.IsIntegral(leftType) ||
+                    TypeUtil.IsIntegral(rightType)) &&
+                    TypeUtil.IsIntegral(resultType);
+            }
 
-                parens |= needsTruncation;
+            // Arithmetic on enum types needs a cast at the end.
+            if (bop.Operator is JSArithmeticOperator) {
+                if (TypeUtil.IsEnum(TypeUtil.StripNullable(resultType))) {
+                    needsCast = true;
+                }
             }
 
             if (needsTruncation) {
                 if (bop.Operator is JSAssignmentOperator)
                     throw new NotImplementedException("Truncation of assignment operations not implemented");
 
-                Output.Identifier("Math.floor", null);
+                Output.WriteRaw("Math.floor");
+            } else if (needsCast) {
+                Output.WriteRaw("JSIL.Cast");
             }
+
+            parens |= needsTruncation;
+            parens |= needsCast;
 
             if (parens)
                 Output.LPar();
@@ -996,6 +1010,11 @@ namespace JSIL {
             }
 
             Visit(bop.Right);
+
+            if (needsCast) {
+                Output.Comma();
+                Output.Identifier(TypeUtil.StripNullable(resultType), ReferenceContext);
+            }
 
             if (parens)
                 Output.RPar();

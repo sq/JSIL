@@ -68,6 +68,15 @@ namespace JSIL {
             }
         }
 
+        public static TypeReference StripNullable (TypeReference type) {
+            var git = type as GenericInstanceType;
+            if ((git != null) && (git.Name == "Nullable`1")) {
+                return git.GenericArguments[0];
+            }
+
+            return type;
+        }
+
         public static bool IsEnum (TypeReference type) {
             var typedef = GetTypeDefinition(type);
             return (typedef != null) && (typedef.IsEnum);

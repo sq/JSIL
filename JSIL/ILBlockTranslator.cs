@@ -277,9 +277,12 @@ namespace JSIL {
             )
                 return new JSUntranslatableExpression(node);
 
-            return new JSBinaryOperatorExpression(
-                op, lhs, rhs, node.InferredType ?? node.ExpectedType
+            var resultType = node.InferredType ?? node.ExpectedType;
+            var result = new JSBinaryOperatorExpression(
+                op, lhs, rhs, resultType
             );
+
+            return result;
         }
 
         protected JSExpression Translate_MethodReplacement (
@@ -842,7 +845,7 @@ namespace JSIL {
 
             Func<JSExpression, JSBinaryOperatorExpression> makeNullCheck =
                 (expr) => new JSBinaryOperatorExpression(
-                    JSOperator.Equal, expr, new JSNullLiteral(nullableType), TypeSystem.Boolean
+                    JSOperator.Equal, expr, new JSNullLiteral(nullableGenericType), TypeSystem.Boolean
                 );
 
             var unwrappedLeft = UnwrapValueOfExpression(ref left);
@@ -860,10 +863,10 @@ namespace JSIL {
                 return new JSUntranslatableExpression(node);
 
             var arithmeticExpression = new JSBinaryOperatorExpression(
-                innerBoe.Operator, left, right, nullableType
+                innerBoe.Operator, left, right, nullableGenericType
             );
             var result = new JSTernaryOperatorExpression(
-                conditional, new JSNullLiteral(innerBoe.ActualType), arithmeticExpression, nullableType
+                conditional, new JSNullLiteral(innerBoe.ActualType), arithmeticExpression, nullableGenericType
             );
 
             return result;
@@ -917,7 +920,7 @@ namespace JSIL {
 
                 if (comparand != checkEquality)
                     return new JSUnaryOperatorExpression(
-                        JSOperator.LogicalNot, TranslateNode(node.Arguments[0])
+                        JSOperator.LogicalNot, TranslateNode(node.Arguments[0]), TypeSystem.Boolean
                     );
                 else
                     return TranslateNode(node.Arguments[0]);
@@ -1411,7 +1414,7 @@ namespace JSIL {
             }
 
             return new JSBinaryOperatorExpression(
-                JSOperator.Assignment, target, value, node.InferredType ?? node.ExpectedType
+                JSOperator.Assignment, target, value, node.InferredType ?? node.ExpectedType ?? value.GetActualType(TypeSystem)
             );
         }
 
@@ -2338,11 +2341,11 @@ namespace JSIL {
 
             if (arg == 1)
                 return new JSUnaryOperatorExpression(
-                    JSOperator.PostIncrement, target
+                    JSOperator.PostIncrement, target, target.GetActualType(TypeSystem)
                 );
             else
                 return new JSUnaryOperatorExpression(
-                    JSOperator.PostDecrement, target
+                    JSOperator.PostDecrement, target, target.GetActualType(TypeSystem)
                 );
         }
     }
