@@ -1,0 +1,21 @@
+body {
+	background-image: url(../images/jsil_256px.png);
+	background-repeat: no-repeat;
+	background-attachment: fixed;
+	background-position: bottom right;
+}
+
+button#compile {
+	display: block;
+	width: 70%;
+	margin-left: auto;
+	margin-right: auto;
+	font-size: 16pt;
+}
+
+textarea#sourcecode, textarea#javascript {
+	width: 100%;
+	height: 400px;
+	font-family: Consolas, Courier New, Courier;
+	font-size: 14pt;
+}

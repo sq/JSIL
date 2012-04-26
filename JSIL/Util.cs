@@ -41,10 +41,11 @@ namespace JSIL.Internal {
         public static string GetPathOfAssembly (Assembly assembly) {
             var uri = new Uri(assembly.CodeBase);
             var result = Uri.UnescapeDataString(uri.AbsolutePath);
+
             if (String.IsNullOrWhiteSpace(result))
                 result = assembly.Location;
 
-            result = result.Replace("/", "\\");
+            result = result.Replace('/', System.IO.Path.DirectorySeparatorChar);
 
             return result;
         }

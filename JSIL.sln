@@ -52,6 +52,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Profiles.XNA4", "Compiler\P
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XapParse", "Upstream\xapparse\XapParse.csproj", "{10D0D83E-59A8-421C-9C83-3108074B1A9C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Try", "Try\Try.csproj", "{2869EA5F-86D6-4075-8539-61AA1FE94066}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -126,6 +128,9 @@ Global
 		{10D0D83E-59A8-421C-9C83-3108074B1A9C}.Debug|x86.Build.0 = Debug|x86
 		{10D0D83E-59A8-421C-9C83-3108074B1A9C}.Release|x86.ActiveCfg = Release|x86
 		{10D0D83E-59A8-421C-9C83-3108074B1A9C}.Release|x86.Build.0 = Release|x86
+		{2869EA5F-86D6-4075-8539-61AA1FE94066}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2869EA5F-86D6-4075-8539-61AA1FE94066}.Debug|x86.Build.0 = Debug|Any CPU
+		{2869EA5F-86D6-4075-8539-61AA1FE94066}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

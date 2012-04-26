@@ -35,6 +35,7 @@ Tests/*Cases/*.js
 /jsil.org/demos/RPG/*.js
 /jsil.org/demos/Sully/*
 /jsil.org/demos/Libraries
+/jsil.org/demos/demos.zip
 *.jsillog
 /Examples/obj
 /jsil.org/demos/RPG/Content
@@ -48,3 +49,5 @@ Tests/*Cases/*.js
 /Upstream/XapParse/obj
 /Upstream/XapParse/bin
 Skeletons/*.js
+/Try/obj
+/jsil.org/try/bin/*

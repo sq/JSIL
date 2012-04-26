@@ -84,16 +84,27 @@ namespace JSIL {
                 OwnsTypeInfoProvider = true;
 
                 Assembly proxyAssembly = null;
-                var proxyPath = Path.GetDirectoryName(Util.GetPathOfAssembly(Assembly.GetExecutingAssembly()));
+                var myAssemblyPath = Util.GetPathOfAssembly(Assembly.GetExecutingAssembly());
+                var proxyFolder = Path.GetDirectoryName(myAssemblyPath);
+                string proxyPath = null;
 
-                if (!configuration.FrameworkVersion.HasValue || configuration.FrameworkVersion == 4.0) {
-                    proxyAssembly = Assembly.LoadFile(Path.Combine(proxyPath, "JSIL.Proxies.4.0.dll"));
-                } else if (configuration.FrameworkVersion <= 3.5) {
-                    proxyAssembly = Assembly.LoadFile(Path.Combine(proxyPath, "JSIL.Proxies.3.5.dll"));
-                } else {
-                    throw new ArgumentOutOfRangeException(
-                        "FrameworkVersion", 
-                        String.Format("Framework version '{0}' not supported", configuration.FrameworkVersion.Value)
+                try {
+                    if (!configuration.FrameworkVersion.HasValue || configuration.FrameworkVersion == 4.0) {
+                        proxyPath = Path.Combine(proxyFolder, "JSIL.Proxies.4.0.dll");
+                    } else if (configuration.FrameworkVersion <= 3.5) {
+                        proxyPath = Path.Combine(proxyFolder, "JSIL.Proxies.3.5.dll");
+                    } else {
+                        throw new ArgumentOutOfRangeException(
+                            "FrameworkVersion",
+                            String.Format("Framework version '{0}' not supported", configuration.FrameworkVersion.Value)
+                        );
+                    }
+
+                    proxyAssembly = Assembly.LoadFile(proxyPath);
+                } catch (FileNotFoundException fnf) {
+                    throw new FileNotFoundException(
+                        String.Format("Could not load the .NET proxies assembly from '{0}'.", proxyPath),
+                        fnf
                     );
                 }
 
@@ -287,7 +298,7 @@ namespace JSIL {
         }
 
         public TranslationResult Translate (string assemblyPath, bool scanForProxies = true) {
-            var result = new TranslationResult();
+            var result = new TranslationResult(this.Configuration);
             var assemblies = LoadAssembly(assemblyPath);
             var parallelOptions = GetParallelOptions();
 
@@ -394,20 +405,22 @@ namespace JSIL {
 
                 tw.WriteLine("var $sig = new JSIL.MethodSignatureCache();");
 
-                tw.WriteLine();
-                tw.WriteLine("if (typeof (contentManifest) !== \"object\") { contentManifest = {}; };");
-                tw.WriteLine("contentManifest[\"" + Path.GetFileName(assemblyPath).Replace("\\", "\\\\") + "\"] = [");
+                if (result.Configuration.GenerateContentManifest.GetValueOrDefault(true)) {
+                    tw.WriteLine();
+                    tw.WriteLine("if (typeof (contentManifest) !== \"object\") { contentManifest = {}; };");
+                    tw.WriteLine("contentManifest[\"" + Path.GetFileName(assemblyPath).Replace("\\", "\\\\") + "\"] = [");
 
-                foreach (var fe in result.OrderedFiles) {
-                    var propertiesObject = String.Format("{{ \"sizeBytes\": {0} }}", fe.Size);
+                    foreach (var fe in result.OrderedFiles) {
+                        var propertiesObject = String.Format("{{ \"sizeBytes\": {0} }}", fe.Size);
 
-                    tw.WriteLine(String.Format(
-                        "  [\"{0}\", \"{1}\", {2}],",
-                        "Script", fe.Filename.Replace("\\", "/"), propertiesObject
-                    ));
+                        tw.WriteLine(String.Format(
+                            "  [\"{0}\", \"{1}\", {2}],",
+                            "Script", fe.Filename.Replace("\\", "/"), propertiesObject
+                        ));
+                    }
+
+                    tw.WriteLine("];");
                 }
-
-                tw.WriteLine("];");
 
                 tw.Flush();
 
