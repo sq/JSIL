@@ -99,7 +99,7 @@ namespace JSIL {
         protected JSExpression FixupThisArgument (JSExpression thisArgument, TypeSystem typeSystem) {
             var expectedType = thisArgument.GetActualType(typeSystem);
             if (expectedType.FullName == "System.Type")
-                return JSDotExpression.New(thisArgument, new JSStringIdentifier("__PublicInterface__"));
+                return new JSPublicInterfaceOfExpression(thisArgument);
 
             return thisArgument;
         }

@@ -24,6 +24,19 @@ namespace JSIL.Transforms {
             TypeSystem = typeSystem;
         }
 
+        public void VisitNode (JSPublicInterfaceOfExpression poe) {
+            VisitChildren(poe);
+
+            // Replace foo.__Type__.__PublicInterface__ with foo
+            var innerTypeOf = poe.Inner as JSTypeOfExpression;
+            if (innerTypeOf != null) {
+                var replacement = new JSType(innerTypeOf.Type);
+
+                ParentNode.ReplaceChild(poe, replacement);
+                VisitReplacement(replacement);
+            }
+        }
+
         public void VisitNode (JSInvocationExpression ie) {
             var type = ie.JSType;
             var method = ie.JSMethod;

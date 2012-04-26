@@ -543,6 +543,22 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSPublicInterfaceOfExpression : JSExpression {
+        public JSPublicInterfaceOfExpression (JSExpression inner)
+            : base(inner) {
+        }
+
+        public JSExpression Inner {
+            get {
+                return Values[0];
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return Inner.GetActualType(typeSystem);
+        }
+    }
+
     public class JSInitializedObject : JSExpression {
         public readonly TypeReference Type;
 

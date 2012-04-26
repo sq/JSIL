@@ -571,6 +571,13 @@ namespace JSIL {
             }
         }
 
+        public void VisitNode (JSPublicInterfaceOfExpression poe) {
+            VisitChildren(poe);
+
+            Output.Dot();
+            Output.Identifier("__PublicInterface__");
+        }
+
         public void VisitNode (JSEliminatedVariable variable) {
             throw new InvalidOperationException(String.Format("'{0}' was eliminated despite being in use.", variable.Variable));
         }
