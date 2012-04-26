@@ -69,6 +69,9 @@ function updateSplitter (x) {
   leftColumn.style.width = newLeftWidth + "px";
   rightColumn.style.width = (totalWidth - newLeftWidth - splitterWidth) + "px";
   splitter.style.left = (newLeftWidth + leftColumn.offsetLeft + 4) + "px";
+
+  window.cseditor.refresh();
+  window.jseditor.refresh();
 }
 
 function setStatus (text) {
@@ -154,13 +157,13 @@ function onLoad () {
 
   window.cseditor = CodeMirror.fromTextArea(document.getElementById("sourcecode"), {
     mode: "clike",
-    lineNumbers: false,
+    lineNumbers: true,
     lineWrapping: true
   });
 
   window.jseditor = CodeMirror.fromTextArea(document.getElementById("javascript"), {
     mode: "javascript",
-    lineNumbers: false,
+    lineNumbers: true,
     lineWrapping: true
   });
 

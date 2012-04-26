@@ -67,30 +67,30 @@ namespace JSIL.Try {
                     TempFiles = new TempFileCollection(tempPath, false)
                 };
                 var results = provider.CompileAssemblyFromSource(parameters, csharp);
-                compilerOutput = String.Join(Environment.NewLine, results.Output.OfType<string>().ToArray());
 
                 int numWarnings = (from CompilerError err in results.Errors where err.IsWarning select err).Count();
                 int numErrors = results.Errors.Count - numWarnings;
 
                 if (numErrors > 0) {
                     compilerOutput = String.Format(
-                        "Compile failed with {0} error(s):{1}{2}{1}{3}",
+                        "Compile failed with {0} error(s):{1}{2}",
                         numErrors, Environment.NewLine,
-                        compilerOutput ?? "",
                         String.Join(
                             Environment.NewLine,
-                            (from CompilerError err in results.Errors where !err.IsWarning select err.ToString()).ToArray()
+                            (from CompilerError err in results.Errors select err.ToString()).ToArray()
                         )
-                    ) + compilerOutput;
+                    );
 
                     entryPoint = resultFullName = resultPath = null;
 
                     return;
-                } else {
-                    compilerOutput += String.Join(
+                } else if (numWarnings > 0) {
+                    compilerOutput = String.Join(
                         Environment.NewLine,
-                        (from CompilerError err in results.Errors where err.IsWarning select err.ToString()).ToArray()
+                        (from CompilerError err in results.Errors select err.ToString()).ToArray()
                     );
+                } else {
+                    compilerOutput = String.Join(Environment.NewLine, results.Output.OfType<string>().ToArray());
                 }
 
                 var resultAssembly = results.CompiledAssembly;
