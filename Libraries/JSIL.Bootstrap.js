@@ -413,7 +413,7 @@ $jsilcore.$GetInvocationList = function (delegate) {
     } else if (typeof (delegate) === "function") {
       return [ delegate ];
     } else {
-      throw new Error("Unsupported target for GetInvocationList");
+      return null;
     }
 };
 $jsilcore.$Combine = function (lhs, rhs) {
@@ -499,6 +499,44 @@ JSIL.ImplementExternals("System.Delegate", function ($) {
       return delegatePublicInterface.New(firstArgument, impl);
     }
   );  
+
+  var equalsImpl = function (lhs, rhs) {
+    if (lhs === rhs)
+      return true;
+
+    var lhsInvocationList = JSIL.Delegate.GetInvocationList(lhs);
+    var rhsInvocationList = JSIL.Delegate.GetInvocationList(rhs);
+
+    if (lhsInvocationList === rhsInvocationList)
+      return true;
+
+    if (!JSIL.IsArray(lhsInvocationList))
+      return false;
+    if (!JSIL.IsArray(rhsInvocationList))
+      return false;
+
+    if (lhsInvocationList.length != rhsInvocationList.length)
+      return false;
+
+    for (var i = 0, l = lhsInvocationList.length; i < l; i++) {
+      if (lhsInvocationList[i] !== rhsInvocationList[i])
+        return false;
+    }
+
+    return true;
+  };
+
+  $.Method({Static:true , Public:true }, "op_Equality", 
+    (new JSIL.MethodSignature($.Boolean, [tDelegate, tDelegate], [])), 
+    equalsImpl
+  );
+
+  $.Method({Static:true , Public:true }, "op_Inequality", 
+    (new JSIL.MethodSignature($.Boolean, [tDelegate, tDelegate], [])), 
+    function op_Inequality (d1, d2) {
+      return !equalsImpl(d1, d2);
+    }
+  );
 
   $.Method({Static:true , Public:true }, "Combine", 
     (new JSIL.MethodSignature(tDelegate, [tDelegate, tDelegate], [])), 
@@ -1394,6 +1432,14 @@ JSIL.MakeClass("System.Object", "JSIL.EnumerableArray", true, [], function ($) {
   );
 });
 
+JSIL.MakeClass("System.Object", "System.Collections.ArrayList", true, [], function ($) {
+  $.Property({Public: true , Static: false}, "Count");
+
+  $.ImplementInterfaces(
+    "System.Collections.IEnumerable"
+  );
+});
+
 JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"], function ($) {
   $.Property({Public: true , Static: false}, "Count");
 
@@ -1734,7 +1780,7 @@ JSIL.MakeStruct("System.ValueType", "System.Decimal", true, [], function ($) {
 JSIL.ImplementExternals("System.Environment", function ($) {
 
   $.Method({Static:true , Public:true }, "GetFolderPath", 
-    (new JSIL.MethodSignature($.String, [$asms[5].TypeRef("System.Environment/SpecialFolder")], [])), 
+    (new JSIL.MethodSignature($.String, [$jsilcore.TypeRef("System.Environment/SpecialFolder")], [])), 
     function GetFolderPath (folder) {
       // FIXME
       return folder.name;
@@ -3088,9 +3134,9 @@ JSIL.ImplementExternals("System.Activator", function ($) {
 
   $.Method({Static:true , Public:true }, "CreateInstance", 
     (new JSIL.MethodSignature($.Object, [
-          $asms[5].TypeRef("System.Type"), $asms[5].TypeRef("System.Reflection.BindingFlags"), 
-          $asms[5].TypeRef("System.Reflection.Binder"), $jsilcore.TypeRef("System.Array", [$.Object]), 
-          $asms[5].TypeRef("System.Globalization.CultureInfo")
+          $jsilcore.TypeRef("System.Type"), $jsilcore.TypeRef("System.Reflection.BindingFlags"), 
+          $jsilcore.TypeRef("System.Reflection.Binder"), $jsilcore.TypeRef("System.Array", [$.Object]), 
+          $jsilcore.TypeRef("System.Globalization.CultureInfo")
         ], [])), 
     function CreateInstance (type, bindingAttr, binder, args, culture) {
       // FIXME
@@ -3353,7 +3399,7 @@ JSIL.ImplementExternals("System.Resources.ResourceManager", function ($) {
   $.Method({Static:false, Public:false}, ".ctor", 
     (new JSIL.MethodSignature(null, [
           $.String, $.String, 
-          $asms[5].TypeRef("System.Type")
+          $jsilcore.TypeRef("System.Type")
         ], [])), 
     function _ctor (baseName, resourceDir, usingResourceSet) {
       // FIXME
@@ -3361,7 +3407,7 @@ JSIL.ImplementExternals("System.Resources.ResourceManager", function ($) {
   );
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [$.String, $asms[5].TypeRef("System.Reflection.Assembly")], [])), 
+    (new JSIL.MethodSignature(null, [$.String, $jsilcore.TypeRef("System.Reflection.Assembly")], [])), 
     function _ctor (baseName, assembly) {
       // FIXME
     }
@@ -3376,11 +3422,17 @@ JSIL.ImplementExternals("System.Resources.ResourceManager", function ($) {
   );
 
   $.Method({Static:false, Public:true }, "GetString", 
-    (new JSIL.MethodSignature($.String, [$.String, $asms[5].TypeRef("System.Globalization.CultureInfo")], [])), 
+    (new JSIL.MethodSignature($.String, [$.String, $jsilcore.TypeRef("System.Globalization.CultureInfo")], [])), 
     function GetString (name, culture) {
       // FIXME
       return name;
     }
   );
 
+});
+
+JSIL.MakeStruct("System.ValueType", "System.EventArgs", true, [], function ($) {
+  $.Field({Static:true , Public:true }, "Empty", $jsilcore.TypeRef("System.EventArgs"), function ($) {
+    return new System.EventArgs();
+  });
 });

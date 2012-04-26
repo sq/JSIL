@@ -23,7 +23,9 @@ namespace JSIL.Internal {
         public readonly TypeReference[] ParameterTypes;
         public readonly string[] GenericParameterNames;
 
-        internal int? ID;
+        public static int NextID = 0;
+
+        internal int ID;
 
         protected int? _Hash;
 
@@ -33,6 +35,7 @@ namespace JSIL.Internal {
             ReturnType = returnType;
             ParameterTypes = parameterTypes;
             GenericParameterNames = genericParameterNames;
+            ID = Interlocked.Increment(ref NextID);
         }
 
         public int ParameterCount {
@@ -101,53 +104,6 @@ namespace JSIL.Internal {
 
             _Hash = hash;
             return hash;
-        }
-    }
-
-    public class MethodSignatureCache {
-        // private readonly ConcurrentCache<MethodSignature, int> IDs;
-        private int NextID = 0;
-
-        public MethodSignatureCache () {
-            /*
-            IDs = new ConcurrentCache<MethodSignature, int>(
-                Environment.ProcessorCount, 8192, new MethodSignature.EqualityComparer()
-            );
-             */
-        }
-
-        private int CreateEntry (MethodSignature signature) {
-            var id = Interlocked.Increment(ref NextID);
-            signature.ID = id;
-            return id;
-        }
-
-        public bool AssignID (MethodSignature signature) {
-            /*
-            return IDs.TryCreate(
-                signature, () => CreateEntry(signature)
-            );
-             */
-
-            CreateEntry(signature);
-
-            return true;
-        }
-
-        public int Get (MethodSignature signature) {
-            if (signature.ID.HasValue)
-                return signature.ID.Value;
-
-            if (AssignID(signature))
-                return signature.ID.Value;
-            else
-                throw new InvalidOperationException("Signature ID assignment failed");
-
-            /*
-            return IDs.GetOrCreate(
-                signature, () => CreateEntry(signature)
-            );
-             */
         }
     }
 
