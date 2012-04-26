@@ -55,6 +55,7 @@ namespace JSIL {
         public event Action<string, Exception> CouldNotLoadSymbols;
         public event Action<string, Exception> CouldNotResolveAssembly;
         public event Action<string, Exception> CouldNotDecompileMethod;
+        public event Action<string> Warning;
 
         internal readonly TypeInfoProvider _TypeInfoProvider;
 
@@ -67,6 +68,10 @@ namespace JSIL {
             AssemblyManifest manifest = null,
             AssemblyCache assemblyCache = null
         ) {
+            Warning = (s) => {
+                Console.Error.WriteLine("// {0}", s);
+            };
+
             Configuration = configuration;
             if (manifest != null)
                 Manifest = manifest;
@@ -124,6 +129,10 @@ namespace JSIL {
                 AssemblyCache = new AssemblyCache();
 
             FunctionCache = new FunctionCache(_TypeInfoProvider);
+        }
+
+        internal void WarningFormat (string format, params object[] args) {
+            Warning(String.Format(format, args));
         }
 
         protected virtual ReaderParameters GetReaderParameters (bool useSymbols, string mainAssemblyPath = null) {
@@ -572,7 +581,7 @@ namespace JSIL {
 
             foreach (var module in assembly.Modules) {
                 if (module.Assembly != assembly) {
-                    Console.Error.WriteLine("// Warning: Mono.Cecil failed to correctly load the module '{0}'. Skipping it.", module);
+                    WarningFormat("Warning: Mono.Cecil failed to correctly load the module '{0}'. Skipping it.", module);
                     continue;
                 }
 
@@ -1501,7 +1510,7 @@ namespace JSIL {
                             try {
                                 defaultValue = translator.TranslateNode(ile.Arguments[0]);
                             } catch (Exception ex) {
-                                Console.Error.WriteLine("Warning: failed to translate default value for static field '{0}': {1}", targetField, ex);
+                                WarningFormat("Warning: failed to translate default value for static field '{0}': {1}", targetField, ex);
                                 continue;
                             }
 
@@ -1515,7 +1524,7 @@ namespace JSIL {
                                     continue;
                             } catch (Exception ex) {
                                 // This may fail because we didn't do a full translation.
-                                Console.Error.WriteLine("Warning: failed to translate default value for static field '{0}': {1}", targetField, ex);
+                                WarningFormat("Warning: failed to translate default value for static field '{0}': {1}", targetField, ex);
                                 continue;
                             }
 

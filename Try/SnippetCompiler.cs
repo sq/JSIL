@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using JSIL.Internal;
 using JSIL.Translator;
 using Microsoft.CSharp;
 using System.CodeDom.Compiler;
@@ -13,6 +14,8 @@ using System.Threading;
 
 namespace JSIL.Try {
     public static class SnippetCompiler {
+        public static readonly AssemblyCache AssemblyCache = new AssemblyCache();
+
         public static readonly string[] AssemblyReferences = new[] {
             "mscorlib.dll", "System.dll", 
             "System.Core.dll", "System.Xml.dll", 
@@ -23,7 +26,7 @@ namespace JSIL.Try {
         /// Compiles the provided C# and then translates it into JavaScript.
         /// On success, returns the JS. On failure, throws.
         /// </summary>
-        public static string Compile (string csharp) {
+        public static string Compile (string csharp, out string entryPoint, out string warnings) {
             var tempPath = Path.Combine(Path.GetTempPath(), "JSIL.Try");
             Directory.CreateDirectory(tempPath);
 
@@ -39,7 +42,7 @@ namespace JSIL.Try {
                     AssemblyReferences
                 ) {
                     CompilerOptions = "",
-                    GenerateExecutable = false,
+                    GenerateExecutable = true,
                     GenerateInMemory = false,
                     IncludeDebugInformation = true,
                     TempFiles = new TempFileCollection(tempPath, false)
@@ -93,14 +96,52 @@ namespace JSIL.Try {
                     UseThreads = false
                 };
 
+                var translatorOutput = new StringBuilder();
+
                 using (var translator = new AssemblyTranslator(
-                    translatorConfiguration
+                    translatorConfiguration, 
+                    // Caching a type info provider would be helpful, but is probably error-prone.
+                    null,
+                    // Can't reuse a manifest meaningfully here.
+                    null, 
+                    // Reuse the assembly cache so that mscorlib doesn't get loaded every time.
+                    AssemblyCache
                 )) {
+                    translator.CouldNotDecompileMethod += (s, exception) => {
+                        lock (translatorOutput)
+                            translatorOutput.AppendFormat(
+                                "Could not decompile method '{0}': {1}{2}",
+                                s, exception.Message, Environment.NewLine
+                            );
+                    };
+
+                    translator.CouldNotResolveAssembly += (s, exception) => {
+                        lock (translatorOutput)
+                            translatorOutput.AppendFormat(
+                                "Could not resolve assembly '{0}': {1}{2}",
+                                s, exception.Message, Environment.NewLine
+                            );
+                    };
+
+                    translator.Warning += (s) => {
+                        lock (translatorOutput)
+                            translatorOutput.AppendLine(s);
+                    };
+
                     var result = translator.Translate(resultPath, true);
 
                     AssemblyTranslator.GenerateManifest(
                         translator.Manifest, Path.GetDirectoryName(resultPath), result
                     );
+
+                    entryPoint = String.Format(
+                        "{0}.{1}.{2}",
+                        translator.Manifest.GetPrivateToken(resultAssembly.FullName).IDString,
+                        GetFullName(resultAssembly.EntryPoint.DeclaringType), 
+                        resultAssembly.EntryPoint.Name
+                    );
+
+                    warnings = translatorOutput.ToString().Trim();
 
                     return result.WriteToString();
                 }
@@ -111,6 +152,15 @@ namespace JSIL.Try {
                     Console.WriteLine("Failed to empty temporary directory: {0}", exc.Message);
                 }
             }
+        }
+
+        static string GetFullName (Type type) {
+            if (type.DeclaringType != null)
+                return String.Format("{0}_{1}", GetFullName(type.DeclaringType), type.Name);
+            else if (!String.IsNullOrWhiteSpace(type.Namespace))
+                return String.Format("{0}.{1}", type.Namespace, type.Name);
+            else
+                return type.Name;
         }
     }
 }

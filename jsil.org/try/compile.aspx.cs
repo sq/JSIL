@@ -28,21 +28,18 @@ public partial class CompilePage : System.Web.UI.Page {
                 requestBody = sr.ReadToEnd();
         }
 
-        // Necessary to keep server memory usage low.
-        GC.Collect();
-
         try {
-            var javascript = JSIL.Try.SnippetCompiler.Compile(requestBody);
+            string entryPointName, warnings;
+            var javascript = JSIL.Try.SnippetCompiler.Compile(requestBody, out entryPointName, out warnings);
 
             WriteResponseJSON(new {
                 ok = true,
-                javascript = javascript
+                javascript = javascript,
+                entryPoint = entryPointName,
+                warnings = warnings
             });
         } catch (Exception exc) {
             Fail(exc);
-        } finally {
-            // Necessary to keep server memory usage low.
-            GC.Collect();
         }
     }
 }

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-     <title>Try JSIL</title>
+    <title>Try JSIL</title>
     <link rel="stylesheet" type="text/css" href="../reset.css">
     <link rel="stylesheet" type="text/css" href="../common.css">
     <link rel="stylesheet" type="text/css" href="index.css">
@@ -9,7 +9,7 @@
   <body onload="onLoad()">
     <div id="content_box">
       <div id="source_csharp" class="rounded-box">
-        <h2>Source Code</h2>
+        <h3>Source Code</h3>
         <textarea id="sourcecode">
 using System;
 
@@ -19,13 +19,22 @@ public static class Program {
   }
 }
         </textarea><br>
-        <button id="compile">Compile</button>
+        <div id="controls">
+          <button id="compile">Compile &amp; Run</button>
+          <img id="throbber" src="throbber.gif" title="Compiling. Please wait...">
+        </div>
       </div>
 
       <div id="output_javascript" class="rounded-box">
-        <h2>Output JavaScript</h2>
+        <h3>Generated JavaScript</h3>
         <textarea id="javascript">
       </textarea>
+      </div>
+
+      <div id="script_output" class="rounded-box">
+        <h3>Script Output</h3>
+        <iframe id="iframe" src="output_frame.html" frameborder="0" marginwidth="0" marginheight="0" scrolling="auto" sandbox="allow-same-origin allow-scripts" seamless>
+        </iframe>
       </div>
     </div>
 

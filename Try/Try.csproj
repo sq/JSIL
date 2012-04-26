@@ -52,6 +52,10 @@
       <Project>{12DBCC9A-50FE-43B1-BAD1-8029D4AD60C9}</Project>
       <Name>Proxies.4.0</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Upstream\ILSpy\Mono.Cecil\Mono.Cecil.csproj">
+      <Project>{D68133BD-1E63-496E-9EDE-4FBDBF77B486}</Project>
+      <Name>Mono.Cecil</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
