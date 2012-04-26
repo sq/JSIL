@@ -5,10 +5,15 @@ body {
 	background-position: bottom right;
 }
 
+b {
+	font-weight: bold;
+}
+
 div#controls {
 	position: relative;
+	clear: left;
 	display: block;
-	width: 80%;
+	width: 90%;
 	height: 32px;
 	margin-left: auto;
 	margin-right: auto;
@@ -27,6 +32,41 @@ div#status {
 	padding-bottom: 4px;
 	font-size: 12pt;
 	overflow-y: auto;
+}
+
+div#code_box, div#columns {
+	position: relative;
+}
+
+div#column_spacer {
+	height: 420px;
+}
+
+div#left_column {
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	width: 70%;
+}
+div#splitter {
+	position: absolute;
+	left: 0;
+	top: 20px;
+	bottom: 10px;
+	background-color: rgba(0, 0, 0, 0.1);
+	border-radius: 4px;
+	width: 8px;
+}
+div#splitter:hover {
+	background-color: rgba(0, 0, 0, 0.5);
+}
+div#right_column {
+	position: absolute;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	width: 28%;
 }
 
 button#compile {
@@ -49,18 +89,19 @@ img#throbber {
 	z-index: 999;
 }
 
+textarea {
+	margin: 0px;
+	padding: 0px;
+}
+
 textarea#sourcecode, textarea#javascript, iframe#iframe {
 	width: 100%;
 	font-family: Consolas, Courier New, Courier, monospace;
-	font-size: 14pt;
+	font-size: 13pt;
 }
 
-textarea#sourcecode {
-	height: 300px;
-}
-
-textarea#javascript {
-	height: 150px;
+textarea#sourcecode, textarea#javascript {
+	height: 400px;
 }
 
 iframe#iframe {

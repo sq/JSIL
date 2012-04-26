@@ -49,6 +49,28 @@ function compileComplete (data, status) {
   }
 };
 
+function updateSplitter (x) {
+  var leftColumn = document.getElementById("left_column");
+  var rightColumn = document.getElementById("right_column");
+  var splitter = document.getElementById("splitter");
+  var totalWidth = document.getElementById("columns").offsetWidth - (leftColumn.offsetLeft * 2);
+  var xDelta = x - splitterDragStart[0];
+
+  var minWidth = 200;
+  var maxWidth = totalWidth - 200;
+
+  var splitterWidth = 14;
+  var newLeftWidth = (leftColumnWidthStart + xDelta);
+  if (newLeftWidth < minWidth)
+    newLeftWidth = minWidth;
+  else if (newLeftWidth > maxWidth)
+    newLeftWidth = maxWidth;
+
+  leftColumn.style.width = newLeftWidth + "px";
+  rightColumn.style.width = (totalWidth - newLeftWidth - splitterWidth) + "px";
+  splitter.style.left = (newLeftWidth + leftColumn.offsetLeft + 4) + "px";
+}
+
 function setStatus (text) {
   var s = document.getElementById("status");
   s.innerHTML = text;
@@ -80,8 +102,48 @@ function clearOutputWindow () {
   document.getElementById("iframe").contentWindow.location.reload();
 };
 
+var isDraggingSplitter = false;
+var splitterDragStart = [0, 0];
+var leftColumnWidthStart = 0;
+
 function onLoad () {
   $("#throbber").hide();
 
+  document.getElementById("javascript").value = "";
+
   $("#compile").click(beginCompile);
+
+  function initSplitter (x, y) {
+    splitterDragStart = [x, y];
+    leftColumnWidthStart = document.getElementById("left_column").offsetWidth;
+  };
+
+  var body = document.getElementsByTagName("body")[0];
+
+  $("#splitter").mousedown(function (evt) {
+    isDraggingSplitter = true;
+    initSplitter(evt.clientX, evt.clientY);
+    evt.preventDefault();
+    evt.stopPropagation();
+  });
+
+  body.addEventListener("mousemove", function (evt) {
+    if (isDraggingSplitter) {
+      updateSplitter(evt.clientX);
+      evt.preventDefault();
+      evt.stopPropagation();
+    }
+  }, true);
+
+  body.addEventListener("mouseup", function (evt) {
+    if (isDraggingSplitter) {
+      updateSplitter(evt.clientX);
+      isDraggingSplitter = false;
+      evt.preventDefault();
+      evt.stopPropagation();
+    }
+  }, true);
+
+  initSplitter(0, 0);
+  updateSplitter(0);
 };

@@ -63,8 +63,6 @@ JSIL.Host.throwException = function (e) {
 
   if (stack.length > 0)
     JSIL.Host.logWriteLine(stack);
-
-  throw aborted;
 };
 
 runScript = function (text, entryPoint) {

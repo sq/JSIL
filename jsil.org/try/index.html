@@ -8,26 +8,52 @@
   </head>
   <body onload="onLoad()">
     <div id="content_box">
-      <div id="source_csharp" class="rounded-box">
-        <h3>Source Code</h3>
-        <textarea id="sourcecode">using System;
+      <div id="header" class="rounded-box">
+        <h2>Try JSIL</h2>
+        <p>Try <a href="http://jsil.org/">JSIL</a> out in your browser! Type a C# console application into the <b>Source Code</b> box below, and click <b>Run &amp; Compile</b>.</p>
+        <p>The C# you enter is compiled on the JSIL server using the <a href="http://go-mono.com/">Mono</a> compiler, then translated to JavaScript by JSIL and sent back to you.</p>
+      </div>
+      <div id="code_box" class="rounded-box">
+        <div id="columns">
+          <h3></h3><br>
+          <div id="column_spacer"></div>
+
+          <div id="left_column">
+            <h3>Source Code</h3>
+            <textarea id="sourcecode">using System;
+using JSIL;
+using JSIL.Meta;
 
 public static class Program {
   public static void Main () {
-    Console.WriteLine("Hello World");
+    dynamic document = Builtins.Global["document"];
+    var canvas = document.createElement("canvas");
+    var ctx = canvas.getContext("2d");
+    var body = document.getElementsByTagName("body")[0];
+
+    body.appendChild(canvas);
+
+    ctx.fillStyle = "red";
+    ctx.fillRect(10, 10, 20, 20);
+
+    Console.WriteLine("Hello JSIL World!");
   }
-}</textarea><br>
+}</textarea>
+          </div>
+
+          <div id="splitter"> </div>
+
+          <div id="right_column">
+            <h3>Generated JavaScript</h3>
+            <textarea id="javascript"></textarea>          
+          </div>
+        </div>
+
         <div id="controls">
           <button id="compile">Compile &amp; Run</button>
           <img id="throbber" src="throbber.gif" title="Compiling. Please wait...">
         </div>
         <div id="status"></div>
-      </div>
-
-      <div id="output_javascript" class="rounded-box">
-        <h3>Generated JavaScript</h3>
-        <textarea id="javascript">
-      </textarea>
       </div>
 
       <div id="script_output" class="rounded-box">
