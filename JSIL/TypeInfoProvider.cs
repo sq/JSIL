@@ -29,6 +29,12 @@ namespace JSIL {
             }
         }
 
+        public int Count {
+            get {
+                return TypeInformation.Count + ModuleInformation.Count;
+            }
+        }
+
         public void ClearCaches () {
             TypeAssignabilityCache.Clear();
         }

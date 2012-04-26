@@ -8,6 +8,7 @@ function beginCompile () {
   clearOutputWindow();
 
   var sourceCode = document.getElementById("sourcecode").value;
+  setStatus("Compiling...");
 
   $.ajax({
     type: 'POST',
@@ -30,10 +31,27 @@ function compileComplete (data, status) {
 
   if (data && data.ok) {
     document.getElementById("javascript").value = data.javascript;
+    setStatus(
+      "Compile successful.<br>" +
+      "C# compile took " + data.compileElapsed + " second(s).<br>" +
+      "Translation took " + data.translateElapsed + " second(s)."
+    );
     runInOutputWindow(data.javascript, data.entryPoint, data.warnings);
   } else {
-    alert("Compile failed: " + String(data.error || status));
+    var errorText = String(data.error || status);
+    errorText = (
+      errorText.replace(/\&/g, "&amp;")
+        .replace(/\</g, "&lt;")
+        .replace(/\>/g, "&gt;")
+        .replace(/\n/g, "<br>")
+    );
+    setStatus("Compile failed.<br>" + errorText);
   }
+};
+
+function setStatus (text) {
+  var s = document.getElementById("status");
+  s.innerHTML = text;
 };
 
 function runInOutputWindow (javascript, entryPoint, warnings) {

@@ -23,6 +23,17 @@ public partial class CompilePage : System.Web.UI.Page {
         if (Request.RequestType != "POST") {
             Fail("Request must be a POST");
             return;
+
+            /*
+            requestBody =
+@"using System;
+
+public static class Program {
+  public static void Main () {
+    Console.WriteLine(""Hello World"");
+  }
+}";
+            */
         } else {
             using (StreamReader sr = new StreamReader(Request.InputStream))
                 requestBody = sr.ReadToEnd();
@@ -30,13 +41,15 @@ public partial class CompilePage : System.Web.UI.Page {
 
         try {
             string entryPointName, warnings;
-            var javascript = JSIL.Try.SnippetCompiler.Compile(requestBody, out entryPointName, out warnings);
+            var result = JSIL.Try.SnippetCompiler.Compile(requestBody);
 
             WriteResponseJSON(new {
                 ok = true,
-                javascript = javascript,
-                entryPoint = entryPointName,
-                warnings = warnings
+                javascript = result.JavaScript,
+                entryPoint = result.EntryPoint,
+                warnings = result.Warnings,
+                compileElapsed = result.CompileElapsed,
+                translateElapsed = result.TranslateElapsed
             });
         } catch (Exception exc) {
             Fail(exc);

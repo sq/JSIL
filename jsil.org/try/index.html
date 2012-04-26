@@ -10,19 +10,18 @@
     <div id="content_box">
       <div id="source_csharp" class="rounded-box">
         <h3>Source Code</h3>
-        <textarea id="sourcecode">
-using System;
+        <textarea id="sourcecode">using System;
 
 public static class Program {
   public static void Main () {
     Console.WriteLine("Hello World");
   }
-}
-        </textarea><br>
+}</textarea><br>
         <div id="controls">
           <button id="compile">Compile &amp; Run</button>
           <img id="throbber" src="throbber.gif" title="Compiling. Please wait...">
         </div>
+        <div id="status"></div>
       </div>
 
       <div id="output_javascript" class="rounded-box">

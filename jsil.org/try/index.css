@@ -15,6 +15,20 @@ div#controls {
 	text-align: center;
 }
 
+div#status {
+	position: relative;
+	display: block;
+	width: 100%;
+	min-height: 1em;
+	max-height: 16em;
+	margin-top: 4px;
+	margin-left: auto;
+	margin-right: auto;
+	padding-bottom: 4px;
+	font-size: 12pt;
+	overflow-y: auto;
+}
+
 button#compile {
 	position: absolute;
 	display: block;
