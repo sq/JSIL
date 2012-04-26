@@ -530,16 +530,30 @@ namespace JSIL {
             var methods = GetNodeTranslators(code);
 
             if (methods != null) {
-                var bindingFlags = System.Reflection.BindingFlags.Instance |
-                            System.Reflection.BindingFlags.InvokeMethod |
-                            System.Reflection.BindingFlags.NonPublic;
+                if (methods.Length > 1) {
+                    var bindingFlags = System.Reflection.BindingFlags.Instance |
+                                System.Reflection.BindingFlags.InvokeMethod |
+                                System.Reflection.BindingFlags.NonPublic;
 
-                var binder = Type.DefaultBinder;
-                object state;
-                boundMethod = binder.BindToMethod(
-                    bindingFlags, methods, ref arguments,
-                    null, null, null, out state
-                );
+                    var binder = Type.DefaultBinder;
+                    object state;
+
+                    try {
+                        boundMethod = binder.BindToMethod(
+                            bindingFlags, methods, ref arguments,
+                            null, null, null, out state
+                        );
+                    } catch (Exception exc) {
+                        throw new Exception(String.Format(
+                            "Failed to bind to translator method for ILCode.{0}. Had {1} options:{2}{3}",
+                            code, methods.Length,
+                            Environment.NewLine,
+                            String.Join(Environment.NewLine, (from m in methods select m.ToString()).ToArray())
+                        ), exc);
+                    }
+                } else {
+                    boundMethod = methods[0];
+                }
             }
 
             if (boundMethod == null) {
