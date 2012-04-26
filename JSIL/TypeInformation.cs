@@ -1904,9 +1904,9 @@ namespace JSIL.Internal {
                 return cn;
 
             if ((declType != null) && declType.IsInterface)
-                result = String.Format("{0}.{1}", declType.Name, ShortName);
+                result = String.Format("{0}.{1}", TypeUtil.GetLocalName(declType), ShortName);
             else if (over != null)
-                result = String.Format("{0}.{1}", over.DeclaringType.Name, ShortName);
+                result = String.Format("{0}.{1}", TypeUtil.GetLocalName(over.DeclaringType.Resolve()), ShortName);
             else
                 result = ShortName;
             

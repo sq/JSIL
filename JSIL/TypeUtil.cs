@@ -9,6 +9,19 @@ using Mono.Cecil;
 
 namespace JSIL {
     public static class TypeUtil {
+        public static string GetLocalName (TypeDefinition type) {
+            var result = new List<string>();
+            result.Add(type.Name);
+
+            type = type.DeclaringType;
+            while (type != null) {
+                result.Insert(0, type.Name);
+                type = type.DeclaringType;
+            }
+
+            return String.Join("_", result);
+        }
+
         public static bool IsNumeric (TypeReference type) {
             type = DereferenceType(type);
 

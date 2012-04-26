@@ -1659,7 +1659,8 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
 
     interfaces[i] = iface;
 
-    var ifaceName = iface.__FullNameWithoutArguments__;
+    var ifaceName = iface.__FullNameWithoutArguments__ || iface.__FullName__;
+    var ifaceLocalName = JSIL.GetLocalName(ifaceName);
     if (iface.IsInterface !== true) {
       JSIL.Host.warning("Type ", ifaceName, " is not an interface.");
       continue __interfaces__;
@@ -1677,7 +1678,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
         continue __members__;
 
       var memberType = members[key];
-      var qualifiedName = JSIL.EscapeName(iface.__ShortName__ + "." + key);
+      var qualifiedName = JSIL.EscapeName(ifaceLocalName + "." + key);
 
       var hasShort = hasOwnPropertyRecursive(proto, key);
       var hasQualified = hasOwnPropertyRecursive(proto, qualifiedName);
