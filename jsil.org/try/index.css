@@ -5,6 +5,11 @@ body {
 	background-position: bottom right;
 }
 
+img#logo {
+	margin-bottom: -0.1em;
+	margin-right: 0.1em;
+}
+
 b {
 	font-weight: bold;
 }

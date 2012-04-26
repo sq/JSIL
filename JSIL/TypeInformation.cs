@@ -673,7 +673,7 @@ namespace JSIL.Internal {
         public readonly MetadataCollection Metadata;
         public readonly ProxyInfo[] Proxies;
 
-        public readonly MethodSignatureCollection MethodSignatures = new MethodSignatureCollection();
+        public readonly MethodSignatureCollection MethodSignatures;
         public readonly HashSet<MethodGroupInfo> MethodGroups = new HashSet<MethodGroupInfo>();
 
         public readonly bool IsFlagsEnum;
@@ -705,6 +705,7 @@ namespace JSIL.Internal {
 
             Proxies = source.GetProxies(type);
             Metadata = new MetadataCollection(type);
+            MethodSignatures = new MethodSignatureCollection();
 
             // Do this check before copying attributes from proxy types, since that will copy their JSProxy attribute
             IsProxy = Metadata.HasAttribute("JSIL.Proxy.JSProxy");
@@ -1204,9 +1205,7 @@ namespace JSIL.Internal {
             foreach (var t in SelfAndBaseTypesRecursive) {
                 int existingCount;
 
-                var set = t.MethodSignatures.GetOrCreate(
-                    methodName, () => new MethodSignatureSet()
-                );
+                var set = t.MethodSignatures.GetOrCreateFor(methodName);
 
                 set.Add(signature);
             }

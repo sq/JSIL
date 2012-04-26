@@ -309,6 +309,16 @@ namespace JSIL.Try {
                         */
                 }
 
+                /*
+
+                GC.Collect();
+                
+                result.Warnings += String.Format(
+                    "{1} byte(s) GC heap {0}",
+                    Environment.NewLine, GC.GetTotalMemory(true)
+                );
+                 */
+
                 return result;
             } finally {
                 try {
