@@ -389,5 +389,33 @@ namespace JSIL.Tests {
             Assert.IsTrue(generatedJs.Contains("return \"MyClass\""));
             Assert.IsFalse(generatedJs.Contains("MyClass."));
         }
+
+        // This test won't actually run outside the DOM, but we can make sure nothing horrible happens.
+        [Test]
+        public void ComplexDynamics () {
+            try {
+                GetJavascript(
+                    @"TestCases\DynamicComplex.cs"
+                );
+
+                Assert.Fail("Translated JS ran successfully");
+            } catch (JavaScriptException jse) {
+                Assert.IsTrue(jse.ToString().Contains("TypeError: document is undefined"), jse.ToString());
+            }
+        }
+
+        // Mono compiles this to different IL.
+        [Test]
+        public void ComplexDynamicsMonoBinary () {
+            try {
+                GetJavascript(
+                    @"BinaryTestCases\DynamicComplex.exe"
+                );
+
+                Assert.Fail("Translated JS ran successfully");
+            } catch (JavaScriptException jse) {
+                Assert.IsTrue(jse.ToString().Contains("TypeError: obj is undefined"), jse.ToString());
+            }
+        }
     }
 }

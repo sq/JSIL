@@ -384,12 +384,26 @@ namespace JSIL.Tests {
 
             try {
                 Assert.IsFalse(generatedJs.Contains("JSIL.UntranslatableInstruction"), "A goto failed translation");
+
                 var m = Regex.Match(
                     generatedJs,
                     @"if \(this.i \>\= this.count\) \{[^}]*\} else \{"
                 );
-                Assert.IsTrue((m != null) && m.Success);
-                Assert.IsTrue(m.Value.Contains("continue $labelgroup0;"), "If block true clause left empty when hoisting out label");
+                bool foundElse = (m != null) && m.Success;
+
+                m = Regex.Match(
+                    generatedJs,
+                    @"if \(this.i \< this.count\) \{[^}]*\}"
+                );
+                bool foundIf = (m != null) && m.Success;
+
+                Assert.IsTrue(foundElse || foundIf);
+
+                if (foundElse) {
+                    Assert.IsTrue(m.Value.Contains("continue $labelgroup0;"), "If block true clause left empty when hoisting out label");
+                } else {
+                    Assert.IsTrue(m.Value.Contains("return "), "Return statement not in true clause");
+                }
             } catch {
                 Console.WriteLine(generatedJs);
 

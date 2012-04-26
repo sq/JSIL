@@ -1110,7 +1110,7 @@ namespace JSIL.Internal {
         static readonly Regex IgnoredKeywordRegex = new Regex(
             @"__BackingField|CS\$\<|__DisplayClass|\<PrivateImplementationDetails\>|" +
             @"Runtime\.CompilerServices\.CallSite|\<Module\>|__SiteContainer|" +
-            @"__CachedAnonymousMethodDelegate", RegexOptions.Compiled
+            @"__DynamicSite|__CachedAnonymousMethodDelegate", RegexOptions.Compiled
         );
 
         public static string GetOriginalName (string memberName) {
@@ -1156,22 +1156,23 @@ namespace JSIL.Internal {
                 if (m2.Success) {
                     switch (m2.Value) {
                         case "__BackingField":
-                            return false;
                         case "__DisplayClass":
                             return false;
+
+                        case "<PrivateImplementationDetails>":
+                        case "Runtime.CompilerServices.CallSite":
+                        case "<Module>":
+                        case "__SiteContainer":
+                        case "__DynamicSite":
+                            return true;
+
+
                         case "CS$<":
                             if (!isField)
                                 return true;
 
                             break;
-                        case "<PrivateImplementationDetails>":
-                            return true;
-                        case "Runtime.CompilerServices.CallSite":
-                            return true;
-                        case "<Module>":
-                            return true;
-                        case "__SiteContainer":
-                            return true;
+
                         case "__CachedAnonymousMethodDelegate":
                             if (isField)
                                 return true;

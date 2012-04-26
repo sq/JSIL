@@ -19,7 +19,7 @@ namespace JSIL.Try {
         public static readonly string[] AssemblyReferences = new[] {
             "mscorlib.dll", "System.dll", 
             "System.Core.dll", "System.Xml.dll", 
-            "Microsoft.CSharp.dll",
+            "Microsoft.CSharp.dll", "JSIL.Meta.dll"
         };
 
         /// <summary>
@@ -28,7 +28,17 @@ namespace JSIL.Try {
         /// </summary>
         public static string Compile (string csharp, out string entryPoint, out string warnings) {
             var tempPath = Path.Combine(Path.GetTempPath(), "JSIL.Try");
-            Directory.CreateDirectory(tempPath);
+
+            if (Directory.Exists(tempPath)) {
+                try {
+                    Directory.Delete(tempPath, true);
+                } catch (Exception exc) {
+                    Console.WriteLine("Failed to empty temporary directory: {0}", exc.Message);
+                }
+            }
+
+            if (!Directory.Exists(tempPath))
+                Directory.CreateDirectory(tempPath);
 
             Assembly resultAssembly = null;
             string resultPath = null;
@@ -71,86 +81,78 @@ namespace JSIL.Try {
                 throw new Exception("Compile failed." + Environment.NewLine + (compilerOutput ?? ""));
             }
 
-            try {
-                var translatorConfiguration = new Configuration {
-                    ApplyDefaults = false,
-                    Assemblies = {
-                        Stubbed = {
-                          "mscorlib,",
-                          "System.*",
-                          "Microsoft.*"
-                        },
-                        Ignored = {
-                          "Microsoft.VisualC,",
-                          "Accessibility,",
-                          "SMDiagnostics,",
-                          "System.EnterpriseServices,",
-                          "JSIL.Meta,"
-                        }
+            var translatorConfiguration = new Configuration {
+                ApplyDefaults = false,
+                Assemblies = {
+                    Stubbed = {
+                        "mscorlib,",
+                        "System.*",
+                        "Microsoft.*"
                     },
-                    FrameworkVersion = 4.0,
-                    GenerateSkeletonsForStubbedAssemblies = false,
-                    GenerateContentManifest = false,
-                    IncludeDependencies = false,
-                    UseSymbols = true,
-                    UseThreads = false
+                    Ignored = {
+                        "Microsoft.VisualC,",
+                        "Accessibility,",
+                        "SMDiagnostics,",
+                        "System.EnterpriseServices,",
+                        "JSIL.Meta,"
+                    }
+                },
+                FrameworkVersion = 4.0,
+                GenerateSkeletonsForStubbedAssemblies = false,
+                GenerateContentManifest = false,
+                IncludeDependencies = false,
+                UseSymbols = true,
+                UseThreads = false
+            };
+
+            var translatorOutput = new StringBuilder();
+
+            using (var translator = new AssemblyTranslator(
+                translatorConfiguration, 
+                // Caching a type info provider would be helpful, but is probably error-prone.
+                null,
+                // Can't reuse a manifest meaningfully here.
+                null, 
+                // Reuse the assembly cache so that mscorlib doesn't get loaded every time.
+                AssemblyCache
+            )) {
+                translator.CouldNotDecompileMethod += (s, exception) => {
+                    lock (translatorOutput)
+                        translatorOutput.AppendFormat(
+                            "Could not decompile method '{0}': {1}{2}",
+                            s, exception.Message, Environment.NewLine
+                        );
                 };
 
-                var translatorOutput = new StringBuilder();
+                translator.CouldNotResolveAssembly += (s, exception) => {
+                    lock (translatorOutput)
+                        translatorOutput.AppendFormat(
+                            "Could not resolve assembly '{0}': {1}{2}",
+                            s, exception.Message, Environment.NewLine
+                        );
+                };
 
-                using (var translator = new AssemblyTranslator(
-                    translatorConfiguration, 
-                    // Caching a type info provider would be helpful, but is probably error-prone.
-                    null,
-                    // Can't reuse a manifest meaningfully here.
-                    null, 
-                    // Reuse the assembly cache so that mscorlib doesn't get loaded every time.
-                    AssemblyCache
-                )) {
-                    translator.CouldNotDecompileMethod += (s, exception) => {
-                        lock (translatorOutput)
-                            translatorOutput.AppendFormat(
-                                "Could not decompile method '{0}': {1}{2}",
-                                s, exception.Message, Environment.NewLine
-                            );
-                    };
+                translator.Warning += (s) => {
+                    lock (translatorOutput)
+                        translatorOutput.AppendLine(s);
+                };
 
-                    translator.CouldNotResolveAssembly += (s, exception) => {
-                        lock (translatorOutput)
-                            translatorOutput.AppendFormat(
-                                "Could not resolve assembly '{0}': {1}{2}",
-                                s, exception.Message, Environment.NewLine
-                            );
-                    };
+                var result = translator.Translate(resultPath, true);
 
-                    translator.Warning += (s) => {
-                        lock (translatorOutput)
-                            translatorOutput.AppendLine(s);
-                    };
+                AssemblyTranslator.GenerateManifest(
+                    translator.Manifest, Path.GetDirectoryName(resultPath), result
+                );
 
-                    var result = translator.Translate(resultPath, true);
+                entryPoint = String.Format(
+                    "{0}.{1}.{2}",
+                    translator.Manifest.GetPrivateToken(resultAssembly.FullName).IDString,
+                    GetFullName(resultAssembly.EntryPoint.DeclaringType), 
+                    resultAssembly.EntryPoint.Name
+                );
 
-                    AssemblyTranslator.GenerateManifest(
-                        translator.Manifest, Path.GetDirectoryName(resultPath), result
-                    );
+                warnings = translatorOutput.ToString().Trim();
 
-                    entryPoint = String.Format(
-                        "{0}.{1}.{2}",
-                        translator.Manifest.GetPrivateToken(resultAssembly.FullName).IDString,
-                        GetFullName(resultAssembly.EntryPoint.DeclaringType), 
-                        resultAssembly.EntryPoint.Name
-                    );
-
-                    warnings = translatorOutput.ToString().Trim();
-
-                    return result.WriteToString();
-                }
-            } finally {
-                try {
-                    Directory.Delete(tempPath, true);
-                } catch (Exception exc) {
-                    Console.WriteLine("Failed to empty temporary directory: {0}", exc.Message);
-                }
+                return result.WriteToString();
             }
         }
 

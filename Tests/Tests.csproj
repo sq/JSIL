@@ -104,6 +104,7 @@
     <None Include="SimpleTestCases\NestedInterfaces.cs" />
     <None Include="SimpleTestCases\OverloadedConstructorDelegation.cs" />
     <None Include="TestCases\EnumNullableArithmetic.cs" />
+    <None Include="TestCases\DynamicComplex.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
@@ -329,6 +330,7 @@
     <None Include="SimpleTestCases\IsAssignableFrom.cs" />
     <None Include="TestCases\DelegateResultWithConstraints.cs" />
     <None Include="TestCases\GenericNestedTypeConstructedInParentStaticConstructor.cs" />
+    <None Include="BinaryTestCases\DynamicComplex.exe" />
     <Content Include="SimpleTestCases\Constructors.vb" />
     <None Include="TestCases\Events.vb" />
     <None Include="TestCases\GenericMethodThisReference.cs" />

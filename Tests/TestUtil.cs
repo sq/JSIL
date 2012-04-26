@@ -206,7 +206,7 @@ namespace JSIL.Tests {
 
         public static string MapSourceFileToTestFile (string sourceFile) {
             return Regex.Replace(
-                sourceFile, "(\\.cs|\\.vb)$", "$0.js"
+                sourceFile, "(\\.cs|\\.vb|\\.exe|\\.dll)$", "$0.js"
             );
         }
 
@@ -253,6 +253,14 @@ namespace JSIL.Tests {
                     break;
                 case ".vb":
                     Assembly = CompilerUtil.CompileVB(absoluteFilenames, assemblyName);
+                    break;
+                case ".exe":
+                case ".dll":
+                    var fns = absoluteFilenames.ToArray();
+                    if (fns.Length > 1)
+                        throw new InvalidOperationException("Multiple binary assemblies provided.");
+
+                    Assembly = Assembly.LoadFile(fns[0]);
                     break;
                 default:
                     throw new ArgumentException("Unsupported source file type for test");

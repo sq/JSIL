@@ -620,15 +620,25 @@ namespace JSIL {
         }
 
         protected bool TranslateCallSiteConstruction (ILCondition condition, out JSStatement result) {
+            result = null;
+
             var cond = condition.Condition;
-            if (
-                (cond.Code == ILCode.LogicNot) &&
-                (cond.Arguments.Count > 0) &&
-                (cond.Arguments[0].Code == ILCode.GetCallSite) &&
-                (condition.TrueBlock != null) &&
-                (condition.TrueBlock.Body.Count == 1) &&
-                (condition.TrueBlock.Body[0] is ILExpression)
-            ) {
+            if (cond.Code != ILCode.LogicNot)
+                return false;
+
+            if (cond.Arguments.Count <= 0)
+                return false;
+
+            if (cond.Arguments[0].Code != ILCode.GetCallSite)
+                return false;
+
+            if (condition.TrueBlock == null)
+                return false;
+
+            if (condition.TrueBlock.Body.Count != 1)
+                return false;
+
+            if (condition.TrueBlock.Body[0] is ILExpression) {
                 var callSiteExpression = (ILExpression)condition.TrueBlock.Body[0];
                 var callSiteType = callSiteExpression.Arguments[0].ExpectedType;
                 var binderExpression = callSiteExpression.Arguments[0].Arguments[0];
@@ -2301,7 +2311,9 @@ namespace JSIL {
             } else if (ldtarget.Code == ILCode.Ldfld) {
                 ldcallsite = ldtarget.Arguments[0];
             } else {
-                throw new NotImplementedException("Unknown call site pattern");
+                throw new NotImplementedException(String.Format(
+                    "Unknown call site pattern: Invalid load of target {0}", ldtarget
+                ));
             }
 
             DynamicCallSiteInfo callSite;
@@ -2313,7 +2325,9 @@ namespace JSIL {
                 if (!DynamicCallSites.Get((FieldReference)ldcallsite.Operand, out callSite))
                     return new JSUntranslatableExpression(node);
             } else {
-                throw new NotImplementedException("Unknown call site pattern");
+                throw new NotImplementedException(String.Format(
+                    "Unknown call site pattern: Invalid load of callsite {0}", ldcallsite
+                ));
             }
 
             var invocationArguments = Translate(node.Arguments.Skip(1));
@@ -2321,6 +2335,14 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_GetCallSite (ILExpression node, FieldReference field) {
+            return new JSNullExpression();
+        }
+
+        protected JSExpression Translate_GetCallSiteBinder (ILExpression node) {
+            return new JSNullExpression();
+        }
+
+        protected JSExpression Translate_GetCallSiteBinder (ILExpression node, object o) {
             return new JSNullExpression();
         }
 
