@@ -14,7 +14,6 @@
         <p>Try <a href="http://jsil.org/">JSIL</a> out in your browser! Type some C# into the <b>Source Code</b> box below, and click <b>Compile &amp; Run</b>.</p>
         <p>The C# you enter is compiled on the JSIL server using the <a href="http://go-mono.com/">Mono</a> compiler, then translated to JavaScript by JSIL and sent back to you.</p>
         <p>Not familiar with C#? Try out some of the <a href="http://msdn.microsoft.com/en-us/library/aa288436%28v=vs.71%29.aspx">C# Tutorials</a> from the Microsoft website!</p>
-        <p>This server is under heavy load, so please be patient!</p>
         <div class="linkspam">
 <a href="http://news.ycombinator.com/item?id=3896010" class="yc"><img src="http://ycombinator.com/images/y18.gif" border="0"/></a><script type="text/javascript" src="http://www.reddit.com/static/button/button1.js"></script><div class="g-plusone" data-size="medium" data-href="http://jsil.org/try/"></div>
 <a href="https://twitter.com/share" class="twitter-share-button" data-text="Try out C# (and JSIL) in your browser" data-url="http://jsil.org/try/" data-via="antumbral">Tweet</a>
@@ -66,16 +65,25 @@ public static class Program {
           <div id="splitter"> </div>
 
           <div id="right_column">
-            <h3>Generated JavaScript</h3>
+            <h3>Output JS</h3>
             <textarea id="javascript"></textarea>          
           </div>
         </div>
 
         <div id="controls">
-          <button id="compile">Compile &amp; Run</button>
+          <button id="compile" disabled>Compile &amp; Run</button>
           <img id="throbber" src="throbber.gif" title="Compiling. Please wait...">
         </div>
         <div id="status"></div>
+      </div>
+
+      <div id="examples" class="rounded-box">
+        <h3>Examples</h3>
+        <div id="examples_box">
+          <img id="examples_throbber" src="throbber.gif" title="Loading. Please wait...">
+          <ul id="examples_list">
+          </ul>
+        </div>
       </div>
 
       <div id="script_output" class="rounded-box">

@@ -5,6 +5,13 @@ body {
 	background-position: bottom right;
 }
 
+div#content_box, div#content_box div {
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	-ms-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+}
+
 img#logo {
 	margin-bottom: -0.1em;
 	margin-right: 0.1em;
@@ -81,7 +88,7 @@ div#left_column {
 	left: 0;
 	top: 0;
 	bottom: 0;
-	width: 70%;
+	width: 80%;
 }
 div#splitter {
 	position: absolute;
@@ -100,7 +107,20 @@ div#right_column {
 	right: 0;
 	top: 0;
 	bottom: 0;
-	width: 28%;
+	width: 18%;
+}
+
+div#code_box {
+	width: 45em;
+	margin-right: 0em;
+}
+
+div#examples {
+	width: 11em;
+	margin-left: 0em;
+	margin-right: 0em;
+	float: left;
+	clear: right;
 }
 
 button#compile {
@@ -115,7 +135,7 @@ button#compile {
 	z-index: 0;
 }
 
-img#throbber {
+img#throbber, img#examples_throbber {
 	width: 32px;
 	height: 32px;
 	margin-left: auto;
@@ -126,6 +146,32 @@ img#throbber {
 textarea {
 	margin: 0px;
 	padding: 0px;
+}
+
+div#examples_box {
+	position: relative;
+	max-height: 26em;
+}
+
+img#examples_throbber {
+	display: block;
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 0;
+}
+
+ul#examples_list {
+	display: block;
+	list-style-type: circle;
+	list-style-position: inside;
+	min-height: 32px;
+	font-size: 11pt;
+}
+
+ul#examples_list li a {
+	cursor: pointer;
 }
 
 div.CodeMirror-wrap {

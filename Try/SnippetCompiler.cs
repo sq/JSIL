@@ -36,7 +36,8 @@ namespace JSIL.Try {
         public static readonly string[] AssemblyReferences = new[] {
             "mscorlib.dll", "System.dll", 
             "System.Core.dll", "System.Xml.dll", 
-            "Microsoft.CSharp.dll", "JSIL.Meta.dll"
+            "Microsoft.CSharp.dll", "JSIL.Meta.dll",
+            "System.Drawing.dll"
         };
 
         static string GetFullName (Type type) {
@@ -237,10 +238,13 @@ namespace JSIL.Try {
 
                 var typeInfo = TypeInfo;
 
+                // Don't use a cached type provider if this snippet contains a proxy.
+                bool disableCaching = csharp.Contains("JSProxy");
+                
                 using (var translator = new AssemblyTranslator(
                     translatorConfiguration,
                     // Reuse the cached type info provider, if one exists.
-                    typeInfo,
+                    disableCaching ? null : typeInfo,
                     // Can't reuse a manifest meaningfully here.
                     null,
                     // Reuse the assembly cache so that mscorlib doesn't get loaded every time.
@@ -287,7 +291,7 @@ namespace JSIL.Try {
                     if (typeInfo != null) {
                         // Remove the temporary assembly from the type info provider.
                         typeInfo.Remove(translationResult.Assemblies.ToArray());
-                    } else {
+                    } else if (!disableCaching) {
                         // We didn't have a type info provider to reuse, so store the translator's.
                         typeInfo = translator.GetTypeInfoProvider();
                         // We need to do a compare-exchange since another thread may have already made a provider.

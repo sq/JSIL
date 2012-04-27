@@ -1,3 +1,67 @@
+function loadExamples () {
+  var username = "TryJSIL";
+  
+  $.ajax({
+    url: 'https://api.github.com/users/' + username + '/gists',
+    dataType: 'jsonp',
+    success: function (result) {
+      displayExamples(result);
+    }
+  });
+};
+
+function displayExamples (result) {
+  var container = $("#examples_list");
+  container.empty();
+
+  var entries = result.data;
+
+  var makeClickHandler = function (entry) {
+    var fadeLength = 250;
+
+    // What the fuck, GitHub?
+    // var firstFile = entry.files[Object.keys(entry.files)[0]];
+    // var actualUrl = firstFile.raw_url.replace("gist.github.com/raw/", "raw.github.com/gist/");
+    var requestUrl = "https://api.github.com/gists/" + entry.id;
+
+    return function () {
+      $("#examples_throbber").fadeIn(fadeLength);
+      $("#examples_list").fadeTo(fadeLength, 0.001);
+
+      $.ajax({
+        url: requestUrl,
+        dataType: 'jsonp',
+        success: function (resultGist) {
+          $("#examples_throbber").fadeOut(fadeLength);
+          $("#examples_list").fadeTo(fadeLength, 1);
+
+          var firstFile = resultGist.data.files[Object.keys(resultGist.data.files)[0]];
+
+          document.getElementById("sourcecode").value = firstFile.content;
+          window.cseditor.setValue(firstFile.content);
+        }
+      });
+    };
+  };
+
+  for (var i = 0; i < entries.length; i++) {
+    var entry = entries[i];
+
+    var li = document.createElement("li");
+    var a = document.createElement("a");
+    li.appendChild(a);
+
+    a.appendChild(document.createTextNode(entry.description));
+
+    $(a).click(makeClickHandler(entry));
+
+    container.append(li);
+  }
+
+  $("#examples_throbber").fadeOut();
+  $("#examples_list").fadeIn();
+};
+
 function beginCompile () {
   $("#throbber").fadeIn();
 
@@ -57,7 +121,7 @@ function updateSplitter (x) {
   var xDelta = x - splitterDragStart[0];
 
   var minWidth = 200;
-  var maxWidth = totalWidth - 200;
+  var maxWidth = totalWidth - 110;
 
   var splitterWidth = 14;
   var newLeftWidth = (leftColumnWidthStart + xDelta);
@@ -69,9 +133,6 @@ function updateSplitter (x) {
   leftColumn.style.width = newLeftWidth + "px";
   rightColumn.style.width = (totalWidth - newLeftWidth - splitterWidth) + "px";
   splitter.style.left = (newLeftWidth + leftColumn.offsetLeft + 4) + "px";
-
-  window.cseditor.refresh();
-  window.jseditor.refresh();
 }
 
 function setStatus (text) {
@@ -134,6 +195,8 @@ function onLoad () {
   $("#splitter").mousedown(function (evt) {
     isDraggingSplitter = true;
     initSplitter(evt.clientX, evt.clientY);
+    window.cseditor.refresh();
+    window.jseditor.refresh();
     evt.preventDefault();
     evt.stopPropagation();
   });
@@ -150,6 +213,8 @@ function onLoad () {
     if (isDraggingSplitter) {
       updateSplitter(evt.clientX);
       isDraggingSplitter = false;
+      window.cseditor.refresh();
+      window.jseditor.refresh();
       evt.preventDefault();
       evt.stopPropagation();
     }
@@ -172,4 +237,10 @@ function onLoad () {
   initSplitter(0, 0);
   updateSplitter(0);
 
+  window.cseditor.refresh();
+  window.jseditor.refresh();
+
+  loadExamples();
+
+  $("#compile").removeAttr("disabled");
 };
