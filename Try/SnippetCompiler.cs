@@ -115,7 +115,8 @@ namespace JSIL.Try {
         public static int NextTempDirId = 0;
         public static int PendingCompiles = 0;
         public static readonly AssemblyCache AssemblyCache = new AssemblyCache();
-        public static volatile TypeInfoProvider TypeInfo = null;
+
+        public static ThreadLocal<TypeInfoProvider> CachedTypeInfo = new ThreadLocal<TypeInfoProvider>();
 
         private static void CompileAssembly (
             string tempPath, string csharp, 
@@ -236,7 +237,7 @@ namespace JSIL.Try {
 
                 var translatorOutput = new StringBuilder();
 
-                var typeInfo = TypeInfo;
+                var typeInfo = CachedTypeInfo.Value;
 
                 // Don't use a cached type provider if this snippet contains a proxy.
                 bool disableCaching = csharp.Contains("JSProxy");
@@ -293,9 +294,7 @@ namespace JSIL.Try {
                         typeInfo.Remove(translationResult.Assemblies.ToArray());
                     } else if (!disableCaching) {
                         // We didn't have a type info provider to reuse, so store the translator's.
-                        typeInfo = translator.GetTypeInfoProvider();
-                        // We need to do a compare-exchange since another thread may have already made a provider.
-                        Interlocked.CompareExchange(ref TypeInfo, typeInfo, null);
+                        CachedTypeInfo.Value = typeInfo = translator.GetTypeInfoProvider();
                     }
 
                     /*
