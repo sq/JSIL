@@ -5,7 +5,7 @@ body {
 	background-position: bottom right;
 }
 
-div#content_box, div#content_box div {
+div#content_box, div#content_box div, div#splitter {
 	box-sizing: border-box;
 	-moz-box-sizing: border-box;
 	-ms-box-sizing: border-box;

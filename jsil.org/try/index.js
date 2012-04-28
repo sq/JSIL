@@ -132,7 +132,7 @@ function updateSplitter (x) {
 
   leftColumn.style.width = newLeftWidth + "px";
   rightColumn.style.width = (totalWidth - newLeftWidth - splitterWidth) + "px";
-  splitter.style.left = (newLeftWidth + leftColumn.offsetLeft + 4) + "px";
+  splitter.style.left = (newLeftWidth + leftColumn.offsetLeft + 3) + "px";
 }
 
 function setStatus (text) {
@@ -140,12 +140,15 @@ function setStatus (text) {
   s.innerHTML = text;
 };
 
+var pendingRunInterval = null;
+
 function runInOutputWindow (javascript, entryPoint, warnings) {
   var outputWindow = document.getElementById("iframe").contentWindow;
   var outputDoc = document.getElementById("iframe").contentDocument;
 
   setOutputThrobberVisible(outputDoc, true);
-  window.setTimeout(function runTranslatedJS () {
+
+  var doRun = function runTranslatedJS () {
     try {
       if (warnings && warnings.length > 0) {
         outputWindow.JSIL.Host.logWriteLine("// Begin Warnings //");
@@ -159,6 +162,13 @@ function runInOutputWindow (javascript, entryPoint, warnings) {
       });
     } finally {
       setOutputThrobberVisible(outputDoc, false);
+    }
+  }
+
+  pendingRunInterval = window.setInterval(function () {
+    if (outputWindow.isReady === true) {
+      window.setTimeout(doRun, 10);
+      window.clearInterval(pendingRunInterval);
     }
   }, 10);
 };
@@ -221,7 +231,7 @@ function onLoad () {
   }, true);
 
   window.cseditor = CodeMirror.fromTextArea(document.getElementById("sourcecode"), {
-    mode: "clike",
+    mode: "text/x-csharp",
     lineNumbers: true,
     lineWrapping: true
   });
@@ -243,4 +253,6 @@ function onLoad () {
   loadExamples();
 
   $("#compile").removeAttr("disabled");
+
+  document.getElementById("iframe").contentDocument.getElementById("throbber").style.display = "none";
 };

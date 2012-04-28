@@ -51,3 +51,5 @@ Tests/*Cases/*.js
 Skeletons/*.js
 /Try/obj
 /jsil.org/try/bin/*
+
+/jsil.org/try/OAuth.cs

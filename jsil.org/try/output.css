@@ -4,7 +4,7 @@ body {
 }
 
 div#throbber {
-	display: none;
+	display: block;
 	position: absolute;
 	left: 0;
 	right: 0;

@@ -35,7 +35,7 @@ public static class Program {
 }";
             */
         } else {
-            using (StreamReader sr = new StreamReader(Request.InputStream))
+            using (var sr = new StreamReader(Request.InputStream))
                 requestBody = sr.ReadToEnd();
         }
 
