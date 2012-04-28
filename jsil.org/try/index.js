@@ -61,6 +61,9 @@ function displayGists (result, prefix) {
 
     var li = document.createElement("li");
     var a = document.createElement("a");
+
+    a.href = "http://jsil.org/try/#" + entry.id;
+
     li.appendChild(a);
 
     a.appendChild(document.createTextNode(entry.description));
@@ -121,6 +124,8 @@ function loadExistingGist (gistId, callback) {
       var firstFile = resultGist.data.files[Object.keys(resultGist.data.files)[0]];
 
       document.getElementById("sourcecode").value = firstFile.content;
+
+      highlightErrorLines(null);
       window.cseditor.setValue(firstFile.content);
 
       setCurrentGist(gistId, resultGist.data.description, resultGist.data.user.login, resultGist.data.user.id);
@@ -149,6 +154,9 @@ function setCurrentGist (gistId, gistName, ownerName, ownerId) {
   existingGistId = String(gistId).trim();
   loadingGist = null;
   window.location.hash = "#" + gistId;
+
+  document.getElementById("share_link").href = 
+    "http://jsil.org/try/#" + gistId;
 
   document.getElementById("save_gist").innerHTML = 
     ownsExistingGist() ? "Update Gist" : "Fork Gist";
@@ -209,6 +217,7 @@ function confirmSaveGist () {
       setStatus("Save successful.");
       setCurrentGist(result.id, result.description, result.user.login, result.user.id);
       setControlsEnabled(true);
+      loadMyGists();
     },
     error: function (xhr, status, moreStatus) {
       setStatus("Save failed: " + status + ": " + moreStatus);
@@ -382,16 +391,54 @@ function compileComplete (data, status) {
       "C# compile took " + data.compileElapsed + " second(s).<br>" +
       "Translation took " + data.translateElapsed + " second(s)."
     );
+
+    highlightErrorLines(null);
     runInOutputWindow(data.javascript, data.entryPoint, data.warnings);
   } else {
     var errorText = String(data.error || status);
+    highlightErrorLines(errorText);
+
     errorText = (
       errorText.replace(/\&/g, "&amp;")
         .replace(/\</g, "&lt;")
         .replace(/\>/g, "&gt;")
         .replace(/\n/g, "<br>")
     );
+
     setStatus("Compile failed.<br>" + errorText);
+  }
+};
+
+var markedLines = [];
+
+function highlightErrorLines(errorText) {
+  for (var i = 0; i < markedLines.length; i++) {
+    var ml = markedLines[i];
+
+    window.cseditor.setLineClass(ml[0], null, null);
+    window.cseditor.setMarker(ml[1], null, null);
+  }
+
+  markedLines = [];
+
+  if (errorText === null)
+    return;
+
+  var markLine = function (i, type) {
+    var lineHandle = window.cseditor.setLineClass(i, "compile" + type, "compile" + type + "Background");
+    var markerHandle = window.cseditor.setMarker(i, "\u25CF", "compile" + type);
+    markedLines.push([lineHandle, markerHandle]);
+  };
+
+  var errorRegex = /\.cs\(([0-9]*),([0-9]*)\) \: (error|warning) (CS[0-9]*)/gi;
+
+  var match;
+  while (match = errorRegex.exec(errorText)) {
+    var matchType = match[3];
+    var line = parseInt(match[1]) - 1;
+    var col = parseInt(match[2]) - 1;
+
+    markLine(line, matchType);
   }
 };
 

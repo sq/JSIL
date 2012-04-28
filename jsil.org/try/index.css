@@ -274,3 +274,19 @@ div#save_gist_dialog button {
 	margin-top: 8px;
 	width: 50%;
 }
+
+.compileerror {
+	color: rgb(160, 10, 20);
+}
+
+.compileerrorBackground {
+	background-color: rgb(255, 230, 240) !important;
+}
+
+.compilewarning {
+	color: rgb(150, 150, 10);
+}
+
+.compilewarningBackground {
+	background-color: rgb(255, 255, 210) !important;
+}
