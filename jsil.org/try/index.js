@@ -86,6 +86,8 @@ var existingGistName = null;
 var existingGistOwnerId = null;
 var existingGistId = null;
 var existingGistFile = null;
+var existingGistForkedFromId = null;
+var existingGistForkedFromName = null;
 var loadingGist = null;
 var controlsEnabled = false;
 
@@ -130,7 +132,18 @@ function loadExistingGist (gistId, callback) {
       highlightErrorLines(null);
       window.cseditor.setValue(firstFile.content);
 
-      setCurrentGist(gistId, resultGist.data.description, resultGist.data.user.login, resultGist.data.user.id);
+      var forkedFromName = null, forkedFromId = null;
+
+      if (resultGist.data.fork_of && resultGist.data.fork_of.id) {
+        forkedFromName = resultGist.data.fork_of.user.login;
+        forkedFromId = resultGist.data.fork_of.id;
+      }
+
+      setCurrentGist(
+        gistId, resultGist.data.description, 
+        resultGist.data.user.login, resultGist.data.user.id,
+        forkedFromName, forkedFromId
+      );
 
       setStatus("Loaded gist.");
     }
@@ -141,24 +154,38 @@ function ownsExistingGist () {
   return String(existingGistOwnerId).trim() == String(githubUserId).trim();
 };
 
-function setCurrentGist (gistId, gistName, ownerName, ownerId) {
-  var textNode = document.createTextNode(
-    "Gist #" + gistId + ": " + gistName + " by " + ownerName
-  );
-
+function setCurrentGist (gistId, gistName, ownerName, ownerId, forkedFromName, forkedFromId) {
   var elt = document.getElementById("source_caption");
-
   elt.innerHTML = "";
-  elt.appendChild(textNode);
+
+  var shareUrl = "http://jsil.org/try/#" + gistId;
+
+  var gistLink = document.createElement("a");
+  gistLink.href = shareUrl;
+  gistLink.appendChild(document.createTextNode(gistName + " by " + ownerName));
+
+  elt.appendChild(gistLink);
+
+  if (forkedFromName && forkedFromId) {
+    elt.appendChild(document.createTextNode(" (forked from "));
+
+    var forkLink = document.createElement("a");
+    forkLink.href = "http://jsil.org/try/#" + forkedFromId;
+    forkLink.appendChild(document.createTextNode(forkedFromName + "'s version"));
+    
+    elt.appendChild(forkLink);
+    elt.appendChild(document.createTextNode(")"));
+  }
 
   existingGistName = gistName;
   existingGistOwnerId = ownerId;
+  existingGistForkedFromName = forkedFromName;
+  existingGistForkedFromId = forkedFromId;
   existingGistId = String(gistId).trim();
   loadingGist = null;
   window.location.hash = "#" + gistId;
 
-  document.getElementById("share_link").href = 
-    "http://jsil.org/try/#" + gistId;
+  document.getElementById("share_link").href = shareUrl;
 
   document.getElementById("save_gist").innerHTML = 
     ownsExistingGist() ? "Update Gist" : "Fork Gist";
