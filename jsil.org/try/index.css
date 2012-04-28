@@ -21,6 +21,13 @@ b {
 	font-weight: bold;
 }
 
+#source_caption {
+	max-height: 1em;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
 div.linkspam, div.linkspam div {
 }
 

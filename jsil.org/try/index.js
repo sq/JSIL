@@ -1,17 +1,35 @@
 function loadExamples () {
-  var username = "TryJSIL";
-  
+  var username = "TryJSIL"; 
+  var path = "/users/" + username + "/gists";
+  loadGists(path, "examples");
+};
+
+function loadMyGists () {
+  if (!githubLoginCode) {
+    $("my_gists").fadeOut();
+    return;
+  } else {  
+    document.getElementById("my_gists").style.display = "block";
+    $("my_gists").fadeIn();
+    var path = "/gists?access_token=" + githubLoginCode;
+    loadGists(path, "my_gists");
+  }
+};
+
+function loadGists (path, prefix) {
+  var requestUrl = 'https://api.github.com' + path;
+
   $.ajax({
-    url: 'https://api.github.com/users/' + username + '/gists',
+    url: requestUrl,
     dataType: 'jsonp',
     success: function (result) {
-      displayExamples(result);
+      displayGists(result, prefix);
     }
   });
 };
 
-function displayExamples (result) {
-  var container = $("#examples_list");
+function displayGists (result, prefix) {
+  var container = $("#" + prefix + "_list");
   container.empty();
 
   var entries = result.data;
@@ -20,18 +38,26 @@ function displayExamples (result) {
     return function () {
       var fadeLength = 250;
 
-      $("#examples_throbber").fadeIn(fadeLength);
-      $("#examples_list").fadeTo(fadeLength, 0.001);
+      $("#" + prefix + "_throbber").fadeIn(fadeLength);
+      $("#" + prefix + "_list").fadeTo(fadeLength, 0.001);
 
       loadExistingGist(entry.id, function () {
-        $("#examples_throbber").fadeOut(fadeLength);
-        $("#examples_list").fadeTo(fadeLength, 1);
+        $("#" + prefix + "_throbber").fadeOut(fadeLength);
+        $("#" + prefix + "_list").fadeTo(fadeLength, 1);
       });
     };
   };
 
   for (var i = 0; i < entries.length; i++) {
     var entry = entries[i];
+
+    var fileKeys = Object.keys(entry.files);
+    if (fileKeys.length !== 1)
+      continue;
+
+    var fileLanguage = entry.files[fileKeys[0]].language.trim();
+    if (fileLanguage != "C#")
+      continue;
 
     var li = document.createElement("li");
     var a = document.createElement("a");
@@ -44,8 +70,8 @@ function displayExamples (result) {
     container.append(li);
   }
 
-  $("#examples_throbber").fadeOut();
-  $("#examples_list").fadeIn();
+  $("#" + prefix + "_throbber").fadeOut();
+  $("#" + prefix + "_list").fadeIn();
 };
 
 var githubLoginCode = null;
@@ -251,6 +277,8 @@ function getUserInfo () {
 
       console.log("Logged in as ", githubUserName, " (", githubUserId, ")");
       setControlsEnabled(controlsEnabled);
+
+      loadMyGists();
     },
     error: function (xhr, status, moreStatus) {
       console.log("Failed to get logged in user info: " + status + ": " + moreStatus);
