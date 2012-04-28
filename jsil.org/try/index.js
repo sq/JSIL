@@ -474,8 +474,12 @@ function highlightErrorLines(errorText) {
   for (var i = 0; i < markedLines.length; i++) {
     var ml = markedLines[i];
 
-    window.cseditor.setLineClass(ml[0], null, null);
-    window.cseditor.setMarker(ml[1], null, null);
+    try {
+      window.cseditor.setLineClass(ml[0], null, null);
+      window.cseditor.setMarker(ml[1], null, null);
+    } catch (exc) {
+      // CodeMirror is buggy
+    }
   }
 
   markedLines = [];
@@ -517,7 +521,11 @@ function highlightErrorLines(errorText) {
       var lineIndex = parseInt(match[1]) - 1;
       var colIndex = parseInt(match[2]) - 1;
 
-      markLine(lineIndex, matchType);
+      try {
+        markLine(lineIndex, matchType);
+      } catch (exc) {
+        // CodeMirror is buggy
+      }
 
       var errorLink = document.createElement("a");
       errorLink.addEventListener("click", createLineLinkHandler(lineIndex, colIndex), true);
