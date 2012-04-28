@@ -49,8 +49,10 @@ function displayExamples (result) {
 };
 
 var githubLoginCode = null;
+var githubUserId = null;
 var githubLoginInterval = null;
 var savingGist = false;
+var existingGistName = null;
 var existingGistId = null;
 var ownsExistingGist = true;
 var loadingGist = null;
@@ -93,14 +95,14 @@ function loadExistingGist (gistId, callback) {
       document.getElementById("sourcecode").value = firstFile.content;
       window.cseditor.setValue(firstFile.content);
 
-      setCurrentGist(gistId, resultGist.data.description, resultGist.data.user.login, false);
+      setCurrentGist(gistId, resultGist.data.description, resultGist.data.user.login, resultGist.data.user.id);
 
       setStatus("Loaded gist.");
     }
   });
 };
 
-function setCurrentGist (gistId, gistName, ownerName, ownsGist) {
+function setCurrentGist (gistId, gistName, ownerName, ownerId) {
   var textNode = document.createTextNode(
     "Gist #" + gistId + ": " + gistName + " by " + ownerName
   );
@@ -110,10 +112,15 @@ function setCurrentGist (gistId, gistName, ownerName, ownsGist) {
   elt.innerHTML = "";
   elt.appendChild(textNode);
 
+  var ownsGist = String(ownerId).trim() == String(githubUserId).trim();
+  existingGistName = gistName;
   existingGistId = String(gistId).trim();
   ownsExistingGist = ownsGist;
   loadingGist = null;
   window.location.hash = "#" + gistId;
+
+  document.getElementById("save_gist").innerHTML = 
+    ownsGist ? "Update Gist" : "Fork Gist";
 };
 
 function beginSaveGist () {
@@ -124,6 +131,10 @@ function beginSaveGist () {
 
   setControlsEnabled(false);
 
+  if (existingGistName) {
+    document.getElementById("gist_name").value = existingGistName;
+  }
+
   savingGist = true;
   $("#save_gist_container").fadeIn();
 };
@@ -133,7 +144,16 @@ function confirmSaveGist () {
 
   setStatus("Saving gist...");
 
-  var requestUrl = "https://api.github.com/gists?access_token=" + githubLoginCode;
+  var requestUrl, method;
+
+  if (ownsExistingGist && (existingGistId !== null)) {
+    requestUrl = "https://api.github.com/gists/" + existingGistId + "?access_token=" + githubLoginCode;
+    method = "PATCH";
+  } else {
+    requestUrl = "https://api.github.com/gists?access_token=" + githubLoginCode;
+    method = "POST";
+  }
+
   var gistName = document.getElementById("gist_name").value;
 
   var files = {};
@@ -149,12 +169,14 @@ function confirmSaveGist () {
 
   $.ajax({
     url: requestUrl,
-    type: 'POST',
+    type: method,
     data: JSON.stringify(postData),
     dataType: "json",
     success: function (result) {
       setStatus("Save successful.");
-      setCurrentGist(result.id, result.description, result.user.login, true);
+      githubUserId = result.user.id;
+      $.cookie("githubUserId", result.user.id);
+      setCurrentGist(result.id, result.description, result.user.login, result.user.id);
       setControlsEnabled(true);
     },
     error: function (xhr, status, moreStatus) {
@@ -216,6 +238,7 @@ function endGithubLogin (uri) {
     success: function (result) {
       if (result.ok) {
         githubLoginCode = result.response.access_token;
+        $.cookie("githubAccessToken", githubLoginCode);
         setStatus("GitHub login successful.");
         beginSaveGist();
       } else {
@@ -245,7 +268,7 @@ function setControlsEnabled (enabled) {
   }
 
   var btn = $("#save_gist");
-  if (enabled && ownsExistingGist) {
+  if (enabled) {
     btn.removeAttr("disabled");
     btn.fadeIn();
   } else {
@@ -451,6 +474,9 @@ function onLoad () {
   setControlsEnabled(true);
 
   document.getElementById("iframe").contentDocument.getElementById("throbber").style.display = "none";
+
+  githubLoginCode = $.cookie("githubAccessToken") || null;
+  githubUserId = $.cookie("githubUserId") || null;
 
   checkHash();
   setInterval(checkHash, 1000);  
