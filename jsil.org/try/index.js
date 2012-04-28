@@ -17,29 +17,15 @@ function displayExamples (result) {
   var entries = result.data;
 
   var makeClickHandler = function (entry) {
-    var fadeLength = 250;
-
-    // What the fuck, GitHub?
-    // var firstFile = entry.files[Object.keys(entry.files)[0]];
-    // var actualUrl = firstFile.raw_url.replace("gist.github.com/raw/", "raw.github.com/gist/");
-    var requestUrl = "https://api.github.com/gists/" + entry.id;
-
     return function () {
+      var fadeLength = 250;
+
       $("#examples_throbber").fadeIn(fadeLength);
       $("#examples_list").fadeTo(fadeLength, 0.001);
 
-      $.ajax({
-        url: requestUrl,
-        dataType: 'jsonp',
-        success: function (resultGist) {
-          $("#examples_throbber").fadeOut(fadeLength);
-          $("#examples_list").fadeTo(fadeLength, 1);
-
-          var firstFile = resultGist.data.files[Object.keys(resultGist.data.files)[0]];
-
-          document.getElementById("sourcecode").value = firstFile.content;
-          window.cseditor.setValue(firstFile.content);
-        }
+      loadExistingGist(entry.id, function () {
+        $("#examples_throbber").fadeOut(fadeLength);
+        $("#examples_list").fadeTo(fadeLength, 1);
       });
     };
   };
@@ -62,12 +48,214 @@ function displayExamples (result) {
   $("#examples_list").fadeIn();
 };
 
-function beginCompile () {
-  $("#throbber").fadeIn();
+var githubLoginCode = null;
+var githubLoginInterval = null;
+var savingGist = false;
+var existingGistId = null;
+var ownsExistingGist = true;
+var loadingGist = null;
+
+function loadExistingGist (gistId, callback) {
+  if (loadingGist !== null) {
+    console.log("Already loading a gist. Aborting.");
+
+    if (typeof (callback) === "function")
+      callback();
+
+    return;
+  }
+
+  if (gistId == existingGistId) {
+    if (typeof (callback) === "function")
+      callback();
+
+    return;
+  }
+
+  loadingGist = gistId;
+
+  var requestUrl = "https://api.github.com/gists/" + gistId;
+
+  setControlsEnabled(false);
+  setStatus("Loading gist #" + gistId + "...");
+
+  $.ajax({
+    url: requestUrl,
+    dataType: 'jsonp',
+    success: function (resultGist) {
+      if (typeof (callback) === "function")
+        callback();
+
+      setControlsEnabled(true);
+
+      var firstFile = resultGist.data.files[Object.keys(resultGist.data.files)[0]];
+
+      document.getElementById("sourcecode").value = firstFile.content;
+      window.cseditor.setValue(firstFile.content);
+
+      setCurrentGist(gistId, resultGist.data.description, resultGist.data.user.login, false);
+
+      setStatus("Loaded gist.");
+    }
+  });
+};
+
+function setCurrentGist (gistId, gistName, ownerName, ownsGist) {
+  var textNode = document.createTextNode(
+    "Gist #" + gistId + ": " + gistName + " by " + ownerName
+  );
+
+  var elt = document.getElementById("source_caption");
+
+  elt.innerHTML = "";
+  elt.appendChild(textNode);
+
+  existingGistId = String(gistId).trim();
+  ownsExistingGist = ownsGist;
+  loadingGist = null;
+  window.location.hash = "#" + gistId;
+};
+
+function beginSaveGist () {
+  if (githubLoginCode === null) {
+    beginGithubLogin();
+    return;
+  }
+
+  setControlsEnabled(false);
+
+  savingGist = true;
+  $("#save_gist_container").fadeIn();
+};
+
+function confirmSaveGist () {
+  $("#save_gist_container").fadeOut();
+
+  setStatus("Saving gist...");
+
+  var requestUrl = "https://api.github.com/gists?access_token=" + githubLoginCode;
+  var gistName = document.getElementById("gist_name").value;
+
+  var files = {};
+  files["file1.cs"] = {
+    "content": window.cseditor.getValue() || document.getElementById("sourcecode").value
+  };
+
+  var postData = {
+    public: true,
+    description: gistName,
+    files: files
+  };
+
+  $.ajax({
+    url: requestUrl,
+    type: 'POST',
+    data: JSON.stringify(postData),
+    dataType: "json",
+    success: function (result) {
+      setStatus("Save successful.");
+      setCurrentGist(result.id, result.description, result.user.login, true);
+      setControlsEnabled(true);
+    },
+    error: function (xhr, status, moreStatus) {
+      setStatus("Save failed: " + status + ": " + moreStatus);
+      setControlsEnabled(true);
+    }
+  });
+};
+
+function cancelSaveGist () {
+  setControlsEnabled(true);
+  savingGist = false;
+  $("#save_gist_container").fadeOut();
+
+  setStatus("Save cancelled.");
+};
+
+function beginGithubLogin () {
+  if (githubLoginInterval !== null)
+    return;
+
+  setStatus("Logging in to GitHub...");
+
+  setControlsEnabled(false);
+
+  var loginWindow = window.open(
+    "oauth_login.html",
+    "GitHub Login",
+    "width=960,height=500,menubar=no,toolbar=no,location=no,personalbar=no,status=no,resizable=no,scrollbars=no,dependent=yes,dialog=yes,minimizable=yes"
+  );
+
+  githubLoginInterval = window.setInterval(function () {
+    if (loginWindow.closed) {
+      window.clearInterval(githubLoginInterval);
+      githubLoginInterval = null;
+      setControlsEnabled(true);
+    }
+  }, 10);
+};
+
+function endGithubLogin (uri) {
+  if (uri.indexOf("?error") >= 0) {
+    setStatus("GitHub login failed");
+    githubLoginCode = null;
+    return;
+  }
+
+  var code = uri.replace("?code=", "").trim();
+  console.log("Login code: " + code);
+
+  // GitHub's OAuth API is dumb and requires us to send them a secret just to get a token back.
+  $.ajax({
+    type: 'GET',
+    url: "http://jsil.org/try/oauth_get_token.aspx",
+    data: {
+      code: code
+    },
+    dataType: 'json',
+    success: function (result) {
+      if (result.ok) {
+        githubLoginCode = result.response.access_token;
+        setStatus("GitHub login successful.");
+        beginSaveGist();
+      } else {
+        setStatus("GitHub authorization failed: " + JSON.stringify(result.response));
+      }
+    },
+    error: function (xhr, status, moreStatus) {
+      setStatus("GitHub authorization failed: " + status + ": " + moreStatus);
+    }
+  });  
+};
+
+function setControlsEnabled (enabled) {
+  if (enabled) {
+    $("#throbber").fadeOut();
+  } else {
+    $("#throbber").fadeIn();
+  }
 
   var btn = $("#compile");
-  btn.attr("disabled", "disabled");
-  btn.fadeOut();
+  if (enabled) {
+    btn.removeAttr("disabled");
+    btn.fadeIn();
+  } else {
+    btn.attr("disabled", "disabled");
+    btn.fadeOut();
+  }
+
+  var btn = $("#save_gist");
+  if (enabled && ownsExistingGist) {
+    btn.removeAttr("disabled");
+    btn.fadeIn();
+  } else {
+    btn.attr("disabled", "disabled");
+    btn.fadeOut();
+  }
+};
+
+function beginCompile () {
+  setControlsEnabled(false);
 
   clearOutputWindow();
 
@@ -87,11 +275,7 @@ function beginCompile () {
 };
 
 function compileComplete (data, status) {
-  $("#throbber").fadeOut();
-
-  var btn = $("#compile");
-  btn.removeAttr("disabled");
-  btn.fadeIn();
+  setControlsEnabled(true);
 
   if (data && data.ok) {
     setJavascript(data.javascript);
@@ -190,10 +374,22 @@ var isDraggingSplitter = false;
 var splitterDragStart = [0, 0];
 var leftColumnWidthStart = 0;
 
-function onLoad () {
-  $("#throbber").hide();
+var lastHash = null;
+function checkHash () {
+  var currentHash = null;
+  if ((typeof (window.location.hash) === "string") && (window.location.hash.length > 1)) {
+    currentHash = window.location.hash.substr(1);
+  }
 
+  if (currentHash !== null)
+    loadExistingGist(currentHash.trim());
+}
+
+function onLoad () {
   $("#compile").click(beginCompile);
+  $("#save_gist").click(beginSaveGist);
+  $("#confirm_save_gist").click(confirmSaveGist);
+  $("#cancel_save_gist").click(cancelSaveGist);
 
   function initSplitter (x, y) {
     splitterDragStart = [x, y];
@@ -252,7 +448,10 @@ function onLoad () {
 
   loadExamples();
 
-  $("#compile").removeAttr("disabled");
+  setControlsEnabled(true);
 
   document.getElementById("iframe").contentDocument.getElementById("throbber").style.display = "none";
+
+  checkHash();
+  setInterval(checkHash, 1000);  
 };
