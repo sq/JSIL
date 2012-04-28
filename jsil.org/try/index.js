@@ -85,6 +85,7 @@ var savingGist = false, savePending = false;
 var existingGistName = null;
 var existingGistOwnerId = null;
 var existingGistId = null;
+var existingGistFile = null;
 var loadingGist = null;
 var controlsEnabled = false;
 
@@ -121,7 +122,8 @@ function loadExistingGist (gistId, callback) {
 
       setControlsEnabled(true);
 
-      var firstFile = resultGist.data.files[Object.keys(resultGist.data.files)[0]];
+      existingGistFile = Object.keys(resultGist.data.files)[0];
+      var firstFile = resultGist.data.files[existingGistFile];
 
       document.getElementById("sourcecode").value = firstFile.content;
 
@@ -186,10 +188,19 @@ function confirmSaveGist () {
   setStatus("Saving gist...");
 
   var requestUrl, method;
+  var isForked = false;
+
+  var makePatchUrl = function (gistId) {
+    return "https://api.github.com/gists/" + gistId + "?access_token=" + githubLoginCode;
+  };
 
   if (ownsExistingGist() && (existingGistId !== null)) {
-    requestUrl = "https://api.github.com/gists/" + existingGistId + "?access_token=" + githubLoginCode;
+    requestUrl = makePatchUrl(gistId);
     method = "PATCH";
+  } else if (existingGistId !== null) {    
+    requestUrl = "https://api.github.com/gists/" + existingGistId + "/fork?access_token=" + githubLoginCode;
+    method = "POST";
+    isForked = true;
   } else {
     requestUrl = "https://api.github.com/gists?access_token=" + githubLoginCode;
     method = "POST";
@@ -198,14 +209,30 @@ function confirmSaveGist () {
   var gistName = document.getElementById("gist_name").value;
 
   var files = {};
-  files["file1.cs"] = {
+  var fileKey = "tryjsil.cs";
+
+  if (existingGistFile) {
+    fileKey = existingGistFile;
+    files[existingGistFile] = { "content": null };
+  }
+
+  files[fileKey] = {
     "content": window.cseditor.getValue() || document.getElementById("sourcecode").value
   };
+
+  existingGistFile = fileKey;
 
   var postData = {
     public: true,
     description: gistName,
     files: files
+  };
+
+  var onSuccessful = function (result) {
+    setStatus("Save successful.");
+    setCurrentGist(result.id, result.description, result.user.login, result.user.id);
+    setControlsEnabled(true);
+    window.setTimeout(loadMyGists, 500);
   };
 
   $.ajax({
@@ -214,10 +241,24 @@ function confirmSaveGist () {
     data: JSON.stringify(postData),
     dataType: "json",
     success: function (result) {
-      setStatus("Save successful.");
-      setCurrentGist(result.id, result.description, result.user.login, result.user.id);
-      setControlsEnabled(true);
-      loadMyGists();
+      if (isForked) {
+        setStatus("Forked gist. Saving...");
+        $.ajax({
+          url: makePatchUrl(result.id),
+          type: "PATCH",
+          data: JSON.stringify(postData),
+          dataType: "json",
+          success: function (result2) {
+            onSuccessful(result2);
+          },
+          error: function (xhr, status, moreStatus) {
+            setStatus("Save failed: " + status + ": " + moreStatus);
+            setControlsEnabled(true);
+          }
+        });
+      } else {
+        onSuccessful(result);
+      }
     },
     error: function (xhr, status, moreStatus) {
       setStatus("Save failed: " + status + ": " + moreStatus);
