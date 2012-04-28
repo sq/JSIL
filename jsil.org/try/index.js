@@ -172,7 +172,7 @@ function setCurrentGist (gistId, gistName, ownerName, ownerId, forkedFromName, f
     var forkLink = document.createElement("a");
     forkLink.href = "http://jsil.org/try/#" + forkedFromId;
     forkLink.appendChild(document.createTextNode(forkedFromName + "'s version"));
-    
+
     elt.appendChild(forkLink);
     elt.appendChild(document.createTextNode(")"));
   }
@@ -465,15 +465,6 @@ function compileComplete (data, status) {
   } else {
     var errorText = String(data.error || status);
     highlightErrorLines(errorText);
-
-    errorText = (
-      errorText.replace(/\&/g, "&amp;")
-        .replace(/\</g, "&lt;")
-        .replace(/\>/g, "&gt;")
-        .replace(/\n/g, "<br>")
-    );
-
-    setStatus("Compile failed.<br>" + errorText);
   }
 };
 
@@ -498,15 +489,52 @@ function highlightErrorLines(errorText) {
     markedLines.push([lineHandle, markerHandle]);
   };
 
-  var errorRegex = /\.cs\(([0-9]*),([0-9]*)\) \: (error|warning) (CS[0-9]*)/gi;
+  var errorRegex = /\(([0-9]*),([0-9]*)\) \: (error|warning) (CS[0-9]*)/;
 
-  var match;
-  while (match = errorRegex.exec(errorText)) {
-    var matchType = match[3];
-    var line = parseInt(match[1]) - 1;
-    var col = parseInt(match[2]) - 1;
+  var newNodes = [];
 
-    markLine(line, matchType);
+  var createLineLinkHandler = function (lineIndex, colIndex) {
+    return function () {
+      var pos = {line: lineIndex, ch: colIndex};
+
+      var lineText = window.cseditor.getLine(lineIndex);
+
+      window.cseditor.setCursor(pos);
+      window.cseditor.setSelection(pos, {
+        line: lineIndex, ch: colIndex + (lineText.length - colIndex)
+      });
+    };
+  };
+
+  var lines = errorText.split('\n');
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+
+    var match = errorRegex.exec(line);
+
+    if (match) {
+      var matchType = match[3];
+      var lineIndex = parseInt(match[1]) - 1;
+      var colIndex = parseInt(match[2]) - 1;
+
+      markLine(lineIndex, matchType);
+
+      var errorLink = document.createElement("a");
+      errorLink.addEventListener("click", createLineLinkHandler(lineIndex, colIndex), true);
+      errorLink.appendChild(document.createTextNode(line));
+      newNodes.push(errorLink);
+    } else {
+      newNodes.push(document.createTextNode(line));
+    }
+
+    newNodes.push(document.createElement("br"));
+  }
+
+  var s = document.getElementById("status");
+  s.innerHTML = "";
+
+  for (var i = 0; i < newNodes.length; i++) {
+    s.appendChild(newNodes[i]);
   }
 };
 
