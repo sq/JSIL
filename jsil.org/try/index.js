@@ -468,21 +468,15 @@ function compileComplete (data, status) {
   }
 };
 
-var markedLines = [];
-
 function highlightErrorLines(errorText) {
-  for (var i = 0; i < markedLines.length; i++) {
-    var ml = markedLines[i];
-
+  for (var i = 0, sourceLineCount = (window.cseditor.getValue().split("\n").length); i < sourceLineCount; i++) {
     try {
-      window.cseditor.setLineClass(ml[0], null, null);
-      window.cseditor.setMarker(ml[1], null, null);
+      window.cseditor.setLineClass(i, null, null);
+      window.cseditor.setMarker(i, null, null);
     } catch (exc) {
       // CodeMirror is buggy
     }
   }
-
-  markedLines = [];
 
   if (errorText === null)
     return;
@@ -490,7 +484,6 @@ function highlightErrorLines(errorText) {
   var markLine = function (i, type) {
     var lineHandle = window.cseditor.setLineClass(i, "compile" + type, "compile" + type + "Background");
     var markerHandle = window.cseditor.setMarker(i, "\u25CF", "compile" + type);
-    markedLines.push([lineHandle, markerHandle]);
   };
 
   var errorRegex = /\(([0-9]*),([0-9]*)\) \: (error|warning) (CS[0-9]*)/;
