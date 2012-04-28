@@ -119,8 +119,10 @@ div#examples {
 	width: 11em;
 	margin-left: 0em;
 	margin-right: 0em;
+	max-height: 29em;
 	float: left;
 	clear: right;
+	overflow-y: auto;
 }
 
 button#compile {
@@ -149,7 +151,7 @@ button#save_gist {
 	z-index: 0;
 }
 
-img#throbber, img#examples_throbber {
+img#throbber, img#examples_throbber, img#my_gists_throbber {
 	width: 32px;
 	height: 32px;
 	margin-left: auto;
@@ -162,12 +164,11 @@ textarea {
 	padding: 0px;
 }
 
-div#examples_box {
+div#examples_box, div#my_gists_box {
 	position: relative;
-	max-height: 26em;
 }
 
-img#examples_throbber {
+img#examples_throbber, img#my_gists_throbber {
 	display: block;
 	position: absolute;
 	left: 0;
@@ -176,7 +177,7 @@ img#examples_throbber {
 	bottom: 0;
 }
 
-ul#examples_list {
+ul#examples_list, ul#my_gists_list {
 	display: block;
 	list-style-type: circle;
 	list-style-position: inside;

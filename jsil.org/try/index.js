@@ -50,12 +50,14 @@ function displayExamples (result) {
 
 var githubLoginCode = null;
 var githubUserId = null;
+var githubUserName = null;
 var githubLoginInterval = null;
-var savingGist = false;
+var savingGist = false, savePending = false;
 var existingGistName = null;
+var existingGistOwnerId = null;
 var existingGistId = null;
-var ownsExistingGist = true;
 var loadingGist = null;
+var controlsEnabled = false;
 
 function loadExistingGist (gistId, callback) {
   if (loadingGist !== null) {
@@ -102,6 +104,10 @@ function loadExistingGist (gistId, callback) {
   });
 };
 
+function ownsExistingGist () {
+  return String(existingGistOwnerId).trim() == String(githubUserId).trim();
+};
+
 function setCurrentGist (gistId, gistName, ownerName, ownerId) {
   var textNode = document.createTextNode(
     "Gist #" + gistId + ": " + gistName + " by " + ownerName
@@ -112,23 +118,24 @@ function setCurrentGist (gistId, gistName, ownerName, ownerId) {
   elt.innerHTML = "";
   elt.appendChild(textNode);
 
-  var ownsGist = String(ownerId).trim() == String(githubUserId).trim();
   existingGistName = gistName;
+  existingGistOwnerId = ownerId;
   existingGistId = String(gistId).trim();
-  ownsExistingGist = ownsGist;
   loadingGist = null;
   window.location.hash = "#" + gistId;
 
   document.getElementById("save_gist").innerHTML = 
-    ownsGist ? "Update Gist" : "Fork Gist";
+    ownsExistingGist() ? "Update Gist" : "Fork Gist";
 };
 
 function beginSaveGist () {
   if (githubLoginCode === null) {
+    savePending = true;
     beginGithubLogin();
     return;
   }
 
+  savePending = false;
   setControlsEnabled(false);
 
   if (existingGistName) {
@@ -146,7 +153,7 @@ function confirmSaveGist () {
 
   var requestUrl, method;
 
-  if (ownsExistingGist && (existingGistId !== null)) {
+  if (ownsExistingGist() && (existingGistId !== null)) {
     requestUrl = "https://api.github.com/gists/" + existingGistId + "?access_token=" + githubLoginCode;
     method = "PATCH";
   } else {
@@ -174,8 +181,6 @@ function confirmSaveGist () {
     dataType: "json",
     success: function (result) {
       setStatus("Save successful.");
-      githubUserId = result.user.id;
-      $.cookie("githubUserId", result.user.id);
       setCurrentGist(result.id, result.description, result.user.login, result.user.id);
       setControlsEnabled(true);
     },
@@ -217,6 +222,43 @@ function beginGithubLogin () {
   }, 10);
 };
 
+function getUserInfo () {
+  var requestUrl = "https://api.github.com/user?access_token=" + githubLoginCode;
+
+  var onFailed = function () {
+    $.cookie("githubAccessToken", null);
+    $.cookie("githubUserId", null);
+    $.cookie("githubUserName", null);
+  };
+
+  // GitHub's OAuth API is dumb and requires us to send them a secret just to get a token back.
+  $.ajax({
+    type: 'GET',
+    url: requestUrl,
+    dataType: 'jsonp',
+    success: function (result) {
+      // Not logged in or bad token
+      if (parseInt(result.meta.status) >= 400) {
+        console.log("Login cookie invalid: ", result.data.message);
+        onFailed();
+        return;
+      }
+
+      githubUserName = result.data.login;
+      githubUserId = result.data.id;
+      $.cookie("githubUserId", result.data.id);
+      $.cookie("githubUserName", result.data.login);
+
+      console.log("Logged in as ", githubUserName, " (", githubUserId, ")");
+      setControlsEnabled(controlsEnabled);
+    },
+    error: function (xhr, status, moreStatus) {
+      console.log("Failed to get logged in user info: " + status + ": " + moreStatus);
+      onFailed();
+    }
+  });  
+}
+
 function endGithubLogin (uri) {
   if (uri.indexOf("?error") >= 0) {
     setStatus("GitHub login failed");
@@ -240,7 +282,10 @@ function endGithubLogin (uri) {
         githubLoginCode = result.response.access_token;
         $.cookie("githubAccessToken", githubLoginCode);
         setStatus("GitHub login successful.");
-        beginSaveGist();
+        getUserInfo();
+
+        if (savePending)
+          beginSaveGist();
       } else {
         setStatus("GitHub authorization failed: " + JSON.stringify(result.response));
       }
@@ -252,6 +297,8 @@ function endGithubLogin (uri) {
 };
 
 function setControlsEnabled (enabled) {
+  controlsEnabled = enabled;
+
   if (enabled) {
     $("#throbber").fadeOut();
   } else {
@@ -476,7 +523,12 @@ function onLoad () {
   document.getElementById("iframe").contentDocument.getElementById("throbber").style.display = "none";
 
   githubLoginCode = $.cookie("githubAccessToken") || null;
+
   githubUserId = $.cookie("githubUserId") || null;
+  githubUserName = $.cookie("githubUserName") || null;
+
+  if (githubLoginCode)
+    getUserInfo();
 
   checkHash();
   setInterval(checkHash, 1000);  
