@@ -65,6 +65,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyManifest.cs" />
+    <Compile Include="AST\JSAstCursor.cs" />
     <Compile Include="AST\JSAstVisitor.cs" />
     <Compile Include="AST\JSExpressionTypes.cs" />
     <Compile Include="AST\JSIdentifierTypes.cs" />
@@ -76,6 +77,7 @@
     <Compile Include="Configuration.cs" />
     <Compile Include="FunctionCache.cs" />
     <Compile Include="DynamicCallSites.cs" />
+    <Compile Include="HTMLColor.cs" />
     <Compile Include="JavascriptAstEmitter.cs" />
     <Compile Include="JavascriptFormatter.cs" />
     <Compile Include="ILBlockTranslator.cs" />

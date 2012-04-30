@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using JSIL.Ast;
@@ -32,8 +33,19 @@ namespace JSIL.Transforms {
             var result = State;
             State = null;
 
-            var bg = new StaticAnalysis.BarrierGenerator(TypeSystem);
-            bg.Visit(function);
+            var bg = new StaticAnalysis.BarrierGenerator(TypeSystem, function);
+            bg.Generate();
+
+            var targetFolder = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "Barriers"
+            );
+            Directory.CreateDirectory(targetFolder);
+            var targetFile = Path.Combine(
+                targetFolder,
+                String.Format("{0}.xml", function.Method.QualifiedIdentifier)
+            );
+
+            bg.SaveXML(targetFile);
 
             return result;
         }
@@ -312,7 +324,7 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSVariable variable) {
-            if (CurrentName == "Parameter") {
+            if (CurrentName == "FunctionSignature") {
                 // In argument list
                 return;
             }

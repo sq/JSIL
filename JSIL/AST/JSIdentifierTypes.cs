@@ -215,6 +215,14 @@ namespace JSIL.Ast {
         public override TypeReference GetActualType (TypeSystem typeSystem) {
             return MethodTypes.Get(Reference, typeSystem);
         }
+
+        public override string ToString () {
+            return String.Format(
+                "<JSMethod {0}::{1}>",
+                Method.DeclaringType.Identifier,
+                Method.Name
+            );
+        }
     }
 
     public class JSFakeMethod : JSIdentifier {
@@ -424,6 +432,12 @@ namespace JSIL.Ast {
             }
         }
 
+        public override IEnumerable<JSNode> Children {
+            get {
+                yield break;
+            }
+        }
+
         public override JSParameter GetParameter () {
             return this;
         }
@@ -465,6 +479,12 @@ namespace JSIL.Ast {
         public override bool IsConstant {
             get {
                 return true;
+            }
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                yield break;
             }
         }
 
@@ -575,6 +595,12 @@ namespace JSIL.Ast {
 
         public override JSVariable Reference () {
             return Variables[Identifier].Reference();
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                yield break;
+            }
         }
 
         public override bool Equals (object obj) {

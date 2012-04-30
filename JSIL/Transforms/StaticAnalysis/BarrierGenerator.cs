@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Xml;
 using ICSharpCode.Decompiler.ILAst;
 using JSIL.Ast;
+using JSIL.Internal;
 using Mono.Cecil;
 
 namespace JSIL.Transforms.StaticAnalysis {
@@ -52,7 +55,8 @@ namespace JSIL.Transforms.StaticAnalysis {
     public enum BarrierFlags : byte {
         None = 0x0,
         Invoke = 0x1,
-        Return = 0x2
+        Return = 0x2,
+        VaryingExecution = 0x4 // May execute multiple times or never
     }
 
     [Flags]
@@ -62,8 +66,12 @@ namespace JSIL.Transforms.StaticAnalysis {
         Write = 0x2,
         PassByReference = 0x4,
         GlobalState = 0x8,
+        Complete = 0x16,
 
         ReadWrite = Read | Write,
+        CompleteRead = Read | Complete,
+        Assignment = Write | Complete,
+        ReadReassignment = ReadWrite | Complete,
 
         ReadGlobalState = Read | GlobalState,
         WriteGlobalState = Write | GlobalState,
@@ -124,6 +132,11 @@ namespace JSIL.Transforms.StaticAnalysis {
             SortIfNeeded();
             result = default(Barrier);
             int index = Barriers.BinarySearch(Barrier.Key(nodeIndex), Comparer);
+
+            if (index >= 0) {
+                result = Barriers[index];
+                return true;
+            }
 
             return false;
         }
@@ -200,21 +213,48 @@ namespace JSIL.Transforms.StaticAnalysis {
     }
 
     public class BarrierGenerator : JSAstVisitor {
-        public readonly BarrierCollection Result = new BarrierCollection();
-        public readonly TypeSystem TypeSystem;
+        private class StyledCell {
+            public string StyleID;
+            public object Value;
+        }
 
-        public BarrierGenerator (TypeSystem typeSystem) {
+        public readonly BarrierCollection Result = new BarrierCollection();
+
+        public readonly TypeSystem TypeSystem;
+        public readonly JSFunctionExpression Function;
+
+        public BarrierGenerator (TypeSystem typeSystem, JSFunctionExpression function) {
             TypeSystem = typeSystem;
+            Function = function;
+        }
+
+        public void Generate () {
+            Visit(Function);
         }
 
         protected void CreateBarrier (SlotDictionary slots, BarrierFlags flags = BarrierFlags.None) {
-            Result.Add(Barrier.New(
-                NodeIndex, flags, slots
-            ));
+            Barrier existing;
+
+            if (Result.TryGet(NodeIndex, out existing)) {
+                Result.Remove(existing);
+
+                foreach (var slot in existing.Slots)
+                    slots[slot.Name] |= slot.Flags;
+
+                Result.Add(Barrier.New(
+                    NodeIndex, 
+                    flags | existing.Flags, 
+                    slots
+                ));                
+            } else {
+                Result.Add(Barrier.New(
+                    NodeIndex, flags, slots
+                ));
+            }
         }
 
         public void VisitNode (JSVariable v) {
-            if (CurrentName == "Parameter") {
+            if (CurrentName == "FunctionSignature") {
                 // In argument list
                 return;
             }
@@ -234,6 +274,249 @@ namespace JSIL.Transforms.StaticAnalysis {
             }
 
             VisitChildren(f);
+        }
+
+        private const string ss = "urn:schemas-microsoft-com:office:spreadsheet";
+        private const string x = "urn:schemas-microsoft-com:office:excel";
+        private const string o = "urn:schemas-microsoft-com:office:office";
+
+        private string[] GetXMLColumnNames (Barrier[] barriers) {
+            var names = new HashSet<string>();
+
+            foreach (var b in barriers) {
+                foreach (var slot in b.Slots)
+                    names.Add(slot.Name);
+            }
+
+            return names.OrderBy(n => n).ToArray();
+        }
+
+        private void WriteCell (XmlWriter xw, object value) {
+            var sc = value as StyledCell;
+            if (sc != null)
+                value = sc.Value;
+
+            xw.WriteStartElement("Cell");
+            if (sc != null)
+                xw.WriteAttributeString("StyleID", ss, sc.StyleID);
+
+            xw.WriteStartElement("Data");
+            xw.WriteAttributeString("Type", ss, "String");
+
+            xw.WriteString(Convert.ToString(value));
+
+            xw.WriteEndElement();
+            xw.WriteEndElement();
+        }
+
+        private void WriteRow (XmlWriter xw, params object[] cells) {
+            xw.WriteStartElement("Row");
+
+            foreach (var cell in cells)
+                WriteCell(xw, cell);
+
+            xw.WriteEndElement();
+        }
+
+        private void WriteNode (XmlWriter xw, JSNode node, string nodeName, int nodeDepth) {
+            if (node is JSBlockStatement)
+                return;
+            else if (node is JSExpressionStatement)
+                return;
+
+            var indent = new string(' ', nodeDepth * 4);
+
+            WriteRow(
+                xw,
+                new StyledCell {
+                    StyleID = "code",
+                    Value = indent + node.ToString()
+                }
+            );
+        }
+
+        private void WriteBarrier (XmlWriter xw, Barrier barrier, string[] columnNames) {
+            var cols = new List<StyledCell>();
+
+            foreach (var name in columnNames) {
+                cols.Add(new StyledCell {
+                    StyleID = "cell" + name,
+                    Value = ""
+                });
+            }
+
+            foreach (var slot in barrier.Slots) {
+                var i = Array.IndexOf(columnNames, slot.Name);
+
+                cols[i].Value = slot.Flags.ToString();
+            }
+
+            WriteRow(xw, cols.ToArray());
+        }
+
+        private void WriteNodesAndBarriers (XmlWriter xw, BarrierCollection barriers, string[] columnNames) {
+            using (var cursor = new JSAstCursor(
+                Function,
+                "FunctionSignature"
+            )) {
+                Barrier barrier;
+
+                while (cursor.MoveNext()) {
+                    if (barriers.TryGet(cursor.NodeIndex, out barrier))
+                        WriteBarrier(xw, barrier, columnNames);
+
+                    WriteNode(xw, cursor.CurrentNode, cursor.CurrentName, cursor.Depth);
+                }
+            }
+        }
+
+        private void WriteStyle (
+            XmlWriter xw, string id,
+            string horizontalAlignment = null,
+            string backgroundColor = null, 
+            string fontName = null, float? fontSize = null, bool? fontBold = null,
+            string textColor = null
+        ) {
+            xw.WriteStartElement("Style");
+            xw.WriteAttributeString("ID", ss, id);
+
+            xw.WriteStartElement("Alignment");
+
+            if (horizontalAlignment != null)
+                xw.WriteAttributeString("Horizontal", ss, horizontalAlignment);
+
+            xw.WriteEndElement();
+
+            xw.WriteStartElement("Font");
+
+            if (fontName != null)
+                xw.WriteAttributeString("FontName", ss, fontName);
+            if (textColor != null)
+                xw.WriteAttributeString("Color", ss, textColor);
+            if (fontSize.HasValue)
+                xw.WriteAttributeString("Size", ss, fontSize.Value.ToString());
+            if (fontBold.HasValue)
+                xw.WriteAttributeString("Bold", ss, fontBold.Value ? "1" : "0");
+
+            xw.WriteEndElement();
+
+            xw.WriteStartElement("Interior");
+
+            if (backgroundColor != null) {
+                xw.WriteAttributeString("Color", ss, backgroundColor);
+
+                xw.WriteAttributeString("Pattern", ss, "Solid");
+            }
+
+            xw.WriteEndElement();
+
+            xw.WriteStartElement("NumberFormat");
+
+            xw.WriteAttributeString("Format", ss, "@");
+
+            xw.WriteEndElement();
+
+            xw.WriteEndElement();
+        }
+
+        public void SaveXML (string filename) {
+            if (File.Exists(filename)) {
+                File.SetAttributes(filename, FileAttributes.Normal);
+                File.Delete(filename);
+            }
+
+            var barriers = Result.ToArray();
+            var columnNames = GetXMLColumnNames(barriers);
+
+            var settings = new XmlWriterSettings {
+                CheckCharacters = false,
+                CloseOutput = true,
+                ConformanceLevel = ConformanceLevel.Document,
+                IndentChars = "  ",
+                Indent = true,
+                Encoding = Encoding.UTF8
+            };
+
+            var ms = new MemoryStream();
+
+            using (var xw = XmlWriter.Create(ms, settings)) {
+                xw.WriteStartDocument();
+                xw.WriteProcessingInstruction("mso-application", "progid=\"Excel.Sheet\"");
+
+                xw.WriteStartElement("Workbook" /* , xmlns */);
+                xw.WriteAttributeString("xmlns", "o", null, o);
+                xw.WriteAttributeString("xmlns", "x", null, x);
+                xw.WriteAttributeString("xmlns", "ss", null, ss);
+
+                xw.WriteStartElement("Styles");
+
+                WriteStyle(
+                    xw, "code",
+                    fontName: "Consolas",
+                    fontSize: 11
+                );
+
+                int i = 0; 
+                foreach (var name in columnNames) {
+                    ushort hue = (ushort)((HTMLColor.HueUnit * i / 2) % HTMLColor.HueMax);
+
+                    WriteStyle(
+                        xw, "header" + name,
+                        horizontalAlignment: "Center",
+                        fontName: "Calibri",
+                        fontSize: 11,
+                        fontBold: true,
+                        backgroundColor: HTMLColor.FromHSV(hue, HTMLColor.SaturationMax * 50 / 100, HTMLColor.ValueMax * 92 / 100)
+                    );
+
+                    WriteStyle(
+                        xw, "cell" + name,
+                        horizontalAlignment: "Center",
+                        fontName: "Calibri",
+                        fontSize: 11,
+                        fontBold: false,
+                        backgroundColor: HTMLColor.FromHSV(hue, HTMLColor.SaturationMax * 20 / 100, HTMLColor.ValueMax * 96 / 100)
+                    );
+
+                    i += 1;
+                }
+
+                xw.WriteEndElement();
+
+                xw.WriteStartElement("Worksheet");
+                xw.WriteAttributeString("Name", ss, "Function");
+
+                xw.WriteStartElement("Table");
+
+                foreach (var name in columnNames) {
+                    xw.WriteStartElement("Column");
+
+                    xw.WriteAttributeString("Width", ss, "75");
+
+                    xw.WriteEndElement();
+                }
+
+                WriteRow(xw, (from cn in columnNames select new StyledCell {
+                    StyleID = "header" + cn,
+                    Value = cn
+                }).ToArray());
+
+                WriteNodesAndBarriers(xw, Result, columnNames);
+
+                xw.WriteEndElement();
+
+                xw.WriteEndElement();
+
+                xw.WriteEndElement();
+            }
+
+            // XMLWriter is totally fucking broken
+            var bytes = ms.GetBuffer();
+            var allChars = Encoding.UTF8.GetString(bytes);
+            var fixedXml = allChars.Replace("<Workbook ", "<Workbook xmlns=\"" + ss + "\" ");
+
+            File.WriteAllText(filename, fixedXml, Encoding.UTF8);
+            File.SetAttributes(filename, FileAttributes.ReadOnly);
         }
     }
 }

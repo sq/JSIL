@@ -37,7 +37,7 @@ namespace JSIL.Ast {
         public override IEnumerable<AnnotatedNode> AnnotatedChildren {
             get {
                 foreach (var parameter in Parameters)
-                    yield return new AnnotatedNode("Parameter", parameter);
+                    yield return new AnnotatedNode("FunctionSignature", parameter);
 
                 yield return new AnnotatedNode("Body", Body);
             }
@@ -991,12 +991,52 @@ namespace JSIL.Ast {
             }
         }
 
+        public string BuildArgumentListString () {
+            var result = new StringBuilder();
+
+            if ((ThisReference != null) && !ThisReference.IsNull)
+                result.AppendFormat("this: {0}", ThisReference);
+
+            var jsm = JSMethod;
+            var args = Arguments;
+            string argName;
+
+            for (var i = 0; i < args.Count; i++) {
+                if (result.Length > 0)
+                    result.Append(", ");
+
+                if (jsm != null) {
+                    var parms = jsm.Method.Parameters;
+
+                    if (i >= parms.Length) {
+                        argName = String.Format(
+                            "{0}[{1}]", 
+                            jsm.Method.Parameters[parms.Length - 1].Name, 
+                            i - parms.Length + 1
+                        );
+                    } else {
+                        if (parms[i].CustomAttributes.Any((ca) => ca.AttributeType.Name.Contains("ParamArray")))
+                            argName = String.Format("{0}[0]", parms[i].Name);
+                        else
+                            argName = parms[i].Name;
+                    }
+                } else {
+                    argName = String.Format("arg{0}", i);
+                }
+
+                result.AppendFormat("{0}: {1}", argName, args[i]);
+            }
+
+            return result.ToString();
+        }
+
         public override string ToString () {
+            var arglist = BuildArgumentListString();
+
             return String.Format(
-                "{0}(this={1}, args={2})",
+                "{0}({1})",
                 Method,
-                ThisReference,
-                String.Join(", ", (from a in Arguments select String.Concat(a)).ToArray())
+                arglist
             );
         }
     }

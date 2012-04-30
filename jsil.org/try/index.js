@@ -167,7 +167,7 @@ function setCurrentGist (gistId, gistName, ownerName, ownerId, forkedFromName, f
   elt.appendChild(gistLink);
 
   if (forkedFromName && forkedFromId) {
-    elt.appendChild(document.createTextNode(" (forked from "));
+    elt.appendChild(document.createTextNode(" (fork of "));
 
     var forkLink = document.createElement("a");
     forkLink.href = "http://jsil.org/try/#" + forkedFromId;

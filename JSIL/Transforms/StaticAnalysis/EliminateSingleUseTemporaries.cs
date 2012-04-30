@@ -335,7 +335,7 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSVariable variable) {
-            if (CurrentName == "Parameter") {
+            if (CurrentName == "FunctionSignature") {
                 // In argument list
                 return;
             }
