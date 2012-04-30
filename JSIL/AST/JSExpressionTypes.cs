@@ -110,6 +110,10 @@ namespace JSIL.Ast {
                 return Values[0];
             }
         }
+
+        public override string ToString () {
+            return String.Format("return {0}", Value);
+        }
     }
 
     public class JSThrowExpression : JSExpression {
@@ -121,6 +125,10 @@ namespace JSIL.Ast {
             get {
                 return Values[0];
             }
+        }
+
+        public override string ToString () {
+            return String.Format("throw {0}", Exception);
         }
     }
 
@@ -1284,7 +1292,13 @@ namespace JSIL.Ast {
         }
     }
 
-    public abstract class JSOperatorExpression<TOperator> : JSAnnotatedExpression
+    public abstract class JSOperatorExpressionBase : JSAnnotatedExpression {
+        protected JSOperatorExpressionBase (params JSExpression[] values)
+            : base (values) {
+        }
+    }
+
+    public abstract class JSOperatorExpression<TOperator> : JSOperatorExpressionBase
         where TOperator : JSOperator {
 
         public readonly TOperator Operator;

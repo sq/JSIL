@@ -112,10 +112,6 @@ namespace JSIL.Ast {
 
             int nextDepth = depth + 1;
 
-            // Collapses the depth layer for expression statements and block statements
-            if ((node is JSExpressionStatement) || (node is JSBlockStatement))
-                nextDepth = depth;
-
             var annotated = node as IAnnotatedChildren;
             if (annotated != null) {
                 using (var e = annotated.AnnotatedChildren.GetEnumerator())
