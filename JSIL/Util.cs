@@ -100,7 +100,7 @@ namespace JSIL.Internal {
                         isEscaped = true;
                     break;
                     case ':':
-                        sb.Append("$c");
+                        sb.Append("$co");
                         isEscaped = true;
                     break;
                     case '<':
@@ -165,6 +165,10 @@ namespace JSIL.Internal {
                     break;
                     case '&':
                         sb.Append("$am");
+                        isEscaped = true;
+                    break;
+                    case ',':
+                        sb.Append("$cm");
                         isEscaped = true;
                     break;
                     default:

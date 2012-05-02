@@ -308,8 +308,9 @@ namespace JSIL.Transforms.StaticAnalysis {
             var parentBoe = ParentNode as JSBinaryOperatorExpression;
             var parentDot = ParentNode as JSDotExpressionBase;
             var parentInvocation = ParentNode as JSDelegateInvocationExpression;
+            var parentAccess = ParentNode as JSDotExpressionBase;
 
-            var escapeContext = Stack.First(
+            var escapeContext = Stack.FirstOrDefault(
                 n =>
                     n is JSReturnExpression ||
                     n is JSThrowExpression ||
@@ -367,8 +368,10 @@ namespace JSIL.Transforms.StaticAnalysis {
                 flags |= SlotFlags.Read;
             }
 
-            if (isWriteSource || isReturned || isThrown || isArgument)
-                flags |= SlotFlags.Escapes;
+            if (isWriteSource || isReturned || isThrown || isArgument) {
+                if (parentAccess == null)
+                    flags |= SlotFlags.Escapes;
+            }
 
             if (flags != SlotFlags.None)
                 CreateBarrier(new SlotDictionary {

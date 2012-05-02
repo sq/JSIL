@@ -1903,9 +1903,15 @@ namespace JSIL.Internal {
             if (cn != null)
                 return cn;
 
-            if ((declType != null) && declType.IsInterface)
+            if ((declType != null) && declType.IsInterface) {
                 result = String.Format("{0}.{1}", TypeUtil.GetLocalName(declType), ShortName);
-            else if (over != null)
+            // FIXME: Enable this so MultipleGenericInterfaces2.cs passes.
+            /*
+            } else if (Member.Name.IndexOf(".") > 0) {
+                // Qualified reference to an interface member
+                result = Member.Name;
+            */
+            } else if (over != null)
                 result = String.Format("{0}.{1}", TypeUtil.GetLocalName(over.DeclaringType.Resolve()), ShortName);
             else
                 result = ShortName;

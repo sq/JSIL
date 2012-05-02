@@ -342,7 +342,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSMethod method) {
-            Output.Identifier(method.Method.GetName(true));
+            Output.Identifier(method.GetNameForInstanceReference());
 
             var ga = method.GenericArguments;
             if (ga != null) {
@@ -1242,7 +1242,7 @@ namespace JSIL {
             try {
                 if (isOverloaded) {
 
-                    var methodName = Util.EscapeIdentifier(method.GetName(true), EscapingMode.MemberIdentifier);
+                    var methodName = Util.EscapeIdentifier(jsm.GetNameForInstanceReference(), EscapingMode.MemberIdentifier);
 
                     Output.MethodSignature(jsm.Reference, method.Signature, ReferenceContext);
                     Output.Dot();
