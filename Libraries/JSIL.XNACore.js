@@ -55,22 +55,38 @@ $jsilxna.testedWebGL = false;
 $jsilxna.workingWebGL = false;
 $jsilxna.get2DContext = function (canvas, enableWebGL) {
   var hasWebGL = typeof (WebGL2D) !== "undefined";
+  var extraMessage = "";
 
   if (hasWebGL && enableWebGL) {
     if (!$jsilxna.testedWebGL) {
-      var testCanvas = document.createElement("canvas");
-      WebGL2D.enable(testCanvas);
-      var testContext = testCanvas.getContext("webgl-2d");
+      try {
+        var testCanvas = document.createElement("canvas");
+        WebGL2D.enable(testCanvas);
+        var testContext = testCanvas.getContext("webgl-2d");
 
-      $jsilxna.workingWebGL = (testContext != null) && (testContext.isWebGL);
+        $jsilxna.workingWebGL = (testContext != null) && (testContext.isWebGL);
+      } catch (exc) {
+        extraMessage = String(exc);
+        $jsilxna.workingWebGL = false;
+      }
+
       $jsilxna.testedWebGL = true;
+    }
+
+    // WebGL is broken in Firefox 14.0a1/a2
+    if (
+      (window.navigator.userAgent.indexOf("Firefox/14.0a1") >= 0) ||
+      (window.navigator.userAgent.indexOf("Firefox/14.0a2") >= 0)
+    ) {
+      $jsilxna.workingWebGL = false;
+      extraMessage = "Firefox 14.0 alpha has broken WebGL support.";
     }
 
     if ($jsilxna.workingWebGL) {
       WebGL2D.enable(canvas);
       return canvas.getContext("webgl-2d");
     } else {
-      var msg = "WARNING: WebGL not available or broken. Using HTML5 canvas instead.";
+      var msg = "WARNING: WebGL not available or broken. Using HTML5 canvas instead. " + extraMessage;
       if ((typeof (console) !== undefined) && (typeof (console.error) === "function")) {
         console.error(msg);
       }
