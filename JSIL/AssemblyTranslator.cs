@@ -1312,7 +1312,7 @@ namespace JSIL {
         }
 
         protected static bool NeedsStaticConstructor (TypeReference type) {
-            if (EmulateStructAssignment.IsStruct(type))
+            if (TypeUtil.IsStruct(type))
                 return true;
             else if (type.MetadataType != MetadataType.ValueType)
                 return false;
@@ -1361,7 +1361,7 @@ namespace JSIL {
                 bool forCctor = false;
                 if (field.IsStatic && NeedsStaticConstructor(field.FieldType))
                     forCctor = true;
-                else if (EmulateStructAssignment.IsStruct(field.FieldType))
+                else if (TypeUtil.IsStruct(field.FieldType))
                     forCctor = true;
 
                 JSExpression defaultValue;

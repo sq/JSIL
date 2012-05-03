@@ -164,7 +164,7 @@ namespace JSIL.Transforms {
                 leftVar.IsThis
             ) {
                 var leftType = leftVar.GetActualType(TypeSystem);
-                if (!EmulateStructAssignment.IsStruct(leftType)) {
+                if (!TypeUtil.IsStruct(leftType)) {
                     ParentNode.ReplaceChild(boe, new JSUntranslatableExpression(boe));
 
                     return;

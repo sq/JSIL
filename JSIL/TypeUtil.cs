@@ -22,6 +22,23 @@ namespace JSIL {
             return String.Join("_", result);
         }
 
+        public static bool IsStruct (TypeReference type) {
+            if (type == null)
+                return false;
+
+            type = DereferenceType(type);
+            MetadataType etype = type.MetadataType;
+
+            if (IsEnum(type))
+                return false;
+
+            var git = type as GenericInstanceType;
+            if (git != null)
+                return git.IsValueType;
+
+            return (etype == MetadataType.ValueType);
+        }
+
         public static bool IsNumeric (TypeReference type) {
             type = DereferenceType(type);
 

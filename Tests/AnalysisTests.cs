@@ -186,5 +186,18 @@ namespace JSIL.Tests {
                 @"MemberwiseClone\(\)\)\).MemberwiseClone\(\)"
             ));
         }
+
+        [Test]
+        public void StructTemporaries () {
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\StructTemporaries.cs",
+                "a = 1",
+                "a = 1"
+            );
+
+            Console.WriteLine(generatedJs);
+            Assert.IsTrue(generatedJs.Contains("a.Value"));
+            Assert.IsTrue(generatedJs.Contains("b.Value"));
+        }
     }
 }

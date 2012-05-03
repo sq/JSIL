@@ -33,33 +33,35 @@ namespace JSIL.Transforms {
             var result = State;
             State = null;
 
-            var bg = new StaticAnalysis.BarrierGenerator(TypeSystem, function);
-            bg.Generate();
+            if (false) {
+                var bg = new StaticAnalysis.BarrierGenerator(TypeSystem, function);
+                bg.Generate();
 
-            var targetFolder = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "Barriers"
-            );
-            Directory.CreateDirectory(targetFolder);
+                var targetFolder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "Barriers"
+                );
+                Directory.CreateDirectory(targetFolder);
 
-            var typeName = function.Method.QualifiedIdentifier.Type.ToString();
-            var methodName = function.Method.Method.Name;
+                var typeName = function.Method.QualifiedIdentifier.Type.ToString();
+                var methodName = function.Method.Method.Name;
 
-            if (typeName.Length >= 96)
-                typeName = typeName.Substring(0, 93) + "…";
+                if (typeName.Length >= 96)
+                    typeName = typeName.Substring(0, 93) + "…";
 
-            if (methodName.Length >= 32)
-                methodName = methodName.Substring(0, 29) + "…";
+                if (methodName.Length >= 32)
+                    methodName = methodName.Substring(0, 29) + "…";
 
-            var filename = String.Format("{0}.{1}", typeName, methodName);
+                var filename = String.Format("{0}.{1}", typeName, methodName);
 
-            filename = filename.Replace("<", "").Replace(">", "").Replace("/", "");
+                filename = filename.Replace("<", "").Replace(">", "").Replace("/", "");
 
-            var targetFile = Path.Combine(
-                targetFolder,
-                String.Format("{0}.xml", filename)
-            );
+                var targetFile = Path.Combine(
+                    targetFolder,
+                    String.Format("{0}.xml", filename)
+                );
 
-            bg.SaveXML(targetFile);
+                bg.SaveXML(targetFile);
+            }
 
             return result;
         }

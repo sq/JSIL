@@ -27,23 +27,6 @@ namespace JSIL.Transforms {
             OptimizeCopies = optimizeCopies;
         }
 
-        public static bool IsStruct (TypeReference type) {
-            if (type == null)
-                return false;
-
-            type = TypeUtil.DereferenceType(type);
-            MetadataType etype = type.MetadataType;
-
-            if (TypeUtil.IsEnum(type))
-                return false;
-
-            var git = type as GenericInstanceType;
-            if (git != null)
-                return git.IsValueType;
-
-            return (etype == MetadataType.ValueType);
-        }
-
         protected bool IsCopyNeeded (JSExpression value) {
             if ((value == null) || (value.IsNull))
                 return false;
@@ -53,7 +36,7 @@ namespace JSIL.Transforms {
 
             var valueType = value.GetActualType(TypeSystem);
 
-            if (!IsStruct(valueType))
+            if (!TypeUtil.IsStruct(valueType))
                 return false;
 
             if (valueType.FullName.StartsWith("System.Nullable"))

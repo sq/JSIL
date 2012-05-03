@@ -217,7 +217,7 @@ namespace JSIL {
         }
 
         protected static bool CopyOnReturn (TypeReference type) {
-            return EmulateStructAssignment.IsStruct(type);
+            return TypeUtil.IsStruct(type);
         }
 
         protected JSExpression Translate_UnaryOp (ILExpression node, JSUnaryOperator op) {
@@ -1407,7 +1407,7 @@ namespace JSIL {
             if (!JSReferenceExpression.TryDereference(JSIL, reference, out referent))
                 Translator.WarningFormat("Warning: unsupported reference type for ldobj: {0}", node.Arguments[0]);
 
-            if ((referent != null) && EmulateStructAssignment.IsStruct(referent.GetActualType(TypeSystem)))
+            if ((referent != null) && TypeUtil.IsStruct(referent.GetActualType(TypeSystem)))
                 return reference;
             else {
                 if (referent != null)
