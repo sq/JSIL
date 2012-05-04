@@ -107,7 +107,7 @@
     <None Include="TestCases\EnumNullableArithmetic.cs" />
     <None Include="TestCases\DynamicComplex.cs" />
     <None Include="TestCases\MultipleGenericInterfaces.cs" />
-    <None Include="TestCases\MultipleGenericInterfaces2.cs" />
+    <None Include="TestCases\HiddenMethodFromGenericClass.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

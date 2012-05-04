@@ -2128,7 +2128,7 @@ namespace JSIL {
             )
                 return false;
 
-            var sameThisReference = TypeUtil.TypesAreEqual(declaringTypeDef, thisReferenceType, false);
+            var sameThisReference = TypeUtil.TypesAreEqual(declaringTypeDef, thisReferenceType, true);
 
             var isInterfaceMethod = (declaringTypeDef != null) && (declaringTypeDef.IsInterface);
 
@@ -2147,10 +2147,14 @@ namespace JSIL {
                 if (sameThisReference && !isSelf)
                     return false;
 
-                var definitionCount = declaringTypeInfo.MethodSignatures.GetDefinitionCountOf(methodInfo);
+                // If the method was defined in a generic class, overloaded dispatch won't be sufficient
+                //  because of generic parameters.
+                if (!declaringTypeDef.IsGenericInstance && !declaringTypeDef.HasGenericParameters) {
+                    var definitionCount = declaringTypeInfo.MethodSignatures.GetDefinitionCountOf(methodInfo);
 
-                if (definitionCount < 2)
-                    return false;
+                    if (definitionCount < 2)
+                        return false;
+                }
 
                 return true;
             }

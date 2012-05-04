@@ -93,6 +93,7 @@ namespace JSIL.Tests {
         public void Generics () {
             RunComparisonTests(
                 new[] { 
+                    @"TestCases\HiddenMethodFromGenericClass.cs",
                     @"TestCases\MultipleGenericInterfaces.cs",
                     @"TestCases\NestedGenericInheritance.cs",
                     @"TestCases\DelegateResultWithConstraints.cs",
