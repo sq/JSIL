@@ -529,8 +529,8 @@ namespace JSIL.Tests {
                     TimeSpan.FromTicks(elapsed[1]).TotalMilliseconds,
                     TimeSpan.FromTicks(elapsed[2]).TotalMilliseconds
                 );
-            } catch {
-                Console.WriteLine("failed");
+            } catch (Exception ex){
+                Console.WriteLine("failed: " + ex.Message + " " + (ex.InnerException == null ? "" : ex.InnerException.Message));
 
                 Console.WriteLine("// {0}", GetTestRunnerLink(OutputPath));
 
