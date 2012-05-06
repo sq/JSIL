@@ -5183,7 +5183,30 @@ JSIL.MakeClass("System.Array", "JSIL.MultidimensionalArray", true, [], function 
       return new JSIL.MultidimensionalArray(type, dimensions, initializer);
     }
   );
+
+
 });
+
+JSIL.ImplementExternals(
+  "System.Array", function ($) {
+
+      $.Method({ Static: true, Public: true }, "Resize",
+        new JSIL.MethodSignature(null, [$jsilcore.TypeRef("JSIL.Reference", [$jsilcore.TypeRef("System.Array", ["!!0"])]), $.Int32], ["T"]),
+        function (type, arr, newSize) {
+            var oldLength = arr.value.length;
+            arr.value.length = newSize;
+
+            var defaultValue = null;
+            if (type.__IsNumeric__)
+                defaultValue = 0;
+
+            for (var i = oldLength; i < newSize; i++) { // initialize the remaining of the array with new values
+                arr.value[i] = defaultValue;
+            }
+        }
+      );
+  }
+);
 
 $jsilcore.CheckDelegateType = function (value) {
   if (value === null)
