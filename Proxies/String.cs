@@ -102,7 +102,7 @@ namespace JSIL.Proxies {
         [JSReplacement("$this == $rhs")]
         [JSIsPure]
         public bool Equals (StringProxy rhs) {
-            throw new InvalidOperationException();
+              throw new InvalidOperationException();
         }
 
         [JSReplacement("$this.toLowerCase()")]
@@ -111,12 +111,26 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
+        [JSReplacement("$this.toLowerCase()")]
+        [JSIsPure]
+        public string ToLowerInvariant()
+        {
+          throw new InvalidOperationException();
+        }
+
         [JSReplacement("$this.toUpperCase()")]
         [JSIsPure]
         public string ToUpper () {
             throw new InvalidOperationException();
         }
 
+        [JSReplacement("$this.toUpperCase()")]
+        [JSIsPure]
+        public string ToUpperInvariant()
+        {
+          throw new InvalidOperationException();
+        }
+      
         [JSReplacement("System.String.StartsWith($this, $text)")]
         [JSIsPure]
         public bool StartsWith (string text) {
@@ -233,5 +247,13 @@ namespace JSIL.Proxies {
         public char[] ToCharArray () {
             throw new InvalidOperationException();
         }
+
+        [JSReplacement("($this.indexOf($p) != -1)")]
+        public bool Contains(string p)
+        {
+          throw new InvalidOperationException();
+        }
+    
+
     }
 }
