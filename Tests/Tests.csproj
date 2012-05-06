@@ -108,6 +108,10 @@
     <None Include="TestCases\DynamicComplex.cs" />
     <None Include="TestCases\MultipleGenericInterfaces.cs" />
     <None Include="TestCases\HiddenMethodFromGenericClass.cs" />
+    <None Include="SimpleTestCases\ArrayLongLength.cs" />
+    <None Include="SimpleTestCases\ArrayResize.cs" />
+    <None Include="SimpleTestCases\StringContains.cs" />
+    <None Include="SimpleTestCases\StringSubstring.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
