@@ -63,12 +63,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.Targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy "$(SolutionDir)bin\*.exe" "$(ProjectDir)Compiler\*.exe"
-copy "$(SolutionDir)bin\*.dll" "$(ProjectDir)Compiler\*.dll"
-copy "$(SolutionDir)bin\*.jsilconfig" "$(ProjectDir)Compiler\*.jsilconfig"
-copy "$(SolutionDir)Libraries\*.js" "$(ProjectDir)Build\Libraries\*.js"
-
-cd "$(ProjectDir)Compiler"
+    <PostBuildEvent>cd "$(ProjectDir)Compiler"
 JSILc.exe "$(TargetPath)" -o="$(ProjectDir)Build\Scripts"</PostBuildEvent>
   </PropertyGroup>
 </Project>

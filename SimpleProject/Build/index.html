@@ -103,7 +103,8 @@
 				 * REQUIRED: Runs application from entry point. Alternatively, You can create any object
 				 * that is responsible for executing content of application and use it.
 				 */
-				$asm01.MyNamespace.Program.Main([]);
+				var asm = JSIL.GetAssembly("SimpleProject, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null");
+				asm.MyNamespace.Program.Main([]);
 			}
 		</script>  
 	</body>
