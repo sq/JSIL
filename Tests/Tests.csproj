@@ -127,6 +127,7 @@
     <None Include="SimpleTestCases\ListConstructor.cs" />
     <None Include="SimpleTestCases\Array2D.cs" />
     <None Include="SimpleTestCases\ListToArray.cs" />
+    <None Include="TestCases\Dictionary.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
