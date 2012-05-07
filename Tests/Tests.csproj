@@ -119,6 +119,12 @@
     <None Include="XMLTestCases\GetItemByName.cs" />
     <None Include="SimpleTestCases\GetTypeOfBoolean.cs" />
     <None Include="SimpleTestCases\Int32CompareExchange.cs" />
+    <None Include="SimpleTestCases\StringSplit.cs" />
+    <None Include="SimpleTestCases\StringIsNullOrEmpty.cs" />
+    <None Include="SimpleTestCases\ListConstructor.cs" />
+    <None Include="SimpleTestCases\StringSplit.cs" />
+    <None Include="SimpleTestCases\StringIsNullOrEmpty.cs" />
+    <None Include="SimpleTestCases\ListConstructor.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
