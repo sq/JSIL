@@ -1,0 +1,31 @@
+﻿Project: 		Simple project for JSIL
+
+Description: 	Minimal JSIL project, configured to run out-of-box (out-of-git?). Each non-obvious line
+				of C#/HTML/JavaScript code is described, however, how/why it works is discovered
+ 				by trail-and-error approach, no guarantees on correctness.
+ 				To use it in Your application, simply compile solution, copy entire folder and add Your own content.
+ 				Feel free to remove this file once You did it.
+ 
+License:		Enjoy without any limitations.
+
+Author: 		Maciej "Expro" Grabowski
+E-mail:			mds.expro@gmail.com | maciejgrabowski@hotmail.com
+
+What-is-what:
+	".\Compiler\" 			- snapshot of JSIL compiler.
+	".\Build\"				- compiled content of your application.
+	".\Build\index.html"	- web page responsible for execution of Your application.
+	".\Build\Scripts\"		- place for compiled assemblies (scripts) of your application,
+							  filed automatically by post-build event.
+	".\Build\Libraries\"	- snapshot of JSIL libraries, place for native JavaScript libraries.
+	".\Build\Files\"		- place for file assets.
+	".\Build\Content\"		- place for XNA content assets.
+
+How-To:
+	1. 	Compile JSIL solution ("Release" build recommended for speed). Post-build event will
+		get fresh snapshot of JSIL compiler and required JavaScript libraries, as well
+		as create fully-functional JSIL web application (wow, big words for "It works!" print on console).
+	2.	Since now, everything you need to work with JSIL is inside "SimpleProject" folder.
+	3.	Create new solution for your application, copy and add "SimpleProject" into it.
+	4.	Remove first 4 lines from post-build event (responsible for snapshot of ILJS).
+	5.	Fill solution with content.

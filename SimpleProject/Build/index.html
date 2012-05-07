@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<!-- REQUIRED: Core modules of JSIL. //-->
+		<script src="./Libraries/JSIL.Core.js" type="text/javascript"></script> 
+		<script src="./Libraries/JSIL.Bootstrap.js" type="text/javascript"></script>
+		
+		<!--
+			REQUIRED: Include application manifest here. Manifest contains information
+			about assemblies referenced by Your application and their JavaScript counterparts.
+		//-->
+		<script src="./Scripts/SimpleProject.exe.manifest.js" type="text/javascript"></script>		
+	</head>
+	
+	<!--
+		REQUIRED: Assigns 'onLoad()' function to global 'onload' event. 'onLoad()' function
+		is JSIL predeclared function. Once document is loaded, JSIL will be intialized automatically.
+		Alternatively, onLoad() function can be executed manually from inside of the body, but it is required
+		to execute it BEFOR any other JSIL functions.
+	//-->
+	<body onload="onLoad()">
+		<!--
+			OPTIONAL: Workaround for Chrome bug. If Chrome is detected, four empty DIV elements
+			are created and attached to body, one for each JSIL asset type, reflected by ID.
+		//-->
+		<script type="text/javascript">
+			if (navigator.userAgent.toLowerCase().indexOf('chrome') > -1)
+			{
+				var scripts = document.createElement("div");
+				scripts.id = "scripts";
+				document.body.appendChild(scripts);
+				
+				var images = document.createElement("div");
+				images.id = "images";
+				document.body.appendChild(images);
+				
+				var sounds = document.createElement("div");
+				sounds.id = "sounds";
+				document.body.appendChild(sounds);
+				
+				var fonts = document.createElement("div");
+				fonts.id = "fonts";
+				document.body.appendChild(fonts);
+			}
+		</script>
+		
+		<!--
+			REQUIRED: Canvas element with ID "canvas" is required by JSIL.Browser.js. Any drawing is performed on this element.
+		//-->
+		<canvas id="canvas"></canvas>
+		
+		<!--
+			OPTIONAL/RECOMMENDED: Element with id "log" is an output for any console text stream (Out/Error). In theory,
+			as long as there is no text to display, everything should work jsut fine, but since JSIL displays all
+			error and info messages here, it is highly recommended to include this element.
+		//-->
+		<div id="log" style="font-family: Consolas, Courier New, monospace"></div>
+		
+		<!--
+			REQUIRED: Core module of JSIL, MUST be included AFTER canvas element. 
+		//-->
+		<script src="./Libraries/JSIL.Browser.js" type="text/javascript"></script>  
+		
+		<script type="text/javascript">
+			/*
+			 *	OPTIONAL: Configures paths to JSIL assets.
+			 *
+			 *	scriptRoot - relative path to scripts (compiled assemblies)
+			 *	libraryRoot - relative path to native JavasScript scripts
+			 *	fileRoot - relative path to file assets
+			 *	contentRoot - relative path to XNA content assets
+			 */
+			var scriptRoot = "./Scripts/";
+			var libraryRoot = "./Libraries/";
+			var fileRoot = "./Files/";
+			var contentRoot = "./Content/";
+		  
+			/*
+			 * REQUIRED: Defines all assets required by Your application. Assets are loaded befor code execution.
+			 * Each asset is pair of strings, describing its type and file name. Declare as empty array if no assets.
+			 *
+			 * Example (from Demos\Mannux.html):
+			 *	var assetsToLoad =
+			 *	[
+			 *		["Library", "System.Drawing.js"],
+			 *		["Library", "JSIL.IO.js"],
+			 *		["File", "Data/Maps/test.map"],
+			 *		["File", "tabby.txt"]
+			 *	];
+			 */
+			var assetsToLoad = [];
+			
+			/*
+			 * REQUIRED: Function executed on start of JSIL application. Name must be equal to "runMain()".
+			 * $asm00 is variable declared in manifest, referencing assembly with entry point.
+			 */
+			function runMain()
+			{
+				/* OPTIONAL: Removes pre-execution log (console) messages. */
+				document.getElementById("log").innerHTML = "";
+				
+				/*
+				 * REQUIRED: Runs application from entry point. Alternatively, You can create any object
+				 * that is responsible for executing content of application and use it.
+				 */
+				$asm01.MyNamespace.Program.Main([]);
+			}
+		</script>  
+	</body>
+</html>
