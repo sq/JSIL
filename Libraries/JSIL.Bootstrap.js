@@ -1211,6 +1211,24 @@ $jsilcore.$ListExternals = function ($, T, type) {
 
 JSIL.ImplementExternals("System.Collections.Generic.List`1", function ($) {
   $jsilcore.$ListExternals($, null, "List");
+
+  $.Method({ Static: false, Public: true }, "CopyTo",
+    new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")]), $.Int32], []),
+    function (array, arrayindex) {
+      if (arrayindex != 0) {
+          throw new Error("List<T>.CopyTo not supported for non-zero indexes");
+      }
+      JSIL.Array.ShallowCopy(array, this);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ICollection$b1_get_IsReadOnly",
+    new JSIL.MethodSignature($.Boolean, [], []),
+    function () {
+      return false;
+    }
+  );
+
 });
 
 $jsilcore.$ArrayListExternals = function ($) {
@@ -1474,10 +1492,12 @@ JSIL.MakeClass("System.Object", "System.Collections.ArrayList", true, [], functi
 
 JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"], function ($) {
   $.Property({Public: true , Static: false}, "Count");
+  $.Property({Public: false, Static: false}, "ICollection`1.IsReadOnly");
 
   $.ImplementInterfaces(
     $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")]),
-    "System.Collections.IEnumerable"
+    "System.Collections.IEnumerable",
+    $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")])
   );
 });
 

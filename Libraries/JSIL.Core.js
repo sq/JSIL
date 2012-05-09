@@ -4927,6 +4927,23 @@ JSIL.MakeInterface("System.Collections.Generic.IEnumerable`1", true, ["T"], {
   "GetEnumerator": Function
 }, ["System.Collections.IEnumerable"]);
 
+JSIL.MakeInterface(
+  "System.Collections.Generic.ICollection`1", true, ["T"], {
+      "get_Count": Function,
+      "get_IsReadOnly": Function,
+      "Add": Function,
+      "Clear": Function,
+      "Contains": Function,
+      "CopyTo": Function,
+      "Remove": Function,
+      "Count": Property,
+      "IsReadOnly": Property
+  },  
+  [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")]),
+  $jsilcore.TypeRef("System.Collections.IEnumerable")]
+  );
+
+
 JSIL.ImplementExternals("System.Array", function ($) {
   $.RawMethod(true, "CheckType", JSIL.IsArray);
 
