@@ -1222,6 +1222,14 @@ JSIL.ImplementExternals("System.Collections.Generic.List`1", function ($) {
     }
   );
 
+  $.Method({ Static:false, Public:true }, "Insert", 
+   new JSIL.MethodSignature(null, [$.Int32, new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")], []),
+   function (index, item) { 
+     this._items.splice(index, 0, item);
+     this._size += 1;
+   }
+  );
+
   $.Method({Static:false, Public:true }, "ICollection$b1_get_IsReadOnly",
     new JSIL.MethodSignature($.Boolean, [], []),
     function () {
