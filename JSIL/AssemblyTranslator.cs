@@ -628,26 +628,44 @@ namespace JSIL {
                 (from p in iface.GenericParameters select p.Name), null, ListValueType.Primitive
             );
             output.CloseBracket();
-            output.Comma();
 
-            output.OpenBrace();
+            output.Comma();
+            output.OpenFunction(null, (f) =>
+            {
+                f.Identifier("$");
+            });
+
+            var refContext = new TypeReferenceContext {
+                EnclosingType = iface,
+                DefiningType = iface
+            };
 
             bool isFirst = true;
-            foreach (var m in iface.Methods) {
-                var methodInfo = _TypeInfoProvider.GetMethod(m);
-                if ((methodInfo != null) && methodInfo.IsIgnored)
-                    continue;
+            foreach (var methodGroup in iface.Methods.GroupBy(md => md.Name)) {
+                foreach (var m in methodGroup) {
+                    var methodInfo = _TypeInfoProvider.GetMethod(m);
+                    if ((methodInfo != null) && methodInfo.IsIgnored)
+                        continue;
 
-                if (!isFirst) {
+                    output.Identifier("$", null);
+                    output.Dot();
+                    output.Identifier("Method", null);
+                    output.LPar();
+
+                    output.WriteRaw("null");
                     output.Comma();
-                    output.NewLine();
+
+                    output.Value(Util.EscapeIdentifier(m.Name, EscapingMode.String));
+                    output.Comma();
+
+                    output.MethodSignature(m, methodInfo.Signature, refContext);
+                    output.Comma();
+
+                    output.WriteRaw("null");
+
+                    output.RPar();
+                    output.Semicolon(true);
                 }
-
-                output.Value(Util.EscapeIdentifier(m.Name));
-                output.WriteRaw(": ");
-                output.Identifier("Function");
-
-                isFirst = false;
             }
 
             foreach (var p in iface.Properties) {
@@ -655,29 +673,30 @@ namespace JSIL {
                 if ((propertyInfo != null) && propertyInfo.IsIgnored)
                     continue;
 
-                if (!isFirst) {
-                    output.Comma();
-                    output.NewLine();
-                }
+                output.Identifier("$", null);
+                output.Dot();
+                output.Identifier("Property", null);
+                output.LPar();
 
-                output.Value(Util.EscapeIdentifier(p.Name));
-                output.WriteRaw(": ");
-                output.Identifier("Property");
+                output.WriteRaw("null");
+                output.Comma();
 
-                isFirst = false;
+                output.Value(Util.EscapeIdentifier(p.Name, EscapingMode.String));
+
+                output.RPar();
+                output.Semicolon(true);
             }
 
-            output.NewLine();
             output.CloseBrace(false);
+
             output.Comma();
 
-            var refContext = new TypeReferenceContext {
+            refContext = new TypeReferenceContext {
                 EnclosingType = iface.DeclaringType,
                 DefiningType = iface
             };
 
             output.OpenBracket();
-            isFirst = true;
             foreach (var i in iface.Interfaces) {
                 if (!isFirst) {
                     output.Comma();
