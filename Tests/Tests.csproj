@@ -132,6 +132,7 @@
     <None Include="SimpleTestCases\ListContains.cs" />
     <None Include="SimpleTestCases\ListIndexOf.cs" />
     <None Include="SimpleTestCases\ListInsert.cs" />
+    <None Include="TestCases\EnumAnonymousMethod.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

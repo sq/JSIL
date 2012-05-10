@@ -228,7 +228,8 @@ namespace JSIL.Tests {
                     @"TestCases\EnumIfStatement.cs",
                     @"TestCases\CastEnumNullableToInt.cs",
                     @"TestCases\EnumCheckType.cs",
-                    @"TestCases\EnumNullableArithmetic.cs"
+                    @"TestCases\EnumNullableArithmetic.cs",
+                    @"TestCases\EnumAnonymousMethod.cs",
                 }, null, defaultProvider
             );
         }
