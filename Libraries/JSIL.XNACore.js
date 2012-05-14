@@ -484,6 +484,13 @@ JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true, [], function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "CreateInstance",
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Audio.SoundEffectInstance"), [], [])),
+    function CreateInstance () {
+      throw new Error("CreateInstance not implemented");
+    }
+  );
+
 });
 
 JSIL.MakeClass("HTML5Asset", "WebkitSoundAsset", true, [], function ($) {
@@ -548,6 +555,13 @@ JSIL.MakeClass("HTML5Asset", "WebkitSoundAsset", true, [], function ($) {
       instance.play();
 
       return true;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "CreateInstance",
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Audio.SoundEffectInstance"), [], [])),
+    function CreateInstance () {
+      throw new Error("CreateInstance not implemented");
     }
   );
 });
@@ -4830,6 +4844,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
       "$internalCtor", [this]
     );
 
+    this.displayMode = new $jsilxna.CurrentDisplayMode();
+
     this.$UpdateBlendState();
     this.$UpdateViewport();
   });
@@ -4854,6 +4870,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
     (new JSIL.MethodSignature($asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.BlendState"), [], [])), 
     function get_BlendState () {
       return this.blendState;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_DisplayMode", 
+    (new JSIL.MethodSignature($asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.DisplayMode"), [], [])), 
+    function get_DisplayMode () {
+      return this.displayMode;
     }
   );
 
@@ -6191,6 +6214,51 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsResource", fun
     (new JSIL.MethodSignature($asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), [], [])), 
     function get_GraphicsDevice () {
       return this.device;
+    }
+  );
+});
+
+JSIL.MakeClass("Microsoft.Xna.Framework.Graphics.DisplayMode", "CurrentDisplayMode", true, [], function ($) {
+  $.Method({Static:false, Public:true}, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_AspectRatio", 
+    (new JSIL.MethodSignature($.Single, [], [])), 
+    function get_AspectRatio () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Format", 
+    (new JSIL.MethodSignature($asms[3].TypeRef("Microsoft.Xna.Framework.Graphics.SurfaceFormat"), [], [])), 
+    function get_Format () {
+      return Microsoft.Xna.Framework.Graphics.SurfaceFormat.Color;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Height", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Height () {
+      var body = document.getElementsByTagName("body")[0];
+      return body.clientHeight;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_TitleSafeArea", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Rectangle"), [], [])), 
+    function get_TitleSafeArea () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Width", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_Width () {
+      var body = document.getElementsByTagName("body")[0];
+      return body.clientWidth;
     }
   );
 });

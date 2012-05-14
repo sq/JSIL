@@ -982,6 +982,8 @@ function quitGame () {
 var canGoFullscreen = false;
 
 function onLoad () {
+  registerErrorHandler();
+
   var log = document.getElementById("log");
   var loadButton = document.getElementById("loadButton");
   var quitButton = document.getElementById("quitButton");
@@ -1056,3 +1058,17 @@ function onLoad () {
     beginLoading();
   }
 }
+
+function registerErrorHandler () {
+  var oldErrorHandler = window.onerror;
+  
+  window.onerror = function JSIL_OnUnhandledException (errorMsg, url, lineNumber) {
+    JSIL.Host.logWriteLine("Unhandled exception at " + url + " line " + lineNumber + ":");
+    JSIL.Host.logWriteLine(errorMsg);
+
+    if (typeof (oldErrorHandler) === "function")
+      return oldErrorHandler(errorMsg, url, lineNumber);
+    else
+      return false;
+  };
+};
