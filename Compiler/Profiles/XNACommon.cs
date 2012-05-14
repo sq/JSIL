@@ -330,7 +330,7 @@ public static class Common {
     }
 
     public static CompressResult? CompressImage (string imageName, string sourceFolder, string outputFolder, Dictionary<string, object> settings, CompressResult? oldResult) {
-        const int CompressVersion = 2;
+        const int CompressVersion = 3;
 
         EnsureDirectoryExists(outputFolder);
 
@@ -473,10 +473,12 @@ public static class Common {
                 out stderr, out result
             );
 
-            if (!String.IsNullOrWhiteSpace(stderr))
-                Console.Error.WriteLine("// Error output from PNGQuant: {0}", stderr);
-
-            File.WriteAllBytes(outputPath, result);
+            if (!String.IsNullOrWhiteSpace(stderr)) {
+                Console.Error.WriteLine("// PNGquant failed with error output: {0}", stderr);
+                Console.Error.WriteLine("// Using uncompressed PNG.");
+            } else {
+                File.WriteAllBytes(outputPath, result);
+            }
         }
 
         return MakeCompressResult(CompressVersion, null, outputPath, sourcePath, sourceInfo);
