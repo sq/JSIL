@@ -12,16 +12,42 @@ using Microsoft.Build.Logging;
 
 namespace JSIL.Compiler {
     public static class SolutionBuilder {
+        public class BuiltItem {
+            public readonly string OutputPath;
+            public readonly Dictionary<string, string> Metadata = new Dictionary<string, string>();
+
+            internal BuiltItem (ITaskItem item) {
+                OutputPath = item.ItemSpec;
+
+                foreach (var name in item.MetadataNames)
+                    Metadata.Add((string)name, item.GetMetadata((string)name));
+            }
+
+            public override string ToString() {
+                return String.Format("{0} ({1} metadata)", OutputPath, Metadata.Count);
+            }
+        }
+
         public class SolutionBuildResult {
             public readonly string[] OutputFiles;
             public readonly BuiltProject[] ProjectsBuilt;
             public readonly string[] TargetFilesUsed;
+            public readonly BuiltItem[] AllItemsBuilt;
 
-            public SolutionBuildResult (string[] outputFiles, BuiltProject[] projectsBuilt, string[] targetFiles) {
+            public SolutionBuildResult (string[] outputFiles, BuiltProject[] projectsBuilt, string[] targetFiles, BuiltItem[] allItemsBuilt) {
                 OutputFiles = outputFiles;
                 ProjectsBuilt = projectsBuilt;
                 TargetFilesUsed = targetFiles;
+                AllItemsBuilt = allItemsBuilt;
             }
+        }
+
+        private static object GetField (object target, string fieldName, BindingFlags fieldFlags) {
+            return target.GetType().GetField(fieldName, fieldFlags).GetValue(target);        
+        }
+
+        private static void SetField (object target, string fieldName, BindingFlags fieldFlags, object value) {
+            target.GetType().GetField(fieldName, fieldFlags).SetValue(target, value);            
         }
 
         // The only way to actually specify a solution configuration/platform is by messing around with internal/private types!
@@ -46,10 +72,10 @@ namespace JSIL.Compiler {
                 BindingFlags.Public;
 
             Func<object, string, object> getField = (target, fieldName) =>
-                target.GetType().GetField(fieldName, fieldFlags).GetValue(target);
+                GetField(target, fieldName, fieldFlags);
 
             Action<object, string, object> setField = (target, fieldName, value) =>
-                target.GetType().GetField(fieldName, fieldFlags).SetValue(target, value);
+                SetField(target, fieldName, fieldFlags, value);
 
             // Point the solution parser instance to the solution file.
             setField(solutionParser, "solutionFile", solutionFile);
@@ -137,6 +163,7 @@ namespace JSIL.Compiler {
                 Console.Error.WriteLine("// WARNING: Your solution file contains project dependencies. MSBuild ignores these, so your build may fail. If it does, try building it in Visual Studio first to resolve the dependencies.");
             }
 
+            var allItemsBuilt = new List<BuiltItem>();
             var resultFiles = new HashSet<string>();
             foreach (var project in projects) {
 
@@ -162,6 +189,8 @@ namespace JSIL.Compiler {
                     continue;
                 }
 
+                allItemsBuilt.AddRange(ExtractChildProjectResults(manager));
+
                 foreach (var kvp in result.ResultsByTarget) {
                     var targetResult = kvp.Value;
 
@@ -182,8 +211,30 @@ namespace JSIL.Compiler {
             return new SolutionBuildResult(
                 resultFiles.ToArray(),
                 eventRecorder.ProjectsById.Values.ToArray(),
-                eventRecorder.TargetFiles.ToArray()
+                eventRecorder.TargetFiles.ToArray(),
+                allItemsBuilt.ToArray()
             );
+        }
+        
+        // Enumerate all the projects the BuildManager built while building the projects we asked it to build.
+        // This will allow us to identify any secondary outputs (like XNB files).
+        private static BuiltItem[] ExtractChildProjectResults (BuildManager manager) {
+            var resultsCache = GetField(manager, "resultsCache", BindingFlags.Instance | BindingFlags.NonPublic);
+            var tResultsCache = resultsCache.GetType();
+
+            var pResultsDictionary = tResultsCache.GetProperty("ResultsDictionary", BindingFlags.NonPublic | BindingFlags.Instance);
+            var oResultsDictionary = pResultsDictionary.GetValue(resultsCache, null);
+
+            var resultsDictionary = (Dictionary<int, BuildResult>) oResultsDictionary;
+
+            return resultsDictionary.Values.SelectMany(
+                (result) =>
+                result.ResultsByTarget.SelectMany(
+                    (kvp) => kvp.Value.Items
+                )
+            ).Select(
+                (taskItem) => new BuiltItem(taskItem)
+            ).ToArray();
         }
     }
 

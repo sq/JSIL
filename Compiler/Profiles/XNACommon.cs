@@ -584,6 +584,11 @@ public static class Common {
             (project) => project.File.EndsWith(".contentproj")
             ).ToArray();
 
+        var builtXNBs =
+            (from bi in buildResult.AllItemsBuilt
+             where bi.OutputPath.EndsWith(".xnb", StringComparison.OrdinalIgnoreCase)
+             select bi).Distinct().ToArray();
+
         var forceCopyImporters = new HashSet<string>(
             ((IEnumerable)configuration.ProfileSettings["ForceCopyXNBImporters"]).Cast<string>()
         );
@@ -629,13 +634,32 @@ public static class Common {
                 (p) => p.Name
                 );
 
-            Project parentProject = null;
-            Dictionary<string, ProjectProperty> parentProjectProperties = null;
+            Project parentProject = null, rootProject = null;
+            Dictionary<string, ProjectProperty> parentProjectProperties = null, rootProjectProperties = null;
+
             if (builtContentProject.Parent != null) {
                 parentProject = projectCollection.LoadProject(builtContentProject.Parent.File);
                 parentProjectProperties = parentProject.Properties.ToDictionary(
                     (p) => p.Name
                     );
+            }
+
+            {
+                var parent = builtContentProject.Parent;
+
+                while (parent != null) {
+                    var nextParent = parent.Parent;
+                    if (nextParent != null) {
+                        parent = nextParent;
+                        continue;
+                    }
+
+                    rootProject = projectCollection.LoadProject(parent.File);
+                    rootProjectProperties = rootProject.Properties.ToDictionary(
+                        (p) => p.Name
+                        );
+                    break;
+                }                
             }
 
             var contentProjectDirectory = Path.GetDirectoryName(contentProjectPath);
@@ -760,17 +784,20 @@ public static class Common {
                 else
                     existingJournalEntry = null;
 
-                if (parentProjectProperties != null) {
-                    xnbPath = Path.Combine(
-                        Path.Combine(
-                            Path.Combine(
-                                Path.GetDirectoryName(builtContentProject.Parent.File),
-                                parentProjectProperties["OutputPath"].EvaluatedValue
-                            ),
-                            "Content"
-                        ),
-                        item.EvaluatedInclude.Replace(Path.GetExtension(item.EvaluatedInclude), ".xnb")
-                    );
+                var evaluatedXnbPath = item.EvaluatedInclude.Replace(Path.GetExtension(item.EvaluatedInclude), ".xnb");
+                var matchingBuiltPaths = (from bi in builtXNBs where 
+                                              bi.OutputPath.Contains(":\\") && 
+                                              bi.OutputPath.EndsWith(evaluatedXnbPath)
+                                              select bi.Metadata["FullPath"]).Distinct().ToArray();
+
+                if (matchingBuiltPaths.Length == 0) {
+                    throw new FileNotFoundException("Asset " + evaluatedXnbPath + " was not built.");
+                } else if (matchingBuiltPaths.Length > 1) {
+                    throw new AmbiguousMatchException("Found multiple outputs for asset " + evaluatedXnbPath);
+                } else {
+                    xnbPath = matchingBuiltPaths[0];
+                    if (!File.Exists(xnbPath))
+                        throw new FileNotFoundException("Asset " + xnbPath + " not found.");
                 }
 
                 if (GetFileSettings(configuration.ProfileSettings, item.EvaluatedInclude).Contains("usexnb")) {
