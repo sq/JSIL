@@ -198,6 +198,50 @@ JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializationReader", funct
     }
   );
 
+  $.Method({Static:false, Public:false}, "ReadSerializable", 
+    (new JSIL.MethodSignature($xmlasms[16].TypeRef("System.Xml.Serialization.IXmlSerializable"), [$xmlasms[16].TypeRef("System.Xml.Serialization.IXmlSerializable")], [])), 
+    function ReadSerializable (serializable) {
+      return this.ReadSerializable(serializable, false);
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "ReadSerializable", 
+    (new JSIL.MethodSignature($xmlasms[16].TypeRef("System.Xml.Serialization.IXmlSerializable"), [$xmlasms[16].TypeRef("System.Xml.Serialization.IXmlSerializable"), $.Boolean], [])), 
+    function ReadSerializable (serializable, wrappedAny) {
+      var localName, namespace;
+
+      if (wrappedAny) {
+        localName = this.r.LocalName;
+        namespace = this.r.NamespaceURI;
+        this.r.Read();
+        this.r.MoveToContent();
+      }
+
+      serializable.ReadXml(this.r);
+
+      if (wrappedAny) {
+        var ntNone = System.Xml.XmlNodeType.None;
+        var ntWhitespace = System.Xml.XmlNodeType.Whitespace;
+        var ntEndElement = System.Xml.XmlNodeType.EndElement;
+
+        while (this.r.NodeType === ntWhitespace)
+          this.r.Skip();
+
+        if (this.r.NodeType === ntNone)
+          this.r.Skip();
+
+        if (
+          this.r.NodeType === ntEndElement && 
+          this.r.LocalName === localName && 
+          this.r.NamespaceURI === namespace
+        )
+          this.Reader.Read();
+      }
+
+      return serializable;
+    }
+  );
+
 });
 
 JSIL.ImplementExternals("System.Xml.XmlQualifiedName", function ($) {
@@ -689,31 +733,52 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
     }
   );
 
+  var getAttributeByName = function GetAttribute (name) {
+    if (this._current.hasAttribute(name))
+      return this._current.getAttribute(name);
+
+    return null;
+  };
+
+  var getAttributeByNameNS = function GetAttribute (name, namespaceURI) {
+    if (this._current.hasAttributeNS(namespaceURI, name))
+      return this._current.getAttributeNS(namespaceURI, name);
+
+    return null;
+  };
+
+  var getAttributeByIndex = function GetAttribute (i) {      
+    return this._current.attributes[i].value;
+  };
+
   $.Method({Static:false, Public:true }, "GetAttribute", 
     (new JSIL.MethodSignature($.String, [$.String], [])), 
-    function GetAttribute (name) {
-      if (this._current.hasAttribute(name))
-        return this._current.getAttribute(name);
-
-      return null;
-    }
+    getAttributeByName
   );
 
   $.Method({Static:false, Public:true }, "GetAttribute", 
     (new JSIL.MethodSignature($.String, [$.String, $.String], [])), 
-    function GetAttribute (name, namespaceURI) {
-      if (this._current.hasAttributeNS(namespaceURI, name))
-        return this._current.getAttributeNS(namespaceURI, name);
-
-      return null;
-    }
+    getAttributeByNameNS
   );
 
   $.Method({Static:false, Public:true }, "GetAttribute", 
     (new JSIL.MethodSignature($.String, [$.Int32], [])), 
-    function GetAttribute (i) {      
-      return this._current.attributes[i].value;
-    }
+    getAttributeByIndex
+  );
+
+  $.Method({Static:false, Public:true }, "get_Item", 
+    (new JSIL.MethodSignature($.String, [$.Int32], [])), 
+    getAttributeByIndex
+  );
+
+  $.Method({Static:false, Public:true }, "get_Item", 
+    (new JSIL.MethodSignature($.String, [$.String], [])), 
+    getAttributeByName
+  );
+
+  $.Method({Static:false, Public:true }, "get_Item", 
+    (new JSIL.MethodSignature($.String, [$.String, $.String], [])), 
+    getAttributeByNameNS
   );
 
 });

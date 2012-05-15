@@ -47,14 +47,24 @@ JSIL.Host.translateFilename = function (filename) {
 
   var root = JSIL.Host.getRootDirectory().toLowerCase().replace(slashRe, "/");
   var _fileRoot = fileRoot.toLowerCase().replace(slashRe, "/");
-  var _filename = filename.toLowerCase().replace(slashRe, "/");
+  var _filename = filename.replace(slashRe, "/").toLowerCase();
+  
+  while (_filename[0] === "/")
+    _filename = _filename.substr(1);
 
-  filename = _filename.replace(root, "").replace(_fileRoot, "");
+  if (_filename.indexOf(root) === 0)
+    _filename = _filename.substr(root.length);
   
-  while (filename[0] === "/")
-    filename = filename.substr(1);
+  while (_filename[0] === "/")
+    _filename = _filename.substr(1);
+
+  if (_filename.indexOf(_fileRoot) === 0)
+    _filename = _filename.substr(_fileRoot.length);
   
-  return filename;
+  while (_filename[0] === "/")
+    _filename = _filename.substr(1);
+  
+  return _filename;
 }
 JSIL.Host.doesFileExist = function (filename) {
   return allFiles.hasOwnProperty(JSIL.Host.translateFilename(filename));

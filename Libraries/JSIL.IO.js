@@ -14,6 +14,13 @@ JSIL.ImplementExternals("System.IO.File", function ($) {
     }
   );
 
+  $.Method({Static:true , Public:true }, "OpenRead", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.FileStream"), [$.String], [])), 
+    function OpenRead (path) {
+      return new System.IO.FileStream(path, System.IO.FileMode.Open);
+    }
+  );
+
   $.Method({Static:true , Public:true }, "ReadAllText", 
     new JSIL.MethodSignature($.String, [$.String], []),
     function (filename) {
@@ -25,7 +32,7 @@ JSIL.ImplementExternals("System.IO.File", function ($) {
 
 JSIL.ImplementExternals("System.IO.Path", function ($) {
   var combineImpl = function () {
-    return Array.prototype.slice.call(arguments).join("/");
+    return Array.prototype.slice.call(arguments).join("\\");
   };
 
   $.Method({Static:true , Public:true }, "Combine", 
@@ -55,6 +62,18 @@ JSIL.ImplementExternals("System.IO.Path", function ($) {
       var index = path.lastIndexOf(".");
       if (index >= 0) {
         return path.substr(index + 1);
+      }
+
+      return "";
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "GetDirectoryName", 
+    (new JSIL.MethodSignature($.String, [$.String], [])), 
+    function GetDirectoryName (path) {
+      var index = path.lastIndexOf("\\");
+      if (index >= 0) {
+        return path.substr(0, index);
       }
 
       return "";

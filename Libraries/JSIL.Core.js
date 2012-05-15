@@ -98,6 +98,8 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
     assemblyId = ++JSIL.$NextAssemblyId;
   }
 
+  JSIL.SetValueProperty(result, "Location", "");
+
   JSIL.SetValueProperty(result, "__AssemblyId__", assemblyId, false);
 
   JSIL.SetValueProperty(result, "TypeRef", 

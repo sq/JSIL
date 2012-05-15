@@ -445,6 +445,15 @@ JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true, [], function ($) {
       node.pause();
     };
 
+    Object.defineProperty(result, "volume", {
+      get: function () {
+        return node.volume;
+      },
+      set: function (value) {
+        node.volume = value;
+      }
+    });
+
     if (loopCount > 0) {
       var state = [loopCount];
 
@@ -487,7 +496,7 @@ JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true, [], function ($) {
   $.Method({Static:false, Public:true }, "CreateInstance",
     (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Audio.SoundEffectInstance"), [], [])),
     function CreateInstance () {
-      throw new Error("CreateInstance not implemented");
+      return new Microsoft.Xna.Framework.Audio.SoundEffectInstance(this, false);
     }
   );
 
@@ -505,9 +514,12 @@ JSIL.MakeClass("HTML5Asset", "WebkitSoundAsset", true, [], function ($) {
 
   $.RawMethod(false, "$createInstance", function (loopCount) {
     var instance = this.audioContext.createBufferSource();
+    var gainNode = this.audioContext.createGainNode();
+
     instance.buffer = this.buffer;
     instance.loop = loopCount > 0;
-    instance.connect(this.audioContext.destination);
+    instance.connect(gainNode);
+    gainNode.connect(this.audioContext.destination);
 
     var context = this.audioContext;
 
@@ -531,6 +543,15 @@ JSIL.MakeClass("HTML5Asset", "WebkitSoundAsset", true, [], function ($) {
       result.started = null;
       instance.noteOff(0);
     };
+
+    Object.defineProperty(result, "volume", {
+      get: function () {
+        return gainNode.gain.value;
+      },
+      set: function (value) {
+        gainNode.gain.value = value;
+      }
+    });
 
     Object.defineProperty(result, "isPlaying", {
       configurable: true,
@@ -561,7 +582,7 @@ JSIL.MakeClass("HTML5Asset", "WebkitSoundAsset", true, [], function ($) {
   $.Method({Static:false, Public:true }, "CreateInstance",
     (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Audio.SoundEffectInstance"), [], [])),
     function CreateInstance () {
-      throw new Error("CreateInstance not implemented");
+      return new Microsoft.Xna.Framework.Audio.SoundEffectInstance(this, false);
     }
   );
 });
@@ -6259,6 +6280,150 @@ JSIL.MakeClass("Microsoft.Xna.Framework.Graphics.DisplayMode", "CurrentDisplayMo
     function get_Width () {
       var body = document.getElementsByTagName("body")[0];
       return body.clientWidth;
+    }
+  );
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.SoundEffectInstance", function ($) {
+
+  $.Method({Static:false, Public:false}, ".ctor", 
+    (new JSIL.MethodSignature(null, [$asms[0].TypeRef("Microsoft.Xna.Framework.Audio.SoundEffect"), $.Boolean], [])), 
+    function _ctor (parentEffect, fireAndForget) {
+      this.soundEffect = parentEffect;
+      this.isFireAndForget = fireAndForget;
+      this.isDisposed = false;
+      this.looped = false;
+      this.instance = null;
+      this.volume = 1;
+    }
+  );
+
+  $.RawMethod(false, "$CreateInstanceIfNeeded", function () {
+    if (this.instance === null)
+      this.instance = this.soundEffect.$createInstance(this.looped ? 9999 : 0);
+    else
+      this.instance.loop = this.looped;
+
+    this.instance.volume = this.volume;
+  });
+
+  $.Method({Static:false, Public:true }, "Dispose", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Dispose () {
+      this.Dispose(true);
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "Dispose", 
+    (new JSIL.MethodSignature(null, [$.Boolean], [])), 
+    function Dispose (disposing) {
+      this.isDisposed = true;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_IsDisposed", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsDisposed () {
+      return this.isDisposed;
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "get_IsFireAndForget", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsFireAndForget () {
+      return this.isFireAndForget;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_IsLooped", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsLooped () {
+      return this.looped;
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "get_SoundEffect", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Audio.SoundEffect"), [], [])), 
+    function get_SoundEffect () {
+      return this.soundEffect;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_State", 
+    (new JSIL.MethodSignature($asms[0].TypeRef("Microsoft.Xna.Framework.Audio.SoundState"), [], [])), 
+    function get_State () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Volume", 
+    (new JSIL.MethodSignature($.Single, [], [])), 
+    function get_Volume () {
+      return this.volume;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Pause", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Pause () {
+      if (this.instance !== null)
+        this.instance.pause();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Play", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Play () {
+      this.$CreateInstanceIfNeeded();
+      this.instance.play();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Resume", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Resume () {
+      if (this.instance !== null)
+        this.instance.play();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_IsLooped", 
+    (new JSIL.MethodSignature(null, [$.Boolean], [])), 
+    function set_IsLooped (value) {
+      if (this.looped === value)
+        return;
+
+      this.looped = value;
+
+      // FIXME: Not possible to change loop state after start
+      this.Stop(true);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Volume", 
+    (new JSIL.MethodSignature(null, [$.Single], [])), 
+    function set_Volume (value) {
+      this.volume = value;
+
+      if (this.instance !== null)
+        this.instance.volume = value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Stop", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Stop () {
+      return this.Stop(true);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Stop", 
+    (new JSIL.MethodSignature(null, [$.Boolean], [])), 
+    function Stop (immediate) {
+      if (this.instance !== null)
+        this.instance.pause();
+
+      this.instance = null;
     }
   );
 });

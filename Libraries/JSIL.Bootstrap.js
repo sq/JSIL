@@ -2633,36 +2633,6 @@ JSIL.MakeEnum("System.Reflection.BindingFlags", true, $jsilcore.BindingFlags, tr
 JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializer", function ($) {
 });
 
-JSIL.ImplementExternals("System.IO.Path", function ($) {
-  $.Method({Static:true , Public:true }, "Combine", 
-    (new JSIL.MethodSignature($.String, [$.String, $.String], [])), 
-    function Combine (path1, path2) {
-      return path1 + "\\" + path2;
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "Combine", 
-    (new JSIL.MethodSignature($.String, [
-          $.String, $.String, 
-          $.String
-        ], [])), 
-    function Combine (path1, path2, path3) {
-      return path1 + "\\" + path2 + "\\" + path3;
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "Combine", 
-    (new JSIL.MethodSignature($.String, [
-          $.String, $.String, 
-          $.String, $.String
-        ], [])), 
-    function Combine (path1, path2, path3, path4) {
-      return path1 + "\\" + path2 + "\\" + path3 + "\\" + path4;
-    }
-  );
-
-});
-
 JSIL.MakeEnum(
   "System.StringComparison", true, {
     CurrentCulture: 0, 
