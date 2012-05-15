@@ -11,11 +11,43 @@ JSIL.DeclareNamespace("System.Reflection");
 JSIL.DeclareNamespace("System.Text");
 JSIL.DeclareNamespace("System.Text.RegularExpressions");
 
+$jsilcore.$ParseBoolean = function (text) {
+  var temp = {};
+  if ($jsilcore.$TryParseBoolean(text, temp))
+    return temp.value;
+
+  throw new System.Exception("Invalid boolean");
+};
+
+$jsilcore.$TryParseBoolean = function (text, result) {
+  text = text.toLowerCase().trim();
+
+  if (text === "true") {
+    result.value = true;
+    return true;
+  } else if (text === "false") {
+    result.value = false;
+    return true;
+  }
+
+  return false;
+};
+
 JSIL.ImplementExternals(
   "System.Boolean", function ($) {
     $.RawMethod(true, "CheckType", function (value) {
       return (value === false) || (value === true);
     });
+
+    $.Method({Static:true , Public:true }, "Parse", 
+      (new JSIL.MethodSignature($.Boolean, [$.String], [])), 
+      $jsilcore.$ParseBoolean
+    );
+
+    $.Method({Static:true , Public:true }, "TryParse", 
+      (new JSIL.MethodSignature($.Boolean, [$.String, $jsilcore.TypeRef("JSIL.Reference", [$.Boolean])], [])), 
+      $jsilcore.$TryParseBoolean
+    );
   }
 );
 JSIL.MakeNumericType(Boolean, "System.Boolean", true);
