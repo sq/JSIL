@@ -668,6 +668,11 @@ namespace JSIL.Ast {
                 return (JSMethod)Values[1];
             }
         }
+
+        public override bool HasGlobalStateDependency
+        {
+            get { return true; }
+        }
     }
 
     public class JSFieldAccess : JSDotExpressionBase {

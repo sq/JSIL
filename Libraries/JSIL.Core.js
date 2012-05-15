@@ -3674,6 +3674,9 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
       var target = descriptor.Static ? publicInterface : publicInterface.prototype;
       target[descriptor.EscapedName] = data.defaultValue = defaultValueExpression(target);
     });
+  } else if (typeof (defaultValueExpression) !== "undefined") {
+    data.defaultValue = defaultValueExpression;
+    descriptor.Target[descriptor.EscapedName] = defaultValueExpression;
   }
 
   this.PushMember("FieldInfo", descriptor, data);

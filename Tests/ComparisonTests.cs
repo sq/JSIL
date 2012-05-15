@@ -162,10 +162,15 @@ namespace JSIL.Tests {
 
         [Test]
         public void FieldSpecialCases () {
-            using (var test = MakeTest(@"TestCases\FieldRecursiveInitialization.cs"))
-                test.Run();
-            using (var test = MakeTest(@"TestCases\StringEmpty.cs"))
-                test.Run();
+            var defaultProvider = MakeDefaultProvider();
+
+            RunComparisonTests(
+                new[] { 
+                    @"TestCases\FieldRecursiveInitialization.cs",
+                    @"TestCases\StringEmpty.cs",
+                    @"TestCases\ArrayFieldWithSelfReference.cs"
+                }
+            );
         }
 
         [Test]

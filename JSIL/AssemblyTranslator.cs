@@ -1371,8 +1371,17 @@ namespace JSIL {
                 JSExpression fieldTypeExpression = new JSTypeReference(field.FieldType, field.DeclaringType);
 
                 if (cctorContext != forCctor) {
-                    defaultValue = new JSNullLiteral(field.Module.TypeSystem.Object);
-                } else if (!cctorContext) {
+                    defaultValue = new JSDefaultValueLiteral(field.FieldType);
+                } 
+                
+                if (
+                    !cctorContext && (
+                        defaultValue.HasGlobalStateDependency || 
+                        !defaultValue.IsConstant ||
+                        TypeUtil.IsStruct(defaultValue.GetActualType(field.Module.TypeSystem)) ||
+                        defaultValue is JSNewExpression
+                    )
+                ) {
                     // We have to represent the default value as a callable function, taking a single
                     //  argument that represents the public interface, so that recursive field initializations
                     //  will work correctly. InterfaceBuilder.Field will invoke this function for us.
@@ -1406,7 +1415,7 @@ namespace JSIL {
                         defaultValue,
                         field.FieldType
                     );
-                } else
+                } else {
                     return JSInvocationExpression.InvokeStatic(
                         JSDotExpression.New(
                             dollarIdentifier, new JSFakeMethod("Field", field.Module.TypeSystem.Void, null, FunctionCache.MethodTypes)
@@ -1414,6 +1423,7 @@ namespace JSIL {
                             descriptor, JSLiteral.New(fieldName), fieldTypeExpression, defaultValue
                         }
                     );
+                }
             }
         }
 
