@@ -169,7 +169,8 @@ namespace JSIL.Tests {
                     @"TestCases\FieldRecursiveInitialization.cs",
                     @"TestCases\StringEmpty.cs",
                     @"TestCases\ArrayFieldWithSelfReference.cs",
-                    @"TestCases\CharField.cs"
+                    @"TestCases\CharField.cs",
+                    @"TestCases\ArrayFieldOfThisType.cs",
                 }
             );
         }

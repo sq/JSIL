@@ -1379,7 +1379,9 @@ namespace JSIL {
                         defaultValue.HasGlobalStateDependency || 
                         !defaultValue.IsConstant ||
                         TypeUtil.IsStruct(defaultValue.GetActualType(field.Module.TypeSystem)) ||
-                        defaultValue is JSNewExpression
+                        defaultValue is JSNewExpression ||
+                        defaultValue is JSArrayExpression ||
+                        defaultValue is JSInvocationExpressionBase
                     )
                 ) {
                     // We have to represent the default value as a callable function, taking a single

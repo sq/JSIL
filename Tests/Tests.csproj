@@ -114,6 +114,7 @@
     <None Include="SimpleTestCases\StringSubstring.cs" />
     <None Include="TestCases\ArrayFieldWithSelfReference.cs" />
     <None Include="TestCases\CharField.cs" />
+    <None Include="TestCases\ArrayFieldOfThisType.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
