@@ -531,6 +531,9 @@ namespace JSIL {
                     case "System.Decimal":
                         Output.Value(0.0);
                         break;
+                    case "System.Char":
+                        Output.Value("\0");
+                        break;
                     case "System.Boolean":
                         Output.WriteRaw("false");
                         break;
