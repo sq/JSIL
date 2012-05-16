@@ -73,6 +73,8 @@ namespace JSIL {
             };
 
             Configuration = configuration;
+            bool useDefaultProxies = configuration.UseDefaultProxies.GetValueOrDefault(true);
+
             if (manifest != null)
                 Manifest = manifest;
             else
@@ -85,39 +87,41 @@ namespace JSIL {
                 if (configuration.Assemblies.Proxies.Count > 0)
                     throw new InvalidOperationException("Cannot reuse an existing type provider if explicitly loading proxies");
             } else {
-                _TypeInfoProvider = new JSIL.TypeInfoProvider();
-                OwnsTypeInfoProvider = true;
+              _TypeInfoProvider = new JSIL.TypeInfoProvider();
+              OwnsTypeInfoProvider = true;
 
-                Assembly proxyAssembly = null;
-                var myAssemblyPath = Util.GetPathOfAssembly(Assembly.GetExecutingAssembly());
-                var proxyFolder = Path.GetDirectoryName(myAssemblyPath);
-                string proxyPath = null;
+              if (useDefaultProxies) { 
+                  Assembly proxyAssembly = null;
+                  var myAssemblyPath = Util.GetPathOfAssembly(Assembly.GetExecutingAssembly());
+                  var proxyFolder = Path.GetDirectoryName(myAssemblyPath);
+                  string proxyPath = null;
 
-                try {
-                    if (!configuration.FrameworkVersion.HasValue || configuration.FrameworkVersion == 4.0) {
-                        proxyPath = Path.Combine(proxyFolder, "JSIL.Proxies.4.0.dll");
-                    } else if (configuration.FrameworkVersion <= 3.5) {
-                        proxyPath = Path.Combine(proxyFolder, "JSIL.Proxies.3.5.dll");
-                    } else {
-                        throw new ArgumentOutOfRangeException(
-                            "FrameworkVersion",
-                            String.Format("Framework version '{0}' not supported", configuration.FrameworkVersion.Value)
-                        );
-                    }
+                  try {
+                      if (!configuration.FrameworkVersion.HasValue || configuration.FrameworkVersion == 4.0) {
+                          proxyPath = Path.Combine(proxyFolder, "JSIL.Proxies.4.0.dll");
+                      } else if (configuration.FrameworkVersion <= 3.5) {
+                          proxyPath = Path.Combine(proxyFolder, "JSIL.Proxies.3.5.dll");
+                      } else {
+                          throw new ArgumentOutOfRangeException(
+                              "FrameworkVersion",
+                              String.Format("Framework version '{0}' not supported", configuration.FrameworkVersion.Value)
+                          );
+                      }
 
-                    proxyAssembly = Assembly.LoadFile(proxyPath);
-                } catch (FileNotFoundException fnf) {
-                    throw new FileNotFoundException(
-                        String.Format("Could not load the .NET proxies assembly from '{0}'.", proxyPath),
-                        fnf
-                    );
+                      proxyAssembly = Assembly.LoadFile(proxyPath);
+                  } catch (FileNotFoundException fnf) {
+                      throw new FileNotFoundException(
+                          String.Format("Could not load the .NET proxies assembly from '{0}'.", proxyPath),
+                          fnf
+                      );
+                  }
+
+                  if (proxyAssembly == null)
+                      throw new InvalidOperationException("No core proxy assembly was loaded.");
+
+                  AddProxyAssembly(proxyAssembly);
                 }
-
-                if (proxyAssembly == null)
-                    throw new InvalidOperationException("No core proxy assembly was loaded.");
-
-                AddProxyAssembly(proxyAssembly);
-
+              
                 foreach (var fn in configuration.Assemblies.Proxies.Distinct())
                     AddProxyAssembly(fn);
             }

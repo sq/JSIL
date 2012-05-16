@@ -49,6 +49,7 @@ namespace JSIL.Translator {
         public bool? IncludeDependencies;
         public bool? UseSymbols;
         public bool? UseThreads;
+        public bool? UseDefaultProxies;
         public bool? GenerateSkeletonsForStubbedAssemblies;
         public bool? GenerateContentManifest;
 
@@ -66,6 +67,9 @@ namespace JSIL.Translator {
                 result.UseSymbols = UseSymbols;
             if (UseThreads.HasValue)
                 result.UseThreads = UseThreads;
+            if (UseDefaultProxies.HasValue)
+              result.UseDefaultProxies = UseDefaultProxies;
+
             if (FrameworkVersion.HasValue)
                 result.FrameworkVersion = FrameworkVersion;
             if (GenerateSkeletonsForStubbedAssemblies.HasValue)
