@@ -1,0 +1,30 @@
+﻿Project: 		Simple project for JSIL
+
+Description: 	Minimal JSIL project, configured to run out-of-box (out-of-git?). Each non-obvious line
+				of C#/HTML/JavaScript code is described, however, how/why it works is discovered
+ 				by trail-and-error approach, no guarantees on correctness.
+ 				To use it in Your application, simply compile solution, copy entire folder and add Your own content.
+ 				Feel free to remove this file once You did it.
+ 
+License:		Enjoy without any limitations.
+
+Author: 		Maciej "Expro" Grabowski
+E-mail:			mds.expro@gmail.com | maciejgrabowski@hotmail.com
+
+What-is-what:
+	".\Compiler\"			- place for JSIL compiler.
+	".\Build\"				- compiled content of your application.
+	".\Build\index.html"	- web page responsible for execution of Your application.
+	".\Build\Scripts\"		- place for compiled assemblies (scripts) of your application,
+							  filed automatically by post-build event.
+	".\Build\Libraries\"	- place for JSIL and JavaScript libraries.
+	".\Build\Files\"		- place for file assets.
+	".\Build\Content\"		- place for XNA content assets.
+
+How-To:
+	1. 	Compile JSIL solution ("Release" build recommended for speed).
+	2.	Create new, empty solution for your application, copy and add "SimpleProject" into it.
+	3.	Create symbolic links for ".\Compiler\" (pointing to directory with JSILc.exe), and for ".\Build\Libraries\"
+		(pointing to JSIL "Libraries" directory). Alternatively, copy compiler and libraries manually - however,
+		You will need to keep them in sync on Your own.
+	4.	Fill solution with content.
