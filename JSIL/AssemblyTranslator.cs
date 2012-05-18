@@ -87,39 +87,17 @@ namespace JSIL {
                 if (configuration.Assemblies.Proxies.Count > 0)
                     throw new InvalidOperationException("Cannot reuse an existing type provider if explicitly loading proxies");
             } else {
-              _TypeInfoProvider = new JSIL.TypeInfoProvider();
-              OwnsTypeInfoProvider = true;
+                _TypeInfoProvider = new JSIL.TypeInfoProvider();
+                OwnsTypeInfoProvider = true;
 
-              if (useDefaultProxies) { 
-                  Assembly proxyAssembly = null;
-                  var myAssemblyPath = Util.GetPathOfAssembly(Assembly.GetExecutingAssembly());
-                  var proxyFolder = Path.GetDirectoryName(myAssemblyPath);
-                  string proxyPath = null;
+                if (useDefaultProxies) {
+                    var defaultProxyAssembly =
+                        GetDefaultProxyAssembly(configuration.FrameworkVersion.GetValueOrDefault(4.0));
 
-                  try {
-                      if (!configuration.FrameworkVersion.HasValue || configuration.FrameworkVersion == 4.0) {
-                          proxyPath = Path.Combine(proxyFolder, "JSIL.Proxies.4.0.dll");
-                      } else if (configuration.FrameworkVersion <= 3.5) {
-                          proxyPath = Path.Combine(proxyFolder, "JSIL.Proxies.3.5.dll");
-                      } else {
-                          throw new ArgumentOutOfRangeException(
-                              "FrameworkVersion",
-                              String.Format("Framework version '{0}' not supported", configuration.FrameworkVersion.Value)
-                          );
-                      }
+                    if (defaultProxyAssembly == null)
+                        throw new InvalidOperationException("No default proxy assembly was loaded.");
 
-                      proxyAssembly = Assembly.LoadFile(proxyPath);
-                  } catch (FileNotFoundException fnf) {
-                      throw new FileNotFoundException(
-                          String.Format("Could not load the .NET proxies assembly from '{0}'.", proxyPath),
-                          fnf
-                      );
-                  }
-
-                  if (proxyAssembly == null)
-                      throw new InvalidOperationException("No core proxy assembly was loaded.");
-
-                  AddProxyAssembly(proxyAssembly);
+                    AddProxyAssembly(defaultProxyAssembly);    
                 }
               
                 foreach (var fn in configuration.Assemblies.Proxies.Distinct())
@@ -133,6 +111,32 @@ namespace JSIL {
                 AssemblyCache = new AssemblyCache();
 
             FunctionCache = new FunctionCache(_TypeInfoProvider);
+        }
+
+        public static Assembly GetDefaultProxyAssembly (double frameworkVersion) {
+            var myAssemblyPath = Util.GetPathOfAssembly(Assembly.GetExecutingAssembly());
+            var proxyFolder = Path.GetDirectoryName(myAssemblyPath);
+            string proxyPath = null;
+
+            try {
+                if (frameworkVersion == 4.0) {
+                    proxyPath = Path.Combine(proxyFolder, "JSIL.Proxies.4.0.dll");
+                } else if (frameworkVersion <= 3.5) {
+                    proxyPath = Path.Combine(proxyFolder, "JSIL.Proxies.3.5.dll");
+                } else {
+                    throw new ArgumentOutOfRangeException(
+                        "FrameworkVersion",
+                        String.Format("Framework version '{0}' not supported", frameworkVersion)
+                    );
+                }
+
+                return Assembly.LoadFile(proxyPath);
+            } catch (FileNotFoundException fnf) {
+                throw new FileNotFoundException(
+                    String.Format("Could not load the .NET proxies assembly from '{0}'.", proxyPath),
+                    fnf
+                );
+            }        
         }
 
         internal void WarningFormat (string format, params object[] args) {
