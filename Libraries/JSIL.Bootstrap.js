@@ -1059,17 +1059,31 @@ $jsilcore.$ListExternals = function ($, T, type) {
     }
   );
 
-  $.Method({Static:false, Public:true }, "get_Item", 
-    new JSIL.MethodSignature(T, [mscorlib.TypeRef("System.Int32")], []),
-    function (index) {
+  var rangeCheckImpl = function (index,size) {
       if (index < 0)
         throw new System.ArgumentOutOfRangeException("index");
-      else if (index >= this._size)
+      else if (index >= size)
         throw new System.ArgumentOutOfRangeException("index");
+  }
 
-      return this._items[index];
-    }
+  $.Method({Static:false, Public:true }, "get_Item", 
+    new JSIL.MethodSignature(T, [mscorlib.TypeRef("System.Int32")], []), 
+    function (index) {
+          rangeCheckImpl(index, this._size);
+          return this._items[index];
+   }
+
   );
+
+  $.Method({Static: false, Public: true }, "set_Item",
+    new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32"), T], []), 
+    function (index, value) {
+      rangeCheckImpl(index, this._size);
+      this._items[index]=value;
+  }
+
+  );
+
 
   var getEnumeratorImpl = function () {
     // Detect whether we are a List<T> or an ArrayList.
@@ -1505,7 +1519,8 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.List`1", true, ["T"]
   $.ImplementInterfaces(
     $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")]),
     "System.Collections.IEnumerable",
-    $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")])
+    $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")]),
+    $jsilcore.TypeRef("System.Collections.Generic.IList`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")])
   );
 });
 

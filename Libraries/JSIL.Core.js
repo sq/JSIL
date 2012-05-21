@@ -4943,6 +4943,18 @@ JSIL.MakeInterface(
   $jsilcore.TypeRef("System.Collections.IEnumerable")]
   );
 
+  JSIL.MakeInterface(
+  "System.Collections.Generic.IList`1", true, ["T"], {
+      "get_Item": Function,
+      "set_Item": Function,
+      "IndexOf": Function,
+      "Insert": Function,
+      "RemoveAt": Function,
+      "Item" : Property
+  },
+  [$jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")]),
+   $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")]),
+   $jsilcore.TypeRef("System.Collections.IEnumerable")]);
 
 JSIL.ImplementExternals("System.Array", function ($) {
   $.RawMethod(true, "CheckType", JSIL.IsArray);
