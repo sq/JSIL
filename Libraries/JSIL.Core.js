@@ -3344,6 +3344,9 @@ JSIL.GetType = function (value) {
   } else if (type === "number") {
     return System.Double.__Type__;
 
+  } else if (type === "boolean") {
+    return System.Boolean.__Type__;
+
   } else {
     return System.Object.__Type__;
 

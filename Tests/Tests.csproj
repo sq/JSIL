@@ -117,6 +117,7 @@
     <None Include="TestCases\ArrayFieldOfThisType.cs" />
     <None Include="XMLTestCases\GetItemByIndex.cs" />
     <None Include="XMLTestCases\GetItemByName.cs" />
+    <None Include="SimpleTestCases\GetTypeOfBoolean.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

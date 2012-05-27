@@ -34,6 +34,7 @@ Tests/*Cases/*.js
 /jsil.org/demos/Pathtracer/*.js
 /jsil.org/demos/RPG/*.js
 /jsil.org/demos/Sully/*
+/jsil.org/demos/Soulcaster/*
 /jsil.org/demos/Libraries
 /jsil.org/demos/demos.zip
 *.jsillog
