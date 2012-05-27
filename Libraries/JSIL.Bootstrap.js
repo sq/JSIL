@@ -1513,15 +1513,29 @@ JSIL.MakeClass($jsilcore.TypeRef("JSIL.ArrayEnumerator", [new JSIL.GenericParame
 
 JSIL.ImplementExternals(
   "System.Threading.Interlocked", function ($) {
+    var cmpxchg = function (targetRef, value, comparand) {
+      var currentValue = targetRef.value;
+
+      if (currentValue === comparand)
+        targetRef.value = value;
+
+      return currentValue;
+    };
+
     $.Method({Public: true , Static: true }, "CompareExchange", 
       new JSIL.MethodSignature("!!0", [JSIL.Reference.Of("!!0"), "!!0", "!!0"], ["T"]),
       function (T, targetRef, value, comparand) {
-        var currentValue = targetRef.value;
+        return cmpxchg(targetRef, value, comparand);
+      }
+    );
 
-        if (currentValue === comparand)
-          targetRef.value = value;
-
-        return currentValue;
+    $.Method({Static:true , Public:true }, "CompareExchange", 
+      (new JSIL.MethodSignature($.Int32, [
+            $jsilcore.TypeRef("JSIL.Reference", [$.Int32]), $.Int32, 
+            $.Int32
+          ], [])), 
+      function CompareExchange (/* ref */ location1, value, comparand) {
+        return cmpxchg(location1, value, comparand);
       }
     );
   }

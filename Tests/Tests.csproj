@@ -118,6 +118,7 @@
     <None Include="XMLTestCases\GetItemByIndex.cs" />
     <None Include="XMLTestCases\GetItemByName.cs" />
     <None Include="SimpleTestCases\GetTypeOfBoolean.cs" />
+    <None Include="SimpleTestCases\Int32CompareExchange.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
