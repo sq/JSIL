@@ -709,7 +709,7 @@ JSIL.GenericParameter = function (name, context) {
   }
 
   if (typeof (JSIL.$GenericParameterTypeIds[key]) === "undefined") {
-    JSIL.$GenericParameterTypeIds[key] = this.__TypeId__ = ++JSIL.$NextTypeId;
+    JSIL.$GenericParameterTypeIds[key] = this.__TypeId__ = String(++JSIL.$NextTypeId);
   } else {
     this.__TypeId__ = JSIL.$GenericParameterTypeIds[key];
   }
@@ -1840,8 +1840,16 @@ JSIL.$MakeComparerCore = function (typeObject, context, body) {
   } else {
     for (var i = 0; i < fields.length; i++) {
       var field = fields[i];
+      var fieldType = field.get_FieldType();
 
-      body.push("  if (!JSIL.ObjectEquals(lhs['" + field.Name + "'], rhs['" + field.Name + "']))");
+      if (fieldType.__IsNumeric__ || fieldType.IsEnum) {
+        body.push("  if (lhs['" + field.Name + "'] !== rhs['" + field.Name + "'])");
+      } else if (fieldType.__IsStruct__) {
+        body.push("  if (!lhs['" + field.Name + "'].Equals(rhs['" + field.Name + "']))");
+      } else {
+        body.push("  if (!JSIL.ObjectEquals(lhs['" + field.Name + "'], rhs['" + field.Name + "']))");
+      }
+
       body.push("    return false;");
     }
 
@@ -2456,7 +2464,7 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
 };
 
 JSIL.BuildTypeList = function (type, publicInterface) {
-  var typeList = type.__AssignableTypes__ = [];
+  var typeList = type.__AssignableTypes__ = {};
   var context = type.__Context__;
 
   var toVisit = [];
@@ -2473,9 +2481,13 @@ JSIL.BuildTypeList = function (type, publicInterface) {
 
     var id = current.__TypeId__;
 
+    typeList[id] = true;
+
+    /*
     // Avoid adding duplicates.
     if (typeList.indexOf(id) < 0)
       typeList.push(id);
+    */
 
     var interfaces = current.__Interfaces__;
     if (JSIL.IsArray(interfaces)) {
@@ -2486,21 +2498,30 @@ JSIL.BuildTypeList = function (type, publicInterface) {
     }
   }
 
+  /*
   // Sort the list so that we can binary search it if necessary
   typeList.sort();
+  */
 };
 
 // Efficiently search a sourceType's assignable types list to see if it is assignable to targetType.
 JSIL.$TypeIsAssignable = function (sourceType, targetType) {
+  var sourceTypeDictionary = sourceType.__AssignableTypes__;
+  var targetTypeId = targetType.__TypeId__;
+
+  return sourceTypeDictionary[targetTypeId] === true;
+
+  // V8 and SpiderMonkey seem to choke on this trivial binary search implementation. :|
+  /*
   var sourceTypeList = sourceType.__AssignableTypes__;
   var targetTypeId = targetType.__TypeId__;
 
   var low = 0, high = sourceTypeList.length - 1;
-  var floor = Math.floor;
+  var pivot, pivotPoint = 0;
 
   while (low <= high) {
-    var pivotPoint = floor((low + high) / 2);
-    var pivot = sourceTypeList[pivotPoint];
+    pivotPoint = ((low + high) / 2) | 0;
+    pivot = sourceTypeList[pivotPoint];
 
     if (pivot < targetTypeId) {
       low = pivotPoint + 1; 
@@ -2514,6 +2535,7 @@ JSIL.$TypeIsAssignable = function (sourceType, targetType) {
   }
 
   return false;
+  */
 };
 
 JSIL.InitializeFields = function (type, publicInterface) {
@@ -3179,8 +3201,9 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
       __Names__: []
     };
 
-    result.__AssignableTypes__ = [result.__TypeId__, JSIL.AssignTypeId($jsilcore, "System.Enum")];
-    result.__AssignableTypes__.sort();
+    result.__AssignableTypes__ = {};
+    result.__AssignableTypes__[result.__TypeId__] = true;
+    result.__AssignableTypes__[JSIL.AssignTypeId($jsilcore, "System.Enum")] = true;
 
     result.__Type__ = result; // HACK
 

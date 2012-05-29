@@ -4232,14 +4232,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
           $xnaasms[5].TypeRef("System.Nullable`1", [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")]), $jsilxna.colorRef()
         ], [])), 
     function Draw (texture, position, sourceRectangle, color) {
-      var sourceX, sourceY, sourceWidth, sourceHeight;
+      var sourceX = 0, sourceY = 0, sourceWidth = 0, sourceHeight = 0;
       if (sourceRectangle !== null) {
         sourceX = sourceRectangle.X;
         sourceY = sourceRectangle.Y;
         sourceWidth = sourceRectangle.Width;
         sourceHeight = sourceRectangle.Height;
       } else {
-        sourceX = sourceY = 0;
         sourceWidth = texture.Width;
         sourceHeight = texture.Height;
       }
@@ -4264,14 +4263,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
           $.Single
         ], [])), 
     function DrawScaleF (texture, position, sourceRectangle, color, rotation, origin, scale, effects, layerDepth) {
-      var sourceX, sourceY, sourceWidth, sourceHeight;
+      var sourceX = 0, sourceY = 0, sourceWidth = 0, sourceHeight = 0;
       if (sourceRectangle !== null) {
         sourceX = sourceRectangle.X;
         sourceY = sourceRectangle.Y;
         sourceWidth = sourceRectangle.Width;
         sourceHeight = sourceRectangle.Height;
       } else {
-        sourceX = sourceY = 0;
         sourceWidth = texture.Width;
         sourceHeight = texture.Height;
       }
@@ -4296,14 +4294,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
           $.Single
         ], [])), 
     function Draw (texture, position, sourceRectangle, color, rotation, origin, scale, effects, layerDepth) {
-      var sourceX, sourceY, sourceWidth, sourceHeight;
+      var sourceX = 0, sourceY = 0, sourceWidth = 0, sourceHeight = 0;
       if (sourceRectangle !== null) {
         sourceX = sourceRectangle.X;
         sourceY = sourceRectangle.Y;
         sourceWidth = sourceRectangle.Width;
         sourceHeight = sourceRectangle.Height;
       } else {
-        sourceX = sourceY = 0;
         sourceWidth = texture.Width;
         sourceHeight = texture.Height;
       }
@@ -4342,14 +4339,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
           $xnaasms[5].TypeRef("System.Nullable`1", [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")]), $jsilxna.colorRef()
         ], [])), 
     function DrawRect (texture, destinationRectangle, sourceRectangle, color) {
-      var sourceX, sourceY, sourceWidth, sourceHeight;
+      var sourceX = 0, sourceY = 0, sourceWidth = 0, sourceHeight = 0;
       if (sourceRectangle !== null) {
         sourceX = sourceRectangle.X;
         sourceY = sourceRectangle.Y;
         sourceWidth = sourceRectangle.Width;
         sourceHeight = sourceRectangle.Height;
       } else {
-        sourceX = sourceY = 0;
         sourceWidth = texture.Width;
         sourceHeight = texture.Height;
       }
@@ -4373,14 +4369,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
           $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.SpriteEffects"), $.Single
         ], [])), 
     function DrawRect (texture, destinationRectangle, sourceRectangle, color, rotation, origin, effects, layerDepth) {
-      var sourceX, sourceY, sourceWidth, sourceHeight;
+      var sourceX = 0, sourceY = 0, sourceWidth = 0, sourceHeight = 0;
       if (sourceRectangle !== null) {
         sourceX = sourceRectangle.X;
         sourceY = sourceRectangle.Y;
         sourceWidth = sourceRectangle.Width;
         sourceHeight = sourceRectangle.Height;
       } else {
-        sourceX = sourceY = 0;
         sourceWidth = texture.Width;
         sourceHeight = texture.Height;
       }
