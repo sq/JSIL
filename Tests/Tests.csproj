@@ -134,6 +134,7 @@
     <Compile Include="SimpleTestCases\ArrayListIndexer.cs" />
     <None Include="SimpleTestCases\ListIList.cs" />
     <None Include="SimpleTestCases\MultiDimArrayClone.cs" />
+    <None Include="XMLTestCases\ReadElementContentAsString.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

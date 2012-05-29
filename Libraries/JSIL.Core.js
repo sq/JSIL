@@ -1829,6 +1829,43 @@ JSIL.CopyMembers = function (source, target) {
   copier(source, target);
 };
 
+JSIL.$MakeComparerCore = function (typeObject, context, body) {
+  var fields = JSIL.GetMembersInternal(
+    typeObject, $jsilcore.BindingFlags.Instance, "FieldInfo"
+  );
+
+  if ("__CompareMembers__" in context.prototype) {
+    context.comparer = context.prototype.__CompareMembers__;
+    body.push("  return context.comparer(lhs, rhs);");
+  } else {
+    for (var i = 0; i < fields.length; i++) {
+      var field = fields[i];
+
+      body.push("  if (!JSIL.ObjectEquals(lhs['" + field.Name + "'], rhs['" + field.Name + "']))");
+      body.push("    return false;");
+    }
+
+    body.push("  return true;");
+  }
+}
+
+JSIL.$MakeStructComparer = function (typeObject, publicInterface) {
+  var prototype = publicInterface.prototype;
+  var context = {
+    prototype: prototype
+  };
+
+  var body = [];
+
+  JSIL.$MakeComparerCore(typeObject, context, body);
+
+  return JSIL.CreateNamedFunction(
+    typeObject.__FullName__ + ".StructComparer",
+    ["lhs", "rhs"], 
+    body.join("\r\n")
+  );
+};
+
 JSIL.$MakeCopierCore = function (typeObject, context, body) {
   var sf = JSIL.GetStructFieldList(typeObject);
   var fields = JSIL.GetMembersInternal(
@@ -2852,6 +2889,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__StructFields__ = $jsilcore.ArrayNotInitialized;
     typeObject.__StructFieldInitializer__ = $jsilcore.FunctionNotInitialized;
     typeObject.__MemberCopier__ = $jsilcore.FunctionNotInitialized;
+    typeObject.__StructComparer__ = $jsilcore.FunctionNotInitialized;
     typeObject.__Properties__ = [];
     typeObject.__Initializers__ = [];
     typeObject.__Interfaces__ = Array.prototype.slice.call(baseTypeInterfaces);
@@ -4887,25 +4925,12 @@ JSIL.MakeClass("System.Object", "System.ValueType", true, [], function ($) {
       if ((rhs === null) || (rhs === undefined))
         return false;
 
-      for (var key in this) {
-        if (!this.hasOwnProperty(key))
-          continue;
+      var thisType = this.__ThisType__;
+      var comparer = thisType.__StructComparer__;
+      if (comparer === $jsilcore.FunctionNotInitialized)
+        comparer = thisType.__StructComparer__ = JSIL.$MakeStructComparer(thisType, thisType.__PublicInterface__);
 
-        var valueLhs = this[key];
-        var valueRhs = rhs[key];
-
-        if ((valueLhs === null) || (valueLhs === undefined)) {
-          if (valueLhs !== valueRhs)
-            return false;
-        } else if (typeof (valueLhs.Equals) === "function") {
-          if (!valueLhs.Equals(valueRhs))
-            return false;
-        } else if (valueLhs !== valueRhs) {
-          return false;
-        }
-      }
-
-      return true;
+      return comparer(this, rhs);
     }
   );
 });
@@ -5109,7 +5134,7 @@ JSIL.Array.Erase = function Array_Erase (array, elementType) {
       array[i] = JSIL.DefaultValueInternal(elementTypeObject, elementTypePublicInterface);
   } else {
     var defaultValue = JSIL.DefaultValueInternal(elementTypeObject, elementTypePublicInterface)
-    
+
     for (var i = 0; i < size; i++)
       array[i] = defaultValue;
   }

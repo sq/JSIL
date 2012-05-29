@@ -659,6 +659,47 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
     }
   );
 
+  $.RawMethod(false, "SetupReadElementContent", function () {
+    if (this._nodeType != ntElement)
+      throw new System.Exception("Invalid start node for ReadElementContent");
+
+    var isEmpty = this.IsEmptyElement;
+
+    this.Read();
+    if (isEmpty)
+      return false;
+
+    if (this._nodeType == ntEndElement) {
+      this.Read();
+      return false;
+    } else if (this._nodeType == ntElement) {
+      throw new System.Exception("Element contains another element, not text content");
+    }
+
+    return true;
+  });
+
+  $.RawMethod(false, "FinishReadElementContent", function () {
+    if (this._nodeType != ntEndElement)
+      throw new System.Exception("Read element string content but didn't end on an EndElement");
+
+    this.Read();
+  });
+
+  $.Method({Static:false, Public:true }, "ReadElementContentAsString", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function ReadElementContentAsString () {
+      var result = "";
+
+      if (this.SetupReadElementContent()) {
+        result = this.ReadString();
+        this.FinishReadElementContent();
+      }
+
+      return result;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "get_NodeType", 
     (new JSIL.MethodSignature($xmlasms[16].TypeRef("System.Xml.XmlNodeType"), [], [])), 
     function get_NodeType () {
