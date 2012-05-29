@@ -678,9 +678,9 @@ namespace JSIL.Internal {
 
         public readonly bool IsFlagsEnum;
         public readonly EnumMemberInfo FirstEnumMember = null;
-        public readonly Dictionary<long, EnumMemberInfo> ValueToEnumMember;
-        public readonly Dictionary<string, EnumMemberInfo> EnumMembers;
-        public readonly Dictionary<MemberIdentifier, IMemberInfo> Members;
+        public readonly ConcurrentDictionary<long, EnumMemberInfo> ValueToEnumMember;
+        public readonly ConcurrentDictionary<string, EnumMemberInfo> EnumMembers;
+        public readonly ConcurrentDictionary<MemberIdentifier, IMemberInfo> Members;
         public readonly bool IsProxy;
         public readonly bool IsDelegate;
         public readonly string Replacement;
@@ -786,7 +786,7 @@ namespace JSIL.Internal {
             {
                 var capacity = type.Fields.Count + type.Properties.Count + type.Events.Count + type.Methods.Count;
                 var comparer = new MemberIdentifier.Comparer(source);
-                Members = new Dictionary<MemberIdentifier, IMemberInfo>(capacity, comparer);
+                Members = new ConcurrentDictionary<MemberIdentifier, IMemberInfo>(1, capacity, comparer);
             }
 
             foreach (var field in type.Fields)
@@ -823,8 +823,8 @@ namespace JSIL.Internal {
                 long enumValue = 0;
 
                 var capacity = type.Fields.Count;
-                ValueToEnumMember = new Dictionary<long, EnumMemberInfo>(capacity);
-                EnumMembers = new Dictionary<string, EnumMemberInfo>(capacity);
+                ValueToEnumMember = new ConcurrentDictionary<long, EnumMemberInfo>(1, capacity);
+                EnumMembers = new ConcurrentDictionary<string, EnumMemberInfo>(1, capacity);
 
                 foreach (var field in type.Fields) {
                     // Skip 'value__'
@@ -855,12 +855,16 @@ namespace JSIL.Internal {
                     var p = (PropertyInfo)AddProxyMember(proxy, property);
 
                     if (property.GetMethod != null) {
-                        AddProxyMember(proxy, property.GetMethod, p);
+                        if (!property.CustomAttributes.Any(ShouldNeverReplace))
+                            AddProxyMember(proxy, property.GetMethod, p);
+
                         seenMethods.Add(property.GetMethod);
                     }
 
                     if (property.SetMethod != null) {
-                        AddProxyMember(proxy, property.SetMethod, p);
+                        if (!property.CustomAttributes.Any(ShouldNeverReplace))
+                            AddProxyMember(proxy, property.SetMethod, p);
+
                         seenMethods.Add(property.SetMethod);
                     }
                 }
@@ -869,12 +873,16 @@ namespace JSIL.Internal {
                     var e = (EventInfo)AddProxyMember(proxy, evt);
 
                     if (evt.AddMethod != null) {
-                        AddProxyMember(proxy, evt.AddMethod, e);
+                        if (!evt.CustomAttributes.Any(ShouldNeverReplace))
+                            AddProxyMember(proxy, evt.AddMethod, e);
+
                         seenMethods.Add(evt.AddMethod);
                     }
 
                     if (evt.RemoveMethod != null) {
-                        AddProxyMember(proxy, evt.RemoveMethod, e);
+                        if (!evt.CustomAttributes.Any(ShouldNeverReplace))
+                            AddProxyMember(proxy, evt.RemoveMethod, e);
+
                         seenMethods.Add(evt.RemoveMethod);
                     }
                 }
@@ -893,9 +901,11 @@ namespace JSIL.Internal {
                     if (isStatic && !method.IsStatic)
                         continue;
 
-                    // TODO: No way to detect whether the constructor was compiler-generated.
-                    if ((method.Name == ".ctor") && (method.Parameters.Count == 0))
-                        continue;
+                    // The constructor may be compiler-generated, so only replace if it has the attribute.
+                    if ((method.Name == ".ctor") && (method.Parameters.Count == 0)) {
+                        if (!method.CustomAttributes.Any((ca) => ca.AttributeType.FullName == "JSIL.Meta.JSReplaceConstructor"))
+                            continue;
+                    }
 
                     AddProxyMember(proxy, method);
                 }
@@ -1046,8 +1056,7 @@ namespace JSIL.Internal {
                     if (result.IsFromProxy)
                         Debug.WriteLine(String.Format("Warning: Proxy member '{0}' replacing proxy member '{1}'.", member, result));
 
-                    lock (Members)
-                        Members.Remove(identifier);
+                    Members.TryRemove(identifier, out result);
                 } else {
                     throw new ArgumentException(String.Format(
                         "Member '{0}' not found", member.Name
@@ -1223,8 +1232,8 @@ namespace JSIL.Internal {
             else if (property.Member.SetMethod == method)
                 property.Setter = (MethodInfo)result;
 
-            lock (Members)
-                Members.Add(identifier, result);
+            if (!Members.TryAdd(identifier, result))
+                throw new InvalidOperationException();
 
             UpdateSignatureSet(result.Name, ((MethodInfo)result).Signature);
 
@@ -1238,8 +1247,8 @@ namespace JSIL.Internal {
                 return (MethodInfo)result;
 
             result = new MethodInfo(this, identifier, method, Proxies, evt, isFromProxy);
-            lock (Members)
-                Members.Add(identifier, result);
+            if (!Members.TryAdd(identifier, result))
+                throw new InvalidOperationException();
 
             UpdateSignatureSet(result.Name, ((MethodInfo)result).Signature);
 
@@ -1253,8 +1262,8 @@ namespace JSIL.Internal {
                 return (MethodInfo)result;
 
             result = new MethodInfo(this, identifier, method, Proxies, isFromProxy);
-            lock (Members)
-                Members.Add(identifier, result);
+            if (!Members.TryAdd(identifier, result))
+                throw new InvalidOperationException();
 
             if (method.Name == ".cctor")
                 StaticConstructor = method;
@@ -1271,20 +1280,26 @@ namespace JSIL.Internal {
                 return (FieldInfo)result;
 
             result = new FieldInfo(this, identifier, field, Proxies);
-            lock (Members)
-                Members.Add(identifier, result);
+            if (!Members.TryAdd(identifier, result))
+                throw new InvalidOperationException();
+
             return (FieldInfo)result;
         }
 
         protected PropertyInfo AddMember (PropertyDefinition property, bool isFromProxy = false) {
             IMemberInfo result;
             var identifier = new MemberIdentifier(this.Source, property);
-            if (Members.TryGetValue(identifier, out result))
-                return (PropertyInfo)result;
+            if (Members.TryGetValue(identifier, out result)) {
+                if (!isFromProxy)
+                    return (PropertyInfo)result;
+                else
+                    Members.TryRemove(identifier, out result);
+            }
 
             result = new PropertyInfo(this, identifier, property, Proxies, isFromProxy);
-            lock (Members)
-                Members.Add(identifier, result);
+            if (!Members.TryAdd(identifier, result))
+                throw new InvalidOperationException();
+
             return (PropertyInfo)result;
         }
 
@@ -1295,8 +1310,9 @@ namespace JSIL.Internal {
                 return (EventInfo)result;
 
             result = new EventInfo(this, identifier, evt, Proxies, isFromProxy);
-            lock (Members)
-                Members.Add(identifier, result);
+            if (!Members.TryAdd(identifier, result))
+                throw new InvalidOperationException();
+
             return (EventInfo)result;
         }
 
