@@ -660,16 +660,13 @@ namespace JSIL {
                     output.Identifier("Method", null);
                     output.LPar();
 
-                    output.WriteRaw("null");
+                    output.WriteRaw("{}");
                     output.Comma();
 
                     output.Value(Util.EscapeIdentifier(m.Name, EscapingMode.String));
                     output.Comma();
 
                     output.MethodSignature(m, methodInfo.Signature, refContext);
-                    output.Comma();
-
-                    output.WriteRaw("null");
 
                     output.RPar();
                     output.Semicolon(true);
@@ -686,7 +683,7 @@ namespace JSIL {
                 output.Identifier("Property", null);
                 output.LPar();
 
-                output.WriteRaw("null");
+                output.WriteRaw("{}");
                 output.Comma();
 
                 output.Value(Util.EscapeIdentifier(p.Name, EscapingMode.String));
