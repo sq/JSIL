@@ -741,7 +741,7 @@ namespace JSIL {
                 ));
 
             bool isFirst = true;
-            foreach (var em in typeInformation.EnumMembers.Values) {
+            foreach (var em in typeInformation.EnumMembers.Values.OrderBy((em) => em.Value)) {
                 if (!isFirst) {
                     output.Comma();
                     output.NewLine();
