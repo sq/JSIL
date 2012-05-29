@@ -3016,7 +3016,7 @@ JSIL.MakeStruct = function (baseType, fullName, isPublic, genericArguments, init
   JSIL.MakeType(baseType, fullName, false, isPublic, genericArguments, initializer);
 };
 
-JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, interfaces) {
+JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer, interfaces) {
   var assembly = $private;
   var localName = JSIL.GetLocalName(fullName);
 
@@ -3038,7 +3038,8 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
     typeObject.__PublicInterface__ = publicInterface;
     typeObject.__CallStack__ = callStack;
     publicInterface.__TypeId__ = typeObject.__TypeId__ = JSIL.AssignTypeId(assembly, fullName);
-    typeObject.__Members__ = members;
+
+    typeObject.__Members__ = {};
     typeObject.__RenamedMethods__ = {};
     typeObject.__ShortName__ = localName;
     typeObject.__Context__ = $private;
@@ -3048,7 +3049,10 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
     typeObject.IsInterface = true;
     typeObject.__Interfaces__ = interfaces || [];
 
-    JSIL.SetValueProperty(publicInterface, "toString", function InterfacePublicInterface_ToString () {
+    var interfaceBuilder = new JSIL.InterfaceBuilder(assembly, typeObject, publicInterface);
+    initializer(interfaceBuilder);
+
+    JSIL.SetValueProperty(publicInterface, "toString", function InterfacePublicInterface_ToString() {
       return "<" + fullName + " Public Interface>";
     });
 
@@ -3650,6 +3654,11 @@ JSIL.InterfaceBuilder.MakeProperty = function (name, target, interfacePrefix) {
 };
 
 JSIL.InterfaceBuilder.prototype.Property = function (_descriptor, name) {
+  if (this.typeObject.IsInterface) {
+    this.typeObject.__Members__[name] = Property;
+    return;
+  }
+
   var descriptor = this.ParseDescriptor(_descriptor, name);
 
   var props = this.typeObject.__Properties__;
@@ -3753,9 +3762,15 @@ JSIL.InterfaceBuilder.prototype.RawMethod = function (isStatic, methodName, fn) 
 };
 
 JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, signature, fn) {
-  var descriptor = this.ParseDescriptor(_descriptor, methodName, signature);
+  var descriptor = this.ParseDescriptor(_descriptor || { Static: false, Public: true }, methodName, signature);
 
   var mangledName = signature.GetKey(descriptor.EscapedName);
+
+  if (this.typeObject.IsInterface) {
+    this.typeObject.__Members__[methodName] = Function;
+    this.typeObject.__Members__[mangledName] = Function;
+    return;
+  }
 
   var fullName = this.namespace + "." + methodName;
   JSIL.SetValueProperty(fn, "toString", 
@@ -4902,30 +4917,39 @@ JSIL.MakeClass("System.Object", "System.ValueType", true, [], function ($) {
   );
 });
 
-JSIL.MakeInterface("System.IDisposable", true, [], {
-  "Dispose": Function
-});
-JSIL.MakeInterface("System.IEquatable`1", true, ["T"], {
-  "Equals": Function
-});
+JSIL.MakeInterface(
+  "System.IDisposable", true, [], function ($) {
+    $.Method(null, "Dispose", (new JSIL.MethodSignature(null, [], [])), null);
+  }, []);
 
-JSIL.MakeInterface("System.Collections.IEnumerator", true, [], {
-  "MoveNext": Function,
-  "get_Current": Function,
-  "Reset": Function,
-  "Current": Property
-});
-JSIL.MakeInterface("System.Collections.IEnumerable", true, [], {
-  "GetEnumerator": Function
-});
+JSIL.MakeInterface(
+  "System.IEquatable`1", true, ["T"], function ($) {
+    $.Method(null, "Equals", (new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [new JSIL.GenericParameter("T", "System.IEquatable`1")], [])), null);
+  }, []);
 
-JSIL.MakeInterface("System.Collections.Generic.IEnumerator`1", true, ["T"], {
-  "get_Current": Function,
-  "Current": Property
-}, ["System.Collections.IEnumerator"]);
-JSIL.MakeInterface("System.Collections.Generic.IEnumerable`1", true, ["T"], {
-  "GetEnumerator": Function
-}, ["System.Collections.IEnumerable"]);
+JSIL.MakeInterface(
+  "System.Collections.IEnumerator", true, [], function ($) {
+    $.Method(null, "MoveNext", (new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [], [])), null);
+    $.Method(null, "get_Current", (new JSIL.MethodSignature($jsilcore.TypeRef("System.Object"), [], [])), null);
+    $.Method(null, "Reset", (new JSIL.MethodSignature(null, [], [])));
+    $.Property(null, "Current");
+  }, []);
+
+JSIL.MakeInterface(
+  "System.Collections.IEnumerable", true, [], function ($) {
+    $.Method(null, "GetEnumerator", (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.IEnumerator"), [], [])), null);
+  }, []);
+
+JSIL.MakeInterface(
+  "System.Collections.Generic.IEnumerator`1", true, ["T"], function ($) {
+    $.Method(null, "get_Current", (new JSIL.MethodSignature(new JSIL.GenericParameter("T", "System.Collections.Generic.IEnumerator`1"), [], [])), null);
+    $.Property(null, "Current");
+  }, [$jsilcore.TypeRef("System.IDisposable"), $jsilcore.TypeRef("System.Collections.IEnumerator")]);
+
+JSIL.MakeInterface(
+  "System.Collections.Generic.IEnumerable`1", true, ["T"], function ($) {
+    $.Method(null, "GetEnumerator", (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IEnumerable`1")]), [], [])), null);
+  }, [$jsilcore.TypeRef("System.Collections.IEnumerable")]);
 
 JSIL.MakeInterface(
   "System.Collections.Generic.ICollection`1", true, ["T"], {

@@ -1129,6 +1129,14 @@ $jsilcore.$ListExternals = function ($, T, type) {
       break;
   }
 
+  $.Method({Static:false, Public:true }, "Insert", 
+    (new JSIL.MethodSignature(null, [$.Int32, new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")], [])), 
+    function Insert (index, item) {
+      this._items.splice(index, 0, item);
+      this._size += 1;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "IndexOf", 
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Int32"), [T], []),
     indexOfImpl
