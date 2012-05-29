@@ -71,12 +71,12 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("Array.prototype.slice.call($this)")]
+        [JSReplacement("JSIL.Array.Clone($this)")]
         public object Clone () {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("$array.splice.apply($array, [$destinationIndex, $this.length].concat($this))")]
+        [JSReplacement("JSIL.Array.CopyTo($this, $array, $destinationIndex)")]
         public void CopyTo (Array array, int destinationIndex) {
             throw new InvalidOperationException();
         }

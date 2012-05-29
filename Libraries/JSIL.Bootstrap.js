@@ -1884,6 +1884,14 @@ JSIL.ImplementExternals("System.Environment", function ($) {
     }
   );
 
+  $.Method({Static:true , Public:true }, "get_NewLine", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_NewLine () {
+      // FIXME: Maybe this should just be \n?
+      return "\r\n";
+    }
+  );
+
 });
 
 JSIL.ImplementExternals("System.Text.Encoding", function ($) {

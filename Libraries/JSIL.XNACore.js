@@ -2770,6 +2770,21 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:false}, "get_IsMouseVisible", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsMouseVisible () {
+      // FIXME
+      return true;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_IsMouseVisible", 
+    (new JSIL.MethodSignature(null, [$.Boolean], [])), 
+    function set_IsMouseVisible (value) {
+      // FIXME
+    }
+  );
+
   $.Method({Static:false, Public:true }, "set_IsFixedTimeStep", 
     (new JSIL.MethodSignature(null, [$.Boolean], [])), 
     function set_IsFixedTimeStep (value) {
@@ -6612,14 +6627,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameWindow", function ($) {
     }
   );
 
-  $.Method({Static:false, Public:false}, "get_IsMouseVisible", 
-    (new JSIL.MethodSignature($.Boolean, [], [])), 
-    function get_IsMouseVisible () {
-      // FIXME
-      return true;
-    }
-  );
-
   $.Method({Static:false, Public:true }, "get_Title", 
     (new JSIL.MethodSignature($.String, [], [])), 
     function get_Title () {
@@ -6631,13 +6638,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameWindow", function ($) {
   $.Method({Static:false, Public:true }, "set_AllowUserResizing", 
     (new JSIL.MethodSignature(null, [$.Boolean], [])), 
     function set_AllowUserResizing (value) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:false, Public:false}, "set_IsMouseVisible", 
-    (new JSIL.MethodSignature(null, [$.Boolean], [])), 
-    function set_IsMouseVisible (value) {
       throw new Error('Not implemented');
     }
   );

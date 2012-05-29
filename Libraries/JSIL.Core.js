@@ -3277,6 +3277,9 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
 
   if (expectedType.IsEnum === true) {
     return expectedTypePublicInterface.CheckType(value);
+  } else if (expectedType.__IsArray__ === true) {
+    // FIXME: Does not assert that array elements are the same type!
+    return JSIL.IsArray(value) || value.GetType().__IsArray__;
   }
 
   if (!bypassCustomCheckMethod) {
@@ -4991,7 +4994,7 @@ JSIL.ImplementExternals("System.Array", function ($) {
   $.RawMethod(true, "CheckType", JSIL.IsArray);
 
   $.RawMethod(true, "Of", function Array_Of () {
-    return $jsilcore.System.Array.Of.apply($jsilcore.System.Array, arguments);
+    return $jsilcore.ArrayOf.apply(null, arguments);
   });
 });
   
@@ -5068,9 +5071,41 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
     return compositePublicInterface;
   };
 
+  $jsilcore.ArrayOf = of;
+
   $.RawMethod(true, "Of$NoInitialize", of);
   $.RawMethod(true, "Of", of);
 });
+
+JSIL.Array.Erase = function Array_Erase (array, elementType) {
+  var elementTypeObject, elementTypePublicInterface;
+
+  if (typeof (elementType.__Type__) === "object") {
+    elementTypeObject = elementType.__Type__;
+    elementTypePublicInterface = elementType;
+  } else if (typeof (elementType.__PublicInterface__) !== "undefined") {
+    elementTypeObject = elementType;
+    elementTypePublicInterface = elementType.__PublicInterface__;
+  }
+
+  var size = array.length;
+
+  if (elementTypeObject.__IsReferenceType__) {
+    for (var i = 0; i < size; i++)
+      array[i] = null;
+  } else if (elementTypeObject.__IsNumeric__) {
+    for (var i = 0; i < size; i++)
+      array[i] = 0;
+  } else if (elementTypeObject.IsEnum) {
+    var defaultValue = elementTypeObject[elementTypeObject.__ValueToName__[0]];
+
+    for (var i = 0; i < size; i++)
+      array[i] = defaultValue;
+  } else {
+    for (var i = 0; i < size; i++)
+      array[i] = new elementTypePublicInterface();
+  }
+};
 
 JSIL.Array.New = function Array_New (elementType, sizeOrInitializer) {
   var elementTypeObject, elementTypePublicInterface;
@@ -5092,21 +5127,7 @@ JSIL.Array.New = function Array_New (elementType, sizeOrInitializer) {
     var size = Number(sizeOrInitializer);
     var result = new Array(size);
 
-    if (elementTypeObject.__IsReferenceType__) {
-      for (var i = 0; i < size; i++)
-        result[i] = null;
-    } else if (elementTypeObject.__IsNumeric__) {
-      for (var i = 0; i < size; i++)
-        result[i] = 0;
-    } else if (elementTypeObject.IsEnum) {
-      var defaultValue = elementTypeObject[elementTypeObject.__ValueToName__[0]];
-
-      for (var i = 0; i < size; i++)
-        result[i] = defaultValue;
-    } else {
-      for (var i = 0; i < size; i++)
-        result[i] = new elementTypePublicInterface();
-    }
+    JSIL.Array.Erase(result, elementType);
   }
 
   /* Even worse, doing this deoptimizes all uses of the array in TraceMonkey. AUGH
@@ -5116,6 +5137,35 @@ JSIL.Array.New = function Array_New (elementType, sizeOrInitializer) {
   */
 
   return result;
+};
+
+JSIL.Array.Clone = function (array) {
+  if (Array.isArray(array)) {
+    return Array.prototype.slice.call(array);
+  } else if (Object.getPrototypeOf(array) === JSIL.MultidimensionalArray.prototype) {
+    return new JSIL.MultidimensionalArray(array._type, array._dimensions, array._items);
+  } else {
+    throw new Error("Invalid array");
+  }
+};
+
+JSIL.Array.CopyTo = function (source, destination, destinationIndex) {
+  var srcArray, destArray;
+
+  if (Array.isArray(source))
+    srcArray = source;
+  else if (Object.getPrototypeOf(source) === JSIL.MultidimensionalArray.prototype)
+    srcArray = source._items;
+
+  if (Array.isArray(destination))
+    destArray = destination;
+  else if (Object.getPrototypeOf(destination) === JSIL.MultidimensionalArray.prototype)
+    destArray = destination._items;
+
+  var size = srcArray.length;
+
+  for (var i = 0; i < size; i++)
+    destArray[i + destinationIndex] = srcArray[i];
 };
 
 JSIL.Array.ShallowCopy = function (destination, source) {
@@ -5148,20 +5198,16 @@ JSIL.MakeClass("System.Array", "JSIL.MultidimensionalArray", true, [], function 
       for (var i = 1; i < dimensions.length; i++)
         totalSize *= dimensions[i];
 
+      this._type = type;
       this._dimensions = dimensions;
       var items = this._items = new Array(totalSize);
 
       JSIL.SetValueProperty(this, "length", totalSize);
 
-      var defaultValue = null;
-      if (type.__IsNumeric__)
-        defaultValue = 0;
-
       if (JSIL.IsArray(initializer)) {
         JSIL.Array.ShallowCopy(items, initializer);
       } else {
-        for (var i = 0; i < totalSize; i++)
-          items[i] = defaultValue;
+        JSIL.Array.Erase(items, type);
       }
 
       switch (dimensions.length) {
@@ -5252,7 +5298,7 @@ JSIL.MakeClass("System.Array", "JSIL.MultidimensionalArray", true, [], function 
     }
   );
 
-
+  $.SetValue("__IsArray__", true);
 });
 
 JSIL.ImplementExternals(
