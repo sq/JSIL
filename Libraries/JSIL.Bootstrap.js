@@ -1084,7 +1084,6 @@ $jsilcore.$ListExternals = function ($, T, type) {
 
   );
 
-
   var getEnumeratorImpl = function () {
     // Detect whether we are a List<T> or an ArrayList.
     if (typeof(this.$thisEnumeratorType) === "undefined") {
@@ -1128,6 +1127,14 @@ $jsilcore.$ListExternals = function ($, T, type) {
       );
       break;
   }
+
+  $.Method({Static:false, Public:true }, "Insert", 
+    (new JSIL.MethodSignature(null, [$.Int32, new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")], [])), 
+    function Insert (index, item) {
+      this._items.splice(index, 0, item);
+      this._size += 1;
+    }
+  );
 
   $.Method({Static:false, Public:true }, "IndexOf", 
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Int32"), [T], []),
@@ -1234,14 +1241,6 @@ JSIL.ImplementExternals("System.Collections.Generic.List`1", function ($) {
       }
       JSIL.Array.ShallowCopy(array, this);
     }
-  );
-
-  $.Method({ Static:false, Public:true }, "Insert", 
-   new JSIL.MethodSignature(null, [$.Int32, new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")], []),
-   function (index, item) { 
-     this._items.splice(index, 0, item);
-     this._size += 1;
-   }
   );
 
   $.Method({Static:false, Public:true }, "ICollection$b1_get_IsReadOnly",
