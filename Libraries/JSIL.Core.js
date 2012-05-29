@@ -3020,6 +3020,10 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
   var assembly = $private;
   var localName = JSIL.GetLocalName(fullName);
 
+  if (typeof (initializer) !== "function") {
+    throw new Error("Non-function initializer passed to MakeInterface");
+  }
+
   var callStack = null;
   if (typeof (printStackTrace) === "function")
     callStack = printStackTrace();
@@ -4952,33 +4956,36 @@ JSIL.MakeInterface(
   }, [$jsilcore.TypeRef("System.Collections.IEnumerable")]);
 
 JSIL.MakeInterface(
-  "System.Collections.Generic.ICollection`1", true, ["T"], {
-      "get_Count": Function,
-      "get_IsReadOnly": Function,
-      "Add": Function,
-      "Clear": Function,
-      "Contains": Function,
-      "CopyTo": Function,
-      "Remove": Function,
-      "Count": Property,
-      "IsReadOnly": Property
-  },  
-  [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")]),
-  $jsilcore.TypeRef("System.Collections.IEnumerable")]
-  );
+  "System.Collections.Generic.ICollection`1", true, ["T"], function ($) {
+    $.Method(null, "get_Count", (new JSIL.MethodSignature($.Int32, [], [])), null);
+    $.Method(null, "get_IsReadOnly", (new JSIL.MethodSignature($.Boolean, [], [])), null);
+    $.Method(null, "Add", (new JSIL.MethodSignature(null, [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")], [])), null);
+    $.Method(null, "Clear", (new JSIL.MethodSignature(null, [], [])), null);
+    $.Method(null, "Contains", (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")], [])), null);
+    $.Method(null, "CopyTo", (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")]), $.Int32], [])), null);
+    $.Method(null, "Remove", (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")], [])), null);
+    $.Property(null, "Count");
+    $.Property(null, "IsReadOnly");
+  }, [
+    $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")]), 
+    $jsilcore.TypeRef("System.Collections.IEnumerable")
+  ]
+);
 
-  JSIL.MakeInterface(
-  "System.Collections.Generic.IList`1", true, ["T"], {
-      "get_Item": Function,
-      "set_Item": Function,
-      "IndexOf": Function,
-      "Insert": Function,
-      "RemoveAt": Function,
-      "Item" : Property
-  },
-  [$jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")]),
-   $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")]),
-   $jsilcore.TypeRef("System.Collections.IEnumerable")]);
+JSIL.MakeInterface(
+  "System.Collections.Generic.IList`1", true, ["T"], function ($) {
+    $.Method(null, "get_Item", (new JSIL.MethodSignature(new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1"), [$.Int32], [])), null);
+    $.Method(null, "set_Item", (new JSIL.MethodSignature(null, [$.Int32, new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")], [])), null);
+    $.Method(null, "IndexOf", (new JSIL.MethodSignature($.Int32, [new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")], [])), null);
+    $.Method(null, "Insert", (new JSIL.MethodSignature(null, [$.Int32, new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")], [])), null);
+    $.Method(null, "RemoveAt", (new JSIL.MethodSignature(null, [$.Int32], [])), null);
+    $.Property(null, "Item");
+  }, [
+    $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")]), 
+    $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")]), 
+    $jsilcore.TypeRef("System.Collections.IEnumerable")
+  ]
+);
 
 JSIL.ImplementExternals("System.Array", function ($) {
   $.RawMethod(true, "CheckType", JSIL.IsArray);
