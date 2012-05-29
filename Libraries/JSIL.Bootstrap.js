@@ -2946,6 +2946,23 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "AppendLine", 
+    (new JSIL.MethodSignature($asms[5].TypeRef("System.Text.StringBuilder"), [], [])), 
+    function AppendLine () {
+      appendString(this, "\r\n", 0, 2, 1);
+      return this;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "AppendLine", 
+    (new JSIL.MethodSignature($asms[5].TypeRef("System.Text.StringBuilder"), [$.String], [])), 
+    function AppendLine (value) {
+      appendString(this, value, 0, value.length, 1);
+      appendString(this, "\r\n", 0, 2, 1);
+      return this;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "Clear", 
     (new JSIL.MethodSignature($.Type, [], [])), 
     function Clear () {

@@ -775,14 +775,14 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
   );
 
   var getAttributeByName = function GetAttribute (name) {
-    if (this._current.hasAttribute(name))
+    if (this._current.hasAttribute && this._current.hasAttribute(name))
       return this._current.getAttribute(name);
 
     return null;
   };
 
   var getAttributeByNameNS = function GetAttribute (name, namespaceURI) {
-    if (this._current.hasAttributeNS(namespaceURI, name))
+    if (this._current.hasAttributeNS && this._current.hasAttributeNS(namespaceURI, name))
       return this._current.getAttributeNS(namespaceURI, name);
 
     return null;

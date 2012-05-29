@@ -108,6 +108,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>copy "$(ProjectDir)\..\Upstream\Spidermonkey\*.*" "$(OutDir)"
+copy "$(ProjectDir)\..\Upstream\PNGQuant\*.dll" "$(OutDir)"
 copy "$(ProjectDir)\..\Upstream\PNGQuant\*.exe" "$(OutDir)"</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
