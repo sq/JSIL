@@ -276,19 +276,11 @@ JSIL.ImplementExternals("System.Windows.Forms.TabControl", function ($) {
 
 JSIL.ImplementExternals("System.Windows.Forms.Screen", function ($) {
   var getBoundsImpl = function () {
-    var canvas = null;
+    var canvas = JSIL.Host.getCanvas();
 
-    if (JSIL.Host.getCanvas)
-      canvas = JSIL.Host.getCanvas();
-
-    if (canvas)
-      return new System.Drawing.Rectangle(
-        0, 0, canvas.width, canvas.height
-      );
-    else
-      return new System.Drawing.Rectangle(
-        0, 0, document.clientWidth, document.clientHeight
-      );
+    return new System.Drawing.Rectangle(
+      0, 0, canvas.width, canvas.height
+    );
   };
 
   $.Method({Static:false, Public:true }, "get_Bounds", 

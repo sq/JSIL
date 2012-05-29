@@ -2766,7 +2766,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     (new JSIL.MethodSignature($xnaasms[1].TypeRef("Microsoft.Xna.Framework.GameWindow"), [], [])), 
     function get_Window () {
       // FIXME
-      return {};
+      return Object.create(Microsoft.Xna.Framework.GameWindow.prototype);
     }
   );
 
@@ -6582,4 +6582,70 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageDevice", functio
     }
   );
 
+});
+
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.GameWindow", function ($) {
+  $.Method({Static:false, Public:false}, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_ClientBounds", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle"), [], [])), 
+    function get_ClientBounds () {
+      // FIXME
+      var canvas = JSIL.Host.getCanvas();
+
+      return new Microsoft.Xna.Framework.Rectangle(
+        0, 0, canvas.width, canvas.height
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "get_IsMinimized", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsMinimized () {
+      // FIXME
+      return false;
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "get_IsMouseVisible", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsMouseVisible () {
+      // FIXME
+      return true;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Title", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_Title () {
+      // FIXME
+      return "";
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_AllowUserResizing", 
+    (new JSIL.MethodSignature(null, [$.Boolean], [])), 
+    function set_AllowUserResizing (value) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "set_IsMouseVisible", 
+    (new JSIL.MethodSignature(null, [$.Boolean], [])), 
+    function set_IsMouseVisible (value) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Title", 
+    (new JSIL.MethodSignature(null, [$.String], [])), 
+    function set_Title (value) {
+      throw new Error('Not implemented');
+    }
+  );
 });
