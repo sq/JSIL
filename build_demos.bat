@@ -7,4 +7,5 @@ JSILc "C:\Users\Kevin\Documents\Projects\PlatformerStarterKit\PlatformerStarterK
 JSILc "C:\Users\Kevin\Documents\Projects\RPGStarterKit\RolePlayingGameWindows.sln" "C:\Users\Kevin\Documents\Projects\JSIL\jsil.org\demos\RPG\RPG.jsilconfig" --platform="Mixed Platforms" --configuration=Debug
 JSILc "C:\Users\Kevin\Documents\Projects\lumberjack\LumberjackPC.sln" "C:\Users\Kevin\Documents\Projects\lumberjack\Lumberjack\Lumberjack\bin\x86\Debug\Lumberjack.XmlSerializers.dll" "C:\Users\Kevin\Documents\Projects\JSIL\jsil.org\demos\Lumberjack\Lumberjack.jsilconfig" --platform:x86 --configuration:Debug
 JSILc "C:\Users\Kevin\Documents\Projects\XNAVERGE\Sully.sln" "C:\Users\Kevin\Documents\Projects\JSIL\jsil.org\demos\Sully\Sully.jsilconfig" --platform:x86 --configuration:Debug
+JSILc "C:\Users\Kevin\Documents\Projects\Soulcaster\SoulcasterHTML5.sln" "C:\Users\Kevin\Documents\Projects\Soulcaster\Soulcaster2\Soulcaster2\bin\x86\DebugPC\TarchonData.XmlSerializers.dll" "C:\Users\Kevin\Documents\Projects\JSIL\jsil.org\demos\Soulcaster\Soulcaster.jsilconfig" --platform:x86 --configuration:DebugPC
 popd

@@ -329,8 +329,115 @@ public static class Common {
         }
     }
 
-    public static CompressResult? CompressImage (string imageName, string sourceFolder, string outputFolder, Dictionary<string, object> settings, CompressResult? oldResult) {
-        const int CompressVersion = 3;
+    private static System.Drawing.Bitmap LoadBitmap (string filename, out bool hasAlphaChannel, out System.Drawing.Color? existingColorKeyColor) {
+        existingColorKeyColor = null;
+
+        switch (Path.GetExtension(filename).ToLower()) {
+            case ".bmp":
+                var hImage = LoadImage(IntPtr.Zero, filename, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+                var texture = System.Drawing.Image.FromHbitmap(hImage);
+                try {
+                    switch (texture.PixelFormat) {
+                        case PixelFormat.Gdi:
+                        case PixelFormat.Extended:
+                        case PixelFormat.Canonical:
+                        case PixelFormat.Undefined:
+                        case PixelFormat.Format16bppRgb555:
+                        case PixelFormat.Format16bppRgb565:
+                        case PixelFormat.Format24bppRgb:
+                            hasAlphaChannel = false;
+                            return texture;
+
+                        case PixelFormat.Format32bppArgb:
+                        case PixelFormat.Format32bppPArgb:
+                        case PixelFormat.Format32bppRgb: {
+                            // Do an elaborate song and dance to extract the alpha channel from the PNG, because
+                            //  GDI+ is too utterly shitty to do that itself
+                                var dc = CreateCompatibleDC(IntPtr.Zero);
+
+                                var newImage = new System.Drawing.Bitmap(
+                                    texture.Width, texture.Height, PixelFormat.Format32bppArgb
+                                );
+                                var bits = newImage.LockBits(
+                                    new System.Drawing.Rectangle(0, 0, texture.Width, texture.Height),
+                                    ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb
+                                );
+
+                                var info = new BITMAPINFO {
+                                    biBitCount = 32,
+                                    biClrImportant = 0,
+                                    biClrUsed = 0,
+                                    biCompression = 0,
+                                    biHeight = -texture.Height,
+                                    biPlanes = 1,
+                                    biSizeImage = bits.Stride * bits.Height,
+                                    biWidth = bits.Width,
+                                };
+                                info.biSize = Marshal.SizeOf(info);
+
+                                var rv = GetDIBits(dc, hImage, 0, (uint)texture.Height, bits.Scan0, ref info, 0);
+
+                                newImage.UnlockBits(bits);
+
+                                DeleteObject(dc);
+
+                                texture.Dispose();
+                                hasAlphaChannel = true;
+                                return newImage;
+                            }
+
+                        default:
+                            Console.Error.WriteLine("// Unsupported bitmap format: '{0}' {1}", Path.GetFileNameWithoutExtension(filename), texture.PixelFormat);
+                            texture.Dispose();
+                            hasAlphaChannel = false;
+                            return null;
+                    }
+                } finally {
+                    DeleteObject(hImage);
+                }
+
+            default: {
+                var result = (System.Drawing.Bitmap)System.Drawing.Image.FromFile(filename, true);
+
+                switch (result.PixelFormat) {
+                    case PixelFormat.Format8bppIndexed:
+                    case PixelFormat.Format4bppIndexed:
+                    case PixelFormat.Format1bppIndexed:
+                    case PixelFormat.Indexed:
+                        var palette = result.Palette;
+
+                        for (var i = 0; i < palette.Entries.Length; i++) {
+                            if (palette.Entries[i].A < 255) {
+                                existingColorKeyColor = palette.Entries[i];
+                                break;
+                            }
+                        }
+
+                        hasAlphaChannel = (existingColorKeyColor.HasValue);
+                        break;
+
+                    case PixelFormat.Format32bppArgb:
+                    case PixelFormat.Format32bppPArgb:
+                        hasAlphaChannel = true;
+                        break;
+
+                    default:
+                        hasAlphaChannel = false;
+                        break;
+                }
+
+                return result;
+            }
+        }
+    }
+
+    public static CompressResult? CompressImage (
+        string imageName, string sourceFolder, 
+        string outputFolder, Dictionary<string, object> settings, 
+        Dictionary<string, ProjectMetadata> itemMetadata,
+        CompressResult? oldResult
+    ) {
+        const int CompressVersion = 4;
 
         EnsureDirectoryExists(outputFolder);
 
@@ -345,106 +452,68 @@ public static class Common {
         var outputPath = Path.Combine(outputFolder, Path.GetFileNameWithoutExtension(imageName));
         var justCopy = true;
 
-        Action<System.Drawing.Bitmap> saveJpeg = (bitmap) => {
+        Action<System.Drawing.Bitmap, String> saveJpeg = (bitmap, path) => {
             var encoder = GetEncoder(ImageFormat.Jpeg);
             var encoderParameters = new System.Drawing.Imaging.EncoderParameters(1);
             encoderParameters.Param[0] = new EncoderParameter(
                 System.Drawing.Imaging.Encoder.Quality,
                 Convert.ToInt64(settings["JPEGQuality"])
             );
-            bitmap.Save(outputPath, encoder, encoderParameters);
+            bitmap.Save(path, encoder, encoderParameters);
         };
 
-        if (forceJpeg) {
-            justCopy = false;
-            outputPath += ".jpg";
+        bool colorKey = true;
+        var colorKeyColor = System.Drawing.Color.FromArgb(255, 255, 0, 255);
 
-            using (var img = (System.Drawing.Bitmap)System.Drawing.Image.FromFile(sourcePath))
-                saveJpeg(img);
-        } else {
-            switch (Path.GetExtension(imageName).ToLower()) {
-                case ".jpg":
-                case ".jpeg":
-                    outputPath += ".jpg";
-                    break;
-
-                case ".bmp":
-                    justCopy = false;
-
-                    var hImage = LoadImage(IntPtr.Zero, sourcePath, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-                    try {
-                        using (var texture = (System.Drawing.Bitmap)System.Drawing.Image.FromHbitmap(hImage)) {
-                            switch (texture.PixelFormat) {
-                                case PixelFormat.Gdi:
-                                case PixelFormat.Extended:
-                                case PixelFormat.Canonical:
-                                case PixelFormat.Undefined:
-                                case PixelFormat.Format16bppRgb555:
-                                case PixelFormat.Format16bppRgb565:
-                                case PixelFormat.Format24bppRgb:
-                                    outputPath += ".jpg";
-                                    saveJpeg(texture);
-                                    break;
-
-                                case PixelFormat.Format32bppArgb:
-                                case PixelFormat.Format32bppPArgb:
-                                case PixelFormat.Format32bppRgb: {
-                                    // Do an elaborate song and dance to extract the alpha channel from the PNG, because
-                                    //  GDI+ is too utterly shitty to do that itself
-                                        var dc = CreateCompatibleDC(IntPtr.Zero);
-
-                                        var newImage = new System.Drawing.Bitmap(
-                                            texture.Width, texture.Height, PixelFormat.Format32bppArgb
-                                        );
-                                        var bits = newImage.LockBits(
-                                            new System.Drawing.Rectangle(0, 0, texture.Width, texture.Height),
-                                            ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb
-                                        );
-
-                                        var info = new BITMAPINFO {
-                                            biBitCount = 32,
-                                            biClrImportant = 0,
-                                            biClrUsed = 0,
-                                            biCompression = 0,
-                                            biHeight = -texture.Height,
-                                            biPlanes = 1,
-                                            biSizeImage = bits.Stride * bits.Height,
-                                            biWidth = bits.Width,
-                                        };
-                                        info.biSize = Marshal.SizeOf(info);
-
-                                        var rv = GetDIBits(dc, hImage, 0, (uint)texture.Height, bits.Scan0, ref info, 0);
-
-                                        newImage.UnlockBits(bits);
-
-                                        DeleteObject(dc);
-
-                                        outputPath += ".png";
-                                        newImage.Save(outputPath, ImageFormat.Png);
-                                        newImage.Dispose();
-
-                                        break;
-                                    }
-
-                                default:
-                                    Console.Error.WriteLine("// Unsupported bitmap format: '{0}' {1}", Path.GetFileNameWithoutExtension(imageName), texture.PixelFormat);
-                                    return null;
-                            }
-                        }
-                    } finally {
-                        DeleteObject(hImage);
-                    }
-                    break;
-
-                case ".png":
-                default:
-                    outputPath += Path.GetExtension(imageName);
-                    break;
-            }
+        if (itemMetadata.ContainsKey("ProcessorParameters_ColorKeyEnabled")) {
+            colorKey = Convert.ToBoolean(itemMetadata["ProcessorParameters_ColorKeyEnabled"].EvaluatedValue);
         }
 
-        if (justCopy)
+        if (itemMetadata.ContainsKey("ProcessorParameters_ColorKeyColor")) {
+            var parts = itemMetadata["ProcessorParameters_ColorKeyColor"].EvaluatedValue.Split(new[] { "," }, StringSplitOptions.RemoveEmptyEntries);
+            colorKeyColor = System.Drawing.Color.FromArgb(
+                Convert.ToInt32(parts[3]),
+                Convert.ToInt32(parts[0]),
+                Convert.ToInt32(parts[1]),
+                Convert.ToInt32(parts[2])
+            );
+        }
+
+        justCopy &= !colorKey;
+
+        if (forceJpeg) {
+            outputPath += ".jpg";
+
+            bool temp;
+            System.Drawing.Color? temp2;
+            using (var img = LoadBitmap(sourcePath, out temp, out temp2))
+                saveJpeg(img, outputPath);
+        } else if (justCopy) {
+            outputPath += Path.GetExtension(sourcePath);
+
             File.Copy(sourcePath, outputPath, true);
+        } else {
+            bool hasAlphaChannel;
+            System.Drawing.Color? existingColorKey;
+
+            using (var img = LoadBitmap(sourcePath, out hasAlphaChannel, out existingColorKey)) {
+                if (hasAlphaChannel || colorKey || existingColorKey.HasValue)
+                    outputPath += ".png";
+                else
+                    outputPath += ".jpg";
+
+                if (existingColorKey.HasValue)
+                    img.MakeTransparent(existingColorKey.Value);
+
+                if (colorKey)
+                    img.MakeTransparent(colorKeyColor);
+
+                if (hasAlphaChannel || colorKey || existingColorKey.HasValue)
+                    img.Save(outputPath, ImageFormat.Png);
+                else
+                    saveJpeg(img, outputPath);
+            }
+        }
 
         bool usePNGQuant = Convert.ToBoolean(settings["UsePNGQuant"]);
         var pngQuantParameters = String.Format(
@@ -819,6 +888,7 @@ public static class Common {
                             );
 
                             continue;
+
                         case "FontTextureProcessor":
                         case "FontDescriptionProcessor":
                             copyRawXnb(item, xnbPath, "SpriteFont");
@@ -840,7 +910,7 @@ public static class Common {
 
                             var result = Common.CompressImage(
                                 item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
-                                configuration.ProfileSettings, existingJournalEntry
+                                configuration.ProfileSettings, metadata, existingJournalEntry
                             );
 
                             if (result.HasValue) {
