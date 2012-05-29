@@ -849,26 +849,6 @@ JSIL.TypeRef.prototype.get = function () {
   return this.cachedReference;
 };
 
-JSIL.DefaultValue = function (type) {
-  var typeObject, typePublicInterface;
-
-  if (typeof (type.__Type__) === "object") {
-    typeObject = type.__Type__;
-    typePublicInterface = type;
-  } else if (typeof (type.__PublicInterface__) !== "undefined") {
-    typeObject = type;
-    typePublicInterface = type.__PublicInterface__;
-  }
-
-  if (typeObject.__IsNativeType__ || false) {
-    return new typePublicInterface();
-  } else if (typeObject.__IsReferenceType__) {
-    return null;
-  } else {
-    return Object.create(typePublicInterface.prototype);
-  }
-};
-
 JSIL.CloneObject = function (obj) {
   if ((typeof (obj) === "undefined") || (obj === null))
     throw new Error("Cloning a non-object");
@@ -3979,19 +3959,25 @@ JSIL.MethodSignature.prototype.Construct = function (type /*, ...parameters */) 
       );
     }
 
+    var ctorResult;
+
     if (argc === 1) {
-      ctor.call(result);
+      ctorResult = ctor.call(result);
     } else if (argc === 2) {
-      ctor.call(result, arguments[1]);
+      ctorResult = ctor.call(result, arguments[1]);
     } else if (argc === 3) {
-      ctor.call(result, arguments[1], arguments[2]);
+      ctorResult = ctor.call(result, arguments[1], arguments[2]);
     } else if (argc === 4) {
-      ctor.call(result, arguments[1], arguments[2], arguments[3]);
+      ctorResult = ctor.call(result, arguments[1], arguments[2], arguments[3]);
     } else if (argc === 5) {
-      ctor.call(result, arguments[1], arguments[2], arguments[3], arguments[4]);
+      ctorResult = ctor.call(result, arguments[1], arguments[2], arguments[3], arguments[4]);
     } else {
-      ctor.apply(result, Array.prototype.slice.call(arguments, 1));
+      ctorResult = ctor.apply(result, Array.prototype.slice.call(arguments, 1));
     }
+
+    // Handle wacky constructors that return a non-this reference (like new String(chars) )
+    if (ctorResult && (ctorResult !== result))
+      return ctorResult;
   }
 
   return result;
@@ -5077,6 +5063,34 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
   $.RawMethod(true, "Of", of);
 });
 
+JSIL.DefaultValueInternal = function (typeObject, typePublicInterface) {
+  if (typeObject.__FullName__ === "System.Char") {
+    return "\0";
+  } else if (typeObject.__IsReferenceType__) {
+    return null;
+  } else if (typeObject.__IsNumeric__) {
+    return 0;
+  } else if (typeObject.IsEnum) {
+    return typeObject[typeObject.__ValueToName__[0]];
+  } else {
+    return new typePublicInterface();
+  }
+};
+
+JSIL.DefaultValue = function (type) {
+  var typeObject, typePublicInterface;
+
+  if (typeof (type.__Type__) === "object") {
+    typeObject = type.__Type__;
+    typePublicInterface = type;
+  } else if (typeof (type.__PublicInterface__) !== "undefined") {
+    typeObject = type;
+    typePublicInterface = type.__PublicInterface__;
+  }
+
+  return JSIL.DefaultValueInternal(typeObject, typePublicInterface);
+};
+
 JSIL.Array.Erase = function Array_Erase (array, elementType) {
   var elementTypeObject, elementTypePublicInterface;
 
@@ -5090,20 +5104,14 @@ JSIL.Array.Erase = function Array_Erase (array, elementType) {
 
   var size = array.length;
 
-  if (elementTypeObject.__IsReferenceType__) {
+  if (elementTypeObject.__IsStruct__) {
     for (var i = 0; i < size; i++)
-      array[i] = null;
-  } else if (elementTypeObject.__IsNumeric__) {
-    for (var i = 0; i < size; i++)
-      array[i] = 0;
-  } else if (elementTypeObject.IsEnum) {
-    var defaultValue = elementTypeObject[elementTypeObject.__ValueToName__[0]];
-
+      array[i] = JSIL.DefaultValueInternal(elementTypeObject, elementTypePublicInterface);
+  } else {
+    var defaultValue = JSIL.DefaultValueInternal(elementTypeObject, elementTypePublicInterface)
+    
     for (var i = 0; i < size; i++)
       array[i] = defaultValue;
-  } else {
-    for (var i = 0; i < size; i++)
-      array[i] = new elementTypePublicInterface();
   }
 };
 

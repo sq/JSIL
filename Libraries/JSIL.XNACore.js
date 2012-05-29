@@ -58,7 +58,7 @@ $jsilxna.get2DContext = function (canvas, enableWebGL) {
   var hasWebGL = typeof (WebGL2D) !== "undefined";
   var extraMessage = "";
 
-  if (hasWebGL && enableWebGL) {
+  if (hasWebGL && enableWebGL && (AllowWebGL !== false)) {
     if (!$jsilxna.testedWebGL) {
       try {
         var testCanvas = document.createElement("canvas");
@@ -3689,13 +3689,29 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
   $.Method({Static:false, Public:true }, "Contains", 
     (new JSIL.MethodSignature($.Boolean, [$.Int32, $.Int32], [])), 
     function Contains (x, y) {
-      return this.X <= x && x < this.X + this.Width && this.Y <= y && y < this.Y + this.Height;
+      return this.X <= x && 
+        x < this.X + this.Width && 
+        this.Y <= y && 
+        y < this.Y + this.Height;
     }
   );
   $.Method({Static:false, Public:true }, "Contains", 
     (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Point")], [])), 
     function Contains (value) {
-      return this.X <= value.X && value.X < this.X + this.Width && this.Y <= value.Y && value.Y < this.Y + this.Height;
+      return this.X <= value.X && 
+        value.X < this.X + this.Width && 
+        this.Y <= value.Y && 
+        value.Y < this.Y + this.Height;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Contains", 
+    (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")], [])), 
+    function Contains (value) {
+      return this.X <= value.X && 
+        value.X + value.Width <= this.X + this.Width && 
+        this.Y <= value.Y && 
+        value.Y + value.Height <= this.Y + this.Height;
     }
   );
 

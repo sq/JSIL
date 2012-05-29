@@ -71,7 +71,12 @@ JSIL.ImplementExternals(
 JSIL.MakeNumericType(Number, "System.Byte", true);
 
 $jsilcore.$ParseInt = function (text) {
-  return Math.abs(parseInt(text, 10));
+  var result = parseInt(text, 10);
+
+  if (isNaN(result))
+    throw new System.Exception("Invalid integer");
+
+  return result;
 };
 $jsilcore.$TryParseInt = function (text, result) {
   result.value = parseInt(text, 10);
@@ -1084,7 +1089,6 @@ $jsilcore.$ListExternals = function ($, T, type) {
 
   );
 
-
   var getEnumeratorImpl = function () {
     // Detect whether we are a List<T> or an ArrayList.
     if (typeof(this.$thisEnumeratorType) === "undefined") {
@@ -1206,6 +1210,24 @@ $jsilcore.$ListExternals = function ($, T, type) {
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Comparison`1", [T])], []),
     function (comparison) {
       this._items.sort(comparison);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Sort", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.IComparer")], [])), 
+    function Sort (comparer) {
+      this._items.sort(function (lhs, rhs) {
+        return comparer.Compare(lhs, rhs);
+      });
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Sort", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.IComparer`1", [T])], [])), 
+    function Sort (comparer) {
+      this._items.sort(function (lhs, rhs) {
+        return comparer.Compare(lhs, rhs);
+      });
     }
   );
 
