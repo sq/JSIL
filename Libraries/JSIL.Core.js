@@ -5516,11 +5516,6 @@ JSIL.StringToCharArray = function (text) {
 var $equalsSignature = new JSIL.MethodSignature("System.Boolean", ["System.Object"], [], $jsilcore);
 
 JSIL.ObjectEquals = function (lhs, rhs) {
-  var key = $equalsSignature.GetKey("Equals");
-
-  if (key in lhs)
-    return $equalsSignature.CallVirtual("Equals", null, lhs, rhs);
-
   if (lhs === rhs)
     return true;
 
@@ -5528,6 +5523,14 @@ JSIL.ObjectEquals = function (lhs, rhs) {
     case "string":
     case "number":
       return lhs == rhs;
+      break;
+
+    case "object":
+      var key = $equalsSignature.GetKey("Equals");
+
+      if (key in lhs)
+        return $equalsSignature.CallVirtual("Equals", null, lhs, rhs);
+
       break;
   }
 

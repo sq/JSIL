@@ -4574,12 +4574,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         originalImage = texture.image;
 
       var _spriteEffects = Microsoft.Xna.Framework.Graphics.SpriteEffects;
-      var flipHorizontally = Number(_spriteEffects.FlipHorizontally);
-      var flipVertically = Number(_spriteEffects.FlipVertically);
+      var flipHorizontally = _spriteEffects.FlipHorizontally;
+      var flipVertically = _spriteEffects.FlipVertically;
 
       effects = effects || _spriteEffects.None;
 
-      if ((effects & flipHorizontally) === flipHorizontally) {
+      if ((effects & flipHorizontally) == flipHorizontally) {
         if (!needRestore) 
           this.device.context.save();
         needRestore = true;
@@ -4588,7 +4588,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         positionX = -positionX;
       }
 
-      if ((effects & flipVertically) === flipVertically) {
+      if ((effects & flipVertically) == flipVertically) {
         if (!needRestore) 
           this.device.context.save();
         needRestore = true;
