@@ -2148,9 +2148,11 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
   var mscorlib = JSIL.GetCorlib();
 
   $.RawMethod(false, "$getHash", function (key) {
-    if ((typeof (key) !== "undefined") && (key !== null) && (typeof (key.GetHashCode) === "function") && (key.GetHashCode.__IsPlaceholder__ !== true)) {
+    var keyType = typeof key;
+
+    if ((keyType !== "undefined") && (key !== null) && (typeof (key.GetHashCode) === "function") && (key.GetHashCode.__IsPlaceholder__ !== true)) {
       return key.GetHashCode();
-    } else if ((typeof (key) === "string") || (typeof (key) === "number")) {
+    } else if ((keyType === "string") || (keyType === "number")) {
       return String(key);
     } else {
       return "nohash";

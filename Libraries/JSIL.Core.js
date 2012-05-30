@@ -5515,8 +5515,7 @@ var $equalsSignature = new JSIL.MethodSignature("System.Boolean", ["System.Objec
 JSIL.ObjectEquals = function (lhs, rhs) {
   var key = $equalsSignature.GetKey("Equals");
 
-  var impl = lhs[key];
-  if (typeof (impl) === "function")
+  if (key in lhs)
     return $equalsSignature.CallVirtual("Equals", null, lhs, rhs);
 
   if (lhs === rhs)

@@ -52,13 +52,14 @@ $jsilxna.graphicsRef = function (name) {
     return $xnaasms.xna.TypeRef(name);
 };
 
+$jsilxna.allowWebGL = true;
 $jsilxna.testedWebGL = false;
 $jsilxna.workingWebGL = false;
 $jsilxna.get2DContext = function (canvas, enableWebGL) {
   var hasWebGL = typeof (WebGL2D) !== "undefined";
   var extraMessage = "";
 
-  if (hasWebGL && enableWebGL && (AllowWebGL !== false)) {
+  if (hasWebGL && enableWebGL && ($jsilxna.allowWebGL !== false)) {
     if (!$jsilxna.testedWebGL) {
       try {
         var testCanvas = document.createElement("canvas");
@@ -4559,10 +4560,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         originalImage = texture.image;
 
       var _spriteEffects = Microsoft.Xna.Framework.Graphics.SpriteEffects;
+      var flipHorizontally = Number(_spriteEffects.FlipHorizontally);
+      var flipVertically = Number(_spriteEffects.FlipVertically);
 
       effects = effects || _spriteEffects.None;
 
-      if ((effects & _spriteEffects.FlipHorizontally) == _spriteEffects.FlipHorizontally) {
+      if ((effects & flipHorizontally) === flipHorizontally) {
         if (!needRestore) 
           this.device.context.save();
         needRestore = true;
@@ -4571,7 +4574,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         positionX = -positionX;
       }
 
-      if ((effects & _spriteEffects.FlipVertically) == _spriteEffects.FlipVertically) {
+      if ((effects & flipVertically) === flipVertically) {
         if (!needRestore) 
           this.device.context.save();
         needRestore = true;

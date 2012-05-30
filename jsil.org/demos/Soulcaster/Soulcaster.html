@@ -41,9 +41,6 @@
     </span></center><br></div>
 
     <script type="text/javascript">
-      // The render target based upscaling causes severe performance degradation in WebGL
-      var AllowWebGL = false;
-
       var scriptRoot = "";
       var libraryRoot = "../Libraries/";
       var fileRoot = "Soulcaster2Content/";
@@ -66,6 +63,9 @@
           document.getElementById("welcomeMessage").setAttribute("style", "display: none");
         } catch (ex) {
         }
+
+        // The render target based upscaling causes severe performance degradation in WebGL
+        $jsilxna.allowWebGL = false;
 
         // We can't invoke Main() since it disposes the Game immediately, breaking everything.
         var asm = JSIL.GetAssembly("Soulcaster2");

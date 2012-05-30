@@ -536,13 +536,15 @@ public static class Common {
             byte[] result;
             string stderr;
 
-            RunProcess(
+            var exitCode = RunProcess(
                 pngQuantPath, pngQuantParameters,
                 File.ReadAllBytes(outputPath),
                 out stderr, out result
             );
 
-            if (!String.IsNullOrWhiteSpace(stderr)) {
+            var outputLength = new FileInfo(outputPath).Length;
+
+            if (!String.IsNullOrWhiteSpace(stderr) || (outputLength <= 0) || (exitCode != 0)) {
                 Console.Error.WriteLine("// PNGquant failed with error output: {0}", stderr);
                 Console.Error.WriteLine("// Using uncompressed PNG.");
             } else {
@@ -553,7 +555,7 @@ public static class Common {
         return MakeCompressResult(CompressVersion, null, outputPath, sourcePath, sourceInfo);
     }
 
-    private static void RunProcess (string filename, string parameters, byte[] stdin, out string stderr, out byte[] stdout) {
+    private static int RunProcess (string filename, string parameters, byte[] stdin, out string stderr, out byte[] stdout) {
         var psi = new ProcessStartInfo(filename, parameters);
 
         psi.WorkingDirectory = Path.GetDirectoryName(filename);
@@ -594,7 +596,11 @@ public static class Common {
             process.WaitForExit();
             stderr = temp[0];
 
+            var exitCode = process.ExitCode;
+
             process.Close();
+
+            return exitCode;
         }
     }
 
@@ -791,6 +797,9 @@ public static class Common {
 
             Action<ProjectItem, string, string> copyRawXnb =
             (item, xnbPath, type) => {
+                if (xnbPath == null)
+                    throw new FileNotFoundException("Asset " + item.EvaluatedInclude + " was not built.");
+
                 var outputPath = Path.Combine(
                     localOutputDirectory,
                     item.EvaluatedInclude.Replace(
@@ -862,7 +871,6 @@ public static class Common {
                                               select bi.Metadata["FullPath"]).Distinct().ToArray();
 
                 if (matchingBuiltPaths.Length == 0) {
-                    throw new FileNotFoundException("Asset " + evaluatedXnbPath + " was not built.");
                 } else if (matchingBuiltPaths.Length > 1) {
                     throw new AmbiguousMatchException("Found multiple outputs for asset " + evaluatedXnbPath);
                 } else {
