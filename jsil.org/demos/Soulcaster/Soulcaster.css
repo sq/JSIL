@@ -14,12 +14,13 @@ a, a:visited {
 #canvas {
 	left: 0px;
 	top: 0px;
+	cursor: none;
 }
 #welcomeMessage {
-	width: 680px;
-	height: 150px;
-	left: 300px;
-	top: 240px;
+	width: 620px;
+	height: 140px;
+	left: 42px;
+	top: 162px;
 }
 #loadButton {
 	width: 200px;
@@ -36,52 +37,28 @@ a, a:visited {
 #loadingProgress {
 	width: 600px;
 	height: 40px;
-	left: 339px;
-	top: 320px;
+	left: 52px;
+	top: 252px;
 }
 #progressBar {
 	height: 40px;
 }
 #log {
-	width: 1280px;
+	width: 704px;
 	height: 200px;
 	left: 2px;
-	top: 724px;
+	top: 544px;
 	overflow-x: hidden;
 	overflow-y: scroll;
 }
 #fullscreenButton {
-	left: 1284px;
+	left: 708px;
 	top: 2px;
 	height: 45px;
 }
 #stats {
-	left: 1284px;
+	left: 708px;
 	top: 50px;
-}
-#rendertargets {
-	position: absolute;
-	top: 720px;
-	height: 240px;
-	width: 1024px;
-	overflow: scroll;
-}
-#rendertargets canvas {
-	border-style: solid;
-	border-color: black;
-	border-width: 1px;
-}
-#textures {
-	position: absolute;
-	top: 960px;
-	height: 240px;
-	width: 1024px;
-	overflow: scroll;
-}
-#textures canvas {
-	border-style: solid;
-	border-color: black;
-	border-width: 1px;
 }
 .boxCaption {
 	position: absolute;
