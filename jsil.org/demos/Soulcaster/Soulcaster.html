@@ -28,6 +28,7 @@
     <canvas id="canvas" width="704" height="544">
 
     </canvas><br>
+
     <button id="fullscreenButton">Full Screen</button>
     <div id="stats"></div>
     <div id="welcomeMessage">
@@ -66,7 +67,7 @@
         } catch (ex) {
         }
 
-        // The render target based upscaling causes severe performance degradation in WebGL
+        // WebGL is dramatically slower than canvas in chrome/FF and has horrible sampling artifacts.
         $jsilxna.allowWebGL = false;
 
         // We can't invoke Main() since it disposes the Game immediately, breaking everything.

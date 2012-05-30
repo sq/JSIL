@@ -15,6 +15,22 @@ a, a:visited {
 	left: 0px;
 	top: 0px;
 	cursor: none;
+
+	/*
+
+	-moz-transform: scale(2);
+	-webkit-transform: scale(2);
+	-o-transform: scale(2);
+	-ms-transform: scale(2);
+	transform: scale(2);
+
+    -moz-transform-origin: top left;
+    -webkit-transform-origin: top left;
+    -o-transform-origin: top left;
+    -ms-transform-origin: top left;
+    transform-origin: top left;	
+
+   	*/
 }
 #welcomeMessage {
 	width: 620px;

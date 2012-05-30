@@ -10,6 +10,12 @@ body {
 	margin: 0px;
 	border: 0px;
 	padding: 0px;
+
+	image-rendering: optimizeSpeed; 
+	image-rendering: -moz-crisp-edges; 
+	image-rendering: -o-crisp-edges; 
+	image-rendering: -webkit-optimize-contrast; 
+	-ms-interpolation-mode: nearest-neighbor;
 }
 #welcomeMessage {
 	font-family: Calibri, Tahoma, Verdana, sans-serif;

@@ -4217,6 +4217,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         this.device.context.translate(transformMatrix.xTranslation, transformMatrix.yTranslation);
         this.device.context.scale(transformMatrix.xScale, transformMatrix.yScale);
       }
+
+      if (samplerState) {
+        var enableSmoothing = samplerState.get_Filter() != Microsoft.Xna.Framework.Graphics.TextureFilter.Point;
+
+        this.device.context.mozImageSmoothingEnabled = this.device.context.webkitImageSmoothingEnabled = enableSmoothing;
+      }
     }
   );
 
@@ -4918,8 +4924,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
     this.originalContext = this.context = $jsilxna.get2DContext(this.canvas, true);
 
     this.viewport = new Microsoft.Xna.Framework.Graphics.Viewport();
-    this.viewport.Width = this.canvas.clientWidth || this.canvas.width;
-    this.viewport.Height = this.canvas.clientHeight || this.canvas.height;
+    this.viewport.Width = this.canvas.width;
+    this.viewport.Height = this.canvas.height;
     this.blendState = Microsoft.Xna.Framework.Graphics.BlendState.AlphaBlend;
     this.samplerStates = new Microsoft.Xna.Framework.Graphics.SamplerStateCollection(this, 0, 4);
     this.vertexSamplerStates = new Microsoft.Xna.Framework.Graphics.SamplerStateCollection(this, 0, 4);
@@ -5045,22 +5051,23 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
   });
 
   $.RawMethod(false, "$Clear", function () {
+    this.context.save();
     this.context.setTransform(1, 0, 0, 1, 0, 0);
     this.context.globalCompositeOperation = "copy";
     this.context.globalAlpha = 1.0;
     this.context.fillStyle = "rgba(0, 0, 0, 1)";
     this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    this.$UpdateBlendState();
-    this.$UpdateViewport();
+    this.context.restore();
   });
 
   $.RawMethod(false, "InternalClear", function (color) {
+    this.context.save();
     this.context.setTransform(1, 0, 0, 1, 0, 0);
     this.context.globalCompositeOperation = "copy";
     this.context.globalAlpha = 1.0;
     this.context.fillStyle = color.toCss();
     this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    this.$UpdateBlendState();
+    this.context.restore();
   });
 
   var warnedTypes = {};
@@ -5269,6 +5276,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SamplerStateCollection
         ], [])), 
     function _ctor (pParent, samplerOffset, maxSamplers) {
       // FIXME
+      this.parent = pParent;
       this.states = new Array(maxSamplers);
 
       var tState = Microsoft.Xna.Framework.Graphics.SamplerState.__Type__;
@@ -5290,6 +5298,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SamplerStateCollection
     (new JSIL.MethodSignature(null, [$.Int32, $xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.SamplerState")], [])), 
     function set_Item (index, value) {
       this.states[index] = value;
+
+      if (value) {
+        var enableSmoothing = value.get_Filter() != Microsoft.Xna.Framework.Graphics.TextureFilter.Point;
+
+        this.parent.context.mozImageSmoothingEnabled = this.parent.context.webkitImageSmoothingEnabled = enableSmoothing;
+      }
     }
   );
 
@@ -6696,6 +6710,59 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameWindow", function ($) {
     function set_Title (value) {
       // FIXME
       document.title = value;
+    }
+  );
+});
+
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SamplerState", function ($) {
+  $.Method({Static:true, Public:true }, ".cctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _cctor () {
+      Microsoft.Xna.Framework.Graphics.SamplerState.PointClamp = new Microsoft.Xna.Framework.Graphics.SamplerState(
+        Microsoft.Xna.Framework.Graphics.TextureFilter.Point, 
+        Microsoft.Xna.Framework.Graphics.TextureAddressMode.Clamp, 
+        "SamplerState.PointClamp"
+      );
+
+      Microsoft.Xna.Framework.Graphics.SamplerState.PointClamp = new Microsoft.Xna.Framework.Graphics.SamplerState(
+        Microsoft.Xna.Framework.Graphics.TextureFilter.Point, 
+        Microsoft.Xna.Framework.Graphics.TextureAddressMode.Wrap, 
+        "SamplerState.PointWrap"
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      this.cachedFilter = Microsoft.Xna.Framework.Graphics.TextureFilter.Linear;
+      this.name = null;
+    }
+  );
+
+  $.Method({Static:false, Public:false}, ".ctor", 
+    (new JSIL.MethodSignature(null, [
+          $xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.TextureFilter"), $xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.TextureAddressMode"), 
+          $.String
+        ], [])), 
+    function _ctor (filter, address, name) {
+      this.cachedFilter = filter;
+      this.name = name;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Filter", 
+    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.TextureFilter"), [], [])), 
+    function get_Filter () {
+      return this.cachedFilter;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Filter", 
+    (new JSIL.MethodSignature(null, [$xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.TextureFilter")], [])), 
+    function set_Filter (value) {
+      this.cachedFilter = value;
     }
   );
 });
