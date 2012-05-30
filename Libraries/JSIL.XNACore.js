@@ -6680,21 +6680,22 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameWindow", function ($) {
     (new JSIL.MethodSignature($.String, [], [])), 
     function get_Title () {
       // FIXME
-      return "";
+      return document.title;
     }
   );
 
   $.Method({Static:false, Public:true }, "set_AllowUserResizing", 
     (new JSIL.MethodSignature(null, [$.Boolean], [])), 
     function set_AllowUserResizing (value) {
-      throw new Error('Not implemented');
+      // FIXME
     }
   );
 
   $.Method({Static:false, Public:true }, "set_Title", 
     (new JSIL.MethodSignature(null, [$.String], [])), 
     function set_Title (value) {
-      throw new Error('Not implemented');
+      // FIXME
+      document.title = value;
     }
   );
 });
