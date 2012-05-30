@@ -102,7 +102,7 @@ namespace JSIL.Proxies {
         [JSReplacement("$this == $rhs")]
         [JSIsPure]
         public bool Equals (StringProxy rhs) {
-              throw new InvalidOperationException();
+            throw new InvalidOperationException();
         }
 
         [JSReplacement("$this.toLowerCase()")]
@@ -113,9 +113,8 @@ namespace JSIL.Proxies {
 
         [JSReplacement("$this.toLowerCase()")]
         [JSIsPure]
-        public string ToLowerInvariant()
-        {
-          throw new InvalidOperationException();
+        public string ToLowerInvariant() {
+            throw new InvalidOperationException();
         }
 
         [JSReplacement("$this.toUpperCase()")]
@@ -126,9 +125,8 @@ namespace JSIL.Proxies {
 
         [JSReplacement("$this.toUpperCase()")]
         [JSIsPure]
-        public string ToUpperInvariant()
-        {
-          throw new InvalidOperationException();
+        public string ToUpperInvariant() {
+            throw new InvalidOperationException();
         }
       
         [JSReplacement("System.String.StartsWith($this, $text)")]
@@ -249,11 +247,32 @@ namespace JSIL.Proxies {
         }
 
         [JSReplacement("($this.indexOf($p) != -1)")]
-        public bool Contains(string p)
-        {
-          throw new InvalidOperationException();
+        public bool Contains (string p) {
+            throw new InvalidOperationException();
         }
-    
 
+        [JSReplacement("System.String.PadLeft($this, $length, ' ')")]
+        [JSIsPure]
+        public string PadLeft (int length) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.String.PadRight($this, $length, ' ')")]
+        [JSIsPure]
+        public string PadRight (int length) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.String.PadLeft($this, $length, $ch)")]
+        [JSIsPure]
+        public string PadLeft (int length, char ch) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.String.PadRight($this, $length, $ch)")]
+        [JSIsPure]
+        public string PadRight (int length, char ch) {
+            throw new InvalidOperationException();
+        }
     }
 }

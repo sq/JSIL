@@ -136,6 +136,7 @@
     <None Include="SimpleTestCases\MultiDimArrayClone.cs" />
     <None Include="XMLTestCases\ReadElementContentAsString.cs" />
     <None Include="SimpleTestCases\NestedInitializer.cs" />
+    <None Include="SimpleTestCases\StringPad.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

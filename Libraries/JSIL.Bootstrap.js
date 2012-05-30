@@ -428,6 +428,37 @@ JSIL.ImplementExternals(
         return str.indexOf(text) === 0;
       }
     );
+
+    var makePadding = function (ch, count) {
+      var padding = ch;
+      for (var i = 1; i < count; i++) {
+        padding += ch;
+      }
+
+      return padding;
+    };
+
+    $.Method({Static: true , Public: true }, "PadLeft",
+      new JSIL.MethodSignature("System.String", ["System.String", "System.Int32", "System.Char"], [], $jsilcore),
+      function (str, length, ch) {
+        var extraChars = length - str.length;
+        if (extraChars <= 0)
+          return str;
+
+        return makePadding(ch, extraChars) + str;
+      }
+    );
+
+    $.Method({Static: true , Public: true }, "PadRight",
+      new JSIL.MethodSignature("System.String", ["System.String", "System.Int32", "System.Char"], [], $jsilcore),
+      function (str, length, ch) {
+        var extraChars = length - str.length;
+        if (extraChars <= 0)
+          return str;
+
+        return str + makePadding(ch, extraChars);
+      }
+    );
   }
 );
 
