@@ -4236,7 +4236,10 @@ JSIL.ImplementExternals("System.Object", function ($) {
     function (initializer) {
       var isInitializer = function (v) {
         return (typeof (v) === "object") && (v !== null) && 
-          (Object.getPrototypeOf(v) === JSIL.CollectionInitializer.prototype);
+          (
+            (Object.getPrototypeOf(v) === JSIL.CollectionInitializer.prototype) ||
+            (Object.getPrototypeOf(v) === JSIL.ObjectInitializer.prototype)
+          );
       };
 
       if (JSIL.IsArray(initializer)) {
@@ -4938,6 +4941,20 @@ JSIL.MakeClass("System.Object", "JSIL.CollectionInitializer", true, [], function
   $.RawMethod(false, "Apply",
     function (target) {
       JSIL.ApplyCollectionInitializer(target, this.values);
+    }
+  );
+});
+
+JSIL.MakeClass("System.Object", "JSIL.ObjectInitializer", true, [], function ($) {
+  $.RawMethod(false, ".ctor",
+    function (initializer) {
+      this.initializer = initializer;
+    }
+  );
+
+  $.RawMethod(false, "Apply",
+    function (target) {
+      target.__Initialize__(this.initializer);
     }
   );
 });

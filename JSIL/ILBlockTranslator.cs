@@ -2080,7 +2080,7 @@ namespace JSIL {
                     }
 
                     initializers.Add(new JSPairExpression(
-                        targetDot.Member, iae.Initializer
+                        targetDot.Member, new JSNestedObjectInitializerExpression(iae.Initializer)
                     ));
                 } else {
                     Translator.WarningFormat("Warning: Object initializer element not implemented: {0}", translated);

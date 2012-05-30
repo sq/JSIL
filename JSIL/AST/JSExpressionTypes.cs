@@ -1134,6 +1134,28 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSNestedObjectInitializerExpression : JSExpression {
+        public JSNestedObjectInitializerExpression (JSExpression initializer)
+            : base(initializer) {
+        }
+
+        public JSExpression Initializer {
+            get {
+                return Values[0];
+            }
+        }
+
+        public override bool IsConstant {
+            get {
+                return Initializer.IsConstant;
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return Initializer.GetActualType(typeSystem);
+        }
+    }
+
     public class JSArrayExpression : JSExpression {
         public readonly TypeReference ElementType;
 

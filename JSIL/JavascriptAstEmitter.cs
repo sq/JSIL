@@ -1370,5 +1370,12 @@ namespace JSIL {
             Visit(iae.Initializer);
             Output.RPar();
         }
+
+        public void VisitNode (JSNestedObjectInitializerExpression noie) {
+            Output.WriteRaw("new JSIL.ObjectInitializer");
+            Output.LPar();
+            Visit(noie.Initializer);
+            Output.RPar();
+        }
     }
 }

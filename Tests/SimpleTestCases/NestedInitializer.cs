@@ -22,14 +22,23 @@ public static class Program
         public string MapPosition = "default";
     }
 
-    public static void Main(string[] args)
-    {
+    public static PickupItem MakeItem () {
         var representedItem = "representedItem";
         var gridPosition = "gridPosition";
 
         PickupItem item = new PickupItem(representedItem);
         item.Glide.MapPosition = gridPosition;
+        return item;
+    }
+
+    public static void Main(string[] args)
+    {
+        var item = MakeItem();
 
         Console.WriteLine(item);
+
+        Func<object> getGlide = () => item.Glide;
+
+        Console.WriteLine(getGlide() is Glide ? "true" : "false");
     }
 }
