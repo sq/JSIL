@@ -2858,7 +2858,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
 
       var drawableComponents = this.$ComponentsOfType(Microsoft.Xna.Framework.IDrawable.__Type__);
       drawableComponents.sort(function (lhs, rhs) {
-        return cmp(lhs.DrawOrder, rhs.DrawOrder);
+        return cmp(lhs.get_DrawOrder(), rhs.get_DrawOrder());
       });
 
       for (var i = 0, l = drawableComponents.length; i < l; i++) {
@@ -2878,7 +2878,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
 
       var updateableComponents = this.$ComponentsOfType(Microsoft.Xna.Framework.IUpdateable.__Type__);
       updateableComponents.sort(function (lhs, rhs) {
-        return cmp(lhs.UpdateOrder, rhs.UpdateOrder);
+        return cmp(lhs.get_UpdateOrder(), rhs.get_UpdateOrder());
       });
 
       for (var i = 0, l = updateableComponents.length; i < l; i++) {
@@ -3073,6 +3073,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameComponent", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "get_UpdateOrder", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_UpdateOrder () {
+      return 0;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "get_Enabled", 
     (new JSIL.MethodSignature($.Boolean, [], [])), 
     function get_Enabled () {
@@ -3124,6 +3131,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.DrawableGameComponent", functio
   $.Method({Static:false, Public:true }, "Draw", 
     (new JSIL.MethodSignature(null, [$xnaasms[1].TypeRef("Microsoft.Xna.Framework.GameTime")], [])), 
     function Draw (gameTime) {
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_DrawOrder", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_DrawOrder () {
+      return 0;
     }
   );
 
