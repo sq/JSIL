@@ -515,6 +515,10 @@ JSIL.Host.throwException = function (e) {
   throw e;
 };
 
+JSIL.Host.assertionFailed = function (message) {
+  JSIL.Host.error(new Error(message || "Assertion Failed"));
+};
+
 JSIL.Host.warnedAboutRunLater = false;
 JSIL.Host.pendingRunLaterItems = [];
 JSIL.Host.runLaterCallback = function () {

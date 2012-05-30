@@ -2036,6 +2036,7 @@ namespace JSIL {
 
                 var boe = translated as JSBinaryOperatorExpression;
                 var ie = translated as JSInvocationExpression;
+                var iae = translated as JSInitializerApplicationExpression;
 
                 if (boe != null) {
                     var left = boe.Left;
@@ -2065,6 +2066,22 @@ namespace JSIL {
                     } else {
                         Translator.WarningFormat("Warning: Object initializer element not implemented: {0}", translated);
                     }
+                } else if (iae != null) {
+                    var targetDot = iae.Target as JSDotExpressionBase;
+                    if (targetDot == null) {
+                        Translator.WarningFormat("Warning: Unrecognized object initializer target: {0}", iae.Target);
+                        continue;
+                    }
+
+                    var targetDotInitObject = targetDot.Target as JSInitializedObject;
+                    if (targetDotInitObject == null) {
+                        Translator.WarningFormat("Warning: Unrecognized object initializer target: {0}", iae.Target);
+                        continue;
+                    }
+
+                    initializers.Add(new JSPairExpression(
+                        targetDot.Member, iae.Initializer
+                    ));
                 } else {
                     Translator.WarningFormat("Warning: Object initializer element not implemented: {0}", translated);
                 }

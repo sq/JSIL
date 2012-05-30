@@ -2840,16 +2840,31 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     return result;
   });
 
+  var cmp = function (lhs, rhs) {
+    if (lhs > rhs)
+      return 1;
+    else if (rhs > lhs)
+      return -1;
+    else
+      return 0;
+  };
+
   $.Method({Static:false, Public:false}, "Draw", 
     (new JSIL.MethodSignature(null, [$xnaasms[1].TypeRef("Microsoft.Xna.Framework.GameTime")], [])), 
     function Game_Draw (gameTime) {
-      if (Microsoft.Xna.Framework.Game._QuitForced || this._isDead) return;
+      if (Microsoft.Xna.Framework.Game._QuitForced || this._isDead) 
+        return;
 
       var drawableComponents = this.$ComponentsOfType(Microsoft.Xna.Framework.IDrawable.__Type__);
+      drawableComponents.sort(function (lhs, rhs) {
+        return cmp(lhs.DrawOrder, rhs.DrawOrder);
+      });
+
       for (var i = 0, l = drawableComponents.length; i < l; i++) {
         var drawable = drawableComponents[i];
 
-        if (drawable.Visible) drawable.Draw(gameTime);
+        if (drawable.Visible) 
+          drawable.Draw(gameTime);
       }
     }
   );
@@ -2857,13 +2872,19 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   $.Method({Static:false, Public:false}, "Update", 
     (new JSIL.MethodSignature(null, [$xnaasms[1].TypeRef("Microsoft.Xna.Framework.GameTime")], [])), 
     function Game_Update (gameTime) {
-      if (Microsoft.Xna.Framework.Game._QuitForced || this._isDead) return;
+      if (Microsoft.Xna.Framework.Game._QuitForced || this._isDead) 
+        return;
 
       var updateableComponents = this.$ComponentsOfType(Microsoft.Xna.Framework.IUpdateable.__Type__);
+      updateableComponents.sort(function (lhs, rhs) {
+        return cmp(lhs.UpdateOrder, rhs.UpdateOrder);
+      });
+
       for (var i = 0, l = updateableComponents.length; i < l; i++) {
         var updateable = updateableComponents[i];
 
-        if (updateable.Enabled) updateable.Update(gameTime);
+        if (updateable.Enabled) 
+          updateable.Update(gameTime);
       }
     }
   );

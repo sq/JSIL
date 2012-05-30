@@ -3542,3 +3542,23 @@ JSIL.MakeStruct("System.ValueType", "System.EventArgs", true, [], function ($) {
     return new System.EventArgs();
   });
 });
+
+JSIL.ImplementExternals("System.Diagnostics.Debug", function ($) {
+
+  $.Method({Static:true , Public:true }, "Assert", 
+    (new JSIL.MethodSignature(null, [$.Boolean], [])), 
+    function Assert (condition) {
+      if (!condition)
+        JSIL.Host.assertionFailed("Assertion Failed");
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Assert", 
+    (new JSIL.MethodSignature(null, [$.Boolean, $.String], [])), 
+    function Assert (condition, message) {
+      if (!condition)
+        JSIL.Host.assertionFailed(message);
+    }
+  );
+
+});
