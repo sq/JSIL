@@ -2378,6 +2378,9 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
 
   var trace = false;
   var active = true;
+  // Set to true to enable lazy method group construction. This increases
+  //  javascript heap size but improves startup performance.
+  var lazyMethodGroups = false;
 
   var printedTypeName = false;
   var resolveContext = publicInterface.prototype;
@@ -2455,14 +2458,20 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
       };
     };
 
-    if (active) {
+    if (active) {    
       var getter = makeMethodGroupGetter(
         target, typeObject.__FullName__, renamedMethods, methodName, methodEscapedName, entries
       );
 
-      JSIL.SetLazyValueProperty(
-        target, methodEscapedName, getter
-      );
+      if (lazyMethodGroups) {
+        JSIL.SetLazyValueProperty(
+          target, methodEscapedName, getter
+        );
+      } else {
+        JSIL.SetValueProperty(
+          target, methodEscapedName, getter()
+        );
+      }
     }
   }
 };
