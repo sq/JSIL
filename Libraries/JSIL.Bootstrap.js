@@ -1003,8 +1003,8 @@ $jsilcore.$ListExternals = function ($, T, type) {
     function (items) {
       var e = JSIL.GetEnumerator(items);
       try {
-        while (e.MoveNext())
-          this.Add(e.Current);
+        while (e.IEnumerator_MoveNext())
+          this.Add(e.IEnumerator_Current);
       } finally {
         e.IDisposable_Dispose();
       }
@@ -2503,8 +2503,8 @@ JSIL.EnumerableToArray = function (enumerable) {
   var result = [];
 
   try {
-    while (e.MoveNext())
-      result.push(e.Current);
+    while (e.IEnumerator_MoveNext())
+      result.push(e.IEnumerator_Current);
   } finally {
     e.IDisposable_Dispose();
   }
@@ -2625,7 +2625,7 @@ JSIL.ImplementExternals(
         var enumerator = JSIL.GetEnumerator(enumerable);
 
         try {
-          if (enumerator.MoveNext())
+          if (enumerator.IEnumerator_MoveNext())
             return true;
         } finally {
           enumerator.IDisposable_Dispose();
@@ -2645,8 +2645,8 @@ JSIL.ImplementExternals(
         var enumerator = JSIL.GetEnumerator(enumerable);
         
         try {
-          while (enumerator.MoveNext()) {
-            if (predicate(enumerator.Current))
+          while (enumerator.IEnumerator_MoveNext()) {
+            if (predicate(enumerator.IEnumerator_Current))
               return true;
           }
         } finally {
@@ -2663,7 +2663,7 @@ JSIL.ImplementExternals(
         var e = JSIL.GetEnumerator(enumerable);
         var result = 0;
         try {
-          while (e.MoveNext())
+          while (e.IEnumerator_MoveNext())
             result += 1;
         } finally {
           e.IDisposable_Dispose();
@@ -2677,8 +2677,8 @@ JSIL.ImplementExternals(
       function (T, enumerable) {
         var enumerator = JSIL.GetEnumerator(enumerable);
         try {
-          if (enumerator.MoveNext())
-            return enumerator.Current;
+          if (enumerator.IEnumerator_MoveNext())
+            return enumerator.IEnumerator_Current;
         } finally {
           enumerator.IDisposable_Dispose();
         }
@@ -2698,9 +2698,9 @@ JSIL.ImplementExternals(
 
         return new JSIL.AbstractEnumerable(
           function getNext (result) {
-            var ok = state.enumerator.MoveNext();
+            var ok = state.enumerator.IEnumerator_MoveNext();
             if (ok)
-              result.value = selector(state.enumerator.Current);
+              result.value = selector(state.enumerator.IEnumerator_Current);
 
             return ok;
           },

@@ -137,6 +137,7 @@
     <None Include="XMLTestCases\ReadElementContentAsString.cs" />
     <None Include="SimpleTestCases\NestedInitializer.cs" />
     <None Include="SimpleTestCases\StringPad.cs" />
+    <None Include="SimpleTestCases\PrivateMoveNext.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
