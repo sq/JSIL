@@ -5049,6 +5049,9 @@ JSIL.ImplementExternals("System.Array", function ($) {
   $.RawMethod(true, "CheckType", JSIL.IsArray);
 
   $.RawMethod(true, "Of", function Array_Of () {
+    // Ensure System.Array is initialized.
+    var _unused = $jsilcore.System.Array.Of;
+
     return $jsilcore.ArrayOf.apply(null, arguments);
   });
 });
