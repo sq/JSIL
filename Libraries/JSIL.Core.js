@@ -709,7 +709,7 @@ JSIL.GenericParameter = function (name, context) {
   }
 
   if (typeof (JSIL.$GenericParameterTypeIds[key]) === "undefined") {
-    JSIL.$GenericParameterTypeIds[key] = this.__TypeId__ = ++JSIL.$NextTypeId;
+    JSIL.$GenericParameterTypeIds[key] = this.__TypeId__ = String(++JSIL.$NextTypeId);
   } else {
     this.__TypeId__ = JSIL.$GenericParameterTypeIds[key];
   }
@@ -847,26 +847,6 @@ JSIL.TypeRef.prototype.get = function () {
   }
 
   return this.cachedReference;
-};
-
-JSIL.DefaultValue = function (type) {
-  var typeObject, typePublicInterface;
-
-  if (typeof (type.__Type__) === "object") {
-    typeObject = type.__Type__;
-    typePublicInterface = type;
-  } else if (typeof (type.__PublicInterface__) !== "undefined") {
-    typeObject = type;
-    typePublicInterface = type.__PublicInterface__;
-  }
-
-  if (typeObject.__IsNativeType__ || false) {
-    return new typePublicInterface();
-  } else if (typeObject.__IsReferenceType__) {
-    return null;
-  } else {
-    return Object.create(typePublicInterface.prototype);
-  }
 };
 
 JSIL.CloneObject = function (obj) {
@@ -1849,6 +1829,51 @@ JSIL.CopyMembers = function (source, target) {
   copier(source, target);
 };
 
+JSIL.$MakeComparerCore = function (typeObject, context, body) {
+  var fields = JSIL.GetMembersInternal(
+    typeObject, $jsilcore.BindingFlags.Instance, "FieldInfo"
+  );
+
+  if ("__CompareMembers__" in context.prototype) {
+    context.comparer = context.prototype.__CompareMembers__;
+    body.push("  return context.comparer(lhs, rhs);");
+  } else {
+    for (var i = 0; i < fields.length; i++) {
+      var field = fields[i];
+      var fieldType = field.get_FieldType();
+
+      if (fieldType.__IsNumeric__ || fieldType.IsEnum) {
+        body.push("  if (lhs['" + field.Name + "'] !== rhs['" + field.Name + "'])");
+      } else if (fieldType.__IsStruct__) {
+        body.push("  if (!lhs['" + field.Name + "'].Equals(rhs['" + field.Name + "']))");
+      } else {
+        body.push("  if (!JSIL.ObjectEquals(lhs['" + field.Name + "'], rhs['" + field.Name + "']))");
+      }
+
+      body.push("    return false;");
+    }
+
+    body.push("  return true;");
+  }
+}
+
+JSIL.$MakeStructComparer = function (typeObject, publicInterface) {
+  var prototype = publicInterface.prototype;
+  var context = {
+    prototype: prototype
+  };
+
+  var body = [];
+
+  JSIL.$MakeComparerCore(typeObject, context, body);
+
+  return JSIL.CreateNamedFunction(
+    typeObject.__FullName__ + ".StructComparer",
+    ["lhs", "rhs"], 
+    body.join("\r\n")
+  );
+};
+
 JSIL.$MakeCopierCore = function (typeObject, context, body) {
   var sf = JSIL.GetStructFieldList(typeObject);
   var fields = JSIL.GetMembersInternal(
@@ -2439,7 +2464,7 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
 };
 
 JSIL.BuildTypeList = function (type, publicInterface) {
-  var typeList = type.__AssignableTypes__ = [];
+  var typeList = type.__AssignableTypes__ = {};
   var context = type.__Context__;
 
   var toVisit = [];
@@ -2456,9 +2481,13 @@ JSIL.BuildTypeList = function (type, publicInterface) {
 
     var id = current.__TypeId__;
 
+    typeList[id] = true;
+
+    /*
     // Avoid adding duplicates.
     if (typeList.indexOf(id) < 0)
       typeList.push(id);
+    */
 
     var interfaces = current.__Interfaces__;
     if (JSIL.IsArray(interfaces)) {
@@ -2469,21 +2498,30 @@ JSIL.BuildTypeList = function (type, publicInterface) {
     }
   }
 
+  /*
   // Sort the list so that we can binary search it if necessary
   typeList.sort();
+  */
 };
 
 // Efficiently search a sourceType's assignable types list to see if it is assignable to targetType.
 JSIL.$TypeIsAssignable = function (sourceType, targetType) {
+  var sourceTypeDictionary = sourceType.__AssignableTypes__;
+  var targetTypeId = targetType.__TypeId__;
+
+  return sourceTypeDictionary[targetTypeId] === true;
+
+  // V8 and SpiderMonkey seem to choke on this trivial binary search implementation. :|
+  /*
   var sourceTypeList = sourceType.__AssignableTypes__;
   var targetTypeId = targetType.__TypeId__;
 
   var low = 0, high = sourceTypeList.length - 1;
-  var floor = Math.floor;
+  var pivot, pivotPoint = 0;
 
   while (low <= high) {
-    var pivotPoint = floor((low + high) / 2);
-    var pivot = sourceTypeList[pivotPoint];
+    pivotPoint = ((low + high) / 2) | 0;
+    pivot = sourceTypeList[pivotPoint];
 
     if (pivot < targetTypeId) {
       low = pivotPoint + 1; 
@@ -2497,6 +2535,7 @@ JSIL.$TypeIsAssignable = function (sourceType, targetType) {
   }
 
   return false;
+  */
 };
 
 JSIL.InitializeFields = function (type, publicInterface) {
@@ -2872,6 +2911,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__StructFields__ = $jsilcore.ArrayNotInitialized;
     typeObject.__StructFieldInitializer__ = $jsilcore.FunctionNotInitialized;
     typeObject.__MemberCopier__ = $jsilcore.FunctionNotInitialized;
+    typeObject.__StructComparer__ = $jsilcore.FunctionNotInitialized;
     typeObject.__Properties__ = [];
     typeObject.__Initializers__ = [];
     typeObject.__Interfaces__ = Array.prototype.slice.call(baseTypeInterfaces);
@@ -3016,9 +3056,13 @@ JSIL.MakeStruct = function (baseType, fullName, isPublic, genericArguments, init
   JSIL.MakeType(baseType, fullName, false, isPublic, genericArguments, initializer);
 };
 
-JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, interfaces) {
+JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer, interfaces) {
   var assembly = $private;
   var localName = JSIL.GetLocalName(fullName);
+
+  if (typeof (initializer) !== "function") {
+    throw new Error("Non-function initializer passed to MakeInterface");
+  }
 
   var callStack = null;
   if (typeof (printStackTrace) === "function")
@@ -3038,7 +3082,8 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
     typeObject.__PublicInterface__ = publicInterface;
     typeObject.__CallStack__ = callStack;
     publicInterface.__TypeId__ = typeObject.__TypeId__ = JSIL.AssignTypeId(assembly, fullName);
-    typeObject.__Members__ = members;
+
+    typeObject.__Members__ = {};
     typeObject.__RenamedMethods__ = {};
     typeObject.__ShortName__ = localName;
     typeObject.__Context__ = $private;
@@ -3048,7 +3093,10 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, members, in
     typeObject.IsInterface = true;
     typeObject.__Interfaces__ = interfaces || [];
 
-    JSIL.SetValueProperty(publicInterface, "toString", function InterfacePublicInterface_ToString () {
+    var interfaceBuilder = new JSIL.InterfaceBuilder(assembly, typeObject, publicInterface);
+    initializer(interfaceBuilder);
+
+    JSIL.SetValueProperty(publicInterface, "toString", function InterfacePublicInterface_ToString() {
       return "<" + fullName + " Public Interface>";
     });
 
@@ -3153,8 +3201,9 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
       __Names__: []
     };
 
-    result.__AssignableTypes__ = [result.__TypeId__, JSIL.AssignTypeId($jsilcore, "System.Enum")];
-    result.__AssignableTypes__.sort();
+    result.__AssignableTypes__ = {};
+    result.__AssignableTypes__[result.__TypeId__] = true;
+    result.__AssignableTypes__[JSIL.AssignTypeId($jsilcore, "System.Enum")] = true;
 
     result.__Type__ = result; // HACK
 
@@ -3269,6 +3318,9 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
 
   if (expectedType.IsEnum === true) {
     return expectedTypePublicInterface.CheckType(value);
+  } else if (expectedType.__IsArray__ === true) {
+    // FIXME: Does not assert that array elements are the same type!
+    return JSIL.IsArray(value) || value.GetType().__IsArray__;
   }
 
   if (!bypassCustomCheckMethod) {
@@ -3650,6 +3702,11 @@ JSIL.InterfaceBuilder.MakeProperty = function (name, target, interfacePrefix) {
 };
 
 JSIL.InterfaceBuilder.prototype.Property = function (_descriptor, name) {
+  if (this.typeObject.IsInterface) {
+    this.typeObject.__Members__[name] = Property;
+    return;
+  }
+
   var descriptor = this.ParseDescriptor(_descriptor, name);
 
   var props = this.typeObject.__Properties__;
@@ -3756,6 +3813,12 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
   var descriptor = this.ParseDescriptor(_descriptor, methodName, signature);
 
   var mangledName = signature.GetKey(descriptor.EscapedName);
+
+  if (this.typeObject.IsInterface) {
+    this.typeObject.__Members__[methodName] = Function;
+    this.typeObject.__Members__[mangledName] = Function;
+    return;
+  }
 
   var fullName = this.namespace + "." + methodName;
   JSIL.SetValueProperty(fn, "toString", 
@@ -3957,19 +4020,25 @@ JSIL.MethodSignature.prototype.Construct = function (type /*, ...parameters */) 
       );
     }
 
+    var ctorResult;
+
     if (argc === 1) {
-      ctor.call(result);
+      ctorResult = ctor.call(result);
     } else if (argc === 2) {
-      ctor.call(result, arguments[1]);
+      ctorResult = ctor.call(result, arguments[1]);
     } else if (argc === 3) {
-      ctor.call(result, arguments[1], arguments[2]);
+      ctorResult = ctor.call(result, arguments[1], arguments[2]);
     } else if (argc === 4) {
-      ctor.call(result, arguments[1], arguments[2], arguments[3]);
+      ctorResult = ctor.call(result, arguments[1], arguments[2], arguments[3]);
     } else if (argc === 5) {
-      ctor.call(result, arguments[1], arguments[2], arguments[3], arguments[4]);
+      ctorResult = ctor.call(result, arguments[1], arguments[2], arguments[3], arguments[4]);
     } else {
-      ctor.apply(result, Array.prototype.slice.call(arguments, 1));
+      ctorResult = ctor.apply(result, Array.prototype.slice.call(arguments, 1));
     }
+
+    // Handle wacky constructors that return a non-this reference (like new String(chars) )
+    if (ctorResult && (ctorResult !== result))
+      return ctorResult;
   }
 
   return result;
@@ -4879,88 +4948,87 @@ JSIL.MakeClass("System.Object", "System.ValueType", true, [], function ($) {
       if ((rhs === null) || (rhs === undefined))
         return false;
 
-      for (var key in this) {
-        if (!this.hasOwnProperty(key))
-          continue;
+      var thisType = this.__ThisType__;
+      var comparer = thisType.__StructComparer__;
+      if (comparer === $jsilcore.FunctionNotInitialized)
+        comparer = thisType.__StructComparer__ = JSIL.$MakeStructComparer(thisType, thisType.__PublicInterface__);
 
-        var valueLhs = this[key];
-        var valueRhs = rhs[key];
-
-        if ((valueLhs === null) || (valueLhs === undefined)) {
-          if (valueLhs !== valueRhs)
-            return false;
-        } else if (typeof (valueLhs.Equals) === "function") {
-          if (!valueLhs.Equals(valueRhs))
-            return false;
-        } else if (valueLhs !== valueRhs) {
-          return false;
-        }
-      }
-
-      return true;
+      return comparer(this, rhs);
     }
   );
 });
 
-JSIL.MakeInterface("System.IDisposable", true, [], {
-  "Dispose": Function
-});
-JSIL.MakeInterface("System.IEquatable`1", true, ["T"], {
-  "Equals": Function
-});
-
-JSIL.MakeInterface("System.Collections.IEnumerator", true, [], {
-  "MoveNext": Function,
-  "get_Current": Function,
-  "Reset": Function,
-  "Current": Property
-});
-JSIL.MakeInterface("System.Collections.IEnumerable", true, [], {
-  "GetEnumerator": Function
-});
-
-JSIL.MakeInterface("System.Collections.Generic.IEnumerator`1", true, ["T"], {
-  "get_Current": Function,
-  "Current": Property
-}, ["System.Collections.IEnumerator"]);
-JSIL.MakeInterface("System.Collections.Generic.IEnumerable`1", true, ["T"], {
-  "GetEnumerator": Function
-}, ["System.Collections.IEnumerable"]);
+JSIL.MakeInterface(
+  "System.IDisposable", true, [], function ($) {
+    $.Method({}, "Dispose", (new JSIL.MethodSignature(null, [], [])));
+  }, []);
 
 JSIL.MakeInterface(
-  "System.Collections.Generic.ICollection`1", true, ["T"], {
-      "get_Count": Function,
-      "get_IsReadOnly": Function,
-      "Add": Function,
-      "Clear": Function,
-      "Contains": Function,
-      "CopyTo": Function,
-      "Remove": Function,
-      "Count": Property,
-      "IsReadOnly": Property
-  },  
-  [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")]),
-  $jsilcore.TypeRef("System.Collections.IEnumerable")]
-  );
+  "System.IEquatable`1", true, ["T"], function ($) {
+    $.Method({}, "Equals", (new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [new JSIL.GenericParameter("T", "System.IEquatable`1")], [])));
+  }, []);
 
-  JSIL.MakeInterface(
-  "System.Collections.Generic.IList`1", true, ["T"], {
-      "get_Item": Function,
-      "set_Item": Function,
-      "IndexOf": Function,
-      "Insert": Function,
-      "RemoveAt": Function,
-      "Item" : Property
-  },
-  [$jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")]),
-   $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")]),
-   $jsilcore.TypeRef("System.Collections.IEnumerable")]);
+JSIL.MakeInterface(
+  "System.Collections.IEnumerator", true, [], function ($) {
+    $.Method({}, "MoveNext", (new JSIL.MethodSignature($jsilcore.TypeRef("System.Boolean"), [], [])));
+    $.Method({}, "get_Current", (new JSIL.MethodSignature($jsilcore.TypeRef("System.Object"), [], [])));
+    $.Method({}, "Reset", (new JSIL.MethodSignature(null, [], [])));
+    $.Property({}, "Current");
+  }, []);
+
+JSIL.MakeInterface(
+  "System.Collections.IEnumerable", true, [], function ($) {
+    $.Method({}, "GetEnumerator", (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.IEnumerator"), [], [])));
+  }, []);
+
+JSIL.MakeInterface(
+  "System.Collections.Generic.IEnumerator`1", true, ["T"], function ($) {
+    $.Method({}, "get_Current", (new JSIL.MethodSignature(new JSIL.GenericParameter("T", "System.Collections.Generic.IEnumerator`1"), [], [])));
+    $.Property({}, "Current");
+  }, [$jsilcore.TypeRef("System.IDisposable"), $jsilcore.TypeRef("System.Collections.IEnumerator")]);
+
+JSIL.MakeInterface(
+  "System.Collections.Generic.IEnumerable`1", true, ["T"], function ($) {
+    $.Method({}, "GetEnumerator", (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IEnumerable`1")]), [], [])));
+  }, [$jsilcore.TypeRef("System.Collections.IEnumerable")]);
+
+JSIL.MakeInterface(
+  "System.Collections.Generic.ICollection`1", true, ["T"], function ($) {
+    $.Method({}, "get_Count", (new JSIL.MethodSignature($.Int32, [], [])));
+    $.Method({}, "get_IsReadOnly", (new JSIL.MethodSignature($.Boolean, [], [])));
+    $.Method({}, "Add", (new JSIL.MethodSignature(null, [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")], [])));
+    $.Method({}, "Clear", (new JSIL.MethodSignature(null, [], [])));
+    $.Method({}, "Contains", (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")], [])));
+    $.Method({}, "CopyTo", (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")]), $.Int32], [])));
+    $.Method({}, "Remove", (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")], [])));
+    $.Property({}, "Count");
+    $.Property({}, "IsReadOnly");
+  }, [
+    $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.ICollection`1")]), 
+    $jsilcore.TypeRef("System.Collections.IEnumerable")
+  ]
+);
+
+JSIL.MakeInterface(
+  "System.Collections.Generic.IList`1", true, ["T"], function ($) {
+    $.Method({}, "get_Item", (new JSIL.MethodSignature(new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1"), [$.Int32], [])));
+    $.Method({}, "set_Item", (new JSIL.MethodSignature(null, [$.Int32, new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")], [])));
+    $.Method({}, "IndexOf", (new JSIL.MethodSignature($.Int32, [new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")], [])));
+    $.Method({}, "Insert", (new JSIL.MethodSignature(null, [$.Int32, new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")], [])));
+    $.Method({}, "RemoveAt", (new JSIL.MethodSignature(null, [$.Int32], [])));
+    $.Property({}, "Item");
+  }, [
+    $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")]), 
+    $jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.IList`1")]), 
+    $jsilcore.TypeRef("System.Collections.IEnumerable")
+  ]
+);
 
 JSIL.ImplementExternals("System.Array", function ($) {
   $.RawMethod(true, "CheckType", JSIL.IsArray);
 
   $.RawMethod(true, "Of", function Array_Of () {
-    return $jsilcore.System.Array.Of.apply($jsilcore.System.Array, arguments);
+    return $jsilcore.ArrayOf.apply(null, arguments);
   });
 });
   
@@ -5037,9 +5105,63 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
     return compositePublicInterface;
   };
 
+  $jsilcore.ArrayOf = of;
+
   $.RawMethod(true, "Of$NoInitialize", of);
   $.RawMethod(true, "Of", of);
 });
+
+JSIL.DefaultValueInternal = function (typeObject, typePublicInterface) {
+  if (typeObject.__FullName__ === "System.Char") {
+    return "\0";
+  } else if (typeObject.__IsReferenceType__) {
+    return null;
+  } else if (typeObject.__IsNumeric__) {
+    return 0;
+  } else if (typeObject.IsEnum) {
+    return typeObject[typeObject.__ValueToName__[0]];
+  } else {
+    return new typePublicInterface();
+  }
+};
+
+JSIL.DefaultValue = function (type) {
+  var typeObject, typePublicInterface;
+
+  if (typeof (type.__Type__) === "object") {
+    typeObject = type.__Type__;
+    typePublicInterface = type;
+  } else if (typeof (type.__PublicInterface__) !== "undefined") {
+    typeObject = type;
+    typePublicInterface = type.__PublicInterface__;
+  }
+
+  return JSIL.DefaultValueInternal(typeObject, typePublicInterface);
+};
+
+JSIL.Array.Erase = function Array_Erase (array, elementType) {
+  var elementTypeObject, elementTypePublicInterface;
+
+  if (typeof (elementType.__Type__) === "object") {
+    elementTypeObject = elementType.__Type__;
+    elementTypePublicInterface = elementType;
+  } else if (typeof (elementType.__PublicInterface__) !== "undefined") {
+    elementTypeObject = elementType;
+    elementTypePublicInterface = elementType.__PublicInterface__;
+  }
+
+  var size = array.length;
+
+  if (elementTypeObject.__IsStruct__) {
+    for (var i = 0; i < size; i++)
+      array[i] = JSIL.DefaultValueInternal(elementTypeObject, elementTypePublicInterface);
+  } else {
+    var defaultValue = JSIL.DefaultValueInternal(elementTypeObject, elementTypePublicInterface)
+
+    for (var i = 0; i < size; i++)
+      array[i] = defaultValue;
+  }
+};
 
 JSIL.Array.New = function Array_New (elementType, sizeOrInitializer) {
   var elementTypeObject, elementTypePublicInterface;
@@ -5061,21 +5183,7 @@ JSIL.Array.New = function Array_New (elementType, sizeOrInitializer) {
     var size = Number(sizeOrInitializer);
     var result = new Array(size);
 
-    if (elementTypeObject.__IsReferenceType__) {
-      for (var i = 0; i < size; i++)
-        result[i] = null;
-    } else if (elementTypeObject.__IsNumeric__) {
-      for (var i = 0; i < size; i++)
-        result[i] = 0;
-    } else if (elementTypeObject.IsEnum) {
-      var defaultValue = elementTypeObject[elementTypeObject.__ValueToName__[0]];
-
-      for (var i = 0; i < size; i++)
-        result[i] = defaultValue;
-    } else {
-      for (var i = 0; i < size; i++)
-        result[i] = new elementTypePublicInterface();
-    }
+    JSIL.Array.Erase(result, elementType);
   }
 
   /* Even worse, doing this deoptimizes all uses of the array in TraceMonkey. AUGH
@@ -5085,6 +5193,35 @@ JSIL.Array.New = function Array_New (elementType, sizeOrInitializer) {
   */
 
   return result;
+};
+
+JSIL.Array.Clone = function (array) {
+  if (Array.isArray(array)) {
+    return Array.prototype.slice.call(array);
+  } else if (Object.getPrototypeOf(array) === JSIL.MultidimensionalArray.prototype) {
+    return new JSIL.MultidimensionalArray(array._type, array._dimensions, array._items);
+  } else {
+    throw new Error("Invalid array");
+  }
+};
+
+JSIL.Array.CopyTo = function (source, destination, destinationIndex) {
+  var srcArray, destArray;
+
+  if (Array.isArray(source))
+    srcArray = source;
+  else if (Object.getPrototypeOf(source) === JSIL.MultidimensionalArray.prototype)
+    srcArray = source._items;
+
+  if (Array.isArray(destination))
+    destArray = destination;
+  else if (Object.getPrototypeOf(destination) === JSIL.MultidimensionalArray.prototype)
+    destArray = destination._items;
+
+  var size = srcArray.length;
+
+  for (var i = 0; i < size; i++)
+    destArray[i + destinationIndex] = srcArray[i];
 };
 
 JSIL.Array.ShallowCopy = function (destination, source) {
@@ -5117,20 +5254,16 @@ JSIL.MakeClass("System.Array", "JSIL.MultidimensionalArray", true, [], function 
       for (var i = 1; i < dimensions.length; i++)
         totalSize *= dimensions[i];
 
+      this._type = type;
       this._dimensions = dimensions;
       var items = this._items = new Array(totalSize);
 
       JSIL.SetValueProperty(this, "length", totalSize);
 
-      var defaultValue = null;
-      if (type.__IsNumeric__)
-        defaultValue = 0;
-
       if (JSIL.IsArray(initializer)) {
         JSIL.Array.ShallowCopy(items, initializer);
       } else {
-        for (var i = 0; i < totalSize; i++)
-          items[i] = defaultValue;
+        JSIL.Array.Erase(items, type);
       }
 
       switch (dimensions.length) {
@@ -5221,7 +5354,7 @@ JSIL.MakeClass("System.Array", "JSIL.MultidimensionalArray", true, [], function 
     }
   );
 
-
+  $.SetValue("__IsArray__", true);
 });
 
 JSIL.ImplementExternals(

@@ -116,4 +116,14 @@ namespace JSIL.Meta {
     )]
     public class JSExtraStaticConstructor : Attribute {
     }
+
+    /// <summary>
+    /// Specifies that you wish to replace an existing constructor with one from your proxy. This is necessary because
+    ///  the compiler automatically generates hidden constructors for your proxy classes.
+    /// </summary>
+    [AttributeUsage(
+        AttributeTargets.Constructor
+    )]
+    public class JSReplaceConstructor : Attribute {
+    }
 }

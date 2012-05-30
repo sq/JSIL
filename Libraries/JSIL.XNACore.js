@@ -58,7 +58,7 @@ $jsilxna.get2DContext = function (canvas, enableWebGL) {
   var hasWebGL = typeof (WebGL2D) !== "undefined";
   var extraMessage = "";
 
-  if (hasWebGL && enableWebGL) {
+  if (hasWebGL && enableWebGL && (AllowWebGL !== false)) {
     if (!$jsilxna.testedWebGL) {
       try {
         var testCanvas = document.createElement("canvas");
@@ -2766,7 +2766,22 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     (new JSIL.MethodSignature($xnaasms[1].TypeRef("Microsoft.Xna.Framework.GameWindow"), [], [])), 
     function get_Window () {
       // FIXME
-      return {};
+      return Object.create(Microsoft.Xna.Framework.GameWindow.prototype);
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "get_IsMouseVisible", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsMouseVisible () {
+      // FIXME
+      return true;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_IsMouseVisible", 
+    (new JSIL.MethodSignature(null, [$.Boolean], [])), 
+    function set_IsMouseVisible (value) {
+      // FIXME
     }
   );
 
@@ -3674,13 +3689,29 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
   $.Method({Static:false, Public:true }, "Contains", 
     (new JSIL.MethodSignature($.Boolean, [$.Int32, $.Int32], [])), 
     function Contains (x, y) {
-      return this.X <= x && x < this.X + this.Width && this.Y <= y && y < this.Y + this.Height;
+      return this.X <= x && 
+        x < this.X + this.Width && 
+        this.Y <= y && 
+        y < this.Y + this.Height;
     }
   );
   $.Method({Static:false, Public:true }, "Contains", 
     (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Point")], [])), 
     function Contains (value) {
-      return this.X <= value.X && value.X < this.X + this.Width && this.Y <= value.Y && value.Y < this.Y + this.Height;
+      return this.X <= value.X && 
+        value.X < this.X + this.Width && 
+        this.Y <= value.Y && 
+        value.Y < this.Y + this.Height;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Contains", 
+    (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")], [])), 
+    function Contains (value) {
+      return this.X <= value.X && 
+        value.X + value.Width <= this.X + this.Width && 
+        this.Y <= value.Y && 
+        value.Y + value.Height <= this.Y + this.Height;
     }
   );
 
@@ -4201,14 +4232,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
           $xnaasms[5].TypeRef("System.Nullable`1", [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")]), $jsilxna.colorRef()
         ], [])), 
     function Draw (texture, position, sourceRectangle, color) {
-      var sourceX, sourceY, sourceWidth, sourceHeight;
+      var sourceX = 0, sourceY = 0, sourceWidth = 0, sourceHeight = 0;
       if (sourceRectangle !== null) {
         sourceX = sourceRectangle.X;
         sourceY = sourceRectangle.Y;
         sourceWidth = sourceRectangle.Width;
         sourceHeight = sourceRectangle.Height;
       } else {
-        sourceX = sourceY = 0;
         sourceWidth = texture.Width;
         sourceHeight = texture.Height;
       }
@@ -4233,14 +4263,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
           $.Single
         ], [])), 
     function DrawScaleF (texture, position, sourceRectangle, color, rotation, origin, scale, effects, layerDepth) {
-      var sourceX, sourceY, sourceWidth, sourceHeight;
+      var sourceX = 0, sourceY = 0, sourceWidth = 0, sourceHeight = 0;
       if (sourceRectangle !== null) {
         sourceX = sourceRectangle.X;
         sourceY = sourceRectangle.Y;
         sourceWidth = sourceRectangle.Width;
         sourceHeight = sourceRectangle.Height;
       } else {
-        sourceX = sourceY = 0;
         sourceWidth = texture.Width;
         sourceHeight = texture.Height;
       }
@@ -4265,14 +4294,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
           $.Single
         ], [])), 
     function Draw (texture, position, sourceRectangle, color, rotation, origin, scale, effects, layerDepth) {
-      var sourceX, sourceY, sourceWidth, sourceHeight;
+      var sourceX = 0, sourceY = 0, sourceWidth = 0, sourceHeight = 0;
       if (sourceRectangle !== null) {
         sourceX = sourceRectangle.X;
         sourceY = sourceRectangle.Y;
         sourceWidth = sourceRectangle.Width;
         sourceHeight = sourceRectangle.Height;
       } else {
-        sourceX = sourceY = 0;
         sourceWidth = texture.Width;
         sourceHeight = texture.Height;
       }
@@ -4311,14 +4339,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
           $xnaasms[5].TypeRef("System.Nullable`1", [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")]), $jsilxna.colorRef()
         ], [])), 
     function DrawRect (texture, destinationRectangle, sourceRectangle, color) {
-      var sourceX, sourceY, sourceWidth, sourceHeight;
+      var sourceX = 0, sourceY = 0, sourceWidth = 0, sourceHeight = 0;
       if (sourceRectangle !== null) {
         sourceX = sourceRectangle.X;
         sourceY = sourceRectangle.Y;
         sourceWidth = sourceRectangle.Width;
         sourceHeight = sourceRectangle.Height;
       } else {
-        sourceX = sourceY = 0;
         sourceWidth = texture.Width;
         sourceHeight = texture.Height;
       }
@@ -4342,14 +4369,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
           $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.SpriteEffects"), $.Single
         ], [])), 
     function DrawRect (texture, destinationRectangle, sourceRectangle, color, rotation, origin, effects, layerDepth) {
-      var sourceX, sourceY, sourceWidth, sourceHeight;
+      var sourceX = 0, sourceY = 0, sourceWidth = 0, sourceHeight = 0;
       if (sourceRectangle !== null) {
         sourceX = sourceRectangle.X;
         sourceY = sourceRectangle.Y;
         sourceWidth = sourceRectangle.Width;
         sourceHeight = sourceRectangle.Height;
       } else {
-        sourceX = sourceY = 0;
         sourceWidth = texture.Width;
         sourceHeight = texture.Height;
       }
@@ -6582,4 +6608,55 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageDevice", functio
     }
   );
 
+});
+
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.GameWindow", function ($) {
+  $.Method({Static:false, Public:false}, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_ClientBounds", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle"), [], [])), 
+    function get_ClientBounds () {
+      // FIXME
+      var canvas = JSIL.Host.getCanvas();
+
+      return new Microsoft.Xna.Framework.Rectangle(
+        0, 0, canvas.width, canvas.height
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "get_IsMinimized", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsMinimized () {
+      // FIXME
+      return false;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Title", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_Title () {
+      // FIXME
+      return "";
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_AllowUserResizing", 
+    (new JSIL.MethodSignature(null, [$.Boolean], [])), 
+    function set_AllowUserResizing (value) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_Title", 
+    (new JSIL.MethodSignature(null, [$.String], [])), 
+    function set_Title (value) {
+      throw new Error('Not implemented');
+    }
+  );
 });

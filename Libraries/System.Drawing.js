@@ -8,6 +8,13 @@ var $jsildrawing = JSIL.DeclareAssembly("JSIL.Drawing");
 JSIL.DeclareNamespace("System");
 JSIL.DeclareNamespace("System.Drawing");
 
+var $sdasms = new JSIL.AssemblyCollection({
+  5: "mscorlib", 
+  6: "System", 
+  11: "System.Drawing", 
+  15: "System.Windows.Forms", 
+});
+
 if (JSIL.HostType.IsBrowser) {
   JSIL.ImplementExternals("System.Drawing.Image", function ($) {
     var mscorlib = JSIL.GetAssembly("mscorlib", true);
@@ -333,7 +340,7 @@ JSIL.ImplementExternals("System.Drawing.Rectangle", function ($) {
   );
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [$asms[11].TypeRef("System.Drawing.Point"), $asms[11].TypeRef("System.Drawing.Size")], [])), 
+    (new JSIL.MethodSignature(null, [$sdasms[11].TypeRef("System.Drawing.Point"), $sdasms[11].TypeRef("System.Drawing.Size")], [])), 
     function _ctor (location, size) {
       this.x = location.X;
       this.y = location.Y;

@@ -451,7 +451,8 @@ function loadBinaryFileAsync (uri, onComplete) {
 }
 
 var loadedFontCount = 0;
-var loadingPollInterval = 25;
+var loadingPollInterval = 10;
+var maxAssetsLoading = 16;
 var soundLoadTimeout = 30000;
 var fontLoadTimeout = 15000;
 
@@ -822,7 +823,7 @@ function pollAssetQueue () {
     };    
   };
 
-  while ((state.assetsLoading < state.maxAssetsLoading) && (state.loadIndex < state.assetCount)) {
+  while ((state.assetsLoading < maxAssetsLoading) && (state.loadIndex < state.assetCount)) {
     try {
       var assetSpec = state.assets[state.loadIndex];
     
@@ -906,7 +907,6 @@ function loadAssets (assets, onDoneLoading) {
     assetsLoaded: 0,
     assetsFinished: 0,
     assetsLoading: 0,
-    maxAssetsLoading: 16,
     onDoneLoading: onDoneLoading,
     assets: assets,
     interval: null,

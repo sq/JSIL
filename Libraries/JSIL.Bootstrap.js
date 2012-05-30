@@ -71,7 +71,12 @@ JSIL.ImplementExternals(
 JSIL.MakeNumericType(Number, "System.Byte", true);
 
 $jsilcore.$ParseInt = function (text) {
-  return Math.abs(parseInt(text, 10));
+  var result = parseInt(text, 10);
+
+  if (isNaN(result))
+    throw new System.Exception("Invalid integer");
+
+  return result;
 };
 $jsilcore.$TryParseInt = function (text, result) {
   result.value = parseInt(text, 10);
@@ -1208,6 +1213,24 @@ $jsilcore.$ListExternals = function ($, T, type) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "Sort", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.IComparer")], [])), 
+    function Sort (comparer) {
+      this._items.sort(function (lhs, rhs) {
+        return comparer.Compare(lhs, rhs);
+      });
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Sort", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Collections.Generic.IComparer`1", [T])], [])), 
+    function Sort (comparer) {
+      this._items.sort(function (lhs, rhs) {
+        return comparer.Compare(lhs, rhs);
+      });
+    }
+  );
+
   $.Method({Static:false, Public:true }, "ToArray", 
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [T]), [], []),
     function () {
@@ -1872,6 +1895,14 @@ JSIL.ImplementExternals("System.Environment", function ($) {
     function GetFolderPath (folder) {
       // FIXME
       return folder.name;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "get_NewLine", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_NewLine () {
+      // FIXME: Maybe this should just be \n?
+      return "\r\n";
     }
   );
 
@@ -2904,6 +2935,23 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
     function Append (value) {
       for (var i = 0; i < value.length; i++)
         this._str += value[i];
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "AppendLine", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Text.StringBuilder"), [], [])), 
+    function AppendLine () {
+      appendString(this, "\r\n", 0, 2, 1);
+      return this;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "AppendLine", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Text.StringBuilder"), [$.String], [])), 
+    function AppendLine (value) {
+      appendString(this, value, 0, value.length, 1);
+      appendString(this, "\r\n", 0, 2, 1);
+      return this;
     }
   );
 

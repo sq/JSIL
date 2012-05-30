@@ -45,7 +45,7 @@
     <Compile Include="..\XNACommon\Primitives.cs" />
     <Compile Include="..\XNACommon\UnsafeNativeMethods.cs" />
     <Compile Include="..\XNACommon\Content.cs" />
-    <Compile Include="Game.cs" />
+    <Compile Include="..\XNACommon\Game.cs" />
     <Compile Include="SpriteBatch.cs" />
     <Compile Include="GraphicsDevice.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
