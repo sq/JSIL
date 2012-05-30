@@ -2947,7 +2947,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       this._lastSecond = now;
       this._updateCount = this._drawCount = 0;
       this._extraTime = 0;
-      this.suppressFrameskip = false;
+      this.suppressFrameskip = true;
     } else {
       var elapsed = now - this._lastFrame;
       var total = now - this._started;
