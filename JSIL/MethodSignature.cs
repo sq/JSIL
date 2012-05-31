@@ -108,7 +108,13 @@ namespace JSIL.Internal {
     }
 
     public struct NamedMethodSignature {
-        public readonly MethodSignature Signature;        public readonly string Name;        public NamedMethodSignature (string name, MethodSignature signature) {            Name = name;            Signature = signature;        }
+        public readonly MethodSignature Signature;
+        public readonly string Name;
+
+        public NamedMethodSignature (string name, MethodSignature signature) {
+            Name = name;
+            Signature = signature;
+        }
 
         public override int GetHashCode() {
  	        return Name.GetHashCode() ^ Signature.GetHashCode();

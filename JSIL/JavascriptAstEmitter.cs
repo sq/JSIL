@@ -1190,12 +1190,25 @@ namespace JSIL {
             MethodSignatureSet mss;
 
             if (method.DeclaringType.MethodSignatures.TryGet(method.Name, out mss)) {
-                int argCount = method.Parameters.Length;
                 int overloadCount = 0;
 
+                var gaCount = method.GenericParameterNames.Length;
+                int argCount = method.Parameters.Length;
+
                 foreach (var signature in mss.Signatures) {
-                    if (signature.ParameterCount == argCount)
+                    if (
+                        (signature.ParameterCount == argCount)
+                    )
                         overloadCount += 1;
+                    else if ((signature.GenericParameterNames.Length > 0) || (gaCount > 0)) {
+                        if (
+                            (signature.ParameterCount == gaCount) ||
+                            (signature.GenericParameterNames.Length == argCount) ||
+                            (signature.GenericParameterNames.Length == gaCount)
+                        ) {
+                            overloadCount += 1;
+                        }
+                    }
                 }
 
                 // If there's only one overload with this argument count, we don't need to use
