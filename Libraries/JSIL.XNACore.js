@@ -367,13 +367,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentManager", functi
     }
 
     if (JSIL.CheckType(asset, HTML5Asset.__Type__)) {
-      if (asset === null)
-        JSIL.Host.warning("Asset '" + assetName + "' loader returned null.");
-
       return asset;
     }
 
-    throw new Microsoft.Xna.Framework.Content.ContentLoadException("Asset '" + assetName + "' is not an instance of HTML5Asset.");
+    if (asset === null)
+      JSIL.Host.warning("Asset '" + assetName + "' loader returned null.");
+    else
+      throw new Microsoft.Xna.Framework.Content.ContentLoadException("Asset '" + assetName + "' is not an instance of HTML5Asset.");
   }),
   $.Method({
     Static: false,
@@ -568,6 +568,59 @@ JSIL.MakeClass("HTML5Asset", "WebkitSoundAsset", true, [], function ($) {
 
         var elapsed = context.currentTime - result.started;
         return (elapsed <= result.duration);
+      }
+    });
+
+    return result;
+  });
+
+  $.Method({Static:false, Public:true }, "Play", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function Play () {
+      var instance = this.$createInstance(0);
+
+      instance.play();
+
+      return true;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "CreateInstance",
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Audio.SoundEffectInstance"), [], [])),
+    function CreateInstance () {
+      return new Microsoft.Xna.Framework.Audio.SoundEffectInstance(this, false);
+    }
+  );
+});
+
+JSIL.MakeClass("HTML5Asset", "NullSoundAsset", true, [], function ($) {
+  $.Method({
+    Static: false,
+    Public: true
+  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (assetName) {
+    HTML5Asset.prototype._ctor.call(this, assetName);
+  });
+
+  $.RawMethod(false, "$createInstance", function (loopCount) {
+    var result = {};
+
+    result.play = function () {
+    };
+    result.pause = function () {
+    };
+
+    Object.defineProperty(result, "volume", {
+      get: function () {
+      },
+      set: function (value) {
+      }
+    });
+
+    Object.defineProperty(result, "isPlaying", {
+      configurable: true,
+      enumerable: true,
+      get: function () {
+        return false;
       }
     });
 

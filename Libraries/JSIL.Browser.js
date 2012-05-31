@@ -631,6 +631,10 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
       allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename, true), e);
     };
 
+    var nullFinisher = function () {
+      allAssets[getAssetName(filename)] = new NullSoundAsset(getAssetName(filename, true));
+    };
+
     if (
       (networkState === HTMLMediaElement.NETWORK_IDLE) ||
       (networkState === HTMLMediaElement.NETWORK_LOADED /* This is in the spec, but no browser defines it? */) ||
@@ -644,22 +648,30 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
     } else if (networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
       clearInterval(state.interval);
       state.loaded = true;
+
+      var errorText = "Unknown error";
+
       try {
-        onError("Error " + e.error.code);
+        errorText = "Error #" + e.error.code;
       } catch (ex) {
-        onError("Error " + String(e.error));
+
+        if (e.error)
+          errorText = String(e.error);
       }
+
+      JSIL.Host.logWriteLine("Load failed for sound '" + filename + "': " + errorText);
+      onDoneLoading(nullFinisher);
     }
 
     var now = Date.now();
 
-    // Workaround for bug in Chrome 12+ where a load stalls indefinitely unless you spam the load method.
+    // Detect and work around bug in old versions of Chrome and all versions of Safari where sounds never finish loading
     if ((now - startedLoadingWhen) >= soundLoadTimeout) {
-      JSIL.Host.logWriteLine("A sound file is taking forever to load. Google Chrome 12 and 13 both have a bug that can cause this, so if you're using them... try another browser.");
+      JSIL.Host.logWriteLine("A sound file is taking forever to load. If you're using Safari, use a different browser.");
 
       clearInterval(state.interval);
       state.loaded = true;
-      onDoneLoading(finisher);
+      onDoneLoading(nullFinisher);
     }
   };
 
@@ -704,7 +716,8 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
   // Events on <audio> elements are inconsistent at best across browsers, so we poll instead. :/    
 
   if (typeof (e.load) === "function")
-    e.load();    
+    e.load();
+
   state.interval = setInterval(loadingCallback, loadingPollInterval);
 };
 
