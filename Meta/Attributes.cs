@@ -126,4 +126,14 @@ namespace JSIL.Meta {
     )]
     public class JSReplaceConstructor : Attribute {
     }
+
+    /// <summary>
+    /// Specifies that you wish for JSIL to treat the specified field as if it is immutable.
+    /// Struct copies will not be generated for the annotated field or any of its members.
+    /// </summary>
+    [AttributeUsage(
+        AttributeTargets.Field
+    )]
+    public class JSImmutable : Attribute {
+    }
 }

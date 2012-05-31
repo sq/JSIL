@@ -27,12 +27,42 @@ namespace JSIL.Transforms {
             OptimizeCopies = optimizeCopies;
         }
 
-        protected bool IsCopyNeededForAssignmentTarget (JSExpression target) {
-            var variable = target as JSVariable;
-            if (variable == null)
-                return true;
+        protected bool IsImmutable (JSExpression target) {
+            while (target is JSReferenceExpression)
+                target = ((JSReferenceExpression)target).Referent;
 
-            return SecondPass.ModifiedVariables.Contains(variable.Name);
+            var fieldAccess = target as JSFieldAccess;
+            if (fieldAccess != null) {
+                return fieldAccess.Field.Field.Metadata.HasAttribute("JSIL.Meta.JSImmutable");
+            }
+
+            var dot = target as JSDotExpressionBase;
+            if (dot != null) {
+                if (IsImmutable(dot.Target))
+                    return true;
+                else if (IsImmutable(dot.Member))
+                    return true;
+            }
+
+            var indexer = target as JSIndexerExpression;
+            if (indexer != null) {
+                if (IsImmutable(indexer.Target))
+                    return true;
+            }
+
+            return false;
+        }
+
+        protected bool IsCopyNeededForAssignmentTarget (JSExpression target) {
+            if (IsImmutable(target))
+                return false;
+
+            var variable = target as JSVariable;
+            if (variable != null) {
+                return SecondPass.ModifiedVariables.Contains(variable.Name);
+            }
+
+            return true;
         }
 
         protected bool IsCopyNeeded (JSExpression value) {
@@ -57,6 +87,9 @@ namespace JSIL.Transforms {
             ) {
                 return false;
             }
+
+            if (IsImmutable(value))
+                return false;
             
             // If the expression is a parameter that is only used once and isn't aliased,
             //  we don't need to copy it.
