@@ -42,6 +42,28 @@ JSIL.PrivateNamespaces = {};
 JSIL.AssemblyShortNames = {};
 var $private = null;
 
+JSIL.HasOwnPropertyRecursive = function (target, name) {
+  while (!target.hasOwnProperty(name)) {
+    target = Object.getPrototypeOf(target);
+
+    if ((typeof (target) === "undefined") || (target === null))
+      return false;
+  }
+
+  return target.hasOwnProperty(name);
+};
+
+JSIL.GetOwnPropertyDescriptorRecursive = function (target, name) {
+  while (!target.hasOwnProperty(name)) {
+    target = Object.getPrototypeOf(target);
+
+    if ((typeof (target) === "undefined") || (target === null))
+      return null;
+  }
+
+  return Object.getOwnPropertyDescriptor(target, name);
+};
+
 JSIL.SetValueProperty = function (target, key, value, enumerable) {
   var descriptor = {
     configurable: true,
@@ -54,7 +76,12 @@ JSIL.SetValueProperty = function (target, key, value, enumerable) {
 };
 
 JSIL.DeclareAssembly = function (assemblyName) {
-  var result = JSIL.GetAssembly(assemblyName);
+  var existing = JSIL.GetAssembly(assemblyName, true);
+  if ((existing !== null) && (existing.__Declared__))
+    throw new Error("Assembly '" + assemblyName + "' already declared.");
+
+  var result = JSIL.GetAssembly(assemblyName, false);
+  JSIL.SetValueProperty(result, "__Declared__", true);
 
   $private = result;
   return result;
@@ -87,12 +114,22 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
   if (requireExisting)
     return null;
 
+  var isMscorlib = (shortName === "mscorlib") || (assemblyName.indexOf("mscorlib,") === 0);
+  var isSystemCore = (shortName === "System.Core") || (assemblyName.indexOf("System.Core,") === 0);
+
   // Create a new private global namespace for the new assembly
-  var result = Object.create(JSIL.GlobalNamespace);
+  var template = {};
+
+  // Ensure that BCL private namespaces inherit from the JSIL namespace.
+  if (isMscorlib || isSystemCore)
+    template = $jsilcore;
+
+  var result = Object.create(template);
+
   var assemblyId;
 
   // Terrible hack to assign the mscorlib and JSIL.Core types the same IDs
-  if ((shortName === "mscorlib") || (assemblyName.indexOf("mscorlib,") === 0)) {
+  if (isMscorlib) {
     assemblyId = $jsilcore.__AssemblyId__;
   } else {
     assemblyId = ++JSIL.$NextAssemblyId;
@@ -100,6 +137,7 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
 
   JSIL.SetValueProperty(result, "Location", "");
 
+  JSIL.SetValueProperty(result, "__Declared__", false);
   JSIL.SetValueProperty(result, "__AssemblyId__", assemblyId, false);
 
   JSIL.SetValueProperty(result, "TypeRef", 
@@ -165,6 +203,8 @@ JSIL.SetLazyValueProperty = function (target, key, getValue) {
 
 
 $jsilcore.SystemObjectInitialized = false;
+$jsilcore.RuntimeTypeInitialized = false;
+
 JSIL.$NextTypeId = 0;
 JSIL.$PublicTypes = {};
 JSIL.$PublicTypeAssemblies = {};
@@ -271,9 +311,9 @@ JSIL.ResolvedName = function (parent, parentName, key, allowInheritance) {
   this.key = key;
   this.allowInheritance = allowInheritance;
 };
-JSIL.ResolvedName.prototype.exists = function () {
-  if (this.allowInheritance)
-    return typeof(this.parent[this.key]) !== "undefined";
+JSIL.ResolvedName.prototype.exists = function (allowInheritance) {
+  if (this.allowInheritance && (allowInheritance !== false))
+    return JSIL.HasOwnPropertyRecursive(this.parent, this.key);
   else
     return this.parent.hasOwnProperty(this.key);
 };
@@ -286,9 +326,19 @@ JSIL.ResolvedName.prototype.set = function (value) {
 };
 JSIL.ResolvedName.prototype.define = function (declaration) {
   Object.defineProperty(this.parent, this.key, declaration);
+
+  var descriptor = Object.getOwnPropertyDescriptor(this.parent, this.key);
+
+  if ('value' in declaration) {
+    if (descriptor.value != declaration.value)
+      throw new Error("Failed to define property '" + this.key + "'.");  
+  } else if ('get' in declaration) {
+    if (descriptor.get != declaration.get)
+      throw new Error("Failed to define property '" + this.key + "'.");  
+  }
 };
 
-JSIL.ResolveName = function (root, name, allowInheritance) {
+JSIL.ResolveName = function (root, name, allowInheritance, throwOnFail) {
   var parts = JSIL.SplitName(name);
   var current = root;
 
@@ -312,16 +362,24 @@ JSIL.ResolveName = function (root, name, allowInheritance) {
 
   for (var i = 0, l = parts.length - 1; i < l; i++) {
     var key = JSIL.EscapeName(parts[i]);
-    var next = current[key];
 
-    if (allowInheritance) {
-      if (typeof (next) === "undefined")
+    if (!JSIL.HasOwnPropertyRecursive(current, key)) {
+      if (throwOnFail !== false)
         throw makeError(key, current);
-    } else {
-      if (!current.hasOwnProperty(key))
-        throw makeError(key, current);
+      else
+        return null;
     }
 
+    if (!allowInheritance) {
+      if (!current.hasOwnProperty(key)) {
+        if (throwOnFail !== false)
+          throw makeError(key, current);
+        else
+          return null;
+      }
+    }
+
+    var next = current[key];
     current = next;
   }
 
@@ -403,7 +461,7 @@ JSIL.DeclareNamespace = function (name, sealed) {
       }
     });
 
-  var resolved = JSIL.ResolveName($private, name, false);
+  var resolved = JSIL.ResolveName($private, name, true);
   if (!resolved.exists())
     resolved.define({
       enumerable: true,
@@ -420,11 +478,10 @@ JSIL.DeclareNamespace("System.Collections");
 JSIL.DeclareNamespace("System.Collections.Generic");
 JSIL.DeclareNamespace("System.Text");
 JSIL.DeclareNamespace("System.Threading");
-JSIL.DeclareNamespace("System.Globalization", false);
-JSIL.DeclareNamespace("System.Environment", false);
-JSIL.DeclareNamespace("System.Runtime", false);
-JSIL.DeclareNamespace("System.Runtime.InteropServices", false);
-JSIL.DeclareNamespace("System.Reflection", false);
+JSIL.DeclareNamespace("System.Globalization");
+JSIL.DeclareNamespace("System.Runtime");
+JSIL.DeclareNamespace("System.Runtime.InteropServices");
+JSIL.DeclareNamespace("System.Reflection");
 
 JSIL.DeclareNamespace("JSIL");
 JSIL.DeclareNamespace("JSIL.Array");
@@ -869,14 +926,16 @@ JSIL.AllImplementedExternals = {};
 JSIL.ExternalsQueue = {};
 
 JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initializer) {
-  var privateName = JSIL.ResolveName(privateNamespace, name, false);
+  var privateName = JSIL.ResolveName(privateNamespace, name, true);
   if (isPublic)
     var publicName = JSIL.ResolveName(JSIL.GlobalNamespace, name, true);
 
   var localName = JSIL.GetLocalName(name);
 
-  if (privateName.exists()) {
-    JSIL.DuplicateDefinitionWarning(name, false, privateName.get().__CallStack__ || null, privateNamespace);
+  var existingInSameAssembly = JSIL.ResolveName(privateNamespace, name, false, false);
+
+  if (existingInSameAssembly && existingInSameAssembly.exists(false)) {
+    JSIL.DuplicateDefinitionWarning(name, false, existingInSameAssembly.get().__CallStack__ || null, privateNamespace);
     return;
   }
 
@@ -893,8 +952,11 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
   var getter = function (unseal) {
     var result;
 
-    if (state.constructing)
-      throw new Error("Recursive construction of type '" + name + "' detected.");
+    if (state.constructing) {
+      var err = new Error("Recursive construction of type '" + name + "' detected.");
+      state.value = err;
+      throw err;
+    }
 
     if (typeof (state.creator) === "function") {
       state.constructing = true;
@@ -902,8 +964,12 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
 
       try {
         result = cf();
-        if ((result === null) || ((typeof (result) !== "object") && (typeof (result) !== "function")))
-          throw new Error("Invalid result from type creator");
+
+        if ((result === null) || ((typeof (result) !== "object") && (typeof (result) !== "function"))) {
+          var err = new Error("Invalid result from type creator for type '" + name + "'");
+          state.value = err;
+          throw err;
+        }
 
         state.value = result;
       } catch (exc) {
@@ -915,8 +981,11 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
     } else {
       result = state.value;
 
-      if ((result === null) || ((typeof (result) !== "object") && (typeof (result) !== "function")))
-        throw new Error("Type initialization failed");
+      if ((result === null) || ((typeof (result) !== "object") && (typeof (result) !== "function"))) {
+        var err = new Error("Type initialization failed for type '" + name + "'");
+        state.value = err;
+        throw err;
+      }
     }
 
     if (typeof (state.initializer) === "function") {
@@ -1600,28 +1669,6 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
   var typeName = typeObject.__FullName__;
   var missingMembers = [];
 
-  var hasOwnPropertyRecursive = function (target, name) {
-    while (!target.hasOwnProperty(name)) {
-      target = Object.getPrototypeOf(target);
-
-      if ((typeof (target) === "undefined") || (target === null))
-        return false;
-    }
-
-    return target.hasOwnProperty(name);
-  };
-
-  var getOwnDescriptorRecursive = function (target, name) {
-    while (!target.hasOwnProperty(name)) {
-      target = Object.getPrototypeOf(target);
-
-      if ((typeof (target) === "undefined") || (target === null))
-        return null;
-    }
-
-    return Object.getOwnPropertyDescriptor(target, name);
-  };
-
   __interfaces__:
   for (var i = 0, l = interfaces.length; i < l; i++) {
     var iface = interfaces[i];
@@ -1670,15 +1717,15 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
       var memberType = members[key];
       var qualifiedName = JSIL.EscapeName(ifaceLocalName + "." + key);
 
-      var hasShort = hasOwnPropertyRecursive(proto, key);
-      var hasQualified = hasOwnPropertyRecursive(proto, qualifiedName);
+      var hasShort = JSIL.HasOwnPropertyRecursive(proto, key);
+      var hasQualified = JSIL.HasOwnPropertyRecursive(proto, qualifiedName);
 
       if (memberType === Function) {
         var shortImpl = proto[key];
         var qualifiedImpl = proto[qualifiedName];
       } else if (memberType === Property) {
-        var shortImpl = getOwnDescriptorRecursive(proto, key);
-        var qualifiedImpl = getOwnDescriptorRecursive(proto, qualifiedName);
+        var shortImpl = JSIL.GetOwnPropertyDescriptorRecursive(proto, key);
+        var qualifiedImpl = JSIL.GetOwnPropertyDescriptorRecursive(proto, qualifiedName);
       }
 
       if ((typeof (shortImpl) === "undefined") || (shortImpl === null))
@@ -2361,7 +2408,7 @@ JSIL.$ApplyMemberHiding = function (typeObject, memberList, resolveContext) {
   }
 };
 
-JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
+JSIL.$BuildMethodGroups = function (typeObject, publicInterface, forceLazyMethodGroups) {
   // This is called during type system initialization, so we can't rely on any of MemberInfo's
   //  properties or methods - we need to access the data members directly.
 
@@ -2382,9 +2429,10 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface) {
 
   var trace = false;
   var active = true;
+
   // Set to true to enable lazy method group construction. This increases
   //  javascript heap size but improves startup performance.
-  var lazyMethodGroups = false;
+  var lazyMethodGroups = true || (forceLazyMethodGroups === true);
 
   var printedTypeName = false;
   var resolveContext = publicInterface.prototype;
@@ -2587,8 +2635,15 @@ JSIL.InitializeType = function (type) {
   typeObject.__TypeInitialized__ = true;
 
   if (typeObject.__IsClosed__) {
+    var forceLazyMethodGroups = false;
+
+    // We need to ensure that method groups for BCL classes are always lazy
+    //  because otherwise, initializing the method groups may rely on the classes themselves
+    if (typeObject.__FullName__.indexOf("System.") === 0)
+      forceLazyMethodGroups = true;
+
     if (typeObject.IsInterface !== true) {
-      JSIL.$BuildMethodGroups(typeObject, classObject);
+      JSIL.$BuildMethodGroups(typeObject, classObject, forceLazyMethodGroups);
     }
 
     JSIL.InstantiateProperties(classObject, typeObject);
@@ -2791,24 +2846,22 @@ $jsilcore.$GetRuntimeType = function (context, forTypeName) {
   if (
       (forTypeName == "System.RuntimeType") || 
       (forTypeName == "System.Type") || 
-      (forTypeName == "System.Reflection.MemberInfo") ||
+      (forTypeName == "System.Reflection.MemberInfo") || 
       (forTypeName == "System.Object")
     ) {
 
-    if (!$jsilcore.SystemObjectInitialized)
+    if (!$jsilcore.SystemObjectInitialized || !$jsilcore.RuntimeTypeInitialized)
       return $jsilcore.RuntimeType;
   }
 
   var runtimeType = JSIL.ResolveName($jsilcore, "System.RuntimeType", true);
   if (runtimeType.exists()) {
-    runtimeType = runtimeType.get();
-    JSIL.InitializeType(runtimeType);
-    return runtimeType.prototype;
+    var runtimeTypeObj = runtimeType.get();
+    JSIL.InitializeType(runtimeTypeObj);
+    return runtimeTypeObj.prototype;
   } else {
-    runtimeType = $jsilcore.RuntimeType;
+    return $jsilcore.RuntimeType;
   }
-
-  return runtimeType;
 };
 
 JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializer) {
@@ -3205,6 +3258,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
 
   var creator = function CreateEnum () {
     var result = {
+      __Context__: context,
       __CallStack__: callStack,
       __FullName__: fullName, 
       FullName: fullName,
@@ -4540,6 +4594,22 @@ JSIL.GetReflectionCache = function (typeObject) {
 
   cache = typeObject.__ReflectionCache__ = [];
 
+  var makeTypeInstance = function (type) {
+    // Construct the appropriate subclass of MemberInfo
+    var parsedTypeName = JSIL.ParseTypeName("System.Reflection." + type);    
+    var infoType = JSIL.GetTypeInternal(parsedTypeName, $jsilcore, true);
+    var info = JSIL.CreateInstanceOfType(infoType, null);
+
+    /*
+    // Don't trigger type initialization machinery
+    // FIXME: This will break if any of the memberinfo types rely on static constructors.
+    var infoType = JSIL.GetTypeByName("System.Reflection." + type, $jsilcore);
+    var info = Object.create(infoType.prototype);
+    */
+
+    return info;
+  };
+
   for (var i = 0, l = members.length; i < l; i++) {
     var member = members[i];
     if (!JSIL.IsArray(member))
@@ -4549,10 +4619,7 @@ JSIL.GetReflectionCache = function (typeObject) {
     var descriptor = member[1];
     var data = member[2];
 
-    // Construct the appropriate subclass of MemberInfo
-    var parsedTypeName = JSIL.ParseTypeName("System.Reflection." + type);    
-    var infoType = JSIL.GetTypeInternal(parsedTypeName, $jsilcore, true);
-    var info = JSIL.CreateInstanceOfType(infoType, null);
+    var info = makeTypeInstance(type);
 
     info._typeObject = typeObject;
     info._data = data;
@@ -5686,6 +5753,18 @@ JSIL.MakeClass("System.Object", "System.Reflection.MemberInfo", true, [], functi
     $.Property({Public: true , Static: false}, "IsSpecialName");
 });
 
+JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function ($) {
+    $.Property({Public: true , Static: false}, "Module");
+    $.Property({Public: true , Static: false}, "Assembly");
+    $.Property({Public: true , Static: false}, "FullName");
+    $.Property({Public: true , Static: false}, "Namespace");
+    $.Property({Public: true , Static: false}, "BaseType");
+});
+
+JSIL.MakeClass("System.Type", "System.RuntimeType", false, [], function ($) {
+  $jsilcore.RuntimeTypeInitialized = true;
+});
+
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.MethodBase", true, [], function ($) {
 });
 
@@ -5704,15 +5783,4 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.EventInfo", tr
 });
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.PropertyInfo", true, [], function ($) {
-});
-
-JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function ($) {
-    $.Property({Public: true , Static: false}, "Module");
-    $.Property({Public: true , Static: false}, "Assembly");
-    $.Property({Public: true , Static: false}, "FullName");
-    $.Property({Public: true , Static: false}, "Namespace");
-    $.Property({Public: true , Static: false}, "BaseType");
-});
-
-JSIL.MakeClass("System.Type", "System.RuntimeType", false, [], function ($) {
 });

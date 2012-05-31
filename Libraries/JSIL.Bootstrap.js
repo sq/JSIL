@@ -2,13 +2,12 @@
 
 if (typeof (JSIL) === "undefined")
   throw new Error("JSIL.Core is required");
-  
-var $jsilcore = JSIL.DeclareAssembly("JSIL.Core");
+
+if (!$jsilcore)  
+  throw new Error("JSIL.Core is required");
 
 JSIL.DeclareNamespace("System.ComponentModel");
 JSIL.DeclareNamespace("System.Linq");
-JSIL.DeclareNamespace("System.Reflection");
-JSIL.DeclareNamespace("System.Text");
 JSIL.DeclareNamespace("System.Text.RegularExpressions");
 
 $jsilcore.$ParseBoolean = function (text) {

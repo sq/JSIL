@@ -62,6 +62,14 @@ namespace JSIL {
         protected bool OwnsAssemblyCache;
         protected bool OwnsTypeInfoProvider;
 
+        protected readonly static HashSet<string> TypeDeclarationsToSuppress = new HashSet<string> {
+            "System.Object", "System.Type", "System.RuntimeType",
+            "System.Reflection.MemberInfo", "System.Reflection.MethodBase", 
+            "System.Reflection.MethodInfo", "System.Reflection.FieldInfo",
+            "System.Reflection.ConstructorInfo", "System.Reflection.PropertyInfo",
+            "System.Array", "System.Delegate", "System.MulticastDelegate"
+        }; 
+
         public AssemblyTranslator (
             Configuration configuration,
             TypeInfoProvider typeInfoProvider = null,
@@ -787,11 +795,25 @@ namespace JSIL {
             output.NewLine();
         }
 
+        protected virtual bool ShouldGenerateTypeDeclaration (TypeDefinition typedef, bool makingSkeletons) {
+            if (TypeDeclarationsToSuppress.Contains(typedef.FullName) && !makingSkeletons)
+                return false;
+
+            return true;
+        }
+
         protected void DeclareType (
             DecompilerContext context, TypeDefinition typedef, 
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
             HashSet<TypeDefinition> declaredTypes, bool stubbed
         ) {
+            var makingSkeletons = stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false);
+
+            if (!ShouldGenerateTypeDeclaration(typedef, makingSkeletons)) {
+                declaredTypes.Add(typedef);
+                return;
+            }
+
             var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
                 return;
@@ -874,7 +896,7 @@ namespace JSIL {
 
                 bool isStatic = typedef.IsAbstract && typedef.IsSealed;
 
-                if (stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false)) {
+                if (makingSkeletons) {
                     output.Identifier("JSIL.ImplementExternals", null);
                     output.LPar();
 

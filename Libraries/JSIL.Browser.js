@@ -458,8 +458,8 @@ function loadBinaryFileAsync (uri, onComplete) {
 }
 
 var loadedFontCount = 0;
-var loadingPollInterval = 10;
-var maxAssetsLoading = 16;
+var loadingPollInterval = 5;
+var maxAssetsLoading = 6;
 var soundLoadTimeout = 30000;
 var fontLoadTimeout = 15000;
 
@@ -770,6 +770,13 @@ function finishLoading () {
   var started = Date.now();
   var endBy = started + 5;
 
+  var initIfNeeded = function () {
+    if (!state.jsilInitialized) {
+      state.jsilInitialized = true;
+      JSIL.Initialize();
+    }
+  };
+
   while (Date.now() <= endBy) {
     if (state.pendingScriptLoads > 0)
       return;
@@ -779,6 +786,11 @@ function finishLoading () {
         var item = state.finishQueue[state.finishIndex];
         var cb = item[2];
 
+        // Ensure that we initialize the JSIL runtime before constructing asset objects.
+        if ((item[0] != "Script") && (item[0] != "Library")) {
+          initIfNeeded();
+        }
+
         if (typeof (cb) === "function")
           cb(state);
       } finally {
@@ -786,6 +798,8 @@ function finishLoading () {
         state.assetsFinished += 1;
       }
     } else {
+      initIfNeeded();
+
       window.clearInterval(state.interval);
       state.interval = null;
       window.setTimeout(state.onDoneLoading, 10);
@@ -881,7 +895,7 @@ function pollAssetQueue () {
           break;
         case "Script":
           lhsTypeIndex = 1;
-          break;
+          break;        
       }
 
       switch (rhs[0]) {
@@ -920,7 +934,8 @@ function loadAssets (assets, onDoneLoading) {
     finishQueue: [],
     loadIndex: 0,
     finishIndex: 0,
-    pendingScriptLoads: 0
+    pendingScriptLoads: 0,
+    jsilInitialized: false
   };
 
   for (var i = 0, l = assets.length; i < l; i++) {
@@ -970,9 +985,7 @@ function beginLoading () {
   JSIL.Host.logWrite("Loading data ... ");
   loadAssets(allAssets, function () {
     JSIL.Host.logWriteLine("done.");
-    try {
-      JSIL.Initialize();
-      
+    try {     
       if (quitButton)
         quitButton.style.display = "";
 
