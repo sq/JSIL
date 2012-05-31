@@ -162,9 +162,26 @@ namespace JSIL.Transforms {
                 State.ModificationCount[variable.Name] += 1;
         }
 
+        protected JSVariable ExtractAffectedVariable (JSExpression expression) {
+            var variable = expression as JSVariable;
+
+            if (variable != null)
+                return variable;
+
+            JSDotExpressionBase dot = expression as JSDotExpressionBase;
+            while (dot != null) {
+                variable = dot.Target as JSVariable;
+                if (variable != null)
+                    return variable;
+
+                dot = dot.Target as JSDotExpressionBase;
+            }
+
+            return null;
+        }
+
         public void VisitNode (JSUnaryOperatorExpression uoe) {
-            var variable = uoe.Expression as JSVariable;
-            var dot = uoe.Expression as JSDotExpressionBase;
+            var variable = ExtractAffectedVariable(uoe.Expression);
             var isMutator = uoe.Operator is JSUnaryMutationOperator;
 
             VisitChildren(uoe);
@@ -180,10 +197,6 @@ namespace JSIL.Transforms {
                     );
 
                     ModifiedVariable(variable);
-                } else if (dot != null) {
-                    variable = dot.Target as JSVariable;
-                    if (variable != null)
-                        ModifiedVariable(variable);
                 }
             }
         }
@@ -206,7 +219,7 @@ namespace JSIL.Transforms {
                     break;
             }
 
-            var leftVar = left as JSVariable;
+            var leftVar = ExtractAffectedVariable(left);
 
             VisitChildren(boe);
 
@@ -224,11 +237,6 @@ namespace JSIL.Transforms {
                     );
 
                     ModifiedVariable(leftVar);
-                } else if (leftDot != null) {
-                    leftVar = leftDot.Target as JSVariable;
-
-                    if (leftVar != null)
-                        ModifiedVariable(leftVar);
                 }
 
                 if (
@@ -245,7 +253,7 @@ namespace JSIL.Transforms {
 
         public void VisitNode (JSFieldAccess fa) {
             var field = fa.Field;
-            var v = fa.ThisReference as JSVariable;
+            var v = ExtractAffectedVariable(fa.ThisReference);
 
             if (fa.HasGlobalStateDependency) {
                 State.StaticReferences.Add(new FunctionAnalysis1stPass.StaticReference(
@@ -262,7 +270,7 @@ namespace JSIL.Transforms {
 
         public void VisitNode (JSPropertyAccess prop) {
             var parentBoe = ParentNode as JSBinaryOperatorExpression;
-            var v = prop.Target as JSVariable;
+            var v = ExtractAffectedVariable(prop.Target);
             var p = prop.Property.Property;
 
             if (prop.HasGlobalStateDependency) {
@@ -315,10 +323,12 @@ namespace JSIL.Transforms {
             }
 
             var type = ie.JSType;
-            var thisVar = ie.ThisReference as JSVariable;
+            var thisVar = ExtractAffectedVariable(ie.ThisReference);
             var method = ie.JSMethod;
 
             if (thisVar != null) {
+                ModifiedVariable(thisVar);
+
                 State.Invocations.Add(new FunctionAnalysis1stPass.Invocation(
                     StatementIndex, NodeIndex, thisVar, method, variables
                 ));
@@ -387,8 +397,15 @@ namespace JSIL.Transforms {
                 // Ignored because it is not an actual access
             }
 
-            if ((ParentNode is JSPassByReferenceExpression) || (ParentNode is JSReferenceExpression))
+            if (
+                (ParentNode is JSPassByReferenceExpression) ||
+                (
+                    (ParentNode is JSReferenceExpression) &&
+                    (Stack.Skip(2).FirstOrDefault() is JSPassByReferenceExpression)
+                )
+            ) {
                 State.VariablesPassedByRef.Add(variable.Name);
+            }
 
             VisitChildren(variable);
         }
@@ -565,6 +582,10 @@ namespace JSIL.Transforms {
                     return kvp.Value >= (isParameter ? 1 : 2);
                 }).Select((kvp) => kvp.Key)
             );
+
+            foreach (var v in Data.VariablesPassedByRef)
+                ModifiedVariables.Add(v);
+
             EscapingVariables = Data.EscapingVariables;
             ResultVariable = Data.ResultVariable;
             ResultIsNew = Data.ResultIsNew;

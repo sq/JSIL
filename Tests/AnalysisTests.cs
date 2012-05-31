@@ -28,7 +28,7 @@ namespace JSIL.Tests {
 
         [Test]
         public void LocalCopyOfGlobal () {
-            var output = "1\r\n2\r\n2\r\n2\r\n1\r\n2\r\n3\r\n2";
+            var output = "1\r\n2\r\n2\r\n2\r\n1\r\n2\r\n3\r\n2\r\n2";
 
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\LocalCopyOfGlobal.cs",
@@ -63,6 +63,10 @@ namespace JSIL.Tests {
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
                 @"(\$asm([0-9A-F])*).Program.StoreArgument\(d.MemberwiseClone\(\)\)"
+            ));
+            Assert.IsTrue(Regex.IsMatch(
+                generatedJs,
+                @"f = new JSIL.Variable\((\$asm([0-9A-F])*).Program.A.MemberwiseClone\(\)\)"
             ));
         }
 

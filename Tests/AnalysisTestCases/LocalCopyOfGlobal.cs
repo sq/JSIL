@@ -8,6 +8,10 @@ public static class Program {
         return arg;
     }
 
+    public static void MutateArgument (ref CustomType value) {
+        value.Value += 1;
+    }
+
     public static void StoreArgument (CustomType value) {
         Field = value;
     }
@@ -22,6 +26,7 @@ public static class Program {
         var c = B;
         var d = B;
         var e = B;
+        var f = A;
 
         PrintArgument(a);
         PrintArgument(b);
@@ -38,6 +43,9 @@ public static class Program {
 
         Field = e;
         PrintArgument(Field);
+
+        MutateArgument(ref f);
+        PrintArgument(f);
     }
 }
 
