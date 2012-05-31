@@ -22,6 +22,10 @@ var $xnaasms = new JSIL.AssemblyCollection({
   19: "Microsoft.Xna.Framework.Storage"
 });
 
+var getXnaGraphics = function () {
+  return $xnaasms.xnaGraphics || $xnaasms.xna;
+};
+
 $jsilxna.nextImageId = 0;
 
 $jsilxna.multipliedImageCache = {};
@@ -1017,7 +1021,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.EffectReader", function
   $.InheritDefaultConstructor();
 
   $.Method({Static:false, Public:false}, "Read", 
-    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.Effect"), [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Content.ContentReader"), $xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.Effect")], [])), 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.Effect"), [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Content.ContentReader"), getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.Effect")], [])), 
     function Read (input, existingInstance) {
       var count = input.ReadInt32();
       var effectCode = input.ReadBytes(count);
@@ -2384,7 +2388,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Matrix", function ($) {
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.BasicEffect", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [$xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice")], [])), 
+    (new JSIL.MethodSignature(null, [getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice")], [])), 
     function _ctor (device) {
     }
   );
@@ -2481,7 +2485,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.BasicEffect", function
   );
 
   $.Method({Static:false, Public:true }, "set_Texture", 
-    (new JSIL.MethodSignature(null, [$xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.Texture2D")], [])), 
+    (new JSIL.MethodSignature(null, [getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.Texture2D")], [])), 
     function set_Texture (value) {
       // FIXME
     }
@@ -2518,7 +2522,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.BasicEffect", function
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Effect", function ($) {
   $.Method({Static:false, Public:true }, "get_CurrentTechnique", 
-    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.EffectTechnique"), [], [])), 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.EffectTechnique"), [], [])), 
     function get_CurrentTechnique () {
       // FIXME
       return new Microsoft.Xna.Framework.Graphics.EffectTechnique();
@@ -2526,7 +2530,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Effect", function ($) 
   );
 
   $.Method({Static:false, Public:true }, "get_Parameters", 
-    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.EffectParameterCollection"), [], [])), 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.EffectParameterCollection"), [], [])), 
     function get_Parameters () {
       // FIXME
       return new Microsoft.Xna.Framework.Graphics.EffectParameterCollection();
@@ -2545,7 +2549,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectParameterCollect
   );
 
   $.Method({Static:false, Public:true }, "get_Item", 
-    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.EffectParameter"), [$.Int32], [])), 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.EffectParameter"), [$.Int32], [])), 
     function get_Item (index) {
       // FIXME
       return new Microsoft.Xna.Framework.Graphics.EffectParameter();
@@ -2553,7 +2557,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectParameterCollect
   );
 
   $.Method({Static:false, Public:true }, "get_Item", 
-    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.EffectParameter"), [$.String], [])), 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.EffectParameter"), [$.String], [])), 
     function get_Item (name) {
       // FIXME
       return new Microsoft.Xna.Framework.Graphics.EffectParameter();
@@ -2564,7 +2568,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectParameterCollect
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectParameter", function ($) {  
   $.Method({Static:false, Public:true }, "get_Elements", 
-    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.EffectParameterCollection"), [], [])), 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.EffectParameterCollection"), [], [])), 
     function get_Elements () {
       // FIXME
       return new Microsoft.Xna.Framework.Graphics.EffectParameterCollection();
@@ -2631,7 +2635,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectParameter", func
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.EffectTechnique", function ($) {
   $.Method({Static:false, Public:true }, "get_Passes", 
-    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.EffectPassCollection"), [], [])), 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.EffectPassCollection"), [], [])), 
     function get_Passes () {
       // FIXME
       return [new Microsoft.Xna.Framework.Graphics.EffectPass()];
@@ -4959,56 +4963,56 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
   );
 
   $.Method({Static:false, Public:true }, "get_BlendState", 
-    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.BlendState"), [], [])), 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.BlendState"), [], [])), 
     function get_BlendState () {
       return this.blendState;
     }
   );
 
   $.Method({Static:false, Public:true }, "get_DisplayMode", 
-    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.DisplayMode"), [], [])), 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.DisplayMode"), [], [])), 
     function get_DisplayMode () {
       return this.displayMode;
     }
   );
 
   $.Method({Static:false, Public:true }, "get_PresentationParameters", 
-    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.PresentationParameters"), [], [])), 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.PresentationParameters"), [], [])), 
     function get_PresentationParameters () {
       return this.presentationParameters;
     }
   );
 
   $.Method({Static:false, Public:true }, "get_SamplerStates", 
-    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.SamplerStateCollection"), [], [])), 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.SamplerStateCollection"), [], [])), 
     function get_SamplerStates () {
       return this.samplerStates;
     }
   );
 
   $.Method({Static:false, Public:true }, "get_VertexSamplerStates", 
-    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.SamplerStateCollection"), [], [])), 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.SamplerStateCollection"), [], [])), 
     function get_VertexSamplerStates () {
       return this.vertexSamplerStates;
     }
   );
 
   $.Method({Static:false, Public:true }, "get_Textures", 
-    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.TextureCollection"), [], [])), 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.TextureCollection"), [], [])), 
     function get_Textures () {
       return this.textures;
     }
   );
 
   $.Method({Static:false, Public:true }, "get_VertexTextures", 
-    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.TextureCollection"), [], [])), 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.TextureCollection"), [], [])), 
     function get_VertexTextures () {
       return this.vertexTextures;
     }
   );
 
   $.Method({Static:false, Public:true }, "set_BlendState", 
-    (new JSIL.MethodSignature(null, [$xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.BlendState")], [])), 
+    (new JSIL.MethodSignature(null, [getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.BlendState")], [])), 
     function set_BlendState (value) {
       this.blendState = value;
       this.$UpdateBlendState();
@@ -5016,14 +5020,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
   );
 
   $.Method({Static:false, Public:true }, "set_DepthStencilState", 
-    (new JSIL.MethodSignature(null, [$xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.DepthStencilState")], [])), 
+    (new JSIL.MethodSignature(null, [getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.DepthStencilState")], [])), 
     function set_DepthStencilState (value) {
       // FIXME
     }
   );
 
   $.Method({Static:false, Public:true }, "set_RasterizerState", 
-    (new JSIL.MethodSignature(null, [$xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.RasterizerState")], [])), 
+    (new JSIL.MethodSignature(null, [getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.RasterizerState")], [])), 
     function set_RasterizerState (value) {
       // FIXME
     }
@@ -5100,7 +5104,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
 
   $.Method({Static:false, Public:true }, "DrawUserPrimitives", 
     (new JSIL.MethodSignature(null, [
-          $xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.PrimitiveType"), $jsilcore.TypeRef("System.Array", ["!!0"]), 
+          getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.PrimitiveType"), $jsilcore.TypeRef("System.Array", ["!!0"]), 
           $.Int32, $.Int32
         ], ["T"])), 
     function DrawUserPrimitives$b1 (T, primitiveType, vertexData, vertexOffset, primitiveCount) {
@@ -5110,9 +5114,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
 
   $.Method({Static:false, Public:true }, "DrawUserPrimitives", 
     (new JSIL.MethodSignature(null, [
-          $xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.PrimitiveType"), $jsilcore.TypeRef("System.Array", ["!!0"]), 
+          getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.PrimitiveType"), $jsilcore.TypeRef("System.Array", ["!!0"]), 
           $.Int32, $.Int32, 
-          $xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.VertexDeclaration")
+          getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.VertexDeclaration")
         ], ["T"])), 
     function DrawUserPrimitives$b1 (T, primitiveType, vertexData, vertexOffset, primitiveCount, vertexDeclaration) {
       return this.InternalDrawUserPrimitives(T, primitiveType, vertexData, vertexOffset, primitiveCount);
@@ -5120,7 +5124,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
   );
 
   $.Method({Static:false, Public:true }, "SetRenderTarget", 
-    (new JSIL.MethodSignature(null, [$xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.RenderTarget2D")], [])), 
+    (new JSIL.MethodSignature(null, [getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.RenderTarget2D")], [])), 
     function SetRenderTarget (renderTarget) {
       if (this.renderTarget === renderTarget) 
         return;
@@ -5202,7 +5206,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.PresentationParameters
   });
 
   $.Method({Static:false, Public:true }, "get_BackBufferFormat", 
-    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.SurfaceFormat"), [], [])), 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.SurfaceFormat"), [], [])), 
     function get_BackBufferFormat () {
       return Microsoft.Xna.Framework.Graphics.SurfaceFormat.Color;
     }
@@ -5223,7 +5227,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.PresentationParameters
   );
 
   $.Method({Static:false, Public:true }, "get_DepthStencilFormat", 
-    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.DepthFormat"), [], [])), 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.DepthFormat"), [], [])), 
     function get_DepthStencilFormat () {
       return Microsoft.Xna.Framework.Graphics.DepthFormat.None;
     }
@@ -5241,7 +5245,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.TextureCollection", fu
 
   $.Method({Static:false, Public:false}, ".ctor", 
     (new JSIL.MethodSignature(null, [
-          $xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), $.Int32, 
+          getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), $.Int32, 
           $.Int32
         ], [])), 
     function _ctor (parent, textureOffset, maxTextures) {
@@ -5253,14 +5257,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.TextureCollection", fu
   );
 
   $.Method({Static:false, Public:true }, "get_Item", 
-    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.Texture"), [$.Int32], [])), 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.Texture"), [$.Int32], [])), 
     function get_Item (index) {
       return this.textures[index];
     }
   );
 
   $.Method({Static:false, Public:true }, "set_Item", 
-    (new JSIL.MethodSignature(null, [$.Int32, $xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.Texture")], [])), 
+    (new JSIL.MethodSignature(null, [$.Int32, getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.Texture")], [])), 
     function set_Item (index, value) {
       this.textures[index] = value;
     }
@@ -5271,7 +5275,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SamplerStateCollection
 
   $.Method({Static:false, Public:false}, ".ctor", 
     (new JSIL.MethodSignature(null, [
-          $xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), $.Int32, 
+          getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), $.Int32, 
           $.Int32
         ], [])), 
     function _ctor (pParent, samplerOffset, maxSamplers) {
@@ -5288,14 +5292,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SamplerStateCollection
   );
 
   $.Method({Static:false, Public:true }, "get_Item", 
-    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.SamplerState"), [$.Int32], [])), 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.SamplerState"), [$.Int32], [])), 
     function get_Item (index) {
       return this.states[index];
     }
   );
 
   $.Method({Static:false, Public:true }, "set_Item", 
-    (new JSIL.MethodSignature(null, [$.Int32, $xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.SamplerState")], [])), 
+    (new JSIL.MethodSignature(null, [$.Int32, getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.SamplerState")], [])), 
     function set_Item (index, value) {
       this.states[index] = value;
 
@@ -5601,8 +5605,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
   );
 
   $.Method({Static:true , Public:true }, "FromStream", 
-    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.Texture2D"), [
-          $xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), $xnaasms[5].TypeRef("System.IO.Stream"), 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.Texture2D"), [
+          getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), $xnaasms[5].TypeRef("System.IO.Stream"), 
           $.Int32, $.Int32, 
           $.Boolean
         ], [])), 
@@ -5617,7 +5621,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
   );
 
   $.Method({Static:true , Public:true }, "FromStream", 
-    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.Texture2D"), [$xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), $xnaasms[5].TypeRef("System.IO.Stream")], [])), 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.Texture2D"), [getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), $xnaasms[5].TypeRef("System.IO.Stream")], [])), 
     function FromStream (graphicsDevice, stream) {
       var uri = stream.$GetURI();
 
@@ -5780,10 +5784,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.RenderTarget2D", funct
 
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [
-          $xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), $.Int32, 
+          getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), $.Int32, 
           $.Int32, $.Boolean, 
-          $xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.SurfaceFormat"), $xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.DepthFormat"), 
-          $.Int32, $xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.RenderTargetUsage")
+          getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.SurfaceFormat"), getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.DepthFormat"), 
+          $.Int32, getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.RenderTargetUsage")
         ], [])), 
     function _ctor (graphicsDevice, width, height, mipMap, colorFormat, preferredDepthFormat, preferredMultiSampleCount, usage) {
       this.$internalCtor(graphicsDevice, width, height, mipMap, colorFormat);
@@ -5792,9 +5796,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.RenderTarget2D", funct
 
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [
-          $xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), $.Int32, 
+          getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), $.Int32, 
           $.Int32, $.Boolean, 
-          $xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.SurfaceFormat"), $xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.DepthFormat")
+          getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.SurfaceFormat"), getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.DepthFormat")
         ], [])), 
     function _ctor (graphicsDevice, width, height, mipMap, colorFormat, preferredDepthFormat) {
       this.$internalCtor(graphicsDevice, width, height, mipMap, colorFormat);
@@ -5803,7 +5807,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.RenderTarget2D", funct
 
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [
-          $xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), $.Int32, 
+          getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), $.Int32, 
           $.Int32
         ], [])), 
     function _ctor (graphicsDevice, width, height) {
@@ -6311,7 +6315,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GamerServices.SignedInGamer", f
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsResource", function ($) {
   $.Method({Static:false, Public:true }, "get_GraphicsDevice", 
-    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), [], [])), 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.GraphicsDevice"), [], [])), 
     function get_GraphicsDevice () {
       return this.device;
     }
@@ -6334,7 +6338,7 @@ JSIL.MakeClass("Microsoft.Xna.Framework.Graphics.DisplayMode", "CurrentDisplayMo
   );
 
   $.Method({Static:false, Public:true }, "get_Format", 
-    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.SurfaceFormat"), [], [])), 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.SurfaceFormat"), [], [])), 
     function get_Format () {
       return Microsoft.Xna.Framework.Graphics.SurfaceFormat.Color;
     }
@@ -6743,7 +6747,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SamplerState", functio
 
   $.Method({Static:false, Public:false}, ".ctor", 
     (new JSIL.MethodSignature(null, [
-          $xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.TextureFilter"), $xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.TextureAddressMode"), 
+          getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.TextureFilter"), getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.TextureAddressMode"), 
           $.String
         ], [])), 
     function _ctor (filter, address, name) {
@@ -6753,14 +6757,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SamplerState", functio
   );
 
   $.Method({Static:false, Public:true }, "get_Filter", 
-    (new JSIL.MethodSignature($xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.TextureFilter"), [], [])), 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.TextureFilter"), [], [])), 
     function get_Filter () {
       return this.cachedFilter;
     }
   );
 
   $.Method({Static:false, Public:true }, "set_Filter", 
-    (new JSIL.MethodSignature(null, [$xnaasms[3].TypeRef("Microsoft.Xna.Framework.Graphics.TextureFilter")], [])), 
+    (new JSIL.MethodSignature(null, [getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.TextureFilter")], [])), 
     function set_Filter (value) {
       this.cachedFilter = value;
     }

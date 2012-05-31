@@ -215,9 +215,6 @@ JSIL.AssemblyCollection = function (obj) {
   var makeGetter = function (assemblyName) {
     return function GetAssemblyFromCollection () {
       var state = JSIL.GetAssembly(assemblyName, true);
-      if (state === null)
-        return $jsilcore;
-
       return state;
     };
   };
@@ -4474,7 +4471,14 @@ JSIL.GetTypeInternal = function (parsedTypeName, defaultContext, throwOnFail) {
     ga = new Array(parsedTypeName.genericArguments.length);
 
     for (var i = 0, l = ga.length; i < l; i++) {
-      ga[i] = JSIL.GetTypeInternal(parsedTypeName.genericArguments[i], defaultContext);
+      ga[i] = JSIL.GetTypeInternal(parsedTypeName.genericArguments[i], defaultContext, false);
+
+      if (ga[i] === null) {
+        if (throwOnFail)
+          throw new Error("Unable to resolve generic argument '" + parsedTypeName.genericArguments[i].type + "'");
+        else
+          return null;
+      }
     }
   }
 
@@ -4484,14 +4488,9 @@ JSIL.GetTypeInternal = function (parsedTypeName, defaultContext, throwOnFail) {
 JSIL.GetTypeFromAssembly = function (assembly, typeName, genericArguments, throwOnFail) {
   var resolved, result = null;
 
-  try {
-    resolved = JSIL.ResolveName(assembly, typeName, true);
-  } catch (exc) {
-    if (throwOnFail)
-      throw exc;
-    else
-      return null;
-  }
+  resolved = JSIL.ResolveName(assembly, typeName, true, throwOnFail === true);
+  if (resolved === null)
+    return null;
 
   if (resolved.exists()) {
     result = resolved.get();
