@@ -482,8 +482,13 @@ namespace JSIL {
         }
 
         public void VisitNode (JSIgnoredMemberReference imr) {
-            Output.Identifier("JSIL.IgnoredMember", null);
+            Output.WriteRaw(
+                (imr.Member != null) ?
+                    "JSIL.IgnoredMember" :
+                    "JSIL.UnknownMember"
+            );
             Output.LPar();
+
             if (imr.Member != null) {
                 var method = imr.Member as MethodInfo;
                 if (method != null)

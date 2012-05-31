@@ -74,6 +74,11 @@ namespace JSIL.Internal {
                     return false;
             }
 
+            for (int i = 0, c = GenericParameterNames.Length; i < c; i++) {
+                if (GenericParameterNames[i] != rhs.GenericParameterNames[i])
+                    return false;
+            }
+
             return true;
         }
 

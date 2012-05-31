@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using ICSharpCode.Decompiler;
@@ -291,10 +292,25 @@ namespace JSIL {
                 if ((targetGp == null) || (sourceGp == null))
                     return false;
 
-                // https://github.com/jbevain/cecil/issues/97
+                TypeReference temp;
+
+                // Generic parameters may be in positional (!0) form; expand them so they compare
+                //  correctly with named (T) form.
+
+                if (IsPositionalGenericParameter(sourceGp)) {
+                    ExpandPositionalGenericParameters(sourceGp, out temp);
+                    sourceGp = (GenericParameter)temp;
+                }
+
+                if (IsPositionalGenericParameter(targetGp)) {
+                    ExpandPositionalGenericParameters(targetGp, out temp);
+                    targetGp = (GenericParameter)temp;
+                }
 
                 var targetOwnerType = targetGp.Owner as TypeReference;
                 var sourceOwnerType = sourceGp.Owner as TypeReference;
+
+                // https://github.com/jbevain/cecil/issues/97
 
                 if ((targetOwnerType != null) || (sourceOwnerType != null)) {
                     var basesEqual = false;
@@ -307,14 +323,19 @@ namespace JSIL {
                     if (!basesEqual)
                         return false;
                 } else {
-                    if (targetGp.Owner != sourceGp.Owner)
-                        return false;
+                    // FIXME: Can't do an exact comparison here since we get called by MemberIdentifier comparisons.
                 }
 
                 if (targetGp.Type != sourceGp.Type)
                     return false;
 
-                return (targetGp.Name == sourceGp.Name) && (targetGp.Position == sourceGp.Position);
+                if (targetGp.Name != sourceGp.Name)
+                    return false;
+
+                if (targetGp.Position != sourceGp.Position)
+                    return false;
+
+                return true;
             }
 
             var targetArray = target as ArrayType;
@@ -482,6 +503,117 @@ namespace JSIL {
             }
 
             return result.ToArray();
+        }
+
+        public static bool ContainsPositionalGenericParameter (TypeReference type) {
+            type = DereferenceType(type);
+
+            var gp = type as GenericParameter;
+            var git = type as GenericInstanceType;
+            var at = type as ArrayType;
+            var byref = type as ByReferenceType;
+
+            if (gp != null)
+                return IsPositionalGenericParameter(gp);
+
+            if (git != null) {
+                var elt = git.ElementType;
+
+                foreach (var ga in git.GenericArguments) {
+                    if (IsPositionalGenericParameter(ga))
+                        return true;
+                }
+
+                return IsPositionalGenericParameter(elt);
+            }
+
+            if (at != null)
+                return IsPositionalGenericParameter(at.ElementType);
+
+            if (byref != null)
+                return IsPositionalGenericParameter(byref.ElementType);
+
+            return false;
+        }
+
+        public static bool IsPositionalGenericParameter (TypeReference type) {
+            var gp = type as GenericParameter;
+            if (gp != null)
+                return IsPositionalGenericParameter(gp);
+            else
+                return false;
+        }
+
+        public static bool IsPositionalGenericParameter (GenericParameter gp) {
+            return gp.Name.StartsWith("!!") || gp.Name.StartsWith("!");
+        }
+
+        public static bool ExpandPositionalGenericParameters (TypeReference type, out TypeReference expanded) {
+            var gp = type as GenericParameter;
+            var git = type as GenericInstanceType;
+            var at = type as ArrayType;
+            var byref = type as ByReferenceType;
+
+            TypeReference _expanded;
+
+            if (gp != null) {
+                if (IsPositionalGenericParameter(gp)) {
+                    var ownerType = gp.Owner as TypeReference;
+                    var ownerMethod = gp.Owner as MethodReference;
+
+                    if (ownerType != null) {
+                        var resolvedOwnerType = ownerType.Resolve();
+                        if (resolvedOwnerType == null) {
+                            expanded = type;
+                            return false;
+                        }
+
+                        expanded = resolvedOwnerType.GenericParameters[int.Parse(gp.Name.Replace("!", ""))];
+                        return true;
+                    } else if (ownerMethod != null) {
+                        var resolvedOwnerMethod = ownerMethod.Resolve();
+                        if (resolvedOwnerMethod == null) {
+                            expanded = type;
+                            return false;
+                        }
+
+                        expanded = resolvedOwnerMethod.GenericParameters[int.Parse(gp.Name.Replace("!", ""))];
+                        return true;
+                    } else {
+                        throw new NotImplementedException("Unknown positional generic parameter type");
+                    }
+                }
+            }
+
+            if (git != null) {
+                var elt = git.ElementType;
+
+                if (ContainsPositionalGenericParameter(elt) || git.GenericArguments.Any(ContainsPositionalGenericParameter)) {
+                    ExpandPositionalGenericParameters(elt, out _expanded);
+                    var result = new GenericInstanceType(_expanded);
+
+                    foreach (var ga in git.GenericArguments) {
+                        ExpandPositionalGenericParameters(ga, out _expanded);
+                        result.GenericArguments.Add(_expanded);
+                    }
+
+                    expanded = result;
+                    return true;
+                }
+            }
+
+            if (at != null) {
+                if (ExpandPositionalGenericParameters(at.ElementType, out _expanded))
+                    ;
+            }
+
+            if (byref != null) {
+                if (ExpandPositionalGenericParameters(byref.ElementType, out _expanded))
+                    ;
+            }
+
+            expanded = type;
+            return false;
         }
     }
 }

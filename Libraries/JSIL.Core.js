@@ -562,6 +562,10 @@ JSIL.IgnoredMember = function (memberName) {
   JSIL.Host.error(new Error("An attempt was made to reference the member '" + memberName + "', but it was explicitly ignored during translation."));
 };
 
+JSIL.UnknownMember = function (memberName) {
+  JSIL.Host.error(new Error("An attempt was made to reference the member '" + memberName + "', but it has no type information."));
+};
+
 JSIL.RenameFunction = function (name, fn) {
   var decl = {
     value: name,
