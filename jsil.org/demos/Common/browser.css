@@ -53,6 +53,8 @@ body {
 	position: absolute;
 	text-align: center;
 	text-shadow: #000000 1px 1px 0px;
+	overflow: hidden;
+	text-overflow: ellipsis;
 	background-color: rgba(0, 0, 0, 0.66);
 	border-radius: 8px;
 	color: white;
@@ -62,6 +64,8 @@ body {
 	padding-bottom: 3px;
 	padding-left: 6px;
 	padding-right: 6px;
+	max-width: 90%;
+	max-height: 1.1em;
 }
 #log {
 	font-family: Consolas, Courier New, Courier;

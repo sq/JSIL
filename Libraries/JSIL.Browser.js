@@ -458,10 +458,11 @@ function loadBinaryFileAsync (uri, onComplete) {
 }
 
 var loadedFontCount = 0;
-var loadingPollInterval = 5;
-var maxAssetsLoading = 6;
+var loadingPollInterval = 1;
+var maxAssetsLoading = 4;
 var soundLoadTimeout = 30000;
-var fontLoadTimeout = 15000;
+var fontLoadTimeout = 10000;
+var finishStepDuration = 5;
 
 var assetLoaders = {
   "Library": function loadLibrary (filename, data, onError, onDoneLoading, state) {
@@ -755,7 +756,11 @@ function updateProgressBar (prefix, suffix, bytesLoaded, bytesTotal) {
     progressBar.style.width = w.toString() + "px";
 
   if (progressText) {
-    progressText.innerHTML = prefix + Math.floor(bytesLoaded) + suffix + " / " + Math.floor(bytesTotal) + suffix;
+    if (suffix === null) {
+      progressText.innerHTML = prefix;
+    } else {
+      progressText.innerHTML = prefix + Math.floor(bytesLoaded) + suffix + " / " + Math.floor(bytesTotal) + suffix;
+    }
 
     progressText.style.left = ((loadingProgress.clientWidth - progressText.clientWidth) / 2).toString() + "px";
     progressText.style.top = ((loadingProgress.clientHeight - progressText.clientHeight) / 2).toString() + "px";
@@ -765,10 +770,8 @@ function updateProgressBar (prefix, suffix, bytesLoaded, bytesTotal) {
 function finishLoading () {
   var state = this;
 
-  updateProgressBar("Loading data: ", "", state.assetsFinished, state.assetCount);
-
   var started = Date.now();
-  var endBy = started + 5;
+  var endBy = started + finishStepDuration;
 
   var initIfNeeded = function () {
     if (!state.jsilInitialized) {
@@ -791,6 +794,8 @@ function finishLoading () {
           initIfNeeded();
         }
 
+        updateProgressBar("Loading " + item[3], null, state.assetsFinished, state.assetCount);
+
         if (typeof (cb) === "function")
           cb(state);
       } finally {
@@ -799,6 +804,8 @@ function finishLoading () {
       }
     } else {
       initIfNeeded();
+
+      updateProgressBar("Starting game", null, 1, 1);
 
       window.clearInterval(state.interval);
       state.interval = null;
@@ -812,12 +819,20 @@ function pollAssetQueue () {
   var state = this;
 
   var w = 0;
-  updateProgressBar("Downloading files: ", "kb", state.bytesLoaded / 1024, state.assetBytes / 1024);
+  updateProgressBar("Downloading: ", "kb", state.bytesLoaded / 1024, state.assetBytes / 1024);
 
-  var makeStepCallback = function (state, type, sizeBytes, i) {
+  var makeStepCallback = function (state, type, sizeBytes, i, name) {
     return function (finish) {
+      var lastDot = name.lastIndexOf(".");
+      if (lastDot >= 0)
+        name = name.substr(0, lastDot);
+
+      var firstComma = name.indexOf(",");
+      if (firstComma >= 0)
+        name = name.substr(0, firstComma);
+
       if (typeof (finish) === "function")
-        state.finishQueue.push([type, i, finish]);
+        state.finishQueue.push([type, i, finish, name]);
 
       state.assetsLoading -= 1;
       state.assetsLoaded += 1;
@@ -857,7 +872,7 @@ function pollAssetQueue () {
       if (assetData !== null)
         sizeBytes = assetData.sizeBytes || 1;
 
-      var stepCallback = makeStepCallback(state, assetType, sizeBytes, state.loadIndex); 
+      var stepCallback = makeStepCallback(state, assetType, sizeBytes, state.loadIndex, assetPath); 
       var errorCallback = makeErrorCallback(assetPath, assetSpec);    
       
       if (typeof (assetLoader) !== "function") {
