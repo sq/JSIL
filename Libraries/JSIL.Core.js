@@ -2545,12 +2545,6 @@ JSIL.BuildTypeList = function (type, publicInterface) {
 
     typeList[id] = true;
 
-    /*
-    // Avoid adding duplicates.
-    if (typeList.indexOf(id) < 0)
-      typeList.push(id);
-    */
-
     var interfaces = current.__Interfaces__;
     if (JSIL.IsArray(interfaces)) {
       for (var i = 0; i < interfaces.length; i++) {
@@ -2559,45 +2553,6 @@ JSIL.BuildTypeList = function (type, publicInterface) {
       }
     }
   }
-
-  /*
-  // Sort the list so that we can binary search it if necessary
-  typeList.sort();
-  */
-};
-
-// Efficiently search a sourceType's assignable types list to see if it is assignable to targetType.
-JSIL.$TypeIsAssignable = function (sourceType, targetType) {
-  var sourceTypeDictionary = sourceType.__AssignableTypes__;
-  var targetTypeId = targetType.__TypeId__;
-
-  return sourceTypeDictionary[targetTypeId] === true;
-
-  // V8 and SpiderMonkey seem to choke on this trivial binary search implementation. :|
-  /*
-  var sourceTypeList = sourceType.__AssignableTypes__;
-  var targetTypeId = targetType.__TypeId__;
-
-  var low = 0, high = sourceTypeList.length - 1;
-  var pivot, pivotPoint = 0;
-
-  while (low <= high) {
-    pivotPoint = ((low + high) / 2) | 0;
-    pivot = sourceTypeList[pivotPoint];
-
-    if (pivot < targetTypeId) {
-      low = pivotPoint + 1; 
-      continue;
-    } else if (pivot > targetTypeId) {
-      high = pivotPoint - 1; 
-      continue;
-    }
-
-    return true;
-  }
-
-  return false;
-  */
 };
 
 JSIL.InitializeFields = function (type, publicInterface) {
@@ -3058,7 +3013,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__PublicInterface__ = staticClassObject;
 
     typeObject._IsAssignableFrom = function (typeOfValue) {
-      return JSIL.$TypeIsAssignable(typeOfValue, this);
+      return typeOfValue.__AssignableTypes__[this.__TypeId__] === true;
     };
 
     for (var i = 0, l = typeObject.__GenericArguments__.length; i < l; i++) {
@@ -3176,7 +3131,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     }
 
     typeObject._IsAssignableFrom = function (typeOfValue) {
-      return JSIL.$TypeIsAssignable(typeOfValue, this);
+      return typeOfValue.__AssignableTypes__[this.__TypeId__] === true;
     };
 
     return publicInterface;
@@ -3375,32 +3330,26 @@ JSIL.$SlowCheckType = function (value, expectedTypePublicInterface) {
 };
 
 JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
-  if (value === null)
-    return false;
+  var expectedTypePublicInterface = expectedType.__PublicInterface__ || expectedType;
+  var checkMethod = expectedTypePublicInterface.CheckType;
+
+  if (checkMethod && (bypassCustomCheckMethod !== false))
+    return checkMethod(value);
 
   var typeofValue = typeof(value);
-  if (typeofValue === "undefined")
+  if (typeofValue === "object") {
+    if (value === null)
+      return false;
+
+    var valueType = value.__ThisType__;
+    if (valueType) {
+      return (valueType.__AssignableTypes__[expectedType.__TypeId__] === true);
+    } else {
+      return JSIL.$SlowCheckType(value, expectedTypePublicInterface);
+    }
+  } else if (typeofValue === "undefined") {
     return false;
-
-  var expectedTypePublicInterface = expectedType.__PublicInterface__ || expectedType;
-
-  if (expectedType.IsEnum === true) {
-    return expectedTypePublicInterface.CheckType(value);
-  } else if (expectedType.__IsArray__ === true) {
-    // FIXME: Does not assert that array elements are the same type!
-    return JSIL.IsArray(value) || value.GetType().__IsArray__;
-  }
-
-  if (!bypassCustomCheckMethod) {
-    if ("CheckType" in expectedTypePublicInterface)
-      return expectedTypePublicInterface.CheckType(value);
-  }
-
-  var valueType = JSIL.GetType(value);
-
-  if (valueType !== null) {
-    return JSIL.$TypeIsAssignable(valueType, expectedType);
-  } else if ((typeofValue === "object") || (typeofValue === "function")) {
+  } else if (typeofValue === "function") {
     return JSIL.$SlowCheckType(value, expectedTypePublicInterface);
   }
 
@@ -3426,6 +3375,17 @@ JSIL.IsArray = function (value) {
   }
 
   return false;
+};
+
+JSIL.IsSystemArray = function (value) {
+  if (JSIL.IsArray(value))
+    return true;
+
+  var valueType = value.__ThisType__;
+  if (valueType)
+    return valueType.__IsArray__;
+  else
+    return JSIL.GetType(valueType).__IsArray__;
 };
 
 JSIL.GetBaseType = function (typeObject) {  
@@ -3497,9 +3457,6 @@ JSIL.GetTypeName = function (type) {
 };
 
 JSIL.TryCast = function (value, expectedType) {
-  if (expectedType.__IsReferenceType__ === false)
-    throw new System.InvalidCastException("Cannot TryCast a value type");
-
   if (JSIL.CheckType(value, expectedType))
     return value;
   else
@@ -3510,10 +3467,14 @@ JSIL.Cast = function (value, expectedType) {
   if (value === null) 
     return null;
 
-  if (expectedType.IsEnum) {
-    if ((typeof (value.GetType) === "function") && (value.GetType() === expectedType))
+  if (JSIL.CheckType(value, expectedType)) {
+    // If the user is casting to an integral type like Int32, we need to floor the value since JS stores all numbers as double
+    if (expectedType.__IsIntegral__) {
+      return Math.floor(value);
+    } else {
       return value;
-
+    }
+  } else if (expectedType.IsEnum) {
     var n = Number(value);
 
     var result = expectedType.__ValueToName__[n];
@@ -3522,13 +3483,6 @@ JSIL.Cast = function (value, expectedType) {
 
     result = JSIL.MakeEnumValue(expectedType, n, null, expectedType.__IsFlagsEnum__);
     return result;
-  } else if (JSIL.CheckType(value, expectedType)) {
-    // If the user is casting to an integral type like Int32, we need to floor the value since JS stores all numbers as double
-    if (expectedType.__IsIntegral__) {
-      return Math.floor(value);
-    } else {
-      return value;
-    }
   } else
     throw new System.InvalidCastException("Unable to cast object of type '" + JSIL.GetTypeName(JSIL.GetType(value)) + "' to type '" + JSIL.GetTypeName(expectedType) + "'.");
 };
@@ -5125,7 +5079,7 @@ JSIL.MakeInterface(
 );
 
 JSIL.ImplementExternals("System.Array", function ($) {
-  $.RawMethod(true, "CheckType", JSIL.IsArray);
+  $.RawMethod(true, "CheckType", JSIL.IsSystemArray);
 
   $.RawMethod(true, "Of", function Array_Of () {
     // Ensure System.Array is initialized.
@@ -5153,7 +5107,7 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
   var types = {};
 
   var checkType = function Array_CheckType (value) {
-    return JSIL.IsArray(value);
+    return JSIL.IsSystemArray(value);
   };
 
   $.RawMethod(true, "CheckType", checkType);
