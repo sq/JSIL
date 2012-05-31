@@ -10,10 +10,11 @@ namespace JSIL.Tests {
     public class AnalysisTests : GenericTestFixture {
         [Test]
         public void FieldAssignmentDetection () {
+            var output = "ct=1, mc=(a=0 b=0)\r\nct=1, mc=(a=2 b=1)\r\nct=3, mc=(a=2 b=1)";
+
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\FieldAssignmentDetection.cs",
-                "ct=1, mc=(a=0 b=0)\r\nct=1, mc=(a=2 b=1)\r\nct=3, mc=(a=2 b=1)",
-                "ct=1, mc=(a=0 b=0)\r\nct=1, mc=(a=2 b=1)\r\nct=3, mc=(a=2 b=1)"
+                output, output
             );
 
             Console.WriteLine(generatedJs);
@@ -26,11 +27,52 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void LocalCopyOfGlobal () {
+            var output = "1\r\n2\r\n2\r\n2\r\n1\r\n2\r\n3\r\n2";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\LocalCopyOfGlobal.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+            Assert.IsFalse(Regex.IsMatch(
+                generatedJs,
+                @"a = (\$asm([0-9A-F])*).Program.A.MemberwiseClone\(\)"
+            ));
+            Assert.IsFalse(Regex.IsMatch(
+                generatedJs,
+                @"b = (\$asm([0-9A-F])*).Program.ReturnArgument\((\$asm([0-9A-F])*).Program.B\).MemberwiseClone\(\)"
+            ));
+            Assert.IsTrue(Regex.IsMatch(
+                generatedJs,
+                @"c = (\$asm([0-9A-F])*).Program.B.MemberwiseClone\(\)"
+            ));
+            Assert.IsFalse(Regex.IsMatch(
+                generatedJs,
+                @"d = (\$asm([0-9A-F])*).Program.A.MemberwiseClone\(\)"
+            ));
+            Assert.IsFalse(Regex.IsMatch(
+                generatedJs,
+                @"e = (\$asm([0-9A-F])*).Program.A.MemberwiseClone\(\)"
+            ));
+            Assert.IsTrue(Regex.IsMatch(
+                generatedJs,
+                @"(\$asm([0-9A-F])*).Program.Field = e.MemberwiseClone\(\)"
+            ));
+            Assert.IsTrue(Regex.IsMatch(
+                generatedJs,
+                @"(\$asm([0-9A-F])*).Program.StoreArgument\(d.MemberwiseClone\(\)\)"
+            ));
+        }
+
+        [Test]
         public void ReturnStructArgument () {
+            var output = "a=2, b=1\r\na=2, b=2\r\na=3, b=2";
+
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\ReturnStructArgument.cs",
-                "a=2, b=1\r\na=2, b=2\r\na=3, b=2",
-                "a=2, b=1\r\na=2, b=2\r\na=3, b=2"
+                output, output
             );
 
             Console.WriteLine(generatedJs);
@@ -46,10 +88,11 @@ namespace JSIL.Tests {
 
         [Test]
         public void ReturnMutatedStructArgument () {
+            var output = "a=2, b=1\r\na=2, b=4\r\na=3, b=4";
+
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\ReturnMutatedStructArgument.cs",
-                "a=2, b=1\r\na=2, b=4\r\na=3, b=4",
-                "a=2, b=1\r\na=2, b=4\r\na=3, b=4"
+                output, output
             );
 
             Console.WriteLine(generatedJs);
@@ -65,10 +108,11 @@ namespace JSIL.Tests {
 
         [Test]
         public void ReturnMutatedNestedStruct () {
+            var output = "a=2, b=1\r\na=2, b=4\r\na=3, b=4";
+
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\ReturnMutatedNestedStruct.cs",
-                "a=2, b=1\r\na=2, b=4\r\na=3, b=4",
-                "a=2, b=1\r\na=2, b=4\r\na=3, b=4"
+                output, output
             );
 
             Console.WriteLine(generatedJs);
@@ -84,10 +128,11 @@ namespace JSIL.Tests {
 
         [Test]
         public void IncrementArgumentField () {
+            var output = "a=2, b=1\r\na=2, b=1\r\na=2, b=3\r\na=3, b=3";
+
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\IncrementArgumentField.cs",
-                "a=2, b=1\r\na=2, b=1\r\na=2, b=3\r\na=3, b=3",
-                "a=2, b=1\r\na=2, b=1\r\na=2, b=3\r\na=3, b=3"
+                output, output
             );
 
             Console.WriteLine(generatedJs);
@@ -101,10 +146,11 @@ namespace JSIL.Tests {
 
         [Test]
         public void MutateNestedStruct () {
+            var output = "a=2, b=1\r\na=2, b=1\r\na=2, b=3\r\na=3, b=3";
+
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\MutateNestedStruct.cs",
-                "a=2, b=1\r\na=2, b=1\r\na=2, b=3\r\na=3, b=3",
-                "a=2, b=1\r\na=2, b=1\r\na=2, b=3\r\na=3, b=3"
+                output, output
             );
 
             Console.WriteLine(generatedJs);
@@ -118,10 +164,11 @@ namespace JSIL.Tests {
 
         [Test]
         public void PureStructOperator () {
+            var output = "a=1, b=2, c=3\r\na=1, b=2, c=3\r\n4";
+
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\PureStructOperator.cs",
-                "a=1, b=2, c=3\r\na=1, b=2, c=3\r\n4",
-                "a=1, b=2, c=3\r\na=1, b=2, c=3\r\n4"
+                output, output
             );
 
             Console.WriteLine(generatedJs);
@@ -144,10 +191,11 @@ namespace JSIL.Tests {
 
         [Test]
         public void CopyGetEnumerator () {
+            var output = "1\r\n2\r\n3";
+
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\CopyGetEnumerator.cs",
-                "1\r\n2\r\n3",
-                "1\r\n2\r\n3"
+                output, output
             );
 
             Console.WriteLine(generatedJs);
@@ -158,10 +206,11 @@ namespace JSIL.Tests {
 
         [Test]
         public void NestedReturnNew () {
+            var output = "a=1, b=2, c=3, d=6\r\na=1, b=2, c=3, d=6";
+
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\NestedReturnNew.cs",
-                "a=1, b=2, c=3, d=6\r\na=1, b=2, c=3, d=6",
-                "a=1, b=2, c=3, d=6\r\na=1, b=2, c=3, d=6"
+                output, output
             );
 
             Console.WriteLine(generatedJs);
@@ -172,10 +221,11 @@ namespace JSIL.Tests {
 
         [Test]
         public void NestedReturn () {
+            var output = "a=1, b=2\r\na=3, b=2\r\na=3, b=3";
+
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\NestedReturn.cs",
-                "a=1, b=2\r\na=3, b=2\r\na=3, b=3",
-                "a=1, b=2\r\na=3, b=2\r\na=3, b=3"
+                output, output
             );
 
             Console.WriteLine(generatedJs);
@@ -189,10 +239,11 @@ namespace JSIL.Tests {
 
         [Test]
         public void StructTemporaries () {
+            var output = "a = 1";
+
             var generatedJs = GenericTest(
                 @"AnalysisTestCases\StructTemporaries.cs",
-                "a = 1",
-                "a = 1"
+                output, output
             );
 
             Console.WriteLine(generatedJs);

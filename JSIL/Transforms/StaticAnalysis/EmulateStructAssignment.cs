@@ -27,6 +27,14 @@ namespace JSIL.Transforms {
             OptimizeCopies = optimizeCopies;
         }
 
+        protected bool IsCopyNeededForAssignmentTarget (JSExpression target) {
+            var variable = target as JSVariable;
+            if (variable == null)
+                return true;
+
+            return SecondPass.ModifiedVariables.Contains(variable.Name);
+        }
+
         protected bool IsCopyNeeded (JSExpression value) {
             if ((value == null) || (value.IsNull))
                 return false;
@@ -201,10 +209,15 @@ namespace JSIL.Transforms {
             }
 
             if (IsCopyNeeded(boe.Right)) {
-                if (Tracing)
-                    Debug.WriteLine(String.Format("struct copy introduced for assignment rhs {0}", boe.Right));
+                if (IsCopyNeededForAssignmentTarget(boe.Left)) {
+                    if (Tracing)
+                        Debug.WriteLine(String.Format("struct copy introduced for assignment rhs {0}", boe.Right));
 
-                boe.Right = new JSStructCopyExpression(boe.Right);
+                    boe.Right = new JSStructCopyExpression(boe.Right);
+                } else {
+                    if (Tracing)
+                        Debug.WriteLine(String.Format("struct copy elided for assignment rhs {0}", boe.Right));
+                }
             }
 
             VisitChildren(boe);

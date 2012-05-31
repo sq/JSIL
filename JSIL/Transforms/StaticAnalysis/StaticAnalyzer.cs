@@ -155,6 +155,13 @@ namespace JSIL.Transforms {
             list.Add(index);
         }
 
+        protected void ModifiedVariable (JSVariable variable) {
+            if (!State.ModificationCount.ContainsKey(variable.Name))
+                State.ModificationCount[variable.Name] = 1;
+            else
+                State.ModificationCount[variable.Name] += 1;
+        }
+
         public void VisitNode (JSUnaryOperatorExpression uoe) {
             var variable = uoe.Expression as JSVariable;
             var dot = uoe.Expression as JSDotExpressionBase;
@@ -172,11 +179,11 @@ namespace JSIL.Transforms {
                         )
                     );
 
-                    State.ModifiedVariables.Add(variable.Identifier);
+                    ModifiedVariable(variable);
                 } else if (dot != null) {
                     variable = dot.Target as JSVariable;
                     if (variable != null)
-                        State.ModifiedVariables.Add(variable.Identifier);
+                        ModifiedVariable(variable);
                 }
             }
         }
@@ -215,12 +222,13 @@ namespace JSIL.Transforms {
                             leftType, rightType
                         )
                     );
-                    State.ModifiedVariables.Add(leftVar.Identifier);
+
+                    ModifiedVariable(leftVar);
                 } else if (leftDot != null) {
                     leftVar = leftDot.Target as JSVariable;
 
                     if (leftVar != null)
-                        State.ModifiedVariables.Add(leftVar.Identifier);
+                        ModifiedVariable(leftVar);
                 }
 
                 if (
@@ -333,7 +341,7 @@ namespace JSIL.Transforms {
                     )
                 );
 
-                State.ModifiedVariables.Add(tcb.CatchVariable.Identifier);
+                ModifiedVariable(tcb.CatchVariable);
             }
 
             VisitChildren(tcb);
@@ -488,7 +496,7 @@ namespace JSIL.Transforms {
         public readonly List<Access> Accesses = new List<Access>();
         public readonly List<Assignment> Assignments = new List<Assignment>();
         public readonly HashSet<string> VariablesPassedByRef = new HashSet<string>();
-        public readonly HashSet<string> ModifiedVariables = new HashSet<string>();
+        public readonly Dictionary<string, int> ModificationCount = new Dictionary<string, int>();
         public readonly HashSet<string> EscapingVariables = new HashSet<string>();
         public readonly List<SideEffect> SideEffects = new List<SideEffect>();
         public readonly List<StaticReference> StaticReferences = new List<StaticReference>();
@@ -547,7 +555,16 @@ namespace JSIL.Transforms {
                 }
             }
 
-            ModifiedVariables = Data.ModifiedVariables;
+            var parameterNames = new HashSet<string>(
+                from p in data.Function.Parameters select p.Name
+            );
+
+            ModifiedVariables = new HashSet<string>(
+                data.ModificationCount.Where((kvp) => {
+                    var isParameter = parameterNames.Contains(kvp.Key);
+                    return kvp.Value >= (isParameter ? 1 : 2);
+                }).Select((kvp) => kvp.Key)
+            );
             EscapingVariables = Data.EscapingVariables;
             ResultVariable = Data.ResultVariable;
             ResultIsNew = Data.ResultIsNew;

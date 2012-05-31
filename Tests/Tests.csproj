@@ -56,6 +56,7 @@
     <None Include="AnalysisTestCases\CopyGetEnumerator.cs" />
     <None Include="AnalysisTestCases\NestedReturnNew.cs" />
     <None Include="AnalysisTestCases\StructTemporaries.cs" />
+    <None Include="AnalysisTestCases\LocalCopyOfGlobal.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="FailingTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />
