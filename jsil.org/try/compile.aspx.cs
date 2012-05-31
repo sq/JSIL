@@ -39,9 +39,11 @@ public static class Program {
                 requestBody = sr.ReadToEnd();
         }
 
+        bool deleteTempFiles = true;
+
         try {
             string entryPointName, warnings;
-            var result = JSIL.Try.SnippetCompiler.Compile(requestBody);
+            var result = JSIL.Try.SnippetCompiler.Compile(requestBody, deleteTempFiles);
 
             WriteResponseJSON(new {
                 ok = true,

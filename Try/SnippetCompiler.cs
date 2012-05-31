@@ -180,7 +180,7 @@ namespace JSIL.Try {
         /// Compiles the provided C# and then translates it into JavaScript.
         /// On success, returns the JS. On failure, throws.
         /// </summary>
-        public static CompiledSnippet Compile (string csharp) {
+        public static CompiledSnippet Compile (string csharp, bool deleteTempFiles) {
             var result = new CompiledSnippet {
                 OriginalSource = csharp
             };
@@ -324,8 +324,10 @@ namespace JSIL.Try {
 
                 return result;
             } finally {
+
                 try {
-                    Directory.Delete(tempPath, true);
+                    if (deleteTempFiles)
+                        Directory.Delete(tempPath, true);
                 } catch (Exception exc) {
                     Console.WriteLine("Failed to empty temporary directory: {0}", exc.Message);
                 }
