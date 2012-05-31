@@ -550,6 +550,31 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void OverloadedGenericMethodSignatures () {
+            var output = "IsNullOrEmpty with 1 parameters\r\nAny with one argument\r\nfalse";
+
+            var typeInfo = MakeDefaultProvider();
+
+            Action check = () => {
+                var generatedJs = GenericTest(
+                    @"SpecialTestCases\OverloadedGenericMethodSignatures.cs",
+                    output, output, null, typeInfo
+                );
+
+                try {
+                    Assert.IsTrue(generatedJs.Contains("function Any$b1 (TSource, source)"));
+                    Assert.IsTrue(generatedJs.Contains("function Any$b1 (TSource, source, predicate)"));
+                } catch {
+                    Console.WriteLine(generatedJs);
+
+                    throw;
+                }
+            };
+
+            for (var i = 0; i < 3; i++)
+                check();
+        }
+        [Test]
         public void NoUnnecessaryCasts () {
             var testNames = new string[] {
                 @"FailingTestCases\ArrayToString.cs",

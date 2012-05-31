@@ -321,7 +321,17 @@ namespace JSIL.Tests {
 
                     var testMethod = GetTestMethod();
                     long startedCs = DateTime.UtcNow.Ticks;
-                    testMethod.Invoke(null, new object[] { args });
+
+                    var argCount = testMethod.GetParameters().Length;
+
+                    if (argCount == 1) {
+                        testMethod.Invoke(null, new object[] { args });
+                    } else if (argCount == 0) {
+                        testMethod.Invoke(null, new object[] { });
+                    } else {
+                        throw new Exception("Test's Main method must take either 0 or 1 argument(s)");
+                    }
+
                     long endedCs = DateTime.UtcNow.Ticks;
 
                     elapsed = endedCs - startedCs;
@@ -763,11 +773,15 @@ namespace JSIL.Tests {
             return generatedJs;
         }
 
-        protected string GenericTest (string fileName, string csharpOutput, string javascriptOutput, string[] stubbedAssemblies = null) {
+        protected string GenericTest (
+            string fileName, string csharpOutput, 
+            string javascriptOutput, string[] stubbedAssemblies = null,
+            TypeInfoProvider typeInfo = null
+        ) {
             long elapsed, temp;
             string generatedJs = null;
 
-            using (var test = new ComparisonTest(EvaluatorPool, fileName, stubbedAssemblies)) {
+            using (var test = new ComparisonTest(EvaluatorPool, fileName, stubbedAssemblies, typeInfo)) {
                 var csOutput = test.RunCSharp(new string[0], out elapsed);
 
                 try {

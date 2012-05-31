@@ -139,6 +139,7 @@
     <None Include="SimpleTestCases\StringPad.cs" />
     <None Include="SimpleTestCases\PrivateMoveNext.cs" />
     <None Include="SimpleTestCases\OverloadedMixedGenericAndNonGeneric.cs" />
+    <None Include="SpecialTestCases\OverloadedGenericMethodSignatures.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
