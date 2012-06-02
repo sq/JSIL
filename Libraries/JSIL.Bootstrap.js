@@ -1786,7 +1786,7 @@ JSIL.MakeStruct("System.ValueType", "System.Decimal", true, [], function ($) {
   };
 
   var decimalToNumber = function (decimal) {
-    if (JSIL.CheckType(decimal, $.Type))
+    if ($.Type.$Is(decimal))
       return decimal.value;
     else
       return decimal;
@@ -2769,7 +2769,7 @@ JSIL.MakeStaticClass("System.Nullable", true, [], function ($) {
 
 JSIL.ImplementExternals("System.Nullable`1", function ($) {
   $.RawMethod(true, "CheckType", function (value) {
-    if (JSIL.CheckType(value, this.T))
+    if (this.T.$Is(value))
       return true;
 
     return false;    

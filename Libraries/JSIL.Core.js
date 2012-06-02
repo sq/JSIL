@@ -2171,7 +2171,7 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
             // Specific types, like generic parameters, resolve to null or undefined.
           } else if (expectedType.__IsReferenceType__ && (arg === null)) {
             // Null is a valid value for any reference type.
-          } else if (!JSIL.CheckType(arg, expectedType)) {
+          } else if (!expectedType.$Is(arg)) {
             continue scan_methods;
           }
         }
@@ -2922,8 +2922,8 @@ JSIL.MakeCastMethods = function (publicInterface, typeObject, specialType) {
     return JSIL.TryCast(expression, typeObject);
   };
 
-  publicInterface.$Is = typeObject.$Is = function (expression) {
-    return JSIL.CheckType(expression, typeObject, false);
+  publicInterface.$Is = typeObject.$Is = function (expression, bypassCustomCheckMethod) {
+    return JSIL.CheckType(expression, typeObject, bypassCustomCheckMethod);
   };
 
   switch (specialType) {
@@ -4903,7 +4903,7 @@ JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
   var checkType = function Reference_CheckType (value) {
     var type = this;
 
-    var isReference = JSIL.CheckType(value, JSIL.Reference.__Type__, true);
+    var isReference = JSIL.Reference.$Is(value, true);
     if (!isReference)
       return false;
 
@@ -4918,7 +4918,7 @@ JSIL.MakeClass("System.Object", "JSIL.Reference", true, [], function ($) {
     if ((type.__IsReferenceType__) && (value.value === null))
       return true;
 
-    return JSIL.CheckType(value.value, type, false);
+    return type.$Is(value.value, false);
   };
 
   var of = function Reference_Of (type) {

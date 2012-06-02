@@ -356,7 +356,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentManager", functi
       }
     }
 
-    var rawXnb = JSIL.TryCast(asset, RawXNBAsset.__Type__);
+    var rawXnb = RawXNBAsset.$As(asset);
     if (rawXnb !== null) {
       rawXnb.contentManager = this;
       var result = rawXnb.ReadAsset(T);
@@ -366,7 +366,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentManager", functi
       return result;
     }
 
-    if (JSIL.CheckType(asset, HTML5Asset.__Type__)) {
+    if (HTML5Asset.$Is(asset)) {
       return asset;
     }
 
@@ -1010,7 +1010,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.Texture2DReader", funct
       var tTexture2D = JSIL.GetTypeFromAssembly(asmGraphics, "Microsoft.Xna.Framework.Graphics.Texture2D", [], true);
       var tSurfaceFormat = asmGraphics.Microsoft.Xna.Framework.Graphics.SurfaceFormat.__Type__;
 
-      var surfaceFormat = JSIL.Cast(input.ReadInt32(), tSurfaceFormat);
+      var surfaceFormat = tSurfaceFormat.$Cast(input.ReadInt32());
       var width = input.ReadInt32();
       var height = input.ReadInt32();
       var mipCount = input.ReadInt32();
@@ -2893,7 +2893,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     for (var i = 0, l = this.components._size; i < l; i++) {
       var item = this.components._items[i];
 
-      if (JSIL.CheckType(item, type)) result.push(item);
+      if (type.$Is(item)) 
+        result.push(item);
     }
     return result;
   });
