@@ -311,6 +311,42 @@ namespace JSIL {
             Visit(ma.Member);
         }
 
+        public void VisitNode (JSIsExpression ie) {
+            Output.WriteRaw("JSIL.CheckType");
+            Output.LPar();
+
+            Visit(ie.Expression);
+
+            Output.Comma();
+
+            Output.Identifier(ie.Type, ReferenceContext, false);
+            Output.RPar();
+        }
+
+        public void VisitNode (JSAsExpression ae) {
+            Output.WriteRaw("JSIL.TryCast");
+            Output.LPar();
+
+            Visit(ae.Expression);
+
+            Output.Comma();
+
+            Output.Identifier(ae.NewType, ReferenceContext, false);
+            Output.RPar();
+        }
+
+        public void VisitNode (JSCastExpression ce) {
+            Output.WriteRaw("JSIL.Cast");
+            Output.LPar();
+
+            Visit(ce.Expression);
+
+            Output.Comma();
+
+            Output.Identifier(ce.NewType, ReferenceContext, false);
+            Output.RPar();
+        }
+
         public void VisitNode (JSChangeTypeExpression cte) {
             Visit(cte.Expression);
         }

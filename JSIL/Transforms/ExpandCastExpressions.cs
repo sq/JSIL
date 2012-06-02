@@ -91,7 +91,7 @@ namespace JSIL.Transforms {
                 else
                     newExpression = JSInvocationExpression.InvokeStatic(JS.floor, new[] { ce.Expression }, true);
             } else {
-                newExpression = JSIL.Cast(ce.Expression, targetType);
+                // newExpression = JSIL.Cast(ce.Expression, targetType);
             }
 
             if (newExpression != null) {

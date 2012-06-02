@@ -80,13 +80,6 @@ namespace JSIL {
             return Dot(new JSFakeMethod(rhs, rhsType, null, MethodTypes));
         }
 
-        public JSInvocationExpression CheckType (JSExpression expression, TypeReference targetType) {
-            return JSInvocationExpression.InvokeStatic(
-                Dot("CheckType", TypeSystem.Boolean),
-                new[] { expression, new JSTypeOfExpression(targetType) }, true
-            );
-        }
-
         public JSInvocationExpression GetTypeFromAssembly (JSExpression assembly, JSExpression typeName, JSExpression throwOnFail) {
             return JSInvocationExpression.InvokeStatic(
                 Dot("GetTypeFromAssembly", new TypeReference("System", "Type", TypeSystem.Object.Module, TypeSystem.Object.Scope)),
@@ -98,20 +91,6 @@ namespace JSIL {
             return JSInvocationExpression.InvokeStatic(
                 Dot("GetType", new TypeReference("System", "Type", TypeSystem.Object.Module, TypeSystem.Object.Scope)),
                 new[] { expression }, true
-            );
-        }
-
-        public JSInvocationExpression TryCast (JSExpression expression, TypeReference targetType) {
-            return JSInvocationExpression.InvokeStatic(
-                Dot("TryCast", targetType),
-                new[] { expression, new JSTypeOfExpression(targetType) }, true
-            );
-        }
-
-        public JSExpression Cast (JSExpression expression, TypeReference targetType) {
-            return JSInvocationExpression.InvokeStatic(
-                Dot("Cast", targetType),
-                new[] { expression, new JSTypeOfExpression(targetType) }, true
             );
         }
 

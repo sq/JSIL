@@ -1539,6 +1539,57 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSIsExpression : JSExpression {
+        public readonly TypeReference Type;
+
+        public JSIsExpression (JSExpression inner, TypeReference type)
+            : base(inner) {
+
+            Type = type;
+        }
+
+        public JSExpression Expression {
+            get {
+                return Values[0];
+            }
+        }
+
+        public override bool HasGlobalStateDependency {
+            get {
+                return Expression.HasGlobalStateDependency;
+            }
+        }
+
+        public override bool IsConstant {
+            get {
+                return Expression.IsConstant;
+            }
+        }
+
+        public override bool IsNull {
+            get {
+                return Expression.IsNull;
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return typeSystem.Boolean;
+        }
+    }
+
+    public class JSAsExpression : JSCastExpression {
+        protected JSAsExpression (JSExpression inner, TypeReference newType)
+            : base(inner, newType) {
+        }
+
+        public static JSExpression New (JSExpression inner, TypeReference newType, TypeSystem typeSystem) {
+            return NewInternal(
+                inner, newType, typeSystem,
+                () => new JSAsExpression(inner, newType)
+            );
+        }
+    }
+
     public class JSCastExpression : JSExpression {
         public readonly TypeReference NewType;
 
@@ -1549,6 +1600,13 @@ namespace JSIL.Ast {
         }
 
         public static JSExpression New (JSExpression inner, TypeReference newType, TypeSystem typeSystem) {
+            return NewInternal(
+                inner, newType, typeSystem,
+                () => new JSCastExpression(inner, newType)
+            );
+        }
+
+        internal static JSExpression NewInternal (JSExpression inner, TypeReference newType, TypeSystem typeSystem, Func<JSExpression> make) {
             int temp;
 
             var currentType = inner.GetActualType(typeSystem);
@@ -1574,7 +1632,7 @@ namespace JSIL.Ast {
             if (nullLiteral != null)
                 return new JSNullLiteral(newType);
 
-            return new JSCastExpression(inner, newType);
+            return make();
         }
 
         public JSExpression Expression {

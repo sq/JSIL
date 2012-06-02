@@ -748,7 +748,7 @@ namespace JSIL {
                         if (foundUniversalCatch)
                             throw new NotImplementedException("Catch-all clause must be last");
 
-                        pairCondition = JSIL.CheckType(catchVariable, cb.ExceptionType);
+                        pairCondition = new JSIsExpression(catchVariable, cb.ExceptionType);
                     }
 
                     var pairBody = TranslateBlock(cb.Body);
@@ -967,7 +967,7 @@ namespace JSIL {
                 if ((targetInfo != null) && targetInfo.IsIgnored)
                     checkTypeResult = JSLiteral.New(false);
                 else
-                    checkTypeResult = JSIL.CheckType(
+                    checkTypeResult = new JSIsExpression(
                         value, targetType
                     );
 
@@ -1686,15 +1686,15 @@ namespace JSIL {
             if (targetType.IsValueType) {
                 if ((expectedType.Name == "Object") && (expectedType.Namespace == "System")) {
                     return new JSTernaryOperatorExpression(
-                        JSIL.CheckType(firstArg, targetType),
+                        new JSIsExpression(firstArg, targetType),
                         firstArg, new JSNullLiteral(targetType),
                         targetType
                     );
                 } else {
-                    return JSIL.CheckType(firstArg, targetType);
+                    return new JSIsExpression(firstArg, targetType);
                 }
             } else {
-                return JSIL.TryCast(firstArg, targetType);
+                return JSAsExpression.New(firstArg, targetType, TypeSystem);
             }
         }
 
