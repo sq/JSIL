@@ -2984,8 +2984,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
           var now = self._GetNow();
           var delay = self._nextFrame - now;
 
-          if (delay <= 0) stepCallback();
-          else self._DeferCall(shouldStepCallback, delay >= 5);
+          if (delay <= 0) 
+            stepCallback();
+          else 
+            self._DeferCall(shouldStepCallback, delay >= 5);
         };
 
       // It's important that we use setTimeout at least once after every frame in order to let the browser pump messages
@@ -3062,7 +3064,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
           elapsed = maxElapsedTimeMs;
 
         var numFrames = Math.floor(elapsed / frameDelay);
-
         if (numFrames < 1) {
           numFrames = 1;
           this._extraTime = elapsed - frameDelay;
@@ -3095,8 +3096,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       this._drawCount += 1;
       failed = false;
     } finally {
-      if (failed || Microsoft.Xna.Framework.Game._QuitForced) this.Exit();
-      else this._QueueStep();
+      if (failed || Microsoft.Xna.Framework.Game._QuitForced) 
+        this.Exit();
+      else 
+        this._QueueStep();
     }
   });
 

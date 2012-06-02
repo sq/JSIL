@@ -1090,29 +1090,28 @@ $jsilcore.$ListExternals = function ($, T, type) {
     }
   );
 
-  var rangeCheckImpl = function (index,size) {
-      if (index < 0)
-        throw new System.ArgumentOutOfRangeException("index");
-      else if (index >= size)
-        throw new System.ArgumentOutOfRangeException("index");
+  var rangeCheckImpl = function (index, size) {
+    return (index >= 0) && (size > index);
   }
 
   $.Method({Static:false, Public:true }, "get_Item", 
     new JSIL.MethodSignature(T, [mscorlib.TypeRef("System.Int32")], []), 
     function (index) {
-          rangeCheckImpl(index, this._size);
-          return this._items[index];
-   }
-
+      if (rangeCheckImpl(index, this._size))
+        return this._items[index];
+      else
+        throw new System.ArgumentOutOfRangeException("index");
+    }
   );
 
   $.Method({Static: false, Public: true }, "set_Item",
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32"), T], []), 
     function (index, value) {
-      rangeCheckImpl(index, this._size);
-      this._items[index]=value;
-  }
-
+      if (rangeCheckImpl(index, this._size))
+        this._items[index]=value;
+      else
+        throw new System.ArgumentOutOfRangeException("index");
+    }
   );
 
   var getEnumeratorImpl = function () {
