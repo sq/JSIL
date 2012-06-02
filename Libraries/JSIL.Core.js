@@ -1510,6 +1510,8 @@ $jsilcore.$Of$NoInitialize = function () {
     JSIL.RebindRawMethods(result, resultTypeObject);
   }
 
+  JSIL.MakeCastMethods(result, resultTypeObject, typeObject.__CastSpecialType__);
+
   // Force the initialized state back to false
   resultTypeObject.__TypeInitialized__ = false;
 
@@ -2907,6 +2909,38 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   JSIL.RegisterName(fullName, assembly, isPublic, creator, wrappedInitializer);
 };
 
+JSIL.MakeCastMethods = function (publicInterface, typeObject, specialType) {
+  var typeId = typeObject.__TypeId__;
+
+  typeObject.__CastSpecialType__ = specialType;
+
+  publicInterface.$Cast = typeObject.$Cast = function (expression) {
+    return JSIL.Cast(expression, typeObject);
+  };
+
+  publicInterface.$As = typeObject.$As = function (expression) {
+    return JSIL.TryCast(expression, typeObject);
+  };
+
+  publicInterface.$Is = typeObject.$Is = function (expression) {
+    return JSIL.CheckType(expression, typeObject, false);
+  };
+
+  switch (specialType) {
+    case "interface":
+      return;
+
+    case "enum":
+      return;
+
+    case "delegate":
+      return;
+
+    case "array":
+      return;
+  }
+};
+
 JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, genericArguments, initializer) {
   if (typeof (isPublic) === "undefined")
     JSIL.Host.error(new Error("Must specify isPublic"));
@@ -3021,9 +3055,11 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
       var name = new JSIL.Name(ga, fullName);
 
       JSIL.SetValueProperty(staticClassObject, ga, name);
-    }
+    }    
 
     JSIL.ApplyExternals(staticClassObject, typeObject, fullName);
+
+    JSIL.MakeCastMethods(staticClassObject, typeObject, null);
 
     return staticClassObject;
   };
@@ -3133,6 +3169,8 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     typeObject._IsAssignableFrom = function (typeOfValue) {
       return typeOfValue.__AssignableTypes__[this.__TypeId__] === true;
     };
+
+    JSIL.MakeCastMethods(publicInterface, typeObject, "interface");
 
     return publicInterface;
   };
@@ -3292,6 +3330,8 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
       $.__ValueToName__[value] = key;
       $[key] = JSIL.MakeEnumValue($, value, key, isFlagsEnum);
     }
+
+    JSIL.MakeCastMethods($, $, "enum");
   };
 
   JSIL.RegisterName(fullName, $private, isPublic, creator, initializer);
@@ -3333,7 +3373,7 @@ JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
   var expectedTypePublicInterface = expectedType.__PublicInterface__ || expectedType;
   var checkMethod = expectedTypePublicInterface.CheckType;
 
-  if (checkMethod && (bypassCustomCheckMethod !== false))
+  if (checkMethod && (bypassCustomCheckMethod !== true))
     return checkMethod(value);
 
   var typeofValue = typeof(value);
@@ -5156,6 +5196,8 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
         return "<" + typeName + " Public Interface>";
       });
 
+      JSIL.MakeCastMethods(compositePublicInterface, compositeTypeObject, "array");
+
       types[elementTypeObject.__TypeId__] = compositePublicInterface;
     }
 
@@ -5521,6 +5563,8 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
     } else {
       typeObject.__IsClosed__ = true;
     }
+
+    JSIL.MakeCastMethods(staticClassObject, typeObject, "delegate");
 
     return staticClassObject;
   };

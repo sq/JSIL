@@ -312,38 +312,35 @@ namespace JSIL {
         }
 
         public void VisitNode (JSIsExpression ie) {
-            Output.WriteRaw("JSIL.CheckType");
+            Output.Identifier(ie.Type, ReferenceContext, false);
+            Output.Dot();
+            Output.WriteRaw("$Is");
             Output.LPar();
 
             Visit(ie.Expression);
 
-            Output.Comma();
-
-            Output.Identifier(ie.Type, ReferenceContext, false);
             Output.RPar();
         }
 
         public void VisitNode (JSAsExpression ae) {
-            Output.WriteRaw("JSIL.TryCast");
+            Output.Identifier(ae.NewType, ReferenceContext, false);
+            Output.Dot();
+            Output.WriteRaw("$As");
             Output.LPar();
 
             Visit(ae.Expression);
 
-            Output.Comma();
-
-            Output.Identifier(ae.NewType, ReferenceContext, false);
             Output.RPar();
         }
 
         public void VisitNode (JSCastExpression ce) {
-            Output.WriteRaw("JSIL.Cast");
+            Output.Identifier(ce.NewType, ReferenceContext, false);
+            Output.Dot();
+            Output.WriteRaw("$Cast");
             Output.LPar();
 
             Visit(ce.Expression);
 
-            Output.Comma();
-
-            Output.Identifier(ce.NewType, ReferenceContext, false);
             Output.RPar();
         }
 
