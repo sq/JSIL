@@ -1057,6 +1057,7 @@ JSIL.MakeNumericType = function (baseType, typeName, isIntegral) {
   publicInterface.prototype.__IsNumeric__ = true;
   typeObject.__IsIntegral__ = isIntegral;
   publicInterface.prototype.__IsIntegral__ = isIntegral;
+  JSIL.MakeCastMethods(publicInterface, typeObject, isIntegral ? "integer" : "number");
 };
 
 JSIL.MakeIndirectProperty = function (target, key, source) {
@@ -2910,35 +2911,131 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
 };
 
 JSIL.MakeCastMethods = function (publicInterface, typeObject, specialType) {
+  if (!typeObject)
+    throw new Error("Null type object");
+  if (!publicInterface)
+    throw new Error("Null public interface");
+
+  var castFunction, asFunction, isFunction;
+  var customCheckOnly = false;
+  var checkMethod = publicInterface.CheckType || null;
   var typeId = typeObject.__TypeId__;
 
   typeObject.__CastSpecialType__ = specialType;
 
-  publicInterface.$Cast = typeObject.$Cast = function (expression) {
-    return JSIL.Cast(expression, typeObject);
+  var throwCastError = function (value) {
+    throw new System.InvalidCastException("Unable to cast object of type '" + JSIL.GetTypeName(JSIL.GetType(value)) + "' to type '" + JSIL.GetTypeName(typeObject) + "'.");
   };
 
-  publicInterface.$As = typeObject.$As = function (expression) {
-    return JSIL.TryCast(expression, typeObject);
+  isFunction = function Is (expression, bypassCustomCheckMethod) {
+    if (expression === null)
+      return false;
+    else if (expression === undefined)
+      return false;
+
+    var valueType = expression.__ThisType__;
+    if (valueType) {
+      return (valueType.__AssignableTypes__[typeId] === true);
+    } else {
+      return JSIL.$SlowCheckType(expression, publicInterface);
+    }
   };
 
-  publicInterface.$Is = typeObject.$Is = function (expression, bypassCustomCheckMethod) {
-    return JSIL.CheckType(expression, typeObject, bypassCustomCheckMethod);
+  asFunction = function As (expression) {
+    if (expression === null)
+      return null;
+    else if (expression === undefined)
+      return null;
+
+    if (isFunction(expression))
+      return expression;
+    else
+      return null;
+  };
+
+  castFunction = function Cast (expression) {
+    if (expression === null)
+      return null;
+    else if (expression === undefined)
+      throwCastError(expression);
+
+    if (isFunction(expression))
+      return expression;
+    else
+      throwCastError(expression);
   };
 
   switch (specialType) {
     case "interface":
-      return;
+      break;
 
     case "enum":
-      return;
+      customCheckOnly = true;    
+      asFunction = throwCastError;
+
+      castFunction = function Cast_Enum (expression) {
+        var n = Number(expression);
+
+        var result = typeObject.__ValueToName__[n];
+        if (result)
+          return publicInterface[result];
+
+        return JSIL.MakeEnumValue(
+          typeObject, n, null, typeObject.__IsFlagsEnum__
+        );
+      };
+
+      break;
 
     case "delegate":
-      return;
+      break;
 
     case "array":
-      return;
+      break;
+
+    case "integer":
+      customCheckOnly = true;    
+      asFunction = throwCastError;
+
+      var _castFunction = castFunction;
+      castFunction = function Cast_Integer (expression) {
+        return Math.floor(_castFunction(expression));
+      };
+
+      break;
+
+    case "number":
+      customCheckOnly = true;    
+      asFunction = throwCastError;
+
+      break;
   }
+
+  if (checkMethod) {
+    if (customCheckOnly) {
+      isFunction = function Is_CheckMethod_Only (expression, bypassCustomCheckMethod) {
+        return checkMethod(expression);
+      };
+
+    } else {
+      var _isFunction = isFunction;
+      isFunction = function Is_CheckMethod_Or_CheckType (expression, bypassCustomCheckMethod) {
+        if (bypassCustomCheckMethod !== true)
+          return checkMethod(expression);
+        else
+          return _isFunction(expression, bypassCustomCheckMethod);
+      };
+
+    }
+  }
+
+  castFunction = JSIL.RenameFunction(typeObject.__FullName__ + ".$Cast", castFunction);
+  asFunction   = JSIL.RenameFunction(typeObject.__FullName__ + ".$As"  , asFunction);
+  isFunction   = JSIL.RenameFunction(typeObject.__FullName__ + ".$Is"  , isFunction);
+
+  publicInterface.$Cast = typeObject.$Cast = castFunction;
+  publicInterface.$As   = typeObject.$As   = asFunction;
+  publicInterface.$Is   = typeObject.$Is   = isFunction;
 };
 
 JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, genericArguments, initializer) {
@@ -3298,7 +3395,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
     }
 
     result.CheckType = function Enum_CheckType (v) {
-      if (typeof (v.__ThisType__) !== "undefined") {
+      if (v.__ThisType__) {
         if (v.__ThisType__ === result)
           return true;
       }
@@ -3360,6 +3457,10 @@ JSIL.CheckDerivation = function (haystack, needle) {
 };
 
 JSIL.$SlowCheckType = function (value, expectedTypePublicInterface) {
+  var typeofValue = typeof (value);
+  if ((typeofValue !== "object") && (typeofValue !== "function"))
+    return false;
+
   var expectedProto = expectedTypePublicInterface.prototype;
   var typeofExpectedProto = typeof (expectedProto);
   if ((typeofExpectedProto === "undefined") ||
@@ -3367,33 +3468,6 @@ JSIL.$SlowCheckType = function (value, expectedTypePublicInterface) {
     return false;
 
   return JSIL.CheckDerivation(Object.getPrototypeOf(value), expectedProto);
-};
-
-JSIL.CheckType = function (value, expectedType, bypassCustomCheckMethod) {
-  var expectedTypePublicInterface = expectedType.__PublicInterface__ || expectedType;
-  var checkMethod = expectedTypePublicInterface.CheckType;
-
-  if (checkMethod && (bypassCustomCheckMethod !== true))
-    return checkMethod(value);
-
-  var typeofValue = typeof(value);
-  if (typeofValue === "object") {
-    if (value === null)
-      return false;
-
-    var valueType = value.__ThisType__;
-    if (valueType) {
-      return (valueType.__AssignableTypes__[expectedType.__TypeId__] === true);
-    } else {
-      return JSIL.$SlowCheckType(value, expectedTypePublicInterface);
-    }
-  } else if (typeofValue === "undefined") {
-    return false;
-  } else if (typeofValue === "function") {
-    return JSIL.$SlowCheckType(value, expectedTypePublicInterface);
-  }
-
-  return false;
 };
 
 JSIL.IsArray = function (value) {
@@ -3494,37 +3568,6 @@ JSIL.GetTypeName = function (type) {
     result = typeof (type);
 
   return result;
-};
-
-JSIL.TryCast = function (value, expectedType) {
-  if (JSIL.CheckType(value, expectedType))
-    return value;
-  else
-    return null;
-};
-
-JSIL.Cast = function (value, expectedType) {
-  if (value === null) 
-    return null;
-
-  if (JSIL.CheckType(value, expectedType)) {
-    // If the user is casting to an integral type like Int32, we need to floor the value since JS stores all numbers as double
-    if (expectedType.__IsIntegral__) {
-      return Math.floor(value);
-    } else {
-      return value;
-    }
-  } else if (expectedType.IsEnum) {
-    var n = Number(value);
-
-    var result = expectedType.__ValueToName__[n];
-    if (typeof (result) === "string")
-      return expectedType[result];
-
-    result = JSIL.MakeEnumValue(expectedType, n, null, expectedType.__IsFlagsEnum__);
-    return result;
-  } else
-    throw new System.InvalidCastException("Unable to cast object of type '" + JSIL.GetTypeName(JSIL.GetType(value)) + "' to type '" + JSIL.GetTypeName(expectedType) + "'.");
 };
 
 JSIL.Coalesce = function (lhs, rhs) {
