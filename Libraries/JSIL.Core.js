@@ -2928,25 +2928,19 @@ JSIL.MakeCastMethods = function (publicInterface, typeObject, specialType) {
   };
 
   isFunction = function Is (expression, bypassCustomCheckMethod) {
-    if (expression === null)
-      return false;
-    else if (expression === undefined)
-      return false;
-
-    var valueType = expression.__ThisType__;
-    if (valueType) {
-      return (valueType.__AssignableTypes__[typeId] === true);
-    } else {
-      return JSIL.$SlowCheckType(expression, publicInterface);
+    if (expression) {
+      var valueType = expression.__ThisType__;
+      if (valueType) {
+        return (valueType.__AssignableTypes__[typeId] === true);
+      } else {
+        return JSIL.$SlowCheckType(expression, publicInterface);
+      }
     }
+
+    return false;
   };
 
   asFunction = function As (expression) {
-    if (expression === null)
-      return null;
-    else if (expression === undefined)
-      return null;
-
     if (isFunction(expression))
       return expression;
     else

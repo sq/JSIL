@@ -843,11 +843,7 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, ["T"], function ($
   $.Method({Public: true , Static: false}, "MoveNext", 
     new JSIL.MethodSignature(System.Boolean, []),
     function () {
-      if (this._index >= this._length)
-        return false;
-
-      this._index += 1;
-      return (this._index < this._length);
+      return (++this._index < this._length);
     }
   );
   $.Method({Public: true , Static: false}, "Dispose", 
