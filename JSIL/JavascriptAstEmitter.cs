@@ -1036,7 +1036,8 @@ namespace JSIL {
 
                 Output.WriteRaw("Math.floor");
             } else if (needsCast) {
-                Output.WriteRaw("JSIL.Cast");
+                Output.Identifier(TypeUtil.StripNullable(resultType), ReferenceContext);
+                Output.WriteRaw(".$Cast");
             }
 
             parens |= needsTruncation;
@@ -1058,11 +1059,6 @@ namespace JSIL {
             }
 
             Visit(bop.Right);
-
-            if (needsCast) {
-                Output.Comma();
-                Output.Identifier(TypeUtil.StripNullable(resultType), ReferenceContext);
-            }
 
             if (parens)
                 Output.RPar();

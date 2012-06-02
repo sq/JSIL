@@ -584,10 +584,27 @@ namespace JSIL.Tests {
 
             RunComparisonTests(testNames, null, null, 
                 (test) => false, 
-                (csharp, js) => Assert.IsFalse(
-                    js.Contains("JSIL.Cast("), 
-                    "JS output should not contain any casts"
-                )
+                (csharp, js) => {
+                    Assert.IsFalse(
+                        js.Contains("JSIL.Cast("),
+                        "JS output should not contain any casts"
+                    );
+
+                    Assert.IsFalse(
+                        js.Contains("JSIL.TryCast("),
+                        "JS output should not contain any casts"
+                    );
+
+                    Assert.IsFalse(
+                        js.Contains(".$Cast"),
+                        "JS output should not contain any casts"
+                    );
+
+                    Assert.IsFalse(
+                        js.Contains(".$TryCast"),
+                        "JS output should not contain any casts"
+                    );
+                }
             );
         }
     }

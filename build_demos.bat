@@ -1,4 +1,5 @@
 pushd bin
+del /s/q ..\jsil.org\demos\*.js
 JSILc "C:\Users\Kevin\Documents\Projects\JSIL\Examples\SimpleRaytracer.sln"
 JSILc "C:\Users\Kevin\Documents\Projects\JSIL\Examples\SimplePathtracer.sln"
 JSILc "C:\Users\Kevin\Documents\Projects\XnaMannux\Mannux\Mannux.sln" "C:\Users\Kevin\Documents\Projects\JSIL\jsil.org\demos\Mannux\Mannux.jsilconfig" --platform=x86 --configuration=Debug
