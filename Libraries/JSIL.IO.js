@@ -355,6 +355,32 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
       this.$applyMode(mode);
     }
   );
+  
+  $.Method({Static:false, Public:true }, "get_CanSeek", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_CanSeek () {
+      return true;
+    }
+  );
+  
+  $.Method({Static:false, Public:true }, "Seek", 
+    (new JSIL.MethodSignature($.Int64, [$.Int64, $jsilcore.TypeRef("System.IO.SeekOrigin")], [])), 
+    function Seek (offset, origin) {
+      switch (origin)
+      {
+      case System.IO.SeekOrigin.Begin:
+        this._pos = offset;
+        break;
+      case System.IO.SeekOrigin.Current:
+        this._pos += offset;
+        break;
+      case System.IO.SeekOrigin.End:
+        this._pos = this._buffer.length - offset;
+        break;
+      }
+      return this._pos;
+    }
+  );
 
   $.RawMethod(false, "$applyMode", function (fileMode) {
     var fm = System.IO.FileMode;
