@@ -75,6 +75,9 @@
         } catch (ex) {
         }
 
+        // WebGL-2D is pitifully slow for this game for some reason
+        $jsilxna.allowWebGL = false;
+
         // We can't invoke Main() since it disposes the Game immediately, breaking everything.
         var asm = JSIL.GetAssembly("Mannux, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null");
         var game = new asm.Engine();
