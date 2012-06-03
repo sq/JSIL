@@ -412,6 +412,7 @@ JSIL.MakeClass("HTML5Asset", "HTML5ImageAsset", true, [], function ($) {
     this.image = image;
     this.Width = image.naturalWidth;
     this.Height = image.naturalHeight;
+    this.id = String(++$jsilxna.nextImageId);
   });
 });
 
@@ -4209,9 +4210,13 @@ var $drawDebugRects = false, $drawDebugBoxes = false;
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function ($) {
   var $canvasDrawImage = function canvasDrawImage (image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, destW, destH) {
-    this.device.context.drawImage(
-      image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, destW, destH
-    );
+    try {
+      this.device.context.drawImage(
+        image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, destW, destH
+      );
+    } catch (exc) {
+      console.log("Error calling drawImage with arguments ", Array.prototype.slice.call(arguments), ": ", exc);
+    }
   }
 
   $.RawMethod(false, "$canvasDrawImage", $canvasDrawImage);
@@ -4222,7 +4227,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       this.device = graphicsDevice;
       this.defer = false;
       this.deferSorter = null;
+
+      this.deferredPoolSize = 1024;
+
+      this.deferredDrawPool = [];
+      this.deferredDrawStringPool = [];
+
       this.deferredDraws = [];
+
       this.oldBlendState = null;
       this.isWebGL = false;
       this.spriteEffects = Microsoft.Xna.Framework.Graphics.SpriteEffects;
@@ -4256,18 +4268,30 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         this.$applyBlendState();
       } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.BackToFront) {
         this.defer = true;
-        this.deferSorter = function (lhs, rhs) {
-          return -JSIL.CompareValues(lhs.arguments[depthIndex], rhs.arguments[depthIndex]);
+        this.deferSorter = function Sort_BackToFront (lhs, rhs) {
+          var result = -JSIL.CompareValues(lhs.depth, rhs.depth);
+          if (result === 0)
+            result = JSIL.CompareValues(lhs.index, rhs.index);
+
+          return result;
         };
       } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.FrontToBack) {
         this.defer = true;
-        this.deferSorter = function (lhs, rhs) {
-          return JSIL.CompareValues(lhs.arguments[depthIndex], rhs.arguments[depthIndex]);
+        this.deferSorter = function Sort_FrontToBack (lhs, rhs) {
+          var result = JSIL.CompareValues(lhs.depth, rhs.depth);
+          if (result === 0)
+            result = JSIL.CompareValues(lhs.index, rhs.index);
+
+          return result;
         };
       } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Texture) {
         this.defer = true;
-        this.deferSorter = function (lhs, rhs) {
-          return JSIL.CompareValues(lhs.arguments[textureIndex], rhs.arguments[textureIndex]);
+        this.deferSorter = function Sort_Texture (lhs, rhs) {
+          var result = JSIL.CompareValues(lhs.texture.id, rhs.texture.id);
+          if (result === 0)
+            result = JSIL.CompareValues(lhs.index, rhs.index);
+
+          return result;
         };
       } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Deferred) {
         this.defer = true;
@@ -4299,15 +4323,136 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
 
         for (var i = 0, l = this.deferredDraws.length; i < l; i++) {
           var draw = this.deferredDraws[i];
-          draw.fn.apply(this, draw.arguments);
+          draw.function.apply(this, draw.arguments);
+
+          // FIXME: Leaks references to textures, fonts, and colors.
+          if (draw.pool.length < this.deferredPoolSize)
+            draw.pool.push(draw);
         }
       }
 
-      this.deferredDraws = [];
+      this.deferredDraws.length = 0;
 
       this.device.context.restore();
 
       this.$applyBlendState();
+    }
+  );
+
+  $.RawMethod(false, "DeferBlit",
+    function SpriteBatch_DeferBlit (
+      texture, positionX, positionY, width, height,
+      sourceX, sourceY, sourceW, sourceH,
+      color, rotation, originX, originY,
+      scaleX, scaleY, effects, depth
+    ) {
+      var entry = null, deferArguments = null;
+
+      var pool = this.deferredDrawPool;
+      var dd = this.deferredDraws;
+
+      if (pool.length > 0) {
+        entry = pool.pop();
+
+        deferArguments = entry.arguments;
+        deferArguments[9].__CopyMembers__(color, deferArguments[9]);
+      } else {
+        entry = {
+          function: null,
+          index: 0,
+          depth: 0,
+          texture: null,
+          pool: null,
+          arguments: new Array(17)
+        };
+
+        deferArguments = entry.arguments;
+        deferArguments[9] = color.MemberwiseClone();
+      }
+
+      entry.function = this.InternalDraw;
+      entry.index = dd.length;
+      entry.pool = pool;
+
+      entry.depth = depth;
+      entry.texture = texture;
+
+      deferArguments[0] = texture;
+      deferArguments[1] = positionX;
+      deferArguments[2] = positionY;
+      deferArguments[3] = width;
+      deferArguments[4] = height;
+      deferArguments[5] = sourceX;
+      deferArguments[6] = sourceY;
+      deferArguments[7] = sourceW;
+      deferArguments[8] = sourceH;
+      // deferArguments[9] = color.MemberwiseClone();
+      deferArguments[10] = rotation;
+      deferArguments[11] = originX;
+      deferArguments[12] = originY;
+      deferArguments[13] = scaleX;
+      deferArguments[14] = scaleY;
+      deferArguments[15] = effects;
+      deferArguments[16] = depth;
+
+      dd.push(entry);
+    }
+  );
+
+  $.RawMethod(false, "DeferDrawString",
+    function SpriteBatch_DeferDrawString (
+      font, text, 
+      positionX, positionY, 
+      color, rotation,
+      originX, originY,
+      scaleX, scaleY, 
+      effects, depth
+    ) {
+      var entry = null, deferArguments = null;
+
+      var pool = this.deferredDrawStringPool;
+      var dd = this.deferredDraws;
+
+      if (pool.length > 0) {
+        entry = pool.pop();
+
+        deferArguments = entry.arguments;
+        deferArguments[4].__CopyMembers__(color, deferArguments[4]);
+      } else {
+        entry = {
+          function: null,
+          index: 0,
+          depth: 0,
+          texture: null,
+          pool: null,
+          arguments: new Array(12)
+        };
+
+        deferArguments = entry.arguments;
+        deferArguments[4] = color.MemberwiseClone();
+      }
+
+      entry.function = this.InternalDrawString;
+      entry.index = dd.length;
+      entry.pool = pool;
+
+      entry.depth = depth;
+      entry.texture = font.texture || null;
+
+      deferArguments[0] = font;
+      deferArguments[1] = text;
+      deferArguments[2] = positionX;
+      deferArguments[3] = positionY;
+      // deferArguments[4] = color.MemberwiseClone();
+      deferArguments[5] = rotation;
+      deferArguments[6] = originX;
+      deferArguments[7] = originY;
+      deferArguments[8] = scaleX;
+      deferArguments[9] = scaleY;
+      deferArguments[10] = effects;
+      deferArguments[11] = depth;
+
+      dd.push(entry);
     }
   );
 
@@ -4617,20 +4762,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       effects, depth
     ) {
       if (this.defer) {
-        color = color.MemberwiseClone();
-
-        this.deferredDraws.push({
-          fn: this.InternalDraw,
-          index: this.deferredDraws.length,
-          arguments: [
-            texture, positionX, positionY, width, height, 
-            sourceX, sourceY, sourceW, sourceH, 
-            color, rotation, 
-            originX, originY, 
-            scaleX, scaleY, 
-            effects, depth
-          ]
-        });
+        this.DeferBlit(
+          texture, positionX, positionY, width, height,
+          sourceX, sourceY, sourceW, sourceH,
+          color, rotation, originX, originY,
+          scaleX, scaleY, effects, depth
+        );
 
         return;
       }
@@ -4671,10 +4808,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         sourceH += sourceY;
         sourceY = 0;
       }
-      if (sourceW > texture.Width - sourceX) 
-        sourceW = texture.Width - sourceX;
-      if (sourceH > texture.Height - sourceY) 
-        sourceH = texture.Height - sourceY;
+
+      var maxWidth = texture.Width - sourceX, maxHeight = texture.Height - sourceY;
+
+      if (sourceW > maxWidth) 
+        sourceW = maxWidth;
+      if (sourceH > maxHeight) 
+        sourceH = maxHeight;
 
       var isSinglePixel = ((sourceW === 1) && (sourceH === 1) && (sourceX === 0) && (sourceY === 0));
       var channels = null;
@@ -4834,8 +4974,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
                 positionX, positionY, width, height
               );
             }
-
-            context.globalCompositeOperation = compositeOperation;
           } else {
             if (this.isWebGL) {
               context.drawImage(
@@ -4875,25 +5013,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
     effects, depth
   ) {
     if (this.defer) {
-      color = color.MemberwiseClone();
-
-      var args = [
+      this.DeferDrawString(
         font, text, 
         positionX, positionY, 
         color, rotation,
         originX, originY,
         scaleX, scaleY, 
         effects, depth
-      ];
-
-      // Hack so depth sorting works
-      args[16] = depth;
-
-      this.deferredDraws.push({
-        fn: this.InternalDrawString,
-        index: this.deferredDraws.length,
-        arguments: args
-      });
+      );
 
       return;
     }
@@ -5538,7 +5665,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
   );
 
   $.RawMethod(false, "InternalDraw", 
-    function (
+    function SpriteFont_InternalDraw (
       text, spriteBatch, textblockPositionX, textblockPositionY, 
       color, rotation, 
       originX, originY, 
