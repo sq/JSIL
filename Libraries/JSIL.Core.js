@@ -3246,6 +3246,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__GenericArguments__ = genericArguments || [];
     typeObject.__IsStruct__ = !isReferenceType && (baseTypeName === "System.ValueType");
     typeObject.IsInterface = false;
+    typeObject.IsValueType = typeObject.__IsStruct__;
 
     if (stack !== null)
       typeObject.__CallStack__ = stack;
@@ -3485,6 +3486,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
       FullName: fullName,
       Name: localName,
       IsEnum: true,
+      IsValueType: true,
       __IsReferenceType__: false,
       __TypeId__: JSIL.AssignTypeId(context, fullName),
       __IsFlagsEnum__: isFlagsEnum,
