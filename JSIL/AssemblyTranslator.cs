@@ -1412,16 +1412,24 @@ namespace JSIL {
 
                 JSExpression defaultValue;
                 if (!defaultValues.TryGetValue(field, out defaultValue))
-                    defaultValue = new JSDefaultValueLiteral(field.FieldType);
+                    defaultValue = null;
 
                 JSExpression fieldTypeExpression = new JSTypeReference(field.FieldType, field.DeclaringType);
 
-                if (cctorContext != forCctor) {
-                    defaultValue = new JSDefaultValueLiteral(field.FieldType);
-                } 
-                
-                if (
-                    !cctorContext && (
+                if (cctorContext != forCctor)
+                    defaultValue = null;
+
+                if (defaultValue is JSDefaultValueLiteral)
+                    defaultValue = null;
+
+                if (!cctorContext && !field.IsStatic) {
+                    // Non-static fields' default values may contain expressions like 'this.T' which are impossible to
+                    //  support correctly in this context. Leave the default value up to the ctor(s).
+                    defaultValue = null;
+                } else if (
+                    !cctorContext && 
+                    (defaultValue != null) &&
+                    (
                         defaultValue.HasGlobalStateDependency || 
                         !defaultValue.IsConstant ||
                         TypeUtil.IsStruct(defaultValue.GetActualType(field.Module.TypeSystem)) ||
@@ -1454,6 +1462,9 @@ namespace JSIL {
                     else
                         thisParameter = new JSThisParameter(field.DeclaringType, null);
 
+                    if (defaultValue == null)
+                        defaultValue = new JSDefaultValueLiteral(field.FieldType);
+
                     return new JSBinaryOperatorExpression(
                         JSBinaryOperator.Assignment,
                         new JSFieldAccess(
@@ -1464,12 +1475,21 @@ namespace JSIL {
                         field.FieldType
                     );
                 } else {
+                    JSExpression[] args;
+                    if (defaultValue != null) {
+                        args = new JSExpression[] {
+                            descriptor, JSLiteral.New(fieldName), fieldTypeExpression, defaultValue
+                        };
+                    } else {
+                        args = new JSExpression[] {
+                            descriptor, JSLiteral.New(fieldName), fieldTypeExpression
+                        };
+                    }
+
                     return JSInvocationExpression.InvokeStatic(
                         JSDotExpression.New(
                             dollarIdentifier, new JSFakeMethod("Field", field.Module.TypeSystem.Void, null, FunctionCache.MethodTypes)
-                        ), new JSExpression[] {
-                            descriptor, JSLiteral.New(fieldName), fieldTypeExpression, defaultValue
-                        }
+                        ), args
                     );
                 }
             }

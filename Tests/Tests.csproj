@@ -141,6 +141,7 @@
     <None Include="SimpleTestCases\PrivateMoveNext.cs" />
     <None Include="SimpleTestCases\OverloadedMixedGenericAndNonGeneric.cs" />
     <None Include="SpecialTestCases\OverloadedGenericMethodSignatures.cs" />
+    <None Include="SimpleTestCases\GenericFieldInitializer.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

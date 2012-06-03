@@ -1218,6 +1218,9 @@ JSIL.ResolveTypeReference = function (typeReference, context) {
   } else if (
     typeof (typeReference) === "object"
   ) {
+    if (typeReference === null)
+      throw new Error("Null type reference");
+
     if (Object.getPrototypeOf(typeReference) === JSIL.TypeRef.prototype)
       result = typeReference.get();
     else
@@ -1509,6 +1512,7 @@ $jsilcore.$Of$NoInitialize = function () {
   if (isClosed) {
     JSIL.RenameGenericMethods(result, resultTypeObject);
     JSIL.RebindRawMethods(result, resultTypeObject);
+    JSIL.FixupFieldTypes(result, resultTypeObject);
   }
 
   JSIL.MakeCastMethods(result, resultTypeObject, typeObject.__CastSpecialType__);
@@ -1629,6 +1633,42 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
       if (trace)
         console.log(typeObject.__FullName__ + ": " + oldName + " -> " + newName);
     }
+  }
+};
+
+JSIL.FixupFieldTypes = function (publicInterface, typeObject) {
+  var members = typeObject.__Members__;
+  if (!JSIL.IsArray(members))
+    return;
+
+  var members = typeObject.__Members__ = Array.prototype.slice.call(members);
+  var resolveContext = publicInterface.prototype;
+
+  var rm = typeObject.__RenamedMethods__;
+  var trace = false;
+
+  var resolvedFieldTypeRef, resolvedFieldType;
+
+  _loop:
+  for (var i = 0, l = members.length; i < l; i++) {
+    var member = members[i];
+    if (member[0] !== "FieldInfo")
+      continue _loop;
+
+    var descriptor = member[1];
+    var data = member[2];
+
+    var fieldType = data.fieldType;
+    resolvedFieldTypeRef = JSIL.ResolveGenericTypeReference(fieldType, resolveContext);
+    if (resolvedFieldTypeRef)
+      resolvedFieldType = JSIL.ResolveTypeReference(resolvedFieldTypeRef, typeObject.__Context__)[1];
+    else
+      resolvedFieldType = fieldType;
+
+    var newData = Object.create(data);
+    newData.fieldType = resolvedFieldType;
+
+    members[i] = [member[0], member[1], newData];
   }
 };
 
@@ -2554,14 +2594,14 @@ JSIL.BuildTypeList = function (type, publicInterface) {
   }
 };
 
-JSIL.InitializeFields = function (type, publicInterface) {
-  var fti = type.__FieldsToInitialize__;
+JSIL.InitializeFields = function (publicInterface, typeObject) {
+  var fti = typeObject.__FieldsToInitialize__;
   if (!JSIL.IsArray(fti))
     return;
 
   for (var i = 0; i < fti.length; i++) {
     var initializer = fti[i];
-    initializer(publicInterface);
+    initializer(publicInterface, typeObject);
   }
 };
 
@@ -2601,7 +2641,7 @@ JSIL.InitializeType = function (type) {
 
     if (typeObject.IsInterface !== true) {
       JSIL.FixupInterfaces(classObject, typeObject);
-      JSIL.InitializeFields(typeObject, classObject);
+      JSIL.InitializeFields(classObject, typeObject);
       JSIL.RebindRawMethods(classObject, typeObject);
     }
 
@@ -3727,6 +3767,8 @@ JSIL.InterfaceBuilder.prototype.PushMember = function (type, descriptor, data) {
     this.typeObject.__Members__ = members = [];
 
   Array.prototype.push.call(members, [type, descriptor, data]);
+
+  return members.length - 1;
 };
 
 JSIL.InterfaceBuilder.prototype.ExternalMembers = function (isInstance /*, ...names */) {
@@ -3824,19 +3866,28 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
 
   var data = { fieldType: fieldType };
 
+  var fieldIndex = this.PushMember("FieldInfo", descriptor, data);
+
   if (typeof (defaultValueExpression) === "function") {
     data.defaultValueExpression = defaultValueExpression;
 
-    this.typeObject.__FieldsToInitialize__.push(function (publicInterface) {
+    this.typeObject.__FieldsToInitialize__.push(function (publicInterface, typeObject) {
       var target = descriptor.Static ? publicInterface : publicInterface.prototype;
       target[descriptor.EscapedName] = data.defaultValue = defaultValueExpression(target);
     });
   } else if (typeof (defaultValueExpression) !== "undefined") {
-    data.defaultValue = defaultValueExpression;
-    descriptor.Target[descriptor.EscapedName] = defaultValueExpression;
-  }
+    descriptor.Target[descriptor.EscapedName] = data.defaultValue = defaultValueExpression;
+  } else {
+    var context = this.context;
 
-  this.PushMember("FieldInfo", descriptor, data);
+    this.typeObject.__FieldsToInitialize__.push(function (publicInterface, typeObject) {
+      var actualFieldInfo = typeObject.__Members__[fieldIndex];
+      var actualFieldType = actualFieldInfo[2].fieldType;
+      var fieldTypeResolved = JSIL.ResolveTypeReference(actualFieldType, context);
+      var target = descriptor.Static ? publicInterface : publicInterface.prototype;
+      target[descriptor.EscapedName] = data.defaultValue = JSIL.DefaultValue(fieldTypeResolved[0]);
+    });
+  }
 };
 
 JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodName, signature) {
@@ -5268,7 +5319,10 @@ JSIL.DefaultValue = function (type) {
     typePublicInterface = type.__PublicInterface__;
   }
 
-  return JSIL.DefaultValueInternal(typeObject, typePublicInterface);
+  if (typeObject && typePublicInterface)
+    return JSIL.DefaultValueInternal(typeObject, typePublicInterface);
+  else
+    throw new Error("Invalid type passed into DefaultValue");
 };
 
 JSIL.Array.Erase = function Array_Erase (array, elementType) {
@@ -5545,6 +5599,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
     typeObject.__CallStack__ = callStack;
     typeObject.__Interfaces__ = [];
     typeObject.__IsDelegate__ = true;
+    typeObject.__IsReferenceType__ = true;
     typeObject.IsEnum = false;
 
     typeObject.__GenericArguments__ = genericArguments || [];
