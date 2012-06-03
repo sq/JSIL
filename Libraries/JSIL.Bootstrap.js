@@ -3261,6 +3261,9 @@ JSIL.ImplementExternals("System.Activator", function ($) {
   $.Method({Static:true , Public:true }, "CreateInstance", 
     (new JSIL.MethodSignature($.Object, [mscorlib.TypeRef("System.Type"), mscorlib.TypeRef("System.Array", [$.Object])], [])), 
     function CreateInstance (type, args) {
+      if (!args)
+        args = [];
+
       return JSIL.CreateInstanceOfType(type, args);
     }
   );
@@ -3273,6 +3276,9 @@ JSIL.ImplementExternals("System.Activator", function ($) {
         ], [])), 
     function CreateInstance (type, bindingAttr, binder, args, culture) {
       // FIXME
+      if (!args)
+        args = [];
+      
       return JSIL.CreateInstanceOfType(type, args);
     }
   );

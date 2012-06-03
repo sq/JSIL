@@ -3083,6 +3083,12 @@ JSIL.MakeCastMethods = function (publicInterface, typeObject, specialType) {
   publicInterface.$Is   = typeObject.$Is   = isFunction;
 };
 
+JSIL.MakeTypeAlias = function (sourceAssembly, fullName) {
+  var context = $private;
+
+  sourceAssembly.typesByName[fullName] = context.typesByName[fullName];
+};
+
 JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, genericArguments, initializer) {
   if (typeof (isPublic) === "undefined")
     JSIL.Host.error(new Error("Must specify isPublic"));
@@ -3131,9 +3137,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
 
     typeObject.__RawMethods__ = [];
     typeObject.__GenericArguments__ = genericArguments || [];
-    var valueTypeName = "System.ValueType";
-    typeObject.__IsStruct__ = (baseTypeName.indexOf(valueTypeName) == baseTypeName.length - valueTypeName.length);
-
+    typeObject.__IsStruct__ = !isReferenceType && (baseTypeName === "System.ValueType");
     typeObject.IsInterface = false;
 
     if (stack !== null)

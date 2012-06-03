@@ -809,17 +809,31 @@ namespace JSIL {
         ) {
             var makingSkeletons = stubbed && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false);
 
-            if (!ShouldGenerateTypeDeclaration(typedef, makingSkeletons)) {
-                declaredTypes.Add(typedef);
-                return;
-            }
-
             var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             if ((typeInfo == null) || typeInfo.IsIgnored || typeInfo.IsProxy)
                 return;
 
             if (declaredTypes.Contains(typedef))
                 return;
+
+            // This type is defined in JSIL.Core so we don't want to cause a name collision.
+            if (!ShouldGenerateTypeDeclaration(typedef, makingSkeletons)) {
+                declaredTypes.Add(typedef);
+
+                output.WriteRaw("JSIL.MakeTypeAlias");
+                output.LPar();
+
+                output.WriteRaw(output.PrivateToken.IDString);
+                output.Comma();
+
+                output.Value(typedef.FullName);
+
+                output.RPar();
+                output.Semicolon();
+                output.NewLine();
+
+                return;
+            }
 
             TypeReference oldEnclosing = astEmitter.ReferenceContext.EnclosingType;
             TypeReference oldDefining = astEmitter.ReferenceContext.DefiningType;
