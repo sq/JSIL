@@ -4929,6 +4929,16 @@ JSIL.ImplementExternals(
       }
     );
 
+    $.Method({Public: true , Static: true }, "op_Inequality",
+      new JSIL.MethodSignature("System.Boolean", [$.Type, $.Type]),
+      function (lhs, rhs) {
+        if (lhs !== rhs)
+          return true;
+
+        return String(lhs) != String(rhs);
+      }
+    );
+
     $.Method({Public: true , Static: false}, "get_Name",
       new JSIL.MethodSignature("System.String", []),
       function () {
