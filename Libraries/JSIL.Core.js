@@ -877,16 +877,7 @@ JSIL.TypeRef.prototype.getTypeId = function () {
     return result;
   }
 };
-JSIL.TypeRef.prototype.get = function () {
-  if (this.cachedReference !== null)
-    return this.cachedReference;
-
-  var result = JSIL.ResolveName(this.context, this.typeName, true);
-  if (!result.exists())
-    throw new Error("The name '" + this.typeName + "' does not exist.");
-
-  this.cachedReference = result.get();
-
+JSIL.TypeRef.prototype.bindGenericArguments = function (unbound) {
   if (this.genericArguments.length > 0) {
     var ga = this.genericArguments;
 
@@ -905,8 +896,32 @@ JSIL.TypeRef.prototype.get = function () {
         ga[i] = arg = arg.get();
     }
 
-    this.cachedReference = this.cachedReference.Of$NoInitialize.apply(this.cachedReference, ga);
+    return unbound.Of$NoInitialize.apply(unbound, ga);
   }
+
+  return unbound;
+};
+JSIL.TypeRef.prototype.getNoInitialize = function () {
+  if (this.cachedReference !== null)
+    return this.cachedReference;
+
+  var result = JSIL.GetTypeByName(this.typeName, this.context);
+
+  result = this.bindGenericArguments(result);
+
+  return result;
+};
+JSIL.TypeRef.prototype.get = function () {
+  if (this.cachedReference !== null)
+    return this.cachedReference;
+
+  var result = JSIL.ResolveName(this.context, this.typeName, true);
+  if (!result.exists())
+    throw new Error("The name '" + this.typeName + "' does not exist.");
+
+  this.cachedReference = result.get();
+
+  this.cachedReference = this.bindGenericArguments(this.cachedReference);
 
   return this.cachedReference;
 };
@@ -3883,9 +3898,20 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
     this.typeObject.__FieldsToInitialize__.push(function (publicInterface, typeObject) {
       var actualFieldInfo = typeObject.__Members__[fieldIndex];
       var actualFieldType = actualFieldInfo[2].fieldType;
-      var fieldTypeResolved = JSIL.ResolveTypeReference(actualFieldType, context);
+
+      var fieldTypeResolved;
+
+      if (actualFieldType.getNoInitialize) {
+        // FIXME: We can't use ResolveTypeReference here because it would initialize the field type, which can form a cycle.
+        // This means that when we create a default value for a struct type, we may create an instance of an uninitalized type
+        //  or form a cycle anyway. :/
+        fieldTypeResolved = actualFieldType.getNoInitialize();
+      } else {
+        fieldTypeResolved = actualFieldType;
+      }
+
       var target = descriptor.Static ? publicInterface : publicInterface.prototype;
-      target[descriptor.EscapedName] = data.defaultValue = JSIL.DefaultValue(fieldTypeResolved[0]);
+      target[descriptor.EscapedName] = data.defaultValue = JSIL.DefaultValue(fieldTypeResolved);
     });
   }
 };
@@ -5310,6 +5336,9 @@ JSIL.DefaultValueInternal = function (typeObject, typePublicInterface) {
 
 JSIL.DefaultValue = function (type) {
   var typeObject, typePublicInterface;
+
+  if (!type)
+    throw new Error("No type passed into DefaultValue");
 
   if (typeof (type.__Type__) === "object") {
     typeObject = type.__Type__;
