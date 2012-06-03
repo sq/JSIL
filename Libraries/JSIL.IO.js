@@ -597,6 +597,17 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "ReadInt64", 
+    (new JSIL.MethodSignature($.Int64, [], [])), 
+    function ReadInt64 () {
+      var value = this.ReadUInt64();
+      if (value > System.Int64.MaxValue)
+        return value - 18446744073709551616;
+      else
+        return value;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "ReadSByte", 
     (new JSIL.MethodSignature($.SByte, [], [])), 
     function ReadSByte () {
@@ -650,7 +661,15 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
   $.Method({Static:false, Public:true }, "ReadUInt64", 
     (new JSIL.MethodSignature($.UInt64, [], [])), 
     function ReadUInt64 () {
-      throw new Error('Not implemented');
+      var low1 = this.m_stream.ReadByte();
+      var low2 = this.m_stream.ReadByte();
+      var low3 = this.m_stream.ReadByte();
+      var low4 = this.m_stream.ReadByte();
+      var low5 = this.m_stream.ReadByte();
+      var low6 = this.m_stream.ReadByte();
+      var low7 = this.m_stream.ReadByte();
+      var low8 = this.m_stream.ReadByte();
+      return low1 | (low2 << 8) | (low3 << 16) | (low4 << 24) | (low5 << 32) | (low6 << 40) | (low7 << 48) | (low8 << 56);
     }
   );
 
