@@ -106,8 +106,10 @@ $jsilxna.get2DContext = function (canvas, enableWebGL) {
   return canvas.getContext("2d");
 };
 
+$jsilxna.multipliedImageCache.now = 0;
+
 $jsilxna.multipliedImageCache.getItem = function (key) {
-  this.accessHistory[key] = Date.now();
+  this.accessHistory[key] = this.now;
 
   this.maybeEvictItems();
 
@@ -120,7 +122,7 @@ $jsilxna.multipliedImageCache.setItem = function (key, value) {
     this.countBytes += value.sizeBytes;
   }
 
-  this.accessHistory[key] = Date.now();
+  this.accessHistory[key] = this.now;
   this[key] = value;
 
   this.maybeEvictItems();
@@ -131,10 +133,9 @@ $jsilxna.multipliedImageCache.maybeEvictItems = function () {
     return;
 
   var nextEviction = this.lastEvicted + this.evictionInterval;
-  var now = Date.now();
 
-  if (now >= nextEviction) {
-    this.lastEvicted = now;
+  if (this.now >= nextEviction) {
+    this.lastEvicted = this.now;
     this.evictionPending = true;
     JSIL.Host.runLater(this.evictExtraItems);
   }
@@ -151,10 +152,8 @@ $jsilxna.multipliedImageCache.evictExtraItems = function () {
     else return 0;
   }.bind(this));
 
-  var now = Date.now();
-
   for (var i = 0, l = this.count; i < l; i++) {
-    var age = now - this.accessHistory[keys[i]];
+    var age = this.now - this.accessHistory[keys[i]];
     if (age <= this.evictionMinimumAge) 
       continue;
 
@@ -176,20 +175,12 @@ $jsilxna.multipliedImageCache.evictExtraItems = function () {
   }
 }.bind($jsilxna.multipliedImageCache);
 
-$jsilxna.getCachedImageChannels = function (image) {
-  var imageId = image.getAttribute("__imageId") || null;
-  if (imageId === null) image.setAttribute("__imageId", imageId = new String($jsilxna.nextImageId++));
-
-  var key = imageId;
+$jsilxna.getCachedImageChannels = function (image, key) {
   var result = $jsilxna.multipliedImageCache.getItem(key) || null;
   return result;
 };
 
-$jsilxna.setCachedImageChannels = function (image, value) {
-  var imageId = image.getAttribute("__imageId") || null;
-  if (imageId === null) image.setAttribute("__imageId", imageId = new String($jsilxna.nextImageId++));
-
-  var key = imageId;
+$jsilxna.setCachedImageChannels = function (image, key, value) {
   $jsilxna.multipliedImageCache.setItem(key, value);
 };
 
@@ -239,9 +230,8 @@ $jsilxna.imageChannels = function (image) {
   }).bind(this);
 };
 
-$jsilxna.getImageChannels = function (image) {
-  // Reduce the precision of the color values by 8x to avoid filling the cache rapidly with minor variations.
-  var cached = $jsilxna.getCachedImageChannels(image);
+$jsilxna.getImageChannels = function (image, key) {
+  var cached = $jsilxna.getCachedImageChannels(image, key);
   if (cached !== null)
     return cached;
 
@@ -279,7 +269,7 @@ $jsilxna.getImageChannels = function (image) {
     result.putImageData("b", bData);
     result.putImageData("a", aData);
 
-    $jsilxna.setCachedImageChannels(image, result);
+    $jsilxna.setCachedImageChannels(image, key, result);
   } catch (exc) {
     return null;
   }
@@ -4249,6 +4239,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
   $.Method({Static:false, Public:true }, "Begin", 
     (new JSIL.MethodSignature(null, [$xnaasms[5].TypeRef("System.Array") /* AnyType[] */ ], [])), 
     function SpriteBatch_Begin (sortMode, blendState, samplerState, depthStencilState, rasterizerState, effect, transformMatrix) {
+      $jsilxna.multipliedImageCache.now = Date.now();
+
       this.isWebGL = this.device.context.isWebGL || false;
 
       this.device.context.save();
@@ -4701,7 +4693,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       if (!isSinglePixel && !this.isWebGL) {
         // Since the color is premultiplied, any r/g/b value >= alpha is basically white.
         if ((colorR < colorA) || (colorG < colorA) || (colorB < colorA)) {
-          channels = $jsilxna.getImageChannels(image);
+          channels = $jsilxna.getImageChannels(image, texture.id);
         }
       }
 
@@ -5615,6 +5607,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     this.mipMap = mipMap;
     this.format = format;
     this.isDisposed = false;
+    this.id = String(++$jsilxna.nextImageId);
 
     if (typeof ($jsilxna.ImageFormats[format.name]) === "undefined") 
       throw new System.NotImplementedException("The pixel format '" + format.name + "' is not supported.");
@@ -5630,6 +5623,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     this.mipMap = false;
     this.format = Microsoft.Xna.Framework.Graphics.SurfaceFormat.Color;
     this.isDisposed = false;
+    this.id = String(++$jsilxna.nextImageId);
 
     this.image = document.createElement("img");
     var self = this;
@@ -5833,6 +5827,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.RenderTarget2D", funct
     this.mipMap = mipMap;
     this.format = format;
     this.isDisposed = false;
+    this.id = String(++$jsilxna.nextImageId);
 
     this.image = this.canvas = JSIL.Host.createCanvas(width, height);
     this.canvas.naturalWidth = width;
