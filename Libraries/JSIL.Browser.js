@@ -373,7 +373,11 @@ function loadTextAsync (uri, onComplete) {
 
   var state = [false];
   req.open('GET', uri, true);
-          
+
+  if (typeof (req.overrideMimeType) !== "undefined") {
+    req.overrideMimeType('text/plain; charset=x-user-defined');
+  }
+
   req.onreadystatechange = function (evt) {
     if (req.readyState != 4)
       return;
@@ -399,6 +403,37 @@ function loadTextAsync (uri, onComplete) {
   }
 };
 
+function postProcessResultNormal (bytes) {
+  return bytes;
+};
+
+var warnedAboutOpera = false;
+
+function postProcessResultOpera (bytes) {
+  // Opera sniffs content types on request bodies and if they're text, converts them to 16-bit unicode :|
+
+  if (
+    (bytes[1] === 0) &&
+    (bytes[3] === 0) &&
+    (bytes[5] === 0) &&
+    (bytes[7] === 0)
+  ) {
+    if (!warnedAboutOpera) {
+      JSIL.Host.logWriteLine("Your version of Opera has a bug that corrupts downloaded file data. Please update to a new version or try a better browser.");
+      warnedAboutOpera = true;
+    }
+
+    var resultBytes = new Array(bytes.length / 2);
+    for (var i = 0, j = 0, l = bytes.length; i < l; i += 2, j += 1) {
+      resultBytes[j] = bytes[i];
+    }
+
+    return resultBytes;
+  } else {
+    return bytes;
+  }
+};
+
 function loadBinaryFileAsync (uri, onComplete) {
   var req;
   var state = [false];
@@ -407,15 +442,23 @@ function loadBinaryFileAsync (uri, onComplete) {
   } else {
     req = new XMLHttpRequest();
   }
+          
+  var postProcessResult = postProcessResultNormal;
   
   req.open('GET', uri, true);
+
   if (typeof (ArrayBuffer) === "function") {
     req.responseType = 'arraybuffer';
   }
+
   if (typeof (req.overrideMimeType) !== "undefined") {
     req.overrideMimeType('application/octet-stream; charset=x-user-defined');
   }
-          
+  
+  if (window.navigator.userAgent.indexOf("Opera/") >= 0) {
+    postProcessResult = postProcessResultOpera;
+  }
+
   req.onreadystatechange = function (evt) {
     if (req.readyState != 4)
       return;
@@ -442,7 +485,7 @@ function loadBinaryFileAsync (uri, onComplete) {
         bytes = JSIL.StringToByteArray(text);
       }
 
-      onComplete(bytes, null);
+      onComplete(postProcessResult(bytes), null);
     } else {
       onComplete(null, { statusText: req.statusText, status: req.status });
       return;
