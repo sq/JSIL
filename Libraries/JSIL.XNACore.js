@@ -11,19 +11,22 @@ var $xnaasms = new JSIL.AssemblyCollection({
   xna: "Microsoft.Xna.Framework",
   xnaGraphics: "Microsoft.Xna.Framework.Graphics",
   xnaGame: "Microsoft.Xna.Framework.Game",
+  xnaStorage: "Microsoft.Xna.Framework.Storage",
   0: "Microsoft.Xna.Framework", 
   1: "Microsoft.Xna.Framework.Game", 
   2: "Microsoft.Xna.Framework.GamerServices", 
-  3: "Microsoft.Xna.Framework.Graphics", 
   5: "mscorlib",
   11: "System.Drawing", 
   15: "System.Windows.Forms", 
   18: "Microsoft.Xna.Framework.Xact",
-  19: "Microsoft.Xna.Framework.Storage"
 });
 
 var getXnaGraphics = function () {
   return $xnaasms.xnaGraphics || $xnaasms.xna;
+};
+
+var getXnaStorage = function () {
+  return $xnaasms.xnaStorage || $xnaasms.xna;
 };
 
 $jsilxna.nextImageId = 0;
@@ -4165,14 +4168,14 @@ $jsilxna.Color = function ($) {
   };
 
   $.Method({Static:true , Public:true }, "op_Equality", 
-    (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Color"), $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Color")], [])), 
+    (new JSIL.MethodSignature($.Boolean, [$jsilxna.colorRef(), $jsilxna.colorRef()], [])), 
     function op_Equality (a, b) {
       return equalsImpl(a, b);
     }
   );
 
   $.Method({Static:true , Public:true }, "op_Inequality", 
-    (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Color"), $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Color")], [])), 
+    (new JSIL.MethodSignature($.Boolean, [$jsilxna.colorRef(), $jsilxna.colorRef()], [])), 
     function op_Inequality (a, b) {
       return !equalsImpl(a, b);
     }
@@ -6672,7 +6675,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageDevice", functio
   );
 
   $.Method({Static:false, Public:true }, "EndOpenContainer", 
-    (new JSIL.MethodSignature($xnaasms[19].TypeRef("Microsoft.Xna.Framework.Storage.StorageContainer"), [$xnaasms[5].TypeRef("System.IAsyncResult")], [])), 
+    (new JSIL.MethodSignature(getXnaStorage().TypeRef("Microsoft.Xna.Framework.Storage.StorageContainer"), [$xnaasms[5].TypeRef("System.IAsyncResult")], [])), 
     function EndOpenContainer (result) {
       return new Microsoft.Xna.Framework.Storage.StorageContainer(
         result.data.device, 0, result.data.displayName
@@ -6681,7 +6684,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageDevice", functio
   );
 
   $.Method({Static:true , Public:true }, "EndShowSelector", 
-    (new JSIL.MethodSignature($xnaasms[19].TypeRef("Microsoft.Xna.Framework.Storage.StorageDevice"), [$xnaasms[5].TypeRef("System.IAsyncResult")], [])), 
+    (new JSIL.MethodSignature(getXnaStorage().TypeRef("Microsoft.Xna.Framework.Storage.StorageDevice"), [$xnaasms[5].TypeRef("System.IAsyncResult")], [])), 
     function EndShowSelector (result) {
       return new Microsoft.Xna.Framework.Storage.StorageDevice(
         0, result.data.player || 0
