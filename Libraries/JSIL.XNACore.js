@@ -62,11 +62,16 @@ $jsilxna.graphicsRef = function (name) {
 $jsilxna.allowWebGL = true;
 $jsilxna.testedWebGL = false;
 $jsilxna.workingWebGL = false;
+
 $jsilxna.get2DContext = function (canvas, enableWebGL) {
   var hasWebGL = typeof (WebGL2D) !== "undefined";
   var extraMessage = "";
 
-  if (hasWebGL && enableWebGL && ($jsilxna.allowWebGL !== false)) {
+  if (
+    hasWebGL && enableWebGL && 
+    ($jsilxna.allowWebGL !== false) && 
+    (document.location.search.indexOf("forceCanvas") < 0)
+  ) {
     if (!$jsilxna.testedWebGL) {
       try {
         var testCanvas = document.createElement("canvas");
