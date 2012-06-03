@@ -4214,13 +4214,21 @@ $jsilxna.ClampByte = function (v) {
 var $drawDebugRects = false, $drawDebugBoxes = false;
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function ($) {
-  var $canvasDrawImage = function canvasDrawImage (image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, destW, destH) {
-    try {
+  if (false) {
+    var $canvasDrawImage = function canvasDrawImage (image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, destW, destH) {
+      try {
+        this.device.context.drawImage(
+          image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, destW, destH
+        );
+      } catch (exc) {
+        console.log("Error calling drawImage with arguments ", Array.prototype.slice.call(arguments), ": ", exc);
+      }
+    }
+  } else {
+    var $canvasDrawImage = function canvasDrawImage (image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, destW, destH) {
       this.device.context.drawImage(
         image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, destW, destH
       );
-    } catch (exc) {
-      console.log("Error calling drawImage with arguments ", Array.prototype.slice.call(arguments), ": ", exc);
     }
   }
 

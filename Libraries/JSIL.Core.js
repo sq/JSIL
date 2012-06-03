@@ -4435,8 +4435,8 @@ JSIL.MethodSignature.prototype.returnType = null;
 JSIL.MethodSignature.prototype.argumentTypes = [];
 JSIL.MethodSignature.prototype._genericSuffix = null;
 JSIL.MethodSignature.prototype._hash = null;
-JSIL.MethodSignature.prototype._lastKeyName = null;
-JSIL.MethodSignature.prototype._lastKey = null;
+JSIL.MethodSignature.prototype._lastKeyName = "<null>";
+JSIL.MethodSignature.prototype._lastKey = "<null>";
 
 Object.defineProperty(JSIL.MethodSignature.prototype, "GenericSuffix", {
   configurable: false,
@@ -4454,8 +4454,9 @@ JSIL.MethodSignatureCache = function () {
   this._cache = {};
 };
 JSIL.MethodSignatureCache.prototype.get = function (id, returnType, argumentTypes, genericArgumentNames, context) {
-  if (id in this._cache)
-    return this._cache[id];
+  var cached = this._cache[id];
+  if (cached)
+    return cached;
 
   if ((typeof (returnType) === "undefined") || (typeof (argumentTypes) === "undefined"))
     throw new Error("Signature '" + id + "' not in cache.");
