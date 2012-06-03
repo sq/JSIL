@@ -1757,11 +1757,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
 
       if (!hasQualified) {
         if (memberType === Function) {
-          Object.defineProperty(proto, qualifiedName, {
-            configurable: true,
-            enumerable: true,
-            get: JSIL.MakeInterfaceMemberGetter(proto, key)
-          });
+          JSIL.SetLazyValueProperty(proto, qualifiedName, JSIL.MakeInterfaceMemberGetter(proto, key));
         } else if (memberType === Property) {
           Object.defineProperty(proto, qualifiedName, shortImpl);
         }
