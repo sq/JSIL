@@ -4939,6 +4939,35 @@ JSIL.ImplementExternals(
       }
     );
 
+    $.Method({Static:false, Public:true }, "get_IsGenericType",
+      new JSIL.MethodSignature("System.Boolean", []),
+      function () {
+        return this.__OpenType__ !== undefined && this.__IsClosed__ === true;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "GetGenericTypeDefinition",
+      (new JSIL.MethodSignature($.Type, [], [])),
+      function () {
+        return this.__OpenType__;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "GetGenericArguments",
+      (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Type]), [], [])), 
+      function GetGenericArguments () {
+        return JSIL.Array.New($.Type, this.__GenericArgumentValues__);
+      }
+    );
+
+
+    $.Method({Static:false, Public:true }, "MakeGenericType",
+      (new JSIL.MethodSignature($.Type, [$jsilcore.TypeRef("System.Array", [$.Type])], [])), 
+      function (typeArguments) {
+        return this.__PublicInterface__.Of.apply(this.__PublicInterface__, typeArguments).__Type__;
+      }
+    );
+
     $.Method({Public: true , Static: false}, "get_Name",
       new JSIL.MethodSignature("System.String", []),
       function () {
@@ -5980,6 +6009,7 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function
     $.Property({Public: true , Static: false}, "FullName");
     $.Property({Public: true , Static: false}, "Namespace");
     $.Property({Public: true , Static: false}, "BaseType");
+    $.Property({Public: true , Static: false}, "IsGenericType");
 });
 
 JSIL.MakeClass("System.Type", "System.RuntimeType", false, [], function ($) {
