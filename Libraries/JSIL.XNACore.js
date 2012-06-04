@@ -5376,8 +5376,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
 
       this.viewport.X = 0;
       this.viewport.Y = 0;
-      this.viewport.Width = this.canvas.width;
-      this.viewport.Height = this.canvas.height;
+
+      if (this.canvas === this.originalCanvas) {
+        this.viewport.Width = this.originalWidth;
+        this.viewport.Height = this.originalHeight;
+      } else {
+        this.viewport.Width = this.canvas.width;
+        this.viewport.Height = this.canvas.height;
+      }
 
       this.$UpdateBlendState();
       this.$UpdateViewport();
@@ -5446,14 +5452,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.PresentationParameters
   $.Method({Static:false, Public:true }, "get_BackBufferHeight", 
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function get_BackBufferHeight () {
-      return this._device.originalCanvas.height;
+      return this._device.originalHeight;
     }
   );
 
   $.Method({Static:false, Public:true }, "get_BackBufferWidth", 
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function get_BackBufferWidth () {
-      return this._device.originalCanvas.width;
+      return this._device.originalWidth;
     }
   );
 

@@ -1081,6 +1081,8 @@ function quitGame () {
 }
 
 var canGoFullscreen = false;
+var integralFullscreenScaling = false;
+var overrideFullscreenBaseSize = null;
 
 function onLoad () {
   registerErrorHandler();
@@ -1116,23 +1118,41 @@ function onLoad () {
       canvas.mozRequestFullScreenWithKeys ||
       canvas.webkitRequestFullScreenWithKeys ||
       canvas.requestFullscreen || 
+      canvas.requestFullScreen || 
       canvas.mozRequestFullScreen || 
       canvas.webkitRequestFullScreen;
 
     if (reqFullscreen) {
       canGoFullscreen = true;
 
+      var goFullscreen = function () {
+        reqFullscreen.call(canvas, Element.ALLOW_KEYBOARD_INPUT);
+      };
+
       var onFullscreenChange = function () {
         var isFullscreen = document.fullscreen || 
+          document.fullScreen ||
           document.mozFullScreen || 
           document.webkitIsFullScreen;
 
         if (isFullscreen) {
-          canvas.width = screen.width;
-          canvas.height = screen.height;
+          var ow = originalWidth, oh = originalHeight;
+          if (overrideFullscreenBaseSize) {
+            ow = overrideFullscreenBaseSize[0];
+            oh = overrideFullscreenBaseSize[1];
+          }
+
+          var scaleRatio = Math.min(screen.width / ow, screen.height / oh);
+          if (integralFullscreenScaling)
+            scaleRatio = Math.floor(scaleRatio);
+
+          canvas.width = ow * scaleRatio;
+          canvas.height = oh * scaleRatio;
+
         } else {
           canvas.width = originalWidth;
           canvas.height = originalHeight;
+
         }
       };
 
@@ -1141,9 +1161,7 @@ function onLoad () {
       document.addEventListener("webkitfullscreenchange", onFullscreenChange, false);
 
       fullscreenButton.addEventListener(
-        "click", function () {
-          reqFullscreen.call(canvas, Element.ALLOW_KEYBOARD_INPUT);
-        }, true
+        "click", goFullscreen, true
       );
     }
   };
