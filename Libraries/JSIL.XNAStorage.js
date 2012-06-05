@@ -7,9 +7,93 @@ if (typeof ($jsilxna) === "undefined")
   throw new Error("JSIL.XNACore required");
 
 JSIL.MakeClass($jsilcore.System.Object, "VirtualVolume", true, [], function ($) {
-  $.RawMethod(false, ".ctor", function (name) {
+  $.RawMethod(false, ".ctor", function (name, inodes) {
+  	this.inodes = [];
   	this.name = name;
-  	this.rootDirectory = new VirtualDirectory(this);
+
+  	if (inodes && (inodes.length > 0)) {
+  		this.initFromInodes(inodes);
+  	} else {
+  		this.rootDirectory = new VirtualDirectory(
+  			this, null, this.makeInode(null, "directory", "/")
+		);
+  	}
+  });
+
+  $.RawMethod(false, "initFromInodes", function (inodes) {
+	// Create local copies of all the source inodes
+
+  	for (var i = 0, l = inodes.length; i < l; i++) {
+  		var inode = inodes[i], resultInode;
+
+  		if (typeof (inode.parent) === "number") {
+  			resultInode = this.makeInode(this.inodes[inode.parent], inode.type, inode.name);
+  		} else {
+  			resultInode = this.makeInode(null, inode.type, inode.name);
+  		}
+
+		if (inode.metadata)
+  			resultInode.metadata = inode.metadata;
+
+  		if (inode.ref)
+  			resultInode.ref = inode.ref;
+  	}
+
+  	this.rootDirectory = new VirtualDirectory(
+  		this, null, this.inodes[0]
+	);
+
+  	for (var i = 1, l = inodes.length; i < l; i++) {
+  		var inode = this.inodes[i];
+  		var parentInode = this.inodes[inode.parent];
+
+  		switch (inode.type) {
+  			case "directory":
+  				new VirtualDirectory(
+  					this, parentInode.object, inode
+				);
+
+  				break;
+
+  			case "file":
+  				new VirtualFile(
+  					parentInode.object, inode
+				);
+
+  				break;
+  		}
+  	}
+  });
+
+  $.RawMethod(false, "makeInode", function (parent, type, name) {
+  	var inode = {
+		type: type,
+		name: name
+  	};
+
+  	if (parent) {
+	  	Object.defineProperty(
+	  		inode, "parent", {
+	  			value: parent.index,
+	  			configurable: false,
+	  			enumerable: true,
+	  			writable: false
+	  		}
+		);
+  	}
+
+  	Object.defineProperty(
+  		inode, "index", {
+  			value: this.inodes.length,
+  			configurable: false,
+  			enumerable: false,
+  			writable: false
+  		}
+	);
+
+  	this.inodes.push(inode);
+
+  	return inode;
   });
 
   $.RawMethod(false, "stripRoot", function (path) {
@@ -62,14 +146,46 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualVolume", true, [], function ($) 
 });
 
 JSIL.MakeClass($jsilcore.System.Object, "VirtualDirectory", true, [], function ($) {
-  $.RawMethod(false, ".ctor", function (volume, parent, name) {
-  	this.volume = volume;
-  	this.parent = parent || null;
-  	this.name = parent ? name : "/";
-  	this.path = parent ? parent.path + (name + "/") : "/";
+  $.RawMethod(false, ".ctor", function (volume, parent, inode) {
+  	if (inode.type !== "directory")
+  		throw new Error("Inode is not a directory");
 
-  	this.directories = {};
-  	this.files = {};
+  	this.volume = volume;
+ 	this.parent = parent;
+  	this.inode = inode;
+
+  	JSIL.SetValueProperty(
+  		this, "directories", {}
+	);
+	JSIL.SetValueProperty(
+		this, "files", {}
+	);
+
+  	Object.defineProperty(
+  		this, "name", {
+  			configurable: false,
+  			get: function () {
+  				return inode.name;
+  			}
+  		}
+	);
+
+	JSIL.SetValueProperty(
+		this, "path", 
+		parent ? parent.path + (this.name + "/") : "/"
+	);
+
+	Object.defineProperty(
+		this.inode, "object", {
+			value: this,
+			enumerable: false,
+			configurable: false,
+			writable: false
+		}
+	);
+
+  	if (parent)
+  		parent.directories[this.name.toLowerCase()] = this;
   });
 
   $.RawMethod(false, "getFile", function (name) {
@@ -102,7 +218,9 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualDirectory", true, [], function (
   			throw new Error("A file named '" + name + "' already exists.");
   	}
 
-  	return this.files[name.toLowerCase()] = new VirtualFile(this, name);
+  	return new VirtualFile(
+  		this, this.volume.makeInode(this.inode, "file", name)
+	);
   });
 
   $.RawMethod(false, "createDirectory", function (name, allowExisting) {
@@ -114,7 +232,9 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualDirectory", true, [], function (
   			throw new Error("A directory named '" + name + "' already exists.");
   	}
 
-  	return this.directories[name.toLowerCase()] = new VirtualDirectory(this.volume, this, name);
+  	return new VirtualDirectory(
+  		this.volume, this, this.volume.makeInode(this.inode, "directory", name)
+	);
   });
 
   $.RawMethod(false, "resolvePath", function (path, throwOnFail) {
@@ -173,10 +293,36 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualDirectory", true, [], function (
 });
 
 JSIL.MakeClass($jsilcore.System.Object, "VirtualFile", true, [], function ($) {
-  $.RawMethod(false, ".ctor", function (parent, name) {
+  $.RawMethod(false, ".ctor", function (parent, inode) {
+  	if (inode.type !== "file")
+  		throw new Error("Inode is not a file");
+
  	this.parent = parent;
-  	this.name = name;
-  	this.path = parent.path + name;
+  	this.inode = inode;
+
+  	Object.defineProperty(
+  		this, "name", {
+  			configurable: false,
+  			get: function () {
+  				return inode.name;
+  			}
+  		}
+	);
+
+	JSIL.SetValueProperty(
+		this, "path", parent.path + this.name
+	);
+
+	Object.defineProperty(
+		this.inode, "object", {
+			value: this,
+			enumerable: false,
+			configurable: false,
+			writable: false
+		}
+	);
+
+	parent.files[this.name.toLowerCase()] = this;
   });
 
   $.RawMethod(false, "toString", function () {
