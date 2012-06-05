@@ -12,10 +12,31 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualVolume", true, [], function ($) 
   	this.rootDirectory = new VirtualDirectory(this);
   });
 
-  $.RawMethod(false, "resolvePath", function (path, throwOnFail) {
+  $.RawMethod(false, "stripRoot", function (path) {
   	var indexOfRoot = path.indexOf(this.rootDirectory.path);
   	if (indexOfRoot === 0)
   		path = path.substr(this.rootDirectory.path.length);
+
+  	return path;
+  });  
+
+  $.RawMethod(false, "createDirectory", function (path) {
+  	path = this.stripRoot(path);
+
+  	var pieces = path.split("/");
+
+  	for (var i = 0, l = pieces.length; i < l; i++) {
+  		var containingPath = pieces.slice(0, i).join("/") + "/";
+
+  		var containingDirectory = this.rootDirectory.resolvePath(containingPath);
+  		containingDirectory.createDirectory(pieces[i], true);
+  	}
+
+  	return this.rootDirectory.resolvePath(path);
+  });
+
+  $.RawMethod(false, "resolvePath", function (path, throwOnFail) {
+  	path = this.stripRoot(path);
 
   	return this.rootDirectory.resolvePath(path, throwOnFail);
   });
@@ -66,7 +87,7 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualDirectory", true, [], function (
   			throw new Error("A file named '" + name + "' already exists.");
   	}
 
-  	return this.files[name] = new VirtualFile(this, name);
+  	return this.files[name.toLowerCase()] = new VirtualFile(this, name);
   });
 
   $.RawMethod(false, "createDirectory", function (name, allowExisting) {
@@ -78,7 +99,7 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualDirectory", true, [], function (
   			throw new Error("A directory named '" + name + "' already exists.");
   	}
 
-  	return this.directories[name] = new VirtualDirectory(this.volume, this, name);
+  	return this.directories[name.toLowerCase()] = new VirtualDirectory(this.volume, this, name);
   });
 
   $.RawMethod(false, "resolvePath", function (path, throwOnFail) {
