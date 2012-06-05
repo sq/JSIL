@@ -321,7 +321,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentLoadException", 
   $.Method({
     Static: false,
     Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (message) {
+  }, ".ctor", new JSIL.MethodSignature(null, [$.String], []), function (message) {
     this._Message = String(message);
   });
 });
@@ -394,25 +394,17 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentManager", functi
 });
 
 JSIL.MakeClass($jsilcore.System.Object, "HTML5Asset", true, [], function ($) {
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (assetName) {
+  $.RawMethod(false, ".ctor", function (assetName) {
     this.name = assetName;
   });
-  $.Method({
-    Static: false,
-    Public: true
-  }, "toString", new JSIL.MethodSignature(null, [], []), function () {
+
+  $.RawMethod(false, "toString", function () {
     return "<XNA Asset '" + this.name + "'>";
   });
 });
 
 JSIL.MakeClass("HTML5Asset", "HTML5ImageAsset", true, [], function ($) {
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (assetName, image) {
+  $.RawMethod(false, ".ctor", function (assetName, image) {
     HTML5Asset.prototype._ctor.call(this, assetName);
     this.image = image;
     this.Width = image.naturalWidth;
@@ -422,10 +414,7 @@ JSIL.MakeClass("HTML5Asset", "HTML5ImageAsset", true, [], function ($) {
 });
 
 JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true, [], function ($) {
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (assetName, sound) {
+  $.RawMethod(false, ".ctor", function (assetName, sound) {
     HTML5Asset.prototype._ctor.call(this, assetName);
     this.sound = sound;
     this.freeInstances = [
@@ -508,10 +497,7 @@ JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true, [], function ($) {
 });
 
 JSIL.MakeClass("HTML5Asset", "WebkitSoundAsset", true, [], function ($) {
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (assetName, audioContext, buffer) {
+  $.RawMethod(false, ".ctor", function (assetName, audioContext, buffer) {
     HTML5Asset.prototype._ctor.call(this, assetName);
     this.audioContext = audioContext;
     this.buffer = buffer;
@@ -593,10 +579,7 @@ JSIL.MakeClass("HTML5Asset", "WebkitSoundAsset", true, [], function ($) {
 });
 
 JSIL.MakeClass("HTML5Asset", "NullSoundAsset", true, [], function ($) {
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (assetName) {
+  $.RawMethod(false, ".ctor", function (assetName) {
     HTML5Asset.prototype._ctor.call(this, assetName);
   });
 
@@ -648,10 +631,7 @@ JSIL.MakeClass("HTML5Asset", "NullSoundAsset", true, [], function ($) {
 JSIL.MakeClass("HTML5Asset", "HTML5FontAsset", true, [], function ($) {
   $.prototype._cachedCss = null;
 
-  $.Method({
-    Static: false,
-    Public: true
-  }, ".ctor", new JSIL.MethodSignature(null, [], []), function (assetName, id, pointSize, lineHeight) {
+  $.RawMethod(false, ".ctor", function (assetName, id, pointSize, lineHeight) {
     HTML5Asset.prototype._ctor.call(this, assetName);
     this.id = id;
     this.pointSize = pointSize;
