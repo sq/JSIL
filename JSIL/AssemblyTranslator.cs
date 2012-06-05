@@ -848,7 +848,7 @@ namespace JSIL {
                 if (typeInfo.Replacement != null) {
                     TranslateTypeDefinition(
                         context, typedef, astEmitter, output, stubbed,
-                        (o) => o.WriteRaw(typeInfo.Replacement)
+                        (o) => o.WriteRaw(typeInfo.Replacement), makingSkeletons
                     );
 
                     output.NewLine();
@@ -991,7 +991,7 @@ namespace JSIL {
 
                     TranslateTypeDefinition(
                         context, typedef, astEmitter, output, stubbed,
-                        (o) => o.Identifier("$", null)
+                        (o) => o.Identifier("$", null), makingSkeletons
                     );
 
                     output.NewLine();
@@ -1085,7 +1085,7 @@ namespace JSIL {
         protected void TranslateTypeDefinition (
             DecompilerContext context, TypeDefinition typedef, 
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, 
-            bool stubbed, Action<JavascriptFormatter> dollar
+            bool stubbed, Action<JavascriptFormatter> dollar, bool makingSkeletons
         ) {
             var typeInfo = _TypeInfoProvider.GetTypeInformation(typedef);
             if (!ShouldTranslateMethods(typedef))
@@ -1128,9 +1128,14 @@ namespace JSIL {
                     return true;
             };
 
-            TranslateTypeStaticConstructor(context, typedef, astEmitter, output, typeInfo.StaticConstructor, stubbed, dollar);
+            if (!makingSkeletons)
+                TranslateTypeStaticConstructor(
+                    context, typedef, astEmitter, 
+                    output, typeInfo.StaticConstructor, 
+                    stubbed, dollar
+                );
 
-            if ((typeInfo.MethodGroups.Count + typedef.Properties.Count) > 0) {
+            if (!makingSkeletons && ((typeInfo.MethodGroups.Count + typedef.Properties.Count) > 0)) {
                 initializeOverloadsAndProperties();
             }
 
@@ -1138,7 +1143,7 @@ namespace JSIL {
                               where !i.Item1.IsIgnored
                               select i.Item2).ToArray();
 
-            if (interfaces.Length > 0) {
+            if (!makingSkeletons && (interfaces.Length > 0)) {
                 output.NewLine();
 
                 dollar(output);

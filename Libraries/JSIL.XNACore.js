@@ -2970,24 +2970,29 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     var self = this;
     var stepCallback = self._Step.bind(self);
 
-    if (typeof (mozRequestAnimationFrame) !== "undefined") {
-      mozRequestAnimationFrame(stepCallback);
-    } else if (typeof (webkitRequestAnimationFrame) !== "undefined") {
-      webkitRequestAnimationFrame(stepCallback);
-    } else if (false && (typeof (msRequestAnimationFrame) !== "undefined")) {
-      // The version of msRequestAnimationFrame in the current IE Platform Preview has a bug that
-      //  causes it to sometimes never invoke the callback. As a result, we can't currently rely on it.
-      msRequestAnimationFrame(stepCallback, JSIL.Host.getCanvas());
-    } else {
-      var shouldStepCallback = function () {
-          var now = self._GetNow();
-          var delay = self._nextFrame - now;
+    var forceSetTimeout = false || 
+      (document.location.search.indexOf("forceSetTimeout") >= 0) ||
+      (typeof (msRequestAnimationFrame) !== "undefined") // IE10 currently has broken requestAnimationFrame
+      ;
 
-          if (delay <= 0) 
-            stepCallback();
-          else 
-            self._DeferCall(shouldStepCallback, delay >= 5);
-        };
+    var requestAnimationFrame = window.requestAnimationFrame ||
+      window.mozRequestAnimationFrame || 
+      window.webkitRequestAnimationFrame ||
+      window.msRequestAnimationFrame ||
+      window.oRequestAnimationFrame;
+
+    if (requestAnimationFrame && !forceSetTimeout) {
+      requestAnimationFrame(stepCallback);
+    } else {
+      var shouldStepCallback = function ShouldStep () {
+        var now = self._GetNow();
+        var delay = self._nextFrame - now;
+
+        if (delay <= 0) 
+          stepCallback();
+        else 
+          self._DeferCall(shouldStepCallback, delay >= 3);
+      };
 
       // It's important that we use setTimeout at least once after every frame in order to let the browser pump messages
       this._DeferCall(shouldStepCallback, true);
