@@ -126,12 +126,16 @@ JSIL.ImplementExternals("System.IO.Stream", function ($) {
   $.Method({Static:false, Public:true }, "Close", 
     (new JSIL.MethodSignature(null, [], [])), 
     function Close () {
+      if (this._onClose)
+        this._onClose();
     }
   );
 
   $.Method({Static:false, Public:true }, "Dispose", 
     (new JSIL.MethodSignature(null, [], [])), 
     function Dispose () {
+      if (this._onClose)
+        this._onClose();
     }
   );
 
@@ -185,12 +189,53 @@ var $bytestream = function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "set_Position", 
+    (new JSIL.MethodSignature(null, [$.Int64], [])), 
+    function set_Position (value) {
+      this._pos = value;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "get_Length", 
     (new JSIL.MethodSignature($.Int64, [], [])), 
     function get_Length () {
       return this._length;
     }
   );
+
+  $.Method({Static:false, Public:true }, "Write", 
+    (new JSIL.MethodSignature(null, [
+          $jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32, 
+          $.Int32
+        ], [])), 
+    function Write (buffer, offset, count) {
+      var newPosition = this._pos + count;
+
+      if (newPosition > this._length)
+        this._length = newPosition;
+
+      for (var i = 0; i < count; i++)
+        this._buffer[this._pos + i] = buffer[offset + i];
+
+      this._pos = newPosition;
+      
+      this._modified = true;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "WriteByte", 
+    (new JSIL.MethodSignature(null, [$.Byte], [])), 
+    function WriteByte (value) {
+      if (this._pos >= this._length)
+        this._length += 1;
+
+      this._buffer[this._pos] = value;
+      this._pos += 1;
+
+      this._modified = true;
+    }
+  );
+
 };
 
 JSIL.ImplementExternals("System.IO.FileStream", function ($) {
