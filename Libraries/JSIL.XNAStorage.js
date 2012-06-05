@@ -35,6 +35,21 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualVolume", true, [], function ($) 
   	return this.rootDirectory.resolvePath(path);
   });
 
+  $.RawMethod(false, "createFile", function (path, allowExisting) {
+  	path = this.stripRoot(path);
+
+  	var lastSlash = path.lastIndexOf("/"), parentDirectory, fileName;
+  	if (lastSlash >= 0) {
+  		parentDirectory = this.rootDirectory.resolvePath(path.substr(0, lastSlash), true);
+  		fileName = path.substr(lastSlash + 1);
+  	} else {
+  		parentDirectory = this.rootDirectory;
+  		fileName = path;
+  	}
+
+	return parentDirectory.createFile(fileName, allowExisting);
+  });
+
   $.RawMethod(false, "resolvePath", function (path, throwOnFail) {
   	path = this.stripRoot(path);
 
