@@ -1192,7 +1192,7 @@ JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
 
   $.RawMethod(false, "$flush", function (forClose) {
     while (this._stack.length > 0) {
-      this.$flushCurrent(forClose);
+      this.$flushOne(forClose);
       this._stack.pop();
     }
   });
@@ -1218,6 +1218,21 @@ JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
         this.$write(">");
       }
     }
+  });
+
+  $.RawMethod(false, "$writeAttr", function (name, value) {
+    var item = this._stack[this._stack.length - 1];
+    if (!item)
+      throw new Error("No element open");
+
+    if (!item.closePending)
+      throw new Error("Element start tag already closed");
+
+    this.$write(" ");
+    this.$write(name);
+    this.$write("=\"");
+    this.$writeEscaped(value);
+    this.$write("\"");
   });
 
   $.RawMethod(false, "$writeEscaped", function (str) {
@@ -1386,7 +1401,7 @@ JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
   $.Method({Static:false, Public:true }, "WriteAttributeString", 
     (new JSIL.MethodSignature(null, [$.String, $.String], [])), 
     function WriteAttributeString (localName, value) {
-      throw new Error('Not implemented');
+      this.$writeAttr(localName, value);
     }
   );
 

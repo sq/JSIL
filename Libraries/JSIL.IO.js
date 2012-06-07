@@ -94,6 +94,13 @@ JSIL.ImplementExternals("System.IO.File", function ($) {
     }
   );
 
+  $.Method({Static:true , Public:true }, "OpenWrite", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.FileStream"), [$.String], [])), 
+    function OpenWrite (path) {
+      return new System.IO.FileStream(path, System.IO.FileMode.OpenOrCreate);
+    }
+  );
+
   $.Method({Static:true , Public:true }, "ReadAllText", 
     new JSIL.MethodSignature($.String, [$.String], []),
     function (filename) {

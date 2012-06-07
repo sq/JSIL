@@ -146,6 +146,8 @@
     <None Include="XMLTestCases\Common.cs" />
     <None Include="SimpleTestCases\GenericInheritedField.cs" />
     <None Include="XMLTestCases\WriteStringElement.cs" />
+    <None Include="XMLTestCases\WriteAttributeString.cs" />
+    <None Include="XMLTestCases\WriteAttributeString2.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
