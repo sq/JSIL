@@ -1479,7 +1479,12 @@ JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
   $.Method({Static:false, Public:true }, "WriteElementString", 
     (new JSIL.MethodSignature(null, [$.String, $.String], [])), 
     function WriteElementString (localName, value) {
-      throw new Error('Not implemented');
+      this.WriteStartElement(localName);
+
+      if (!System.String.IsNullOrWhiteSpace(value))
+        this.WriteString(value);
+
+      this.WriteEndElement();
     }
   );
 
