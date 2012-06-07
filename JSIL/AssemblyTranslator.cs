@@ -823,7 +823,7 @@ namespace JSIL {
                 output.WriteRaw("JSIL.MakeTypeAlias");
                 output.LPar();
 
-                output.WriteRaw(output.PrivateToken.IDString);
+                output.WriteRaw("$jsilcore");
                 output.Comma();
 
                 output.Value(typedef.FullName);

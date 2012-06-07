@@ -3091,7 +3091,15 @@ JSIL.MakeCastMethods = function (publicInterface, typeObject, specialType) {
 JSIL.MakeTypeAlias = function (sourceAssembly, fullName) {
   var context = $private;
 
-  sourceAssembly.typesByName[fullName] = context.typesByName[fullName];
+  Object.defineProperty(
+    context.typesByName, fullName, {
+      configurable: false,
+      enumerable: true,
+      get: function () {
+        return sourceAssembly.typesByName[fullName];
+      }
+    }
+  );
 };
 
 JSIL.MakeTypeConstructor = function (typeObject) {
