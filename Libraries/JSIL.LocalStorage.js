@@ -69,13 +69,16 @@ JSIL.MakeClass($jsilstorage.TypeRef("VirtualVolume"), "LocalStorageVolume", true
   });
 });
 
-$jsillocalstorage.volume = null;
+JSIL.LocalStorage = {};
+JSIL.LocalStorage.Initialize = function (appName) {
+  var volume = null;
 
-JSIL.RegisterStorageProvider({
-  getVolumes: function () {
-    if (!$jsillocalstorage.volume)
-      $jsillocalstorage.volume = new LocalStorageVolume("localStorage", "localStorage:/");
+  JSIL.RegisterStorageProvider({
+    getVolumes: function () {
+      if (!volume)
+        volume = new LocalStorageVolume(appName, "localStorage:/");
 
-    return [$jsillocalstorage.volume];
-  }
-});
+      return [volume];
+    }
+  });
+};

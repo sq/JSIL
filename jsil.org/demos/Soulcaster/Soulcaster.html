@@ -76,6 +76,9 @@
         // We default the canvas to 2x native framebuffer size, but we want fullscreen scaling to be based on 1x
         overrideFullscreenBaseSize = [352, 272]
 
+        // Set up the localStorage backend
+        JSIL.LocalStorage.Initialize("Soulcaster2");
+
         // We can't invoke Main() since it disposes the Game immediately, breaking everything.
         var asm = JSIL.GetAssembly("Soulcaster2");
         var game = new asm.Tarchon.SoulcasterTwo();
