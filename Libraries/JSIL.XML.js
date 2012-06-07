@@ -711,6 +711,13 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "ReadContentAsString", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function ReadContentAsString () {
+      return this.ReadString();
+    }
+  );
+
   $.Method({Static:false, Public:true }, "ReadString", 
     (new JSIL.MethodSignature($.String, [], [])), 
     function ReadString () {
