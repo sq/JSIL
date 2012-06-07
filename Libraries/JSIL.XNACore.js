@@ -413,7 +413,40 @@ JSIL.MakeClass("HTML5Asset", "HTML5ImageAsset", true, [], function ($) {
   });
 });
 
-JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true, [], function ($) {
+JSIL.MakeClass("HTML5Asset", "SoundAssetBase", true, [], function ($) {
+
+  $.Method({Static:false, Public:true }, "Play", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function Play () {
+      return this.Play(1, 0, 0);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Play", 
+    (new JSIL.MethodSignature($.Boolean, [$.Single, $.Single, $.Single], [])), 
+    function Play (volume, pitch, pan) {
+      var instance = this.$newInstance();
+
+      instance.volume = volume;
+
+      // FIXME: No pitch or pan
+
+      instance.play();
+
+      return true;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "CreateInstance",
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Audio.SoundEffectInstance"), [], [])),
+    function CreateInstance () {
+      return new Microsoft.Xna.Framework.Audio.SoundEffectInstance(this, false);
+    }
+  );
+
+});
+
+JSIL.MakeClass("SoundAssetBase", "HTML5SoundAsset", true, [], function ($) {
   $.RawMethod(false, ".ctor", function (assetName, sound) {
     HTML5Asset.prototype._ctor.call(this, assetName);
     this.sound = sound;
@@ -427,7 +460,8 @@ JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true, [], function ($) {
 
     var result = {
       source: node,
-      isPlaying: false
+      isPlaying: false,
+      loopCount: 0
     };
 
     result.play = function () {
@@ -448,55 +482,40 @@ JSIL.MakeClass("HTML5Asset", "HTML5SoundAsset", true, [], function ($) {
       }
     });
 
-    if (loopCount > 0) {
-      var state = [loopCount];
+    Object.defineProperty(result, "loop", {
+      get: function () {
+        return instance.loopCount > 0;
+      },
+      set: function (value) {
+        instance.loopCount = value ? 99999 : 0;
+      }
+    });
 
-      node.addEventListener("ended", function () {
-        result.isPlaying = false;
+    node.addEventListener("ended", function () {
+      result.isPlaying = false;
 
-        if (state[0] > 0) {
-          state[0]--;
-          result.play();
-        }
-      }.bind(this), true);
-    } else {
-      node.addEventListener("ended", function () {
-        result.isPlaying = false;
-
+      if (result.loopCount > 0) {
+        result.loopCount--;
+        result.play();
+      } else {
         if (this.freeInstances.length < 16)
           this.freeInstances.push(result);
-      }.bind(this), true);
-    }
+      }
+    }.bind(this), true);
 
     return result;
   });
 
-  $.Method({Static:false, Public:true }, "Play", 
-    (new JSIL.MethodSignature($.Boolean, [], [])), 
-    function Play () {
-      var instance;
-      if (this.freeInstances.length > 0) {
-        instance = this.freeInstances.pop();
-      } else {
-        instance = this.$createInstance(0);
-      }
-
-      instance.play();
-
-      return true;
+  $.RawMethod(false, "$newInstance", function () {
+    if (this.freeInstances.length > 0) {
+      return this.freeInstances.pop();
+    } else {
+      return this.$createInstance(0);
     }
-  );
-
-  $.Method({Static:false, Public:true }, "CreateInstance",
-    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Audio.SoundEffectInstance"), [], [])),
-    function CreateInstance () {
-      return new Microsoft.Xna.Framework.Audio.SoundEffectInstance(this, false);
-    }
-  );
-
+  });
 });
 
-JSIL.MakeClass("HTML5Asset", "WebkitSoundAsset", true, [], function ($) {
+JSIL.MakeClass("SoundAssetBase", "WebkitSoundAsset", true, [], function ($) {
   $.RawMethod(false, ".ctor", function (assetName, audioContext, buffer) {
     HTML5Asset.prototype._ctor.call(this, assetName);
     this.audioContext = audioContext;
@@ -544,6 +563,15 @@ JSIL.MakeClass("HTML5Asset", "WebkitSoundAsset", true, [], function ($) {
       }
     });
 
+    Object.defineProperty(result, "loop", {
+      get: function () {
+        return instance.loop;
+      },
+      set: function (value) {
+        instance.loop = value;
+      }
+    });
+
     Object.defineProperty(result, "isPlaying", {
       configurable: true,
       enumerable: true,
@@ -559,26 +587,13 @@ JSIL.MakeClass("HTML5Asset", "WebkitSoundAsset", true, [], function ($) {
     return result;
   });
 
-  $.Method({Static:false, Public:true }, "Play", 
-    (new JSIL.MethodSignature($.Boolean, [], [])), 
-    function Play () {
-      var instance = this.$createInstance(0);
+  $.RawMethod(false, "$newInstance", function () {
+    return this.$createInstance(0);
+  });
 
-      instance.play();
-
-      return true;
-    }
-  );
-
-  $.Method({Static:false, Public:true }, "CreateInstance",
-    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Audio.SoundEffectInstance"), [], [])),
-    function CreateInstance () {
-      return new Microsoft.Xna.Framework.Audio.SoundEffectInstance(this, false);
-    }
-  );
 });
 
-JSIL.MakeClass("HTML5Asset", "NullSoundAsset", true, [], function ($) {
+JSIL.MakeClass("SoundAssetBase", "NullSoundAsset", true, [], function ($) {
   $.RawMethod(false, ".ctor", function (assetName) {
     HTML5Asset.prototype._ctor.call(this, assetName);
   });
@@ -593,6 +608,15 @@ JSIL.MakeClass("HTML5Asset", "NullSoundAsset", true, [], function ($) {
 
     Object.defineProperty(result, "volume", {
       get: function () {
+        return 1;
+      },
+      set: function (value) {
+      }
+    });
+
+    Object.defineProperty(result, "loop", {
+      get: function () {
+        return false;
       },
       set: function (value) {
       }
@@ -609,23 +633,10 @@ JSIL.MakeClass("HTML5Asset", "NullSoundAsset", true, [], function ($) {
     return result;
   });
 
-  $.Method({Static:false, Public:true }, "Play", 
-    (new JSIL.MethodSignature($.Boolean, [], [])), 
-    function Play () {
-      var instance = this.$createInstance(0);
+  $.RawMethod(false, "$newInstance", function () {
+    return this.$createInstance(0);
+  });
 
-      instance.play();
-
-      return true;
-    }
-  );
-
-  $.Method({Static:false, Public:true }, "CreateInstance",
-    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Audio.SoundEffectInstance"), [], [])),
-    function CreateInstance () {
-      return new Microsoft.Xna.Framework.Audio.SoundEffectInstance(this, false);
-    }
-  );
 });
 
 JSIL.MakeClass("HTML5Asset", "HTML5FontAsset", true, [], function ($) {
@@ -6702,8 +6713,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Audio.SoundEffectInstance", fun
 
       this.looped = value;
 
-      // FIXME: Not possible to change loop state after start
-      this.Stop(true);
+      if (this.instance !== null)
+        this.instance.loop = this.looped;
     }
   );
 
