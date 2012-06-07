@@ -50,9 +50,15 @@
       var assetsToLoad = [
         ["Library", "System.Drawing.js"],
         ["Library", "System.Windows.js"],
+        ["Library", "JSIL.Storage.js"],
+        ["Library", "JSIL.IO.js"],
+        ["Library", "JSIL.XML.js"],
         ["Library", "JSIL.XNACore.js"],
         ["Library", "JSIL.XNA4.js"],
-        ["Library", "JSIL.IO.js"],
+        ["Library", "JSIL.XNAStorage.js"],
+        ["Library", "JSIL.LocalStorage.js"],
+        
+        ["Script", "RolePlayingGame.XmlSerializers, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null.js", { "sizeBytes": 181524 }],
       ];
 
       function runMain () {
@@ -60,6 +66,9 @@
           document.getElementById("welcomeMessage").setAttribute("style", "display: none");
         } catch (ex) {
         }
+
+        // Set up the localStorage backend
+        JSIL.LocalStorage.Initialize("RolePlayingGame");
 
         // We can't invoke Main() since it disposes the Game immediately, breaking everything.
         var asm = JSIL.GetAssembly("RolePlayingGame, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null");

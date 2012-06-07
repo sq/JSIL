@@ -128,30 +128,201 @@ JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializer", function ($) {
     }
   );
 
-  $.Method({Static:false, Public:true }, "Deserialize", 
-    (new JSIL.MethodSignature($.Object, [$xmlasms[5].TypeRef("System.IO.Stream")], [])), 
-    function Deserialize (stream) {
-      var xmlReader = JSIL.XML.ReaderFromStream(stream);
 
-      var getType = function (name) {
-        var parsed = JSIL.ParseTypeName(name);
-        return JSIL.GetTypeInternal(parsed, JSIL.GlobalNamespace, true);
-      };
+  var getType = function (name) {
+    var parsed = JSIL.ParseTypeName(name);
+    return JSIL.GetTypeInternal(parsed, JSIL.GlobalNamespace, true);
+  };  
 
+  $.RawMethod(false, "XmlReaderFromStream", function (stream) {
+      return JSIL.XML.ReaderFromStream(stream);
+  });
+
+  $.RawMethod(false, "XmlWriterForStream", function (stream) {
+      return JSIL.XML.WriterForStream(stream);
+  });
+
+  $.RawMethod(false, "MakeSerializationReader", function (xmlReader, events, encodingStyle) {
       var readerName = "Microsoft.Xml.Serialization.GeneratedAssembly.XmlSerializationReader" + this.type.Name;
       var readerType = getType(readerName);
       var reader = JSIL.CreateInstanceOfType(readerType);
-      reader.Init(xmlReader, null, null, null); 
+      reader.Init(xmlReader, events, encodingStyle, null);
 
+      return reader;
+  });
+
+  $.RawMethod(false, "MakeSerializationWriter", function (xmlWriter, namespaces, encodingStyle, id) {
+      var writerName = "Microsoft.Xml.Serialization.GeneratedAssembly.XmlSerializationWriter" + this.type.Name;
+      var writerType = getType(writerName);
+      var writer = JSIL.CreateInstanceOfType(writerType);
+      writer.Init(xmlWriter, namespaces, encodingStyle, id, null);
+
+      return writer;
+  });
+
+  $.RawMethod(false, "MakeSerializer", function () {
       var serializerName = "Microsoft.Xml.Serialization.GeneratedAssembly." + this.type.Name + "Serializer";
       var serializerType = getType(serializerName);
       var serializer = JSIL.CreateInstanceOfType(serializerType);
 
+      return serializer;
+  });
+
+  $.RawMethod(false, "DeserializeInternal", function Deserialize (serializer, reader) {
       var signature = new JSIL.MethodSignature($.Object, [$xmlasms[16].System.Xml.Serialization.XmlSerializationReader], []);
 
       return signature.CallVirtual("Deserialize", null, serializer, reader);
+  });
+
+  $.RawMethod(false, "SerializeInternal", function Serialize (serializer, writer, value) {
+      var signature = new JSIL.MethodSignature(null, [$xmlasms[16].System.Xml.Serialization.XmlSerializationWriter, $.Object], []);
+
+      return signature.CallVirtual("Serialize", null, serializer, writer, value);
+  });
+
+
+  $.Method({Static:false, Public:true }, "Deserialize", 
+    (new JSIL.MethodSignature($.Object, [$xmlasms[5].TypeRef("System.IO.Stream")], [])), 
+    function Deserialize (stream) {
+      return this.Deserialize(      
+        this.XmlReaderFromStream(stream),
+        null, null
+      );
     }
   );
+
+  $.Method({Static:false, Public:true }, "Deserialize", 
+    (new JSIL.MethodSignature($.Object, [$xmlasms[5].TypeRef("System.IO.TextReader")], [])), 
+    function Deserialize (textReader) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Deserialize", 
+    (new JSIL.MethodSignature($.Object, [$xmlasms[16].TypeRef("System.Xml.XmlReader")], [])), 
+    function Deserialize (xmlReader) {
+      return this.Deserialize(xmlReader, null, null);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Deserialize", 
+    (new JSIL.MethodSignature($.Object, [$xmlasms[16].TypeRef("System.Xml.XmlReader"), $xmlasms[16].TypeRef("System.Xml.Serialization.XmlDeserializationEvents")], [])), 
+    function Deserialize (xmlReader, events) {
+      return this.Deserialize(xmlReader, null, events);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Deserialize", 
+    (new JSIL.MethodSignature($.Object, [$xmlasms[16].TypeRef("System.Xml.XmlReader"), $.String], [])), 
+    function Deserialize (xmlReader, encodingStyle) {
+      return this.Deserialize(xmlReader, encodingStyle, null);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Deserialize", 
+    (new JSIL.MethodSignature($.Object, [
+          $xmlasms[16].TypeRef("System.Xml.XmlReader"), $.String, 
+          $xmlasms[16].TypeRef("System.Xml.Serialization.XmlDeserializationEvents")
+        ], [])), 
+    function Deserialize (xmlReader, encodingStyle, events) {
+      var reader = this.MakeSerializationReader(xmlReader, events, encodingStyle);
+      var serializer = this.MakeSerializer();
+
+      return this.DeserializeInternal(serializer, reader);
+    }
+  );
+
+
+  $.Method({Static:false, Public:true }, "Serialize", 
+    (new JSIL.MethodSignature(null, [$xmlasms[5].TypeRef("System.IO.TextWriter"), $.Object], [])), 
+    function Serialize (textWriter, o) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Serialize", 
+    (new JSIL.MethodSignature(null, [
+          $xmlasms[5].TypeRef("System.IO.TextWriter"), $.Object, 
+          $xmlasms[16].TypeRef("System.Xml.Serialization.XmlSerializerNamespaces")
+        ], [])), 
+    function Serialize (textWriter, o, namespaces) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Serialize", 
+    (new JSIL.MethodSignature(null, [$xmlasms[5].TypeRef("System.IO.Stream"), $.Object], [])), 
+    function Serialize (stream, o) {
+      this.Serialize(
+        this.XmlWriterForStream(stream), o,
+        null, null, null
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Serialize", 
+    (new JSIL.MethodSignature(null, [
+          $xmlasms[5].TypeRef("System.IO.Stream"), $.Object, 
+          $xmlasms[16].TypeRef("System.Xml.Serialization.XmlSerializerNamespaces")
+        ], [])), 
+    function Serialize (stream, o, namespaces) {
+      this.Serialize(
+        this.XmlWriterForStream(stream), o,
+        namespaces, null, null
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Serialize", 
+    (new JSIL.MethodSignature(null, [$xmlasms[16].TypeRef("System.Xml.XmlWriter"), $.Object], [])), 
+    function Serialize (xmlWriter, o) {
+      this.Serialize(
+        xmlWriter, o,
+        null, null, null
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Serialize", 
+    (new JSIL.MethodSignature(null, [
+          $xmlasms[16].TypeRef("System.Xml.XmlWriter"), $.Object, 
+          $xmlasms[16].TypeRef("System.Xml.Serialization.XmlSerializerNamespaces")
+        ], [])), 
+    function Serialize (xmlWriter, o, namespaces) {
+      this.Serialize(
+        xmlWriter, o,
+        namespaces, null, null
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Serialize", 
+    (new JSIL.MethodSignature(null, [
+          $xmlasms[16].TypeRef("System.Xml.XmlWriter"), $.Object, 
+          $xmlasms[16].TypeRef("System.Xml.Serialization.XmlSerializerNamespaces"), $.String
+        ], [])), 
+    function Serialize (xmlWriter, o, namespaces, encodingStyle) {
+      this.Serialize(
+        xmlWriter, o,
+        namespaces, encodingStyle, null
+      );
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Serialize", 
+    (new JSIL.MethodSignature(null, [
+          $xmlasms[16].TypeRef("System.Xml.XmlWriter"), $.Object, 
+          $xmlasms[16].TypeRef("System.Xml.Serialization.XmlSerializerNamespaces"), $.String, 
+          $.String
+        ], [])), 
+    function Serialize (xmlWriter, o, namespaces, encodingStyle, id) {
+      var writer = this.MakeSerializationWriter(xmlWriter, namespaces, encodingStyle, id);
+      var serializer = this.MakeSerializer();
+
+      return this.SerializeInternal(serializer, writer, o);
+    }
+  );
+
 });
 
 JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializationReader", function ($) {
