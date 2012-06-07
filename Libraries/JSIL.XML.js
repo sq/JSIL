@@ -142,28 +142,44 @@ JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializer", function ($) {
       return JSIL.XML.WriterForStream(stream);
   });
 
+  $.RawMethod(false, "GetContractClass", function () {
+      var contractName = "Microsoft.Xml.Serialization.GeneratedAssembly.XmlSerializerContract";
+      var contractType = getType(contractName);
+
+      if (!contractType)
+        throw new Error("No XmlSerializer assembly loaded.");
+
+      var contract = JSIL.CreateInstanceOfType(contractType);
+
+      if (!contract)
+        throw new Error("Could not create XmlSerializer contract class.");
+
+      return contract;
+  });
+
   $.RawMethod(false, "MakeSerializationReader", function (xmlReader, events, encodingStyle) {
-      var readerName = "Microsoft.Xml.Serialization.GeneratedAssembly.XmlSerializationReader" + this.type.Name;
-      var readerType = getType(readerName);
-      var reader = JSIL.CreateInstanceOfType(readerType);
+      var contract = this.GetContractClass();
+      var reader = contract.get_Reader();
+
       reader.Init(xmlReader, events, encodingStyle, null);
 
       return reader;
   });
 
   $.RawMethod(false, "MakeSerializationWriter", function (xmlWriter, namespaces, encodingStyle, id) {
-      var writerName = "Microsoft.Xml.Serialization.GeneratedAssembly.XmlSerializationWriter" + this.type.Name;
-      var writerType = getType(writerName);
-      var writer = JSIL.CreateInstanceOfType(writerType);
+      var contract = this.GetContractClass();
+      var writer = contract.get_Writer();
       writer.Init(xmlWriter, namespaces, encodingStyle, id, null);
 
       return writer;
   });
 
   $.RawMethod(false, "MakeSerializer", function () {
-      var serializerName = "Microsoft.Xml.Serialization.GeneratedAssembly." + this.type.Name + "Serializer";
-      var serializerType = getType(serializerName);
-      var serializer = JSIL.CreateInstanceOfType(serializerType);
+      var contract = this.GetContractClass();
+      var serializer = contract.GetSerializer(this.type);
+
+      if (!serializer)
+        throw new Error("XmlSerializer assembly does not contain a serializer for type '" + this.type.toString() + "'");
 
       return serializer;
   });
@@ -175,9 +191,9 @@ JSIL.ImplementExternals("System.Xml.Serialization.XmlSerializer", function ($) {
   });
 
   $.RawMethod(false, "SerializeInternal", function Serialize (serializer, writer, value) {
-      var signature = new JSIL.MethodSignature(null, [$xmlasms[16].System.Xml.Serialization.XmlSerializationWriter, $.Object], []);
+      var signature = new JSIL.MethodSignature(null, [$.Object, $xmlasms[16].System.Xml.Serialization.XmlSerializationWriter], []);
 
-      return signature.CallVirtual("Serialize", null, serializer, writer, value);
+      return signature.CallVirtual("Serialize", null, serializer, value, writer);
   });
 
 
