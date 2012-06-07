@@ -1199,6 +1199,8 @@ JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
 
   $.RawMethod(false, "$flushOne", function (includeEndElement) {
     var item = this._stack[this._stack.length - 1];
+    if (!item)
+      return;
 
     if (item.empty && item.closePending && item.endElementPending && includeEndElement) {
       item.closePending = item.endElementPending = false;
@@ -1646,6 +1648,8 @@ JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
   $.Method({Static:false, Public:true }, "WriteStartElement", 
     (new JSIL.MethodSignature(null, [$.String], [])), 
     function WriteStartElement (localName) {
+      this.$flushOne(false);
+
       this.$write("<");
       this.$write(localName);
 
@@ -1656,7 +1660,9 @@ JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
   $.Method({Static:false, Public:true }, "WriteString", 
     (new JSIL.MethodSignature(null, [$.String], [])), 
     function WriteString (text) {
-      throw new Error('Not implemented');
+      this.$flushOne(false);
+
+      this.$writeEscaped(text);
     }
   );
 

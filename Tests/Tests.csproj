@@ -142,9 +142,10 @@
     <None Include="SimpleTestCases\OverloadedMixedGenericAndNonGeneric.cs" />
     <None Include="SpecialTestCases\OverloadedGenericMethodSignatures.cs" />
     <None Include="SimpleTestCases\GenericFieldInitializer.cs" />
-    <None Include="XMLTestCases\WriteStartElement.cs" />
+    <None Include="XMLTestCases\WriteEmptyElement.cs" />
     <None Include="XMLTestCases\Common.cs" />
     <None Include="SimpleTestCases\GenericInheritedField.cs" />
+    <None Include="XMLTestCases\WriteStringElement.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

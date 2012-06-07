@@ -25,7 +25,7 @@ namespace JSIL.Tests {
 
         [Test]
         public void BrowserXMLTests () {
-            Console.WriteLine("// Spidermonkey has no DOMParser so this test only generates the .js files.");
+            Console.WriteLine("// js.exe has no DOMParser so this test only generates the .js files.");
             Console.WriteLine("// To run the .js files, click a link below.");
             Console.WriteLine();
 
