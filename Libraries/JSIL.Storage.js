@@ -118,7 +118,11 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualVolume", true, [], function ($) 
     }
 
     return path;
-  });  
+  });
+
+  $.RawMethod(false, "enumerate", function (nodeType, searchPattern) {
+    return this.rootDirectory.enumerate(nodeType, searchPattern);
+  });
 
   $.RawMethod(false, "createDirectory", function (path) {
     path = this.normalizePath(path);
@@ -318,6 +322,44 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualDirectory", true, [], function (
 
       return result;
     }
+  });
+
+  $.RawMethod(false, "enumerate", function (nodeType, searchPattern) {
+    var result = [];
+    var predicate = function (fn) { return true; };
+
+    if (searchPattern) {
+      var starRegex = /\*/g;
+      var questionMarkRegex = /\?/g;
+      var dotRegex = /\./g
+
+      var regexText = searchPattern
+        .replace(dotRegex, "\\.")
+        .replace(starRegex, "(.*)")
+        .replace(questionMarkRegex, ".");
+
+      var regex = new RegExp(regexText, "i");
+
+      predicate = function (fn) {
+        return regex.test(fn);
+      };
+    }
+
+    if (nodeType !== "directory") {
+      for (var k in this.files) {
+        if (predicate(k))
+          result.push(k)
+      }
+    }
+
+    if (nodeType !== "file") {
+      for (var k in this.directories) {
+        if (predicate(k))
+          result.push(k)
+      }
+    }
+
+    return result;
   });
 
   $.RawMethod(false, "toString", function () {

@@ -51,8 +51,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageContainer", func
       if (!this.volume)
         throw new Error("No storage providers loaded");
       
-      this.volume.createFile(file, true);
-      return this.OpenFileInternal(file);
+      return this.OpenFileInternal(file, true);
     }
   );
 
@@ -147,36 +146,51 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageContainer", func
   $.Method({Static:false, Public:true }, "GetDirectoryNames", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.String]), [], [])), 
     function GetDirectoryNames () {
-      throw new Error('Not implemented');
+      if (!this.volume)
+        return [];
+
+      return this.volume.enumerate("directory");
     }
   );
 
   $.Method({Static:false, Public:true }, "GetDirectoryNames", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.String]), [$.String], [])), 
     function GetDirectoryNames (searchPattern) {
-      throw new Error('Not implemented');
+      if (!this.volume)
+        return [];
+
+      return this.volume.enumerate("directory", searchPattern);
     }
   );
 
   $.Method({Static:false, Public:true }, "GetFileNames", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.String]), [], [])), 
     function GetFileNames () {
-      throw new Error('Not implemented');
+      if (!this.volume)
+        return [];
+
+      return this.volume.enumerate("file");
     }
   );
 
   $.Method({Static:false, Public:true }, "GetFileNames", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.String]), [$.String], [])), 
     function GetFileNames (searchPattern) {
-      throw new Error('Not implemented');
+      if (!this.volume)
+        return [];
+
+      return this.volume.enumerate("file", searchPattern);
     }
   );
 
-  $.RawMethod(false, "OpenFileInternal", function (filename) {
+  $.RawMethod(false, "OpenFileInternal", function (filename, createNew) {
     if (!this.volume)
       throw new Error("No storage providers loaded");
 
-    var file = this.volume.resolvePath(filename, true);
+    var file = this.volume.resolvePath(filename, !createNew);
+
+    if (createNew && !file)
+      file = this.volume.createFile(filename, true);
 
     var fileStream = JSIL.CreateInstanceOfType(
       System.IO.FileStream.__Type__, "$fromVirtualFile", [file]
@@ -188,7 +202,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageContainer", func
   $.Method({Static:false, Public:true }, "OpenFile", 
     (new JSIL.MethodSignature($xnaasms.corlib.TypeRef("System.IO.Stream"), [$.String, $xnaasms.corlib.TypeRef("System.IO.FileMode")], [])), 
     function OpenFile (file, fileMode) {
-      return this.OpenFileInternal(file);
+      return this.OpenFileInternal(
+        file,
+        (fileMode == System.IO.FileMode.Create) || (fileMode == System.IO.FileMode.CreateNew)
+      );
     }
   );
 
@@ -198,7 +215,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageContainer", func
           $xnaasms.corlib.TypeRef("System.IO.FileAccess")
         ], [])), 
     function OpenFile (file, fileMode, fileAccess) {
-      return this.OpenFileInternal(file);
+      return this.OpenFileInternal(
+        file,
+        (fileMode == System.IO.FileMode.Create) || (fileMode == System.IO.FileMode.CreateNew)
+      );
     }
   );
 
@@ -208,7 +228,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageContainer", func
           $xnaasms.corlib.TypeRef("System.IO.FileAccess"), $xnaasms.corlib.TypeRef("System.IO.FileShare")
         ], [])), 
     function OpenFile (file, fileMode, fileAccess, fileShare) {
-      return this.OpenFileInternal(file);
+      return this.OpenFileInternal(
+        file,
+        (fileMode == System.IO.FileMode.Create) || (fileMode == System.IO.FileMode.CreateNew)
+      );
     }
   );
 
