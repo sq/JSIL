@@ -6774,12 +6774,19 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageDevice", functio
     // FIXME: Terrible hack
     var asyncResult = {
       IsCompleted: true,
+      IAsyncResult_IsCompleted: true,
       get_IsCompleted: function () { return true; },
+      get_IAsyncResult_IsCompleted: function () { return true; },
       AsyncState: state,
+      IAsyncResult_AsyncState: state,
       get_AsyncState: function () { return state; },
+      get_IAsyncResult_AsyncState: function () { return state; },
       data: data,
       IAsyncResult_AsyncWaitHandle: {
         WaitOne: function () {
+          return;
+        },
+        Close: function () {
           return;
         }
       }
@@ -7005,4 +7012,66 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SamplerState", functio
       this.cachedFilter = value;
     }
   );
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.GamerServices.Guide", function ($) {
+  $.Method({Static:true , Public:true }, "get_IsScreenSaverEnabled", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsScreenSaverEnabled () {
+      // FIXME
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "get_IsTrialMode", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsTrialMode () {
+      // FIXME
+      return false;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "get_IsVisible", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsVisible () {
+      // FIXME
+      return false;
+    }
+  );
+
+  $.Method({Static:true , Public:false}, "get_IsVisibleNoThrow", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsVisibleNoThrow () {
+      // FIXME
+      return false;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "get_SimulateTrialMode", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_SimulateTrialMode () {
+      // FIXME
+    }
+  );
+
+  $.Method({Static:true , Public:false}, "set_IsTrialMode", 
+    (new JSIL.MethodSignature(null, [$.Boolean], [])), 
+    function set_IsTrialMode (value) {
+      // FIXME
+    }
+  );
+
+  $.Method({Static:true , Public:false}, "set_IsVisible", 
+    (new JSIL.MethodSignature(null, [$.Boolean], [])), 
+    function set_IsVisible (value) {
+      // FIXME
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "set_SimulateTrialMode", 
+    (new JSIL.MethodSignature(null, [$.Boolean], [])), 
+    function set_SimulateTrialMode (value) {
+      // FIXME
+    }
+  );
+
 });
