@@ -1941,6 +1941,10 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
       System.Text.Encoding.asciiEncoding = JSIL.CreateInstanceOfType(
         System.Text.ASCIIEncoding.__Type__, null
       );
+
+      System.Text.Encoding.utf8Encoding = JSIL.CreateInstanceOfType(
+        System.Text.UTF8Encoding.__Type__, null
+      );
     }
   );
 
@@ -1950,12 +1954,156 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
       return System.Text.Encoding.asciiEncoding;
     }
   );
+
+  $.Method({Static:true , Public:true }, "get_UTF8", 
+    (new JSIL.MethodSignature($.Type, [], [])),
+    function () {
+      return System.Text.Encoding.utf8Encoding;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetByteCount", 
+    (new JSIL.MethodSignature($.Int32, [$jsilcore.TypeRef("System.Array", [$.Char])], [])), 
+    function GetByteCount (chars) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetByteCount", 
+    (new JSIL.MethodSignature($.Int32, [$.String], [])), 
+    function GetByteCount (s) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetByteCount", 
+    (new JSIL.MethodSignature($.Int32, [
+          $jsilcore.TypeRef("System.Array", [$.Char]), $.Int32, 
+          $.Int32
+        ], [])), 
+    function GetByteCount (chars, index, count) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetBytes", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [$jsilcore.TypeRef("System.Array", [$.Char])], [])), 
+    function GetBytes (chars) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetBytes", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [
+          $jsilcore.TypeRef("System.Array", [$.Char]), $.Int32, 
+          $.Int32
+        ], [])), 
+    function GetBytes (chars, index, count) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetBytes", 
+    (new JSIL.MethodSignature($.Int32, [
+          $jsilcore.TypeRef("System.Array", [$.Char]), $.Int32, 
+          $.Int32, $jsilcore.TypeRef("System.Array", [$.Byte]), 
+          $.Int32
+        ], [])), 
+    function GetBytes (chars, charIndex, charCount, bytes, byteIndex) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetBytes", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [$.String], [])), 
+    function GetBytes (s) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetBytes", 
+    (new JSIL.MethodSignature($.Int32, [
+          $.String, $.Int32, 
+          $.Int32, $jsilcore.TypeRef("System.Array", [$.Byte]), 
+          $.Int32
+        ], [])), 
+    function GetBytes (s, charIndex, charCount, bytes, byteIndex) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetCharCount", 
+    (new JSIL.MethodSignature($.Int32, [$jsilcore.TypeRef("System.Array", [$.Byte])], [])), 
+    function GetCharCount (bytes) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetCharCount", 
+    (new JSIL.MethodSignature($.Int32, [
+          $jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32, 
+          $.Int32
+        ], [])), 
+    function GetCharCount (bytes, index, count) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetChars", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Char]), [$jsilcore.TypeRef("System.Array", [$.Byte])], [])), 
+    function GetChars (bytes) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetChars", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Char]), [
+          $jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32, 
+          $.Int32
+        ], [])), 
+    function GetChars (bytes, index, count) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetChars", 
+    (new JSIL.MethodSignature($.Int32, [
+          $jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32, 
+          $.Int32, $jsilcore.TypeRef("System.Array", [$.Char]), 
+          $.Int32
+        ], [])), 
+    function GetChars (bytes, byteIndex, byteCount, chars, charIndex) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetString", 
+    (new JSIL.MethodSignature($.String, [$jsilcore.TypeRef("System.Array", [$.Byte])], [])), 
+    function GetString (bytes) {
+      return this.GetString(bytes, 0, bytes.length);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetString", 
+    (new JSIL.MethodSignature($.String, [
+          $jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32, 
+          $.Int32
+        ], [])), 
+    function GetString (bytes, index, count) {
+      throw new Error('Not implemented');
+    }
+  );
 });
 
 JSIL.MakeClass("System.Object", "System.Text.Encoding", true, [], function ($) {
+  $.Property({Static:true , Public:true }, "ASCII");
+  $.Property({Static:true , Public:true }, "UTF8");
 });
 
 JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true, [], function ($) {
+});
+
+JSIL.MakeClass("System.Text.Encoding", "System.Text.UTF8Encoding", true, [], function ($) {
 });
 
 JSIL.ImplementExternals(

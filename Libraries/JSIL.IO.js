@@ -2,8 +2,81 @@
 
 if (typeof (JSIL) === "undefined")
   throw new Error("JSIL.Core is required");
-  
-JSIL.DeclareAssembly("JSIL.IO");
+
+$private = $jsilcore;
+
+if (!JSIL.GetAssembly("mscorlib", true)) {
+
+  JSIL.DeclareNamespace("System");
+  JSIL.DeclareNamespace("System.IO");
+
+  JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.MarshalByRefObject", true, [], function ($) {
+    $.Field({Static:false, Public:false}, "__identity", $.Object);
+
+    $.Property({Static:false, Public:false}, "Identity");
+  });
+
+  JSIL.MakeClass($jsilcore.TypeRef("System.MarshalByRefObject"), "System.IO.Stream", true, [], function ($) {
+    $.Constant({Static:true , Public:false}, "_DefaultBufferSize", 4096);
+
+    $.Field({Static:true , Public:true }, "Null", $.Type);
+
+    $.Property({Static:false, Public:true }, "CanRead");
+
+    $.Property({Static:false, Public:true }, "CanSeek");
+
+    $.Property({Static:false, Public:true }, "CanTimeout");
+
+    $.Property({Static:false, Public:true }, "CanWrite");
+
+    $.Property({Static:false, Public:true }, "Length");
+
+    $.Property({Static:false, Public:true }, "Position");
+
+    $.Property({Static:false, Public:true }, "ReadTimeout");
+
+    $.Property({Static:false, Public:true }, "WriteTimeout");
+
+    $.ImplementInterfaces($jsilcore.TypeRef("System.IDisposable"))
+  });
+
+  JSIL.MakeClass($jsilcore.TypeRef("System.IO.Stream"), "System.IO.MemoryStream", true, [], function ($) {
+    $.Field({Static:false, Public:false}, "_buffer", $jsilcore.TypeRef("System.Array", [$.Byte]));
+
+    $.Field({Static:false, Public:false}, "_capacity", $.Int32);
+
+    $.Field({Static:false, Public:false}, "_expandable", $.Boolean);
+
+    $.Field({Static:false, Public:false}, "_exposable", $.Boolean);
+
+    $.Field({Static:false, Public:false}, "_isOpen", $.Boolean);
+
+    $.Field({Static:false, Public:false}, "_length", $.Int32);
+
+    $.Field({Static:false, Public:false}, "_origin", $.Int32);
+
+    $.Field({Static:false, Public:false}, "_position", $.Int32);
+
+    $.Field({Static:false, Public:false}, "_writable", $.Boolean);
+
+    $.Constant({Static:true , Public:false}, "MemStreamMaxLength", 2147483647);
+
+    $.Property({Static:false, Public:true }, "CanRead");
+
+    $.Property({Static:false, Public:true }, "CanSeek");
+
+    $.Property({Static:false, Public:true }, "CanWrite");
+
+    $.Property({Static:false, Public:true }, "Capacity");
+
+    $.Property({Static:false, Public:true }, "Length");
+
+    $.Property({Static:false, Public:true }, "Position");
+  });
+
+}
+
+var $jsilio = JSIL.DeclareAssembly("JSIL.IO");
 
 JSIL.ImplementExternals("System.IO.File", function ($) {
   $.Method({Static:true , Public:true }, "Exists", 
@@ -218,7 +291,7 @@ var $bytestream = function ($) {
         this._buffer[this._pos + i] = buffer[offset + i];
 
       this._pos = newPosition;
-      
+
       this._modified = true;
     }
   );
@@ -290,6 +363,13 @@ JSIL.ImplementExternals("System.IO.MemoryStream", function ($) {
   };
 
   $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      ctorBytesImpl(this, [], true);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [$.Byte])], [])), 
     function _ctor (buffer) {
       ctorBytesImpl(this, buffer, true);
@@ -300,6 +380,13 @@ JSIL.ImplementExternals("System.IO.MemoryStream", function ($) {
     (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Boolean], [])), 
     function _ctor (buffer, writable) {
       ctorBytesImpl(this, buffer, writable);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetBuffer", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [], [])), 
+    function GetBuffer () {
+      return this._buffer;
     }
   );
 });

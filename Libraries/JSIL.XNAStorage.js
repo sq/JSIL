@@ -51,7 +51,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageContainer", func
       if (!this.volume)
         throw new Error("No storage providers loaded");
       
-      var result = this.volume.createFile(file, false);
+      var result = this.volume.createFile(file, true);
 
       return null;
     }

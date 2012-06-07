@@ -183,7 +183,7 @@ namespace JSIL.Tests {
 
         public static readonly string TestSourceFolder;
         public static readonly string JSShellPath;
-        public static readonly string CoreJSPath, BootstrapJSPath, XMLJSPath;
+        public static readonly string CoreJSPath, BootstrapJSPath, XMLJSPath, IOJSPath;
 
         public readonly TypeInfoProvider TypeInfo;
         public readonly AssemblyCache AssemblyCache;
@@ -202,6 +202,7 @@ namespace JSIL.Tests {
             CoreJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.Core.js"));
             BootstrapJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.Bootstrap.js"));
             XMLJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.XML.js"));
+            IOJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.IO.js"));
         }
 
         public static string MapSourceFileToTestFile (string sourceFile) {
@@ -575,10 +576,11 @@ namespace JSIL.Tests {
                 ComparisonTest.JSShellPath, "",
                 (e) =>
                     e.WriteInput(
-                        "load({0}, {1}, {2});",
+                        "load({0}, {1}, {2}, {3});",
                         Util.EscapeString(ComparisonTest.CoreJSPath),
                         Util.EscapeString(ComparisonTest.BootstrapJSPath),
-                        Util.EscapeString(ComparisonTest.XMLJSPath)
+                        Util.EscapeString(ComparisonTest.XMLJSPath),
+                        Util.EscapeString(ComparisonTest.IOJSPath)
                     )
             );
         }

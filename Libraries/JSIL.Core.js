@@ -116,12 +116,13 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
 
   var isMscorlib = (shortName === "mscorlib") || (assemblyName.indexOf("mscorlib,") === 0);
   var isSystemCore = (shortName === "System.Core") || (assemblyName.indexOf("System.Core,") === 0);
+  var isSystemXml = (shortName === "System.Xml") || (assemblyName.indexOf("System.Xml,") === 0);
 
   // Create a new private global namespace for the new assembly
   var template = {};
 
   // Ensure that BCL private namespaces inherit from the JSIL namespace.
-  if (isMscorlib || isSystemCore)
+  if (isMscorlib || isSystemCore || isSystemXml)
     template = $jsilcore;
 
   var result = Object.create(template);
@@ -2608,13 +2609,19 @@ JSIL.BuildTypeList = function (type, publicInterface) {
 };
 
 JSIL.InitializeFields = function (publicInterface, typeObject) {
-  var fti = typeObject.__FieldsToInitialize__;
-  if (!JSIL.IsArray(fti))
-    return;
+  var to = typeObject;
 
-  for (var i = 0; i < fti.length; i++) {
-    var initializer = fti[i];
-    initializer(publicInterface, typeObject);
+  while (to) {
+    var fti = to.__FieldsToInitialize__;
+
+    if (JSIL.IsArray(fti)) {
+      for (var i = 0; i < fti.length; i++) {
+        var initializer = fti[i];
+        initializer(publicInterface, to);
+      }
+    }
+
+    to = to.__BaseType__;
   }
 };
 
@@ -4458,7 +4465,7 @@ JSIL.MethodSignatureCache.prototype.get = function (id, returnType, argumentType
   if (cached)
     return cached;
 
-  if ((typeof (returnType) === "undefined") || (typeof (argumentTypes) === "undefined"))
+  if (arguments.length === 1)
     throw new Error("Signature '" + id + "' not in cache.");
 
   return this._cache[id] = new JSIL.MethodSignature(returnType, argumentTypes, genericArgumentNames, context);
