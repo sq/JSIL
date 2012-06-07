@@ -2090,7 +2090,13 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
           $.Int32
         ], [])), 
     function GetString (bytes, index, count) {
-      throw new Error('Not implemented');
+      // FIXME: Not actually correct for various encodings.
+      
+      var result = "";
+      for (var i = 0; i < count; i++)
+        result += String.fromCharCode(bytes[index + i]);
+
+      return result;
     }
   );
 });

@@ -1174,13 +1174,15 @@ JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
     this._disposed = false;
     this._stream = stream;
     this._stack = [];
+    this._needPrologue = true;
   });
 
   $.RawMethod(false, "$pushElement", function (elementName) {
     var elt = {
       name: elementName,
       closePending: true,
-      endElementPending: true
+      endElementPending: true,
+      empty: true
     };
 
     this._stack.push(elt);
@@ -1198,14 +1200,21 @@ JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
   $.RawMethod(false, "$flushOne", function (includeEndElement) {
     var item = this._stack[this._stack.length - 1];
 
-    if (item.closePending) {
-      item.closePending = false;
-      this.$write(">");
-    }
+    if (item.empty && item.closePending && item.endElementPending && includeEndElement) {
+      item.closePending = item.endElementPending = false;
+      this.$write(" />");
+    } else {
+      if (item.closePending) {
+        item.closePending = false;
+        this.$write(">");
+      }
 
-    if (item.endElementPending && includeEndElement) {
-      item.endElementPending = false;
-      this.WriteEndElement();
+      if (item.endElementPending && includeEndElement) {
+        item.endElementPending = false;
+        this.$write("</");
+        this.$write(item.name);
+        this.$write(">");
+      }
     }
   });
 
@@ -1214,6 +1223,11 @@ JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
   });
 
   $.RawMethod(false, "$write", function (str) {
+    if (this._needPrologue) {
+      this._needPrologue = false;
+      this.$write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+    }
+
     for (var i = 0, l = str.length; i < l; i++) {
       var ch = str[i];
       var byte = ch.charCodeAt(0);

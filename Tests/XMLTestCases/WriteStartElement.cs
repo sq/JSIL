@@ -5,6 +5,7 @@ using System.Text;
 
 public static class Program {
     public static void Main (string[] args) {
+        var utf = new UTF8Encoding(false);
         var ms = new MemoryStream();
         var xw = XmlWriter.Create(ms);
 
@@ -12,6 +13,15 @@ public static class Program {
         xw.WriteEndElement();
 
         xw.Close();
-        Console.WriteLine(Encoding.UTF8.GetString(ms.GetBuffer()));
+
+        var result = utf.GetString(
+            ms.GetBuffer(), 0, (int)ms.Length
+        );
+
+        // Fucking UTF8
+        if (result[0] == 0xFEFF)
+            result = result.Substring(1);
+
+        Console.WriteLine(result);
     }
 }
