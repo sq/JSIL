@@ -3990,6 +3990,11 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
         fieldTypeResolved = actualFieldType;
       }
 
+      if (!fieldTypeResolved)
+        return;
+      else if (Object.getPrototypeOf(fieldTypeResolved) === JSIL.GenericParameter.prototype)
+        return;
+
       var target = descriptor.Static ? publicInterface : publicInterface.prototype;
       target[descriptor.EscapedName] = data.defaultValue = JSIL.DefaultValue(fieldTypeResolved);
     });
