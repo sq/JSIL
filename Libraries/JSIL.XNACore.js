@@ -461,7 +461,7 @@ JSIL.MakeClass("SoundAssetBase", "HTML5SoundAsset", true, [], function ($) {
     var result = {
       source: node,
       isPlaying: false,
-      loopCount: 0
+      loopCount: loopCount
     };
 
     result.play = function () {
