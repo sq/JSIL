@@ -2613,11 +2613,12 @@ JSIL.InitializeFields = function (publicInterface, typeObject) {
 
   while (to) {
     var fti = to.__FieldsToInitialize__;
+    var pi = to.__PublicInterface__;
 
     if (JSIL.IsArray(fti)) {
       for (var i = 0; i < fti.length; i++) {
         var initializer = fti[i];
-        initializer(publicInterface, to);
+        initializer(publicInterface, pi, to);
       }
     }
 
@@ -2661,8 +2662,8 @@ JSIL.InitializeType = function (type) {
 
     if (typeObject.IsInterface !== true) {
       JSIL.FixupInterfaces(classObject, typeObject);
-      JSIL.InitializeFields(classObject, typeObject);
       JSIL.RebindRawMethods(classObject, typeObject);
+      JSIL.InitializeFields(classObject, typeObject);
     }
 
     JSIL.BuildTypeList(typeObject, classObject);
@@ -3974,16 +3975,16 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
   if (typeof (defaultValueExpression) === "function") {
     data.defaultValueExpression = defaultValueExpression;
 
-    this.typeObject.__FieldsToInitialize__.push(function (publicInterface, typeObject) {
-      var target = descriptor.Static ? publicInterface : publicInterface.prototype;
-      target[descriptor.EscapedName] = data.defaultValue = defaultValueExpression(target);
+    this.typeObject.__FieldsToInitialize__.push(function (writeTo, publicInterface, typeObject) {
+      var target = descriptor.Static ? writeTo : writeTo.prototype;
+      target[descriptor.EscapedName] = data.defaultValue = defaultValueExpression(publicInterface);
     });
   } else if (typeof (defaultValueExpression) !== "undefined") {
     descriptor.Target[descriptor.EscapedName] = data.defaultValue = defaultValueExpression;
   } else {
     var context = this.context;
 
-    this.typeObject.__FieldsToInitialize__.push(function (publicInterface, typeObject) {
+    this.typeObject.__FieldsToInitialize__.push(function (writeTo, publicInterface, typeObject) {
       var actualFieldInfo = typeObject.__Members__[fieldIndex];
       var actualFieldType = actualFieldInfo[2].fieldType;
 
@@ -4003,7 +4004,7 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
       else if (Object.getPrototypeOf(fieldTypeResolved) === JSIL.GenericParameter.prototype)
         return;
 
-      var target = descriptor.Static ? publicInterface : publicInterface.prototype;
+      var target = descriptor.Static ? writeTo : writeTo.prototype;
       target[descriptor.EscapedName] = data.defaultValue = JSIL.DefaultValue(fieldTypeResolved);
     });
   }
