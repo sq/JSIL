@@ -183,9 +183,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageContainer", func
     }
   );
 
-  $.RawMethod(false, "OpenFileInternal", function (filename, createNew) {
+  $.RawMethod(false, "OpenFileInternal", function (filename, fileMode) {
     if (!this.volume)
       throw new Error("No storage providers loaded");
+
+    var createNew = (fileMode == System.IO.FileMode.Create) || 
+      (fileMode == System.IO.FileMode.CreateNew) || 
+      (fileMode == System.IO.FileMode.OpenOrCreate);
 
     var file = this.volume.resolvePath(filename, !createNew);
 
@@ -193,7 +197,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageContainer", func
       file = this.volume.createFile(filename, true);
 
     var fileStream = JSIL.CreateInstanceOfType(
-      System.IO.FileStream.__Type__, "$fromVirtualFile", [file]
+      System.IO.FileStream.__Type__, "$fromVirtualFile", [file, fileMode]
     );
 
     return fileStream;
@@ -203,8 +207,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageContainer", func
     (new JSIL.MethodSignature($xnaasms.corlib.TypeRef("System.IO.Stream"), [$.String, $xnaasms.corlib.TypeRef("System.IO.FileMode")], [])), 
     function OpenFile (file, fileMode) {
       return this.OpenFileInternal(
-        file,
-        (fileMode == System.IO.FileMode.Create) || (fileMode == System.IO.FileMode.CreateNew)
+        file, fileMode        
       );
     }
   );
@@ -216,8 +219,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageContainer", func
         ], [])), 
     function OpenFile (file, fileMode, fileAccess) {
       return this.OpenFileInternal(
-        file,
-        (fileMode == System.IO.FileMode.Create) || (fileMode == System.IO.FileMode.CreateNew)
+        file, fileMode
       );
     }
   );
@@ -229,8 +231,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageContainer", func
         ], [])), 
     function OpenFile (file, fileMode, fileAccess, fileShare) {
       return this.OpenFileInternal(
-        file,
-        (fileMode == System.IO.FileMode.Create) || (fileMode == System.IO.FileMode.CreateNew)
+        file, fileMode
       );
     }
   );

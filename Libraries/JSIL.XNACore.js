@@ -6417,7 +6417,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.TitleContainer", function ($) {
   $.Method({Static:true , Public:true }, "OpenStream", 
     (new JSIL.MethodSignature($xnaasms[5].TypeRef("System.IO.Stream"), [$.String], [])), 
     function OpenStream (name) {
-      return new System.IO.FileStream(name, null);
+      return new System.IO.FileStream(name, System.IO.FileMode.Open);
     }
   );
 

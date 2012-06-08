@@ -344,8 +344,25 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
 
       this._pos = 0;
       this._length = this._buffer.length;
+
+      this.$applyMode(mode);
     }
   );
+
+  $.RawMethod(false, "$applyMode", function (fileMode) {
+    var fm = System.IO.FileMode;
+
+    if (
+      (fileMode == fm.Create) ||
+      (fileMode == fm.Truncate) ||
+      (fileMode == fm.CreateNew)
+    ) {
+      this._buffer = [];
+      this._length = 0;
+    } else if (fileMode == fm.Append) {
+      this._pos = this._length;
+    }
+  });
 
   $.RawMethod(false, "$GetURI", function () {
     var slashRe = /\\/g;

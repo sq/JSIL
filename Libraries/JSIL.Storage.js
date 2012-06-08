@@ -439,7 +439,7 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualFile", true, [], function ($) {
 });
 
 JSIL.ImplementExternals("System.IO.FileStream", function ($) {
-  $.RawMethod(false, "$fromVirtualFile", function (virtualFile) {
+  $.RawMethod(false, "$fromVirtualFile", function (virtualFile, fileMode) {
     System.IO.Stream.prototype._ctor.call(this);
 
     this._fileName = virtualFile.path;
@@ -452,6 +452,8 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
       if (this._modified)
         virtualFile.writeAllBytes(this._buffer, this._length);
     };
+
+    this.$applyMode(fileMode);
   });
 });
 
