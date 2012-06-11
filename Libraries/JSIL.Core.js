@@ -6051,3 +6051,12 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.EventInfo", tr
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.PropertyInfo", true, [], function ($) {
 });
+
+JSIL.ImplementExternals("System.Enum", function ($) {
+  $.Method({Static:true , Public:true }, "ToObject",
+    (new JSIL.MethodSignature($.Object, ["System.Type", $.Int32], [])),
+    function ToObject (enumType, value) {
+      return enumType[enumType.__ValueToName__[value]];
+    }
+  );
+});
