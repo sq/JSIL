@@ -139,6 +139,23 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualVolume", true, [], function ($) 
     return this.rootDirectory.resolvePath(path);
   });
 
+  $.RawMethod(false, "createJunction", function (path, targetObject, allowExisting) {
+    path = this.normalizePath(path);
+
+    var pieces = path.split("/"), containingDirectory = null, containingPath = null;
+
+    for (var i = 0, l = pieces.length - 1; i < l; i++) {
+      containingPath = pieces.slice(0, i).join("/") + "/";
+
+      containingDirectory = this.rootDirectory.resolvePath(containingPath);
+      containingDirectory.createDirectory(pieces[i], true);
+    }
+
+    containingPath = pieces.slice(0, pieces.length - 1).join("/");
+    containingDirectory = this.rootDirectory.resolvePath(containingPath);
+    return containingDirectory.createJunction(pieces[pieces.length - 1], targetObject, allowExisting);
+  });
+
   $.RawMethod(false, "createFile", function (path, allowExisting) {
     path = this.normalizePath(path);
 
@@ -198,6 +215,14 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualDirectory", true, [], function (
         configurable: false,
         get: function () {
           return inode.name;
+        }
+      }
+    );
+
+    Object.defineProperty(
+      this, "type", {
+        get: function () {
+          return inode.type;
         }
       }
     );
@@ -271,6 +296,23 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualDirectory", true, [], function (
 
     return new VirtualDirectory(
       this.volume, this, this.volume.makeInode(this.inode, "directory", name)
+    );
+  });
+
+  $.RawMethod(false, "createJunction", function (name, targetObject, allowExisting) {
+    var existingDirectory = this.getDirectory(name);
+    if (existingDirectory) {
+      if (allowExisting)
+        return existingDirectory;
+      else
+        throw new Error("A directory named '" + name + "' already exists.");
+    }
+
+    if ((typeof (targetObject) !== "object") || (targetObject.type !== "directory"))
+      throw new Error("Target for junction must be a directory object");
+
+    return new VirtualJunction(
+      this.volume, this, name, targetObject
     );
   });
 
@@ -354,6 +396,9 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualDirectory", true, [], function (
 
     if (nodeType !== "file") {
       for (var k in this.directories) {
+        if ((nodeType === "junction") && (this.directories[k].type !== "junction"))
+          continue;
+
         if (predicate(k))
           result.push(k)
       }
@@ -380,6 +425,14 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualFile", true, [], function ($) {
         configurable: false,
         get: function () {
           return inode.name;
+        }
+      }
+    );
+
+    Object.defineProperty(
+      this, "type", {
+        get: function () {
+          return inode.type;
         }
       }
     );
@@ -435,6 +488,54 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualFile", true, [], function ($) {
 
   $.RawMethod(false, "toString", function () {
     return "<Virtual File '" + this.path + "' in volume '" + this.volume.name + "'>";
+  });
+});
+
+JSIL.MakeClass($jsilcore.System.Object, "VirtualJunction", true, [], function ($) {
+  $.RawMethod(false, ".ctor", function (volume, parent, name, targetObject) {
+    this.volume = volume;
+    this.parent = parent;
+    this.target = targetObject;
+    this.inode = null;
+    this.name = name;
+
+    JSIL.SetValueProperty(
+      this, "path", 
+      parent ? 
+        parent.path + (this.name + "/") : 
+        this.name
+    );
+
+    if (parent)
+      parent.directories[this.name.toLowerCase()] = this;
+  });
+
+  $.RawMethod(false, "getFile", function (name) {
+    return this.target.getFile(name);
+  });
+
+  $.RawMethod(false, "getDirectory", function (name) {
+    return this.target.getDirectory(name);
+  });
+
+  $.RawMethod(false, "createFile", function (name, allowExisting) {
+    return this.target.createFile(name, allowExisting);
+  });
+
+  $.RawMethod(false, "createDirectory", function (name, allowExisting) {
+    return this.target.createDirectory(name, allowExisting);
+  });
+
+  $.RawMethod(false, "resolvePath", function (path, throwOnFail) {
+    return this.target.resolvePath(path, throwOnFail);
+  });
+
+  $.RawMethod(false, "enumerate", function (nodeType, searchPattern) {
+    return this.target.enumerate(nodeType, searchPattern);
+  });
+
+  $.RawMethod(false, "toString", function () {
+    return "<Virtual Junction '" + this.path + "' in volume '" + this.volume.name + "' pointing to '" + this.target.path + "'>";
   });
 });
 
