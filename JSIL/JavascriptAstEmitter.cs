@@ -557,6 +557,13 @@ namespace JSIL {
                 }
             } else if (TypeUtil.IsIntegralOrEnum(defaultValue.Value)) {
                 Output.Value(0);
+            } else if (defaultValue.Value.IsGenericParameter) {
+                VisitNode(new JSTernaryOperatorExpression(
+                    new JSMemberReferenceExpression(new JSDotExpression(new JSType(defaultValue.Value),
+                                                                        new JSStringIdentifier("IsValueType"))),
+                    JSIL.CreateInstanceOfType(defaultValue.Value),
+                    JSLiteral.Null(defaultValue.Value),
+                    defaultValue.Value));
             } else if (!defaultValue.Value.IsValueType) {
                 Output.WriteRaw("null");
             } else {
