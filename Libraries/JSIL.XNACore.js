@@ -2,6 +2,9 @@
 
 if (typeof (JSIL) === "undefined") throw new Error("JSIL.Core required");
 
+var $drawDebugRects = false, $drawDebugBoxes = false;
+var $useTextCaching = true;
+
 var $jsilxna = JSIL.DeclareAssembly("JSIL.XNA");
 
 var $sig = new JSIL.MethodSignatureCache();
@@ -31,17 +34,113 @@ var getXnaStorage = function () {
 
 $jsilxna.nextImageId = 0;
 
-$jsilxna.multipliedImageCache = {};
-$jsilxna.multipliedImageCache.accessHistory = {};
-$jsilxna.multipliedImageCache.capacity = 1024; // unique images
-$jsilxna.multipliedImageCache.capacityBytes = (1024 * 1024) * 256; // total image bytes (at 32bpp)
-$jsilxna.multipliedImageCache.evictionMinimumAge = 2500; // milliseconds
-$jsilxna.multipliedImageCache.evictionAutomaticAge = 30000; // milliseconds
-$jsilxna.multipliedImageCache.evictionInterval = 500; // milliseconds
-$jsilxna.multipliedImageCache.count = 0;
-$jsilxna.multipliedImageCache.countBytes = 0;
-$jsilxna.multipliedImageCache.evictionPending = false;
-$jsilxna.multipliedImageCache.lastEvicted = 0;
+$jsilxna.ImageCache = function (
+  capacity, capacityBytes, 
+  evictionMinimumAge, evictionAutomaticAge, evictionInterval
+) {
+  this.entries = {};
+  this.accessHistory = {};
+  this.count = 0;
+  this.countBytes = 0;
+  this.evictionPending = false;
+  this.lastEvicted = this.now = Date.now();
+
+  this.capacity = capacity; // total unique images
+  this.capacityBytes = capacityBytes; // total 32bpp image bytes
+  this.evictionMinimumAge = evictionMinimumAge; // if the age of an image is less than this (in ms) it is never evicted
+  this.evictionAutomaticAge = evictionAutomaticAge; // if the age of an image is over this (in ms) it is automatically evicted
+  this.evictionInterval = evictionInterval; // ms
+};
+
+$jsilxna.ImageCache.prototype.getItem = function (key) {
+  this.accessHistory[key] = this.now;
+
+  this.maybeEvictItems();
+
+  return this.entries[key];
+};
+
+$jsilxna.ImageCache.prototype.setItem = function (key, value) {
+  if (typeof (this.entries[key]) === "undefined") {
+    this.count += 1;
+    this.countBytes += value.sizeBytes;
+  }
+
+  this.accessHistory[key] = this.now;
+  this.entries[key] = value;
+
+  this.maybeEvictItems();
+};
+
+$jsilxna.ImageCache.prototype.maybeEvictItems = function () {
+  if (this.evictionPending) 
+    return;
+
+  var nextEviction = this.lastEvicted + this.evictionInterval;
+
+  if (this.now >= nextEviction) {
+    this.lastEvicted = this.now;
+    this.evictionPending = true;
+    JSIL.Host.runLater(this.evictExtraItems.bind(this));
+  }
+};
+
+$jsilxna.ImageCache.prototype.evictExtraItems = function () {
+  this.evictionPending = false;
+  var keys = Object.keys(this.accessHistory);
+
+  keys.sort(function (lhs, rhs) {
+    var lhsTimestamp = this.accessHistory[lhs];
+    var rhsTimestamp = this.accessHistory[rhs];
+
+    if (lhsTimestamp > rhsTimestamp) 
+      return 1;
+    else if (rhsTimestamp > lhsTimestamp) 
+      return -1;
+    else 
+      return 0;
+  }.bind(this));
+
+  for (var i = 0, l = this.count; i < l; i++) {
+    var age = this.now - this.accessHistory[keys[i]];
+    if (age <= this.evictionMinimumAge) 
+      continue;
+
+    if (age >= this.evictionAutomaticAge) {
+    } else {
+      if ((this.count <= this.capacity) && (this.countBytes <= this.capacityBytes))
+        continue;
+    }
+
+    var item = this.entries[keys[i]];
+
+    delete this.accessHistory[keys[i]];
+    delete this.entries[keys[i]];
+
+    this.count -= 1;
+    if ((typeof (item) !== "undefined") && (item !== null)) {
+      this.countBytes -= item.sizeBytes;
+    }
+  }
+};
+
+
+$jsilxna.imageChannelCache = new $jsilxna.ImageCache(
+  1024,
+  (1024 * 1024) * 256,
+  2500,
+  30000,
+  500
+);
+
+$jsilxna.textCache = new $jsilxna.ImageCache(
+  1024,
+  (1024 * 1024) * 64,
+  500,
+  3000,
+  250
+);
+
 
 $jsilxna.colorRef = function () {
   var graphicsAsm = JSIL.GetAssembly("Microsoft.Xna.Framework.Graphics", true);
@@ -111,82 +210,13 @@ $jsilxna.get2DContext = function (canvas, enableWebGL) {
   return canvas.getContext("2d");
 };
 
-$jsilxna.multipliedImageCache.now = 0;
-
-$jsilxna.multipliedImageCache.getItem = function (key) {
-  this.accessHistory[key] = this.now;
-
-  this.maybeEvictItems();
-
-  return this[key];
-}.bind($jsilxna.multipliedImageCache);
-
-$jsilxna.multipliedImageCache.setItem = function (key, value) {
-  if (typeof (this[key]) === "undefined") {
-    this.count += 1;
-    this.countBytes += value.sizeBytes;
-  }
-
-  this.accessHistory[key] = this.now;
-  this[key] = value;
-
-  this.maybeEvictItems();
-}.bind($jsilxna.multipliedImageCache);
-
-$jsilxna.multipliedImageCache.maybeEvictItems = function () {
-  if (this.evictionPending) 
-    return;
-
-  var nextEviction = this.lastEvicted + this.evictionInterval;
-
-  if (this.now >= nextEviction) {
-    this.lastEvicted = this.now;
-    this.evictionPending = true;
-    JSIL.Host.runLater(this.evictExtraItems);
-  }
-}.bind($jsilxna.multipliedImageCache);
-
-$jsilxna.multipliedImageCache.evictExtraItems = function () {
-  this.evictionPending = false;
-  var keys = Object.keys(this.accessHistory);
-  keys.sort(function (lhs, rhs) {
-    var lhsTimestamp = this.accessHistory[lhs];
-    var rhsTimestamp = this.accessHistory[rhs];
-    if (lhsTimestamp > rhsTimestamp) return 1;
-    else if (rhsTimestamp > lhsTimestamp) return -1;
-    else return 0;
-  }.bind(this));
-
-  for (var i = 0, l = this.count; i < l; i++) {
-    var age = this.now - this.accessHistory[keys[i]];
-    if (age <= this.evictionMinimumAge) 
-      continue;
-
-    if (age >= this.evictionAutomaticAge) {
-    } else {
-      if ((this.count <= this.capacity) && (this.countBytes <= this.capacityBytes))
-        continue;
-    }
-
-    var item = this[keys[i]];
-
-    delete this.accessHistory[keys[i]];
-    delete this[keys[i]];
-
-    this.count -= 1;
-    if ((typeof (item) !== "undefined") && (item !== null)) {
-      this.countBytes -= item.sizeBytes;
-    }
-  }
-}.bind($jsilxna.multipliedImageCache);
-
 $jsilxna.getCachedImageChannels = function (image, key) {
-  var result = $jsilxna.multipliedImageCache.getItem(key) || null;
+  var result = $jsilxna.imageChannelCache.getItem(key) || null;
   return result;
 };
 
 $jsilxna.setCachedImageChannels = function (image, key, value) {
-  $jsilxna.multipliedImageCache.setItem(key, value);
+  $jsilxna.imageChannelCache.setItem(key, value);
 };
 
 $jsilxna.imageChannels = function (image) {
@@ -3013,9 +3043,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       
       if (typeof (JSIL.Host.reportFps) === "function") {
         var isWebGL = this.graphicsDeviceService.GraphicsDevice.context.isWebGL || false;
+        var cacheBytes = ($jsilxna.imageChannelCache.countBytes + $jsilxna.textCache.countBytes);
+
         JSIL.Host.reportFps(
           this._drawCount, this._updateCount, 
-          isWebGL ? "webgl" : $jsilxna.multipliedImageCache.countBytes
+          cacheBytes, isWebGL
         );
       }
 
@@ -3990,10 +4022,10 @@ $jsilxna.Color = function ($) {
     var colors = $jsilxna.colors || [];
 
     var bindColor = function (c) {
-        return function () {
-          return c;
-        };
+      return function () {
+        return c;
       };
+    };
 
     var typeName1 = JSIL.ParseTypeName("Microsoft.Xna.Framework.Color,Microsoft.Xna.Framework");
     var typeName2 = JSIL.ParseTypeName("Microsoft.Xna.Framework.Graphics.Color,Microsoft.Xna.Framework");
@@ -4009,13 +4041,15 @@ $jsilxna.Color = function ($) {
       Object.defineProperty(publicInterface, "get_" + colorName, {
         value: bindColor(color),
         enumerable: true,
-        configurable: true
+        configurable: true,
+        writable: false
       });
 
       Object.defineProperty(publicInterface, colorName, {
         value: color,
         enumerable: true,
-        configurable: true
+        configurable: true,
+        writable: false
       });
     }
   });
@@ -4212,8 +4246,6 @@ $jsilxna.ClampByte = function (v) {
   else return Math.floor(v);
 }
 
-var $drawDebugRects = false, $drawDebugBoxes = false;
-
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function ($) {
   if (false) {
     var $canvasDrawImage = function canvasDrawImage (image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, destW, destH) {
@@ -4265,6 +4297,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
     }
   );
 
+  $.RawMethod(false, "$cloneExisting", function (spriteBatch) {
+    this.device = spriteBatch.device;
+    this.defer = false;
+    this.deferSorter = null;
+    this.isWebGL = spriteBatch.isWebGL;
+    this.spriteEffects = spriteBatch.spriteEffects;
+  });
+
   $.RawMethod(false, "$applyBlendState", function () {
     if ((typeof (this.blendState) === "object") && (this.blendState !== null))
       this.device.BlendState = this.blendState;
@@ -4278,7 +4318,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       this.saveCount = 0;
       this.restoreCount = 0;
 
-      $jsilxna.multipliedImageCache.now = Date.now();
+      $jsilxna.imageChannelCache.now = Date.now();
+      $jsilxna.textCache.now = Date.now();
 
       this.isWebGL = this.device.context.isWebGL || false;
 
@@ -5721,8 +5762,75 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
       color, rotation, 
       originX, originY, 
       scaleX, scaleY, 
-      spriteEffects, layerDepth
+      spriteEffects, layerDepth,
+      forCache
     ) {
+
+      // Draw calls are really expensive, so cache entire strings as single textures.
+
+      if ($useTextCaching && (forCache !== true)) {
+        var cachedTexture = $jsilxna.textCache.getItem(text);
+
+        if (!cachedTexture) {
+          var measured = this.InternalMeasure(text);
+
+          var asmGraphics = $xnaasms.xnaGraphics || $xnaasms.xna;
+          var tSpriteBatch = asmGraphics.Microsoft.Xna.Framework.Graphics.SpriteBatch.__Type__;
+
+          var tColor;
+          if (JSIL.GetAssembly("Microsoft.Xna.Framework.Graphics", true))
+            tColor = $xnaasms.xna.Microsoft.Xna.Framework.Color;
+          else 
+            tColor = $xnaasms.xna.Microsoft.Xna.Framework.Graphics.Color;
+
+          var tempCanvas = document.createElement("canvas");
+          var tempSpriteBatch = JSIL.CreateInstanceOfType(tSpriteBatch, "$cloneExisting", [spriteBatch]);
+          // Force the isWebGL flag to false since the temporary canvas isn't using webgl-2d
+          tempSpriteBatch.isWebGL = false;
+
+          tempCanvas.width = Math.ceil(measured.X + 2);
+          tempCanvas.height = Math.ceil(measured.Y + 2);
+
+          // FIXME: Terrible hack
+          tempSpriteBatch.device = {
+            context: tempCanvas.getContext("2d")
+          };
+
+          this.InternalDraw(
+            text, tempSpriteBatch, 1, 1,
+            tColor.White, 0,
+            0, 0, 1, 1,
+            null, 0, 
+            true
+          );
+
+          cachedTexture = {
+            image: tempCanvas,
+            id: "text:'" + text + "'",
+            width: tempCanvas.width,
+            height: tempCanvas.height
+          };
+
+          cachedTexture.sizeBytes = tempCanvas.sizeBytes = tempCanvas.width * tempCanvas.height * 4;
+
+          $jsilxna.textCache.setItem(text, cachedTexture);
+        }
+
+        var cachedTextureWidth = cachedTexture.width;
+        var cachedTextureHeight = cachedTexture.height;
+
+        spriteBatch.InternalDraw(
+          cachedTexture, textblockPositionX - 1, textblockPositionY - 1, cachedTextureWidth, cachedTextureHeight,
+          0, 0, cachedTextureWidth, cachedTextureHeight,
+          color, rotation, 
+          0, 0, 
+          scaleX, scaleY, 
+          spriteEffects, layerDepth
+        );
+
+        return;
+      }
+
       textblockPositionX -= (originX * scaleX);
       textblockPositionY -= (originY * scaleY);
 

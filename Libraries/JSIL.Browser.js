@@ -148,24 +148,25 @@ var statsElement = document.getElementById("stats");
 if (statsElement !== null) {
   statsElement.innerHTML = '<span title="Frames Per Second"><span id="drawsPerSecond">0</span> f/s</span><br>' +
     '<span title="Updates Per Second"><span id="updatesPerSecond">0</span> u/s</span><br>' +
-    '<span title="Image Cache Size (megabytes)" id="cacheSpan"><span id="cacheSize">0.0</span >mb</span>';
+    '<span title="Texture Cache Size" id="cacheSpan"><span id="cacheSize">0.0</span >mb <span id="usingWebGL" style="display: none">(WebGL)</span></span>';
 
-  JSIL.Host.reportFps = function (drawsPerSecond, updatesPerSecond, cacheSize) {
+  JSIL.Host.reportFps = function (drawsPerSecond, updatesPerSecond, cacheSize, isWebGL) {
     var e = document.getElementById("drawsPerSecond");
     e.innerHTML = drawsPerSecond.toString();
     
     e = document.getElementById("updatesPerSecond");
     e.innerHTML = updatesPerSecond.toString();
+
+    var cacheSizeMb = (cacheSize / (1024 * 1024)).toFixed(1);
     
-    if (cacheSize === "webgl") {
-      e = document.getElementById("cacheSpan");
-      e.className = "webgl-notice";
-      e.innerHTML = "WebGL";
+    if (isWebGL) {
+      e = document.getElementById("usingWebGL");
       e.title = "Using WebGL for rendering";
-    } else {
-      e = document.getElementById("cacheSize");
-      e.innerHTML = (cacheSize / (1024 * 1024)).toFixed(1);
+      e.style.display = "inline-block";
     }
+
+    e = document.getElementById("cacheSize");
+    e.innerHTML = cacheSizeMb;
 
     if ($logFps) {
       console.log(drawsPerSecond + " draws/s, " + updatesPerSecond + " updates/s");
