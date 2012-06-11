@@ -3308,6 +3308,19 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.KeyboardState", function 
     }
   );
 
+  $.Method({Static:false, Public:true }, "GetPressedKeys", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.Keys")]), [], [])), 
+    function GetPressedKeys () {
+      var result = [];
+      var tKeys = $xnaasms[0].Microsoft.Xna.Framework.Input.Keys.__Type__;
+
+      for (var i = 0, l = this.keys.length; i < l; i++)
+        result.push(tKeys.$Cast(this.keys[i]));
+
+      return result;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "IsKeyDown", 
     (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.Keys")], [])), 
     function IsKeyDown (key) {
