@@ -399,6 +399,7 @@ JSIL.ImplementExternals(
             return text;
           };
 
+          var includePlaceSeparators = false;
           var digitCount = 0, digitsBeforeDecimal = 0, digitsAfterDecimal = 0, zeroesAfterDecimal = 0;
 
           for (var i = 0, l = customFormat.length; i < l; i++) {
@@ -419,6 +420,10 @@ JSIL.ImplementExternals(
               case "\t":
               case " ":
                 commands.push(rawCharacter.bind(ch));
+                break;
+
+              case ",":
+                includePlaceSeparators = true;
                 break;
 
               case "'":
@@ -489,6 +494,17 @@ JSIL.ImplementExternals(
 
             while (postDecimal.length < digitsAfterDecimal)
               postDecimal.push(null);
+
+            // To properly emulate place separators in integer formatting,
+            //  we need to insert the commas into the digits array.
+            if (includePlaceSeparators) {
+              for (var l = preDecimal.length, i = l - 4; i >= 0; i -= 3) {
+                var digit = preDecimal[i];
+
+                if (digit !== null)
+                  preDecimal[i] = digit + ",";
+              }
+            }
 
             // If we don't have enough place markers for all our digits,
             //  we turn the extra digits into a single 'digit' entry so

@@ -157,6 +157,7 @@
     <None Include="SimpleTestCases\StringFormatCustomPlaces.cs" />
     <None Include="SimpleTestCases\StringFormatCustomPlacesDecimal.cs" />
     <None Include="SimpleTestCases\StringFormatQuotedString.cs" />
+    <None Include="SimpleTestCases\StringFormatPlaceSeparators.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
