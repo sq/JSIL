@@ -154,6 +154,9 @@
     <None Include="SimpleTestCases\StringFormatN.cs" />
     <None Include="SimpleTestCases\StringFormatD.cs" />
     <None Include="SimpleTestCases\StringFormatX.cs" />
+    <None Include="SimpleTestCases\StringFormatCustomPlaces.cs" />
+    <None Include="SimpleTestCases\StringFormatCustomPlacesDecimal.cs" />
+    <None Include="SimpleTestCases\StringFormatQuotedString.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
