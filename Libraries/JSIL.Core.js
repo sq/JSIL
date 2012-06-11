@@ -4968,6 +4968,20 @@ JSIL.ImplementExternals(
       }
     );
 
+    $.Method({Static:false, Public:true }, "get_IsArray",
+      new JSIL.MethodSignature("System.Boolean", []),
+      function () {
+        return this.__IsArray__;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "GetElementType",
+      new JSIL.MethodSignature($.Type, []),
+      function () {
+        return this.__ElementType__;
+      }
+    );
+
     $.Method({Public: true , Static: false}, "get_Name",
       new JSIL.MethodSignature("System.String", []),
       function () {
@@ -5429,6 +5443,7 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
       compositeTypeObject.__FullName__ = compositeTypeObject.__FullNameWithoutArguments__ = typeName;
       compositeTypeObject.__IsReferenceType__ = true;
       compositeTypeObject.__IsArray__ = true;
+      compositeTypeObject.__ElementType__ = elementTypeObject;
 
       JSIL.SetValueProperty(compositePublicInterface, "CheckType", checkType);
       JSIL.SetValueProperty(compositeTypeObject, "toString", function ArrayType_ToString () {
@@ -6010,6 +6025,7 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function
     $.Property({Public: true , Static: false}, "Namespace");
     $.Property({Public: true , Static: false}, "BaseType");
     $.Property({Public: true , Static: false}, "IsGenericType");
+    $.Property({Public: true , Static: false}, "IsArray");
 });
 
 JSIL.MakeClass("System.Type", "System.RuntimeType", false, [], function ($) {
