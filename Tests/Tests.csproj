@@ -150,6 +150,8 @@
     <None Include="XMLTestCases\WriteAttributeString2.cs" />
     <None Include="XMLTestCases\WriteElementString.cs" />
     <None Include="SimpleTestCases\DelegateFieldInitializer2.cs" />
+    <None Include="SimpleTestCases\StringFormatF.cs" />
+    <None Include="SimpleTestCases\StringFormatN.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

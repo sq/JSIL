@@ -8,6 +8,7 @@ if (!$jsilcore)
 
 JSIL.DeclareNamespace("System.ComponentModel");
 JSIL.DeclareNamespace("System.Linq");
+JSIL.DeclareNamespace("System.IO");
 JSIL.DeclareNamespace("System.Text.RegularExpressions");
 
 $jsilcore.$ParseBoolean = function (text) {
@@ -315,6 +316,34 @@ JSIL.ImplementExternals(
         if ((values.length == 1) && JSIL.IsArray(values[0]))
           values = values[0];
 
+        var formatFloat = function (value, digits) {
+          digits = parseInt(digits);
+          if (isNaN(digits))
+            digits = 2;
+
+          return parseFloat(value).toFixed(digits);
+        };
+
+        var insertPlaceSeparators = function (valueString) {
+          var pieces = valueString.split(".");
+
+          var newIntegralPart = "";
+
+          for (var i = 0, l = pieces[0].length; i < l; i++) {
+            var ch = pieces[0][i];
+            var p = (l - i) % 3;
+
+            if ((i > 0) && (p === 0))
+              newIntegralPart += ",";
+
+            newIntegralPart += ch;
+          }
+
+          pieces[0] = newIntegralPart;
+
+          return pieces.join(".");
+        };
+
         var matcher = function (match, index, valueFormat, offset, str) {
           index = parseInt(index);
 
@@ -325,10 +354,12 @@ JSIL.ImplementExternals(
             switch (valueFormat[0]) {
               case 'f':
               case 'F':
+                return formatFloat(value, valueFormat.substr(1));
+
               case 'n':
               case 'N':
-                var digits = parseInt(valueFormat.substr(1));
-                return parseFloat(value).toFixed(digits);
+                var result = formatFloat(value, valueFormat.substr(1));
+                return insertPlaceSeparators(result);
 
               default:
                 throw new Error("Unsupported format string: " + valueFormat);
