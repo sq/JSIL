@@ -316,6 +316,19 @@ JSIL.ImplementExternals(
         if ((values.length == 1) && JSIL.IsArray(values[0]))
           values = values[0];
 
+        var formatInteger = function (value, radix, digits) {
+          digits = parseInt(digits);
+          if (isNaN(digits))
+            digits = 0;
+
+          var result = parseInt(value).toString(radix);
+
+          while (result.length < digits)
+            result = "0" + result;
+
+          return result;
+        };
+
         var formatFloat = function (value, digits) {
           digits = parseInt(digits);
           if (isNaN(digits))
@@ -352,6 +365,16 @@ JSIL.ImplementExternals(
           if (valueFormat) {
 
             switch (valueFormat[0]) {
+              case 'd':
+              case 'D':
+                return formatInteger(value, 10, valueFormat.substr(1));
+
+              case 'x':
+                return formatInteger(value, 16, valueFormat.substr(1)).toLowerCase();
+
+              case 'X':
+                return formatInteger(value, 16, valueFormat.substr(1)).toUpperCase();
+
               case 'f':
               case 'F':
                 return formatFloat(value, valueFormat.substr(1));

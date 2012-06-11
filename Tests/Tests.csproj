@@ -152,6 +152,8 @@
     <None Include="SimpleTestCases\DelegateFieldInitializer2.cs" />
     <None Include="SimpleTestCases\StringFormatF.cs" />
     <None Include="SimpleTestCases\StringFormatN.cs" />
+    <None Include="SimpleTestCases\StringFormatD.cs" />
+    <None Include="SimpleTestCases\StringFormatX.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
