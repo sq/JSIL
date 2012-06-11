@@ -196,6 +196,209 @@ JSIL.ImplementExternals(
 );
 JSIL.MakeNumericType(Number, "System.Double", false);
 
+JSIL.ParseCustomNumberFormat = function (customFormat) {
+  var inQuotedString = false, quoteCharacter = null, stringStartOffset = -1;
+  var containsDecimal = false;
+
+  var commands = [];
+
+  var digit = function (state) {
+    var digits = state.digits;
+    return digits.shift();
+  };
+
+  var zeroOrDigit = function (state) {
+    var digits = state.digits;
+    var digit = digits.shift();
+
+    if (digit === null)
+      return "0";
+    else
+      return digit;
+  };
+
+  var decimal = function (state) {
+    state.afterDecimal = true;
+
+    if (state.omitDecimal)
+      return null;
+    else
+      return ".";
+  };
+
+  var rawCharacter = function (state) {
+    var character = this;
+
+    return character;
+  };
+
+  var quotedString = function (state) { 
+    var text = this;
+
+    return text;
+  };
+
+  var includePlaceSeparators = false;
+  var digitCount = 0, digitsBeforeDecimal = 0, digitsAfterDecimal = 0, zeroesAfterDecimal = 0;
+
+  for (var i = 0, l = customFormat.length; i < l; i++) {
+    var ch = customFormat[i];
+
+    if (inQuotedString) {
+      if (ch === quoteCharacter) {
+        inQuotedString = false;
+
+        var quotedText = customFormat.substr(stringStartOffset, i - stringStartOffset);
+        commands.push(quotedString.bind(quotedText));
+      }
+
+      continue;
+    }
+
+    switch (ch) {
+      case "\t":
+      case " ":
+        commands.push(rawCharacter.bind(ch));
+        break;
+
+      case ",":
+        includePlaceSeparators = true;
+        break;
+
+      case "'":
+      case '"':
+        quoteCharacter = ch;
+        inQuotedString = true;
+        stringStartOffset = i + 1;
+        break;
+
+      case '#':
+        digitCount++;
+
+        commands.push(digit);
+        continue;
+
+      case '0':
+        digitCount++;
+        if (containsDecimal)
+          zeroesAfterDecimal++;
+
+        commands.push(zeroOrDigit);
+        continue;
+
+      case '.':
+        if (containsDecimal)
+          throw new Error("Multiple decimal places in format string");
+        else
+          containsDecimal = true;
+
+        digitsBeforeDecimal = digitCount;
+        digitCount = 0;
+        commands.push(decimal);
+
+        continue;
+
+      default:
+        return null;
+    }
+  }
+
+  if (containsDecimal)
+    digitsAfterDecimal = digitCount;
+  else
+    digitsBeforeDecimal = digitCount;
+
+  var formatter = function (value) {
+    var formatted = value.toString(10);
+    var pieces = formatted.split(".");
+
+    var preDecimal = Array.prototype.slice.call(pieces[0]), postDecimal;
+    var actualDigitsAfterDecimal = 0;
+
+    if (pieces.length > 1) {
+      // If we have too few places after the decimal for all the digits,
+      //  we need to recreate the string using toFixed so that it gets rounded.
+      if (pieces[1].length > digitsAfterDecimal)
+        pieces = value.toFixed(digitsAfterDecimal).split(".");
+
+      postDecimal = Array.prototype.slice.call(pieces[1]);
+
+      actualDigitsAfterDecimal = postDecimal.length;
+
+    } else
+      postDecimal = [];
+
+    while (preDecimal.length < digitsBeforeDecimal)
+      preDecimal.unshift(null);
+
+    while (postDecimal.length < digitsAfterDecimal)
+      postDecimal.push(null);
+
+    // To properly emulate place separators in integer formatting,
+    //  we need to insert the commas into the digits array.
+    if (includePlaceSeparators) {
+      for (var l = preDecimal.length, i = l - 4; i >= 0; i -= 3) {
+        var digit = preDecimal[i];
+
+        if (digit !== null)
+          preDecimal[i] = digit + ",";
+      }
+    }
+
+    // If we don't have enough place markers for all our digits,
+    //  we turn the extra digits into a single 'digit' entry so
+    //  that they are still outputted.
+
+    if (preDecimal.length > digitsBeforeDecimal) {
+      var toRemove = preDecimal.length - digitsBeforeDecimal;
+      var removed = preDecimal.splice(digitsBeforeDecimal, toRemove).join("");
+
+      preDecimal[preDecimal.length - 1] += removed;
+    }
+
+    var state = {
+      afterDecimal: false,
+      omitDecimal: (actualDigitsAfterDecimal <= 0) && (zeroesAfterDecimal <= 0)
+    };
+
+    Object.defineProperty(
+      state, "digits", {
+        configurable: false,
+        enumerable: true,
+
+        get: function () {
+          if (state.afterDecimal)
+            return postDecimal;
+          else
+            return preDecimal;
+        }
+      }
+    );
+
+    var result = "";
+
+    for (var i = 0, l = commands.length; i < l; i++) {
+      var command = commands[i];
+
+      var item = command(state);
+      if (item)
+        result += item;
+    }
+
+    return result;
+  };
+
+  return formatter;
+};
+
+JSIL.NumberToFormattedString = function (value, format) {
+  var formatter = JSIL.ParseCustomNumberFormat(format);
+  if (!formatter)
+    throw new Error("Unsupported number format: " + format);
+
+  return formatter(value);
+};
+
 JSIL.ImplementExternals(
   "System.String", function ($) {
     var fromCharArray = function (chars, startIndex, length) {
@@ -357,208 +560,13 @@ JSIL.ImplementExternals(
           return pieces.join(".");
         };
 
-        var parseCustomFormat = function (customFormat) {
-          var inQuotedString = false, quoteCharacter = null, stringStartOffset = -1;
-          var containsDecimal = false;
-
-          var commands = [];
-
-          var digit = function (state) {
-            var digits = state.digits;
-            return digits.shift();
-          };
-
-          var zeroOrDigit = function (state) {
-            var digits = state.digits;
-            var digit = digits.shift();
-
-            if (digit === null)
-              return "0";
-            else
-              return digit;
-          };
-
-          var decimal = function (state) {
-            state.afterDecimal = true;
-
-            if (state.omitDecimal)
-              return null;
-            else
-              return ".";
-          };
-
-          var rawCharacter = function (state) {
-            var character = this;
-
-            return character;
-          };
-
-          var quotedString = function (state) { 
-            var text = this;
-
-            return text;
-          };
-
-          var includePlaceSeparators = false;
-          var digitCount = 0, digitsBeforeDecimal = 0, digitsAfterDecimal = 0, zeroesAfterDecimal = 0;
-
-          for (var i = 0, l = customFormat.length; i < l; i++) {
-            var ch = customFormat[i];
-
-            if (inQuotedString) {
-              if (ch === quoteCharacter) {
-                inQuotedString = false;
-
-                var quotedText = customFormat.substr(stringStartOffset, i - stringStartOffset);
-                commands.push(quotedString.bind(quotedText));
-              }
-
-              continue;
-            }
-
-            switch (ch) {
-              case "\t":
-              case " ":
-                commands.push(rawCharacter.bind(ch));
-                break;
-
-              case ",":
-                includePlaceSeparators = true;
-                break;
-
-              case "'":
-              case '"':
-                quoteCharacter = ch;
-                inQuotedString = true;
-                stringStartOffset = i + 1;
-                break;
-
-              case '#':
-                digitCount++;
-
-                commands.push(digit);
-                continue;
-
-              case '0':
-                digitCount++;
-                if (containsDecimal)
-                  zeroesAfterDecimal++;
-
-                commands.push(zeroOrDigit);
-                continue;
-
-              case '.':
-                if (containsDecimal)
-                  throw new Error("Multiple decimal places in format string");
-                else
-                  containsDecimal = true;
-
-                digitsBeforeDecimal = digitCount;
-                digitCount = 0;
-                commands.push(decimal);
-
-                continue;
-
-              default:
-                return null;
-            }
-          }
-
-          if (containsDecimal)
-            digitsAfterDecimal = digitCount;
-          else
-            digitsBeforeDecimal = digitCount;
-
-          var formatter = function (value) {
-            var formatted = value.toString(10);
-            var pieces = formatted.split(".");
-
-            var preDecimal = Array.prototype.slice.call(pieces[0]), postDecimal;
-            var actualDigitsAfterDecimal = 0;
-
-            if (pieces.length > 1) {
-              // If we have too few places after the decimal for all the digits,
-              //  we need to recreate the string using toFixed so that it gets rounded.
-              if (pieces[1].length > digitsAfterDecimal)
-                pieces = value.toFixed(digitsAfterDecimal).split(".");
-
-              postDecimal = Array.prototype.slice.call(pieces[1]);
-
-              actualDigitsAfterDecimal = postDecimal.length;
-
-            } else
-              postDecimal = [];
-
-            while (preDecimal.length < digitsBeforeDecimal)
-              preDecimal.unshift(null);
-
-            while (postDecimal.length < digitsAfterDecimal)
-              postDecimal.push(null);
-
-            // To properly emulate place separators in integer formatting,
-            //  we need to insert the commas into the digits array.
-            if (includePlaceSeparators) {
-              for (var l = preDecimal.length, i = l - 4; i >= 0; i -= 3) {
-                var digit = preDecimal[i];
-
-                if (digit !== null)
-                  preDecimal[i] = digit + ",";
-              }
-            }
-
-            // If we don't have enough place markers for all our digits,
-            //  we turn the extra digits into a single 'digit' entry so
-            //  that they are still outputted.
-
-            if (preDecimal.length > digitsBeforeDecimal) {
-              var toRemove = preDecimal.length - digitsBeforeDecimal;
-              var removed = preDecimal.splice(digitsBeforeDecimal, toRemove).join("");
-
-              preDecimal[preDecimal.length - 1] += removed;
-            }
-
-            var state = {
-              afterDecimal: false,
-              omitDecimal: (actualDigitsAfterDecimal <= 0) && (zeroesAfterDecimal <= 0)
-            };
-
-            Object.defineProperty(
-              state, "digits", {
-                configurable: false,
-                enumerable: true,
-
-                get: function () {
-                  if (state.afterDecimal)
-                    return postDecimal;
-                  else
-                    return preDecimal;
-                }
-              }
-            );
-
-            var result = "";
-
-            for (var i = 0, l = commands.length; i < l; i++) {
-              var command = commands[i];
-
-              var item = command(state);
-              if (item)
-                result += item;
-            }
-
-            return result;
-          };
-
-          return formatter;
-        };
-
         var matcher = function (match, index, valueFormat, offset, str) {
           index = parseInt(index);
 
           var value = values[index];
 
           if (valueFormat) {
-            var parsedCustomFormat = parseCustomFormat(valueFormat);
+            var parsedCustomFormat = JSIL.ParseCustomNumberFormat(valueFormat);
 
             if (parsedCustomFormat) {
               return parsedCustomFormat(value);

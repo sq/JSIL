@@ -12,8 +12,13 @@ namespace JSIL.Proxies {
     )]
     public abstract class IntegerProxy {
         [JSReplacement("($this).toString()")]
-        public string ToString (params AnyType[] arguments) {
+        public string ToString () {
             return base.ToString();
+        }
+
+        [JSReplacement("JSIL.NumberToFormattedString($this, $format)")]
+        public string ToString (string format) {
+            throw new InvalidOperationException();
         }
 
         [JSReplacement("JSIL.CompareValues($this, $rhs)")]
@@ -30,7 +35,12 @@ namespace JSIL.Proxies {
     )]
     public abstract class NumberProxy {
         [JSReplacement("($this).toString()")]
-        public string ToString (params AnyType[] arguments) {
+        public string ToString () {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("JSIL.NumberToFormattedString($this, $format)")]
+        public string ToString (string format) {
             throw new InvalidOperationException();
         }
 
