@@ -207,6 +207,7 @@ $jsilcore.SystemObjectInitialized = false;
 $jsilcore.RuntimeTypeInitialized = false;
 
 JSIL.$NextTypeId = 0;
+JSIL.$NextDispatcherId = 0;
 JSIL.$PublicTypes = {};
 JSIL.$PublicTypeAssemblies = {};
 JSIL.$AssignedTypeIds = {};
@@ -2098,6 +2099,21 @@ JSIL.$ResolveGenericTypeReferences = function (context, types) {
   return result;
 };
 
+JSIL.$MakeAnonymousMethod = function (target, body) {
+  var key = "$$" + (++JSIL.$NextDispatcherId).toString(16);
+
+  Object.defineProperty(
+    target, key, {
+      value: body,
+      writable: false,
+      configurable: true,
+      enumerable: false
+    }
+  );
+
+  return key;
+};
+
 JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, methodEscapedName, overloadSignatures) {
   var methodFullName = typeName + "." + methodName;
 
@@ -2125,12 +2141,14 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
 
     if (typeof (method) !== "function") {
       JSIL.Host.warning("Method not defined: " + typeName + "." + key);
-      return function MissingMethodInvoked () {
+      var stub = function MissingMethodInvoked () {
         throw new Error("Method not defined: " + typeName + "." + key);
       };
+
+      return JSIL.$MakeAnonymousMethod(target, stub);
     }
 
-    return method;
+    return key;
   };
 
   // For methods with generic arguments we figure out whether there are multiple options for the generic
@@ -2146,9 +2164,12 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
       gaGroup = makeDispatcher(id, group, offset);
     }
 
-    return function GetBoundGenericMethod () {
-      return JSIL.$BindGenericMethod(this, gaGroup, methodFullName, arguments);
+    var stub = function GetBoundGenericMethod () {
+      var gaImpl = this[gaGroup];
+      return JSIL.$BindGenericMethod(this, gaImpl, methodFullName, arguments);
     };
+
+    return JSIL.$MakeAnonymousMethod(target, stub);
   };
 
   // For methods with multiple candidate signatures that all have the same number of arguments, we do
@@ -2166,7 +2187,6 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
       if (isResolved)
         return resolvedGroup;
 
-      var returnType;
       var result = [];
       for (var i = 0; i < group.length; i++) {
         var groupEntry = group[i];
@@ -2179,9 +2199,6 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
         } else {
           // Normal method.
           result[i] = groupEntry.Resolve(methodEscapedName);
-
-          if (i === 0)
-            returnType = result[i].returnType;
         }
       }
 
@@ -2189,7 +2206,7 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
       return (resolvedGroup = result);
     };
 
-    return function OverloadedMethod_InvokeDynamic () {
+    var stub = function OverloadedMethod_InvokeDynamic () {
       var argc = arguments.length;
       var resolvedGroup = getResolvedGroup();
 
@@ -2197,7 +2214,7 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
       if (resolvedGroup === null)
         throw makeNoMatchFoundError(group);
 
-      var genericDispatcher = null;
+      var genericDispatcherKey = null;
 
       scan_methods:
       for (var i = 0, l = resolvedGroup.length; i < l; i++) {
@@ -2205,8 +2222,8 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
 
         // We've got a generic dispatcher for a generic method with N generic arguments.
         // Store it to use as a fallback if none of the normal overloads match.
-        if (typeof (resolvedMethod) === "function") {
-          genericDispatcher = resolvedMethod;
+        if (typeof (resolvedMethod) === "string") {
+          genericDispatcherKey = resolvedMethod;
           continue;
         }
 
@@ -2239,22 +2256,24 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
       // None of the normal overloads matched, but if we found a generic dispatcher, call that.
       // This isn't quite right, but the alternative (check to see if the arg is System.Type) is
       //  worse since it would break for methods that actually take Type instances as arguments.
-      if (genericDispatcher !== null) {
-        return genericDispatcher.apply(this, arguments);
+      if (genericDispatcherKey !== null) {
+        return this[genericDispatcherKey].apply(this, arguments);
       }
 
       throw makeNoMatchFoundError(group);
     };
+
+    return JSIL.$MakeAnonymousMethod(target, stub);
   };
 
   makeDispatcher = function (id, g, offset) {
     var body = [];
-    var methods = {};
 
     body.push("  var argc = args.length;");
 
     var isFirst = true;
-    var methodIndex = 0;
+    var methodKey = null;
+
     for (var k in g) {
       if (k == "ga")
         continue;
@@ -2274,42 +2293,33 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
       body.push(line);
 
       var group = g[k];
-      var method;
 
       if (group.ga === true) {
-        method = makeGenericArgumentGroup(id + "`" + k, group, group.gaCount + offset);
+        methodKey = makeGenericArgumentGroup(id + "`" + k, group, group.gaCount + offset);
       } else if (group.length === 1) {
-        method = makeSingleMethodGroup(group);
+        methodKey = makeSingleMethodGroup(group);
       } else {
-        method = makeMultipleMethodGroup(id, group, offset);
+        methodKey = makeMultipleMethodGroup(id, group, offset);
       }
 
-      var methodKey = "method" + String.fromCharCode("A".charCodeAt(0) + methodIndex);
-      methods[methodKey] = method;
-
-      body.push("    return methods." + methodKey + ".apply(self, args);");
-
-      methodIndex += 1;
+      body.push("    return thisType[\"" + methodKey + "\"].apply(this, args);");
 
       isFirst = false;
     }
 
     body.push("  }");
     body.push("  ");
-    body.push("  throw new Error('No overload of ' + methods.name + ' can accept ' + (argc - methods.offset) + ' argument(s).')");
+    body.push("  throw new Error('No overload of ' + name + ' can accept ' + (argc - offset) + ' argument(s).')");
 
     var dispatcher = JSIL.CreateNamedFunction(
       id, 
-      ["methods", "self", "args"],
+      ["thisType", "name", "offset", "args"],
       body.join("\r\n")
     );
 
-    methods.name = id;
-    methods.offset = offset;
-
     // We can't use .bind() to bind arguments here because it breaks the 'this' parameter and breaks .call()/.apply().
     var boundDispatcher = function OverloadedMethod_Invoke () {
-      return dispatcher(methods, this, arguments);
+      return dispatcher.call(this, target, methodName, offset, arguments);
     };
 
     JSIL.SetValueProperty(boundDispatcher, "toString", 
@@ -2320,7 +2330,7 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
 
     JSIL.RenameFunction(id, boundDispatcher);
 
-    return boundDispatcher;    
+    return JSIL.$MakeAnonymousMethod(target, boundDispatcher);
   };
 
   var groups = {};
@@ -2335,14 +2345,6 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
     } else {
       result = makeSingleMethodGroup(overloadSignatures);
     }
-
-    JSIL.SetValueProperty(result, "toString", 
-      function MethodGroup_ToString () {
-        return "<Method " + methodFullName + ">";
-      }
-    );
-
-    JSIL.RenameFunction(methodFullName, result);
 
     return result;
   }
@@ -2544,19 +2546,19 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface, forceLazyMethod
     var makeMethodGroupGetter = function (
       target, fullName, renamedMethods, methodName, methodEscapedName, entries
     ) {
-      var state = $jsilcore.FunctionNotInitialized;
+      var key = null;
 
       return function GetMethodGroup () {
-        if (state === $jsilcore.FunctionNotInitialized) {
-          state = JSIL.$MakeMethodGroup(
+        if (key === null) {
+          key = JSIL.$MakeMethodGroup(
             target, fullName, renamedMethods, methodName, methodEscapedName, entries
           );
 
           if (trace)
-            console.log(fullName + "." + methodEscapedName + " =", state);
+            console.log(fullName + "." + methodEscapedName + " -> " + key);
         }
 
-        return state;
+        return target[key];
       };
     };
 
