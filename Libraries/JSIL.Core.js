@@ -1344,6 +1344,14 @@ $jsilcore.$Of$NoInitialize = function () {
   if (arguments.length != ga.length)
     throw new Error("Invalid number of generic arguments for type '" + JSIL.GetTypeName(this) + "' (got " + arguments.length + ", expected " + ga.length + ")");
 
+  var cacheKey = JSIL.HashTypeArgumentArray(arguments, typeObject.__Context__);
+  var ofCache = typeObject.__OfCache__;
+
+  // If we do not return the same exact closed type instance from every call to Of(...), derivation checks will fail
+  var result = ofCache[cacheKey];
+  if (result)
+    return result;
+
   var resolvedArguments = JSIL.ResolveTypeArgumentArray(
     Array.prototype.slice.call(arguments)
   );
@@ -1364,18 +1372,6 @@ $jsilcore.$Of$NoInitialize = function () {
 
     JSIL.$ResolveGenericTypeReferences(typeObject, resolvedArguments);
   }
-
-  var cacheKey = JSIL.HashTypeArgumentArray(resolvedArguments, typeObject.__Context__);
-
-  var ofCache = typeObject.__OfCache__;
-  if ((typeof (ofCache) === "undefined") || (ofCache === null))
-    typeObject.__OfCache__ = ofCache = [];
-
-  // If we do not return the same exact closed type instance from every call to Of(...), derivation checks will fail
-  var result = ofCache[cacheKey] || null;
-
-  if (result !== null)
-    return result;
 
   var resultTypeObject = JSIL.CloneObject(typeObject);
 
@@ -1528,6 +1524,8 @@ $jsilcore.$Of$NoInitialize = function () {
     JSIL.RenameGenericMethods(result, resultTypeObject);
     JSIL.RebindRawMethods(result, resultTypeObject);
     JSIL.FixupFieldTypes(result, resultTypeObject);
+  } else {
+    resultTypeObject.__OfCache__ = {};
   }
 
   JSIL.MakeCastMethods(result, resultTypeObject, typeObject.__CastSpecialType__);
@@ -2918,6 +2916,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
     staticClassObject.Of$NoInitialize = $jsilcore.$Of$NoInitialize.bind(staticClassObject);
     staticClassObject.Of = $jsilcore.$Of.bind(staticClassObject);
     typeObject.__IsClosed__ = false;
+    typeObject.__OfCache__ = {};
   } else {
     typeObject.__IsClosed__ = true;
   }
@@ -3273,6 +3272,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
       staticClassObject.Of$NoInitialize = $jsilcore.$Of$NoInitialize.bind(staticClassObject);
       staticClassObject.Of = $jsilcore.$Of.bind(staticClassObject);
       typeObject.__IsClosed__ = false;
+      typeObject.__OfCache__ = {};
     } else {
       typeObject.__IsClosed__ = !(baseType.__IsClosed__ === false);
     }
@@ -3395,6 +3395,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
       publicInterface.Of$NoInitialize = $jsilcore.$Of$NoInitialize.bind(publicInterface);
       publicInterface.Of = $jsilcore.$Of.bind(publicInterface);
       typeObject.__IsClosed__ = false;
+      typeObject.__OfCache__ = {};
     } else {
       typeObject.__IsClosed__ = true;
     }
@@ -5774,6 +5775,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
       staticClassObject.Of$NoInitialize = $jsilcore.$Of$NoInitialize.bind(staticClassObject);
       staticClassObject.Of = $jsilcore.$Of.bind(staticClassObject);
       typeObject.__IsClosed__ = false;
+      typeObject.__OfCache__ = {};
     } else {
       typeObject.__IsClosed__ = true;
     }
