@@ -1290,16 +1290,17 @@ JSIL.HashTypeArgumentArray = function (typeArgs, context) {
 
   for (var i = 0, l = typeArgs.length; i < l; i++) {
     var tr = typeArgs[i];
+    var trType = typeof (tr);
     var typeId;
 
-    if (typeof (tr) === "undefined") {
+    if (trType === "undefined") {
       throw new Error("Undefined passed as type argument");
     } else if (tr === null) {
       throw new Error("Null passed as type argument");
-    } else if (typeof (tr.__TypeId__) !== "undefined") {
+    } else if (tr.__TypeId__) {
       typeId = tr.__TypeId__;
     } else if (
-      typeof (tr) === "string"
+      trType === "string"
     ) {
       if (tr.indexOf("!!") === 0) {
         typeId = tr;
@@ -1310,16 +1311,10 @@ JSIL.HashTypeArgumentArray = function (typeArgs, context) {
         typeId = JSIL.AssignTypeId(context, tr);
       }
     } else if (
-      typeof (tr) === "object"
+      trType === "object"
     ) {
       if (Object.getPrototypeOf(tr) === JSIL.TypeRef.prototype)
         typeId = tr.getTypeId();
-      else
-        typeId = tr.__TypeId__;
-    } else if (
-      typeof (tr) === "function"
-    ) {
-      typeId = tr.__TypeId__;
     }
 
     if (typeof (typeId) === "undefined")
