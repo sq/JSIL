@@ -7203,3 +7203,43 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GamerServices.Guide", function 
   );
 
 });
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.VertexPositionColor", function ($) {
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector3"), $jsilxna.colorRef()], [])), 
+    function _ctor (position, color) {
+      this.Position = position;
+      this.Color = color;
+    }
+  );
+
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.VertexPositionTexture", function ($) {
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector3"), $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector2")], [])), 
+    function _ctor (position, textureCoordinate) {
+      this.Position = position;
+      this.TextureCoordinate = textureCoordinate;
+    }
+  );
+
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.VertexPositionColorTexture", function ($) {
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [
+          $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector3"), $jsilxna.colorRef(), 
+          $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Vector2")
+        ], [])), 
+    function _ctor (position, color, textureCoordinate) {
+      this.Position = position;
+      this.Color = color;
+      this.TextureCoordinate = textureCoordinate;
+    }
+  );
+
+});
