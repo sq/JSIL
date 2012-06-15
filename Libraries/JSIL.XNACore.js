@@ -1812,6 +1812,12 @@ var vectorUtil = {
           ["lhs", "rhs"],
           js
         );
+      case 3:
+        return JSIL.CreateNamedFunction(
+          functionName,
+          ["lhs", "rhs", "amount"],
+          js
+        );      
       default:
         throw new Error("Invalid argument count");
     }
@@ -2029,6 +2035,27 @@ var vectorUtil = {
     vectorUtil.makeNormalizer($, dataMembers, tVector);
   },
 
+  makeLerpMethod: function ($, dataMembers, tVector) {
+    var name = "Lerp";
+    var body = [];
+    body.push("var result = lhs.MemberwiseClone();");
+
+    for (var i = 0; i < dataMembers.length; i++) {
+      var dataMember = dataMembers[i];
+
+      body.push("result." + dataMember + " += (rhs." + dataMember + " - lhs." + dataMember + ") * amount;");
+    }
+
+    body.push("return result;");
+
+    var fn = vectorUtil.makeOperatorCore(name, tVector, body, 3);
+
+    $.Method({Static: true, Public: true }, name, 
+      new JSIL.MethodSignature(tVector, [tVector, tVector, $.Single], []),
+      fn
+    );
+  },
+
   makeOperators: function ($, dataMembers, tVector) {
     var operators = [
       ["op_Addition", "+", false, "Add"],
@@ -2057,6 +2084,8 @@ var vectorUtil = {
     vectorUtil.makeLogicOperator($, "op_Inequality", "!==", "||", dataMembers, tVector);
 
     vectorUtil.makeLengthMethods($, dataMembers, tVector);
+
+    vectorUtil.makeLerpMethod($, dataMembers, tVector);
   },
 
   makeConstants: function ($, tVector, constants) {
