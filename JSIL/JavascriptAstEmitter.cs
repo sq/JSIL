@@ -672,6 +672,7 @@ namespace JSIL {
             } else {
                 Output.Identifier("JSIL.UnmaterializedReference", null);
                 Output.LPar();
+                Output.Value(byref.Referent.ToString());
                 Output.RPar();
             }
         }

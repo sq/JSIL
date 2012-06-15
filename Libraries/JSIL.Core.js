@@ -597,6 +597,10 @@ JSIL.Host.runLater = function (action) {
   }
 };
 
+JSIL.UnmaterializedReference = function (targetExpression) {
+  JSIL.Host.error(new Error("A reference to expression '" + targetExpression + "' could not be translated."));
+};
+
 JSIL.UntranslatableNode = function (nodeType) {
   JSIL.Host.error(new Error("An ILAst node of type " + nodeType + " could not be translated."));
 };

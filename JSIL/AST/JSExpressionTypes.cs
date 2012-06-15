@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -284,14 +285,35 @@ namespace JSIL.Ast {
                 }
             }
 
+            JSIndexerExpression indexer = null;
+            JSReferenceExpression nestedReference = null;
             var variable = reference as JSVariable;
-            var refe = reference as JSReferenceExpression;
-            if (refe != null)
-                variable = refe.Referent as JSVariable;
 
-            if ((variable != null) && (variable.IsReference)) {
-                materialized = variable.Dereference();
+            if (variable == null) {
+                var refe = reference as JSReferenceExpression;
+                if (refe != null) {
+                    variable = refe.Referent as JSVariable;
+                    indexer = refe.Referent as JSIndexerExpression;
+                    nestedReference = refe.Referent as JSReferenceExpression;
+                }
+            }
+
+            if (variable != null) {
+                if (variable.IsReference) {
+                    materialized = variable.Dereference();
+                    return true;
+                } else {
+                    // FIXME: This probably shouldn't happen?
+                    materialized = null;
+                    return false;
+                }
+            } else if (indexer != null) {
+                materialized = jsil.NewElementReference(
+                    indexer.Target, indexer.Index
+                );
                 return true;
+            } else if (nestedReference != null) {
+                return TryMaterialize(jsil, nestedReference, out materialized);
             }
 
             materialized = null;

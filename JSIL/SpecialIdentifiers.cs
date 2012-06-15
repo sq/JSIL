@@ -112,6 +112,17 @@ namespace JSIL {
             );
         }
 
+        public JSNewExpression NewElementReference (JSExpression target, JSExpression index) {
+            var resultType = new ByReferenceType(
+                target.GetActualType(TypeSystem).GetElementType()
+            );
+
+            return new JSNewExpression(
+                Dot("MemberReference", resultType),
+                null, null, target, index
+            );
+        }
+
         public JSNewExpression NewMemberReference (JSExpression target, JSLiteral member) {
             var resultType = new ByReferenceType(member.GetActualType(TypeSystem));
 

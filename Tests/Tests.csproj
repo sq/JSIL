@@ -160,6 +160,8 @@
     <None Include="SimpleTestCases\StringFormatPlaceSeparators.cs" />
     <None Include="SimpleTestCases\IntegerToStringFormatted.cs" />
     <None Include="AnalysisTestCases\InitTemporaryArray.cs" />
+    <None Include="SimpleTestCases\JaggedArrayReference.cs" />
+    <None Include="SimpleTestCases\JaggedStructArrayReference.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />
