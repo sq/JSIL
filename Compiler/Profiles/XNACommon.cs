@@ -1051,7 +1051,7 @@ public static class Common {
             goto retry;
         }
 
-        return Path.GetFullPath(outputDirectory);
+        return outputDirectory;
     }
 
     private static void ConvertXactProject (
@@ -1081,9 +1081,10 @@ public static class Common {
 
                 var waveOutputFolder = FixupOutputDirectory(outputFolder, waveFolder);
 
-                waveManifest[wave.m_name] = Path.Combine(
+                waveManifest[wave.m_name] = FixupOutputDirectory(
                     projectSubdir, 
-                    wave.m_fileName.Replace(Path.GetExtension(wave.m_fileName), "")
+                    wave.m_fileName
+                        .Replace(Path.GetExtension(wave.m_fileName), "")
                 );
 
                 journal.AddRange(CompressAudioGroup(
