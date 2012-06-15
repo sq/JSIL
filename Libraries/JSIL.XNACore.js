@@ -1887,7 +1887,11 @@ var vectorUtil = {
     };
 
     $.Method({Static: true , Public: true }, staticMethodName,
-      new JSIL.MethodSignature(null, [makeRef(tLeft), makeRef(tRight), makeRef(tResult)], []),
+      new JSIL.MethodSignature(null, [
+        leftScalar ? tLeft : makeRef(tLeft), 
+        rightScalar ? tRight : makeRef(tRight), 
+        makeRef(tResult)
+      ], []),
       function (lhs, rhs, result) {
         result.value = fn(lhs.value, rhs.value);
       }
