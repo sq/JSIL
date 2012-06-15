@@ -783,7 +783,7 @@ public static class Common {
                     contentProjectDirectory,
                     item.EvaluatedInclude
                 );
-                var outputPath = Path.Combine(
+                var outputPath = FixupOutputDirectory(
                     localOutputDirectory,
                     item.EvaluatedInclude
                 );
@@ -800,7 +800,7 @@ public static class Common {
                 if (xnbPath == null)
                     throw new FileNotFoundException("Asset " + item.EvaluatedInclude + " was not built.");
 
-                var outputPath = Path.Combine(
+                var outputPath = FixupOutputDirectory(
                     localOutputDirectory,
                     item.EvaluatedInclude.Replace(
                         Path.GetExtension(item.EvaluatedInclude),
@@ -826,7 +826,7 @@ public static class Common {
                         continue;
                 }
 
-                var itemOutputDirectory = Path.Combine(
+                var itemOutputDirectory = FixupOutputDirectory(
                     localOutputDirectory,
                     Path.GetDirectoryName(item.EvaluatedInclude)
                 );
@@ -981,7 +981,7 @@ public static class Common {
         foreach (var result in results)
             formats.Add(Path.GetExtension(result.Filename));
 
-        var prefixName = Path.Combine(
+        var prefixName = FixupOutputDirectory(
             Path.GetDirectoryName(results.First().Filename),
             Path.GetFileNameWithoutExtension(results.First().Filename)
         );
@@ -1033,6 +1033,27 @@ public static class Common {
         };
     }
 
+    public static string FixupOutputDirectory (string parentDirectory, string subDirectory) {
+        bool retried = false;
+
+    retry:
+        var outputDirectory = Path.Combine(parentDirectory, subDirectory);
+
+        var parentNormalized = Path.GetFullPath(parentDirectory).ToLowerInvariant();
+        var outputNormalized = Path.GetFullPath(outputDirectory).ToLowerInvariant();
+
+        if (outputNormalized.IndexOf(parentNormalized) != 0) {
+            if (retried)
+                throw new Exception("Invalid output directory: " + subDirectory);
+
+            subDirectory = subDirectory.Replace("..\\", "").Replace("\\..", "");
+            retried = true;
+            goto retry;
+        }
+
+        return Path.GetFullPath(outputDirectory);
+    }
+
     private static void ConvertXactProject (
         string projectFile, string sourceFolder, 
         string outputFolder, Dictionary<string, object> profileSettings, 
@@ -1057,6 +1078,9 @@ public static class Common {
 
             foreach (var wave in waveBank.m_waves) {
                 var waveFolder = Path.GetDirectoryName(wave.m_fileName);
+
+                var waveOutputFolder = FixupOutputDirectory(outputFolder, waveFolder);
+
                 waveManifest[wave.m_name] = Path.Combine(
                     projectSubdir, 
                     wave.m_fileName.Replace(Path.GetExtension(wave.m_fileName), "")
@@ -1064,7 +1088,7 @@ public static class Common {
 
                 journal.AddRange(CompressAudioGroup(
                     Path.Combine(projectSubdir, wave.m_fileName), sourceFolder, 
-                    Path.Combine(outputFolder, waveFolder), profileSettings, existingJournal, logOutput
+                    waveOutputFolder, profileSettings, existingJournal, logOutput
                 ));
             }
         }
