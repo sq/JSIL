@@ -4025,3 +4025,48 @@ JSIL.MakeEnum(
     Append: 6
   }, false
 );
+
+JSIL.ImplementExternals("System.GC", function ($) {
+  var warnedAboutMemory = false;
+
+  var warnIfNecessary = function () {
+    if (warnedAboutMemory)
+      return;
+
+    warnedAboutMemory = true;
+
+    JSIL.Host.warning("WARNING: JS heap memory statistics not available in your browser.");
+  };
+
+  var getMemoryImpl = function () {
+    if (window.performance.memory) {
+      return window.performance.memory.usedJSHeapSize;
+    } else {
+      warnIfNecessary();
+      return 0;
+    }
+  };
+
+  $.Method({Static:true , Public:false}, "GetTotalMemory", 
+    (new JSIL.MethodSignature($.Int64, [], [])), 
+    function GetTotalMemory () {
+      return getMemoryImpl();
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "GetTotalMemory", 
+    (new JSIL.MethodSignature($.Int64, [$.Boolean], [])), 
+    function GetTotalMemory (forceFullCollection) {
+      // FIXME: forceFullCollection
+
+      return getMemoryImpl();
+    }
+  );
+
+  $.Method({Static:true , Public:false}, "IsServerGC", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function IsServerGC () {
+      return false;
+    }
+  );
+});

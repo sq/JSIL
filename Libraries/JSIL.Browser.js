@@ -338,6 +338,10 @@ var keyMappings = {
 function getAssetName (filename, preserveCase) {
   var backslashRe = /\\/g;
   filename = filename.replace(backslashRe, "/");
+  
+  var doubleSlashRe = /\/\//g;
+  while (filename.indexOf("//") >= 0)
+    filename = filename.replace(doubleSlashRe, "/");
 
   var lastIndex = filename.lastIndexOf(".");
   var result;

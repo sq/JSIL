@@ -3708,6 +3708,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameTime", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "get_IsRunningSlowly", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsRunningSlowly () {
+      return this.isRunningSlowly;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "get_TotalGameTime", 
     (new JSIL.MethodSignature($xnaasms[5].TypeRef("System.TimeSpan"), [], [])), 
     function get_TotalGameTime () {

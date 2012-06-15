@@ -160,6 +160,14 @@ JSIL.ImplementExternals("System.IO.Path", function ($) {
     }
   );
 
+  $.Method({Static:true , Public:true }, "GetFullPath", 
+    (new JSIL.MethodSignature($.String, [$.String], [])), 
+    function GetFullPath (path) {
+      // FIXME
+      return path;
+    }
+  );
+
   $.Method({Static:true , Public:true }, "GetFileName", 
     (new JSIL.MethodSignature($.String, [$.String], [])), 
     function GetFileName (path) {
