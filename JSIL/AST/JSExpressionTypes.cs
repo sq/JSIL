@@ -802,6 +802,46 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSNewArrayExpression : JSExpression {
+        public readonly bool IsMultidimensional;
+        public readonly TypeReference ElementType;
+        public readonly ArrayType ArrayType;
+
+        public readonly JSExpression SizeOrArrayInitializer;
+        public readonly JSExpression[] Dimensions;
+
+        public JSNewArrayExpression (TypeReference elementType, JSExpression sizeOrArrayInitializer) {
+            ElementType = elementType;
+            ArrayType = new ArrayType(elementType);
+            IsMultidimensional = false;
+            SizeOrArrayInitializer = sizeOrArrayInitializer;
+        }
+
+        public JSNewArrayExpression (TypeReference elementType, JSExpression[] dimensions, JSExpression initializer = null) {
+            ElementType = elementType;
+            ArrayType = new ArrayType(elementType, dimensions.Length);
+            IsMultidimensional = true;
+            Dimensions = dimensions;
+            SizeOrArrayInitializer = initializer;
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                if (Dimensions != null) {
+                    foreach (var dim in Dimensions)
+                        yield return dim;
+                }
+
+                if (SizeOrArrayInitializer != null)
+                    yield return SizeOrArrayInitializer;
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return ArrayType;
+        }
+    }
+
     public class JSInvocationExpressionBase : JSAnnotatedExpression {
         protected JSInvocationExpressionBase (params JSExpression[] values)
             : base(values) {

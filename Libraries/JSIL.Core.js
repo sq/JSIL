@@ -2159,7 +2159,8 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
 
     var stub = function GetBoundGenericMethod () {
       var gaImpl = this[gaGroup];
-      return JSIL.$BindGenericMethod(this, gaImpl, methodFullName, arguments);
+      var boundMethod = JSIL.$BindGenericMethod(this, gaImpl, methodFullName, arguments);
+      return boundMethod;
     };
 
     return JSIL.$MakeAnonymousMethod(target, stub);

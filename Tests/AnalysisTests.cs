@@ -254,5 +254,19 @@ namespace JSIL.Tests {
             Assert.IsTrue(generatedJs.Contains("a.Value"));
             Assert.IsTrue(generatedJs.Contains("b.Value"));
         }
+
+        [Test]
+        public void InitTemporaryArray () {
+            var output = "";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\InitTemporaryArray.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+            Assert.IsTrue(generatedJs.Contains("lineListIndices ="));
+            Assert.IsTrue(generatedJs.Contains("lineListIndices["));
+        }
     }
 }

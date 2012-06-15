@@ -1454,7 +1454,8 @@ namespace JSIL {
                         TypeUtil.IsStruct(defaultValue.GetActualType(field.Module.TypeSystem)) ||
                         defaultValue is JSNewExpression ||
                         defaultValue is JSArrayExpression ||
-                        defaultValue is JSInvocationExpressionBase
+                        defaultValue is JSInvocationExpressionBase ||
+                        defaultValue is JSNewArrayExpression
                     )
                 ) {
                     // We have to represent the default value as a callable function, taking a single
@@ -1617,7 +1618,17 @@ namespace JSIL {
                             try {
                                 // TODO: Expand this to include 'new X' expressions that are effectively constant, by using static analysis to ensure that
                                 //  the new-expression doesn't have any global state dependencies and doesn't perform mutation.
-                                if (!defaultValue.IsConstant)
+
+                                var newArray = defaultValue as JSNewArrayExpression;
+
+                                if (
+                                    (newArray != null) && (
+                                        (newArray.SizeOrArrayInitializer == null) ||
+                                        (newArray.SizeOrArrayInitializer.IsConstant)
+                                    )
+                                )
+                                    ;
+                                else if (!defaultValue.IsConstant)
                                     continue;
                             } catch (Exception ex) {
                                 // This may fail because we didn't do a full translation.

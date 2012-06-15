@@ -94,30 +94,12 @@ namespace JSIL {
             );
         }
 
-        public JSInvocationExpression NewArray (TypeReference elementType, JSExpression sizeOrArrayInitializer) {
-            var arrayType = new ArrayType(elementType);
-
-            return JSInvocationExpression.InvokeStatic(
-                new JSDotExpression(
-                    Dot("Array", TypeSystem.Object), 
-                    new JSFakeMethod("New", arrayType, new[] { arrayType }, MethodTypes)
-                ), new [] { new JSType(elementType), sizeOrArrayInitializer }, 
-                true
-            );
+        public JSNewArrayExpression NewArray (TypeReference elementType, JSExpression sizeOrArrayInitializer) {
+            return new JSNewArrayExpression(elementType, sizeOrArrayInitializer);
         }
 
-        public JSInvocationExpression NewMultidimensionalArray (TypeReference elementType, JSExpression[] dimensions, JSExpression initializer = null) {
-            var arrayType = new ArrayType(elementType, dimensions.Length);
-            var arguments = new JSExpression[] { new JSType(elementType) }.Concat(dimensions);
-            if (initializer != null)
-                arguments = arguments.Concat(new[] { initializer });
-
-            return JSInvocationExpression.InvokeStatic(
-                new JSDotExpression(
-                    Dot("MultidimensionalArray", TypeSystem.Object), 
-                    new JSFakeMethod("New", arrayType, new[] { TypeSystem.Object, TypeSystem.Object }, MethodTypes)
-                ), arguments.ToArray(), true
-            );
+        public JSNewArrayExpression NewMultidimensionalArray (TypeReference elementType, JSExpression[] dimensions, JSExpression initializer = null) {
+            return new JSNewArrayExpression(elementType, dimensions, initializer);
         }
 
         public JSInvocationExpression NewDelegate (TypeReference delegateType, JSExpression thisReference, JSExpression targetMethod) {

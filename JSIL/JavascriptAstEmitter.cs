@@ -1078,6 +1078,30 @@ namespace JSIL {
             Output.RPar();
         }
 
+        public void VisitNode (JSNewArrayExpression newarray) {
+            if (newarray.IsMultidimensional)
+                Output.WriteRaw("JSIL.MultidimensionalArray.New");
+            else
+                Output.WriteRaw("JSIL.Array.New");
+
+            Output.LPar();
+            Output.Identifier(newarray.ElementType, ReferenceContext);
+
+            if (newarray.Dimensions != null) {
+                Output.Comma();
+
+                CommaSeparatedList(newarray.Dimensions, false);
+            }
+
+            if (newarray.SizeOrArrayInitializer != null) {
+                Output.Comma();
+
+                Visit(newarray.SizeOrArrayInitializer);
+            }
+
+            Output.RPar();
+        }
+
         public void VisitNode (JSNewExpression newexp) {
             var outer = Stack.Skip(1).FirstOrDefault();
             var outerInvocation = outer as JSInvocationExpression;

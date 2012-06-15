@@ -1957,7 +1957,7 @@ namespace JSIL {
             return JSLiteral.DefaultValue(type);
         }
 
-        protected JSInvocationExpression Translate_Newarr (ILExpression node, TypeReference elementType) {
+        protected JSNewArrayExpression Translate_Newarr (ILExpression node, TypeReference elementType) {
             return JSIL.NewArray(
                 elementType,
                 TranslateNode(node.Arguments[0])
