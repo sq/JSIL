@@ -4055,7 +4055,7 @@ JSIL.ImplementExternals("System.GC", function ($) {
   };
 
   var getMemoryImpl = function () {
-    if (window.performance.memory) {
+    if (window.performance && window.performance.memory) {
       return window.performance.memory.usedJSHeapSize;
     } else {
       warnIfNecessary();
