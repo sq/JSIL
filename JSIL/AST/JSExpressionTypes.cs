@@ -1679,6 +1679,9 @@ namespace JSIL.Ast {
                     return true;
             }
 
+            if (TypeUtil.IsEnum(currentType) && TypeUtil.IsIntegral(newType))
+                return true;
+
             return false;
         }
 
