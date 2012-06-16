@@ -32,6 +32,7 @@ namespace JSIL.Transforms {
 
         public void VisitNode (JSSwitchCase sc) {
             SwitchCaseStack.Push(sc);
+            AbsoluteJumpsSeenStack.Add(0);
 
             if (TraceLevel >= 2) {
                 if (sc.Values != null)
@@ -45,14 +46,18 @@ namespace JSIL.Transforms {
             if (TraceLevel >= 2)
                 Console.WriteLine("// Exiting case");
 
+            AbsoluteJumpsSeenStack.RemoveAt(AbsoluteJumpsSeenStack.Count - 1);
             SwitchCaseStack.Pop();
         }
 
         public void VisitNode (JSBlockStatement bs) {
+            var lastSwitchCase = LastSwitchCase;
             var thisSwitchCase = ParentSwitchCase;
+            LastSwitchCase = thisSwitchCase;
+
             var parentLabelGroup = ParentNode as JSLabelGroupStatement;
             var isControlFlow = bs.IsControlFlow || 
-                (thisSwitchCase != LastSwitchCase) || 
+                (thisSwitchCase != lastSwitchCase) || 
                 (parentLabelGroup != null);
 
             if (TraceLevel >= 2)
@@ -76,8 +81,6 @@ namespace JSIL.Transforms {
 
             if (isControlFlow)
                 AbsoluteJumpsSeenStack.RemoveAt(AbsoluteJumpsSeenStack.Count - 1);
-
-            LastSwitchCase = thisSwitchCase;
         }
 
         private JSSwitchCase ParentSwitchCase {
