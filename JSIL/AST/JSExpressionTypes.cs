@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using ICSharpCode.Decompiler.ILAst;
+using ICSharpCode.NRefactory.CSharp;
 using JSIL.Internal;
 using Mono.Cecil;
 
@@ -79,7 +80,30 @@ namespace JSIL.Ast {
         }
     }
 
-    public class JSGotoExpression : JSExpression {
+
+    public class JSThrowExpression : JSExpression {
+        public JSThrowExpression (JSExpression exception)
+            : base(exception) {
+        }
+
+        public JSExpression Exception {
+            get {
+                return Values[0];
+            }
+        }
+
+        public override string ToString () {
+            return String.Format("throw {0}", Exception);
+        }
+    }
+
+    public abstract class JSFlowControlExpression : JSExpression {
+        protected JSFlowControlExpression (params JSExpression[] values)
+            :base (values) {
+        }
+    }
+
+    public class JSGotoExpression : JSFlowControlExpression {
         public readonly string TargetLabel;
 
         public JSGotoExpression (string targetLabel) {
@@ -101,7 +125,7 @@ namespace JSIL.Ast {
     }
 
     // Technically, the following expressions should be statements. But in ILAst, they're expressions...
-    public class JSReturnExpression : JSExpression {
+    public class JSReturnExpression : JSFlowControlExpression {
         public JSReturnExpression (JSExpression value = null)
             : base(value) {
         }
@@ -115,25 +139,18 @@ namespace JSIL.Ast {
         public override string ToString () {
             return String.Format("return {0}", Value);
         }
-    }
 
-    public class JSThrowExpression : JSExpression {
-        public JSThrowExpression (JSExpression exception)
-            : base(exception) {
-        }
+        public override bool Equals (object obj) {
+            var rhs = obj as JSReturnExpression;
 
-        public JSExpression Exception {
-            get {
-                return Values[0];
-            }
-        }
+            if (rhs == null)
+                return base.Equals(obj);
 
-        public override string ToString () {
-            return String.Format("throw {0}", Exception);
+            return Value.Equals(rhs.Value);
         }
     }
 
-    public class JSBreakExpression : JSExpression {
+    public class JSBreakExpression : JSFlowControlExpression {
         public int? TargetLoop;
 
         public override string ToString () {
@@ -142,9 +159,18 @@ namespace JSIL.Ast {
             else
                 return "break";
         }
+
+        public override bool Equals (object obj) {
+            var rhs = obj as JSBreakExpression;
+
+            if (rhs == null)
+                return base.Equals(obj);
+
+            return TargetLoop.Equals(rhs.TargetLoop);
+        }
     }
 
-    public class JSContinueExpression : JSExpression {
+    public class JSContinueExpression : JSFlowControlExpression {
         public int? TargetLoop;
 
         public override string ToString () {
@@ -152,6 +178,15 @@ namespace JSIL.Ast {
                 return String.Format("continue $loop{0}", TargetLoop);
             else
                 return "continue";
+        }
+
+        public override bool Equals (object obj) {
+            var rhs = obj as JSContinueExpression;
+
+            if (rhs == null)
+                return base.Equals(obj);
+
+            return TargetLoop.Equals(rhs.TargetLoop);
         }
     }
 

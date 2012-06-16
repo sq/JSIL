@@ -1034,6 +1034,9 @@ public static class Common {
     }
 
     public static string FixupOutputDirectory (string parentDirectory, string subDirectory) {
+        if (String.IsNullOrWhiteSpace(parentDirectory))
+            return subDirectory.Replace("..\\", "").Replace("\\..", "");
+
         bool retried = false;
 
     retry:
