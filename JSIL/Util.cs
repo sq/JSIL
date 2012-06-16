@@ -31,9 +31,13 @@ namespace JSIL.Internal {
             "package", "interface", "implements", "private",
             "protected", "public", "static", "yield",
             "const", "true", "false", "null",
+        };
 
-            // Goddamn firefox
-            "name"
+        // We need to flag these names as reserved because they are properties of
+        //  Function in many browsers.
+        public static readonly HashSet<string> ReservedIdentifiers = new HashSet<string> {
+            "name", "length", "arity", "constructor",
+            "caller", "arguments", "call", "apply", "bind"
         };
 
         public static Regex ValidIdentifier = new Regex(
@@ -188,6 +192,7 @@ namespace JSIL.Internal {
                 result = sb.ToString();
 
             bool isReservedWord = ReservedWords.Contains(result);
+
             if (isReservedWord)
                 result = "$" + result;
 

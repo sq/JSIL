@@ -1158,6 +1158,7 @@ namespace JSIL.Internal {
         protected readonly JSWritePolicy _WritePolicy;
         protected readonly JSInvokePolicy _InvokePolicy;
         protected bool? _IsReturnIgnored;
+        protected bool _WasReservedIdentifier;
 
         public MemberInfo (
             TypeInfo parent, MemberIdentifier identifier, 
@@ -1209,6 +1210,8 @@ namespace JSIL.Internal {
                     }
                 }
             }
+
+            _WasReservedIdentifier = Util.ReservedIdentifiers.Contains(Name);
         }
 
         // Sometimes the type system prefixes the name of a member with some or all of the declaring type's name.
@@ -1269,6 +1272,9 @@ namespace JSIL.Internal {
                 var parms = Metadata.GetAttributeParameters("JSIL.Meta.JSChangeName");
                 if (parms != null)
                     return (string)parms[0].Value;
+
+                if (_WasReservedIdentifier)
+                    return "$" + Member.Name;
 
                 return null;
             }
