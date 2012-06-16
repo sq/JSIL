@@ -21,6 +21,11 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
+        [JSReplacement("JSIL.NumberToFormattedString($this, $format, $formatProvider)")]
+        public string ToString (string format, IFormatProvider formatProvider) {
+            throw new InvalidOperationException();
+        }
+
         [JSReplacement("JSIL.CompareValues($this, $rhs)")]
         public int CompareTo (AnyType rhs) {
             throw new InvalidOperationException();
@@ -41,6 +46,11 @@ namespace JSIL.Proxies {
 
         [JSReplacement("JSIL.NumberToFormattedString($this, $format)")]
         public string ToString (string format) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("JSIL.NumberToFormattedString($this, $format, $formatProvider)")]
+        public string ToString (string format, IFormatProvider formatProvider) {
             throw new InvalidOperationException();
         }
 

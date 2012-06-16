@@ -1892,15 +1892,29 @@ var vectorUtil = {
       return $jsilcore.TypeRef("JSIL.Reference", [t]);
     };
 
+    var wrapper;
+
+    if (leftScalar) {
+      wrapper = function VectorOperator_Scalar_Ref (lhs, rhs, result) {
+        result.value = fn(lhs, rhs.value);
+      }
+    } else if (rightScalar) {
+      wrapper = function VectorOperator_Ref_Scalar (lhs, rhs, result) {
+        result.value = fn(lhs.value, rhs);
+      }
+    } else {
+      wrapper = function VectorOperator_Ref_Ref (lhs, rhs, result) {
+        result.value = fn(lhs.value, rhs.value);
+      }
+    }
+
     $.Method({Static: true , Public: true }, staticMethodName,
       new JSIL.MethodSignature(null, [
         leftScalar ? tLeft : makeRef(tLeft), 
         rightScalar ? tRight : makeRef(tRight), 
         makeRef(tResult)
       ], []),
-      function (lhs, rhs, result) {
-        result.value = fn(lhs.value, rhs.value);
-      }
+      wrapper
     );
   },
 

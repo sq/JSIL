@@ -400,12 +400,81 @@ JSIL.ParseCustomNumberFormat = function (customFormat) {
   return formatter;
 };
 
-JSIL.NumberToFormattedString = function (value, format) {
-  var formatter = JSIL.ParseCustomNumberFormat(format);
-  if (!formatter)
-    throw new Error("Unsupported number format: " + format);
+JSIL.NumberToFormattedString = function (value, valueFormat, formatProvider) {
+  // FIXME: formatProvider
 
-  return formatter(value);
+  var formatInteger = function (value, radix, digits) {
+    digits = parseInt(digits);
+    if (isNaN(digits))
+      digits = 0;
+
+    var result = parseInt(value).toString(radix);
+
+    while (result.length < digits)
+      result = "0" + result;
+
+    return result;
+  };
+
+  var formatFloat = function (value, digits) {
+    digits = parseInt(digits);
+    if (isNaN(digits))
+      digits = 2;
+
+    return parseFloat(value).toFixed(digits);
+  };
+
+  var insertPlaceSeparators = function (valueString) {
+    var pieces = valueString.split(".");
+
+    var newIntegralPart = "";
+
+    for (var i = 0, l = pieces[0].length; i < l; i++) {
+      var ch = pieces[0][i];
+      var p = (l - i) % 3;
+
+      if ((i > 0) && (p === 0))
+        newIntegralPart += ",";
+
+      newIntegralPart += ch;
+    }
+
+    pieces[0] = newIntegralPart;
+
+    return pieces.join(".");
+  };
+
+  var parsedCustomFormat = JSIL.ParseCustomNumberFormat(valueFormat);
+
+  if (parsedCustomFormat) {
+    return parsedCustomFormat(value);
+
+  } else {
+    switch (valueFormat[0]) {
+      case 'd':
+      case 'D':
+        return formatInteger(value, 10, valueFormat.substr(1));
+
+      case 'x':
+        return formatInteger(value, 16, valueFormat.substr(1)).toLowerCase();
+
+      case 'X':
+        return formatInteger(value, 16, valueFormat.substr(1)).toUpperCase();
+
+      case 'f':
+      case 'F':
+        return formatFloat(value, valueFormat.substr(1));
+
+      case 'n':
+      case 'N':
+        var result = formatFloat(value, valueFormat.substr(1));
+        return insertPlaceSeparators(result);
+
+      default:
+        throw new Error("Unsupported format string: " + valueFormat);
+
+    }
+  }
 };
 
 JSIL.ImplementExternals(
@@ -528,84 +597,13 @@ JSIL.ImplementExternals(
         if ((values.length == 1) && JSIL.IsArray(values[0]))
           values = values[0];
 
-        var formatInteger = function (value, radix, digits) {
-          digits = parseInt(digits);
-          if (isNaN(digits))
-            digits = 0;
-
-          var result = parseInt(value).toString(radix);
-
-          while (result.length < digits)
-            result = "0" + result;
-
-          return result;
-        };
-
-        var formatFloat = function (value, digits) {
-          digits = parseInt(digits);
-          if (isNaN(digits))
-            digits = 2;
-
-          return parseFloat(value).toFixed(digits);
-        };
-
-        var insertPlaceSeparators = function (valueString) {
-          var pieces = valueString.split(".");
-
-          var newIntegralPart = "";
-
-          for (var i = 0, l = pieces[0].length; i < l; i++) {
-            var ch = pieces[0][i];
-            var p = (l - i) % 3;
-
-            if ((i > 0) && (p === 0))
-              newIntegralPart += ",";
-
-            newIntegralPart += ch;
-          }
-
-          pieces[0] = newIntegralPart;
-
-          return pieces.join(".");
-        };
-
         var matcher = function (match, index, valueFormat, offset, str) {
           index = parseInt(index);
 
           var value = values[index];
 
           if (valueFormat) {
-            var parsedCustomFormat = JSIL.ParseCustomNumberFormat(valueFormat);
-
-            if (parsedCustomFormat) {
-              return parsedCustomFormat(value);
-
-            } else {
-              switch (valueFormat[0]) {
-                case 'd':
-                case 'D':
-                  return formatInteger(value, 10, valueFormat.substr(1));
-
-                case 'x':
-                  return formatInteger(value, 16, valueFormat.substr(1)).toLowerCase();
-
-                case 'X':
-                  return formatInteger(value, 16, valueFormat.substr(1)).toUpperCase();
-
-                case 'f':
-                case 'F':
-                  return formatFloat(value, valueFormat.substr(1));
-
-                case 'n':
-                case 'N':
-                  var result = formatFloat(value, valueFormat.substr(1));
-                  return insertPlaceSeparators(result);
-
-                default:
-                  throw new Error("Unsupported format string: " + valueFormat);
-
-              }
-            }
+            return JSIL.NumberToFormattedString(value, valueFormat);
 
           } else {
 
@@ -2007,6 +2005,15 @@ JSIL.ImplementExternals("System.Math", function ($) {
   $.RawMethod(true, "Max", Math.max);
   $.RawMethod(true, "Min", Math.min);
   $.RawMethod(true, "Exp", Math.exp);
+
+  $.Method({Static:true , Public:true }, "Round", 
+    (new JSIL.MethodSignature($.Double, [$.Double, $.Int32], [])), 
+    function Round (value, digits) {
+      var multiplier = Math.pow(10, digits);
+      var result = Math.round(value * multiplier) / multiplier;
+      return result;
+    }
+  );
 
   $.Method({Static:true , Public:true }, "Atan2", 
     (new JSIL.MethodSignature($.Double, [$.Double, $.Double], [])), 
@@ -4078,4 +4085,23 @@ JSIL.ImplementExternals("System.GC", function ($) {
       return false;
     }
   );
+});
+
+
+JSIL.ImplementExternals("System.Globalization.CultureInfo", function ($) {
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.String], [])), 
+    function _ctor (name) {
+      this.m_name = name;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.String, $.Boolean], [])), 
+    function _ctor (name, useUserOverride) {
+      this.m_name = name;
+    }
+  );
+
 });
