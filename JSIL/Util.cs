@@ -30,7 +30,10 @@ namespace JSIL.Internal {
             "export", "extends", "super", "let",
             "package", "interface", "implements", "private",
             "protected", "public", "static", "yield",
-            "const", "true", "false", "null"
+            "const", "true", "false", "null",
+
+            // Goddamn firefox
+            "name"
         };
 
         public static Regex ValidIdentifier = new Regex(

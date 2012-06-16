@@ -116,13 +116,19 @@ namespace JSIL.Internal {
         public readonly MethodSignature Signature;
         public readonly string Name;
 
+        private int? _Hash;
+
         public NamedMethodSignature (string name, MethodSignature signature) {
             Name = name;
             Signature = signature;
+            _Hash = null;
         }
 
         public override int GetHashCode() {
- 	        return Name.GetHashCode() ^ Signature.GetHashCode();
+            if (!_Hash.HasValue)
+                _Hash = (Name.GetHashCode() ^ Signature.GetHashCode());
+
+            return _Hash.Value;
         }
 
         public class Comparer : IEqualityComparer<NamedMethodSignature> {
