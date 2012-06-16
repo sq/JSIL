@@ -3449,11 +3449,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.MouseState", function ($)
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePad", function ($) {
+  var pressed = $xnaasms[0].Microsoft.Xna.Framework.Input.ButtonState.Pressed;
+  var released = $xnaasms[0].Microsoft.Xna.Framework.Input.ButtonState.Released;
+
   var getStateImpl = function (playerIndex) {
     var buttons = new Microsoft.Xna.Framework.Input.GamePadButtons();
     var thumbs = new Microsoft.Xna.Framework.Input.GamePadThumbSticks();
     var triggers = new Microsoft.Xna.Framework.Input.GamePadTriggers();
-    var dpad = new Microsoft.Xna.Framework.Input.GamePadDPad();
+    var dpad = new Microsoft.Xna.Framework.Input.GamePadDPad(released, released, released, released);
 
     return new Microsoft.Xna.Framework.Input.GamePadState(thumbs, triggers, buttons, dpad);
   };
@@ -3606,6 +3609,51 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadThumbSticks", func
       return this._right;
     }
   );
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadDPad", function ($) {
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [
+          $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.ButtonState"), $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.ButtonState"), 
+          $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.ButtonState"), $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.ButtonState")
+        ], [])), 
+    function _ctor (upValue, downValue, leftValue, rightValue) {
+      this._up = upValue;
+      this._down = downValue;
+      this._left = leftValue;
+      this._right = rightValue;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Down", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.ButtonState"), [], [])), 
+    function get_Down () {
+      return this._down;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Left", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.ButtonState"), [], [])), 
+    function get_Left () {
+      return this._left;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Right", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.ButtonState"), [], [])), 
+    function get_Right () {
+      return this._right;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Up", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.ButtonState"), [], [])), 
+    function get_Up () {
+      return this._up;
+    }
+  );
+
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.GraphicsDeviceManager", function ($) {
@@ -5137,6 +5185,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
     scaleX, scaleY, 
     effects, depth
   ) {
+    if (text.length <= 0)
+      return;
+
     if (this.defer) {
       this.DeferDrawString(
         font, text, 
@@ -5822,7 +5873,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
       // Draw calls are really expensive, so cache entire strings as single textures.
 
       if ($useTextCaching && (forCache !== true)) {
-        var cachedTexture = $jsilxna.textCache.getItem(text);
+        var cacheKey = this.textureValue.id + ":" + text;
+
+        var cachedTexture = $jsilxna.textCache.getItem(cacheKey);
 
         if (!cachedTexture) {
           var measured = this.InternalMeasure(text);
@@ -5866,7 +5919,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
 
           cachedTexture.sizeBytes = tempCanvas.sizeBytes = tempCanvas.width * tempCanvas.height * 4;
 
-          $jsilxna.textCache.setItem(text, cachedTexture);
+          $jsilxna.textCache.setItem(cacheKey, cachedTexture);
         }
 
         var cachedTextureWidth = cachedTexture.width;
@@ -6595,6 +6648,22 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GamerServices.Gamer", function 
         signedInGamers = new $xnaasms[2].Microsoft.Xna.Framework.GamerServices.SignedInGamerCollection();
 
       return signedInGamers;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_DisplayName", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_DisplayName () {
+      // FIXME
+      return "Player";
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Gamertag", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_Gamertag () {
+      // FIXME
+      return "Player";
     }
   );
 });
