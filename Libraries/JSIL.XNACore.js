@@ -6585,20 +6585,16 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.TitleContainer", function ($) {
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.GamerServices.Gamer", function ($) {
-  var signedInGamers = [null];
-
-  $.Method({Static:true , Public:true }, ".cctor",
-    (new JSIL.MethodSignature(null, [], [])),
-    function () {
-      signedInGamers[0] = new $xnaasms[2].Microsoft.Xna.Framework.GamerServices.SignedInGamerCollection();
-    }
-  );
+  var signedInGamers = null;
 
   $.Method({Static:true , Public:true }, "get_SignedInGamers", 
     (new JSIL.MethodSignature($xnaasms[2].TypeRef("Microsoft.Xna.Framework.GamerServices.SignedInGamerCollection"), [], [])), 
     function get_SignedInGamers () {
       // FIXME
-      return signedInGamers[0];
+      if (signedInGamers === null)
+        signedInGamers = new $xnaasms[2].Microsoft.Xna.Framework.GamerServices.SignedInGamerCollection();
+
+      return signedInGamers;
     }
   );
 });

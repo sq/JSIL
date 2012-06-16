@@ -177,6 +177,39 @@ $jsilcore.FunctionNull = function () { throw new Error("FunctionNull"); };
 
 $jsilcore.PropertyNotInitialized = {};
 
+JSIL.DefineLazyDefaultProperty = function (target, key, getDefault) {
+  var state = $jsilcore.PropertyNotInitialized;
+
+  var getter = function () {
+    if (state === $jsilcore.PropertyNotInitialized)
+      state = getDefault.call(this);
+
+    return state;
+  };
+
+  var setter = function (value) {
+    Object.defineProperty(
+      this, key, {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        value: value
+      } 
+    );
+
+    return value;
+  };
+
+  var descriptor = {
+    configurable: true,
+    enumerable: true,
+    get: getter,
+    set: setter
+  };
+
+  Object.defineProperty(target, key, descriptor);
+};
+
 JSIL.SetLazyValueProperty = function (target, key, getValue) {
   var state = $jsilcore.PropertyNotInitialized;
 
@@ -186,7 +219,7 @@ JSIL.SetLazyValueProperty = function (target, key, getValue) {
 
   var getter = function () {
     if (state === $jsilcore.PropertyNotInitialized) {
-      state = getValue();
+      state = getValue.call(this);
       JSIL.Host.runLater(cleanup);
     }
 
@@ -2608,24 +2641,6 @@ JSIL.BuildTypeList = function (type, publicInterface) {
   }
 };
 
-JSIL.InitializeFields = function (publicInterface, typeObject) {
-  var to = typeObject;
-
-  while (to) {
-    var fti = to.__FieldsToInitialize__;
-    var pi = to.__PublicInterface__;
-
-    if (JSIL.IsArray(fti)) {
-      for (var i = 0; i < fti.length; i++) {
-        var initializer = fti[i];
-        initializer(publicInterface, pi, to);
-      }
-    }
-
-    to = to.__BaseType__;
-  }
-};
-
 $jsilcore.cctorKeys = ["_cctor", "_cctor2", "_cctor3", "_cctor4", "_cctor5"];
 
 JSIL.InitializeType = function (type) {
@@ -2663,7 +2678,6 @@ JSIL.InitializeType = function (type) {
     if (typeObject.IsInterface !== true) {
       JSIL.FixupInterfaces(classObject, typeObject);
       JSIL.RebindRawMethods(classObject, typeObject);
-      JSIL.InitializeFields(classObject, typeObject);
     }
 
     JSIL.BuildTypeList(typeObject, classObject);
@@ -2899,7 +2913,6 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   typeObject.__Initializers__ = [];
   typeObject.__Interfaces__ = [];
   typeObject.__Members__ = [];
-  typeObject.__FieldsToInitialize__ = [];
   typeObject.__RenamedMethods__ = {};
   typeObject.__RawMethods__ = [];
   typeObject.__TypeInitialized__ = false;
@@ -3236,7 +3249,6 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__ShortName__ = localName;
     typeObject.__LockCount__ = 0;
     typeObject.__Members__ = [];
-    typeObject.__FieldsToInitialize__ = [];
 
     if (typeof(typeObject.__BaseType__.__RenamedMethods__) === "object")
       typeObject.__RenamedMethods__ = JSIL.CloneObject(typeObject.__BaseType__.__RenamedMethods__);
@@ -3978,38 +3990,46 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
   if (typeof (defaultValueExpression) === "function") {
     data.defaultValueExpression = defaultValueExpression;
 
-    this.typeObject.__FieldsToInitialize__.push(function (writeTo, publicInterface, typeObject) {
-      var target = descriptor.Static ? writeTo : writeTo.prototype;
-      target[descriptor.EscapedName] = data.defaultValue = defaultValueExpression(publicInterface);
-    });
+    var target = descriptor.Target;
+    JSIL.DefineLazyDefaultProperty(
+      target, descriptor.EscapedName,
+      function () {
+        return data.defaultValue = defaultValueExpression(this);
+      }
+    );
   } else if (typeof (defaultValueExpression) !== "undefined") {
     descriptor.Target[descriptor.EscapedName] = data.defaultValue = defaultValueExpression;
   } else {
     var context = this.context;
 
-    this.typeObject.__FieldsToInitialize__.push(function (writeTo, publicInterface, typeObject) {
-      var actualFieldInfo = typeObject.__Members__[fieldIndex];
-      var actualFieldType = actualFieldInfo[2].fieldType;
+    var members = this.typeObject.__Members__;
 
-      var fieldTypeResolved;
+    var target = descriptor.Target;
+    JSIL.DefineLazyDefaultProperty(
+      target, descriptor.EscapedName,
+      function () {
+        var actualFieldInfo = members[fieldIndex];
+        var actualFieldType = actualFieldInfo[2].fieldType;
 
-      if (actualFieldType.getNoInitialize) {
-        // FIXME: We can't use ResolveTypeReference here because it would initialize the field type, which can form a cycle.
-        // This means that when we create a default value for a struct type, we may create an instance of an uninitalized type
-        //  or form a cycle anyway. :/
-        fieldTypeResolved = actualFieldType.getNoInitialize();
-      } else {
-        fieldTypeResolved = actualFieldType;
+        var fieldTypeResolved;
+
+        if (actualFieldType.getNoInitialize) {
+          // FIXME: We can't use ResolveTypeReference here because it would initialize the field type, which can form a cycle.
+          // This means that when we create a default value for a struct type, we may create an instance of an uninitalized type
+          //  or form a cycle anyway. :/
+          fieldTypeResolved = actualFieldType.getNoInitialize();
+        } else {
+          fieldTypeResolved = actualFieldType;
+        }
+
+        if (!fieldTypeResolved)
+          return;
+        else if (Object.getPrototypeOf(fieldTypeResolved) === JSIL.GenericParameter.prototype)
+          return;
+
+        return data.defaultValue = JSIL.DefaultValue(fieldTypeResolved);
       }
-
-      if (!fieldTypeResolved)
-        return;
-      else if (Object.getPrototypeOf(fieldTypeResolved) === JSIL.GenericParameter.prototype)
-        return;
-
-      var target = descriptor.Static ? writeTo : writeTo.prototype;
-      target[descriptor.EscapedName] = data.defaultValue = JSIL.DefaultValue(fieldTypeResolved);
-    });
+    );
   }
 };
 
