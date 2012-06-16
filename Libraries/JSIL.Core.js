@@ -180,21 +180,34 @@ $jsilcore.PropertyNotInitialized = {};
 JSIL.DefineLazyDefaultProperty = function (target, key, getDefault) {
   var state = $jsilcore.PropertyNotInitialized;
 
-  var getter = function () {
-    if (state === $jsilcore.PropertyNotInitialized)
+  var cleanup = function () {
+    Object.defineProperty(target, key, {
+      configurable: true,
+      enumerable: true,
+      writable: true,
+      value: target[key]
+    });
+  };
+
+  var getter = function LazyDefaultProperty_Get () {
+    if (state === $jsilcore.PropertyNotInitialized) {
       state = getDefault.call(this);
+      JSIL.Host.runLater(cleanup);
+    }
 
     return state;
   };
 
-  var setter = function (value) {
+  var setterDesc = {
+    configurable: true,
+    enumerable: true,
+    writable: true
+  };
+
+  var setter = function LazyDefaultProperty_Set (value) {
+    setterDesc.value = value;
     Object.defineProperty(
-      this, key, {
-        configurable: true,
-        enumerable: true,
-        writable: true,
-        value: value
-      } 
+      this, key, setterDesc
     );
 
     return value;
@@ -217,7 +230,7 @@ JSIL.SetLazyValueProperty = function (target, key, getValue) {
     JSIL.SetValueProperty(target, key, state);
   };
 
-  var getter = function () {
+  var getter = function LazyValueProperty_Get () {
     if (state === $jsilcore.PropertyNotInitialized) {
       state = getValue.call(this);
       JSIL.Host.runLater(cleanup);
