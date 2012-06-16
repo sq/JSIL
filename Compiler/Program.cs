@@ -243,7 +243,8 @@ namespace JSIL.Compiler {
                     solution,
                     config.SolutionBuilder.Configuration,
                     config.SolutionBuilder.Platform,
-                    config.SolutionBuilder.Target ?? "Build"
+                    config.SolutionBuilder.Target ?? "Build",
+                    config.SolutionBuilder.LogVerbosity
                 );
 
                 IProfile profile = defaultProfile;

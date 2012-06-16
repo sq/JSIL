@@ -122,7 +122,11 @@ namespace JSIL.Compiler {
             return (ProjectInstance[])result;
         }
 
-        public static SolutionBuildResult Build (string solutionFile, string buildConfiguration = null, string buildPlatform = null, string buildTarget = "Build", string logVerbosity = null) {
+        public static SolutionBuildResult Build (
+            string solutionFile, string buildConfiguration = null, 
+            string buildPlatform = null, string buildTarget = "Build", 
+            string logVerbosity = null
+        ) {
             string configString = String.Format("{0}|{1}", buildConfiguration ?? "<default>", buildPlatform ?? "<default>");
 
             if ((buildConfiguration ?? buildPlatform) != null)
@@ -165,14 +169,17 @@ namespace JSIL.Compiler {
 
             var allItemsBuilt = new List<BuiltItem>();
             var resultFiles = new HashSet<string>();
-            foreach (var project in projects) {
 
+            foreach (var project in projects) {
                 // Save out the generated msbuild project for each solution, to aid debugging.
                 try {
                     project.ToProjectRootElement().Save(project.FullPath, Encoding.UTF8);
                 } catch (Exception exc) {
                     Console.Error.WriteLine("// Failed to save generated project '{0}': {1}", Path.GetFileName(project.FullPath), exc.Message);
                 }
+            }
+
+            foreach (var project in projects) {
 
                 Console.Error.WriteLine("// Building project '{0}'...", project.FullPath);
 
