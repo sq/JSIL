@@ -70,6 +70,15 @@ JSIL.ImplementExternals(
 );
 JSIL.MakeNumericType(Number, "System.Byte", true);
 
+JSIL.ImplementExternals(
+  "System.SByte", function ($) {
+    $.RawMethod(true, "CheckType", function (value) {
+      return (typeof (value) === "number") && (value >= -128) && (value <= 127);
+    });
+  }
+);
+JSIL.MakeNumericType(Number, "System.SByte", true);
+
 $jsilcore.$ParseInt = function (text) {
   var result = parseInt(text, 10);
 

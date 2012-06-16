@@ -170,12 +170,25 @@ namespace JSIL.Ast {
         public static bool TryDereference (JSILIdentifier jsil, JSExpression reference, out JSExpression referent) {
             var originalReference = reference;
             var cast = reference as JSCastExpression;
-            var isCast = false;
+            var cte = reference as JSChangeTypeExpression;
+            bool isCast = false, isCte = false;
 
             if (cast != null) {
                 isCast = true;
                 reference = cast.Expression;
+            } else if (cte != null) {
+                isCte = true;
+                reference = cte.Expression;
             }
+
+            Func<JSExpression, JSExpression> recast = (expression) => {
+                if (isCast)
+                    return JSCastExpression.New(expression, TypeUtil.DereferenceType(cast.NewType), jsil.TypeSystem);
+                else if (isCte)
+                    return JSChangeTypeExpression.New(expression, jsil.TypeSystem, TypeUtil.DereferenceType(cte.NewType));
+                else
+                    return expression;
+            };
 
             var variable = reference as JSVariable;
             var rre = reference as JSResultReferenceExpression;
@@ -205,9 +218,7 @@ namespace JSIL.Ast {
                             rv = variable.GetParameter();
                     }
 
-                    referent = rv;
-                    if (isCast)
-                        referent = JSCastExpression.New(referent, cast.NewType, jsil.TypeSystem);
+                    referent = recast(rv);
 
                     return true;
                 }
@@ -215,15 +226,11 @@ namespace JSIL.Ast {
 
             if (rre != null) {
                 if (rre.Depth == 1) {
-                    referent = rre.Referent;
-                    if (isCast)
-                        referent = JSCastExpression.New(referent, cast.NewType, jsil.TypeSystem);
+                    referent = recast(rre.Referent);
 
                     return true;
                 } else {
-                    referent = rre.Dereference();
-                    if (isCast)
-                        referent = JSCastExpression.New(referent, cast.NewType, jsil.TypeSystem);
+                    referent = recast(rre.Dereference());
 
                     return true;
                 }
@@ -234,9 +241,7 @@ namespace JSIL.Ast {
                 return false;
             }
 
-            referent = refe.Referent;
-            if (isCast)
-                referent = JSCastExpression.New(referent, cast.NewType, jsil.TypeSystem);
+            referent = recast(refe.Referent);
 
             return true;
         }
@@ -1668,15 +1673,31 @@ namespace JSIL.Ast {
             );
         }
 
+        internal static bool AllowBizarreReferenceCast (TypeReference currentType, TypeReference newType) {
+            if (currentType.FullName == "System.Boolean") {
+                if (newType.FullName == "System.SByte")
+                    return true;
+            }
+
+            return false;
+        }
+
         internal static JSExpression NewInternal (JSExpression inner, TypeReference newType, TypeSystem typeSystem, Func<JSExpression> make) {
-            int temp;
+            int rankCurrent, rankNew;
 
             var currentType = inner.GetActualType(typeSystem);
-            var currentDerefed = TypeUtil.FullyDereferenceType(currentType, out temp);
-            var newDerefed = TypeUtil.FullyDereferenceType(newType, out temp);
+            var currentDerefed = TypeUtil.FullyDereferenceType(currentType, out rankCurrent);
+            var newDerefed = TypeUtil.FullyDereferenceType(newType, out rankNew);
 
             if (TypeUtil.TypesAreEqual(currentDerefed, newDerefed, false))
                 return inner;
+
+            if ((rankCurrent == rankNew) && (rankCurrent > 0)) {
+                if (!AllowBizarreReferenceCast(currentDerefed, newDerefed))
+                    return new JSUntranslatableExpression("Cannot cast reference of type '" + currentDerefed.FullName + "' to type '" + newDerefed.FullName + "'");
+                else
+                    return make();
+            }
 
             var newResolved = newDerefed.Resolve();
             if ((newResolved != null) && newResolved.IsInterface) {
@@ -1723,6 +1744,10 @@ namespace JSIL.Ast {
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
             return NewType;
+        }
+
+        public override string ToString () {
+            return String.Format("({0}){1}", NewType, Expression);
         }
     }
 
@@ -1818,6 +1843,10 @@ namespace JSIL.Ast {
 
         public override TypeReference GetActualType (TypeSystem typeSystem) {
             return NewType;
+        }
+
+        public override string ToString () {
+            return String.Format("reinterpret_cast<{0}>({1})", NewType, Expression);
         }
     }
 
