@@ -13,10 +13,12 @@ using Microsoft.Build.Logging;
 namespace JSIL.Compiler {
     public static class SolutionBuilder {
         public class BuiltItem {
+            public readonly string TargetName;
             public readonly string OutputPath;
             public readonly Dictionary<string, string> Metadata = new Dictionary<string, string>();
 
-            internal BuiltItem (ITaskItem item) {
+            internal BuiltItem (string targetName, ITaskItem item) {
+                TargetName = targetName;
                 OutputPath = item.ItemSpec;
 
                 foreach (var name in item.MetadataNames)
@@ -24,7 +26,7 @@ namespace JSIL.Compiler {
             }
 
             public override string ToString() {
-                return String.Format("{0} ({1} metadata)", OutputPath, Metadata.Count);
+                return String.Format("{0}: {1} ({2} metadata)", TargetName, OutputPath, Metadata.Count);
             }
         }
 
@@ -180,7 +182,6 @@ namespace JSIL.Compiler {
             }
 
             foreach (var project in projects) {
-
                 Console.Error.WriteLine("// Building project '{0}'...", project.FullPath);
 
                 var request = new BuildRequestData(
@@ -206,12 +207,32 @@ namespace JSIL.Compiler {
                         if (targetResult.Exception != null)
                             errorMessage = targetResult.Exception.Message;
                         Console.Error.WriteLine("// Compilation failed for target '{0}': {1}", kvp.Key, errorMessage);
-                    } else if (targetResult.Items.Length > 0) {
-                        Console.Error.WriteLine("// Target '{0}' produced {1} output(s).", kvp.Key, targetResult.Items.Length);
-
-                        foreach (var filename in targetResult.Items)
-                            resultFiles.Add(filename.ItemSpec);
                     }
+                }
+            }
+
+            // ResultsByTarget doesn't reliably produce all the output executables, so we must
+            //  extract them by hand.
+            foreach (var builtItem in allItemsBuilt) {
+                if (builtItem.TargetName != "Build")
+                    continue;
+
+                if (!File.Exists(builtItem.OutputPath)) {
+                    Console.Error.WriteLine("// Ignoring nonexistent build output '" + Path.GetFileName(builtItem.OutputPath) + "'.");
+                    continue;
+                }
+
+                var extension = Path.GetExtension(builtItem.OutputPath).ToLowerInvariant();
+
+                switch (extension) {
+                    case ".exe":
+                    case ".dll":
+                        resultFiles.Add(builtItem.OutputPath);
+                        break;
+
+                    default:
+                        Console.Error.WriteLine("// Ignoring build output '" + Path.GetFileName(builtItem.OutputPath) + "' due to unknown file type.");
+                        break;
                 }
             }
 
@@ -234,14 +255,18 @@ namespace JSIL.Compiler {
 
             var resultsDictionary = (Dictionary<int, BuildResult>) oResultsDictionary;
 
-            return resultsDictionary.Values.SelectMany(
-                (result) =>
-                result.ResultsByTarget.SelectMany(
-                    (kvp) => kvp.Value.Items
-                )
-            ).Select(
-                (taskItem) => new BuiltItem(taskItem)
-            ).ToArray();
+            var result = new List<BuiltItem>();
+
+            foreach (var projectResult in resultsDictionary.Values) {
+                foreach (var kvp in projectResult.ResultsByTarget) {
+                    result.AddRange(
+                        from taskItem in kvp.Value.Items
+                        select new BuiltItem(kvp.Key, taskItem)
+                    );
+                }
+            }
+
+            return result.ToArray();
         }
     }
 
