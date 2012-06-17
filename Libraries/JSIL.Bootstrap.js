@@ -57,6 +57,9 @@ JSIL.ImplementExternals(
     $.RawMethod(true, "CheckType", function (value) {
       return (typeof (value) === "string") && (value.length == 1);
     });
+
+		$.Constant({Public: true, Static: true}, "MaxValue", "\uffff");
+		$.Constant({Public: true, Static: true}, "MinValue", "\0");
   }
 );
 JSIL.MakeNumericType(String, "System.Char", true);
@@ -66,6 +69,9 @@ JSIL.ImplementExternals(
     $.RawMethod(true, "CheckType", function (value) {
       return (typeof (value) === "number") && (value >= 0) && (value <= 255);
     });
+    
+		$.Constant({Public: true, Static: true}, "MinValue", 0);
+    $.Constant({Public: true, Static: true}, "MaxValue", 255);
   }
 );
 JSIL.MakeNumericType(Number, "System.Byte", true);
@@ -75,6 +81,9 @@ JSIL.ImplementExternals(
     $.RawMethod(true, "CheckType", function (value) {
       return (typeof (value) === "number") && (value >= -128) && (value <= 127);
     });
+    
+		$.Constant({Public: true, Static: true}, "MinValue", -128);
+    $.Constant({Public: true, Static: true}, "MaxValue", 127);
   }
 );
 JSIL.MakeNumericType(Number, "System.SByte", true);
@@ -107,6 +116,9 @@ JSIL.ImplementExternals(
       (new JSIL.MethodSignature($.Boolean, [$.String, $jsilcore.TypeRef("JSIL.Reference", [$.UInt16])], [])), 
       $jsilcore.$TryParseInt
     );
+
+		$.Constant({Public: true, Static: true}, "MaxValue", 65535);
+		$.Constant({Public: true, Static: true}, "MinValue", 0);
   }
 );
 JSIL.MakeNumericType(Number, "System.UInt16", true);
@@ -126,6 +138,9 @@ JSIL.ImplementExternals(
       (new JSIL.MethodSignature($.Boolean, [$.String, $jsilcore.TypeRef("JSIL.Reference", [$.Int16])], [])), 
       $jsilcore.$TryParseInt
     );
+    
+		$.Constant({Public: true, Static: true}, "MaxValue", 32767);
+		$.Constant({Public: true, Static: true}, "MinValue", -32768);
   }
 );
 JSIL.MakeNumericType(Number, "System.Int16", true);
@@ -145,6 +160,9 @@ JSIL.ImplementExternals(
       (new JSIL.MethodSignature($.Boolean, [$.String, $jsilcore.TypeRef("JSIL.Reference", [$.UInt32])], [])), 
       $jsilcore.$TryParseInt
     );
+
+		$.Constant({Public: true, Static: true}, "MaxValue", 4294967295);
+		$.Constant({Public: true, Static: true}, "MinValue", 0);
   }
 );
 JSIL.MakeNumericType(Number, "System.UInt32", true);
@@ -164,6 +182,9 @@ JSIL.ImplementExternals(
       (new JSIL.MethodSignature($.Boolean, [$.String, $jsilcore.TypeRef("JSIL.Reference", [$.Int32])], [])), 
       $jsilcore.$TryParseInt
     );
+    
+		$.Constant({Public: true, Static: true}, "MaxValue", 2147483647);
+		$.Constant({Public: true, Static: true}, "MinValue", -2147483648);
   }
 );
 JSIL.MakeNumericType(Number, "System.Int32", true);
@@ -183,6 +204,9 @@ JSIL.ImplementExternals(
       (new JSIL.MethodSignature($.Boolean, [$.String, $jsilcore.TypeRef("JSIL.Reference", [$.Int64])], [])), 
       $jsilcore.$TryParseInt
     );
+
+		$.Constant({Public: true, Static: true}, "MaxValue", 9223372036854775807);
+		$.Constant({Public: true, Static: true}, "MinValue", -9223372036854775808);
   }
 );
 JSIL.MakeNumericType(Number, "System.Int64", true);
@@ -192,6 +216,13 @@ JSIL.ImplementExternals(
     $.RawMethod(true, "CheckType", function (value) {
       return (typeof (value) === "number");
     });
+
+		$.Constant({Public: true, Static: true}, "MinValue", -3.4028234663852886E+38);
+		$.Constant({Public: true, Static: true}, "Epsilon", 1.4012984643248171E-45);
+		$.Constant({Public: true, Static: true}, "MaxValue", 3.4028234663852886E+38);
+		$.Constant({Public: true, Static: true}, "PositiveInfinity", Infinity);
+		$.Constant({Public: true, Static: true}, "NegativeInfinity", -Infinity);
+		$.Constant({Public: true, Static: true}, "NaN", NaN);
   }
 );
 JSIL.MakeNumericType(Number, "System.Single", false);
@@ -201,6 +232,13 @@ JSIL.ImplementExternals(
     $.RawMethod(true, "CheckType", function (value) {
       return (typeof (value) === "number");
     });
+
+		$.Constant({Public: true, Static: true}, "MinValue", -1.7976931348623157E+308);
+		$.Constant({Public: true, Static: true}, "MaxValue", 1.7976931348623157E+308);
+		$.Constant({Public: true, Static: true}, "Epsilon", 4.94065645841247E-324);
+		$.Constant({Public: true, Static: true}, "NegativeInfinity", -Infinity);
+		$.Constant({Public: true, Static: true}, "PositiveInfinity", Infinity);
+		$.Constant({Public: true, Static: true}, "NaN", NaN);
   }
 );
 JSIL.MakeNumericType(Number, "System.Double", false);
