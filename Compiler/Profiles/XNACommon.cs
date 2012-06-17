@@ -608,7 +608,11 @@ public static class Common {
             }
         }
 
-        writeResult(MakeCompressResult(CompressVersion, null, outputPath, sourcePath, sourceInfo));
+        string key = null;
+        if (colorChannel.HasValue)
+            key = colorChannel.Value.ToString();
+
+        writeResult(MakeCompressResult(CompressVersion, key, outputPath, sourcePath, sourceInfo));
     }
 
     private static int RunProcess (string filename, string parameters, byte[] stdin, out string stderr, out byte[] stdout) {
