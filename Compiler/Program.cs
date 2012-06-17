@@ -239,6 +239,8 @@ namespace JSIL.Compiler {
                     : new Configuration[] { };
 
                 var config = MergeConfigurations(baseConfig, solutionConfig);
+                var buildStarted = DateTime.UtcNow.Ticks;
+                
                 var buildResult = SolutionBuilder.Build(
                     solution,
                     config.SolutionBuilder.Configuration,
@@ -246,6 +248,8 @@ namespace JSIL.Compiler {
                     config.SolutionBuilder.Target ?? "Build",
                     config.SolutionBuilder.LogVerbosity
                 );
+
+                var buildEnded = DateTime.UtcNow.Ticks;
 
                 IProfile profile = defaultProfile;
 
@@ -258,10 +262,34 @@ namespace JSIL.Compiler {
                     break;
                 }
 
+                var processStarted = DateTime.UtcNow.Ticks;
                 profile.ProcessBuildResult(
-                    profile.GetConfiguration(config), 
+                    profile.GetConfiguration(config),
                     buildResult
                 );
+                var processEnded = DateTime.UtcNow.Ticks;
+
+                {
+                    var logPath = Path.Combine(
+                        config.OutputDirectory,
+                        String.Format("{0}.buildlog", Path.GetFileName(solution))
+                    );
+
+                    using (var logWriter = new StreamWriter(logPath, false, Encoding.UTF8)) {
+                        logWriter.WriteLine(
+                            "Build of solution '{0}' processed {1} task(s) and produced {2} result file(s):",
+                            solution, buildResult.AllItemsBuilt.Length, buildResult.OutputFiles.Length
+                        );
+
+                        foreach (var of in buildResult.OutputFiles)
+                            logWriter.WriteLine(of);
+
+                        logWriter.WriteLine("----");
+                        logWriter.WriteLine("Elapsed build time: {0:0000.0} second(s).", TimeSpan.FromTicks(buildEnded - buildStarted).TotalSeconds);
+                        logWriter.WriteLine("Selected profile '{0}' to process results of this build.", profile.GetType().Name);
+                        logWriter.WriteLine("Elapsed processing time: {0:0000.0} second(s).", TimeSpan.FromTicks(processEnded - processStarted).TotalSeconds);
+                    }
+                }
 
                 if (buildResult.OutputFiles.Length > 0) {
                     buildGroups.Add(new BuildGroup {
