@@ -1286,7 +1286,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", functio
       var isHiDef = (formatFlags & 0x01) != 0;
       var isCompressed = (formatFlags & 0x80) != 0;
 
-      if (isCompressed) throw new Error("Compressed XNBs are not supported");
+      if (isCompressed) 
+        throw new Error("Compressed XNBs are not supported");
 
       var uncompressedSize = this.ReadUInt32();
 
@@ -5943,7 +5944,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
           cachedTexture, textblockPositionX - 1, textblockPositionY - 1, cachedTextureWidth, cachedTextureHeight,
           0, 0, cachedTextureWidth, cachedTextureHeight,
           color, rotation, 
-          0, 0, 
+          originX, originY, 
           scaleX, scaleY, 
           spriteEffects, layerDepth
         );
