@@ -555,7 +555,7 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
     (new JSIL.MethodSignature($.Int16, [], [])), 
     function ReadInt16 () {
       var value = this.ReadUInt16();
-      if (value > System.Int16.MaxValue)
+      if (value > 32767)
         return value - 65536;
       else
         return value;
@@ -566,7 +566,7 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function ReadInt32 () {
       var value = this.ReadUInt32();
-      if (value > System.Int32.MaxValue)
+      if (value > 2147483647)
         return value - 4294967296;
       else
         return value;

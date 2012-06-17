@@ -791,6 +791,18 @@ JSIL.ImplementExternals = function (namespaceName, externals) {
         obj[prefix + rawMethod[1] + suffix] = [null, publicInterface.prototype[rawMethod[1]]];
       }
     }
+    
+    var constants = ib.constants;
+    for (var i = 0; i < constants.length; i++) {
+      var c = constants[i];
+      var decl = c[2];
+      var name = c[1];
+      var isStatic = c[0];
+      
+      var target = isStatic ? publicInterface : publicInterface.prototype;
+      
+      Object.defineProperty(target, name, decl);
+    }
   });
 };
 
@@ -3837,6 +3849,8 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
       return "<" + this.Name + " Descriptor>";
     }
   };
+  
+  this.constants = [];
 };
 
 JSIL.InterfaceBuilder.prototype.DefineTypeAliases = function (getAssembly, names) {
@@ -3952,6 +3966,8 @@ JSIL.InterfaceBuilder.prototype.Constant = function (_descriptor, name, value) {
   };
 
   Object.defineProperty(descriptor.Target, name, prop);
+  
+  this.constants.push([descriptor.Static, name, prop]);
 };
 
 JSIL.InterfaceBuilder.MakeProperty = function (name, target, interfacePrefix) {
