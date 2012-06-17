@@ -5932,6 +5932,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
 
         var cachedTexture = $jsilxna.textCache.getItem(cacheKey);
 
+        var xPad = 2;
+        var yPad = 8;
+
         if (!cachedTexture) {
           var measured = this.InternalMeasure(text);
 
@@ -5949,8 +5952,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
           // Force the isWebGL flag to false since the temporary canvas isn't using webgl-2d
           tempSpriteBatch.isWebGL = false;
 
-          tempCanvas.width = Math.ceil(measured.X + 2);
-          tempCanvas.height = Math.ceil(measured.Y + 2);
+          tempCanvas.width = Math.ceil(measured.X + xPad + xPad);
+          tempCanvas.height = Math.ceil(measured.Y + yPad + yPad);
 
           // FIXME: Terrible hack
           tempSpriteBatch.device = {
@@ -5958,7 +5961,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
           };
 
           this.InternalDraw(
-            text, tempSpriteBatch, 1, 1,
+            text, tempSpriteBatch, xPad, yPad,
             tColor.White, 0,
             0, 0, 1, 1,
             null, 0, 
@@ -5981,7 +5984,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
         var cachedTextureHeight = cachedTexture.height;
 
         spriteBatch.InternalDraw(
-          cachedTexture, textblockPositionX - 1, textblockPositionY - 1, cachedTextureWidth, cachedTextureHeight,
+          cachedTexture, textblockPositionX - xPad, textblockPositionY - yPad, cachedTextureWidth, cachedTextureHeight,
           0, 0, cachedTextureWidth, cachedTextureHeight,
           color, rotation, 
           originX, originY, 
