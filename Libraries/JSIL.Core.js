@@ -760,6 +760,7 @@ JSIL.ImplementExternals = function (namespaceName, externals) {
       },
       __TypeId__: typeId
     };
+
     var ib = new JSIL.InterfaceBuilder(context, typeObject, publicInterface);
     externals(ib);
 
@@ -798,10 +799,14 @@ JSIL.ImplementExternals = function (namespaceName, externals) {
       var decl = c[2];
       var name = c[1];
       var isStatic = c[0];
-      
-      var target = isStatic ? publicInterface : publicInterface.prototype;
-      
-      Object.defineProperty(target, name, decl);
+
+      var suffix = "$constant";
+
+      if (isStatic) {
+        obj[name + suffix] = decl;
+      } else {
+        obj["instance$" + name + suffix] = decl;
+      }
     }
   });
 };
@@ -1128,15 +1133,14 @@ JSIL.MakeProto = function (baseType, typeObject, typeName, isReferenceType, asse
 };
 
 JSIL.MakeNumericType = function (baseType, typeName, isIntegral) {
-  JSIL.MakeType(baseType, typeName, false, true);
-  var resolved = JSIL.ResolveName(JSIL.GlobalNamespace, typeName, true);
-  var publicInterface = resolved.get();
-  var typeObject = publicInterface.__Type__;
-  typeObject.__IsNumeric__ = true;
-  publicInterface.prototype.__IsNumeric__ = true;
-  typeObject.__IsIntegral__ = isIntegral;
-  publicInterface.prototype.__IsIntegral__ = isIntegral;
-  JSIL.MakeCastMethods(publicInterface, typeObject, isIntegral ? "integer" : "number");
+  JSIL.MakeType(baseType, typeName, false, true, [], function ($) {
+    $.SetValue("__IsNumeric__", true);
+    $.SetValue("__IsIntegral__", isIntegral);
+
+    JSIL.MakeCastMethods(
+      $.publicInterface, $.typeObject, isIntegral ? "integer" : "number"
+    );
+  });
 };
 
 JSIL.MakeIndirectProperty = function (target, key, source) {
@@ -2799,6 +2803,7 @@ JSIL.ApplyExternals = function (publicInterface, typeObject, fullName) {
   var externals = JSIL.AllImplementedExternals[fullName];
   var instancePrefix = "instance$";
   var rawSuffix = "$raw";
+  var constantSuffix = "$constant";
 
   var hasPrototype = typeof (publicInterface.prototype) === "object";
   var prototype = hasPrototype ? publicInterface.prototype : null;
@@ -2808,8 +2813,6 @@ JSIL.ApplyExternals = function (publicInterface, typeObject, fullName) {
       continue;
 
     var target = publicInterface;
-    var member = externals[k][0]
-    var value = externals[k][1];
     var key = k;
     var isRaw = false, isStatic;
 
@@ -2826,10 +2829,18 @@ JSIL.ApplyExternals = function (publicInterface, typeObject, fullName) {
       isStatic = true;
     }
 
-    if (key.indexOf(rawSuffix) === key.length - rawSuffix.length) {
+    if (key.indexOf(rawSuffix) > 0) {
       key = key.replace(rawSuffix, "");
       isRaw = true;
     }
+
+    if (key.indexOf(constantSuffix) > 0) {
+      Object.defineProperty(target, key.replace(constantSuffix, ""), externals[k]);
+      continue;
+    }
+
+    var member = externals[k][0]
+    var value = externals[k][1];
 
     if (member !== null)
       typeObject.__Members__.push(member);
