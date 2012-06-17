@@ -465,7 +465,10 @@ namespace JSIL.Compiler {
             }
         }
 
-        static void EmitLog (string logPath, Configuration configuration, string inputFile, TranslationResult outputs) {
+        static void EmitLog (
+            string logPath, Configuration configuration, 
+            string inputFile, TranslationResult outputs
+        ) {
             var logText = new StringBuilder();
             var asmName = Assembly.GetExecutingAssembly().GetName();
             logText.AppendLine(String.Format("// JSILc v{0}.{1}.{2}", asmName.Version.Major, asmName.Version.Minor, asmName.Version.Revision));

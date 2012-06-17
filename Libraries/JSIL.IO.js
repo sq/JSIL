@@ -522,6 +522,7 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
   $.Method({Static:false, Public:true }, "ReadChar", 
     (new JSIL.MethodSignature($.Char, [], [])), 
     function ReadChar () {
+      // FIXME: Incorrect for non-ASCII (utf8, etc) characters.
       return String.fromCharCode(this.m_stream.ReadByte());
     }
   );

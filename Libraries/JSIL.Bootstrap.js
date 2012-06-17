@@ -1147,7 +1147,10 @@ JSIL.ImplementExternals(
       (new JSIL.MethodSignature(null, [], [])), 
       function () {
         // This type already has a cctor, so we add a second one.
-        System.Threading.Thread._currentThread = new System.Threading.Thread();
+        System.Threading.Thread._currentThread = JSIL.CreateInstanceOfType(
+          System.Threading.Thread.__Type__,
+          null
+        );
       }
     );
 

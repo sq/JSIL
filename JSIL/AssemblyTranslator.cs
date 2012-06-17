@@ -328,7 +328,9 @@ namespace JSIL {
             return context;
         }
 
-        public TranslationResult Translate (string assemblyPath, bool scanForProxies = true) {
+        public TranslationResult Translate (
+            string assemblyPath, bool scanForProxies = true
+        ) {
             var result = new TranslationResult(this.Configuration);
             var assemblies = LoadAssembly(assemblyPath);
             var parallelOptions = GetParallelOptions();

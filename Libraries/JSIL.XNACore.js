@@ -371,7 +371,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentManager", functi
     Static: false,
     Public: true
   }, "Load", new JSIL.MethodSignature("!!0", [$.String], ["T"]), 
-  function (T, assetName) {
+  function ContentManager_Load (T, assetName) {
     var asset;
 
     try {
@@ -1427,7 +1427,7 @@ JSIL.MakeClass("HTML5Asset", "RawXNBAsset", true, [], function ($) {
   $.Method({
     Static: false,
     Public: true
-  }, "ReadAsset", new JSIL.MethodSignature(null, [], []), function (type) {
+  }, "ReadAsset", new JSIL.MethodSignature(null, [], []), function RawXNBAsset_ReadAsset (type) {
     var memoryStream = new System.IO.MemoryStream(this.bytes, false);
 
     var tContentReader = JSIL.GetTypeFromAssembly(

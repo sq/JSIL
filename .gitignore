@@ -42,9 +42,10 @@ Tests/*Cases/*.js
 /jsil.org/demos/GameType/Content
 /jsil.org/demos/Lumberjack/Content
 /jsil.org/demos/Lumberjack/*.js
+/jsil.org/demos/EscapeGoat/*.js
+/jsil.org/demos/EscapeGoat/Content
 /jsil.org/demos/Libraries
 /jsil.org/demos/demos.zip
-*.jsillog
 /Examples/obj
 /Upstream/dxtc.cpp
 /Upstream/LAME
@@ -56,3 +57,5 @@ Skeletons/*.js
 /Try/obj
 /jsil.org/try/bin/*
 /jsil.org/try/OAuth.cs
+*.jsillog
+*.buildlog

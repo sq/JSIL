@@ -1,0 +1,20 @@
+{
+  "UseThreads": true,
+  "OutputDirectory": "%configpath%",
+  "Assemblies": {
+    "Proxies": [
+    ],
+    "Ignored": [
+      "System.Data.*",
+      "System.Deployment",
+      "Proxies"
+    ]
+  },
+  "ProfileSettings": {
+    "OverwriteExistingContent": true,
+    "ContentOutputDirectory": "%configpath%/Content",
+    "UsePNGQuant": true,
+    "FileSettings": {
+    }
+  }
+}
