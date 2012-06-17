@@ -28,7 +28,10 @@
       "Textures\\Panels\\outro3.png": "ForceJPEG",
       "Textures\\Panels\\outro4.png": "ForceJPEG",
       "Textures\\Panels\\outro5.png": "ForceJPEG",
-      "Textures\\sellScreen.png": "ForceJPEG"
+      "Textures\\sellScreen.png": "ForceJPEG",
+      "Textures\\UI\\healthBar.png": "GenerateChannels",
+      "Textures\\Actors\\*.png": "GenerateChannels",
+      "Textures\\Particles\\*.png": "GenerateChannels"
     }
   }
 }

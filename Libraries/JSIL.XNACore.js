@@ -210,6 +210,9 @@ $jsilxna.get2DContext = function (canvas, enableWebGL) {
   return canvas.getContext("2d");
 };
 
+$jsilxna.channelNames = ["_r", "_g", "_b", "_a"];
+$jsilxna.channelKeys = ["r", "g", "b", "a"];
+
 $jsilxna.getCachedImageChannels = function (image, key) {
   var result = $jsilxna.imageChannelCache.getItem(key) || null;
   return result;
@@ -223,6 +226,8 @@ $jsilxna.imageChannels = function (image) {
   this.sourceImage = image;
   this.width = image.naturalWidth || image.width;
   this.height = image.naturalHeight || image.height;
+  this.xOffset = 1;
+  this.yOffset = 1;
   // 32BPP * one image per channel
   this.sizeBytes = (this.width * this.height * 4) * 4;
 
@@ -247,9 +252,9 @@ $jsilxna.imageChannels = function (image) {
   } else {
     // Workaround for bug in Firefox's canvas implementation that treats the outside of a canvas as solid white
     this.aContext.clearRect(0, 0, this.width + 2, this.height + 2);
-    this.aContext.drawImage(image, 1, 1);
+    this.aContext.drawImage(image, this.xOffset, this.yOffset);
 
-    this.sourceImageData = this.aContext.getImageData(1, 1, this.width, this.height);
+    this.sourceImageData = this.aContext.getImageData(this.xOffset, this.yOffset, this.width, this.height);
   }
 
   this.aContext.clearRect(0, 0, this.width + 2, this.height + 2);
@@ -261,7 +266,7 @@ $jsilxna.imageChannels = function (image) {
   this.putImageData = (function (ch, data) {
     var context = this[ch + "Context"];
 
-    context.putImageData(data, 1, 1);
+    context.putImageData(data, this.xOffset, this.yOffset);
   }).bind(this);
 };
 
@@ -277,7 +282,37 @@ $jsilxna.getImageChannels = function (image, key) {
   if ((width < 1) || (height < 1))
     return null;
 
-  var result = new $jsilxna.imageChannels(image);
+  var result = null;
+
+  // If pre-generated channel images are available, use them instead
+  if (image.assetName) {
+    result = {
+      sourceImage: image,
+      width: width,
+      height: height,
+      xOffset: 0,
+      yOffset: 0,
+      sizeBytes: 0
+    };
+
+    for (var i = 0; i < 4; i++) {
+      var channelAssetName = image.assetName + $jsilxna.channelNames[i];
+      if (!JSIL.Host.doesAssetExist(channelAssetName)) {
+        result = null;
+        break;
+      }
+
+      var channelAsset = JSIL.Host.getAsset(channelAssetName);
+      result[$jsilxna.channelKeys[i]] = channelAsset.image;
+    }
+
+    if (result) {
+      $jsilxna.imageChannelCache.setItem(key, result);
+      return result;
+    }
+  }
+
+  result = new $jsilxna.imageChannels(image);
 
   try {
     var rData = result.makeImageData(), gData = result.makeImageData(), bData = result.makeImageData(), aData = result.sourceImageData;
@@ -436,6 +471,8 @@ JSIL.MakeClass($jsilcore.System.Object, "HTML5Asset", true, [], function ($) {
 JSIL.MakeClass("HTML5Asset", "HTML5ImageAsset", true, [], function ($) {
   $.RawMethod(false, ".ctor", function (assetName, image) {
     HTML5Asset.prototype._ctor.call(this, assetName);
+    image.assetName = assetName;
+
     this.image = image;
     this.Width = image.naturalWidth;
     this.Height = image.naturalHeight;
@@ -5127,12 +5164,15 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
 
             var alpha = colorA / 255;
 
+            sourceX += channels.xOffset;
+            sourceY += channels.yOffset;
+
             var compositeOperation = context.globalCompositeOperation;
             if (compositeOperation !== "lighter") {
               context.globalCompositeOperation = "source-over";
               context.globalAlpha = alpha;
               this.$canvasDrawImage(
-                channels.a, sourceX + 1, sourceY + 1, sourceW, sourceH, 
+                channels.a, sourceX, sourceY, sourceW, sourceH, 
                 positionX, positionY, width, height
               );
             }
@@ -5142,7 +5182,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
             if (colorR > 0) {
               context.globalAlpha = colorR / 255;
               this.$canvasDrawImage(
-                channels.r, sourceX + 1, sourceY + 1, sourceW, sourceH, 
+                channels.r, sourceX, sourceY, sourceW, sourceH, 
                 positionX, positionY, width, height
               );
             }
@@ -5150,7 +5190,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
             if (colorG > 0) {
               context.globalAlpha = colorG / 255;
               this.$canvasDrawImage(
-                channels.g, sourceX + 1, sourceY + 1, sourceW, sourceH, 
+                channels.g, sourceX, sourceY, sourceW, sourceH, 
                 positionX, positionY, width, height
               );
             }
@@ -5158,7 +5198,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
             if (colorB > 0) {
               context.globalAlpha = colorB / 255;
               this.$canvasDrawImage(
-                channels.b, sourceX + 1, sourceY + 1, sourceW, sourceH, 
+                channels.b, sourceX, sourceY, sourceW, sourceH, 
                 positionX, positionY, width, height
               );
             }

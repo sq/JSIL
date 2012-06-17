@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Web.Script.Serialization;
 using JSIL.Compiler;
@@ -431,23 +432,68 @@ public static class Common {
         }
     }
 
-    public static CompressResult? CompressImage (
+    public static unsafe void MakeChannelImage (System.Drawing.Bitmap bitmap, int colorChannel) {
+        var lockRect = new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height);
+        var lockedBits = bitmap.LockBits(lockRect, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+
+        for (int y = 0; y < bitmap.Height; y++) {
+            var scanStart = lockedBits.Scan0 + (lockedBits.Stride * y);
+
+            for (int x = 0; x < bitmap.Width; x++) {
+                var ptr = (Color *)(scanStart + (x * 4));
+                var current = *ptr;
+
+                switch (colorChannel) {
+                    case 0:
+                        *ptr = new Color(0, 0, current.B, current.A);
+                        break;
+                    case 1:
+                        *ptr = new Color(0, current.G, 0, current.A);
+                        break;
+                    case 2:
+                        *ptr = new Color(current.R, 0, 0, current.A);
+                        break;
+                    case 3:
+                        *ptr = new Color(0, 0, 0, current.A);
+                        break;
+                }
+            }
+        }
+
+        bitmap.UnlockBits(lockedBits);
+    }
+
+    public static void CompressImage (
         string imageName, string sourceFolder, 
         string outputFolder, Dictionary<string, object> settings, 
         Dictionary<string, ProjectMetadata> itemMetadata,
-        CompressResult? oldResult
+        CompressResult? oldResult, Action<CompressResult?> writeResult,
+        int? colorChannel = null
     ) {
-        const int CompressVersion = 4;
+        const int CompressVersion = 5;
 
         EnsureDirectoryExists(outputFolder);
 
         var sourcePath = Path.Combine(sourceFolder, imageName);
         FileInfo sourceInfo, resultInfo;
 
-        if (!NeedsRebuild(oldResult, CompressVersion, sourcePath, out sourceInfo, out resultInfo))
-            return oldResult;
-
         bool forceJpeg = GetFileSettings(settings, imageName).Contains("forcejpeg");
+        bool generateChannels = GetFileSettings(settings, imageName).Contains("generatechannels");
+
+        if (!NeedsRebuild(oldResult, CompressVersion, sourcePath, out sourceInfo, out resultInfo)) {
+            writeResult(oldResult);
+            return;
+        }
+
+        if (generateChannels && !colorChannel.HasValue) {
+            for (int i = 0; i < 4; i++) {
+                CompressImage(
+                    imageName, sourceFolder, outputFolder,
+                    settings, itemMetadata, null,
+                    writeResult, i
+                );
+            }
+        }
 
         var outputPath = Path.Combine(outputFolder, Path.GetFileNameWithoutExtension(imageName));
         var justCopy = true;
@@ -481,6 +527,8 @@ public static class Common {
 
         justCopy &= !colorKey;
 
+        justCopy &= !colorChannel.HasValue;
+
         if (forceJpeg) {
             outputPath += ".jpg";
 
@@ -497,6 +545,11 @@ public static class Common {
             System.Drawing.Color? existingColorKey;
 
             using (var img = LoadBitmap(sourcePath, out hasAlphaChannel, out existingColorKey)) {
+                if (colorChannel.HasValue) {
+                    var channelNames = new string[] { "r", "g", "b", "a" };
+                    outputPath += "_" + channelNames[colorChannel.Value];
+                }
+
                 if (hasAlphaChannel || colorKey || existingColorKey.HasValue)
                     outputPath += ".png";
                 else
@@ -507,6 +560,9 @@ public static class Common {
 
                 if (colorKey)
                     img.MakeTransparent(colorKeyColor);
+
+                if (colorChannel.HasValue)
+                    MakeChannelImage(img, colorChannel.Value);
 
                 if (hasAlphaChannel || colorKey || existingColorKey.HasValue)
                     img.Save(outputPath, ImageFormat.Png);
@@ -552,7 +608,7 @@ public static class Common {
             }
         }
 
-        return MakeCompressResult(CompressVersion, null, outputPath, sourcePath, sourceInfo);
+        writeResult(MakeCompressResult(CompressVersion, null, outputPath, sourcePath, sourceInfo));
     }
 
     private static int RunProcess (string filename, string parameters, byte[] stdin, out string stderr, out byte[] stdout) {
@@ -631,6 +687,7 @@ public static class Common {
         result.ProfileSettings.SetDefault("PNGQuantOptions", "");
 
         result.ProfileSettings.SetDefault("FileSettings", new Dictionary<string, object>());
+        result.ProfileSettings.SetDefault("FileSettingsRegexes", null);
 
         result.ProfileSettings.SetDefault("ForceCopyXNBImporters", new string[0]);
         result.ProfileSettings.SetDefault("ForceCopyXNBProcessors", new string[0]);
@@ -639,10 +696,37 @@ public static class Common {
     public static HashSet<string> GetFileSettings (Dictionary<string, object> profileSettings, string fileName) {
         var fileSettings = profileSettings["FileSettings"] as Dictionary<string, object>;
         object settings;
+
         if (fileSettings.TryGetValue(fileName, out settings))
             return new HashSet<string>(settings.ToString().ToLower().Split(' '));
-        else
-            return new HashSet<string>();
+
+        var fileSettingsRegexes = profileSettings["FileSettingsRegexes"] as Dictionary<string, Regex>;
+        if (fileSettingsRegexes == null) {
+            profileSettings["FileSettingsRegexes"] = fileSettingsRegexes = new Dictionary<string, Regex>();
+
+            var globChars = new char[] { '?', '*' };
+
+            foreach (var key in fileSettings.Keys) {
+                if (key.IndexOfAny(globChars) < 0)
+                    continue;
+
+                var regex = new Regex(
+                    Regex.Escape(key)
+                        .Replace("\\*", "(.*)")
+                        .Replace("\\?", "(.)"),
+                    RegexOptions.Compiled | RegexOptions.IgnoreCase
+                );
+
+                fileSettingsRegexes[key] = regex;
+            }
+        }
+
+        foreach (var kvp in fileSettingsRegexes) {
+            if (kvp.Value.IsMatch(fileName))
+                return new HashSet<string>(fileSettings[kvp.Key].ToString().ToLower().Split(' '));
+        }
+
+        return new HashSet<string>();
     }
 
     public static void ProcessContentProjects (Configuration configuration, SolutionBuilder.SolutionBuildResult buildResult, HashSet<string> contentProjectsProcessed) {
@@ -916,15 +1000,16 @@ public static class Common {
                                 continue;
                             }
 
-                            var result = Common.CompressImage(
+                            Common.CompressImage(
                                 item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
-                                configuration.ProfileSettings, metadata, existingJournalEntry
+                                configuration.ProfileSettings, metadata, existingJournalEntry,
+                                (result) => {
+                                    if (result.HasValue) {
+                                        journal.Add(result.Value);
+                                        logOutput("Image", result.Value.Filename, null);
+                                    }
+                                }
                             );
-
-                            if (result.HasValue) {
-                                journal.Add(result.Value);
-                                logOutput("Image", result.Value.Filename, null);
-                            }
 
                             continue;
 
