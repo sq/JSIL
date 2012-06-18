@@ -6063,6 +6063,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
       throw new System.NotImplementedException("The pixel format '" + format.name + "' is not supported.");
 
     this.image = document.createElement("img");
+    
     var textures = document.getElementById("textures");
     if (textures) 
       textures.appendChild(this.image);
@@ -6206,10 +6207,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
 
   $.RawMethod(false, "$getImageForBytes", function (bytes, startIndex, elementCount, unpremultiply, swapRedAndBlue) {
     var canvas = document.createElement("canvas");
-    try {
-      document.getElementById("images").appendChild(canvas);
-    } catch (exc) {
-    }
     canvas.width = this.width;
     canvas.height = this.height;
     var ctx = $jsilxna.get2DContext(canvas, false);

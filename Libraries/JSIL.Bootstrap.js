@@ -2261,14 +2261,69 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
     function () {
       // This type already has a cctor so we add a second one.
       System.Text.Encoding.asciiEncoding = JSIL.CreateInstanceOfType(
-        System.Text.ASCIIEncoding.__Type__, null
+        System.Text.ASCIIEncoding.__Type__, "$fromCharset", ["US-ASCII"]
       );
 
       System.Text.Encoding.utf8Encoding = JSIL.CreateInstanceOfType(
-        System.Text.UTF8Encoding.__Type__, null
+        System.Text.UTF8Encoding.__Type__, "$fromCharset", ["UTF-8"]
+      );
+
+      System.Text.Encoding.utf7Encoding = JSIL.CreateInstanceOfType(
+        System.Text.UTF7Encoding.__Type__, "$fromCharset", ["UTF-7"]
+      );
+
+      System.Text.Encoding.unicodeEncoding = JSIL.CreateInstanceOfType(
+        System.Text.UnicodeEncoding.__Type__, "$fromCharset", ["UTF-16"]
       );
     }
   );
+
+  $.RawMethod(false, "$fromCharset", function (charset) {
+    this._charset = charset;
+  });
+
+  $.RawMethod(false, "$makeBlob", function (string, contentType) {
+    if (!blobBuilder)
+      throw new Error("Your browser does not support BlobBuilder");
+
+    var bb = new BlobBuilder();
+    bb.append(string, "transparent");
+    return bb.getBlob(contentType);
+  });
+
+  $.RawMethod(false, "$encode", function (string, outputBytes, outputIndex) {
+    throw new Error("Not implemented");
+  });
+
+  $.RawMethod(false, "$decode", function (bytes, index, count) {
+    throw new Error("Not implemented");
+  });
+
+  $.RawMethod(false, "$charsToString", function (chars, index, count) {
+    var src = chars;
+
+    if (typeof (index) === "undefined")
+      index = 0;
+    if (typeof (count) === "undefined")
+      count = chars.length;
+
+    if (
+      (index !== 0) || 
+      (count !== chars.length)
+    ) {
+      src = Array.prototype.slice.call(chars, index, count);
+    }
+
+    return String.fromCharCode.apply(String, src);
+  });
+
+  $.RawMethod(false, "$stringToChars", function (string) {
+    var result = new Array(string.length);
+    for (var i = 0, l = string.length; i < l; i++)
+      result[i] = string.charCodeAt(i);
+
+    return result;
+  });
 
   $.Method({Static:true , Public:true }, "get_ASCII", 
     (new JSIL.MethodSignature($.Type, [], [])),
@@ -2284,17 +2339,31 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
     }
   );
 
+  $.Method({Static:true , Public:true }, "get_UTF7", 
+    (new JSIL.MethodSignature($.Type, [], [])),
+    function () {
+      return System.Text.Encoding.utf7Encoding;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "get_Unicode", 
+    (new JSIL.MethodSignature($.Type, [], [])),
+    function () {
+      return System.Text.Encoding.unicodeEncoding;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "GetByteCount", 
     (new JSIL.MethodSignature($.Int32, [$jsilcore.TypeRef("System.Array", [$.Char])], [])), 
     function GetByteCount (chars) {
-      throw new Error('Not implemented');
+      return this.$encode(this.$charsToString(chars)).length;
     }
   );
 
   $.Method({Static:false, Public:true }, "GetByteCount", 
     (new JSIL.MethodSignature($.Int32, [$.String], [])), 
     function GetByteCount (s) {
-      throw new Error('Not implemented');
+      return this.$encode(s).length;
     }
   );
 
@@ -2304,14 +2373,14 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
           $.Int32
         ], [])), 
     function GetByteCount (chars, index, count) {
-      throw new Error('Not implemented');
+      return this.$encode(this.$charsToString(chars, index, count)).length;
     }
   );
 
   $.Method({Static:false, Public:true }, "GetBytes", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [$jsilcore.TypeRef("System.Array", [$.Char])], [])), 
     function GetBytes (chars) {
-      throw new Error('Not implemented');
+      return this.$encode(this.$charsToString(chars));
     }
   );
 
@@ -2321,7 +2390,7 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
           $.Int32
         ], [])), 
     function GetBytes (chars, index, count) {
-      throw new Error('Not implemented');
+      return this.$encode(this.$charsToString(chars, index, count));
     }
   );
 
@@ -2332,14 +2401,14 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
           $.Int32
         ], [])), 
     function GetBytes (chars, charIndex, charCount, bytes, byteIndex) {
-      throw new Error('Not implemented');
+      return this.$encode(this.$charsToString(chars, index, count), bytes, byteIndex);
     }
   );
 
   $.Method({Static:false, Public:true }, "GetBytes", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [$.String], [])), 
     function GetBytes (s) {
-      throw new Error('Not implemented');
+      return this.$encode(s);
     }
   );
 
@@ -2350,14 +2419,14 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
           $.Int32
         ], [])), 
     function GetBytes (s, charIndex, charCount, bytes, byteIndex) {
-      throw new Error('Not implemented');
+      return this.$encode(s.substr(charIndex, charCount), bytes, byteIndex);
     }
   );
 
   $.Method({Static:false, Public:true }, "GetCharCount", 
     (new JSIL.MethodSignature($.Int32, [$jsilcore.TypeRef("System.Array", [$.Byte])], [])), 
     function GetCharCount (bytes) {
-      throw new Error('Not implemented');
+      return this.$decode(bytes).length;
     }
   );
 
@@ -2367,14 +2436,14 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
           $.Int32
         ], [])), 
     function GetCharCount (bytes, index, count) {
-      throw new Error('Not implemented');
+      return this.$decode(bytes, index, count).length;
     }
   );
 
   $.Method({Static:false, Public:true }, "GetChars", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Char]), [$jsilcore.TypeRef("System.Array", [$.Byte])], [])), 
     function GetChars (bytes) {
-      throw new Error('Not implemented');
+      return this.$stringToChars(this.$decode(bytes));
     }
   );
 
@@ -2384,7 +2453,7 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
           $.Int32
         ], [])), 
     function GetChars (bytes, index, count) {
-      throw new Error('Not implemented');
+      return this.$stringToChars(this.$decode(bytes, index, count));
     }
   );
 
@@ -2395,14 +2464,14 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
           $.Int32
         ], [])), 
     function GetChars (bytes, byteIndex, byteCount, chars, charIndex) {
-      throw new Error('Not implemented');
+      throw new Error("Not implemented");
     }
   );
 
   $.Method({Static:false, Public:true }, "GetString", 
     (new JSIL.MethodSignature($.String, [$jsilcore.TypeRef("System.Array", [$.Byte])], [])), 
     function GetString (bytes) {
-      return this.GetString(bytes, 0, bytes.length);
+      return this.$decode(bytes);
     }
   );
 
@@ -2412,13 +2481,7 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
           $.Int32
         ], [])), 
     function GetString (bytes, index, count) {
-      // FIXME: Not actually correct for various encodings.
-      
-      var result = "";
-      for (var i = 0; i < count; i++)
-        result += String.fromCharCode(bytes[index + i]);
-
-      return result;
+      return this.$decode(bytes, index, count);
     }
   );
 });
@@ -2426,12 +2489,65 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
 JSIL.MakeClass("System.Object", "System.Text.Encoding", true, [], function ($) {
   $.Property({Static:true , Public:true }, "ASCII");
   $.Property({Static:true , Public:true }, "UTF8");
+  $.Property({Static:true , Public:true }, "UTF7");
+  $.Property({Static:true , Public:true }, "Unicode");
 });
 
 JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true, [], function ($) {
+  $.RawMethod(false, "$encode", function (string, outputBytes, outputIndex) {
+    var returnBytes = (arguments.length === 1);
+
+    if (returnBytes) {
+      outputBytes = new Uint8Array(string.length);
+      outputIndex = 0;
+    }
+
+    var fallbackCharacter = "?".charCodeAt(0);
+
+    for (var i = 0, l = string.length; i < l; i++) {
+      var ch = string.charCodeAt(i);
+
+      if (ch <= 127)
+        outputBytes[i + outputIndex] = ch;
+      else
+        outputBytes[i + outputIndex] = fallbackCharacter;
+    }
+
+    if (returnBytes)
+      return outputBytes;
+    else
+      return outputBytes.length;
+  });
+
+  $.RawMethod(false, "$decode", function (bytes, index, count) {
+    if (arguments.length === 1) {
+      index = 0;
+      count = bytes.length;
+    }
+
+    var fallbackCharacter = "?";
+
+    var result = "";
+    for (var i = 0; i < count; i++) {
+      var ch = bytes[i + index];
+
+      if (ch > 127)
+        result += fallbackCharacter;
+      else
+        result += String.fromCharCode(ch);
+    }
+
+    return result;
+  });
 });
 
 JSIL.MakeClass("System.Text.Encoding", "System.Text.UTF8Encoding", true, [], function ($) {
+});
+
+JSIL.MakeClass("System.Text.Encoding", "System.Text.UTF7Encoding", true, [], function ($) {
+});
+
+JSIL.MakeClass("System.Text.Encoding", "System.Text.UnicodeEncoding", true, [], function ($) {
 });
 
 JSIL.ImplementExternals(
@@ -3297,6 +3413,12 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
   );
 
   var appendString = function (self, str, startIndex, length, copies) {
+    if (arguments.length === 2) {
+      startIndex = 0;
+      length = str.length;
+      copies = 1;
+    }
+
     if ((startIndex !== 0) || (length !== str.length)) {
       for (var i = 0; i < copies; i++) {
         self._str += str.substr(startIndex, length);
@@ -3458,6 +3580,44 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "AppendFormat", 
+    (new JSIL.MethodSignature($.Type, [$.String, $.Object], [])), 
+    function AppendFormat (format, arg0) {
+      appendString(this, System.String.Format(format, [arg0]));
+      return this;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "AppendFormat", 
+    (new JSIL.MethodSignature($.Type, [
+          $.String, $.Object, 
+          $.Object
+        ], [])), 
+    function AppendFormat (format, arg0, arg1) {
+      appendString(this, System.String.Format(format, [arg0, arg1]));
+      return this;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "AppendFormat", 
+    (new JSIL.MethodSignature($.Type, [
+          $.String, $.Object, 
+          $.Object, $.Object
+        ], [])), 
+    function AppendFormat (format, arg0, arg1, arg2) {
+      appendString(this, System.String.Format(format, [arg0, arg1, arg2]));
+      return this;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "AppendFormat", 
+    (new JSIL.MethodSignature($.Type, [$.String, $jsilcore.TypeRef("System.Array", [$.Object])], [])), 
+    function AppendFormat (format, args) {
+      appendString(this, System.String.Format(format, args));
+      return this;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "Clear", 
     (new JSIL.MethodSignature($.Type, [], [])), 
     function Clear () {
@@ -3538,6 +3698,9 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
       return this._str;
     }
   );
+});
+
+JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Text.StringBuilder", true, [], function ($) {
 });
 
 JSIL.ImplementExternals("System.Diagnostics.StackTrace", function ($) {

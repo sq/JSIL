@@ -553,8 +553,6 @@ var assetLoaders = {
     e.addEventListener("error", onError, true);
     e.addEventListener("load", onDoneLoading.bind(null, finisher), true);
     e.src = contentRoot + filename;
-
-    // document.getElementById("images").appendChild(e);
   },
   "File": function loadFile (filename, data, onError, onDoneLoading) {
     loadBinaryFileAsync(fileRoot + filename, function (result, error) {

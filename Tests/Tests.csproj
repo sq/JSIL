@@ -57,6 +57,8 @@
     <None Include="AnalysisTestCases\NestedReturnNew.cs" />
     <None Include="AnalysisTestCases\StructTemporaries.cs" />
     <None Include="AnalysisTestCases\LocalCopyOfGlobal.cs" />
+    <None Include="BrowserEncodingTestCases\ASCIIGetBytes.cs" />
+    <None Include="BrowserEncodingTestCases\ASCIIGetString.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="FailingTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />
@@ -102,6 +104,8 @@
     <None Include="TestCases\NullableComparisonWithCast.cs" />
     <None Include="SimpleTestCases\DelegateFieldInitializer.cs" />
     <None Include="TestCases\NullableObjectCast.cs" />
+    <None Include="BrowserEncodingTestCases\Common.cs" />
+    <Compile Include="EncodingTests.cs" />
     <Compile Include="EvaluatorPool.cs" />
     <None Include="SimpleTestCases\NestedInterfaces.cs" />
     <None Include="SimpleTestCases\OverloadedConstructorDelegation.cs" />
