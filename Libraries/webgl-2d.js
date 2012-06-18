@@ -280,7 +280,12 @@
         if ((gl2d.options.force || context === "webgl-2d") && !(canvas.width === 0 || canvas.height === 0)) {
           if (gl2d.gl) { return gl2d.gl; }
 
-          var gl = gl2d.gl = gl2d.canvas.$getContext("experimental-webgl");
+          var contextParameters = {
+            antialias: false,
+            premultipliedAlpha: true
+          };
+
+          var gl = gl2d.gl = gl2d.canvas.$getContext("experimental-webgl", contextParameters);
 
           if ((typeof (gl) === "undefined") || (gl === null) || initFailure) {
             return gl2d.canvas.$getContext("2d");
@@ -311,6 +316,9 @@
             // Premultiplied
             gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
+            // Use premultiplied textures
+            gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, gl.ONE);
+
             gl2d.maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
           } catch (exc) {
             console.warn("Failed to initialize webgl-2d context. Library disabled. ", exc);
@@ -320,7 +328,7 @@
 
           return gl;
         } else {
-          return gl2d.canvas.$getContext(context);
+          return gl2d.canvas.$getContext(context, contextParameters);
         }
       };
     }(this));
@@ -1291,41 +1299,49 @@
     Texture.prototype.updateCachedImage = function (image) {
       gl.bindTexture(gl.TEXTURE_2D, this.obj);
 
-      // Premultiply the image pixels
-      var imagePixels;
-      if (image.tagName.toLowerCase() === "canvas") {
-        imagePixels = image.getContext("2d").getImageData(0, 0, image.width, image.height);
+      var premultiplyManually = false;
+
+      if (premultiplyManually) {
+        // Premultiply the image pixels
+        var imagePixels;
+        if (image.tagName.toLowerCase() === "canvas") {
+          imagePixels = image.getContext("2d").getImageData(0, 0, image.width, image.height);
+        } else {
+          tempCanvas.width = image.width;
+          tempCanvas.height = image.height;
+          tempCtx.clearRect(0, 0, image.width, image.height);
+          tempCtx.globalCompositeOperation = "copy";
+          tempCtx.drawImage(image, 0, 0);
+
+          imagePixels = tempCtx.getImageData(0, 0, image.width, image.height);
+          tempCanvas.width = tempCanvas.height = 1;
+        }
+        var imagePixelData = imagePixels.data;
+
+        // WebGL and canvas don't like to touch each other because the spec is dumb
+        var l = imagePixelData.length;
+        var premultipliedData = new Uint8Array(l);
+
+        for (var i = 0; i < l; i += 4) {
+          var a = imagePixelData[i + 3];
+          premultipliedData[i + 3] = a;
+
+          a /= 255;
+          premultipliedData[i + 0] = a * imagePixelData[i + 0];
+          premultipliedData[i + 1] = a * imagePixelData[i + 1];
+          premultipliedData[i + 2] = a * imagePixelData[i + 2];
+        }
+
+        gl.texImage2D(
+          gl.TEXTURE_2D, 0, gl.RGBA,
+          image.width, image.height, 0, gl.RGBA, 
+          gl.UNSIGNED_BYTE, premultipliedData
+        );
       } else {
-        tempCanvas.width = image.width;
-        tempCanvas.height = image.height;
-        tempCtx.clearRect(0, 0, image.width, image.height);
-        tempCtx.globalCompositeOperation = "copy";
-        tempCtx.drawImage(image, 0, 0);
-
-        imagePixels = tempCtx.getImageData(0, 0, image.width, image.height);
-        tempCanvas.width = tempCanvas.height = 1;
+        gl.texImage2D(
+          gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image
+        );
       }
-      var imagePixelData = imagePixels.data;
-
-      // WebGL and canvas don't like to touch each other because the spec is dumb
-      var l = imagePixelData.length;
-      var premultipliedData = new Uint8Array(l);
-
-      for (var i = 0; i < l; i += 4) {
-        var a = imagePixelData[i + 3];
-        premultipliedData[i + 3] = a;
-
-        a /= 255;
-        premultipliedData[i + 0] = a * imagePixelData[i + 0];
-        premultipliedData[i + 1] = a * imagePixelData[i + 1];
-        premultipliedData[i + 2] = a * imagePixelData[i + 2];
-      }
-
-      gl.texImage2D(
-        gl.TEXTURE_2D, 0, gl.RGBA,
-        image.width, image.height, 0, gl.RGBA, 
-        gl.UNSIGNED_BYTE, premultipliedData
-      );
 
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);

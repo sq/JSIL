@@ -2286,17 +2286,33 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
     if (!Blob)
       throw new Error("Your browser does not support Blob");
 
-    var propertyBag = {
-      endings: "transparent"
-    };
+    var blobBuilder = window.BlobBuilder || window.webKitBlobBuilder || window.WebKitBlobBuilder || window.MozBlobBuilder || window.MSBlobBuilder || window.OBlobBuilder || window.oBlobBuilder;
+    if (blobBuilder) {
+      var bb = new blobBuilder();
 
-    if (arguments.length > 1)
-      propertyBag.type = contentType;
+      for (var i = 0; i < parts.length; i++) {
+        var part = parts[i];
 
-    try {
-      return new Blob(parts, propertyBag);
-    } catch (exc) {
-      throw new Error("Your browser does not support the Blob constructor: " + String(exc));
+        if (typeof (part) === "string")
+          bb.append(part, "transparent");
+        else
+          bb.append(part);
+      }
+
+      return bb.getBlob(contentType);
+    } else {
+      var propertyBag = {
+        endings: "transparent"
+      };
+
+      if (arguments.length > 1)
+        propertyBag.type = contentType;
+
+      try {
+        return new Blob(parts, propertyBag);
+      } catch (exc) {
+        throw new Error("Your browser does not support the Blob constructor: " + String(exc));
+      }
     }
   });
 
@@ -2638,13 +2654,11 @@ JSIL.ImplementExternals("System.Text.UTF8Encoding", function ($) {
       count = bytes.length;
     }
 
-    var src = bytes;
+    var array = new Uint8Array(count);
+    for (var i = 0; i < count; i++)
+      array[i] = bytes[index + i];
 
-    // Blob helpfully converts regular old arrays of bytes into a string. THANKS.
-    if (bytes.prototype !== Uint8Array)
-      src = new Uint8Array(bytes);
-
-    var blob = this.$blobFromParts([src], "text/plain; charset=utf-8");
+    var blob = this.$blobFromParts([array.buffer], "text/plain; charset=utf-8");
     var result = this.$stringFromBlob(blob, "text/plain; charset=utf-8");
 
     return result;
@@ -4532,7 +4546,7 @@ JSIL.ImplementExternals("System.Collections.Generic.HashSet`1", function ($) {
   $.Method({Static:false, Public:true }, "Contains", 
     (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("T", "System.Collections.Generic.HashSet`1")], [])), 
     function Contains (item) {
-      throw new Error('Not implemented');
+      return this.$searchBucket(item) !== null;
     }
   );
 
@@ -4720,7 +4734,7 @@ JSIL.ImplementExternals("System.Collections.Generic.HashSet`1", function ($) {
   $.Method({Static:false, Public:true }, "Remove", 
     (new JSIL.MethodSignature($.Boolean, [new JSIL.GenericParameter("T", "System.Collections.Generic.HashSet`1")], [])), 
     function Remove (item) {
-      throw new Error('Not implemented');
+      return this.$removeByKey(item);
     }
   );
 

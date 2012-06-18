@@ -166,10 +166,17 @@ $jsilxna.get2DContext = function (canvas, enableWebGL) {
   var hasWebGL = typeof (WebGL2D) !== "undefined";
   var extraMessage = "";
 
+  var forceCanvas = (document.location.search.indexOf("forceCanvas") >= 0);
+  var forceWebGL = (document.location.search.indexOf("forceWebGL") >= 0);
+
+  if (forceWebGL && enableWebGL) {
+    $jsilxna.testedWebGL = $jsilxna.workingWebGL = true;
+  }
+
   if (
-    hasWebGL && enableWebGL && 
+    (hasWebGL && enableWebGL && 
     ($jsilxna.allowWebGL !== false) && 
-    (document.location.search.indexOf("forceCanvas") < 0)
+    !forceCanvas) || (enableWebGL && forceWebGL)
   ) {
     if (!$jsilxna.testedWebGL) {
       try {
