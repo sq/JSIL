@@ -69,8 +69,6 @@
         } catch (ex) {
         }
 
-        // WebGL is dramatically slower than canvas in chrome/FF and has horrible sampling artifacts.
-        $jsilxna.allowWebGL = false;
         // Crisp square pixels!
         integralFullscreenScaling = true;
         // We default the canvas to 2x native framebuffer size, but we want fullscreen scaling to be based on 1x

@@ -958,6 +958,36 @@
       }
     });
 
+    drawState.imageSmoothingEnabled = true;
+
+    var imageSmoothingDecl = {
+      get: function () {
+        return drawState.imageSmoothingEnabled;
+      },
+      set: function (value) {
+        drawState.imageSmoothingEnabled = value;
+      }
+    };
+
+    Object.defineProperty(gl, "webkitImageSmoothingEnabled", imageSmoothingDecl);
+    Object.defineProperty(gl, "mozImageSmoothingEnabled", imageSmoothingDecl);
+
+    var updateSmoothingMode = function (texture) {
+      if (drawState.imageSmoothingEnabled) {
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+        // Enable Mip mapping on power-of-2 textures
+        if (texture.isPOT) {
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        } else {
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        }
+      } else {
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      }
+    }
+
     // This attribute will need to set the gl.blendFunc mode
     drawState.globalCompositeOperation = "source-over";
 
@@ -1275,6 +1305,7 @@
     function Texture(image) {
       this.obj   = gl.createTexture();
       this.index = textureCache.push(this);
+      this.isPOT = isPOT(image.width) && isPOT(image.height);
 
       imageCache.push(image);
 
@@ -1345,15 +1376,11 @@
 
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-      // Enable Mip mapping on power-of-2 textures
-      if (isPOT(image.width) && isPOT(image.height)) {
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      updateSmoothingMode(this);
+
+      if (this.isPOT)
         gl.generateMipmap(gl.TEXTURE_2D);
-      } else {
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      }
 
       // Unbind texture
       gl.bindTexture(gl.TEXTURE_2D, null);
@@ -1423,6 +1450,7 @@
 
       gl.uniform1i(shaderProgram.uSampler, 0);
 
+      updateSmoothingMode(texture);
       updateBlendMode();
 
       if (arguments.length === 13) {
