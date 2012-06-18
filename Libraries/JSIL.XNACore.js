@@ -4553,11 +4553,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         this.device.context.scale(transformMatrix.xScale, transformMatrix.yScale);
       }
 
+      var enableSmoothing = true;
       if (samplerState) {
-        var enableSmoothing = samplerState.get_Filter() != Microsoft.Xna.Framework.Graphics.TextureFilter.Point;
-
-        this.device.context.mozImageSmoothingEnabled = this.device.context.webkitImageSmoothingEnabled = enableSmoothing;
+        enableSmoothing = samplerState.get_Filter() != Microsoft.Xna.Framework.Graphics.TextureFilter.Point;
       }
+
+      this.device.context.mozImageSmoothingEnabled = this.device.context.webkitImageSmoothingEnabled = enableSmoothing;
     }
   );
 
@@ -5765,11 +5766,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SamplerStateCollection
     function set_Item (index, value) {
       this.states[index] = value;
 
+      var enableSmoothing = true;
       if (value) {
-        var enableSmoothing = value.get_Filter() != Microsoft.Xna.Framework.Graphics.TextureFilter.Point;
-
-        this.parent.context.mozImageSmoothingEnabled = this.parent.context.webkitImageSmoothingEnabled = enableSmoothing;
+        enableSmoothing = value.get_Filter() != Microsoft.Xna.Framework.Graphics.TextureFilter.Point;
       }
+
+      this.parent.context.mozImageSmoothingEnabled = this.parent.context.webkitImageSmoothingEnabled = enableSmoothing;
     }
   );
 
