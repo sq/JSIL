@@ -210,6 +210,17 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void HashSets () {
+            var defaultProvider = MakeDefaultProvider();
+
+            RunComparisonTests(
+                new[] { 
+                    @"TestCases\HashSetCount.cs",
+                }, null, defaultProvider
+            );
+        }
+
+        [Test]
         public void Enums () {
             var defaultProvider = MakeDefaultProvider();
 

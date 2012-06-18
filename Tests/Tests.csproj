@@ -170,6 +170,7 @@
     <None Include="SimpleTestCases\JaggedStructArrayReference.cs" />
     <None Include="SimpleTestCases\IfReferenceBool.cs" />
     <None Include="SimpleTestCases\IntegerRanges.cs" />
+    <None Include="TestCases\HashSetCount.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

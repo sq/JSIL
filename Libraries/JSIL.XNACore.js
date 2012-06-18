@@ -477,6 +477,19 @@ JSIL.MakeClass("HTML5Asset", "HTML5ImageAsset", true, [], function ($) {
     this.Width = image.naturalWidth;
     this.Height = image.naturalHeight;
     this.id = String(++$jsilxna.nextImageId);
+
+    Object.defineProperty(this, "Bounds", {
+      configurable: true,
+      enumerable: true,
+      get: this.get_Bounds
+    });
+  });
+
+  $.RawMethod(false, "get_Bounds", function () {
+    if (!this._bounds)
+      this._bounds = new Microsoft.Xna.Framework.Rectangle(0, 0, this.Width, this.Height);
+
+    return this._bounds;
   });
 });
 
@@ -3396,6 +3409,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.KeyboardState", function 
   $.Method({Static:false, Public:true }, "GetPressedKeys", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.Keys")]), [], [])), 
     function GetPressedKeys () {
+      if (!this.keys)
+        return [];
+
       var result = [];
       var tKeys = $xnaasms[0].Microsoft.Xna.Framework.Input.Keys.__Type__;
 
@@ -3409,6 +3425,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.KeyboardState", function 
   $.Method({Static:false, Public:true }, "IsKeyDown", 
     (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.Keys")], [])), 
     function IsKeyDown (key) {
+      if (!this.keys)
+        return false;
+
       return this.keys.indexOf(Number(key)) !== -1;
     }
   );
@@ -3416,6 +3435,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.KeyboardState", function 
   $.Method({Static:false, Public:true }, "IsKeyUp", 
     (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.Keys")], [])), 
     function IsKeyUp (key) {
+      if (!this.keys)
+        return true;
+
       return this.keys.indexOf(Number(key)) === -1;
     }
   );
@@ -6063,7 +6085,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
       throw new System.NotImplementedException("The pixel format '" + format.name + "' is not supported.");
 
     this.image = document.createElement("img");
-    
+
     var textures = document.getElementById("textures");
     if (textures) 
       textures.appendChild(this.image);
@@ -6151,6 +6173,16 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function get_Width () {
       return this.width;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Bounds", 
+    (new JSIL.MethodSignature($xnaasms.xna.TypeRef("Microsoft.Xna.Framework.Rectangle"), [], [])), 
+    function get_Bounds () {
+      if (!this._bounds)
+        this._bounds = new Microsoft.Xna.Framework.Rectangle(0, 0, this.width, this.height);
+
+      return this._bounds;
     }
   );
 
@@ -7392,6 +7424,43 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.VertexPositionColorTex
       this.Position = position;
       this.Color = color;
       this.TextureCoordinate = textureCoordinate;
+    }
+  );
+
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.GameServiceContainer", function ($) {
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      this._services = {};
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "AddService", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Type"), $.Object], [])), 
+    function AddService (type, provider) {
+      this._services[type.__TypeId__] = provider;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetService", 
+    (new JSIL.MethodSignature($.Object, [$jsilcore.TypeRef("System.Type")], [])), 
+    function GetService (type) {
+      var result = this._services[type.__TypeId__];
+
+      if (!result)
+        return null;
+      else
+        return result;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "RemoveService", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Type")], [])), 
+    function RemoveService (type) {
+      delete this._services[type.__TypeId__];
     }
   );
 
