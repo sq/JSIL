@@ -2282,11 +2282,10 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
     this._charset = charset;
   });
 
-  $.RawMethod(false, "$blobFromString", function Encoding_MakeBlob (string, contentType) {
+  $.RawMethod(false, "$blobFromParts", function Encoding_MakeBlob (parts, contentType) {
     if (!Blob)
       throw new Error("Your browser does not support Blob");
 
-    var parts = [string];
     var propertyBag = {
       endings: "transparent"
     };
@@ -2294,7 +2293,11 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
     if (arguments.length > 1)
       propertyBag.type = contentType;
 
-    return new Blob(parts, propertyBag);
+    try {
+      return new Blob(parts, propertyBag);
+    } catch (exc) {
+      throw new Error("Your browser does not support the Blob constructor: " + String(exc));
+    }
   });
 
   $.RawMethod(false, "$bytesFromBlob", function Encoding_ReadStringFromBlob (blob, contentType) {
@@ -2336,7 +2339,26 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
     } finally {
       url.revokeObjectURL(blobUri);
     }
+  });
 
+  $.RawMethod(false, "$stringFromBlob", function Encoding_ReadStringFromBlob (blob, contentType) {
+    var url = window.URL || window.webkitURL || window.mozURL || window.oURL || window.msURL;
+
+    if ((!url) || (!url.createObjectURL))
+      throw new Error("Object URLs not implemented by your browser");
+
+    var blobUri = url.createObjectURL(blob);
+
+    try {
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", blobUri, false);
+      xhr.overrideMimeType(contentType);
+      xhr.send();
+
+      return xhr.response;
+    } finally {
+      url.revokeObjectURL(blobUri);
+    }
   });
 
   $.RawMethod(false, "$encode", function Encoding_Encode_PureVirtual (string, outputBytes, outputIndex) {
@@ -2591,7 +2613,7 @@ JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true, [], fu
 
 JSIL.MakeClass("System.Text.Encoding", "System.Text.UTF8Encoding", true, [], function ($) {
   $.RawMethod(false, "$encode", function UTF8Encoding_Encode (string, outputBytes, outputIndex) {
-    var blob = this.$blobFromString(string, "text/plain; charset=utf-8");
+    var blob = this.$blobFromParts([string], "text/plain; charset=utf-8");
 
     var resultBytes = this.$bytesFromBlob(blob, "application/octet-stream; charset=x-user-defined");
 
@@ -2611,23 +2633,20 @@ JSIL.MakeClass("System.Text.Encoding", "System.Text.UTF8Encoding", true, [], fun
       return outputBytes.length;
   });
 
-  $.RawMethod(false, "$decode", function ASCIIEncoding_Decode (bytes, index, count) {
+  $.RawMethod(false, "$decode", function UTF8Encoding_Decode (bytes, index, count) {
     if (arguments.length === 1) {
       index = 0;
       count = bytes.length;
     }
 
-    var fallbackCharacter = "?";
+    var src = bytes;
 
-    var result = "";
-    for (var i = 0; i < count; i++) {
-      var ch = bytes[i + index];
+    // Blob helpfully converts regular old arrays of bytes into a string. THANKS.
+    if (bytes.prototype !== Uint8Array)
+      src = new Uint8Array(bytes);
 
-      if (ch > 127)
-        result += fallbackCharacter;
-      else
-        result += String.fromCharCode(ch);
-    }
+    var blob = this.$blobFromParts([src], "text/plain; charset=utf-8");
+    var result = this.$stringFromBlob(blob, "text/plain; charset=utf-8");
 
     return result;
   });
