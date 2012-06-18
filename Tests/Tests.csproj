@@ -59,6 +59,8 @@
     <None Include="AnalysisTestCases\LocalCopyOfGlobal.cs" />
     <None Include="BrowserEncodingTestCases\ASCIIGetBytes.cs" />
     <None Include="BrowserEncodingTestCases\ASCIIGetString.cs" />
+    <None Include="BrowserEncodingTestCases\UTF8GetBytes.cs" />
+    <None Include="BrowserEncodingTestCases\UTF8GetString.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="FailingTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />

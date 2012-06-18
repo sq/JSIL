@@ -2282,20 +2282,68 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
     this._charset = charset;
   });
 
-  $.RawMethod(false, "$makeBlob", function (string, contentType) {
-    if (!blobBuilder)
-      throw new Error("Your browser does not support BlobBuilder");
+  $.RawMethod(false, "$blobFromString", function Encoding_MakeBlob (string, contentType) {
+    if (!Blob)
+      throw new Error("Your browser does not support Blob");
 
-    var bb = new BlobBuilder();
-    bb.append(string, "transparent");
-    return bb.getBlob(contentType);
+    var parts = [string];
+    var propertyBag = {
+      endings: "transparent"
+    };
+
+    if (arguments.length > 1)
+      propertyBag.type = contentType;
+
+    return new Blob(parts, propertyBag);
   });
 
-  $.RawMethod(false, "$encode", function (string, outputBytes, outputIndex) {
+  $.RawMethod(false, "$bytesFromBlob", function Encoding_ReadStringFromBlob (blob, contentType) {
+    // FileReaderSync is only available in web workers, apparently because the spec committee knows better?
+    // Yeah, why would I ever want to synchronously encode a string as UTF8? That's COMPLETELY useless, isn't it?
+    // Of course it doesn't complete synchronously for an in-memory blob either because that would be LOGICAL.
+
+    /*
+      var reader = new FileReader();
+      reader.readAsArrayBuffer(blob);
+
+      while (reader.readyState !== 2)
+        ;
+    */
+
+    var url = window.URL || window.webkitURL || window.mozURL || window.oURL || window.msURL;
+
+    if ((!url) || (!url.createObjectURL))
+      throw new Error("Object URLs not implemented by your browser");
+
+    var blobUri = url.createObjectURL(blob);
+
+    try {
+      // Luckily XHR still supports sync! Sort of! GOD THIS IS DUMB
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", blobUri, false);
+      xhr.overrideMimeType(contentType);
+      xhr.send();
+
+      // Of course because responseType is disabled for sync XHR, we have to decode the bytes ourself.
+      // From a string. Because THAT's not stupid or wasteful at all.
+      var responseBody = xhr.response;
+      var bytes = new Uint8Array(responseBody.length);
+
+      for (var i = 0, l = bytes.length; i < l; i++)
+        bytes[i] = responseBody.charCodeAt(i);
+
+      return bytes;
+    } finally {
+      url.revokeObjectURL(blobUri);
+    }
+
+  });
+
+  $.RawMethod(false, "$encode", function Encoding_Encode_PureVirtual (string, outputBytes, outputIndex) {
     throw new Error("Not implemented");
   });
 
-  $.RawMethod(false, "$decode", function (bytes, index, count) {
+  $.RawMethod(false, "$decode", function Encoding_Decode_PureVirtual (bytes, index, count) {
     throw new Error("Not implemented");
   });
 
@@ -2494,7 +2542,7 @@ JSIL.MakeClass("System.Object", "System.Text.Encoding", true, [], function ($) {
 });
 
 JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true, [], function ($) {
-  $.RawMethod(false, "$encode", function (string, outputBytes, outputIndex) {
+  $.RawMethod(false, "$encode", function ASCIIEncoding_Encode (string, outputBytes, outputIndex) {
     var returnBytes = (arguments.length === 1);
 
     if (returnBytes) {
@@ -2519,7 +2567,7 @@ JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true, [], fu
       return outputBytes.length;
   });
 
-  $.RawMethod(false, "$decode", function (bytes, index, count) {
+  $.RawMethod(false, "$decode", function ASCIIEncoding_Decode (bytes, index, count) {
     if (arguments.length === 1) {
       index = 0;
       count = bytes.length;
@@ -2542,6 +2590,47 @@ JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true, [], fu
 });
 
 JSIL.MakeClass("System.Text.Encoding", "System.Text.UTF8Encoding", true, [], function ($) {
+  $.RawMethod(false, "$encode", function UTF8Encoding_Encode (string, outputBytes, outputIndex) {
+    var blob = this.$blobFromString(string, "text/plain; charset=utf-8");
+
+    var resultBytes = this.$bytesFromBlob(blob, "application/octet-stream; charset=x-user-defined");
+
+    var returnBytes = (arguments.length === 1);
+
+    if (returnBytes) {
+      outputBytes = resultBytes;
+      outputIndex = 0;
+    } else {
+      for (var i = 0, l = resultBytes.length; i < l; i++)
+        outputBytes[outputIndex + i] = resultBytes[i];
+    }
+
+    if (returnBytes)
+      return outputBytes;
+    else
+      return outputBytes.length;
+  });
+
+  $.RawMethod(false, "$decode", function ASCIIEncoding_Decode (bytes, index, count) {
+    if (arguments.length === 1) {
+      index = 0;
+      count = bytes.length;
+    }
+
+    var fallbackCharacter = "?";
+
+    var result = "";
+    for (var i = 0; i < count; i++) {
+      var ch = bytes[i + index];
+
+      if (ch > 127)
+        result += fallbackCharacter;
+      else
+        result += String.fromCharCode(ch);
+    }
+
+    return result;
+  });
 });
 
 JSIL.MakeClass("System.Text.Encoding", "System.Text.UTF7Encoding", true, [], function ($) {

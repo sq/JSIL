@@ -3,17 +3,27 @@ using System.Text;
 using JSIL.Meta;
 
 public static class Common {
-    public const string ASCIIString = "ASCII\r\n\t\0";
-    public const string UTF8String = "κόσμε\r\n\t\0";
+    public static string ASCIIString {
+        get {
+            return "ASCII\r\n\t\0".Normalize();
+        }
+    }
+
+    public static string UTF8String {
+        get {
+            return "κόσμε\r\n\t\0".Normalize();
+        }
+    }
 
     public static readonly byte[] ASCIIBytes = new byte[] {
         0x41, 0x53, 0x43, 0x49, 0x49, 0x0D, 0x0A, 0x09, 0x00
     };
 
     public static readonly byte[] UTF8Bytes = new byte[] {
-        206, 186, 225, 189, 185, 207, 
-        131, 206, 188, 206, 181, 13,
-        10, 9, 0
+        206, 186, 207, 140,
+        207, 131, 206, 188,
+        206, 181, 13, 10,
+        9, 0
     };
 
     public static string EscapeCharacter (char ch) {

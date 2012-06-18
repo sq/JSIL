@@ -111,6 +111,7 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
+        // FIXME: Are ECMAScript strings always normalized?
         [JSReplacement("$this.toLowerCase()")]
         [JSIsPure]
         public string ToLowerInvariant() {
@@ -123,9 +124,17 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
+        // FIXME: Are ECMAScript strings always normalized?
         [JSReplacement("$this.toUpperCase()")]
         [JSIsPure]
         public string ToUpperInvariant() {
+            throw new InvalidOperationException();
+        }
+
+        // FIXME: Are ECMAScript strings always normalized?
+        [JSReplacement("$this")]
+        [JSIsPure]
+        public string Normalize () {
             throw new InvalidOperationException();
         }
       
