@@ -9,10 +9,17 @@ public static class Common {
         ms = new MemoryStream();
         return XmlWriter.Create(ms);
     }
+    
+    public static Encoding GetEncoding () {
+        if (JSIL.Builtins.IsJavascript)
+            return System.Text.Encoding.ASCII;
+        else
+            return new UTF8Encoding(false);
+    }
 
     public static string UTF8ToString (MemoryStream ms) {
-        var utf = new UTF8Encoding(false);
-        var result = utf.GetString(
+        var encoding = GetEncoding();
+        var result = encoding.GetString(
             ms.GetBuffer(), 0, (int)ms.Length
         );
 

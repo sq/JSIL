@@ -519,11 +519,48 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "Read", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function Read () {
+      return this.ReadChar().charCodeAt(0);
+    }
+  );
+
   $.Method({Static:false, Public:true }, "ReadChar", 
     (new JSIL.MethodSignature($.Char, [], [])), 
     function ReadChar () {
-      // FIXME: Incorrect for non-ASCII (utf8, etc) characters.
-      return String.fromCharCode(this.m_stream.ReadByte());
+      var oldPosition = this.m_stream.Position;
+      var utf8Encoding = System.Text.Encoding.UTF8;
+      var firstChar, actualLength;
+
+      // Failed decodes are signified by this special character.
+      var badCharacterToken = utf8Encoding.$decode([195]).charCodeAt(0);
+
+      for (var i = 1; i < 5; i++) {
+        this.m_stream.Position = oldPosition;
+        // A valid UTF-8 codepoint is 1-4 bytes
+        var bytes = new Uint8Array(i);
+        this.m_stream.Read(bytes, 0, bytes.length);
+
+        var str = utf8Encoding.$decode(bytes);
+        if (str.length < 1)
+          continue;
+
+        firstChar = str[0];
+
+        if (firstChar.charCodeAt(0) === badCharacterToken)
+          continue;
+
+        // We need to ensure that if we grabbed extra bytes, we rewind
+        // FIXME: This is wrong if the chars aren't normalized. Augh.
+        var actualCharEncoded = utf8Encoding.$encode(str.substr(0, 1));
+        actualLength = actualCharEncoded.length;
+
+        break;
+      }
+
+      this.m_stream.Position = oldPosition + actualLength;
+      return firstChar;
     }
   );
 

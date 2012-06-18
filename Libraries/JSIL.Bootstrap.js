@@ -2388,11 +2388,7 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
   });
 
   $.RawMethod(false, "$stringToChars", function (string) {
-    var result = new Array(string.length);
-    for (var i = 0, l = string.length; i < l; i++)
-      result[i] = string.charCodeAt(i);
-
-    return result;
+    return Array.prototype.slice.call(string);
   });
 
   $.Method({Static:true , Public:true }, "get_ASCII", 
@@ -2563,7 +2559,7 @@ JSIL.MakeClass("System.Object", "System.Text.Encoding", true, [], function ($) {
   $.Property({Static:true , Public:true }, "Unicode");
 });
 
-JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true, [], function ($) {
+JSIL.ImplementExternals("System.Text.ASCIIEncoding", function ($) {
   $.RawMethod(false, "$encode", function ASCIIEncoding_Encode (string, outputBytes, outputIndex) {
     var returnBytes = (arguments.length === 1);
 
@@ -2611,7 +2607,10 @@ JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true, [], fu
   });
 });
 
-JSIL.MakeClass("System.Text.Encoding", "System.Text.UTF8Encoding", true, [], function ($) {
+JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true, [], function ($) {
+});
+
+JSIL.ImplementExternals("System.Text.UTF8Encoding", function ($) {
   $.RawMethod(false, "$encode", function UTF8Encoding_Encode (string, outputBytes, outputIndex) {
     var blob = this.$blobFromParts([string], "text/plain; charset=utf-8");
 
@@ -2650,6 +2649,9 @@ JSIL.MakeClass("System.Text.Encoding", "System.Text.UTF8Encoding", true, [], fun
 
     return result;
   });
+});
+
+JSIL.MakeClass("System.Text.Encoding", "System.Text.UTF8Encoding", true, [], function ($) {
 });
 
 JSIL.MakeClass("System.Text.Encoding", "System.Text.UTF7Encoding", true, [], function ($) {

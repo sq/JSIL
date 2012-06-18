@@ -344,8 +344,12 @@ namespace JSIL {
 
                     return new JSStringIdentifier(expression.Value, TypeSystem.Object);
                 }
+
                 case "System.Object JSIL.Builtins::get_This()":
                     return new JSIndirectVariable(Variables, "this", ThisMethodReference);
+
+                case "System.Boolean JSIL.Builtins::get_IsJavascript()":
+                    return new JSBooleanLiteral(true);
             }
 
             JSExpression result = Translate_PropertyCall(thisExpression, method, arguments, @virtual, @static);
