@@ -2340,7 +2340,10 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
       // Luckily XHR still supports sync! Sort of! GOD THIS IS DUMB
       var xhr = new XMLHttpRequest();
       xhr.open("GET", blobUri, false);
-      xhr.overrideMimeType(contentType);
+
+      if (xhr.overrideMimeType)
+        xhr.overrideMimeType(contentType);
+      
       xhr.send();
 
       // Of course because responseType is disabled for sync XHR, we have to decode the bytes ourself.
@@ -2368,7 +2371,10 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
     try {
       var xhr = new XMLHttpRequest();
       xhr.open("GET", blobUri, false);
-      xhr.overrideMimeType(contentType);
+
+      if (xhr.overrideMimeType)
+        xhr.overrideMimeType(contentType);
+
       xhr.send();
 
       return xhr.response;
