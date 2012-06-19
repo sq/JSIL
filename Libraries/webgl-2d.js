@@ -321,7 +321,9 @@
 
             gl2d.maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
           } catch (exc) {
-            console.warn("Failed to initialize webgl-2d context. Library disabled. ", exc);
+            if (console)
+              console.warn("Failed to initialize webgl-2d context. Library disabled. ", exc);
+            
             initFailure = true;
             return null;
           }

@@ -207,9 +207,9 @@ $jsilxna.get2DContext = function (canvas, enableWebGL) {
       return canvas.getContext("webgl-2d");
     } else {
       var msg = "WARNING: WebGL not available or broken. Using HTML5 canvas instead. " + extraMessage;
-      if ((typeof (console) !== undefined) && (typeof (console.error) === "function")) {
+      if (window.console && (typeof (window.console.error) === "function"))
         console.error(msg);
-      }
+      
       JSIL.Host.logWriteLine(msg);
     }
   }

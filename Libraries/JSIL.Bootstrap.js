@@ -2283,107 +2283,6 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
     this.fallbackCharacter = "?";
   });
 
-  $.RawMethod(false, "$blobFromParts", function Encoding_MakeBlob (parts, contentType) {
-    if (!Blob)
-      throw new Error("Your browser does not support Blob");
-
-    var blobBuilder = window.BlobBuilder || window.webKitBlobBuilder || window.WebKitBlobBuilder || window.MozBlobBuilder || window.MSBlobBuilder || window.OBlobBuilder || window.oBlobBuilder;
-    if (blobBuilder) {
-      var bb = new blobBuilder();
-
-      for (var i = 0; i < parts.length; i++) {
-        var part = parts[i];
-
-        if (typeof (part) === "string")
-          bb.append(part, "transparent");
-        else
-          bb.append(part);
-      }
-
-      return bb.getBlob(contentType);
-    } else {
-      var propertyBag = {
-        endings: "transparent"
-      };
-
-      if (arguments.length > 1)
-        propertyBag.type = contentType;
-
-      try {
-        return new Blob(parts, propertyBag);
-      } catch (exc) {
-        throw new Error("Your browser does not support the Blob constructor: " + String(exc));
-      }
-    }
-  });
-
-  $.RawMethod(false, "$bytesFromBlob", function Encoding_ReadStringFromBlob (blob, contentType) {
-    // FileReaderSync is only available in web workers, apparently because the spec committee knows better?
-    // Yeah, why would I ever want to synchronously encode a string as UTF8? That's COMPLETELY useless, isn't it?
-    // Of course it doesn't complete synchronously for an in-memory blob either because that would be LOGICAL.
-
-    /*
-      var reader = new FileReader();
-      reader.readAsArrayBuffer(blob);
-
-      while (reader.readyState !== 2)
-        ;
-    */
-
-    var url = window.URL || window.webkitURL || window.mozURL || window.oURL || window.msURL;
-
-    if ((!url) || (!url.createObjectURL))
-      throw new Error("Object URLs not implemented by your browser");
-
-    var blobUri = url.createObjectURL(blob);
-
-    try {
-      // Luckily XHR still supports sync! Sort of! GOD THIS IS DUMB
-      var xhr = new XMLHttpRequest();
-      xhr.open("GET", blobUri, false);
-
-      if (xhr.overrideMimeType)
-        xhr.overrideMimeType(contentType);
-
-      xhr.send();
-
-      // Of course because responseType is disabled for sync XHR, we have to decode the bytes ourself.
-      // From a string. Because THAT's not stupid or wasteful at all.
-      var responseBody = xhr.response;
-      var bytes = new Uint8Array(responseBody.length);
-
-      for (var i = 0, l = bytes.length; i < l; i++)
-        bytes[i] = responseBody.charCodeAt(i);
-
-      return bytes;
-    } finally {
-      url.revokeObjectURL(blobUri);
-    }
-  });
-
-  $.RawMethod(false, "$stringFromBlob", function Encoding_ReadStringFromBlob (blob, contentType) {
-    var url = window.URL || window.webkitURL || window.mozURL || window.oURL || window.msURL;
-
-    if ((!url) || (!url.createObjectURL))
-      throw new Error("Object URLs not implemented by your browser");
-
-    var blobUri = url.createObjectURL(blob);
-
-    try {
-      var xhr = new XMLHttpRequest();
-      xhr.open("GET", blobUri, false);
-
-      if (xhr.overrideMimeType)
-        xhr.overrideMimeType(contentType);
-
-      xhr.send();
-
-      return xhr.response;
-    } finally {
-      url.revokeObjectURL(blobUri);
-    }
-  });
-
   $.RawMethod(false, "$makeWriter", function (outputBytes, outputIndex) {
     var i = outputIndex;
     var count = 0;
@@ -2409,7 +2308,10 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
           resultBytes.push(byte);
         },
         getResult: function () {
-          return new Uint8Array(resultBytes);
+          if (window.Uint8Array)
+            return new Uint8Array(resultBytes);
+          else
+            return resultBytes;
         }
       };
     }

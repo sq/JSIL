@@ -536,8 +536,9 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
 
       for (var i = 1; i < 5; i++) {
         this.m_stream.Position = oldPosition;
+        
         // A valid UTF-8 codepoint is 1-4 bytes
-        var bytes = new Uint8Array(i);
+        var bytes = [false, false, false, false];
         this.m_stream.Read(bytes, 0, bytes.length);
 
         var str = utf8Encoding.$decode(bytes);
