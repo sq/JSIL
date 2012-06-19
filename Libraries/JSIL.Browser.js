@@ -182,6 +182,7 @@ if (statsElement !== null) {
 
 var allFiles = {};
 var allAssets = {};
+var storageRoot = null;
 var heldKeys = [];
 var heldButtons = [];
 var mousePosition = [0, 0];
@@ -776,10 +777,24 @@ function finishLoading () {
   var started = Date.now();
   var endBy = started + finishStepDuration;
 
+  var initFileStorage = function (volume) {
+    for (var k in allFiles) {
+      if (!allFiles.hasOwnProperty(k))
+        continue;
+
+      var file = volume.createFile(k, false, true);
+      file.writeAllBytes(allFiles[k]);
+    }
+  };
+
   var initIfNeeded = function () {
     if (!state.jsilInitialized) {
       state.jsilInitialized = true;
       JSIL.Initialize();
+    }
+
+    if (typeof ($jsilreadonlystorage) !== "undefined") {
+      storageRoot = new ReadOnlyStorageVolume("files", "files:/", initFileStorage);
     }
   };
 

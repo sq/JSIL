@@ -143,43 +143,44 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageContainer", func
     }
   );
 
-  $.Method({Static:false, Public:true }, "GetDirectoryNames", 
-    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.String]), [], [])), 
-    function GetDirectoryNames () {
+  $.RawMethod(false, "$getNames", function (nodeType, searchPattern) {
       if (!this.volume)
         return [];
 
-      return this.volume.enumerate("directory");
+      var nodes = this.volume.enumerate(nodeType, searchPattern);
+      var result = [];
+
+      for (var i = 0; i < nodes.length; i++)
+        result.push(nodes[i].name);
+
+      return result;
+  });
+
+  $.Method({Static:false, Public:true }, "GetDirectoryNames", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.String]), [], [])), 
+    function GetDirectoryNames () {
+      return this.$getNames("directory");
     }
   );
 
   $.Method({Static:false, Public:true }, "GetDirectoryNames", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.String]), [$.String], [])), 
     function GetDirectoryNames (searchPattern) {
-      if (!this.volume)
-        return [];
-
-      return this.volume.enumerate("directory", searchPattern);
+      return this.$getNames("directory", searchPattern);
     }
   );
 
   $.Method({Static:false, Public:true }, "GetFileNames", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.String]), [], [])), 
     function GetFileNames () {
-      if (!this.volume)
-        return [];
-
-      return this.volume.enumerate("file");
+      return this.$getNames("file");
     }
   );
 
   $.Method({Static:false, Public:true }, "GetFileNames", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.String]), [$.String], [])), 
     function GetFileNames (searchPattern) {
-      if (!this.volume)
-        return [];
-
-      return this.volume.enumerate("file", searchPattern);
+      return this.$getNames("file", searchPattern);
     }
   );
 

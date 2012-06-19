@@ -41,7 +41,7 @@ JSIL.MakeClass($jsilstorage.TypeRef("VirtualVolume"), "LocalStorageVolume", true
     this.writeInodes(this.name);
   });
 
-  $.RawMethod(false, "getBlob", function (name) {
+  $.RawMethod(false, "getFileBytes", function (name) {
     var key = getKey(this.name) + "_blobs_" + name;
 
     var json = localStorage.getItem(key);
@@ -55,7 +55,7 @@ JSIL.MakeClass($jsilstorage.TypeRef("VirtualVolume"), "LocalStorageVolume", true
     }
   });
 
-  $.RawMethod(false, "setBlob", function (name, value) {    
+  $.RawMethod(false, "setFileBytes", function (name, value) {    
     var key = getKey(this.name) + "_blobs_" + name;
 
     var json = JSON.stringify(value);

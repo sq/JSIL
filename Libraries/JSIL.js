@@ -100,6 +100,12 @@ contentManifest["JSIL"] = [
 		);
 	}
 
+	if (config.readOnlyStorage) {
+		contentManifest["JSIL"].push(
+		    ["Library", "JSIL.ReadOnlyStorage.js"]
+	    );
+	}
+
 	if (config.localStorage) {
 		contentManifest["JSIL"].push(
 	        ["Library", "JSIL.LocalStorage.js"]

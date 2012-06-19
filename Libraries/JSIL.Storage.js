@@ -9,6 +9,7 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualVolume", true, [], function ($) 
   $.RawMethod(false, ".ctor", function (name, rootPath, inodes) {
     this.inodes = [];
     this.name = name;
+    this.readOnly = false;
 
     rootPath = this.normalizePath(rootPath);
 
@@ -124,6 +125,25 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualVolume", true, [], function ($) 
     return this.rootDirectory.enumerate(nodeType, searchPattern);
   });
 
+  $.RawMethod(false, "enumerateFilesRecursive", function (searchPattern) {
+    var result = [];
+
+    var step = function (directory) {
+      var subdirs = directory.enumerate("directory");
+      for (var i = 0; i < subdirs.length; i++)
+        step(subdirs[i]);
+
+      var files = directory.enumerate("file", searchPattern);
+
+      for (var i = 0; i < files.length; i++)
+        result.push(files[i]);
+    };
+
+    step(this.rootDirectory);
+
+    return result;
+  });
+
   $.RawMethod(false, "createDirectory", function (path) {
     path = this.normalizePath(path);
 
@@ -156,12 +176,16 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualVolume", true, [], function ($) 
     return containingDirectory.createJunction(pieces[pieces.length - 1], targetObject, allowExisting);
   });
 
-  $.RawMethod(false, "createFile", function (path, allowExisting) {
+  $.RawMethod(false, "createFile", function (path, allowExisting, createParentDirectory) {
     path = this.normalizePath(path);
 
     var lastSlash = path.lastIndexOf("/"), parentDirectory, fileName;
     if (lastSlash >= 0) {
-      parentDirectory = this.rootDirectory.resolvePath(path.substr(0, lastSlash), true);
+      if (createParentDirectory)
+        parentDirectory = this.createDirectory(path.substr(0, lastSlash));
+      else
+        parentDirectory = this.rootDirectory.resolvePath(path.substr(0, lastSlash), true);
+
       fileName = path.substr(lastSlash + 1);
     } else {
       parentDirectory = this.rootDirectory;
@@ -181,11 +205,11 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualVolume", true, [], function ($) 
     throw new Error("Not implemented");
   });
 
-  $.RawMethod(false, "getBlob", function (name) {
+  $.RawMethod(false, "getFileBytes", function (name) {
     throw new Error("Not implemented");
   });
 
-  $.RawMethod(false, "setBlob", function (name, value) {    
+  $.RawMethod(false, "setFileBytes", function (name, value) {    
     throw new Error("Not implemented");
   });
 
@@ -280,6 +304,9 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualDirectory", true, [], function (
         throw new Error("A file named '" + name + "' already exists.");
     }
 
+    if (this.volume.readOnly)
+      throw new Error("The volume is read-only.");
+
     return new VirtualFile(
       this, this.volume.makeInode(this.inode, "file", name)
     );
@@ -293,6 +320,9 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualDirectory", true, [], function (
       else
         throw new Error("A directory named '" + name + "' already exists.");
     }
+
+    if (this.volume.readOnly)
+      throw new Error("The volume is read-only.");
 
     return new VirtualDirectory(
       this.volume, this, this.volume.makeInode(this.inode, "directory", name)
@@ -310,6 +340,9 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualDirectory", true, [], function (
 
     if ((typeof (targetObject) !== "object") || (targetObject.type !== "directory"))
       throw new Error("Target for junction must be a directory object");
+
+    if (this.volume.readOnly)
+      throw new Error("The volume is read-only.");
 
     return new VirtualJunction(
       this.volume, this, name, targetObject
@@ -390,7 +423,7 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualDirectory", true, [], function (
     if (nodeType !== "directory") {
       for (var k in this.files) {
         if (predicate(k))
-          result.push(k)
+          result.push(this.files[k]);
       }
     }
 
@@ -400,7 +433,7 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualDirectory", true, [], function (
           continue;
 
         if (predicate(k))
-          result.push(k)
+          result.push(this.directories[k])
       }
     }
 
@@ -467,7 +500,7 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualFile", true, [], function ($) {
   });
 
   $.RawMethod(false, "readAllBytes", function () {
-    var bytes = this.volume.getBlob(this.path);
+    var bytes = this.volume.getFileBytes(this.path);
 
     this.inode.metadata.lastRead = Date.now();
 
@@ -480,7 +513,7 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualFile", true, [], function ($) {
   $.RawMethod(false, "writeAllBytes", function (buffer, count) {
     var bytes = Array.prototype.slice.call(buffer, 0, count);
 
-    this.volume.setBlob(this.path, bytes);
+    this.volume.setFileBytes(this.path, bytes);
 
     this.inode.metadata.lastWritten = Date.now();
     this.inode.metadata.length = count;
@@ -557,6 +590,7 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
     this.$applyMode(fileMode);
   });
 });
+
 
 $jsilstorage.providers = [];
 
