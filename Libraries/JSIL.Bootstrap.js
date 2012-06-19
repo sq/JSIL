@@ -2308,7 +2308,7 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
           resultBytes.push(byte);
         },
         getResult: function () {
-          if (window.Uint8Array)
+          if (Uint8Array)
             return new Uint8Array(resultBytes);
           else
             return resultBytes;
@@ -4512,7 +4512,7 @@ JSIL.ImplementExternals("System.GC", function ($) {
   };
 
   var getMemoryImpl = function () {
-    if (window.performance && window.performance.memory) {
+    if (window && window.performance && window.performance.memory) {
       return window.performance.memory.usedJSHeapSize;
     } else {
       warnIfNecessary();
