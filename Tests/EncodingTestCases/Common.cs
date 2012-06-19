@@ -75,10 +75,10 @@ public static class Common {
         for (var i = 0; i < str.Length; i++) {
             var ch = str[i];
 
-            if (ch < 32) {
-                sb.Append(EscapeCharacter(ch));
-            } else {
+            if ((ch >= 32) && (ch <= 127)) {
                 sb.Append(ch);
+            } else {
+                sb.Append(EscapeCharacter(ch));
             }
         }
 

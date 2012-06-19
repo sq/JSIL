@@ -2450,7 +2450,7 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
     return code;  
   });
 
-  $.RawMethod(false, "$makeReader", function (str) {
+  $.RawMethod(false, "$makeCharacterReader", function (str) {
     var position = 0, length = str.length;
     var cca = this.$charCodeAt;
 
@@ -2462,6 +2462,32 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
         var nextChar = cca(str, position);
         position += 1;
         return nextChar;
+      }
+    };
+
+    Object.defineProperty(result, "eof", {
+      get: function () {
+        return (position >= length);
+      },
+      configurable: true,
+      enumerable: true
+    });
+
+    return result;
+  });
+
+  $.RawMethod(false, "$makeByteReader", function (bytes, index, count) {
+    var position = index || 0;
+    var length = count || (bytes.length - position);
+
+    var result = {
+      read: function () {
+        if (position >= length)
+          return false;
+
+        var nextByte = bytes[position];
+        position += 1;
+        return nextByte;
       }
     };
 
@@ -2679,7 +2705,7 @@ JSIL.ImplementExternals("System.Text.ASCIIEncoding", function ($) {
     var writer = this.$makeWriter(outputBytes, outputIndex);
 
     var fallbackCharacter = "?".charCodeAt(0);
-    var reader = this.$makeReader(string), ch;
+    var reader = this.$makeCharacterReader(string), ch;
 
     while (!reader.eof) {
       ch = reader.read();
@@ -2696,21 +2722,20 @@ JSIL.ImplementExternals("System.Text.ASCIIEncoding", function ($) {
   });
 
   $.RawMethod(false, "$decode", function ASCIIEncoding_Decode (bytes, index, count) {
-    if (arguments.length === 1) {
-      index = 0;
-      count = bytes.length;
-    }
-
     var fallbackCharacter = "?";
 
+    var reader = this.$makeByteReader(bytes, index, count), byte;
     var result = "";
-    for (var i = 0; i < count; i++) {
-      var ch = bytes[i + index];
 
-      if (ch > 127)
+    while (!reader.eof) {
+      byte = reader.read();
+
+      if (byte === false)
+        continue;
+      else if (byte > 127)
         result += fallbackCharacter;
       else
-        result += String.fromCharCode(ch);
+        result += String.fromCharCode(byte);
     }
 
     return result;
@@ -2721,14 +2746,14 @@ JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true, [], fu
 });
 
 JSIL.ImplementExternals("System.Text.UTF8Encoding", function ($) {
+  var UTF8ByteSwapNotAChar = 0xFFFE;
+  var UTF8NotAChar         = 0xFFFF;
+
   $.RawMethod(false, "$encode", function UTF8Encoding_Encode (string, outputBytes, outputIndex) {
     // http://tidy.sourceforge.net/cgi-bin/lxr/source/src/utf8.c
 
     var writer = this.$makeWriter(outputBytes, outputIndex);
-    var reader = this.$makeReader(string), ch;
-
-    var UTF8ByteSwapNotAChar = 0xFFFE;
-    var UTF8NotAChar         = 0xFFFF;
+    var reader = this.$makeCharacterReader(string), ch;
 
     var hasError = false;
 
@@ -2781,17 +2806,72 @@ JSIL.ImplementExternals("System.Text.UTF8Encoding", function ($) {
   });
 
   $.RawMethod(false, "$decode", function UTF8Encoding_Decode (bytes, index, count) {
-    if (arguments.length === 1) {
-      index = 0;
-      count = bytes.length;
+    // http://tidy.sourceforge.net/cgi-bin/lxr/source/src/utf8.c
+
+    var fallbackCharacter = "?";
+    var reader = this.$makeByteReader(bytes, index, count), firstByte;
+    var result = "";
+
+    while (!reader.eof) {
+      var accumulator = 0, extraBytes = 0, hasError = false;
+      firstByte = reader.read();
+
+      if (firstByte === false)
+        continue;
+
+      if (firstByte <= 0x7F) {
+        accumulator = firstByte;
+      } else if ((firstByte & 0xE0) === 0xC0) {
+        accumulator = firstByte & 31;
+        extraBytes = 1;
+      } else if ((firstByte & 0xF0) === 0xE0) {
+        accumulator = firstByte & 15;
+        extraBytes = 2;
+      } else if ((firstByte & 0xF8) === 0xF0) {
+        accumulator = firstByte & 7;
+        extraBytes = 3;
+      } else if ((firstByte & 0xFC) === 0xF8) {
+        accumulator = firstByte & 3;
+        extraBytes = 4;
+        hasError = true;
+      } else if ((firstByte & 0xFE) === 0xFC) {
+        accumulator = firstByte & 3;
+        extraBytes = 5;
+        hasError = true;
+      } else {
+        accumulator = firstByte;
+        hasError = false;
+      }
+
+      while (extraBytes > 0) {
+        var extraByte = reader.read();        
+        extraBytes--;        
+
+        if (extraByte === false) {
+          hasError = true;
+          break;
+        }
+
+        if ((extraByte & 0xC0) !== 0x80) {
+          hasError = true;
+          break;
+        }
+
+        accumulator = (accumulator << 6) | (extraByte & 0x3F);
+      }
+
+      if ((accumulator === UTF8ByteSwapNotAChar) || (accumulator === UTF8NotAChar))
+        hasError = true;
+
+      var characters;
+      if (!hasError)
+        characters = this.$fromCharCode(accumulator);
+
+      if (hasError || (characters === false))
+        result += fallbackCharacter;
+      else
+        result += characters;
     }
-
-    var array = new Uint8Array(count);
-    for (var i = 0; i < count; i++)
-      array[i] = bytes[index + i];
-
-    var blob = this.$blobFromParts([array.buffer], "text/plain; charset=utf-8");
-    var result = this.$stringFromBlob(blob, "text/plain; charset=utf-8");
 
     return result;
   });
