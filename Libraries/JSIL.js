@@ -10,8 +10,9 @@ if (typeof (contentManifest) !== "object") {
 };
 contentManifest["JSIL"] = [
     ["Library", "JSIL.Storage.js"],
-    ["Library", "JSIL.IO.js"],	
-    ["Library", "JSIL.XML.js"],
+    ["Library", "JSIL.IO.js"],
+    ["Library", "JSIL.JSON.js"],	
+    ["Library", "JSIL.XML.js"]
 ];
 
 (function loadJSIL (config) {
@@ -19,6 +20,9 @@ contentManifest["JSIL"] = [
 	var manifestRoot = config.manifestRoot || "";
 
 	function loadScript (uri) {
+		if (window.console && window.console.log)
+			window.console.log("Loading '" + uri + "'...");
+		
 		document.write(
 			"<script type=\"text/javascript\" src=\"" + uri + "\"></script>"
 		);

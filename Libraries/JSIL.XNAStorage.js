@@ -13,7 +13,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageContainer", func
 
   $.Method({Static:false, Public:false}, ".ctor", 
     (new JSIL.MethodSignature(null, [
-          $xnaasms.xnaStorage.TypeRef("Microsoft.Xna.Framework.Storage.StorageDevice"), $xnaasms.xna.TypeRef("Microsoft.Xna.Framework.PlayerIndex"), 
+          getXnaStorage().TypeRef("Microsoft.Xna.Framework.Storage.StorageDevice"), $xnaasms.xna.TypeRef("Microsoft.Xna.Framework.PlayerIndex"), 
           $.String
         ], [])), 
     function _ctor (device, index, displayName) {
@@ -137,7 +137,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageContainer", func
   );
 
   $.Method({Static:false, Public:true }, "get_StorageDevice", 
-    (new JSIL.MethodSignature($xnaasms.xnaStorage.TypeRef("Microsoft.Xna.Framework.Storage.StorageDevice"), [], [])), 
+    (new JSIL.MethodSignature(getXnaStorage().TypeRef("Microsoft.Xna.Framework.Storage.StorageDevice"), [], [])), 
     function get_StorageDevice () {
       return this.device;
     }

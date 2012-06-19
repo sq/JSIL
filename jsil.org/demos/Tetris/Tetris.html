@@ -9,21 +9,19 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
   </head>
   <body onload="onLoad()">
-    <!-- <script src="../Libraries/printStackTrace.js" type="text/javascript"></script> -->
-    
-    <script src="../Libraries/webgl-2d.js" type="text/javascript"></script>
-
-    <script src="../Libraries/JSIL.Core.js" type="text/javascript"></script>
-    <script src="../Libraries/JSIL.Bootstrap.js" type="text/javascript"></script>
-    <script src="tetris.exe.manifest.js" type="text/javascript"></script>
-    <script src="tetrisContent.contentproj.manifest.js" type="text/javascript"></script>
-    
-    <!-- workaround for chromium bug -->
-    <div id="scripts"></div>
-    <div id="images"></div>
-    <div id="sounds"></div>
-    <div id="fonts"></div>
-    
+    <script type="text/javascript">
+      var jsilConfig = {
+        printStackTrace: false,
+        webgl2d: true,
+        xna: 4,
+        manifests: [
+          "tetris.exe",
+          "tetrisContent.contentproj"
+        ]
+      };
+    </script>
+    <script src="../Libraries/JSIL.js" type="text/javascript"></script>    
+        
     <canvas id="canvas" width="1024" height="768">
     </canvas><br>
     <button id="quitButton" title="Quit Game">X</button>
@@ -48,9 +46,6 @@
       var contentRoot = "Content/";
       
       var assetsToLoad = [
-        ["Library", "JSIL.IO.js"],
-        ["Library", "JSIL.XNACore.js"],
-        ["Library", "JSIL.XNA4.js"]
       ];
             
       function runMain () {
@@ -65,7 +60,6 @@
         game.Run();
       };
     </script>
-    <script src="../Libraries/JSIL.Browser.js" type="text/javascript"></script>
     <script type="text/javascript">
     var _gaq = _gaq || [];
     _gaq.push(['_setAccount', 'UA-6375004-2']);

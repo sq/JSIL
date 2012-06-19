@@ -9,21 +9,21 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
   </head>
   <body onload="onLoad()">
-    <!-- <script src="../Libraries/printStackTrace.js" type="text/javascript"></script> -->
-    
-    <script src="../Libraries/webgl-2d.js" type="text/javascript"></script>
-    
-    <script src="../Libraries/JSIL.Core.js" type="text/javascript"></script>
-    <script src="../Libraries/JSIL.Bootstrap.js" type="text/javascript"></script>
-    <script src="EscapeGoat.exe.manifest.js" type="text/javascript"></script>
-    <script src="BastilleContent.contentproj.manifest.js" type="text/javascript"></script>
-    
-    <!-- workaround for chromium bug -->
-    <div id="scripts"></div>
-    <div id="images"></div>
-    <div id="sounds"></div>
-    <div id="fonts"></div>
-    
+    <script type="text/javascript">
+      var jsilConfig = {
+        printStackTrace: false,
+        webgl2d: true,
+        xna: 4,
+        winForms: true,
+        localStorage: true,
+        manifests: [
+          "EscapeGoat.exe",
+          "BastilleContent.contentproj"
+        ]
+      };
+    </script>
+    <script src="../Libraries/JSIL.js" type="text/javascript"></script>    
+
     <!-- 368x224 -->
     <canvas id="canvas" width="736" height="448">
     </canvas><br>
@@ -49,16 +49,6 @@
       var contentRoot = "Content/";
       
       var assetsToLoad = [
-        ["Library", "System.Drawing.js"],
-        ["Library", "System.Windows.js"],
-        ["Library", "JSIL.Storage.js"],
-        ["Library", "JSIL.IO.js"],
-        ["Library", "JSIL.XML.js"],
-        ["Library", "JSIL.XNACore.js"],
-        ["Library", "JSIL.XNA4.js"],
-        ["Library", "JSIL.XNAStorage.js"],
-        ["Library", "JSIL.LocalStorage.js"],
-
         // Used to read the levels
         // ["Script", "TarchonData.XmlSerializers, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null.js", { "sizeBytes": 10127 }],
       ];

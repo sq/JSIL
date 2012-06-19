@@ -9,20 +9,19 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
   </head>
   <body onload="onLoad()">
-    <!-- <script src="../Libraries/printStackTrace.js" type="text/javascript"></script> -->
-    
-    <script src="../Libraries/webgl-2d.js" type="text/javascript"></script>
-
-    <script src="../Libraries/JSIL.Core.js" type="text/javascript"></script>
-    <script src="../Libraries/JSIL.Bootstrap.js" type="text/javascript"></script>
-    <script src="Sully.exe.manifest.js" type="text/javascript"></script>
-    <script src="SullyContent.contentproj.manifest.js" type="text/javascript"></script>
-    
-    <!-- workaround for chromium bug -->
-    <div id="scripts"></div>
-    <div id="images"></div>
-    <div id="sounds"></div>
-    <div id="fonts"></div>
+    <script type="text/javascript">
+      var jsilConfig = {
+        printStackTrace: false,
+        webgl2d: true,
+        xna: 4,
+        localStorage: true,
+        manifests: [
+          "Sully.exe",
+          "SullyContent.contentproj"
+        ]
+      };
+    </script>
+    <script src="../Libraries/JSIL.js" type="text/javascript"></script>    
     
     <canvas id="canvas" width="640" height="480">
     </canvas><br>
@@ -45,10 +44,6 @@
       var contentRoot = "content/";
       
       var assetsToLoad = [
-        ["Library", "JSIL.JSON.js"],
-        ["Library", "JSIL.XNACore.js"],
-        ["Library", "JSIL.XNA4.js"],
-        ["Library", "JSIL.IO.js"],
       ];
 
       function runMain () {
@@ -65,7 +60,6 @@
         game.Run();
       };
     </script>
-    <script src="../Libraries/JSIL.Browser.js" type="text/javascript"></script>
     <script type="text/javascript">
     var _gaq = _gaq || [];
     _gaq.push(['_setAccount', 'UA-6375004-2']);
