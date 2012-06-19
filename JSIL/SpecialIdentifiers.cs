@@ -163,6 +163,13 @@ namespace JSIL {
                 ), new[] { array, initializer }
             );
         }
+
+        public JSInvocationExpression CreateInstanceOfType (TypeReference type) {
+            return JSInvocationExpression.InvokeStatic(
+                Dot(new JSFakeMethod("CreateInstanceOfType", type, new[] { TypeSystem.Object }, MethodTypes)),
+                new[] { new JSTypeOfExpression(type) }
+            );
+        }
     }
 
     public class SpecialIdentifiers {

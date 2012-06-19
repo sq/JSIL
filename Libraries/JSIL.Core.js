@@ -3306,6 +3306,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__GenericArguments__ = genericArguments || [];
     typeObject.__IsStruct__ = !isReferenceType && (baseTypeName === "System.ValueType");
     typeObject.IsInterface = false;
+    typeObject.IsValueType = typeObject.__IsStruct__;
 
     if (stack !== null)
       typeObject.__CallStack__ = stack;
@@ -3547,6 +3548,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
       FullName: fullName,
       Name: localName,
       IsEnum: true,
+      IsValueType: true,
       __IsReferenceType__: false,
       __TypeId__: JSIL.AssignTypeId(context, fullName),
       __IsFlagsEnum__: isFlagsEnum,
@@ -5001,6 +5003,59 @@ JSIL.ImplementExternals(
       }
     );
 
+    $.Method({Public: true , Static: true }, "op_Inequality",
+      new JSIL.MethodSignature("System.Boolean", [$.Type, $.Type]),
+      function (lhs, rhs) {
+        if (lhs !== rhs)
+          return true;
+
+        return String(lhs) != String(rhs);
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_IsGenericType",
+      new JSIL.MethodSignature("System.Boolean", []),
+      function () {
+        return this.__OpenType__ !== undefined && this.__IsClosed__ === true;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "GetGenericTypeDefinition",
+      (new JSIL.MethodSignature($.Type, [], [])),
+      function () {
+        return this.__OpenType__;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "GetGenericArguments",
+      (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Type]), [], [])), 
+      function GetGenericArguments () {
+        return JSIL.Array.New($.Type, this.__GenericArgumentValues__);
+      }
+    );
+
+
+    $.Method({Static:false, Public:true }, "MakeGenericType",
+      (new JSIL.MethodSignature($.Type, [$jsilcore.TypeRef("System.Array", [$.Type])], [])), 
+      function (typeArguments) {
+        return this.__PublicInterface__.Of.apply(this.__PublicInterface__, typeArguments).__Type__;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "get_IsArray",
+      new JSIL.MethodSignature("System.Boolean", []),
+      function () {
+        return this.__IsArray__;
+      }
+    );
+
+    $.Method({Static:false, Public:true }, "GetElementType",
+      new JSIL.MethodSignature($.Type, []),
+      function () {
+        return this.__ElementType__;
+      }
+    );
+
     $.Method({Public: true , Static: false}, "get_Name",
       new JSIL.MethodSignature("System.String", []),
       function () {
@@ -5462,6 +5517,7 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
       compositeTypeObject.__FullName__ = compositeTypeObject.__FullNameWithoutArguments__ = typeName;
       compositeTypeObject.__IsReferenceType__ = true;
       compositeTypeObject.__IsArray__ = true;
+      compositeTypeObject.__ElementType__ = elementTypeObject;
 
       JSIL.SetValueProperty(compositePublicInterface, "CheckType", checkType);
       JSIL.SetValueProperty(compositeTypeObject, "toString", function ArrayType_ToString () {
@@ -6043,6 +6099,8 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function
     $.Property({Public: true , Static: false}, "FullName");
     $.Property({Public: true , Static: false}, "Namespace");
     $.Property({Public: true , Static: false}, "BaseType");
+    $.Property({Public: true , Static: false}, "IsGenericType");
+    $.Property({Public: true , Static: false}, "IsArray");
 });
 
 JSIL.MakeClass("System.Type", "System.RuntimeType", false, [], function ($) {
@@ -6067,4 +6125,13 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.EventInfo", tr
 });
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Reflection.PropertyInfo", true, [], function ($) {
+});
+
+JSIL.ImplementExternals("System.Enum", function ($) {
+  $.Method({Static:true , Public:true }, "ToObject",
+    (new JSIL.MethodSignature($.Object, ["System.Type", $.Int32], [])),
+    function ToObject (enumType, value) {
+      return enumType[enumType.__ValueToName__[value]];
+    }
+  );
 });
