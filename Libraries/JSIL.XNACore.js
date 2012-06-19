@@ -3,7 +3,7 @@
 if (typeof (JSIL) === "undefined") throw new Error("JSIL.Core required");
 
 var $drawDebugRects = false, $drawDebugBoxes = false;
-var $useTextCaching = true;
+var $useTextCaching = true, $textCachingSupported = true;
 
 var $jsilxna = JSIL.DeclareAssembly("JSIL.XNA");
 
@@ -168,6 +168,8 @@ $jsilxna.get2DContext = function (canvas, enableWebGL) {
 
   var forceCanvas = (document.location.search.indexOf("forceCanvas") >= 0);
   var forceWebGL = (document.location.search.indexOf("forceWebGL") >= 0);
+
+  $textCachingSupported = (window.navigator.userAgent.indexOf("; MSIE ") < 0);
 
   if (forceWebGL && enableWebGL) {
     $jsilxna.testedWebGL = $jsilxna.workingWebGL = true;
@@ -5910,7 +5912,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
 
       // Draw calls are really expensive, so cache entire strings as single textures.
 
-      if ($useTextCaching && (forCache !== true)) {
+      if ($useTextCaching && $textCachingSupported && (forCache !== true)) {
         var cacheKey = this.textureValue.id + ":" + text;
 
         var cachedTexture = $jsilxna.textCache.getItem(cacheKey);
