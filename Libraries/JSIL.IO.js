@@ -336,6 +336,13 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
       this._length = 0;
     }
   );
+  
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.String, $jsilcore.TypeRef("System.IO.FileMode"), $jsilcore.TypeRef("System.IO.FileAccess")], [])), 
+    function _ctor (path, mode, access) {
+      System.IO.FileStream.prototype._ctor.call(this, path, mode);
+    }
+  );
 
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$.String, $jsilcore.TypeRef("System.IO.FileMode")], [])), 
@@ -354,6 +361,32 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
       this._length = this._buffer.length;
 
       this.$applyMode(mode);
+    }
+  );
+  
+  $.Method({Static:false, Public:true }, "get_CanSeek", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_CanSeek () {
+      return true;
+    }
+  );
+  
+  $.Method({Static:false, Public:true }, "Seek", 
+    (new JSIL.MethodSignature($.Int64, [$.Int64, $jsilcore.TypeRef("System.IO.SeekOrigin")], [])), 
+    function Seek (offset, origin) {
+      switch (origin)
+      {
+      case System.IO.SeekOrigin.Begin:
+        this._pos = offset;
+        break;
+      case System.IO.SeekOrigin.Current:
+        this._pos += offset;
+        break;
+      case System.IO.SeekOrigin.End:
+        this._pos = this._buffer.length - offset;
+        break;
+      }
+      return this._pos;
     }
   );
 
@@ -609,6 +642,17 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "ReadInt64", 
+    (new JSIL.MethodSignature($.Int64, [], [])), 
+    function ReadInt64 () {
+      var value = this.ReadUInt64();
+      if (value > System.Int64.MaxValue)
+        return value - 18446744073709551616;
+      else
+        return value;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "ReadSByte", 
     (new JSIL.MethodSignature($.SByte, [], [])), 
     function ReadSByte () {
@@ -662,7 +706,15 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
   $.Method({Static:false, Public:true }, "ReadUInt64", 
     (new JSIL.MethodSignature($.UInt64, [], [])), 
     function ReadUInt64 () {
-      throw new Error('Not implemented');
+      var low1 = this.m_stream.ReadByte();
+      var low2 = this.m_stream.ReadByte();
+      var low3 = this.m_stream.ReadByte();
+      var low4 = this.m_stream.ReadByte();
+      var low5 = this.m_stream.ReadByte();
+      var low6 = this.m_stream.ReadByte();
+      var low7 = this.m_stream.ReadByte();
+      var low8 = this.m_stream.ReadByte();
+      return low1 | (low2 << 8) | (low3 << 16) | (low4 << 24) | (low5 << 32) | (low6 << 40) | (low7 << 48) | (low8 << 56);
     }
   );
 

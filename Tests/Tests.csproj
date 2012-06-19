@@ -148,6 +148,7 @@
     <None Include="SimpleTestCases\OverloadedMixedGenericAndNonGeneric.cs" />
     <None Include="SpecialTestCases\OverloadedGenericMethodSignatures.cs" />
     <None Include="SimpleTestCases\GenericFieldInitializer.cs" />
+    <None Include="SimpleTestCases\EnumCompare.cs" />
     <None Include="XMLTestCases\WriteEmptyElement.cs" />
     <None Include="XMLTestCases\Common.cs" />
     <None Include="SimpleTestCases\GenericInheritedField.cs" />
