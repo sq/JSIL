@@ -16,13 +16,36 @@ contentManifest["JSIL"] = [
 ];
 
 (function loadJSIL (config) {
+
+	if (config.showFullscreenButton) {
+		document.write(
+			'<button id="fullscreenButton">Full Screen</button>'
+		);
+	}
+
+	if (config.showStats) {
+		document.write(
+			'<div id="stats"></div>'
+		);
+	}
+
+	if (config.showProgressBar) {
+		document.write(
+			'<div id="loadingProgress">' +
+      		'  <div id="progressBar"></div>' +
+			'  <span id="progressText"></span>' +
+	    	'</div>'
+    	);
+
+	}	
+	
 	var libraryRoot = config.libraryRoot || "../Libraries/";
 	var manifestRoot = config.manifestRoot || "";
 
 	function loadScript (uri) {
 		if (window.console && window.console.log)
 			window.console.log("Loading '" + uri + "'...");
-		
+
 		document.write(
 			"<script type=\"text/javascript\" src=\"" + uri + "\"></script>"
 		);

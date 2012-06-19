@@ -15,10 +15,15 @@
         webgl2d: true,
         xna: 4,
         localStorage: true,
+
         manifests: [
           "GameType.exe",
           "GameTypeContent.contentproj"
-        ]
+        ],
+        
+        showProgressBar: true,
+        showStats: true,
+        showFullscreenButton: true
       };
     </script>
     <script src="../Libraries/JSIL.js" type="text/javascript"></script>
@@ -26,14 +31,8 @@
     <canvas id="canvas" width="853" height="480">
     </canvas><br>
 
-    <button id="fullscreenButton">Full Screen</button>
-    <div id="stats"></div>
     <div id="welcomeMessage">
       <p align="center"><a href="http://jsil.org/"><img src="http://jsil.org/images/jsil_48px.png" alt="JSIL logo" border="0"></a></p>
-    </div>
-    <div id="loadingProgress">
-      <div id="progressBar"></div>
-      <span id="progressText"></span>
     </div>
     <div id="log"><center><span style="font-size: 16pt; text-align: center; display: inline-block">
       Use arrows to move, Z for basic attack, X for power attack, and Enter/ESC to interact with menus.<br>
