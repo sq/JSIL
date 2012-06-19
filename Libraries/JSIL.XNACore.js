@@ -209,7 +209,7 @@ $jsilxna.get2DContext = function (canvas, enableWebGL) {
       var msg = "WARNING: WebGL not available or broken. Using HTML5 canvas instead. " + extraMessage;
       if (window.console && (typeof (window.console.error) === "function"))
         console.error(msg);
-      
+
       JSIL.Host.logWriteLine(msg);
     }
   }
@@ -724,54 +724,6 @@ JSIL.MakeClass("SoundAssetBase", "NullSoundAsset", true, [], function ($) {
     return this.$createInstance(0);
   });
 
-});
-
-JSIL.MakeClass("HTML5Asset", "HTML5FontAsset", true, [], function ($) {
-  $.prototype._cachedCss = null;
-
-  $.RawMethod(false, ".ctor", function (assetName, id, pointSize, lineHeight) {
-    HTML5Asset.prototype._ctor.call(this, assetName);
-    this.id = id;
-    this.pointSize = pointSize;
-    this.lineHeight = lineHeight;
-    this.canvas = JSIL.Host.getCanvas();
-    this.context = $jsilxna.get2DContext(this.canvas, true);
-
-    Object.defineProperty(this, "LineSpacing", {
-      get: function () {
-        return this.lineHeight;
-      }
-    });
-  });
-
-  $.RawMethod(false, "toCss", function (scale) {
-    scale = (scale || 1.0);
-    if ((this._cachedCss != null) && (this._cachedScale === scale)) {
-      return this._cachedScale;
-    } else {
-      this._cachedScale = scale;
-      return this._cachedCss = (this.pointSize * scale) + 'pt "' + this.id + '"';
-    }
-  });
-
-  $.Method({
-    Static: false,
-    Public: true
-  }, "MeasureString", new JSIL.MethodSignature(null, [], []), function (text) {
-    this.context.font = this.toCss();
-    var lines = text.split("\n");
-
-    var resultX = 0,
-      resultY = 0;
-
-    for (var i = 0, l = lines.length; i < l; i++) {
-      var metrics = this.context.measureText(lines[i]);
-      resultX = Math.max(resultX, metrics.width);
-      resultY += this.lineHeight;
-    }
-
-    return new Microsoft.Xna.Framework.Vector2(resultX, resultY);
-  });
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReader", function ($) {

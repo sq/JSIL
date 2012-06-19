@@ -193,7 +193,7 @@ var keyMappings = {
   18: [164, 165] // Left Alt, Right Alt
 };
 
-(function () {
+function initBrowserHooks () {
   var canvas = document.getElementById("canvas");
   var originalWidth = canvas.width;
   var originalHeight = canvas.height;
@@ -333,7 +333,7 @@ var keyMappings = {
       return false;
     }, true
   );
-})();
+};
 
 function getAssetName (filename, preserveCase) {
   var backslashRe = /\\/g;
@@ -361,11 +361,13 @@ JSIL.loadGlobalScript = function (uri, onComplete) {
   anchor.href = uri;
   var absoluteUri = anchor.href;
 
+  var body = document.getElementsByTagName("body")[0];
+
   var scriptTag = document.createElement("script");
   scriptTag.addEventListener("load", onComplete, true);
   scriptTag.type = "text/javascript";
   scriptTag.src = absoluteUri;
-  document.getElementById("scripts").appendChild(scriptTag);
+  body.appendChild(scriptTag);
 };
 
 function loadTextAsync (uri, onComplete) {
@@ -575,62 +577,6 @@ var assetLoaders = {
         onError(error);
       }
     });
-  },
-  "Font": function loadFont (filename, data, onError, onDoneLoading) {
-    var fontId = "xnafont" + loadedFontCount;
-    loadedFontCount += 1;
-    
-    var ruleText = '@font-face {\n' +
-    '  font-family: "' + fontId + '";\n' +  
-    '  src: url("' + contentRoot + filename + '") format("truetype");\n' +  
-    '}\n';
-    
-    var cssRule = document.createElement("style");    
-    cssRule.type = 'text/css'
-    if (cssRule.styleSheet)
-      cssRule.styleSheet.cssText = ruleText;
-    cssRule.appendChild(document.createTextNode(ruleText));    
-    document.getElementsByTagName("head")[0].appendChild(cssRule);
-    
-    var e = document.createElement("span");
-    e.setAttribute("id", fontId);
-    e.appendChild(document.createTextNode(fontId));
-    
-    // We create the element with a tiny font set first and record the size...
-    e.setAttribute("style", 'font: 1pt sans-serif;');
-    document.getElementById("fonts").appendChild(e);
-    
-    var originalWidth = e.offsetWidth;
-    var originalHeight = e.offsetHeight;
-    var startedLoadingWhen = (new Date()).getTime();
-
-    var finisher = function () {
-      allAssets[getAssetName(filename)] = new HTML5FontAsset(getAssetName(filename, true), fontId, (data || 12), e.offsetHeight);
-    };
-    
-    var intervalHandle;
-
-    var loadedCallback = function () {
-      clearInterval(intervalHandle);      
-      onDoneLoading(finisher);
-    };
-    
-    var checkIfLoadedCallback = function () {    
-      var currentWidth = e.offsetWidth;
-      var currentHeight = e.offsetHeight;
-      var now = (new Date()).getTime();
-      if ((currentWidth != originalWidth) || 
-          (currentHeight != originalHeight) ||
-          (now - startedLoadingWhen) > fontLoadTimeout)
-        loadedCallback();
-    };
-
-    intervalHandle = setInterval(checkIfLoadedCallback, loadingPollInterval);
-    
-    // Then set up a callback to watch for the size of the element to change, and apply our CSS font.
-    // In practice, the size shouldn't change until the font has loaded.
-    var pointSize = (data || 12) + "pt";
-    e.setAttribute("style", 'font: ' + pointSize + ' "' + fontId + '"');
   }
 };
 
@@ -756,8 +702,6 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
 
     e.appendChild(source);
   }
-  
-  // document.getElementById("sounds").appendChild(e);
   
   // Events on <audio> elements are inconsistent at best across browsers, so we poll instead. :/    
 
@@ -1042,16 +986,27 @@ function beginLoading () {
   if (loadingProgress)
     loadingProgress.style.display = "";
 
+  var seenFilenames = {};
+
+  var pushAsset = function (assetSpec) {
+    var filename = assetSpec[1];
+    if (seenFilenames[filename])
+      return;
+
+    seenFilenames[filename] = true;
+    allAssets.push(assetSpec);
+  }
+
   var allAssets = [];
   for (var i = 0, l = assetsToLoad.length; i < l; i++)
-    allAssets.push(assetsToLoad[i]);
+    pushAsset(assetsToLoad[i]);
 
   if (typeof (contentManifest) === "object") {
     for (var k in contentManifest) {
       var subManifest = contentManifest[k];
 
       for (var i = 0, l = subManifest.length; i < l; i++)
-        allAssets.push(subManifest[i]);
+        pushAsset(subManifest[i]);
 
     }
   }
@@ -1089,6 +1044,8 @@ var overrideFullscreenBaseSize = null;
 
 function onLoad () {
   registerErrorHandler();
+
+  initBrowserHooks();  
 
   var log = document.getElementById("log");
   var loadButton = document.getElementById("loadButton");
