@@ -645,6 +645,8 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
   $.Method({Static:false, Public:true }, "ReadInt64", 
     (new JSIL.MethodSignature($.Int64, [], [])), 
     function ReadInt64 () {
+      // FIXME: Does this work right for negative numbers or does 53-bit rounding kill it?
+      // FIXME: Generate warnings for values out of 53-bit range.
       var value = this.ReadUInt64();
       if (value > System.Int64.MaxValue)
         return value - 18446744073709551616;
@@ -706,6 +708,7 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
   $.Method({Static:false, Public:true }, "ReadUInt64", 
     (new JSIL.MethodSignature($.UInt64, [], [])), 
     function ReadUInt64 () {
+      // FIXME: Generate warnings for values out of 53-bit range.
       var low1 = this.m_stream.ReadByte();
       var low2 = this.m_stream.ReadByte();
       var low3 = this.m_stream.ReadByte();
