@@ -530,11 +530,9 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
     (new JSIL.MethodSignature($.Char, [], [])), 
     function ReadChar () {
       var oldPosition = this.m_stream.Position;
-      var utf8Encoding = System.Text.Encoding.UTF8;
+      var utf8Encoding = new System.Text.UTF8Encoding();
+      utf8Encoding.fallbackCharacter = "\uFFFF";
       var firstChar, actualLength;
-
-      // Failed decodes are signified by this special character.
-      var badCharacterToken = utf8Encoding.$decode([195]).charCodeAt(0);
 
       for (var i = 1; i < 5; i++) {
         this.m_stream.Position = oldPosition;
@@ -548,7 +546,7 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
 
         firstChar = str[0];
 
-        if (firstChar.charCodeAt(0) === badCharacterToken)
+        if (firstChar === utf8Encoding.fallbackCharacter)
           continue;
 
         // We need to ensure that if we grabbed extra bytes, we rewind

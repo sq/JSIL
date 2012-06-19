@@ -2280,6 +2280,7 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
 
   $.RawMethod(false, "$fromCharset", function (charset) {
     this._charset = charset;
+    this.fallbackCharacter = "?";
   });
 
   $.RawMethod(false, "$blobFromParts", function Encoding_MakeBlob (parts, contentType) {
@@ -2704,7 +2705,7 @@ JSIL.ImplementExternals("System.Text.ASCIIEncoding", function ($) {
   $.RawMethod(false, "$encode", function ASCIIEncoding_Encode (string, outputBytes, outputIndex) {
     var writer = this.$makeWriter(outputBytes, outputIndex);
 
-    var fallbackCharacter = "?".charCodeAt(0);
+    var fallbackCharacter = this.fallbackCharacter.charCodeAt(0);
     var reader = this.$makeCharacterReader(string), ch;
 
     while (!reader.eof) {
@@ -2722,8 +2723,6 @@ JSIL.ImplementExternals("System.Text.ASCIIEncoding", function ($) {
   });
 
   $.RawMethod(false, "$decode", function ASCIIEncoding_Decode (bytes, index, count) {
-    var fallbackCharacter = "?";
-
     var reader = this.$makeByteReader(bytes, index, count), byte;
     var result = "";
 
@@ -2733,7 +2732,7 @@ JSIL.ImplementExternals("System.Text.ASCIIEncoding", function ($) {
       if (byte === false)
         continue;
       else if (byte > 127)
-        result += fallbackCharacter;
+        result += this.fallbackCharacter;
       else
         result += String.fromCharCode(byte);
     }
@@ -2808,7 +2807,6 @@ JSIL.ImplementExternals("System.Text.UTF8Encoding", function ($) {
   $.RawMethod(false, "$decode", function UTF8Encoding_Decode (bytes, index, count) {
     // http://tidy.sourceforge.net/cgi-bin/lxr/source/src/utf8.c
 
-    var fallbackCharacter = "?";
     var reader = this.$makeByteReader(bytes, index, count), firstByte;
     var result = "";
 
@@ -2868,7 +2866,7 @@ JSIL.ImplementExternals("System.Text.UTF8Encoding", function ($) {
         characters = this.$fromCharCode(accumulator);
 
       if (hasError || (characters === false))
-        result += fallbackCharacter;
+        result += this.fallbackCharacter;
       else
         result += characters;
     }
