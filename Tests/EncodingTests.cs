@@ -13,29 +13,14 @@ namespace JSIL.Tests {
     [TestFixture]
     public class EncodingTests : GenericTestFixture {
         [Test]
-        public void BrowserEncodingTests () {
-            Console.WriteLine("// js.exe has no BlobBuilder/Blob so this test only generates the .js files.");
-            Console.WriteLine("// To run the .js files, click a link below.");
-            Console.WriteLine();
-
+        public void AllEncodingTests () {
             var typeInfo = MakeDefaultProvider();
-            var testPath = Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "BrowserEncodingTestCases"));
-            var xmlTests = Directory.GetFiles(testPath, "*.cs").Concat(Directory.GetFiles(testPath, "*.vb")).ToArray();
+            var testPath = Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "EncodingTestCases"));
+            var testFiles = Directory.GetFiles(testPath, "*.cs").Concat(Directory.GetFiles(testPath, "*.vb")).ToArray();
 
-            try {
-                RunComparisonTests(
-                    xmlTests, null, typeInfo,
-                    (testFile) => {
-                        Console.WriteLine(ComparisonTest.GetTestRunnerLink(testFile));
-
-                        return false;
-                    },
-                    (csharpOutput, js) =>
-                        Console.WriteLine(csharpOutput)
-                );
-            } catch (Exception exc) {
-                Console.WriteLine(exc.Message);
-            }
+            RunComparisonTests(
+                testFiles, null, typeInfo
+            );
         }
     }
 }

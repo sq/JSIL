@@ -57,10 +57,10 @@
     <None Include="AnalysisTestCases\NestedReturnNew.cs" />
     <None Include="AnalysisTestCases\StructTemporaries.cs" />
     <None Include="AnalysisTestCases\LocalCopyOfGlobal.cs" />
-    <None Include="BrowserEncodingTestCases\ASCIIGetBytes.cs" />
-    <None Include="BrowserEncodingTestCases\ASCIIGetString.cs" />
-    <None Include="BrowserEncodingTestCases\UTF8GetBytes.cs" />
-    <None Include="BrowserEncodingTestCases\UTF8GetString.cs" />
+    <None Include="EncodingTestCases\ASCIIGetBytes.cs" />
+    <None Include="EncodingTestCases\ASCIIGetString.cs" />
+    <None Include="EncodingTestCases\UTF8GetBytes.cs" />
+    <None Include="EncodingTestCases\UTF8GetString.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="FailingTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />
@@ -106,7 +106,7 @@
     <None Include="TestCases\NullableComparisonWithCast.cs" />
     <None Include="SimpleTestCases\DelegateFieldInitializer.cs" />
     <None Include="TestCases\NullableObjectCast.cs" />
-    <None Include="BrowserEncodingTestCases\Common.cs" />
+    <None Include="EncodingTestCases\Common.cs" />
     <Compile Include="EncodingTests.cs" />
     <Compile Include="EvaluatorPool.cs" />
     <None Include="SimpleTestCases\NestedInterfaces.cs" />

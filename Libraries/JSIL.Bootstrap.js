@@ -2343,7 +2343,7 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
 
       if (xhr.overrideMimeType)
         xhr.overrideMimeType(contentType);
-      
+
       xhr.send();
 
       // Of course because responseType is disabled for sync XHR, we have to decode the bytes ourself.
@@ -2381,6 +2381,99 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
     } finally {
       url.revokeObjectURL(blobUri);
     }
+  });
+
+  $.RawMethod(false, "$makeWriter", function (outputBytes, outputIndex) {
+    var i = outputIndex;
+    var count = 0;
+
+    if (JSIL.IsArray(outputBytes)) {
+      return {
+        write: function (byte) {
+          if (i >= outputBytes.length)
+            throw new Error("End of buffer");
+
+          outputBytes[i] = byte;
+          i++;
+          count++;
+        },
+        getResult: function () {
+          return count;
+        }
+      };
+    } else {
+      var resultBytes = new Array();
+      return {
+        write: function (byte) {
+          resultBytes.push(byte);
+        },
+        getResult: function () {
+          return new Uint8Array(resultBytes);
+        }
+      };
+    }
+  });
+
+  $.RawMethod(false, "$fromCharCode", function fixedFromCharCode (codePt) {  
+    // https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/String/fromCharCode
+    if (codePt > 0xFFFF) {  
+      codePt -= 0x10000;  
+      return String.fromCharCode(0xD800 + (codePt >> 10), 0xDC00 + (codePt & 0x3FF));  
+    } else {  
+      return String.fromCharCode(codePt); 
+    }  
+  });
+
+  $.RawMethod(false, "$charCodeAt", function fixedCharCodeAt (str, idx) {  
+    // https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/String/charCodeAt
+
+    idx = idx || 0;  
+    var code = str.charCodeAt(idx);  
+    var hi, low;  
+
+    if (0xD800 <= code && code <= 0xDBFF) { 
+      // High surrogate (could change last hex to 0xDB7F to treat high private surrogates as single characters)  
+      hi = code;
+      low = str.charCodeAt(idx+1);  
+      if (isNaN(low))
+        throw new Error("High surrogate not followed by low surrogate");
+
+      return ((hi - 0xD800) * 0x400) + (low - 0xDC00) + 0x10000;  
+    }
+
+    if (0xDC00 <= code && code <= 0xDFFF) { 
+      // Low surrogate  
+      // We return false to allow loops to skip this iteration since should have already handled high surrogate above in the previous iteration  
+      return false;  
+    }  
+
+    return code;  
+  });
+
+  $.RawMethod(false, "$makeReader", function (str) {
+    var position = 0, length = str.length;
+    var cca = this.$charCodeAt;
+
+    var result = {
+      read: function () {
+        if (position >= length)
+          return false;
+
+        var nextChar = cca(str, position);
+        position += 1;
+        return nextChar;
+      }
+    };
+
+    Object.defineProperty(result, "eof", {
+      get: function () {
+        return (position >= length);
+      },
+      configurable: true,
+      enumerable: true
+    });
+
+    return result;
   });
 
   $.RawMethod(false, "$encode", function Encoding_Encode_PureVirtual (string, outputBytes, outputIndex) {
@@ -2583,28 +2676,23 @@ JSIL.MakeClass("System.Object", "System.Text.Encoding", true, [], function ($) {
 
 JSIL.ImplementExternals("System.Text.ASCIIEncoding", function ($) {
   $.RawMethod(false, "$encode", function ASCIIEncoding_Encode (string, outputBytes, outputIndex) {
-    var returnBytes = (arguments.length === 1);
-
-    if (returnBytes) {
-      outputBytes = new Uint8Array(string.length);
-      outputIndex = 0;
-    }
+    var writer = this.$makeWriter(outputBytes, outputIndex);
 
     var fallbackCharacter = "?".charCodeAt(0);
+    var reader = this.$makeReader(string), ch;
 
-    for (var i = 0, l = string.length; i < l; i++) {
-      var ch = string.charCodeAt(i);
+    while (!reader.eof) {
+      ch = reader.read();
 
-      if (ch <= 127)
-        outputBytes[i + outputIndex] = ch;
+      if (ch === false)
+        continue;
+      else if (ch <= 127)
+        writer.write(ch);
       else
-        outputBytes[i + outputIndex] = fallbackCharacter;
+        writer.write(fallbackCharacter);
     }
 
-    if (returnBytes)
-      return outputBytes;
-    else
-      return outputBytes.length;
+    return writer.getResult();
   });
 
   $.RawMethod(false, "$decode", function ASCIIEncoding_Decode (bytes, index, count) {
@@ -2634,24 +2722,62 @@ JSIL.MakeClass("System.Text.Encoding", "System.Text.ASCIIEncoding", true, [], fu
 
 JSIL.ImplementExternals("System.Text.UTF8Encoding", function ($) {
   $.RawMethod(false, "$encode", function UTF8Encoding_Encode (string, outputBytes, outputIndex) {
-    var blob = this.$blobFromParts([string], "text/plain; charset=utf-8");
+    // http://tidy.sourceforge.net/cgi-bin/lxr/source/src/utf8.c
 
-    var resultBytes = this.$bytesFromBlob(blob, "application/octet-stream; charset=x-user-defined");
+    var writer = this.$makeWriter(outputBytes, outputIndex);
+    var reader = this.$makeReader(string), ch;
 
-    var returnBytes = (arguments.length === 1);
+    var UTF8ByteSwapNotAChar = 0xFFFE;
+    var UTF8NotAChar         = 0xFFFF;
 
-    if (returnBytes) {
-      outputBytes = resultBytes;
-      outputIndex = 0;
-    } else {
-      for (var i = 0, l = resultBytes.length; i < l; i++)
-        outputBytes[outputIndex + i] = resultBytes[i];
+    var hasError = false;
+
+    while (!reader.eof) {
+      ch = reader.read();
+
+      if (ch === false)
+        continue;
+
+      if (ch <= 0x7F) {
+        writer.write( ch );
+      } else if (ch <= 0x7FF) {
+        writer.write( 0xC0 | (ch >> 6) );
+        writer.write( 0x80 | (ch & 0x3F) );
+      } else if (ch <= 0xFFFF) {
+        writer.write( 0xE0 | (ch >> 12) );
+        writer.write( 0x80 | ((ch >> 6) & 0x3F) );
+        writer.write( 0x80 | (ch & 0x3F) );
+      } else if (ch <= 0x1FFFF) {
+        writer.write( 0xF0 | (ch >> 18) );
+        writer.write( 0x80 | ((ch >> 12) & 0x3F) );
+        writer.write( 0x80 | ((ch >> 6) & 0x3F) );
+        writer.write( 0x80 | (ch & 0x3F) );
+
+        if ((ch === UTF8ByteSwapNotAChar) || (ch === UTF8NotAChar))
+          hasError = true;
+      } else if (ch <= 0x3FFFFFF) {
+        writer.write( 0xF0 | (ch >> 24) );
+        writer.write( 0x80 | ((ch >> 18) & 0x3F) );
+        writer.write( 0x80 | ((ch >> 12) & 0x3F) );
+        writer.write( 0x80 | ((ch >> 6) & 0x3F) );
+        writer.write( 0x80 | (ch & 0x3F) );
+
+        hasError = true;
+      } else if (ch <= 0x7FFFFFFF) {
+        writer.write( 0xF0 | (ch >> 30) );
+        writer.write( 0x80 | ((ch >> 24) & 0x3F) );
+        writer.write( 0x80 | ((ch >> 18) & 0x3F) );
+        writer.write( 0x80 | ((ch >> 12) & 0x3F) );
+        writer.write( 0x80 | ((ch >> 6) & 0x3F) );
+        writer.write( 0x80 | (ch & 0x3F) );
+
+        hasError = true;
+      } else {
+        hasError = true;
+      }
     }
 
-    if (returnBytes)
-      return outputBytes;
-    else
-      return outputBytes.length;
+    return writer.getResult();
   });
 
   $.RawMethod(false, "$decode", function UTF8Encoding_Decode (bytes, index, count) {
