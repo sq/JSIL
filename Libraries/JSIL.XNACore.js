@@ -4443,9 +4443,16 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
 
   $.RawMethod(false, "$applyBlendState", function () {
     if ((typeof (this.blendState) === "object") && (this.blendState !== null))
-      this.device.BlendState = this.blendState;
+      this.device.set_BlendState(this.blendState);
     else
-      this.device.BlendState = Microsoft.Xna.Framework.Graphics.BlendState.AlphaBlend;
+      this.device.set_BlendState(Microsoft.Xna.Framework.Graphics.BlendState.AlphaBlend);
+  });
+
+  $.RawMethod(false, "$applySamplerState", function () {
+    if ((typeof (this.samplerState) === "object") && (this.samplerState !== null))
+      this.device.SamplerStates.set_Item(0, this.samplerState);
+    else
+      this.device.SamplerStates.set_Item(0, Microsoft.Xna.Framework.Graphics.SamplerState.LinearClamp);
   });
 
   $.Method({Static:false, Public:true }, "Begin", 
@@ -4463,6 +4470,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       this.deferSorter = null;
 
       this.blendState = blendState;
+      this.samplerState = samplerState;
 
       var textureIndex = 0;
       var depthIndex = 16;
@@ -4470,6 +4478,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Immediate) {
         this.defer = false;
         this.$applyBlendState();
+        this.$applySamplerState();
       } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.BackToFront) {
         this.defer = true;
         this.deferSorter = function Sort_BackToFront (lhs, rhs) {
@@ -4506,13 +4515,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         this.device.context.translate(transformMatrix.xTranslation, transformMatrix.yTranslation);
         this.device.context.scale(transformMatrix.xScale, transformMatrix.yScale);
       }
-
-      var enableSmoothing = true;
-      if (samplerState) {
-        enableSmoothing = samplerState.get_Filter() != Microsoft.Xna.Framework.Graphics.TextureFilter.Point;
-      }
-
-      this.device.context.mozImageSmoothingEnabled = this.device.context.webkitImageSmoothingEnabled = enableSmoothing;
     }
   );
 
@@ -4523,6 +4525,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         this.defer = false;
 
         this.$applyBlendState();
+        this.$applySamplerState();
 
         if (this.deferSorter !== null) 
           this.deferredDraws.sort(this.deferSorter);
@@ -4542,6 +4545,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       this.$restore();
 
       this.$applyBlendState();
+      this.$applySamplerState();
 
       if (this.saveCount !== this.restoreCount)
         JSIL.Host.warning("Unbalanced canvas save/restore");

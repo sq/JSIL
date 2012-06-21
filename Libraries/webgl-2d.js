@@ -813,7 +813,8 @@
         shadowOffsetY:            drawState.shadowOffsetY,
         textAlign:                drawState.textAlign,
         font:                     drawState.font,
-        textBaseline:             drawState.textBaseline
+        textBaseline:             drawState.textBaseline,
+        imageSmoothingEnabled:    drawState.imageSmoothingEnabled,
       };
 
       drawStateStack.push(bakedDrawState);
@@ -968,7 +969,9 @@
       },
       set: function (value) {
         drawState.imageSmoothingEnabled = value;
-      }
+      },
+      configurable: true,
+      enumerable: true
     };
 
     Object.defineProperty(gl, "webkitImageSmoothingEnabled", imageSmoothingDecl);
@@ -1307,6 +1310,8 @@
     function Texture(image) {
       this.obj   = gl.createTexture();
       this.index = textureCache.push(this);
+      this.width = image.width;
+      this.height = image.height;
       this.isPOT = isPOT(image.width) && isPOT(image.height);
 
       imageCache.push(image);
@@ -1332,57 +1337,17 @@
     Texture.prototype.updateCachedImage = function (image) {
       gl.bindTexture(gl.TEXTURE_2D, this.obj);
 
-      var premultiplyManually = false;
-
-      if (premultiplyManually) {
-        // Premultiply the image pixels
-        var imagePixels;
-        if (image.tagName.toLowerCase() === "canvas") {
-          imagePixels = image.getContext("2d").getImageData(0, 0, image.width, image.height);
-        } else {
-          tempCanvas.width = image.width;
-          tempCanvas.height = image.height;
-          tempCtx.clearRect(0, 0, image.width, image.height);
-          tempCtx.globalCompositeOperation = "copy";
-          tempCtx.drawImage(image, 0, 0);
-
-          imagePixels = tempCtx.getImageData(0, 0, image.width, image.height);
-          tempCanvas.width = tempCanvas.height = 1;
-        }
-        var imagePixelData = imagePixels.data;
-
-        // WebGL and canvas don't like to touch each other because the spec is dumb
-        var l = imagePixelData.length;
-        var premultipliedData = new Uint8Array(l);
-
-        for (var i = 0; i < l; i += 4) {
-          var a = imagePixelData[i + 3];
-          premultipliedData[i + 3] = a;
-
-          a /= 255;
-          premultipliedData[i + 0] = a * imagePixelData[i + 0];
-          premultipliedData[i + 1] = a * imagePixelData[i + 1];
-          premultipliedData[i + 2] = a * imagePixelData[i + 2];
-        }
-
-        gl.texImage2D(
-          gl.TEXTURE_2D, 0, gl.RGBA,
-          image.width, image.height, 0, gl.RGBA, 
-          gl.UNSIGNED_BYTE, premultipliedData
-        );
-      } else {
-        gl.texImage2D(
-          gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image
-        );
-      }
+      gl.texImage2D(
+        gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image
+      );
 
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-      updateSmoothingMode(this);
-
       if (this.isPOT)
         gl.generateMipmap(gl.TEXTURE_2D);
+
+      updateSmoothingMode(this);
 
       // Unbind texture
       gl.bindTexture(gl.TEXTURE_2D, null);
