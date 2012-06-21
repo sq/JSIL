@@ -5969,10 +5969,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
         var cachedTextureHeight = cachedTexture.height;
 
         spriteBatch.InternalDraw(
-          cachedTexture, textblockPositionX - xPad, textblockPositionY - yPad, cachedTextureWidth, cachedTextureHeight,
+          cachedTexture, textblockPositionX, textblockPositionY, cachedTextureWidth, cachedTextureHeight,
           0, 0, cachedTextureWidth, cachedTextureHeight,
           color, rotation, 
-          originX, originY, 
+          originX + xPad, originY + yPad, 
           scaleX, scaleY, 
           spriteEffects, layerDepth
         );
