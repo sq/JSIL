@@ -200,29 +200,29 @@ JSIL.DefineLazyDefaultProperty = function (target, key, getDefault) {
     });
   };
 
-  var initIfNeeded = function () {
+  var initIfNeeded = function (self) {
     if (state === $jsilcore.PropertyNotInitialized) {
-      state = getDefault.call(this);
+      state = getDefault.call(self);
       JSIL.Host.runLater(cleanup);
     }
   };
 
   var getter = function LazyDefaultProperty_Get () {
-    initIfNeeded();
+    initIfNeeded(this);
 
     return state;
   };
 
-  var setterDesc = {
-    configurable: true,
-    enumerable: true,
-    writable: true
-  };
-
   var setter = function LazyDefaultProperty_Set (value) {
-    initIfNeeded();
-    
-    setterDesc.value = value;
+    initIfNeeded(this);
+
+    var setterDesc = {
+      configurable: true,
+      enumerable: true,
+      writable: true,
+      value: value
+    };
+
     Object.defineProperty(
       this, key, setterDesc
     );

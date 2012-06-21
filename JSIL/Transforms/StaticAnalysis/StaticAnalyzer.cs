@@ -558,8 +558,12 @@ namespace JSIL.Transforms {
         public FunctionAnalysis2ndPass (IFunctionSource functionSource, FunctionAnalysis1stPass data) {
             FunctionSource = functionSource;
             Data = data;
-            _IsPure = (data.StaticReferences.Count == 0) &&
-                (data.SideEffects.Count == 0);
+
+            if (data.Function.Method.Method.Metadata.HasAttribute("JSIsPure"))
+                _IsPure = true;
+            else
+                _IsPure = (data.StaticReferences.Count == 0) &&
+                    (data.SideEffects.Count == 0);
 
             VariableAliases = new Dictionary<string, HashSet<string>>();
             foreach (var assignment in data.Assignments) {
@@ -576,17 +580,38 @@ namespace JSIL.Transforms {
                 from p in data.Function.Parameters select p.Name
             );
 
-            ModifiedVariables = new HashSet<string>(
-                data.ModificationCount.Where((kvp) => {
-                    var isParameter = parameterNames.Contains(kvp.Key);
-                    return kvp.Value >= (isParameter ? 1 : 2);
-                }).Select((kvp) => kvp.Key)
-            );
+            var parms = data.Function.Method.Method.Metadata.GetAttributeParameters("JSIL.Meta.JSMutatedArguments");
+            if (parms != null) {
+                ModifiedVariables = new HashSet<string>();
+                foreach (var p in parms) {
+                    var s = p.Value as string;
+                    if (s != null)
+                        ModifiedVariables.Add(s);
+                }
+            } else {
+                ModifiedVariables = new HashSet<string>(
+                    data.ModificationCount.Where((kvp) => {
+                        var isParameter = parameterNames.Contains(kvp.Key);
+                        return kvp.Value >= (isParameter ? 1 : 2);
+                    }).Select((kvp) => kvp.Key)
+                );
 
-            foreach (var v in Data.VariablesPassedByRef)
-                ModifiedVariables.Add(v);
+                foreach (var v in Data.VariablesPassedByRef)
+                    ModifiedVariables.Add(v);
+            }
 
-            EscapingVariables = Data.EscapingVariables;
+            parms = data.Function.Method.Method.Metadata.GetAttributeParameters("JSIL.Meta.JSEscapingArguments");
+            if (parms != null) {
+                EscapingVariables = new HashSet<string>();
+                foreach (var p in parms) {
+                    var s = p.Value as string;
+                    if (s != null)
+                        EscapingVariables.Add(s);
+                }
+            } else {
+                EscapingVariables = Data.EscapingVariables;
+            }
+
             ResultVariable = Data.ResultVariable;
             ResultIsNew = Data.ResultIsNew;
 
