@@ -575,6 +575,33 @@ namespace JSIL.Tests {
             for (var i = 0; i < 3; i++)
                 check();
         }
+
+        [Test]
+        public void OverloadedGenericMethodSignatures2 () {
+            var output = "A2\r\nB";
+
+            var typeInfo = MakeDefaultProvider();
+
+            Action check = () => {
+                var generatedJs = GenericTest(
+                    @"SpecialTestCases\OverloadedGenericMethodSignatures2.cs",
+                    output, output, null, typeInfo
+                );
+
+                try {
+                    Assert.IsTrue(generatedJs.Contains("this.Test("), "this.Test was not direct-dispatched");
+                    Assert.IsTrue(generatedJs.Contains("test.Interface_Test2("), "test.Interface_Test2 was not direct-dispatched");
+                } catch {
+                    Console.WriteLine(generatedJs);
+
+                    throw;
+                }
+            };
+
+            for (var i = 0; i < 3; i++)
+                check();
+        }
+
         [Test]
         public void NoUnnecessaryCasts () {
             var testNames = new string[] {

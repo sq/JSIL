@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Mono.Cecil;
@@ -110,6 +111,21 @@ namespace JSIL.Internal {
             _Hash = hash;
             return hash;
         }
+
+        public override string ToString () {
+            if (GenericParameterCount > 0) {
+                return String.Format(
+                    "<{0}>({1})",
+                    String.Join(",", GenericParameterNames),
+                    String.Join(",", (from p in ParameterTypes select p.ToString()))
+                );
+            } else {
+                return String.Format(
+                    "({0})",
+                    String.Join(",", (from p in ParameterTypes select p.ToString()))
+                );
+            }
+        }
     }
 
     public struct NamedMethodSignature {
@@ -133,12 +149,17 @@ namespace JSIL.Internal {
 
         public class Comparer : IEqualityComparer<NamedMethodSignature> {
             public bool Equals (NamedMethodSignature x, NamedMethodSignature y) {
-                return (x.Name == y.Name) && (x.Signature.Equals(y.Signature));
+                var result = (x.Name == y.Name) && (x.Signature.Equals(y.Signature));
+                return result;
             }
 
             public int GetHashCode (NamedMethodSignature obj) {
                 return obj.GetHashCode();
             }
+        }
+
+        public override string ToString () {
+            return String.Format("{0}{1}", Name, Signature);
         }
     }
 

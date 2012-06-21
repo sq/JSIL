@@ -2441,9 +2441,24 @@ JSIL.$ApplyMemberHiding = function (typeObject, memberList, resolveContext) {
   // This is called during type system initialization, so we can't rely on any of MemberInfo's
   //  properties or methods - we need to access the data members directly.
 
+  // We need to resolve generic method signatures before sorting the member list.
+  // Otherwise, two method signatures may be sorted as different even though their resolved
+  //  signatures are the same, which will make them appear not to hide each other.
+  var resolvedSignatures = new Array(memberList.length);
+
+  for (var i = 0, l = memberList.length; i < l; i++) {
+    var member = memberList[i];
+    var memberSignature = member._data.signature;
+
+    // Assign a temporary __index__ to each member so that the comparer can find the resolved signature.
+    member.__index__ = i;
+
+    resolvedSignatures[i] = JSIL.$ResolveGenericMethodSignature(typeObject, memberSignature, resolveContext) || memberSignature;
+  }
+
   var comparer = function (lhs, rhs) {
-    var lhsHash = lhs._data.signature.Hash;
-    var rhsHash = rhs._data.signature.Hash;
+    var lhsHash = resolvedSignatures[lhs.__index__].Hash;
+    var rhsHash = resolvedSignatures[rhs.__index__].Hash;
 
     var result = JSIL.CompareValues(lhsHash, rhsHash);
 
@@ -2477,14 +2492,22 @@ JSIL.$ApplyMemberHiding = function (typeObject, memberList, resolveContext) {
   var currentGroupStart;
 
   var trace = false;
+  var traceOut = function () {
+    if ((typeof(console) !== "undefined") && console.log)
+      console.log.apply(console, arguments);
+    else
+      print.apply(null, arguments);
+  }
+
+  var memberName = memberList[0]._descriptor.Name;
 
   // Sweep through the member list and replace any hidden members with null.
   for (var i = 0, l = memberList.length; i < l; i++) {
     var member = memberList[i];
+    var memberSignature = resolvedSignatures[member.__index__];
 
-    // We need to resolve generic parameters in the signature so that the hashes match up.
-    var memberSignature = member._data.signature;
-    memberSignature = JSIL.$ResolveGenericMethodSignature(typeObject, memberSignature, resolveContext) || memberSignature;
+    // Remove the temporary __index__ member because it is no longer needed.
+    delete member.__index__;
 
     var memberSignatureHash = memberSignature.Hash;
 
@@ -2496,7 +2519,7 @@ JSIL.$ApplyMemberHiding = function (typeObject, memberList, resolveContext) {
       var hidingMember = memberList[currentGroupStart];
 
       if (trace) {
-        console.log(
+        traceOut(
           "Purged " + member._typeObject.__FullName__ + "'s version of " + 
             member._descriptor.Name + " because it is hidden by " + hidingMember._typeObject.__FullName__ + 
             "." + hidingMember._descriptor.Name
@@ -2516,7 +2539,7 @@ JSIL.$ApplyMemberHiding = function (typeObject, memberList, resolveContext) {
   }
 
   if ((trace) && (originalCount != memberList.length)) {
-    console.log("Shrank method group from " + originalCount + " item(s) to " + memberList.length);
+    traceOut("Shrank method group from " + originalCount + " item(s) to " + memberList.length);
   }
 };
 
@@ -2560,7 +2583,9 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface, forceLazyMethod
     if (!JSIL.IsArray(methodList))
       methodList = methodsByName[key] = [];
 
-    methodList.push(method);
+    // Don't add duplicate copies of the same method to the method list.
+    if (methodList.indexOf(method) < 0)
+      methodList.push(method);
   }
 
   for (var key in methodsByName) {

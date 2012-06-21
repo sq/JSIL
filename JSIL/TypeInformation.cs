@@ -871,6 +871,10 @@ namespace JSIL.Internal {
 
                 set.Add(signature);
             }
+
+            var dotPosition = methodName.LastIndexOf(".");
+            if (dotPosition > 0)
+                UpdateSignatureSet(methodName.Substring(dotPosition + 1), signature);
         }
 
         protected MethodInfo AddMember (MethodDefinition method, PropertyInfo property, bool isFromProxy = false) {
