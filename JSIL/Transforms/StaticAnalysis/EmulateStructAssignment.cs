@@ -54,6 +54,9 @@ namespace JSIL.Transforms {
         }
 
         protected bool IsCopyNeededForAssignmentTarget (JSExpression target) {
+            if (!OptimizeCopies)
+                return true;
+
             if (IsImmutable(target))
                 return false;
 
@@ -87,6 +90,9 @@ namespace JSIL.Transforms {
             ) {
                 return false;
             }
+
+            if (!OptimizeCopies)
+                return true;
 
             if (IsImmutable(value))
                 return false;
@@ -178,6 +184,9 @@ namespace JSIL.Transforms {
         protected bool IsParameterCopyNeeded (FunctionAnalysis2ndPass sa, string parameterName, JSExpression expression) {
             if (!IsCopyNeeded(expression))
                 return false;
+
+            if (!OptimizeCopies)
+                return true;
 
             bool modified = true, escapes = true, isResult = false;
 
