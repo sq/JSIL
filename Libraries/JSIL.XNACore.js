@@ -4111,19 +4111,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Point", function ($) {
     }
   );
 
-  $.Method({Static:false, Public:true }, "Equals", 
+  $.Method({Static:false, Public:true }, "Object.Equals", 
     (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Point")], [])), 
     function Equals (other) {
       return equalsImpl(this, other);
     }
   );
-
-  $.Method({
-    Static: false,
-    Public: true
-  }, "Equals", new JSIL.MethodSignature(null, [], []), function (rhs) {
-    return this.X === rhs.X && this.Y === rhs.Y;
-  });
 });
 
 $jsilxna.makeColor = function (proto, r, g, b, a) {

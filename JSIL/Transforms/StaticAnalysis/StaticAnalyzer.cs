@@ -327,8 +327,6 @@ namespace JSIL.Transforms {
             var method = ie.JSMethod;
 
             if (thisVar != null) {
-                ModifiedVariable(thisVar);
-
                 State.Invocations.Add(new FunctionAnalysis1stPass.Invocation(
                     StatementIndex, NodeIndex, thisVar, method, variables
                 ));
@@ -545,9 +543,11 @@ namespace JSIL.Transforms {
         protected readonly bool _IsPure;
         protected bool? _CachedIsPure = false;
         protected bool _ComputingPurity = false;
+        protected bool _GeneratedRecursiveModifiedVariables = false;
+        protected bool _GeneratingRecursiveModifiedVariables = false;
 
         public readonly Dictionary<string, HashSet<string>> VariableAliases;
-        public readonly HashSet<string> ModifiedVariables;
+        private readonly HashSet<string> _ModifiedVariables;
         public readonly HashSet<string> EscapingVariables;
         public readonly string ResultVariable;
         public readonly bool ResultIsNew;
@@ -576,7 +576,7 @@ namespace JSIL.Transforms {
                 from p in data.Function.Parameters select p.Name
             );
 
-            ModifiedVariables = new HashSet<string>(
+            _ModifiedVariables = new HashSet<string>(
                 data.ModificationCount.Where((kvp) => {
                     var isParameter = parameterNames.Contains(kvp.Key);
                     return kvp.Value >= (isParameter ? 1 : 2);
@@ -584,7 +584,7 @@ namespace JSIL.Transforms {
             );
 
             foreach (var v in Data.VariablesPassedByRef)
-                ModifiedVariables.Add(v);
+                _ModifiedVariables.Add(v);
 
             EscapingVariables = Data.EscapingVariables;
             ResultVariable = Data.ResultVariable;
@@ -619,16 +619,16 @@ namespace JSIL.Transforms {
 
             var parms = method.Metadata.GetAttributeParameters("JSIL.Meta.JSMutatedArguments");
             if (parms != null) {
-                ModifiedVariables = new HashSet<string>();
+                _ModifiedVariables = new HashSet<string>();
                 foreach (var p in parms) {
                     var s = p.Value as string;
                     if (s != null)
-                        ModifiedVariables.Add(s);
+                        _ModifiedVariables.Add(s);
                 }
             } else if (!_IsPure) {
-                ModifiedVariables = new HashSet<string>(from p in method.Parameters select p.Name);
+                _ModifiedVariables = new HashSet<string>(from p in method.Parameters select p.Name);
             } else {
-                ModifiedVariables = new HashSet<string>();
+                _ModifiedVariables = new HashSet<string>();
             }
 
             parms = method.Metadata.GetAttributeParameters("JSIL.Meta.JSEscapingArguments");
@@ -667,6 +667,46 @@ namespace JSIL.Transforms {
             }
 
             return _IsPure;
+        }
+
+        public HashSet<string> ModifiedVariables {
+            get {
+                if ((Data != null) && (!_GeneratedRecursiveModifiedVariables)) {
+                    if (_GeneratingRecursiveModifiedVariables)
+                        return _ModifiedVariables;
+
+                    _GeneratingRecursiveModifiedVariables = true;
+
+                    foreach (var i in Data.Invocations) {
+                        FunctionAnalysis2ndPass secondPass = null;
+                        bool unknown = false;
+
+                        if (i.Method == null)
+                            unknown = true;
+                        else
+                            secondPass = FunctionSource.GetSecondPass(i.Method);
+
+                        if (secondPass == null)
+                            unknown = true;
+                        else {
+                            foreach (var varname in secondPass.ModifiedVariables) {
+                                if (varname == "this") {
+                                    if (i.ThisVariable != null)
+                                        ModifiedVariables.Add(i.ThisVariable);
+                                } else if (i.Variables.ContainsKey(varname)) {
+                                    foreach (var subvar in i.Variables[varname])
+                                        ModifiedVariables.Add(subvar);
+                                }
+                            }
+                        }
+                    }
+
+                    _GeneratedRecursiveModifiedVariables = true;
+                    _GeneratingRecursiveModifiedVariables = false;
+                }
+
+                return _ModifiedVariables;
+            }
         }
 
         public bool IsPure {

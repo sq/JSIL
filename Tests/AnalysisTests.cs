@@ -194,6 +194,21 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void RecursivePureStructOperator () {
+            var output = "1\r\n0\r\n1\r\n1\r\n0\r\n1";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\RecursivePureStructOperator.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+            Assert.IsFalse(generatedJs.Contains(
+                @".MemberwiseClone()"
+            ), "a value was cloned");
+        }
+
+        [Test]
         public void CopyGetEnumerator () {
             var output = "1\r\n2\r\n3";
 

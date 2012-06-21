@@ -12,7 +12,7 @@ JSIL.DeclareNamespace("System.IO");
 JSIL.DeclareNamespace("System.Text.RegularExpressions");
 
 // Unfortunately necessary :-(
-String.prototype.Equals = function (rhs) {
+String.prototype.Object_Equals = function (rhs) {
   return this === rhs;
 };
 

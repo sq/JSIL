@@ -61,6 +61,7 @@
     <None Include="EncodingTestCases\ASCIIGetString.cs" />
     <None Include="EncodingTestCases\UTF8GetBytes.cs" />
     <None Include="EncodingTestCases\UTF8GetString.cs" />
+    <None Include="AnalysisTestCases\RecursivePureStructOperator.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="FailingTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />
@@ -174,6 +175,7 @@
     <None Include="TestCases\HashSetCount.cs" />
     <None Include="SpecialTestCases\OverloadedGenericMethodSignatures2.cs" />
     <None Include="SpecialTestCases\CustomObjectMethods.cs" />
+    <None Include="SpecialTestCases\CustomEqualsDispatch.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

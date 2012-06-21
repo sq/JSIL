@@ -622,6 +622,29 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void CustomEqualsDispatch () {
+            var output = "";
+
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\CustomEqualsDispatch.cs",
+                output, output
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains(".CallVirtual"));
+                Assert.IsFalse(generatedJs.Contains(".Call"));
+
+                Assert.IsTrue(generatedJs.Contains("this.Equals("));
+                Assert.IsTrue(generatedJs.Contains("a.Equals(b)"));
+                Assert.IsFalse(generatedJs.Contains(".Object_Equals("));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
         public void NoUnnecessaryCasts () {
             var testNames = new string[] {
                 @"FailingTestCases\ArrayToString.cs",

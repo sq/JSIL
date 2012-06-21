@@ -23,6 +23,7 @@ namespace JSIL.Proxies {
         new abstract public string ToString ();
 
         [JSIsPure]
+        [JSChangeName("Object.Equals")]
         [JSNeverReplace]
         [JSRuntimeDispatch]
         new public abstract bool Equals (object obj);
