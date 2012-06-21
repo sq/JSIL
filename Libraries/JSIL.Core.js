@@ -1940,14 +1940,27 @@ JSIL.CreateNamedFunction = function (name, argumentNames, body) {
   var uriRe = /[\<\>\+\/\\\.]/g;
   var nameRe = /[^A-Za-z_0-9]/g;
 
-  var result = eval(
-    "//@ sourceURL=jsil://generatedFunction/" + name + "\r\n" + 
+  var rawFunctionText = "//@ sourceURL=jsil://generatedFunction/" + name + "\r\n" + 
     "(function " + name.replace(nameRe, "_") + "(" +
     argumentNames.join(", ") +
     ") {\r\n" +
     body +
-    "\r\n})\r\n"
-  );
+    "\r\n})\r\n";
+
+  // :|
+  argumentNames = null;
+  body = null;
+  arguments[1] = null;
+  arguments[2] = null;
+
+  var doEval = function (rawText) {
+    var result = eval(rawText);
+    arguments[0] = null;
+    rawText = null;
+    return result;
+  };
+
+  var result = doEval(rawFunctionText);
 
   return JSIL.RenameFunction(name, result);
 };
@@ -2394,11 +2407,17 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
     body.push("  ");
     body.push("  throw new Error('No overload of ' + name + ' can accept ' + (argc - offset) + ' argument(s).')");
 
+    var bodyText = body.join("\r\n");
+
     var dispatcher = JSIL.CreateNamedFunction(
       id, 
       ["thisType", "name", "offset", "args"],
-      body.join("\r\n")
+      bodyText
     );
+
+    // Why does v8 retain these?!?
+    body = null;
+    bodyText = null;
 
     // We can't use .bind() to bind arguments here because it breaks the 'this' parameter and breaks .call()/.apply().
     var boundDispatcher = function OverloadedMethod_Invoke () {
