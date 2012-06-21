@@ -200,11 +200,15 @@ JSIL.DefineLazyDefaultProperty = function (target, key, getDefault) {
     });
   };
 
-  var getter = function LazyDefaultProperty_Get () {
+  var initIfNeeded = function () {
     if (state === $jsilcore.PropertyNotInitialized) {
       state = getDefault.call(this);
       JSIL.Host.runLater(cleanup);
     }
+  };
+
+  var getter = function LazyDefaultProperty_Get () {
+    initIfNeeded();
 
     return state;
   };
@@ -216,6 +220,8 @@ JSIL.DefineLazyDefaultProperty = function (target, key, getDefault) {
   };
 
   var setter = function LazyDefaultProperty_Set (value) {
+    initIfNeeded();
+    
     setterDesc.value = value;
     Object.defineProperty(
       this, key, setterDesc
