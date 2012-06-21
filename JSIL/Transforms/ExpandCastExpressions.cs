@@ -28,7 +28,12 @@ namespace JSIL.Transforms {
 
             JSExpression newExpression = null;
 
-            if (targetType.MetadataType == MetadataType.Char) {
+            if (targetType.FullName == "System.ValueType") {
+                var replacement = ce.Expression;
+                ParentNode.ReplaceChild(ce, replacement);
+                VisitReplacement(replacement);
+                return;
+            } else if (targetType.MetadataType == MetadataType.Char) {
                 newExpression = JSInvocationExpression.InvokeStatic(
                     JS.fromCharCode, new[] { ce.Expression }, true
                 );

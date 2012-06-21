@@ -11,6 +11,11 @@ JSIL.DeclareNamespace("System.Linq");
 JSIL.DeclareNamespace("System.IO");
 JSIL.DeclareNamespace("System.Text.RegularExpressions");
 
+// Unfortunately necessary :-(
+String.prototype.Equals = function (rhs) {
+  return this === rhs;
+};
+
 $jsilcore.$ParseBoolean = function (text) {
   var temp = {};
   if ($jsilcore.$TryParseBoolean(text, temp))

@@ -155,6 +155,20 @@ namespace JSIL {
             );
         }
 
+        public JSInvocationExpression ObjectEquals (JSExpression left, JSExpression right) {
+            return JSInvocationExpression.InvokeStatic(
+                Dot("ObjectEquals", TypeSystem.Boolean),
+                new[] { left, right }, true
+            );
+        }
+
+        public JSInvocationExpression StructEquals (JSExpression left, JSExpression right) {
+            return JSInvocationExpression.InvokeStatic(
+                Dot("StructEquals", TypeSystem.Boolean),
+                new[] { left, right }, true
+            );
+        }
+
         public JSInvocationExpression ShallowCopy (JSExpression array, JSExpression initializer, TypeReference arrayType) {
             return JSInvocationExpression.InvokeStatic(
                 new JSDotExpression(

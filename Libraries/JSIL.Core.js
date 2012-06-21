@@ -5391,22 +5391,26 @@ JSIL.MakeClass("System.Object", "JSIL.ObjectInitializer", true, [], function ($)
   );
 });
 
+JSIL.StructEquals = function Struct_Equals (lhs, rhs) {
+  if (lhs === rhs)
+    return true;
+
+  if ((rhs === null) || (rhs === undefined))
+    return false;
+
+  var thisType = lhs.__ThisType__;
+  var comparer = thisType.__StructComparer__;
+  if (comparer === $jsilcore.FunctionNotInitialized)
+    comparer = thisType.__StructComparer__ = JSIL.$MakeStructComparer(thisType, thisType.__PublicInterface__);
+
+  return comparer(lhs, rhs);
+};
+
 JSIL.MakeClass("System.Object", "System.ValueType", true, [], function ($) {
   $.Method({Static: false, Public: true}, "Equals",
     new JSIL.MethodSignature(System.Boolean, [System.Object]),
     function (rhs) {
-      if (this === rhs)
-        return true;
-
-      if ((rhs === null) || (rhs === undefined))
-        return false;
-
-      var thisType = this.__ThisType__;
-      var comparer = thisType.__StructComparer__;
-      if (comparer === $jsilcore.FunctionNotInitialized)
-        comparer = thisType.__StructComparer__ = JSIL.$MakeStructComparer(thisType, thisType.__PublicInterface__);
-
-      return comparer(this, rhs);
+      return JSIL.StructEquals(this, rhs);
     }
   );
 });

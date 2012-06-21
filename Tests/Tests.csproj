@@ -173,6 +173,7 @@
     <None Include="SimpleTestCases\IntegerRanges.cs" />
     <None Include="TestCases\HashSetCount.cs" />
     <None Include="SpecialTestCases\OverloadedGenericMethodSignatures2.cs" />
+    <None Include="SpecialTestCases\CustomObjectMethods.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

@@ -603,6 +603,25 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void CustomObjectMethods () {
+            var output = "";
+
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\CustomObjectMethods.cs",
+                output, output
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("JSIL.ObjectEquals("), "Base Object.Equals was used");
+                Assert.IsFalse(generatedJs.Contains("System.ValueType.$Cast("), "Cast to struct was generated");
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
         public void NoUnnecessaryCasts () {
             var testNames = new string[] {
                 @"FailingTestCases\ArrayToString.cs",
