@@ -280,7 +280,12 @@
         if ((gl2d.options.force || context === "webgl-2d") && !(canvas.width === 0 || canvas.height === 0)) {
           if (gl2d.gl) { return gl2d.gl; }
 
-          var gl = gl2d.gl = gl2d.canvas.$getContext("experimental-webgl");
+          var contextParameters = {
+            antialias: false,
+            premultipliedAlpha: true
+          };
+
+          var gl = gl2d.gl = gl2d.canvas.$getContext("experimental-webgl", contextParameters);
 
           if ((typeof (gl) === "undefined") || (gl === null) || initFailure) {
             return gl2d.canvas.$getContext("2d");
@@ -311,16 +316,21 @@
             // Premultiplied
             gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
+            // Use premultiplied textures
+            gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, gl.ONE);
+
             gl2d.maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
           } catch (exc) {
-            console.warn("Failed to initialize webgl-2d context. Library disabled. ", exc);
+            if (console)
+              console.warn("Failed to initialize webgl-2d context. Library disabled. ", exc);
+            
             initFailure = true;
             return null;
           }
 
           return gl;
         } else {
-          return gl2d.canvas.$getContext(context);
+          return gl2d.canvas.$getContext(context, contextParameters);
         }
       };
     }(this));
@@ -803,7 +813,8 @@
         shadowOffsetY:            drawState.shadowOffsetY,
         textAlign:                drawState.textAlign,
         font:                     drawState.font,
-        textBaseline:             drawState.textBaseline
+        textBaseline:             drawState.textBaseline,
+        imageSmoothingEnabled:    drawState.imageSmoothingEnabled,
       };
 
       drawStateStack.push(bakedDrawState);
@@ -949,6 +960,38 @@
         drawState.globalAlpha = value;
       }
     });
+
+    drawState.imageSmoothingEnabled = true;
+
+    var imageSmoothingDecl = {
+      get: function () {
+        return drawState.imageSmoothingEnabled;
+      },
+      set: function (value) {
+        drawState.imageSmoothingEnabled = value;
+      },
+      configurable: true,
+      enumerable: true
+    };
+
+    Object.defineProperty(gl, "webkitImageSmoothingEnabled", imageSmoothingDecl);
+    Object.defineProperty(gl, "mozImageSmoothingEnabled", imageSmoothingDecl);
+
+    var updateSmoothingMode = function (texture) {
+      if (drawState.imageSmoothingEnabled) {
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+        // Enable Mip mapping on power-of-2 textures
+        if (texture.isPOT) {
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        } else {
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        }
+      } else {
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      }
+    }
 
     // This attribute will need to set the gl.blendFunc mode
     drawState.globalCompositeOperation = "source-over";
@@ -1267,6 +1310,9 @@
     function Texture(image) {
       this.obj   = gl.createTexture();
       this.index = textureCache.push(this);
+      this.width = image.width;
+      this.height = image.height;
+      this.isPOT = isPOT(image.width) && isPOT(image.height);
 
       imageCache.push(image);
 
@@ -1291,53 +1337,17 @@
     Texture.prototype.updateCachedImage = function (image) {
       gl.bindTexture(gl.TEXTURE_2D, this.obj);
 
-      // Premultiply the image pixels
-      var imagePixels;
-      if (image.tagName.toLowerCase() === "canvas") {
-        imagePixels = image.getContext("2d").getImageData(0, 0, image.width, image.height);
-      } else {
-        tempCanvas.width = image.width;
-        tempCanvas.height = image.height;
-        tempCtx.clearRect(0, 0, image.width, image.height);
-        tempCtx.globalCompositeOperation = "copy";
-        tempCtx.drawImage(image, 0, 0);
-
-        imagePixels = tempCtx.getImageData(0, 0, image.width, image.height);
-        tempCanvas.width = tempCanvas.height = 1;
-      }
-      var imagePixelData = imagePixels.data;
-
-      // WebGL and canvas don't like to touch each other because the spec is dumb
-      var l = imagePixelData.length;
-      var premultipliedData = new Uint8Array(l);
-
-      for (var i = 0; i < l; i += 4) {
-        var a = imagePixelData[i + 3];
-        premultipliedData[i + 3] = a;
-
-        a /= 255;
-        premultipliedData[i + 0] = a * imagePixelData[i + 0];
-        premultipliedData[i + 1] = a * imagePixelData[i + 1];
-        premultipliedData[i + 2] = a * imagePixelData[i + 2];
-      }
-
       gl.texImage2D(
-        gl.TEXTURE_2D, 0, gl.RGBA,
-        image.width, image.height, 0, gl.RGBA, 
-        gl.UNSIGNED_BYTE, premultipliedData
+        gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image
       );
 
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-      // Enable Mip mapping on power-of-2 textures
-      if (isPOT(image.width) && isPOT(image.height)) {
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      if (this.isPOT)
         gl.generateMipmap(gl.TEXTURE_2D);
-      } else {
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      }
+
+      updateSmoothingMode(this);
 
       // Unbind texture
       gl.bindTexture(gl.TEXTURE_2D, null);
@@ -1407,6 +1417,7 @@
 
       gl.uniform1i(shaderProgram.uSampler, 0);
 
+      updateSmoothingMode(texture);
       updateBlendMode();
 
       if (arguments.length === 13) {

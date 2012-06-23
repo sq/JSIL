@@ -24,6 +24,19 @@ namespace JSIL.Transforms {
             TypeSystem = typeSystem;
         }
 
+        public void VisitNode (JSPublicInterfaceOfExpression poe) {
+            VisitChildren(poe);
+
+            // Replace foo.__Type__.__PublicInterface__ with foo
+            var innerTypeOf = poe.Inner as JSTypeOfExpression;
+            if (innerTypeOf != null) {
+                var replacement = new JSType(innerTypeOf.Type);
+
+                ParentNode.ReplaceChild(poe, replacement);
+                VisitReplacement(replacement);
+            }
+        }
+
         public void VisitNode (JSInvocationExpression ie) {
             var type = ie.JSType;
             var method = ie.JSMethod;
@@ -42,6 +55,7 @@ namespace JSIL.Transforms {
 
                             return;
                         }
+
                         case "GetType": {
                             JSNode replacement;
 
@@ -59,6 +73,20 @@ namespace JSIL.Transforms {
                         }
                     }
                 } else if (
+                    (type != null) &&
+                    (type.Type.FullName == "System.ValueType")
+                ) {
+                    switch (method.Method.Member.Name) {
+                        case "Equals": {
+                            var replacement = JSIL.StructEquals(ie.ThisReference, ie.Arguments.First());
+                            ParentNode.ReplaceChild(ie, replacement);
+                            VisitReplacement(replacement);
+
+                            return;
+                        }
+                    }
+                } else if (
+                    (type != null) &&
                     IsNullable(type.Type)
                 ) {
                     var t = (type.Type as GenericInstanceType).GenericArguments[0];

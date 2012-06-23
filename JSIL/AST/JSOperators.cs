@@ -54,11 +54,12 @@ namespace JSIL.Ast {
         public static readonly JSComparisonOperator EqualLoose = new JSComparisonOperator("==");
         public static readonly JSComparisonOperator NotEqualLoose = new JSComparisonOperator("!=");
 
-        public static readonly JSBinaryOperator Add = new JSBinaryOperator("+");
-        public static readonly JSBinaryOperator Subtract = new JSBinaryOperator("-");
-        public static readonly JSBinaryOperator Multiply = new JSBinaryOperator("*");
-        public static readonly JSBinaryOperator Divide = new JSBinaryOperator("/");
-        public static readonly JSBinaryOperator Remainder = new JSBinaryOperator("%");
+        public static readonly JSArithmeticOperator Add = new JSArithmeticOperator("+");
+        public static readonly JSArithmeticOperator Subtract = new JSArithmeticOperator("-");
+        public static readonly JSArithmeticOperator Multiply = new JSArithmeticOperator("*");
+        public static readonly JSArithmeticOperator Divide = new JSArithmeticOperator("/");
+        public static readonly JSArithmeticOperator Remainder = new JSArithmeticOperator("%");
+
         public static readonly JSBinaryOperator ShiftLeft = new JSBinaryOperator("<<");
         public static readonly JSBinaryOperator ShiftRight = new JSBinaryOperator(">>");
         public static readonly JSBinaryOperator ShiftRightUnsigned = new JSBinaryOperator(">>>");
@@ -107,6 +108,12 @@ namespace JSIL.Ast {
 
         public override string ToString () {
             return String.Format("{0}", Token);
+        }
+    }
+
+    public class JSArithmeticOperator : JSBinaryOperator {
+        public JSArithmeticOperator (string token)
+            : base(token) {
         }
     }
 

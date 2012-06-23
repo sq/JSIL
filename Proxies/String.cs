@@ -111,12 +111,33 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
+        // FIXME: Are ECMAScript strings always normalized?
+        [JSReplacement("$this.toLowerCase()")]
+        [JSIsPure]
+        public string ToLowerInvariant() {
+            throw new InvalidOperationException();
+        }
+
         [JSReplacement("$this.toUpperCase()")]
         [JSIsPure]
         public string ToUpper () {
             throw new InvalidOperationException();
         }
 
+        // FIXME: Are ECMAScript strings always normalized?
+        [JSReplacement("$this.toUpperCase()")]
+        [JSIsPure]
+        public string ToUpperInvariant() {
+            throw new InvalidOperationException();
+        }
+
+        // FIXME: Are ECMAScript strings always normalized?
+        [JSReplacement("$this")]
+        [JSIsPure]
+        public string Normalize () {
+            throw new InvalidOperationException();
+        }
+      
         [JSReplacement("System.String.StartsWith($this, $text)")]
         [JSIsPure]
         public bool StartsWith (string text) {
@@ -231,6 +252,35 @@ namespace JSIL.Proxies {
         [JSReplacement("JSIL.StringToCharArray($this)")]
         [JSIsPure]
         public char[] ToCharArray () {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("($this.indexOf($p) != -1)")]
+        public bool Contains (string p) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.String.PadLeft($this, $length, ' ')")]
+        [JSIsPure]
+        public string PadLeft (int length) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.String.PadRight($this, $length, ' ')")]
+        [JSIsPure]
+        public string PadRight (int length) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.String.PadLeft($this, $length, $ch)")]
+        [JSIsPure]
+        public string PadLeft (int length, char ch) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.String.PadRight($this, $length, $ch)")]
+        [JSIsPure]
+        public string PadRight (int length, char ch) {
             throw new InvalidOperationException();
         }
     }

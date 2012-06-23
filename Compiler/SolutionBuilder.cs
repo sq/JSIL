@@ -12,16 +12,44 @@ using Microsoft.Build.Logging;
 
 namespace JSIL.Compiler {
     public static class SolutionBuilder {
+        public class BuiltItem {
+            public readonly string TargetName;
+            public readonly string OutputPath;
+            public readonly Dictionary<string, string> Metadata = new Dictionary<string, string>();
+
+            internal BuiltItem (string targetName, ITaskItem item) {
+                TargetName = targetName;
+                OutputPath = item.ItemSpec;
+
+                foreach (var name in item.MetadataNames)
+                    Metadata.Add((string)name, item.GetMetadata((string)name));
+            }
+
+            public override string ToString() {
+                return String.Format("{0}: {1} ({2} metadata)", TargetName, OutputPath, Metadata.Count);
+            }
+        }
+
         public class SolutionBuildResult {
             public readonly string[] OutputFiles;
             public readonly BuiltProject[] ProjectsBuilt;
             public readonly string[] TargetFilesUsed;
+            public readonly BuiltItem[] AllItemsBuilt;
 
-            public SolutionBuildResult (string[] outputFiles, BuiltProject[] projectsBuilt, string[] targetFiles) {
+            public SolutionBuildResult (string[] outputFiles, BuiltProject[] projectsBuilt, string[] targetFiles, BuiltItem[] allItemsBuilt) {
                 OutputFiles = outputFiles;
                 ProjectsBuilt = projectsBuilt;
                 TargetFilesUsed = targetFiles;
+                AllItemsBuilt = allItemsBuilt;
             }
+        }
+
+        private static object GetField (object target, string fieldName, BindingFlags fieldFlags) {
+            return target.GetType().GetField(fieldName, fieldFlags).GetValue(target);        
+        }
+
+        private static void SetField (object target, string fieldName, BindingFlags fieldFlags, object value) {
+            target.GetType().GetField(fieldName, fieldFlags).SetValue(target, value);            
         }
 
         // The only way to actually specify a solution configuration/platform is by messing around with internal/private types!
@@ -46,10 +74,10 @@ namespace JSIL.Compiler {
                 BindingFlags.Public;
 
             Func<object, string, object> getField = (target, fieldName) =>
-                target.GetType().GetField(fieldName, fieldFlags).GetValue(target);
+                GetField(target, fieldName, fieldFlags);
 
             Action<object, string, object> setField = (target, fieldName, value) =>
-                target.GetType().GetField(fieldName, fieldFlags).SetValue(target, value);
+                SetField(target, fieldName, fieldFlags, value);
 
             // Point the solution parser instance to the solution file.
             setField(solutionParser, "solutionFile", solutionFile);
@@ -96,7 +124,11 @@ namespace JSIL.Compiler {
             return (ProjectInstance[])result;
         }
 
-        public static SolutionBuildResult Build (string solutionFile, string buildConfiguration = null, string buildPlatform = null, string buildTarget = "Build", string logVerbosity = null) {
+        public static SolutionBuildResult Build (
+            string solutionFile, string buildConfiguration = null, 
+            string buildPlatform = null, string buildTarget = "Build", 
+            string logVerbosity = null
+        ) {
             string configString = String.Format("{0}|{1}", buildConfiguration ?? "<default>", buildPlatform ?? "<default>");
 
             if ((buildConfiguration ?? buildPlatform) != null)
@@ -137,16 +169,19 @@ namespace JSIL.Compiler {
                 Console.Error.WriteLine("// WARNING: Your solution file contains project dependencies. MSBuild ignores these, so your build may fail. If it does, try building it in Visual Studio first to resolve the dependencies.");
             }
 
+            var allItemsBuilt = new List<BuiltItem>();
             var resultFiles = new HashSet<string>();
-            foreach (var project in projects) {
 
+            foreach (var project in projects) {
                 // Save out the generated msbuild project for each solution, to aid debugging.
                 try {
                     project.ToProjectRootElement().Save(project.FullPath, Encoding.UTF8);
                 } catch (Exception exc) {
                     Console.Error.WriteLine("// Failed to save generated project '{0}': {1}", Path.GetFileName(project.FullPath), exc.Message);
                 }
+            }
 
+            foreach (var project in projects) {
                 Console.Error.WriteLine("// Building project '{0}'...", project.FullPath);
 
                 var request = new BuildRequestData(
@@ -162,6 +197,8 @@ namespace JSIL.Compiler {
                     continue;
                 }
 
+                allItemsBuilt.AddRange(ExtractChildProjectResults(manager));
+
                 foreach (var kvp in result.ResultsByTarget) {
                     var targetResult = kvp.Value;
 
@@ -170,20 +207,66 @@ namespace JSIL.Compiler {
                         if (targetResult.Exception != null)
                             errorMessage = targetResult.Exception.Message;
                         Console.Error.WriteLine("// Compilation failed for target '{0}': {1}", kvp.Key, errorMessage);
-                    } else if (targetResult.Items.Length > 0) {
-                        Console.Error.WriteLine("// Target '{0}' produced {1} output(s).", kvp.Key, targetResult.Items.Length);
-
-                        foreach (var filename in targetResult.Items)
-                            resultFiles.Add(filename.ItemSpec);
                     }
+                }
+            }
+
+            // ResultsByTarget doesn't reliably produce all the output executables, so we must
+            //  extract them by hand.
+            foreach (var builtItem in allItemsBuilt) {
+                if (builtItem.TargetName != "Build")
+                    continue;
+
+                if (!File.Exists(builtItem.OutputPath)) {
+                    Console.Error.WriteLine("// Ignoring nonexistent build output '" + Path.GetFileName(builtItem.OutputPath) + "'.");
+                    continue;
+                }
+
+                var extension = Path.GetExtension(builtItem.OutputPath).ToLowerInvariant();
+
+                switch (extension) {
+                    case ".exe":
+                    case ".dll":
+                        resultFiles.Add(builtItem.OutputPath);
+                        break;
+
+                    default:
+                        Console.Error.WriteLine("// Ignoring build output '" + Path.GetFileName(builtItem.OutputPath) + "' due to unknown file type.");
+                        break;
                 }
             }
 
             return new SolutionBuildResult(
                 resultFiles.ToArray(),
                 eventRecorder.ProjectsById.Values.ToArray(),
-                eventRecorder.TargetFiles.ToArray()
+                eventRecorder.TargetFiles.ToArray(),
+                allItemsBuilt.ToArray()
             );
+        }
+        
+        // Enumerate all the projects the BuildManager built while building the projects we asked it to build.
+        // This will allow us to identify any secondary outputs (like XNB files).
+        private static BuiltItem[] ExtractChildProjectResults (BuildManager manager) {
+            var resultsCache = GetField(manager, "resultsCache", BindingFlags.Instance | BindingFlags.NonPublic);
+            var tResultsCache = resultsCache.GetType();
+
+            var pResultsDictionary = tResultsCache.GetProperty("ResultsDictionary", BindingFlags.NonPublic | BindingFlags.Instance);
+            var oResultsDictionary = pResultsDictionary.GetValue(resultsCache, null);
+
+            var resultsDictionary = (Dictionary<int, BuildResult>) oResultsDictionary;
+
+            var result = new List<BuiltItem>();
+
+            foreach (var projectResult in resultsDictionary.Values) {
+                foreach (var kvp in projectResult.ResultsByTarget) {
+                    result.AddRange(
+                        from taskItem in kvp.Value.Items
+                        select new BuiltItem(kvp.Key, taskItem)
+                    );
+                }
+            }
+
+            return result.ToArray();
         }
     }
 

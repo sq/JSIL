@@ -59,37 +59,3 @@ a, a:visited {
 	left: 1284px;
 	top: 50px;
 }
-#rendertargets {
-	position: absolute;
-	top: 720px;
-	height: 240px;
-	width: 1024px;
-	overflow: scroll;
-}
-#rendertargets canvas {
-	border-style: solid;
-	border-color: black;
-	border-width: 1px;
-}
-#textures {
-	position: absolute;
-	top: 960px;
-	height: 240px;
-	width: 1024px;
-	overflow: scroll;
-}
-#textures canvas {
-	border-style: solid;
-	border-color: black;
-	border-width: 1px;
-}
-.boxCaption {
-	position: absolute;
-	font-size: 10pt;
-	font-family: Consolas, Courier New, Courier;
-	z-index: -999;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-}

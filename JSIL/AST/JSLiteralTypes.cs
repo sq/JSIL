@@ -71,6 +71,10 @@ namespace JSIL.Ast {
                 return base.Equals(obj);
             }
         }
+
+        public override string ToString () {
+            return String.Format("default({0})", Value.FullName);
+        }
     }
 
     public class JSNullLiteral : JSLiteralBase<object> {
@@ -289,9 +293,14 @@ namespace JSIL.Ast {
         }
 
         public override string ToString () {
+            string variablesText = "";
+
+            if (Variables != null)
+                variablesText = String.Join(", ", (from kvp in Variables select String.Format("{0}={1}", kvp.Key, kvp.Value)).ToArray());
+
             return String.Format(
                 "Verbatim {0} ({1})", OriginalMethod,
-                String.Join(", ", (from kvp in Variables select String.Format("{0}={1}", kvp.Key, kvp.Value)).ToArray())
+                variablesText
             );
         }
     }

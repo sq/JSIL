@@ -1,0 +1,21 @@
+{
+  "UseThreads": true,
+  "OutputDirectory": "%configpath%",
+  "Assemblies": {
+    "Proxies": [
+      "C:/Users/Kevin/Documents/Projects/EscapeGoat/bastille/Proxies/bin/Debug/Proxies.dll"
+    ],
+    "Ignored": [
+      "System.Data.*",
+      "System.Deployment",
+      "Proxies"
+    ]
+  },
+  "ProfileSettings": {
+    "OverwriteExistingContent": true,
+    "ContentOutputDirectory": "%configpath%/Content",
+    "UsePNGQuant": true,
+    "FileSettings": {
+    }
+  }
+}

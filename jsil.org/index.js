@@ -120,10 +120,11 @@ function onLoad () {
   carouselE.carousel({
     loop: true,
     direction: "horizontal",
-    dispItems: 1,
+    dispItems: 2,
     pagination: false,
     autoSlide: true,
-    autoSlideInterval: 5000    
+    autoSlideInterval: 6000,
+    animSpeed: 800
   });
   carouselE.fadeIn();
 }

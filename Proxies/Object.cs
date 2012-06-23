@@ -5,7 +5,7 @@ using JSIL.Proxy;
 namespace JSIL.Proxies {
     [JSProxy(
         typeof(Object),
-        memberPolicy: JSProxyMemberPolicy.ReplaceDeclared,
+        memberPolicy: JSProxyMemberPolicy.ReplaceNone,
         attributePolicy: JSProxyAttributePolicy.ReplaceDeclared
     )]
     public abstract class ObjectProxy {
@@ -23,7 +23,21 @@ namespace JSIL.Proxies {
         new abstract public string ToString ();
 
         [JSIsPure]
-        [JSReplacement("JSIL.ObjectEquals($this, $obj)")]
-        new abstract public bool Equals (object obj);
+        [JSChangeName("Object.Equals")]
+        [JSNeverReplace]
+        [JSRuntimeDispatch]
+        new public abstract bool Equals (object obj);
+
+        [JSIsPure]
+        [JSReplacement("JSIL.ObjectEquals($objA, $objB)")]
+        public static bool Equals (object objA, object objB) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        [JSReplacement("$objA === $objB")]
+        public static bool ReferenceEquals (object objA, object objB) {
+            throw new InvalidOperationException();
+        }
     }
 }

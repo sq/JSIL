@@ -215,6 +215,31 @@ namespace JSIL.Ast {
         public override TypeReference GetActualType (TypeSystem typeSystem) {
             return MethodTypes.Get(Reference, typeSystem);
         }
+
+        public override string ToString () {
+            return String.Format(
+                "<JSMethod {0}::{1}>",
+                Method.DeclaringType.Identifier,
+                Method.Name
+            );
+        }
+
+        public string GetNameForInstanceReference () {
+            // FIXME: Enable this so MultipleGenericInterfaces2.cs passes.
+            /*
+            // For methods that implement a method of a closed generic interface, we need to ensure we fully-qualify their name when necessary.
+            var declaringGit = Reference.DeclaringType as GenericInstanceType;
+            if ((declaringGit != null) && (declaringGit.ElementType.Resolve().IsInterface)) {
+                var parentTypeName = TypeUtil.GetLocalName(declaringGit.ElementType.Resolve());
+                parentTypeName = parentTypeName.Substring(0, parentTypeName.IndexOf("`"));
+
+                var genericArgsText = String.Join(",", from ga in declaringGit.GenericArguments select ga.FullName);
+
+                return String.Format("{0}<{1}>.{2}", parentTypeName, genericArgsText, Reference.Name);
+            } else
+             */
+                return Method.GetName(true);
+        }
     }
 
     public class JSFakeMethod : JSIdentifier {
@@ -424,6 +449,12 @@ namespace JSIL.Ast {
             }
         }
 
+        public override IEnumerable<JSNode> Children {
+            get {
+                yield break;
+            }
+        }
+
         public override JSParameter GetParameter () {
             return this;
         }
@@ -465,6 +496,12 @@ namespace JSIL.Ast {
         public override bool IsConstant {
             get {
                 return true;
+            }
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                yield break;
             }
         }
 
@@ -575,6 +612,12 @@ namespace JSIL.Ast {
 
         public override JSVariable Reference () {
             return Variables[Identifier].Reference();
+        }
+
+        public override IEnumerable<JSNode> Children {
+            get {
+                yield break;
+            }
         }
 
         public override bool Equals (object obj) {

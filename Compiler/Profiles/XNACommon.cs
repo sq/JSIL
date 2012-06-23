@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Web.Script.Serialization;
 using JSIL.Compiler;
@@ -329,122 +330,246 @@ public static class Common {
         }
     }
 
-    public static CompressResult? CompressImage (string imageName, string sourceFolder, string outputFolder, Dictionary<string, object> settings, CompressResult? oldResult) {
-        const int CompressVersion = 2;
+    private static System.Drawing.Bitmap LoadBitmap (string filename, out bool hasAlphaChannel, out System.Drawing.Color? existingColorKeyColor) {
+        existingColorKeyColor = null;
+
+        switch (Path.GetExtension(filename).ToLower()) {
+            case ".bmp":
+                var hImage = LoadImage(IntPtr.Zero, filename, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+                var texture = System.Drawing.Image.FromHbitmap(hImage);
+                try {
+                    switch (texture.PixelFormat) {
+                        case PixelFormat.Gdi:
+                        case PixelFormat.Extended:
+                        case PixelFormat.Canonical:
+                        case PixelFormat.Undefined:
+                        case PixelFormat.Format16bppRgb555:
+                        case PixelFormat.Format16bppRgb565:
+                        case PixelFormat.Format24bppRgb:
+                            hasAlphaChannel = false;
+                            return texture;
+
+                        case PixelFormat.Format32bppArgb:
+                        case PixelFormat.Format32bppPArgb:
+                        case PixelFormat.Format32bppRgb: {
+                            // Do an elaborate song and dance to extract the alpha channel from the PNG, because
+                            //  GDI+ is too utterly shitty to do that itself
+                                var dc = CreateCompatibleDC(IntPtr.Zero);
+
+                                var newImage = new System.Drawing.Bitmap(
+                                    texture.Width, texture.Height, PixelFormat.Format32bppArgb
+                                );
+                                var bits = newImage.LockBits(
+                                    new System.Drawing.Rectangle(0, 0, texture.Width, texture.Height),
+                                    ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb
+                                );
+
+                                var info = new BITMAPINFO {
+                                    biBitCount = 32,
+                                    biClrImportant = 0,
+                                    biClrUsed = 0,
+                                    biCompression = 0,
+                                    biHeight = -texture.Height,
+                                    biPlanes = 1,
+                                    biSizeImage = bits.Stride * bits.Height,
+                                    biWidth = bits.Width,
+                                };
+                                info.biSize = Marshal.SizeOf(info);
+
+                                var rv = GetDIBits(dc, hImage, 0, (uint)texture.Height, bits.Scan0, ref info, 0);
+
+                                newImage.UnlockBits(bits);
+
+                                DeleteObject(dc);
+
+                                texture.Dispose();
+                                hasAlphaChannel = true;
+                                return newImage;
+                            }
+
+                        default:
+                            Console.Error.WriteLine("// Unsupported bitmap format: '{0}' {1}", Path.GetFileNameWithoutExtension(filename), texture.PixelFormat);
+                            texture.Dispose();
+                            hasAlphaChannel = false;
+                            return null;
+                    }
+                } finally {
+                    DeleteObject(hImage);
+                }
+
+            default: {
+                var result = (System.Drawing.Bitmap)System.Drawing.Image.FromFile(filename, true);
+
+                switch (result.PixelFormat) {
+                    case PixelFormat.Format8bppIndexed:
+                    case PixelFormat.Format4bppIndexed:
+                    case PixelFormat.Format1bppIndexed:
+                    case PixelFormat.Indexed:
+                        var palette = result.Palette;
+
+                        for (var i = 0; i < palette.Entries.Length; i++) {
+                            if (palette.Entries[i].A < 255) {
+                                existingColorKeyColor = palette.Entries[i];
+                                break;
+                            }
+                        }
+
+                        hasAlphaChannel = (existingColorKeyColor.HasValue);
+                        break;
+
+                    case PixelFormat.Format32bppArgb:
+                    case PixelFormat.Format32bppPArgb:
+                        hasAlphaChannel = true;
+                        break;
+
+                    default:
+                        hasAlphaChannel = false;
+                        break;
+                }
+
+                return result;
+            }
+        }
+    }
+
+    public static unsafe void MakeChannelImage (System.Drawing.Bitmap bitmap, int colorChannel) {
+        var lockRect = new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height);
+        var lockedBits = bitmap.LockBits(lockRect, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+
+        for (int y = 0; y < bitmap.Height; y++) {
+            var scanStart = lockedBits.Scan0 + (lockedBits.Stride * y);
+
+            for (int x = 0; x < bitmap.Width; x++) {
+                var ptr = (Color *)(scanStart + (x * 4));
+                var current = *ptr;
+
+                switch (colorChannel) {
+                    case 0:
+                        *ptr = new Color(0, 0, current.B, current.A);
+                        break;
+                    case 1:
+                        *ptr = new Color(0, current.G, 0, current.A);
+                        break;
+                    case 2:
+                        *ptr = new Color(current.R, 0, 0, current.A);
+                        break;
+                    case 3:
+                        *ptr = new Color(0, 0, 0, current.A);
+                        break;
+                }
+            }
+        }
+
+        bitmap.UnlockBits(lockedBits);
+    }
+
+    public static void CompressImage (
+        string imageName, string sourceFolder, 
+        string outputFolder, Dictionary<string, object> settings, 
+        Dictionary<string, ProjectMetadata> itemMetadata,
+        CompressResult? oldResult, Action<CompressResult?> writeResult,
+        int? colorChannel = null
+    ) {
+        const int CompressVersion = 5;
 
         EnsureDirectoryExists(outputFolder);
 
         var sourcePath = Path.Combine(sourceFolder, imageName);
         FileInfo sourceInfo, resultInfo;
 
-        if (!NeedsRebuild(oldResult, CompressVersion, sourcePath, out sourceInfo, out resultInfo))
-            return oldResult;
-
         bool forceJpeg = GetFileSettings(settings, imageName).Contains("forcejpeg");
+        bool generateChannels = GetFileSettings(settings, imageName).Contains("generatechannels");
+
+        if (!NeedsRebuild(oldResult, CompressVersion, sourcePath, out sourceInfo, out resultInfo)) {
+            writeResult(oldResult);
+            return;
+        }
+
+        if (generateChannels && !colorChannel.HasValue) {
+            for (int i = 0; i < 4; i++) {
+                CompressImage(
+                    imageName, sourceFolder, outputFolder,
+                    settings, itemMetadata, null,
+                    writeResult, i
+                );
+            }
+        }
 
         var outputPath = Path.Combine(outputFolder, Path.GetFileNameWithoutExtension(imageName));
         var justCopy = true;
 
-        Action<System.Drawing.Bitmap> saveJpeg = (bitmap) => {
+        Action<System.Drawing.Bitmap, String> saveJpeg = (bitmap, path) => {
             var encoder = GetEncoder(ImageFormat.Jpeg);
             var encoderParameters = new System.Drawing.Imaging.EncoderParameters(1);
             encoderParameters.Param[0] = new EncoderParameter(
                 System.Drawing.Imaging.Encoder.Quality,
                 Convert.ToInt64(settings["JPEGQuality"])
             );
-            bitmap.Save(outputPath, encoder, encoderParameters);
+            bitmap.Save(path, encoder, encoderParameters);
         };
 
-        if (forceJpeg) {
-            justCopy = false;
-            outputPath += ".jpg";
+        bool colorKey = true;
+        var colorKeyColor = System.Drawing.Color.FromArgb(255, 255, 0, 255);
 
-            using (var img = (System.Drawing.Bitmap)System.Drawing.Image.FromFile(sourcePath))
-                saveJpeg(img);
-        } else {
-            switch (Path.GetExtension(imageName).ToLower()) {
-                case ".jpg":
-                case ".jpeg":
-                    outputPath += ".jpg";
-                    break;
-
-                case ".bmp":
-                    justCopy = false;
-
-                    var hImage = LoadImage(IntPtr.Zero, sourcePath, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-                    try {
-                        using (var texture = (System.Drawing.Bitmap)System.Drawing.Image.FromHbitmap(hImage)) {
-                            switch (texture.PixelFormat) {
-                                case PixelFormat.Gdi:
-                                case PixelFormat.Extended:
-                                case PixelFormat.Canonical:
-                                case PixelFormat.Undefined:
-                                case PixelFormat.Format16bppRgb555:
-                                case PixelFormat.Format16bppRgb565:
-                                case PixelFormat.Format24bppRgb:
-                                    outputPath += ".jpg";
-                                    saveJpeg(texture);
-                                    break;
-
-                                case PixelFormat.Format32bppArgb:
-                                case PixelFormat.Format32bppPArgb:
-                                case PixelFormat.Format32bppRgb: {
-                                    // Do an elaborate song and dance to extract the alpha channel from the PNG, because
-                                    //  GDI+ is too utterly shitty to do that itself
-                                        var dc = CreateCompatibleDC(IntPtr.Zero);
-
-                                        var newImage = new System.Drawing.Bitmap(
-                                            texture.Width, texture.Height, PixelFormat.Format32bppArgb
-                                        );
-                                        var bits = newImage.LockBits(
-                                            new System.Drawing.Rectangle(0, 0, texture.Width, texture.Height),
-                                            ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb
-                                        );
-
-                                        var info = new BITMAPINFO {
-                                            biBitCount = 32,
-                                            biClrImportant = 0,
-                                            biClrUsed = 0,
-                                            biCompression = 0,
-                                            biHeight = -texture.Height,
-                                            biPlanes = 1,
-                                            biSizeImage = bits.Stride * bits.Height,
-                                            biWidth = bits.Width,
-                                        };
-                                        info.biSize = Marshal.SizeOf(info);
-
-                                        var rv = GetDIBits(dc, hImage, 0, (uint)texture.Height, bits.Scan0, ref info, 0);
-
-                                        newImage.UnlockBits(bits);
-
-                                        DeleteObject(dc);
-
-                                        outputPath += ".png";
-                                        newImage.Save(outputPath, ImageFormat.Png);
-                                        newImage.Dispose();
-
-                                        break;
-                                    }
-
-                                default:
-                                    Console.Error.WriteLine("// Unsupported bitmap format: '{0}' {1}", Path.GetFileNameWithoutExtension(imageName), texture.PixelFormat);
-                                    return null;
-                            }
-                        }
-                    } finally {
-                        DeleteObject(hImage);
-                    }
-                    break;
-
-                case ".png":
-                default:
-                    outputPath += Path.GetExtension(imageName);
-                    break;
-            }
+        if (itemMetadata.ContainsKey("ProcessorParameters_ColorKeyEnabled")) {
+            colorKey = Convert.ToBoolean(itemMetadata["ProcessorParameters_ColorKeyEnabled"].EvaluatedValue);
         }
 
-        if (justCopy)
+        if (itemMetadata.ContainsKey("ProcessorParameters_ColorKeyColor")) {
+            var parts = itemMetadata["ProcessorParameters_ColorKeyColor"].EvaluatedValue.Split(new[] { "," }, StringSplitOptions.RemoveEmptyEntries);
+            colorKeyColor = System.Drawing.Color.FromArgb(
+                Convert.ToInt32(parts[3]),
+                Convert.ToInt32(parts[0]),
+                Convert.ToInt32(parts[1]),
+                Convert.ToInt32(parts[2])
+            );
+        }
+
+        justCopy &= !colorKey;
+
+        justCopy &= !colorChannel.HasValue;
+
+        if (forceJpeg) {
+            outputPath += ".jpg";
+
+            bool temp;
+            System.Drawing.Color? temp2;
+            using (var img = LoadBitmap(sourcePath, out temp, out temp2))
+                saveJpeg(img, outputPath);
+        } else if (justCopy) {
+            outputPath += Path.GetExtension(sourcePath);
+
             File.Copy(sourcePath, outputPath, true);
+        } else {
+            bool hasAlphaChannel;
+            System.Drawing.Color? existingColorKey;
+
+            using (var img = LoadBitmap(sourcePath, out hasAlphaChannel, out existingColorKey)) {
+                if (colorChannel.HasValue) {
+                    var channelNames = new string[] { "r", "g", "b", "a" };
+                    outputPath += "_" + channelNames[colorChannel.Value];
+                }
+
+                if (hasAlphaChannel || colorKey || existingColorKey.HasValue)
+                    outputPath += ".png";
+                else
+                    outputPath += ".jpg";
+
+                if (existingColorKey.HasValue)
+                    img.MakeTransparent(existingColorKey.Value);
+
+                if (colorKey)
+                    img.MakeTransparent(colorKeyColor);
+
+                if (colorChannel.HasValue)
+                    MakeChannelImage(img, colorChannel.Value);
+
+                if (hasAlphaChannel || colorKey || existingColorKey.HasValue)
+                    img.Save(outputPath, ImageFormat.Png);
+                else
+                    saveJpeg(img, outputPath);
+            }
+        }
 
         bool usePNGQuant = Convert.ToBoolean(settings["UsePNGQuant"]);
         var pngQuantParameters = String.Format(
@@ -467,22 +592,30 @@ public static class Common {
             byte[] result;
             string stderr;
 
-            RunProcess(
+            var exitCode = RunProcess(
                 pngQuantPath, pngQuantParameters,
                 File.ReadAllBytes(outputPath),
                 out stderr, out result
             );
 
-            if (!String.IsNullOrWhiteSpace(stderr))
-                Console.Error.WriteLine("// Error output from PNGQuant: {0}", stderr);
+            var outputLength = new FileInfo(outputPath).Length;
 
-            File.WriteAllBytes(outputPath, result);
+            if (!String.IsNullOrWhiteSpace(stderr) || (outputLength <= 0) || (exitCode != 0)) {
+                Console.Error.WriteLine("// PNGquant failed with error output: {0}", stderr);
+                Console.Error.WriteLine("// Using uncompressed PNG.");
+            } else {
+                File.WriteAllBytes(outputPath, result);
+            }
         }
 
-        return MakeCompressResult(CompressVersion, null, outputPath, sourcePath, sourceInfo);
+        string key = null;
+        if (colorChannel.HasValue)
+            key = colorChannel.Value.ToString();
+
+        writeResult(MakeCompressResult(CompressVersion, key, outputPath, sourcePath, sourceInfo));
     }
 
-    private static void RunProcess (string filename, string parameters, byte[] stdin, out string stderr, out byte[] stdout) {
+    private static int RunProcess (string filename, string parameters, byte[] stdin, out string stderr, out byte[] stdout) {
         var psi = new ProcessStartInfo(filename, parameters);
 
         psi.WorkingDirectory = Path.GetDirectoryName(filename);
@@ -523,7 +656,11 @@ public static class Common {
             process.WaitForExit();
             stderr = temp[0];
 
+            var exitCode = process.ExitCode;
+
             process.Close();
+
+            return exitCode;
         }
     }
 
@@ -554,6 +691,7 @@ public static class Common {
         result.ProfileSettings.SetDefault("PNGQuantOptions", "");
 
         result.ProfileSettings.SetDefault("FileSettings", new Dictionary<string, object>());
+        result.ProfileSettings.SetDefault("FileSettingsRegexes", null);
 
         result.ProfileSettings.SetDefault("ForceCopyXNBImporters", new string[0]);
         result.ProfileSettings.SetDefault("ForceCopyXNBProcessors", new string[0]);
@@ -562,10 +700,37 @@ public static class Common {
     public static HashSet<string> GetFileSettings (Dictionary<string, object> profileSettings, string fileName) {
         var fileSettings = profileSettings["FileSettings"] as Dictionary<string, object>;
         object settings;
+
         if (fileSettings.TryGetValue(fileName, out settings))
             return new HashSet<string>(settings.ToString().ToLower().Split(' '));
-        else
-            return new HashSet<string>();
+
+        var fileSettingsRegexes = profileSettings["FileSettingsRegexes"] as Dictionary<string, Regex>;
+        if (fileSettingsRegexes == null) {
+            profileSettings["FileSettingsRegexes"] = fileSettingsRegexes = new Dictionary<string, Regex>();
+
+            var globChars = new char[] { '?', '*' };
+
+            foreach (var key in fileSettings.Keys) {
+                if (key.IndexOfAny(globChars) < 0)
+                    continue;
+
+                var regex = new Regex(
+                    Regex.Escape(key)
+                        .Replace("\\*", "(.*)")
+                        .Replace("\\?", "(.)"),
+                    RegexOptions.Compiled | RegexOptions.IgnoreCase
+                );
+
+                fileSettingsRegexes[key] = regex;
+            }
+        }
+
+        foreach (var kvp in fileSettingsRegexes) {
+            if (kvp.Value.IsMatch(fileName))
+                return new HashSet<string>(fileSettings[kvp.Key].ToString().ToLower().Split(' '));
+        }
+
+        return new HashSet<string>();
     }
 
     public static void ProcessContentProjects (Configuration configuration, SolutionBuilder.SolutionBuildResult buildResult, HashSet<string> contentProjectsProcessed) {
@@ -583,6 +748,11 @@ public static class Common {
         var contentProjects = buildResult.ProjectsBuilt.Where(
             (project) => project.File.EndsWith(".contentproj")
             ).ToArray();
+
+        var builtXNBs =
+            (from bi in buildResult.AllItemsBuilt
+             where bi.OutputPath.EndsWith(".xnb", StringComparison.OrdinalIgnoreCase)
+             select bi).Distinct().ToArray();
 
         var forceCopyImporters = new HashSet<string>(
             ((IEnumerable)configuration.ProfileSettings["ForceCopyXNBImporters"]).Cast<string>()
@@ -629,13 +799,32 @@ public static class Common {
                 (p) => p.Name
                 );
 
-            Project parentProject = null;
-            Dictionary<string, ProjectProperty> parentProjectProperties = null;
+            Project parentProject = null, rootProject = null;
+            Dictionary<string, ProjectProperty> parentProjectProperties = null, rootProjectProperties = null;
+
             if (builtContentProject.Parent != null) {
                 parentProject = projectCollection.LoadProject(builtContentProject.Parent.File);
                 parentProjectProperties = parentProject.Properties.ToDictionary(
                     (p) => p.Name
                     );
+            }
+
+            {
+                var parent = builtContentProject.Parent;
+
+                while (parent != null) {
+                    var nextParent = parent.Parent;
+                    if (nextParent != null) {
+                        parent = nextParent;
+                        continue;
+                    }
+
+                    rootProject = projectCollection.LoadProject(parent.File);
+                    rootProjectProperties = rootProject.Properties.ToDictionary(
+                        (p) => p.Name
+                        );
+                    break;
+                }                
             }
 
             var contentProjectDirectory = Path.GetDirectoryName(contentProjectPath);
@@ -682,7 +871,7 @@ public static class Common {
                     contentProjectDirectory,
                     item.EvaluatedInclude
                 );
-                var outputPath = Path.Combine(
+                var outputPath = FixupOutputDirectory(
                     localOutputDirectory,
                     item.EvaluatedInclude
                 );
@@ -696,7 +885,10 @@ public static class Common {
 
             Action<ProjectItem, string, string> copyRawXnb =
             (item, xnbPath, type) => {
-                var outputPath = Path.Combine(
+                if (xnbPath == null)
+                    throw new FileNotFoundException("Asset " + item.EvaluatedInclude + " was not built.");
+
+                var outputPath = FixupOutputDirectory(
                     localOutputDirectory,
                     item.EvaluatedInclude.Replace(
                         Path.GetExtension(item.EvaluatedInclude),
@@ -722,7 +914,7 @@ public static class Common {
                         continue;
                 }
 
-                var itemOutputDirectory = Path.Combine(
+                var itemOutputDirectory = FixupOutputDirectory(
                     localOutputDirectory,
                     Path.GetDirectoryName(item.EvaluatedInclude)
                 );
@@ -760,17 +952,19 @@ public static class Common {
                 else
                     existingJournalEntry = null;
 
-                if (parentProjectProperties != null) {
-                    xnbPath = Path.Combine(
-                        Path.Combine(
-                            Path.Combine(
-                                Path.GetDirectoryName(builtContentProject.Parent.File),
-                                parentProjectProperties["OutputPath"].EvaluatedValue
-                            ),
-                            "Content"
-                        ),
-                        item.EvaluatedInclude.Replace(Path.GetExtension(item.EvaluatedInclude), ".xnb")
-                    );
+                var evaluatedXnbPath = item.EvaluatedInclude.Replace(Path.GetExtension(item.EvaluatedInclude), ".xnb");
+                var matchingBuiltPaths = (from bi in builtXNBs where 
+                                              bi.OutputPath.Contains(":\\") && 
+                                              bi.OutputPath.EndsWith(evaluatedXnbPath)
+                                              select bi.Metadata["FullPath"]).Distinct().ToArray();
+
+                if (matchingBuiltPaths.Length == 0) {
+                } else if (matchingBuiltPaths.Length > 1) {
+                    throw new AmbiguousMatchException("Found multiple outputs for asset " + evaluatedXnbPath);
+                } else {
+                    xnbPath = matchingBuiltPaths[0];
+                    if (!File.Exists(xnbPath))
+                        throw new FileNotFoundException("Asset " + xnbPath + " not found.");
                 }
 
                 if (GetFileSettings(configuration.ProfileSettings, item.EvaluatedInclude).Contains("usexnb")) {
@@ -790,6 +984,7 @@ public static class Common {
                             );
 
                             continue;
+
                         case "FontTextureProcessor":
                         case "FontDescriptionProcessor":
                             copyRawXnb(item, xnbPath, "SpriteFont");
@@ -809,15 +1004,16 @@ public static class Common {
                                 continue;
                             }
 
-                            var result = Common.CompressImage(
+                            Common.CompressImage(
                                 item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
-                                configuration.ProfileSettings, existingJournalEntry
+                                configuration.ProfileSettings, metadata, existingJournalEntry,
+                                (result) => {
+                                    if (result.HasValue) {
+                                        journal.Add(result.Value);
+                                        logOutput("Image", result.Value.Filename, null);
+                                    }
+                                }
                             );
-
-                            if (result.HasValue) {
-                                journal.Add(result.Value);
-                                logOutput("Image", result.Value.Filename, null);
-                            }
 
                             continue;
 
@@ -874,7 +1070,7 @@ public static class Common {
         foreach (var result in results)
             formats.Add(Path.GetExtension(result.Filename));
 
-        var prefixName = Path.Combine(
+        var prefixName = FixupOutputDirectory(
             Path.GetDirectoryName(results.First().Filename),
             Path.GetFileNameWithoutExtension(results.First().Filename)
         );
@@ -926,6 +1122,30 @@ public static class Common {
         };
     }
 
+    public static string FixupOutputDirectory (string parentDirectory, string subDirectory) {
+        if (String.IsNullOrWhiteSpace(parentDirectory))
+            return subDirectory.Replace("..\\", "").Replace("\\..", "");
+
+        bool retried = false;
+
+    retry:
+        var outputDirectory = Path.Combine(parentDirectory, subDirectory);
+
+        var parentNormalized = Path.GetFullPath(parentDirectory).ToLowerInvariant();
+        var outputNormalized = Path.GetFullPath(outputDirectory).ToLowerInvariant();
+
+        if (outputNormalized.IndexOf(parentNormalized) != 0) {
+            if (retried)
+                throw new Exception("Invalid output directory: " + subDirectory);
+
+            subDirectory = subDirectory.Replace("..\\", "").Replace("\\..", "");
+            retried = true;
+            goto retry;
+        }
+
+        return outputDirectory;
+    }
+
     private static void ConvertXactProject (
         string projectFile, string sourceFolder, 
         string outputFolder, Dictionary<string, object> profileSettings, 
@@ -950,14 +1170,18 @@ public static class Common {
 
             foreach (var wave in waveBank.m_waves) {
                 var waveFolder = Path.GetDirectoryName(wave.m_fileName);
-                waveManifest[wave.m_name] = Path.Combine(
+
+                var waveOutputFolder = FixupOutputDirectory(outputFolder, waveFolder);
+
+                waveManifest[wave.m_name] = FixupOutputDirectory(
                     projectSubdir, 
-                    wave.m_fileName.Replace(Path.GetExtension(wave.m_fileName), "")
+                    wave.m_fileName
+                        .Replace(Path.GetExtension(wave.m_fileName), "")
                 );
 
                 journal.AddRange(CompressAudioGroup(
                     Path.Combine(projectSubdir, wave.m_fileName), sourceFolder, 
-                    Path.Combine(outputFolder, waveFolder), profileSettings, existingJournal, logOutput
+                    waveOutputFolder, profileSettings, existingJournal, logOutput
                 ));
             }
         }

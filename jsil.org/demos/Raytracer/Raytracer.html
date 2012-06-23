@@ -5,19 +5,19 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
   </head>
   <body onload="onLoad()">
-    <script src="../Libraries/JSIL.Core.js" type="text/javascript"></script>
-    <script src="../Libraries/JSIL.Bootstrap.js" type="text/javascript"></script>
-    <script src="SimpleRaytracer.exe.manifest.js" type="text/javascript"></script>
-    
+    <script type="text/javascript">
+      var jsilConfig = {
+        winForms: true,
+        manifests: [
+          "SimpleRaytracer.exe",
+        ]
+      };
+    </script>
+    <script src="../Libraries/JSIL.js" type="text/javascript"></script>  
+
     <a href="https://github.com/kevingadd/JSIL/blob/master/Examples/SimpleRaytracer.cs">Source C#</a> | <a href="SimpleRaytracer, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null.js">Compiled JS</a>
     <br><hr>
     <button id="loadButton">Load raytracer</button> <button id="runButton" style="display:none">Run raytracer again</button><br>
-    
-    <!-- workaround for chromium bug -->
-    <div id="scripts"></div>
-    <div id="images"></div>
-    <div id="sounds"></div>
-    <div id="fonts"></div>
     
     <canvas id="canvas"></canvas><br>
     <span id="speed" style="font-family: Consolas, Courier New, Courier"></span><br>
@@ -31,7 +31,6 @@
       var contentRoot = "Content/";
       
       var assetsToLoad = [
-        ["Library", "System.Drawing.js"],
       ];
             
       function runMain () {
@@ -41,13 +40,11 @@
         document.getElementById("runButton").style.display = "";
       };
     </script>
-    <script src="../Libraries/JSIL.Browser.js" type="text/javascript"></script>    
+
     <script type="text/javascript">
-    document.getElementById("runButton").addEventListener(
-      "click", runMain
-    );
-    
-    JSIL.Initialize();
+      document.getElementById("runButton").addEventListener(
+        "click", runMain
+      );
     </script>
   </body>
 </html>

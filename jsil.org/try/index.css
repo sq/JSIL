@@ -1,0 +1,292 @@
+body {
+	background-image: url(../images/jsil_256px.png);
+	background-repeat: no-repeat;
+	background-attachment: fixed;
+	background-position: bottom right;
+}
+
+div#content_box, div#content_box div, div#splitter, div#github_login_container, div#github_login, iframe#github_login_frame {
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	-ms-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+}
+
+img#logo {
+	margin-bottom: -0.1em;
+	margin-right: 0.1em;
+}
+
+b {
+	font-weight: bold;
+}
+
+#source_caption {
+	max-height: 1em;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+div.linkspam, div.linkspam div {
+}
+
+div.linkspam a.yc {
+	margin: 0px;
+	margin-right: 2px;
+	padding: 0px;
+}
+
+div.linkspam a.yc img {
+	margin: 0px;
+	padding: 0px;
+	vertical-align: baseline;
+}
+
+div.linkspam iframe {
+	position: relative;
+	margin-left: 2px;
+	margin-right: 4px;
+	top: 2px;
+}
+
+div.linkspam iframe.twitter-share-button {
+	position: relative;
+	margin-left: -8px;
+	margin-right: 0px;
+	top: 0px;
+}
+
+div#controls {
+	position: relative;
+	clear: left;
+	display: block;
+	width: 100%;
+	height: 32px;
+	margin-left: auto;
+	margin-right: auto;
+	text-align: center;
+}
+
+div#status {
+	position: relative;
+	display: block;
+	width: 100%;
+	min-height: 1em;
+	max-height: 16em;
+	margin-top: 4px;
+	margin-left: auto;
+	margin-right: auto;
+	padding-bottom: 4px;
+	font-size: 12pt;
+	overflow-y: auto;
+}
+
+div#code_box, div#columns {
+	position: relative;
+}
+
+div#column_spacer {
+	height: 420px;
+}
+
+div#left_column {
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	width: 80%;
+}
+div#splitter {
+	position: absolute;
+	left: 0;
+	top: 20px;
+	bottom: 10px;
+	background-color: rgba(0, 0, 0, 0.1);
+	border-radius: 4px;
+	width: 8px;
+}
+div#splitter:hover {
+	background-color: rgba(0, 0, 0, 0.5);
+}
+div#right_column {
+	position: absolute;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	width: 18%;
+}
+
+div#code_box {
+	width: 45em;
+	margin-right: 0em;
+}
+
+div#examples {
+	width: 11em;
+	margin-left: 0em;
+	margin-right: 0em;
+	max-height: 29em;
+	float: left;
+	clear: right;
+	overflow-y: auto;
+}
+
+button#compile {
+	position: absolute;
+	display: block;
+	left: 0;
+	top: 0;
+	width: 78%;
+	height: 32px;
+	margin-left: auto;
+	margin-right: auto;
+	font-size: 16pt;
+	z-index: 0;
+}
+
+button#save_gist {
+	position: absolute;
+	display: block;
+	right: 0;
+	top: 0;
+	width: 20%;
+	height: 32px;
+	margin-left: auto;
+	margin-right: auto;
+	font-size: 16pt;
+	z-index: 0;
+}
+
+img#throbber, img#examples_throbber, img#my_gists_throbber {
+	width: 32px;
+	height: 32px;
+	margin-left: auto;
+	margin-right: auto;
+	z-index: 999;
+}
+
+textarea {
+	margin: 0px;
+	padding: 0px;
+}
+
+div#examples_box, div#my_gists_box {
+	position: relative;
+}
+
+img#examples_throbber, img#my_gists_throbber {
+	display: block;
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 0;
+}
+
+ul#examples_list, ul#my_gists_list {
+	display: block;
+	list-style-type: circle;
+	list-style-position: inside;
+	min-height: 32px;
+	font-size: 11pt;
+}
+
+ul#examples_list li a {
+	cursor: pointer;
+}
+
+div.CodeMirror-wrap {
+	background-color: rgb(248, 253, 251)
+}
+
+textarea#sourcecode, textarea#javascript, iframe#iframe, div.CodeMirror-wrap {
+	width: 100%;
+	font-family: Consolas, Courier New, Courier, monospace;
+	font-size: 13pt;
+}
+
+textarea#sourcecode, textarea#javascript, div.CodeMirror-wrap, div.CodeMirror-scroll {
+	height: 400px;
+}
+
+iframe#iframe {
+	border-style: solid;
+	border-color: rgb(20, 137, 116);
+	border-width: 1px;
+	border-radius: 4px;
+}
+
+iframe#iframe {
+	width: 100%;
+	height: 400px;
+}
+
+div#save_gist_container {
+	display: none;
+	background-color: rgba(0, 0, 0, 0.5);
+	position: fixed;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	max-height: 100%;
+	max-width: 100%;
+	min-height: 100%;
+	min-width: 100%;
+	z-index: 999;
+}
+
+div#save_gist_dialog {
+	display: block;
+	width: 20em;
+	height: 7em;
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: auto;
+	margin-bottom: auto;
+	float: none !important;
+}
+
+div#save_gist_dialog label, div#save_gist_dialog input, div#save_gist_dialog button {
+	font-size: 14pt;
+	font-family: Calibri, Tahoma, Verdana, sans-serif;
+}
+
+div#save_gist_dialog label {
+	float: left;
+	margin-top: 5px;
+}
+
+div#save_gist_dialog input {
+	float: right;
+	width: 60%;
+	clear: right;
+}
+
+div#save_gist_dialog button {
+	float: left;
+	margin-top: 8px;
+	width: 50%;
+}
+
+.compileerror {
+	color: rgb(160, 10, 20);
+}
+
+.compileerrorBackground {
+	background-color: rgb(255, 230, 240) !important;
+}
+
+.compilewarning {
+	color: rgb(150, 150, 10);
+}
+
+.compilewarningBackground {
+	background-color: rgb(255, 255, 210) !important;
+}

@@ -107,13 +107,13 @@ namespace JSIL {
             try {
                 return TranslateNode(Block);
             } catch (AbortTranslation at) {
-                Console.Error.WriteLine("Method {0} not translated: {1}", ThisMethod.Name, at.Message);
+                Translator.WarningFormat("Method {0} not translated: {1}", ThisMethod.Name, at.Message);
                 return null;
             }
         }
 
         public JSNode TranslateNode (ILNode node) {
-            Console.Error.WriteLine("Node        NYI: {0}", node.GetType().Name);
+            Translator.WarningFormat("Node        NYI: {0}", node.GetType().Name);
 
             return new JSUntranslatableStatement(node.GetType().Name);
         }
@@ -217,7 +217,7 @@ namespace JSIL {
         }
 
         protected static bool CopyOnReturn (TypeReference type) {
-            return EmulateStructAssignment.IsStruct(type);
+            return TypeUtil.IsStruct(type);
         }
 
         protected JSExpression Translate_UnaryOp (ILExpression node, JSUnaryOperator op) {
@@ -277,11 +277,21 @@ namespace JSIL {
             )
                 return new JSUntranslatableExpression(node);
 
-            var finalType = node.ExpectedType ?? node.InferredType;
+            if (TypeUtil.IsEnum(node.Arguments[0].InferredType ?? node.Arguments[0].ExpectedType)
+                || TypeUtil.IsEnum(node.Arguments[1].InferredType ?? node.Arguments[1].ExpectedType)
+            ) {
+                if (op == JSOperator.Equal)
+                    op = JSOperator.EqualLoose;
+                else if (op == JSOperator.NotEqual)
+                    op = JSOperator.NotEqualLoose;
+            }
 
-            return new JSBinaryOperatorExpression(
-                op, lhs, rhs, node.InferredType ?? node.ExpectedType
+            var resultType = node.InferredType ?? node.ExpectedType;
+            var result = new JSBinaryOperatorExpression(
+                op, lhs, rhs, resultType
             );
+
+            return result;
         }
 
         protected JSExpression Translate_MethodReplacement (
@@ -343,8 +353,12 @@ namespace JSIL {
 
                     return new JSStringIdentifier(expression.Value, TypeSystem.Object);
                 }
+
                 case "System.Object JSIL.Builtins::get_This()":
                     return new JSIndirectVariable(Variables, "this", ThisMethodReference);
+
+                case "System.Boolean JSIL.Builtins::get_IsJavascript()":
+                    return new JSBooleanLiteral(true);
             }
 
             JSExpression result = Translate_PropertyCall(thisExpression, method, arguments, @virtual, @static);
@@ -481,7 +495,7 @@ namespace JSIL {
                 if (expression != null)
                     statement = new JSExpressionStatement(expression);
                 else
-                    Console.Error.WriteLine("Warning: Null statement: {0}", node);
+                    Translator.WarningFormat("Warning: Null statement: {0}", node);
             }
 
             return statement;
@@ -529,16 +543,30 @@ namespace JSIL {
             var methods = GetNodeTranslators(code);
 
             if (methods != null) {
-                var bindingFlags = System.Reflection.BindingFlags.Instance |
-                            System.Reflection.BindingFlags.InvokeMethod |
-                            System.Reflection.BindingFlags.NonPublic;
+                if (methods.Length > 1) {
+                    var bindingFlags = System.Reflection.BindingFlags.Instance |
+                                System.Reflection.BindingFlags.InvokeMethod |
+                                System.Reflection.BindingFlags.NonPublic;
 
-                var binder = Type.DefaultBinder;
-                object state;
-                boundMethod = binder.BindToMethod(
-                    bindingFlags, methods, ref arguments,
-                    null, null, null, out state
-                );
+                    var binder = Type.DefaultBinder;
+                    object state;
+
+                    try {
+                        boundMethod = binder.BindToMethod(
+                            bindingFlags, methods, ref arguments,
+                            null, null, null, out state
+                        );
+                    } catch (Exception exc) {
+                        throw new Exception(String.Format(
+                            "Failed to bind to translator method for ILCode.{0}. Had {1} options:{2}{3}",
+                            code, methods.Length,
+                            Environment.NewLine,
+                            String.Join(Environment.NewLine, (from m in methods select m.ToString()).ToArray())
+                        ), exc);
+                    }
+                } else {
+                    boundMethod = methods[0];
+                }
             }
 
             if (boundMethod == null) {
@@ -569,22 +597,22 @@ namespace JSIL {
                 result = invokeResult as JSExpression;
 
                 if (result == null)
-                    Console.Error.WriteLine(String.Format("Instruction {0} did not produce a JS AST expression", expression));
+                    Translator.WarningFormat("Instruction {0} did not produce a JS AST expression", expression);
             } catch (MissingMethodException) {
                 string operandType = "";
                 if (expression.Operand != null)
                     operandType = expression.Operand.GetType().FullName;
 
-                Console.Error.WriteLine("Instruction NYI: {0} {1}", expression.Code, operandType);
+                Translator.WarningFormat("Instruction NYI: {0} {1}", expression.Code, operandType);
                 return new JSUntranslatableExpression(expression);
             } catch (TargetInvocationException tie) {
                 if (tie.InnerException is AbortTranslation)
                     throw tie.InnerException;
 
-                Console.Error.WriteLine("Error occurred while translating node {0}: {1}", expression, tie.InnerException);
+                Translator.WarningFormat("Error occurred while translating node {0}: {1}", expression, tie.InnerException);
                 throw;
             } catch (Exception exc) {
-                Console.Error.WriteLine("Error occurred while translating node {0}: {1}", expression, exc);
+                Translator.WarningFormat("Error occurred while translating node {0}: {1}", expression, exc);
                 throw;
             }
 
@@ -605,15 +633,25 @@ namespace JSIL {
         }
 
         protected bool TranslateCallSiteConstruction (ILCondition condition, out JSStatement result) {
+            result = null;
+
             var cond = condition.Condition;
-            if (
-                (cond.Code == ILCode.LogicNot) &&
-                (cond.Arguments.Count > 0) &&
-                (cond.Arguments[0].Code == ILCode.GetCallSite) &&
-                (condition.TrueBlock != null) &&
-                (condition.TrueBlock.Body.Count == 1) &&
-                (condition.TrueBlock.Body[0] is ILExpression)
-            ) {
+            if (cond.Code != ILCode.LogicNot)
+                return false;
+
+            if (cond.Arguments.Count <= 0)
+                return false;
+
+            if (cond.Arguments[0].Code != ILCode.GetCallSite)
+                return false;
+
+            if (condition.TrueBlock == null)
+                return false;
+
+            if (condition.TrueBlock.Body.Count != 1)
+                return false;
+
+            if (condition.TrueBlock.Body[0] is ILExpression) {
                 var callSiteExpression = (ILExpression)condition.TrueBlock.Body[0];
                 var callSiteType = callSiteExpression.Arguments[0].ExpectedType;
                 var binderExpression = callSiteExpression.Arguments[0].Arguments[0];
@@ -714,7 +752,7 @@ namespace JSIL {
                         }
 
                         if (foundUniversalCatch) {
-                            Console.Error.WriteLine("Found multiple catch-all catch clauses. Any after the first will be ignored.");
+                            Translator.WarningFormat("Found multiple catch-all catch clauses. Any after the first will be ignored.");
                             continue;
                         }
 
@@ -723,7 +761,7 @@ namespace JSIL {
                         if (foundUniversalCatch)
                             throw new NotImplementedException("Catch-all clause must be last");
 
-                        pairCondition = JSIL.CheckType(catchVariable, cb.ExceptionType);
+                        pairCondition = new JSIsExpression(catchVariable, cb.ExceptionType);
                     }
 
                     var pairBody = TranslateBlock(cb.Body);
@@ -844,7 +882,7 @@ namespace JSIL {
 
             Func<JSExpression, JSBinaryOperatorExpression> makeNullCheck =
                 (expr) => new JSBinaryOperatorExpression(
-                    JSOperator.Equal, expr, new JSNullLiteral(nullableType), TypeSystem.Boolean
+                    JSOperator.Equal, expr, new JSNullLiteral(nullableGenericType), TypeSystem.Boolean
                 );
 
             var unwrappedLeft = UnwrapValueOfExpression(ref left);
@@ -862,10 +900,10 @@ namespace JSIL {
                 return new JSUntranslatableExpression(node);
 
             var arithmeticExpression = new JSBinaryOperatorExpression(
-                innerBoe.Operator, left, right, nullableType
+                innerBoe.Operator, left, right, nullableGenericType
             );
             var result = new JSTernaryOperatorExpression(
-                conditional, new JSNullLiteral(innerBoe.ActualType), arithmeticExpression, nullableType
+                conditional, new JSNullLiteral(innerBoe.ActualType), arithmeticExpression, nullableGenericType
             );
 
             return result;
@@ -919,7 +957,7 @@ namespace JSIL {
 
                 if (comparand != checkEquality)
                     return new JSUnaryOperatorExpression(
-                        JSOperator.LogicalNot, TranslateNode(node.Arguments[0])
+                        JSOperator.LogicalNot, TranslateNode(node.Arguments[0]), TypeSystem.Boolean
                     );
                 else
                     return TranslateNode(node.Arguments[0]);
@@ -942,7 +980,7 @@ namespace JSIL {
                 if ((targetInfo != null) && targetInfo.IsIgnored)
                     checkTypeResult = JSLiteral.New(false);
                 else
-                    checkTypeResult = JSIL.CheckType(
+                    checkTypeResult = new JSIsExpression(
                         value, targetType
                     );
 
@@ -1242,7 +1280,7 @@ namespace JSIL {
             if (jsv.IsReference) {
                 JSExpression materializedValue;
                 if (!JSReferenceExpression.TryMaterialize(JSIL, value, out materializedValue))
-                    Console.Error.WriteLine(String.Format("Cannot store a non-reference into variable {0}: {1}", jsv, value));
+                    Translator.WarningFormat("Cannot store a non-reference into variable {0}: {1}", jsv, value);
                 else
                     value = materializedValue;
             }
@@ -1314,7 +1352,7 @@ namespace JSIL {
             if (IsInvalidThisExpression(firstArg)) {
                 if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression)) {
                     if (!translated.IsNull)
-                        Console.Error.WriteLine("Warning: Accessing {0} without a reference as this.", field.FullName);
+                        Translator.WarningFormat("Warning: Accessing {0} without a reference as this.", field.FullName);
 
                     thisExpression = translated;
                 }
@@ -1355,7 +1393,7 @@ namespace JSIL {
             if (IsInvalidThisExpression(firstArg)) {
                 if (!JSReferenceExpression.TryDereference(JSIL, translated, out thisExpression)) {
                     if (!translated.IsNull)
-                        Console.Error.WriteLine("Warning: Accessing {0} without a reference as this.", field.FullName);
+                        Translator.WarningFormat("Warning: Accessing {0} without a reference as this.", field.FullName);
 
                     thisExpression = translated;
                 }
@@ -1380,9 +1418,9 @@ namespace JSIL {
                 ));
 
             if (!JSReferenceExpression.TryDereference(JSIL, reference, out referent))
-                Console.Error.WriteLine(String.Format("Warning: unsupported reference type for ldobj: {0}", node.Arguments[0]));
+                Translator.WarningFormat("Warning: unsupported reference type for ldobj: {0}", node.Arguments[0]);
 
-            if ((referent != null) && EmulateStructAssignment.IsStruct(referent.GetActualType(TypeSystem)))
+            if ((referent != null) && TypeUtil.IsStruct(referent.GetActualType(TypeSystem)))
                 return reference;
             else {
                 if (referent != null)
@@ -1403,17 +1441,17 @@ namespace JSIL {
 
             if (targetVariable != null) {
                 if (!targetVariable.IsReference)
-                    Console.Error.WriteLine(String.Format("Warning: unsupported target variable for stobj: {0}", node.Arguments[0]));
+                    Translator.WarningFormat("Warning: unsupported target variable for stobj: {0}", node.Arguments[0]);
             } else {
                 JSExpression referent;
                 if (!JSReferenceExpression.TryMaterialize(JSIL, target, out referent))
-                    Console.Error.WriteLine(String.Format("Warning: unsupported target expression for stobj: {0}", node.Arguments[0]));
+                    Translator.WarningFormat("Warning: unsupported target expression for stobj: {0}", node.Arguments[0]);
                 else
                     target = new JSDotExpression(referent, new JSStringIdentifier("value", value.GetActualType(TypeSystem)));
             }
 
             return new JSBinaryOperatorExpression(
-                JSOperator.Assignment, target, value, node.InferredType ?? node.ExpectedType
+                JSOperator.Assignment, target, value, node.InferredType ?? node.ExpectedType ?? value.GetActualType(TypeSystem)
             );
         }
 
@@ -1471,7 +1509,27 @@ namespace JSIL {
             );
         }
 
-        protected JSExpression Translate_Ldc (ILExpression node, long value) {
+        protected JSExpression Translate_Ldc_I4 (ILExpression node, int value) {
+            return Translate_LoadIntegerConstant(node, value);
+        }
+
+        protected JSExpression Translate_Ldc_I8 (ILExpression node, long value) {
+            return Translate_LoadIntegerConstant(node, value);
+        }
+
+        protected JSExpression Translate_Ldc_R4 (ILExpression node, float value) {
+            return JSLiteral.New(value);
+        }
+
+        protected JSExpression Translate_Ldc_R8 (ILExpression node, double value) {
+            return JSLiteral.New(value);
+        }
+
+        protected JSExpression Translate_Ldc_Decimal (ILExpression node, decimal value) {
+            return JSLiteral.New(value);
+        }
+
+        protected JSExpression Translate_LoadIntegerConstant (ILExpression node, long value) {
             string typeName = null;
             var expressionType = node.InferredType ?? node.ExpectedType;
             TypeInfo typeInfo = null;
@@ -1538,18 +1596,6 @@ namespace JSIL {
                     node
                 ));
             }
-        }
-
-        protected JSExpression Translate_Ldc (ILExpression node, ulong value) {
-            return JSLiteral.New(value);
-        }
-
-        protected JSExpression Translate_Ldc (ILExpression node, double value) {
-            return JSLiteral.New(value);
-        }
-
-        protected JSExpression Translate_Ldc (ILExpression node, decimal value) {
-            return JSLiteral.New(value);
         }
 
         protected JSExpression Translate_Ldlen (ILExpression node) {
@@ -1653,15 +1699,15 @@ namespace JSIL {
             if (targetType.IsValueType) {
                 if ((expectedType.Name == "Object") && (expectedType.Namespace == "System")) {
                     return new JSTernaryOperatorExpression(
-                        JSIL.CheckType(firstArg, targetType),
+                        new JSIsExpression(firstArg, targetType),
                         firstArg, new JSNullLiteral(targetType),
                         targetType
                     );
                 } else {
-                    return JSIL.CheckType(firstArg, targetType);
+                    return new JSIsExpression(firstArg, targetType);
                 }
             } else {
-                return JSIL.TryCast(firstArg, targetType);
+                return JSAsExpression.New(firstArg, targetType, TypeSystem);
             }
         }
 
@@ -1924,7 +1970,7 @@ namespace JSIL {
             return JSLiteral.DefaultValue(type);
         }
 
-        protected JSInvocationExpression Translate_Newarr (ILExpression node, TypeReference elementType) {
+        protected JSNewArrayExpression Translate_Newarr (ILExpression node, TypeReference elementType) {
             return JSIL.NewArray(
                 elementType,
                 TranslateNode(node.Arguments[0])
@@ -2003,6 +2049,7 @@ namespace JSIL {
 
                 var boe = translated as JSBinaryOperatorExpression;
                 var ie = translated as JSInvocationExpression;
+                var iae = translated as JSInitializerApplicationExpression;
 
                 if (boe != null) {
                     var left = boe.Left;
@@ -2018,7 +2065,7 @@ namespace JSIL {
 
                         initializers.Add(new JSPairExpression(key, value));
                     } else {
-                        Console.Error.WriteLine(String.Format("Warning: Unrecognized object initializer target: {0}", left));
+                        Translator.WarningFormat("Warning: Unrecognized object initializer target: {0}", left);
                     }
                 } else if (ie != null) {
                     var method = ie.JSMethod;
@@ -2030,10 +2077,26 @@ namespace JSIL {
                             new JSProperty(method.Reference, method.Method.DeclaringProperty), ie.Arguments[0]
                         ));
                     } else {
-                        Console.Error.WriteLine(String.Format("Warning: Object initializer element not implemented: {0}", translated));
+                        Translator.WarningFormat("Warning: Object initializer element not implemented: {0}", translated);
                     }
+                } else if (iae != null) {
+                    var targetDot = iae.Target as JSDotExpressionBase;
+                    if (targetDot == null) {
+                        Translator.WarningFormat("Warning: Unrecognized object initializer target: {0}", iae.Target);
+                        continue;
+                    }
+
+                    var targetDotInitObject = targetDot.Target as JSInitializedObject;
+                    if (targetDotInitObject == null) {
+                        Translator.WarningFormat("Warning: Unrecognized object initializer target: {0}", iae.Target);
+                        continue;
+                    }
+
+                    initializers.Add(new JSPairExpression(
+                        targetDot.Member, new JSNestedObjectInitializerExpression(iae.Initializer)
+                    ));
                 } else {
-                    Console.Error.WriteLine(String.Format("Warning: Object initializer element not implemented: {0}", translated));
+                    Translator.WarningFormat("Warning: Object initializer element not implemented: {0}", translated);
                 }
             }
 
@@ -2095,7 +2158,7 @@ namespace JSIL {
             )
                 return false;
 
-            var sameThisReference = TypeUtil.TypesAreEqual(declaringTypeDef, thisReferenceType, false);
+            var sameThisReference = TypeUtil.TypesAreEqual(declaringTypeDef, thisReferenceType, true);
 
             var isInterfaceMethod = (declaringTypeDef != null) && (declaringTypeDef.IsInterface);
 
@@ -2114,10 +2177,14 @@ namespace JSIL {
                 if (sameThisReference && !isSelf)
                     return false;
 
-                var definitionCount = declaringTypeInfo.MethodSignatures.GetDefinitionCountOf(methodInfo);
+                // If the method was defined in a generic class, overloaded dispatch won't be sufficient
+                //  because of generic parameters.
+                if (!declaringTypeDef.IsGenericInstance && !declaringTypeDef.HasGenericParameters) {
+                    var definitionCount = declaringTypeInfo.MethodSignatures.GetDefinitionCountOf(methodInfo);
 
-                if (definitionCount < 2)
-                    return false;
+                    if (definitionCount < 2)
+                        return false;
+                }
 
                 return true;
             }
@@ -2278,7 +2345,9 @@ namespace JSIL {
             } else if (ldtarget.Code == ILCode.Ldfld) {
                 ldcallsite = ldtarget.Arguments[0];
             } else {
-                throw new NotImplementedException("Unknown call site pattern");
+                throw new NotImplementedException(String.Format(
+                    "Unknown call site pattern: Invalid load of target {0}", ldtarget
+                ));
             }
 
             DynamicCallSiteInfo callSite;
@@ -2290,7 +2359,9 @@ namespace JSIL {
                 if (!DynamicCallSites.Get((FieldReference)ldcallsite.Operand, out callSite))
                     return new JSUntranslatableExpression(node);
             } else {
-                throw new NotImplementedException("Unknown call site pattern");
+                throw new NotImplementedException(String.Format(
+                    "Unknown call site pattern: Invalid load of callsite {0}", ldcallsite
+                ));
             }
 
             var invocationArguments = Translate(node.Arguments.Skip(1));
@@ -2298,6 +2369,14 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_GetCallSite (ILExpression node, FieldReference field) {
+            return new JSNullExpression();
+        }
+
+        protected JSExpression Translate_GetCallSiteBinder (ILExpression node) {
+            return new JSNullExpression();
+        }
+
+        protected JSExpression Translate_GetCallSiteBinder (ILExpression node, object o) {
             return new JSNullExpression();
         }
 
@@ -2340,11 +2419,11 @@ namespace JSIL {
 
             if (arg == 1)
                 return new JSUnaryOperatorExpression(
-                    JSOperator.PostIncrement, target
+                    JSOperator.PostIncrement, target, target.GetActualType(TypeSystem)
                 );
             else
                 return new JSUnaryOperatorExpression(
-                    JSOperator.PostDecrement, target
+                    JSOperator.PostDecrement, target, target.GetActualType(TypeSystem)
                 );
         }
     }

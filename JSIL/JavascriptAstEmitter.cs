@@ -311,6 +311,39 @@ namespace JSIL {
             Visit(ma.Member);
         }
 
+        public void VisitNode (JSIsExpression ie) {
+            Output.Identifier(ie.Type, ReferenceContext, false);
+            Output.Dot();
+            Output.WriteRaw("$Is");
+            Output.LPar();
+
+            Visit(ie.Expression);
+
+            Output.RPar();
+        }
+
+        public void VisitNode (JSAsExpression ae) {
+            Output.Identifier(ae.NewType, ReferenceContext, false);
+            Output.Dot();
+            Output.WriteRaw("$As");
+            Output.LPar();
+
+            Visit(ae.Expression);
+
+            Output.RPar();
+        }
+
+        public void VisitNode (JSCastExpression ce) {
+            Output.Identifier(ce.NewType, ReferenceContext, false);
+            Output.Dot();
+            Output.WriteRaw("$Cast");
+            Output.LPar();
+
+            Visit(ce.Expression);
+
+            Output.RPar();
+        }
+
         public void VisitNode (JSChangeTypeExpression cte) {
             Visit(cte.Expression);
         }
@@ -342,7 +375,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSMethod method) {
-            Output.Identifier(method.Method.GetName(true));
+            Output.Identifier(method.GetNameForInstanceReference());
 
             var ga = method.GenericArguments;
             if (ga != null) {
@@ -482,8 +515,13 @@ namespace JSIL {
         }
 
         public void VisitNode (JSIgnoredMemberReference imr) {
-            Output.Identifier("JSIL.IgnoredMember", null);
+            Output.WriteRaw(
+                (imr.Member != null) ?
+                    "JSIL.IgnoredMember" :
+                    "JSIL.UnknownMember"
+            );
             Output.LPar();
+
             if (imr.Member != null) {
                 var method = imr.Member as MethodInfo;
                 if (method != null)
@@ -519,6 +557,13 @@ namespace JSIL {
                 }
             } else if (TypeUtil.IsIntegralOrEnum(defaultValue.Value)) {
                 Output.Value(0);
+            } else if (defaultValue.Value.IsGenericParameter) {
+                VisitNode(new JSTernaryOperatorExpression(
+                    new JSMemberReferenceExpression(new JSDotExpression(new JSType(defaultValue.Value),
+                                                                        new JSStringIdentifier("IsValueType"))),
+                    JSIL.CreateInstanceOfType(defaultValue.Value),
+                    JSLiteral.Null(defaultValue.Value),
+                    defaultValue.Value));
             } else if (!defaultValue.Value.IsValueType) {
                 Output.WriteRaw("null");
             } else {
@@ -530,6 +575,9 @@ namespace JSIL {
                     case "System.Double":
                     case "System.Decimal":
                         Output.Value(0.0);
+                        break;
+                    case "System.Char":
+                        Output.Value("\0");
                         break;
                     case "System.Boolean":
                         Output.WriteRaw("false");
@@ -569,6 +617,13 @@ namespace JSIL {
                 Output.Dot();
                 Output.Identifier("__Type__");
             }
+        }
+
+        public void VisitNode (JSPublicInterfaceOfExpression poe) {
+            VisitChildren(poe);
+
+            Output.Dot();
+            Output.Identifier("__PublicInterface__");
         }
 
         public void VisitNode (JSEliminatedVariable variable) {
@@ -624,6 +679,7 @@ namespace JSIL {
             } else {
                 Output.Identifier("JSIL.UnmaterializedReference", null);
                 Output.LPar();
+                Output.Value(byref.Referent.ToString());
                 Output.RPar();
             }
         }
@@ -933,7 +989,7 @@ namespace JSIL {
 
         public void VisitNode (JSBinaryOperatorExpression bop) {
             bool parens = true;
-            bool needsTruncation = false;
+            bool needsTruncation = false, needsCast = false;
 
             if (ParentNode is JSIfStatement)
                 parens = false;
@@ -963,22 +1019,37 @@ namespace JSIL {
             else if (ParentNode is JSExpressionStatement)
                 parens = false;
 
+            var leftType = bop.Left.GetActualType(TypeSystem);
+            var rightType = bop.Right.GetActualType(TypeSystem);
+            var resultType = bop.GetActualType(TypeSystem);
+
             // We need to perform manual truncation to maintain the semantics of C#'s division operator
             if ((bop.Operator == JSOperator.Divide)) {
                 needsTruncation =                     
-                    (TypeUtil.IsIntegral(bop.Left.GetActualType(TypeSystem)) ||
-                    TypeUtil.IsIntegral(bop.Right.GetActualType(TypeSystem))) &&
-                    TypeUtil.IsIntegral(bop.GetActualType(TypeSystem));
+                    (TypeUtil.IsIntegral(leftType) ||
+                    TypeUtil.IsIntegral(rightType)) &&
+                    TypeUtil.IsIntegral(resultType);
+            }
 
-                parens |= needsTruncation;
+            // Arithmetic on enum types needs a cast at the end.
+            if (bop.Operator is JSArithmeticOperator) {
+                if (TypeUtil.IsEnum(TypeUtil.StripNullable(resultType))) {
+                    needsCast = true;
+                }
             }
 
             if (needsTruncation) {
                 if (bop.Operator is JSAssignmentOperator)
                     throw new NotImplementedException("Truncation of assignment operations not implemented");
 
-                Output.Identifier("Math.floor", null);
+                Output.WriteRaw("Math.floor");
+            } else if (needsCast) {
+                Output.Identifier(TypeUtil.StripNullable(resultType), ReferenceContext);
+                Output.WriteRaw(".$Cast");
             }
+
+            parens |= needsTruncation;
+            parens |= needsCast;
 
             if (parens)
                 Output.LPar();
@@ -1011,6 +1082,30 @@ namespace JSIL {
 
             Output.WriteRaw(" : ");
             Visit(ternary.False);
+
+            Output.RPar();
+        }
+
+        public void VisitNode (JSNewArrayExpression newarray) {
+            if (newarray.IsMultidimensional)
+                Output.WriteRaw("JSIL.MultidimensionalArray.New");
+            else
+                Output.WriteRaw("JSIL.Array.New");
+
+            Output.LPar();
+            Output.Identifier(newarray.ElementType, ReferenceContext);
+
+            if (newarray.Dimensions != null) {
+                Output.Comma();
+
+                CommaSeparatedList(newarray.Dimensions, false);
+            }
+
+            if (newarray.SizeOrArrayInitializer != null) {
+                Output.Comma();
+
+                Visit(newarray.SizeOrArrayInitializer);
+            }
 
             Output.RPar();
         }
@@ -1161,12 +1256,25 @@ namespace JSIL {
             MethodSignatureSet mss;
 
             if (method.DeclaringType.MethodSignatures.TryGet(method.Name, out mss)) {
-                int argCount = method.Parameters.Length;
                 int overloadCount = 0;
 
+                var gaCount = method.GenericParameterNames.Length;
+                int argCount = method.Parameters.Length;
+
                 foreach (var signature in mss.Signatures) {
-                    if (signature.ParameterCount == argCount)
+                    if (
+                        (signature.ParameterCount == argCount)
+                    )
                         overloadCount += 1;
+                    else if ((signature.GenericParameterNames.Length > 0) || (gaCount > 0)) {
+                        if (
+                            (signature.ParameterCount == gaCount) ||
+                            (signature.GenericParameterNames.Length == argCount) ||
+                            (signature.GenericParameterNames.Length == gaCount)
+                        ) {
+                            overloadCount += 1;
+                        }
+                    }
                 }
 
                 // If there's only one overload with this argument count, we don't need to use
@@ -1216,7 +1324,7 @@ namespace JSIL {
             try {
                 if (isOverloaded) {
 
-                    var methodName = Util.EscapeIdentifier(method.GetName(true), EscapingMode.MemberIdentifier);
+                    var methodName = Util.EscapeIdentifier(jsm.GetNameForInstanceReference(), EscapingMode.MemberIdentifier);
 
                     Output.MethodSignature(jsm.Reference, method.Signature, ReferenceContext);
                     Output.Dot();
@@ -1339,6 +1447,13 @@ namespace JSIL {
             Output.Identifier("__Initialize__");
             Output.LPar();
             Visit(iae.Initializer);
+            Output.RPar();
+        }
+
+        public void VisitNode (JSNestedObjectInitializerExpression noie) {
+            Output.WriteRaw("new JSIL.ObjectInitializer");
+            Output.LPar();
+            Visit(noie.Initializer);
             Output.RPar();
         }
     }

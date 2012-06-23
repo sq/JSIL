@@ -8,6 +8,13 @@ var $jsildrawing = JSIL.DeclareAssembly("JSIL.Drawing");
 JSIL.DeclareNamespace("System");
 JSIL.DeclareNamespace("System.Drawing");
 
+var $sdasms = new JSIL.AssemblyCollection({
+  5: "mscorlib", 
+  6: "System", 
+  11: "System.Drawing", 
+  15: "System.Windows.Forms", 
+});
+
 if (JSIL.HostType.IsBrowser) {
   JSIL.ImplementExternals("System.Drawing.Image", function ($) {
     var mscorlib = JSIL.GetAssembly("mscorlib", true);
@@ -215,19 +222,13 @@ JSIL.ImplementExternals("System.Drawing.Color", function ($) {
     }
   );
 
-  $.Method({Static:false, Public:true }, "MemberwiseClone", 
-    new JSIL.MethodSignature("System.Object", [], [], $jsilcore),
-    function () {
-      if ((typeof (this.name) != "undefined") && (this.name != null)) {
-        return this;
-      } else {
-        var result = Object.create(systemDrawing.System.Drawing.Color.prototype);
-        result.a = this.a;
-        result.r = this.r;
-        result.g = this.g;
-        result.b = this.b;
-        return result;
-      }
+  $.RawMethod(false, "__CopyMembers__", 
+    function Color_CopyMembers (source, target) {
+      target.a = source.a;
+      target.r = source.r;
+      target.g = source.g;
+      target.b = source.b;
+      target.name = source.name;
     }
   );
 });
@@ -339,7 +340,7 @@ JSIL.ImplementExternals("System.Drawing.Rectangle", function ($) {
   );
 
   $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [$asms[11].TypeRef("System.Drawing.Point"), $asms[11].TypeRef("System.Drawing.Size")], [])), 
+    (new JSIL.MethodSignature(null, [$sdasms[11].TypeRef("System.Drawing.Point"), $sdasms[11].TypeRef("System.Drawing.Size")], [])), 
     function _ctor (location, size) {
       this.x = location.X;
       this.y = location.Y;

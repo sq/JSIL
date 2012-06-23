@@ -65,6 +65,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyManifest.cs" />
+    <Compile Include="AST\JSAstCursor.cs" />
     <Compile Include="AST\JSAstVisitor.cs" />
     <Compile Include="AST\JSExpressionTypes.cs" />
     <Compile Include="AST\JSIdentifierTypes.cs" />
@@ -76,10 +77,12 @@
     <Compile Include="Configuration.cs" />
     <Compile Include="FunctionCache.cs" />
     <Compile Include="DynamicCallSites.cs" />
+    <Compile Include="HTMLColor.cs" />
     <Compile Include="JavascriptAstEmitter.cs" />
     <Compile Include="JavascriptFormatter.cs" />
     <Compile Include="ILBlockTranslator.cs" />
     <Compile Include="AssemblyTranslator.cs" />
+    <Compile Include="MemberIdentifier.cs" />
     <Compile Include="MethodSignature.cs" />
     <Compile Include="Progress.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -87,6 +90,7 @@
     <Compile Include="Transforms\EmulateInt64.cs" />
     <Compile Include="AST\JSAstBuilder.cs" />
     <Compile Include="Transforms\CollapseNulls.cs" />
+    <Compile Include="Transforms\HandleBooleanAsInteger.cs" />
     <Compile Include="Transforms\StaticAnalysis\BarrierGenerator.cs" />
     <Compile Include="Transforms\StaticAnalysis\ControlFlowSimplifier.cs" />
     <Compile Include="Transforms\ExpandCastExpressions.cs" />

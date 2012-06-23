@@ -30,7 +30,12 @@ namespace JSIL.Transforms {
 
             JSExpression newExpression = null;
 
-            if (targetType.MetadataType == MetadataType.Char) {
+            if (targetType.FullName == "System.ValueType") {
+                var replacement = ce.Expression;
+                ParentNode.ReplaceChild(ce, replacement);
+                VisitReplacement(replacement);
+                return;
+            } else if (targetType.MetadataType == MetadataType.Char) {
                 newExpression = JSInvocationExpression.InvokeStatic(
                     JS.fromCharCode, new[] { ce.Expression }, true
                 );
@@ -116,7 +121,7 @@ namespace JSIL.Transforms {
                     newExpression = JSInvocationExpression.InvokeStatic(JS.floor, new[] { ce.Expression }, true);
                 }
             } else {
-                newExpression = JSIL.Cast(ce.Expression, targetType);
+                // newExpression = JSIL.Cast(ce.Expression, targetType);
             }
 
             if (newExpression != null) {

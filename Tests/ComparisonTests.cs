@@ -93,6 +93,8 @@ namespace JSIL.Tests {
         public void Generics () {
             RunComparisonTests(
                 new[] { 
+                    @"TestCases\HiddenMethodFromGenericClass.cs",
+                    @"TestCases\MultipleGenericInterfaces.cs",
                     @"TestCases\NestedGenericInheritance.cs",
                     @"TestCases\DelegateResultWithConstraints.cs",
                     @"TestCases\GenericStaticProperties.cs",
@@ -160,10 +162,17 @@ namespace JSIL.Tests {
 
         [Test]
         public void FieldSpecialCases () {
-            using (var test = MakeTest(@"TestCases\FieldRecursiveInitialization.cs"))
-                test.Run();
-            using (var test = MakeTest(@"TestCases\StringEmpty.cs"))
-                test.Run();
+            var defaultProvider = MakeDefaultProvider();
+
+            RunComparisonTests(
+                new[] { 
+                    @"TestCases\FieldRecursiveInitialization.cs",
+                    @"TestCases\StringEmpty.cs",
+                    @"TestCases\ArrayFieldWithSelfReference.cs",
+                    @"TestCases\CharField.cs",
+                    @"TestCases\ArrayFieldOfThisType.cs",
+                }
+            );
         }
 
         [Test]
@@ -193,8 +202,20 @@ namespace JSIL.Tests {
 
             RunComparisonTests(
                 new[] { 
+                    @"TestCases\Dictionary.cs",
                     @"TestCases\DictionaryInitializer.cs",
                     @"TestCases\DictionaryEnumerator.cs",
+                }, null, defaultProvider
+            );
+        }
+
+        [Test]
+        public void HashSets () {
+            var defaultProvider = MakeDefaultProvider();
+
+            RunComparisonTests(
+                new[] { 
+                    @"TestCases\HashSetCount.cs",
                 }, null, defaultProvider
             );
         }
@@ -218,6 +239,8 @@ namespace JSIL.Tests {
                     @"TestCases\EnumIfStatement.cs",
                     @"TestCases\CastEnumNullableToInt.cs",
                     @"TestCases\EnumCheckType.cs",
+                    @"TestCases\EnumNullableArithmetic.cs",
+                    @"TestCases\EnumAnonymousMethod.cs",
                 }, null, defaultProvider
             );
         }
@@ -369,7 +392,8 @@ namespace JSIL.Tests {
                     @"TestCases\NullableComparison.cs",
                     @"TestCases\NullableComparisonWithCast.cs",
                     @"TestCases\NullableObjectCast.cs",
-                    @"TestCases\CastEnumNullableToInt.cs"
+                    @"TestCases\CastEnumNullableToInt.cs",
+                    @"TestCases\EnumNullableArithmetic.cs",
                 }
             );
         }

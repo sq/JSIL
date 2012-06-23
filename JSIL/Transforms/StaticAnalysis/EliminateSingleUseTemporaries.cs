@@ -64,6 +64,10 @@ namespace JSIL.Transforms {
             if ((source == null) || (source.IsNull))
                 return false;
 
+            // Can't eliminate struct temporaries, since that might eliminate some implied copies.
+            if (TypeUtil.IsStruct(target.Type))
+                return false;
+
             // Handle special cases where our interpretation of 'constant' needs to be more flexible
             {
                 var ie = source as JSIndexerExpression;
@@ -335,7 +339,7 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSVariable variable) {
-            if (CurrentName == "Parameter") {
+            if (CurrentName == "FunctionSignature") {
                 // In argument list
                 return;
             }

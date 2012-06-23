@@ -99,7 +99,7 @@ namespace JSIL {
         protected JSExpression FixupThisArgument (JSExpression thisArgument, TypeSystem typeSystem) {
             var expectedType = thisArgument.GetActualType(typeSystem);
             if (expectedType.FullName == "System.Type")
-                return JSDotExpression.New(thisArgument, new JSStringIdentifier("__PublicInterface__"));
+                return new JSPublicInterfaceOfExpression(thisArgument);
 
             return thisArgument;
         }
@@ -143,11 +143,11 @@ namespace JSIL {
 
             public JSExpression[] TypeArguments {
                 get {
-                    var invocation = Arguments[2] as JSInvocationExpression;
-                    if (invocation == null)
+                    var newarray = Arguments[2] as JSNewArrayExpression;
+                    if (newarray == null)
                         return null;
 
-                    var array = (JSArrayExpression)invocation.Arguments[1];
+                    var array = (JSArrayExpression)newarray.SizeOrArrayInitializer;
                     return array.Values.ToArray();
                 }
             }

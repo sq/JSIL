@@ -30,7 +30,14 @@ namespace JSIL.Internal {
             "export", "extends", "super", "let",
             "package", "interface", "implements", "private",
             "protected", "public", "static", "yield",
-            "const", "true", "false", "null"
+            "const", "true", "false", "null",
+        };
+
+        // We need to flag these names as reserved because they are properties of
+        //  Function in many browsers.
+        public static readonly HashSet<string> ReservedIdentifiers = new HashSet<string> {
+            "name", "length", "arity", "constructor",
+            "caller", "arguments", "call", "apply", "bind"
         };
 
         public static Regex ValidIdentifier = new Regex(
@@ -41,10 +48,11 @@ namespace JSIL.Internal {
         public static string GetPathOfAssembly (Assembly assembly) {
             var uri = new Uri(assembly.CodeBase);
             var result = Uri.UnescapeDataString(uri.AbsolutePath);
+
             if (String.IsNullOrWhiteSpace(result))
                 result = assembly.Location;
 
-            result = result.Replace("/", "\\");
+            result = result.Replace('/', System.IO.Path.DirectorySeparatorChar);
 
             return result;
         }
@@ -99,7 +107,7 @@ namespace JSIL.Internal {
                         isEscaped = true;
                     break;
                     case ':':
-                        sb.Append("$c");
+                        sb.Append("$co");
                         isEscaped = true;
                     break;
                     case '<':
@@ -166,6 +174,10 @@ namespace JSIL.Internal {
                         sb.Append("$am");
                         isEscaped = true;
                     break;
+                    case ',':
+                        sb.Append("$cm");
+                        isEscaped = true;
+                    break;
                     default:
                         if ((ch <= 32) || (ch >= 127)) {
                             sb.AppendFormat("${0:x}", ch);
@@ -180,6 +192,7 @@ namespace JSIL.Internal {
                 result = sb.ToString();
 
             bool isReservedWord = ReservedWords.Contains(result);
+
             if (isReservedWord)
                 result = "$" + result;
 

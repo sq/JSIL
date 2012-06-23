@@ -47,14 +47,24 @@ JSIL.Host.translateFilename = function (filename) {
 
   var root = JSIL.Host.getRootDirectory().toLowerCase().replace(slashRe, "/");
   var _fileRoot = fileRoot.toLowerCase().replace(slashRe, "/");
-  var _filename = filename.toLowerCase().replace(slashRe, "/");
+  var _filename = filename.replace(slashRe, "/").toLowerCase();
+  
+  while (_filename[0] === "/")
+    _filename = _filename.substr(1);
 
-  filename = _filename.replace(root, "").replace(_fileRoot, "");
+  if (_filename.indexOf(root) === 0)
+    _filename = _filename.substr(root.length);
   
-  while (filename[0] === "/")
-    filename = filename.substr(1);
+  while (_filename[0] === "/")
+    _filename = _filename.substr(1);
+
+  if (_filename.indexOf(_fileRoot) === 0)
+    _filename = _filename.substr(_fileRoot.length);
   
-  return filename;
+  while (_filename[0] === "/")
+    _filename = _filename.substr(1);
+  
+  return _filename;
 }
 JSIL.Host.doesFileExist = function (filename) {
   return allFiles.hasOwnProperty(JSIL.Host.translateFilename(filename));
@@ -138,24 +148,25 @@ var statsElement = document.getElementById("stats");
 if (statsElement !== null) {
   statsElement.innerHTML = '<span title="Frames Per Second"><span id="drawsPerSecond">0</span> f/s</span><br>' +
     '<span title="Updates Per Second"><span id="updatesPerSecond">0</span> u/s</span><br>' +
-    '<span title="Image Cache Size (megabytes)" id="cacheSpan"><span id="cacheSize">0.0</span >mb</span>';
+    '<span title="Texture Cache Size" id="cacheSpan"><span id="cacheSize">0.0</span >mb <span id="usingWebGL" style="display: none">(WebGL)</span></span>';
 
-  JSIL.Host.reportFps = function (drawsPerSecond, updatesPerSecond, cacheSize) {
+  JSIL.Host.reportFps = function (drawsPerSecond, updatesPerSecond, cacheSize, isWebGL) {
     var e = document.getElementById("drawsPerSecond");
     e.innerHTML = drawsPerSecond.toString();
     
     e = document.getElementById("updatesPerSecond");
     e.innerHTML = updatesPerSecond.toString();
+
+    var cacheSizeMb = (cacheSize / (1024 * 1024)).toFixed(1);
     
-    if (cacheSize === "webgl") {
-      e = document.getElementById("cacheSpan");
-      e.className = "webgl-notice";
-      e.innerHTML = "WebGL";
+    if (isWebGL) {
+      e = document.getElementById("usingWebGL");
       e.title = "Using WebGL for rendering";
-    } else {
-      e = document.getElementById("cacheSize");
-      e.innerHTML = (cacheSize / (1024 * 1024)).toFixed(1);
+      e.style.display = "inline-block";
     }
+
+    e = document.getElementById("cacheSize");
+    e.innerHTML = cacheSizeMb;
 
     if ($logFps) {
       console.log(drawsPerSecond + " draws/s, " + updatesPerSecond + " updates/s");
@@ -171,6 +182,7 @@ if (statsElement !== null) {
 
 var allFiles = {};
 var allAssets = {};
+var storageRoot = null;
 var heldKeys = [];
 var heldButtons = [];
 var mousePosition = [0, 0];
@@ -182,7 +194,7 @@ var keyMappings = {
   18: [164, 165] // Left Alt, Right Alt
 };
 
-(function () {
+function initBrowserHooks () {
   var canvas = document.getElementById("canvas");
   var originalWidth = canvas.width;
   var originalHeight = canvas.height;
@@ -264,11 +276,18 @@ var keyMappings = {
   );
 
   var mapMouseCoords = function (evt) {
+      var currentWidth = canvas.clientWidth;
+      var currentHeight = canvas.clientHeight;
+
+      // clientWidth/clientHeight do not report the effects of css transforms
+      if (canvas.getClientRects) {
+        var rects = canvas.getClientRects();
+        currentWidth = rects[0].width;
+        currentHeight = rects[0].height;
+      }
+
       var x = evt.clientX - canvas.offsetLeft;
       var y = evt.clientY - canvas.offsetTop;
-
-      var currentWidth = canvas.width;
-      var currentHeight = canvas.height;
 
       x = x * originalWidth / currentWidth;
       y = y * originalHeight / currentHeight;
@@ -315,11 +334,15 @@ var keyMappings = {
       return false;
     }, true
   );
-})();
+};
 
 function getAssetName (filename, preserveCase) {
   var backslashRe = /\\/g;
   filename = filename.replace(backslashRe, "/");
+  
+  var doubleSlashRe = /\/\//g;
+  while (filename.indexOf("//") >= 0)
+    filename = filename.replace(doubleSlashRe, "/");
 
   var lastIndex = filename.lastIndexOf(".");
   var result;
@@ -339,11 +362,13 @@ JSIL.loadGlobalScript = function (uri, onComplete) {
   anchor.href = uri;
   var absoluteUri = anchor.href;
 
+  var body = document.getElementsByTagName("body")[0];
+
   var scriptTag = document.createElement("script");
   scriptTag.addEventListener("load", onComplete, true);
   scriptTag.type = "text/javascript";
   scriptTag.src = absoluteUri;
-  document.getElementById("scripts").appendChild(scriptTag);
+  body.appendChild(scriptTag);
 };
 
 function loadTextAsync (uri, onComplete) {
@@ -356,7 +381,11 @@ function loadTextAsync (uri, onComplete) {
 
   var state = [false];
   req.open('GET', uri, true);
-          
+
+  if (typeof (req.overrideMimeType) !== "undefined") {
+    req.overrideMimeType('text/plain; charset=x-user-defined');
+  }
+
   req.onreadystatechange = function (evt) {
     if (req.readyState != 4)
       return;
@@ -382,6 +411,37 @@ function loadTextAsync (uri, onComplete) {
   }
 };
 
+function postProcessResultNormal (bytes) {
+  return bytes;
+};
+
+var warnedAboutOpera = false;
+
+function postProcessResultOpera (bytes) {
+  // Opera sniffs content types on request bodies and if they're text, converts them to 16-bit unicode :|
+
+  if (
+    (bytes[1] === 0) &&
+    (bytes[3] === 0) &&
+    (bytes[5] === 0) &&
+    (bytes[7] === 0)
+  ) {
+    if (!warnedAboutOpera) {
+      JSIL.Host.logWriteLine("Your version of Opera has a bug that corrupts downloaded file data. Please update to a new version or try a better browser.");
+      warnedAboutOpera = true;
+    }
+
+    var resultBytes = new Array(bytes.length / 2);
+    for (var i = 0, j = 0, l = bytes.length; i < l; i += 2, j += 1) {
+      resultBytes[j] = bytes[i];
+    }
+
+    return resultBytes;
+  } else {
+    return bytes;
+  }
+};
+
 function loadBinaryFileAsync (uri, onComplete) {
   var req;
   var state = [false];
@@ -390,15 +450,23 @@ function loadBinaryFileAsync (uri, onComplete) {
   } else {
     req = new XMLHttpRequest();
   }
+          
+  var postProcessResult = postProcessResultNormal;
   
   req.open('GET', uri, true);
+
   if (typeof (ArrayBuffer) === "function") {
     req.responseType = 'arraybuffer';
   }
+
   if (typeof (req.overrideMimeType) !== "undefined") {
     req.overrideMimeType('application/octet-stream; charset=x-user-defined');
   }
-          
+  
+  if (window.navigator.userAgent.indexOf("Opera/") >= 0) {
+    postProcessResult = postProcessResultOpera;
+  }
+
   req.onreadystatechange = function (evt) {
     if (req.readyState != 4)
       return;
@@ -425,7 +493,7 @@ function loadBinaryFileAsync (uri, onComplete) {
         bytes = JSIL.StringToByteArray(text);
       }
 
-      onComplete(bytes, null);
+      onComplete(postProcessResult(bytes), null);
     } else {
       onComplete(null, { statusText: req.statusText, status: req.status });
       return;
@@ -441,9 +509,11 @@ function loadBinaryFileAsync (uri, onComplete) {
 }
 
 var loadedFontCount = 0;
-var loadingPollInterval = 25;
+var loadingPollInterval = 1;
+var maxAssetsLoading = 4;
 var soundLoadTimeout = 30000;
-var fontLoadTimeout = 15000;
+var fontLoadTimeout = 10000;
+var finishStepDuration = 5;
 
 var assetLoaders = {
   "Library": function loadLibrary (filename, data, onError, onDoneLoading, state) {
@@ -486,8 +556,6 @@ var assetLoaders = {
     e.addEventListener("error", onError, true);
     e.addEventListener("load", onDoneLoading.bind(null, finisher), true);
     e.src = contentRoot + filename;
-
-    // document.getElementById("images").appendChild(e);
   },
   "File": function loadFile (filename, data, onError, onDoneLoading) {
     loadBinaryFileAsync(fileRoot + filename, function (result, error) {
@@ -510,62 +578,6 @@ var assetLoaders = {
         onError(error);
       }
     });
-  },
-  "Font": function loadFont (filename, data, onError, onDoneLoading) {
-    var fontId = "xnafont" + loadedFontCount;
-    loadedFontCount += 1;
-    
-    var ruleText = '@font-face {\n' +
-    '  font-family: "' + fontId + '";\n' +  
-    '  src: url("' + contentRoot + filename + '") format("truetype");\n' +  
-    '}\n';
-    
-    var cssRule = document.createElement("style");    
-    cssRule.type = 'text/css'
-    if (cssRule.styleSheet)
-      cssRule.styleSheet.cssText = ruleText;
-    cssRule.appendChild(document.createTextNode(ruleText));    
-    document.getElementsByTagName("head")[0].appendChild(cssRule);
-    
-    var e = document.createElement("span");
-    e.setAttribute("id", fontId);
-    e.appendChild(document.createTextNode(fontId));
-    
-    // We create the element with a tiny font set first and record the size...
-    e.setAttribute("style", 'font: 1pt sans-serif;');
-    document.getElementById("fonts").appendChild(e);
-    
-    var originalWidth = e.offsetWidth;
-    var originalHeight = e.offsetHeight;
-    var startedLoadingWhen = (new Date()).getTime();
-
-    var finisher = function () {
-      allAssets[getAssetName(filename)] = new HTML5FontAsset(getAssetName(filename, true), fontId, (data || 12), e.offsetHeight);
-    };
-    
-    var intervalHandle;
-
-    var loadedCallback = function () {
-      clearInterval(intervalHandle);      
-      onDoneLoading(finisher);
-    };
-    
-    var checkIfLoadedCallback = function () {    
-      var currentWidth = e.offsetWidth;
-      var currentHeight = e.offsetHeight;
-      var now = (new Date()).getTime();
-      if ((currentWidth != originalWidth) || 
-          (currentHeight != originalHeight) ||
-          (now - startedLoadingWhen) > fontLoadTimeout)
-        loadedCallback();
-    };
-
-    intervalHandle = setInterval(checkIfLoadedCallback, loadingPollInterval);
-    
-    // Then set up a callback to watch for the size of the element to change, and apply our CSS font.
-    // In practice, the size shouldn't change until the font has loaded.
-    var pointSize = (data || 12) + "pt";
-    e.setAttribute("style", 'font: ' + pointSize + ' "' + fontId + '"');
   }
 };
 
@@ -612,6 +624,10 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
       allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename, true), e);
     };
 
+    var nullFinisher = function () {
+      allAssets[getAssetName(filename)] = new NullSoundAsset(getAssetName(filename, true));
+    };
+
     if (
       (networkState === HTMLMediaElement.NETWORK_IDLE) ||
       (networkState === HTMLMediaElement.NETWORK_LOADED /* This is in the spec, but no browser defines it? */) ||
@@ -625,22 +641,30 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
     } else if (networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
       clearInterval(state.interval);
       state.loaded = true;
+
+      var errorText = "Unknown error";
+
       try {
-        onError("Error " + e.error.code);
+        errorText = "Error #" + e.error.code;
       } catch (ex) {
-        onError("Error " + String(e.error));
+
+        if (e.error)
+          errorText = String(e.error);
       }
+
+      JSIL.Host.logWriteLine("Load failed for sound '" + filename + "': " + errorText);
+      onDoneLoading(nullFinisher);
     }
 
     var now = Date.now();
 
-    // Workaround for bug in Chrome 12+ where a load stalls indefinitely unless you spam the load method.
+    // Detect and work around bug in old versions of Chrome and all versions of Safari where sounds never finish loading
     if ((now - startedLoadingWhen) >= soundLoadTimeout) {
-      JSIL.Host.logWriteLine("A sound file is taking forever to load. Google Chrome 12 and 13 both have a bug that can cause this, so if you're using them... try another browser.");
+      JSIL.Host.logWriteLine("A sound file is taking forever to load. If you're using Safari, use a different browser.");
 
       clearInterval(state.interval);
       state.loaded = true;
-      onDoneLoading(finisher);
+      onDoneLoading(nullFinisher);
     }
   };
 
@@ -680,12 +704,11 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
     e.appendChild(source);
   }
   
-  // document.getElementById("sounds").appendChild(e);
-  
   // Events on <audio> elements are inconsistent at best across browsers, so we poll instead. :/    
 
   if (typeof (e.load) === "function")
-    e.load();    
+    e.load();
+
   state.interval = setInterval(loadingCallback, loadingPollInterval);
 };
 
@@ -737,7 +760,11 @@ function updateProgressBar (prefix, suffix, bytesLoaded, bytesTotal) {
     progressBar.style.width = w.toString() + "px";
 
   if (progressText) {
-    progressText.innerHTML = prefix + Math.floor(bytesLoaded) + suffix + " / " + Math.floor(bytesTotal) + suffix;
+    if (suffix === null) {
+      progressText.innerHTML = prefix;
+    } else {
+      progressText.innerHTML = prefix + Math.floor(bytesLoaded) + suffix + " / " + Math.floor(bytesTotal) + suffix;
+    }
 
     progressText.style.left = ((loadingProgress.clientWidth - progressText.clientWidth) / 2).toString() + "px";
     progressText.style.top = ((loadingProgress.clientHeight - progressText.clientHeight) / 2).toString() + "px";
@@ -747,10 +774,29 @@ function updateProgressBar (prefix, suffix, bytesLoaded, bytesTotal) {
 function finishLoading () {
   var state = this;
 
-  updateProgressBar("Loading data: ", "", state.assetsFinished, state.assetCount);
-
   var started = Date.now();
-  var endBy = started + 5;
+  var endBy = started + finishStepDuration;
+
+  var initFileStorage = function (volume) {
+    for (var k in allFiles) {
+      if (!allFiles.hasOwnProperty(k))
+        continue;
+
+      var file = volume.createFile(k, false, true);
+      file.writeAllBytes(allFiles[k]);
+    }
+  };
+
+  var initIfNeeded = function () {
+    if (!state.jsilInitialized) {
+      state.jsilInitialized = true;
+      JSIL.Initialize();
+    }
+
+    if (typeof ($jsilreadonlystorage) !== "undefined") {
+      storageRoot = new ReadOnlyStorageVolume("files", "files:/", initFileStorage);
+    }
+  };
 
   while (Date.now() <= endBy) {
     if (state.pendingScriptLoads > 0)
@@ -761,6 +807,13 @@ function finishLoading () {
         var item = state.finishQueue[state.finishIndex];
         var cb = item[2];
 
+        // Ensure that we initialize the JSIL runtime before constructing asset objects.
+        if ((item[0] != "Script") && (item[0] != "Library")) {
+          initIfNeeded();
+        }
+
+        updateProgressBar("Loading " + item[3], null, state.assetsFinished, state.assetCount);
+
         if (typeof (cb) === "function")
           cb(state);
       } finally {
@@ -768,6 +821,10 @@ function finishLoading () {
         state.assetsFinished += 1;
       }
     } else {
+      initIfNeeded();
+
+      updateProgressBar("Starting game", null, 1, 1);
+
       window.clearInterval(state.interval);
       state.interval = null;
       window.setTimeout(state.onDoneLoading, 10);
@@ -780,12 +837,20 @@ function pollAssetQueue () {
   var state = this;
 
   var w = 0;
-  updateProgressBar("Downloading files: ", "kb", state.bytesLoaded / 1024, state.assetBytes / 1024);
+  updateProgressBar("Downloading: ", "kb", state.bytesLoaded / 1024, state.assetBytes / 1024);
 
-  var makeStepCallback = function (state, type, sizeBytes, i) {
+  var makeStepCallback = function (state, type, sizeBytes, i, name) {
     return function (finish) {
+      var lastDot = name.lastIndexOf(".");
+      if (lastDot >= 0)
+        name = name.substr(0, lastDot);
+
+      var firstComma = name.indexOf(",");
+      if (firstComma >= 0)
+        name = name.substr(0, firstComma);
+
       if (typeof (finish) === "function")
-        state.finishQueue.push([type, i, finish]);
+        state.finishQueue.push([type, i, finish, name]);
 
       state.assetsLoading -= 1;
       state.assetsLoaded += 1;
@@ -812,7 +877,7 @@ function pollAssetQueue () {
     };    
   };
 
-  while ((state.assetsLoading < state.maxAssetsLoading) && (state.loadIndex < state.assetCount)) {
+  while ((state.assetsLoading < maxAssetsLoading) && (state.loadIndex < state.assetCount)) {
     try {
       var assetSpec = state.assets[state.loadIndex];
     
@@ -825,7 +890,7 @@ function pollAssetQueue () {
       if (assetData !== null)
         sizeBytes = assetData.sizeBytes || 1;
 
-      var stepCallback = makeStepCallback(state, assetType, sizeBytes, state.loadIndex); 
+      var stepCallback = makeStepCallback(state, assetType, sizeBytes, state.loadIndex, assetPath); 
       var errorCallback = makeErrorCallback(assetPath, assetSpec);    
       
       if (typeof (assetLoader) !== "function") {
@@ -863,7 +928,7 @@ function pollAssetQueue () {
           break;
         case "Script":
           lhsTypeIndex = 1;
-          break;
+          break;        
       }
 
       switch (rhs[0]) {
@@ -896,14 +961,14 @@ function loadAssets (assets, onDoneLoading) {
     assetsLoaded: 0,
     assetsFinished: 0,
     assetsLoading: 0,
-    maxAssetsLoading: 16,
     onDoneLoading: onDoneLoading,
     assets: assets,
     interval: null,
     finishQueue: [],
     loadIndex: 0,
     finishIndex: 0,
-    pendingScriptLoads: 0
+    pendingScriptLoads: 0,
+    jsilInitialized: false
   };
 
   for (var i = 0, l = assets.length; i < l; i++) {
@@ -936,16 +1001,27 @@ function beginLoading () {
   if (loadingProgress)
     loadingProgress.style.display = "";
 
+  var seenFilenames = {};
+
+  var pushAsset = function (assetSpec) {
+    var filename = assetSpec[1];
+    if (seenFilenames[filename])
+      return;
+
+    seenFilenames[filename] = true;
+    allAssets.push(assetSpec);
+  }
+
   var allAssets = [];
   for (var i = 0, l = assetsToLoad.length; i < l; i++)
-    allAssets.push(assetsToLoad[i]);
+    pushAsset(assetsToLoad[i]);
 
   if (typeof (contentManifest) === "object") {
     for (var k in contentManifest) {
       var subManifest = contentManifest[k];
 
       for (var i = 0, l = subManifest.length; i < l; i++)
-        allAssets.push(subManifest[i]);
+        pushAsset(subManifest[i]);
 
     }
   }
@@ -953,9 +1029,7 @@ function beginLoading () {
   JSIL.Host.logWrite("Loading data ... ");
   loadAssets(allAssets, function () {
     JSIL.Host.logWriteLine("done.");
-    try {
-      JSIL.Initialize();
-      
+    try {     
       if (quitButton)
         quitButton.style.display = "";
 
@@ -980,8 +1054,14 @@ function quitGame () {
 }
 
 var canGoFullscreen = false;
+var integralFullscreenScaling = false;
+var overrideFullscreenBaseSize = null;
 
 function onLoad () {
+  registerErrorHandler();
+
+  initBrowserHooks();  
+
   var log = document.getElementById("log");
   var loadButton = document.getElementById("loadButton");
   var quitButton = document.getElementById("quitButton");
@@ -1013,23 +1093,41 @@ function onLoad () {
       canvas.mozRequestFullScreenWithKeys ||
       canvas.webkitRequestFullScreenWithKeys ||
       canvas.requestFullscreen || 
+      canvas.requestFullScreen || 
       canvas.mozRequestFullScreen || 
       canvas.webkitRequestFullScreen;
 
     if (reqFullscreen) {
       canGoFullscreen = true;
 
+      var goFullscreen = function () {
+        reqFullscreen.call(canvas, Element.ALLOW_KEYBOARD_INPUT);
+      };
+
       var onFullscreenChange = function () {
         var isFullscreen = document.fullscreen || 
+          document.fullScreen ||
           document.mozFullScreen || 
           document.webkitIsFullScreen;
 
         if (isFullscreen) {
-          canvas.width = screen.width;
-          canvas.height = screen.height;
+          var ow = originalWidth, oh = originalHeight;
+          if (overrideFullscreenBaseSize) {
+            ow = overrideFullscreenBaseSize[0];
+            oh = overrideFullscreenBaseSize[1];
+          }
+
+          var scaleRatio = Math.min(screen.width / ow, screen.height / oh);
+          if (integralFullscreenScaling)
+            scaleRatio = Math.floor(scaleRatio);
+
+          canvas.width = ow * scaleRatio;
+          canvas.height = oh * scaleRatio;
+
         } else {
           canvas.width = originalWidth;
           canvas.height = originalHeight;
+
         }
       };
 
@@ -1038,9 +1136,7 @@ function onLoad () {
       document.addEventListener("webkitfullscreenchange", onFullscreenChange, false);
 
       fullscreenButton.addEventListener(
-        "click", function () {
-          reqFullscreen.call(canvas, Element.ALLOW_KEYBOARD_INPUT);
-        }, true
+        "click", goFullscreen, true
       );
     }
   };
@@ -1056,3 +1152,17 @@ function onLoad () {
     beginLoading();
   }
 }
+
+function registerErrorHandler () {
+  var oldErrorHandler = window.onerror;
+  
+  window.onerror = function JSIL_OnUnhandledException (errorMsg, url, lineNumber) {
+    JSIL.Host.logWriteLine("Unhandled exception at " + url + " line " + lineNumber + ":");
+    JSIL.Host.logWriteLine(errorMsg);
+
+    if (typeof (oldErrorHandler) === "function")
+      return oldErrorHandler(errorMsg, url, lineNumber);
+    else
+      return false;
+  };
+};

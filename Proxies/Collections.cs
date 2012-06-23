@@ -14,6 +14,10 @@ namespace JSIL.Proxies {
             "System.Collections.Generic.Stack`1",
             "System.Collections.Generic.Queue`1",
             "System.Collections.Generic.HashSet`1",
+            "System.Collections.Hashtable/KeyCollection",
+            "System.Collections.Hashtable/ValueCollection",
+            "System.Collections.Generic.Dictionary`2/KeyCollection",
+            "System.Collections.Generic.Dictionary`2/ValueCollection"
         },
         memberPolicy: JSProxyMemberPolicy.ReplaceNone,
         inheritable: false

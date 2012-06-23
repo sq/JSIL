@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -26,6 +27,12 @@ namespace JSIL {
         ConcurrentCache<Tuple<string, string>, bool> ITypeInfoSource.AssignabilityCache {
             get {
                 return this.TypeAssignabilityCache;
+            }
+        }
+
+        public int Count {
+            get {
+                return TypeInformation.Count + ModuleInformation.Count;
             }
         }
 

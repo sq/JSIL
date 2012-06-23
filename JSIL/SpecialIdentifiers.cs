@@ -80,13 +80,6 @@ namespace JSIL {
             return Dot(new JSFakeMethod(rhs, rhsType, null, MethodTypes));
         }
 
-        public JSInvocationExpression CheckType (JSExpression expression, TypeReference targetType) {
-            return JSInvocationExpression.InvokeStatic(
-                Dot("CheckType", TypeSystem.Boolean),
-                new[] { expression, new JSTypeOfExpression(targetType) }, true
-            );
-        }
-
         public JSInvocationExpression GetTypeFromAssembly (JSExpression assembly, JSExpression typeName, JSExpression throwOnFail) {
             return JSInvocationExpression.InvokeStatic(
                 Dot("GetTypeFromAssembly", new TypeReference("System", "Type", TypeSystem.Object.Module, TypeSystem.Object.Scope)),
@@ -101,44 +94,12 @@ namespace JSIL {
             );
         }
 
-        public JSInvocationExpression TryCast (JSExpression expression, TypeReference targetType) {
-            return JSInvocationExpression.InvokeStatic(
-                Dot("TryCast", targetType),
-                new[] { expression, new JSTypeOfExpression(targetType) }, true
-            );
+        public JSNewArrayExpression NewArray (TypeReference elementType, JSExpression sizeOrArrayInitializer) {
+            return new JSNewArrayExpression(elementType, sizeOrArrayInitializer);
         }
 
-        public JSExpression Cast (JSExpression expression, TypeReference targetType) {
-            return JSInvocationExpression.InvokeStatic(
-                Dot("Cast", targetType),
-                new[] { expression, new JSTypeOfExpression(targetType) }, true
-            );
-        }
-
-        public JSInvocationExpression NewArray (TypeReference elementType, JSExpression sizeOrArrayInitializer) {
-            var arrayType = new ArrayType(elementType);
-
-            return JSInvocationExpression.InvokeStatic(
-                new JSDotExpression(
-                    Dot("Array", TypeSystem.Object), 
-                    new JSFakeMethod("New", arrayType, new[] { arrayType }, MethodTypes)
-                ), new [] { new JSType(elementType), sizeOrArrayInitializer }, 
-                true
-            );
-        }
-
-        public JSInvocationExpression NewMultidimensionalArray (TypeReference elementType, JSExpression[] dimensions, JSExpression initializer = null) {
-            var arrayType = new ArrayType(elementType, dimensions.Length);
-            var arguments = new JSExpression[] { new JSType(elementType) }.Concat(dimensions);
-            if (initializer != null)
-                arguments = arguments.Concat(new[] { initializer });
-
-            return JSInvocationExpression.InvokeStatic(
-                new JSDotExpression(
-                    Dot("MultidimensionalArray", TypeSystem.Object), 
-                    new JSFakeMethod("New", arrayType, new[] { TypeSystem.Object, TypeSystem.Object }, MethodTypes)
-                ), arguments.ToArray(), true
-            );
+        public JSNewArrayExpression NewMultidimensionalArray (TypeReference elementType, JSExpression[] dimensions, JSExpression initializer = null) {
+            return new JSNewArrayExpression(elementType, dimensions, initializer);
         }
 
         public JSInvocationExpression NewDelegate (TypeReference delegateType, JSExpression thisReference, JSExpression targetMethod) {
@@ -148,6 +109,17 @@ namespace JSIL {
                     new JSFakeMethod("New", delegateType, new[] { TypeSystem.Object, TypeSystem.Object }, MethodTypes)
                 ), new [] { thisReference, targetMethod },
                 true
+            );
+        }
+
+        public JSNewExpression NewElementReference (JSExpression target, JSExpression index) {
+            var resultType = new ByReferenceType(
+                target.GetActualType(TypeSystem).GetElementType()
+            );
+
+            return new JSNewExpression(
+                Dot("MemberReference", resultType),
+                null, null, target, index
             );
         }
 
@@ -183,12 +155,33 @@ namespace JSIL {
             );
         }
 
+        public JSInvocationExpression ObjectEquals (JSExpression left, JSExpression right) {
+            return JSInvocationExpression.InvokeStatic(
+                Dot("ObjectEquals", TypeSystem.Boolean),
+                new[] { left, right }, true
+            );
+        }
+
+        public JSInvocationExpression StructEquals (JSExpression left, JSExpression right) {
+            return JSInvocationExpression.InvokeStatic(
+                Dot("StructEquals", TypeSystem.Boolean),
+                new[] { left, right }, true
+            );
+        }
+
         public JSInvocationExpression ShallowCopy (JSExpression array, JSExpression initializer, TypeReference arrayType) {
             return JSInvocationExpression.InvokeStatic(
                 new JSDotExpression(
                     Dot("Array", TypeSystem.Object),
                     new JSFakeMethod("ShallowCopy", TypeSystem.Void, new[] { arrayType, arrayType }, MethodTypes)
                 ), new[] { array, initializer }
+            );
+        }
+
+        public JSInvocationExpression CreateInstanceOfType (TypeReference type) {
+            return JSInvocationExpression.InvokeStatic(
+                Dot(new JSFakeMethod("CreateInstanceOfType", type, new[] { TypeSystem.Object }, MethodTypes)),
+                new[] { new JSTypeOfExpression(type) }
             );
         }
     }

@@ -2,8 +2,81 @@
 
 if (typeof (JSIL) === "undefined")
   throw new Error("JSIL.Core is required");
-  
-JSIL.DeclareAssembly("JSIL.IO");
+
+$private = $jsilcore;
+
+if (!JSIL.GetAssembly("mscorlib", true)) {
+
+  JSIL.DeclareNamespace("System");
+  JSIL.DeclareNamespace("System.IO");
+
+  JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.MarshalByRefObject", true, [], function ($) {
+    $.Field({Static:false, Public:false}, "__identity", $.Object);
+
+    $.Property({Static:false, Public:false}, "Identity");
+  });
+
+  JSIL.MakeClass($jsilcore.TypeRef("System.MarshalByRefObject"), "System.IO.Stream", true, [], function ($) {
+    $.Constant({Static:true , Public:false}, "_DefaultBufferSize", 4096);
+
+    $.Field({Static:true , Public:true }, "Null", $.Type);
+
+    $.Property({Static:false, Public:true }, "CanRead");
+
+    $.Property({Static:false, Public:true }, "CanSeek");
+
+    $.Property({Static:false, Public:true }, "CanTimeout");
+
+    $.Property({Static:false, Public:true }, "CanWrite");
+
+    $.Property({Static:false, Public:true }, "Length");
+
+    $.Property({Static:false, Public:true }, "Position");
+
+    $.Property({Static:false, Public:true }, "ReadTimeout");
+
+    $.Property({Static:false, Public:true }, "WriteTimeout");
+
+    $.ImplementInterfaces($jsilcore.TypeRef("System.IDisposable"))
+  });
+
+  JSIL.MakeClass($jsilcore.TypeRef("System.IO.Stream"), "System.IO.MemoryStream", true, [], function ($) {
+    $.Field({Static:false, Public:false}, "_buffer", $jsilcore.TypeRef("System.Array", [$.Byte]));
+
+    $.Field({Static:false, Public:false}, "_capacity", $.Int32);
+
+    $.Field({Static:false, Public:false}, "_expandable", $.Boolean);
+
+    $.Field({Static:false, Public:false}, "_exposable", $.Boolean);
+
+    $.Field({Static:false, Public:false}, "_isOpen", $.Boolean);
+
+    $.Field({Static:false, Public:false}, "_length", $.Int32);
+
+    $.Field({Static:false, Public:false}, "_origin", $.Int32);
+
+    $.Field({Static:false, Public:false}, "_position", $.Int32);
+
+    $.Field({Static:false, Public:false}, "_writable", $.Boolean);
+
+    $.Constant({Static:true , Public:false}, "MemStreamMaxLength", 2147483647);
+
+    $.Property({Static:false, Public:true }, "CanRead");
+
+    $.Property({Static:false, Public:true }, "CanSeek");
+
+    $.Property({Static:false, Public:true }, "CanWrite");
+
+    $.Property({Static:false, Public:true }, "Capacity");
+
+    $.Property({Static:false, Public:true }, "Length");
+
+    $.Property({Static:false, Public:true }, "Position");
+  });
+
+}
+
+var $jsilio = JSIL.DeclareAssembly("JSIL.IO");
 
 JSIL.ImplementExternals("System.IO.File", function ($) {
   $.Method({Static:true , Public:true }, "Exists", 
@@ -11,6 +84,20 @@ JSIL.ImplementExternals("System.IO.File", function ($) {
     function (filename) {
       return JSIL.Host.doesFileExist(filename) || 
         JSIL.Host.doesAssetExist(filename, true);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "OpenRead", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.FileStream"), [$.String], [])), 
+    function OpenRead (path) {
+      return new System.IO.FileStream(path, System.IO.FileMode.Open);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "OpenWrite", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.FileStream"), [$.String], [])), 
+    function OpenWrite (path) {
+      return new System.IO.FileStream(path, System.IO.FileMode.OpenOrCreate);
     }
   );
 
@@ -25,7 +112,7 @@ JSIL.ImplementExternals("System.IO.File", function ($) {
 
 JSIL.ImplementExternals("System.IO.Path", function ($) {
   var combineImpl = function () {
-    return Array.prototype.slice.call(arguments).join("/");
+    return Array.prototype.slice.call(arguments).join("\\");
   };
 
   $.Method({Static:true , Public:true }, "Combine", 
@@ -58,6 +145,26 @@ JSIL.ImplementExternals("System.IO.Path", function ($) {
       }
 
       return "";
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "GetDirectoryName", 
+    (new JSIL.MethodSignature($.String, [$.String], [])), 
+    function GetDirectoryName (path) {
+      var index = path.lastIndexOf("\\");
+      if (index >= 0) {
+        return path.substr(0, index);
+      }
+
+      return "";
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "GetFullPath", 
+    (new JSIL.MethodSignature($.String, [$.String], [])), 
+    function GetFullPath (path) {
+      // FIXME
+      return path;
     }
   );
 
@@ -107,12 +214,16 @@ JSIL.ImplementExternals("System.IO.Stream", function ($) {
   $.Method({Static:false, Public:true }, "Close", 
     (new JSIL.MethodSignature(null, [], [])), 
     function Close () {
+      if (this._onClose)
+        this._onClose();
     }
   );
 
   $.Method({Static:false, Public:true }, "Dispose", 
     (new JSIL.MethodSignature(null, [], [])), 
     function Dispose () {
+      if (this._onClose)
+        this._onClose();
     }
   );
 
@@ -166,12 +277,53 @@ var $bytestream = function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "set_Position", 
+    (new JSIL.MethodSignature(null, [$.Int64], [])), 
+    function set_Position (value) {
+      this._pos = value;
+    }
+  );
+
   $.Method({Static:false, Public:true }, "get_Length", 
     (new JSIL.MethodSignature($.Int64, [], [])), 
     function get_Length () {
       return this._length;
     }
   );
+
+  $.Method({Static:false, Public:true }, "Write", 
+    (new JSIL.MethodSignature(null, [
+          $jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32, 
+          $.Int32
+        ], [])), 
+    function Write (buffer, offset, count) {
+      var newPosition = this._pos + count;
+
+      if (newPosition > this._length)
+        this._length = newPosition;
+
+      for (var i = 0; i < count; i++)
+        this._buffer[this._pos + i] = buffer[offset + i];
+
+      this._pos = newPosition;
+
+      this._modified = true;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "WriteByte", 
+    (new JSIL.MethodSignature(null, [$.Byte], [])), 
+    function WriteByte (value) {
+      if (this._pos >= this._length)
+        this._length += 1;
+
+      this._buffer[this._pos] = value;
+      this._pos += 1;
+
+      this._modified = true;
+    }
+  );
+
 };
 
 JSIL.ImplementExternals("System.IO.FileStream", function ($) {
@@ -182,6 +334,13 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
 
       this._pos = 0;
       this._length = 0;
+    }
+  );
+  
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.String, $jsilcore.TypeRef("System.IO.FileMode"), $jsilcore.TypeRef("System.IO.FileAccess")], [])), 
+    function _ctor (path, mode, access) {
+      System.IO.FileStream.prototype._ctor.call(this, path, mode);
     }
   );
 
@@ -200,8 +359,51 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
 
       this._pos = 0;
       this._length = this._buffer.length;
+
+      this.$applyMode(mode);
     }
   );
+  
+  $.Method({Static:false, Public:true }, "get_CanSeek", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_CanSeek () {
+      return true;
+    }
+  );
+  
+  $.Method({Static:false, Public:true }, "Seek", 
+    (new JSIL.MethodSignature($.Int64, [$.Int64, $jsilcore.TypeRef("System.IO.SeekOrigin")], [])), 
+    function Seek (offset, origin) {
+      switch (origin)
+      {
+      case System.IO.SeekOrigin.Begin:
+        this._pos = offset;
+        break;
+      case System.IO.SeekOrigin.Current:
+        this._pos += offset;
+        break;
+      case System.IO.SeekOrigin.End:
+        this._pos = this._buffer.length - offset;
+        break;
+      }
+      return this._pos;
+    }
+  );
+
+  $.RawMethod(false, "$applyMode", function (fileMode) {
+    var fm = System.IO.FileMode;
+
+    if (
+      (fileMode == fm.Create) ||
+      (fileMode == fm.Truncate) ||
+      (fileMode == fm.CreateNew)
+    ) {
+      this._buffer = [];
+      this._length = 0;
+    } else if (fileMode == fm.Append) {
+      this._pos = this._length;
+    }
+  });
 
   $.RawMethod(false, "$GetURI", function () {
     var slashRe = /\\/g;
@@ -226,6 +428,13 @@ JSIL.ImplementExternals("System.IO.MemoryStream", function ($) {
   };
 
   $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      ctorBytesImpl(this, [], true);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [$.Byte])], [])), 
     function _ctor (buffer) {
       ctorBytesImpl(this, buffer, true);
@@ -236,6 +445,13 @@ JSIL.ImplementExternals("System.IO.MemoryStream", function ($) {
     (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Boolean], [])), 
     function _ctor (buffer, writable) {
       ctorBytesImpl(this, buffer, writable);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetBuffer", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [], [])), 
+    function GetBuffer () {
+      return this._buffer;
     }
   );
 });
@@ -336,10 +552,47 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
     }
   );
 
+  $.Method({Static:false, Public:true }, "Read", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function Read () {
+      return this.ReadChar().charCodeAt(0);
+    }
+  );
+
   $.Method({Static:false, Public:true }, "ReadChar", 
     (new JSIL.MethodSignature($.Char, [], [])), 
     function ReadChar () {
-      return String.fromCharCode(this.m_stream.ReadByte());
+      var oldPosition = this.m_stream.Position;
+      var utf8Encoding = new System.Text.UTF8Encoding();
+      utf8Encoding.fallbackCharacter = "\uFFFF";
+      var firstChar, actualLength;
+
+      for (var i = 1; i < 5; i++) {
+        this.m_stream.Position = oldPosition;
+        
+        // A valid UTF-8 codepoint is 1-4 bytes
+        var bytes = [false, false, false, false];
+        this.m_stream.Read(bytes, 0, bytes.length);
+
+        var str = utf8Encoding.$decode(bytes);
+        if (str.length < 1)
+          continue;
+
+        firstChar = str[0];
+
+        if (firstChar === utf8Encoding.fallbackCharacter)
+          continue;
+
+        // We need to ensure that if we grabbed extra bytes, we rewind
+        // FIXME: This is wrong if the chars aren't normalized. Augh.
+        var actualCharEncoded = utf8Encoding.$encode(str.substr(0, 1));
+        actualLength = actualCharEncoded.length;
+
+        break;
+      }
+
+      this.m_stream.Position = oldPosition + actualLength;
+      return firstChar;
     }
   );
 
@@ -371,7 +624,7 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
     (new JSIL.MethodSignature($.Int16, [], [])), 
     function ReadInt16 () {
       var value = this.ReadUInt16();
-      if (value > System.Int16.MaxValue)
+      if (value > 32767)
         return value - 65536;
       else
         return value;
@@ -382,8 +635,21 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function ReadInt32 () {
       var value = this.ReadUInt32();
-      if (value > System.Int32.MaxValue)
+      if (value > 2147483647)
         return value - 4294967296;
+      else
+        return value;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ReadInt64", 
+    (new JSIL.MethodSignature($.Int64, [], [])), 
+    function ReadInt64 () {
+      // FIXME: Does this work right for negative numbers or does 53-bit rounding kill it?
+      // FIXME: Generate warnings for values out of 53-bit range.
+      var value = this.ReadUInt64();
+      if (value > System.Int64.MaxValue)
+        return value - 18446744073709551616;
       else
         return value;
     }
@@ -442,7 +708,16 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
   $.Method({Static:false, Public:true }, "ReadUInt64", 
     (new JSIL.MethodSignature($.UInt64, [], [])), 
     function ReadUInt64 () {
-      throw new Error('Not implemented');
+      // FIXME: Generate warnings for values out of 53-bit range.
+      var low1 = this.m_stream.ReadByte();
+      var low2 = this.m_stream.ReadByte();
+      var low3 = this.m_stream.ReadByte();
+      var low4 = this.m_stream.ReadByte();
+      var low5 = this.m_stream.ReadByte();
+      var low6 = this.m_stream.ReadByte();
+      var low7 = this.m_stream.ReadByte();
+      var low8 = this.m_stream.ReadByte();
+      return low1 | (low2 << 8) | (low3 << 16) | (low4 << 24) | (low5 << 32) | (low6 << 40) | (low7 << 48) | (low8 << 56);
     }
   );
 

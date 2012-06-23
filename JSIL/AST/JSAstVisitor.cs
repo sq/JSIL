@@ -196,14 +196,13 @@ namespace JSIL.Ast {
 
             var oldPreviousSibling = PreviousSibling;
             var oldNextSibling = NextSibling;
+            string nextSiblingName = null;
 
             try {
                 PreviousSibling = NextSibling = null;
 
                 var annotated = node as IAnnotatedChildren;
                 if (annotated != null) {
-                    string nextSiblingName = null;
-
                     using (var e = annotated.AnnotatedChildren.GetEnumerator())
                     while (e.MoveNext()) {
                         var toVisit = NextSibling;
@@ -235,7 +234,7 @@ namespace JSIL.Ast {
                     NextSibling = null;
 
                     if (toVisit != null)
-                        Visit(toVisit);
+                        Visit(toVisit, nextSiblingName);
                 }
             } finally {
                 PreviousSibling = oldPreviousSibling;

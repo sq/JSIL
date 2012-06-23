@@ -5,57 +5,28 @@ using System.IO;
 using JSIL.Meta;
 
 public static class Common {
-    [JSReplacement("JSIL.XML.ReaderFromString($xml)")]
-    public static XmlReader ReaderFromString (string xml) {
-        var ms = new MemoryStream(Encoding.ASCII.GetBytes(xml));
-        return XmlReader.Create(ms);
+    public static XmlWriter MakeXmlWriter (out MemoryStream ms) {
+        ms = new MemoryStream();
+        return XmlWriter.Create(ms);
+    }
+    
+    public static Encoding GetEncoding () {
+        if (JSIL.Builtins.IsJavascript)
+            return System.Text.Encoding.ASCII;
+        else
+            return new UTF8Encoding(false);
     }
 
-    public static void PrintNodesCore (XmlReader reader, Action onNode) {
-        int count = 0;
-
-        while (reader.Read()) {
-            count += 1;
-            onNode();
-        }
-
-        Console.WriteLine("// {0} node(s)", count);
-    }
-
-    public static void PrintNodes (XmlReader reader) {
-        PrintNodesCore(reader,
-            () => Console.WriteLine(
-                "{0}{1} {2}",
-                reader.NodeType.ToString(),
-                reader.IsEmptyElement ? " Empty" : "",
-                reader.Name ?? "<null>"
-            )
+    public static string UTF8ToString (MemoryStream ms) {
+        var encoding = GetEncoding();
+        var result = encoding.GetString(
+            ms.GetBuffer(), 0, (int)ms.Length
         );
-    }
 
-    public static void PrintNodeText (XmlReader reader) {
-        PrintNodesCore(reader,
-            () => Console.WriteLine(
-                "{0}{1} {2}{3}",
-                reader.NodeType.ToString(),
-                reader.IsEmptyElement ? " Empty" : "",
-                reader.Name == null ? "" : reader.Name,
-                String.IsNullOrEmpty(reader.Value) ? "" : "'" + reader.Value + "'"
-            )
-        );
-    }
+        // Fucking UTF8
+        if (result[0] == 0xFEFF)
+            result = result.Substring(1);
 
-    public static void PrintNodeAttributeCounts (XmlReader reader) {
-        PrintNodesCore(reader,
-            () => {
-                Console.WriteLine(
-                    "{0}{1} {2}{3}",
-                    reader.NodeType.ToString(),
-                    reader.IsEmptyElement ? " Empty" : "",
-                    reader.Name == null ? "" : reader.Name + " ",
-                    reader.AttributeCount
-                );
-            }
-        );
+        return result;
     }
 }

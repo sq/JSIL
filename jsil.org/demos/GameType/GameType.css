@@ -1,0 +1,49 @@
+html {
+	margin: 0px;
+	padding: 0px;
+}
+body {
+	background-color: black;
+	color: white;
+	margin: 0px;
+	padding: 0px;
+}
+a, a:visited {
+	color: silver;
+}
+#canvas {
+	left: 0px;
+	top: 0px;
+}
+#welcomeMessage {
+	width: 680px;
+	height: 150px;
+	left: 86px;
+	top: 165px;
+}
+#loadingProgress {
+	width: 600px;
+	height: 40px;
+	left: 126px;
+	top: 245px;
+}
+#progressBar {
+	height: 40px;
+}
+#log {
+	width: 853px;
+	height: 200px;
+	left: 2px;
+	top: 484px;
+	overflow-x: hidden;
+	overflow-y: scroll;
+}
+#fullscreenButton {
+	left: 857px;
+	top: 2px;
+	height: 45px;
+}
+#stats {
+	left: 857px;
+	top: 50px;
+}

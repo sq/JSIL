@@ -1,0 +1,75 @@
+#canvas {
+	left: 2px;
+	top: 2px;
+}
+#welcomeMessage {
+	width: 400px;
+	height: 120px;
+	left: 120px;
+	top: 180px;
+}
+#loadButton {
+	width: 280px;
+	height: 30px;
+	left: 180px;
+	top: 260px;
+}
+#quitButton {
+	width: 32px;
+	height: 32px;
+	left: 644px;
+	top: 2px;
+}
+#loadingProgress {
+	width: 280px;
+	height: 30px;
+	left: 180px;
+	top: 260px;
+}
+#progressBar {
+	height: 30px;
+}
+#log {
+	width: 640px;
+	height: 200px;
+	left: 2px;
+	top: 500px;
+}
+#rendertargets {
+	position: absolute;
+	top: 720px;
+	height: 240px;
+	width: 1024px;
+	overflow: scroll;
+}
+#rendertargets canvas {
+	border-style: solid;
+	border-color: black;
+	border-width: 1px;
+}
+#textures {
+	position: absolute;
+	top: 960px;
+	height: 240px;
+	width: 1024px;
+	overflow: scroll;
+}
+#textures canvas {
+	border-style: solid;
+	border-color: black;
+	border-width: 1px;
+}
+.boxCaption {
+	position: absolute;
+	font-size: 10pt;
+	font-family: Consolas, Courier New, Courier;
+	z-index: -999;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+}
+#stats {
+	left: 644px;
+	top: 50px;
+}

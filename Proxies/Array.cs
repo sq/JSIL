@@ -12,6 +12,11 @@ namespace JSIL.Proxies {
         [JSNeverReplace]
         abstract public int Length { get; }
 
+        [JSChangeName("length")]
+        [JSNeverReplace]
+        abstract public long LongLength { get; } 
+
+
         [JSReplacement("JSIL.Array.New($elementType, $size)")]
         public static System.Array CreateInstance (Type elementType, Int32 size) {
             throw new InvalidOperationException();
@@ -66,12 +71,12 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("Array.prototype.slice.call($this)")]
+        [JSReplacement("JSIL.Array.Clone($this)")]
         public object Clone () {
             throw new InvalidOperationException();
         }
 
-        [JSReplacement("$array.splice.apply($array, [$destinationIndex, $this.length].concat($this))")]
+        [JSReplacement("JSIL.Array.CopyTo($this, $array, $destinationIndex)")]
         public void CopyTo (Array array, int destinationIndex) {
             throw new InvalidOperationException();
         }
@@ -92,5 +97,6 @@ namespace JSIL.Proxies {
         public System.Collections.IEnumerator GetEnumerator () {
             throw new InvalidOperationException();
         }
+
     }
 }

@@ -63,6 +63,7 @@
     <Reference Include="Microsoft.Build" />
     <Reference Include="Microsoft.Build.Engine" />
     <Reference Include="Microsoft.Build.Framework" />
+    <Reference Include="Microsoft.Build.Utilities.v4.0" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Web.Extensions" />
@@ -107,6 +108,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>copy "$(ProjectDir)\..\Upstream\Spidermonkey\*.*" "$(OutDir)"
+copy "$(ProjectDir)\..\Upstream\PNGQuant\*.dll" "$(OutDir)"
 copy "$(ProjectDir)\..\Upstream\PNGQuant\*.exe" "$(OutDir)"</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>

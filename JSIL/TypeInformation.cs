@@ -122,353 +122,6 @@ namespace JSIL.Internal {
         }
     }
 
-    public class QualifiedMemberIdentifier {
-        public class Comparer : IEqualityComparer<QualifiedMemberIdentifier> {
-            public readonly ITypeInfoSource TypeInfo;
-
-            public Comparer (ITypeInfoSource typeInfo) {
-                TypeInfo = typeInfo;
-            }
-
-            public bool Equals (QualifiedMemberIdentifier x, QualifiedMemberIdentifier y) {
-                if (x == null)
-                    return x == y;
-
-                return x.Equals(y, TypeInfo);
-            }
-
-            public int GetHashCode (QualifiedMemberIdentifier obj) {
-                return obj.GetHashCode();
-            }
-        }
-
-        public readonly TypeIdentifier Type;
-        public readonly MemberIdentifier Member;
-
-        public QualifiedMemberIdentifier (TypeIdentifier type, MemberIdentifier member) {
-            Type = type;
-            Member = member;
-        }
-
-        public override int GetHashCode () {
-            return Type.GetHashCode() ^ Member.GetHashCode();
-        }
-
-        public bool Equals (MemberReference lhs, MemberReference rhs, ITypeInfoSource typeInfo) {
-            if ((lhs == null) || (rhs == null))
-                return lhs == rhs;
-
-            if (lhs == rhs)
-                return true;
-
-            var rhsType = new TypeIdentifier(rhs.DeclaringType);
-
-            if (!Type.Equals(rhsType))
-                return false;
-
-            var rhsMember = MemberIdentifier.New(typeInfo, rhs);
-
-            return Member.Equals(rhsMember, typeInfo);
-        }
-
-        public bool Equals (QualifiedMemberIdentifier rhs, ITypeInfoSource typeInfo) {
-            if (!Type.Equals(rhs.Type))
-                return false;
-
-            return Member.Equals(rhs.Member, typeInfo);
-        }
-
-        public override bool Equals (object obj) {
-            throw new InvalidOperationException("Use QualifiedMemberIdentifier.Equals(...) explicitly.");
-        }
-
-        public override string ToString () {
-            return String.Format("{0} {1}", Type, Member);
-        }
-    }
-
-    public class MemberIdentifier {
-        public class Comparer : IEqualityComparer<MemberIdentifier> {
-            public readonly ITypeInfoSource TypeInfo;
-
-            public Comparer (ITypeInfoSource typeInfo) {
-                TypeInfo = typeInfo;
-            }
-
-            public bool Equals (MemberIdentifier x, MemberIdentifier y) {
-                if (x == null)
-                    return x == y;
-
-                return x.Equals(y, TypeInfo);
-            }
-
-            public int GetHashCode (MemberIdentifier obj) {
-                return obj.GetHashCode();
-            }
-        }
-
-        public enum MemberType : byte {
-            Field = 0,
-            Method = 1,
-            Property = 2,
-            Event = 3,
-        }
-
-        public readonly MemberType Type;
-        public readonly string Name;
-        public readonly TypeReference ReturnType;
-        public readonly int ParameterCount;
-        public readonly TypeReference[] ParameterTypes;
-        public readonly int GenericArgumentCount;
-
-        protected readonly int HashCode;
-
-        public static readonly TypeReference[] AnyParameterTypes = new TypeReference[] {};
-
-        public static MemberIdentifier New (ITypeInfoSource ti, MemberReference mr) {
-            MethodReference method;
-            PropertyReference property;
-            EventReference evt;
-            FieldReference field;
-
-            if ((method = mr as MethodReference) != null)
-                return new MemberIdentifier(ti, method);
-            else if ((field = mr as FieldReference) != null)
-                return new MemberIdentifier(ti, field);
-            else if ((property = mr as PropertyReference) != null)
-                return new MemberIdentifier(ti, property);
-            else if ((evt = mr as EventReference) != null)
-                return new MemberIdentifier(ti, evt);
-            else
-                throw new NotImplementedException(String.Format(
-                    "Unsupported member reference type: {0}",
-                    mr
-                ));
-        }
-
-        public MemberIdentifier (ITypeInfoSource ti, MethodReference mr, string newName = null) {
-            Type = MemberType.Method;
-            Name = newName ?? mr.Name;
-            ReturnType = mr.ReturnType;
-            ParameterCount = mr.Parameters.Count;
-            ParameterTypes = GetParameterTypes(mr.Parameters);
-
-            if (mr is GenericInstanceMethod)
-                GenericArgumentCount = ((GenericInstanceMethod)mr).GenericArguments.Count;
-            else if (mr.HasGenericParameters)
-                GenericArgumentCount = mr.GenericParameters.Count;
-            else
-                GenericArgumentCount = 0;
-
-            ti.CacheProxyNames(mr);
-
-            HashCode = Type.GetHashCode() ^ Name.GetHashCode();
-        }
-
-        public MemberIdentifier (ITypeInfoSource ti, PropertyReference pr) {
-            Type = MemberType.Property;
-            Name = pr.Name;
-            ReturnType = pr.PropertyType;
-            ParameterCount = 0;
-            GenericArgumentCount = 0;
-            ParameterTypes = null;
-            ti.CacheProxyNames(pr);
-
-            var pd = pr.Resolve();
-            if (pd != null) {
-                if (pd.GetMethod != null) {
-                    ParameterCount = pd.GetMethod.Parameters.Count;
-                    ParameterTypes = (from p in pd.GetMethod.Parameters select p.ParameterType).ToArray();
-                } else if (pd.SetMethod != null) {
-                    ParameterCount = pd.SetMethod.Parameters.Count - 1;
-                    ParameterTypes = (from p in pd.SetMethod.Parameters select p.ParameterType).Take(ParameterCount).ToArray();
-                }
-            }
-
-            HashCode = Type.GetHashCode() ^ Name.GetHashCode();
-        }
-
-        public MemberIdentifier (ITypeInfoSource ti, FieldReference fr) {
-            Type = MemberType.Field;
-            Name = fr.Name;
-            ReturnType = fr.FieldType;
-            ParameterCount = 0;
-            GenericArgumentCount = 0;
-            ParameterTypes = null;
-            ti.CacheProxyNames(fr);
-
-            HashCode = Type.GetHashCode() ^ Name.GetHashCode();
-        }
-
-        public MemberIdentifier (ITypeInfoSource ti, EventReference er) {
-            Type = MemberType.Event;
-            Name = er.Name;
-            ReturnType = er.EventType;
-            ParameterCount = 0;
-            GenericArgumentCount = 0;
-            ParameterTypes = null;
-            ti.CacheProxyNames(er);
-
-            HashCode = Type.GetHashCode() ^ Name.GetHashCode();
-        }
-
-        static TypeReference[] GetParameterTypes (IList<ParameterDefinition> parameters) {
-            if (parameters.Count == 1) {
-                var p = parameters[0];
-                for (int c = p.CustomAttributes.Count, i = 0; i < c; i++) {
-                    var ca = p.CustomAttributes[i];
-                    if ((ca.AttributeType.Name == "ParamArrayAttribute") && (ca.AttributeType.Namespace == "System")) {
-                        var t = JSExpression.DeReferenceType(parameters[0].ParameterType);
-                        var at = t as ArrayType;
-                        if ((at != null) && IsAnyType(at.ElementType))
-                            return AnyParameterTypes;
-                    }
-                }
-            }
-
-            {
-                int c = parameters.Count;
-                var result = new TypeReference[c];
-                for (int i = 0; i < c; i++) {
-                    result[i] = parameters[i].ParameterType;
-                }
-                return result;
-            }
-        }
-
-        static bool IsAnyType (TypeReference t) {
-            if (t == null)
-                return false;
-
-            return (t.Name == "AnyType" && t.Namespace == "JSIL.Proxy") || (t.IsGenericParameter);
-        }
-
-        bool TypesAreEqual (ITypeInfoSource typeInfo, TypeReference lhs, TypeReference rhs) {
-            if (lhs == rhs)
-                return true;
-            else if (lhs == null || rhs == null)
-                return false;
-
-            var lhsReference = lhs as ByReferenceType;
-            var rhsReference = rhs as ByReferenceType;
-
-            if ((lhsReference != null) || (rhsReference != null)) {
-                if ((lhsReference == null) || (rhsReference == null))
-                    return false;
-
-                return TypesAreEqual(typeInfo, lhsReference.ElementType, rhsReference.ElementType);
-            }
-
-            var lhsArray = lhs as ArrayType;
-            var rhsArray = rhs as ArrayType;
-
-            if ((lhsArray != null) || (rhsArray != null)) {
-                if ((lhsArray == null) || (rhsArray == null))
-                    return false;
-
-                return TypesAreEqual(typeInfo, lhsArray.ElementType, rhsArray.ElementType);
-            }
-
-            var lhsGit = lhs as GenericInstanceType;
-            var rhsGit = rhs as GenericInstanceType;
-
-            if ((lhsGit != null) && (rhsGit != null)) {
-                if (lhsGit.GenericArguments.Count != rhsGit.GenericArguments.Count)
-                    return false;
-
-                if (!TypesAreEqual(typeInfo, lhsGit.ElementType, rhsGit.ElementType))
-                    return false;
-
-                using (var eLeft = lhsGit.GenericArguments.GetEnumerator())
-                using (var eRight = rhsGit.GenericArguments.GetEnumerator())
-                while (eLeft.MoveNext() && eRight.MoveNext()) {
-                    if (!TypesAreEqual(typeInfo, eLeft.Current, eRight.Current))
-                        return false;
-                }
-
-                return true;
-            }
-
-            string[] proxyTargets;
-            if (
-                typeInfo.TryGetProxyNames(lhs.FullName, out proxyTargets) &&
-                (proxyTargets != null) &&
-                proxyTargets.Contains(rhs.FullName)
-            ) {
-                return true;
-            } else if (
-                typeInfo.TryGetProxyNames(rhs.FullName, out proxyTargets) &&
-                (proxyTargets != null) &&
-                proxyTargets.Contains(lhs.FullName)
-            ) {
-                return true;
-            }
-
-            if (IsAnyType(lhs) || IsAnyType(rhs))
-                return true;
-
-            return TypeUtil.TypesAreEqual(lhs, rhs);
-        }
-
-        public bool Equals (MemberIdentifier rhs, ITypeInfoSource typeInfo) {
-            if (this == rhs)
-                return true;
-
-            if (Type != rhs.Type)
-                return false;
-
-            if (!String.Equals(Name, rhs.Name))
-                return false;
-
-            if (!TypesAreEqual(typeInfo, ReturnType, rhs.ReturnType))
-                return false;
-
-            if (GenericArgumentCount != rhs.GenericArgumentCount)
-                return false;
-
-            if ((ParameterTypes == AnyParameterTypes) || (rhs.ParameterTypes == AnyParameterTypes)) {
-            } else if ((ParameterTypes == null) || (rhs.ParameterTypes == null)) {
-                if (ParameterTypes != rhs.ParameterTypes)
-                    return false;
-            } else {
-                if (ParameterCount != rhs.ParameterCount)
-                    return false;
-
-                for (int i = 0, c = ParameterCount; i < c; i++) {
-                    if (!TypesAreEqual(typeInfo, ParameterTypes[i], rhs.ParameterTypes[i]))
-                        return false;
-                }
-            }
-
-            return true;
-        }
-
-        public override bool Equals (object obj) {
-            throw new InvalidOperationException("Use MemberIdentifier.Equals(...) explicitly.");
-        }
-
-        public override int GetHashCode () {
-            return HashCode;
-        }
-
-        public override string ToString () {
-            var name = Name;
-
-            if (GenericArgumentCount != 0)
-                name = String.Format("{0}`{1}", name, GenericArgumentCount);
-
-            if (ParameterTypes != null)
-                return String.Format(
-                    "{0} {1} ( {2} )", ReturnType, name,
-                    String.Join(", ", (from p in ParameterTypes select p.ToString()).ToArray())
-                );
-            else
-                return String.Format(
-                    "{0} {1}", ReturnType, name
-                );
-        }
-    }
-
     public class ModuleInfo {
         public readonly bool IsIgnored;
         public readonly MetadataCollection Metadata;
@@ -673,14 +326,14 @@ namespace JSIL.Internal {
         public readonly MetadataCollection Metadata;
         public readonly ProxyInfo[] Proxies;
 
-        public readonly MethodSignatureCollection MethodSignatures = new MethodSignatureCollection();
+        public readonly MethodSignatureCollection MethodSignatures;
         public readonly HashSet<MethodGroupInfo> MethodGroups = new HashSet<MethodGroupInfo>();
 
         public readonly bool IsFlagsEnum;
         public readonly EnumMemberInfo FirstEnumMember = null;
-        public readonly Dictionary<long, EnumMemberInfo> ValueToEnumMember;
-        public readonly Dictionary<string, EnumMemberInfo> EnumMembers;
-        public readonly Dictionary<MemberIdentifier, IMemberInfo> Members;
+        public readonly ConcurrentDictionary<long, EnumMemberInfo> ValueToEnumMember;
+        public readonly ConcurrentDictionary<string, EnumMemberInfo> EnumMembers;
+        public readonly ConcurrentDictionary<MemberIdentifier, IMemberInfo> Members;
         public readonly bool IsProxy;
         public readonly bool IsDelegate;
         public readonly string Replacement;
@@ -705,6 +358,7 @@ namespace JSIL.Internal {
 
             Proxies = source.GetProxies(type);
             Metadata = new MetadataCollection(type);
+            MethodSignatures = new MethodSignatureCollection();
 
             // Do this check before copying attributes from proxy types, since that will copy their JSProxy attribute
             IsProxy = Metadata.HasAttribute("JSIL.Proxy.JSProxy");
@@ -785,7 +439,7 @@ namespace JSIL.Internal {
             {
                 var capacity = type.Fields.Count + type.Properties.Count + type.Events.Count + type.Methods.Count;
                 var comparer = new MemberIdentifier.Comparer(source);
-                Members = new Dictionary<MemberIdentifier, IMemberInfo>(capacity, comparer);
+                Members = new ConcurrentDictionary<MemberIdentifier, IMemberInfo>(1, capacity, comparer);
             }
 
             foreach (var field in type.Fields)
@@ -822,8 +476,8 @@ namespace JSIL.Internal {
                 long enumValue = 0;
 
                 var capacity = type.Fields.Count;
-                ValueToEnumMember = new Dictionary<long, EnumMemberInfo>(capacity);
-                EnumMembers = new Dictionary<string, EnumMemberInfo>(capacity);
+                ValueToEnumMember = new ConcurrentDictionary<long, EnumMemberInfo>(1, capacity);
+                EnumMembers = new ConcurrentDictionary<string, EnumMemberInfo>(1, capacity);
 
                 foreach (var field in type.Fields) {
                     // Skip 'value__'
@@ -854,12 +508,16 @@ namespace JSIL.Internal {
                     var p = (PropertyInfo)AddProxyMember(proxy, property);
 
                     if (property.GetMethod != null) {
-                        AddProxyMember(proxy, property.GetMethod, p);
+                        if (!property.CustomAttributes.Any(ShouldNeverReplace))
+                            AddProxyMember(proxy, property.GetMethod, p);
+
                         seenMethods.Add(property.GetMethod);
                     }
 
                     if (property.SetMethod != null) {
-                        AddProxyMember(proxy, property.SetMethod, p);
+                        if (!property.CustomAttributes.Any(ShouldNeverReplace))
+                            AddProxyMember(proxy, property.SetMethod, p);
+
                         seenMethods.Add(property.SetMethod);
                     }
                 }
@@ -868,12 +526,16 @@ namespace JSIL.Internal {
                     var e = (EventInfo)AddProxyMember(proxy, evt);
 
                     if (evt.AddMethod != null) {
-                        AddProxyMember(proxy, evt.AddMethod, e);
+                        if (!evt.CustomAttributes.Any(ShouldNeverReplace))
+                            AddProxyMember(proxy, evt.AddMethod, e);
+
                         seenMethods.Add(evt.AddMethod);
                     }
 
                     if (evt.RemoveMethod != null) {
-                        AddProxyMember(proxy, evt.RemoveMethod, e);
+                        if (!evt.CustomAttributes.Any(ShouldNeverReplace))
+                            AddProxyMember(proxy, evt.RemoveMethod, e);
+
                         seenMethods.Add(evt.RemoveMethod);
                     }
                 }
@@ -892,9 +554,11 @@ namespace JSIL.Internal {
                     if (isStatic && !method.IsStatic)
                         continue;
 
-                    // TODO: No way to detect whether the constructor was compiler-generated.
-                    if ((method.Name == ".ctor") && (method.Parameters.Count == 0))
-                        continue;
+                    // The constructor may be compiler-generated, so only replace if it has the attribute.
+                    if ((method.Name == ".ctor") && (method.Parameters.Count == 0)) {
+                        if (!method.CustomAttributes.Any((ca) => ca.AttributeType.FullName == "JSIL.Meta.JSReplaceConstructor"))
+                            continue;
+                    }
 
                     AddProxyMember(proxy, method);
                 }
@@ -1045,8 +709,7 @@ namespace JSIL.Internal {
                     if (result.IsFromProxy)
                         Debug.WriteLine(String.Format("Warning: Proxy member '{0}' replacing proxy member '{1}'.", member, result));
 
-                    lock (Members)
-                        Members.Remove(identifier);
+                    Members.TryRemove(identifier, out result);
                 } else {
                     throw new ArgumentException(String.Format(
                         "Member '{0}' not found", member.Name
@@ -1110,7 +773,7 @@ namespace JSIL.Internal {
         static readonly Regex IgnoredKeywordRegex = new Regex(
             @"__BackingField|CS\$\<|__DisplayClass|\<PrivateImplementationDetails\>|" +
             @"Runtime\.CompilerServices\.CallSite|\<Module\>|__SiteContainer|" +
-            @"__CachedAnonymousMethodDelegate", RegexOptions.Compiled
+            @"__DynamicSite|__CachedAnonymousMethodDelegate", RegexOptions.Compiled
         );
 
         public static string GetOriginalName (string memberName) {
@@ -1156,22 +819,23 @@ namespace JSIL.Internal {
                 if (m2.Success) {
                     switch (m2.Value) {
                         case "__BackingField":
-                            return false;
                         case "__DisplayClass":
                             return false;
+
+                        case "<PrivateImplementationDetails>":
+                        case "Runtime.CompilerServices.CallSite":
+                        case "<Module>":
+                        case "__SiteContainer":
+                        case "__DynamicSite":
+                            return true;
+
+
                         case "CS$<":
                             if (!isField)
                                 return true;
 
                             break;
-                        case "<PrivateImplementationDetails>":
-                            return true;
-                        case "Runtime.CompilerServices.CallSite":
-                            return true;
-                        case "<Module>":
-                            return true;
-                        case "__SiteContainer":
-                            return true;
+
                         case "__CachedAnonymousMethodDelegate":
                             if (isField)
                                 return true;
@@ -1203,12 +867,17 @@ namespace JSIL.Internal {
             foreach (var t in SelfAndBaseTypesRecursive) {
                 int existingCount;
 
-                var set = t.MethodSignatures.GetOrCreate(
-                    methodName, () => new MethodSignatureSet()
-                );
+                var set = t.MethodSignatures.GetOrCreateFor(methodName);
 
                 set.Add(signature);
             }
+
+            // FIXME: This breaks Dictionary.Values.GetEnumerator. Is it right?
+            /*
+            var dotPosition = methodName.LastIndexOf(".");
+            if (dotPosition > 0)
+                UpdateSignatureSet(methodName.Substring(dotPosition + 1), signature);
+             */
         }
 
         protected MethodInfo AddMember (MethodDefinition method, PropertyInfo property, bool isFromProxy = false) {
@@ -1223,8 +892,8 @@ namespace JSIL.Internal {
             else if (property.Member.SetMethod == method)
                 property.Setter = (MethodInfo)result;
 
-            lock (Members)
-                Members.Add(identifier, result);
+            if (!Members.TryAdd(identifier, result))
+                throw new InvalidOperationException();
 
             UpdateSignatureSet(result.Name, ((MethodInfo)result).Signature);
 
@@ -1238,8 +907,8 @@ namespace JSIL.Internal {
                 return (MethodInfo)result;
 
             result = new MethodInfo(this, identifier, method, Proxies, evt, isFromProxy);
-            lock (Members)
-                Members.Add(identifier, result);
+            if (!Members.TryAdd(identifier, result))
+                throw new InvalidOperationException();
 
             UpdateSignatureSet(result.Name, ((MethodInfo)result).Signature);
 
@@ -1253,8 +922,8 @@ namespace JSIL.Internal {
                 return (MethodInfo)result;
 
             result = new MethodInfo(this, identifier, method, Proxies, isFromProxy);
-            lock (Members)
-                Members.Add(identifier, result);
+            if (!Members.TryAdd(identifier, result))
+                throw new InvalidOperationException();
 
             if (method.Name == ".cctor")
                 StaticConstructor = method;
@@ -1271,20 +940,26 @@ namespace JSIL.Internal {
                 return (FieldInfo)result;
 
             result = new FieldInfo(this, identifier, field, Proxies);
-            lock (Members)
-                Members.Add(identifier, result);
+            if (!Members.TryAdd(identifier, result))
+                throw new InvalidOperationException();
+
             return (FieldInfo)result;
         }
 
         protected PropertyInfo AddMember (PropertyDefinition property, bool isFromProxy = false) {
             IMemberInfo result;
             var identifier = new MemberIdentifier(this.Source, property);
-            if (Members.TryGetValue(identifier, out result))
-                return (PropertyInfo)result;
+            if (Members.TryGetValue(identifier, out result)) {
+                if (!isFromProxy)
+                    return (PropertyInfo)result;
+                else
+                    Members.TryRemove(identifier, out result);
+            }
 
             result = new PropertyInfo(this, identifier, property, Proxies, isFromProxy);
-            lock (Members)
-                Members.Add(identifier, result);
+            if (!Members.TryAdd(identifier, result))
+                throw new InvalidOperationException();
+
             return (PropertyInfo)result;
         }
 
@@ -1295,8 +970,9 @@ namespace JSIL.Internal {
                 return (EventInfo)result;
 
             result = new EventInfo(this, identifier, evt, Proxies, isFromProxy);
-            lock (Members)
-                Members.Add(identifier, result);
+            if (!Members.TryAdd(identifier, result))
+                throw new InvalidOperationException();
+
             return (EventInfo)result;
         }
 
@@ -1489,6 +1165,7 @@ namespace JSIL.Internal {
         protected readonly JSWritePolicy _WritePolicy;
         protected readonly JSInvokePolicy _InvokePolicy;
         protected bool? _IsReturnIgnored;
+        protected bool _WasReservedIdentifier;
 
         public MemberInfo (
             TypeInfo parent, MemberIdentifier identifier, 
@@ -1540,6 +1217,8 @@ namespace JSIL.Internal {
                     }
                 }
             }
+
+            _WasReservedIdentifier = Util.ReservedIdentifiers.Contains(Name);
         }
 
         // Sometimes the type system prefixes the name of a member with some or all of the declaring type's name.
@@ -1600,6 +1279,9 @@ namespace JSIL.Internal {
                 var parms = Metadata.GetAttributeParameters("JSIL.Meta.JSChangeName");
                 if (parms != null)
                     return (string)parms[0].Value;
+
+                if (_WasReservedIdentifier)
+                    return "$" + Member.Name;
 
                 return null;
             }
@@ -1903,10 +1585,16 @@ namespace JSIL.Internal {
             if (cn != null)
                 return cn;
 
-            if ((declType != null) && declType.IsInterface)
-                result = String.Format("{0}.{1}", declType.Name, ShortName);
-            else if (over != null)
-                result = String.Format("{0}.{1}", over.DeclaringType.Name, ShortName);
+            if ((declType != null) && declType.IsInterface) {
+                result = String.Format("{0}.{1}", TypeUtil.GetLocalName(declType), ShortName);
+            // FIXME: Enable this so MultipleGenericInterfaces2.cs passes.
+            /*
+            } else if (Member.Name.IndexOf(".") > 0) {
+                // Qualified reference to an interface member
+                result = Member.Name;
+            */
+            } else if (over != null)
+                result = String.Format("{0}.{1}", TypeUtil.GetLocalName(over.DeclaringType.Resolve()), ShortName);
             else
                 result = ShortName;
             

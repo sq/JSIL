@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Mono.Cecil;
@@ -23,7 +24,9 @@ namespace JSIL.Internal {
         public readonly TypeReference[] ParameterTypes;
         public readonly string[] GenericParameterNames;
 
-        internal int? ID;
+        public static int NextID = 0;
+
+        internal int ID;
 
         protected int? _Hash;
 
@@ -33,6 +36,7 @@ namespace JSIL.Internal {
             ReturnType = returnType;
             ParameterTypes = parameterTypes;
             GenericParameterNames = genericParameterNames;
+            ID = Interlocked.Increment(ref NextID);
         }
 
         public int ParameterCount {
@@ -71,6 +75,11 @@ namespace JSIL.Internal {
                     return false;
             }
 
+            for (int i = 0, c = GenericParameterNames.Length; i < c; i++) {
+                if (GenericParameterNames[i] != rhs.GenericParameterNames[i])
+                    return false;
+            }
+
             return true;
         }
 
@@ -102,82 +111,86 @@ namespace JSIL.Internal {
             _Hash = hash;
             return hash;
         }
+
+        public override string ToString () {
+            if (GenericParameterCount > 0) {
+                return String.Format(
+                    "<{0}>({1})",
+                    String.Join(",", GenericParameterNames),
+                    String.Join(",", (from p in ParameterTypes select p.ToString()))
+                );
+            } else {
+                return String.Format(
+                    "({0})",
+                    String.Join(",", (from p in ParameterTypes select p.ToString()))
+                );
+            }
+        }
     }
 
-    public class MethodSignatureCache {
-        // private readonly ConcurrentCache<MethodSignature, int> IDs;
-        private int NextID = 0;
+    public struct NamedMethodSignature {
+        public readonly MethodSignature Signature;
+        public readonly string Name;
 
-        public MethodSignatureCache () {
-            /*
-            IDs = new ConcurrentCache<MethodSignature, int>(
-                Environment.ProcessorCount, 8192, new MethodSignature.EqualityComparer()
-            );
-             */
+        private int? _Hash;
+
+        public NamedMethodSignature (string name, MethodSignature signature) {
+            Name = name;
+            Signature = signature;
+            _Hash = null;
         }
 
-        private int CreateEntry (MethodSignature signature) {
-            var id = Interlocked.Increment(ref NextID);
-            signature.ID = id;
-            return id;
+        public override int GetHashCode() {
+            if (!_Hash.HasValue)
+                _Hash = (Name.GetHashCode() ^ Signature.GetHashCode());
+
+            return _Hash.Value;
         }
 
-        public bool AssignID (MethodSignature signature) {
-            /*
-            return IDs.TryCreate(
-                signature, () => CreateEntry(signature)
-            );
-             */
+        public class Comparer : IEqualityComparer<NamedMethodSignature> {
+            public bool Equals (NamedMethodSignature x, NamedMethodSignature y) {
+                var result = (x.Name == y.Name) && (x.Signature.Equals(y.Signature));
+                return result;
+            }
 
-            CreateEntry(signature);
-
-            return true;
+            public int GetHashCode (NamedMethodSignature obj) {
+                return obj.GetHashCode();
+            }
         }
 
-        public int Get (MethodSignature signature) {
-            if (signature.ID.HasValue)
-                return signature.ID.Value;
-
-            if (AssignID(signature))
-                return signature.ID.Value;
-            else
-                throw new InvalidOperationException("Signature ID assignment failed");
-
-            /*
-            return IDs.GetOrCreate(
-                signature, () => CreateEntry(signature)
-            );
-             */
+        public override string ToString () {
+            return String.Format("{0}{1}", Name, Signature);
         }
     }
 
     public class MethodSignatureSet : IDisposable {
-        private class Count {
+        internal class Count {
             public int Value = 0;
         }
 
         private int _Count = 0;
-        private readonly ConcurrentCache<MethodSignature, Count> Counts;
+        private readonly ConcurrentCache<NamedMethodSignature, Count> Counts;
+        private readonly string Name;
 
-        public MethodSignatureSet () {
-            Counts = new ConcurrentCache<MethodSignature, Count>(
-                1, 8, new MethodSignature.EqualityComparer()
-            );
+        internal MethodSignatureSet (MethodSignatureCollection collection, string name) {
+            Counts = collection.Counts;
+            Name = name;
         }
 
         public IEnumerable<MethodSignature> Signatures {
             get {
-                return Counts.Keys;
+                foreach (var key in Counts.Keys)
+                    if (key.Name == this.Name)
+                        yield return key.Signature;
             }
         }
 
         public void Dispose () {
-            Counts.Dispose();
         }
 
         public void Add (MethodSignature signature) {
             var count = Counts.GetOrCreate(
-                signature, () => new Count()
+                new NamedMethodSignature(Name, signature), () => new Count()
             );
 
             Interlocked.Increment(ref _Count);
@@ -186,7 +199,7 @@ namespace JSIL.Internal {
 
         public int GetCountOf (MethodSignature signature) {
             Count result;
-            if (Counts.TryGet(signature, out result))
+            if (Counts.TryGet(new NamedMethodSignature(Name, signature), out result))
                 return result.Value;
 
             return 0;
@@ -200,14 +213,26 @@ namespace JSIL.Internal {
 
         public int DistinctSignatureCount {
             get {
-                return Counts.Count;
+                int result = 0;
+
+                foreach (var key in Counts.Keys)
+                    if (key.Name == this.Name)
+                        result += 1;
+
+                return result;
             }
         }
     }
 
     public class MethodSignatureCollection : ConcurrentCache<string, MethodSignatureSet>, IDisposable {
+        internal readonly ConcurrentCache<NamedMethodSignature, MethodSignatureSet.Count> Counts;
+
         public MethodSignatureCollection ()
-            : base() {
+            : base(1, 8, StringComparer.Ordinal) {
+
+            Counts = new ConcurrentCache<NamedMethodSignature, MethodSignatureSet.Count>(
+                1, 8, new NamedMethodSignature.Comparer()
+            );
         }
 
         public int GetOverloadCountOf (string methodName) {
@@ -226,12 +251,10 @@ namespace JSIL.Internal {
             return 0;
         }
 
-        public override void Dispose () {
-            foreach (var kvp in this) {
-                kvp.Value.Dispose();
-            }
-
-            base.Dispose();
+        public MethodSignatureSet GetOrCreateFor (string methodName) {
+            return GetOrCreate(
+                methodName, () => new MethodSignatureSet(this, methodName)
+            );
         }
     }
 }

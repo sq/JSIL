@@ -26,6 +26,15 @@ namespace JSIL {
                 return null;
             }
         }
+
+        /// <summary>
+        /// When running as javascript, this property evaluates to true.
+        /// </summary>
+        public static bool IsJavascript {
+            get {
+                return false;
+            }
+        }
     }
 
     public static class Verbatim {

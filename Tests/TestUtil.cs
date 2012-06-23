@@ -183,7 +183,7 @@ namespace JSIL.Tests {
 
         public static readonly string TestSourceFolder;
         public static readonly string JSShellPath;
-        public static readonly string CoreJSPath, BootstrapJSPath, XMLJSPath, LongJSPath;
+        public static readonly string CoreJSPath, BootstrapJSPath, XMLJSPath, IOJSPath, LongJSPath;
 
         public readonly TypeInfoProvider TypeInfo;
         public readonly AssemblyCache AssemblyCache;
@@ -202,12 +202,13 @@ namespace JSIL.Tests {
             CoreJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.Core.js"));
             BootstrapJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.Bootstrap.js"));
             XMLJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.XML.js"));
+            IOJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\JSIL.IO.js"));
             LongJSPath = Path.GetFullPath(Path.Combine(TestSourceFolder, @"..\Libraries\long.js"));
         }
 
         public static string MapSourceFileToTestFile (string sourceFile) {
             return Regex.Replace(
-                sourceFile, "(\\.cs|\\.vb)$", "$0.js"
+                sourceFile, "(\\.cs|\\.vb|\\.exe|\\.dll)$", "$0.js"
             );
         }
 
@@ -254,6 +255,14 @@ namespace JSIL.Tests {
                     break;
                 case ".vb":
                     Assembly = CompilerUtil.CompileVB(absoluteFilenames, assemblyName);
+                    break;
+                case ".exe":
+                case ".dll":
+                    var fns = absoluteFilenames.ToArray();
+                    if (fns.Length > 1)
+                        throw new InvalidOperationException("Multiple binary assemblies provided.");
+
+                    Assembly = Assembly.LoadFile(fns[0]);
                     break;
                 default:
                     throw new ArgumentException("Unsupported source file type for test");
@@ -314,7 +323,17 @@ namespace JSIL.Tests {
 
                     var testMethod = GetTestMethod();
                     long startedCs = DateTime.UtcNow.Ticks;
-                    testMethod.Invoke(null, new object[] { args });
+
+                    var argCount = testMethod.GetParameters().Length;
+
+                    if (argCount == 1) {
+                        testMethod.Invoke(null, new object[] { args });
+                    } else if (argCount == 0) {
+                        testMethod.Invoke(null, new object[] { });
+                    } else {
+                        throw new Exception("Test's Main method must take either 0 or 1 argument(s)");
+                    }
+
                     long endedCs = DateTime.UtcNow.Ticks;
 
                     elapsed = endedCs - startedCs;
@@ -522,8 +541,8 @@ namespace JSIL.Tests {
                     TimeSpan.FromTicks(elapsed[1]).TotalMilliseconds,
                     TimeSpan.FromTicks(elapsed[2]).TotalMilliseconds
                 );
-            } catch {
-                Console.WriteLine("failed");
+            } catch (Exception ex){
+                Console.WriteLine("failed: " + ex.Message + " " + (ex.InnerException == null ? "" : ex.InnerException.Message));
 
                 Console.WriteLine("// {0}", GetTestRunnerLink(OutputPath));
 
@@ -562,6 +581,7 @@ namespace JSIL.Tests {
                         Util.EscapeString(ComparisonTest.CoreJSPath),
                         Util.EscapeString(ComparisonTest.BootstrapJSPath),
                         Util.EscapeString(ComparisonTest.XMLJSPath),
+                        Util.EscapeString(ComparisonTest.IOJSPath),
                         Util.EscapeString(ComparisonTest.LongJSPath)
                     )
             );
@@ -757,11 +777,15 @@ namespace JSIL.Tests {
             return generatedJs;
         }
 
-        protected string GenericTest (string fileName, string csharpOutput, string javascriptOutput, string[] stubbedAssemblies = null) {
+        protected string GenericTest (
+            string fileName, string csharpOutput, 
+            string javascriptOutput, string[] stubbedAssemblies = null,
+            TypeInfoProvider typeInfo = null
+        ) {
             long elapsed, temp;
             string generatedJs = null;
 
-            using (var test = new ComparisonTest(EvaluatorPool, fileName, stubbedAssemblies)) {
+            using (var test = new ComparisonTest(EvaluatorPool, fileName, stubbedAssemblies, typeInfo)) {
                 var csOutput = test.RunCSharp(new string[0], out elapsed);
 
                 try {

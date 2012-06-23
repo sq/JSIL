@@ -27,21 +27,45 @@ namespace JSIL.Transforms {
             OptimizeCopies = optimizeCopies;
         }
 
-        public static bool IsStruct (TypeReference type) {
-            if (type == null)
+        protected bool IsImmutable (JSExpression target) {
+            while (target is JSReferenceExpression)
+                target = ((JSReferenceExpression)target).Referent;
+
+            var fieldAccess = target as JSFieldAccess;
+            if (fieldAccess != null) {
+                return fieldAccess.Field.Field.Metadata.HasAttribute("JSIL.Meta.JSImmutable");
+            }
+
+            var dot = target as JSDotExpressionBase;
+            if (dot != null) {
+                if (IsImmutable(dot.Target))
+                    return true;
+                else if (IsImmutable(dot.Member))
+                    return true;
+            }
+
+            var indexer = target as JSIndexerExpression;
+            if (indexer != null) {
+                if (IsImmutable(indexer.Target))
+                    return true;
+            }
+
+            return false;
+        }
+
+        protected bool IsCopyNeededForAssignmentTarget (JSExpression target) {
+            if (!OptimizeCopies)
+                return true;
+
+            if (IsImmutable(target))
                 return false;
 
-            type = TypeUtil.DereferenceType(type);
-            MetadataType etype = type.MetadataType;
+            var variable = target as JSVariable;
+            if (variable != null) {
+                return SecondPass.ModifiedVariables.Contains(variable.Name);
+            }
 
-            if (TypeUtil.IsEnum(type))
-                return false;
-
-            var git = type as GenericInstanceType;
-            if (git != null)
-                return git.IsValueType;
-
-            return (etype == MetadataType.ValueType);
+            return true;
         }
 
         protected bool IsCopyNeeded (JSExpression value) {
@@ -53,7 +77,7 @@ namespace JSIL.Transforms {
 
             var valueType = value.GetActualType(TypeSystem);
 
-            if (!IsStruct(valueType))
+            if (!TypeUtil.IsStruct(valueType))
                 return false;
 
             if (valueType.FullName.StartsWith("System.Nullable"))
@@ -66,6 +90,12 @@ namespace JSIL.Transforms {
             ) {
                 return false;
             }
+
+            if (!OptimizeCopies)
+                return true;
+
+            if (IsImmutable(value))
+                return false;
             
             // If the expression is a parameter that is only used once and isn't aliased,
             //  we don't need to copy it.
@@ -155,6 +185,9 @@ namespace JSIL.Transforms {
             if (!IsCopyNeeded(expression))
                 return false;
 
+            if (!OptimizeCopies)
+                return true;
+
             bool modified = true, escapes = true, isResult = false;
 
             if (parameterName != null) {
@@ -218,10 +251,15 @@ namespace JSIL.Transforms {
             }
 
             if (IsCopyNeeded(boe.Right)) {
-                if (Tracing)
-                    Debug.WriteLine(String.Format("struct copy introduced for assignment rhs {0}", boe.Right));
+                if (IsCopyNeededForAssignmentTarget(boe.Left)) {
+                    if (Tracing)
+                        Debug.WriteLine(String.Format("struct copy introduced for assignment rhs {0}", boe.Right));
 
-                boe.Right = new JSStructCopyExpression(boe.Right);
+                    boe.Right = new JSStructCopyExpression(boe.Right);
+                } else {
+                    if (Tracing)
+                        Debug.WriteLine(String.Format("struct copy elided for assignment rhs {0}", boe.Right));
+                }
             }
 
             VisitChildren(boe);

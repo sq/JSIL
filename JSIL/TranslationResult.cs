@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using JSIL.Translator;
 using Mono.Cecil;
 
 namespace JSIL {
@@ -13,10 +14,15 @@ namespace JSIL {
             public ArraySegment<byte> Contents;
         }
 
+        public readonly Configuration Configuration;
         public readonly List<AssemblyDefinition> Assemblies = new List<AssemblyDefinition>();
         public readonly List<string> FileOrder = new List<string>();
         public readonly Dictionary<string, ResultFile> Files = new Dictionary<string, ResultFile>();
         public ArraySegment<byte> Manifest;
+
+        internal TranslationResult (Configuration configuration) {
+            Configuration = configuration;
+        }
 
         public IEnumerable<ResultFile> OrderedFiles {
             get {

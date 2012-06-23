@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Try JSIL</title>
+    <link rel="stylesheet" type="text/css" href="../reset.css">
+    <link rel="stylesheet" type="text/css" href="../common.css">
+    <link rel="stylesheet" type="text/css" href="codemirror.css">
+    <link rel="stylesheet" type="text/css" href="index.css?v3">
+  </head>
+  <body onload="onLoad()">
+    <div id="content_box">
+      <div id="header" class="rounded-box">
+        <h1><img src="../images/jsil_48px.png" id="logo">Try JSIL</h1>
+        <p>Try <a href="http://jsil.org/">JSIL</a> out in your browser! Type some C# into the <b>Source Code</b> box below, and click <b>Compile &amp; Run</b>.</p>
+        <p>The C# you enter is compiled on the JSIL server using the <a href="http://go-mono.com/">Mono</a> compiler, then translated to JavaScript by JSIL and sent back to you.</p>
+        <p>Not familiar with C#? Try out some of the <a href="http://msdn.microsoft.com/en-us/library/aa288436%28v=vs.71%29.aspx">C# Tutorials</a> from the Microsoft website!</p>
+        <p>You can share code snippets with your friends by saving them as <a href="http://gist.github.com/">GitHub Gists</a> and <a href="http://jsil.org/try/#" id="share_link">sharing this link</a>!</p>
+        <div class="linkspam">
+<div class="g-plusone" data-size="medium" data-href="http://jsil.org/try/"></div>
+<a href="https://twitter.com/share" class="twitter-share-button" data-text="Try out C# (and JSIL) in your browser" data-url="http://jsil.org/try/" data-via="antumbral">Tweet</a>
+</div>
+      </div>
+      <div id="code_box" class="rounded-box">
+        <div id="columns">
+          <h3></h3><br>
+          <div id="column_spacer"></div>
+
+          <div id="left_column">
+            <h3 id="source_caption">Source Code</h3>
+            <textarea id="sourcecode">using System;
+using JSIL;
+using JSIL.Meta;
+
+public static class Program {
+  public static int x = 10;
+  public static int y = 20;
+  
+  public static void Main () {
+    dynamic document = Builtins.Global["document"];
+    dynamic window = Builtins.Global["window"];
+    
+    var canvas = document.createElement("canvas");
+    var ctx = canvas.getContext("2d");
+    var body = document.getElementsByTagName("body")[0];
+
+    Console.WriteLine("Hello JSIL World!");
+
+    body.appendChild(canvas);
+    
+    window.setInterval((Action)(() => {
+      Redraw(ctx);
+    }), 25);
+  }
+  
+  public static void Redraw (dynamic ctx) {
+    x += 2;
+    
+    ctx.clearRect(0, 0, 300, 300);
+    
+    ctx.fillStyle = "red";
+    ctx.fillRect(x, y, 20, 20);
+  }
+}</textarea>
+          </div>
+
+          <div id="splitter" title="Drag to resize"> </div>
+
+          <div id="right_column">
+            <h3>Output JS</h3>
+            <textarea id="javascript"></textarea>          
+          </div>
+        </div>
+
+        <div id="controls">
+          <button id="compile" disabled>Compile &amp; Run</button>
+          <button id="save_gist" disabled>Save Gist</button>
+          <img id="throbber" src="throbber.gif" title="Compiling. Please wait...">
+        </div>
+        <div id="status"></div>
+      </div>
+
+      <div id="examples" class="rounded-box">
+        <div id="my_gists" style="display:none">
+          <h3>My Gists</h3>
+          <div id="my_gists_box">
+            <img id="my_gists_throbber" src="throbber.gif" title="Loading. Please wait...">
+            <ul id="my_gists_list">
+            </ul>
+          </div>
+        </div>
+        <h3>Examples</h3>
+        <div id="examples_box">
+          <img id="examples_throbber" src="throbber.gif" title="Loading. Please wait...">
+          <ul id="examples_list">
+          </ul>
+        </div>
+      </div>
+
+      <div id="script_output" class="rounded-box">
+        <h3>Script Output</h3>
+        <iframe id="iframe" src="output_frame.html" frameborder="0" marginwidth="0" marginheight="0" scrolling="auto" sandbox="allow-same-origin allow-scripts" seamless>
+        </iframe>
+      </div>
+    </div>
+
+    <div id="save_gist_container">
+      <div id="save_gist_dialog" class="rounded-box">
+        <h2>Save Gist</h2>
+        <label for="gist_name">Gist Name:</label> <input type="text" id="gist_name" value="My Gist"><br>
+        <button id="confirm_save_gist">Save</button> <button id="cancel_save_gist">Cancel</button>
+      </div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js" type="text/javascript"></script>
+    <script src="jquery.cookie.js" type="text/javascript"></script>
+    <script src="codemirror.js" type="text/javascript"></script>
+    <script src="clike.js" type="text/javascript"></script>
+    <script src="javascript.js" type="text/javascript"></script>
+    <script src="index.js?v3" type="text/javascript"></script>
+    
+    <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+    <script type="text/javascript">
+      (function() {
+        var po = document.createElement('script'); po.type = 'text/javascript'; po.async = true;
+        po.src = 'https://apis.google.com/js/plusone.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
+      })();
+    </script>
+
+    <script type="text/javascript">
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-6375004-6']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+    </script>
+  </body>
+</html>
