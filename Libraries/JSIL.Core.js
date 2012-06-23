@@ -3348,7 +3348,7 @@ JSIL.Cast = function (value, expectedType) {
     return result;
   } else if (JSIL.CheckType(value, expectedType)) {
     // If the user is casting to an integral type like Int32, we need to floor the value since JS stores all numbers as double
-    if (expectedType.__IsIntegral__) {
+    if (expectedType.__IsIntegral__ && expectedType.FullName != "System.Int64") {
       return Math.floor(value);
     } else {
       return value;

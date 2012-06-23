@@ -125,7 +125,7 @@ JSIL.MakeNumericType(Number, "System.Int32", true);
 JSIL.ImplementExternals(
   "System.Int64", function ($) {
     $.RawMethod(true, "CheckType", function (value) {
-      return (typeof (value) === "number");
+      return value.constructor === goog.math.Long;
     });
 
     $.Method({Static:true , Public:true }, "Parse", 
