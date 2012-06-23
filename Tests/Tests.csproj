@@ -102,6 +102,7 @@
     <None Include="TestCases\NullableObjectCast.cs" />
     <Compile Include="EvaluatorPool.cs" />
     <None Include="SimpleTestCases\Int64.cs" />
+    <None Include="TestCases\LongArithmetic.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

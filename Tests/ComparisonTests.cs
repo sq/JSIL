@@ -257,7 +257,7 @@ namespace JSIL.Tests {
         public void AllSimpleTests () {
             var typeInfo = MakeDefaultProvider();
             var testPath = Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "SimpleTestCases"));
-            var simpleTests = Directory.GetFiles(testPath, "*.cs").Concat(Directory.GetFiles(testPath, "*.vb")).ToArray();
+            var simpleTests = Directory.GetFiles(testPath, "Int64.cs").Concat(Directory.GetFiles(testPath, "*.vb")).ToArray();
 
             RunComparisonTests(
                 simpleTests, null, typeInfo
@@ -350,6 +350,7 @@ namespace JSIL.Tests {
 
             RunComparisonTests(
                 new[] { 
+                    @"TestCases\LongArithmetic.cs",
                     @"TestCases\IntegerArithmetic.cs",
                     @"TestCases\TernaryArithmetic.cs",
                     @"TestCases\NullableArithmetic.cs"

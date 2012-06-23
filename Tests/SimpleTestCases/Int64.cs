@@ -1,11 +1,31 @@
 ﻿using System;
 
+interface L
+{
+    long Value { get; set; }
+    long Getter();
+    void Setter(long l);
+}
+
+class A : L
+{
+    public long Value { get; set; }
+    public long Getter() { return Value; }
+    public void Setter(long l) { Value = l; }
+}
+
+struct Foo
+{
+    public int X;
+}
+
 public class Program
 {
     public const long TEST_CONST = 1000L;
     public readonly long TEST_READONLY_FIELD = 2000L;
     public static long TEST_STATIC_FIELD = 3000L;
     public long TEST_NORMAL_FIELD = 4000L;
+
 
     public static void Main(string[] args)
     {
@@ -28,10 +48,10 @@ public class Program
         Console.WriteLine(1000000000000L + x);
         Console.WriteLine(1L + 0L);
         Console.WriteLine(1L + x);
-        //Console.WriteLine(1L + -x);
+        Console.WriteLine(1L + -x);
         Console.WriteLine(1 + 0L);
         Console.WriteLine(1 + x);
-        //Console.WriteLine(1 + -x);
+        Console.WriteLine(1 + -x);
 
         // subtraction
         Console.WriteLine(1000000000000L - x);
@@ -44,6 +64,7 @@ public class Program
 
         // conversion
         Console.WriteLine(((long)Math.Round(40.1d)) * x);
+        Console.WriteLine((double)(x + y) + 123.5);
 
         // comparison
         WriteBool(x == y);
@@ -79,8 +100,11 @@ public class Program
         t *= 10000;
         Console.WriteLine(t);
 
-        //object box = x;
-        //Console.WriteLine(x * (long)box);
+        object box = Boxed();
+        Console.WriteLine(x * (long)box);
+
+        object bbox = BoxedFoo();
+        Console.WriteLine(((Foo)bbox).X);
 
         var n = 634590720000000000L;
         var m = 864000000000L;
@@ -89,6 +113,26 @@ public class Program
         Console.WriteLine(1 + (int)(n / m));
 
         Console.WriteLine(div(123, 333));
+
+        var a = new A();
+        a.Value = 45;
+        Console.WriteLine(a.Value);
+        a.Setter(n);
+        Console.WriteLine(a.Value);
+
+        L l = a;
+        l.Value = m;
+        Console.WriteLine(l.Getter());
+    }
+
+    public static object BoxedFoo()
+    {
+        return new Foo();
+    }
+
+    public static object Boxed()
+    {
+        return 634590720000000000L;
     }
 
     public static void WriteBool(bool b)

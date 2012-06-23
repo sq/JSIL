@@ -188,7 +188,7 @@ namespace JSIL.Transforms
                 // TODO: handle cases like these, for example pass-by-ref
 
                 if (Tracing)
-                    Debug.WriteLine("Operand type not supported in Int64 emulation: {0}", type);
+                    Debug.WriteLine("Operand type not supported in Int64 emulation: {0}", expression);
 
                 return expression;
             }
