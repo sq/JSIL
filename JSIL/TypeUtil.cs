@@ -37,6 +37,10 @@ namespace JSIL {
             if (git != null)
                 return git.IsValueType;
 
+            var gp = type as GenericParameter;
+            if (gp != null)
+                return gp.Constraints.Any((tr) => IsStruct(tr));
+
             return (etype == MetadataType.ValueType);
         }
 

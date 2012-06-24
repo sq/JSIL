@@ -76,9 +76,29 @@ namespace JSIL.Transforms {
                 value = ((JSReferenceExpression)value).Referent;
 
             var valueType = value.GetActualType(TypeSystem);
+            var cte = value as JSChangeTypeExpression;
+            var cast = value as JSCastExpression;
 
-            if (!TypeUtil.IsStruct(valueType))
-                return false;
+            TypeReference originalType;
+            int temp;
+
+            if (cte != null) {
+                originalType = cte.Expression.GetActualType(TypeSystem);
+            } else if (cast != null) {
+                originalType = cast.Expression.GetActualType(TypeSystem);
+            } else {
+                originalType = null;
+            }
+
+            if (originalType != null) {
+                originalType = TypeUtil.FullyDereferenceType(originalType, out temp);
+
+                if (!TypeUtil.IsStruct(valueType) && !TypeUtil.IsStruct(originalType))
+                    return false;
+            } else {
+                if (!TypeUtil.IsStruct(valueType))
+                    return false;
+            }
 
             if (valueType.FullName.StartsWith("System.Nullable"))
                 return false;
