@@ -38,8 +38,15 @@ namespace JSIL {
                 return git.IsValueType;
 
             var gp = type as GenericParameter;
-            if (gp != null)
-                return gp.Constraints.Any((tr) => IsStruct(tr));
+            if (gp != null) {
+                foreach (var constraint in gp.Constraints)
+                    if (IsStruct(constraint))
+                        return true;
+            }
+
+            // System.ValueType's MetadataType is Class... WTF.
+            if ((type.Namespace == "System") && (type.Name == "ValueType"))
+                return true;
 
             return (etype == MetadataType.ValueType);
         }

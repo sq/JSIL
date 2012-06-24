@@ -15,7 +15,7 @@ public struct A : I {
         Console.WriteLine(this.Value);
     }
 
-    public void Method2<T> (ref T a) where T : I {
+    public void Method2<T> (ref T a) where T : struct, I {
         I copy = a;
         a.Value += 2;
         Console.WriteLine(copy.Value);

@@ -61,9 +61,8 @@ namespace JSIL.Transforms {
                 return false;
 
             var variable = target as JSVariable;
-            if (variable != null) {
+            if (variable != null)
                 return SecondPass.ModifiedVariables.Contains(variable.Name);
-            }
 
             return true;
         }
@@ -271,7 +270,13 @@ namespace JSIL.Transforms {
             }
 
             if (IsCopyNeeded(boe.Right)) {
-                if (IsCopyNeededForAssignmentTarget(boe.Left)) {
+                var rightVars = boe.Right.AllChildrenRecursive.OfType<JSVariable>().ToArray();
+                // Even if the assignment target is never modified, if the assignment *source*
+                //  gets modified, we need to make a copy here, because the target is probably
+                //  being used as a back-up copy.
+                var rightVarsModified = (rightVars.Any((rv) => SecondPass.ModifiedVariables.Contains(rv.Name)));
+
+                if (rightVarsModified || IsCopyNeededForAssignmentTarget(boe.Left)) {
                     if (Tracing)
                         Debug.WriteLine(String.Format("struct copy introduced for assignment rhs {0}", boe.Right));
 
