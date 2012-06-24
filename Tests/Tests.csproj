@@ -62,6 +62,7 @@
     <None Include="EncodingTestCases\UTF8GetBytes.cs" />
     <None Include="EncodingTestCases\UTF8GetString.cs" />
     <None Include="AnalysisTestCases\RecursivePureStructOperator.cs" />
+    <None Include="AnalysisTestCases\MakeCopyBeforeMutation.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="FailingTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />

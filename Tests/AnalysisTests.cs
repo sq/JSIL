@@ -287,5 +287,20 @@ namespace JSIL.Tests {
             Assert.IsTrue(generatedJs.Contains("lineListIndices ="));
             Assert.IsTrue(generatedJs.Contains("lineListIndices["));
         }
+
+        [Test]
+        public void MakeCopyBeforeMutation () {
+            var output = "copy=1, arg=1\r\na=2, b=1\r\ncopy=2, arg=4\r\na=2, b=4\r\na=3, b=4";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\MakeCopyBeforeMutation.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+            Assert.IsTrue(generatedJs.Contains(
+                @"copy = arg.MemberwiseClone()"
+            ), "Copy was not cloned");
+        }
     }
 }

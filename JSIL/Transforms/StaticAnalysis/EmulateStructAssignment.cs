@@ -270,7 +270,8 @@ namespace JSIL.Transforms {
             }
 
             if (IsCopyNeeded(boe.Right)) {
-                var rightVars = boe.Right.AllChildrenRecursive.OfType<JSVariable>().ToArray();
+                var rightVars = boe.Right.SelfAndChildrenRecursive.OfType<JSVariable>().ToArray();
+
                 // Even if the assignment target is never modified, if the assignment *source*
                 //  gets modified, we need to make a copy here, because the target is probably
                 //  being used as a back-up copy.
