@@ -4376,6 +4376,8 @@ $jsilxna.ClampByte = function (v) {
 }
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function ($) {
+  var BlitParameters = $jsilxna.BlitParameters;
+
   if (false) {
     var $canvasDrawImage = function canvasDrawImage (image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, destW, destH) {
       try {
@@ -4415,14 +4417,17 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
 
       this.deferredPoolSize = 1024;
 
-      this.deferredDrawPool = [];
       this.deferredDrawStringPool = [];
 
       this.deferredDraws = [];
+      this.deferredBlits = [];
 
       this.oldBlendState = null;
       this.isWebGL = false;
       this.spriteEffects = Microsoft.Xna.Framework.Graphics.SpriteEffects;
+
+      this.flipHorizontally = this.spriteEffects.FlipHorizontally | 0;
+      this.flipVertically = this.spriteEffects.FlipVertically | 0;
     }
   );
 
@@ -4531,9 +4536,19 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
           if (draw.pool.length < this.deferredPoolSize)
             draw.pool.push(draw);
         }
+
+        if (this.deferSorter !== null) 
+          this.deferredBlits.sort(this.deferSorter);
+
+        for (var i = 0, l = this.deferredBlits.length; i < l; i++) {
+          var bp = this.deferredBlits[i];
+          bp.issue(this);
+          bp.release();
+        }
       }
 
       this.deferredDraws.length = 0;
+      this.deferredBlits.length = 0;
 
       this.$restore();
 
@@ -4668,14 +4683,27 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
           $jsilxna.colorRef()
         ], [])), 
     function Draw (texture, position, color) {
-      this.InternalDraw(
-        texture, position.X, position.Y, texture.Width, texture.Height,
-        0, 0, texture.Width, texture.Height, 
-        color, 0, 
-        0, 0, 
-        1, 1, 
-        null, 0
-      );
+      var bp = BlitParameters.acquire();
+
+      bp.texture = texture;
+
+      bp.destX = position.X;
+      bp.destY = position.Y;
+      bp.sourceW = bp.destW = texture.Width;
+      bp.sourceH = bp.destH = texture.Height;
+
+      bp.red = color.r;
+      bp.green = color.g;
+      bp.blue = color.b;
+      bp.alpha = color.a;
+
+      if (this.defer) {
+        bp.index = this.deferredBlits.length;
+        this.deferredBlits.push(bp);
+      } else {
+        bp.issue(this);
+        bp.release();
+      }
     }
   );
 
@@ -4685,25 +4713,35 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
           $xnaasms[5].TypeRef("System.Nullable`1", [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")]), $jsilxna.colorRef()
         ], [])), 
     function Draw (texture, position, sourceRectangle, color) {
-      var sourceX = 0, sourceY = 0, sourceWidth = 0, sourceHeight = 0;
+      var bp = BlitParameters.acquire();
+
+      bp.texture = texture;
+
+      bp.destX = position.X;
+      bp.destY = position.Y;
+
       if (sourceRectangle !== null) {
-        sourceX = sourceRectangle.X;
-        sourceY = sourceRectangle.Y;
-        sourceWidth = sourceRectangle.Width;
-        sourceHeight = sourceRectangle.Height;
+        bp.sourceX = sourceRectangle.X;
+        bp.sourceY = sourceRectangle.Y;
+        bp.sourceW = bp.destW = sourceRectangle.Width;
+        bp.sourceH = bp.destH = sourceRectangle.Height;
       } else {
-        sourceWidth = texture.Width;
-        sourceHeight = texture.Height;
+        bp.sourceW = bp.destW = texture.Width;
+        bp.sourceH = bp.destH = texture.Height;
       }
 
-      this.InternalDraw(
-        texture, position.X, position.Y, sourceWidth, sourceHeight,
-        sourceX, sourceY, sourceWidth, sourceHeight,
-        color, 0,
-        0, 0, 
-        1, 1,
-        null, 0
-      );
+      bp.red = color.r;
+      bp.green = color.g;
+      bp.blue = color.b;
+      bp.alpha = color.a;
+
+      if (this.defer) {
+        bp.index = this.deferredBlits.length;
+        this.deferredBlits.push(bp);
+      } else {
+        bp.issue(this);
+        bp.release();
+      }
     }
   );
 
@@ -4716,25 +4754,65 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
           $.Single
         ], [])), 
     function DrawScaleF (texture, position, sourceRectangle, color, rotation, origin, scale, effects, layerDepth) {
-      var sourceX = 0, sourceY = 0, sourceWidth = 0, sourceHeight = 0;
+      var bp = BlitParameters.acquire();
+
+      bp.texture = texture;
+
+      bp.destX = position.X;
+      bp.destY = position.Y;
+
       if (sourceRectangle !== null) {
-        sourceX = sourceRectangle.X;
-        sourceY = sourceRectangle.Y;
-        sourceWidth = sourceRectangle.Width;
-        sourceHeight = sourceRectangle.Height;
+        bp.sourceX = sourceRectangle.X;
+        bp.sourceY = sourceRectangle.Y;
+        bp.sourceW = bp.destW = sourceRectangle.Width;
+        bp.sourceH = bp.destH = sourceRectangle.Height;
       } else {
-        sourceWidth = texture.Width;
-        sourceHeight = texture.Height;
+        bp.sourceW = bp.destW = texture.Width;
+        bp.sourceH = bp.destH = texture.Height;
       }
 
-      this.InternalDraw(
-        texture, position.X, position.Y, sourceWidth, sourceHeight,
-        sourceX, sourceY, sourceWidth, sourceHeight, 
-        color, rotation, 
-        origin.X, origin.Y, 
-        scale, scale, 
-        effects, layerDepth
-      );
+      bp.red = color.r;
+      bp.green = color.g;
+      bp.blue = color.b;
+      bp.alpha = color.a;
+
+      if (rotation) {
+        bp.rotation = rotation;
+        bp.transformed = true;
+      }
+
+      bp.originX = origin.X;
+      bp.originY = origin.Y;
+
+      if (scale !== 1.0) {
+        bp.scaleX = bp.scaleY = scale;
+        bp.transformed = true;
+      }
+
+      var nEffects = effects | 0;
+      if (nEffects) {
+        if (nEffects & this.flipHorizontally) {
+          bp.scaleX *= -1;
+          bp.destX *= -1;
+          bp.transformed = true;
+        }
+
+        if (nEffects & this.flipVertically) {
+          bp.scaleY *= -1;
+          bp.destY *= -1;
+          bp.transformed = true;
+        }      
+      }
+
+      bp.depth = layerDepth;
+
+      if (this.defer) {
+        bp.index = this.deferredBlits.length;
+        this.deferredBlits.push(bp);
+      } else {
+        bp.issue(this);
+        bp.release();
+      }
     }
   );
 
@@ -4747,25 +4825,70 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
           $.Single
         ], [])), 
     function Draw (texture, position, sourceRectangle, color, rotation, origin, scale, effects, layerDepth) {
-      var sourceX = 0, sourceY = 0, sourceWidth = 0, sourceHeight = 0;
+      var bp = BlitParameters.acquire();
+
+      bp.texture = texture;
+
+      bp.destX = position.X;
+      bp.destY = position.Y;
+
       if (sourceRectangle !== null) {
-        sourceX = sourceRectangle.X;
-        sourceY = sourceRectangle.Y;
-        sourceWidth = sourceRectangle.Width;
-        sourceHeight = sourceRectangle.Height;
+        bp.sourceX = sourceRectangle.X;
+        bp.sourceY = sourceRectangle.Y;
+        bp.sourceW = bp.destW = sourceRectangle.Width;
+        bp.sourceH = bp.destH = sourceRectangle.Height;
       } else {
-        sourceWidth = texture.Width;
-        sourceHeight = texture.Height;
+        bp.sourceW = bp.destW = texture.Width;
+        bp.sourceH = bp.destH = texture.Height;
       }
 
-      this.InternalDraw(
-        texture, position.X, position.Y, sourceWidth, sourceHeight,
-        sourceX, sourceY, sourceWidth, sourceHeight, 
-        color, rotation, 
-        origin.X, origin.Y, 
-        scale.X, scale.Y, 
-        effects, layerDepth
-      );
+      bp.red = color.r;
+      bp.green = color.g;
+      bp.blue = color.b;
+      bp.alpha = color.a;
+
+      if (rotation) {
+        bp.rotation = rotation;
+        bp.transformed = true;
+      }
+
+      bp.originX = origin.X;
+      bp.originY = origin.Y;
+
+      if (scale.X !== 1.0) {
+        bp.scaleX = scale.X;
+        bp.transformed = true;
+      }
+
+      if (scale.Y !== 1.0) {
+        bp.scaleY = scale.Y;
+        bp.transformed = true;
+      }
+
+      var nEffects = effects | 0;
+      if (nEffects) {
+        if (nEffects & this.flipHorizontally) {
+          bp.scaleX *= -1;
+          bp.destX *= -1;
+          bp.transformed = true;
+        }
+
+        if (nEffects & this.flipVertically) {
+          bp.scaleY *= -1;
+          bp.destY *= -1;
+          bp.transformed = true;
+        }      
+      }
+
+      bp.depth = layerDepth;
+
+      if (this.defer) {
+        bp.index = this.deferredBlits.length;
+        this.deferredBlits.push(bp);
+      } else {
+        bp.issue(this);
+        bp.release();
+      }
     }
   );
 
@@ -4775,14 +4898,30 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
           $jsilxna.colorRef()
         ], [])), 
     function DrawRect (texture, destinationRectangle, color) {
-      this.InternalDraw(
-        texture, destinationRectangle.X, destinationRectangle.Y, destinationRectangle.Width, destinationRectangle.Height, 
-        0, 0, texture.Width, texture.Height,
-        color, 0, 
-        0, 0, 
-        1, 1,
-        null, 0
-      );
+      var bp = BlitParameters.acquire();
+
+      bp.texture = texture;
+
+      bp.destX = destinationRectangle.X;
+      bp.destY = destinationRectangle.Y;
+      bp.destW = destinationRectangle.Width;
+      bp.destH = destinationRectangle.Height;
+
+      bp.sourceW = texture.Width;
+      bp.sourceH = texture.Height;
+
+      bp.red = color.r;
+      bp.green = color.g;
+      bp.blue = color.b;
+      bp.alpha = color.a;
+
+      if (this.defer) {
+        bp.index = this.deferredBlits.length;
+        this.deferredBlits.push(bp);
+      } else {
+        bp.issue(this);
+        bp.release();
+      }
     }
   );
 
@@ -4792,25 +4931,37 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
           $xnaasms[5].TypeRef("System.Nullable`1", [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")]), $jsilxna.colorRef()
         ], [])), 
     function DrawRect (texture, destinationRectangle, sourceRectangle, color) {
-      var sourceX = 0, sourceY = 0, sourceWidth = 0, sourceHeight = 0;
+      var bp = BlitParameters.acquire();
+
+      bp.texture = texture;
+
+      bp.destX = destinationRectangle.X;
+      bp.destY = destinationRectangle.Y;
+      bp.destW = destinationRectangle.Width;
+      bp.destH = destinationRectangle.Height;
+
       if (sourceRectangle !== null) {
-        sourceX = sourceRectangle.X;
-        sourceY = sourceRectangle.Y;
-        sourceWidth = sourceRectangle.Width;
-        sourceHeight = sourceRectangle.Height;
+        bp.sourceX = sourceRectangle.X;
+        bp.sourceY = sourceRectangle.Y;
+        bp.sourceW = sourceRectangle.Width;
+        bp.sourceH = sourceRectangle.Height;
       } else {
-        sourceWidth = texture.Width;
-        sourceHeight = texture.Height;
+        bp.sourceW = texture.Width;
+        bp.sourceH = texture.Height;
       }
 
-      this.InternalDraw(
-        texture, destinationRectangle.X, destinationRectangle.Y, destinationRectangle.Width, destinationRectangle.Height, 
-        sourceX, sourceY, sourceWidth, sourceHeight, 
-        color, 0, 
-        0, 0, 
-        1, 1, 
-        null, 0
-      );
+      bp.red = color.r;
+      bp.green = color.g;
+      bp.blue = color.b;
+      bp.alpha = color.a;
+
+      if (this.defer) {
+        bp.index = this.deferredBlits.length;
+        this.deferredBlits.push(bp);
+      } else {
+        bp.issue(this);
+        bp.release();
+      }
     }
   );
 
@@ -4822,25 +4973,56 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
           $jsilxna.graphicsRef("Microsoft.Xna.Framework.Graphics.SpriteEffects"), $.Single
         ], [])), 
     function DrawRect (texture, destinationRectangle, sourceRectangle, color, rotation, origin, effects, layerDepth) {
-      var sourceX = 0, sourceY = 0, sourceWidth = 0, sourceHeight = 0;
+      var bp = BlitParameters.acquire();
+
+      bp.texture = texture;
+
+      bp.destX = destinationRectangle.X;
+      bp.destY = destinationRectangle.Y;
+      bp.destW = destinationRectangle.Width;
+      bp.destH = destinationRectangle.Height;
+
       if (sourceRectangle !== null) {
-        sourceX = sourceRectangle.X;
-        sourceY = sourceRectangle.Y;
-        sourceWidth = sourceRectangle.Width;
-        sourceHeight = sourceRectangle.Height;
+        bp.sourceX = sourceRectangle.X;
+        bp.sourceY = sourceRectangle.Y;
+        bp.sourceW = sourceRectangle.Width;
+        bp.sourceH = sourceRectangle.Height;
       } else {
-        sourceWidth = texture.Width;
-        sourceHeight = texture.Height;
+        bp.sourceW = texture.Width;
+        bp.sourceH = texture.Height;
       }
 
-      this.InternalDraw(
-        texture, destinationRectangle.X, destinationRectangle.Y, destinationRectangle.Width, destinationRectangle.Height, 
-        sourceX, sourceY, sourceWidth, sourceHeight, 
-        color, rotation, 
-        origin.X, origin.Y, 
-        1, 1, 
-        effects, layerDepth
-      );
+      bp.red = color.r;
+      bp.green = color.g;
+      bp.blue = color.b;
+      bp.alpha = color.a;
+
+      bp.rotation = rotation;
+
+      bp.originX = origin.X;
+      bp.originY = origin.Y;
+
+      var nEffects = effects | 0;
+      if (nEffects & this.flipHorizontally) {
+        bp.scaleX *= -1;
+        bp.destX *= -1;
+      }
+
+      if (nEffects & this.flipVertically) {
+        bp.scaleY *= -1;
+        bp.destY *= -1;
+      }      
+
+      bp.depth = layerDepth;
+      bp.transformed = true;
+
+      if (this.defer) {
+        bp.index = this.deferredBlits.length;
+        this.deferredBlits.push(bp);
+      } else {
+        bp.issue(this);
+        bp.release();
+      }
     }
   );
 
@@ -4958,50 +5140,26 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
     }
   );
 
-  $.RawMethod(false, "InternalDraw", 
-    function SpriteBatch_InternalDraw (
-      texture, positionX, positionY, width, height, 
-      sourceX, sourceY, sourceW, sourceH, 
-      color, rotation, 
-      originX, originY, 
-      scaleX, scaleY, 
-      effects, depth
-    ) {
-      if (this.defer) {
-        this.DeferBlit(
-          texture, positionX, positionY, width, height,
-          sourceX, sourceY, sourceW, sourceH,
-          color, rotation, originX, originY,
-          scaleX, scaleY, effects, depth
-        );
-
-        return;
-      }
-
+  $.RawMethod(false, "InternalDraw_Thunk", 
+    function SpriteBatch_InternalDraw_Thunk (bp) {
       var needRestore = false;
+      var texture = bp.texture;
       var image = texture.image;
       var originalImage = image;
       var context = this.device.context;
 
-      if (effects) {
-        if (effects & this.spriteEffects.FlipHorizontally) {
-          if (!needRestore) 
-            this.$save();
-          needRestore = true;
+      var positionX = bp.destX;
+      var positionY = bp.destY;
+      var width = bp.destW;
+      var height = bp.destH;
 
-          context.scale(-1, 1);
-          positionX = -positionX;
-        }
+      var sourceX = bp.sourceX;
+      var sourceY = bp.sourceY;
+      var sourceW = bp.sourceW;
+      var sourceH = bp.sourceH;
 
-        if (effects & this.spriteEffects.FlipVertically) {
-          if (!needRestore) 
-            this.$save();
-          needRestore = true;
-
-          context.scale(1, -1);
-          positionY = -positionY;
-        }
-      }
+      var originX = bp.originX;
+      var originY = bp.originY;
 
       positionX -= originX;
       positionY -= originY;
@@ -5025,16 +5183,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       var isSinglePixel = ((sourceW === 1) && (sourceH === 1) && (sourceX === 0) && (sourceY === 0));
       var channels = null;
 
-      var colorA = color.a;
-
-      if (colorA < 1) {
+      if (bp.alpha < 1) {
         if (needRestore) 
           this.$restore();
 
         return;
       }
 
-      var colorR = color.r, colorG = color.g, colorB = color.b;
+      var colorR = bp.red, colorG = bp.green, colorB = bp.blue, colorA = bp.alpha;
 
       if (!isSinglePixel && !this.isWebGL) {
         // Since the color is premultiplied, any r/g/b value >= alpha is basically white.
@@ -5063,7 +5219,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         height = -height;
       }
 
-      if ((rotation !== 0) && (Math.abs(rotation) >= 0.0001)) {
+      if (bp.transformed) {
+        var rotation = bp.rotation;
+
         if (!needRestore) 
           this.$save();
         needRestore = true;
@@ -5071,12 +5229,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         context.translate(positionX + originX, positionY + originY);
         context.rotate(rotation);
         context.translate(-positionX - originX, -positionY - originY);
-      }
 
-      if ((scaleX !== 1.0) || (scaleY !== 1.0)) {
-        if (!needRestore) 
-          this.$save();
-        needRestore = true;
+        var scaleX = bp.scaleX;
+        var scaleY = bp.scaleY;
 
         context.translate(positionX + originX, positionY + originY);
         context.scale(scaleX, scaleY);
@@ -5907,6 +6062,32 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
       forCache
     ) {
 
+      var bp = $jsilxna.BlitParameters.acquire();
+
+      var nEffects = spriteEffects | 0;
+      if (nEffects) {
+        if (nEffects & spriteBatch.flipHorizontally) {
+          scaleX *= -1;
+          textblockPositionX *= -1;
+        }
+
+        if (nEffects & this.flipVertically) {
+          scaleY *= -1;
+          textblockPositionY *= -1;
+        }      
+      }
+
+      bp.texture = this.textureValue;
+      bp.depth = layerDepth;
+
+      bp.red = color.r;
+      bp.green = color.g;
+      bp.blue = color.b;
+      bp.alpha = color.a;
+
+      bp.rotation = rotation;
+      bp.transformed = (rotation !== 0);
+
       // Draw calls are really expensive, so cache entire strings as single textures.
 
       if ($useTextCaching && $textCachingSupported && (forCache !== true)) {
@@ -5962,17 +6143,22 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
           $jsilxna.textCache.setItem(cacheKey, cachedTexture);
         }
 
-        var cachedTextureWidth = cachedTexture.width;
-        var cachedTextureHeight = cachedTexture.height;
+        bp.texture = cachedTexture;
 
-        spriteBatch.InternalDraw(
-          cachedTexture, textblockPositionX, textblockPositionY, cachedTextureWidth, cachedTextureHeight,
-          0, 0, cachedTextureWidth, cachedTextureHeight,
-          color, rotation, 
-          originX + xPad, originY + yPad, 
-          scaleX, scaleY, 
-          spriteEffects, layerDepth
-        );
+        bp.destX = textblockPositionX;
+        bp.destY = textblockPositionY;
+        bp.sourceW = bp.destW = cachedTexture.width;
+        bp.sourceH = bp.destH = cachedTexture.height;
+
+        bp.originX = originX + xPad;
+        bp.originY = originY + yPad;
+
+        bp.scaleX = scaleX;
+        bp.scaleY = scaleY;
+        bp.transformed = true;
+
+        bp.issue(spriteBatch);
+        bp.release();
 
         return;
       }
@@ -6013,21 +6199,23 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
         var glyphRect = this.glyphData.get_Item(charIndex);
         var cropRect = this.croppingData.get_Item(charIndex);
 
-        drawX = positionX + (cropRect.X * scaleX);
-        drawY = positionY + (cropRect.Y * scaleY);
+        bp.destX = positionX + (cropRect.X * scaleX);
+        bp.destY = positionY + (cropRect.Y * scaleY);
+        bp.destW = glyphRect.Width * scaleX;
+        bp.destH = glyphRect.Height * scaleY;
 
-        spriteBatch.InternalDraw(
-          this.textureValue, drawX, drawY, glyphRect.Width * scaleX, glyphRect.Height * scaleY,
-          glyphRect.X, glyphRect.Y, glyphRect.Width, glyphRect.Height,
-          color, rotation, 
-          0, 0, 
-          1, 1, 
-          spriteEffects, layerDepth
-        );
+        bp.sourceX = glyphRect.X;
+        bp.sourceY = glyphRect.Y;
+        bp.sourceW = glyphRect.Width;
+        bp.sourceH = glyphRect.Height;
+
+        bp.issue(spriteBatch);
 
         positionX += glyphWidth;
         positionX += afterGlyph;
     }
+
+    bp.release();
   });
 });
 
@@ -7425,3 +7613,67 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameServiceContainer", function
   );
 
 });
+
+$jsilxna.BlitParameters = function () {};
+$jsilxna.BlitParameters.pool = [];
+
+(function () {
+  var bp = $jsilxna.BlitParameters;
+  var proto = bp.prototype = Object.create(null);
+  var pool = bp.pool;
+
+  var init = function (target) {
+    target.index = 0;
+
+    target.depth = 0.0;
+    target.texture = null;
+
+    target.destX = 0;
+    target.destY = 0;
+    target.destW = 0;
+    target.destH = 0;
+
+    target.sourceX = 0;
+    target.sourceY = 0;
+    target.sourceW = 0;
+    target.sourceH = 0;
+
+    target.rotation = 0.0;
+
+    target.originX = 0.0;
+    target.originY = 0.0;
+
+    target.scaleX = 1.0;
+    target.scaleY = 1.0;
+
+    target.red = 255;
+    target.green = 255;
+    target.blue = 255;
+
+    target.alpha = 255;
+
+    target.transformed = false;
+  };
+
+  init(proto);
+
+  bp.acquire = function () {
+    if (pool.length) {
+      return pool.pop();
+    } else {
+      var result = new bp();
+      return result;
+    }
+  };
+
+  proto.issue = function (spriteBatch) {
+    spriteBatch.InternalDraw_Thunk(this);
+  };
+
+  proto.release = function () {    
+    if (pool.length < 4096) {
+      init(this);
+      pool.push(this);
+    }
+  };
+})();
