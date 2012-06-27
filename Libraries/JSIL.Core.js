@@ -605,26 +605,6 @@ if (typeof (console) !== "undefined") {
 } else
   JSIL.Host.warning = JSIL.Host.logWriteLine;
 
-JSIL.TraceEnabled = true;
-
-if ((typeof (console) !== "undefined") && (console.time)) {
-  JSIL.Host.traceStart = function (name) {
-    if (JSIL.TraceEnabled)
-      console.time(name);
-  };
-
-  JSIL.Host.traceEnd = function (name) {
-    if (JSIL.TraceEnabled)
-      console.timeEnd(name);
-  };
-} else {
-  JSIL.Host.traceStart = function (name) {
-  };
-
-  JSIL.Host.traceEnd = function (name) {
-  };
-}
-
 JSIL.Host.error = function (exception, text) {
   if (typeof (console) !== "undefined") {
     var rest = Array.prototype.slice.call(arguments, 1);
