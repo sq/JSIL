@@ -122,7 +122,10 @@ namespace JSIL.Tests {
                     @"TestCases\MethodOfGenericTypeAsGenericDelegate.cs",
                     @"TestCases\GenericMethodAsGenericDelegate.cs",
                     @"TestCases\GenericNestedTypeConstructedInParentStaticConstructor.cs",
-                    @"TestCases\GenericParameterNameShadowing.cs"
+                    @"TestCases\GenericParameterNameShadowing.cs",
+                    @"TestCases\StructGenericParameter.cs",
+                    @"TestCases\RefStructThisWithConstrainedInterface.cs",
+                    @"TestCases\RefStructThisWithInterface.cs",
                 }
             );
         }
@@ -148,8 +151,10 @@ namespace JSIL.Tests {
                     @"TestCases\SingleDimStructArrays.cs",
                     @"TestCases\MultiDimStructArrays.cs",
                     @"TestCases\StructLateDeclaration.cs", // This test demonstrates a bug in IntroduceVariableDeclarations
-                    // @"TestCases\RefStructThisWithInterface.cs",
-                    @"TestCases\RefStructThisWithConstrainedInterface.cs"
+                    @"TestCases\RefStructThisWithConstrainedInterface.cs",
+                    // FIXME: Needs overhaul of generic methods to include optional copies (only copy if T is struct)
+                    @"TestCases\RefStructThisWithInterface.cs",
+                    @"TestCases\StructGenericParameter.cs",
                 }, null, defaultProvider
             );
         }

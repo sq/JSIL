@@ -16,18 +16,8 @@
     "ContentOutputDirectory": "%configpath%/Content",
     "UsePNGQuant": true,
     "FileSettings": {
-      "Textures\\Panels\\intro1.png": "ForceJPEG",
-      "Textures\\Panels\\intro2.png": "ForceJPEG",
-      "Textures\\Panels\\intro3.png": "ForceJPEG",
-      "Textures\\Panels\\intro4.png": "ForceJPEG",
-      "Textures\\Panels\\intro5.png": "ForceJPEG",
-      "Textures\\Panels\\intro6.png": "ForceJPEG",
-      "Textures\\Panels\\intro7.png": "ForceJPEG",
-      "Textures\\Panels\\outro1.png": "ForceJPEG",
-      "Textures\\Panels\\outro2.png": "ForceJPEG",
-      "Textures\\Panels\\outro3.png": "ForceJPEG",
-      "Textures\\Panels\\outro4.png": "ForceJPEG",
-      "Textures\\Panels\\outro5.png": "ForceJPEG",
+      "Textures\\Panels\\intro*.png": "ForceJPEG",
+      "Textures\\Panels\\outro*.png": "ForceJPEG",
       "Textures\\sellScreen.png": "ForceJPEG"
     }
   }
