@@ -5361,6 +5361,33 @@ JSIL.ImplementExternals(
       }
     );
 
+    $.Method({Public: true , Static: false}, "get_AssemblyQualifiedName",
+      new JSIL.MethodSignature("System.String", []),
+      function () {
+        var result;
+        if (this.__FullNameWithoutArguments__ !== undefined) {
+          result = this.__FullNameWithoutArguments__;
+        } else {
+          result = this.__FullName__;
+        }
+        
+        if (this.__GenericArgumentValues__ !== undefined && this.__GenericArgumentValues__.length > 0) {
+          result += "[";
+          for (var i = 0; i < this.__GenericArgumentValues__.length; ++i) {
+            result += "[";
+            result += this.__GenericArgumentValues__[i].AssemblyQualifiedName;
+            result += "]";
+          }
+          result += "]";
+        }
+
+        result += ", ";
+        result += this.Assembly.toString();
+        
+        return result;
+      }
+    );
+
     $.Method({Public: true , Static: false}, "toString",
       new JSIL.MethodSignature("System.String", []),
       function () {
@@ -6425,6 +6452,7 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function
     $.Property({Public: true , Static: false, Virtual: true }, "Assembly");
     $.Property({Public: true , Static: false, Virtual: true }, "FullName");
     $.Property({Public: true , Static: false, Virtual: true }, "Namespace");
+    $.Property({Public: true , Static: false, Virtual: true }, "AssemblyQualifiedName");
     $.Property({Public: true , Static: false, Virtual: true }, "BaseType");
     $.Property({Public: true , Static: false, Virtual: true }, "IsGenericType");
     $.Property({Public: true , Static: false, Virtual: true }, "IsArray");
