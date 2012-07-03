@@ -356,6 +356,15 @@ namespace JSIL {
             Output.RPar();
         }
 
+        public void VisitNode (JSConditionalStructCopyExpression sce) {
+            Output.WriteRaw("JSIL.CloneParameter");
+            Output.LPar();
+            Output.Identifier(sce.Parameter, ReferenceContext, false);
+            Output.Comma();
+            Visit(sce.Struct);
+            Output.RPar();
+        }
+
         public void VisitNode (JSIndexerExpression idx) {
             Visit(idx.Target);
             Output.OpenBracket();

@@ -8,6 +8,8 @@ using JSIL.Ast;
 using Mono.Cecil;
 
 namespace JSIL.Transforms {
+
+
     public class EmulateStructAssignment : JSAstVisitor {
         public const bool Tracing = false;
 
@@ -67,7 +69,9 @@ namespace JSIL.Transforms {
             return true;
         }
 
-        protected bool IsCopyNeeded (JSExpression value) {
+        protected bool IsCopyNeeded (JSExpression value, out GenericParameter relevantParameter) {
+            relevantParameter = null;
+
             if ((value == null) || (value.IsNull))
                 return false;
 
@@ -92,11 +96,15 @@ namespace JSIL.Transforms {
             if (originalType != null) {
                 originalType = TypeUtil.FullyDereferenceType(originalType, out temp);
 
-                if (!TypeUtil.IsStruct(valueType) && !TypeUtil.IsStruct(originalType))
+                if (!IsStructOrGenericParameter(valueType) && !IsStructOrGenericParameter(originalType))
                     return false;
+
+                relevantParameter = (originalType as GenericParameter) ?? (valueType as GenericParameter);
             } else {
-                if (!TypeUtil.IsStruct(valueType))
+                if (!IsStructOrGenericParameter(valueType))
                     return false;
+
+                relevantParameter = (valueType as GenericParameter);
             }
 
             if (valueType.FullName.StartsWith("System.Nullable"))
@@ -167,7 +175,7 @@ namespace JSIL.Transforms {
                 if (parameterIndex < 0)
                     return true;
 
-                return IsCopyNeeded(rightInvocation.Arguments[parameterIndex]);
+                return IsCopyNeeded(rightInvocation.Arguments[parameterIndex], out relevantParameter);
             }
  
             return true;
@@ -190,18 +198,19 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSPairExpression pair) {
-            if (IsCopyNeeded(pair.Value)) {
+            GenericParameter relevantParameter;
+            if (IsCopyNeeded(pair.Value, out relevantParameter)) {
                 if (Tracing)
                     Debug.WriteLine(String.Format("struct copy introduced for object value {0}", pair.Value));
 
-                pair.Value = new JSStructCopyExpression(pair.Value);
+                pair.Value = MakeCopyForExpression(pair.Value, relevantParameter);
             }
 
             VisitChildren(pair);
         }
 
-        protected bool IsParameterCopyNeeded (FunctionAnalysis2ndPass sa, string parameterName, JSExpression expression) {
-            if (!IsCopyNeeded(expression))
+        protected bool IsParameterCopyNeeded (FunctionAnalysis2ndPass sa, string parameterName, JSExpression expression, out GenericParameter relevantParameter) {
+            if (!IsCopyNeeded(expression, out relevantParameter))
                 return false;
 
             if (!OptimizeCopies)
@@ -234,11 +243,12 @@ namespace JSIL.Transforms {
                 if (pd != null)
                     parameterName = pd.Name;
 
-                if (IsParameterCopyNeeded(sa, parameterName, argument)) {
+                GenericParameter relevantParameter;
+                if (IsParameterCopyNeeded(sa, parameterName, argument, out relevantParameter)) {
                     if (Tracing)
                         Debug.WriteLine(String.Format("struct copy introduced for argument {0}", argument));
 
-                    invocation.Arguments[i] = new JSStructCopyExpression(argument);
+                    invocation.Arguments[i] = MakeCopyForExpression(argument, relevantParameter);
                 } else {
                     if (Tracing)
                         Debug.WriteLine(String.Format("struct copy elided for argument {0}", argument));
@@ -252,11 +262,12 @@ namespace JSIL.Transforms {
             for (int i = 0, c = invocation.Arguments.Count; i < c; i++) {
                 var argument = invocation.Arguments[i];
 
-                if (IsCopyNeeded(argument)) {
+                GenericParameter relevantParameter;
+                if (IsCopyNeeded(argument, out relevantParameter)) {
                     if (Tracing)
                         Debug.WriteLine(String.Format("struct copy introduced for argument {0}", argument));
 
-                    invocation.Arguments[i] = new JSStructCopyExpression(argument);
+                    invocation.Arguments[i] = MakeCopyForExpression(argument, relevantParameter);
                 }
             }
 
@@ -269,7 +280,9 @@ namespace JSIL.Transforms {
                 return;
             }
 
-            if (IsCopyNeeded(boe.Right)) {
+            GenericParameter relevantParameter;
+
+            if (IsCopyNeeded(boe.Right, out relevantParameter)) {
                 var rightVars = boe.Right.SelfAndChildrenRecursive.OfType<JSVariable>().ToArray();
 
                 // Even if the assignment target is never modified, if the assignment *source*
@@ -281,7 +294,7 @@ namespace JSIL.Transforms {
                     if (Tracing)
                         Debug.WriteLine(String.Format("struct copy introduced for assignment rhs {0}", boe.Right));
 
-                    boe.Right = new JSStructCopyExpression(boe.Right);
+                    boe.Right = MakeCopyForExpression(boe.Right, relevantParameter);
                 } else {
                     if (Tracing)
                         Debug.WriteLine(String.Format("struct copy elided for assignment rhs {0}", boe.Right));
@@ -289,6 +302,28 @@ namespace JSIL.Transforms {
             }
 
             VisitChildren(boe);
+        }
+
+        protected JSStructCopyExpression MakeCopyForExpression (JSExpression expression, GenericParameter relevantParameter) {
+            if (relevantParameter != null)
+                return new JSConditionalStructCopyExpression(relevantParameter, expression);
+            else
+                return new JSStructCopyExpression(expression);
+        }
+
+        protected static bool IsStructOrGenericParameter (TypeReference tr) {
+            var gp = tr as GenericParameter;
+            if (gp != null) {
+                foreach (var constraint in gp.Constraints) {
+                    if (constraint.FullName == "System.Object") {
+                        // Class constraint. Excludes structs.
+                        return false;
+                    }
+                }
+                
+                return true;
+            } else
+                return TypeUtil.IsStruct(tr);
         }
     }
 

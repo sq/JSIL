@@ -1921,4 +1921,17 @@ namespace JSIL.Ast {
             }
         }
     }
+
+    public class JSConditionalStructCopyExpression : JSStructCopyExpression {
+        public readonly GenericParameter Parameter;
+
+        public JSConditionalStructCopyExpression (GenericParameter parameter, JSExpression @struct)
+            : base(@struct) {
+            Parameter = parameter;
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return Struct.GetActualType(typeSystem);
+        }
+    }
 }

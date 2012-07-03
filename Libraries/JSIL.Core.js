@@ -6123,6 +6123,17 @@ JSIL.CompareValues = function (lhs, rhs) {
     return 0;
 };
 
+// MemberwiseClone if parameter is struct, otherwise do nothing.
+JSIL.CloneParameter = function (parameterType, value) {
+  if (!parameterType)
+    throw new Error("Undefined parameter type");
+
+  if (parameterType.__IsStruct__)
+    return value.MemberwiseClone();
+  else
+    return value;
+};
+
 $jsilcore.MemberInfoExternals = function ($) {
   $.Method({Static:false, Public:true }, "get_DeclaringType", 
     new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [], []),
