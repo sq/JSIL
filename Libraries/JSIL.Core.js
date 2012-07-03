@@ -3470,7 +3470,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__GenericArguments__ = genericArguments || [];
     typeObject.__IsStruct__ = !isReferenceType && (baseTypeName === "System.ValueType");
     typeObject.IsInterface = false;
-    typeObject.IsValueType = typeObject.__IsStruct__;
+    typeObject.IsValueType = !isReferenceType;
 
     if (stack !== null)
       typeObject.__CallStack__ = stack;
