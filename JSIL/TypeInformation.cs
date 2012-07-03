@@ -52,18 +52,19 @@ namespace JSIL.Internal {
         public readonly string DeclaringTypeName;
         public readonly string Name;
 
-        public TypeIdentifier (TypeDefinition type)
-            : this ((TypeReference)type) {
-
-            var asm = type.Module.Assembly;
-            if (asm != null)
-                Assembly = asm.FullName;
-            else
-                Assembly = null;
-        }
-
         public TypeIdentifier (TypeReference type) {
-            Assembly = null;
+            if (type is TypeDefinition)
+            {
+                var asm = type.Module.Assembly;
+                if (asm != null)
+                    Assembly = asm.FullName;
+                else
+                    Assembly = null;
+            }
+            else {
+                Assembly = null;
+            }
+
             Namespace = type.Namespace;
             Name = type.Name;
 

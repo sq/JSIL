@@ -372,7 +372,7 @@ namespace JSIL {
         }
 
         IMemberInfo ITypeInfoSource.Get (MemberReference member) {
-            var typeInfo = GetTypeInformation(member.DeclaringType);
+            var typeInfo = GetTypeInformation(TypeUtil.GetTypeDefinition(member.DeclaringType));
             if (typeInfo == null) {
                 Console.Error.WriteLine("Warning: type not loaded: {0}", member.DeclaringType.FullName);
                 return null;
@@ -394,7 +394,7 @@ namespace JSIL {
         }
 
         TypeInfo ITypeInfoSource.Get (TypeReference type) {
-            return GetTypeInformation(type);
+            return GetTypeInformation(TypeUtil.GetTypeDefinition(type) ?? type);
         }
 
         public TypeInfo GetExisting (TypeIdentifier identifier) {
