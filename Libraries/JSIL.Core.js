@@ -3447,7 +3447,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__GenericArguments__ = genericArguments || [];
     typeObject.__IsStruct__ = !isReferenceType && (baseTypeName === "System.ValueType");
     typeObject.IsInterface = false;
-    typeObject.IsValueType = typeObject.__IsStruct__;
+    typeObject.IsValueType = !isReferenceType;
 
     if (stack !== null)
       typeObject.__CallStack__ = stack;
@@ -5230,6 +5230,33 @@ JSIL.ImplementExternals(
       }
     );
 
+    $.Method({Public: true , Static: false}, "get_AssemblyQualifiedName",
+      new JSIL.MethodSignature("System.String", []),
+      function () {
+        var result;
+        if (this.__FullNameWithoutArguments__ !== undefined) {
+          result = this.__FullNameWithoutArguments__;
+        } else {
+          result = this.__FullName__;
+        }
+        
+        if (this.__GenericArgumentValues__ !== undefined && this.__GenericArgumentValues__.length > 0) {
+          result += "[";
+          for (var i = 0; i < this.__GenericArgumentValues__.length; ++i) {
+            result += "[";
+            result += this.__GenericArgumentValues__[i].AssemblyQualifiedName;
+            result += "]";
+          }
+          result += "]";
+        }
+
+        result += ", ";
+        result += this.Assembly.toString();
+        
+        return result;
+      }
+    );
+
     $.Method({Public: true , Static: false}, "toString",
       new JSIL.MethodSignature("System.String", []),
       function () {
@@ -6266,6 +6293,7 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function
     $.Property({Public: true , Static: false}, "Assembly");
     $.Property({Public: true , Static: false}, "FullName");
     $.Property({Public: true , Static: false}, "Namespace");
+    $.Property({Public: true , Static: false}, "AssemblyQualifiedName");
     $.Property({Public: true , Static: false}, "BaseType");
     $.Property({Public: true , Static: false}, "IsGenericType");
     $.Property({Public: true , Static: false}, "IsArray");

@@ -318,6 +318,7 @@ namespace JSIL {
         protected DecompilerContext MakeDecompilerContext (ModuleDefinition module) {
             var context = new DecompilerContext(module);
 
+            context.Settings.AsyncAwait = false;
             context.Settings.YieldReturn = false;
             context.Settings.AnonymousMethods = true;
             context.Settings.QueryExpressions = false;

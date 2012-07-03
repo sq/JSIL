@@ -52,18 +52,19 @@ namespace JSIL.Internal {
         public readonly string DeclaringTypeName;
         public readonly string Name;
 
-        public TypeIdentifier (TypeDefinition type)
-            : this ((TypeReference)type) {
-
-            var asm = type.Module.Assembly;
-            if (asm != null)
-                Assembly = asm.FullName;
-            else
-                Assembly = null;
-        }
-
         public TypeIdentifier (TypeReference type) {
-            Assembly = null;
+            if (type is TypeDefinition)
+            {
+                var asm = type.Module.Assembly;
+                if (asm != null)
+                    Assembly = asm.FullName;
+                else
+                    Assembly = null;
+            }
+            else {
+                Assembly = null;
+            }
+
             Namespace = type.Namespace;
             Name = type.Name;
 
@@ -1035,6 +1036,8 @@ namespace JSIL.Internal {
                 return;
 
             foreach (var ca in target.CustomAttributes) {
+                if (ca.AttributeType.Name == "AsyncStateMachineAttribute" && ca.AttributeType.Namespace == "System.Runtime.CompilerServices")
+                    continue;
                 AttributeGroup existing;
                 if (TryGetValue(ca.AttributeType.FullName, out existing))
                     existing.Entries.Add(new AttributeGroup.Entry(ca));
