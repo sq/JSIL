@@ -123,7 +123,7 @@ namespace JSIL.Tests {
                     @"TestCases\GenericMethodAsGenericDelegate.cs",
                     @"TestCases\GenericNestedTypeConstructedInParentStaticConstructor.cs",
                     @"TestCases\GenericParameterNameShadowing.cs",
-                    @"TestCases\StructGenericParameter.cs",
+                    @"TestCases\MutatedStructGenericParameter.cs",
                     @"TestCases\RefStructThisWithConstrainedInterface.cs",
                     @"TestCases\RefStructThisWithInterface.cs",
                 }
@@ -154,7 +154,7 @@ namespace JSIL.Tests {
                     @"TestCases\RefStructThisWithConstrainedInterface.cs",
                     // FIXME: Needs overhaul of generic methods to include optional copies (only copy if T is struct)
                     @"TestCases\RefStructThisWithInterface.cs",
-                    @"TestCases\StructGenericParameter.cs",
+                    @"TestCases\MutatedStructGenericParameter.cs",
                 }, null, defaultProvider
             );
         }

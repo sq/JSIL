@@ -8,8 +8,6 @@ using JSIL.Ast;
 using Mono.Cecil;
 
 namespace JSIL.Transforms {
-
-
     public class EmulateStructAssignment : JSAstVisitor {
         public const bool Tracing = false;
 
@@ -312,7 +310,10 @@ namespace JSIL.Transforms {
         }
 
         protected static bool IsStructOrGenericParameter (TypeReference tr) {
-            var gp = tr as GenericParameter;
+            int temp;
+            var derefed = TypeUtil.FullyDereferenceType(tr, out temp);
+
+            var gp = derefed as GenericParameter;
             if (gp != null) {
                 foreach (var constraint in gp.Constraints) {
                     if (constraint.FullName == "System.Object") {
