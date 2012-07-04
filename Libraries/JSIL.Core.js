@@ -1152,10 +1152,22 @@ JSIL.MakeProto = function (baseType, typeObject, typeName, isReferenceType, asse
   return prototype;
 };
 
-JSIL.MakeNumericType = function (baseType, typeName, isIntegral) {
+JSIL.MakeNumericType = function (baseType, typeName, isIntegral, typedArrayName) {
   JSIL.MakeType(baseType, typeName, false, true, [], function ($) {
     $.SetValue("__IsNumeric__", true);
     $.SetValue("__IsIntegral__", isIntegral);
+
+    if (typedArrayName) {
+      var typedArrayCtor = eval(typedArrayName);
+
+      if (typedArrayCtor)
+        $.SetValue("__TypedArray__", typedArrayCtor);
+      else
+        $.SetValue("__TypedArray__", null);
+      
+    } else {
+      $.SetValue("__TypedArray__", null);
+    }
 
     JSIL.MakeCastMethods(
       $.publicInterface, $.typeObject, isIntegral ? "integer" : "number"
@@ -3810,20 +3822,24 @@ JSIL.IsArray = function (value) {
   else if (Array.isArray(value))
     return true;
 
-  if (typeof (value) === "object") {
-    var valueProto = Object.getPrototypeOf(value);
-    var isArrayBuffer = false;
-
-    if (typeof (ArrayBuffer) === "function") {
-      isArrayBuffer = ((typeof (value.buffer) === "object") && (Object.getPrototypeOf(value.buffer) === ArrayBuffer.prototype));
-    }
-
-    if (isArrayBuffer)
-      return true;
-  }
+  if (JSIL.IsTypedArray(value))
+    return true;
 
   return false;
 };
+
+JSIL.IsTypedArray = function (value) {
+  if (typeof (value) === "object") {
+    var valueProto = Object.getPrototypeOf(value);
+
+    if (typeof (ArrayBuffer) === "function") {
+      if (value.buffer && (Object.getPrototypeOf(value.buffer) === ArrayBuffer.prototype))
+        return true;
+    }
+  }
+
+  return false;
+}
 
 JSIL.IsSystemArray = function (value) {
   if (JSIL.IsArray(value))
@@ -5655,7 +5671,7 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
 
       var compositeTypeObject = JSIL.CloneObject(typeObject);
       compositePublicInterface = function (size) {
-        return new Array(size);
+        throw new Error("Invalid use of Array constructor. Use JSIL.Array.New.");
       };
       compositePublicInterface.prototype = JSIL.CloneObject(publicInterface.prototype);
 
@@ -5732,6 +5748,15 @@ JSIL.DefaultValue = function (type) {
     throw new Error("Invalid type passed into DefaultValue");
 };
 
+JSIL.Array.GetElements = function (array) {
+  if (Object.getPrototypeOf(array) === JSIL.MultidimensionalArray.prototype)
+    return array._items;
+  else if (JSIL.IsArray(array))
+    return array;
+  else
+    throw new Error("Argument is not an array");
+};
+
 JSIL.Array.Erase = function Array_Erase (array, elementType) {
   var elementTypeObject, elementTypePublicInterface;
 
@@ -5743,21 +5768,22 @@ JSIL.Array.Erase = function Array_Erase (array, elementType) {
     elementTypePublicInterface = elementType.__PublicInterface__;
   }
 
-  var size = array.length;
+  var elements = JSIL.Array.GetElements(array);
+  var size = elements.length;
 
   if (elementTypeObject.__IsStruct__) {
     for (var i = 0; i < size; i++)
-      array[i] = JSIL.DefaultValueInternal(elementTypeObject, elementTypePublicInterface);
+      elements[i] = JSIL.DefaultValueInternal(elementTypeObject, elementTypePublicInterface);
   } else {
     var defaultValue = JSIL.DefaultValueInternal(elementTypeObject, elementTypePublicInterface)
 
     for (var i = 0; i < size; i++)
-      array[i] = defaultValue;
+      elements[i] = defaultValue;
   }
 };
 
 JSIL.Array.New = function Array_New (elementType, sizeOrInitializer) {
-  var elementTypeObject, elementTypePublicInterface;
+  var elementTypeObject = null, elementTypePublicInterface = null;
 
   if (typeof (elementType.__Type__) === "object") {
     elementTypeObject = elementType.__Type__;
@@ -5767,15 +5793,20 @@ JSIL.Array.New = function Array_New (elementType, sizeOrInitializer) {
     elementTypePublicInterface = elementType.__PublicInterface__;
   }
 
+  var result = null, size = 0;
+
+  if (Array.isArray(sizeOrInitializer)) {
+    size = sizeOrInitializer.length;
+  } else {
+    size = Number(sizeOrInitializer);
+  }
+  result = new Array(size);
+
   if (Array.isArray(sizeOrInitializer)) {
     // If non-numeric, assume array initializer
-    var result = new Array(sizeOrInitializer.length);
     for (var i = 0; i < sizeOrInitializer.length; i++)
       result[i] = sizeOrInitializer[i];
   } else {
-    var size = Number(sizeOrInitializer);
-    var result = new Array(size);
-
     JSIL.Array.Erase(result, elementType);
   }
 
@@ -5789,51 +5820,27 @@ JSIL.Array.New = function Array_New (elementType, sizeOrInitializer) {
 };
 
 JSIL.Array.Clone = function (array) {
-  if (Array.isArray(array)) {
-    return Array.prototype.slice.call(array);
-  } else if (Object.getPrototypeOf(array) === JSIL.MultidimensionalArray.prototype) {
+  if (Object.getPrototypeOf(array) === JSIL.MultidimensionalArray.prototype) {
     return new JSIL.MultidimensionalArray(array._type, array._dimensions, array._items);
+  } else if (JSIL.IsArray(array)) {
+    return Array.prototype.slice.call(array);
   } else {
     throw new Error("Invalid array");
   }
 };
 
 JSIL.Array.CopyTo = function (source, destination, destinationIndex) {
-  var srcArray, destArray;
+  var srcArray = JSIL.Array.GetElements(source);
+  var destArray = JSIL.Array.GetElements(destination);
 
-  if (Array.isArray(source))
-    srcArray = source;
-  else if (Object.getPrototypeOf(source) === JSIL.MultidimensionalArray.prototype)
-    srcArray = source._items;
-
-  if (Array.isArray(destination))
-    destArray = destination;
-  else if (Object.getPrototypeOf(destination) === JSIL.MultidimensionalArray.prototype)
-    destArray = destination._items;
-
-  var size = srcArray.length;
+  var size = Math.min(srcArray.length, destArray.length);
 
   for (var i = 0; i < size; i++)
     destArray[i + destinationIndex] = srcArray[i];
 };
 
 JSIL.Array.ShallowCopy = function (destination, source) {
-  if (Array.isArray(destination)) {
-  } else if (Array.isArray(destination._items)) {
-    destination = destination._items;
-  } else {
-    throw new Error("Destination must be an array");
-  }
-
-  if (Array.isArray(source)) {
-  } else if (Array.isArray(source._items)) {
-    source = source._items;
-  } else {
-    throw new Error("Source must be an array");
-  }
-
-  for (var i = 0, l = Math.min(source.length, destination.length); i < l; i++)
-    destination[i] = source[i];
+  JSIL.Array.CopyTo(source, destination, 0);
 };
 
 JSIL.MakeClass("System.Array", "JSIL.MultidimensionalArray", true, [], function ($) {
@@ -5849,7 +5856,7 @@ JSIL.MakeClass("System.Array", "JSIL.MultidimensionalArray", true, [], function 
 
       this._type = type;
       this._dimensions = dimensions;
-      var items = this._items = new Array(totalSize);
+      var items = this._items = JSIL.Array.New(type, totalSize);
 
       JSIL.SetValueProperty(this, "length", totalSize);
 
@@ -6073,7 +6080,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
 };
 
 JSIL.StringToByteArray = function (text) {
-  var result = new Array(text.length);
+  var result = JSIL.Array.New(System.Byte, text.length);
   
   for (var i = 0, l = text.length; i < l; i++)
     result[i] = text.charCodeAt(i) & 0xFF;
@@ -6082,7 +6089,7 @@ JSIL.StringToByteArray = function (text) {
 };
 
 JSIL.StringToCharArray = function (text) {
-  var result = new Array(text.length);
+  var result = JSIL.Array.New(System.Char, text.length);
 
   for (var i = 0, l = text.length; i < l; i++)
     result[i] = text[i];

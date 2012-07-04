@@ -79,7 +79,7 @@ JSIL.ImplementExternals(
     $.Constant({Public: true, Static: true}, "MaxValue", 255);
   }
 );
-JSIL.MakeNumericType(Number, "System.Byte", true);
+JSIL.MakeNumericType(Number, "System.Byte", true, "Uint8Array");
 
 JSIL.ImplementExternals(
   "System.SByte", function ($) {
@@ -91,7 +91,7 @@ JSIL.ImplementExternals(
     $.Constant({Public: true, Static: true}, "MaxValue", 127);
   }
 );
-JSIL.MakeNumericType(Number, "System.SByte", true);
+JSIL.MakeNumericType(Number, "System.SByte", true, "Int8Array");
 
 $jsilcore.$ParseInt = function (text) {
   var result = parseInt(text, 10);
@@ -126,7 +126,7 @@ JSIL.ImplementExternals(
 		$.Constant({Public: true, Static: true}, "MinValue", 0);
   }
 );
-JSIL.MakeNumericType(Number, "System.UInt16", true);
+JSIL.MakeNumericType(Number, "System.UInt16", true, "Uint16Array");
 
 JSIL.ImplementExternals(
   "System.Int16", function ($) {
@@ -148,7 +148,7 @@ JSIL.ImplementExternals(
 		$.Constant({Public: true, Static: true}, "MinValue", -32768);
   }
 );
-JSIL.MakeNumericType(Number, "System.Int16", true);
+JSIL.MakeNumericType(Number, "System.Int16", true, "Int16Array");
 
 JSIL.ImplementExternals(
   "System.UInt32", function ($) {
@@ -170,7 +170,7 @@ JSIL.ImplementExternals(
 		$.Constant({Public: true, Static: true}, "MinValue", 0);
   }
 );
-JSIL.MakeNumericType(Number, "System.UInt32", true);
+JSIL.MakeNumericType(Number, "System.UInt32", true, "Uint32Array");
 
 JSIL.ImplementExternals(
   "System.Int32", function ($) {
@@ -192,7 +192,7 @@ JSIL.ImplementExternals(
 		$.Constant({Public: true, Static: true}, "MinValue", -2147483648);
   }
 );
-JSIL.MakeNumericType(Number, "System.Int32", true);
+JSIL.MakeNumericType(Number, "System.Int32", true, "Int32Array");
 
 JSIL.ImplementExternals(
   "System.Int64", function ($) {
@@ -214,7 +214,7 @@ JSIL.ImplementExternals(
 		$.Constant({Public: true, Static: true}, "MinValue", -9223372036854775808);
   }
 );
-JSIL.MakeNumericType(Number, "System.Int64", true);
+JSIL.MakeNumericType(Number, "System.Int64", true, "Int64Array");
 
 JSIL.ImplementExternals(
   "System.Single", function ($) {
@@ -230,7 +230,7 @@ JSIL.ImplementExternals(
 		$.Constant({Public: true, Static: true}, "NaN", NaN);
   }
 );
-JSIL.MakeNumericType(Number, "System.Single", false);
+JSIL.MakeNumericType(Number, "System.Single", false, "Float32Array");
 
 JSIL.ImplementExternals(
   "System.Double", function ($) {
@@ -246,7 +246,7 @@ JSIL.ImplementExternals(
 		$.Constant({Public: true, Static: true}, "NaN", NaN);
   }
 );
-JSIL.MakeNumericType(Number, "System.Double", false);
+JSIL.MakeNumericType(Number, "System.Double", false, "Float64Array");
 
 JSIL.ParseCustomNumberFormat = function (customFormat) {
   var inQuotedString = false, quoteCharacter = null, stringStartOffset = -1;
@@ -545,6 +545,7 @@ JSIL.ImplementExternals(
         var arr = new Array(length);
         for (var i = 0; i < length; i++)
           arr[i] = ch;
+        
         return arr.join("");
       }
     );
@@ -1605,7 +1606,8 @@ JSIL.ImplementExternals("System.Collections.Generic.List`1", function ($) {
       if (arrayindex != 0) {
           throw new Error("List<T>.CopyTo not supported for non-zero indexes");
       }
-      JSIL.Array.ShallowCopy(array, this);
+      
+      JSIL.Array.ShallowCopy(array, this._items);
     }
   );
 
