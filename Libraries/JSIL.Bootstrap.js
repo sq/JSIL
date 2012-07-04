@@ -1230,11 +1230,27 @@ JSIL.MakeClass("System.Object", "System.Threading.Thread", true, [], function ($
   $.Property({Public: true , Static: true }, "ManagedThreadId");
 });
 
+$jsilcore.InitResizableArray = function (target, elementType, initialSize) {
+  target._items = new Array(initialSize);
+};
+
 $jsilcore.$ListExternals = function ($, T, type) {
   var mscorlib = JSIL.GetCorlib();
 
   if ((typeof (T) === "undefined") || (T === null)) {
     T = new JSIL.GenericParameter("T", "System.Collections.Generic.List`1");
+  }
+
+  var getT;
+
+  switch (type) {
+    case "ArrayList":
+    case "ObjectCollection":
+      getT = function () { return System.Object; }
+      break;
+    default:
+      getT = function (self) { return self.T; }
+      break;
   }
 
   var indexOfImpl = function (value) {
@@ -1261,7 +1277,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
   $.Method({Static:false, Public:true }, ".ctor", 
     new JSIL.MethodSignature(null, [], []),
     function () {
-      this._items = new Array();
+      $jsilcore.InitResizableArray(this, getT(this), 16);
       this._size = 0;
     }
   );
@@ -1269,7 +1285,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
   $.Method({Static:false, Public:true }, ".ctor", 
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32")], []),
     function (size) {
-      this._items = new Array(size);
+      $jsilcore.InitResizableArray(this, getT(this), size);
       this._size = 0;
     }
   );
@@ -1278,6 +1294,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Collections.Generic.IEnumerable`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.List`1")])], []),
     function (values) {
       this._items = JSIL.EnumerableToArray(values);
+      this._capacity = this._items.length;
       this._size = this._items.length;
     }
   );
@@ -1385,7 +1402,7 @@ $jsilcore.$ListExternals = function ($, T, type) {
           result._items.push(item);
       }
 
-      result._size = result._items.length;
+      result._capacity = result._size = result._items.length;
       return result;
     }
   );
@@ -1606,7 +1623,7 @@ JSIL.ImplementExternals("System.Collections.Generic.List`1", function ($) {
       if (arrayindex != 0) {
           throw new Error("List<T>.CopyTo not supported for non-zero indexes");
       }
-      
+
       JSIL.Array.ShallowCopy(array, this._items);
     }
   );
@@ -1651,7 +1668,7 @@ $jsilcore.$CollectionExternals = function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
     new JSIL.MethodSignature(null, [], []),
     function () {
-      this._items = new Array();
+      $jsilcore.InitResizableArray(this, this.T, 16);
       this._size = 0;
     }
   );
@@ -1660,7 +1677,7 @@ $jsilcore.$CollectionExternals = function ($) {
     new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Collections.Generic.IList`1", [T])], []),
     function (list) {
       this._items = JSIL.EnumerableToArray(list);
-      this._size = this._items.length;
+      this._capacity = this._size = this._items.length;
     }
   );
 };
@@ -1712,7 +1729,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Stack`1", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [], [])), 
     function _ctor () {
-      this._items = new Array();
+      $jsilcore.InitResizableArray(this, this.T, 16);
       this._size = 0;
     }
   );
@@ -1720,7 +1737,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Stack`1", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$.Int32], [])), 
     function _ctor (capacity) {
-      this._items = new Array(capacity);
+      $jsilcore.InitResizableArray(this, this.T, capacity);
       this._size = 0;
     }
   );
@@ -1787,7 +1804,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Queue`1", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [], [])), 
     function _ctor () {
-      this._items = new Array();
+      $jsilcore.InitResizableArray(this, this.T, 16);
       this._size = 0;
     }
   );
@@ -1795,7 +1812,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Queue`1", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$.Int32], [])), 
     function _ctor (capacity) {
-      this._items = new Array(capacity);
+      $jsilcore.InitResizableArray(this, this.T, capacity);
       this._size = 0;
     }
   );

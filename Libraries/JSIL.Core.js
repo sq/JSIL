@@ -1164,7 +1164,7 @@ JSIL.MakeNumericType = function (baseType, typeName, isIntegral, typedArrayName)
         $.SetValue("__TypedArray__", typedArrayCtor);
       else
         $.SetValue("__TypedArray__", null);
-      
+
     } else {
       $.SetValue("__TypedArray__", null);
     }
@@ -5794,20 +5794,26 @@ JSIL.Array.New = function Array_New (elementType, sizeOrInitializer) {
   }
 
   var result = null, size = 0;
+  var initializerIsArray = JSIL.IsArray(sizeOrInitializer);
 
-  if (Array.isArray(sizeOrInitializer)) {
+  if (initializerIsArray) {
     size = sizeOrInitializer.length;
   } else {
     size = Number(sizeOrInitializer);
   }
-  result = new Array(size);
 
-  if (Array.isArray(sizeOrInitializer)) {
-    // If non-numeric, assume array initializer
-    for (var i = 0; i < sizeOrInitializer.length; i++)
-      result[i] = sizeOrInitializer[i];
+  if (elementTypeObject.__TypedArray__) {
+    result = new (elementTypeObject.__TypedArray__)(sizeOrInitializer);
   } else {
-    JSIL.Array.Erase(result, elementType);
+    result = new Array(size);
+
+    if (initializerIsArray) {
+      // If non-numeric, assume array initializer
+      for (var i = 0; i < sizeOrInitializer.length; i++)
+        result[i] = sizeOrInitializer[i];
+    } else {
+      JSIL.Array.Erase(result, elementType);
+    }
   }
 
   /* Even worse, doing this deoptimizes all uses of the array in TraceMonkey. AUGH
@@ -5830,6 +5836,11 @@ JSIL.Array.Clone = function (array) {
 };
 
 JSIL.Array.CopyTo = function (source, destination, destinationIndex) {
+  if (JSIL.IsTypedArray(destination)) {
+    destination.set(source, destinationIndex);
+    return;
+  }
+
   var srcArray = JSIL.Array.GetElements(source);
   var destArray = JSIL.Array.GetElements(destination);
 
@@ -5959,22 +5970,27 @@ JSIL.MakeClass("System.Array", "JSIL.MultidimensionalArray", true, [], function 
 
 JSIL.ImplementExternals(
   "System.Array", function ($) {
+    $.Method({ Static: true, Public: true }, "Resize",
+      new JSIL.MethodSignature(null, [$jsilcore.TypeRef("JSIL.Reference", [$jsilcore.TypeRef("System.Array", ["!!0"])]), $.Int32], ["T"]),
+      function (type, arr, newSize) {
+        var oldArray = arr.value, newArray = null;
+        var oldLength = oldArray.length;
 
-      $.Method({ Static: true, Public: true }, "Resize",
-        new JSIL.MethodSignature(null, [$jsilcore.TypeRef("JSIL.Reference", [$jsilcore.TypeRef("System.Array", ["!!0"])]), $.Int32], ["T"]),
-        function (type, arr, newSize) {
-            var oldLength = arr.value.length;
-            arr.value.length = newSize;
+        if (Array.isArray(oldArray)) {
+          newArray = oldArray;
+          newArray.length = newSize;
 
-            var defaultValue = null;
-            if (type.__IsNumeric__)
-                defaultValue = 0;
+          for (var i = oldLength; i < newSize; i++)
+            newArray[i] = JSIL.DefaultValue(type);
+        } else {
+          newArray = JSIL.Array.New(type, newSize);
 
-            for (var i = oldLength; i < newSize; i++) { // initialize the remaining of the array with new values
-                arr.value[i] = defaultValue;
-            }
+          JSIL.Array.CopyTo(oldArray, newArray, 0);
         }
-      );
+
+        arr.value = newArray;
+      }
+    );
   }
 );
 
