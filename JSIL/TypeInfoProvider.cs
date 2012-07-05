@@ -202,16 +202,16 @@ namespace JSIL {
         }
 
         private void EnqueueType (OrderedDictionary<TypeIdentifier, TypeDefinition> queue, TypeReference typeReference, LinkedListNode<TypeIdentifier> before = null) {
-            var identifier = new TypeIdentifier(typeReference);
+            var typedef = TypeUtil.GetTypeDefinition(typeReference);
+            if (typedef == null)
+                return;
+
+            var identifier = new TypeIdentifier(typedef);
 
             if (queue.ContainsKey(identifier))
                 return;
 
             if (!TypeInformation.ContainsKey(identifier)) {
-                var typedef = TypeUtil.GetTypeDefinition(typeReference);
-                if (typedef == null)
-                    return;
-
                 LinkedListNode<TypeIdentifier> before2;
                 if (before != null)
                     before2 = queue.EnqueueBefore(before, identifier, typedef);
@@ -234,7 +234,11 @@ namespace JSIL {
                 throw new ArgumentNullException("type");
 
             TypeInfo result;
-            var identifier = new TypeIdentifier(type);
+            var typedef = TypeUtil.GetTypeDefinition(type);
+            if (typedef == null)
+                return null;
+
+            var identifier = new TypeIdentifier(typedef);
             if (TypeInformation.TryGet(identifier, out result))
                 return result;
 
@@ -311,17 +315,15 @@ namespace JSIL {
                 if (tr == null)
                     return;
 
-                var _identifier = new TypeIdentifier(tr);
-                if (_identifier.Equals(identifier))
-                    return;
-                else if (moreTypes.ContainsKey(_identifier))
-                    return;
-
                 var td = TypeUtil.GetTypeDefinition(tr);
                 if (td == null)
                     return;
 
-                _identifier = new TypeIdentifier(td);
+                var _identifier = new TypeIdentifier(td);
+                if (_identifier.Equals(identifier))
+                    return;
+                else if (moreTypes.ContainsKey(_identifier))
+                    return;
 
                 moreTypes[_identifier] = td;
             };
@@ -406,6 +408,17 @@ namespace JSIL {
         }
 
         public TypeInfo GetExisting (TypeReference type) {
+            if (type == null)
+                throw new ArgumentNullException("type");
+
+            var resolved = type.Resolve();
+            if (resolved == null)
+                return null;
+
+            return GetExisting(resolved);
+        }
+
+        public TypeInfo GetExisting (TypeDefinition type) {
             if (type == null)
                 throw new ArgumentNullException("type");
 

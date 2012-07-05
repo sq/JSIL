@@ -117,8 +117,8 @@ namespace JSIL.Ast {
 
             if (gp != null) {
                 if (gp.Owner.GenericParameterType == GenericParameterType.Method) {
-                    var ownerIdentifier = new MemberIdentifier(typeInfo, gp.Owner as MethodReference);
-                    var memberIdentifier = new MemberIdentifier(typeInfo, member as dynamic);
+                    var ownerIdentifier = new MemberIdentifier(typeInfo, (MethodReference)gp.Owner);
+                    var memberIdentifier = new MemberIdentifier(typeInfo, (dynamic)member);
 
                     if (!ownerIdentifier.Equals(memberIdentifier, typeInfo))
                         return type;
@@ -126,8 +126,8 @@ namespace JSIL.Ast {
                     if (!(member is GenericInstanceMethod))
                         return type;
                 } else {
-                    var declaringType = member.DeclaringType;
-                    var ownerIdentifier = new TypeIdentifier(gp.Owner as TypeReference);
+                    var declaringType = member.DeclaringType.Resolve();
+                    var ownerIdentifier = new TypeIdentifier(((TypeReference)gp.Owner).Resolve());
                     var typeIdentifier = new TypeIdentifier(declaringType);
 
                     if (!ownerIdentifier.Equals(typeIdentifier))

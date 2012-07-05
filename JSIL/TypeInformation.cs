@@ -19,6 +19,7 @@ namespace JSIL.Internal {
         ModuleInfo Get (ModuleDefinition module);
         TypeInfo Get (TypeReference type);
         TypeInfo GetExisting (TypeReference type);
+        TypeInfo GetExisting (TypeDefinition type);
         TypeInfo GetExisting (TypeIdentifier type);
         IMemberInfo Get (MemberReference member);
 
@@ -52,18 +53,18 @@ namespace JSIL.Internal {
         public readonly string DeclaringTypeName;
         public readonly string Name;
 
-        public TypeIdentifier (TypeDefinition type)
-            : this ((TypeReference)type) {
+        public TypeIdentifier (TypeDefinition type) {
+            if (type == null)
+                throw new ArgumentNullException("type");
 
-            var asm = type.Module.Assembly;
-            if (asm != null)
-                Assembly = asm.FullName;
-            else
-                Assembly = null;
-        }
+            if (type.Module != null) {
+                var asm = type.Module.Assembly;
+                if (asm != null)
+                    Assembly = asm.FullName;
+                else
+                    Assembly = null;
+            }
 
-        public TypeIdentifier (TypeReference type) {
-            Assembly = null;
             Namespace = type.Namespace;
             Name = type.Name;
 

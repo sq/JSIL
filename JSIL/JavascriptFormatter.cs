@@ -449,7 +449,7 @@ namespace JSIL.Internal {
                     };
 
                     var ownerMethodIdentifier = new QualifiedMemberIdentifier(
-                        new TypeIdentifier(ownerMethod.DeclaringType),
+                        new TypeIdentifier(ownerMethod.DeclaringType.Resolve()),
                         new MemberIdentifier(TypeInfo, ownerMethod)
                     );
 
