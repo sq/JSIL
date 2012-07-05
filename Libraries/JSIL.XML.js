@@ -656,7 +656,7 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
         }
       default:
         JSIL.Host.warning("Unsupported node type: ", node.nodeType, " ", node);
-        break;
+        return false;
     }
 
     return true;
@@ -723,6 +723,32 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
     function Read () {
       this.advanceCount += 1;
       return this.$moveNext();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ReadToFollowing", 
+    (new JSIL.MethodSignature($.Boolean, [$.String], [])), 
+    function ReadToFollowing (localName) {
+      while (this.Read()) {
+        if ((this._nodeType === ntElement) && (this.get_LocalName() === localName))
+          return true;
+      }
+
+      return false;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ReadToNextSibling", 
+    (new JSIL.MethodSignature($.Boolean, [$.String], [])), 
+    function ReadToNextSibling (localName) {
+      while (this.$skip()) {
+        if ((this._nodeType === ntElement) && (this.get_LocalName() === localName))
+          return true;
+        else if (this._nodeType === ntEndElement)
+          return false;
+      }
+
+      return false;
     }
   );
 

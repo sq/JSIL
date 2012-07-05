@@ -47,7 +47,7 @@ a, a:visited {
 #quitButton {
 	width: 32px;
 	height: 32px;
-	left: 1284px;
+	left: 740px;
 	top: 2px;
 }
 #loadingProgress {
@@ -60,20 +60,20 @@ a, a:visited {
 	height: 40px;
 }
 #log {
-	width: 704px;
+	width: 736px;
 	height: 200px;
 	left: 2px;
-	top: 544px;
+	top: 452px;
 	overflow-x: hidden;
 	overflow-y: scroll;
 }
 #fullscreenButton {
-	left: 708px;
+	left: 740px;
 	top: 2px;
 	height: 45px;
 }
 #stats {
-	left: 708px;
+	left: 740px;
 	top: 50px;
 }
 .boxCaption {

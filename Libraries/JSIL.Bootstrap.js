@@ -3361,23 +3361,29 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary`2", true,
   );
 });
 
-$jsilcore.$tArrayEnumerator = [null];
+$jsilcore.$tArrayEnumerator = null;
+
+JSIL.MakeArrayEnumerator = function (array) {
+  if ($jsilcore.$tArrayEnumerator === null)
+    $jsilcore.$tArrayEnumerator = JSIL.ArrayEnumerator.Of(System.Object);
+
+  return new ($jsilcore.$tArrayEnumerator) (array, -1);
+};
 
 JSIL.GetEnumerator = function (enumerable) {
   if ((typeof (enumerable) === "undefined") || (enumerable === null))
     throw new Error("Enumerable is null or undefined");
 
-  if (JSIL.IsArray(enumerable)) {
-    if ($jsilcore.$tArrayEnumerator[0] === null)
-      $jsilcore.$tArrayEnumerator[0] = JSIL.ArrayEnumerator.Of(System.Object);
-
-    return new ($jsilcore.$tArrayEnumerator[0]) (enumerable, -1);
-  } else if (typeof (enumerable.IEnumerable$b1_GetEnumerator) === "function")
+  if (JSIL.IsArray(enumerable))
+    return JSIL.MakeArrayEnumerator(enumerable);
+  else if (typeof (enumerable.IEnumerable$b1_GetEnumerator) === "function")
     return enumerable.IEnumerable$b1_GetEnumerator();
   else if (typeof (enumerable.IEnumerable_GetEnumerator) === "function")
     return enumerable.IEnumerable_GetEnumerator();    
   else if (typeof (enumerable.GetEnumerator) === "function")
     return enumerable.GetEnumerator();    
+  else if (typeof (enumerable) === "string")
+    return JSIL.MakeArrayEnumerator(enumerable);
   else
     throw new Error("Value is not enumerable");
 };
@@ -3604,6 +3610,24 @@ JSIL.ImplementExternals(
         return JSIL.EnumerableToArray(enumerable);
       }
     );
+
+    $.Method({Static:true , Public:true }, "Contains", 
+      (new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", ["!!0"]), "!!0"], ["TSource"])), 
+      function Contains$b1 (TSource, source, item) {
+        var enumerator = JSIL.GetEnumerator(source);
+
+        try {
+          while (enumerator.IEnumerator_MoveNext()) {
+            if (JSIL.ObjectEquals(enumerator.IEnumerator_Current, item))
+              return true;
+          }
+        } finally {
+          enumerator.IDisposable_Dispose();
+        }
+
+        return false;
+      }
+    );    
 
   }
 );
