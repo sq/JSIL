@@ -3682,6 +3682,9 @@ JSIL.MakeEnumValue = function (enumType, value, key, isFlagsEnum) {
   JSIL.SetValueProperty(obj, "GetType", function EnumValue_GetType () {
     return enumType;
   });
+  JSIL.SetValueProperty(obj, "GetHashCode", function EnumValue_GetHashCode () {
+    return value;
+  });
   JSIL.SetValueProperty(obj, "__ThisType__", enumType);
   JSIL.SetValueProperty(obj, "__ThisTypeId__", enumType.__TypeId__);
   JSIL.SetValueProperty(obj, "value", value);
@@ -6144,6 +6147,27 @@ JSIL.CompareValues = function (lhs, rhs) {
     return -1;
   else
     return 0;
+};
+
+var $nextHashCode = 0;
+
+JSIL.ObjectHashCode = function (obj) {
+  var type = typeof obj;
+
+  if (type === "object") {
+    var ghc = obj.GetHashCode;
+
+    if (ghc && (typeof (ghc) === "function"))
+      return obj.GetHashCode();
+    
+    var hc = obj.__HashCode__;
+    if (!hc)
+      hc = obj.__HashCode__ = (++$nextHashCode);
+
+    return hc;
+  } else {
+    return String(obj);
+  }
 };
 
 // MemberwiseClone if parameter is struct, otherwise do nothing.

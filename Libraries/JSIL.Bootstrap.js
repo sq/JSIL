@@ -3032,27 +3032,15 @@ JSIL.MakeStruct("System.ValueType", "System.TimeSpan", true, [], function ($) {
 $jsilcore.hashContainerBase = function ($) {
   var mscorlib = JSIL.GetCorlib();
 
-  $.RawMethod(false, "$getHash", function (key) {
-    var keyType = typeof key;
-
-    if ((keyType !== "undefined") && (key !== null) && (typeof (key.GetHashCode) === "function") && (key.GetHashCode.__IsPlaceholder__ !== true)) {
-      return key.GetHashCode();
-    } else if ((keyType === "string") || (keyType === "number")) {
-      return String(key);
-    } else {
-      return "nohash";
-    }
-  });
-
-  $.RawMethod(false, "$areEqual", function (lhs, rhs) {
+  $.RawMethod(false, "$areEqual", function HashContainer_AreEqual (lhs, rhs) {
     if (lhs === rhs)
       return true;
 
     return JSIL.ObjectEquals(lhs, rhs);
   });
 
-  $.RawMethod(false, "$searchBucket", function (key) {
-    var hashCode = this.$getHash(key);
+  $.RawMethod(false, "$searchBucket", function HashContainer_SearchBucket (key) {
+    var hashCode = JSIL.ObjectHashCode(key);
     var bucket = this._dict[hashCode];
     if (!JSIL.IsArray(bucket))
       return null;
@@ -3067,8 +3055,8 @@ $jsilcore.hashContainerBase = function ($) {
     return null;
   });
 
-  $.RawMethod(false, "$removeByKey", function (key) {
-    var hashCode = this.$getHash(key);
+  $.RawMethod(false, "$removeByKey", function HashContainer_Remove (key) {
+    var hashCode = JSIL.ObjectHashCode(key);
     var bucket = this._dict[hashCode];
     if (!JSIL.IsArray(bucket))
       return false;
@@ -3086,8 +3074,8 @@ $jsilcore.hashContainerBase = function ($) {
     return false;
   });
 
-  $.RawMethod(false, "$addToBucket", function (key, value) {
-    var hashCode = this.$getHash(key);
+  $.RawMethod(false, "$addToBucket", function HashContainer_Add (key, value) {
+    var hashCode = JSIL.ObjectHashCode(key);
     var bucket = this._dict[hashCode];
     if (!JSIL.IsArray(bucket))
       this._dict[hashCode] = bucket = [];
