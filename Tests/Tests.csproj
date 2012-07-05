@@ -181,6 +181,8 @@
     <None Include="TestCases\RefStructThisWithInterface.cs" />
     <None Include="TestCases\RefStructThisWithConstrainedInterface.cs" />
     <None Include="TestCases\MutatedStructGenericParameter.cs" />
+    <None Include="SimpleTestCases\ParseInteger.cs" />
+    <None Include="SimpleTestCases\ParseHexInteger.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

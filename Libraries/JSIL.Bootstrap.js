@@ -17,6 +17,9 @@ String.prototype.Object_Equals = function (rhs) {
 };
 
 $jsilcore.$ParseBoolean = function (text) {
+  if (arguments.length !== 1)
+    throw new Error("NumberStyles not supported");
+
   var temp = {};
   if ($jsilcore.$TryParseBoolean(text, temp))
     return temp.value;
@@ -38,21 +41,30 @@ $jsilcore.$TryParseBoolean = function (text, result) {
   return false;
 };
 
+$jsilcore.$MakeParseExternals = function ($, type, parse, tryParse) {
+  $.Method({Static:true , Public:true }, "Parse", 
+    (new JSIL.MethodSignature(type, [$.String], [])), 
+    parse
+  );
+
+  $.Method({Static:true , Public:true }, "Parse", 
+    (new JSIL.MethodSignature(type, [$.String, $jsilcore.TypeRef("System.Globalization.NumberStyles")], [])), 
+    parse
+  );
+
+  $.Method({Static:true , Public:true }, "TryParse", 
+    (new JSIL.MethodSignature($.Boolean, [$.String, $jsilcore.TypeRef("JSIL.Reference", [type])], [])), 
+    tryParse
+  );
+};
+
 JSIL.ImplementExternals(
   "System.Boolean", function ($) {
     $.RawMethod(true, "CheckType", function (value) {
       return (value === false) || (value === true);
     });
 
-    $.Method({Static:true , Public:true }, "Parse", 
-      (new JSIL.MethodSignature($.Boolean, [$.String], [])), 
-      $jsilcore.$ParseBoolean
-    );
-
-    $.Method({Static:true , Public:true }, "TryParse", 
-      (new JSIL.MethodSignature($.Boolean, [$.String, $jsilcore.TypeRef("JSIL.Reference", [$.Boolean])], [])), 
-      $jsilcore.$TryParseBoolean
-    );
+    $jsilcore.$MakeParseExternals($, $.Boolean, $jsilcore.$ParseBoolean, $jsilcore.$TryParseBoolean);
   }
 );
 JSIL.MakeNumericType(Boolean, "System.Boolean", true);
@@ -93,16 +105,26 @@ JSIL.ImplementExternals(
 );
 JSIL.MakeNumericType(Number, "System.SByte", true, "Int8Array");
 
-$jsilcore.$ParseInt = function (text) {
-  var result = parseInt(text, 10);
+$jsilcore.$ParseInt = function (text, style) {
+  var temp = {};
+  if ($jsilcore.$TryParseInt(text, style, temp))
+    return temp.value;
 
-  if (isNaN(result))
-    throw new System.Exception("Invalid integer");
-
-  return result;
+  throw new System.Exception("Invalid integer");
 };
-$jsilcore.$TryParseInt = function (text, result) {
-  result.value = parseInt(text, 10);
+
+$jsilcore.$TryParseInt = function (text, style, result) {
+  if (arguments.length === 2) {
+    result = style;
+    style = 0;
+  }
+
+  var radix = 10;
+
+  if (style & System.Globalization.NumberStyles.AllowHexSpecifier)
+    radix = 16;
+
+  result.value = parseInt(text, radix);
   return !isNaN(result.value);
 };
 
@@ -112,15 +134,7 @@ JSIL.ImplementExternals(
       return (typeof (value) === "number") && (value >= 0);
     });
 
-    $.Method({Static:true , Public:true }, "Parse", 
-      (new JSIL.MethodSignature($.UInt16, [$.String], [])), 
-      $jsilcore.$ParseInt
-    );
-
-    $.Method({Static:true , Public:true }, "TryParse", 
-      (new JSIL.MethodSignature($.Boolean, [$.String, $jsilcore.TypeRef("JSIL.Reference", [$.UInt16])], [])), 
-      $jsilcore.$TryParseInt
-    );
+    $jsilcore.$MakeParseExternals($, $.UInt16, $jsilcore.$ParseInt, $jsilcore.$TryParseInt);
 
 		$.Constant({Public: true, Static: true}, "MaxValue", 65535);
 		$.Constant({Public: true, Static: true}, "MinValue", 0);
@@ -134,15 +148,7 @@ JSIL.ImplementExternals(
       return (typeof (value) === "number");
     });
 
-    $.Method({Static:true , Public:true }, "Parse", 
-      (new JSIL.MethodSignature($.Int16, [$.String], [])), 
-      $jsilcore.$ParseInt
-    );
-
-    $.Method({Static:true , Public:true }, "TryParse", 
-      (new JSIL.MethodSignature($.Boolean, [$.String, $jsilcore.TypeRef("JSIL.Reference", [$.Int16])], [])), 
-      $jsilcore.$TryParseInt
-    );
+    $jsilcore.$MakeParseExternals($, $.Int16, $jsilcore.$ParseInt, $jsilcore.$TryParseInt);
     
 		$.Constant({Public: true, Static: true}, "MaxValue", 32767);
 		$.Constant({Public: true, Static: true}, "MinValue", -32768);
@@ -156,15 +162,7 @@ JSIL.ImplementExternals(
       return (typeof (value) === "number") && (value >= 0);
     });
 
-    $.Method({Static:true , Public:true }, "Parse", 
-      (new JSIL.MethodSignature($.UInt32, [$.String], [])), 
-      $jsilcore.$ParseInt
-    );
-
-    $.Method({Static:true , Public:true }, "TryParse", 
-      (new JSIL.MethodSignature($.Boolean, [$.String, $jsilcore.TypeRef("JSIL.Reference", [$.UInt32])], [])), 
-      $jsilcore.$TryParseInt
-    );
+    $jsilcore.$MakeParseExternals($, $.UInt32, $jsilcore.$ParseInt, $jsilcore.$TryParseInt);
 
 		$.Constant({Public: true, Static: true}, "MaxValue", 4294967295);
 		$.Constant({Public: true, Static: true}, "MinValue", 0);
@@ -178,15 +176,7 @@ JSIL.ImplementExternals(
       return (typeof (value) === "number");
     });
 
-    $.Method({Static:true , Public:true }, "Parse", 
-      (new JSIL.MethodSignature($.Int32, [$.String], [])), 
-      $jsilcore.$ParseInt
-    );
-
-    $.Method({Static:true , Public:true }, "TryParse", 
-      (new JSIL.MethodSignature($.Boolean, [$.String, $jsilcore.TypeRef("JSIL.Reference", [$.Int32])], [])), 
-      $jsilcore.$TryParseInt
-    );
+    $jsilcore.$MakeParseExternals($, $.Int32, $jsilcore.$ParseInt, $jsilcore.$TryParseInt);
     
 		$.Constant({Public: true, Static: true}, "MaxValue", 2147483647);
 		$.Constant({Public: true, Static: true}, "MinValue", -2147483648);
@@ -200,15 +190,7 @@ JSIL.ImplementExternals(
       return (typeof (value) === "number");
     });
 
-    $.Method({Static:true , Public:true }, "Parse", 
-      (new JSIL.MethodSignature($.Int64, [$.String], [])), 
-      $jsilcore.$ParseInt
-    );
-
-    $.Method({Static:true , Public:true }, "TryParse", 
-      (new JSIL.MethodSignature($.Boolean, [$.String, $jsilcore.TypeRef("JSIL.Reference", [$.Int64])], [])), 
-      $jsilcore.$TryParseInt
-    );
+    $jsilcore.$MakeParseExternals($, $.Int64, $jsilcore.$ParseInt, $jsilcore.$TryParseInt);
 
 		$.Constant({Public: true, Static: true}, "MaxValue", 9223372036854775807);
 		$.Constant({Public: true, Static: true}, "MinValue", -9223372036854775808);
@@ -5015,3 +4997,25 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.HashSet`1", true, ["
 //      $jsilcore.TypeRef("System.Collections.Generic.ICollection`1", [new JSIL.GenericParameter("T", "System.Collections.Generic.HashSet`1")]), 
   );
 });
+
+JSIL.MakeEnum(
+  "System.Globalization.NumberStyles", true, {
+    None: 0, 
+    AllowLeadingWhite: 1, 
+    AllowTrailingWhite: 2, 
+    AllowLeadingSign: 4, 
+    Integer: 7, 
+    AllowTrailingSign: 8, 
+    AllowParentheses: 16, 
+    AllowDecimalPoint: 32, 
+    AllowThousands: 64, 
+    Number: 111, 
+    AllowExponent: 128, 
+    Float: 167, 
+    AllowCurrencySymbol: 256, 
+    Currency: 383, 
+    Any: 511, 
+    AllowHexSpecifier: 512, 
+    HexNumber: 515
+  }, true
+);
