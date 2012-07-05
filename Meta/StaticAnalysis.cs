@@ -40,4 +40,13 @@ namespace JSIL.Meta {
         public JSEscapingArguments (params string[] argumentNames) {
         }
     }
+
+    /// <summary>
+    /// Tells the static analyzer to treat calls to the Dispose method on this type as pure and subject to optimization.
+    /// </summary>
+    [AttributeUsage(
+        AttributeTargets.Class | AttributeTargets.Struct
+    )]
+    public class JSPureDispose : Attribute {
+    }
 }

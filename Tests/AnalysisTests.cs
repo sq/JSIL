@@ -302,5 +302,23 @@ namespace JSIL.Tests {
                 @"copy = arg.MemberwiseClone()"
             ), "Copy was not cloned");
         }
+
+        [Test]
+        public void PointlessFinallyBlocks () {
+            var output = "1 4\r\n1 5\r\n1 6\r\n2 4\r\n2 5\r\n2 6\r\n3 4\r\n3 5\r\n3 6";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\PointlessFinallyBlocks.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+            Assert.IsFalse(generatedJs.Contains(
+                @"Dispose()"
+            ), "Enumerator(s) were disposed");
+            Assert.IsFalse(generatedJs.Contains(
+                @" finally "
+            ), "Finally block(s) were generated");
+        }
     }
 }

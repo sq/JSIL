@@ -28,6 +28,7 @@ namespace JSIL.Translator {
             public bool? EliminateTemporaries;
             public bool? EliminateRedundantControlFlow;
             public bool? CacheMethodSignatures;
+            public bool? EliminatePointlessFinallyBlocks;
 
             public void MergeInto (OptimizerConfiguration result) {
                 if (EliminateStructCopies.HasValue)
@@ -42,6 +43,8 @@ namespace JSIL.Translator {
                     result.EliminateRedundantControlFlow = EliminateRedundantControlFlow;
                 if (CacheMethodSignatures.HasValue)
                     result.CacheMethodSignatures = CacheMethodSignatures;
+                if (EliminatePointlessFinallyBlocks.HasValue)
+                    result.EliminatePointlessFinallyBlocks = EliminatePointlessFinallyBlocks;
             }
         }
 

@@ -35,4 +35,23 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
     }
+
+    [JSProxy(
+        new[] {
+            "System.Collections.ArrayList/ArrayListEnumerator",
+            "System.Collections.Hashtable/HashtableEnumerator",
+            "System.Collections.Generic.List`1/Enumerator",
+            "System.Collections.Generic.Stack`1/Enumerator",
+            "System.Collections.Generic.Queue`1/Enumerator",
+            "System.Collections.Generic.HashSet`1/Enumerator",
+            "System.Collections.Generic.Dictionary`2/Enumerator",
+            "System.Collections.Generic.Dictionary`2/KeyCollection/Enumerator",
+            "System.Collections.Generic.Dictionary`2/ValueCollection/Enumerator"
+        },
+        memberPolicy: JSProxyMemberPolicy.ReplaceNone,
+        inheritable: false
+    )]
+    [JSPureDispose]
+    public abstract class CollectionEnumeratorProxy {
+    }
 }

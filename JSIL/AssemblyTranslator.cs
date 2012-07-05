@@ -1379,6 +1379,9 @@ namespace JSIL {
             if (Configuration.Optimizer.EliminateRedundantControlFlow.GetValueOrDefault(true))
                 new ControlFlowSimplifier().Visit(function);
 
+            var epf = new EliminatePointlessFinallyBlocks(si.TypeSystem, _TypeInfoProvider, FunctionCache);
+            epf.Visit(function);
+
             var lnd = new LoopNameDetector();
             lnd.Visit(function);
             lnd.EliminateUnusedLoopNames();
