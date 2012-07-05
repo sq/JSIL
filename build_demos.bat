@@ -1,6 +1,6 @@
 pushd bin
 del /s/q ..\jsil.org\demos\*.js
-JSILc "C:\Users\Kevin\Documents\Projects\EscapeGoat\bastille\bastille.sln" "C:\Users\Kevin\Documents\Projects\JSIL\jsil.org\demos\EscapeGoat\EscapeGoat.jsilconfig" --platform:x86 --configuration:DebugPC
+JSILc "C:\Users\Kevin\Documents\Projects\EscapeGoat\bastille\bastille.sln" "C:\Users\Kevin\Documents\Projects\EscapeGoat\bastille\Bastille\Bastille\bin\x86\DebugPC\EscapeGoat.XmlSerializers.dll" "C:\Users\Kevin\Documents\Projects\JSIL\jsil.org\demos\EscapeGoat\EscapeGoat.jsilconfig" --platform:x86 --configuration:DebugPC
 JSILc "C:\Game Design\Game Type\CodeNew\GameType\GameType.sln" "C:\Users\Kevin\Documents\Projects\JSIL\jsil.org\demos\GameType\GameType.jsilconfig" --platform:x86 --configuration:Debug
 JSILc "C:\Users\Kevin\Documents\Projects\Soulcaster\SoulcasterHTML5.sln" "C:\Users\Kevin\Documents\Projects\Soulcaster\Soulcaster2\Soulcaster2\bin\x86\DebugPC\TarchonData.XmlSerializers.dll" "C:\Users\Kevin\Documents\Projects\JSIL\jsil.org\demos\Soulcaster\Soulcaster.jsilconfig" --platform:x86 --configuration:DebugPC
 JSILc "C:\Users\Kevin\Documents\Projects\XNAVERGE\Sully.sln" "C:\Users\Kevin\Documents\Projects\JSIL\jsil.org\demos\Sully\Sully.jsilconfig" --platform:x86 --configuration:Debug

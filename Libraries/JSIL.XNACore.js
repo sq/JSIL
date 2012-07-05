@@ -1312,7 +1312,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", functio
     function () {
       var length = this.Read7BitEncodedInt();
       var chars = this.ReadBytes(length);
-      return String.fromCharCode.apply(String, chars);
+      return JSIL.StringFromByteArray(chars);
     }
   );
 

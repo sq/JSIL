@@ -76,7 +76,7 @@ JSIL.LocalStorage.Initialize = function (appName) {
   JSIL.RegisterStorageProvider({
     getVolumes: function () {
       if (!volume)
-        volume = new LocalStorageVolume(appName, "localStorage:/");
+        volume = new LocalStorageVolume(appName, "/");
 
       return [volume];
     }

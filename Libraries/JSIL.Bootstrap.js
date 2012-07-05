@@ -520,22 +520,45 @@ JSIL.NumberToFormattedString = function (value, valueFormat, formatProvider) {
   }
 };
 
+JSIL.StringFromByteArray = function (bytes, startIndex, length) {
+  var result = "";
+
+  if (arguments.length < 2)
+    startIndex = 0;
+  if (arguments.length < 3)
+    length = bytes.length;
+
+  for (var i = 0; i < length; i++)
+    result += String.fromCharCode(bytes[i + startIndex]);
+
+  return result;
+};
+
+JSIL.StringFromCharArray = function (chars, startIndex, length) {
+  if (arguments.length < 2)
+    startIndex = 0;
+  if (arguments.length < 3)
+    length = chars.length;
+
+  if (arguments.length > 1) {
+    var arr = chars.slice(startIndex, length);
+    return arr.join("");
+  } else {
+    return chars.join("");
+  }
+};
+
 JSIL.ImplementExternals(
   "System.String", function ($) {
-    var fromCharArray = function (chars, startIndex, length) {
-      var arr = chars.slice(startIndex, length);
-      return arr.join("");
-    };
-
     $.Method({Static: false, Public: true }, ".ctor",
       new JSIL.MethodSignature(null, [System.Array.Of($jsilcore.TypeRef("System.Char")), "System.Int32", "System.Int32"], [], $jsilcore),
-      fromCharArray
+      JSIL.StringFromCharArray
     );
 
     $.Method({Static: false, Public: true }, ".ctor",
       new JSIL.MethodSignature(null, [System.Array.Of($jsilcore.TypeRef("System.Char"))], [], $jsilcore),
       function (chars) {
-        return fromCharArray.call(this, chars, 0, chars.length);
+        return JSIL.StringFromCharArray(chars, 0, chars.length);
       }
     );
 
@@ -1100,6 +1123,13 @@ JSIL.ImplementExternals(
       (new JSIL.MethodSignature(null, [$.String], [])), 
       function WriteLine (message) {
         JSIL.Host.logWriteLine(message);
+      }
+    );
+
+    $.Method({Static:true , Public:true }, "Write", 
+      (new JSIL.MethodSignature(null, [$.String], [])), 
+      function Write (message) {
+        JSIL.Host.logWrite(message);
       }
     );
   }
@@ -2438,21 +2468,12 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
   });
 
   $.RawMethod(false, "$charsToString", function (chars, index, count) {
-    var src = chars;
-
     if (typeof (index) === "undefined")
       index = 0;
     if (typeof (count) === "undefined")
       count = chars.length;
 
-    if (
-      (index !== 0) || 
-      (count !== chars.length)
-    ) {
-      src = Array.prototype.slice.call(chars, index, count);
-    }
-
-    return String.fromCharCode.apply(String, src);
+    return JSIL.StringFromByteArray(chars, index, count);
   });
 
   $.RawMethod(false, "$stringToChars", function (string) {
@@ -3964,7 +3985,7 @@ JSIL.ImplementExternals("System.Text.StringBuilder", function ($) {
         for (var i = 0; i < delta; i++)
           ch[i] = '\0';
 
-        this._str += String.fromCharCode.apply(String, ch);
+        this._str += JSIL.StringFromByteArray(ch);
       }
     }
   );

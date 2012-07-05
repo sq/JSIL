@@ -121,7 +121,7 @@ JSIL.ImplementExternals("System.IO.File", function ($) {
     new JSIL.MethodSignature($.String, [$.String], []),
     function (filename) {
       var file = JSIL.Host.getFile(filename);
-      return String.fromCharCode.apply(String, file);
+      return JSIL.StringFromByteArray(file);
     }
   );
 });
@@ -699,7 +699,7 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
         return "";
 
       var bytes = this.ReadBytes(size);
-      return String.fromCharCode.apply(String, bytes);
+      return JSIL.StringFromByteArray(bytes);
     }
   );
 
@@ -851,7 +851,7 @@ JSIL.ImplementExternals("System.IO.StreamReader", function ($) {
         line.push(ch);
       };
 
-      return String.fromCharCode.apply(null, line);
+      return JSIL.StringFromByteArray(line);
     }
   );
 });

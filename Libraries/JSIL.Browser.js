@@ -77,8 +77,22 @@ JSIL.Host.doesFileExist = function (filename) {
   return allFiles.hasOwnProperty(JSIL.Host.translateFilename(filename));
 }
 JSIL.Host.getFile = function (filename) {
+  var storageRoot = JSIL.Host.getStorageRoot();
+  var errorMessage;
+
+  if (storageRoot) {
+    var node = storageRoot.resolvePath(filename, false);
+
+    if (node && node.type === "file")
+      return node.readAllBytes();
+
+    errorMessage = "The file '" + filename + "' is not in the asset manifest, and could not be found in local storage.";
+  } else {
+    errorMessage = "The file '" + filename + "' is not in the asset manifest.";
+  }
+
   if (!JSIL.Host.doesFileExist(filename))
-    throw new System.Exception("The file '" + filename + "' is not in the asset manifest.");
+    throw new System.Exception(errorMessage);
   
   return allFiles[JSIL.Host.translateFilename(filename)];
 };
@@ -800,7 +814,14 @@ function finishLoading () {
     }
 
     if (typeof ($jsilreadonlystorage) !== "undefined") {
-      $jsilbrowserstate.readOnlyStorage = new ReadOnlyStorageVolume("files", "files:/", initFileStorage);
+      var prefixedFileRoot;
+
+      if (fileRoot[0] !== "/")
+        prefixedFileRoot = "/" + fileRoot;
+      else
+        prefixedFileRoot = fileRoot;
+
+      $jsilbrowserstate.readOnlyStorage = new ReadOnlyStorageVolume("files", prefixedFileRoot, initFileStorage);
     }
 
     JSIL.SetLazyValueProperty($jsilbrowserstate, "storageRoot", function InitStorageRoot () {
