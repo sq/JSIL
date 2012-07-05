@@ -2417,11 +2417,16 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
 
   $.RawMethod(false, "$makeByteReader", function (bytes, index, count) {
     var position = index || 0;
-    var length = count || (bytes.length - position);
+    var endpoint;
+
+    if (count)
+      endpoint = (position + count);
+    else
+      endpoint = (bytes.length - position);
 
     var result = {
       read: function () {
-        if (position >= length)
+        if (position >= endpoint)
           return false;
 
         var nextByte = bytes[position];
@@ -2432,7 +2437,7 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
 
     Object.defineProperty(result, "eof", {
       get: function () {
-        return (position >= length);
+        return (position >= endpoint);
       },
       configurable: true,
       enumerable: true
