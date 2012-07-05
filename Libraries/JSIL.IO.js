@@ -942,14 +942,15 @@ JSIL.ImplementExternals("System.IO.DirectoryInfo", function ($) {
   $.Method({Static:false, Public:true }, "Create", 
     (new JSIL.MethodSignature(null, [], [])), 
     function Create () {
-      throw new Error('Not implemented');
+      System.IO.Directory.CreateDirectory(this._path);
     }
   );
 
   $.Method({Static:false, Public:true }, "Create", 
     (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Security.AccessControl.DirectorySecurity")], [])), 
     function Create (directorySecurity) {
-      throw new Error('Not implemented');
+      // FIXME: directorySecurity
+      System.IO.Directory.CreateDirectory(this._path);
     }
   );
 

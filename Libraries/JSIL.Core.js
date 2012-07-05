@@ -2492,6 +2492,9 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
 };
 
 JSIL.$ApplyMemberHiding = function (typeObject, memberList, resolveContext) {
+  if (memberList.length < 1)
+    return;
+
   // This is called during type system initialization, so we can't rely on any of MemberInfo's
   //  properties or methods - we need to access the data members directly.
 

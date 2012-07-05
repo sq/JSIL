@@ -1243,7 +1243,7 @@ JSIL.MakeClass("System.Object", "System.Threading.Thread", true, [], function ($
 });
 
 $jsilcore.InitResizableArray = function (target, elementType, initialSize) {
-  target._items = new Array(initialSize);
+  target._items = new Array();
 };
 
 $jsilcore.$ListExternals = function ($, T, type) {
