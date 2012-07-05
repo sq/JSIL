@@ -82,6 +82,15 @@ JSIL.ImplementExternals("System.IO.File", function ($) {
   $.Method({Static:true , Public:true }, "Exists", 
     new JSIL.MethodSignature($.Boolean, [$.String], []),
     function (filename) {
+      var storageRoot = JSIL.Host.getStorageRoot();
+
+      if (storageRoot) {
+        var resolved = storageRoot.resolvePath(filename, false);
+
+        if (resolved && resolved.type === "file")
+          return true;
+      }
+
       return JSIL.Host.doesFileExist(filename) || 
         JSIL.Host.doesAssetExist(filename, true);
     }
@@ -98,6 +107,13 @@ JSIL.ImplementExternals("System.IO.File", function ($) {
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.FileStream"), [$.String], [])), 
     function OpenWrite (path) {
       return new System.IO.FileStream(path, System.IO.FileMode.OpenOrCreate);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Create", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.FileStream"), [$.String], [])), 
+    function Create (path) {
+      return new System.IO.FileStream(path, System.IO.FileMode.Create);
     }
   );
 
@@ -852,4 +868,598 @@ JSIL.ImplementExternals("System.IO.TextReader", function ($) {
     function Dispose (disposing) {
     }
   );
+});
+
+
+JSIL.ImplementExternals("System.IO.FileSystemInfo", function ($) {
+  $.RawMethod(false, "$fromNodeAndPath", function (node, path) {
+    this._node = node;
+
+    if (node)
+      this._path = node.path;
+    else
+      this._path = path;
+  });
+
+  $.Method({Static:false, Public:false}, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      this._node = null;
+      this._path = null;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Exists", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_Exists () {
+      return (this._node !== null);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Extension", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_Extension () {
+      return System.IO.Path.GetExtension(this._path);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_FullName", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_FullName () {
+      return this._path;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Name", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_Name () {
+      return System.IO.Path.GetFileName(this._path);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Refresh", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Refresh () {
+      // FIXME: Does this need to do anything?
+    }
+  );
+});
+
+JSIL.ImplementExternals("System.IO.DirectoryInfo", function ($) {
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.String], [])), 
+    function _ctor (path) {
+      var storageRoot = JSIL.Host.getStorageRoot();
+
+      if (storageRoot)
+        this.$fromNodeAndPath(storageRoot.resolvePath(path, false), storageRoot.normalizePath(path));
+      else
+        this.$fromNodeAndPath(null, path);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Create", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Create () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Create", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Security.AccessControl.DirectorySecurity")], [])), 
+    function Create (directorySecurity) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "EnumerateDirectories", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$jsilcore.TypeRef("System.IO.DirectoryInfo")]), [], [])), 
+    function EnumerateDirectories () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "EnumerateDirectories", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$jsilcore.TypeRef("System.IO.DirectoryInfo")]), [$.String], [])), 
+    function EnumerateDirectories (searchPattern) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "EnumerateDirectories", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$jsilcore.TypeRef("System.IO.DirectoryInfo")]), [$.String, $jsilcore.TypeRef("System.IO.SearchOption")], [])), 
+    function EnumerateDirectories (searchPattern, searchOption) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "EnumerateFiles", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$jsilcore.TypeRef("System.IO.FileInfo")]), [], [])), 
+    function EnumerateFiles () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "EnumerateFiles", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$jsilcore.TypeRef("System.IO.FileInfo")]), [$.String], [])), 
+    function EnumerateFiles (searchPattern) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "EnumerateFiles", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$jsilcore.TypeRef("System.IO.FileInfo")]), [$.String, $jsilcore.TypeRef("System.IO.SearchOption")], [])), 
+    function EnumerateFiles (searchPattern, searchOption) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "EnumerateFileSystemInfos", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$jsilcore.TypeRef("System.IO.FileSystemInfo")]), [], [])), 
+    function EnumerateFileSystemInfos () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "EnumerateFileSystemInfos", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$jsilcore.TypeRef("System.IO.FileSystemInfo")]), [$.String], [])), 
+    function EnumerateFileSystemInfos (searchPattern) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "EnumerateFileSystemInfos", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Generic.IEnumerable`1", [$jsilcore.TypeRef("System.IO.FileSystemInfo")]), [$.String, $jsilcore.TypeRef("System.IO.SearchOption")], [])), 
+    function EnumerateFileSystemInfos (searchPattern, searchOption) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.InheritBaseMethod("get_Exists");
+  $.InheritBaseMethod("get_Name");
+
+  $.Method({Static:false, Public:true }, "get_Parent", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.DirectoryInfo"), [], [])), 
+    function get_Parent () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Root", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.DirectoryInfo"), [], [])), 
+    function get_Root () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetAccessControl", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Security.AccessControl.DirectorySecurity"), [], [])), 
+    function GetAccessControl () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetAccessControl", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Security.AccessControl.DirectorySecurity"), [$jsilcore.TypeRef("System.Security.AccessControl.AccessControlSections")], [])), 
+    function GetAccessControl (includeSections) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetDirectories", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.IO.DirectoryInfo")]), [], [])), 
+    function GetDirectories () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetDirectories", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.IO.DirectoryInfo")]), [$.String], [])), 
+    function GetDirectories (searchPattern) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetDirectories", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.IO.DirectoryInfo")]), [$.String, $jsilcore.TypeRef("System.IO.SearchOption")], [])), 
+    function GetDirectories (searchPattern, searchOption) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:true , Public:false}, "GetDirName", 
+    (new JSIL.MethodSignature($.String, [$.String], [])), 
+    function GetDirName (fullPath) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:true , Public:false}, "GetDisplayName", 
+    (new JSIL.MethodSignature($.String, [$.String, $.String], [])), 
+    function GetDisplayName (originalPath, fullPath) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetFiles", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.IO.FileInfo")]), [$.String], [])), 
+    function GetFiles (searchPattern) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetFiles", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.IO.FileInfo")]), [$.String, $jsilcore.TypeRef("System.IO.SearchOption")], [])), 
+    function GetFiles (searchPattern, searchOption) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetFiles", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.IO.FileInfo")]), [], [])), 
+    function GetFiles () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetFileSystemInfos", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.IO.FileSystemInfo")]), [$.String], [])), 
+    function GetFileSystemInfos (searchPattern) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetFileSystemInfos", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.IO.FileSystemInfo")]), [$.String, $jsilcore.TypeRef("System.IO.SearchOption")], [])), 
+    function GetFileSystemInfos (searchPattern, searchOption) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetFileSystemInfos", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$jsilcore.TypeRef("System.IO.FileSystemInfo")]), [], [])), 
+    function GetFileSystemInfos () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "MoveTo", 
+    (new JSIL.MethodSignature(null, [$.String], [])), 
+    function MoveTo (destDirName) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "SetAccessControl", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Security.AccessControl.DirectorySecurity")], [])), 
+    function SetAccessControl (directorySecurity) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "toString", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function toString () {
+      throw new Error('Not implemented');
+    }
+  );
+
+});
+
+JSIL.ImplementExternals("System.IO.FileInfo", function ($) {
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.String], [])), 
+    function _ctor (fileName) {
+      var storageRoot = JSIL.Host.getStorageRoot();
+
+      if (storageRoot)
+        this.$fromNodeAndPath(storageRoot.resolvePath(fileName, false), storageRoot.normalizePath(fileName));
+      else
+        this.$fromNodeAndPath(null, fileName);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "AppendText", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.StreamWriter"), [], [])), 
+    function AppendText () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "CopyTo", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.FileInfo"), [$.String], [])), 
+    function CopyTo (destFileName) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "CopyTo", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.FileInfo"), [$.String, $.Boolean], [])), 
+    function CopyTo (destFileName, overwrite) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Create", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.FileStream"), [], [])), 
+    function Create () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "CreateText", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.StreamWriter"), [], [])), 
+    function CreateText () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Decrypt", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Decrypt () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Delete", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Delete () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Encrypt", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Encrypt () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Directory", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.DirectoryInfo"), [], [])), 
+    function get_Directory () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_DirectoryName", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function get_DirectoryName () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.InheritBaseMethod("get_Exists");
+
+  $.Method({Static:false, Public:true }, "get_IsReadOnly", 
+    (new JSIL.MethodSignature($.Boolean, [], [])), 
+    function get_IsReadOnly () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Length", 
+    (new JSIL.MethodSignature($.Int64, [], [])), 
+    function get_Length () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.InheritBaseMethod("get_Name");
+
+  $.Method({Static:false, Public:true }, "GetAccessControl", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Security.AccessControl.FileSecurity"), [], [])), 
+    function GetAccessControl () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetAccessControl", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Security.AccessControl.FileSecurity"), [$jsilcore.TypeRef("System.Security.AccessControl.AccessControlSections")], [])), 
+    function GetAccessControl (includeSections) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "GetDisplayPath", 
+    (new JSIL.MethodSignature($.String, [$.String], [])), 
+    function GetDisplayPath (originalPath) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "MoveTo", 
+    (new JSIL.MethodSignature(null, [$.String], [])), 
+    function MoveTo (destFileName) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Open", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.FileStream"), [$jsilcore.TypeRef("System.IO.FileMode")], [])), 
+    function Open (mode) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Open", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.FileStream"), [$jsilcore.TypeRef("System.IO.FileMode"), $jsilcore.TypeRef("System.IO.FileAccess")], [])), 
+    function Open (mode, access) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Open", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.FileStream"), [
+          $jsilcore.TypeRef("System.IO.FileMode"), $jsilcore.TypeRef("System.IO.FileAccess"), 
+          $jsilcore.TypeRef("System.IO.FileShare")
+        ], [])), 
+    function Open (mode, access, share) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "OpenRead", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.FileStream"), [], [])), 
+    function OpenRead () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "OpenText", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.StreamReader"), [], [])), 
+    function OpenText () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "OpenWrite", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.FileStream"), [], [])), 
+    function OpenWrite () {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Replace", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.FileInfo"), [$.String, $.String], [])), 
+    function Replace (destinationFileName, destinationBackupFileName) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Replace", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.FileInfo"), [
+          $.String, $.String, 
+          $.Boolean
+        ], [])), 
+    function Replace (destinationFileName, destinationBackupFileName, ignoreMetadataErrors) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_IsReadOnly", 
+    (new JSIL.MethodSignature(null, [$.Boolean], [])), 
+    function set_IsReadOnly (value) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "SetAccessControl", 
+    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Security.AccessControl.FileSecurity")], [])), 
+    function SetAccessControl (fileSecurity) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "toString", 
+    (new JSIL.MethodSignature($.String, [], [])), 
+    function toString () {
+      throw new Error('Not implemented');
+    }
+  );
+
+});
+
+JSIL.ImplementExternals("System.IO.Directory", function ($) {
+  $.Method({Static:true , Public:true }, "Exists", 
+    new JSIL.MethodSignature($.Boolean, [$.String], []),
+    function (filename) {
+      var storageRoot = JSIL.Host.getStorageRoot();
+
+      if (storageRoot) {
+        var resolved = storageRoot.resolvePath(filename, false);
+        return (resolved && resolved.type !== "file");
+      }
+
+      return false;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "CreateDirectory", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.DirectoryInfo"), [$.String], [])), 
+    function CreateDirectory (path) {
+      var storageRoot = JSIL.Host.getStorageRoot();
+
+      if (storageRoot) {
+        var node = storageRoot.createDirectory(path);
+        var tInfo = $jsilcore.System.IO.DirectoryInfo.__Type__;
+
+        var result = JSIL.CreateInstanceOfType(tInfo, "$fromNodeAndPath", [node, path]);
+        return result;
+      } else {
+        throw new Error('Storage root not available');
+      }
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "GetDirectories", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.String]), [$.String], [])), 
+    function GetDirectories (path) {
+      return System.IO.Directory.GetDirectories(path, "*", null);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "GetDirectories", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.String]), [$.String, $.String], [])), 
+    function GetDirectories (path, searchPattern) {
+      return System.IO.Directory.GetDirectories(path, searchPattern, null);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "GetDirectories", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.String]), [
+          $.String, $.String, 
+          $jsilcore.TypeRef("System.IO.SearchOption")
+        ], [])), 
+    function GetDirectories (path, searchPattern, searchOption) {
+      // FIXME: searchOption
+      if (Number(searchOption) > 0)
+        throw new Error("Recursive search not implemented");
+
+      var storageRoot = JSIL.Host.getStorageRoot();
+
+      if (storageRoot) {
+        return storageRoot.enumerate("directory", searchPattern).map(function (node) { return node.path; });
+      } else {
+        throw new Error('Storage root not available');
+      }
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "GetFiles", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.String]), [$.String], [])), 
+    function GetFiles (path) {
+      return System.IO.Directory.GetFiles(path, "*", null);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "GetFiles", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.String]), [$.String, $.String], [])), 
+    function GetFiles (path, searchPattern) {
+      return System.IO.Directory.GetFiles(path, searchPattern, null);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "GetFiles", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.String]), [
+          $.String, $.String, 
+          $jsilcore.TypeRef("System.IO.SearchOption")
+        ], [])), 
+    function GetFiles (path, searchPattern, searchOption) {
+      // FIXME: searchOption
+      if (Number(searchOption) > 0)
+        throw new Error("Recursive search not implemented");
+
+      var storageRoot = JSIL.Host.getStorageRoot();
+
+      if (storageRoot) {
+        return storageRoot.enumerate("file", searchPattern).map(function (node) { return node.path; });
+      } else {
+        throw new Error('Storage root not available');
+      }
+    }
+  );
+
 });

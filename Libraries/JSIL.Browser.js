@@ -3,6 +3,13 @@
 var currentLogLine = null;
 
 var webglEnabled = false;
+
+var $jsilbrowserstate = {
+  readOnlyStorage: null,
+  heldKeys: [],
+  heldButtons: [],
+  mousePosition: [0, 0]
+};
     
 JSIL.Host.getCanvas = function (desiredWidth, desiredHeight) {
   var e = document.getElementById("canvas");
@@ -114,13 +121,13 @@ JSIL.Host.getAsset = function (filename, stripRoot) {
   return allAssets[key];
 };
 JSIL.Host.getHeldKeys = function () {
-  return Array.prototype.slice.call(heldKeys);
+  return Array.prototype.slice.call($jsilbrowserstate.heldKeys);
 };
 JSIL.Host.getMousePosition = function () {
-  return Array.prototype.slice.call(mousePosition);
+  return Array.prototype.slice.call($jsilbrowserstate.mousePosition);
 };
 JSIL.Host.getHeldButtons = function () {
-  return Array.prototype.slice.call(heldButtons);
+  return Array.prototype.slice.call($jsilbrowserstate.heldButtons);
 };
 JSIL.Host.getRootDirectory = function () {
   var url = window.location.href;
@@ -129,6 +136,9 @@ JSIL.Host.getRootDirectory = function () {
     return url;
   else
     return url.substr(0, lastSlash);
+};
+JSIL.Host.getStorageRoot = function () {
+  return $jsilbrowserstate.storageRoot;
 };
 JSIL.Host.throwException = function (e) {
   var stack = "";
@@ -182,10 +192,6 @@ if (statsElement !== null) {
 
 var allFiles = {};
 var allAssets = {};
-var storageRoot = null;
-var heldKeys = [];
-var heldButtons = [];
-var mousePosition = [0, 0];
 
 // Handle mismatches between dom key codes and XNA key codes
 var keyMappings = {
@@ -246,8 +252,8 @@ function initBrowserHooks () {
       
       for (var i = 0; i < codes.length; i++) {
         var code = codes[i];
-        if (Array.prototype.indexOf.call(heldKeys, code) === -1)
-          heldKeys.push(code);
+        if (Array.prototype.indexOf.call($jsilbrowserstate.heldKeys, code) === -1)
+          $jsilbrowserstate.heldKeys.push(code);
       }
     }, true
   );
@@ -261,7 +267,7 @@ function initBrowserHooks () {
       var keyCode = evt.keyCode;
       var codes = keyMappings[keyCode] || [keyCode];        
       
-      heldKeys = heldKeys.filter(function (element, index, array) {
+      $jsilbrowserstate.heldKeys = $jsilbrowserstate.heldKeys.filter(function (element, index, array) {
         return codes.indexOf(element) === -1;
       });
     }, true
@@ -292,8 +298,8 @@ function initBrowserHooks () {
       x = x * originalWidth / currentWidth;
       y = y * originalHeight / currentHeight;
 
-      mousePosition[0] = x;
-      mousePosition[1] = y;
+      $jsilbrowserstate.mousePosition[0] = x;
+      $jsilbrowserstate.mousePosition[1] = y;
   };
 
   canvas.addEventListener(
@@ -301,8 +307,8 @@ function initBrowserHooks () {
       mapMouseCoords(evt);
 
       var button = evt.button;
-      if (Array.prototype.indexOf.call(heldButtons, button) === -1)
-        heldButtons.push(button);
+      if (Array.prototype.indexOf.call($jsilbrowserstate.heldButtons, button) === -1)
+        $jsilbrowserstate.heldButtons.push(button);
 
       evt.preventDefault();
       evt.stopPropagation();
@@ -315,7 +321,7 @@ function initBrowserHooks () {
       mapMouseCoords(evt);
       
       var button = evt.button;
-      heldButtons = heldButtons.filter(function (element, index, array) {
+      $jsilbrowserstate.heldButtons = $jsilbrowserstate.heldButtons.filter(function (element, index, array) {
         (element !== button);
       });
 
@@ -794,8 +800,28 @@ function finishLoading () {
     }
 
     if (typeof ($jsilreadonlystorage) !== "undefined") {
-      storageRoot = new ReadOnlyStorageVolume("files", "files:/", initFileStorage);
+      $jsilbrowserstate.readOnlyStorage = new ReadOnlyStorageVolume("files", "files:/", initFileStorage);
     }
+
+    JSIL.SetLazyValueProperty($jsilbrowserstate, "storageRoot", function InitStorageRoot () {
+      if (JSIL.GetStorageVolumes) {
+        var volumes = JSIL.GetStorageVolumes();
+
+        if (volumes.length) {
+          var root = volumes[0];
+
+          if ($jsilbrowserstate.readOnlyStorage)
+            root.createJunction(fileRoot, $jsilbrowserstate.readOnlyStorage.rootDirectory, false);
+
+          return root;
+
+        } else if (readOnlyStorage) {
+          return readOnlyStorage;
+        }
+      }
+
+      return null;
+    });
   };
 
   while (Date.now() <= endBy) {

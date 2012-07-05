@@ -162,6 +162,9 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualVolume", true, [], function ($) 
   $.RawMethod(false, "createJunction", function (path, targetObject, allowExisting) {
     path = this.normalizePath(path);
 
+    while (path[path.length - 1] === "/")
+      path = path.substr(0, path.length - 1);
+
     var pieces = path.split("/"), containingDirectory = null, containingPath = null;
 
     for (var i = 0, l = pieces.length - 1; i < l; i++) {

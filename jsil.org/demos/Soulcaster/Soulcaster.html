@@ -67,7 +67,7 @@
         JSIL.LocalStorage.Initialize("Soulcaster2");
 
         // We can't invoke Main() since it disposes the Game immediately, breaking everything.
-        var asm = JSIL.GetAssembly("Soulcaster2");
+        var asm = JSIL.GetAssembly("Soulcaster2", true);
         var game = new asm.Tarchon.SoulcasterTwo();
         game.Run();
       };

@@ -16,6 +16,7 @@
         xna: 4,
         winForms: true,
         localStorage: true,
+        readOnlyStorage: true,
 
         manifests: [
           "EscapeGoat.exe",
@@ -67,7 +68,7 @@
         JSIL.LocalStorage.Initialize("EscapeGoat");
 
         // We can't invoke Main() since it disposes the Game immediately, breaking everything.
-        var asm = JSIL.GetAssembly("EscapeGoat");
+        var asm = JSIL.GetAssembly("EscapeGoat", true);
         var game = new asm.MagicalTimeBean.Bastille.BastilleGame();
         game.Run();
       };
