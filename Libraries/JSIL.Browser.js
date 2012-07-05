@@ -836,8 +836,8 @@ function finishLoading () {
 
           return root;
 
-        } else if (readOnlyStorage) {
-          return readOnlyStorage;
+        } else if ($jsilbrowserstate.readOnlyStorage) {
+          return $jsilbrowserstate.readOnlyStorage;
         }
       }
 
