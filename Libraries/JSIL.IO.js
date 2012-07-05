@@ -601,6 +601,7 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
     function ReadChars (count) {
       var result = new Array(count);
       for (var i = 0; i < count; i++) {
+        // FIXME: This should probably be ReadChar?
         var b = this.m_stream.ReadByte();
         if (b === -1)
           return result.slice(0, i - 1);

@@ -980,7 +980,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ArrayReader`1", functio
     function Read (input, existingInstance) {
       var count = input.ReadInt32();
       if (existingInstance === null) {
-        existingInstance = new Array(count);
+        existingInstance = JSIL.Array.New(this.T, count);
       }
 
       for (var i = 0; i < count; i++) {
@@ -6547,7 +6547,7 @@ $jsilxna.makePixelWriter = function (buffer, width, x, y) {
 
 $jsilxna.DecodeDxt1 = function (width, height, bytes, offset, count) {
   var totalSizeBytes = width * height * 4;
-  var result = new Array(totalSizeBytes);
+  var result = JSIL.Array.New(System.Byte, totalSizeBytes);
 
   var blockCountX = Math.floor((width + 3) / 4);
   var blockCountY = Math.floor((height + 3) / 4);
@@ -6571,7 +6571,7 @@ $jsilxna.DecodeDxt1 = function (width, height, bytes, offset, count) {
 
 $jsilxna.DecodeDxt3 = function (width, height, bytes, offset, count) {
   var totalSizeBytes = width * height * 4;
-  var result = new Array(totalSizeBytes);
+  var result = JSIL.Array.New(System.Byte, totalSizeBytes);
 
   var blockCountX = Math.floor((width + 3) / 4);
   var blockCountY = Math.floor((height + 3) / 4);
@@ -6601,7 +6601,7 @@ $jsilxna.DecodeDxt3 = function (width, height, bytes, offset, count) {
 
 $jsilxna.DecodeDxt5 = function (width, height, bytes, offset, count) {
   var totalSizeBytes = width * height * 4;
-  var result = new Array(totalSizeBytes);
+  var result = JSIL.Array.New(System.Byte, totalSizeBytes);
 
   var blockCountX = Math.floor((width + 3) / 4);
   var blockCountY = Math.floor((height + 3) / 4);
@@ -6630,7 +6630,7 @@ $jsilxna.DecodeDxt5 = function (width, height, bytes, offset, count) {
 };
 
 $jsilxna.ColorToCanvas = function (width, height, bytes, offset, count, swapRedAndBlue) {
-  var result = new Array(count);
+  var result = JSIL.Array.New(System.Byte, count);
 
   if (swapRedAndBlue) {
     for (var i = 0, l = count; i < l; i += 4) {
@@ -6649,7 +6649,7 @@ $jsilxna.ColorToCanvas = function (width, height, bytes, offset, count, swapRedA
 };
 
 $jsilxna.UnpackColorsToColorBytes = function (colors, startIndex, elementCount) {
-  var result = new Array(colors.length * 4);
+  var result = JSIL.Array.New(System.Byte, colors.length * 4);
 
   for (var i = 0, l = elementCount; i < l; i++) {
     var item = colors[startIndex + i];

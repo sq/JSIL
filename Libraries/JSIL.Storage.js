@@ -505,7 +505,7 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualFile", true, [], function ($) {
     this.inode.metadata.lastRead = Date.now();
 
     if (!bytes)
-      return new Array(this.inode.metadata.length || 0);
+      return JSIL.Array.New(System.Byte, this.inode.metadata.length || 0);
 
     return bytes;
   });
