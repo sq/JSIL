@@ -576,7 +576,7 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualJunction", true, [], function ($
 });
 
 JSIL.ImplementExternals("System.IO.FileStream", function ($) {
-  $.RawMethod(false, "$fromVirtualFile", function (virtualFile, fileMode) {
+  $.RawMethod(false, "$fromVirtualFile", function (virtualFile, fileMode, autoFlush) {
     System.IO.Stream.prototype._ctor.call(this);
 
     this._fileName = virtualFile.path;
@@ -586,8 +586,12 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
     this._length = this._buffer.length;
 
     this._onClose = function () {
-      if (this._modified)
+      if (this._modified) {
         virtualFile.writeAllBytes(this._buffer, this._length);
+        
+        if (autoFlush)
+          virtualFile.volume.flush();
+      }
     };
 
     this.$applyMode(fileMode);

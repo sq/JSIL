@@ -387,7 +387,7 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
           resolved = storageRoot.createFile(path, true);
 
         if (resolved && resolved.type === "file") {
-          this.$fromVirtualFile(resolved, mode);
+          this.$fromVirtualFile(resolved, mode, true);
           return;
         }
       }
