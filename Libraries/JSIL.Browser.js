@@ -598,6 +598,18 @@ var assetLoaders = {
         onError(error);
       }
     });
+  },
+  "Resources": function loadResources (filename, data, onError, onDoneLoading) {
+    loadTextAsync(scriptRoot + filename, function (result, error) {
+      if (result !== null) {
+        var finisher = function () {
+          allAssets[getAssetName(filename)] = JSON.parse(result);
+        };
+        onDoneLoading(finisher);
+      } else {
+        onError(error);
+      }
+    });
   }
 };
 

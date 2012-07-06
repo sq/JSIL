@@ -447,7 +447,7 @@ namespace JSIL.Compiler {
                     localConfig.Assemblies.Proxies.AddRange(newProxies);
 
                     var translator = CreateTranslator(localConfig, manifest, assemblyCache);
-                    var outputs = buildGroup.Profile.Translate(translator, filename, localConfig.UseLocalProxies.GetValueOrDefault(true));
+                    var outputs = buildGroup.Profile.Translate(translator, localConfig, filename, localConfig.UseLocalProxies.GetValueOrDefault(true));
                     if (localConfig.OutputDirectory == null)
                         throw new Exception("No output directory was specified!");
 

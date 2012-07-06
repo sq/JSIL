@@ -5014,28 +5014,14 @@ JSIL.MakeEnum(
 );
 
 JSIL.ImplementExternals("System.Resources.ResourceManager", function ($) {
-
-  $.Method({Static:false, Public:false}, ".ctor", 
-    (new JSIL.MethodSignature(null, [], [])), 
-    function _ctor () {
-      // FIXME
-    }
-  );
-
-  $.Method({Static:false, Public:false}, ".ctor", 
-    (new JSIL.MethodSignature(null, [
-          $.String, $.String, 
-          $jsilcore.TypeRef("System.Type")
-        ], [])), 
-    function _ctor (baseName, resourceDir, usingResourceSet) {
-      // FIXME
-    }
-  );
+  $.RawMethod(false, "$fromBaseNameAndAssembly", function loadJsonResourceSet (baseName, assembly) {
+    this._resources = JSIL.Host.getAsset(baseName + ".resj");
+  });
 
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$.String, $jsilcore.TypeRef("System.Reflection.Assembly")], [])), 
     function _ctor (baseName, assembly) {
-      // FIXME
+      this.$fromBaseNameAndAssembly(baseName, assembly);
     }
   );
 
@@ -5045,117 +5031,24 @@ JSIL.ImplementExternals("System.Resources.ResourceManager", function ($) {
           $jsilcore.TypeRef("System.Type")
         ], [])), 
     function _ctor (baseName, assembly, usingResourceSet) {
-      // FIXME
-    }
-  );
-
-  $.Method({Static:false, Public:true }, ".ctor", 
-    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Type")], [])), 
-    function _ctor (resourceSource) {
-      // FIXME
-    }
-  );
-
-  $.Method({Static:true , Public:false}, "AddResourceSet", 
-    (new JSIL.MethodSignature(null, [
-          $jsilcore.TypeRef("System.Collections.Generic.Dictionary`2", [$.String, $jsilcore.TypeRef("System.Resources.ResourceSet")]), $.String, 
-          $jsilcore.TypeRef("JSIL.Reference", [$jsilcore.TypeRef("System.Resources.ResourceSet")])
-        ], [])), 
-    function AddResourceSet (localResourceSets, cultureName, /* ref */ rs) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:false, Public:false}, "CommonSatelliteAssemblyInit", 
-    (new JSIL.MethodSignature(null, [], [])), 
-    function CommonSatelliteAssemblyInit () {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:false}, "CompareNames", 
-    (new JSIL.MethodSignature($.Boolean, [
-          $.String, $.String, 
-          $jsilcore.TypeRef("System.Reflection.AssemblyName")
-        ], [])), 
-    function CompareNames (asmTypeName1, typeName2, asmName2) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:true }, "CreateFileBasedResourceManager", 
-    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Resources.ResourceManager"), [
-          $.String, $.String, 
-          $jsilcore.TypeRef("System.Type")
-        ], [])), 
-    function CreateFileBasedResourceManager (baseName, resourceDir, usingResourceSet) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:false, Public:true }, "get_BaseName", 
-    (new JSIL.MethodSignature($.String, [], [])), 
-    function get_BaseName () {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:false, Public:false}, "get_FallbackLocation", 
-    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Resources.UltimateResourceFallbackLocation"), [], [])), 
-    function get_FallbackLocation () {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:false, Public:true }, "get_IgnoreCase", 
-    (new JSIL.MethodSignature($.Boolean, [], [])), 
-    function get_IgnoreCase () {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:false, Public:true }, "get_ResourceSetType", 
-    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Type"), [], [])), 
-    function get_ResourceSetType () {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:false}, "GetNeutralResourcesLanguage", 
-    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Globalization.CultureInfo"), [$jsilcore.TypeRef("System.Reflection.Assembly")], [])), 
-    function GetNeutralResourcesLanguage (a) {
-      throw new Error('Not implemented');
+      // FIXME: usingResourceSet
+      this.$fromBaseNameAndAssembly(baseName, assembly);
     }
   );
 
   $.Method({Static:false, Public:true }, "GetObject", 
     (new JSIL.MethodSignature($.Object, [$.String], [])), 
     function GetObject (name) {
-      throw new Error('Not implemented');
+      var set = this.GetResourceSet(System.Globalization.CultureInfo.CurrentUICulture, false, true)
+      return set.GetObject(name);
     }
   );
 
   $.Method({Static:false, Public:true }, "GetObject", 
     (new JSIL.MethodSignature($.Object, [$.String, $jsilcore.TypeRef("System.Globalization.CultureInfo")], [])), 
     function GetObject (name, culture) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:false, Public:false}, "GetObject", 
-    (new JSIL.MethodSignature($.Object, [
-          $.String, $jsilcore.TypeRef("System.Globalization.CultureInfo"), 
-          $.Boolean
-        ], [])), 
-    function GetObject (name, culture, wrapUnmanagedMemStream) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:false, Public:false}, "GetResourceFileName", 
-    (new JSIL.MethodSignature($.String, [$jsilcore.TypeRef("System.Globalization.CultureInfo")], [])), 
-    function GetResourceFileName (culture) {
-      throw new Error('Not implemented');
+      var set = this.GetResourceSet(culture, false, true)
+      return set.GetObject(name);
     }
   );
 
@@ -5167,128 +5060,127 @@ JSIL.ImplementExternals("System.Resources.ResourceManager", function ($) {
     function GetResourceSet (culture, createIfNotExists, tryParents) {
       var tSet = System.Resources.ResourceSet.__Type__;
 
-      // FIXME: Initialize it
-      var result = JSIL.CreateInstanceOfType(tSet, null);
+      var result = JSIL.CreateInstanceOfType(tSet, "$fromResources", [this, this._resources]);
       return result;
-    }
-  );
-
-  $.Method({Static:false, Public:false}, "GetSatelliteAssembliesFromConfig", 
-    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.Hashtable"), [], [])), 
-    function GetSatelliteAssembliesFromConfig () {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:true , Public:false}, "GetSatelliteContractVersion", 
-    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Version"), [$jsilcore.TypeRef("System.Reflection.Assembly")], [])), 
-    function GetSatelliteContractVersion (a) {
-      throw new Error('Not implemented');
     }
   );
 
   $.Method({Static:false, Public:true }, "GetStream", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.UnmanagedMemoryStream"), [$.String], [])), 
     function GetStream (name) {
-      throw new Error('Not implemented');
+      var set = this.GetResourceSet(System.Globalization.CultureInfo.CurrentUICulture, false, true)
+      return set.GetStream(name);
     }
   );
 
   $.Method({Static:false, Public:true }, "GetStream", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.UnmanagedMemoryStream"), [$.String, $jsilcore.TypeRef("System.Globalization.CultureInfo")], [])), 
     function GetStream (name, culture) {
-      throw new Error('Not implemented');
+      var set = this.GetResourceSet(culture, false, true)
+      return set.GetStream(name);
     }
   );
 
   $.Method({Static:false, Public:true }, "GetString", 
     (new JSIL.MethodSignature($.String, [$.String], [])), 
     function GetString (name) {
-      // FIXME
-      return name;
+      var set = this.GetResourceSet(System.Globalization.CultureInfo.CurrentUICulture, false, true)
+      return set.GetString(name);
     }
   );
 
   $.Method({Static:false, Public:true }, "GetString", 
     (new JSIL.MethodSignature($.String, [$.String, $jsilcore.TypeRef("System.Globalization.CultureInfo")], [])), 
     function GetString (name, culture) {
-      // FIXME
-      return name;
+      var set = this.GetResourceSet(culture, false, true)
+      return set.GetString(name);
     }
   );
 
-  $.Method({Static:false, Public:false}, "Init", 
+});
+
+JSIL.ImplementExternals("System.Resources.ResourceSet", function ($) {
+
+  $.RawMethod(false, "$fromResources", function (manager, resources) {
+    this._manager = manager;
+    this._resources = resources;
+  });
+
+  $.Method({Static:false, Public:true }, "Close", 
     (new JSIL.MethodSignature(null, [], [])), 
-    function Init () {
-      throw new Error('Not implemented');
+    function Close () {
     }
   );
 
-  $.Method({Static:false, Public:false}, "InternalGetResourceSet", 
-    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Resources.ResourceSet"), [
-          $jsilcore.TypeRef("System.Globalization.CultureInfo"), $.Boolean, 
-          $.Boolean
-        ], [])), 
-    function InternalGetResourceSet (culture, createIfNotExists, tryParents) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:false, Public:false}, "InternalGetResourceSet", 
-    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Resources.ResourceSet"), [
-          $jsilcore.TypeRef("System.Globalization.CultureInfo"), $.Boolean, 
-          $.Boolean, $jsilcore.TypeRef("JSIL.Reference", [$jsilcore.TypeRef("System.Threading.StackCrawlMark")])
-        ], [])), 
-    function InternalGetResourceSet (requestedCulture, createIfNotExists, tryParents, /* ref */ stackMark) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:false, Public:false}, "OnDeserialized", 
-    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Runtime.Serialization.StreamingContext")], [])), 
-    function OnDeserialized (ctx) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:false, Public:false}, "OnDeserializing", 
-    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Runtime.Serialization.StreamingContext")], [])), 
-    function OnDeserializing (ctx) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:false, Public:false}, "OnSerializing", 
-    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Runtime.Serialization.StreamingContext")], [])), 
-    function OnSerializing (ctx) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:false, Public:true }, "ReleaseAllResources", 
-    (new JSIL.MethodSignature(null, [], [])), 
-    function ReleaseAllResources () {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:false, Public:false}, "set_FallbackLocation", 
-    (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("System.Resources.UltimateResourceFallbackLocation")], [])), 
-    function set_FallbackLocation (value) {
-      throw new Error('Not implemented');
-    }
-  );
-
-  $.Method({Static:false, Public:true }, "set_IgnoreCase", 
+  $.Method({Static:false, Public:false}, "Dispose", 
     (new JSIL.MethodSignature(null, [$.Boolean], [])), 
-    function set_IgnoreCase (value) {
+    function Dispose (disposing) {
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "Dispose", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function Dispose () {
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetEnumerator", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.IDictionaryEnumerator"), [], [])), 
+    function GetEnumerator () {
       throw new Error('Not implemented');
     }
   );
 
-  $.Method({Static:false, Public:false}, "TryLookingForSatellite", 
-    (new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Globalization.CultureInfo")], [])), 
-    function TryLookingForSatellite (lookForCulture) {
+  $.RawMethod(false, "$get", function (key, ignoreCase) {
+    if (ignoreCase)
+      throw new Error("Case insensitive resource fetches not implemented");
+
+    var result = this._resources[key];
+    if (!result)
+      return null;
+
+    return result;
+  });
+
+  $.Method({Static:false, Public:true }, "GetObject", 
+    (new JSIL.MethodSignature($.Object, [$.String], [])), 
+    function GetObject (name) {
+      return this.$get(name, false);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetObject", 
+    (new JSIL.MethodSignature($.Object, [$.String, $.Boolean], [])), 
+    function GetObject (name, ignoreCase) {
+      return this.$get(name, ignoreCase);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetString", 
+    (new JSIL.MethodSignature($.String, [$.String], [])), 
+    function GetString (name) {
+      var result = this.$get(name, false);
+      if (typeof (result) !== "string")
+        return null;
+
+      return result;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetString", 
+    (new JSIL.MethodSignature($.String, [$.String, $.Boolean], [])), 
+    function GetString (name, ignoreCase) {
+      var result = this.$get(name, ignoreCase);
+      if (typeof (result) !== "string")
+        return null;
+
+      return result;
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "IEnumerable.GetEnumerator", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Collections.IEnumerator"), [], [])), 
+    function IEnumerable_GetEnumerator () {
       throw new Error('Not implemented');
     }
   );

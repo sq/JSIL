@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Web.Script.Serialization;
 using JSIL.Compiler;
+using JSIL.Utilities;
 using Microsoft.Build.Evaluation;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -832,12 +833,8 @@ public static class Common {
                 .Replace("%contentprojectpath%", contentProjectDirectory)
                 .Replace("/", "\\");
 
-            var contentManifest = new StringBuilder();
-            contentManifest.AppendFormat("// {0}\r\n", JSIL.AssemblyTranslator.GetHeaderText());
-            contentManifest.AppendLine();
-            contentManifest.AppendLine("if (typeof (contentManifest) !== \"object\") { contentManifest = {}; };");
-            contentManifest.AppendLine("contentManifest[\"" + Path.GetFileNameWithoutExtension(contentProjectPath) +
-                                       "\"] = [");
+            var contentManifestPath = Path.Combine(configuration.OutputDirectory, Path.GetFileName(contentProjectPath) + ".manifest.js");
+            var contentManifest = new ContentManifestWriter(contentManifestPath, Path.GetFileName(contentProjectPath));
 
             Action<string, string, Dictionary<string, object>> logOutput =
             (type, filename, properties) => {
@@ -857,11 +854,8 @@ public static class Common {
                     };
                 }
 
-                contentManifest.AppendFormat(
-                    "  [\"{0}\", \"{1}\", {2}],{3}", 
-                    type, localPath.Replace("\\", "/"),
-                    jss.Serialize(properties),
-                    Environment.NewLine
+                contentManifest.Add(
+                    type, localPath, properties
                 );
             };
 
@@ -1036,11 +1030,7 @@ public static class Common {
                 }
             }
 
-            contentManifest.AppendLine("];");
-            File.WriteAllText(
-                Path.Combine(configuration.OutputDirectory, Path.GetFileName(contentProjectPath) + ".manifest.js"),
-                contentManifest.ToString()
-            );
+            contentManifest.Dispose();
 
             File.WriteAllText(
                 journalPath, jss.Serialize(journal).Replace("{", "\r\n{")

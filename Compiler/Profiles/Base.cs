@@ -13,10 +13,11 @@ namespace JSIL.Compiler.Profiles {
             return defaultConfiguration;
         }
 
-        public virtual TranslationResult Translate (AssemblyTranslator translator, string assemblyPath, bool scanForProxies) {
+        public virtual TranslationResult Translate (AssemblyTranslator translator, Configuration configuration, string assemblyPath, bool scanForProxies) {
             var result = translator.Translate(assemblyPath, scanForProxies);
 
             AssemblyTranslator.GenerateManifest(translator.Manifest, assemblyPath, result);
+
             return result;
         }
 
@@ -29,7 +30,7 @@ namespace JSIL.Compiler.Profiles {
             result.WriteToDirectory(path, manifestPrefix);
         }
 
-        public virtual SolutionBuilder.SolutionBuildResult ProcessBuildResult (Configuration defaultConfiguration, SolutionBuilder.SolutionBuildResult buildResult) {
+        public virtual SolutionBuilder.SolutionBuildResult ProcessBuildResult (Configuration configuration, SolutionBuilder.SolutionBuildResult buildResult) {
             return buildResult;
         }
     }

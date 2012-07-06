@@ -9,6 +9,7 @@ using Mono.Cecil;
 namespace JSIL {
     public class TranslationResult {
         public struct ResultFile {
+            public string Type;
             public string Filename;
             public long Size;
             public ArraySegment<byte> Contents;
@@ -31,7 +32,7 @@ namespace JSIL {
             }
         }
 
-        public void AddFile (string filename, ArraySegment<byte> bytes, int? position = null) {
+        public void AddFile (string type, string filename, ArraySegment<byte> bytes, int? position = null) {
             lock (Files) {
                 if (position.HasValue)
                     FileOrder.Insert(position.Value, filename);
@@ -39,6 +40,7 @@ namespace JSIL {
                     FileOrder.Add(filename);
 
                 Files.Add(filename, new ResultFile {
+                    Type = type,
                     Filename = filename,
                     Contents = bytes,
                     Size = bytes.Count
@@ -100,7 +102,7 @@ namespace JSIL {
             }
         }
 
-        internal void AddExistingFile (string filename, long fileSize, int? position = null) {
+        internal void AddExistingFile (string type, string filename, long fileSize, int? position = null) {
             lock (Files) {
                 if (position.HasValue)
                     FileOrder.Insert(position.Value, filename);
@@ -108,6 +110,7 @@ namespace JSIL {
                     FileOrder.Add(filename);
 
                 Files.Add(filename, new ResultFile {
+                    Type = type,
                     Filename = filename,
                     Size = fileSize
                 });

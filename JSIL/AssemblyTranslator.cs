@@ -402,7 +402,7 @@ namespace JSIL {
                                 outputStream.GetBuffer(), 0, (int)outputStream.Length
                             );
 
-                            result.AddFile(outputPath, segment);
+                            result.AddFile("Script", outputPath, segment);
 
                             Manifest.SetAlreadyTranslated(assembly, outputStream.Length);
                         }
@@ -412,7 +412,7 @@ namespace JSIL {
                     } else {
                         Debug.WriteLine(String.Format("Skipping '{0}' because it is already translated...", assembly.Name));
 
-                        result.AddExistingFile(outputPath, existingSize);
+                        result.AddExistingFile("Script", outputPath, existingSize);
                     }
 
                     pr.OnProgressChanged(result.Assemblies.Count, assemblies.Length);
@@ -447,8 +447,10 @@ namespace JSIL {
                         var propertiesObject = String.Format("{{ \"sizeBytes\": {0} }}", fe.Size);
 
                         tw.WriteLine(String.Format(
-                            "  [\"{0}\", \"{1}\", {2}],",
-                            "Script", fe.Filename.Replace("\\", "/"), propertiesObject
+                            "    [{0}, {1}, {2}],",
+                            Util.EscapeString(fe.Type), 
+                            Util.EscapeString(fe.Filename.Replace("\\", "/")), 
+                            propertiesObject
                         ));
                     }
 

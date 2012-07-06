@@ -9,7 +9,7 @@ namespace JSIL.Compiler.Extensibility {
 
         SolutionBuilder.SolutionBuildResult ProcessBuildResult (Configuration configuration, SolutionBuilder.SolutionBuildResult buildResult);
         Configuration GetConfiguration (Configuration defaultConfiguration);
-        TranslationResult Translate (AssemblyTranslator translator, string assemblyPath, bool scanForProxies);
+        TranslationResult Translate (AssemblyTranslator translator, Configuration configuration, string assemblyPath, bool scanForProxies);
         void WriteOutputs (TranslationResult result, string path, string manifestPrefix);
     }
 }
