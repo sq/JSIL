@@ -4,7 +4,7 @@ if (typeof (JSIL) !== "undefined")
   throw new Error("JSIL.Core included twice");
 
 var JSIL = {
-  __FullName__ : "JSIL"
+  __FullName__ : "JSIL"  
 };
 
 if (typeof (Object.create) !== "function") {
@@ -34,6 +34,8 @@ if (typeof (Function.prototype.bind) !== "function") {
     return bound;
   };
 }
+
+JSIL.SuppressInterfaceWarnings = true;
 
 JSIL.GlobalNamespace = this;
 
