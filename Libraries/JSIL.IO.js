@@ -120,6 +120,15 @@ JSIL.ImplementExternals("System.IO.File", function ($) {
   $.Method({Static:true , Public:true }, "ReadAllText", 
     new JSIL.MethodSignature($.String, [$.String], []),
     function (filename) {
+      var storageRoot = JSIL.Host.getStorageRoot();
+
+      if (storageRoot) {
+        var resolved = storageRoot.resolvePath(filename, false);
+
+        if (resolved && resolved.type === "file")
+          return JSIL.StringFromByteArray(resolved.readAllBytes());
+      }
+
       var file = JSIL.Host.getFile(filename);
       return JSIL.StringFromByteArray(file);
     }
@@ -364,6 +373,24 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
     (new JSIL.MethodSignature(null, [$.String, $jsilcore.TypeRef("System.IO.FileMode")], [])), 
     function _ctor (path, mode) {
       System.IO.Stream.prototype._ctor.call(this);
+
+      var storageRoot = JSIL.Host.getStorageRoot();
+
+      if (storageRoot) {
+        var createNew = (mode == System.IO.FileMode.Create) || 
+          (mode == System.IO.FileMode.CreateNew) || 
+          (mode == System.IO.FileMode.OpenOrCreate);
+
+        var resolved = storageRoot.resolvePath(path, false);
+
+        if (createNew && !resolved)
+          resolved = storageRoot.createFile(path, true);
+
+        if (resolved && resolved.type === "file") {
+          this.$fromVirtualFile(resolved, mode);
+          return;
+        }
+      }
 
       this._fileName = path;
       this._buffer = JSIL.Host.getFile(path);
