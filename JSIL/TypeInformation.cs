@@ -777,7 +777,7 @@ namespace JSIL.Internal {
             @"__DynamicSite|__CachedAnonymousMethodDelegate", RegexOptions.Compiled
         );
 
-        public static string GetOriginalName (string memberName) {
+        public static string GetOriginalName (string typeName, string memberName) {
             var m = MangledNameRegex.Match(memberName);
             if (!m.Success)
                 return null;
@@ -789,7 +789,7 @@ namespace JSIL.Internal {
                 return null;
 
             if (memberName.EndsWith("__BackingField", StringComparison.Ordinal))
-                return String.Format("{0}$value", originalName);
+                return String.Format("{0}${1}$value", Util.EscapeIdentifier(typeName), originalName);
             else
                 return originalName;
         }
@@ -1337,7 +1337,7 @@ namespace JSIL.Internal {
             parent, identifier, field, proxies, 
             TypeUtil.IsIgnoredType(field.FieldType), false, false
         ) {
-            OriginalName = TypeInfo.GetOriginalName(Name);
+            OriginalName = TypeInfo.GetOriginalName(parent.Name, Name);
         }
 
         protected override string GetName () {
@@ -1389,6 +1389,10 @@ namespace JSIL.Internal {
             get { return Member.PropertyType; }
         }
 
+        public bool IsVirtual {
+            get { return (Member.GetMethod ?? Member.SetMethod).IsVirtual; }
+        }
+
         public bool IsPublic {
             get { return (Member.GetMethod ?? Member.SetMethod).IsPublic; }
         }
@@ -1405,6 +1409,14 @@ namespace JSIL.Internal {
         ) : base(
             parent, identifier, evt, proxies, false, false, isFromProxy
         ) {
+        }
+
+        public bool IsVirtual {
+            get { return (Member.AddMethod ?? Member.RemoveMethod).IsVirtual; }
+        }
+
+        public bool IsPublic {
+            get { return (Member.AddMethod ?? Member.RemoveMethod).IsPublic; }
         }
 
         public override bool IsStatic {

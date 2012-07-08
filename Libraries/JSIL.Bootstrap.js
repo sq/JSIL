@@ -1074,7 +1074,7 @@ JSIL.ImplementExternals(
 );
 
 JSIL.MakeClass(Error, "System.Exception", true, [], function ($) {
-  $.Property({Public: true , Static: false}, "Message");
+  $.Property({Public: true , Static: false, Virtual: true }, "Message");
   $.Property({Public: true , Static: false}, "InnerException");
 });
 
@@ -1189,7 +1189,7 @@ JSIL.MakeClass("System.Object", "JSIL.ArrayEnumerator", true, ["T"], function ($
     }
   );
 
-  $.Property({Public: true , Static: false}, "Current");
+  $.Property({Public: true , Static: false, Virtual: true }, "Current");
 
   $.ImplementInterfaces(
     System.IDisposable, System.Collections.IEnumerator,
@@ -3445,7 +3445,7 @@ JSIL.MakeClass("System.Object", "JSIL.AbstractEnumerator", true, [], function ($
     }
   );
 
-  $.Property({Static: false, Public: true }, "Current");
+  $.Property({Static: false, Public: true, Virtual: true }, "Current");
 
   $.ImplementInterfaces(
     System.IDisposable, System.Collections.IEnumerator, System.Collections.Generic.IEnumerator$b1

@@ -401,7 +401,7 @@ namespace JSIL {
             }
 
             var thisType = TypeUtil.GetTypeDefinition(thisExpression.GetActualType(TypeSystem));
-            Func<JSExpression> generate = () => {
+            Func<bool, JSExpression> generate = (tq) => {
                 var actualThis = @static ? new JSType(method.Method.DeclaringType.Definition) : thisExpression;
 
                 if ((method.Reference.DeclaringType is GenericInstanceType) && !method.Reference.HasThis) {
@@ -410,7 +410,7 @@ namespace JSIL {
 
                 if ((propertyInfo.Member.GetMethod != null) && (method.Method.Member.Name == propertyInfo.Member.GetMethod.Name)) {
                     return new JSPropertyAccess(
-                        actualThis, new JSProperty(method.Reference, propertyInfo), false
+                        actualThis, new JSProperty(method.Reference, propertyInfo), false, tq
                     );
                 } else {
                     if (arguments.Length == 0) {
@@ -423,7 +423,7 @@ namespace JSIL {
                     return new JSBinaryOperatorExpression(
                         JSOperator.Assignment,
                         new JSPropertyAccess(
-                            actualThis, new JSProperty(method.Reference, propertyInfo), true
+                            actualThis, new JSProperty(method.Reference, propertyInfo), true, tq
                         ),
                         arguments[0], propertyInfo.ReturnType
                     );
@@ -433,14 +433,11 @@ namespace JSIL {
             // Accesses to a base property should go through a regular method invocation, since
             //  javascript properties do not have a mechanism for base access
             if (method.Method.Member.HasThis) {                
-                if (!TypeUtil.TypesAreEqual(method.Method.DeclaringType.Definition, thisType) && !@virtual) {
-                    return null;
-                } else {
-                    return generate();
-                }
+                if (!TypeUtil.TypesAreEqual(method.Method.DeclaringType.Definition, thisType) && !@virtual)
+                    return generate(true);
             }
 
-            return generate();
+            return generate(false);
         }
 
         protected bool ContainsLabels (ILNode root) {

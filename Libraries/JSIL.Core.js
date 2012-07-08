@@ -1782,7 +1782,10 @@ JSIL.FixupFieldTypes = function (publicInterface, typeObject) {
 };
 
 JSIL.InstantiateProperties = function (publicInterface, typeObject) {
+  var originalTypeObject = typeObject;
+
   while ((typeof (typeObject) !== "undefined") && (typeObject !== null)) {
+    var currentPublicInterface = typeObject.__PublicInterface__;
     var ps = typeObject.__Properties__;
 
     if (JSIL.IsArray(ps)) {
@@ -1790,14 +1793,18 @@ JSIL.InstantiateProperties = function (publicInterface, typeObject) {
         var property = ps[i];
         var isStatic = property[0];
         var name = property[1];
+        var isVirtual = property[2];
 
         var localName = JSIL.GetLocalName(name);
         var parentName = JSIL.GetParentName(name);
+        var fullName = JSIL.EscapeName(isVirtual ? originalTypeObject.__ShortName__ : typeObject.__ShortName__);
+
+        var methodSource = publicInterface;
 
         if (isStatic)
-          JSIL.InterfaceBuilder.MakeProperty(name, publicInterface);
+          JSIL.InterfaceBuilder.MakeProperty(fullName, name, publicInterface, methodSource);
         else
-          JSIL.InterfaceBuilder.MakeProperty(localName, publicInterface.prototype, parentName);
+          JSIL.InterfaceBuilder.MakeProperty(fullName, localName, publicInterface.prototype, methodSource.prototype, parentName);
       }
     }
 
@@ -4077,6 +4084,7 @@ JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name, si
 
   result.Static = descriptor.Static || false;
   result.Public = descriptor.Public || false;
+  result.Virtual = descriptor.Virtual || false;
 
   result.Name = name;
   result.EscapedName = escapedName;
@@ -4143,7 +4151,7 @@ JSIL.InterfaceBuilder.prototype.Constant = function (_descriptor, name, value) {
   this.constants.push([descriptor.Static, name, prop]);
 };
 
-JSIL.InterfaceBuilder.MakeProperty = function (name, target, interfacePrefix) {
+JSIL.InterfaceBuilder.MakeProperty = function (typeName, name, target, methodSource, interfacePrefix) {
   var prop = {
     configurable: true,
     enumerable: true
@@ -4157,17 +4165,26 @@ JSIL.InterfaceBuilder.MakeProperty = function (name, target, interfacePrefix) {
   var getterName = interfacePrefix + "get_" + name;
   var setterName = interfacePrefix + "set_" + name;
 
-  var getter = target[getterName];
-  var setter = target[setterName];
+  var getter = methodSource[getterName];
+  var setter = methodSource[setterName];
 
-  if (typeof (target[getterName]) === "function") {
+  if (typeof (getter) === "function") {
     prop["get"] = getter;
   }
-  if (typeof (target[setterName]) === "function") {
+  if (typeof (setter) === "function") {
     prop["set"] = setter;
   }
 
+  if (!prop.get && !prop.set) {
+    prop["get"] = prop["set"] = function () {
+      throw new Error("Property has no getter or setter: " + typeName + "." + name + "\r\n looked for: " + getterName + " & " + setterName);
+    };
+  }
+
   Object.defineProperty(target, interfacePrefix + name, prop);
+
+  var typeQualifiedName = typeName + "$" + interfacePrefix + name;
+  Object.defineProperty(target, typeQualifiedName, prop);
 };
 
 JSIL.InterfaceBuilder.prototype.Property = function (_descriptor, name) {
@@ -4179,7 +4196,7 @@ JSIL.InterfaceBuilder.prototype.Property = function (_descriptor, name) {
   var descriptor = this.ParseDescriptor(_descriptor, name);
 
   var props = this.typeObject.__Properties__;
-  props.push([descriptor.Static, name]);
+  props.push([descriptor.Static, name, descriptor.Virtual]);
 
   this.PushMember("PropertyInfo", descriptor, null);
 };
@@ -4188,7 +4205,7 @@ JSIL.InterfaceBuilder.prototype.GenericProperty = function (_descriptor, name) {
   var descriptor = this.ParseDescriptor(_descriptor, name);
 
   var props = this.typeObject.__Properties__;
-  props.push([descriptor.Static, name]);
+  props.push([descriptor.Static, name, descriptor.Virtual]);
 
   this.PushMember("PropertyInfo", descriptor, null);
 };
@@ -5500,7 +5517,7 @@ JSIL.MakeClass("JSIL.Reference", "JSIL.MemberReference", true, [], function ($) 
     }
   );
 
-  $.Property({Static: false, Public: true }, "value");
+  $.Property({Static: false, Public: true, Virtual: true }, "value");
 });
 
 JSIL.ApplyCollectionInitializer = function (target, values) {
@@ -6306,21 +6323,21 @@ JSIL.ImplementExternals(
 );
 
 JSIL.MakeClass("System.Object", "System.Reflection.MemberInfo", true, [], function ($) {
-    $.Property({Public: true , Static: false}, "DeclaringType");
-    $.Property({Public: true , Static: false}, "Name");
-    $.Property({Public: true , Static: false}, "IsPublic");
-    $.Property({Public: true , Static: false}, "IsStatic");
-    $.Property({Public: true , Static: false}, "IsSpecialName");
+    $.Property({Public: true , Static: false, Virtual: true }, "DeclaringType");
+    $.Property({Public: true , Static: false, Virtual: true }, "Name");
+    $.Property({Public: true , Static: false, Virtual: true }, "IsPublic");
+    $.Property({Public: true , Static: false, Virtual: true }, "IsStatic");
+    $.Property({Public: true , Static: false, Virtual: true }, "IsSpecialName");
 });
 
 JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function ($) {
-    $.Property({Public: true , Static: false}, "Module");
-    $.Property({Public: true , Static: false}, "Assembly");
-    $.Property({Public: true , Static: false}, "FullName");
-    $.Property({Public: true , Static: false}, "Namespace");
-    $.Property({Public: true , Static: false}, "BaseType");
-    $.Property({Public: true , Static: false}, "IsGenericType");
-    $.Property({Public: true , Static: false}, "IsArray");
+    $.Property({Public: true , Static: false, Virtual: true }, "Module");
+    $.Property({Public: true , Static: false, Virtual: true }, "Assembly");
+    $.Property({Public: true , Static: false, Virtual: true }, "FullName");
+    $.Property({Public: true , Static: false, Virtual: true }, "Namespace");
+    $.Property({Public: true , Static: false, Virtual: true }, "BaseType");
+    $.Property({Public: true , Static: false, Virtual: true }, "IsGenericType");
+    $.Property({Public: true , Static: false, Virtual: true }, "IsArray");
 });
 
 JSIL.MakeClass("System.Type", "System.RuntimeType", false, [], function ($) {

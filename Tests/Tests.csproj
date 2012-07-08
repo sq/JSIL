@@ -186,6 +186,7 @@
     <None Include="SimpleTestCases\ParseHexInteger.cs" />
     <None Include="XMLTestCases\WriteStartDocument.cs" />
     <None Include="XMLTestCases\WriteEndDocument.cs" />
+    <None Include="SimpleTestCases\IncrementBaseProperty.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

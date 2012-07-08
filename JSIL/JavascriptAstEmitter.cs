@@ -287,7 +287,26 @@ namespace JSIL {
         }
 
         public void VisitNode (JSPropertyAccess pa) {
-            VisitDotExpression(pa);
+            var parens = (pa.Target is JSNumberLiteral) ||
+                (pa.Target is JSIntegerLiteral);
+
+            if (parens)
+                Output.LPar();
+
+            Visit(pa.Target);
+
+            if (parens)
+                Output.RPar();
+
+            Output.Dot();
+
+            if (pa.TypeQualified) {
+                // FIXME: Oh god, terrible hack
+                Output.WriteRaw(Util.EscapeIdentifier(pa.Property.Property.DeclaringType.Name) + "$");
+                Visit(pa.Member);
+            } else {
+                Visit(pa.Member);
+            }
         }
 
         public void VisitNode (JSMethodAccess ma) {

@@ -1920,7 +1920,7 @@ namespace JSIL {
 
             output.LPar();
 
-            output.MemberDescriptor(propertyInfo.IsPublic, propertyInfo.IsStatic);
+            output.MemberDescriptor(propertyInfo.IsPublic, propertyInfo.IsStatic, propertyInfo.IsVirtual);
 
             output.Comma();
 

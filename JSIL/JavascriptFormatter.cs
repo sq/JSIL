@@ -602,7 +602,7 @@ namespace JSIL.Internal {
             TypeReference(type.Definition, context);
         }
 
-        public void MemberDescriptor (bool isPublic, bool isStatic) {
+        public void MemberDescriptor (bool isPublic, bool isStatic, bool isVirtual = false) {
             WriteRaw("{");
 
             WriteRaw("Static");
@@ -618,6 +618,14 @@ namespace JSIL.Internal {
             Value(isPublic);
             if (isPublic)
                 WriteRaw(" ");
+
+            if (isVirtual) {
+                Comma();
+
+                WriteRaw("Virtual");
+                WriteRaw(":");
+                WriteRaw("true ");
+            }
 
             WriteRaw("}");
         }

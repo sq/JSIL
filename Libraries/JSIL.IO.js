@@ -13,7 +13,7 @@ if (!JSIL.GetAssembly("mscorlib", true)) {
   JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.MarshalByRefObject", true, [], function ($) {
     $.Field({Static:false, Public:false}, "__identity", $.Object);
 
-    $.Property({Static:false, Public:false}, "Identity");
+    $.Property({Static:false, Public:false, Virtual: true}, "Identity");
   });
 
   JSIL.MakeClass($jsilcore.TypeRef("System.MarshalByRefObject"), "System.IO.Stream", true, [], function ($) {
@@ -21,21 +21,21 @@ if (!JSIL.GetAssembly("mscorlib", true)) {
 
     $.Field({Static:true , Public:true }, "Null", $.Type);
 
-    $.Property({Static:false, Public:true }, "CanRead");
+    $.Property({Static:false, Public:true, Virtual: true }, "CanRead");
 
-    $.Property({Static:false, Public:true }, "CanSeek");
+    $.Property({Static:false, Public:true, Virtual: true }, "CanSeek");
 
-    $.Property({Static:false, Public:true }, "CanTimeout");
+    $.Property({Static:false, Public:true, Virtual: true }, "CanTimeout");
 
-    $.Property({Static:false, Public:true }, "CanWrite");
+    $.Property({Static:false, Public:true, Virtual: true }, "CanWrite");
 
-    $.Property({Static:false, Public:true }, "Length");
+    $.Property({Static:false, Public:true, Virtual: true }, "Length");
 
-    $.Property({Static:false, Public:true }, "Position");
+    $.Property({Static:false, Public:true, Virtual: true }, "Position");
 
-    $.Property({Static:false, Public:true }, "ReadTimeout");
+    $.Property({Static:false, Public:true, Virtual: true }, "ReadTimeout");
 
-    $.Property({Static:false, Public:true }, "WriteTimeout");
+    $.Property({Static:false, Public:true, Virtual: true }, "WriteTimeout");
 
     $.ImplementInterfaces($jsilcore.TypeRef("System.IDisposable"))
   });
@@ -61,17 +61,17 @@ if (!JSIL.GetAssembly("mscorlib", true)) {
 
     $.Constant({Static:true , Public:false}, "MemStreamMaxLength", 2147483647);
 
-    $.Property({Static:false, Public:true }, "CanRead");
+    $.Property({Static:false, Public:true, Virtual: true }, "CanRead");
 
-    $.Property({Static:false, Public:true }, "CanSeek");
+    $.Property({Static:false, Public:true, Virtual: true }, "CanSeek");
 
-    $.Property({Static:false, Public:true }, "CanWrite");
+    $.Property({Static:false, Public:true, Virtual: true }, "CanWrite");
 
-    $.Property({Static:false, Public:true }, "Capacity");
+    $.Property({Static:false, Public:true, Virtual: true }, "Capacity");
 
-    $.Property({Static:false, Public:true }, "Length");
+    $.Property({Static:false, Public:true, Virtual: true }, "Length");
 
-    $.Property({Static:false, Public:true }, "Position");
+    $.Property({Static:false, Public:true, Virtual: true }, "Position");
   });
 
 }

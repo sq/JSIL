@@ -757,11 +757,13 @@ namespace JSIL.Ast {
 
     public class JSPropertyAccess : JSDotExpressionBase {
         public readonly bool IsWrite;
+        public readonly bool TypeQualified;
 
-        public JSPropertyAccess (JSExpression thisReference, JSProperty property, bool isWrite)
+        public JSPropertyAccess (JSExpression thisReference, JSProperty property, bool isWrite, bool typeQualified)
             : base(thisReference, property) {
 
             IsWrite = isWrite;
+            TypeQualified = typeQualified;
         }
 
         public JSExpression ThisReference {

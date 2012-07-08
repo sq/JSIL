@@ -192,8 +192,8 @@ namespace JSIL.Tests {
                 Assert.IsTrue(generatedJs.Contains("\"remove_F\""));
                 Assert.IsTrue(generatedJs.Contains("\".ctor\""));
 
-                Assert.IsTrue(generatedJs.Contains("\"A$value\""));
-                Assert.IsTrue(generatedJs.Contains("\"D$value\""));
+                Assert.IsTrue(generatedJs.Contains("\"Program$A$value\""));
+                Assert.IsTrue(generatedJs.Contains("\"T$D$value\""));
             } catch {
                 Console.WriteLine(generatedJs);
                 throw;
