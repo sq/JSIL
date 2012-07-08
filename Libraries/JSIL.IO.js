@@ -117,6 +117,20 @@ JSIL.ImplementExternals("System.IO.File", function ($) {
     }
   );
 
+  $.Method({Static:true , Public:true }, "Delete", 
+    (new JSIL.MethodSignature(null, [$.String], [])), 
+    function Delete (path) {
+      var storageRoot = JSIL.Host.getStorageRoot();
+
+      if (storageRoot) {
+        var resolved = storageRoot.resolvePath(path, false);
+
+        if (resolved && resolved.type === "file")
+          resolved.unlink();
+      }      
+    }
+  );
+
   $.Method({Static:true , Public:true }, "ReadAllText", 
     new JSIL.MethodSignature($.String, [$.String], []),
     function (filename) {
@@ -1169,7 +1183,7 @@ JSIL.ImplementExternals("System.IO.DirectoryInfo", function ($) {
   $.Method({Static:false, Public:true }, "toString", 
     (new JSIL.MethodSignature($.String, [], [])), 
     function toString () {
-      throw new Error('Not implemented');
+      return "<DirectoryInfo " + this._path + ">";
     }
   );
 
@@ -1213,7 +1227,7 @@ JSIL.ImplementExternals("System.IO.FileInfo", function ($) {
   $.Method({Static:false, Public:true }, "Create", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.FileStream"), [], [])), 
     function Create () {
-      throw new Error('Not implemented');
+      return System.IO.File.Create(this._path);
     }
   );
 
@@ -1234,7 +1248,7 @@ JSIL.ImplementExternals("System.IO.FileInfo", function ($) {
   $.Method({Static:false, Public:true }, "Delete", 
     (new JSIL.MethodSignature(null, [], [])), 
     function Delete () {
-      throw new Error('Not implemented');
+      System.IO.File.Delete(this._path);
     }
   );
 
@@ -1308,14 +1322,15 @@ JSIL.ImplementExternals("System.IO.FileInfo", function ($) {
   $.Method({Static:false, Public:true }, "Open", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.FileStream"), [$jsilcore.TypeRef("System.IO.FileMode")], [])), 
     function Open (mode) {
-      throw new Error('Not implemented');
+      return System.IO.File.Open(this._path, mode);
     }
   );
 
   $.Method({Static:false, Public:true }, "Open", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.FileStream"), [$jsilcore.TypeRef("System.IO.FileMode"), $jsilcore.TypeRef("System.IO.FileAccess")], [])), 
     function Open (mode, access) {
-      throw new Error('Not implemented');
+      // FIXME: access
+      return System.IO.File.Open(this._path, mode);
     }
   );
 
@@ -1325,28 +1340,29 @@ JSIL.ImplementExternals("System.IO.FileInfo", function ($) {
           $jsilcore.TypeRef("System.IO.FileShare")
         ], [])), 
     function Open (mode, access, share) {
-      throw new Error('Not implemented');
+      // FIXME: access, share
+      return System.IO.File.Open(this._path, mode);
     }
   );
 
   $.Method({Static:false, Public:true }, "OpenRead", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.FileStream"), [], [])), 
     function OpenRead () {
-      throw new Error('Not implemented');
+      return System.IO.File.OpenRead(this._path);
     }
   );
 
   $.Method({Static:false, Public:true }, "OpenText", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.StreamReader"), [], [])), 
     function OpenText () {
-      throw new Error('Not implemented');
+      return System.IO.File.OpenText(this._path);
     }
   );
 
   $.Method({Static:false, Public:true }, "OpenWrite", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.FileStream"), [], [])), 
     function OpenWrite () {
-      throw new Error('Not implemented');
+      return System.IO.File.OpenWrite(this._path);
     }
   );
 
@@ -1384,7 +1400,7 @@ JSIL.ImplementExternals("System.IO.FileInfo", function ($) {
   $.Method({Static:false, Public:true }, "toString", 
     (new JSIL.MethodSignature($.String, [], [])), 
     function toString () {
-      throw new Error('Not implemented');
+      return "<FileInfo " + this._path + ">";
     }
   );
 

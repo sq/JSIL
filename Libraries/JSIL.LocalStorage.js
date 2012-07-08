@@ -41,6 +41,14 @@ JSIL.MakeClass($jsilstorage.TypeRef("VirtualVolume"), "LocalStorageVolume", true
     this.writeInodes(this.name);
   });
 
+  $.RawMethod(false, "deleteFileBytes", function (name) {
+    var key = getKey(this.name) + "_blobs_" + name;
+
+    localStorage.removeItem(key);
+
+    JSIL.Host.logWriteLine("Deleted '" + name + "' from local storage.");
+  });
+
   $.RawMethod(false, "getFileBytes", function (name) {
     var key = getKey(this.name) + "_blobs_" + name;
 

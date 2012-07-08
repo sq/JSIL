@@ -30,6 +30,10 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualVolume", true, [], function ($) 
 
     for (var i = 0, l = inodes.length; i < l; i++) {
       var inode = inodes[i], resultInode;
+      if (!inode) {
+        this.inodes.push(null);
+        continue;
+      }
 
       if (typeof (inode.parent) === "number") {
         resultInode = this.makeInode(this.inodes[inode.parent], inode.type, inode.name);
@@ -55,6 +59,9 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualVolume", true, [], function ($) 
 
     for (var i = 1, l = inodes.length; i < l; i++) {
       var inode = this.inodes[i];
+      if (!inode)
+        continue;
+      
       var parentInode = this.inodes[inode.parent];
 
       switch (inode.type) {
@@ -119,6 +126,29 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualVolume", true, [], function ($) 
     }
 
     return path;
+  });
+
+  $.RawMethod(false, "unlinkInode", function (inode) {
+    var toRemove = [inode.index];
+
+    while (toRemove.length > 0) {
+      var toRemoveNext = [];
+
+      for (var i = 0, l = this.inodes.length; i < l; i++) {
+        if (toRemove.indexOf(i) >= 0) {
+          this.inodes[i] = null;
+        } else {
+          var current = this.inodes[i];
+
+          if (current) {
+            if (toRemove.indexOf(current.parent) >= 0)
+              toRemoveNext.push(i);
+          }
+        }
+      }
+
+      toRemove = toRemoveNext;
+    }
   });
 
   $.RawMethod(false, "enumerate", function (nodeType, searchPattern) {
@@ -205,6 +235,10 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualVolume", true, [], function ($) 
   });
 
   $.RawMethod(false, "flush", function () {    
+    throw new Error("Not implemented");
+  });
+
+  $.RawMethod(false, "deleteFileBytes", function (name) {
     throw new Error("Not implemented");
   });
 
@@ -296,6 +330,16 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualDirectory", true, [], function (
       return null;
 
     return directory;
+  });
+
+  $.RawMethod(false, "unlink", function () {
+    // FIXME: Call .unlink() on child directories/files instead of relying on unlinkInode.
+    // Right now this will leak file bytes for child files.
+
+    delete this.parent.directories[this.name.toLowerCase()];
+
+    this.volume.unlinkInode(this.inode);
+    this.volume.flush();
   });
 
   $.RawMethod(false, "createFile", function (name, allowExisting) {
@@ -502,6 +546,13 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualFile", true, [], function ($) {
     parent.files[this.name.toLowerCase()] = this;
   });
 
+  $.RawMethod(false, "unlink", function () {
+    delete this.parent.files[this.name.toLowerCase()];
+    this.volume.unlinkInode(this.inode);
+    this.volume.deleteFileBytes(this.path);
+    this.volume.flush();
+  });
+
   $.RawMethod(false, "readAllBytes", function () {
     var bytes = this.volume.getFileBytes(this.path);
 
@@ -588,7 +639,7 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
     this._onClose = function () {
       if (this._modified) {
         virtualFile.writeAllBytes(this._buffer, this._length);
-        
+
         if (autoFlush)
           virtualFile.volume.flush();
       }
