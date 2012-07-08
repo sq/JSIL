@@ -4720,6 +4720,45 @@ JSIL.MethodSignature.prototype._hash = null;
 JSIL.MethodSignature.prototype._lastKeyName = "<null>";
 JSIL.MethodSignature.prototype._lastKey = "<null>";
 
+JSIL.LazyMethodSignature = function (cache, id) {
+  this._cache = cache;
+  this._id = id;
+};
+
+(function () {
+  var p = JSIL.LazyMethodSignature.prototype = Object.create(JSIL.MethodSignature.prototype);
+
+  var delegate = function (name) {
+    Object.defineProperty(p, name, {
+      configurable: false,
+      enumerable: true,
+      get: function () {
+        return this._cached[name];
+      },
+      set: function (value) {
+        return this._cached[name] = value;
+      }
+    });
+  };
+
+  delegate("returnType");
+  delegate("argumentTypes");
+  delegate("_genericSuffix");
+  delegate("_hash");
+  delegate("_lastKeyName");
+  delegate("_lastKey");
+
+  JSIL.SetLazyValueProperty(
+    p, "_cached", function () {
+      var result = this._cache[this._id];
+      if (!result)
+        throw new Error("Method signature '" + this._id + "' used without being defined!");
+
+      return result;
+    }
+  );
+})();
+
 Object.defineProperty(JSIL.MethodSignature.prototype, "GenericSuffix", {
   configurable: false,
   enumerable: true,
@@ -4742,7 +4781,7 @@ JSIL.MethodSignatureCache.prototype.get = function (id, returnType, argumentType
     return cached;
 
   if (arguments.length === 1)
-    throw new Error("Signature '" + id + "' not in cache.");
+    throw new Error("Method signature '" + id + "' used without being defined!");
 
   return this._cache[id] = new JSIL.MethodSignature(returnType, argumentTypes, genericArgumentNames, context);
 };

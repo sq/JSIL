@@ -1007,14 +1007,21 @@ namespace JSIL.Internal {
             }
 
             if (cached) {
-                if ((context.InvokingMethod == null) && (context.EnclosingMethod == null)) {
-                    WriteRaw("$sig.make");
-                } else {
-                    WriteRaw("$sig.get");
-                }
+                var defineNew = (context.InvokingMethod == null) && (context.EnclosingMethod == null);
+
+                WriteRaw(defineNew ? "$sig.make" : "$sig.get");
                 LPar();
 
                 Value(signature.ID);
+
+                /*
+                 * FIXME: Not possible since IDs for jsil.core/jsil.bootstrap APIs aren't defined.
+                if (!defineNew) {
+                    RPar();
+                    return;
+                }
+                 */
+
                 Comma();
 
             } else {
