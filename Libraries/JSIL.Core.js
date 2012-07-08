@@ -1635,7 +1635,7 @@ $jsilcore.$Of = function () {
   var result = this.Of$NoInitialize.apply(this, arguments);
 
   // If the outer type is initialized, initialize the inner type.
-  if (this.__Type__.__TypeInitialized__)
+  if (!result.__Type__.__TypeInitialized__ && this.__Type__.__TypeInitialized__)
     JSIL.InitializeType(result);
 
   return result;
@@ -4735,6 +4735,7 @@ Object.defineProperty(JSIL.MethodSignature.prototype, "Hash", {
 JSIL.MethodSignatureCache = function () {
   this._cache = {};
 };
+
 JSIL.MethodSignatureCache.prototype.get = function (id, returnType, argumentTypes, genericArgumentNames, context) {
   var cached = this._cache[id];
   if (cached)
@@ -4745,6 +4746,19 @@ JSIL.MethodSignatureCache.prototype.get = function (id, returnType, argumentType
 
   return this._cache[id] = new JSIL.MethodSignature(returnType, argumentTypes, genericArgumentNames, context);
 };
+
+JSIL.MethodSignatureCache.prototype.make = function (id, returnType, argumentTypes, genericArgumentNames, context) {
+  var result = new JSIL.MethodSignature(returnType, argumentTypes, genericArgumentNames, context);
+
+  var cached = this._cache[id];
+  if (cached) {
+    if (cached.Hash !== result.Hash)
+      throw new Error("The signature ID '" + id + "' has multiple definitions! This indicates that you are mixing old & new JSIL output.");
+  }
+
+  return this._cache[id] = result;
+};
+
 JSIL.MethodSignatureCache.prototype.toString = function () {
   return "<Method Signature Cache>";
 };

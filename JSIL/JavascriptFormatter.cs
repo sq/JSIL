@@ -1007,7 +1007,11 @@ namespace JSIL.Internal {
             }
 
             if (cached) {
-                WriteRaw("$sig.get");
+                if ((context.InvokingMethod == null) && (context.EnclosingMethod == null)) {
+                    WriteRaw("$sig.make");
+                } else {
+                    WriteRaw("$sig.get");
+                }
                 LPar();
 
                 Value(signature.ID);
