@@ -410,7 +410,7 @@ namespace JSIL {
 
                 if ((propertyInfo.Member.GetMethod != null) && (method.Method.Member.Name == propertyInfo.Member.GetMethod.Name)) {
                     return new JSPropertyAccess(
-                        actualThis, new JSProperty(method.Reference, propertyInfo)
+                        actualThis, new JSProperty(method.Reference, propertyInfo), false
                     );
                 } else {
                     if (arguments.Length == 0) {
@@ -423,7 +423,7 @@ namespace JSIL {
                     return new JSBinaryOperatorExpression(
                         JSOperator.Assignment,
                         new JSPropertyAccess(
-                            actualThis, new JSProperty(method.Reference, propertyInfo)
+                            actualThis, new JSProperty(method.Reference, propertyInfo), true
                         ),
                         arguments[0], propertyInfo.ReturnType
                     );

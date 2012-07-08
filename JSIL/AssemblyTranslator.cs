@@ -1384,6 +1384,9 @@ namespace JSIL {
             var epf = new EliminatePointlessFinallyBlocks(si.TypeSystem, _TypeInfoProvider, FunctionCache);
             epf.Visit(function);
 
+            var oae = new OptimizeArrayEnumerators(si.TypeSystem);
+            oae.Visit(function);
+
             var lnd = new LoopNameDetector();
             lnd.Visit(function);
             lnd.EliminateUnusedLoopNames();

@@ -2116,15 +2116,15 @@ var vectorUtil = {
 
   makeConstants: function ($, tVector, constants) {
     var makeGetter = function (values) {
-      var state = [null];
+      var state = null;
 
       return function () {
-        if (state[0] === null)
-          state[0] = JSIL.CreateInstanceOfType(
+        if (state === null)
+          state = JSIL.CreateInstanceOfType(
             tVector.get().__Type__, values
           );
 
-        return state[0];
+        return state;
       }
     };
 

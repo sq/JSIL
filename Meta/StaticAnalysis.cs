@@ -49,4 +49,16 @@ namespace JSIL.Meta {
     )]
     public class JSPureDispose : Attribute {
     }
+
+    /// <summary>
+    /// Tells the static analyzer that this class represents an array enumerator, and provides the names of the array,
+    ///  index and length members so that uses of the enumerator can be replaced with a for-loop or while-loop.
+    /// </summary>
+    [AttributeUsage(
+        AttributeTargets.Class | AttributeTargets.Struct
+    )]
+    public class JSIsArrayEnumerator : Attribute {
+        public JSIsArrayEnumerator (string arrayMember, string indexMember, string lengthMember) {
+        }
+    }
 }

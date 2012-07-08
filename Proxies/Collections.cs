@@ -54,4 +54,18 @@ namespace JSIL.Proxies {
     [JSPureDispose]
     public abstract class CollectionEnumeratorProxy {
     }
+
+    [JSProxy(
+        new[] {
+            "System.Collections.ArrayList/ArrayListEnumerator",
+            "System.Collections.Generic.List`1/Enumerator",
+            "System.Collections.Generic.Stack`1/Enumerator",
+            "System.Collections.Generic.Queue`1/Enumerator",
+        },
+        memberPolicy: JSProxyMemberPolicy.ReplaceNone,
+        inheritable: false
+    )]
+    [JSIsArrayEnumerator("_array", "_index", "_length")]
+    public abstract class ArrayEnumeratorProxy {
+    }
 }

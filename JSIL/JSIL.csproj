@@ -99,6 +99,7 @@
     <Compile Include="Transforms\ReplaceMethodCalls.cs" />
     <Compile Include="Transforms\IntroduceEnumCasts.cs" />
     <Compile Include="Transforms\SimplifyLoops.cs" />
+    <Compile Include="Transforms\StaticAnalysis\OptimizeArrayEnumerators.cs" />
     <Compile Include="Transforms\StaticAnalysis\EliminatePointlessFinallyBlocks.cs" />
     <Compile Include="Transforms\StaticAnalysis\StaticAnalyzer.cs" />
     <Compile Include="Transforms\StaticAnalysis\EliminateSingleUseTemporaries.cs" />
