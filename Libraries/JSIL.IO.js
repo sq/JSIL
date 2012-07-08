@@ -1449,7 +1449,9 @@ JSIL.ImplementExternals("System.IO.Directory", function ($) {
       var storageRoot = JSIL.Host.getStorageRoot();
 
       if (storageRoot) {
-        return storageRoot.enumerate("directory", searchPattern).map(function (node) { return node.path; });
+        var searchPath = storageRoot.resolvePath(path, true);
+
+        return searchPath.enumerate("directory", searchPattern).map(function (node) { return node.path; });
       } else {
         throw new Error('Storage root not available');
       }
@@ -1483,7 +1485,9 @@ JSIL.ImplementExternals("System.IO.Directory", function ($) {
       var storageRoot = JSIL.Host.getStorageRoot();
 
       if (storageRoot) {
-        return storageRoot.enumerate("file", searchPattern).map(function (node) { return node.path; });
+        var searchPath = storageRoot.resolvePath(path, true);
+
+        return searchPath.enumerate("file", searchPattern).map(function (node) { return node.path; });
       } else {
         throw new Error('Storage root not available');
       }

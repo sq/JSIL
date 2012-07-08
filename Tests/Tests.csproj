@@ -184,6 +184,8 @@
     <None Include="TestCases\MutatedStructGenericParameter.cs" />
     <None Include="SimpleTestCases\ParseInteger.cs" />
     <None Include="SimpleTestCases\ParseHexInteger.cs" />
+    <None Include="XMLTestCases\WriteStartDocument.cs" />
+    <None Include="XMLTestCases\WriteEndDocument.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="ReflectionTests.cs" />
     <Compile Include="DependencyTests.cs" />

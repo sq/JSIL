@@ -1467,10 +1467,8 @@ JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
   });
 
   $.RawMethod(false, "$write", function (str) {
-    if (this._needPrologue) {
-      this._needPrologue = false;
-      this.$write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-    }
+    if (this._needPrologue)
+      this.WriteStartDocument();
 
     for (var i = 0, l = str.length; i < l; i++) {
       var ch = str[i];
@@ -1745,7 +1743,7 @@ JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
   $.Method({Static:false, Public:true }, "WriteEndDocument", 
     (new JSIL.MethodSignature(null, [], [])), 
     function WriteEndDocument () {
-      throw new Error('Not implemented');
+      this.$flush(true);
     }
   );
 
@@ -1864,7 +1862,10 @@ JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
   $.Method({Static:false, Public:true }, "WriteStartDocument", 
     (new JSIL.MethodSignature(null, [], [])), 
     function WriteStartDocument () {
-      throw new Error('Not implemented');
+      this._needPrologue = false;
+      this.$write('<?xml version="1.0" encoding="');
+      this.$write("utf-8");
+      this.$write('"?>');
     }
   );
 
