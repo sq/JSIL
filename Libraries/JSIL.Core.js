@@ -1510,6 +1510,7 @@ $jsilcore.$Of$NoInitialize = function () {
     "GetType", "__ReflectionCache__", "__Members__", "__ThisTypeId__"
   ];
 
+  // FIXME: for ( in ) is deoptimized in V8. Maybe use Object.keys(), or type metadata?
   for (var k in staticClassObject) {
     if (ignoredNames.indexOf(k) !== -1)
       continue;

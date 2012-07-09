@@ -4983,25 +4983,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       var originalImage = image;
       var context = this.device.context;
 
-      if (effects) {
-        if (effects & this.spriteEffects.FlipHorizontally) {
-          if (!needRestore) 
-            this.$save();
-          needRestore = true;
-
-          context.scale(-1, 1);
-          positionX = -positionX;
-        }
-
-        if (effects & this.spriteEffects.FlipVertically) {
-          if (!needRestore) 
-            this.$save();
-          needRestore = true;
-
-          context.scale(1, -1);
-          positionY = -positionY;
-        }
-      }
+      var originalPositionX = positionX, originalPositionY = positionY;
 
       positionX -= originX;
       positionY -= originY;
@@ -5071,6 +5053,26 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         context.translate(positionX + originX, positionY + originY);
         context.rotate(rotation);
         context.translate(-positionX - originX, -positionY - originY);
+      }
+
+      if (effects) {
+        if (effects & this.spriteEffects.FlipHorizontally) {
+          if (!needRestore) 
+            this.$save();
+          needRestore = true;
+
+          context.scale(-1, 1);
+          positionX -= originalPositionX * 2;
+        }
+
+        if (effects & this.spriteEffects.FlipVertically) {
+          if (!needRestore) 
+            this.$save();
+          needRestore = true;
+
+          context.scale(1, -1);
+          positionY -= originalPositionY * 2;
+        }
       }
 
       if ((scaleX !== 1.0) || (scaleY !== 1.0)) {
