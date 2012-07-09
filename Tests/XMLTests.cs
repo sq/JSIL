@@ -7,20 +7,20 @@ using System.Reflection;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading;
+using JSIL.Internal;
 using NUnit.Framework;
 
 namespace JSIL.Tests {
     [TestFixture]
     public class XMLTests : GenericTestFixture {
         [Test]
-        public void SimpleXMLTests () {
-            var typeInfo = MakeDefaultProvider();
-            var testPath = Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "XMLTestCases"));
-            var testFiles = Directory.GetFiles(testPath, "*.cs").Concat(Directory.GetFiles(testPath, "*.vb")).ToArray();
+        [TestCaseSource("SimpleXMLTestCasesSource")]
+        public void SimpleXMLTestCases (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
 
-            RunComparisonTests(
-                testFiles, null, typeInfo
-            );
+        protected IEnumerable<TestCaseData> SimpleXMLTestCasesSource () {
+            return FolderTestSource("XMLTestCases", MakeDefaultProvider(), new AssemblyCache());
         }
 
         [Test]
