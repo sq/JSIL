@@ -3047,7 +3047,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   });
 
   $.RawMethod(false, "_QueueStep", function Game_EnqueueTick () {
-    if (Microsoft.Xna.Framework.Game._QuitForced) return;
+    if (Microsoft.Xna.Framework.Game._QuitForced || this._isDead) 
+      return;
 
     var self = this;
     var stepCallback = self._Step.bind(self);
@@ -3207,12 +3208,34 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     Static: false,
     Public: true
   }, "Dispose", new JSIL.MethodSignature(null, [], []), function () {
-    if (this._runHandle !== null) window.clearInterval(this._runHandle);
+    if (this._runHandle !== null) 
+      window.clearInterval(this._runHandle);
 
     this._runHandle = null;
     this.UnloadContent();
 
     this._isDead = true;
+
+    try {
+      var canvas = JSIL.Host.getCanvas();      
+      var ctx = canvas.getContext("2d") || canvas.getContext("webgl-2d");
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = "black";
+      ctx.fillRect(0, 0, 99999, 99999);
+
+      canvas.style.display = "none";
+
+      var fsb = document.getElementById("fullscreenButton");
+      if (fsb)
+        fsb.style.display = "none";
+
+      var stats = document.getElementById("stats");
+      if (stats)
+        stats.style.display = "none";
+    } catch (exc) {
+    }
   });
 });
 

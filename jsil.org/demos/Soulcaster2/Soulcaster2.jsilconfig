@@ -15,7 +15,10 @@
     "OverwriteExistingContent": true,
     "ContentOutputDirectory": "%configpath%/Soulcaster2Content",
     "UsePNGQuant": true,
+    "MP3Quality": "-V 8",
+    "OGGQuality": "-q 2.65",
     "FileSettings": {
+      "Audio/Music/*": "Stream"
     }
   }
 }

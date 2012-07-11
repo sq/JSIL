@@ -645,6 +645,14 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
   var state = { 
     loaded: false
   };
+
+  var finisher = function () {
+    allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename, true), e);
+  };
+
+  var nullFinisher = function () {
+    allAssets[getAssetName(filename)] = new NullSoundAsset(getAssetName(filename, true));
+  };
   
   var loadingCallback = function (evt) {
     if (state.loaded)
@@ -652,14 +660,6 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
     
     var networkState = e.networkState || 0;
     var readyState = e.readyState || 0;
-
-    var finisher = function () {
-      allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename, true), e);
-    };
-
-    var nullFinisher = function () {
-      allAssets[getAssetName(filename)] = new NullSoundAsset(getAssetName(filename, true));
-    };
 
     if (
       (networkState === HTMLMediaElement.NETWORK_IDLE) ||
@@ -742,12 +742,26 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
   if (typeof (e.load) === "function")
     e.load();
 
-  state.interval = setInterval(loadingCallback, loadingPollInterval);
+  if (data.stream) {
+    state.loaded = true;
+    onDoneLoading(finisher);
+  } else {
+    state.interval = setInterval(loadingCallback, loadingPollInterval);
+  }
 };
 
 // Chrome and Safari's <audio> implementations are utter garbage.
 if (typeof (webkitAudioContext) === "function") {
-  assetLoaders["Sound"] = loadWebkitSound.bind(new webkitAudioContext());
+  var $audioContext = new webkitAudioContext();
+  var $loadWebkitSound = loadWebkitSound.bind($audioContext);
+
+  assetLoaders["Sound"] = function (filename, data, onError, onDoneLoading) {
+    if (data.stream) {
+      return loadHTML5Sound(filename, data, onError, onDoneLoading);
+    } else {
+      return $loadWebkitSound(filename, data, onError, onDoneLoading);
+    }
+  };
 } else {
   assetLoaders["Sound"] = loadHTML5Sound;
 }

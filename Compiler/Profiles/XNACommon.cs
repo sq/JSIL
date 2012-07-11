@@ -704,6 +704,8 @@ public static class Common {
 
         if (fileSettings.TryGetValue(fileName, out settings))
             return new HashSet<string>(settings.ToString().ToLower().Split(' '));
+        else if (fileSettings.TryGetValue(fileName.Replace("\\", "/"), out settings))
+            return new HashSet<string>(settings.ToString().ToLower().Split(' '));
 
         var fileSettingsRegexes = profileSettings["FileSettingsRegexes"] as Dictionary<string, Regex>;
         if (fileSettingsRegexes == null) {
@@ -717,6 +719,7 @@ public static class Common {
 
                 var regex = new Regex(
                     Regex.Escape(key)
+                        .Replace("/", "\\\\")
                         .Replace("\\*", "(.*)")
                         .Replace("\\?", "(.)"),
                     RegexOptions.Compiled | RegexOptions.IgnoreCase
@@ -1046,6 +1049,8 @@ public static class Common {
         Dictionary<string, object> profileSettings, Dictionary<string, CompressResult> existingJournal, 
         Action<string, string, Dictionary<string, object>> logOutput
     ) {
+        var fileSettings = GetFileSettings(profileSettings, fileName);
+
         var results = Common.CompressAudio(
             fileName, contentProjectDirectory, itemOutputDirectory,
             profileSettings, existingJournal
@@ -1056,6 +1061,9 @@ public static class Common {
             {"formats", formats},
             {"sizeBytes", results.Max((r) => r.Size)}
         };
+
+        if (fileSettings.Contains("stream"))
+            properties.Add("stream", true);
 
         foreach (var result in results)
             formats.Add(Path.GetExtension(result.Filename));
