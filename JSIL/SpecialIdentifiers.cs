@@ -178,6 +178,16 @@ namespace JSIL {
             );
         }
 
+        public JSInvocationExpression ValueOfNullable (JSExpression nullableExpression) {
+            var valueType = nullableExpression.GetActualType(TypeSystem);
+            valueType = TypeUtil.StripNullable(valueType);
+
+            return JSInvocationExpression.InvokeStatic(
+                Dot("ValueOfNullable", valueType),
+                new[] { nullableExpression }, true
+            );
+        }
+
         public JSInvocationExpression CreateInstanceOfType (TypeReference type) {
             return JSInvocationExpression.InvokeStatic(
                 Dot(new JSFakeMethod("CreateInstanceOfType", type, new[] { TypeSystem.Object }, MethodTypes)),

@@ -1692,7 +1692,7 @@ namespace JSIL.Ast {
 
         public static JSExpression New (JSExpression inner, TypeReference newType, TypeSystem typeSystem) {
             return NewInternal(
-                inner, newType, typeSystem,
+                inner, newType, typeSystem, false,
                 () => new JSAsExpression(inner, newType)
             );
         }
@@ -1707,9 +1707,9 @@ namespace JSIL.Ast {
             NewType = newType;
         }
 
-        public static JSExpression New (JSExpression inner, TypeReference newType, TypeSystem typeSystem) {
+        public static JSExpression New (JSExpression inner, TypeReference newType, TypeSystem typeSystem, bool force = false) {
             return NewInternal(
-                inner, newType, typeSystem,
+                inner, newType, typeSystem, force,
                 () => new JSCastExpression(inner, newType)
             );
         }
@@ -1726,14 +1726,14 @@ namespace JSIL.Ast {
             return false;
         }
 
-        internal static JSExpression NewInternal (JSExpression inner, TypeReference newType, TypeSystem typeSystem, Func<JSExpression> make) {
+        internal static JSExpression NewInternal (JSExpression inner, TypeReference newType, TypeSystem typeSystem, bool force, Func<JSExpression> make) {
             int rankCurrent, rankNew;
 
             var currentType = inner.GetActualType(typeSystem);
             var currentDerefed = TypeUtil.FullyDereferenceType(currentType, out rankCurrent);
             var newDerefed = TypeUtil.FullyDereferenceType(newType, out rankNew);
 
-            if (TypeUtil.TypesAreEqual(currentDerefed, newDerefed, false))
+            if (TypeUtil.TypesAreEqual(currentDerefed, newDerefed, false) && !force)
                 return inner;
 
             if ((rankCurrent == rankNew) && (rankCurrent > 0)) {
@@ -1744,7 +1744,7 @@ namespace JSIL.Ast {
             }
 
             var newResolved = newDerefed.Resolve();
-            if ((newResolved != null) && newResolved.IsInterface) {
+            if (!force && (newResolved != null) && newResolved.IsInterface) {
                 var currentResolved = currentDerefed.Resolve();
 
                 if (currentResolved != null) {

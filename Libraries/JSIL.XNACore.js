@@ -5058,6 +5058,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       }
 
       if (effects) {
+        effects = effects.valueOf();
+        
         if (effects & this.spriteEffects.FlipHorizontally) {
           if (!needRestore) 
             this.$save();

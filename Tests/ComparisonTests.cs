@@ -239,6 +239,7 @@ namespace JSIL.Tests {
                     @"TestCases\EnumCheckType.cs",
                     @"TestCases\EnumNullableArithmetic.cs",
                     @"TestCases\EnumAnonymousMethod.cs",
+                    @"TestCases\CompareFlagsEnums.cs",
                 }, MakeDefaultProvider(), new AssemblyCache()
             );
         }

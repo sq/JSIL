@@ -277,15 +277,6 @@ namespace JSIL {
             )
                 return new JSUntranslatableExpression(node);
 
-            if (TypeUtil.IsEnum(node.Arguments[0].InferredType ?? node.Arguments[0].ExpectedType)
-                || TypeUtil.IsEnum(node.Arguments[1].InferredType ?? node.Arguments[1].ExpectedType)
-            ) {
-                if (op == JSOperator.Equal)
-                    op = JSOperator.EqualLoose;
-                else if (op == JSOperator.NotEqual)
-                    op = JSOperator.NotEqualLoose;
-            }
-
             var resultType = node.InferredType ?? node.ExpectedType;
             var result = new JSBinaryOperatorExpression(
                 op, lhs, rhs, resultType

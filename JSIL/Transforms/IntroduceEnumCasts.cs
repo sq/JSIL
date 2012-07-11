@@ -16,6 +16,7 @@ namespace JSIL.Transforms {
         public readonly JSSpecialIdentifiers JS;
 
         private readonly HashSet<JSOperator> LogicalOperators;
+        private readonly HashSet<JSOperator> BitwiseOperators;
 
         public IntroduceEnumCasts (TypeSystem typeSystem, JSSpecialIdentifiers js, TypeInfoProvider typeInfo, MethodTypeFactory methodTypes) {
             TypeSystem = typeSystem;
@@ -27,6 +28,12 @@ namespace JSIL.Transforms {
                 JSOperator.LogicalAnd,
                 JSOperator.LogicalOr,
                 JSOperator.LogicalNot
+            };
+
+            BitwiseOperators = new HashSet<JSOperator>() {
+                JSOperator.BitwiseAnd,
+                JSOperator.BitwiseOr,
+                JSOperator.BitwiseXor
             };
         }
 
@@ -89,21 +96,35 @@ namespace JSIL.Transforms {
             var resultType = boe.GetActualType(TypeSystem);
             var resultIsEnum = IsEnumOrNullableEnum(resultType);
 
-            if ((leftIsEnum || rightIsEnum) && LogicalOperators.Contains(boe.Operator)) {
-                if (leftIsEnum) {
-                    var cast = JSInvocationExpression.InvokeMethod(
-                        JS.valueOf(TypeSystem.Int32), boe.Left, null, true
-                    );
+            var eitherIsEnum = leftIsEnum || rightIsEnum;
 
-                    boe.ReplaceChild(boe.Left, cast);
+            if (LogicalOperators.Contains(boe.Operator)) {
+                if (eitherIsEnum) {
+                    if (leftIsEnum) {
+                        var cast = JSInvocationExpression.InvokeMethod(
+                            JS.valueOf(TypeSystem.Int32), boe.Left, null, true
+                        );
+
+                        boe.ReplaceChild(boe.Left, cast);
+                    }
+
+                    if (rightIsEnum) {
+                        var cast = JSInvocationExpression.InvokeMethod(
+                            JS.valueOf(TypeSystem.Int32), boe.Right, null, true
+                        );
+
+                        boe.ReplaceChild(boe.Right, cast);
+                    }
                 }
-
-                if (rightIsEnum) {
-                    var cast = JSInvocationExpression.InvokeMethod(
-                        JS.valueOf(TypeSystem.Int32), boe.Right, null, true
+            } else if (BitwiseOperators.Contains(boe.Operator)) {
+                var parentCast = ParentNode as JSCastExpression;
+                if (resultIsEnum && ((parentCast == null) || (parentCast.NewType != resultType))) {
+                    var cast = JSCastExpression.New(
+                        boe, resultType, TypeSystem, true
                     );
 
-                    boe.ReplaceChild(boe.Right, cast);
+                    ParentNode.ReplaceChild(boe, cast);
+                    VisitReplacement(cast);
                 }
             }
 

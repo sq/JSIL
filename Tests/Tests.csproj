@@ -103,7 +103,6 @@
     <None Include="TestCases\GenericStaticConstructorOrdering2.cs" />
     <None Include="TestCases\StaticInitializersInGenericTypesSettingStaticFields2.cs" />
     <None Include="TestCases\EnumCheckType.cs" />
-    <None Include="FailingTestCases\FlagsEnumOperators.cs" />
     <None Include="TestCases\NullableArithmetic.cs" />
     <None Include="TestCases\NullableComparison.cs" />
     <None Include="TestCases\NullableComparisonWithCast.cs" />
@@ -186,6 +185,7 @@
     <None Include="XMLTestCases\WriteStartDocument.cs" />
     <None Include="XMLTestCases\WriteEndDocument.cs" />
     <None Include="SimpleTestCases\IncrementBaseProperty.cs" />
+    <None Include="TestCases\CompareFlagsEnums.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

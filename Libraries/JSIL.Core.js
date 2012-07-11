@@ -3671,11 +3671,10 @@ JSIL.EnumValue.prototype.toString = function () {
         var name = names[i];
         var nameValue = enumType[name].value;
 
-        if (nameValue) {
+        if (nameValue === this.value) {
+          result.push(name);
+        } else if (nameValue) {
           if ((this.value & nameValue) === nameValue)
-            result.push(name);
-        } else {
-          if (!this.value)
             result.push(name);
         }
       }
@@ -3786,9 +3785,21 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
       valueProto, "__ThisTypeId__", result.__TypeId__
     );
 
+    // Because there's no way to change the behavior of ==,
+    //  we need to ensure that all calls to $MakeValue for a given value
+    //  return the same instance.
+    // FIXME: Memory leak! Weak references would help here, but TC39 apparently thinks
+    //  hiding GC behavior from developers is more important than letting them control
+    //  memory usage.
+    var valueCache = {};
+
     result.$MakeValue = function (value, name) {
-      // TODO: Cache value instances to reduce garbage creation?
-      return new valueType(value, name);
+      var result = valueCache[value];
+
+      if (!result)
+        result = valueCache[value] = new valueType(value, name);
+
+      return result;
     };
 
     return result;
@@ -6438,3 +6449,10 @@ JSIL.ImplementExternals("System.Enum", function ($) {
     }
   );
 });
+
+JSIL.ValueOfNullable = function (value) {
+  if (value === null)
+    return value;
+  else
+    return value.valueOf();
+};

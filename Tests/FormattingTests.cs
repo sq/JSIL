@@ -326,7 +326,7 @@ namespace JSIL.Tests {
         public void FlagsEnumsWithZeroValues () {
             var generatedJs = GetJavascript(
                 @"SpecialTestCases\FlagsEnumsWithZeroValues.cs",
-                "B A\r\nB 0"
+                "B A\r\nB A"
             );
             try {
                 Assert.IsFalse(generatedJs.Contains("| $asm01.Program.SimpleEnum.E"));

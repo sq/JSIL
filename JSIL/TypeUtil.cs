@@ -97,11 +97,24 @@ namespace JSIL {
             }
         }
 
-        public static TypeReference StripNullable (TypeReference type) {
+        public static bool IsNullable (TypeReference type) {
+            int temp;
+            type = FullyDereferenceType(type, out temp);
+
             var git = type as GenericInstanceType;
-            if ((git != null) && (git.Name == "Nullable`1")) {
+            if ((git != null) && (git.Name == "Nullable`1"))
+                return true;
+
+            return false;
+        }
+
+        public static TypeReference StripNullable (TypeReference type) {
+            int temp;
+            type = FullyDereferenceType(type, out temp);
+
+            var git = type as GenericInstanceType;
+            if ((git != null) && (git.Name == "Nullable`1"))
                 return git.GenericArguments[0];
-            }
 
             return type;
         }

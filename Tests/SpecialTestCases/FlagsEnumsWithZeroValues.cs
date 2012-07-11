@@ -10,11 +10,15 @@ public static class Program {
         E = 0
     }
 
-    public static void Main (string[] args) {
-        const SimpleEnum a = SimpleEnum.B;
-        SimpleEnum b = SimpleEnum.E;
+    public static SimpleEnum ReturnEnum (SimpleEnum value) {
+        return value;
+    }
 
-        Console.WriteLine("{0} {1}", a, b);
-        Console.WriteLine("{0} {1}", a & SimpleEnum.B, b & SimpleEnum.D);
+    public static void Main (string[] args) {
+        const SimpleEnum b = SimpleEnum.B;
+        SimpleEnum e = SimpleEnum.E;
+
+        Console.WriteLine("{0} {1}", b, e);
+        Console.WriteLine("{0} {1}", b & ReturnEnum(SimpleEnum.B), e & ReturnEnum(SimpleEnum.D));
     }
 }
