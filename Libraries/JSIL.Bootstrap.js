@@ -4107,7 +4107,7 @@ JSIL.ImplementExternals(
       var name = TEnum.__ValueToName__[resultValue];
 
       if (typeof (name) === "undefined") {
-        result.value = JSIL.MakeEnumValue(TEnum, resultValue, null, TEnum.__IsFlagsEnum__);
+        result.value = TEnum.$MakeValue(resultValue, null);
         return true;
       } else {
         result.value = TEnum[name];
@@ -4143,7 +4143,7 @@ JSIL.ImplementExternals(
         var name = TEnum.__ValueToName__[num];
 
         if (typeof (name) === "undefined") {
-          result.value = JSIL.MakeEnumValue(TEnum, num, null, TEnum.__IsFlagsEnum__);
+          result.value = TEnum.$MakeValue(num, null);
           return true;
         } else {
           result.value = TEnum[name];

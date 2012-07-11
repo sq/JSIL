@@ -3221,9 +3221,7 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
         if (result)
           return publicInterface[result];
 
-        return JSIL.MakeEnumValue(
-          typeObject, n, null, typeObject.__IsFlagsEnum__
-        );
+        return typeObject.$MakeValue(n, null);
       };
 
       break;
@@ -3646,65 +3644,56 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
 JSIL.MakeClass("System.ValueType", "System.Enum", true, [], function ($) {
 });
 
-JSIL.MakeEnumValue = function (enumType, value, key, isFlagsEnum) {
-  var obj = new Number(value);
-  var toStringImpl;
-  var state = null;
+JSIL.EnumValue = function (m) {
+  throw new Error("Cannot create an abstract instance of an enum");
+};
+JSIL.EnumValue.prototype = Object.create(null);
+JSIL.EnumValue.prototype.isFlags = false;
+JSIL.EnumValue.prototype.stringified = null;
+JSIL.EnumValue.prototype.value = 0;
+JSIL.EnumValue.prototype.name = null;
+JSIL.EnumValue.prototype.__ThisType__ = null;
+JSIL.EnumValue.prototype.__ThisTypeId__ = -1;
+JSIL.EnumValue.prototype.GetType = function () {
+  return this.__ThisType__;
+};
+JSIL.EnumValue.prototype.GetHashCode = function () {
+  return this.value;
+};
+JSIL.EnumValue.prototype.toString = function () {
+  if (!this.stringified) {
+    if (this.isFlags) {
+      var enumType = this.__ThisType__;
+      var names = enumType.__Names__;
+      var result = [];
 
-  if (key !== null) {
-    toStringImpl = function EnumValue_ToString () {
-      return key;
-    };
+      for (var i = 0, l = names.length; i < l; i++) {
+        var name = names[i];
+        var nameValue = enumType[name].value;
 
-  } else if (isFlagsEnum) {
-    var names = enumType.__Names__;
-
-    toStringImpl = function FlagsEnumValue_ToString () {
-      if (state === null) {
-        var result = [];
-
-        for (var i = 0, l = names.length; i < l; i++) {
-          var name = names[i];
-          var nameValue = enumType[name].value;
-
-          if ((value & nameValue) === nameValue)
+        if (nameValue) {
+          if ((this.value & nameValue) === nameValue)
+            result.push(name);
+        } else {
+          if (!this.value)
             result.push(name);
         }
-
-        if (result.length === 0)
-          state = value.toString();
-        else
-          state = result.join(", ");
       }
 
-      return state;
-    };    
-
-  } else {
-    toStringImpl = function NumericEnumValue_ToString () {
-      if (state === null) {
-        state = value.toString();
-      }
-
-      return state;
-    };
-
+      if (result.length === 0)
+        this.stringified = this.value.toString();
+      else
+        this.stringified = result.join(", ");
+    } else {
+      this.stringified = this.value.toString();
+    }
   }
 
-  JSIL.SetValueProperty(obj, "toString", toStringImpl);
-  JSIL.SetValueProperty(obj, "GetType", function EnumValue_GetType () {
-    return enumType;
-  });
-  JSIL.SetValueProperty(obj, "GetHashCode", function EnumValue_GetHashCode () {
-    return value;
-  });
-  JSIL.SetValueProperty(obj, "__ThisType__", enumType);
-  JSIL.SetValueProperty(obj, "__ThisTypeId__", enumType.__TypeId__);
-  JSIL.SetValueProperty(obj, "value", value);
-  JSIL.SetValueProperty(obj, "name", key);
-
-  return obj;
+  return this.stringified;
 };
+JSIL.EnumValue.prototype.valueOf = function () {
+  return this.value;
+}
 
 JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
   var localName = JSIL.GetLocalName(fullName);
@@ -3764,7 +3753,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
           resultValue = resultValue | result[flagName].value;
         }
 
-        return JSIL.MakeEnumValue(result, resultValue, null, isFlagsEnum);
+        return result.$MakeValue(resultValue, null);
       };
     } else {
       result.Flags = function Enum_Flags () {
@@ -3777,6 +3766,29 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
         return true;
 
       return false;
+    };
+
+    var valueType = result.$Value = function (value, name) {
+      this.value = value;
+      this.stringified = this.name = name;
+    };
+    var valueProto = valueType.prototype = Object.create(JSIL.EnumValue.prototype);
+
+    JSIL.SetValueProperty(
+      valueProto, "isFlags", isFlagsEnum
+    );
+
+    JSIL.SetValueProperty(
+      valueProto, "__ThisType__", result
+    );
+
+    JSIL.SetValueProperty(
+      valueProto, "__ThisTypeId__", result.__TypeId__
+    );
+
+    result.$MakeValue = function (value, name) {
+      // TODO: Cache value instances to reduce garbage creation?
+      return new valueType(value, name);
     };
 
     return result;
@@ -3801,7 +3813,7 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
 
       $.__Names__.push(key);
       $.__ValueToName__[value] = key;
-      $[key] = JSIL.MakeEnumValue($, value, key, isFlagsEnum);
+      $[key] = $.$MakeValue(value, key);
     }
 
     JSIL.MakeCastMethods($, $, "enum");
