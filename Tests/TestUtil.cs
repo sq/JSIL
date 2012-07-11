@@ -864,6 +864,9 @@ namespace JSIL.Tests {
             var testNames = Directory.GetFiles(testPath, "*.cs").Concat(Directory.GetFiles(testPath, "*.vb")).OrderBy((s) => s);
 
             foreach (var testName in testNames) {
+                if (Path.GetFileNameWithoutExtension(testName) == "Common")
+                    continue;
+
                 yield return (new TestCaseData(new object[] { new object[] { testName, typeInfo, asmCache } }))
                     .SetName(Path.GetFileName(testName))
                     .SetDescription(String.Format("{0}\\{1}", folderName, Path.GetFileName(testName)))
