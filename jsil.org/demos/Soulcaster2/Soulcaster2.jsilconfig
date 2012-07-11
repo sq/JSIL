@@ -13,7 +13,7 @@
   },
   "ProfileSettings": {
     "OverwriteExistingContent": true,
-    "ContentOutputDirectory": "%configpath%/Soulcaster1Content",
+    "ContentOutputDirectory": "%configpath%/Soulcaster2Content",
     "UsePNGQuant": true,
     "FileSettings": {
     }

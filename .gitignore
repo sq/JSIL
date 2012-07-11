@@ -36,7 +36,9 @@ Tests/*Cases/*.js
 /jsil.org/demos/Sully/*.js
 /jsil.org/demos/Sully/Content
 /jsil.org/demos/Soulcaster/*.js
-/jsil.org/demos/Soulcaster/Soulcaster2Content
+/jsil.org/demos/Soulcaster/Soulcaster1Content
+/jsil.org/demos/Soulcaster2/*.js
+/jsil.org/demos/Soulcaster2/Soulcaster2Content
 /jsil.org/demos/RPG/Content
 /jsil.org/demos/GameType/*.js
 /jsil.org/demos/GameType/Content

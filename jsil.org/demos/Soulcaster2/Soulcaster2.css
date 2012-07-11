@@ -44,20 +44,20 @@ a, a:visited {
 	height: 40px;
 }
 #log {
-	width: 640px;
+	width: 704px;
 	height: 200px;
 	left: 2px;
-	top: 484px;
+	top: 544px;
 	overflow-x: hidden;
 	overflow-y: scroll;
 }
 #fullscreenButton {
-	left: 644px;
+	left: 708px;
 	top: 2px;
 	height: 45px;
 }
 #stats {
-	left: 644px;
+	left: 708px;
 	top: 50px;
 }
 .boxCaption {

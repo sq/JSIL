@@ -1073,6 +1073,25 @@ JSIL.ImplementExternals(
   }
 );
 
+JSIL.ImplementExternals(
+  "System.IO.FileNotFoundException", function ($) {  
+    $.Method({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [$.String], []),
+      function (message) {
+        System.Exception.prototype._ctor.call(this, message);
+      }
+    );
+
+    $.Method({Static:false, Public:true }, ".ctor", 
+      (new JSIL.MethodSignature(null, [$.String, $.String], [])), 
+      function _ctor (message, fileName) {
+        System.Exception.prototype._ctor.call(this, message);
+        this._fileName = fileName;
+      }
+    );
+  }
+);
+
 JSIL.MakeClass(Error, "System.Exception", true, [], function ($) {
   $.Property({Public: true , Static: false, Virtual: true }, "Message");
   $.Property({Public: true , Static: false}, "InnerException");
@@ -1080,6 +1099,7 @@ JSIL.MakeClass(Error, "System.Exception", true, [], function ($) {
 
 JSIL.MakeClass("System.Exception", "System.InvalidCastException", true);
 JSIL.MakeClass("System.Exception", "System.InvalidOperationException", true);
+JSIL.MakeClass("System.Exception", "System.IO.FileNotFoundException", true);
 
 JSIL.ImplementExternals("System.Console", function ($) {
   $.RawMethod(true, "WriteLine", function () {

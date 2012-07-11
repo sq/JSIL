@@ -92,14 +92,15 @@ JSIL.Host.getFile = function (filename) {
   }
 
   if (!JSIL.Host.doesFileExist(filename))
-    throw new System.Exception(errorMessage);
+    throw new System.IO.FileNotFoundException(errorMessage, filename);
   
   return allFiles[JSIL.Host.translateFilename(filename)];
 };
 JSIL.Host.getImage = function (filename) {
   var key = getAssetName(filename, false);
   if (!allAssets.hasOwnProperty(key))
-    throw new System.Exception("The image '" + key + "' is not in the asset manifest.");
+    throw new System.IO.FileNotFoundException("The image '" + key + "' is not in the asset manifest.", filename);
+
   return allAssets[key].image;
 };
 JSIL.Host.doesAssetExist = function (filename, stripRoot) {
@@ -130,7 +131,7 @@ JSIL.Host.getAsset = function (filename, stripRoot) {
 
   var key = getAssetName(filename, false);
   if (!allAssets.hasOwnProperty(key))
-    throw new System.Exception("The asset '" + key + "' is not in the asset manifest.");
+    throw new System.IO.FileNotFoundException("The asset '" + key + "' is not in the asset manifest.", filename);
 
   return allAssets[key];
 };
