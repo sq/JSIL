@@ -764,13 +764,15 @@ namespace JSIL.Tests {
                     }
                 }
             } catch (Exception ex) {
-                if (failureList != null)
-                    failureList.Add(Path.GetFileNameWithoutExtension(filename));
-
                 if (ex.Message == "JS test failed")
                     Debug.WriteLine(ex.InnerException);
                 else
                     Debug.WriteLine(ex);
+
+                if (failureList != null) {
+                    failureList.Add(Path.GetFileNameWithoutExtension(filename));
+                } else
+                    throw;
             }
         }
 
