@@ -1459,7 +1459,7 @@ JSIL.ImplementExternals("System.IO.Directory", function ($) {
         ], [])), 
     function GetDirectories (path, searchPattern, searchOption) {
       // FIXME: searchOption
-      if (Number(searchOption) > 0)
+      if (searchOption.valueOf())
         throw new Error("Recursive search not implemented");
 
       var storageRoot = JSIL.Host.getStorageRoot();
@@ -1495,7 +1495,7 @@ JSIL.ImplementExternals("System.IO.Directory", function ($) {
         ], [])), 
     function GetFiles (path, searchPattern, searchOption) {
       // FIXME: searchOption
-      if (Number(searchOption) > 0)
+      if (searchOption.valueOf())
         throw new Error("Recursive search not implemented");
 
       var storageRoot = JSIL.Host.getStorageRoot();

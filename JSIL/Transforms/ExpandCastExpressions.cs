@@ -68,8 +68,8 @@ namespace JSIL.Transforms {
                         ));
                     }
                 } else if (TypeUtil.IsNumeric(targetType)) {
-                    newExpression = JSInvocationExpression.InvokeStatic(
-                        JS.Number(targetType), new[] { ce.Expression }, true
+                    newExpression = JSInvocationExpression.InvokeMethod(
+                        JS.valueOf(targetType), ce.Expression, null, true
                     );
                 } else if (targetType.FullName == "System.Enum") {
                     newExpression = ce.Expression;

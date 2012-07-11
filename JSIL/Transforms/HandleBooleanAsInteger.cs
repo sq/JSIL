@@ -20,7 +20,7 @@ namespace JSIL.Transforms {
 
         protected JSInvocationExpression CastToInteger (JSExpression booleanExpression) {
             return JSInvocationExpression.InvokeMethod(
-                JS.Number(TypeSystem.SByte), 
+                JS.valueOf(TypeSystem.SByte), 
                 booleanExpression, null, true
             );
         }

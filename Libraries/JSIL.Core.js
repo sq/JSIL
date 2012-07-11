@@ -3215,7 +3215,7 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
       asFunction = throwCastError;
 
       castFunction = function Cast_Enum (expression) {
-        var n = Number(expression);
+        var n = expression.valueOf();
 
         var result = typeObject.__ValueToName__[n];
         if (result)

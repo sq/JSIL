@@ -39,8 +39,8 @@ namespace JSIL {
             charCodeAt = new JSFakeMethod("charCodeAt", TypeSystem.Int32, new[] { TypeSystem.Char }, methodTypes);
         }
 
-        public JSFakeMethod Number (TypeReference returnType) {
-            return new JSFakeMethod("Number", returnType, null, MethodTypes);
+        public JSFakeMethod valueOf (TypeReference returnType) {
+            return new JSFakeMethod("valueOf", returnType, null, MethodTypes);
         }
 
         public JSFakeMethod call (TypeReference returnType) {

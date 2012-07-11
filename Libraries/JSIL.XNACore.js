@@ -3031,6 +3031,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     Static: false,
     Public: true
   }, "Run", new JSIL.MethodSignature(null, [], []), function () {
+    this._profilingMode = (document.location.search.indexOf("profile") >= 0);
+
     Microsoft.Xna.Framework.Game._QuitForced = false;
     this.Initialize();
     this._QueueStep();
@@ -3140,7 +3142,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
         }
       }.bind(this);
 
-      if (this.isFixedTimeStep && !this.suppressFrameskip) {
+      if (this.isFixedTimeStep && !this.suppressFrameskip && !this._profilingMode) {
         this._gameTime.elapsedGameTime._ticks = (frameDelay * millisecondInTicks);
 
         elapsed += this._extraTime;
@@ -3363,7 +3365,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.KeyboardState", function 
       this.keys = [];
 
       for (var i = 0; i < keys.length; i++)
-        this.keys.push(Number(keys[i]));
+        this.keys.push(keys[i].valueOf());
     }
   );
 
@@ -3389,7 +3391,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.KeyboardState", function 
       if (!this.keys)
         return false;
 
-      return this.keys.indexOf(Number(key)) !== -1;
+      return this.keys.indexOf(key.valueOf()) !== -1;
     }
   );
 
@@ -3399,7 +3401,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.KeyboardState", function 
       if (!this.keys)
         return true;
 
-      return this.keys.indexOf(Number(key)) === -1;
+      return this.keys.indexOf(key.valueOf()) === -1;
     }
   );
 });

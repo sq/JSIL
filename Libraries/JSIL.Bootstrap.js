@@ -562,7 +562,7 @@ JSIL.ImplementExternals(
     );
 
     var compareInternal = function (lhs, rhs, comparison) {
-      switch (Number(comparison)) {
+      switch (comparison.valueOf()) {
         case 1: // System.StringComparison.CurrentCultureIgnoreCase:
         case 3: // System.StringComparison.InvariantCultureIgnoreCase:
         case 5: // System.StringComparison.OrdinalIgnoreCase:
@@ -2155,21 +2155,22 @@ JSIL.MakeStruct("System.ValueType", "System.Decimal", true, [], function ($) {
   var mscorlib = JSIL.GetCorlib();
 
   var ctorImpl = function (value) {
-    this.value = Number(value);
+    this.value = value.valueOf();
   };
 
   var decimalToNumber = function (decimal) {
-    if ($.Type.$Is(decimal))
-      return decimal.value;
-    else
-      return decimal;
+    return decimal.valueOf();
   };
 
   var numberToDecimal = function (value) {
     var result = JSIL.CreateInstanceOfType($.Type, null);
-    result.value = Number(value);
+    result.value = value.valueOf();
     return result;
   };
+
+  $.RawMethod(false, "valueOf", function () {
+    return this.value;
+  });
 
   $.Method({Static: false, Public: true }, "toString",
     new JSIL.MethodSignature("System.String", []),
@@ -4120,7 +4121,7 @@ JSIL.ImplementExternals(
       if (commaPos >= 0)
         return internalTryParseFlags(TEnum, text, ignoreCase, result);
 
-      var num = Number(text);
+      var num = parseInt(text, 10);
 
       if (isNaN(num)) {
         if (ignoreCase) {
