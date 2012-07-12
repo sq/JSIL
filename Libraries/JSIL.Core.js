@@ -1874,8 +1874,11 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
       var memberType = members[key];
       var qualifiedName = JSIL.EscapeName(ifaceLocalName + "." + key);
 
-      var hasShort = JSIL.HasOwnPropertyRecursive(proto, key);
-      var hasQualified = JSIL.HasOwnPropertyRecursive(proto, qualifiedName);
+      var hasShort = proto.hasOwnProperty(key);
+      var hasQualified = proto.hasOwnProperty(qualifiedName);
+
+      var hasShortRecursive = JSIL.HasOwnPropertyRecursive(proto, key);
+      var hasQualifiedRecursive = JSIL.HasOwnPropertyRecursive(proto, qualifiedName);
 
       if (memberType === Function) {
         var shortImpl = proto[key];
@@ -1886,33 +1889,33 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
       }
 
       if ((typeof (shortImpl) === "undefined") || (shortImpl === null))
-        hasShort = false;
+        hasShortRecursive = hasShort = false;
 
       if ((typeof (qualifiedImpl) === "undefined") || (qualifiedImpl === null))
-        hasQualified = false;
+        hasQualifiedRecursive = hasQualified = false;
 
       if (
-        hasShort && 
+        hasShortRecursive && 
         (typeof(shortImpl.__IsPlaceholder__) !== "undefined") &&
         shortImpl.__IsPlaceholder__ != false
       ) {
-        hasShort = false;
+        hasShortRecursive = hasShort = false;
       }
 
       if (
-        hasQualified && 
+        hasQualifiedRecursive && 
         (typeof(qualifiedImpl.__IsPlaceholder__) !== "undefined") &&
         qualifiedImpl.__IsPlaceholder__ != false
       ) {
-        hasQualified = false;
+        hasQualifiedRecursive = hasQualified = false;
       }
 
-      if (!hasShort && !hasQualified) {
+      if (!hasShortRecursive && !hasQualifiedRecursive) {
         missingMembers.push(qualifiedName);
         continue __members__;
       }
 
-      if (!hasQualified) {
+      if ((!hasQualified && hasShort) || (!hasQualifiedRecursive && hasShortRecursive)) {
         if (memberType === Function) {
           JSIL.SetLazyValueProperty(proto, qualifiedName, JSIL.MakeInterfaceMemberGetter(proto, key));
         } else if (memberType === Property) {

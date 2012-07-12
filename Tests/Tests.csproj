@@ -190,6 +190,7 @@
     <None Include="TestCases\MethodGenericParameterAsTypeParameter.cs" />
     <None Include="TestCases\MethodGenericParameterAsTypeParameter2.cs" />
     <None Include="SimpleTestCases\Mutate2DArray.cs" />
+    <None Include="SimpleTestCases\InterfaceOverride.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
