@@ -1066,7 +1066,7 @@ namespace JSIL {
             return Translate_ComparisonOperator(node, JSOperator.GreaterThanOrEqual);
         }
 
-        protected JSBinaryOperatorExpression Translate_CompoundAssignment (ILExpression node) {
+        protected JSExpression Translate_CompoundAssignment (ILExpression node) {
             JSAssignmentOperator op = null;
             var translated = TranslateNode(node.Arguments[0]);
             if (translated is JSResultReferenceExpression)
@@ -1109,15 +1109,52 @@ namespace JSIL {
             }
 
             if (boe != null) {
-                if (op != null) {
-                    return new JSBinaryOperatorExpression(
-                        op, boe.Left, boe.Right, boe.ActualType
+                var leftInvocation = boe.Left as JSInvocationExpression;
+                JSExpression leftThisReference = null;
+                ArrayType leftThisType = null;
+
+                if (leftInvocation != null) {
+                    leftThisReference = leftInvocation.ThisReference;
+                    leftThisType = leftThisReference.GetActualType(TypeSystem) as ArrayType;
+                }
+
+                if (
+                    (leftThisType != null) &&
+                    (leftThisType.Rank > 1) &&
+                    (leftInvocation.JSMethod != null) &&
+                    (leftInvocation.JSMethod.Method.Name == "Get")
+                ) {
+                    // Compound assignments to elements of multidimensional arrays must be handled specially, because
+                    //  getting/setting elements of those arrays is actually a method call
+
+                    var indices = leftInvocation.Arguments.ToArray();
+                    if (!indices.All(
+                        (e) => (e is JSVariable) || (e.IsConstant)
+                    ))
+                        throw new NotImplementedException(String.Format(
+                            "Compound assignment to element of multidimensional array with non-constant indices: '{0}'", node
+                        ));
+
+                    var setter = new JSFakeMethod(
+                        "Set", boe.ActualType,
+                        (from i in indices select i.GetActualType(TypeSystem)).Concat(new[] { boe.ActualType }).ToArray(),
+                        MethodTypes
                     );
-                } else {
+                    var setExpression = JSInvocationExpression.InvokeMethod(
+                        setter, leftThisReference,
+                        indices.Concat(new[] { boe }).ToArray()
+                    );
+
+                    return setExpression;
+                } else if (op == null) {
                     // Unimplemented compound operators, and operators with semantics that don't match JS, must be emitted normally
                     return new JSBinaryOperatorExpression(
                         JSOperator.Assignment, boe.Left,
                         boe, boe.ActualType
+                    );
+                } else {
+                    return new JSBinaryOperatorExpression(
+                        op, boe.Left, boe.Right, boe.ActualType
                     );
                 }
             } else if ((invocation != null) && (invocation.Arguments[0] is JSReferenceExpression)) {
