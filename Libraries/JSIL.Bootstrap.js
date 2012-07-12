@@ -2365,7 +2365,7 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
           resultBytes.push(byte);
         },
         getResult: function () {
-          if (Uint8Array)
+          if (typeof (Uint8Array) !== "undefined")
             return new Uint8Array(resultBytes);
           else
             return resultBytes;

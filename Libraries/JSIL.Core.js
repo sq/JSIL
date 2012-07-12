@@ -1160,10 +1160,10 @@ JSIL.MakeNumericType = function (baseType, typeName, isIntegral, typedArrayName)
     $.SetValue("__IsIntegral__", isIntegral);
 
     if (typedArrayName) {
-      var typedArrayCtor = eval(typedArrayName);
+      var typedArrayCtorExists = eval("typeof (" + typedArrayName + ") !== undefined");
 
-      if (typedArrayCtor)
-        $.SetValue("__TypedArray__", typedArrayCtor);
+      if (typedArrayCtorExists)
+        $.SetValue("__TypedArray__", window[typedArrayName]);
       else
         $.SetValue("__TypedArray__", null);
 
@@ -1975,13 +1975,9 @@ JSIL.CreateNamedFunction = function (name, argumentNames, body) {
   // :|
   argumentNames = null;
   body = null;
-  arguments[1] = null;
-  arguments[2] = null;
 
   var doEval = function (rawText) {
     var result = eval(rawText);
-    arguments[0] = null;
-    rawText = null;
     return result;
   };
 

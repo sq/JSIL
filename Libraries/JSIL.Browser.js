@@ -222,6 +222,9 @@ function initBrowserHooks () {
   var originalWidth = canvas.width;
   var originalHeight = canvas.height;
 
+  canvas.draggable = false;
+  canvas.unselectable = true;
+
   // Be a good browser citizen!
   // Disabling commonly used hotkeys makes people rage.
   var shouldIgnoreEvent = function (evt) {
@@ -327,8 +330,6 @@ function initBrowserHooks () {
       if (Array.prototype.indexOf.call($jsilbrowserstate.heldButtons, button) === -1)
         $jsilbrowserstate.heldButtons.push(button);
 
-      evt.preventDefault();
-      evt.stopPropagation();
       return false;
     }, true
   );
@@ -342,8 +343,6 @@ function initBrowserHooks () {
         (element !== button);
       });
 
-      evt.preventDefault();
-      evt.stopPropagation();
       return false;
     }, true
   );
@@ -352,6 +351,22 @@ function initBrowserHooks () {
     "mousemove", function (evt) {
       mapMouseCoords(evt);
       
+      evt.preventDefault();
+      evt.stopPropagation();
+      return false;
+    }, true
+  );
+
+  canvas.addEventListener(
+    "onselectstart", function (evt) {
+      evt.preventDefault();
+      evt.stopPropagation();
+      return false;
+    }, true
+  );
+
+  canvas.addEventListener(
+    "ondragstart", function (evt) {
       evt.preventDefault();
       evt.stopPropagation();
       return false;
