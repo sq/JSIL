@@ -4021,10 +4021,23 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
   if (typeof (this.externals) !== "object")
     this.externals = JSIL.AllImplementedExternals[this.namespace] = {};
 
+  var selfRef = typeObject;
+  var gaNames = typeObject.__GenericArguments__;
+  if (gaNames && gaNames.length > 0) {
+    var genericArgs = [];
+
+    for (var i = 0, l = gaNames.length; i < l; i++) {
+      var gpName = gaNames[i];
+      genericArgs.push(new JSIL.GenericParameter(gpName, typeObject));
+    }
+
+    selfRef = new JSIL.TypeRef(context, this.namespace, genericArgs);
+  }
+
   Object.defineProperty(this, "Type", {
     configurable: false,
     enumerable: true,
-    value: typeObject
+    value: selfRef
   });
 
   Object.defineProperty(this, "prototype", {

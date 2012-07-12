@@ -129,6 +129,7 @@ namespace JSIL.Tests {
                     @"TestCases\RefStructThisWithConstrainedInterface.cs",
                     @"TestCases\RefStructThisWithInterface.cs",
                     @"TestCases\MethodGenericParameterAsTypeParameter.cs",
+                    @"TestCases\MethodGenericParameterAsTypeParameter2.cs",
                 }, MakeDefaultProvider(), new AssemblyCache()
             );
         }

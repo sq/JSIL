@@ -188,6 +188,7 @@
     <None Include="TestCases\CompareFlagsEnums.cs" />
     <None Include="SpecialTestCases\ReplaceConstructorAndFieldNames.cs" />
     <None Include="TestCases\MethodGenericParameterAsTypeParameter.cs" />
+    <None Include="TestCases\MethodGenericParameterAsTypeParameter2.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
