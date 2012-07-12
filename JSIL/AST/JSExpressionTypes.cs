@@ -1795,6 +1795,44 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSTruncateExpression : JSExpression {
+        public JSTruncateExpression (JSExpression inner) 
+            : base (inner) {
+        }
+
+        public JSExpression Expression {
+            get {
+                return Values[0];
+            }
+        }
+
+        public override bool HasGlobalStateDependency {
+            get {
+                return Expression.HasGlobalStateDependency;
+            }
+        }
+
+        public override bool IsConstant {
+            get {
+                return Expression.IsConstant;
+            }
+        }
+
+        public override bool IsNull {
+            get {
+                return Expression.IsNull;
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return typeSystem.Int32;
+        }
+
+        public override string ToString () {
+            return String.Format("(int){0}", Expression);
+        }
+    }
+
     public class JSValueOfNullableExpression : JSExpression {
         public JSValueOfNullableExpression (JSExpression inner)
             : base(inner) {

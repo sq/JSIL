@@ -363,6 +363,16 @@ namespace JSIL {
             Output.RPar();
         }
 
+        public void VisitNode (JSTruncateExpression te) {
+            Output.LPar();
+            Output.LPar();
+            Visit(te.Expression);
+            Output.RPar();
+
+            Output.WriteRaw(" | 0");
+            Output.RPar();
+        }
+
         public void VisitNode (JSChangeTypeExpression cte) {
             Visit(cte.Expression);
         }
@@ -1069,16 +1079,15 @@ namespace JSIL {
             if (needsTruncation) {
                 if (bop.Operator is JSAssignmentOperator)
                     throw new NotImplementedException("Truncation of assignment operations not implemented");
-
-                Output.WriteRaw("Math.floor");
             } else if (needsCast) {
                 Output.Identifier(TypeUtil.StripNullable(resultType), ReferenceContext);
                 Output.WriteRaw(".$Cast");
             }
 
-            parens |= needsTruncation;
             parens |= needsCast;
 
+            if (needsTruncation)
+                Output.LPar();
             if (parens)
                 Output.LPar();
 
@@ -1098,6 +1107,11 @@ namespace JSIL {
 
             if (parens)
                 Output.RPar();
+
+            if (needsTruncation) {
+                Output.WriteRaw(" | 0");
+                Output.RPar();
+            }
         }
 
         public void VisitNode (JSTernaryOperatorExpression ternary) {
