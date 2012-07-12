@@ -140,7 +140,7 @@
     <None Include="SimpleTestCases\ListInsert.cs" />
     <None Include="TestCases\EnumAnonymousMethod.cs" />
     <None Include="FailingTestCases\StructGenericParameter.cs" />
-    <Compile Include="SimpleTestCases\ArrayListIndexer.cs" />
+    <None Include="SimpleTestCases\ArrayListIndexer.cs" />
     <None Include="SimpleTestCases\ListIList.cs" />
     <None Include="SimpleTestCases\MultiDimArrayClone.cs" />
     <None Include="BrowserXMLTestCases\ReadElementContentAsString.cs" />
@@ -186,6 +186,8 @@
     <None Include="XMLTestCases\WriteEndDocument.cs" />
     <None Include="SimpleTestCases\IncrementBaseProperty.cs" />
     <None Include="TestCases\CompareFlagsEnums.cs" />
+    <None Include="SpecialTestCases\ReplaceConstructorAndFieldNames.cs" />
+    <None Include="TestCases\MethodGenericParameterAsTypeParameter.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
@@ -411,7 +413,7 @@
     <None Include="TestCases\DelegateResultWithConstraints.cs" />
     <None Include="TestCases\GenericNestedTypeConstructedInParentStaticConstructor.cs" />
     <None Include="BinaryTestCases\DynamicComplex.exe" />
-    <Content Include="SimpleTestCases\Constructors.vb" />
+    <None Include="SimpleTestCases\Constructors.vb" />
     <None Include="TestCases\Events.vb" />
     <None Include="TestCases\GenericMethodThisReference.cs" />
     <None Include="SimpleTestCases\ArrayOfArrays.cs" />

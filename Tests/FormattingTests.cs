@@ -645,6 +645,22 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void ReplaceConstructorAndFieldNames () {
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\ReplaceConstructorAndFieldNames.cs",
+                "Field = 1, Property = 2", "Field = 2, Property = 4"
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("ProxiedClassProxy$"));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
         public void NoUnnecessaryCasts () {
             var testNames = new string[] {
                 @"FailingTestCases\ArrayToString.cs",

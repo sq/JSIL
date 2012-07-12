@@ -460,22 +460,27 @@ namespace JSIL.Internal {
                         return;
                     }
 
-                    if (ownerMethodIdentifier.Equals(ownerMethod, context.DefiningMethod, TypeInfo)) {
+                    if (ownerMethodIdentifier.Equals(ownerMethod, context.EnclosingMethod, TypeInfo)) {
+                        Identifier(gp.Name);
+
+                        return;
+                    }
+
+                    if (
+                        ownerMethodIdentifier.Equals(ownerMethod, context.DefiningMethod, TypeInfo) ||
+                        ownerMethodIdentifier.Equals(ownerMethod, context.SignatureMethod, TypeInfo)
+                    ) {
                         Value(String.Format("!!{0}", getPosition(ownerMethod)));
 
                         return;
                     }
 
-                    if (ownerMethodIdentifier.Equals(ownerMethod, context.EnclosingMethod, TypeInfo)) {
-                        throw new NotImplementedException(String.Format(
-                            "Unimplemented form of generic method parameter: '{0}'.",
-                            gp
-                        ));
-                    }
+                    throw new NotImplementedException(String.Format(
+                        "Unimplemented form of generic method parameter: '{0}'.",
+                        gp
+                    ));
 
-                    Value(String.Format("!!{0}", getPosition(ownerMethod)));
                     return;
-
                 }
             } else {
                 throw new NotImplementedException("Cannot resolve generic parameter without a TypeReferenceContext.");

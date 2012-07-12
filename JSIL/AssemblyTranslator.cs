@@ -1199,8 +1199,22 @@ namespace JSIL {
                 }
 
                 var bodyDef = methodDef;
-                if (methodInfo.IsFromProxy && methodInfo.Member.HasBody)
+                Func<TypeReference, TypeReference> typeReplacer = (originalType) => {
+                    return originalType;
+                };
+
+                if (methodInfo.IsFromProxy && methodInfo.Member.HasBody) {
                     bodyDef = methodInfo.Member;
+
+                    var actualType = methodInfo.DeclaringType;
+                    var sourceProxy = methodInfo.SourceProxy;
+                    typeReplacer = (originalType) => {
+                        if (TypeUtil.TypesAreEqual(sourceProxy.Definition, originalType))
+                            return method.DeclaringType;
+                        else
+                            return originalType;
+                    };
+                }
 
                 var pr = new ProgressReporter();
 
@@ -1230,7 +1244,8 @@ namespace JSIL {
 
                 var translator = new ILBlockTranslator(
                     this, context, method, methodDef, 
-                    ilb, decompiler.Parameters, allVariables
+                    ilb, decompiler.Parameters, allVariables,
+                    typeReplacer
                 );
 
                 JSBlockStatement body = null;
@@ -1739,7 +1754,7 @@ namespace JSIL {
 
                 lock (typeInfo.Members)
                     typeInfo.Members[identifier] = new Internal.MethodInfo(
-                        typeInfo, identifier, fakeCctor, new ProxyInfo[0], false
+                        typeInfo, identifier, fakeCctor, new ProxyInfo[0], null
                     );
 
                 // Generate the fake constructor, since it wasn't created during the analysis pass
