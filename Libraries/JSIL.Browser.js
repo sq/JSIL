@@ -5,6 +5,8 @@ var currentLogLine = null;
 var webglEnabled = false;
 
 var $jsilbrowserstate = {
+  allFileNames: [],
+  allAssetNames: [],
   readOnlyStorage: null,
   heldKeys: [],
   heldButtons: [],
@@ -572,6 +574,7 @@ var assetLoaders = {
   "Image": function loadImage (filename, data, onError, onDoneLoading) {
     var e = document.createElement("img");
     var finisher = function () {
+      $jsilbrowserstate.allAssetNames.push(filename);
       allAssets[getAssetName(filename)] = new HTML5ImageAsset(getAssetName(filename, true), e);
     };
     e.addEventListener("error", onError, true);
@@ -581,6 +584,7 @@ var assetLoaders = {
   "File": function loadFile (filename, data, onError, onDoneLoading) {
     loadBinaryFileAsync(fileRoot + filename, function (result, error) {
       if (result !== null) {
+        $jsilbrowserstate.allFileNames.push(filename);
         allFiles[filename.toLowerCase()] = result;
         onDoneLoading(null); 
       } else {
@@ -592,6 +596,7 @@ var assetLoaders = {
     loadTextAsync(contentRoot + filename, function (result, error) {
       if (result !== null) {
         var finisher = function () {
+          $jsilbrowserstate.allAssetNames.push(filename);
           allAssets[getAssetName(filename)] = JSON.parse(result);
         };
         onDoneLoading(finisher);
@@ -604,6 +609,7 @@ var assetLoaders = {
     loadTextAsync(scriptRoot + filename, function (result, error) {
       if (result !== null) {
         var finisher = function () {
+          $jsilbrowserstate.allAssetNames.push(filename);
           allAssets[getAssetName(filename)] = JSON.parse(result);
         };
         onDoneLoading(finisher);
@@ -625,6 +631,7 @@ var loadWebkitSound = function (filename, data, onError, onDoneLoading) {
     if (result !== null) {
       var buffer = audioContext.createBuffer(result.buffer, false);
       var finisher = function () {
+        $jsilbrowserstate.allAssetNames.push(filename);
         allAssets[getAssetName(filename)] = new WebkitSoundAsset(getAssetName(filename, true), audioContext, buffer, data);
       };
       
@@ -647,10 +654,12 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
   };
 
   var finisher = function () {
+    $jsilbrowserstate.allAssetNames.push(filename);
     allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename, true), e);
   };
 
   var nullFinisher = function () {
+    $jsilbrowserstate.allAssetNames.push(filename);
     allAssets[getAssetName(filename)] = new NullSoundAsset(getAssetName(filename, true));
   };
   
@@ -771,6 +780,7 @@ var $makeXNBAssetLoader = function (key, typeName) {
     loadBinaryFileAsync(contentRoot + filename, function (result, error) {
       if (result !== null) {
         var finisher = function () {
+          $jsilbrowserstate.allAssetNames.push(filename);
           var key = getAssetName(filename, false);
           var assetName = getAssetName(filename, true);
           var parsedTypeName = JSIL.ParseTypeName(typeName);    
@@ -825,12 +835,10 @@ function finishLoading () {
   var endBy = started + finishStepDuration;
 
   var initFileStorage = function (volume) {
-    for (var k in allFiles) {
-      if (!allFiles.hasOwnProperty(k))
-        continue;
-
-      var file = volume.createFile(k, false, true);
-      file.writeAllBytes(allFiles[k]);
+    for (var i = 0, l = $jsilbrowserstate.allFileNames.length; i < l; i++) {
+      var filename = $jsilbrowserstate.allFileNames[i];
+      var file = volume.createFile(filename, false, true);
+      file.writeAllBytes(allFiles[filename.toLowerCase()]);
     }
   };
 
@@ -1083,10 +1091,10 @@ function beginLoading () {
       return;
 
     seenFilenames[filename] = true;
-    allAssets.push(assetSpec);
+    allAssetsToLoad.push(assetSpec);
   }
 
-  var allAssets = [];
+  var allAssetsToLoad = [];
   for (var i = 0, l = assetsToLoad.length; i < l; i++)
     pushAsset(assetsToLoad[i]);
 
@@ -1101,7 +1109,7 @@ function beginLoading () {
   }
   
   JSIL.Host.logWrite("Loading data ... ");
-  loadAssets(allAssets, function () {
+  loadAssets(allAssetsToLoad, function () {
     JSIL.Host.logWriteLine("done.");
     try {     
       if (quitButton)
