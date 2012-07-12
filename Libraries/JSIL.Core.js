@@ -5058,13 +5058,16 @@ JSIL.GetTypeFromAssembly = function (assembly, typeName, genericArguments, throw
 };
 
 JSIL.CreateInstanceOfType = function (type, constructorName, constructorArguments) {
+  if (type.__IsNumeric__) {
+    return 0;
+  }
+
   var publicInterface = type.__PublicInterface__;
   var instance = JSIL.CloneObject(publicInterface.prototype);
   var constructor = $jsilcore.FunctionNotInitialized;
 
   JSIL.InitializeType(type);
   JSIL.InitializeStructFields(instance, type);
-
   if (typeof (constructorName) === "string") {
     constructor = publicInterface.prototype[constructorName];
   } else if (constructorName === null) {

@@ -851,11 +851,11 @@ namespace JSIL.Tests {
         }
 
         protected void RunSingleComparisonTestCase (object[] parameters) {
-            if (parameters.Length != 3)
+            if (parameters.Length != 4)
                 throw new ArgumentException("Wrong number of test case data parameters.");
 
             RunComparisonTest(
-                (string)parameters[0], null, (TypeInfoProvider)parameters[1], null, null, null, true, (AssemblyCache)parameters[2]
+                (string)parameters[0], null, (TypeInfoProvider)parameters[1], null, null, (string)parameters[3], true, (AssemblyCache)parameters[2]
             );
         }
 
@@ -863,11 +863,20 @@ namespace JSIL.Tests {
             var testPath = Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, folderName));
             var testNames = Directory.GetFiles(testPath, "*.cs").Concat(Directory.GetFiles(testPath, "*.vb")).OrderBy((s) => s);
 
+            string commonFile = null;
+
+            foreach (var testName in testNames) {
+                if (Path.GetFileNameWithoutExtension(testName) == "Common") {
+                    commonFile = testName;
+                    break;
+                }
+            }
+
             foreach (var testName in testNames) {
                 if (Path.GetFileNameWithoutExtension(testName) == "Common")
                     continue;
 
-                yield return (new TestCaseData(new object[] { new object[] { testName, typeInfo, asmCache } }))
+                yield return (new TestCaseData(new object[] { new object[] { testName, typeInfo, asmCache, commonFile } }))
                     .SetName(Path.GetFileName(testName))
                     .SetDescription(String.Format("{0}\\{1}", folderName, Path.GetFileName(testName)))
                     .SetCategory(folderName);
@@ -882,7 +891,7 @@ namespace JSIL.Tests {
                 if (isIgnored)
                     actualTestName = actualTestName.Substring(actualTestName.IndexOf(":") + 1);
 
-                var item = (new TestCaseData(new object[] { new object[] { actualTestName, typeInfo, asmCache } }))
+                var item = (new TestCaseData(new object[] { new object[] { actualTestName, typeInfo, asmCache, null } }))
                     .SetName(Path.GetFileName(actualTestName));
 
                 if (isIgnored)
