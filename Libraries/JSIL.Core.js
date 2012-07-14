@@ -1163,7 +1163,7 @@ JSIL.MakeNumericType = function (baseType, typeName, isIntegral, typedArrayName)
       var typedArrayCtorExists = eval("typeof (" + typedArrayName + ") !== undefined");
 
       if (typedArrayCtorExists)
-        $.SetValue("__TypedArray__", window[typedArrayName]);
+        $.SetValue("__TypedArray__", eval(typedArrayName));
       else
         $.SetValue("__TypedArray__", null);
 

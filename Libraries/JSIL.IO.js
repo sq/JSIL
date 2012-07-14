@@ -379,46 +379,69 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$.String, $jsilcore.TypeRef("System.IO.FileMode"), $jsilcore.TypeRef("System.IO.FileAccess")], [])), 
     function _ctor (path, mode, access) {
+      // FIXME: access
+      System.IO.FileStream.prototype._ctor.call(this, path, mode);
+    }
+  );
+  
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.String, $jsilcore.TypeRef("System.IO.FileMode"), $jsilcore.TypeRef("System.IO.FileAccess"), $jsilcore.TypeRef("System.IO.FileShare")], [])), 
+    function _ctor (path, mode, access, share) {
+      // FIXME: access, share
       System.IO.FileStream.prototype._ctor.call(this, path, mode);
     }
   );
 
+  var ctorImpl = function _ctor (path, mode) {
+    System.IO.Stream.prototype._ctor.call(this);
+
+    var storageRoot = JSIL.Host.getStorageRoot();
+
+    if (storageRoot) {
+      var createNew = (mode == System.IO.FileMode.Create) || 
+        (mode == System.IO.FileMode.CreateNew) || 
+        (mode == System.IO.FileMode.OpenOrCreate);
+
+      var resolved = storageRoot.resolvePath(path, false);
+
+      if (createNew && !resolved)
+        resolved = storageRoot.createFile(path, true);
+
+      if (resolved && resolved.type === "file") {
+        this.$fromVirtualFile(resolved, mode, true);
+        return;
+      }
+    }
+
+    this._fileName = path;
+    this._buffer = JSIL.Host.getFile(path);
+    if (
+      (typeof (this._buffer) === "undefined") ||
+      (typeof (this._buffer.length) !== "number")
+    )
+      throw new System.Exception("Unable to get an array for the file '" + path + "'");
+
+    this._pos = 0;
+    this._length = this._buffer.length;
+
+    this.$applyMode(mode);
+  };
+
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [$.String, $jsilcore.TypeRef("System.IO.FileMode")], [])), 
-    function _ctor (path, mode) {
-      System.IO.Stream.prototype._ctor.call(this);
+    ctorImpl
+  );
 
-      var storageRoot = JSIL.Host.getStorageRoot();
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.String, $jsilcore.TypeRef("System.IO.FileMode"), $jsilcore.TypeRef("System.IO.FileAccess")], [])), 
+    // FIXME: access
+    ctorImpl
+  );
 
-      if (storageRoot) {
-        var createNew = (mode == System.IO.FileMode.Create) || 
-          (mode == System.IO.FileMode.CreateNew) || 
-          (mode == System.IO.FileMode.OpenOrCreate);
-
-        var resolved = storageRoot.resolvePath(path, false);
-
-        if (createNew && !resolved)
-          resolved = storageRoot.createFile(path, true);
-
-        if (resolved && resolved.type === "file") {
-          this.$fromVirtualFile(resolved, mode, true);
-          return;
-        }
-      }
-
-      this._fileName = path;
-      this._buffer = JSIL.Host.getFile(path);
-      if (
-        (typeof (this._buffer) === "undefined") ||
-        (typeof (this._buffer.length) !== "number")
-      )
-        throw new System.Exception("Unable to get an array for the file '" + path + "'");
-
-      this._pos = 0;
-      this._length = this._buffer.length;
-
-      this.$applyMode(mode);
-    }
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.String, $jsilcore.TypeRef("System.IO.FileMode"), $jsilcore.TypeRef("System.IO.FileAccess"), $jsilcore.TypeRef("System.IO.FileShare")], [])), 
+    // FIXME: access, share
+    ctorImpl
   );
   
   $.Method({Static:false, Public:true }, "get_CanSeek", 

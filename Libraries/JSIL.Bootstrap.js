@@ -735,6 +735,13 @@ JSIL.ImplementExternals(
       }
     );
 
+    $.Method({Static: true , Public: true }, "Remove",
+      new JSIL.MethodSignature($.String, [$.String, $.Int32, $.Int32], [], $jsilcore),
+      function (str, start, count) {
+        return str.substr(0, start) + str.substr(start + count);
+      }
+    );
+
     $.Method({Static: true , Public: true }, "Replace",
       new JSIL.MethodSignature("System.String", ["System.String", "System.String", "System.String"], [], $jsilcore),
       function (str, oldText, newText) {

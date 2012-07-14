@@ -16,11 +16,13 @@ namespace JSIL.Proxies {
         }
 
         [JSIsPure]
+        [JSChangeName("ContainsPoint")]
         public bool Contains (AnyType value) {
             throw new InvalidOperationException();
         }
 
         [JSIsPure]
+        [JSChangeName("ContainsPoint")]
         public void Contains (ref AnyType value, out bool result) {
             throw new InvalidOperationException();
         }
