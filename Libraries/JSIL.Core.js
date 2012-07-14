@@ -5859,8 +5859,11 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
 });
 
 JSIL.DefaultValueInternal = function (typeObject, typePublicInterface) {
-  if (typeObject.__FullName__ === "System.Char") {
+  var fullName = typeObject.__FullName__;
+  if (fullName === "System.Char") {
     return "\0";
+  } else if (fullName === "System.Boolean") {
+    return false;
   } else if (typeObject.__IsReferenceType__) {
     return null;
   } else if (typeObject.__IsNumeric__) {

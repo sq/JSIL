@@ -193,6 +193,7 @@
     <None Include="SimpleTestCases\InterfaceOverride.cs" />
     <None Include="SimpleTestCases\TruncationRoundToZero.cs" />
     <None Include="SimpleTestCases\StringRemove.cs" />
+    <None Include="SimpleTestCases\ArrayDefaultValues2.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
