@@ -198,11 +198,49 @@ JSIL.ImplementExternals(
 );
 JSIL.MakeNumericType(Number, "System.Int64", true, "Int64Array");
 
+$jsilcore.$ParseFloat = function (text, style) {
+  var temp = {};
+  if ($jsilcore.$TryParseFloat(text, style, temp))
+    return temp.value;
+
+  throw new System.Exception("Invalid float");
+};
+
+$jsilcore.$TryParseFloat = function (text, style, result) {
+  if (arguments.length === 2) {
+    result = style;
+    style = 0;
+  }
+
+  result.value = parseFloat(text);
+
+  if (isNaN(result.value)) {
+    var lowered = text.toLowerCase();
+
+    if (lowered === "nan") {
+      result.value = Number.NaN;
+      return true;
+    } else if (lowered === "-infinity") {
+      result.value = Number.NEGATIVE_INFINITY;
+      return true;
+    } else if ((lowered === "+infinity") || (lowered === "infinity")) {
+      result.value = Number.POSITIVE_INFINITY;
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    return true;
+  }
+};
+
 JSIL.ImplementExternals(
   "System.Single", function ($) {
     $.RawMethod(true, "CheckType", function (value) {
       return (typeof (value) === "number");
     });
+
+    $jsilcore.$MakeParseExternals($, $.Single, $jsilcore.$ParseFloat, $jsilcore.$TryParseFloat);
 
 		$.Constant({Public: true, Static: true}, "MinValue", -3.4028234663852886E+38);
 		$.Constant({Public: true, Static: true}, "Epsilon", 1.4012984643248171E-45);
@@ -219,6 +257,8 @@ JSIL.ImplementExternals(
     $.RawMethod(true, "CheckType", function (value) {
       return (typeof (value) === "number");
     });
+
+    $jsilcore.$MakeParseExternals($, $.Single, $jsilcore.$ParseFloat, $jsilcore.$TryParseFloat);
 
 		$.Constant({Public: true, Static: true}, "MinValue", -1.7976931348623157E+308);
 		$.Constant({Public: true, Static: true}, "MaxValue", 1.7976931348623157E+308);
@@ -5212,5 +5252,190 @@ JSIL.ImplementExternals("System.Resources.ResourceSet", function ($) {
       throw new Error('Not implemented');
     }
   );
+
+});
+
+
+JSIL.ImplementExternals("System.Convert", function ($) {
+  $.Method({Static:true , Public:true }, "ChangeType", 
+    (new JSIL.MethodSignature($.Object, [$.Object, $jsilcore.TypeRef("System.Type")], [])), 
+    function ChangeType (value, conversionType) {
+      // FIXME: Actually compatible?
+      if (value && value.IConvertible_ToType) {
+        // FIXME: provider
+        return value.IConvertible_ToType(conversionType, null);
+      } else {
+        return conversionType.__PublicInterface__.$As(value);
+      }
+    }
+  );
+
+  var returnSame = function (value) {
+    return value;
+  };
+
+  var makeAdapter = function (adapter) {
+    if (!adapter)
+      throw new Error("No adapter provided");
+
+    return function (value) {
+      return adapter(value);
+    };
+  };
+
+  var boolToInt = function (b) {
+    return b ? 1 : 0;
+  };
+
+  var boolToString = function (b) {
+    return b ? "True" : "False";
+  };
+
+  var makeConvertMethods = function (typeName, to, from) {
+    // FIXME: We currently ignore the format provider argument
+    // FIXME: Range checks/clipping/saturation are not performed for the integer types
+
+    var methodName = "To" + typeName;
+
+    var descriptor = {Static:true , Public: true };
+    var tFormatProvider = $jsilcore.TypeRef("System.IFormatProvider");
+
+    var makeSignature = function (argType, formatProvider) {
+      if (formatProvider)
+        return new JSIL.MethodSignature(to, [argType, tFormatProvider], []);
+      else
+        return new JSIL.MethodSignature(to, [argType], []);
+    };
+
+    $.Method(descriptor, methodName, makeSignature($.Boolean), from.boolean);
+
+    $.Method(descriptor, methodName, makeSignature($.Boolean, true), from.boolean);
+
+    $.Method(descriptor, methodName, makeSignature($.SByte), from.int);
+    $.Method(descriptor, methodName, makeSignature($.Int16), from.int);
+    $.Method(descriptor, methodName, makeSignature($.Int32), from.int);
+    $.Method(descriptor, methodName, makeSignature($.Int64), from.int);
+
+    $.Method(descriptor, methodName, makeSignature($.SByte, true), from.int);
+    $.Method(descriptor, methodName, makeSignature($.Int16, true), from.int);
+    $.Method(descriptor, methodName, makeSignature($.Int32, true), from.int);
+    $.Method(descriptor, methodName, makeSignature($.Int64, true), from.int);
+    
+    $.Method(descriptor, methodName, makeSignature($.Byte), from.uint);
+    $.Method(descriptor, methodName, makeSignature($.UInt16), from.uint);
+    $.Method(descriptor, methodName, makeSignature($.UInt32), from.uint);
+    $.Method(descriptor, methodName, makeSignature($.UInt64), from.uint);
+    
+    $.Method(descriptor, methodName, makeSignature($.Byte, true), from.uint);
+    $.Method(descriptor, methodName, makeSignature($.UInt16, true), from.uint);
+    $.Method(descriptor, methodName, makeSignature($.UInt32, true), from.uint);
+    $.Method(descriptor, methodName, makeSignature($.UInt64, true), from.uint);    
+
+    $.Method(descriptor, methodName, makeSignature($.Single), from.float);
+    $.Method(descriptor, methodName, makeSignature($.Double), from.float);
+
+    $.Method(descriptor, methodName, makeSignature($.Single, true), from.float);
+    $.Method(descriptor, methodName, makeSignature($.Double, true), from.float);
+
+    $.Method(descriptor, methodName, makeSignature($.String), from.string);
+
+    $.Method(descriptor, methodName, makeSignature($.String, true), from.string);
+  };
+
+  makeConvertMethods("Boolean", $.Boolean, {
+    boolean: returnSame,
+    uint: makeAdapter(Boolean),
+    int: makeAdapter(Boolean),
+    float: makeAdapter(Boolean),
+    string: makeAdapter($jsilcore.$ParseBoolean)
+  });
+
+  makeConvertMethods("Byte", $.Byte, {
+    boolean: boolToInt,
+    uint: returnSame,
+    int: returnSame,
+    float: returnSame,
+    string: makeAdapter($jsilcore.$ParseInt)
+  });
+
+  makeConvertMethods("SByte", $.SByte, {
+    boolean: boolToInt,
+    uint: returnSame,
+    int: returnSame,
+    float: returnSame,
+    string: makeAdapter($jsilcore.$ParseInt)
+  });
+
+  makeConvertMethods("UInt16", $.UInt16, {
+    boolean: boolToInt,
+    uint: returnSame,
+    int: returnSame,
+    float: returnSame,
+    string: makeAdapter($jsilcore.$ParseInt)
+  });
+
+  makeConvertMethods("Int16", $.Int16, {
+    boolean: boolToInt,
+    uint: returnSame,
+    int: returnSame,
+    float: returnSame,
+    string: makeAdapter($jsilcore.$ParseInt)
+  });
+
+  makeConvertMethods("UInt32", $.UInt32, {
+    boolean: boolToInt,
+    uint: returnSame,
+    int: returnSame,
+    float: returnSame,
+    string: makeAdapter($jsilcore.$ParseInt)
+  });
+
+  makeConvertMethods("Int32", $.Int32, {
+    boolean: boolToInt,
+    uint: returnSame,
+    int: returnSame,
+    float: returnSame,
+    string: makeAdapter($jsilcore.$ParseInt)
+  });
+
+  makeConvertMethods("UInt64", $.UInt64, {
+    boolean: boolToInt,
+    uint: returnSame,
+    int: returnSame,
+    float: returnSame,
+    string: makeAdapter($jsilcore.$ParseInt)
+  });
+
+  makeConvertMethods("Int64", $.Int64, {
+    boolean: boolToInt,
+    uint: returnSame,
+    int: returnSame,
+    float: returnSame,
+    string: makeAdapter($jsilcore.$ParseInt)
+  });
+  
+  makeConvertMethods("Single", $.Single, {
+    boolean: boolToInt,
+    uint: returnSame,
+    int: returnSame,
+    float: returnSame,
+    string: makeAdapter($jsilcore.$ParseFloat)
+  });
+
+  makeConvertMethods("Double", $.Double, {
+    boolean: boolToInt,
+    uint: returnSame,
+    int: returnSame,
+    float: returnSame,
+    string: makeAdapter($jsilcore.$ParseFloat)
+  });
+
+  makeConvertMethods("String", $.String, {
+    boolean: boolToString,
+    uint: makeAdapter(String),
+    int: makeAdapter(String),
+    float: makeAdapter(String),
+    string: returnSame
+  });
 
 });
