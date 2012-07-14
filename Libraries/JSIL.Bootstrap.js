@@ -2750,6 +2750,30 @@ JSIL.ImplementExternals("System.Text.UTF8Encoding", function ($) {
   var UTF8ByteSwapNotAChar = 0xFFFE;
   var UTF8NotAChar         = 0xFFFF;
 
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [], [])), 
+    function _ctor () {
+      this.emitBOM = false;
+      this.throwOnInvalid = false;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.Boolean], [])), 
+    function _ctor (encoderShouldEmitUTF8Identifier) {
+      this.emitBOM = encoderShouldEmitUTF8Identifier;
+      this.throwOnInvalid = false;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.Boolean, $.Boolean], [])), 
+    function _ctor (encoderShouldEmitUTF8Identifier, throwOnInvalidBytes) {
+      this.emitBOM = encoderShouldEmitUTF8Identifier;
+      this.throwOnInvalid = throwOnInvalidBytes;
+    }
+  );
+
   $.RawMethod(false, "$encode", function UTF8Encoding_Encode (string, outputBytes, outputIndex) {
     // http://tidy.sourceforge.net/cgi-bin/lxr/source/src/utf8.c
 
@@ -2867,9 +2891,12 @@ JSIL.ImplementExternals("System.Text.UTF8Encoding", function ($) {
       if (!hasError)
         characters = this.$fromCharCode(accumulator);
 
-      if (hasError || (characters === false))
-        result += this.fallbackCharacter;
-      else
+      if (hasError || (characters === false)) {
+        if (this.throwOnInvalid)
+          throw new Error("Invalid character in UTF8 text");
+        else
+          result += this.fallbackCharacter;
+      } else
         result += characters;
     }
 
