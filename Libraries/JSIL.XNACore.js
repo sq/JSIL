@@ -3985,9 +3985,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
         y < this.Y + this.Height;
     }
   );
-  $.Method({Static:false, Public:true }, "Contains", 
+  
+  $.Method({Static:false, Public:true }, "ContainsPoint", 
     (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Point")], [])), 
-    function Contains (value) {
+    function ContainsPoint (value) {
       return this.X <= value.X && 
         value.X < this.X + this.Width && 
         this.Y <= value.Y && 
@@ -3995,9 +3996,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
     }
   );
 
-  $.Method({Static:false, Public:true }, "Contains", 
+  $.Method({Static:false, Public:true }, "ContainsRectangle", 
     (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")], [])), 
-    function Contains (value) {
+    function ContainsRectangle (value) {
       return this.X <= value.X && 
         value.X + value.Width <= this.X + this.Width && 
         this.Y <= value.Y && 

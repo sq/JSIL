@@ -17,23 +17,35 @@ namespace JSIL.Proxies {
 
         [JSIsPure]
         [JSChangeName("ContainsPoint")]
-        public bool Contains (AnyType value) {
+        public bool Contains (PointProxy value) {
             throw new InvalidOperationException();
         }
 
         [JSIsPure]
         [JSChangeName("ContainsPoint")]
-        public void Contains (ref AnyType value, out bool result) {
+        public void Contains (ref PointProxy value, out bool result) {
             throw new InvalidOperationException();
         }
 
         [JSIsPure]
-        public bool Intersects (AnyType value) {
+        [JSChangeName("ContainsRectangle")]
+        public bool Contains (RectangleProxy value) {
             throw new InvalidOperationException();
         }
 
         [JSIsPure]
-        public void Intersects (ref AnyType value, out bool result) {
+        [JSChangeName("ContainsRectangle")]
+        public void Contains (ref RectangleProxy value, out bool result) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public bool Intersects (RectangleProxy value) {
+            throw new InvalidOperationException();
+        }
+
+        [JSIsPure]
+        public void Intersects (ref RectangleProxy value, out bool result) {
             throw new InvalidOperationException();
         }
 
