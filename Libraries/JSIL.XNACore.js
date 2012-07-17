@@ -3082,7 +3082,88 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     }
   });
 
-  $.RawMethod(false, "_Step", function Game_Tick () {
+  $.RawMethod(false, "_TimedUpdate", function Game_TimedUpdate (longFrame) {
+    var updateStarted = this._GetNow();
+    this.Update(this._gameTime);
+    var updateEnded = this._GetNow();
+
+    // Detect long updates and suppress frameskip.
+    if ((updateEnded - updateStarted) > longFrame) {
+      this.suppressFrameskip = true;
+    }
+    
+    this._updateCount += 1;
+  });
+
+  $.RawMethod(false, "_ReportFPS", function Game_ReportFPS (now) {
+    this._lastSecond = now;
+    
+    if (typeof (JSIL.Host.reportFps) === "function") {
+      var isWebGL = this.graphicsDeviceService.GraphicsDevice.context.isWebGL || false;
+      var cacheBytes = ($jsilxna.imageChannelCache.countBytes + $jsilxna.textCache.countBytes);
+
+      JSIL.Host.reportFps(
+        this._drawCount, this._updateCount, 
+        cacheBytes, isWebGL
+      );
+    }
+
+    this._updateCount = this._drawCount = 0;
+  });
+
+  $.RawMethod(false, "_FixedTimeStep", function Game_FixedTimeStep (
+    elapsed, frameDelay, millisecondInTicks, maxElapsedTimeMs, longFrame
+  ) {
+    this._gameTime.elapsedGameTime._ticks = (frameDelay * millisecondInTicks);
+
+    elapsed += this._extraTime;
+    this._extraTime = 0;
+
+    if (elapsed > maxElapsedTimeMs) 
+      elapsed = maxElapsedTimeMs;
+
+    var numFrames = Math.floor(elapsed / frameDelay);
+    if (numFrames < 1) {
+      numFrames = 1;
+      this._extraTime = elapsed - frameDelay;
+    } else {
+      this._extraTime = elapsed - (numFrames * frameDelay);
+    }
+
+    for (var i = 0; i < numFrames; i++) {
+      this._gameTime.totalGameTime._ticks += (frameDelay * millisecondInTicks);
+
+      this._TimedUpdate(longFrame);
+    }
+  });
+
+  $.RawMethod(false, "_VariableTimeStep", function Game_VariableTimeStep (
+    elapsed, frameDelay, millisecondInTicks, maxElapsedTimeMs, longFrame
+  ) {
+    this._extraTime = 0;
+    this.suppressFrameskip = false;
+
+    if (elapsed > maxElapsedTimeMs)
+      elapsed = maxElapsedTimeMs;
+
+    this._gameTime.elapsedGameTime._ticks = (elapsed * millisecondInTicks);
+    this._gameTime.totalGameTime._ticks += (elapsed * millisecondInTicks);
+
+    this._TimedUpdate(longFrame);
+  });
+
+  $.RawMethod(false, "_RenderAFrame", function Game_RenderAFrame () {
+    var device = this.get_GraphicsDevice();
+
+    device.$UpdateViewport();      
+    device.$Clear();
+
+    this.Draw(this._gameTime);
+
+    this._drawCount += 1;
+  });
+
+  $.RawMethod(false, "_Step", function Game_Step () {
     var now = this._GetNow();
 
     var frameDelay = this.targetElapsedTime.get_TotalMilliseconds();
@@ -3100,21 +3181,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       var total = now - this._started;
     }
 
-    if ((now - this._lastSecond) > 1000) {
-      this._lastSecond = now;
-      
-      if (typeof (JSIL.Host.reportFps) === "function") {
-        var isWebGL = this.graphicsDeviceService.GraphicsDevice.context.isWebGL || false;
-        var cacheBytes = ($jsilxna.imageChannelCache.countBytes + $jsilxna.textCache.countBytes);
-
-        JSIL.Host.reportFps(
-          this._drawCount, this._updateCount, 
-          cacheBytes, isWebGL
-        );
-      }
-
-      this._updateCount = this._drawCount = 0;
-    }
+    if ((now - this._lastSecond) > 1000)
+      this._ReportFPS(now);
 
     if (this.forceElapsedTimeToZero) {
       this.forceElapsedTimeToZero = false;
@@ -3132,62 +3200,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     var failed = true;
     try {
 
-      var doUpdate = function Game_TimedUpdate () {
-        var updateStarted = this._GetNow();
-        this.Update(this._gameTime);
-        var updateEnded = this._GetNow();
-
-        // Detect long updates and suppress frameskip.
-        if ((updateEnded - updateStarted) > longFrame) {
-          this.suppressFrameskip = true;
-        }
-      }.bind(this);
-
       if (this.isFixedTimeStep && !this.suppressFrameskip && !this._profilingMode) {
-        this._gameTime.elapsedGameTime._ticks = (frameDelay * millisecondInTicks);
-
-        elapsed += this._extraTime;
-        this._extraTime = 0;
-
-        if (elapsed > maxElapsedTimeMs) 
-          elapsed = maxElapsedTimeMs;
-
-        var numFrames = Math.floor(elapsed / frameDelay);
-        if (numFrames < 1) {
-          numFrames = 1;
-          this._extraTime = elapsed - frameDelay;
-        } else {
-          this._extraTime = elapsed - (numFrames * frameDelay);
-        }
-
-        for (var i = 0; i < numFrames; i++) {
-          this._gameTime.totalGameTime._ticks += (frameDelay * millisecondInTicks);
-
-          doUpdate();
-          this._updateCount += 1;
-        }
+        this._FixedTimeStep(elapsed, frameDelay, millisecondInTicks, maxElapsedTimeMs, longFrame);
       } else {
-        this._extraTime = 0;
-        this.suppressFrameskip = false;
-
-        if (elapsed > maxElapsedTimeMs)
-          elapsed = maxElapsedTimeMs;
-
-        this._gameTime.elapsedGameTime._ticks = (elapsed * millisecondInTicks);
-        this._gameTime.totalGameTime._ticks += (elapsed * millisecondInTicks);
-
-        doUpdate();
-        this._updateCount += 1;
+        this._VariableTimeStep(elapsed, frameDelay, millisecondInTicks, maxElapsedTimeMs, longFrame);
       }
 
-      var device = this.get_GraphicsDevice();
+      this._RenderAFrame();
 
-      device.$UpdateViewport();      
-      device.$Clear();
-
-      this.Draw(this._gameTime);
-
-      this._drawCount += 1;
       failed = false;
     } finally {
       if (failed || Microsoft.Xna.Framework.Game._QuitForced) 

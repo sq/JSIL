@@ -1959,12 +1959,16 @@ JSIL.GetStructFieldList = function (typeObject) {
   return sf;
 };
 
+JSIL.EscapeJSIdentifier = function (identifier) {
+  var nameRe = /[^A-Za-z_0-9]/g;
+  return identifier.replace(nameRe, "_");
+};
+
 JSIL.CreateNamedFunction = function (name, argumentNames, body) {
   var uriRe = /[\<\>\+\/\\\.]/g;
-  var nameRe = /[^A-Za-z_0-9]/g;
 
   var rawFunctionText = "//@ sourceURL=jsil://generatedFunction/" + name + "\r\n" + 
-    "(function " + name.replace(nameRe, "_") + "(" +
+    "(function " + JSIL.EscapeJSIdentifier(name) + "(" +
     argumentNames.join(", ") +
     ") {\r\n" +
     body +
@@ -3329,48 +3333,53 @@ JSIL.MakeTypeConstructor = function (typeObject) {
     throw new Error("Cannot construct an instance of an open type");
   };
 
-  var isStruct = typeObject.__IsStruct__;
-  var sfi = $jsilcore.FunctionNotInitialized;
-  var innerCtor = $jsilcore.FunctionNotInitialized;
-  var ctorToCall = $jsilcore.FunctionNotInitialized;
+  var state = {
+    typeName: typeObject.__FullName__,
+    isStruct: typeObject.__IsStruct__,
+    hasInnerCtor: false,
+    sfi: $jsilcore.FunctionNotInitialized,
+    innerCtor: $jsilcore.FunctionNotInitialized,
+    ctorToCall: $jsilcore.FunctionNotInitialized
+  };
 
   var oneTime = function Type__ctor_Once () {
     JSIL.InitializeType(typeObject);
 
-    typeObject.__StructFieldInitializer__ = sfi = JSIL.MakeStructFieldInitializer(typeObject);
+    typeObject.__StructFieldInitializer__ = state.sfi = JSIL.MakeStructFieldInitializer(typeObject);
 
-    innerCtor = this._ctor;
+    state.innerCtor = this._ctor;
+    state.hasInnerCtor = typeof (state.innerCtor) === "function";
 
     if (typeObject.__IsClosed__ === false) {
-      ctorToCall = openTypeError;
+      state.ctorToCall = openTypeError;
     } else {
 
-      if (isStruct) {
-        if (sfi !== $jsilcore.FunctionNull) {
-          if (innerCtor) {
-            ctorToCall = function Type__ctor () {
-              sfi(this);
+      if (state.isStruct) {
+        if (state.sfi !== $jsilcore.FunctionNull) {
+          if (state.hasInnerCtor) {
+            state.ctorToCall = function Type__ctor () {
+              state.sfi(this);
 
               if (arguments.length === 0)
                 return;
 
-              return innerCtor.apply(this, arguments);
+              return state.innerCtor.apply(this, arguments);
             };
 
           } else {
-            ctorToCall = sfi;
+            state.ctorToCall = state.sfi;
             
           }
 
         } else {
-          if (innerCtor) {
-            ctorToCall = function Type__ctor () {
+          if (state.hasInnerCtor) {
+            state.ctorToCall = function Type__ctor () {
               if (arguments.length !== 0)
-                return innerCtor.apply(this, arguments);              
+                return state.innerCtor.apply(this, arguments);              
             };
             
           } else {
-            ctorToCall = function Type__ctor () {
+            state.ctorToCall = function Type__ctor () {
             };
 
           }
@@ -3378,25 +3387,25 @@ JSIL.MakeTypeConstructor = function (typeObject) {
         }
 
       } else {
-        if (sfi !== $jsilcore.FunctionNull) {
-          if (innerCtor) {
-            ctorToCall = function Type__ctor () {
-              sfi(this);
+        if (state.sfi !== $jsilcore.FunctionNull) {
+          if (state.hasInnerCtor) {
+            state.ctorToCall = function Type__ctor () {
+              state.sfi(this);
 
-              return innerCtor.apply(this, arguments);
+              return state.innerCtor.apply(this, arguments);
             };
 
           } else {
-            ctorToCall = sfi;
+            state.ctorToCall = state.sfi;
 
           }
 
         } else {
-          if (innerCtor) {
-            ctorToCall = innerCtor;
+          if (state.hasInnerCtor) {
+            state.ctorToCall = state.innerCtor;
 
           } else {
-            ctorToCall = function Type__ctor () {
+            state.ctorToCall = function Type__ctor () {
             };
 
           }
@@ -3405,14 +3414,21 @@ JSIL.MakeTypeConstructor = function (typeObject) {
       }
     }
 
-    return ctorToCall.apply(this, arguments);
+    return state.ctorToCall.apply(this, arguments);
   };
 
-  ctorToCall = oneTime;
+  state.ctorToCall = oneTime;
 
-  var result = function Type__ctor_Dispatcher () {
-    return ctorToCall.apply(this, arguments);
-  };
+  var ctorGenerator = JSIL.CreateNamedFunction(
+    state.typeName + "_MakeCtor",
+    ["state"],
+    "var result = function " + JSIL.EscapeJSIdentifier(state.typeName) + " () {\r\n" +
+    "  return state.ctorToCall.apply(this, arguments);\r\n" +
+    "};\r\n" +
+    "return result;"
+  );
+
+  var result = ctorGenerator(state);
 
   return result;
 };
