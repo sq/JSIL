@@ -2903,7 +2903,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     (new JSIL.MethodSignature($xnaasms[1].TypeRef("Microsoft.Xna.Framework.GameWindow"), [], [])), 
     function get_Window () {
       // FIXME
-      return Object.create(Microsoft.Xna.Framework.GameWindow.prototype);
+      if (!this._window)
+        this._window = new Microsoft.Xna.Framework.GameWindow();
+
+      return this._window;
     }
   );
 
@@ -7237,6 +7240,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameWindow", function ($) {
   $.Method({Static:false, Public:false}, ".ctor", 
     (new JSIL.MethodSignature(null, [], [])), 
     function _ctor () {
+      var canvas = JSIL.Host.getCanvas();
+
+      this._clientBounds = new Microsoft.Xna.Framework.Rectangle(
+        0, 0, canvas.width, canvas.height
+      );
     }
   );
 
@@ -7244,11 +7252,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameWindow", function ($) {
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle"), [], [])), 
     function get_ClientBounds () {
       // FIXME
-      var canvas = JSIL.Host.getCanvas();
-
-      return new Microsoft.Xna.Framework.Rectangle(
-        0, 0, canvas.width, canvas.height
-      );
+      return this._clientBounds;
     }
   );
 
@@ -7278,7 +7282,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameWindow", function ($) {
   $.Method({Static:false, Public:true }, "set_Title", 
     (new JSIL.MethodSignature(null, [$.String], [])), 
     function set_Title (value) {
-      // FIXME
       document.title = value;
     }
   );
