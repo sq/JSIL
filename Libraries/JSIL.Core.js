@@ -1979,7 +1979,8 @@ JSIL.CreateNamedFunction = function (name, argumentNames, body) {
   body = null;
 
   var doEval = function (rawText) {
-    var result = eval(rawText);
+    var e = eval;
+    var result = e(rawText);
     return result;
   };
 
