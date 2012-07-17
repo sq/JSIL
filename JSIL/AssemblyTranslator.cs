@@ -1400,7 +1400,7 @@ namespace JSIL {
             var epf = new EliminatePointlessFinallyBlocks(si.TypeSystem, _TypeInfoProvider, FunctionCache);
             epf.Visit(function);
 
-            var oae = new OptimizeArrayEnumerators(si.TypeSystem);
+            var oae = new OptimizeArrayEnumerators(si.TypeSystem, FunctionCache);
             oae.Visit(function);
 
             var lnd = new LoopNameDetector();

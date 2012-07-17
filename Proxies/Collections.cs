@@ -38,6 +38,28 @@ namespace JSIL.Proxies {
 
     [JSProxy(
         new[] {
+            "System.Collections.ArrayList",
+            "System.Collections.Generic.List`1",
+            "System.Collections.Generic.Stack`1",
+            "System.Collections.Generic.Queue`1"
+        },
+        memberPolicy: JSProxyMemberPolicy.ReplaceNone,
+        inheritable: true
+    )]
+    public abstract class CollectionProxy2<T> : IEnumerable {
+        [JSUnderlyingArray("_items", "_size")]
+        System.Collections.IEnumerator IEnumerable.GetEnumerator () {
+            throw new InvalidOperationException();
+        }
+
+        [JSUnderlyingArray("_items", "_size")]
+        public AnyType GetEnumerator () {
+            throw new InvalidOperationException();
+        }
+    }
+
+    [JSProxy(
+        new[] {
             "System.Collections.ArrayList/ArrayListEnumerator",
             "System.Collections.Hashtable/HashtableEnumerator",
             "System.Collections.Generic.List`1/Enumerator",

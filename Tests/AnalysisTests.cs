@@ -332,11 +332,17 @@ namespace JSIL.Tests {
 
             Console.WriteLine(generatedJs);
             Assert.IsFalse(generatedJs.Contains(
+                @".GetEnumerator"
+            ), "GetEnumerator was called");
+            Assert.IsFalse(generatedJs.Contains(
                 @".MoveNext()"
             ), "MoveNext was called");
             Assert.IsFalse(generatedJs.Contains(
                 @".Current"
             ), "Current was used");
+            Assert.IsFalse(generatedJs.Contains(
+                @"Dispose()"
+            ), "Dispose was called");
         }
     }
 }

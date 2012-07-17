@@ -61,4 +61,18 @@ namespace JSIL.Meta {
         public JSIsArrayEnumerator (string arrayMember, string indexMember, string lengthMember) {
         }
     }
+
+    /// <summary>
+    /// Tells the static analyzer that the enumerator returned by this method represents an underlying array
+    ///  of elements stored in class pointed to by the method's this-reference.
+    /// This enables the static analyzer to entirely remove the call to this method and replace it with
+    ///  direct access to the array.
+    /// </summary>
+    [AttributeUsage(
+        AttributeTargets.Method
+    )]
+    public class JSUnderlyingArray : Attribute {
+        public JSUnderlyingArray (string arrayMember, string countMember) {
+        }
+    }
 }
