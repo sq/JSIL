@@ -5481,7 +5481,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
     }
   );
 
-  $.RawMethod(false, "$UpdateBlendState", function () {
+  $.RawMethod(false, "$UpdateBlendState", function GraphicsDevice_$UpdateBlendState () {
     if (this.blendState === Microsoft.Xna.Framework.Graphics.BlendState.Opaque) {
       this.context.globalCompositeOperation = "copy";
     } else if (this.blendState === Microsoft.Xna.Framework.Graphics.BlendState.Additive) {
@@ -5491,7 +5491,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
     }
   });
 
-  $.RawMethod(false, "$UpdateViewport", function () {
+  $.RawMethod(false, "$UpdateViewport", function GraphicsDevice_$UpdateViewport () {
     this.context.setTransform(1, 0, 0, 1, 0, 0);
 
     var scaleX = 1, scaleY = 1;
@@ -5518,7 +5518,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
     this.context.scale(scaleX, scaleY);
   });
 
-  $.RawMethod(false, "$Clear", function (colorCss) {
+  $.RawMethod(false, "$Clear", function GraphicsDevice_$Clear (colorCss) {
     this.context.save();
     this.context.setTransform(1, 0, 0, 1, 0, 0);
     this.context.globalCompositeOperation = "copy";
@@ -5528,13 +5528,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
     this.context.restore();
   });
 
-  $.RawMethod(false, "InternalClear", function (color) {
+  $.RawMethod(false, "InternalClear", function GraphicsDevice_InternalClear (color) {
     this.$Clear(color.toCss());
   });
 
   var warnedTypes = {};
 
-  $.RawMethod(false, "InternalDrawUserPrimitives", function (T, primitiveType, vertices, vertexOffset, primitiveCount) {
+  $.RawMethod(false, "InternalDrawUserPrimitives", function GraphicsDevice_InternalDrawUserPrimitives (T, primitiveType, vertices, vertexOffset, primitiveCount) {
     switch (primitiveType) {
     case Microsoft.Xna.Framework.Graphics.PrimitiveType.LineList:
       for (var i = 0; i < primitiveCount; i++) {

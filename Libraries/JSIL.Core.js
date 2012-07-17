@@ -1630,14 +1630,23 @@ $jsilcore.$Of$NoInitialize = function () {
 
   return result;
 };
-$jsilcore.$Of = function () {
-  var result = this.Of$NoInitialize.apply(this, arguments);
 
-  // If the outer type is initialized, initialize the inner type.
-  if (!result.__Type__.__TypeInitialized__ && this.__Type__.__TypeInitialized__)
-    JSIL.InitializeType(result);
+$jsilcore.$MakeOf = function (publicInterface) {
+  var typeObject = publicInterface.__Type__;
+  var typeName = typeObject.__FullName__;
 
-  return result;
+  return JSIL.CreateNamedFunction(
+    typeName + ".Of", [],
+    "var result = publicInterface.Of$NoInitialize.apply(publicInterface, arguments);\r\n" +
+    "// If the outer type is initialized, initialize the inner type.\r\n" +
+    "if (!result.__Type__.__TypeInitialized__ && typeObject.__TypeInitialized__)\r\n" +
+    "  JSIL.InitializeType(result);\r\n" +
+    "return result;",
+    {
+      publicInterface: publicInterface,
+      typeObject: typeObject
+    }
+  );
 };
 
 JSIL.StaticClassPrototype = {};
@@ -1960,8 +1969,9 @@ JSIL.GetStructFieldList = function (typeObject) {
 };
 
 JSIL.EscapeJSIdentifier = function (identifier) {
-  var nameRe = /[^A-Za-z_0-9]/g;
-  return identifier.replace(nameRe, "_");
+  var nameRe = /[^A-Za-z_0-9\$]/g;
+
+  return JSIL.EscapeName(identifier).replace(nameRe, "_");
 };
 
 JSIL.CreateNamedFunction = function (name, argumentNames, body, closure) {
@@ -1994,9 +2004,11 @@ JSIL.CreateNamedFunction = function (name, argumentNames, body, closure) {
     for (var i = 0, l = keys.length; i < l; i++)
       closureArgumentList[i] = closure[keys[i]];
 
-    rawFunctionText = "(function constructClosure (" + closureArgumentNames + ") {\r\n" +
-      "  return " + rawFunctionText + ";\r\n" + 
-    "})\r\n";
+    var lineBreakRE = /\r(\n?)/g;
+
+    rawFunctionText = "(function CreateNamedClosure (" + closureArgumentNames + ") {\r\n" +
+      "  return " + rawFunctionText.replace(lineBreakRE, "\r\n    ") + ";\r\n" +
+      "})\r\n";
 
     var constructor = doEval(uriPrefix + rawFunctionText);
     result = constructor.apply(null, closureArgumentList);
@@ -3089,7 +3101,7 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
 
   if (typeObject.__GenericArguments__.length > 0) {
     staticClassObject.Of$NoInitialize = $jsilcore.$Of$NoInitialize.bind(staticClassObject);
-    staticClassObject.Of = $jsilcore.$Of.bind(staticClassObject);
+    staticClassObject.Of = $jsilcore.$MakeOf(staticClassObject);
     typeObject.__IsClosed__ = false;
     typeObject.__OfCache__ = {};
   } else {
@@ -3538,7 +3550,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
 
     if (typeObject.__GenericArguments__.length > 0) {
       staticClassObject.Of$NoInitialize = $jsilcore.$Of$NoInitialize.bind(staticClassObject);
-      staticClassObject.Of = $jsilcore.$Of.bind(staticClassObject);
+      staticClassObject.Of = $jsilcore.$MakeOf(staticClassObject);
       typeObject.__IsClosed__ = false;
       typeObject.__OfCache__ = {};
     } else {
@@ -3663,7 +3675,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
 
     if (typeObject.__GenericArguments__.length > 0) {
       publicInterface.Of$NoInitialize = $jsilcore.$Of$NoInitialize.bind(publicInterface);
-      publicInterface.Of = $jsilcore.$Of.bind(publicInterface);
+      publicInterface.Of = $jsilcore.$MakeOf(publicInterface);
       typeObject.__IsClosed__ = false;
       typeObject.__OfCache__ = {};
     } else {
@@ -6272,7 +6284,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
 
     if (typeObject.__GenericArguments__.length > 0) {
       staticClassObject.Of$NoInitialize = $jsilcore.$Of$NoInitialize.bind(staticClassObject);
-      staticClassObject.Of = $jsilcore.$Of.bind(staticClassObject);
+      staticClassObject.Of = $jsilcore.$MakeOf(staticClassObject);
       typeObject.__IsClosed__ = false;
       typeObject.__OfCache__ = {};
     } else {

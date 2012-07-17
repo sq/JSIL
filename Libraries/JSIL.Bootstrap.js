@@ -1529,17 +1529,18 @@ $jsilcore.$ListExternals = function ($, T, type) {
     }
   );
 
+  var getEnumeratorType = function (self) {
+    if (self.$enumeratorType)
+      return self.$enumeratorType;
+
+    var T = getT(self);
+    return self.$enumeratorType = System.Collections.Generic.List$b1_Enumerator.Of(T);
+  };
+
   var getEnumeratorImpl = function () {
-    // Detect whether we are a List<T> or an ArrayList.
-    if (typeof(this.$thisEnumeratorType) === "undefined") {
-      var elementType = this.T;
-      if (typeof (elementType) === "undefined")
-        elementType = System.Object;
+    var enumeratorType = getEnumeratorType(this);
 
-      this.$thisEnumeratorType = System.Collections.Generic.List$b1_Enumerator.Of(elementType)
-    }
-
-    return new (this.$thisEnumeratorType)(this);
+    return new enumeratorType(this);
   };
 
   $.Method({Static:false, Public:true }, "IEnumerable_GetEnumerator", 
@@ -1551,6 +1552,8 @@ $jsilcore.$ListExternals = function ($, T, type) {
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Collections.Generic.IEnumerator`1", [T]), [], []),
     getEnumeratorImpl
   );
+
+  $.RawMethod(false, "$GetEnumerator", getEnumeratorImpl);
 
   switch (type) {
     case "ArrayList":
@@ -1838,12 +1841,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Stack`1", function ($) {
   $.Method({Static:false, Public:true }, "GetEnumerator", 
     (new JSIL.MethodSignature(system.TypeRef("System.Collections.Generic.Stack`1/Enumerator", [new JSIL.GenericParameter("T", "System.Collections.Generic.Stack`1")]), [], [])), 
     function GetEnumerator () {
-      if (typeof (this.$thisEnumeratorType) === "undefined") {
-        var elementType = this.T;
-        this.$thisEnumeratorType = System.Collections.Generic.List$b1_Enumerator.Of(elementType)
-      }
-
-      return new (this.$thisEnumeratorType)(this);
+      return this.$GetEnumerator();
     }
   );
 
@@ -1930,12 +1928,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Queue`1", function ($) {
   $.Method({Static:false, Public:true }, "GetEnumerator", 
     (new JSIL.MethodSignature(system.TypeRef("System.Collections.Generic.Queue`1/Enumerator", [new JSIL.GenericParameter("T", "System.Collections.Generic.Queue`1")]), [], [])), 
     function GetEnumerator () {
-      if (typeof (this.$thisEnumeratorType) === "undefined") {
-        var elementType = this.T;
-        this.$thisEnumeratorType = System.Collections.Generic.List$b1_Enumerator.Of(elementType)
-      }
-
-      return new (this.$thisEnumeratorType)(this);
+      return this.$GetEnumerator();
     }
   );
 
@@ -2005,10 +1998,8 @@ JSIL.MakeClass($jsilcore.TypeRef("JSIL.ArrayEnumerator", [new JSIL.GenericParame
   $.Method({Public: true, Static: false}, ".ctor", 
     new JSIL.MethodSignature(null, ["System.Collections.Generic.List`1"]),
     function (list) {
-      if (typeof (list) != "undefined") {
-        this._array = list._items;
-        this._length = list.Count;
-      }
+      this._array = list._items;
+      this._length = list._size;
     }
   );
 
