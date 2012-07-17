@@ -3036,11 +3036,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   }, "Run", new JSIL.MethodSignature(null, [], []), function () {
     this._profilingMode = (document.location.search.indexOf("profile") >= 0);
 
-    this._usePostMessage = (window && window.postMessage);
-
-    if (this._usePostMessage)
-      window.addEventListener("message", this._UpdateCallback.bind(this), false);
-
     Microsoft.Xna.Framework.Game._QuitForced = false;
     this.Initialize();
     this._QueueStep();
@@ -3050,8 +3045,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     return (new Date()).getTime();
   });
 
-  $.RawMethod(false, "_DeferCall", function Game_DeferCall (callback) {
-    setTimeout(callback);
+  $.RawMethod(false, "_DeferCall", function Game_DeferCall (callback, lng) {
+    setTimeout(callback, 0);
   });
 
   $.RawMethod(false, "_QueueStep", function Game_EnqueueTick () {
@@ -3059,9 +3054,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       return;
 
     var self = this;
+    var stepCallback = self._Step.bind(self);
 
     var forceSetTimeout = false || 
-      (document.location.search.indexOf("forceSetTimeout") >= 0);
+      (document.location.search.indexOf("forceSetTimeout") >= 0) ||
+      (typeof (msRequestAnimationFrame) !== "undefined") // IE10 currently has broken requestAnimationFrame
+      ;
 
     var requestAnimationFrame = window.requestAnimationFrame ||
       window.mozRequestAnimationFrame || 
@@ -3069,13 +3067,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       window.msRequestAnimationFrame ||
       window.oRequestAnimationFrame;
 
-    var stepCallback = self._RequestAnimationFrameCallback.bind(self);
-
     if (requestAnimationFrame && !forceSetTimeout) {
       requestAnimationFrame(stepCallback);
     } else {
-      this._usePostMessage = false;
-
       var shouldStepCallback = function ShouldStep () {
         var now = self._GetNow();
         var delay = self._nextFrame - now;
@@ -3083,7 +3077,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
         if (delay <= 0) 
           stepCallback();
         else 
-          self._DeferCall(shouldStepCallback);
+          self._DeferCall(shouldStepCallback, delay >= 3);
       };
 
       // It's important that we use setTimeout at least once after every frame in order to let the browser pump messages
@@ -3121,31 +3115,23 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   });
 
   $.RawMethod(false, "_FixedTimeStep", function Game_FixedTimeStep (
-    now, elapsed, frameDelay, millisecondInTicks, maxElapsedTimeMs, longFrame
+    elapsed, frameDelay, millisecondInTicks, maxElapsedTimeMs, longFrame
   ) {
     this._gameTime.elapsedGameTime._ticks = (frameDelay * millisecondInTicks);
 
-    var fallingBehind = false;
-    if (elapsed > maxElapsedTimeMs) {
-      fallingBehind = true;
+    elapsed += this._extraTime;
+    this._extraTime = 0;
+
+    if (elapsed > maxElapsedTimeMs) 
       elapsed = maxElapsedTimeMs;
-    } else if (this._lastFrame === 0) {
-      fallingBehind = true;
-    }
 
     var numFrames = Math.floor(elapsed / frameDelay);
-    var extraTime = Math.max(0, elapsed - (numFrames * frameDelay));
-
     if (numFrames < 1) {
-      return;
+      numFrames = 1;
+      this._extraTime = elapsed - frameDelay;
+    } else {
+      this._extraTime = elapsed - (numFrames * frameDelay);
     }
-
-    if (fallingBehind)
-      this._lastFrame = now;
-    else
-      this._lastFrame += (frameDelay * numFrames);
-
-    this._nextFrame = this._lastFrame + frameDelay;
 
     for (var i = 0; i < numFrames; i++) {
       this._gameTime.totalGameTime._ticks += (frameDelay * millisecondInTicks);
@@ -3155,11 +3141,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   });
 
   $.RawMethod(false, "_VariableTimeStep", function Game_VariableTimeStep (
-    now, elapsed, frameDelay, millisecondInTicks, maxElapsedTimeMs, longFrame
+    elapsed, frameDelay, millisecondInTicks, maxElapsedTimeMs, longFrame
   ) {
-    this._lastFrame = now;
-    this._nextFrame = now + frameDelay;
-
+    this._extraTime = 0;
     this.suppressFrameskip = false;
 
     if (elapsed > maxElapsedTimeMs)
@@ -3174,7 +3158,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   $.RawMethod(false, "_RenderAFrame", function Game_RenderAFrame () {
     var device = this.get_GraphicsDevice();
 
-    device.$UpdateViewport();
+    device.$UpdateViewport();      
     device.$Clear();
 
     this.Draw(this._gameTime);
@@ -3182,23 +3166,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     this._drawCount += 1;
   });
 
-  $.RawMethod(false, "_UpdateCallback", function Game_UpdateCallback (event) {
-    var eventData;
-    
-    try {
-      eventData = JSON.parse(event.data);
-    } catch (exc) {
-      return;
-    }
-    var failed = true;
-
-    if (eventData.key !== "JSIL.XNACore.Update")
-      return;
-
-    var now = eventData.now;
+  $.RawMethod(false, "_Step", function Game_Step () {
+    var now = this._GetNow();
 
     var frameDelay = this.targetElapsedTime.get_TotalMilliseconds();
-    var suppressDraw = false;
 
     if (this._lastFrame === 0) {
       var elapsed = frameDelay;
@@ -3206,79 +3177,46 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       this._started = now;
       this._lastSecond = now;
       this._updateCount = this._drawCount = 0;
+      this._extraTime = 0;
       this.suppressFrameskip = true;
-      suppressDraw = true;
     } else {
       var elapsed = now - this._lastFrame;
       var total = now - this._started;
     }
 
-    if ((now - this._lastSecond) >= 1000)
+    if ((now - this._lastSecond) > 1000)
       this._ReportFPS(now);
 
     if (this.forceElapsedTimeToZero) {
       this.forceElapsedTimeToZero = false;
+      this._extraTime = 0;
       elapsed = 0;
     }
+
+    this._lastFrame = now;
+    this._nextFrame = now + frameDelay;
 
     var millisecondInTicks = 10000;
     var maxElapsedTimeMs = 150;
     var longFrame = frameDelay * 3;
 
-    var doFixedTimeStep = this.isFixedTimeStep && !this.suppressFrameskip && !this._profilingMode;
-
-    try {
-      if (doFixedTimeStep) {
-        this._FixedTimeStep(
-          now, elapsed, frameDelay, 
-          millisecondInTicks, maxElapsedTimeMs, 
-          longFrame
-        );
-      } else {
-        this._VariableTimeStep(
-          now, elapsed, frameDelay, 
-          millisecondInTicks, maxElapsedTimeMs, 
-          longFrame
-        );
-      }
-      failed = false;
-
-    } finally {
-      if (failed || Microsoft.Xna.Framework.Game._QuitForced) 
-        this.Exit();
-      else
-        this._QueueStep();
-    }
-  });
-
-  $.RawMethod(false, "_EnqueueUpdate", function Game_EnqueueUpdate (now) {
-    var eventData = JSON.stringify({
-      key: "JSIL.XNACore.Update",
-      now: now
-    });
-
-    if (this._usePostMessage) {
-      window.postMessage(eventData, "*");
-    } else {
-      this._UpdateCallback({ data: eventData });
-    }
-  });
-
-  $.RawMethod(false, "_RequestAnimationFrameCallback", function Game_RequestAnimationFrameCallback () {
     var failed = true;
-
-    var now = this._GetNow();
-
     try {
-      if (this.lastFrame !== 0)
-        this._RenderAFrame();
+
+      if (this.isFixedTimeStep && !this.suppressFrameskip && !this._profilingMode) {
+        this._FixedTimeStep(elapsed, frameDelay, millisecondInTicks, maxElapsedTimeMs, longFrame);
+      } else {
+        this._VariableTimeStep(elapsed, frameDelay, millisecondInTicks, maxElapsedTimeMs, longFrame);
+      }
+
+      this._RenderAFrame();
 
       failed = false;
     } finally {
       if (failed || Microsoft.Xna.Framework.Game._QuitForced) 
         this.Exit();
-      else
-        this._EnqueueUpdate(now);
+      else 
+        this._QueueStep();
     }
   });
 
