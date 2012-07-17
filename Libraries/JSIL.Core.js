@@ -1964,15 +1964,15 @@ JSIL.EscapeJSIdentifier = function (identifier) {
   return identifier.replace(nameRe, "_");
 };
 
-JSIL.CreateNamedFunction = function (name, argumentNames, body) {
+JSIL.CreateNamedFunction = function (name, argumentNames, body, closure) {
   var uriRe = /[\<\>\+\/\\\.]/g;
+  var uriPrefix = "//@ sourceURL=jsil://generatedFunction/" + name + "\r\n";
 
-  var rawFunctionText = "//@ sourceURL=jsil://generatedFunction/" + name + "\r\n" + 
-    "(function " + JSIL.EscapeJSIdentifier(name) + "(" +
+  var rawFunctionText = "(function " + JSIL.EscapeJSIdentifier(name) + "(" +
     argumentNames.join(", ") +
     ") {\r\n" +
     body +
-    "\r\n})\r\n";
+    "\r\n})";
 
   // :|
   argumentNames = null;
@@ -1984,7 +1984,25 @@ JSIL.CreateNamedFunction = function (name, argumentNames, body) {
     return result;
   };
 
-  var result = doEval(rawFunctionText);
+  var result;
+
+  if (closure) {
+    var keys = Object.keys(closure);
+    var closureArgumentNames = keys.join(",");
+    var closureArgumentList = new Array(keys.length);
+
+    for (var i = 0, l = keys.length; i < l; i++)
+      closureArgumentList[i] = closure[keys[i]];
+
+    rawFunctionText = "(function constructClosure (" + closureArgumentNames + ") {\r\n" +
+      "  return " + rawFunctionText + ";\r\n" + 
+    "})\r\n";
+
+    var constructor = doEval(uriPrefix + rawFunctionText);
+    result = constructor.apply(null, closureArgumentList);
+  } else {
+    result = doEval(uriPrefix + rawFunctionText);
+  }
 
   return JSIL.RenameFunction(name, result);
 };
@@ -2014,12 +2032,13 @@ JSIL.MakeStructFieldInitializer = function (typeObject) {
     types[i] = fieldType.__PublicInterface__;
   }
 
-  var rawFunction = JSIL.CreateNamedFunction(
+  var boundFunction = JSIL.CreateNamedFunction(
     typeObject.__FullName__ + ".InitializeStructFields",
-    ["types", "target"],
-    body.join("\r\n")
+    ["target"],
+    body.join("\r\n"),
+    { types: types }
   );
-  var boundFunction = rawFunction.bind(null, types);
+
   boundFunction.__ThisType__ = typeObject;
   JSIL.SetValueProperty(boundFunction, "__ThisTypeId__", typeObject.__TypeId__);
 
@@ -2156,6 +2175,7 @@ JSIL.$MakeMemberwiseCloner = function (typeObject, publicInterface) {
   };
 
   var body = [];
+  body.push("  var source = this;");
   body.push("  var result = context.create();");
 
   JSIL.$MakeCopierCore(typeObject, context, body);
@@ -2168,13 +2188,12 @@ JSIL.$MakeMemberwiseCloner = function (typeObject, publicInterface) {
 
   var memberwiseCloner = JSIL.CreateNamedFunction(
     typeObject.__FullName__ + ".MemberwiseClone",
-    ["context", "source"],
-    body.join("\r\n")
+    [],
+    body.join("\r\n"),
+    { context: context }
   );
 
-  return function MemberwiseClone_Stub () {
-    return memberwiseCloner(context, this);
-  };
+  return memberwiseCloner;
 };
 
 JSIL.$BuildStructFieldList = function (typeObject) {
@@ -2389,7 +2408,7 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
   makeDispatcher = function (id, g, offset) {
     var body = [];
 
-    body.push("  var argc = args.length;");
+    body.push("  var argc = arguments.length;");
 
     var isFirst = true;
     var methodKey = null;
@@ -2422,7 +2441,7 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
         methodKey = makeMultipleMethodGroup(id, group, offset);
       }
 
-      body.push("    return thisType[\"" + methodKey + "\"].apply(this, args);");
+      body.push("    return thisType[\"" + methodKey + "\"].apply(this, arguments);");
 
       isFirst = false;
     }
@@ -2433,20 +2452,15 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
 
     var bodyText = body.join("\r\n");
 
-    var dispatcher = JSIL.CreateNamedFunction(
-      id, 
-      ["thisType", "name", "offset", "args"],
-      bodyText
+    var boundDispatcher = JSIL.CreateNamedFunction(
+      id, [],
+      bodyText,
+      {
+        thisType: target,
+        name: methodName,
+        offset: offset
+      }
     );
-
-    // Why does v8 retain these?!?
-    body = null;
-    bodyText = null;
-
-    // We can't use .bind() to bind arguments here because it breaks the 'this' parameter and breaks .call()/.apply().
-    var boundDispatcher = function OverloadedMethod_Invoke () {
-      return dispatcher.call(this, target, methodName, offset, arguments);
-    };
 
     JSIL.SetValueProperty(boundDispatcher, "toString", 
       function OverloadedMethod_ToString () {
@@ -3150,42 +3164,60 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
 
   if (checkMethod) {
     isFunction = JSIL.CreateNamedFunction(
-      "Is_" + typeName, ["assignableFromTypes", "checkMethod", "expression", "bypassCustomCheckMethod"],
+      "Is_" + typeName, 
+      ["expression", "bypassCustomCheckMethod"],
       "if (!bypassCustomCheckMethod && checkMethod(expression))\r\n" +
       "  return true;\r\n" +
       "if (expression)\r\n" +
       "  return assignableFromTypes[expression.__ThisTypeId__] === true;\r\n" +
       "else\r\n" +
-      "  return false;\r\n"
-    ).bind(null, assignableFromTypes, checkMethod);
+      "  return false;\r\n",
+      {
+        assignableFromTypes: assignableFromTypes, 
+        checkMethod: checkMethod
+      }
+    );
   } else {
     isFunction = JSIL.CreateNamedFunction(
-      "Is_" + typeName, ["assignableFromTypes", "expression"],
+      "Is_" + typeName, 
+      ["expression"],
       "if (expression)\r\n" +
       "  return assignableFromTypes[expression.__ThisTypeId__] === true;\r\n" +
       "else\r\n" +
-      "  return false;\r\n"
-    ).bind(null, assignableFromTypes);
+      "  return false;\r\n",
+      {
+        assignableFromTypes: assignableFromTypes, 
+      }
+    );
   }
 
   if (checkMethod) {
     asFunction = JSIL.CreateNamedFunction(
-      "As_" + typeName, ["assignableFromTypes", "checkMethod", "expression"],
+      "As_" + typeName, 
+      ["expression"],
       "if (checkMethod(expression))\r\n" +
       "  return expression;\r\n" +
       "else if (expression && assignableFromTypes[expression.__ThisTypeId__])\r\n" +
       "  return expression;\r\n" +
       "else\r\n" +
-      "  return null;\r\n"
-    ).bind(null, assignableFromTypes, checkMethod);
+      "  return null;\r\n",
+      {
+        assignableFromTypes: assignableFromTypes, 
+        checkMethod: checkMethod
+      }
+    );
   } else {
     asFunction = JSIL.CreateNamedFunction(
-      "As_" + typeName, ["assignableFromTypes", "expression"],
+      "As_" + typeName, 
+      ["expression"],
       "if (expression && assignableFromTypes[expression.__ThisTypeId__])\r\n" +
       "  return expression;\r\n" +
       "else\r\n" +
-      "  return null;\r\n"
-    ).bind(null, assignableFromTypes);
+      "  return null;\r\n",
+      {
+        assignableFromTypes: assignableFromTypes, 
+      }
+    );
   }
 
   castFunction = function Cast (expression) {
@@ -3420,16 +3452,11 @@ JSIL.MakeTypeConstructor = function (typeObject) {
 
   state.ctorToCall = oneTime;
 
-  var ctorGenerator = JSIL.CreateNamedFunction(
-    state.typeName + "_MakeCtor",
-    ["state"],
-    "var result = function " + JSIL.EscapeJSIdentifier(state.typeName) + " () {\r\n" +
-    "  return state.ctorToCall.apply(this, arguments);\r\n" +
-    "};\r\n" +
-    "return result;"
+  var result = JSIL.CreateNamedFunction(
+    state.typeName, [],
+    "return state.ctorToCall.apply(this, arguments);",
+    { state: state }
   );
-
-  var result = ctorGenerator(state);
 
   return result;
 };
