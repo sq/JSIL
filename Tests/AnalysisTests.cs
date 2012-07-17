@@ -320,5 +320,23 @@ namespace JSIL.Tests {
                 @" finally "
             ), "Finally block(s) were generated");
         }
+
+        [Test]
+        public void OptimizeArrayEnumerators () {
+            var output = "1\r\n2\r\n3";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\OptimizeArrayEnumerators.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+            Assert.IsFalse(generatedJs.Contains(
+                @".MoveNext()"
+            ), "MoveNext was called");
+            Assert.IsFalse(generatedJs.Contains(
+                @".Current"
+            ), "Current was used");
+        }
     }
 }

@@ -7,11 +7,7 @@ public static class Program {
             1, 2, 3 
         };
 
-        var e = l.GetEnumerator();
-
-        while (e.MoveNext())
-            Console.WriteLine(e.Current);
-
-        e.Dispose();
+        foreach (var v in l)
+            Console.WriteLine(v);
     }
 }
