@@ -3781,10 +3781,12 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
       return false;
     };
 
-    var valueType = result.$Value = function (value, name) {
-      this.value = value;
-      this.stringified = this.name = name;
-    };
+    var valueType = result.$Value = JSIL.CreateNamedFunction(
+      fullName,
+      ["value", "name"],
+      "this.value = value;\r\n" +
+      "this.stringified = this.name = name;\r\n"
+    );
     var valueProto = valueType.prototype = Object.create(JSIL.EnumValue.prototype);
 
     JSIL.SetValueProperty(
