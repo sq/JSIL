@@ -393,10 +393,10 @@ JSIL.ResolvedName.prototype.define = function (declaration) {
 
   var descriptor = Object.getOwnPropertyDescriptor(this.parent, this.key);
 
-  if ('value' in declaration) {
+  if (declaration.value) {
     if (descriptor.value != declaration.value)
       throw new Error("Failed to define property '" + this.key + "'.");  
-  } else if ('get' in declaration) {
+  } else if (declaration.get) {
     if (descriptor.get != declaration.get)
       throw new Error("Failed to define property '" + this.key + "'.");  
   }
@@ -578,8 +578,10 @@ if (typeof (console) !== "undefined") {
   }
 } else if (JSIL.HostType.IsBrowser)
   JSIL.Host.logWrite = function LogWrite_NoConsole () {};
-else
+else if (typeof (putstr) === "function")
   JSIL.Host.logWrite = putstr.bind(null);
+else
+  JSIL.Host.logWrite = print.bind(null);
 
 if (typeof (console) !== "undefined") {
   try {
@@ -1377,50 +1379,46 @@ JSIL.ResolveTypeArgumentArray = function (typeArgs, context) {
   return resolvedArguments;
 };
 
+JSIL.$GetTypeIDForHash = function (typeReference, context) {
+  var trType = typeof (typeReference);
+  var typeId;
+
+  if (trType === "undefined") {
+    throw new Error("Undefined passed as type argument");
+  } else if (typeReference === null) {
+    throw new Error("Null passed as type argument");
+  } else if (typeId = typeReference.__TypeId__) {
+    return typeId;
+  } else if (
+    trType === "string"
+  ) {
+    if (typeReference.indexOf("!!") === 0) {
+      return typeReference;
+    } else {
+      if (typeof (context) === "undefined")
+        throw new Error("Context required");
+
+      return JSIL.AssignTypeId(context, typeReference);
+    }
+  } else if (
+    trType === "object"
+  ) {
+    if (Object.getPrototypeOf(typeReference) === JSIL.TypeRef.prototype)
+      return typeReference.getTypeId();
+  }
+
+  throw new Error("Type missing type ID");
+};
+
 JSIL.HashTypeArgumentArray = function (typeArgs, context) {
-  var cacheKey = null;
-
-  /*
-  if (typeof (context) === "undefined")
-    throw new Error("Context required");
-  */
-
   if (typeArgs.length <= 0)
     return "void";
 
+  var cacheKey = null;
   for (var i = 0, l = typeArgs.length; i < l; i++) {
-    var tr = typeArgs[i];
-    var trType = typeof (tr);
-    var typeId;
+    var typeId = JSIL.$GetTypeIDForHash(typeArgs[i], context);
 
-    if (trType === "undefined") {
-      throw new Error("Undefined passed as type argument");
-    } else if (tr === null) {
-      throw new Error("Null passed as type argument");
-    } else if (tr.__TypeId__) {
-      typeId = tr.__TypeId__;
-    } else if (
-      trType === "string"
-    ) {
-      if (tr.indexOf("!!") === 0) {
-        typeId = tr;
-      } else {
-        if (typeof (context) === "undefined")
-          throw new Error("Context required");
-
-        typeId = JSIL.AssignTypeId(context, tr);
-      }
-    } else if (
-      trType === "object"
-    ) {
-      if (Object.getPrototypeOf(tr) === JSIL.TypeRef.prototype)
-        typeId = tr.getTypeId();
-    }
-
-    if (typeof (typeId) === "undefined")
-      throw new Error("Type missing type ID");
-
-    if (i == 0)
+    if (i === 0)
       cacheKey = typeId;
     else
       cacheKey += "," + typeId;
@@ -2056,7 +2054,7 @@ JSIL.$MakeComparerCore = function (typeObject, context, body) {
     typeObject, $jsilcore.BindingFlags.Instance, "FieldInfo"
   );
 
-  if ("__CompareMembers__" in context.prototype) {
+  if (context.prototype.__CompareMembers__) {
     context.comparer = context.prototype.__CompareMembers__;
     body.push("  return context.comparer(lhs, rhs);");
   } else {
@@ -2102,7 +2100,7 @@ JSIL.$MakeCopierCore = function (typeObject, context, body) {
     typeObject, $jsilcore.BindingFlags.Instance, "FieldInfo"
   );
 
-  if ("__CopyMembers__" in context.prototype) {
+  if (context.prototype.__CopyMembers__) {
     context.copier = context.prototype.__CopyMembers__;
     body.push("  context.copier(source, result);");
   } else {
@@ -3911,9 +3909,10 @@ JSIL.GetType = function (value) {
     return null;
 
   if ((type === "object") || (type === "function")) {
-    if ("__ThisType__" in value)
-      return value.__ThisType__;
-    else if ("GetType" in value)
+    var tt;
+    if (tt = value.__ThisType__)
+      return tt;
+    else if (value.GetType)
       return value.GetType();
     else if (JSIL.IsArray(value))
       return System.Array.__Type__;
@@ -6275,7 +6274,7 @@ JSIL.ObjectEquals = function (lhs, rhs) {
     case "object":
       var key = $equalsSignature.GetKey("Object.Equals");
 
-      if (key in lhs)
+      if (lhs[key])
         return $equalsSignature.CallVirtual("Object.Equals", null, lhs, rhs);
 
       break;

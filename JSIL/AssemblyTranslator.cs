@@ -1872,7 +1872,7 @@ namespace JSIL {
                         if (bodyTransformer != null)
                             bodyTransformer(function);
 
-                        function.DisplayName = methodInfo.GetName(false);
+                        function.DisplayName = String.Format("{0}.{1}", methodInfo.DeclaringType.Name, methodInfo.GetName(false));
 
                         astEmitter.ReferenceContext.EnclosingMethod = method;
 

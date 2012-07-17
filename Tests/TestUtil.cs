@@ -407,7 +407,9 @@ namespace JSIL.Tests {
                 @"JSIL.SuppressInterfaceWarnings = true; ";
 
             var invocationJs = String.Format(
-                @"timeout({0}); " +
+                @"if (typeof (timeout) !== 'function') timeout = function () {{}};" +
+                @"if (typeof (elapsed) !== 'function') {{ if (typeof (Date) === 'object') elapsed = Date.now; else elapsed = function () {{ return 0; }} }}" +
+                @"timeout({0});" +
                 @"JSIL.Initialize(); var started = elapsed(); " +
                 @"{1}.Main({2}); " +
                 @"var ended = elapsed(); print('// elapsed: ' + (ended - started));",
