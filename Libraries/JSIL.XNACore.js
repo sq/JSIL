@@ -4479,8 +4479,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       this.oldBlendState = null;
       this.isWebGL = false;
       this.spriteEffects = Microsoft.Xna.Framework.Graphics.SpriteEffects;
-      this.flipHorizontally = this.spriteEffects.FlipHorizontally;
-      this.flipVertically = this.spriteEffects.FlipVertically;
+      this.flipHorizontally = this.spriteEffects.FlipHorizontally.value;
+      this.flipVertically = this.spriteEffects.FlipVertically.value;
     }
   );
 

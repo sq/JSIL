@@ -1442,21 +1442,21 @@ $jsilcore.$ListExternals = function ($, T, type) {
 
   $.Method({Static:false, Public:true }, "Contains", 
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [T], []),
-    function (value) {
-      return indexOfImpl.call(this, value) >= 0;
+    function List_Contains (value) {
+      return this.IndexOf(value) >= 0;
     }
   );
 
   $.Method({Static:false, Public:true }, "Exists", 
     new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [mscorlib.TypeRef("System.Predicate`1", [T])], []),
-    function (predicate) {
-      return findIndexImpl.call(this, predicate) >= 0;
+    function List_Exists (predicate) {
+      return this.FindIndex(predicate) >= 0;
     }
   );
 
   $.Method({Static:false, Public:true }, "Find", 
     new JSIL.MethodSignature(new JSIL.GenericParameter("T", "System.Collections.Generic.List`1"), [mscorlib.TypeRef("System.Predicate`1", [T])], []),
-    function (predicate) {
+    function List_Find (predicate) {
       var index = this.FindIndex(predicate);
       if (index >= 0)
         return this._items[index];
