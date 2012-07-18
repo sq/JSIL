@@ -468,6 +468,9 @@ JSIL.ParseCustomNumberFormat = function (customFormat) {
 JSIL.NumberToFormattedString = function (value, valueFormat, formatProvider) {
   // FIXME: formatProvider
 
+  if (!valueFormat)
+    return value.toString();
+
   var formatInteger = function (value, radix, digits) {
     digits = parseInt(digits);
     if (isNaN(digits))
@@ -1332,21 +1335,18 @@ $jsilcore.$ListExternals = function ($, T, type) {
       break;
   }
 
-  var indexOfImpl = function (value) {
-    for (var i = 0; i < this._size; i++) {
-      var item = this._items[i];
-
-      if (JSIL.ObjectEquals(item, value))
+  var indexOfImpl = function List_IndexOf (value) {
+    for (var i = 0, l = this._size; i < l; i++) {
+      if (JSIL.ObjectEquals(this._items[i], value))
         return i;
     }
 
     return -1;
   };
 
-  var findIndexImpl = function (predicate) {
-    for (var i = 0; i < this._size; i++) {
-      var item = this._items[i];
-      if (predicate(item))
+  var findIndexImpl = function List_FindIndex (predicate) {
+    for (var i = 0, l = this._size; i < l; i++) {
+      if (predicate(this._items[i]))
         return i;
     }
 
