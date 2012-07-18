@@ -693,20 +693,6 @@ JSIL.UnknownMember = function (memberName) {
   JSIL.Host.error(new Error("An attempt was made to reference the member '" + memberName + "', but it has no type information."));
 };
 
-JSIL.RenameFunction = function (name, fn) {
-  var decl = {
-    value: name,
-    enumerable: true,
-    configurable: true,
-    writable: false
-  };
-  
-  Object.defineProperty(fn, "displayName", decl);
-  Object.defineProperty(fn, "debugName", decl);
-
-  return fn;
-};
-
 JSIL.MakeExternalMemberStub = function (namespaceName, getMemberName, inheritedMember) {
   var state = {
     alreadyWarned: false
@@ -2016,7 +2002,7 @@ JSIL.CreateNamedFunction = function (name, argumentNames, body, closure) {
     result = doEval(uriPrefix + rawFunctionText);
   }
 
-  return JSIL.RenameFunction(name, result);
+  return result;;
 };
 
 JSIL.MakeStructFieldInitializer = function (typeObject) {
@@ -2474,13 +2460,13 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
       }
     );
 
+    /*
     JSIL.SetValueProperty(boundDispatcher, "toString", 
       function OverloadedMethod_ToString () {
         return "<Overloaded Method " + id + " - " + overloadSignatures.length + " overload(s)>";
       }
     );
-
-    JSIL.RenameFunction(id, boundDispatcher);
+    */
 
     return JSIL.$MakeAnonymousMethod(target, boundDispatcher);
   };
@@ -4383,11 +4369,13 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
   if (impl.hasOwnProperty(prefix + mangledName)) {
     newValue = impl[prefix + mangledName][1];
 
+    /*
     JSIL.SetValueProperty(newValue, "toString", 
       function ExternalMethod_ToString () {
         return "<External " + signature.toString(fullName) + ">";
       }
     );
+    */
 
     isPlaceholder = false;
   } else if (!descriptor.Target.hasOwnProperty(mangledName)) {
@@ -4441,11 +4429,14 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
   }
 
   var fullName = this.namespace + "." + methodName;
+
+  /*
   JSIL.SetValueProperty(fn, "toString", 
     function Method_ToString () {
       return "<" + signature.toString(fullName) + ">";
     }
   );
+  */
 
   JSIL.SetValueProperty(descriptor.Target, mangledName, fn);
 
@@ -4482,11 +4473,13 @@ JSIL.InterfaceBuilder.prototype.InheritBaseMethod = function (name) {
       JSIL.Host.warning("InheritBaseMethod() used but no method was found to inherit!");
   };
 
+  /*
   JSIL.SetValueProperty(fn, "toString", 
     function InheritedBaseMethod_ToString () {
       return "<Inherited " + name + ">";
     }
   );
+  */
 
   JSIL.SetValueProperty(descriptor.Target, mangledName, fn);
 

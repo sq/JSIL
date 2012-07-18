@@ -4479,6 +4479,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       this.oldBlendState = null;
       this.isWebGL = false;
       this.spriteEffects = Microsoft.Xna.Framework.Graphics.SpriteEffects;
+      this.flipHorizontally = this.spriteEffects.FlipHorizontally;
+      this.flipVertically = this.spriteEffects.FlipVertically;
     }
   );
 
@@ -4486,8 +4488,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
     this.device = spriteBatch.device;
     this.defer = false;
     this.deferSorter = null;
+    this.oldBlendState = null;
     this.isWebGL = spriteBatch.isWebGL;
     this.spriteEffects = spriteBatch.spriteEffects;
+    this.flipHorizontally = spriteBatch.flipHorizontally;
+    this.flipVertically = spriteBatch.flipVertically;
   });
 
   $.RawMethod(false, "$applyBlendState", function () {
@@ -4522,7 +4527,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       this.samplerState = samplerState;
 
       var textureIndex = 0;
-      var depthIndex = 16;
 
       if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Immediate) {
         this.defer = false;
@@ -4531,18 +4535,18 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.BackToFront) {
         this.defer = true;
         this.deferSorter = function Sort_BackToFront (lhs, rhs) {
-          var result = -JSIL.CompareValues(lhs.depth, rhs.depth);
+          var result = rhs.depth - lhs.depth;
           if (result === 0)
-            result = JSIL.CompareValues(lhs.index, rhs.index);
+            result = rhs.index - lhs.index;
 
           return result;
         };
       } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.FrontToBack) {
         this.defer = true;
         this.deferSorter = function Sort_FrontToBack (lhs, rhs) {
-          var result = JSIL.CompareValues(lhs.depth, rhs.depth);
+          var result = lhs.depth - rhs.depth;
           if (result === 0)
-            result = JSIL.CompareValues(lhs.index, rhs.index);
+            result = rhs.index - lhs.index;
 
           return result;
         };
@@ -4622,7 +4626,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         entry = {
           function: null,
           index: 0,
-          depth: 0,
+          depth: 0.0,
           texture: null,
           pool: null,
           arguments: new Array(17)
@@ -4684,7 +4688,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         entry = {
           function: null,
           index: 0,
-          depth: 0,
+          depth: 0.0,
           texture: null,
           pool: null,
           arguments: new Array(12)
@@ -5112,9 +5116,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       }
 
       if (effects) {
-        effects = effects.valueOf();
+        effects = effects.value;
         
-        if (effects & this.spriteEffects.FlipHorizontally) {
+        if (effects & this.flipHorizontally) {
           if (!needRestore) 
             this.$save();
           needRestore = true;
@@ -5123,7 +5127,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
           positionX -= originalPositionX * 2;
         }
 
-        if (effects & this.spriteEffects.FlipVertically) {
+        if (effects & this.flipVertically) {
           if (!needRestore) 
             this.$save();
           needRestore = true;
