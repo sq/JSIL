@@ -175,7 +175,8 @@ var statsElement = document.getElementById("stats");
 if (statsElement !== null) {
   statsElement.innerHTML = '<span title="Frames Per Second"><span id="drawsPerSecond">0</span> f/s</span><br>' +
     '<span title="Updates Per Second"><span id="updatesPerSecond">0</span> u/s</span><br>' +
-    '<span title="Texture Cache Size" id="cacheSpan"><span id="cacheSize">0.0</span >mb <span id="usingWebGL" style="display: none">(WebGL)</span></span>';
+    '<span title="Texture Cache Size" id="cacheSpan"><span id="cacheSize">0.0</span >mb <span id="usingWebGL" style="display: none">(WebGL)</span></span><br>' +
+    '<input type="checkbox" checked="checked" id="balanceFramerate" name="balanceFramerate"> <label for="balanceFramerate">Balance FPS</label>';
 
   JSIL.Host.reportFps = function (drawsPerSecond, updatesPerSecond, cacheSize, isWebGL) {
     var e = document.getElementById("drawsPerSecond");

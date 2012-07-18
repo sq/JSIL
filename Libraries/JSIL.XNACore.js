@@ -3035,6 +3035,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     Public: true
   }, "Run", new JSIL.MethodSignature(null, [], []), function () {
     this._profilingMode = (document.location.search.indexOf("profile") >= 0);
+    this._balanceFPSCheckbox = (document.getElementById("balanceFramerate") || null);
+    if (this._balanceFPSCheckbox)
+      this._balanceFPSCheckbox.checked = !this._profilingMode;
 
     Microsoft.Xna.Framework.Game._QuitForced = false;
     this.Initialize();
@@ -3197,8 +3200,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     this._nextFrame = now + frameDelay;
 
     var millisecondInTicks = 10000;
-    var maxElapsedTimeMs = 150;
+    var maxElapsedTimeMs = frameDelay * 4;
     var longFrame = frameDelay * 3;
+
+    this._profilingMode = (document.location.search.indexOf("profile") >= 0);
+    if (this._balanceFPSCheckbox)
+      this._profilingMode = !this._balanceFPSCheckbox.checked;
 
     var failed = true;
     try {
