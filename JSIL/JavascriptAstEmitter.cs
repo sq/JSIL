@@ -300,11 +300,16 @@ namespace JSIL {
 
             Output.Dot();
 
-            if (pa.TypeQualified) {
-                // FIXME: Oh god, terrible hack
-                Output.WriteRaw(Util.EscapeIdentifier(pa.Property.Property.DeclaringType.Name) + "$");
-                Visit(pa.Member);
+            var prop = pa.Property.Property;
+
+            if (prop.IsAutoProperty && !prop.IsVirtual) {
+                Output.WriteRaw(prop.BackingFieldName);
             } else {
+                if (pa.TypeQualified) {
+                    // FIXME: Oh god, terrible hack
+                    Output.WriteRaw(Util.EscapeIdentifier(prop.DeclaringType.Name) + "$");
+                }
+
                 Visit(pa.Member);
             }
         }

@@ -1380,6 +1380,8 @@ namespace JSIL.Internal {
 
     public class PropertyInfo : MemberInfo<PropertyDefinition> {
         public MethodInfo Getter, Setter;
+        public readonly bool IsAutoProperty;
+        public readonly string BackingFieldName;
         protected readonly string ShortName;
 
         public PropertyInfo (
@@ -1391,6 +1393,14 @@ namespace JSIL.Internal {
             TypeUtil.IsIgnoredType(property.PropertyType), false, sourceProxy
         ) {
             ShortName = GetShortName(property);
+            IsAutoProperty = (Member.GetMethod ?? Member.SetMethod).CustomAttributes.Any(
+                (ca) => ca.AttributeType.FullName == "System.Runtime.CompilerServices.CompilerGeneratedAttribute"
+            );
+
+            if (IsAutoProperty)
+                BackingFieldName = String.Format("{0}${1}$value", Util.EscapeIdentifier(parent.Name), Util.EscapeIdentifier(Name));
+            else
+                BackingFieldName = null;
         }
 
         protected override string GetName () {

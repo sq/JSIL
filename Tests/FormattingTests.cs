@@ -693,5 +693,24 @@ namespace JSIL.Tests {
                 }
             );
         }
+
+        [Test]
+        public void AutoPropertyEfficiency () {
+            var output = "a=0 b=0 c=1";
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\AutoPropertyEfficiency.cs",
+                output, output
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("instance.A"));
+                Assert.IsTrue(generatedJs.Contains("instance.B"));
+                Assert.IsTrue(generatedJs.Contains("instance.C"));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
     }
 }
