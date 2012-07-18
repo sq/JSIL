@@ -3306,7 +3306,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
     function GetEnumerator () {
       var dict = this._dict;
       var tKvp = System.Collections.Generic.KeyValuePair$b2.Of(this.TKey, this.TValue);
-      var current = new tKvp(null, null);
+      var tKey = this.TKey, tValue = this.TValue;
 
       return new JSIL.AbstractEnumerator(
         function getNext (result) {
@@ -3319,6 +3319,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
             var bucket = dict[bucketKey];
 
             if ((valueIndex >= 0) && (valueIndex < bucket.length)) {
+              var current = this._state.current;
               current.key = bucket[valueIndex][0];
               current.value = bucket[valueIndex][1];
               result.value = current;
@@ -3333,6 +3334,7 @@ JSIL.ImplementExternals("System.Collections.Generic.Dictionary`2", function ($) 
         },
         function reset () {
           this._state = {
+            current: new tKvp(JSIL.DefaultValue(tKey), JSIL.DefaultValue(tValue)),
             keys: Object.keys(dict),
             bucketIndex: 0,
             valueIndex: -1
@@ -3406,6 +3408,13 @@ JSIL.ImplementExternals("System.Collections.Generic.KeyValuePair`2", function ($
 });
 
 JSIL.MakeStruct("System.ValueType", "System.Collections.Generic.KeyValuePair`2", true, ["TKey", "TValue"], function ($) {
+  $.Field({Static:false, Public:false}, "key", $.GenericParameter("TKey"));
+
+  $.Field({Static:false, Public:false}, "value", $.GenericParameter("TValue"));
+
+  $.Property({Static:false, Public:true }, "Key");
+
+  $.Property({Static:false, Public:true }, "Value");
 });
 
 JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary`2", true, ["TKey", "TValue"], function ($) {

@@ -195,7 +195,8 @@
     <None Include="SimpleTestCases\TruncationRoundToZero.cs" />
     <None Include="SimpleTestCases\StringRemove.cs" />
     <None Include="SimpleTestCases\ArrayDefaultValues2.cs" />
-    <None Include="SimpleTestCases\IntegerToString.cs" />
+    <None Include="SimpleTestCases\IntegerToStringNullFormat.cs" />
+    <None Include="TestCases\DictionaryKeyValuePairs.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
