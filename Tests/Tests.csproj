@@ -66,7 +66,7 @@
     <None Include="AnalysisTestCases\PointlessFinallyBlocks.cs" />
     <None Include="AnalysisTestCases\OptimizeArrayEnumerators.cs" />
     <Compile Include="ComparisonTests.cs" />
-    <None Include="FailingTestCases\BaseAutoProperties.cs" />
+    <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />
     <Compile Include="AnalysisTests.cs" />
     <None Include="ReflectionTestCases\ListPublicStaticMethods.cs" />
