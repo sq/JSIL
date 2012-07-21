@@ -351,27 +351,40 @@ namespace JSIL {
 
             {
                 int i = 0, mc = methodsToAnalyze.Count;
-                Parallel.For(
-                    0, methodsToAnalyze.Count, parallelOptions,
-                    () => MakeDecompilerContext(assemblies[0].MainModule),
-                    (_, loopState, ctx) => {
-                        MethodToAnalyze m;
-                        if (!methodsToAnalyze.TryTake(out m))
-                            throw new InvalidDataException("Method collection mutated during analysis. Try setting UseThreads=false (and report an issue!)");
+                Func<int, ParallelLoopState, DecompilerContext, DecompilerContext> analyzeAMethod = (_, loopState, ctx) => {
+                    MethodToAnalyze m;
+                    if (!methodsToAnalyze.TryTake(out m))
+                        throw new InvalidDataException("Method collection mutated during analysis. Try setting UseThreads=false (and report an issue!)");
 
-                        ctx.CurrentModule = m.MD.Module;
-                        ctx.CurrentType = m.MD.DeclaringType;
-                        ctx.CurrentMethod = m.MD;
+                    ctx.CurrentModule = m.MD.Module;
+                    ctx.CurrentType = m.MD.DeclaringType;
+                    ctx.CurrentMethod = m.MD;
 
+                    try {
                         TranslateMethodExpression(ctx, m.MD, m.MD, m.MI);
+                    } catch (Exception exc) {
+                        throw new Exception("Error occurred while translating method '" + m.MD.FullName + "'.", exc);
+                    }
 
-                        var j = Interlocked.Increment(ref i);
-                        pr.OnProgressChanged(mc + j, mc * 2);
+                    var j = Interlocked.Increment(ref i);
+                    pr.OnProgressChanged(mc + j, mc * 2);
 
-                        return ctx;
-                    },
-                    (ctx) => { }
-                );
+                    return ctx;
+                };
+
+                if (Configuration.UseThreads.GetValueOrDefault(true)) {
+                    Parallel.For(
+                        0, methodsToAnalyze.Count, parallelOptions,
+                        () => MakeDecompilerContext(assemblies[0].MainModule),
+                        analyzeAMethod,
+                        (ctx) => { }
+                    );
+                } else {
+                    var ctx = MakeDecompilerContext(assemblies[0].MainModule);
+
+                    while (methodsToAnalyze.Count > 0)
+                        analyzeAMethod(0, default(ParallelLoopState), ctx);
+                }
             }
 
             pr.OnFinished();
@@ -387,38 +400,50 @@ namespace JSIL {
                 Manifest.GetPrivateToken(assembly);
             Manifest.AssignIdentifiers();
 
-            Parallel.For(
-                0, assemblies.Length, parallelOptions, (i) => {
-                    var assembly = assemblies[i];
-                    var outputPath = assembly.Name + ".js";
+            Action<int> writeAssembly = (i) => {
+                var assembly = assemblies[i];
+                var outputPath = assembly.Name + ".js";
 
-                    long existingSize;
+                long existingSize;
 
-                    if (!Manifest.GetExistingSize(assembly, out existingSize)) {
-                        using (var outputStream = new MemoryStream()) {
-                            var context = MakeDecompilerContext(assembly.MainModule);
+                if (!Manifest.GetExistingSize(assembly, out existingSize)) {
+                    using (var outputStream = new MemoryStream()) {
+                        var context = MakeDecompilerContext(assembly.MainModule);
+
+                        try {
                             Translate(context, assembly, outputStream);
-
-                            var segment = new ArraySegment<byte>(
-                                outputStream.GetBuffer(), 0, (int)outputStream.Length
-                            );
-
-                            result.AddFile("Script", outputPath, segment);
-
-                            Manifest.SetAlreadyTranslated(assembly, outputStream.Length);
+                        } catch (Exception exc) {
+                            throw new Exception("Error occurred while generating javascript for assembly '" + assembly.FullName + "'.", exc);
                         }
 
-                        lock (result.Assemblies)
-                            result.Assemblies.Add(assembly);
-                    } else {
-                        Debug.WriteLine(String.Format("Skipping '{0}' because it is already translated...", assembly.Name));
+                        var segment = new ArraySegment<byte>(
+                            outputStream.GetBuffer(), 0, (int)outputStream.Length
+                        );
 
-                        result.AddExistingFile("Script", outputPath, existingSize);
+                        result.AddFile("Script", outputPath, segment);
+
+                        Manifest.SetAlreadyTranslated(assembly, outputStream.Length);
                     }
 
-                    pr.OnProgressChanged(result.Assemblies.Count, assemblies.Length);
+                    lock (result.Assemblies)
+                        result.Assemblies.Add(assembly);
+                } else {
+                    Debug.WriteLine(String.Format("Skipping '{0}' because it is already translated...", assembly.Name));
+
+                    result.AddExistingFile("Script", outputPath, existingSize);
                 }
-            );
+
+                pr.OnProgressChanged(result.Assemblies.Count, assemblies.Length);
+            };
+
+            if (Configuration.UseThreads.GetValueOrDefault(true)) {
+                Parallel.For(
+                    0, assemblies.Length, parallelOptions, writeAssembly
+                );
+            } else {
+                for (var i = 0; i < assemblies.Length; i++)
+                    writeAssembly(i);
+            }
 
             pr.OnFinished();
 
@@ -1191,8 +1216,15 @@ namespace JSIL {
                 );
                 JSFunctionExpression function = null;
 
-                if (FunctionCache.TryGetExpression(identifier, out function))
+                Console.WriteLine(
+                    "Translating '{0}'. Got MethodInfo '{1}'. Identifier is '{2}'.", 
+                    methodDef, methodInfo, identifier
+                );
+
+                if (FunctionCache.TryGetExpression(identifier, out function)) {
+                    Console.WriteLine("Cache hit: '{0}'", function);
                     return function;
+                }
 
                 if (methodInfo.IsExternal) {
                     FunctionCache.CreateNull(methodInfo, method, identifier);
@@ -1216,6 +1248,8 @@ namespace JSIL {
                             return originalType;
                     };
                 }
+
+                Console.WriteLine("MethodBody provided by '{0}'", bodyDef.FullName);
 
                 var pr = new ProgressReporter();
 

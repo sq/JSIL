@@ -20,7 +20,7 @@ namespace JSIL.Compiler {
             Uri pathUri;
             if (Uri.TryCreate(path, UriKind.Absolute, out pathUri)) {
                 var relativeUri = cwd.MakeRelativeUri(pathUri);
-                return Uri.UnescapeDataString(relativeUri.ToString()).Replace("/", "\\");
+                return Uri.UnescapeDataString(relativeUri.ToString()).Replace('/', Path.DirectorySeparatorChar);
             }
 
             return path;
@@ -56,13 +56,13 @@ namespace JSIL.Compiler {
         static string MapConfigPath (string reference, string configPath) {
             return reference
                 .Replace("%configpath%", configPath)
-                .Replace("/", "\\");
+                .Replace('/', Path.DirectorySeparatorChar);
         }
 
         static string MapAssemblyPath (string reference, string assemblyPath, bool ensureExists, bool reportErrors = false) {
             var result = reference
                 .Replace("%assemblypath%", assemblyPath)
-                .Replace("/", "\\");
+                .Replace('/', Path.DirectorySeparatorChar);
 
             if (ensureExists) {
                 if (!File.Exists(result)) {
@@ -453,7 +453,7 @@ namespace JSIL.Compiler {
 
                     var outputDir = MapAssemblyPath(localConfig.OutputDirectory, assemblyPath, false);
 
-                    Console.Error.WriteLine("// Saving output to '{0}'.", ShortenPath(outputDir) + "\\");
+                    Console.Error.WriteLine("// Saving output to '{0}'.", ShortenPath(outputDir) + Path.DirectorySeparatorChar);
 
                     // Ensures that the log file contains the name of the profile that was actually used.
                     localConfig.Profile = localProfile.GetType().Name;

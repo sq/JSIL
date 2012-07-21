@@ -198,6 +198,7 @@
     <None Include="SimpleTestCases\IntegerToStringNullFormat.cs" />
     <None Include="TestCases\DictionaryKeyValuePairs.cs" />
     <None Include="SpecialTestCases\AutoPropertyEfficiency.cs" />
+    <None Include="SimpleTestCases\ClassInheritance.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
