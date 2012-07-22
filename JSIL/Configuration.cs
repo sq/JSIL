@@ -55,6 +55,7 @@ namespace JSIL.Translator {
         public bool? UseDefaultProxies;
         public bool? GenerateSkeletonsForStubbedAssemblies;
         public bool? GenerateContentManifest;
+        public bool? RunBugChecks;
 
         public double? FrameworkVersion;
 
@@ -79,6 +80,8 @@ namespace JSIL.Translator {
                 result.GenerateSkeletonsForStubbedAssemblies = GenerateSkeletonsForStubbedAssemblies;
             if (GenerateContentManifest.HasValue)
                 result.GenerateContentManifest = GenerateContentManifest;
+            if (RunBugChecks.HasValue)
+                result.RunBugChecks = RunBugChecks;
 
             Assemblies.MergeInto(result.Assemblies);
             Optimizer.MergeInto(result.Optimizer);

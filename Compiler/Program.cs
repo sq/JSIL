@@ -105,6 +105,9 @@ namespace JSIL.Compiler {
                     {"nt|nothreads",
                         "Suppresses use of multiple threads to speed up the translation process.",
                         (b) => baseConfig.UseThreads = b == null },
+                    {"sbc|suppressbugcheck",
+                        "Suppresses JSIL bug checks that detect bugs in .NET runtimes and standard libraries.",
+                        (b) => baseConfig.RunBugChecks = b == null },
 
                     "Solution Builder options",
                     {"configuration=", 

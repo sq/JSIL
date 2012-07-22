@@ -73,6 +73,7 @@
     <Compile Include="AST\JSOperators.cs" />
     <Compile Include="AST\JSNodeTypes.cs" />
     <Compile Include="AST\JSStatementTypes.cs" />
+    <Compile Include="BugChecks.cs" />
     <Compile Include="CILSupport.cs" />
     <Compile Include="Configuration.cs" />
     <Compile Include="FunctionCache.cs" />

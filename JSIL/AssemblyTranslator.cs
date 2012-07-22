@@ -332,6 +332,11 @@ namespace JSIL {
         public TranslationResult Translate (
             string assemblyPath, bool scanForProxies = true
         ) {
+            if (Configuration.RunBugChecks.GetValueOrDefault(true))
+                BugChecks.RunBugChecks();
+            else
+                Console.Error.WriteLine("// WARNING: Bug checks have been suppressed. You may be running JSIL on a broken/unsupported .NET runtime.");
+
             var result = new TranslationResult(this.Configuration);
             var assemblies = LoadAssembly(assemblyPath);
             var parallelOptions = GetParallelOptions();
@@ -1216,13 +1221,7 @@ namespace JSIL {
                 );
                 JSFunctionExpression function = null;
 
-                Console.WriteLine(
-                    "Translating '{0}'. Got MethodInfo '{1}'. Identifier is '{2}'.", 
-                    methodDef, methodInfo, identifier
-                );
-
                 if (FunctionCache.TryGetExpression(identifier, out function)) {
-                    Console.WriteLine("Cache hit: '{0}'", function);
                     return function;
                 }
 
@@ -1248,8 +1247,6 @@ namespace JSIL {
                             return originalType;
                     };
                 }
-
-                Console.WriteLine("MethodBody provided by '{0}'", bodyDef.FullName);
 
                 var pr = new ProgressReporter();
 
