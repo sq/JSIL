@@ -65,6 +65,7 @@
     <None Include="AnalysisTestCases\MakeCopyBeforeMutation.cs" />
     <None Include="AnalysisTestCases\PointlessFinallyBlocks.cs" />
     <None Include="AnalysisTestCases\OptimizeArrayEnumerators.cs" />
+    <None Include="AnalysisTestCases\StructLoopInteraction.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />

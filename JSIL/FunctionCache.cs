@@ -127,8 +127,15 @@ namespace JSIL {
 
                 if (entry.Expression == null)
                     return null;
-                else
-                    entry.SecondPass = new FunctionAnalysis2ndPass(this, GetFirstPass(id));
+                else {
+                    var firstPass = GetFirstPass(id);
+                    try {
+                        entry.InProgress = true;
+                        entry.SecondPass = new FunctionAnalysis2ndPass(this, firstPass);
+                    } finally {
+                        entry.InProgress = false;
+                    }
+                }
             }
 
             return entry.SecondPass;

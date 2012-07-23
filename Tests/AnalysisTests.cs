@@ -344,5 +344,17 @@ namespace JSIL.Tests {
                 @"Dispose()"
             ), "Dispose was called");
         }
+
+        [Test]
+        public void StructLoopInteraction () {
+            var output = "0\r\n1\r\n2";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\StructLoopInteraction.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
     }
 }

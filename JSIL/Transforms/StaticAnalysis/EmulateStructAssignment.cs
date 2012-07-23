@@ -244,12 +244,12 @@ namespace JSIL.Transforms {
                 GenericParameter relevantParameter;
                 if (IsParameterCopyNeeded(sa, parameterName, argument, out relevantParameter)) {
                     if (Tracing)
-                        Debug.WriteLine(String.Format("struct copy introduced for argument {0}", argument));
+                        Debug.WriteLine(String.Format("struct copy introduced for argument #{0}: {1}", i, argument));
 
                     invocation.Arguments[i] = MakeCopyForExpression(argument, relevantParameter);
                 } else {
-                    if (Tracing)
-                        Debug.WriteLine(String.Format("struct copy elided for argument {0}", argument));
+                    if (Tracing && TypeUtil.IsStruct(argument.GetActualType(TypeSystem)))
+                        Debug.WriteLine(String.Format("struct copy elided for argument #{0}: {1}", i, argument));
                 }
             }
 
@@ -263,7 +263,7 @@ namespace JSIL.Transforms {
                 GenericParameter relevantParameter;
                 if (IsCopyNeeded(argument, out relevantParameter)) {
                     if (Tracing)
-                        Debug.WriteLine(String.Format("struct copy introduced for argument {0}", argument));
+                        Debug.WriteLine(String.Format("struct copy introduced for argument argument #{0}: {1}", i, argument));
 
                     invocation.Arguments[i] = MakeCopyForExpression(argument, relevantParameter);
                 }

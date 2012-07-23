@@ -610,6 +610,29 @@ namespace JSIL.Transforms {
                 }
             } else {
                 EscapingVariables = Data.EscapingVariables;
+
+                // Scan over all the invocations performed by this function and see if any of them cause
+                //  a variable to escape
+                FunctionAnalysis2ndPass invocationSecondPass;
+                foreach (var invocation in Data.Invocations) {
+                    if (invocation.Method != null)
+                        invocationSecondPass = functionSource.GetSecondPass(invocation.Method);
+                    else
+                        invocationSecondPass = null;
+
+                    foreach (var invocationKvp in invocation.Variables) {
+                        bool escapes;
+
+                        if (invocationSecondPass != null)
+                            escapes = invocationSecondPass.EscapingVariables.Contains(invocationKvp.Key);
+                        else
+                            escapes = true;
+                        
+                        if (escapes)
+                            foreach (var variableName in invocationKvp.Value)
+                                Data.EscapingVariables.Add(variableName);
+                    }
+                }
             }
 
             ResultVariable = Data.ResultVariable;
