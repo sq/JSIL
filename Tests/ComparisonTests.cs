@@ -85,6 +85,19 @@ namespace JSIL.Tests {
                 }, MakeDefaultProvider(), new AssemblyCache()
             );
         }
+        
+        [Test]
+        [TestCaseSource("Int64Source")]
+        public void Int64 (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
+
+        protected IEnumerable<TestCaseData> Int64Source() {
+            return FilenameTestSource(
+                new[] { 
+                    @"Int64TestCases\Int64.cs"
+                }, MakeDefaultProvider(), new AssemblyCache());
+        }
 
         [Test]
         [TestCaseSource("GenericsSource")]
