@@ -98,26 +98,18 @@ namespace JSIL.Transforms {
                 TypeUtil.IsNumeric(currentType)
             ) {
                 if (currentType == TypeSystem.Int64) {
-                    if (TypeUtil.IsIntegral(targetType)) {
-                        newExpression = JSInvocationExpression
-                            .InvokeMethod(TypeSystem.Int64, new JSFakeMethod("toInt", TypeSystem.Int32, new TypeReference[] { }, MethodTypeFactory), ce.Expression);
-                    }
-                    else {
-                        newExpression = JSInvocationExpression
-                            .InvokeMethod(TypeSystem.Int64, new JSFakeMethod("toNumber", TypeSystem.Double, new TypeReference[] { }, MethodTypeFactory), ce.Expression);
-                    }
+                    newExpression = JSInvocationExpression
+                        .InvokeMethod(
+                            TypeSystem.Int64, 
+                            new JSFakeMethod("ToNumber", TypeSystem.Int32, new TypeReference[] { }, MethodTypeFactory), 
+                            ce.Expression);
                 }
                 else if (targetType == TypeSystem.Int64) {
-                    if (TypeUtil.IsIntegral(currentType)) {
-                        newExpression = JSInvocationExpression.InvokeStatic(
-                            JSAstBuilder.StringIdentifier("goog").Dot("math").Dot("Long").FakeMethod("fromInt", TypeSystem.Int64, new[] { currentType }, MethodTypeFactory).GetExpression(),
-                            new[] { ce.Expression });
-                    }
-                    else {
-                        newExpression = JSInvocationExpression.InvokeStatic(
-                            JSAstBuilder.StringIdentifier("goog").Dot("math").Dot("Long").FakeMethod("fromNumber", TypeSystem.Int64, new[] { currentType }, MethodTypeFactory).GetExpression(),
-                            new[] { ce.Expression });
-                    }
+                    newExpression = JSInvocationExpression.InvokeStatic(
+                        new JSType(TypeSystem.Int64),
+                        new JSFakeMethod("FromNumber", TypeSystem.Int64, new[] { currentType }, MethodTypeFactory),
+                        new[] { ce.Expression },
+                        true);
                 }
                 else if (
                     TypeUtil.IsIntegral(currentType) ||

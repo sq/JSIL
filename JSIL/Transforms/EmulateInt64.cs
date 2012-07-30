@@ -13,20 +13,43 @@ namespace JSIL.Transforms
         private readonly TypeSystem TypeSystem;
         private readonly MethodTypeFactory MethodTypeFactory;
 
-        public readonly JSAstBuilder googMathLong;
-        public readonly JSExpression fromString;
-        public readonly JSExpression fromNumber;
-        public readonly JSExpression fromInt;
+        private readonly JSType int64;
+        private readonly JSExpression int64Create;
+        private readonly JSDotExpression int64FromNumber;
+        private readonly JSDotExpression int64FromInt;
 
         public EmulateInt64(MethodTypeFactory methodTypeFactory, TypeSystem typeSystem)
         {
             TypeSystem = typeSystem;
             MethodTypeFactory = methodTypeFactory;
 
-            googMathLong = JSAstBuilder.StringIdentifier("goog").Dot("math").Dot("Long");
-            fromString = googMathLong.FakeMethod("fromString", TypeSystem.Int64, new [] { TypeSystem.String }, MethodTypeFactory).GetExpression();
-            fromNumber = googMathLong.FakeMethod("fromNumber", TypeSystem.Int64, new [] { TypeSystem.Double }, MethodTypeFactory).GetExpression();
-            fromInt = googMathLong.FakeMethod("fromInt", TypeSystem.Int64, new [] { TypeSystem.Double }, MethodTypeFactory).GetExpression();
+            int64 = new JSType(TypeSystem.Int64);
+            
+            int64Create = new JSDotExpression(int64, 
+                new JSFakeMethod("Create", TypeSystem.Int64,
+                    new[] { TypeSystem.UInt32, TypeSystem.UInt32, TypeSystem.UInt32 }, MethodTypeFactory));
+            
+            int64FromNumber = new JSDotExpression(int64,
+                new JSFakeMethod("FromNumber", TypeSystem.Int64,
+                    new[] { TypeSystem.Double }, MethodTypeFactory));
+
+            int64FromInt = new JSDotExpression(int64,
+                new JSFakeMethod("FromNumber", TypeSystem.Int64,
+                    new[] { TypeSystem.Int32 }, MethodTypeFactory));
+        }
+
+        private JSInvocationExpression GetLiteral(long number)
+        {
+            uint a = (uint)(number & 0xffffff);
+            uint b = (uint)((number >> 24) & 0xffffff);
+            uint c = (uint)((number >> 48) & 0xffff);
+            return JSInvocationExpression
+                .InvokeStatic(int64Create,
+                    new JSExpression[]{ 
+                        new JSIntegerLiteral((long)a, typeof(uint)),
+                        new JSIntegerLiteral((long)b, typeof(uint)),
+                        new JSIntegerLiteral((long)c, typeof(uint))
+                    });
         }
 
         public void VisitNode(JSIntegerLiteral literal)
@@ -35,17 +58,7 @@ namespace JSIL.Transforms
             {
                 JSExpression expression;
 
-                if (literal.Value >= int.MaxValue / 2 ||
-                    literal.Value <= int.MinValue / 2)
-                {
-                    // TODO: use constructor instead of fromString
-
-                    expression = GetLiteral(literal.Value);
-                }
-                else
-                {
-                    expression = JSInvocationExpression.InvokeStatic(fromInt, new[] { literal });
-                }
+                expression = GetLiteral(literal.Value);
 
                 ParentNode.ReplaceChild(literal, expression);
             }
@@ -61,10 +74,10 @@ namespace JSIL.Transforms
                 switch (uoe.Operator.Token)
                 {
                     case "-":
-                        verb = "negate";
+                        verb = "op_UnaryNegation";
                         break;
                     case "~":
-                        verb = "not";
+                        verb = "op_OnesComplement";
                         break;
                     default:
                         throw new NotSupportedException();
@@ -72,17 +85,12 @@ namespace JSIL.Transforms
 
                 if (verb != null)
                 {
-                    var method = new JSFakeMethod(verb, TypeSystem.Int64, new[] { TypeSystem.Int64 }, MethodTypeFactory);
+                    var method = new JSDotExpression(int64, new JSFakeMethod(verb, TypeSystem.Int64, new[] { TypeSystem.Int64 }, MethodTypeFactory));
                     ParentNode.ReplaceChild(uoe,
-                        JSInvocationExpression.InvokeMethod(method, uoe.Expression));
+                        JSInvocationExpression.InvokeStatic(method, new [] { uoe.Expression }));
                     return;
                 }
             }
-        }
-
-        private JSExpression GetLiteral(long p)
-        {
-            return JSInvocationExpression.InvokeStatic(fromString, new[] { new JSStringLiteral(p.ToString()) });
         }
 
         public void VisitNode(JSBinaryOperatorExpression boe)
@@ -90,7 +98,7 @@ namespace JSIL.Transforms
             var leftType = boe.Left.GetActualType(TypeSystem);
             var rightType = boe.Right.GetActualType(TypeSystem);
 
-            var int64 = TypeSystem.Int64;
+            var int64Type = TypeSystem.Int64;
 
             TypeReference expectedType;
             try
@@ -104,7 +112,7 @@ namespace JSIL.Transforms
                 expectedType = null;
             }
 
-            if (boe.Operator.Token == "=" || (leftType != int64 && rightType != int64 && expectedType != int64))
+            if (boe.Operator.Token == "=" || (leftType != int64Type && rightType != int64Type && expectedType != int64Type))
             {
                 // we have nothing to do
 
@@ -112,15 +120,15 @@ namespace JSIL.Transforms
 
                 return; // just to make sure
             }
-            else if (leftType != int64 && rightType != int64)
+            else if (leftType != int64Type && rightType != int64Type)
             {
                 // expectedType is int64, but not the operands -> convert 
 
-                var replacement = JSInvocationExpression.InvokeStatic(fromNumber, new[] { boe });
+                var replacement = JSInvocationExpression.InvokeStatic(int64FromNumber, new[] { boe });
                 ParentNode.ReplaceChild(boe, replacement);
                 VisitChildren(boe);
             }
-            else if (leftType == int64 || rightType == int64)
+            else if (leftType == int64Type || rightType == int64Type)
             {
                 var verb = GetVerb(boe.Operator);
 
@@ -146,13 +154,14 @@ namespace JSIL.Transforms
                 var right = GetExpression(boe.Right);
 
                 var replacement = JSInvocationExpression
-                    .InvokeMethod(TypeSystem.Int64, method, left, new[] { right });
+                    .InvokeStatic(int64, method, new[] { left, right }, true);
 
                 // TODO: investigate why this is still needed
                 if (IsLesserIntegral(expectedType))
                 {
-                    replacement = JSInvocationExpression
-                        .InvokeMethod(TypeSystem.Int64, new JSFakeMethod("toInt", expectedType, new TypeReference[] {}, MethodTypeFactory), replacement);
+                    throw new NotImplementedException();
+                    //replacement = JSInvocationExpression
+                    //    .InvokeMethod(TypeSystem.Int64, new JSFakeMethod("toInt", expectedType, new TypeReference[] {}, MethodTypeFactory), replacement);
                 }
 
                 ParentNode.ReplaceChild(boe, replacement);
@@ -173,15 +182,15 @@ namespace JSIL.Transforms
                 return expression;
             }
 
-            JSAstBuilder conversionMethod = null;
+            JSExpression conversionMethod = null;
 
             if (IsLesserIntegral(type))
             {
-                conversionMethod = googMathLong.FakeMethod("fromInt", TypeSystem.Int64, new [] { type }, MethodTypeFactory);
+                conversionMethod = int64FromInt;
             }
             else if (type == TypeSystem.UInt64 || type == TypeSystem.Double || type == TypeSystem.Single)
             {
-                conversionMethod = googMathLong.FakeMethod("fromNumber", TypeSystem.Int64, new[] { type }, MethodTypeFactory);
+                conversionMethod = int64FromNumber;
             }
             else
             {
@@ -194,7 +203,7 @@ namespace JSIL.Transforms
             }
 
             return JSInvocationExpression
-                .InvokeStatic(conversionMethod.GetExpression(), new[] { expression });
+                .InvokeStatic(conversionMethod, new[] { expression }, true);
         }
 
         private bool IsLesserIntegral(TypeReference type)
@@ -211,24 +220,25 @@ namespace JSIL.Transforms
         {
             switch (op.Token)
             {
-                case "+": return "add";
-                case "-": return "subtract";
-                case "/": return "div";
-                case "*": return "multiply";
-                case "%": return "modulo";
-                case "|": return "or";
-                case "&": return "and";
-                case "<<": return "shiftLeft";
+                case "+": return "op_Addition";
+                case "-": return "op_Subtraction";
+                case "/": return "op_Division";
+                case "*": return "op_Multiplication";
+                case "%": return "op_Modulus";
+                case "|": return "op_BitwiseOr";
+                case "^": return "op_ExclusiveOr";
+                case "&": return "op_BitwiseAnd";
+                case "<<": return "op_LeftShift";
                 case ">>":
                 case ">>>":
-                    return "shiftRight";
+                    return "op_RightShift";
 
-                case "===": return "equals";
-                case "!==": return "notEquals";
-                case "<": return "lessThan";
-                case "<=": return "lessThanOrEqual";
-                case ">": return "greaterThan";
-                case ">=": return "greaterThanOrEqual";
+                case "===": return "op_Equality";
+                case "!==": return "op_Inequality";
+                case "<": return "op_LessThan";
+                case "<=": return "op_LessThanOrEqual";
+                case ">": return "op_GreaterThan";
+                case ">=": return "op_GreaterThanOrEqual";
 
                 default:
                     return null;
