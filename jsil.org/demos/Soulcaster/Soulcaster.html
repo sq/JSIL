@@ -1,7 +1,7 @@
 <!DOCTYPE html> 
 <html>
   <head>
-    <title>Soulcaster 2</title>
+    <title>Soulcaster 1</title>
 
     <link rel="stylesheet" href="../Common/browser.css">
     <link rel="stylesheet" href="Soulcaster.css">
@@ -12,14 +12,13 @@
     <script type="text/javascript">
       var jsilConfig = {
         printStackTrace: false,
-        webgl2d: true,
         winForms: true,
         xna: 4,
         localStorage: true,
 
         manifests: [
-          "Soulcaster2.exe",
-          "Soulcaster2Content.contentproj"
+          "Soulcaster.exe",
+          "Soulcaster1Content.contentproj"
         ],
         
         showProgressBar: true,
@@ -29,8 +28,8 @@
     </script>
     <script src="../Libraries/JSIL.js" type="text/javascript"></script>
     
-    <!-- 352x272 -->
-    <canvas id="canvas" width="704" height="544">
+    <!-- 320x240 -->
+    <canvas id="canvas" width="640" height="480">
     </canvas><br>
 
     <div id="welcomeMessage">
@@ -44,8 +43,8 @@
     <script type="text/javascript">
       var scriptRoot = "";
       var libraryRoot = "../Libraries/";
-      var fileRoot = "Soulcaster2Content/";
-      var contentRoot = "Soulcaster2Content/";
+      var fileRoot = "Soulcaster1Content/";
+      var contentRoot = "Soulcaster1Content/";
       
       var assetsToLoad = [
         // Used to read the levels
@@ -64,11 +63,11 @@
         overrideFullscreenBaseSize = [352, 272]
 
         // Set up the localStorage backend
-        JSIL.LocalStorage.Initialize("Soulcaster2");
+        JSIL.LocalStorage.Initialize("Soulcaster");
 
         // We can't invoke Main() since it disposes the Game immediately, breaking everything.
-        var asm = JSIL.GetAssembly("Soulcaster2");
-        var game = new asm.Tarchon.SoulcasterTwo();
+        var asm = JSIL.GetAssembly("Soulcaster", true);
+        var game = new asm.Tarchon.SoulcasterOne();
         game.Run();
       };
     </script>

@@ -35,4 +35,59 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
     }
+
+    [JSProxy(
+        new[] {
+            "System.Collections.ArrayList",
+            "System.Collections.Generic.List`1",
+            "System.Collections.Generic.Stack`1",
+            "System.Collections.Generic.Queue`1"
+        },
+        memberPolicy: JSProxyMemberPolicy.ReplaceNone,
+        inheritable: true
+    )]
+    public abstract class CollectionProxy2<T> : IEnumerable {
+        [JSUnderlyingArray("_items", "_size")]
+        System.Collections.IEnumerator IEnumerable.GetEnumerator () {
+            throw new InvalidOperationException();
+        }
+
+        [JSUnderlyingArray("_items", "_size")]
+        public AnyType GetEnumerator () {
+            throw new InvalidOperationException();
+        }
+    }
+
+    [JSProxy(
+        new[] {
+            "System.Collections.ArrayList/ArrayListEnumerator",
+            "System.Collections.Hashtable/HashtableEnumerator",
+            "System.Collections.Generic.List`1/Enumerator",
+            "System.Collections.Generic.Stack`1/Enumerator",
+            "System.Collections.Generic.Queue`1/Enumerator",
+            "System.Collections.Generic.HashSet`1/Enumerator",
+            "System.Collections.Generic.Dictionary`2/Enumerator",
+            "System.Collections.Generic.Dictionary`2/KeyCollection/Enumerator",
+            "System.Collections.Generic.Dictionary`2/ValueCollection/Enumerator"
+        },
+        memberPolicy: JSProxyMemberPolicy.ReplaceNone,
+        inheritable: false
+    )]
+    [JSPureDispose]
+    public abstract class CollectionEnumeratorProxy {
+    }
+
+    [JSProxy(
+        new[] {
+            "System.Collections.ArrayList/ArrayListEnumerator",
+            "System.Collections.Generic.List`1/Enumerator",
+            "System.Collections.Generic.Stack`1/Enumerator",
+            "System.Collections.Generic.Queue`1/Enumerator",
+        },
+        memberPolicy: JSProxyMemberPolicy.ReplaceNone,
+        inheritable: false
+    )]
+    [JSIsArrayEnumerator("_array", "_index", "_length")]
+    public abstract class ArrayEnumeratorProxy {
+    }
 }

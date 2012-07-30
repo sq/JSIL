@@ -980,7 +980,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ArrayReader`1", functio
     function Read (input, existingInstance) {
       var count = input.ReadInt32();
       if (existingInstance === null) {
-        existingInstance = new Array(count);
+        existingInstance = JSIL.Array.New(this.T, count);
       }
 
       for (var i = 0; i < count; i++) {
@@ -1312,7 +1312,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentReader", functio
     function () {
       var length = this.Read7BitEncodedInt();
       var chars = this.ReadBytes(length);
-      return String.fromCharCode.apply(String, chars);
+      return JSIL.StringFromByteArray(chars);
     }
   );
 
@@ -2116,15 +2116,15 @@ var vectorUtil = {
 
   makeConstants: function ($, tVector, constants) {
     var makeGetter = function (values) {
-      var state = [null];
+      var state = null;
 
       return function () {
-        if (state[0] === null)
-          state[0] = JSIL.CreateInstanceOfType(
+        if (state === null)
+          state = JSIL.CreateInstanceOfType(
             tVector.get().__Type__, values
           );
 
-        return state[0];
+        return state;
       }
     };
 
@@ -2903,7 +2903,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     (new JSIL.MethodSignature($xnaasms[1].TypeRef("Microsoft.Xna.Framework.GameWindow"), [], [])), 
     function get_Window () {
       // FIXME
-      return Object.create(Microsoft.Xna.Framework.GameWindow.prototype);
+      if (!this._window)
+        this._window = new Microsoft.Xna.Framework.GameWindow();
+
+      return this._window;
     }
   );
 
@@ -3031,6 +3034,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     Static: false,
     Public: true
   }, "Run", new JSIL.MethodSignature(null, [], []), function () {
+    this._profilingMode = (document.location.search.indexOf("profile") >= 0);
+    this._balanceFPSCheckbox = (document.getElementById("balanceFramerate") || null);
+    if (this._balanceFPSCheckbox)
+      this._balanceFPSCheckbox.checked = !this._profilingMode;
+
     Microsoft.Xna.Framework.Game._QuitForced = false;
     this.Initialize();
     this._QueueStep();
@@ -3045,7 +3053,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   });
 
   $.RawMethod(false, "_QueueStep", function Game_EnqueueTick () {
-    if (Microsoft.Xna.Framework.Game._QuitForced) return;
+    if (Microsoft.Xna.Framework.Game._QuitForced || this._isDead) 
+      return;
 
     var self = this;
     var stepCallback = self._Step.bind(self);
@@ -3079,7 +3088,88 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     }
   });
 
-  $.RawMethod(false, "_Step", function Game_Tick () {
+  $.RawMethod(false, "_TimedUpdate", function Game_TimedUpdate (longFrame) {
+    var updateStarted = this._GetNow();
+    this.Update(this._gameTime);
+    var updateEnded = this._GetNow();
+
+    // Detect long updates and suppress frameskip.
+    if ((updateEnded - updateStarted) > longFrame) {
+      this.suppressFrameskip = true;
+    }
+    
+    this._updateCount += 1;
+  });
+
+  $.RawMethod(false, "_ReportFPS", function Game_ReportFPS (now) {
+    this._lastSecond = now;
+    
+    if (typeof (JSIL.Host.reportFps) === "function") {
+      var isWebGL = this.graphicsDeviceService.GraphicsDevice.context.isWebGL || false;
+      var cacheBytes = ($jsilxna.imageChannelCache.countBytes + $jsilxna.textCache.countBytes);
+
+      JSIL.Host.reportFps(
+        this._drawCount, this._updateCount, 
+        cacheBytes, isWebGL
+      );
+    }
+
+    this._updateCount = this._drawCount = 0;
+  });
+
+  $.RawMethod(false, "_FixedTimeStep", function Game_FixedTimeStep (
+    elapsed, frameDelay, millisecondInTicks, maxElapsedTimeMs, longFrame
+  ) {
+    this._gameTime.elapsedGameTime._ticks = (frameDelay * millisecondInTicks);
+
+    elapsed += this._extraTime;
+    this._extraTime = 0;
+
+    if (elapsed > maxElapsedTimeMs) 
+      elapsed = maxElapsedTimeMs;
+
+    var numFrames = Math.floor(elapsed / frameDelay);
+    if (numFrames < 1) {
+      numFrames = 1;
+      this._extraTime = elapsed - frameDelay;
+    } else {
+      this._extraTime = elapsed - (numFrames * frameDelay);
+    }
+
+    for (var i = 0; i < numFrames; i++) {
+      this._gameTime.totalGameTime._ticks += (frameDelay * millisecondInTicks);
+
+      this._TimedUpdate(longFrame);
+    }
+  });
+
+  $.RawMethod(false, "_VariableTimeStep", function Game_VariableTimeStep (
+    elapsed, frameDelay, millisecondInTicks, maxElapsedTimeMs, longFrame
+  ) {
+    this._extraTime = 0;
+    this.suppressFrameskip = false;
+
+    if (elapsed > maxElapsedTimeMs)
+      elapsed = maxElapsedTimeMs;
+
+    this._gameTime.elapsedGameTime._ticks = (elapsed * millisecondInTicks);
+    this._gameTime.totalGameTime._ticks += (elapsed * millisecondInTicks);
+
+    this._TimedUpdate(longFrame);
+  });
+
+  $.RawMethod(false, "_RenderAFrame", function Game_RenderAFrame () {
+    var device = this.get_GraphicsDevice();
+
+    device.$UpdateViewport();      
+    device.$Clear();
+
+    this.Draw(this._gameTime);
+
+    this._drawCount += 1;
+  });
+
+  $.RawMethod(false, "_Step", function Game_Step () {
     var now = this._GetNow();
 
     var frameDelay = this.targetElapsedTime.get_TotalMilliseconds();
@@ -3097,21 +3187,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       var total = now - this._started;
     }
 
-    if ((now - this._lastSecond) > 1000) {
-      this._lastSecond = now;
-      
-      if (typeof (JSIL.Host.reportFps) === "function") {
-        var isWebGL = this.graphicsDeviceService.GraphicsDevice.context.isWebGL || false;
-        var cacheBytes = ($jsilxna.imageChannelCache.countBytes + $jsilxna.textCache.countBytes);
-
-        JSIL.Host.reportFps(
-          this._drawCount, this._updateCount, 
-          cacheBytes, isWebGL
-        );
-      }
-
-      this._updateCount = this._drawCount = 0;
-    }
+    if ((now - this._lastSecond) > 1000)
+      this._ReportFPS(now);
 
     if (this.forceElapsedTimeToZero) {
       this.forceElapsedTimeToZero = false;
@@ -3123,68 +3200,24 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     this._nextFrame = now + frameDelay;
 
     var millisecondInTicks = 10000;
-    var maxElapsedTimeMs = 150;
+    var maxElapsedTimeMs = frameDelay * 4;
     var longFrame = frameDelay * 3;
+
+    this._profilingMode = (document.location.search.indexOf("profile") >= 0);
+    if (this._balanceFPSCheckbox)
+      this._profilingMode = !this._balanceFPSCheckbox.checked;
 
     var failed = true;
     try {
 
-      var doUpdate = function Game_TimedUpdate () {
-        var updateStarted = this._GetNow();
-        this.Update(this._gameTime);
-        var updateEnded = this._GetNow();
-
-        // Detect long updates and suppress frameskip.
-        if ((updateEnded - updateStarted) > longFrame) {
-          this.suppressFrameskip = true;
-        }
-      }.bind(this);
-
-      if (this.isFixedTimeStep && !this.suppressFrameskip) {
-        this._gameTime.elapsedGameTime._ticks = (frameDelay * millisecondInTicks);
-
-        elapsed += this._extraTime;
-        this._extraTime = 0;
-
-        if (elapsed > maxElapsedTimeMs) 
-          elapsed = maxElapsedTimeMs;
-
-        var numFrames = Math.floor(elapsed / frameDelay);
-        if (numFrames < 1) {
-          numFrames = 1;
-          this._extraTime = elapsed - frameDelay;
-        } else {
-          this._extraTime = elapsed - (numFrames * frameDelay);
-        }
-
-        for (var i = 0; i < numFrames; i++) {
-          this._gameTime.totalGameTime._ticks += (frameDelay * millisecondInTicks);
-
-          doUpdate();
-          this._updateCount += 1;
-        }
+      if (this.isFixedTimeStep && !this.suppressFrameskip && !this._profilingMode) {
+        this._FixedTimeStep(elapsed, frameDelay, millisecondInTicks, maxElapsedTimeMs, longFrame);
       } else {
-        this._extraTime = 0;
-        this.suppressFrameskip = false;
-
-        if (elapsed > maxElapsedTimeMs)
-          elapsed = maxElapsedTimeMs;
-
-        this._gameTime.elapsedGameTime._ticks = (elapsed * millisecondInTicks);
-        this._gameTime.totalGameTime._ticks += (elapsed * millisecondInTicks);
-
-        doUpdate();
-        this._updateCount += 1;
+        this._VariableTimeStep(elapsed, frameDelay, millisecondInTicks, maxElapsedTimeMs, longFrame);
       }
 
-      var device = this.get_GraphicsDevice();
+      this._RenderAFrame();
 
-      device.$UpdateViewport();      
-      device.$Clear();
-
-      this.Draw(this._gameTime);
-
-      this._drawCount += 1;
       failed = false;
     } finally {
       if (failed || Microsoft.Xna.Framework.Game._QuitForced) 
@@ -3205,12 +3238,34 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
     Static: false,
     Public: true
   }, "Dispose", new JSIL.MethodSignature(null, [], []), function () {
-    if (this._runHandle !== null) window.clearInterval(this._runHandle);
+    if (this._runHandle !== null) 
+      window.clearInterval(this._runHandle);
 
     this._runHandle = null;
     this.UnloadContent();
 
     this._isDead = true;
+
+    try {
+      var canvas = JSIL.Host.getCanvas();      
+      var ctx = canvas.getContext("2d") || canvas.getContext("webgl-2d");
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = "black";
+      ctx.fillRect(0, 0, 99999, 99999);
+
+      canvas.style.display = "none";
+
+      var fsb = document.getElementById("fullscreenButton");
+      if (fsb)
+        fsb.style.display = "none";
+
+      var stats = document.getElementById("stats");
+      if (stats)
+        stats.style.display = "none";
+    } catch (exc) {
+    }
   });
 });
 
@@ -3363,7 +3418,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.KeyboardState", function 
       this.keys = [];
 
       for (var i = 0; i < keys.length; i++)
-        this.keys.push(Number(keys[i]));
+        this.keys.push(keys[i].valueOf());
     }
   );
 
@@ -3389,7 +3444,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.KeyboardState", function 
       if (!this.keys)
         return false;
 
-      return this.keys.indexOf(Number(key)) !== -1;
+      return this.keys.indexOf(key.valueOf()) !== -1;
     }
   );
 
@@ -3399,7 +3454,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.KeyboardState", function 
       if (!this.keys)
         return true;
 
-      return this.keys.indexOf(Number(key)) === -1;
+      return this.keys.indexOf(key.valueOf()) === -1;
     }
   );
 });
@@ -3960,9 +4015,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
         y < this.Y + this.Height;
     }
   );
-  $.Method({Static:false, Public:true }, "Contains", 
+  
+  $.Method({Static:false, Public:true }, "ContainsPoint", 
     (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Point")], [])), 
-    function Contains (value) {
+    function ContainsPoint (value) {
       return this.X <= value.X && 
         value.X < this.X + this.Width && 
         this.Y <= value.Y && 
@@ -3970,9 +4026,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Rectangle", function ($) {
     }
   );
 
-  $.Method({Static:false, Public:true }, "Contains", 
+  $.Method({Static:false, Public:true }, "ContainsRectangle", 
     (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle")], [])), 
-    function Contains (value) {
+    function ContainsRectangle (value) {
       return this.X <= value.X && 
         value.X + value.Width <= this.X + this.Width && 
         this.Y <= value.Y && 
@@ -4423,6 +4479,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       this.oldBlendState = null;
       this.isWebGL = false;
       this.spriteEffects = Microsoft.Xna.Framework.Graphics.SpriteEffects;
+      this.flipHorizontally = this.spriteEffects.FlipHorizontally.value;
+      this.flipVertically = this.spriteEffects.FlipVertically.value;
     }
   );
 
@@ -4430,8 +4488,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
     this.device = spriteBatch.device;
     this.defer = false;
     this.deferSorter = null;
+    this.oldBlendState = null;
     this.isWebGL = spriteBatch.isWebGL;
     this.spriteEffects = spriteBatch.spriteEffects;
+    this.flipHorizontally = spriteBatch.flipHorizontally;
+    this.flipVertically = spriteBatch.flipVertically;
   });
 
   $.RawMethod(false, "$applyBlendState", function () {
@@ -4466,7 +4527,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       this.samplerState = samplerState;
 
       var textureIndex = 0;
-      var depthIndex = 16;
 
       if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.Immediate) {
         this.defer = false;
@@ -4475,18 +4535,18 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.BackToFront) {
         this.defer = true;
         this.deferSorter = function Sort_BackToFront (lhs, rhs) {
-          var result = -JSIL.CompareValues(lhs.depth, rhs.depth);
+          var result = rhs.depth - lhs.depth;
           if (result === 0)
-            result = JSIL.CompareValues(lhs.index, rhs.index);
+            result = rhs.index - lhs.index;
 
           return result;
         };
       } else if (sortMode === Microsoft.Xna.Framework.Graphics.SpriteSortMode.FrontToBack) {
         this.defer = true;
         this.deferSorter = function Sort_FrontToBack (lhs, rhs) {
-          var result = JSIL.CompareValues(lhs.depth, rhs.depth);
+          var result = lhs.depth - rhs.depth;
           if (result === 0)
-            result = JSIL.CompareValues(lhs.index, rhs.index);
+            result = rhs.index - lhs.index;
 
           return result;
         };
@@ -4566,7 +4626,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         entry = {
           function: null,
           index: 0,
-          depth: 0,
+          depth: 0.0,
           texture: null,
           pool: null,
           arguments: new Array(17)
@@ -4628,7 +4688,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         entry = {
           function: null,
           index: 0,
-          depth: 0,
+          depth: 0.0,
           texture: null,
           pool: null,
           arguments: new Array(12)
@@ -4983,25 +5043,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       var originalImage = image;
       var context = this.device.context;
 
-      if (effects) {
-        if (effects & this.spriteEffects.FlipHorizontally) {
-          if (!needRestore) 
-            this.$save();
-          needRestore = true;
-
-          context.scale(-1, 1);
-          positionX = -positionX;
-        }
-
-        if (effects & this.spriteEffects.FlipVertically) {
-          if (!needRestore) 
-            this.$save();
-          needRestore = true;
-
-          context.scale(1, -1);
-          positionY = -positionY;
-        }
-      }
+      var originalPositionX = positionX, originalPositionY = positionY;
 
       positionX -= originX;
       positionY -= originY;
@@ -5071,6 +5113,28 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         context.translate(positionX + originX, positionY + originY);
         context.rotate(rotation);
         context.translate(-positionX - originX, -positionY - originY);
+      }
+
+      if (effects) {
+        effects = effects.value;
+        
+        if (effects & this.flipHorizontally) {
+          if (!needRestore) 
+            this.$save();
+          needRestore = true;
+
+          context.scale(-1, 1);
+          positionX -= originalPositionX * 2;
+        }
+
+        if (effects & this.flipVertically) {
+          if (!needRestore) 
+            this.$save();
+          needRestore = true;
+
+          context.scale(1, -1);
+          positionY -= originalPositionY * 2;
+        }
       }
 
       if ((scaleX !== 1.0) || (scaleY !== 1.0)) {
@@ -5431,7 +5495,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
     }
   );
 
-  $.RawMethod(false, "$UpdateBlendState", function () {
+  $.RawMethod(false, "$UpdateBlendState", function GraphicsDevice_$UpdateBlendState () {
     if (this.blendState === Microsoft.Xna.Framework.Graphics.BlendState.Opaque) {
       this.context.globalCompositeOperation = "copy";
     } else if (this.blendState === Microsoft.Xna.Framework.Graphics.BlendState.Additive) {
@@ -5441,7 +5505,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
     }
   });
 
-  $.RawMethod(false, "$UpdateViewport", function () {
+  $.RawMethod(false, "$UpdateViewport", function GraphicsDevice_$UpdateViewport () {
     this.context.setTransform(1, 0, 0, 1, 0, 0);
 
     var scaleX = 1, scaleY = 1;
@@ -5468,7 +5532,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
     this.context.scale(scaleX, scaleY);
   });
 
-  $.RawMethod(false, "$Clear", function (colorCss) {
+  $.RawMethod(false, "$Clear", function GraphicsDevice_$Clear (colorCss) {
     this.context.save();
     this.context.setTransform(1, 0, 0, 1, 0, 0);
     this.context.globalCompositeOperation = "copy";
@@ -5478,13 +5542,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
     this.context.restore();
   });
 
-  $.RawMethod(false, "InternalClear", function (color) {
+  $.RawMethod(false, "InternalClear", function GraphicsDevice_InternalClear (color) {
     this.$Clear(color.toCss());
   });
 
   var warnedTypes = {};
 
-  $.RawMethod(false, "InternalDrawUserPrimitives", function (T, primitiveType, vertices, vertexOffset, primitiveCount) {
+  $.RawMethod(false, "InternalDrawUserPrimitives", function GraphicsDevice_InternalDrawUserPrimitives (T, primitiveType, vertices, vertexOffset, primitiveCount) {
     switch (primitiveType) {
     case Microsoft.Xna.Framework.Graphics.PrimitiveType.LineList:
       for (var i = 0; i < primitiveCount; i++) {
@@ -6547,7 +6611,7 @@ $jsilxna.makePixelWriter = function (buffer, width, x, y) {
 
 $jsilxna.DecodeDxt1 = function (width, height, bytes, offset, count) {
   var totalSizeBytes = width * height * 4;
-  var result = new Array(totalSizeBytes);
+  var result = JSIL.Array.New(System.Byte, totalSizeBytes);
 
   var blockCountX = Math.floor((width + 3) / 4);
   var blockCountY = Math.floor((height + 3) / 4);
@@ -6571,7 +6635,7 @@ $jsilxna.DecodeDxt1 = function (width, height, bytes, offset, count) {
 
 $jsilxna.DecodeDxt3 = function (width, height, bytes, offset, count) {
   var totalSizeBytes = width * height * 4;
-  var result = new Array(totalSizeBytes);
+  var result = JSIL.Array.New(System.Byte, totalSizeBytes);
 
   var blockCountX = Math.floor((width + 3) / 4);
   var blockCountY = Math.floor((height + 3) / 4);
@@ -6601,7 +6665,7 @@ $jsilxna.DecodeDxt3 = function (width, height, bytes, offset, count) {
 
 $jsilxna.DecodeDxt5 = function (width, height, bytes, offset, count) {
   var totalSizeBytes = width * height * 4;
-  var result = new Array(totalSizeBytes);
+  var result = JSIL.Array.New(System.Byte, totalSizeBytes);
 
   var blockCountX = Math.floor((width + 3) / 4);
   var blockCountY = Math.floor((height + 3) / 4);
@@ -6630,7 +6694,7 @@ $jsilxna.DecodeDxt5 = function (width, height, bytes, offset, count) {
 };
 
 $jsilxna.ColorToCanvas = function (width, height, bytes, offset, count, swapRedAndBlue) {
-  var result = new Array(count);
+  var result = JSIL.Array.New(System.Byte, count);
 
   if (swapRedAndBlue) {
     for (var i = 0, l = count; i < l; i += 4) {
@@ -6649,7 +6713,7 @@ $jsilxna.ColorToCanvas = function (width, height, bytes, offset, count, swapRedA
 };
 
 $jsilxna.UnpackColorsToColorBytes = function (colors, startIndex, elementCount) {
-  var result = new Array(colors.length * 4);
+  var result = JSIL.Array.New(System.Byte, colors.length * 4);
 
   for (var i = 0, l = elementCount; i < l; i++) {
     var item = colors[startIndex + i];
@@ -7187,6 +7251,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameWindow", function ($) {
   $.Method({Static:false, Public:false}, ".ctor", 
     (new JSIL.MethodSignature(null, [], [])), 
     function _ctor () {
+      var canvas = JSIL.Host.getCanvas();
+
+      this._clientBounds = new Microsoft.Xna.Framework.Rectangle(
+        0, 0, canvas.width, canvas.height
+      );
     }
   );
 
@@ -7194,11 +7263,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameWindow", function ($) {
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle"), [], [])), 
     function get_ClientBounds () {
       // FIXME
-      var canvas = JSIL.Host.getCanvas();
-
-      return new Microsoft.Xna.Framework.Rectangle(
-        0, 0, canvas.width, canvas.height
-      );
+      return this._clientBounds;
     }
   );
 
@@ -7228,7 +7293,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameWindow", function ($) {
   $.Method({Static:false, Public:true }, "set_Title", 
     (new JSIL.MethodSignature(null, [$.String], [])), 
     function set_Title (value) {
-      // FIXME
       document.title = value;
     }
   );

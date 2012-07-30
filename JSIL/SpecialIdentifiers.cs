@@ -39,8 +39,8 @@ namespace JSIL {
             charCodeAt = new JSFakeMethod("charCodeAt", TypeSystem.Int32, new[] { TypeSystem.Char }, methodTypes);
         }
 
-        public JSFakeMethod Number (TypeReference returnType) {
-            return new JSFakeMethod("Number", returnType, null, MethodTypes);
+        public JSFakeMethod valueOf (TypeReference returnType) {
+            return new JSFakeMethod("valueOf", returnType, null, MethodTypes);
         }
 
         public JSFakeMethod call (TypeReference returnType) {
@@ -175,6 +175,16 @@ namespace JSIL {
                     Dot("Array", TypeSystem.Object),
                     new JSFakeMethod("ShallowCopy", TypeSystem.Void, new[] { arrayType, arrayType }, MethodTypes)
                 ), new[] { array, initializer }
+            );
+        }
+
+        public JSInvocationExpression ValueOfNullable (JSExpression nullableExpression) {
+            var valueType = nullableExpression.GetActualType(TypeSystem);
+            valueType = TypeUtil.StripNullable(valueType);
+
+            return JSInvocationExpression.InvokeStatic(
+                Dot("ValueOfNullable", valueType),
+                new[] { nullableExpression }, true
             );
         }
 

@@ -55,6 +55,11 @@ namespace JSIL.Proxies {
             throw new InvalidOperationException();
         }
 
+        [JSReplacement("($d | 0)")]
+        public static double Truncate (double d) {
+            throw new InvalidOperationException();
+        }
+
         [JSReplacement("Math.ceil($d)")]
         public static double Ceiling (double d) {
             throw new InvalidOperationException();

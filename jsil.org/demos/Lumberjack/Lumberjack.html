@@ -57,7 +57,7 @@
         }
 
         // We can't invoke Main() since it disposes the Game immediately, breaking everything.
-        var asm = JSIL.GetAssembly("Lumberjack, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null");
+        var asm = JSIL.GetAssembly("Lumberjack, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null", true);
         asm.Lumberjack.Globals.DEBUG = false;
         var game = new asm.Lumberjack.Lumberjack();
         game.Run();

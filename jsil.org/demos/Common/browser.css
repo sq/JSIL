@@ -16,6 +16,17 @@ body {
 	image-rendering: -o-crisp-edges; 
 	image-rendering: -webkit-optimize-contrast; 
 	-ms-interpolation-mode: nearest-neighbor;
+
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+
+	-webkit-user-drag: none; 
+	-moz-user-drag: none; 
+	user-drag: none;
 }
 #welcomeMessage {
 	font-family: Calibri, Tahoma, Verdana, sans-serif;

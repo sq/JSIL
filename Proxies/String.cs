@@ -283,5 +283,17 @@ namespace JSIL.Proxies {
         public string PadRight (int length, char ch) {
             throw new InvalidOperationException();
         }
+
+        [JSReplacement("$this.substr(0, $startIndex)")]
+        [JSIsPure]
+        public string Remove (int startIndex) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.String.Remove($this, $startIndex, $count)")]
+        [JSIsPure]
+        public string Remove (int startIndex, int count) {
+            throw new InvalidOperationException();
+        }
     }
 }

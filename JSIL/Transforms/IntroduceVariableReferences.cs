@@ -31,6 +31,22 @@ namespace JSIL.Transforms {
             return false;
         }
 
+        protected JSVariable GetReferentVariable (JSPassByReferenceExpression pbr) {
+            JSVariable referentVariable;
+            JSExpression referent;
+
+            if (!JSReferenceExpression.TryMaterialize(JSIL, pbr.Referent, out referent)) {
+                if (JSReferenceExpression.TryDereference(JSIL, pbr.Referent, out referent)) {
+                    referentVariable = referent as JSVariable;
+                    return referentVariable;
+                } else
+                    return null;
+            }
+
+            referentVariable = referent as JSVariable;
+            return referentVariable;
+        }
+
         protected JSVariable GetConstructedReference (JSPassByReferenceExpression pbr) {
             JSVariable referentVariable;
             JSExpression referent;
@@ -60,12 +76,20 @@ namespace JSIL.Transforms {
 
             // If the variable does not match the one in the dictionary, it is a constructed
             //  reference to a parameter.
-            if (!referentVariable.Equals(Variables[referentVariable.Identifier])) {
+            var theVariable = Variables[referentVariable.Identifier];
+            if (!referentVariable.Equals(theVariable)) {
 
                 // If the parameter is a reference, we don't care about it.
-                if (Variables[referentVariable.Identifier].IsReference)
-                    return null;
-                else
+                if (theVariable.IsReference) {
+                    // Unless it's the 'this' variable...
+                    if (theVariable.IsThis) {
+                        // But we handle that separately.
+                        return referentVariable;
+                    } else {
+                        return null;
+                    }
+
+                } else
                     return referentVariable;
             }
 
@@ -182,6 +206,14 @@ namespace JSIL.Transforms {
 
                 if (cr == null) {
                     // We have already done the variable transform for this variable in the past.
+                    continue;
+                }
+
+                // For 'ref this', we need to replace each individual expression, because we can't
+                //  rename the this-variable.
+                if (cr.IsThis) {
+                    var refThis = JSIL.NewReference(Variables["this"]);
+                    fn.ReplaceChildRecursive(r, refThis);
                     continue;
                 }
 

@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Web.Script.Serialization;
 using JSIL.Compiler;
+using JSIL.Utilities;
 using Microsoft.Build.Evaluation;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -703,6 +704,8 @@ public static class Common {
 
         if (fileSettings.TryGetValue(fileName, out settings))
             return new HashSet<string>(settings.ToString().ToLower().Split(' '));
+        else if (fileSettings.TryGetValue(fileName.Replace("\\", "/"), out settings))
+            return new HashSet<string>(settings.ToString().ToLower().Split(' '));
 
         var fileSettingsRegexes = profileSettings["FileSettingsRegexes"] as Dictionary<string, Regex>;
         if (fileSettingsRegexes == null) {
@@ -716,6 +719,7 @@ public static class Common {
 
                 var regex = new Regex(
                     Regex.Escape(key)
+                        .Replace("/", "\\\\")
                         .Replace("\\*", "(.*)")
                         .Replace("\\?", "(.)"),
                     RegexOptions.Compiled | RegexOptions.IgnoreCase
@@ -832,12 +836,8 @@ public static class Common {
                 .Replace("%contentprojectpath%", contentProjectDirectory)
                 .Replace("/", "\\");
 
-            var contentManifest = new StringBuilder();
-            contentManifest.AppendFormat("// {0}\r\n", JSIL.AssemblyTranslator.GetHeaderText());
-            contentManifest.AppendLine();
-            contentManifest.AppendLine("if (typeof (contentManifest) !== \"object\") { contentManifest = {}; };");
-            contentManifest.AppendLine("contentManifest[\"" + Path.GetFileNameWithoutExtension(contentProjectPath) +
-                                       "\"] = [");
+            var contentManifestPath = Path.Combine(configuration.OutputDirectory, Path.GetFileName(contentProjectPath) + ".manifest.js");
+            var contentManifest = new ContentManifestWriter(contentManifestPath, Path.GetFileName(contentProjectPath));
 
             Action<string, string, Dictionary<string, object>> logOutput =
             (type, filename, properties) => {
@@ -857,11 +857,8 @@ public static class Common {
                     };
                 }
 
-                contentManifest.AppendFormat(
-                    "  [\"{0}\", \"{1}\", {2}],{3}", 
-                    type, localPath.Replace("\\", "/"),
-                    jss.Serialize(properties),
-                    Environment.NewLine
+                contentManifest.Add(
+                    type, localPath, properties
                 );
             };
 
@@ -1036,11 +1033,7 @@ public static class Common {
                 }
             }
 
-            contentManifest.AppendLine("];");
-            File.WriteAllText(
-                Path.Combine(configuration.OutputDirectory, Path.GetFileName(contentProjectPath) + ".manifest.js"),
-                contentManifest.ToString()
-            );
+            contentManifest.Dispose();
 
             File.WriteAllText(
                 journalPath, jss.Serialize(journal).Replace("{", "\r\n{")
@@ -1056,6 +1049,8 @@ public static class Common {
         Dictionary<string, object> profileSettings, Dictionary<string, CompressResult> existingJournal, 
         Action<string, string, Dictionary<string, object>> logOutput
     ) {
+        var fileSettings = GetFileSettings(profileSettings, fileName);
+
         var results = Common.CompressAudio(
             fileName, contentProjectDirectory, itemOutputDirectory,
             profileSettings, existingJournal
@@ -1066,6 +1061,9 @@ public static class Common {
             {"formats", formats},
             {"sizeBytes", results.Max((r) => r.Size)}
         };
+
+        if (fileSettings.Contains("stream"))
+            properties.Add("stream", true);
 
         foreach (var result in results)
             formats.Add(Path.GetExtension(result.Filename));

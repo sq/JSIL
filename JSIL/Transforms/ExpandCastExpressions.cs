@@ -50,6 +50,7 @@ namespace JSIL.Transforms {
                 IntroduceEnumCasts.IsEnumOrNullableEnum(currentType)
             ) {
                 var enumInfo = TypeInfo.Get(currentType);
+                var isNullable = TypeUtil.IsNullable(currentType);
 
                 if (targetType.MetadataType == MetadataType.Boolean) {
                     EnumMemberInfo enumMember;
@@ -70,9 +71,15 @@ namespace JSIL.Transforms {
                         ));
                     }
                 } else if (TypeUtil.IsNumeric(targetType)) {
-                    newExpression = JSInvocationExpression.InvokeStatic(
-                        JS.Number(targetType), new[] { ce.Expression }, true
-                    );
+                    if (isNullable) {
+                        newExpression = JSIL.ValueOfNullable(
+                            ce.Expression
+                        );
+                    } else {
+                        newExpression = JSInvocationExpression.InvokeMethod(
+                            JS.valueOf(targetType), ce.Expression, null, true
+                        );
+                    }
                 } else if (targetType.FullName == "System.Enum") {
                     newExpression = ce.Expression;
                 } else {
@@ -118,7 +125,7 @@ namespace JSIL.Transforms {
                     newExpression = ce.Expression;
                 }
                 else {
-                    newExpression = JSInvocationExpression.InvokeStatic(JS.floor, new[] { ce.Expression }, true);
+                    newExpression = new JSTruncateExpression(ce.Expression);
                 }
             } else {
                 // newExpression = JSIL.Cast(ce.Expression, targetType);

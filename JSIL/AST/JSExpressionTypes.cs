@@ -756,8 +756,14 @@ namespace JSIL.Ast {
     }
 
     public class JSPropertyAccess : JSDotExpressionBase {
-        public JSPropertyAccess (JSExpression thisReference, JSProperty property)
+        public readonly bool IsWrite;
+        public readonly bool TypeQualified;
+
+        public JSPropertyAccess (JSExpression thisReference, JSProperty property, bool isWrite, bool typeQualified)
             : base(thisReference, property) {
+
+            IsWrite = isWrite;
+            TypeQualified = typeQualified;
         }
 
         public JSExpression ThisReference {
@@ -1686,7 +1692,7 @@ namespace JSIL.Ast {
 
         public static JSExpression New (JSExpression inner, TypeReference newType, TypeSystem typeSystem) {
             return NewInternal(
-                inner, newType, typeSystem,
+                inner, newType, typeSystem, false,
                 () => new JSAsExpression(inner, newType)
             );
         }
@@ -1701,9 +1707,9 @@ namespace JSIL.Ast {
             NewType = newType;
         }
 
-        public static JSExpression New (JSExpression inner, TypeReference newType, TypeSystem typeSystem) {
+        public static JSExpression New (JSExpression inner, TypeReference newType, TypeSystem typeSystem, bool force = false) {
             return NewInternal(
-                inner, newType, typeSystem,
+                inner, newType, typeSystem, force,
                 () => new JSCastExpression(inner, newType)
             );
         }
@@ -1720,14 +1726,14 @@ namespace JSIL.Ast {
             return false;
         }
 
-        internal static JSExpression NewInternal (JSExpression inner, TypeReference newType, TypeSystem typeSystem, Func<JSExpression> make) {
+        internal static JSExpression NewInternal (JSExpression inner, TypeReference newType, TypeSystem typeSystem, bool force, Func<JSExpression> make) {
             int rankCurrent, rankNew;
 
             var currentType = inner.GetActualType(typeSystem);
             var currentDerefed = TypeUtil.FullyDereferenceType(currentType, out rankCurrent);
             var newDerefed = TypeUtil.FullyDereferenceType(newType, out rankNew);
 
-            if (TypeUtil.TypesAreEqual(currentDerefed, newDerefed, false))
+            if (TypeUtil.TypesAreEqual(currentDerefed, newDerefed, false) && !force)
                 return inner;
 
             if ((rankCurrent == rankNew) && (rankCurrent > 0)) {
@@ -1738,7 +1744,7 @@ namespace JSIL.Ast {
             }
 
             var newResolved = newDerefed.Resolve();
-            if ((newResolved != null) && newResolved.IsInterface) {
+            if (!force && (newResolved != null) && newResolved.IsInterface) {
                 var currentResolved = currentDerefed.Resolve();
 
                 if (currentResolved != null) {
@@ -1786,6 +1792,44 @@ namespace JSIL.Ast {
 
         public override string ToString () {
             return String.Format("({0}){1}", NewType, Expression);
+        }
+    }
+
+    public class JSTruncateExpression : JSExpression {
+        public JSTruncateExpression (JSExpression inner) 
+            : base (inner) {
+        }
+
+        public JSExpression Expression {
+            get {
+                return Values[0];
+            }
+        }
+
+        public override bool HasGlobalStateDependency {
+            get {
+                return Expression.HasGlobalStateDependency;
+            }
+        }
+
+        public override bool IsConstant {
+            get {
+                return Expression.IsConstant;
+            }
+        }
+
+        public override bool IsNull {
+            get {
+                return Expression.IsNull;
+            }
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return typeSystem.Int32;
+        }
+
+        public override string ToString () {
+            return String.Format("(int){0}", Expression);
         }
     }
 
@@ -1919,6 +1963,19 @@ namespace JSIL.Ast {
             get {
                 return Struct.IsNull;
             }
+        }
+    }
+
+    public class JSConditionalStructCopyExpression : JSStructCopyExpression {
+        public readonly GenericParameter Parameter;
+
+        public JSConditionalStructCopyExpression (GenericParameter parameter, JSExpression @struct)
+            : base(@struct) {
+            Parameter = parameter;
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return Struct.GetActualType(typeSystem);
         }
     }
 }

@@ -287,7 +287,31 @@ namespace JSIL {
         }
 
         public void VisitNode (JSPropertyAccess pa) {
-            VisitDotExpression(pa);
+            var parens = (pa.Target is JSNumberLiteral) ||
+                (pa.Target is JSIntegerLiteral);
+
+            if (parens)
+                Output.LPar();
+
+            Visit(pa.Target);
+
+            if (parens)
+                Output.RPar();
+
+            Output.Dot();
+
+            var prop = pa.Property.Property;
+
+            if (prop.IsAutoProperty && !prop.IsVirtual) {
+                Output.WriteRaw(prop.BackingFieldName);
+            } else {
+                if (pa.TypeQualified) {
+                    // FIXME: Oh god, terrible hack
+                    Output.WriteRaw(Util.EscapeIdentifier(prop.DeclaringType.Name) + "$");
+                }
+
+                Visit(pa.Member);
+            }
         }
 
         public void VisitNode (JSMethodAccess ma) {
@@ -344,6 +368,16 @@ namespace JSIL {
             Output.RPar();
         }
 
+        public void VisitNode (JSTruncateExpression te) {
+            Output.LPar();
+            Output.LPar();
+            Visit(te.Expression);
+            Output.RPar();
+
+            Output.WriteRaw(" | 0");
+            Output.RPar();
+        }
+
         public void VisitNode (JSChangeTypeExpression cte) {
             Visit(cte.Expression);
         }
@@ -353,6 +387,15 @@ namespace JSIL {
             Output.Dot();
             Output.Identifier("MemberwiseClone");
             Output.LPar();
+            Output.RPar();
+        }
+
+        public void VisitNode (JSConditionalStructCopyExpression sce) {
+            Output.WriteRaw("JSIL.CloneParameter");
+            Output.LPar();
+            Output.Identifier(sce.Parameter, ReferenceContext, false);
+            Output.Comma();
+            Visit(sce.Struct);
             Output.RPar();
         }
 
@@ -1041,16 +1084,15 @@ namespace JSIL {
             if (needsTruncation) {
                 if (bop.Operator is JSAssignmentOperator)
                     throw new NotImplementedException("Truncation of assignment operations not implemented");
-
-                Output.WriteRaw("Math.floor");
             } else if (needsCast) {
                 Output.Identifier(TypeUtil.StripNullable(resultType), ReferenceContext);
                 Output.WriteRaw(".$Cast");
             }
 
-            parens |= needsTruncation;
             parens |= needsCast;
 
+            if (needsTruncation)
+                Output.LPar();
             if (parens)
                 Output.LPar();
 
@@ -1070,6 +1112,11 @@ namespace JSIL {
 
             if (parens)
                 Output.RPar();
+
+            if (needsTruncation) {
+                Output.WriteRaw(" | 0");
+                Output.RPar();
+            }
         }
 
         public void VisitNode (JSTernaryOperatorExpression ternary) {

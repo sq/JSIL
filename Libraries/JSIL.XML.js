@@ -91,7 +91,14 @@ JSIL.XML.ReaderFromStream = function (stream) {
   var bytes = new Array(stream.Length);
   stream.Read(bytes, 0, stream.Length);
 
-  var xml = String.fromCharCode.apply(String, bytes);
+  var xml;
+
+  // Detect UTF-8 BOM and remove it because browsers choke on it.
+  if ((bytes[0] === 0xEF) && (bytes[1] === 0xBB) && (bytes[2] === 0xBF)) {
+    xml = System.Text.Encoding.UTF8.$decode(bytes, 3, bytes.length - 3);
+  } else {
+    xml = JSIL.StringFromByteArray(bytes);
+  }
 
   return JSIL.XML.ReaderFromString(xml);
 };
@@ -649,7 +656,7 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
         }
       default:
         JSIL.Host.warning("Unsupported node type: ", node.nodeType, " ", node);
-        break;
+        return false;
     }
 
     return true;
@@ -716,6 +723,32 @@ JSIL.ImplementExternals("System.Xml.XmlReader", function ($) {
     function Read () {
       this.advanceCount += 1;
       return this.$moveNext();
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ReadToFollowing", 
+    (new JSIL.MethodSignature($.Boolean, [$.String], [])), 
+    function ReadToFollowing (localName) {
+      while (this.Read()) {
+        if ((this._nodeType === ntElement) && (this.get_LocalName() === localName))
+          return true;
+      }
+
+      return false;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "ReadToNextSibling", 
+    (new JSIL.MethodSignature($.Boolean, [$.String], [])), 
+    function ReadToNextSibling (localName) {
+      while (this.$skip()) {
+        if ((this._nodeType === ntElement) && (this.get_LocalName() === localName))
+          return true;
+        else if (this._nodeType === ntEndElement)
+          return false;
+      }
+
+      return false;
     }
   );
 
@@ -1434,10 +1467,8 @@ JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
   });
 
   $.RawMethod(false, "$write", function (str) {
-    if (this._needPrologue) {
-      this._needPrologue = false;
-      this.$write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-    }
+    if (this._needPrologue)
+      this.WriteStartDocument();
 
     for (var i = 0, l = str.length; i < l; i++) {
       var ch = str[i];
@@ -1712,7 +1743,7 @@ JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
   $.Method({Static:false, Public:true }, "WriteEndDocument", 
     (new JSIL.MethodSignature(null, [], [])), 
     function WriteEndDocument () {
-      throw new Error('Not implemented');
+      this.$flush(true);
     }
   );
 
@@ -1831,7 +1862,10 @@ JSIL.ImplementExternals("System.Xml.XmlWriter", function ($) {
   $.Method({Static:false, Public:true }, "WriteStartDocument", 
     (new JSIL.MethodSignature(null, [], [])), 
     function WriteStartDocument () {
-      throw new Error('Not implemented');
+      this._needPrologue = false;
+      this.$write('<?xml version="1.0" encoding="');
+      this.$write("utf-8");
+      this.$write('"?>');
     }
   );
 

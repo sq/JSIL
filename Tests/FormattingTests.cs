@@ -326,7 +326,7 @@ namespace JSIL.Tests {
         public void FlagsEnumsWithZeroValues () {
             var generatedJs = GetJavascript(
                 @"SpecialTestCases\FlagsEnumsWithZeroValues.cs",
-                "B A\r\nB 0"
+                "B A\r\nB A"
             );
             try {
                 Assert.IsFalse(generatedJs.Contains("| $asm01.Program.SimpleEnum.E"));
@@ -563,8 +563,8 @@ namespace JSIL.Tests {
                 );
 
                 try {
-                    Assert.IsTrue(generatedJs.Contains("function Any$b1 (TSource, source)"));
-                    Assert.IsTrue(generatedJs.Contains("function Any$b1 (TSource, source, predicate)"));
+                    Assert.IsTrue(generatedJs.Contains("function CommonExtensionMethodsSimple_Any$b1 (TSource, source)"));
+                    Assert.IsTrue(generatedJs.Contains("function CommonExtensionMethodsSimple_Any$b1 (TSource, source, predicate)"));
                 } catch {
                     Console.WriteLine(generatedJs);
 
@@ -645,6 +645,22 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void ReplaceConstructorAndFieldNames () {
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\ReplaceConstructorAndFieldNames.cs",
+                "Field = 1, Property = 2", "Field = 2, Property = 4"
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("ProxiedClassProxy$"));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
+        }
+
+        [Test]
         public void NoUnnecessaryCasts () {
             var testNames = new string[] {
                 @"FailingTestCases\ArrayToString.cs",
@@ -676,6 +692,25 @@ namespace JSIL.Tests {
                     );
                 }
             );
+        }
+
+        [Test]
+        public void AutoPropertyEfficiency () {
+            var output = "a=0 b=0 c=1";
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\AutoPropertyEfficiency.cs",
+                output, output
+            );
+
+            try {
+                Assert.IsFalse(generatedJs.Contains("instance.A"));
+                Assert.IsTrue(generatedJs.Contains("instance.B"));
+                Assert.IsTrue(generatedJs.Contains("instance.C"));
+            } catch {
+                Console.WriteLine(generatedJs);
+
+                throw;
+            }
         }
     }
 }

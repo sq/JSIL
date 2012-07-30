@@ -198,7 +198,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageContainer", func
       file = this.volume.createFile(filename, true);
 
     var fileStream = JSIL.CreateInstanceOfType(
-      System.IO.FileStream.__Type__, "$fromVirtualFile", [file, fileMode]
+      System.IO.FileStream.__Type__, "$fromVirtualFile", [file, fileMode, false]
     );
 
     return fileStream;

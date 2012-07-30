@@ -40,4 +40,39 @@ namespace JSIL.Meta {
         public JSEscapingArguments (params string[] argumentNames) {
         }
     }
+
+    /// <summary>
+    /// Tells the static analyzer to treat calls to the Dispose method on this type as pure and subject to optimization.
+    /// </summary>
+    [AttributeUsage(
+        AttributeTargets.Class | AttributeTargets.Struct
+    )]
+    public class JSPureDispose : Attribute {
+    }
+
+    /// <summary>
+    /// Tells the static analyzer that this class represents an array enumerator, and provides the names of the array,
+    ///  index and length members so that uses of the enumerator can be replaced with a for-loop or while-loop.
+    /// </summary>
+    [AttributeUsage(
+        AttributeTargets.Class | AttributeTargets.Struct
+    )]
+    public class JSIsArrayEnumerator : Attribute {
+        public JSIsArrayEnumerator (string arrayMember, string indexMember, string lengthMember) {
+        }
+    }
+
+    /// <summary>
+    /// Tells the static analyzer that the enumerator returned by this method represents an underlying array
+    ///  of elements stored in class pointed to by the method's this-reference.
+    /// This enables the static analyzer to entirely remove the call to this method and replace it with
+    ///  direct access to the array.
+    /// </summary>
+    [AttributeUsage(
+        AttributeTargets.Method
+    )]
+    public class JSUnderlyingArray : Attribute {
+        public JSUnderlyingArray (string arrayMember, string countMember) {
+        }
+    }
 }

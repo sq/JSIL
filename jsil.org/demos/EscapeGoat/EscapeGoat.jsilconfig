@@ -15,7 +15,12 @@
     "OverwriteExistingContent": true,
     "ContentOutputDirectory": "%configpath%/Content",
     "UsePNGQuant": true,
+    "MP3Quality": "-V 8",
+    "OGGQuality": "-q 2.65",
     "FileSettings": {
+      "Audio/Sfx/*": "",
+      "Audio/*.wav": "Stream",
+      "Audio/Music/*": "Stream"
     }
   }
 }

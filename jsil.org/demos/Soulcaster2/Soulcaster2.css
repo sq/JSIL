@@ -1,0 +1,72 @@
+html {
+	margin: 0px;
+	padding: 0px;
+}
+body {
+	background-color: black;
+	color: white;
+	margin: 0px;
+	padding: 0px;
+}
+a, a:visited {
+	color: silver;
+}
+#canvas {
+	left: 0px;
+	top: 0px;
+	cursor: none;
+}
+#welcomeMessage {
+	width: 620px;
+	height: 140px;
+	left: 42px;
+	top: 162px;
+}
+#loadButton {
+	width: 200px;
+	height: 40px;
+	left: 539px;
+	top: 320px;
+}
+#quitButton {
+	width: 32px;
+	height: 32px;
+	left: 1284px;
+	top: 2px;
+}
+#loadingProgress {
+	width: 600px;
+	height: 40px;
+	left: 52px;
+	top: 252px;
+}
+#progressBar {
+	height: 40px;
+}
+#log {
+	width: 704px;
+	height: 200px;
+	left: 2px;
+	top: 544px;
+	overflow-x: hidden;
+	overflow-y: scroll;
+}
+#fullscreenButton {
+	left: 708px;
+	top: 2px;
+	height: 45px;
+}
+#stats {
+	left: 708px;
+	top: 50px;
+}
+.boxCaption {
+	position: absolute;
+	font-size: 10pt;
+	font-family: Consolas, Courier New, Courier;
+	z-index: -999;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+}

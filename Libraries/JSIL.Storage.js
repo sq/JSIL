@@ -30,6 +30,10 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualVolume", true, [], function ($) 
 
     for (var i = 0, l = inodes.length; i < l; i++) {
       var inode = inodes[i], resultInode;
+      if (!inode) {
+        this.inodes.push(null);
+        continue;
+      }
 
       if (typeof (inode.parent) === "number") {
         resultInode = this.makeInode(this.inodes[inode.parent], inode.type, inode.name);
@@ -55,6 +59,9 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualVolume", true, [], function ($) 
 
     for (var i = 1, l = inodes.length; i < l; i++) {
       var inode = this.inodes[i];
+      if (!inode)
+        continue;
+      
       var parentInode = this.inodes[inode.parent];
 
       switch (inode.type) {
@@ -121,6 +128,29 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualVolume", true, [], function ($) 
     return path;
   });
 
+  $.RawMethod(false, "unlinkInode", function (inode) {
+    var toRemove = [inode.index];
+
+    while (toRemove.length > 0) {
+      var toRemoveNext = [];
+
+      for (var i = 0, l = this.inodes.length; i < l; i++) {
+        if (toRemove.indexOf(i) >= 0) {
+          this.inodes[i] = null;
+        } else {
+          var current = this.inodes[i];
+
+          if (current) {
+            if (toRemove.indexOf(current.parent) >= 0)
+              toRemoveNext.push(i);
+          }
+        }
+      }
+
+      toRemove = toRemoveNext;
+    }
+  });
+
   $.RawMethod(false, "enumerate", function (nodeType, searchPattern) {
     return this.rootDirectory.enumerate(nodeType, searchPattern);
   });
@@ -162,6 +192,9 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualVolume", true, [], function ($) 
   $.RawMethod(false, "createJunction", function (path, targetObject, allowExisting) {
     path = this.normalizePath(path);
 
+    while (path[path.length - 1] === "/")
+      path = path.substr(0, path.length - 1);
+
     var pieces = path.split("/"), containingDirectory = null, containingPath = null;
 
     for (var i = 0, l = pieces.length - 1; i < l; i++) {
@@ -202,6 +235,10 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualVolume", true, [], function ($) 
   });
 
   $.RawMethod(false, "flush", function () {    
+    throw new Error("Not implemented");
+  });
+
+  $.RawMethod(false, "deleteFileBytes", function (name) {
     throw new Error("Not implemented");
   });
 
@@ -293,6 +330,16 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualDirectory", true, [], function (
       return null;
 
     return directory;
+  });
+
+  $.RawMethod(false, "unlink", function () {
+    // FIXME: Call .unlink() on child directories/files instead of relying on unlinkInode.
+    // Right now this will leak file bytes for child files.
+
+    delete this.parent.directories[this.name.toLowerCase()];
+
+    this.volume.unlinkInode(this.inode);
+    this.volume.flush();
   });
 
   $.RawMethod(false, "createFile", function (name, allowExisting) {
@@ -499,13 +546,20 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualFile", true, [], function ($) {
     parent.files[this.name.toLowerCase()] = this;
   });
 
+  $.RawMethod(false, "unlink", function () {
+    delete this.parent.files[this.name.toLowerCase()];
+    this.volume.unlinkInode(this.inode);
+    this.volume.deleteFileBytes(this.path);
+    this.volume.flush();
+  });
+
   $.RawMethod(false, "readAllBytes", function () {
     var bytes = this.volume.getFileBytes(this.path);
 
     this.inode.metadata.lastRead = Date.now();
 
     if (!bytes)
-      return new Array(this.inode.metadata.length || 0);
+      return JSIL.Array.New(System.Byte, this.inode.metadata.length || 0);
 
     return bytes;
   });
@@ -573,7 +627,7 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualJunction", true, [], function ($
 });
 
 JSIL.ImplementExternals("System.IO.FileStream", function ($) {
-  $.RawMethod(false, "$fromVirtualFile", function (virtualFile, fileMode) {
+  $.RawMethod(false, "$fromVirtualFile", function (virtualFile, fileMode, autoFlush) {
     System.IO.Stream.prototype._ctor.call(this);
 
     this._fileName = virtualFile.path;
@@ -583,8 +637,12 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
     this._length = this._buffer.length;
 
     this._onClose = function () {
-      if (this._modified)
+      if (this._modified) {
         virtualFile.writeAllBytes(this._buffer, this._length);
+
+        if (autoFlush)
+          virtualFile.volume.flush();
+      }
     };
 
     this.$applyMode(fileMode);

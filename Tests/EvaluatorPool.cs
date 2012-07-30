@@ -8,7 +8,7 @@ using System.Threading;
 
 namespace JSIL.Tests {
     public class EvaluatorPool : IDisposable {
-        public const int Capacity = 2;
+        public const int Capacity = 4;
 
         public readonly string JSShellPath;
         public readonly string Options;
@@ -130,11 +130,17 @@ namespace JSIL.Tests {
             Process = Process.Start(psi);
 
             ThreadPool.QueueUserWorkItem((_) => {
-                _StdOut = Process.StandardOutput.ReadToEnd();
+                try {
+                    _StdOut = Process.StandardOutput.ReadToEnd();
+                } catch {
+                }
                 stdoutSignal.Set();
             });
             ThreadPool.QueueUserWorkItem((_) => {
-                _StdErr = Process.StandardError.ReadToEnd();
+                try {
+                    _StdErr = Process.StandardError.ReadToEnd();
+                } catch {
+                }
                 stderrSignal.Set();
             });
 

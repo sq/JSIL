@@ -3,6 +3,15 @@
 var currentLogLine = null;
 
 var webglEnabled = false;
+
+var $jsilbrowserstate = {
+  allFileNames: [],
+  allAssetNames: [],
+  readOnlyStorage: null,
+  heldKeys: [],
+  heldButtons: [],
+  mousePosition: [0, 0]
+};
     
 JSIL.Host.getCanvas = function (desiredWidth, desiredHeight) {
   var e = document.getElementById("canvas");
@@ -70,15 +79,30 @@ JSIL.Host.doesFileExist = function (filename) {
   return allFiles.hasOwnProperty(JSIL.Host.translateFilename(filename));
 }
 JSIL.Host.getFile = function (filename) {
+  var storageRoot = JSIL.Host.getStorageRoot();
+  var errorMessage;
+
+  if (storageRoot) {
+    var node = storageRoot.resolvePath(filename, false);
+
+    if (node && node.type === "file")
+      return node.readAllBytes();
+
+    errorMessage = "The file '" + filename + "' is not in the asset manifest, and could not be found in local storage.";
+  } else {
+    errorMessage = "The file '" + filename + "' is not in the asset manifest.";
+  }
+
   if (!JSIL.Host.doesFileExist(filename))
-    throw new System.Exception("The file '" + filename + "' is not in the asset manifest.");
+    throw new System.IO.FileNotFoundException(errorMessage, filename);
   
   return allFiles[JSIL.Host.translateFilename(filename)];
 };
 JSIL.Host.getImage = function (filename) {
   var key = getAssetName(filename, false);
   if (!allAssets.hasOwnProperty(key))
-    throw new System.Exception("The image '" + key + "' is not in the asset manifest.");
+    throw new System.IO.FileNotFoundException("The image '" + key + "' is not in the asset manifest.", filename);
+
   return allAssets[key].image;
 };
 JSIL.Host.doesAssetExist = function (filename, stripRoot) {
@@ -109,18 +133,18 @@ JSIL.Host.getAsset = function (filename, stripRoot) {
 
   var key = getAssetName(filename, false);
   if (!allAssets.hasOwnProperty(key))
-    throw new System.Exception("The asset '" + key + "' is not in the asset manifest.");
+    throw new System.IO.FileNotFoundException("The asset '" + key + "' is not in the asset manifest.", filename);
 
   return allAssets[key];
 };
 JSIL.Host.getHeldKeys = function () {
-  return Array.prototype.slice.call(heldKeys);
+  return Array.prototype.slice.call($jsilbrowserstate.heldKeys);
 };
 JSIL.Host.getMousePosition = function () {
-  return Array.prototype.slice.call(mousePosition);
+  return Array.prototype.slice.call($jsilbrowserstate.mousePosition);
 };
 JSIL.Host.getHeldButtons = function () {
-  return Array.prototype.slice.call(heldButtons);
+  return Array.prototype.slice.call($jsilbrowserstate.heldButtons);
 };
 JSIL.Host.getRootDirectory = function () {
   var url = window.location.href;
@@ -129,6 +153,9 @@ JSIL.Host.getRootDirectory = function () {
     return url;
   else
     return url.substr(0, lastSlash);
+};
+JSIL.Host.getStorageRoot = function () {
+  return $jsilbrowserstate.storageRoot;
 };
 JSIL.Host.throwException = function (e) {
   var stack = "";
@@ -148,7 +175,8 @@ var statsElement = document.getElementById("stats");
 if (statsElement !== null) {
   statsElement.innerHTML = '<span title="Frames Per Second"><span id="drawsPerSecond">0</span> f/s</span><br>' +
     '<span title="Updates Per Second"><span id="updatesPerSecond">0</span> u/s</span><br>' +
-    '<span title="Texture Cache Size" id="cacheSpan"><span id="cacheSize">0.0</span >mb <span id="usingWebGL" style="display: none">(WebGL)</span></span>';
+    '<span title="Texture Cache Size" id="cacheSpan"><span id="cacheSize">0.0</span >mb <span id="usingWebGL" style="display: none">(WebGL)</span></span><br>' +
+    '<input type="checkbox" checked="checked" id="balanceFramerate" name="balanceFramerate"> <label for="balanceFramerate">Balance FPS</label>';
 
   JSIL.Host.reportFps = function (drawsPerSecond, updatesPerSecond, cacheSize, isWebGL) {
     var e = document.getElementById("drawsPerSecond");
@@ -182,10 +210,6 @@ if (statsElement !== null) {
 
 var allFiles = {};
 var allAssets = {};
-var storageRoot = null;
-var heldKeys = [];
-var heldButtons = [];
-var mousePosition = [0, 0];
 
 // Handle mismatches between dom key codes and XNA key codes
 var keyMappings = {
@@ -198,6 +222,9 @@ function initBrowserHooks () {
   var canvas = document.getElementById("canvas");
   var originalWidth = canvas.width;
   var originalHeight = canvas.height;
+
+  canvas.draggable = false;
+  canvas.unselectable = true;
 
   // Be a good browser citizen!
   // Disabling commonly used hotkeys makes people rage.
@@ -246,8 +273,8 @@ function initBrowserHooks () {
       
       for (var i = 0; i < codes.length; i++) {
         var code = codes[i];
-        if (Array.prototype.indexOf.call(heldKeys, code) === -1)
-          heldKeys.push(code);
+        if (Array.prototype.indexOf.call($jsilbrowserstate.heldKeys, code) === -1)
+          $jsilbrowserstate.heldKeys.push(code);
       }
     }, true
   );
@@ -261,7 +288,7 @@ function initBrowserHooks () {
       var keyCode = evt.keyCode;
       var codes = keyMappings[keyCode] || [keyCode];        
       
-      heldKeys = heldKeys.filter(function (element, index, array) {
+      $jsilbrowserstate.heldKeys = $jsilbrowserstate.heldKeys.filter(function (element, index, array) {
         return codes.indexOf(element) === -1;
       });
     }, true
@@ -292,8 +319,8 @@ function initBrowserHooks () {
       x = x * originalWidth / currentWidth;
       y = y * originalHeight / currentHeight;
 
-      mousePosition[0] = x;
-      mousePosition[1] = y;
+      $jsilbrowserstate.mousePosition[0] = x;
+      $jsilbrowserstate.mousePosition[1] = y;
   };
 
   canvas.addEventListener(
@@ -301,11 +328,9 @@ function initBrowserHooks () {
       mapMouseCoords(evt);
 
       var button = evt.button;
-      if (Array.prototype.indexOf.call(heldButtons, button) === -1)
-        heldButtons.push(button);
+      if (Array.prototype.indexOf.call($jsilbrowserstate.heldButtons, button) === -1)
+        $jsilbrowserstate.heldButtons.push(button);
 
-      evt.preventDefault();
-      evt.stopPropagation();
       return false;
     }, true
   );
@@ -315,12 +340,10 @@ function initBrowserHooks () {
       mapMouseCoords(evt);
       
       var button = evt.button;
-      heldButtons = heldButtons.filter(function (element, index, array) {
+      $jsilbrowserstate.heldButtons = $jsilbrowserstate.heldButtons.filter(function (element, index, array) {
         (element !== button);
       });
 
-      evt.preventDefault();
-      evt.stopPropagation();
       return false;
     }, true
   );
@@ -329,6 +352,22 @@ function initBrowserHooks () {
     "mousemove", function (evt) {
       mapMouseCoords(evt);
       
+      evt.preventDefault();
+      evt.stopPropagation();
+      return false;
+    }, true
+  );
+
+  canvas.addEventListener(
+    "onselectstart", function (evt) {
+      evt.preventDefault();
+      evt.stopPropagation();
+      return false;
+    }, true
+  );
+
+  canvas.addEventListener(
+    "ondragstart", function (evt) {
       evt.preventDefault();
       evt.stopPropagation();
       return false;
@@ -551,6 +590,7 @@ var assetLoaders = {
   "Image": function loadImage (filename, data, onError, onDoneLoading) {
     var e = document.createElement("img");
     var finisher = function () {
+      $jsilbrowserstate.allAssetNames.push(filename);
       allAssets[getAssetName(filename)] = new HTML5ImageAsset(getAssetName(filename, true), e);
     };
     e.addEventListener("error", onError, true);
@@ -560,6 +600,7 @@ var assetLoaders = {
   "File": function loadFile (filename, data, onError, onDoneLoading) {
     loadBinaryFileAsync(fileRoot + filename, function (result, error) {
       if (result !== null) {
+        $jsilbrowserstate.allFileNames.push(filename);
         allFiles[filename.toLowerCase()] = result;
         onDoneLoading(null); 
       } else {
@@ -571,6 +612,20 @@ var assetLoaders = {
     loadTextAsync(contentRoot + filename, function (result, error) {
       if (result !== null) {
         var finisher = function () {
+          $jsilbrowserstate.allAssetNames.push(filename);
+          allAssets[getAssetName(filename)] = JSON.parse(result);
+        };
+        onDoneLoading(finisher);
+      } else {
+        onError(error);
+      }
+    });
+  },
+  "Resources": function loadResources (filename, data, onError, onDoneLoading) {
+    loadTextAsync(scriptRoot + filename, function (result, error) {
+      if (result !== null) {
+        var finisher = function () {
+          $jsilbrowserstate.allAssetNames.push(filename);
           allAssets[getAssetName(filename)] = JSON.parse(result);
         };
         onDoneLoading(finisher);
@@ -592,6 +647,7 @@ var loadWebkitSound = function (filename, data, onError, onDoneLoading) {
     if (result !== null) {
       var buffer = audioContext.createBuffer(result.buffer, false);
       var finisher = function () {
+        $jsilbrowserstate.allAssetNames.push(filename);
         allAssets[getAssetName(filename)] = new WebkitSoundAsset(getAssetName(filename, true), audioContext, buffer, data);
       };
       
@@ -612,6 +668,16 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
   var state = { 
     loaded: false
   };
+
+  var finisher = function () {
+    $jsilbrowserstate.allAssetNames.push(filename);
+    allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename, true), e);
+  };
+
+  var nullFinisher = function () {
+    $jsilbrowserstate.allAssetNames.push(filename);
+    allAssets[getAssetName(filename)] = new NullSoundAsset(getAssetName(filename, true));
+  };
   
   var loadingCallback = function (evt) {
     if (state.loaded)
@@ -619,14 +685,6 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
     
     var networkState = e.networkState || 0;
     var readyState = e.readyState || 0;
-
-    var finisher = function () {
-      allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename, true), e);
-    };
-
-    var nullFinisher = function () {
-      allAssets[getAssetName(filename)] = new NullSoundAsset(getAssetName(filename, true));
-    };
 
     if (
       (networkState === HTMLMediaElement.NETWORK_IDLE) ||
@@ -709,12 +767,26 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
   if (typeof (e.load) === "function")
     e.load();
 
-  state.interval = setInterval(loadingCallback, loadingPollInterval);
+  if (data.stream) {
+    state.loaded = true;
+    onDoneLoading(finisher);
+  } else {
+    state.interval = setInterval(loadingCallback, loadingPollInterval);
+  }
 };
 
 // Chrome and Safari's <audio> implementations are utter garbage.
 if (typeof (webkitAudioContext) === "function") {
-  assetLoaders["Sound"] = loadWebkitSound.bind(new webkitAudioContext());
+  var $audioContext = new webkitAudioContext();
+  var $loadWebkitSound = loadWebkitSound.bind($audioContext);
+
+  assetLoaders["Sound"] = function (filename, data, onError, onDoneLoading) {
+    if (data.stream) {
+      return loadHTML5Sound(filename, data, onError, onDoneLoading);
+    } else {
+      return $loadWebkitSound(filename, data, onError, onDoneLoading);
+    }
+  };
 } else {
   assetLoaders["Sound"] = loadHTML5Sound;
 }
@@ -724,6 +796,7 @@ var $makeXNBAssetLoader = function (key, typeName) {
     loadBinaryFileAsync(contentRoot + filename, function (result, error) {
       if (result !== null) {
         var finisher = function () {
+          $jsilbrowserstate.allAssetNames.push(filename);
           var key = getAssetName(filename, false);
           var assetName = getAssetName(filename, true);
           var parsedTypeName = JSIL.ParseTypeName(typeName);    
@@ -778,12 +851,10 @@ function finishLoading () {
   var endBy = started + finishStepDuration;
 
   var initFileStorage = function (volume) {
-    for (var k in allFiles) {
-      if (!allFiles.hasOwnProperty(k))
-        continue;
-
-      var file = volume.createFile(k, false, true);
-      file.writeAllBytes(allFiles[k]);
+    for (var i = 0, l = $jsilbrowserstate.allFileNames.length; i < l; i++) {
+      var filename = $jsilbrowserstate.allFileNames[i];
+      var file = volume.createFile(filename, false, true);
+      file.writeAllBytes(allFiles[filename.toLowerCase()]);
     }
   };
 
@@ -794,8 +865,35 @@ function finishLoading () {
     }
 
     if (typeof ($jsilreadonlystorage) !== "undefined") {
-      storageRoot = new ReadOnlyStorageVolume("files", "files:/", initFileStorage);
+      var prefixedFileRoot;
+
+      if (fileRoot[0] !== "/")
+        prefixedFileRoot = "/" + fileRoot;
+      else
+        prefixedFileRoot = fileRoot;
+
+      $jsilbrowserstate.readOnlyStorage = new ReadOnlyStorageVolume("files", prefixedFileRoot, initFileStorage);
     }
+
+    JSIL.SetLazyValueProperty($jsilbrowserstate, "storageRoot", function InitStorageRoot () {
+      if (JSIL.GetStorageVolumes) {
+        var volumes = JSIL.GetStorageVolumes();
+
+        if (volumes.length) {
+          var root = volumes[0];
+
+          if ($jsilbrowserstate.readOnlyStorage)
+            root.createJunction(fileRoot, $jsilbrowserstate.readOnlyStorage.rootDirectory, false);
+
+          return root;
+
+        } else if ($jsilbrowserstate.readOnlyStorage) {
+          return $jsilbrowserstate.readOnlyStorage;
+        }
+      }
+
+      return null;
+    });
   };
 
   while (Date.now() <= endBy) {
@@ -1009,10 +1107,10 @@ function beginLoading () {
       return;
 
     seenFilenames[filename] = true;
-    allAssets.push(assetSpec);
+    allAssetsToLoad.push(assetSpec);
   }
 
-  var allAssets = [];
+  var allAssetsToLoad = [];
   for (var i = 0, l = assetsToLoad.length; i < l; i++)
     pushAsset(assetsToLoad[i]);
 
@@ -1027,7 +1125,7 @@ function beginLoading () {
   }
   
   JSIL.Host.logWrite("Loading data ... ");
-  loadAssets(allAssets, function () {
+  loadAssets(allAssetsToLoad, function () {
     JSIL.Host.logWriteLine("done.");
     try {     
       if (quitButton)

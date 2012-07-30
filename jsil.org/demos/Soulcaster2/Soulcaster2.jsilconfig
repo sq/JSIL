@@ -1,0 +1,24 @@
+{
+  "UseThreads": true,
+  "OutputDirectory": "%configpath%",
+  "Assemblies": {
+    "Proxies": [
+      "C:/Users/Kevin/Documents/Projects/Soulcaster/Proxies/bin/Debug/Proxies.dll"
+    ],
+    "Ignored": [
+      "System.Data.*",
+      "System.Deployment",
+      "Proxies"
+    ]
+  },
+  "ProfileSettings": {
+    "OverwriteExistingContent": true,
+    "ContentOutputDirectory": "%configpath%/Soulcaster2Content",
+    "UsePNGQuant": true,
+    "MP3Quality": "-V 8",
+    "OGGQuality": "-q 2.65",
+    "FileSettings": {
+      "Audio/Music/*": "Stream"
+    }
+  }
+}

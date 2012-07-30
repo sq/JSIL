@@ -318,6 +318,7 @@ namespace JSIL {
         protected DecompilerContext MakeDecompilerContext (ModuleDefinition module) {
             var context = new DecompilerContext(module);
 
+            context.Settings.AsyncAwait = false;
             context.Settings.YieldReturn = false;
             context.Settings.AnonymousMethods = true;
             context.Settings.QueryExpressions = false;
@@ -331,6 +332,11 @@ namespace JSIL {
         public TranslationResult Translate (
             string assemblyPath, bool scanForProxies = true
         ) {
+            if (Configuration.RunBugChecks.GetValueOrDefault(true))
+                BugChecks.RunBugChecks();
+            else
+                Console.Error.WriteLine("// WARNING: Bug checks have been suppressed. You may be running JSIL on a broken/unsupported .NET runtime.");
+
             var result = new TranslationResult(this.Configuration);
             var assemblies = LoadAssembly(assemblyPath);
             var parallelOptions = GetParallelOptions();
@@ -350,27 +356,40 @@ namespace JSIL {
 
             {
                 int i = 0, mc = methodsToAnalyze.Count;
-                Parallel.For(
-                    0, methodsToAnalyze.Count, parallelOptions,
-                    () => MakeDecompilerContext(assemblies[0].MainModule),
-                    (_, loopState, ctx) => {
-                        MethodToAnalyze m;
-                        if (!methodsToAnalyze.TryTake(out m))
-                            throw new InvalidDataException("Method collection mutated during analysis. Try setting UseThreads=false (and report an issue!)");
+                Func<int, ParallelLoopState, DecompilerContext, DecompilerContext> analyzeAMethod = (_, loopState, ctx) => {
+                    MethodToAnalyze m;
+                    if (!methodsToAnalyze.TryTake(out m))
+                        throw new InvalidDataException("Method collection mutated during analysis. Try setting UseThreads=false (and report an issue!)");
 
-                        ctx.CurrentModule = m.MD.Module;
-                        ctx.CurrentType = m.MD.DeclaringType;
-                        ctx.CurrentMethod = m.MD;
+                    ctx.CurrentModule = m.MD.Module;
+                    ctx.CurrentType = m.MD.DeclaringType;
+                    ctx.CurrentMethod = m.MD;
 
+                    try {
                         TranslateMethodExpression(ctx, m.MD, m.MD, m.MI);
+                    } catch (Exception exc) {
+                        throw new Exception("Error occurred while translating method '" + m.MD.FullName + "'.", exc);
+                    }
 
-                        var j = Interlocked.Increment(ref i);
-                        pr.OnProgressChanged(mc + j, mc * 2);
+                    var j = Interlocked.Increment(ref i);
+                    pr.OnProgressChanged(mc + j, mc * 2);
 
-                        return ctx;
-                    },
-                    (ctx) => { }
-                );
+                    return ctx;
+                };
+
+                if (Configuration.UseThreads.GetValueOrDefault(true)) {
+                    Parallel.For(
+                        0, methodsToAnalyze.Count, parallelOptions,
+                        () => MakeDecompilerContext(assemblies[0].MainModule),
+                        analyzeAMethod,
+                        (ctx) => { }
+                    );
+                } else {
+                    var ctx = MakeDecompilerContext(assemblies[0].MainModule);
+
+                    while (methodsToAnalyze.Count > 0)
+                        analyzeAMethod(0, default(ParallelLoopState), ctx);
+                }
             }
 
             pr.OnFinished();
@@ -386,38 +405,50 @@ namespace JSIL {
                 Manifest.GetPrivateToken(assembly);
             Manifest.AssignIdentifiers();
 
-            Parallel.For(
-                0, assemblies.Length, parallelOptions, (i) => {
-                    var assembly = assemblies[i];
-                    var outputPath = assembly.Name + ".js";
+            Action<int> writeAssembly = (i) => {
+                var assembly = assemblies[i];
+                var outputPath = assembly.Name + ".js";
 
-                    long existingSize;
+                long existingSize;
 
-                    if (!Manifest.GetExistingSize(assembly, out existingSize)) {
-                        using (var outputStream = new MemoryStream()) {
-                            var context = MakeDecompilerContext(assembly.MainModule);
+                if (!Manifest.GetExistingSize(assembly, out existingSize)) {
+                    using (var outputStream = new MemoryStream()) {
+                        var context = MakeDecompilerContext(assembly.MainModule);
+
+                        try {
                             Translate(context, assembly, outputStream);
-
-                            var segment = new ArraySegment<byte>(
-                                outputStream.GetBuffer(), 0, (int)outputStream.Length
-                            );
-
-                            result.AddFile(outputPath, segment);
-
-                            Manifest.SetAlreadyTranslated(assembly, outputStream.Length);
+                        } catch (Exception exc) {
+                            throw new Exception("Error occurred while generating javascript for assembly '" + assembly.FullName + "'.", exc);
                         }
 
-                        lock (result.Assemblies)
-                            result.Assemblies.Add(assembly);
-                    } else {
-                        Debug.WriteLine(String.Format("Skipping '{0}' because it is already translated...", assembly.Name));
+                        var segment = new ArraySegment<byte>(
+                            outputStream.GetBuffer(), 0, (int)outputStream.Length
+                        );
 
-                        result.AddExistingFile(outputPath, existingSize);
+                        result.AddFile("Script", outputPath, segment);
+
+                        Manifest.SetAlreadyTranslated(assembly, outputStream.Length);
                     }
 
-                    pr.OnProgressChanged(result.Assemblies.Count, assemblies.Length);
+                    lock (result.Assemblies)
+                        result.Assemblies.Add(assembly);
+                } else {
+                    Debug.WriteLine(String.Format("Skipping '{0}' because it is already translated...", assembly.Name));
+
+                    result.AddExistingFile("Script", outputPath, existingSize);
                 }
-            );
+
+                pr.OnProgressChanged(result.Assemblies.Count, assemblies.Length);
+            };
+
+            if (Configuration.UseThreads.GetValueOrDefault(true)) {
+                Parallel.For(
+                    0, assemblies.Length, parallelOptions, writeAssembly
+                );
+            } else {
+                for (var i = 0; i < assemblies.Length; i++)
+                    writeAssembly(i);
+            }
 
             pr.OnFinished();
 
@@ -447,8 +478,10 @@ namespace JSIL {
                         var propertiesObject = String.Format("{{ \"sizeBytes\": {0} }}", fe.Size);
 
                         tw.WriteLine(String.Format(
-                            "  [\"{0}\", \"{1}\", {2}],",
-                            "Script", fe.Filename.Replace("\\", "/"), propertiesObject
+                            "    [{0}, {1}, {2}],",
+                            Util.EscapeString(fe.Type), 
+                            Util.EscapeString(fe.Filename.Replace("\\", "/")), 
+                            propertiesObject
                         ));
                     }
 
@@ -1188,8 +1221,9 @@ namespace JSIL {
                 );
                 JSFunctionExpression function = null;
 
-                if (FunctionCache.TryGetExpression(identifier, out function))
+                if (FunctionCache.TryGetExpression(identifier, out function)) {
                     return function;
+                }
 
                 if (methodInfo.IsExternal) {
                     FunctionCache.CreateNull(methodInfo, method, identifier);
@@ -1197,8 +1231,22 @@ namespace JSIL {
                 }
 
                 var bodyDef = methodDef;
-                if (methodInfo.IsFromProxy && methodInfo.Member.HasBody)
+                Func<TypeReference, TypeReference> typeReplacer = (originalType) => {
+                    return originalType;
+                };
+
+                if (methodInfo.IsFromProxy && methodInfo.Member.HasBody) {
                     bodyDef = methodInfo.Member;
+
+                    var actualType = methodInfo.DeclaringType;
+                    var sourceProxy = methodInfo.SourceProxy;
+                    typeReplacer = (originalType) => {
+                        if (TypeUtil.TypesAreEqual(sourceProxy.Definition, originalType))
+                            return method.DeclaringType;
+                        else
+                            return originalType;
+                    };
+                }
 
                 var pr = new ProgressReporter();
 
@@ -1228,7 +1276,8 @@ namespace JSIL {
 
                 var translator = new ILBlockTranslator(
                     this, context, method, methodDef, 
-                    ilb, decompiler.Parameters, allVariables
+                    ilb, decompiler.Parameters, allVariables,
+                    typeReplacer
                 );
 
                 JSBlockStatement body = null;
@@ -1383,6 +1432,12 @@ namespace JSIL {
 
             if (Configuration.Optimizer.EliminateRedundantControlFlow.GetValueOrDefault(true))
                 new ControlFlowSimplifier().Visit(function);
+
+            var epf = new EliminatePointlessFinallyBlocks(si.TypeSystem, _TypeInfoProvider, FunctionCache);
+            epf.Visit(function);
+
+            var oae = new OptimizeArrayEnumerators(si.TypeSystem, FunctionCache);
+            oae.Visit(function);
 
             var lnd = new LoopNameDetector();
             lnd.Visit(function);
@@ -1736,7 +1791,7 @@ namespace JSIL {
 
                 lock (typeInfo.Members)
                     typeInfo.Members[identifier] = new Internal.MethodInfo(
-                        typeInfo, identifier, fakeCctor, new ProxyInfo[0], false
+                        typeInfo, identifier, fakeCctor, new ProxyInfo[0], null
                     );
 
                 // Generate the fake constructor, since it wasn't created during the analysis pass
@@ -1853,7 +1908,7 @@ namespace JSIL {
                         if (bodyTransformer != null)
                             bodyTransformer(function);
 
-                        function.DisplayName = methodInfo.GetName(false);
+                        function.DisplayName = String.Format("{0}.{1}", methodInfo.DeclaringType.Name, methodInfo.GetName(false));
 
                         astEmitter.ReferenceContext.EnclosingMethod = method;
 
@@ -1917,7 +1972,7 @@ namespace JSIL {
 
             output.LPar();
 
-            output.MemberDescriptor(propertyInfo.IsPublic, propertyInfo.IsStatic);
+            output.MemberDescriptor(propertyInfo.IsPublic, propertyInfo.IsStatic, propertyInfo.IsVirtual);
 
             output.Comma();
 

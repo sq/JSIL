@@ -61,14 +61,15 @@ namespace JSIL.Transforms {
                 return false;
 
             var variable = target as JSVariable;
-            if (variable != null) {
+            if (variable != null)
                 return SecondPass.ModifiedVariables.Contains(variable.Name);
-            }
 
             return true;
         }
 
-        protected bool IsCopyNeeded (JSExpression value) {
+        protected bool IsCopyNeeded (JSExpression value, out GenericParameter relevantParameter) {
+            relevantParameter = null;
+
             if ((value == null) || (value.IsNull))
                 return false;
 
@@ -76,9 +77,33 @@ namespace JSIL.Transforms {
                 value = ((JSReferenceExpression)value).Referent;
 
             var valueType = value.GetActualType(TypeSystem);
+            var cte = value as JSChangeTypeExpression;
+            var cast = value as JSCastExpression;
 
-            if (!TypeUtil.IsStruct(valueType))
-                return false;
+            TypeReference originalType;
+            int temp;
+
+            if (cte != null) {
+                originalType = cte.Expression.GetActualType(TypeSystem);
+            } else if (cast != null) {
+                originalType = cast.Expression.GetActualType(TypeSystem);
+            } else {
+                originalType = null;
+            }
+
+            if (originalType != null) {
+                originalType = TypeUtil.FullyDereferenceType(originalType, out temp);
+
+                if (!IsStructOrGenericParameter(valueType) && !IsStructOrGenericParameter(originalType))
+                    return false;
+
+                relevantParameter = (originalType as GenericParameter) ?? (valueType as GenericParameter);
+            } else {
+                if (!IsStructOrGenericParameter(valueType))
+                    return false;
+
+                relevantParameter = (valueType as GenericParameter);
+            }
 
             if (valueType.FullName.StartsWith("System.Nullable"))
                 return false;
@@ -148,7 +173,7 @@ namespace JSIL.Transforms {
                 if (parameterIndex < 0)
                     return true;
 
-                return IsCopyNeeded(rightInvocation.Arguments[parameterIndex]);
+                return IsCopyNeeded(rightInvocation.Arguments[parameterIndex], out relevantParameter);
             }
  
             return true;
@@ -171,18 +196,19 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSPairExpression pair) {
-            if (IsCopyNeeded(pair.Value)) {
+            GenericParameter relevantParameter;
+            if (IsCopyNeeded(pair.Value, out relevantParameter)) {
                 if (Tracing)
                     Debug.WriteLine(String.Format("struct copy introduced for object value {0}", pair.Value));
 
-                pair.Value = new JSStructCopyExpression(pair.Value);
+                pair.Value = MakeCopyForExpression(pair.Value, relevantParameter);
             }
 
             VisitChildren(pair);
         }
 
-        protected bool IsParameterCopyNeeded (FunctionAnalysis2ndPass sa, string parameterName, JSExpression expression) {
-            if (!IsCopyNeeded(expression))
+        protected bool IsParameterCopyNeeded (FunctionAnalysis2ndPass sa, string parameterName, JSExpression expression, out GenericParameter relevantParameter) {
+            if (!IsCopyNeeded(expression, out relevantParameter))
                 return false;
 
             if (!OptimizeCopies)
@@ -215,14 +241,15 @@ namespace JSIL.Transforms {
                 if (pd != null)
                     parameterName = pd.Name;
 
-                if (IsParameterCopyNeeded(sa, parameterName, argument)) {
+                GenericParameter relevantParameter;
+                if (IsParameterCopyNeeded(sa, parameterName, argument, out relevantParameter)) {
                     if (Tracing)
-                        Debug.WriteLine(String.Format("struct copy introduced for argument {0}", argument));
+                        Debug.WriteLine(String.Format("struct copy introduced for argument #{0}: {1}", i, argument));
 
-                    invocation.Arguments[i] = new JSStructCopyExpression(argument);
+                    invocation.Arguments[i] = MakeCopyForExpression(argument, relevantParameter);
                 } else {
-                    if (Tracing)
-                        Debug.WriteLine(String.Format("struct copy elided for argument {0}", argument));
+                    if (Tracing && TypeUtil.IsStruct(argument.GetActualType(TypeSystem)))
+                        Debug.WriteLine(String.Format("struct copy elided for argument #{0}: {1}", i, argument));
                 }
             }
 
@@ -233,11 +260,12 @@ namespace JSIL.Transforms {
             for (int i = 0, c = invocation.Arguments.Count; i < c; i++) {
                 var argument = invocation.Arguments[i];
 
-                if (IsCopyNeeded(argument)) {
+                GenericParameter relevantParameter;
+                if (IsCopyNeeded(argument, out relevantParameter)) {
                     if (Tracing)
-                        Debug.WriteLine(String.Format("struct copy introduced for argument {0}", argument));
+                        Debug.WriteLine(String.Format("struct copy introduced for argument argument #{0}: {1}", i, argument));
 
-                    invocation.Arguments[i] = new JSStructCopyExpression(argument);
+                    invocation.Arguments[i] = MakeCopyForExpression(argument, relevantParameter);
                 }
             }
 
@@ -250,12 +278,21 @@ namespace JSIL.Transforms {
                 return;
             }
 
-            if (IsCopyNeeded(boe.Right)) {
-                if (IsCopyNeededForAssignmentTarget(boe.Left)) {
+            GenericParameter relevantParameter;
+
+            if (IsCopyNeeded(boe.Right, out relevantParameter)) {
+                var rightVars = boe.Right.SelfAndChildrenRecursive.OfType<JSVariable>().ToArray();
+
+                // Even if the assignment target is never modified, if the assignment *source*
+                //  gets modified, we need to make a copy here, because the target is probably
+                //  being used as a back-up copy.
+                var rightVarsModified = (rightVars.Any((rv) => SecondPass.ModifiedVariables.Contains(rv.Name)));
+
+                if (rightVarsModified || IsCopyNeededForAssignmentTarget(boe.Left)) {
                     if (Tracing)
                         Debug.WriteLine(String.Format("struct copy introduced for assignment rhs {0}", boe.Right));
 
-                    boe.Right = new JSStructCopyExpression(boe.Right);
+                    boe.Right = MakeCopyForExpression(boe.Right, relevantParameter);
                 } else {
                     if (Tracing)
                         Debug.WriteLine(String.Format("struct copy elided for assignment rhs {0}", boe.Right));
@@ -263,6 +300,31 @@ namespace JSIL.Transforms {
             }
 
             VisitChildren(boe);
+        }
+
+        protected JSStructCopyExpression MakeCopyForExpression (JSExpression expression, GenericParameter relevantParameter) {
+            if (relevantParameter != null)
+                return new JSConditionalStructCopyExpression(relevantParameter, expression);
+            else
+                return new JSStructCopyExpression(expression);
+        }
+
+        protected static bool IsStructOrGenericParameter (TypeReference tr) {
+            int temp;
+            var derefed = TypeUtil.FullyDereferenceType(tr, out temp);
+
+            var gp = derefed as GenericParameter;
+            if (gp != null) {
+                foreach (var constraint in gp.Constraints) {
+                    if (constraint.FullName == "System.Object") {
+                        // Class constraint. Excludes structs.
+                        return false;
+                    }
+                }
+                
+                return true;
+            } else
+                return TypeUtil.IsStruct(tr);
         }
     }
 

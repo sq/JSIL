@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using JSIL.Compiler.Extensibility;
+using JSIL.Utilities;
 
 namespace JSIL.Compiler.Profiles {
     public class XNA3 : BaseProfile {
@@ -15,10 +16,12 @@ namespace JSIL.Compiler.Profiles {
             );
         }
 
-        public override TranslationResult Translate (AssemblyTranslator translator, string assemblyPath, bool scanForProxies) {
+        public override TranslationResult Translate (AssemblyTranslator translator, Configuration configuration, string assemblyPath, bool scanForProxies) {
             var result = translator.Translate(assemblyPath, scanForProxies);
 
-            result.AddFile("XNA.Colors.js", new ArraySegment<byte>(Encoding.UTF8.GetBytes(
+            ResourceConverter.ConvertEmbeddedResources(configuration, assemblyPath, result);
+
+            result.AddFile("Script", "XNA.Colors.js", new ArraySegment<byte>(Encoding.UTF8.GetBytes(
                 Common.MakeXNAColors()
             )), 0);
 

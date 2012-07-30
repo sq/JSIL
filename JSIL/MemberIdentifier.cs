@@ -277,9 +277,7 @@ namespace JSIL.Internal {
             return HashCode;
         }
 
-        public override string ToString () {
-            var name = Name;
-
+        public string ToString (string name) {
             if (GenericArgumentCount != 0)
                 name = String.Format("{0}`{1}", name, GenericArgumentCount);
 
@@ -292,6 +290,10 @@ namespace JSIL.Internal {
                 return String.Format(
                     "{0} {1}", ReturnType, name
                 );
+        }
+
+        public override string ToString () {
+            return ToString(Name);
         }
     }
 
@@ -334,7 +336,7 @@ namespace JSIL.Internal {
             if (lhs == rhs)
                 return true;
 
-            var rhsType = new TypeIdentifier(rhs.DeclaringType);
+            var rhsType = new TypeIdentifier(rhs.DeclaringType.Resolve());
 
             if (!Type.Equals(rhsType))
                 return false;

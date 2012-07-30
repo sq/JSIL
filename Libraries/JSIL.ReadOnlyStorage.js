@@ -23,11 +23,21 @@ JSIL.MakeClass($jsilstorage.TypeRef("VirtualVolume"), "ReadOnlyStorageVolume", t
   $.RawMethod(false, "flush", function () {
   });
 
+  $.RawMethod(false, "deleteFileBytes", function (name) {
+    if (this.readOnly)
+      throw new Error("Volume is read-only");
+
+    delete this.fileBytes[name];
+  });
+
   $.RawMethod(false, "getFileBytes", function (name) {
     return this.fileBytes[name];
   });
 
   $.RawMethod(false, "setFileBytes", function (name, value) {
+    if (this.readOnly)
+      throw new Error("Volume is read-only");
+    
     this.fileBytes[name] = value;
   });
 

@@ -28,6 +28,7 @@ namespace JSIL.Translator {
             public bool? EliminateTemporaries;
             public bool? EliminateRedundantControlFlow;
             public bool? CacheMethodSignatures;
+            public bool? EliminatePointlessFinallyBlocks;
 
             public void MergeInto (OptimizerConfiguration result) {
                 if (EliminateStructCopies.HasValue)
@@ -42,6 +43,8 @@ namespace JSIL.Translator {
                     result.EliminateRedundantControlFlow = EliminateRedundantControlFlow;
                 if (CacheMethodSignatures.HasValue)
                     result.CacheMethodSignatures = CacheMethodSignatures;
+                if (EliminatePointlessFinallyBlocks.HasValue)
+                    result.EliminatePointlessFinallyBlocks = EliminatePointlessFinallyBlocks;
             }
         }
 
@@ -52,6 +55,7 @@ namespace JSIL.Translator {
         public bool? UseDefaultProxies;
         public bool? GenerateSkeletonsForStubbedAssemblies;
         public bool? GenerateContentManifest;
+        public bool? RunBugChecks;
 
         public double? FrameworkVersion;
 
@@ -76,6 +80,8 @@ namespace JSIL.Translator {
                 result.GenerateSkeletonsForStubbedAssemblies = GenerateSkeletonsForStubbedAssemblies;
             if (GenerateContentManifest.HasValue)
                 result.GenerateContentManifest = GenerateContentManifest;
+            if (RunBugChecks.HasValue)
+                result.RunBugChecks = RunBugChecks;
 
             Assemblies.MergeInto(result.Assemblies);
             Optimizer.MergeInto(result.Optimizer);

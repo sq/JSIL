@@ -287,5 +287,74 @@ namespace JSIL.Tests {
             Assert.IsTrue(generatedJs.Contains("lineListIndices ="));
             Assert.IsTrue(generatedJs.Contains("lineListIndices["));
         }
+
+        [Test]
+        public void MakeCopyBeforeMutation () {
+            var output = "copy=1, arg=1\r\na=2, b=1\r\ncopy=2, arg=4\r\na=2, b=4\r\na=3, b=4";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\MakeCopyBeforeMutation.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+            Assert.IsTrue(generatedJs.Contains(
+                @"copy = arg.MemberwiseClone()"
+            ), "Copy was not cloned");
+        }
+
+        [Test]
+        public void PointlessFinallyBlocks () {
+            var output = "1 4\r\n1 5\r\n1 6\r\n2 4\r\n2 5\r\n2 6\r\n3 4\r\n3 5\r\n3 6";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\PointlessFinallyBlocks.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+            Assert.IsFalse(generatedJs.Contains(
+                @"Dispose()"
+            ), "Enumerator(s) were disposed");
+            Assert.IsFalse(generatedJs.Contains(
+                @" finally "
+            ), "Finally block(s) were generated");
+        }
+
+        [Test]
+        public void OptimizeArrayEnumerators () {
+            var output = "1\r\n2\r\n3";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\OptimizeArrayEnumerators.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+            Assert.IsFalse(generatedJs.Contains(
+                @".GetEnumerator"
+            ), "GetEnumerator was called");
+            Assert.IsFalse(generatedJs.Contains(
+                @".MoveNext()"
+            ), "MoveNext was called");
+            Assert.IsFalse(generatedJs.Contains(
+                @".Current"
+            ), "Current was used");
+            Assert.IsFalse(generatedJs.Contains(
+                @"Dispose()"
+            ), "Dispose was called");
+        }
+
+        [Test]
+        public void StructLoopInteraction () {
+            var output = "0\r\n1\r\n2";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\StructLoopInteraction.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
     }
 }

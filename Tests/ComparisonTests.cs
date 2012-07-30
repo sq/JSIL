@@ -22,14 +22,6 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        public void Casts() {
-            using (var test = MakeTest(@"TestCases\CastToBoolean.cs"))
-                test.Run();
-            using (var test = MakeTest(@"TestCases\CastingFromNull.cs"))
-                test.Run();
-        }
-
-        [Test]
         public void BinaryTrees () {
             using (var test = MakeTest(@"TestCases\BinaryTrees.cs")) {
                 test.Run();
@@ -38,28 +30,28 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        public void ForEach () {
-            using (var test = MakeTest(@"TestCases\ForEach.cs"))
+        public void NBody () {
+            using (var test = MakeTest(@"TestCases\NBody.cs")) {
                 test.Run();
+                test.Run("100000");
+            }
         }
 
         [Test]
-        public void Events () {
-            using (var test = MakeTest(@"TestCases\Events.cs"))
+        public void FannkuchRedux () {
+            using (var test = MakeTest(@"TestCases\FannkuchRedux.cs")) {
                 test.Run();
-            using (var test = MakeTest(@"TestCases\Events.vb"))
-                test.Run();
+                test.Run("8");
+            }
+        }
+        [Test]
+        [TestCaseSource("DynamicsSource")]
+        public void Dynamics (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
         }
 
-        [Test]
-        public void ValueTypeMethods () {
-            using (var test = MakeTest(@"TestCases\ValueTypeMethods.cs"))
-                test.Run();
-        }
-
-        [Test]
-        public void Dynamics () {
-            RunComparisonTests(
+        protected IEnumerable<TestCaseData> DynamicsSource () {
+            return FilenameTestSource(
                 new[] { 
                     @"TestCases\DynamicBinaryOperators.cs",
                     @"TestCases\DynamicConversion.cs",
@@ -75,23 +67,33 @@ namespace JSIL.Tests {
                     @"TestCases\DynamicSetIndex.cs",
                     @"TestCases\DynamicStaticOverloadedMethods.cs",
                     @"TestCases\DynamicUnaryOperators.cs",
-                }
+                }, null, new AssemblyCache()
             );
         }
 
         [Test]
-        public void Linq () {
-            RunComparisonTests(
+        [TestCaseSource("LinqSource")]
+        public void Linq (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
+
+        protected IEnumerable<TestCaseData> LinqSource () {
+            return FilenameTestSource(
                 new[] { 
                     @"TestCases\LinqSelect.cs",
                     @"TestCases\LinqToArray.cs",
-                }
+                }, MakeDefaultProvider(), new AssemblyCache()
             );
         }
 
         [Test]
-        public void Generics () {
-            RunComparisonTests(
+        [TestCaseSource("GenericsSource")]
+        public void Generics (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
+
+        protected IEnumerable<TestCaseData> GenericsSource () {
+            return FilenameTestSource(
                 new[] { 
                     @"TestCases\HiddenMethodFromGenericClass.cs",
                     @"TestCases\MultipleGenericInterfaces.cs",
@@ -122,16 +124,24 @@ namespace JSIL.Tests {
                     @"TestCases\MethodOfGenericTypeAsGenericDelegate.cs",
                     @"TestCases\GenericMethodAsGenericDelegate.cs",
                     @"TestCases\GenericNestedTypeConstructedInParentStaticConstructor.cs",
-                    @"TestCases\GenericParameterNameShadowing.cs"
-                }
+                    @"TestCases\GenericParameterNameShadowing.cs",
+                    @"TestCases\MutatedStructGenericParameter.cs",
+                    @"TestCases\RefStructThisWithConstrainedInterface.cs",
+                    @"TestCases\RefStructThisWithInterface.cs",
+                    @"TestCases\MethodGenericParameterAsTypeParameter.cs",
+                    @"TestCases\MethodGenericParameterAsTypeParameter2.cs",
+                }, MakeDefaultProvider(), new AssemblyCache()
             );
         }
 
         [Test]
-        public void Structs () {
-            var defaultProvider = MakeDefaultProvider();
+        [TestCaseSource("StructsSource")]
+        public void Structs (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
 
-            RunComparisonTests(
+        protected IEnumerable<TestCaseData> StructsSource () {
+            return FilenameTestSource(
                 new[] { 
                     @"TestCases\ReturnStruct.cs",
                     @"TestCases\StructArrayLiteral.cs",
@@ -147,84 +157,75 @@ namespace JSIL.Tests {
                     @"TestCases\StructThisAssignment.cs",
                     @"TestCases\SingleDimStructArrays.cs",
                     @"TestCases\MultiDimStructArrays.cs",
-                    @"TestCases\StructLateDeclaration.cs" // This test demonstrates a bug in IntroduceVariableDeclarations
-                }, null, defaultProvider
+                    @"TestCases\StructLateDeclaration.cs", // This test demonstrates a bug in IntroduceVariableDeclarations
+                    @"TestCases\RefStructThisWithConstrainedInterface.cs",
+                    @"TestCases\RefStructThisWithInterface.cs",
+                    @"TestCases\MutatedStructGenericParameter.cs",
+                }, MakeDefaultProvider(), new AssemblyCache()
             );
         }
 
         [Test]
-        public void GetTypeByName () {
-            using (var test = MakeTest(@"TestCases\GetTypeByName.cs"))
-                test.Run();
-            using (var test = MakeTest(@"TestCases\GetGenericTypeByName.cs"))
-                test.Run();
+        [TestCaseSource("FieldSpecialCasesSource")]
+        public void FieldSpecialCases (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
         }
 
-        [Test]
-        public void FieldSpecialCases () {
-            var defaultProvider = MakeDefaultProvider();
-
-            RunComparisonTests(
+        protected IEnumerable<TestCaseData> FieldSpecialCasesSource () {
+            return FilenameTestSource(
                 new[] { 
                     @"TestCases\FieldRecursiveInitialization.cs",
                     @"TestCases\StringEmpty.cs",
                     @"TestCases\ArrayFieldWithSelfReference.cs",
                     @"TestCases\CharField.cs",
                     @"TestCases\ArrayFieldOfThisType.cs",
-                }
+                }, MakeDefaultProvider(), new AssemblyCache()
             );
         }
 
         [Test]
-        public void MulticastDelegates () {
-            using (var test = MakeTest(@"TestCases\MulticastDelegates.cs"))
-                test.Run();
+        [TestCaseSource("CharsSource")]
+        public void Chars (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
         }
 
-        [Test]
-        public void Chars () {
-            var defaultProvider = MakeDefaultProvider();
-
-            RunComparisonTests(
+        protected IEnumerable<TestCaseData> CharsSource () {
+            return FilenameTestSource(
                 new[] { 
                     @"TestCases\CharSwitch.cs",
                     @"TestCases\Chars.cs",
                     @"TestCases\CharArrayLookup.cs",
                     @"TestCases\CharArithmetic.cs",
                     @"TestCases\CharConcat.cs",
-                }, null, defaultProvider
+                }, MakeDefaultProvider(), new AssemblyCache()
             );
         }
 
         [Test]
-        public void Dictionaries () {
-            var defaultProvider = MakeDefaultProvider();
+        [TestCaseSource("DictionariesSource")]
+        public void Dictionaries (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
 
-            RunComparisonTests(
+        protected IEnumerable<TestCaseData> DictionariesSource () {
+            return FilenameTestSource(
                 new[] { 
                     @"TestCases\Dictionary.cs",
                     @"TestCases\DictionaryInitializer.cs",
                     @"TestCases\DictionaryEnumerator.cs",
-                }, null, defaultProvider
+                    @"TestCases\DictionaryKeyValuePairs.cs",
+                }, MakeDefaultProvider(), new AssemblyCache()
             );
         }
 
         [Test]
-        public void HashSets () {
-            var defaultProvider = MakeDefaultProvider();
-
-            RunComparisonTests(
-                new[] { 
-                    @"TestCases\HashSetCount.cs",
-                }, null, defaultProvider
-            );
+        [TestCaseSource("EnumsSource")]
+        public void Enums (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
         }
 
-        [Test]
-        public void Enums () {
-            var defaultProvider = MakeDefaultProvider();
-
-            RunComparisonTests(
+        protected IEnumerable<TestCaseData> EnumsSource () {
+            return FilenameTestSource(
                 new[] { 
                     @"TestCases\EnumComplexArithmetic.cs",
                     @"TestCases\EnumSwitch.cs",
@@ -241,57 +242,64 @@ namespace JSIL.Tests {
                     @"TestCases\EnumCheckType.cs",
                     @"TestCases\EnumNullableArithmetic.cs",
                     @"TestCases\EnumAnonymousMethod.cs",
-                }, null, defaultProvider
+                    @"TestCases\CompareFlagsEnums.cs",
+                }, MakeDefaultProvider(), new AssemblyCache()
             );
         }
 
         [Test]
-        public void Refs () {
-            var defaultProvider = MakeDefaultProvider();
+        [TestCaseSource("RefsSource")]
+        public void Refs (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
 
-            RunComparisonTests(
+        protected IEnumerable<TestCaseData> RefsSource () {
+            return FilenameTestSource(
                 new[] { 
                     @"TestCases\RefParameters.cs",
                     @"TestCases\RefParameterInitializedInConditional.cs",
                     @"TestCases\RefStruct.cs",
                     @"TestCases\StructPropertyThis.cs",
                     @"TestCases\RefClass.cs"
-                }, null, defaultProvider
+                }, MakeDefaultProvider(), new AssemblyCache()
             );
         }
 
         [Test]
-        public void NBody () {
-            using (var test = MakeTest(@"TestCases\NBody.cs")) {
-                test.Run();
-                test.Run("100000");
-            }
+        [TestCaseSource("UncategorizedTestCasesSource")]
+        public void UncategorizedTestCases (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
         }
 
-        [Test]
-        public void FannkuchRedux () {
-            using (var test = MakeTest(@"TestCases\FannkuchRedux.cs")) {
-                test.Run();
-                test.Run("8");
-            }
-        }
-
-        [Test]
-        public void AllSimpleTests () {
-            var typeInfo = MakeDefaultProvider();
-            var testPath = Path.GetFullPath(Path.Combine(ComparisonTest.TestSourceFolder, "SimpleTestCases"));
-            var simpleTests = Directory.GetFiles(testPath, "*.cs").Concat(Directory.GetFiles(testPath, "*.vb")).ToArray();
-
-            RunComparisonTests(
-                simpleTests, null, typeInfo
+        protected IEnumerable<TestCaseData> UncategorizedTestCasesSource () {
+            return FilenameTestSource(
+                new[] { 
+                    @"TestCases\HashSetCount.cs",
+                    @"TestCases\MulticastDelegates.cs",
+                    @"TestCases\GetTypeByName.cs",
+                    @"TestCases\GetGenericTypeByName.cs",
+                    @"TestCases\ValueTypeMethods.cs",
+                    @"TestCases\Events.cs",
+                    @"TestCases\Events.vb",
+                    @"TestCases\ForEach.cs",
+                    @"TestCases\CastToBoolean.cs",
+                    @"TestCases\CastingFromNull.cs",
+                    @"TestCases\Goto.cs",
+                    @"TestCases\YieldReturn.cs",
+                    @"TestCases\FaultBlock.cs",
+                    @"TestCases\StaticArrayInitializer.cs",
+                }, null, new AssemblyCache()
             );
         }
 
         [Test]
-        public void LambdaTests () {
-            var defaultProvider = MakeDefaultProvider();
+        [TestCaseSource("LambdaTestsSource")]
+        public void Lambdas (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
 
-            RunComparisonTests(
+        protected IEnumerable<TestCaseData> LambdaTestsSource () {
+            return FilenameTestSource(
                 new[] { 
                     @"TestCases\LambdasUsingThis.cs",
                     @"TestCases\Lambdas.cs",
@@ -299,42 +307,26 @@ namespace JSIL.Tests {
                     @"TestCases\DelegatesReturningDelegates.cs",
                     @"TestCases\NestedGenericMethodCalls.cs",
                     @"TestCases\LambdaRefParameters.cs"
-                }, null, defaultProvider
+                }, MakeDefaultProvider(), new AssemblyCache()
             );
         }
 
         [Test]
-        public void StaticConstructors () {
-            var defaultProvider = MakeDefaultProvider();
+        [TestCaseSource("StaticConstructorsSource")]
+        public void StaticConstructors (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
 
-            // We need a separate copy of these tests otherwise they may share a loaded assembly with the other test fixture.
-            RunComparisonTests(
+        protected IEnumerable<TestCaseData> StaticConstructorsSource () {
+            return FilenameTestSource(
                 new[] { 
                     @"TestCases\GenericStaticConstructorOrdering2.cs",
                     // This breaks all the time and has yet to cause actual breakage.
                     // Furthermore, I'm not sure it's meaningful to rely on the ordering. So, it's in failing tests now.
                     // @"TestCases\StaticConstructorOrdering.cs", 
                     @"TestCases\StaticInitializersInGenericTypesSettingStaticFields2.cs"
-                }, null, defaultProvider
+                }, MakeDefaultProvider(), new AssemblyCache()
             );
-        }
-
-        [Test]
-        public void Goto () {
-            using (var test = MakeTest(@"TestCases\Goto.cs"))
-                test.Run();
-        }
-
-        [Test]
-        public void YieldReturn () {
-            using (var test = MakeTest(@"TestCases\YieldReturn.cs"))
-                test.Run();
-        }
-
-        [Test]
-        public void FaultBlock () {
-            using (var test = MakeTest(@"TestCases\FaultBlock.cs"))
-                test.Run();
         }
 
         [Test]
@@ -362,30 +354,31 @@ namespace JSIL.Tests {
         }
 
         [Test]
-        public void StaticArrays () {
-            using (var test = MakeTest(@"TestCases\StaticArrayInitializer.cs"))
-                test.Run();
+        [TestCaseSource("ArithmeticSource")]
+        public void Arithmetic (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
         }
 
-        [Test]
-        public void Arithmetic () {
-            var defaultProvider = MakeDefaultProvider();
-
-            RunComparisonTests(
+        protected IEnumerable<TestCaseData> ArithmeticSource () {
+            return FilenameTestSource(
                 new[] { 
                     @"TestCases\LongArithmetic.cs",
                     @"TestCases\IntegerArithmetic.cs",
                     @"TestCases\TernaryArithmetic.cs",
-                    @"TestCases\NullableArithmetic.cs"
-                }
+                    @"TestCases\NullableArithmetic.cs",
+                    @"TestCases\EnumNullableArithmetic.cs",
+                }, MakeDefaultProvider(), new AssemblyCache()
             );
         }
 
         [Test]
-        public void Nullables () {
-            var defaultProvider = MakeDefaultProvider();
+        [TestCaseSource("NullablesSource")]
+        public void Nullables (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
 
-            RunComparisonTests(
+        protected IEnumerable<TestCaseData> NullablesSource () {
+            return FilenameTestSource(
                 new[] { 
                     @"TestCases\Nullables.cs",
                     @"TestCases\NullableArithmetic.cs",
@@ -394,33 +387,73 @@ namespace JSIL.Tests {
                     @"TestCases\NullableObjectCast.cs",
                     @"TestCases\CastEnumNullableToInt.cs",
                     @"TestCases\EnumNullableArithmetic.cs",
-                }
+                }, MakeDefaultProvider(), new AssemblyCache()
             );
         }
 
         [Test]
-        public void Ternaries () {
-            var defaultProvider = MakeDefaultProvider();
+        [TestCaseSource("TernariesSource")]
+        public void Ternaries (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
 
-            RunComparisonTests(
+        protected IEnumerable<TestCaseData> TernariesSource () {
+            return FilenameTestSource(
                 new[] { 
                     @"TestCases\TernaryArithmetic.cs",
                     @"TestCases\TernaryTypeInference.cs",
-                }, null, defaultProvider
+                }, MakeDefaultProvider(), new AssemblyCache()
             );
         }
 
         [Test]
-        public void Temporaries () {
-            var defaultProvider = MakeDefaultProvider();
+        [TestCaseSource("TemporariesSource")]
+        public void Temporaries (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
 
-            RunComparisonTests(
+        protected IEnumerable<TestCaseData> TemporariesSource () {
+            return FilenameTestSource(
                 new[] { 
                     @"TestCases\InterleavedTemporaries.cs",
                     @"TestCases\IndirectInterleavedTemporaries.cs",
                     @"TestCases\DirectTemporaryAssignment.cs"
-                }, null, defaultProvider
+                }, MakeDefaultProvider(), new AssemblyCache()
             );
         }
+
+        #region Folders
+
+        [Test]
+        [TestCaseSource("SimpleTestCasesSource")]
+        public void SimpleTestCases (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
+
+        protected IEnumerable<TestCaseData> SimpleTestCasesSource () {
+            return FolderTestSource("SimpleTestCases", MakeDefaultProvider(), new AssemblyCache());
+        }
+
+        [Test]
+        [TestCaseSource("EncodingTestCasesSource")]
+        public void EncodingTestCases (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
+
+        protected IEnumerable<TestCaseData> EncodingTestCasesSource () {
+            return FolderTestSource("EncodingTestCases", MakeDefaultProvider(), new AssemblyCache());
+        }
+
+        [Test]
+        [TestCaseSource("ReflectionTestCasesSource")]
+        public void ReflectionTestCases (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
+
+        protected IEnumerable<TestCaseData> ReflectionTestCasesSource () {
+            return FolderTestSource("ReflectionTestCases", MakeDefaultProvider(), new AssemblyCache());
+        }
+
+        #endregion
     }
 }

@@ -20,6 +20,8 @@ public static class Program {
     public static void Main (string[] args) {
         Func<object> Null = () => null;
 
+        Console.WriteLine("{0}", default(bool));
+        Console.WriteLine("{0}", default(char).ToString().Length);
         Console.WriteLine("{0}", default(int));
         Console.WriteLine("{0}", default(float));
         Console.WriteLine("{0}", default(string) == Null());

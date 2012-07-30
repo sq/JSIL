@@ -36,17 +36,21 @@ namespace JSIL {
 
         static readonly ConcurrentCache<ILCode, System.Reflection.MethodInfo[]> NodeTranslatorCache = new ConcurrentCache<ILCode, System.Reflection.MethodInfo[]>();
 
+        protected readonly Func<TypeReference, TypeReference> TypeReferenceReplacer;
+
         public ILBlockTranslator (
             AssemblyTranslator translator, DecompilerContext context, 
             MethodReference methodReference, MethodDefinition methodDefinition, 
             ILBlock ilb, IEnumerable<ILVariable> parameters, 
-            IEnumerable<ILVariable> allVariables
+            IEnumerable<ILVariable> allVariables,
+            Func<TypeReference, TypeReference> referenceReplacer = null
         ) {
             Translator = translator;
             Context = context;
             ThisMethodReference = methodReference;
             ThisMethod = methodDefinition;
             Block = ilb;
+            TypeReferenceReplacer = referenceReplacer;
 
             SpecialIdentifiers = new JSIL.SpecialIdentifiers(translator.FunctionCache.MethodTypes, TypeSystem);
 
@@ -71,6 +75,50 @@ namespace JSIL {
                     Variables.Add(v.Identifier, v);
                 }
             }
+        }
+
+        protected TypeReference FixupReference (TypeReference reference) {
+            // TODO: Expand !N to actual generic parameter it references
+
+            if (TypeReferenceReplacer != null)
+                return TypeReferenceReplacer(reference);
+            else
+                return reference;
+        }
+
+        // When a method body is replaced by the body of a proxy method, the method body
+        //  will contain references to members of the proxy class instead of the class being
+        //  proxied. We correct those references to point to the class being proxied (via
+        //  a call to FixupReference) before doing MemberInfo lookups.
+        protected T GetMember<T> (MemberReference member) 
+            where T : class, IMemberInfo 
+        {
+            var declaringType = member.DeclaringType;
+            declaringType = FixupReference(declaringType);
+
+            var typeInfo = TypeInfo.Get(declaringType);
+            if (typeInfo == null) {
+                Console.Error.WriteLine("Warning: type not loaded: {0}", declaringType.FullName);
+                return default(T);
+            }
+
+            var identifier = MemberIdentifier.New(TypeInfo, member);
+
+            IMemberInfo result;
+            if (!typeInfo.Members.TryGetValue(identifier, out result)) {
+                // Console.Error.WriteLine("Warning: member not defined: {0}", member.FullName);
+                return default(T);
+            }
+
+            return result as T;
+        }
+
+        protected JSIL.Internal.MethodInfo GetMethod (MethodReference method) {
+            return GetMember<JSIL.Internal.MethodInfo>(method);
+        }
+
+        protected JSIL.Internal.FieldInfo GetField (FieldReference field) {
+            return GetMember<JSIL.Internal.FieldInfo>(field);
         }
 
         internal MethodTypeFactory MethodTypes {
@@ -277,15 +325,6 @@ namespace JSIL {
             )
                 return new JSUntranslatableExpression(node);
 
-            if (TypeUtil.IsEnum(node.Arguments[0].InferredType ?? node.Arguments[0].ExpectedType)
-                || TypeUtil.IsEnum(node.Arguments[1].InferredType ?? node.Arguments[1].ExpectedType)
-            ) {
-                if (op == JSOperator.Equal)
-                    op = JSOperator.EqualLoose;
-                else if (op == JSOperator.NotEqual)
-                    op = JSOperator.NotEqualLoose;
-            }
-
             var resultType = node.InferredType ?? node.ExpectedType;
             var result = new JSBinaryOperatorExpression(
                 op, lhs, rhs, resultType
@@ -401,7 +440,7 @@ namespace JSIL {
             }
 
             var thisType = TypeUtil.GetTypeDefinition(thisExpression.GetActualType(TypeSystem));
-            Func<JSExpression> generate = () => {
+            Func<bool, JSExpression> generate = (tq) => {
                 var actualThis = @static ? new JSType(method.Method.DeclaringType.Definition) : thisExpression;
 
                 if ((method.Reference.DeclaringType is GenericInstanceType) && !method.Reference.HasThis) {
@@ -410,7 +449,7 @@ namespace JSIL {
 
                 if ((propertyInfo.Member.GetMethod != null) && (method.Method.Member.Name == propertyInfo.Member.GetMethod.Name)) {
                     return new JSPropertyAccess(
-                        actualThis, new JSProperty(method.Reference, propertyInfo)
+                        actualThis, new JSProperty(method.Reference, propertyInfo), false, tq
                     );
                 } else {
                     if (arguments.Length == 0) {
@@ -423,7 +462,7 @@ namespace JSIL {
                     return new JSBinaryOperatorExpression(
                         JSOperator.Assignment,
                         new JSPropertyAccess(
-                            actualThis, new JSProperty(method.Reference, propertyInfo)
+                            actualThis, new JSProperty(method.Reference, propertyInfo), true, tq
                         ),
                         arguments[0], propertyInfo.ReturnType
                     );
@@ -433,14 +472,11 @@ namespace JSIL {
             // Accesses to a base property should go through a regular method invocation, since
             //  javascript properties do not have a mechanism for base access
             if (method.Method.Member.HasThis) {                
-                if (!TypeUtil.TypesAreEqual(method.Method.DeclaringType.Definition, thisType) && !@virtual) {
-                    return null;
-                } else {
-                    return generate();
-                }
+                if (!TypeUtil.TypesAreEqual(method.Method.DeclaringType.Definition, thisType) && !@virtual)
+                    return generate(true);
             }
 
-            return generate();
+            return generate(false);
         }
 
         protected bool ContainsLabels (ILNode root) {
@@ -1030,7 +1066,7 @@ namespace JSIL {
             return Translate_ComparisonOperator(node, JSOperator.GreaterThanOrEqual);
         }
 
-        protected JSBinaryOperatorExpression Translate_CompoundAssignment (ILExpression node) {
+        protected JSExpression Translate_CompoundAssignment (ILExpression node) {
             JSAssignmentOperator op = null;
             var translated = TranslateNode(node.Arguments[0]);
             if (translated is JSResultReferenceExpression)
@@ -1073,15 +1109,52 @@ namespace JSIL {
             }
 
             if (boe != null) {
-                if (op != null) {
-                    return new JSBinaryOperatorExpression(
-                        op, boe.Left, boe.Right, boe.ActualType
+                var leftInvocation = boe.Left as JSInvocationExpression;
+                JSExpression leftThisReference = null;
+                ArrayType leftThisType = null;
+
+                if (leftInvocation != null) {
+                    leftThisReference = leftInvocation.ThisReference;
+                    leftThisType = leftThisReference.GetActualType(TypeSystem) as ArrayType;
+                }
+
+                if (
+                    (leftThisType != null) &&
+                    (leftThisType.Rank > 1) &&
+                    (leftInvocation.JSMethod != null) &&
+                    (leftInvocation.JSMethod.Method.Name == "Get")
+                ) {
+                    // Compound assignments to elements of multidimensional arrays must be handled specially, because
+                    //  getting/setting elements of those arrays is actually a method call
+
+                    var indices = leftInvocation.Arguments.ToArray();
+                    if (!indices.All(
+                        (e) => (e is JSVariable) || (e.IsConstant)
+                    ))
+                        throw new NotImplementedException(String.Format(
+                            "Compound assignment to element of multidimensional array with non-constant indices: '{0}'", node
+                        ));
+
+                    var setter = new JSFakeMethod(
+                        "Set", boe.ActualType,
+                        (from i in indices select i.GetActualType(TypeSystem)).Concat(new[] { boe.ActualType }).ToArray(),
+                        MethodTypes
                     );
-                } else {
+                    var setExpression = JSInvocationExpression.InvokeMethod(
+                        setter, leftThisReference,
+                        indices.Concat(new[] { boe }).ToArray()
+                    );
+
+                    return setExpression;
+                } else if (op == null) {
                     // Unimplemented compound operators, and operators with semantics that don't match JS, must be emitted normally
                     return new JSBinaryOperatorExpression(
                         JSOperator.Assignment, boe.Left,
                         boe, boe.ActualType
+                    );
+                } else {
+                    return new JSBinaryOperatorExpression(
+                        op, boe.Left, boe.Right, boe.ActualType
                     );
                 }
             } else if ((invocation != null) && (invocation.Arguments[0] is JSReferenceExpression)) {
@@ -1293,7 +1366,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldsfld (ILExpression node, FieldReference field) {
-            var fieldInfo = TypeInfo.GetField(field);
+            var fieldInfo = GetField(field);
             if (fieldInfo == null)
                 return new JSIgnoredMemberReference(true, null, JSLiteral.New(field.FullName));
             else if (TypeUtil.IsIgnoredType(field.FieldType) || fieldInfo.IsIgnored)
@@ -1311,7 +1384,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldsflda (ILExpression node, FieldReference field) {
-            var fieldInfo = TypeInfo.GetField(field);
+            var fieldInfo = GetField(field);
             if (fieldInfo == null)
                 return new JSIgnoredMemberReference(true, null, JSLiteral.New(field.FullName));
             else if (TypeUtil.IsIgnoredType(field.FieldType) || fieldInfo.IsIgnored)
@@ -1344,7 +1417,7 @@ namespace JSIL {
             if ((translated.IsNull) && !(translated is JSUntranslatableExpression) && !(translated is JSIgnoredMemberReference))
                 return new JSNullExpression();
 
-            var fieldInfo = TypeInfo.GetField(field);
+            var fieldInfo = GetField(field);
             if (TypeUtil.IsIgnoredType(field.FieldType) || (fieldInfo == null) || fieldInfo.IsIgnored)
                 return new JSIgnoredMemberReference(true, fieldInfo, translated);
 
@@ -1385,7 +1458,7 @@ namespace JSIL {
             var firstArg = node.Arguments[0];
             var translated = TranslateNode(firstArg);
 
-            var fieldInfo = TypeInfo.GetField(field);
+            var fieldInfo = GetField(field);
             if (TypeUtil.IsIgnoredType(field.FieldType) || (fieldInfo == null) || fieldInfo.IsIgnored)
                 return new JSIgnoredMemberReference(true, fieldInfo, translated);
 
@@ -1486,7 +1559,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldftn (ILExpression node, MethodReference method) {
-            var methodInfo = TypeInfo.GetMethod(method);
+            var methodInfo = GetMethod(method);
             if (methodInfo == null)
                 return new JSIgnoredMemberReference(true, null, new JSStringLiteral(method.FullName));
 
@@ -1498,7 +1571,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldvirtftn (ILExpression node, MethodReference method) {
-            var methodInfo = TypeInfo.GetMethod(method);
+            var methodInfo = GetMethod(method);
             if (methodInfo == null)
                 return new JSIgnoredMemberReference(true, null, new JSStringLiteral(method.FullName));
 
@@ -1957,7 +2030,7 @@ namespace JSIL {
                 );
             }
 
-            var methodInfo = TypeInfo.GetMethod(constructor);
+            var methodInfo = GetMethod(constructor);
             if ((methodInfo == null) || methodInfo.IsIgnored)
                 return new JSIgnoredMemberReference(true, methodInfo, arguments);
 
@@ -2114,12 +2187,12 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Ldtoken (ILExpression node, MethodReference method) {
-            var methodInfo = TypeInfo.GetMethod(method);
+            var methodInfo = GetMethod(method);
             return new JSMethod(method, methodInfo, MethodTypes);
         }
 
         protected JSExpression Translate_Ldtoken (ILExpression node, FieldReference field) {
-            var fieldInfo = TypeInfo.GetField(field);
+            var fieldInfo = GetField(field);
             return new JSField(field, fieldInfo);
         }
 
@@ -2191,7 +2264,7 @@ namespace JSIL {
         }
 
         protected JSExpression Translate_Call (ILExpression node, MethodReference method) {
-            var methodInfo = TypeInfo.GetMethod(method);
+            var methodInfo = GetMethod(method);
             if (methodInfo == null)
                 return new JSIgnoredMemberReference(true, null, JSLiteral.New(method.FullName));
 
@@ -2294,7 +2367,7 @@ namespace JSIL {
             }
 
             var translatedArguments = Translate(node.Arguments, method.Parameters, method.HasThis).Skip(1).ToArray();
-            var methodInfo = TypeInfo.GetMethod(method);
+            var methodInfo = GetMethod(method);
 
             if (methodInfo == null)
                 return new JSIgnoredMemberReference(true, null, JSLiteral.New(method.FullName));

@@ -449,7 +449,7 @@ namespace JSIL.Internal {
                     };
 
                     var ownerMethodIdentifier = new QualifiedMemberIdentifier(
-                        new TypeIdentifier(ownerMethod.DeclaringType),
+                        new TypeIdentifier(ownerMethod.DeclaringType.Resolve()),
                         new MemberIdentifier(TypeInfo, ownerMethod)
                     );
 
@@ -460,22 +460,27 @@ namespace JSIL.Internal {
                         return;
                     }
 
-                    if (ownerMethodIdentifier.Equals(ownerMethod, context.DefiningMethod, TypeInfo)) {
+                    if (ownerMethodIdentifier.Equals(ownerMethod, context.EnclosingMethod, TypeInfo)) {
+                        Identifier(gp.Name);
+
+                        return;
+                    }
+
+                    if (
+                        ownerMethodIdentifier.Equals(ownerMethod, context.DefiningMethod, TypeInfo) ||
+                        ownerMethodIdentifier.Equals(ownerMethod, context.SignatureMethod, TypeInfo)
+                    ) {
                         Value(String.Format("!!{0}", getPosition(ownerMethod)));
 
                         return;
                     }
 
-                    if (ownerMethodIdentifier.Equals(ownerMethod, context.EnclosingMethod, TypeInfo)) {
-                        throw new NotImplementedException(String.Format(
-                            "Unimplemented form of generic method parameter: '{0}'.",
-                            gp
-                        ));
-                    }
+                    throw new NotImplementedException(String.Format(
+                        "Unimplemented form of generic method parameter: '{0}'.",
+                        gp
+                    ));
 
-                    Value(String.Format("!!{0}", getPosition(ownerMethod)));
                     return;
-
                 }
             } else {
                 throw new NotImplementedException("Cannot resolve generic parameter without a TypeReferenceContext.");
@@ -602,7 +607,7 @@ namespace JSIL.Internal {
             TypeReference(type.Definition, context);
         }
 
-        public void MemberDescriptor (bool isPublic, bool isStatic) {
+        public void MemberDescriptor (bool isPublic, bool isStatic, bool isVirtual = false) {
             WriteRaw("{");
 
             WriteRaw("Static");
@@ -618,6 +623,14 @@ namespace JSIL.Internal {
             Value(isPublic);
             if (isPublic)
                 WriteRaw(" ");
+
+            if (isVirtual) {
+                Comma();
+
+                WriteRaw("Virtual");
+                WriteRaw(":");
+                WriteRaw("true ");
+            }
 
             WriteRaw("}");
         }
@@ -999,10 +1012,21 @@ namespace JSIL.Internal {
             }
 
             if (cached) {
-                WriteRaw("$sig.get");
+                var defineNew = (context.InvokingMethod == null) && (context.EnclosingMethod == null);
+
+                WriteRaw(defineNew ? "$sig.make" : "$sig.get");
                 LPar();
 
                 Value(signature.ID);
+
+                /*
+                 * FIXME: Not possible since IDs for jsil.core/jsil.bootstrap APIs aren't defined.
+                if (!defineNew) {
+                    RPar();
+                    return;
+                }
+                 */
+
                 Comma();
 
             } else {
