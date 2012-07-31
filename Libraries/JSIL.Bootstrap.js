@@ -5990,29 +5990,22 @@ JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) {
         return me.op_Division(me.op_UnaryNegation(n), me.op_UnaryNegation(d));
       else if (isNegative(n))
         return me.op_UnaryNegation(me.op_Division(me.op_UnaryNegation(n), d));
-      else {
-        var q = new me(0, 0, 0); // do not use Int64.Zero, we are mutating q !!
-        var r = new me(0, 0, 0);
-        var nd = n.data;
+      else
+        return uint64.op_Division(n, d);
+    });
 
-        for (var i = 63; i >= 0; i--) {
-          r = me.op_LeftShift(r, 1);
+  $.Method({ Static: true, Public: true }, "op_Modulus",
+    (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
+    function (n, d) {
+      if (me.op_Equality(d, me.Zero))
+        throw new Error("System.DivideByZeroException");
 
-          var li = i < 24 ? 0 :
-                   i < 48 ? 1 : 2;
-          var s = (i - 24 * li);
-
-          r.data[0] |= (nd[li] & (1 << s)) >>> s;
-
-          // yes, uint64.op_GreaterThanOrEqual
-          if (uint64.op_GreaterThanOrEqual(r, d)) {
-            r = me.op_Subtraction(r, d);
-            q.data[li] |= 1 << s;
-          }
-        }
-
-        return q;
-      }
+      if (isNegative(d))
+        return me.op_Modulus(me.op_UnaryNegation(n), me.op_UnaryNegation(d));
+      else if (isNegative(n))
+        return me.op_UnaryNegation(me.op_Modulus(me.op_UnaryNegation(n), d));
+      else
+        return uint64.op_Modulus(n, d);
     });
 
   $.Method({ Static: true, Public: true }, "op_GreaterThan",
