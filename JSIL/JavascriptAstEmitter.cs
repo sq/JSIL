@@ -302,7 +302,13 @@ namespace JSIL {
 
             var prop = pa.Property.Property;
 
-            if (prop.IsAutoProperty && !prop.IsVirtual) {
+            // When possible, access the property's backing field instead of using the property itself.
+            // Property accesses are stupid slow in JavaScript :(
+            if (
+                prop.IsAutoProperty && 
+                !prop.IsVirtual && 
+                !prop.DeclaringType.IsInterface
+            ) {
                 Output.WriteRaw(prop.BackingFieldName);
             } else {
                 if (pa.TypeQualified) {

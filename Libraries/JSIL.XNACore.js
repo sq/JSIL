@@ -5910,10 +5910,17 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
 
       for (var i = 0, l = text.length; i < l; i++) {
         var ch = text[i];
-        switch (ch) {
-        case "\r":
-          continue;
-        case "\n":
+
+        var lineBreak = false;
+        if (ch === "\r") {
+          if (text[i + 1] === "\n")
+            i += 1;
+
+          lineBreak = true;
+        } else if (ch === "\n") {
+          lineBreak = true;
+        }
+        if (lineBreak) {
           result.X = Math.max(lineWidth, result.X);
           lineWidth = 0;
 
@@ -6051,13 +6058,19 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
 
       for (var i = 0, l = text.length; i < l; i++) {
         var ch = text[i];
-        switch (ch) {
-        case "\r":
-          continue;
-        case "\n":
+
+        var lineBreak = false;
+        if (ch === "\r") {
+          if (text[i + 1] === "\n")
+            i += 1;
+
+          lineBreak = true;
+        } else if (ch === "\n") {
+          lineBreak = true;
+        }
+        if (lineBreak) {
           positionX = textblockPositionX;
           positionY += (this.lineSpacing * scaleY);
-          continue;
         }
 
         positionX += (this.spacing * scaleX);
