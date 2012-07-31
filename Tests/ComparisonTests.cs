@@ -95,7 +95,18 @@ namespace JSIL.Tests {
         protected IEnumerable<TestCaseData> Int64Source() {
             return FilenameTestSource(
                 new[] { 
-                    @"Int64TestCases\Int64.cs"
+                    @"Int64TestCases\Int64Addition.cs",
+                    @"Int64TestCases\Int64Bitwise.cs",
+                    @"Int64TestCases\Int64Boxing.cs",
+                    @"Int64TestCases\Int64Comparisons.cs",
+                    @"Int64TestCases\Int64DateTimeArithmetic.cs",
+                    @"Int64TestCases\Int64Division.cs",
+                    @"Int64TestCases\Int64Fields.cs",
+                    @"Int64TestCases\Int64Interfaces.cs",
+                    @"Int64TestCases\Int64Literals.cs",
+                    @"Int64TestCases\Int64Multiplication.cs",
+                    @"Int64TestCases\Int64Shifts.cs",
+                    @"Int64TestCases\Int64Subtraction.cs"
                 }, MakeDefaultProvider(), new AssemblyCache());
         }
 

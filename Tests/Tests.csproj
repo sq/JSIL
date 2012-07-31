@@ -112,7 +112,6 @@
     <None Include="TestCases\NullableObjectCast.cs" />
     <None Include="EncodingTestCases\Common.cs" />
     <Compile Include="EvaluatorPool.cs" />
-    <None Include="Int64TestCases\Int64.cs" />
     <None Include="TestCases\LongArithmetic.cs" />
     <None Include="SimpleTestCases\NestedInterfaces.cs" />
     <None Include="SimpleTestCases\OverloadedConstructorDelegation.cs" />
@@ -202,6 +201,18 @@
     <None Include="TestCases\DictionaryKeyValuePairs.cs" />
     <None Include="SpecialTestCases\AutoPropertyEfficiency.cs" />
     <None Include="SimpleTestCases\ClassInheritance.cs" />
+    <None Include="Int64TestCases\Int64Addition.cs" />
+    <None Include="Int64TestCases\Int64Bitwise.cs" />
+    <None Include="Int64TestCases\Int64Boxing.cs" />
+    <None Include="Int64TestCases\Int64Comparisons.cs" />
+    <None Include="Int64TestCases\Int64DateTimeArithmetic.cs" />
+    <None Include="Int64TestCases\Int64Division.cs" />
+    <None Include="Int64TestCases\Int64Fields.cs" />
+    <None Include="Int64TestCases\Int64Literals.cs" />
+    <None Include="Int64TestCases\Int64Multiplication.cs" />
+    <None Include="Int64TestCases\Int64Interfaces.cs" />
+    <None Include="Int64TestCases\Int64Shifts.cs" />
+    <None Include="Int64TestCases\Int64Subtraction.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

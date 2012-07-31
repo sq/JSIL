@@ -146,23 +146,15 @@ namespace JSIL.Transforms
                 JSIdentifier method;
 
                 if (expectedType == TypeSystem.Boolean)
-                    method = new JSFakeMethod(verb, TypeSystem.Boolean, new [] { TypeSystem.Int64, TypeSystem.Int64 }, MethodTypeFactory);
+                    method = new JSFakeMethod(verb, TypeSystem.Boolean, new [] { leftType, rightType }, MethodTypeFactory);
                 else
-                    method = new JSFakeMethod(verb, TypeSystem.Int64, new[] { TypeSystem.Int64, TypeSystem.Int64 }, MethodTypeFactory);
+                    method = new JSFakeMethod(verb, TypeSystem.Int64, new[] { leftType, rightType }, MethodTypeFactory);
 
-                var left = GetExpression(boe.Left);
-                var right = GetExpression(boe.Right);
+                var left = boe.Left;
+                var right = boe.Right;
 
                 var replacement = JSInvocationExpression
                     .InvokeStatic(int64, method, new[] { left, right }, true);
-
-                // TODO: investigate why this is still needed
-                if (IsLesserIntegral(expectedType))
-                {
-                    throw new NotImplementedException();
-                    //replacement = JSInvocationExpression
-                    //    .InvokeMethod(TypeSystem.Int64, new JSFakeMethod("toInt", expectedType, new TypeReference[] {}, MethodTypeFactory), replacement);
-                }
 
                 ParentNode.ReplaceChild(boe, replacement);
                 VisitReplacement(replacement);
@@ -171,39 +163,6 @@ namespace JSIL.Transforms
             {
                 throw new NotSupportedException("Coult not translate expression: " + boe);
             }
-        }
-
-        private JSExpression GetExpression(JSExpression expression)
-        {
-            var type = expression.GetActualType(TypeSystem);
-
-            if (type == TypeSystem.Int64)
-            {
-                return expression;
-            }
-
-            JSExpression conversionMethod = null;
-
-            if (IsLesserIntegral(type))
-            {
-                conversionMethod = int64FromInt;
-            }
-            else if (type == TypeSystem.UInt64 || type == TypeSystem.Double || type == TypeSystem.Single)
-            {
-                conversionMethod = int64FromNumber;
-            }
-            else
-            {
-                // TODO: handle cases like these, for example pass-by-ref
-
-                if (Tracing)
-                    Debug.WriteLine("Operand type not supported in Int64 emulation: {0}", expression);
-
-                return expression;
-            }
-
-            return JSInvocationExpression
-                .InvokeStatic(conversionMethod, new[] { expression }, true);
         }
 
         private bool IsLesserIntegral(TypeReference type)

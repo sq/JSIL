@@ -95,7 +95,8 @@ namespace JSIL.Transforms {
                 );
             } else if (
                 TypeUtil.IsNumeric(targetType) &&
-                TypeUtil.IsNumeric(currentType)
+                TypeUtil.IsNumeric(currentType) &&
+                targetType != currentType
             ) {
                 if (currentType == TypeSystem.Int64) {
                     newExpression = JSInvocationExpression

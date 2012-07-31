@@ -5549,28 +5549,6 @@ JSIL.Make64BitInt = function ($, ctor) {
            return ctor(ba, bb, bc);
          });
 
-  $.Method({ Static: true, Public: true }, "op_RightShift",
-        (new JSIL.MethodSignature($.Type, [$.Type, mscorlib.TypeRef("System.Int32")], [])),
-        function (a, n) {
-          if (n < 0) {
-            return me.op_LeftShift(a, -n);
-          }
-
-          if (n > 24) {
-            return me.op_RightShift(me.op_RightShift(a, 24), n - 24);
-          }
-
-          var m = (1 << n) - 1;
-          var ad = a.data;
-          var cr = ad[2] & (m & 0xffff);
-          var ct = ad[2] >>> n;
-          var br = ad[1] & m;
-          var bt = ad[1] >>> n;
-          var ar = ad[0] & m;
-          var at = ad[0] >>> n;
-          return ctor(at | br, bt | cr, ct);
-        });
-
   $.Method({ Static: true, Public: true }, "op_OnesComplement",
         (new JSIL.MethodSignature($.Type, [$.Type], [])),
         function (a) {
@@ -5654,7 +5632,7 @@ JSIL.Make64BitInt = function ($, ctor) {
             s = b;
 
           while (!me.op_Equality(a, me.One)) {
-            a = me.op_RightShift(a, 1);
+            a = mscorlib.System.UInt64.op_RightShift(a, 1);
             b = me.op_LeftShift(b, 1);
 
             if (a.data[0] & 1 == 1)
@@ -5735,6 +5713,28 @@ JSIL.MakeStruct("System.ValueType", "System.UInt64", true, [], function ($) {
       return r;
     });
 
+  $.Method({ Static: true, Public: true }, "op_RightShift",
+      (new JSIL.MethodSignature($.Type, [$.Type, mscorlib.TypeRef("System.Int32")], [])),
+      function (a, n) {
+        if (n < 0) {
+          return me.op_LeftShift(a, -n);
+        }
+
+        n = n & 0x3f;
+
+        if (n > 24) {
+          return mscorlib.System.UInt64.op_RightShift(mscorlib.System.UInt64.op_RightShift(a, 24), n - 24);
+        }
+
+        var m = (1 << n) - 1;
+        var ad = a.data;
+        var cr = (ad[2] & m) << (24 - n);
+        var ct = ad[2] >>> n;
+        var br = (ad[1] & m) << (24 - n);
+        var bt = ad[1] >>> n;
+        var at = ad[0] >>> n;
+        return ctor(at | br, bt | cr, ct);
+      });
 
   $.Method({ Static: true, Public: true }, "op_LessThan",
     (new JSIL.MethodSignature(mscorlib.TypeRef("System.Boolean"), [$.Type, $.Type], [])),
@@ -5991,6 +5991,7 @@ JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) {
       else if (isNegative(n))
         return me.op_UnaryNegation(me.op_Division(me.op_UnaryNegation(n), d));
       else
+      // fix return type error
         return uint64.op_Division(n, d);
     });
 
@@ -6005,7 +6006,42 @@ JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) {
       else if (isNegative(n))
         return me.op_UnaryNegation(me.op_Modulus(me.op_UnaryNegation(n), d));
       else
+      // fix return type error
         return uint64.op_Modulus(n, d);
+    });
+
+  $.Method({ Static: true, Public: true }, "op_RightShift",
+    (new JSIL.MethodSignature($.Type, [$.Type, mscorlib.TypeRef("System.Int32")], [])),
+    function (a, n) {
+      // Int64 (signed) uses arithmetic shift, UIn64 (unsigned) uses logical shift
+
+      if (n < 0) {
+        return me.op_LeftShift(a, -n);
+      }
+
+      if (isNegative(a)) {
+        return me.op_UnaryNegation(mscorlib.System.UInt64.op_RightShift(a, n));
+      }
+      else {
+        return mscorlib.System.UInt64.op_RightShift(a, n);
+      }
+
+
+      //      var m = (1 << n) - 1;
+      //      var ad = a.data;
+      //      var ad2 = ad[2];
+
+      //      // keep sign bit
+      //      var sc = (ad2 & 0x8000) ? (0xffff & (~(0xffff >>> n))) : 0;
+      //      var sb = ((ad2 & 0x8000) && n >= 16) ? (0xffffff & (~(0xffffff >>> (n - 16)))) : 0;
+
+      //      var cr = ad2 & (m & 0xffff);
+      //      var ct = ad2 >>> n;
+      //      var br = ad[1] & m;
+      //      var bt = ad[1] >>> n;
+      //      var ar = ad[0] & m;
+      //      var at = ad[0] >>> n;
+      //      return ctor(at | br, bt | cr | sb, ct | sc);
     });
 
   $.Method({ Static: true, Public: true }, "op_GreaterThan",
