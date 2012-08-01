@@ -15,8 +15,6 @@ namespace JSIL.Transforms
 
         private readonly JSType int64;
         private readonly JSExpression int64Create;
-        private readonly JSDotExpression int64FromNumber;
-        private readonly JSDotExpression int64FromInt;
         
         private readonly JSType uint64;
         private readonly JSDotExpression uint64Create;
@@ -37,14 +35,6 @@ namespace JSIL.Transforms
             uint64Create = new JSDotExpression(uint64,
                 new JSFakeMethod("Create", TypeSystem.UInt64,
                     new[] { TypeSystem.UInt32, TypeSystem.UInt32, TypeSystem.UInt32 }, MethodTypeFactory));
-            
-            int64FromNumber = new JSDotExpression(int64,
-                new JSFakeMethod("FromNumber", TypeSystem.Int64,
-                    new[] { TypeSystem.Double }, MethodTypeFactory));
-
-            int64FromInt = new JSDotExpression(int64,
-                new JSFakeMethod("FromNumber", TypeSystem.Int64,
-                    new[] { TypeSystem.Int32 }, MethodTypeFactory));
         }
 
         private JSInvocationExpression GetLiteral(long number, bool unsigned = false)
@@ -60,22 +50,6 @@ namespace JSIL.Transforms
                         new JSIntegerLiteral((long)c, typeof(uint))
                     });
         }
-
-        //public void VisitNode(JSCastExpression node)
-        //{
-        //    if (node.NewType == TypeSystem.UInt64)
-        //    { 
-        //        var literal = node.Expression as JSIntegerLiteral;
-        //        if (literal != null && literal.GetActualType(TypeSystem) == TypeSystem.Int64)
-        //        { 
-        //            var newNode = GetLiteral(literal.Value, unsigned: true);
-        //            ParentNode.ReplaceChild(node, newNode);
-        //            return;
-        //        }
-        //    }
-
-        //    VisitChildren(node);
-        //}
 
         public void VisitNode(JSIntegerLiteral literal)
         {
@@ -94,7 +68,7 @@ namespace JSIL.Transforms
         {
             var exType = uoe.Expression.GetActualType(TypeSystem);
             var opType = uoe.ActualType;
-            if (exType == TypeSystem.Int64 && opType == TypeSystem.Int64)
+            if (IsLongOrULong(exType) && IsLongOrULong(opType)) //exType == TypeSystem.Int64 && opType == TypeSystem.Int64)
             {
                 string verb = null;
                 switch (uoe.Operator.Token)
@@ -111,12 +85,15 @@ namespace JSIL.Transforms
 
                 if (verb != null)
                 {
-                    var method = new JSDotExpression(int64, new JSFakeMethod(verb, TypeSystem.Int64, new[] { TypeSystem.Int64 }, MethodTypeFactory));
+                    var type = exType == TypeSystem.Int64 ? int64 : uint64;
+                    var method = new JSFakeMethod(verb, TypeSystem.Int64, new[] { TypeSystem.Int64 }, MethodTypeFactory);
                     ParentNode.ReplaceChild(uoe,
-                        JSInvocationExpression.InvokeStatic(method, new [] { uoe.Expression }));
+                        JSInvocationExpression.InvokeStatic(exType, method, new [] { uoe.Expression }, true));
                     return;
                 }
             }
+
+            VisitChildren(uoe);
         }
 
         public void VisitNode(JSBinaryOperatorExpression boe)
@@ -168,16 +145,6 @@ namespace JSIL.Transforms
         private bool IsLongOrULong(TypeReference type)
         {
             return type == TypeSystem.Int64 || type == TypeSystem.UInt64;
-        }
-
-        private bool IsLesserIntegral(TypeReference type)
-        {
-            return
-                type == TypeSystem.Int16 ||
-                type == TypeSystem.Int32 ||
-                type == TypeSystem.UInt16 ||
-                type == TypeSystem.UInt32 ||
-                type == TypeSystem.Char;
         }
 
         private string GetVerb(JSBinaryOperator op)
