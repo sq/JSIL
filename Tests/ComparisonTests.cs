@@ -96,7 +96,6 @@ namespace JSIL.Tests {
             return FilenameTestSource(
                 new[] { 
                     @"Int64TestCases\Int64Addition.cs",
-                    @"Int64TestCases\Int64Bitwise.cs",
                     @"Int64TestCases\Int64Boxing.cs",
                     @"Int64TestCases\Int64Comparisons.cs",
                     @"Int64TestCases\Int64Convert.cs",
@@ -110,7 +109,9 @@ namespace JSIL.Tests {
                     @"Int64TestCases\Int64Shifts.cs",
                     @"Int64TestCases\Int64Subtraction.cs",
                     @"Int64TestCases\UInt64Addition.cs",
-                    @"Int64TestCases\UInt64Literals.cs"
+                    @"Int64TestCases\UInt64Bitwise.cs",
+                    @"Int64TestCases\UInt64Equality.cs",
+                    @"Int64TestCases\UInt64Literals.cs",
                 }, MakeDefaultProvider(), new AssemblyCache());
         }
 
