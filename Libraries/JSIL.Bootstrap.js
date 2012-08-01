@@ -5495,8 +5495,13 @@ JSIL.Make64BitInt = function ($, ctor) {
         radix = 16;
 
       var rdx = ctor(radix, 0, 0);
+      var neg = false;
 
       for (var i = 0; i < text.length; i++) {
+        if (i == 0 && text[i] == '-') {
+          neg = true;
+          continue;
+        }
         var c = parseInt(text[i], radix);
         if (isNaN(c)) {
           result.value = mscorlib.System.UInt64.MinValue;
@@ -5504,6 +5509,9 @@ JSIL.Make64BitInt = function ($, ctor) {
         }
         r = me.op_Addition(ctor(c, 0, 0), me.op_Multiplication(rdx, r));
       }
+
+      if (neg)
+        r = me.op_UnaryNegation(r);
 
       result.value = r;
 
@@ -5656,7 +5664,7 @@ JSIL.Make64BitInt = function ($, ctor) {
         (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
         function (a, b) {
           var s = mscorlib.System.UInt64.MinValue; // zero
-          
+
           if (me.op_Equality(a, s) || me.op_Equality(b, s))
             return s;
 
