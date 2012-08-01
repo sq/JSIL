@@ -99,6 +99,7 @@ namespace JSIL.Tests {
                     @"Int64TestCases\Int64Bitwise.cs",
                     @"Int64TestCases\Int64Boxing.cs",
                     @"Int64TestCases\Int64Comparisons.cs",
+                    @"Int64TestCases\Int64Convert.cs",
                     @"Int64TestCases\Int64DateTimeArithmetic.cs",
                     @"Int64TestCases\Int64Division.cs",
                     @"Int64TestCases\Int64Fields.cs",
