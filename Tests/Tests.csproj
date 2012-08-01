@@ -200,7 +200,7 @@
     <None Include="SimpleTestCases\IntegerToStringNullFormat.cs" />
     <None Include="TestCases\DictionaryKeyValuePairs.cs" />
     <None Include="SpecialTestCases\AutoPropertyEfficiency.cs" />
-    <None Include="SimpleTestCases\ClassInheritance.cs" />
+    <None Include="SimpleTestCases\InterfacePropertyMatching.cs" />
     <None Include="Int64TestCases\Int64Addition.cs" />
     <None Include="Int64TestCases\Int64Bitwise.cs" />
     <None Include="Int64TestCases\Int64Boxing.cs" />

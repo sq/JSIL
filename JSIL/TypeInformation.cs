@@ -343,6 +343,9 @@ namespace JSIL.Internal {
         public readonly bool IsInterface;
         public readonly string Replacement;
 
+        // Matches JSIL runtime name escaping rules
+        public readonly string LocalName;
+
         protected int _DerivedTypeCount = 0;
         protected string _FullName = null;
         protected bool _FullyInitialized = false;
@@ -357,6 +360,8 @@ namespace JSIL.Internal {
             Source = source;
             Definition = type;
             bool isStatic = type.IsSealed && type.IsAbstract;
+
+            LocalName = TypeUtil.GetLocalName(type);
 
             if (baseClass != null)
                 Interlocked.Increment(ref baseClass._DerivedTypeCount);
@@ -1407,11 +1412,12 @@ namespace JSIL.Internal {
             string result;
             var over = (Member.GetMethod ?? Member.SetMethod).Overrides.FirstOrDefault();
 
-            if (DeclaringType.IsInterface)
-                result = ChangedName ?? String.Format("{0}.{1}", DeclaringType.Name, ShortName);
-            else if (over != null)
+            if (DeclaringType.IsInterface) {
+                result = ChangedName ?? String.Format("{0}.{1}", DeclaringType.LocalName, ShortName);
+            } else if (over != null) {
+                // FIXME: Should this be LocalName and not Name?
                 result = ChangedName ?? String.Format("{0}.{1}", over.DeclaringType.Name, ShortName);
-            else
+            } else
                 result = ChangedName ?? ShortName;
 
             return result;
