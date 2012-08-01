@@ -188,9 +188,6 @@
     <Content Include="..\Libraries\JSIL.XNACore.js">
       <Link>JS Libraries\JSIL.XNACore.js</Link>
     </Content>
-    <Content Include="..\Libraries\long.js">
-      <Link>JS Libraries\long.js</Link>
-    </Content>
     <Content Include="jsil.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
