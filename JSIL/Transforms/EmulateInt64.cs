@@ -17,6 +17,9 @@ namespace JSIL.Transforms
         private readonly JSExpression int64Create;
         private readonly JSDotExpression int64FromNumber;
         private readonly JSDotExpression int64FromInt;
+        
+        private readonly JSType uint64;
+        private readonly JSDotExpression uint64Create;
 
         public EmulateInt64(MethodTypeFactory methodTypeFactory, TypeSystem typeSystem)
         {
@@ -24,9 +27,15 @@ namespace JSIL.Transforms
             MethodTypeFactory = methodTypeFactory;
 
             int64 = new JSType(TypeSystem.Int64);
-            
-            int64Create = new JSDotExpression(int64, 
+
+            uint64 = new JSType(TypeSystem.UInt64);
+
+            int64Create = new JSDotExpression(int64,
                 new JSFakeMethod("Create", TypeSystem.Int64,
+                    new[] { TypeSystem.UInt32, TypeSystem.UInt32, TypeSystem.UInt32 }, MethodTypeFactory));
+
+            uint64Create = new JSDotExpression(uint64,
+                new JSFakeMethod("Create", TypeSystem.UInt64,
                     new[] { TypeSystem.UInt32, TypeSystem.UInt32, TypeSystem.UInt32 }, MethodTypeFactory));
             
             int64FromNumber = new JSDotExpression(int64,
@@ -38,13 +47,13 @@ namespace JSIL.Transforms
                     new[] { TypeSystem.Int32 }, MethodTypeFactory));
         }
 
-        private JSInvocationExpression GetLiteral(long number)
+        private JSInvocationExpression GetLiteral(long number, bool unsigned = false)
         {
             uint a = (uint)(number & 0xffffff);
             uint b = (uint)((number >> 24) & 0xffffff);
             uint c = (uint)((number >> 48) & 0xffff);
             return JSInvocationExpression
-                .InvokeStatic(int64Create,
+                .InvokeStatic(unsigned ? uint64Create : int64Create,
                     new JSExpression[]{ 
                         new JSIntegerLiteral((long)a, typeof(uint)),
                         new JSIntegerLiteral((long)b, typeof(uint)),
@@ -52,15 +61,32 @@ namespace JSIL.Transforms
                     });
         }
 
+        //public void VisitNode(JSCastExpression node)
+        //{
+        //    if (node.NewType == TypeSystem.UInt64)
+        //    { 
+        //        var literal = node.Expression as JSIntegerLiteral;
+        //        if (literal != null && literal.GetActualType(TypeSystem) == TypeSystem.Int64)
+        //        { 
+        //            var newNode = GetLiteral(literal.Value, unsigned: true);
+        //            ParentNode.ReplaceChild(node, newNode);
+        //            return;
+        //        }
+        //    }
+
+        //    VisitChildren(node);
+        //}
+
         public void VisitNode(JSIntegerLiteral literal)
         {
             if (literal.GetActualType(TypeSystem) == TypeSystem.Int64)
             {
-                JSExpression expression;
+                ParentNode.ReplaceChild(literal, GetLiteral(literal.Value));
+            }
 
-                expression = GetLiteral(literal.Value);
-
-                ParentNode.ReplaceChild(literal, expression);
+            if (literal.GetActualType(TypeSystem) == TypeSystem.UInt64)
+            {
+                ParentNode.ReplaceChild(literal, GetLiteral(literal.Value, unsigned: true));
             }
         }
 
@@ -98,8 +124,6 @@ namespace JSIL.Transforms
             var leftType = boe.Left.GetActualType(TypeSystem);
             var rightType = boe.Right.GetActualType(TypeSystem);
 
-            var int64Type = TypeSystem.Int64;
-
             TypeReference expectedType;
             try
             {
@@ -112,23 +136,7 @@ namespace JSIL.Transforms
                 expectedType = null;
             }
 
-            if (boe.Operator.Token == "=" || (leftType != int64Type && rightType != int64Type && expectedType != int64Type))
-            {
-                // we have nothing to do
-
-                VisitChildren(boe);
-
-                return; // just to make sure
-            }
-            else if (leftType != int64Type && rightType != int64Type)
-            {
-                // expectedType is int64, but not the operands -> convert 
-
-                var replacement = JSInvocationExpression.InvokeStatic(int64FromNumber, new[] { boe });
-                ParentNode.ReplaceChild(boe, replacement);
-                VisitChildren(boe);
-            }
-            else if (leftType == int64Type || rightType == int64Type)
+            if (boe.Operator.Token != "=" && (IsLongOrULong(leftType) || IsLongOrULong(rightType)))
             {
                 var verb = GetVerb(boe.Operator);
 
@@ -143,26 +151,23 @@ namespace JSIL.Transforms
                     return;
                 }
 
-                JSIdentifier method;
-
-                if (expectedType == TypeSystem.Boolean)
-                    method = new JSFakeMethod(verb, TypeSystem.Boolean, new [] { leftType, rightType }, MethodTypeFactory);
-                else
-                    method = new JSFakeMethod(verb, TypeSystem.Int64, new[] { leftType, rightType }, MethodTypeFactory);
-
-                var left = boe.Left;
-                var right = boe.Right;
+                JSIdentifier method = new JSFakeMethod(verb, expectedType, new[] { leftType, rightType }, MethodTypeFactory);
 
                 var replacement = JSInvocationExpression
-                    .InvokeStatic(int64, method, new[] { left, right }, true);
+                    .InvokeStatic(leftType, method, new[] { boe.Left, boe.Right }, true);
 
                 ParentNode.ReplaceChild(boe, replacement);
                 VisitReplacement(replacement);
             }
             else
             {
-                throw new NotSupportedException("Coult not translate expression: " + boe);
+                VisitChildren(boe);
             }
+        }
+
+        private bool IsLongOrULong(TypeReference type)
+        {
+            return type == TypeSystem.Int64 || type == TypeSystem.UInt64;
         }
 
         private bool IsLesserIntegral(TypeReference type)

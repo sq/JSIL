@@ -1661,7 +1661,7 @@ namespace JSIL {
                     case ILCode.Ldc_I4:
                         return new JSIntegerLiteral(value, typeof(int));
                     case ILCode.Ldc_I8:
-                        return new JSIntegerLiteral(value, typeof(long));
+                        return new JSIntegerLiteral(value, typeName == "System.UInt64" ? typeof(ulong) : typeof(long));
                 }
 
                 throw new InvalidDataException(String.Format(
