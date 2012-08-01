@@ -14,10 +14,8 @@ namespace JSIL.Transforms
         private readonly MethodTypeFactory MethodTypeFactory;
 
         private readonly JSType int64;
-        private readonly JSExpression int64Create;
         
         private readonly JSType uint64;
-        private readonly JSDotExpression uint64Create;
 
         public EmulateInt64(MethodTypeFactory methodTypeFactory, TypeSystem typeSystem)
         {
@@ -28,39 +26,36 @@ namespace JSIL.Transforms
 
             uint64 = new JSType(TypeSystem.UInt64);
 
-            int64Create = new JSDotExpression(int64,
-                new JSFakeMethod("Create", TypeSystem.Int64,
-                    new[] { TypeSystem.UInt32, TypeSystem.UInt32, TypeSystem.UInt32 }, MethodTypeFactory));
-
-            uint64Create = new JSDotExpression(uint64,
-                new JSFakeMethod("Create", TypeSystem.UInt64,
-                    new[] { TypeSystem.UInt32, TypeSystem.UInt32, TypeSystem.UInt32 }, MethodTypeFactory));
         }
 
-        private JSInvocationExpression GetLiteral(long number, bool unsigned = false)
+        public JSInvocationExpression GetLongLiteralExpression(JSIntegerLiteral literal, bool unsigned = false)
         {
+            var number = literal.Value;
+            var type = unsigned ? TypeSystem.UInt64 : TypeSystem.Int64;
             uint a = (uint)(number & 0xffffff);
             uint b = (uint)((number >> 24) & 0xffffff);
             uint c = (uint)((number >> 48) & 0xffff);
             return JSInvocationExpression
-                .InvokeStatic(unsigned ? uint64Create : int64Create,
+                .InvokeStatic(
+                    new JSType(type),
+                    new JSFakeMethod("Create", type, new[] { TypeSystem.UInt32, TypeSystem.UInt32, TypeSystem.UInt32 }, MethodTypeFactory),
                     new JSExpression[]{ 
                         new JSIntegerLiteral((long)a, typeof(uint)),
                         new JSIntegerLiteral((long)b, typeof(uint)),
                         new JSIntegerLiteral((long)c, typeof(uint))
                     });
         }
-
+        
         public void VisitNode(JSIntegerLiteral literal)
         {
             if (literal.GetActualType(TypeSystem) == TypeSystem.Int64)
             {
-                ParentNode.ReplaceChild(literal, GetLiteral(literal.Value));
+                ParentNode.ReplaceChild(literal, GetLongLiteralExpression(literal));
             }
 
             if (literal.GetActualType(TypeSystem) == TypeSystem.UInt64)
             {
-                ParentNode.ReplaceChild(literal, GetLiteral(literal.Value, unsigned: true));
+                ParentNode.ReplaceChild(literal, GetLongLiteralExpression(literal, unsigned: true));
             }
         }
 
