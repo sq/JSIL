@@ -112,6 +112,7 @@ namespace JSIL.Tests {
                     @"Int64TestCases\UInt64Bitwise.cs",
                     @"Int64TestCases\UInt64Equality.cs",
                     @"Int64TestCases\UInt64Literals.cs",
+                    @"Int64TestCases\UInt64Ref.cs",
                 }, MakeDefaultProvider(), new AssemblyCache());
         }
 

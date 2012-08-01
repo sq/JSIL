@@ -218,6 +218,7 @@
     <None Include="Int64TestCases\UInt64Literals.cs" />
     <None Include="Int64TestCases\UInt64Addition.cs" />
     <None Include="Int64TestCases\UInt64Equality.cs" />
+    <None Include="Int64TestCases\UInt64Ref.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
