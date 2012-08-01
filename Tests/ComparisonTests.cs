@@ -88,7 +88,7 @@ namespace JSIL.Tests {
         
         [Test]
         [TestCaseSource("Int64Source")]
-        public void Int64 (object[] parameters) {
+        public void Int64(object[] parameters) {
             RunSingleComparisonTestCase(parameters);
         }
 
@@ -105,6 +105,7 @@ namespace JSIL.Tests {
                     @"Int64TestCases\Int64Interfaces.cs",
                     @"Int64TestCases\Int64Literals.cs",
                     @"Int64TestCases\Int64Multiplication.cs",
+                    @"Int64TestCases\Int64Parse.cs",
                     @"Int64TestCases\Int64Shifts.cs",
                     @"Int64TestCases\Int64Subtraction.cs"
                 }, MakeDefaultProvider(), new AssemblyCache());

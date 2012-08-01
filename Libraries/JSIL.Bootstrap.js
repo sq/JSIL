@@ -5485,6 +5485,41 @@ JSIL.Make64BitInt = function ($, ctor) {
           this.data = [a, b, c];
         });
 
+  var tryParse =
+    function (text, style, result) {
+      var r = mscorlib.System.UInt64.MinValue;
+
+      var radix = 10;
+
+      if (style & System.Globalization.NumberStyles.AllowHexSpecifier)
+        radix = 16;
+
+      var rdx = ctor(radix, 0, 0);
+
+      for (var i = 0; i < text.length; i++) {
+        var c = parseInt(text[i], radix);
+        if (isNaN(c)) {
+          result.value = mscorlib.System.UInt64.MinValue;
+          return false;
+        }
+        r = me.op_Addition(ctor(c, 0, 0), me.op_Multiplication(rdx, r));
+      }
+
+      result.value = r;
+
+      return true;
+    };
+
+  $.Method({ Static: true, Public: true }, "Parse",
+    (new JSIL.MethodSignature($.Type, ["System.String"], [])),
+    function (text) {
+      var result = { value: null };
+      if (!tryParse(text, 0, result))
+        throw new System.Exception("NumberParseException");
+
+      return result.value;
+    });
+
   $.Method({ Static: true, Public: true }, "Create",
         (new JSIL.MethodSignature(null, [mscorlib.TypeRef("System.Int32"), mscorlib.TypeRef("System.Int32"), mscorlib.TypeRef("System.Int32")], [])),
         ctor);
@@ -5620,13 +5655,14 @@ JSIL.Make64BitInt = function ($, ctor) {
   $.Method({ Static: true, Public: true }, "op_Multiplication",
         (new JSIL.MethodSignature($.Type, [$.Type, $.Type], [])),
         function (a, b) {
-          if (me.op_Equality(a, me.MinValue) || me.op_Equality(b, me.MinValue))
-            return me.MinValue;
+          var s = mscorlib.System.UInt64.MinValue; // zero
+          
+          if (me.op_Equality(a, s) || me.op_Equality(b, s))
+            return s;
 
           if (mscorlib.System.UInt64.op_GreaterThan(a, b))
             return me.op_Multiplication(b, a);
 
-          var s = mscorlib.System.UInt64.MinValue;
 
           if (a.data[0] & 1 == 1)
             s = b;
