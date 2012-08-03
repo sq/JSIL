@@ -4,13 +4,18 @@ var currentLogLine = null;
 
 var webglEnabled = false;
 
-var $jsilbrowserstate = {
+var $jsilbrowserstate = window.$jsilbrowserstate = {
   allFileNames: [],
   allAssetNames: [],
   readOnlyStorage: null,
   heldKeys: [],
   heldButtons: [],
-  mousePosition: [0, 0]
+  mousePosition: [0, 0],
+  isLoading: false,
+  isLoaded: false,
+  isMainRunning: false,
+  hasMainRun: false,
+  mainRunAtTime: 0
 };
     
 JSIL.Host.getCanvas = function (desiredWidth, desiredHeight) {
@@ -1085,6 +1090,8 @@ function loadAssets (assets, onDoneLoading) {
 };
 
 function beginLoading () {
+  $jsilbrowserstate.isLoading = true;
+
   var progressBar = document.getElementById("progressBar");
   var loadButton = document.getElementById("loadButton");
   var fullscreenButton = document.getElementById("fullscreenButton");
@@ -1126,6 +1133,9 @@ function beginLoading () {
   
   JSIL.Host.logWrite("Loading data ... ");
   loadAssets(allAssetsToLoad, function () {
+    $jsilbrowserstate.isLoading = false;
+    $jsilbrowserstate.isLoaded = true;
+
     JSIL.Host.logWriteLine("done.");
     try {     
       if (quitButton)
@@ -1136,10 +1146,17 @@ function beginLoading () {
 
       if (stats)
         stats.style.display = "";
-      
+
+      $jsilbrowserstate.mainRunAtTime = Date.now();
+      $jsilbrowserstate.isMainRunning = true;
       runMain();
+      $jsilbrowserstate.isMainRunning = false;
+      $jsilbrowserstate.hasMainRun = true;
+
       // Main doesn't block since we're using the browser's event loop          
     } finally {
+      $jsilbrowserstate.isMainRunning = false;
+
       if (loadingProgress)
         loadingProgress.style.display = "none";
     }
@@ -1238,8 +1255,10 @@ function onLoad () {
       );
     }
   };
+
+  var autoPlay = window.location.search.indexOf("autoPlay") >= 0;
   
-  if (loadButton) {
+  if (loadButton && !autoPlay) {
     loadButton.addEventListener(
       "click", beginLoading, true
     );

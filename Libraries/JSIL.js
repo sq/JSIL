@@ -58,8 +58,12 @@ contentManifest["JSIL"] = [
 		loadScript(libraryRoot + "webgl-2d.js");
 
 	loadScript(libraryRoot + "JSIL.Core.js");
-	loadScript(libraryRoot + "JSIL.Bootstrap.js");
+	loadScript(libraryRoot + "JSIL.Bootstrap.js");	
 	loadScript(libraryRoot + "JSIL.Browser.js");
+
+	if (config.testFixture || (document.location.search.indexOf("testFixture") >= 0)) {
+		loadScript(libraryRoot + "JSIL.TestFixture.js");
+	}
 
 	var manifests = config.manifests || [];
 

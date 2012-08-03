@@ -62,3 +62,6 @@ Skeletons/*.js
 *.jsillog
 *.buildlog
 *.resj
+/SmokeTests/bin
+/SmokeTests/obj
+/Upstream/V8
