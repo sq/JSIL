@@ -5315,6 +5315,22 @@ JSIL.GetMembersInternal = function (typeObject, flags, memberType, allowConstruc
   return result;
 };
 
+JSIL.ImplementExternals("System.Reflection.Assembly", function ($) {
+  $.Method({Static:true , Public:true }, "op_Equality", 
+    (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])), 
+    function op_Equality (left, right) {
+      return left === right;
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "op_Inequality", 
+    (new JSIL.MethodSignature($.Boolean, [$.Type, $.Type], [])), 
+    function op_Inequality (left, right) {
+      return left !== right;
+    }
+  );
+});
+
 JSIL.ImplementExternals(
   "System.Type", function ($) {
     var typeReference = $jsilcore.TypeRef("System.Type");
