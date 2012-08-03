@@ -5317,6 +5317,7 @@ JSIL.GetMembersInternal = function (typeObject, flags, memberType, allowConstruc
 
 JSIL.ImplementExternals(
   "System.Type", function ($) {
+    var typeReference = $jsilcore.TypeRef("System.Type");
     var memberArray = new JSIL.TypeRef($jsilcore, "System.Array", ["System.Reflection.MemberInfo"]);
     var fieldArray = new JSIL.TypeRef($jsilcore, "System.Array", ["System.Reflection.FieldInfo"]);
     var methodArray = new JSIL.TypeRef($jsilcore, "System.Array", ["System.Reflection.MethodInfo"]);
@@ -5366,7 +5367,7 @@ JSIL.ImplementExternals(
     $.Method({Static:false, Public:true }, "GetGenericArguments",
       (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Type]), [], [])), 
       function GetGenericArguments () {
-        return JSIL.Array.New($.Type, this.__GenericArgumentValues__);
+        return JSIL.Array.New(typeReference.get(), this.__GenericArgumentValues__);
       }
     );
 
