@@ -648,15 +648,25 @@ var loadWebkitSound = function (filename, data, onError, onDoneLoading) {
   // Safari doesn't implement canPlayType, so we just have to hard-code MP3. Lame.
   uri = contentRoot + filename + ".mp3";
 
-  loadBinaryFileAsync(uri, function (result, error) {
+  loadBinaryFileAsync(uri, function decodeWebkitSound (result, error) {
     if (result !== null) {
-      var buffer = audioContext.createBuffer(result.buffer, false);
-      var finisher = function () {
-        $jsilbrowserstate.allAssetNames.push(filename);
-        allAssets[getAssetName(filename)] = new WebkitSoundAsset(getAssetName(filename, true), audioContext, buffer, data);
+      // THIS IS SO STUPID
+      // var buffer = audioContext.createBuffer(result.buffer, false);
+
+      var decodeCompleteCallback = function (buffer) {
+        var finisher = function () {
+          $jsilbrowserstate.allAssetNames.push(filename);
+          allAssets[getAssetName(filename)] = new WebkitSoundAsset(getAssetName(filename, true), audioContext, buffer, data);
+        };
+        
+        onDoneLoading(finisher);
       };
-      
-      onDoneLoading(finisher);
+
+      var decodeFailedCallback = function () {
+        onError("Unknown audio decoding error");
+      };
+
+      audioContext.decodeAudioData(result.buffer, decodeCompleteCallback, decodeFailedCallback);
     } else {
       onError(error);
     }
