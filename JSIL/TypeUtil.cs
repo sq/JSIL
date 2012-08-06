@@ -529,6 +529,37 @@ namespace JSIL {
             return result.ToArray();
         }
 
+        public static bool ContainsGenericParameter (TypeReference type) {
+            type = DereferenceType(type);
+
+            var gp = type as GenericParameter;
+            var git = type as GenericInstanceType;
+            var at = type as ArrayType;
+            var byref = type as ByReferenceType;
+
+            if (gp != null)
+                return true;
+
+            if (git != null) {
+                var elt = git.ElementType;
+
+                foreach (var ga in git.GenericArguments) {
+                    if (ContainsGenericParameter(ga))
+                        return true;
+                }
+
+                return ContainsGenericParameter(elt);
+            }
+
+            if (at != null)
+                return ContainsGenericParameter(at.ElementType);
+
+            if (byref != null)
+                return ContainsGenericParameter(byref.ElementType);
+
+            return false;
+        }
+
         public static bool ContainsPositionalGenericParameter (TypeReference type) {
             type = DereferenceType(type);
 

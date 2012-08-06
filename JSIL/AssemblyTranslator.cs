@@ -1132,6 +1132,8 @@ namespace JSIL {
             if (!ShouldTranslateMethods(typedef))
                 return;
 
+            var typeCacher = new TypeExpressionCacher(typedef);
+
             context.CurrentType = typedef;
 
             if (typedef.IsPrimitive)
@@ -1144,7 +1146,7 @@ namespace JSIL {
 
                 TranslateMethod(
                     context, method, method, astEmitter, output, 
-                    stubbed, dollar
+                    stubbed, dollar, typeCacher
                 );
             }
 
@@ -1776,7 +1778,7 @@ namespace JSIL {
             }
 
             if ((cctor != null) && !stubbed) {
-                TranslateMethod(context, cctor, cctor, astEmitter, output, false, dollar, null, fixupCctor);
+                TranslateMethod(context, cctor, cctor, astEmitter, output, false, dollar, null, null, fixupCctor);
             } else if (fieldsToEmit.Length > 0) {
                 var fakeCctor = new MethodDefinition(".cctor", Mono.Cecil.MethodAttributes.Static, typeSystem.Void);
                 fakeCctor.DeclaringType = typedef;
@@ -1792,7 +1794,7 @@ namespace JSIL {
                 // Generate the fake constructor, since it wasn't created during the analysis pass
                 TranslateMethodExpression(context, fakeCctor, fakeCctor);
 
-                TranslateMethod(context, fakeCctor, fakeCctor, astEmitter, output, false, dollar, null, fixupCctor);
+                TranslateMethod(context, fakeCctor, fakeCctor, astEmitter, output, false, dollar, null, null, fixupCctor);
             }
 
             foreach (var extraCctor in typeInfo.ExtraStaticConstructors) {
@@ -1801,7 +1803,7 @@ namespace JSIL {
 
                 TranslateMethod(
                     context, extraCctor.Member, extraCctor.Member, astEmitter,
-                    output, false, dollar, extraCctor,
+                    output, false, dollar, null, extraCctor,
                     // The static constructor may have references to the proxy type that declared it.
                     //  If so, replace them with references to the target type.
                     (fn) => {
@@ -1819,7 +1821,7 @@ namespace JSIL {
         protected void TranslateMethod (
             DecompilerContext context, MethodReference methodRef, MethodDefinition method,
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed, 
-            Action<JavascriptFormatter> dollar, MethodInfo methodInfo = null,
+            Action<JavascriptFormatter> dollar, TypeExpressionCacher typeCacher, MethodInfo methodInfo = null,
             Action<JSFunctionExpression> bodyTransformer = null
         ) {
             if (methodInfo == null) {
@@ -1857,10 +1859,35 @@ namespace JSIL {
             if (!method.HasBody && !isExternal)
                 return;
 
+            JSFunctionExpression function = null;
+            if (!isExternal) {
+                function = FunctionCache.GetExpression(new QualifiedMemberIdentifier(
+                    methodInfo.DeclaringType.Identifier,
+                    methodInfo.Identifier
+                ));
+            }
+
             astEmitter.ReferenceContext.EnclosingType = method.DeclaringType;
             astEmitter.ReferenceContext.EnclosingMethod = null;
 
             output.NewLine();
+
+            if (
+                Configuration.Optimizer.CacheTypeExpressions.GetValueOrDefault(true) && 
+                (typeCacher != null) &&
+                (function != null)
+            ) {
+                var typesToDeclare = typeCacher.CacheTypesForFunction(function);
+
+                foreach (var type in typesToDeclare) {
+                    output.WriteRaw("var {0} = ", type.Identifier);
+                    output.Identifier(type.Type, astEmitter.ReferenceContext, false);
+                    output.Semicolon();
+                }
+
+                if (typesToDeclare.Length > 0)
+                    output.NewLine();
+            }
 
             if (methodIsProxied) {
                 output.Comment("Implementation from {0}", methodInfo.Member.DeclaringType.FullName);
@@ -1892,12 +1919,6 @@ namespace JSIL {
                 if (!isExternal) {
                     output.Comma();
                     output.NewLine();
-
-                    JSFunctionExpression function;
-                    function = FunctionCache.GetExpression(new QualifiedMemberIdentifier(
-                        methodInfo.DeclaringType.Identifier,
-                        methodInfo.Identifier
-                    ));
 
                     if (function != null) {
                         if (bodyTransformer != null)

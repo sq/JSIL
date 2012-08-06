@@ -104,6 +104,21 @@ namespace JSIL.Ast {
         }
     }
 
+    public class JSCachedType : JSType {
+        public readonly string Token;
+
+        public JSCachedType (TypeReference type, string token)
+            : base(type) {
+            Token = token;
+        }
+
+        public override string Identifier {
+            get {
+                return Token;
+            }
+        }
+    }
+
     public class JSField : JSIdentifier {
         public readonly FieldReference Reference;
         public readonly FieldInfo Field;

@@ -123,6 +123,50 @@ namespace JSIL.Internal {
         }
     }
 
+    public struct GenericTypeIdentifier {
+        public readonly TypeIdentifier Type;
+        public readonly TypeIdentifier[] Arguments;
+
+        public GenericTypeIdentifier (TypeDefinition type, TypeDefinition[] arguments) {
+            Type = new TypeIdentifier(type);
+            Arguments = (from a in arguments select new TypeIdentifier(a)).ToArray();
+        }
+
+        public bool Equals (GenericTypeIdentifier rhs) {
+            if (!Type.Equals(rhs.Type))
+                return false;
+
+            if (Arguments.Length != rhs.Arguments.Length)
+                return false;
+
+            for (var i = 0; i < Arguments.Length; i++) {
+                if (!Arguments[i].Equals(rhs.Arguments[i]))
+                    return false;
+            }
+
+            return true;
+        }
+
+        public override bool Equals (object obj) {
+            if (obj is GenericTypeIdentifier)
+                return Equals((GenericTypeIdentifier)obj);
+            else
+                return false;
+        }
+
+        public override int GetHashCode () {
+            return Type.GetHashCode() ^ Arguments.Length;
+        }
+
+        public override string ToString () {
+            return String.Format(
+                "{0}<{1}>",
+                Type,
+                String.Join<TypeIdentifier>(", ", Arguments)
+            );
+        }
+    }
+
     public class ModuleInfo {
         public readonly bool IsIgnored;
         public readonly MetadataCollection Metadata;

@@ -655,6 +655,10 @@ namespace JSIL {
             );
         }
 
+        public void VisitNode (JSCachedType cachedType) {
+            Output.WriteRaw(cachedType.Token);
+        }
+
         public void VisitNode (JSTypeOfExpression toe) {
             Output.Identifier(
                 toe.Type, ReferenceContext, IncludeTypeParens.Peek()
