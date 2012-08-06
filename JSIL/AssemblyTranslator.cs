@@ -1133,6 +1133,10 @@ namespace JSIL {
                 return;
 
             var typeCacher = new TypeExpressionCacher(typedef);
+            if (Configuration.Optimizer.CacheTypeExpressions.GetValueOrDefault(true)) {
+                output.WriteRaw("var $T = new JSIL.TypeCache()");
+                output.Semicolon(true);
+            }
 
             context.CurrentType = typedef;
 
@@ -1883,8 +1887,14 @@ namespace JSIL {
                 var typesToDeclare = typeCacher.CacheTypesForFunction(function);
 
                 foreach (var type in typesToDeclare) {
-                    output.WriteRaw("var {0} = ", type.Identifier);
+                    output.WriteRaw("$T.add");
+                    output.LPar();
+                    output.Value(type.Index);
+                    output.Comma();
+                    output.WriteRaw("function () { return ");
                     output.Identifier(type.Type, astEmitter.ReferenceContext, false);
+                    output.WriteRaw("; }");
+                    output.RPar();
                     output.Semicolon();
                 }
 

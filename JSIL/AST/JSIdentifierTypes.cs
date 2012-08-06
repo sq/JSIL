@@ -105,17 +105,11 @@ namespace JSIL.Ast {
     }
 
     public class JSCachedType : JSType {
-        public readonly string Token;
+        public readonly int Index;
 
-        public JSCachedType (TypeReference type, string token)
+        public JSCachedType (TypeReference type, int index)
             : base(type) {
-            Token = token;
-        }
-
-        public override string Identifier {
-            get {
-                return Token;
-            }
+            Index = index;
         }
     }
 

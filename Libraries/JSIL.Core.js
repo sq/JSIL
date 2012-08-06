@@ -6552,3 +6552,10 @@ JSIL.ValueOfNullable = function (value) {
   else
     return value.valueOf();
 };
+
+JSIL.TypeCache = function () {
+};
+
+JSIL.TypeCache.prototype.add = function (key, fn) {
+  JSIL.SetLazyValueProperty(this, key, fn);
+};

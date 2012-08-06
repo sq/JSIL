@@ -10,7 +10,7 @@ namespace JSIL.Transforms {
     public class TypeExpressionCacher : JSAstVisitor {
         public readonly Dictionary<GenericTypeIdentifier, JSCachedType> CachedTypes;
         public readonly TypeReference ThisType;
-        private int NextToken = 0;
+        private int NextID = 0;
 
         public TypeExpressionCacher (TypeReference thisType) {
             ThisType = thisType;
@@ -18,14 +18,7 @@ namespace JSIL.Transforms {
         }
 
         private JSCachedType MakeCachedType (TypeReference type) {
-            string token;
-            
-            if (TypeUtil.TypesAreEqual(ThisType, type, true))
-                token = "$Tthis";
-            else
-                token = String.Format("$T{0:X2}", NextToken++);
-
-            return new JSCachedType(type, token);
+            return new JSCachedType(type, NextID++);
         }
 
         private JSCachedType GetCachedType (TypeReference type) {
@@ -54,9 +47,14 @@ namespace JSIL.Transforms {
         }
 
         public bool IsCacheable (TypeReference type) {
+            if (TypeUtil.TypesAreEqual(type, ThisType))
+                return false;
+
+            /*
             // Referring to an enclosing type from a nested type creates a cycle
             if (TypeUtil.IsNestedInside(type, ThisType))
                 return false;
+             */
 
             if (TypeUtil.ContainsGenericParameter(type))
                 return false;
@@ -101,7 +99,7 @@ namespace JSIL.Transforms {
 
             return (from k in newKeys 
                     let ct = CachedTypes[k]
-                    orderby ct.Token
+                    orderby ct.Index
                     select ct).ToArray();
         }
     }
