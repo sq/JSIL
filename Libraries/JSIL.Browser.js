@@ -666,6 +666,7 @@ var loadWebkitSound = function (filename, data, onError, onDoneLoading) {
         onError("Unknown audio decoding error");
       };
 
+      // Decode should really happen in the finisher stage, but that stage isn't parallel.
       audioContext.decodeAudioData(result.buffer, decodeCompleteCallback, decodeFailedCallback);
     } else {
       onError(error);

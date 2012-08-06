@@ -32,7 +32,7 @@ namespace JSIL.Transforms {
             if (!IsCacheable(type))
                 return null;
 
-            var resolved = type.Resolve();
+            var resolved = TypeUtil.GetTypeDefinition(type);
             if (resolved == null)
                 return null;
 
@@ -40,7 +40,7 @@ namespace JSIL.Transforms {
             var git = type as GenericInstanceType;
 
             if (git != null) {
-                arguments = (from a in git.GenericArguments select a.Resolve()).ToArray();
+                arguments = (from a in git.GenericArguments select TypeUtil.GetTypeDefinition(a)).ToArray();
             } else {
                 arguments = new TypeDefinition[0];
             }
@@ -53,7 +53,11 @@ namespace JSIL.Transforms {
             return result;
         }
 
-        public static bool IsCacheable (TypeReference type) {
+        public bool IsCacheable (TypeReference type) {
+            // Referring to an enclosing type from a nested type creates a cycle
+            if (TypeUtil.IsNestedInside(type, ThisType))
+                return false;
+
             if (TypeUtil.ContainsGenericParameter(type))
                 return false;
 
@@ -75,14 +79,7 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSTypeReference tr) {
-            var ct = GetCachedType(tr.Type);
-
-            if (ct != null) {
-                ParentNode.ReplaceChild(tr, ct);
-                VisitReplacement(ct);
-            } else {
-                VisitChildren(tr);
-            }
+            VisitChildren(tr);
         }
 
         public void VisitNode (JSTypeOfExpression toe) {

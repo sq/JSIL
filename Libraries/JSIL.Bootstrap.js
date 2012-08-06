@@ -3431,6 +3431,16 @@ JSIL.MakeClass("System.Object", "System.Collections.Generic.Dictionary`2", true,
   );
 });
 
+JSIL.MakeStruct($jsilcore.TypeRef("System.ValueType"), "System.Collections.Generic.Dictionary`2/Enumerator", false, ["TKey", "TValue"], function ($) {
+
+  $.ImplementInterfaces(
+      $jsilcore.TypeRef("System.Collections.Generic.IEnumerator`1", [$jsilcore.TypeRef("System.Collections.Generic.KeyValuePair`2", [new JSIL.GenericParameter("TKey", "System.Collections.Generic.Dictionary`2/Enumerator"), new JSIL.GenericParameter("TValue", "System.Collections.Generic.Dictionary`2/Enumerator")])]), 
+      $jsilcore.TypeRef("System.IDisposable"), 
+//      $jsilcore.TypeRef("System.Collections.IDictionaryEnumerator"), 
+      $jsilcore.TypeRef("System.Collections.IEnumerator")
+  )
+});
+
 $jsilcore.$tArrayEnumerator = null;
 
 JSIL.MakeArrayEnumerator = function (array) {

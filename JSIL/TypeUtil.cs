@@ -670,5 +670,18 @@ namespace JSIL {
             expanded = type;
             return false;
         }
+
+        public static bool IsNestedInside (TypeReference needle, TypeReference haystack) {
+            var tr = needle;
+
+            while (tr != null) {
+                if (TypesAreEqual(tr, haystack, true))
+                    return true;
+
+                tr = tr.DeclaringType;
+            }
+
+            return false;
+        }
     }
 }
