@@ -6,7 +6,7 @@ test.logText = "";
 test.exceptions = [];
 
 JSIL.Host.logWrite = function (text) {
-	test.logText += text;
+  test.logText += text;
 };
 JSIL.Host.logWriteLine = function (text) {
   test.logText += text + "\r\n";
@@ -20,5 +20,5 @@ JSIL.Host.throwException = function (exc) {
   } catch (_exc) {
   }
 
-	test.exceptions.push([exceptionTimestamp, exceptionMessage]);
+  test.exceptions.push([exceptionTimestamp, exceptionMessage]);
 };

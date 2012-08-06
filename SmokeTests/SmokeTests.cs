@@ -9,6 +9,7 @@ namespace SmokeTests {
     [TestFixture]
     public class SmokeTests {
         [Test]
+        [Ignore]
         public void MannuxRuns () {
             using (var s = new Session("Mannux")) {
                 s.LoadPage("Mannux/Mannux.html");

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -18,6 +19,11 @@ namespace SmokeTests {
         public readonly RemoteWebDriver WebDriver;
         public readonly bool RunningAgainstLocalServer;
 
+        public const int CommandTimeout = 30;
+        public const int MaximumTestDuration = 60 * 3;
+        public const int IdleTestTimeout = 10;
+
+        public static readonly string SeleniumVersion = "2.25.0";
         public static readonly string LocalHost = "http://127.0.0.1:8080";
         public static readonly string RemoteHost = "http://hildr.luminance.org";
         public static readonly string PageOptions = "testFixture&profile&forceCanvas&autoPlay";
@@ -33,7 +39,7 @@ namespace SmokeTests {
 
                 DriverCapabilities = DesiredCapabilities.Chrome();
                 DriverCapabilities.SetCapability(
-                    CapabilityType.Platform, new Platform(PlatformType.Vista)
+                    CapabilityType.Platform, new Platform(PlatformType.XP)
                 );
                 DriverCapabilities.SetCapability(
                     "name", testName
@@ -44,6 +50,24 @@ namespace SmokeTests {
                 DriverCapabilities.SetCapability(
                     "accessKey", SauceLabs.Credentials.accessKey
                 );
+                DriverCapabilities.SetCapability(
+                    "max-duration", MaximumTestDuration
+                );
+                DriverCapabilities.SetCapability(
+                    "idle-timeout", IdleTestTimeout
+                );
+                DriverCapabilities.SetCapability(
+                    "avoid-proxy", true
+                );
+                DriverCapabilities.SetCapability(
+                    "sauce-advisor", false
+                );
+
+                /*
+                DriverCapabilities.SetCapability(
+                    "selenium-version", SeleniumVersion
+                );
+                 */
 
                 if (runAgainstLocalServer)
                     Proxy = StartProxy();
@@ -55,7 +79,8 @@ namespace SmokeTests {
                 try {
                     WebDriver = new RemoteWebDriver(
                         new Uri("http://ondemand.saucelabs.com:80/wd/hub"),
-                        DriverCapabilities
+                        DriverCapabilities,
+                        TimeSpan.FromSeconds(CommandTimeout)
                     );
 
                     Console.WriteLine("started.");
@@ -210,7 +235,7 @@ namespace SmokeTests {
                 if (resultPredicate(currentValue))
                     return;
 
-                Thread.Sleep(100);
+                Thread.Sleep(500);
             }
 
             throw new Exception("Timed out. Last value was: " + Convert.ToString(currentValue));
@@ -226,12 +251,10 @@ namespace SmokeTests {
 
             var exceptions = WebDriver.ExecuteScript("return window.test.exceptions;");
 
-            var exceptionList = exceptions as List<object>;
-
-            Debugger.Break();
+            var exceptionList = (ReadOnlyCollection<object>)exceptions;
 
             foreach (var exc in exceptionList) {
-                var excInfo = (List<object>)exc;
+                var excInfo = (ReadOnlyCollection<object>)exc;
 
                 result.Add(new ExceptionInfo {
                     TimeStamp = Convert.ToDouble(excInfo[0]),
