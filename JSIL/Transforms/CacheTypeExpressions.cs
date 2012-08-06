@@ -85,6 +85,11 @@ namespace JSIL.Transforms {
             }
         }
 
+        public void VisitNode (JSTypeOfExpression toe) {
+            // TODO: Cache these types too.
+            VisitChildren(toe);
+        }
+
         public void VisitNode (JSCachedType ct) {
             VisitChildren(ct);
         }
