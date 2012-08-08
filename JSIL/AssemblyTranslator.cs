@@ -1138,12 +1138,17 @@ namespace JSIL {
             ) {
                 foreach (var method in methodsToTranslate) {
                     var mi = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
-                    if (mi.IsIgnored || mi.IsExternal)
+
+                    bool isExternal, b, c;
+                    if (!ShouldTranslateMethodBody(
+                        method, mi, stubbed, out isExternal, out b, out c
+                    ))
                         continue;
 
-                    var functionBody = GetFunctionBodyForMethod(false, mi);
+                    var functionBody = GetFunctionBodyForMethod(isExternal, mi);
                     if (functionBody == null)
                         continue;
+
                     typeCacher.CacheTypesForFunction(functionBody);
                 }
 
@@ -1867,6 +1872,56 @@ namespace JSIL {
             }
         }
 
+        protected void CreateMethodInformation (
+            MethodInfo methodInfo, bool stubbed,
+            out bool isExternal, out bool isReplaced, 
+            out bool methodIsProxied
+        ) {
+            isReplaced = methodInfo.Metadata.HasAttribute("JSIL.Meta.JSReplacement");
+            methodIsProxied = (methodInfo.IsFromProxy && methodInfo.Member.HasBody) &&
+                !methodInfo.IsExternal && !isReplaced;
+
+            isExternal = methodInfo.IsExternal || (stubbed && !methodIsProxied);
+        }
+
+        protected bool ShouldTranslateMethodBody (
+            MethodDefinition method, MethodInfo methodInfo, bool stubbed,
+            out bool isExternal, out bool isReplaced,
+            out bool methodIsProxied
+        ) {
+            if (methodInfo == null) {
+                isExternal = isReplaced = methodIsProxied = false;
+                return false;
+            }
+
+            CreateMethodInformation(
+                methodInfo, stubbed,
+                out isExternal, out isReplaced, out methodIsProxied
+            );
+
+            if (isExternal) {
+                if (isReplaced)
+                    return false;
+
+                var isProperty = methodInfo.DeclaringProperty != null;
+
+                if (isProperty && methodInfo.DeclaringProperty.IsExternal)
+                    return false;
+
+                if (!isProperty || !methodInfo.Member.IsCompilerGenerated()) {
+                } else {
+                    isExternal = false;
+                }
+            }
+
+            if (methodInfo.IsIgnored)
+                return false;
+            if (!method.HasBody && !isExternal)
+                return false;
+
+            return true;
+        }
+
         protected JSFunctionExpression GetFunctionBodyForMethod (bool isExternal, MethodInfo methodInfo) {
             if (!isExternal) {
                 return FunctionCache.GetExpression(new QualifiedMemberIdentifier(
@@ -1884,40 +1939,18 @@ namespace JSIL {
             Action<JavascriptFormatter> dollar, TypeExpressionCacher typeCacher, MethodInfo methodInfo = null,
             Action<JSFunctionExpression> bodyTransformer = null
         ) {
-            if (methodInfo == null) {
-                methodInfo = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
-            }
-
             if (methodInfo == null)
+                methodInfo = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
+
+            bool isExternal, isReplaced, methodIsProxied;
+
+            if (!ShouldTranslateMethodBody(
+                method, methodInfo, stubbed,
+                out isExternal, out isReplaced, out methodIsProxied
+            ))
                 return;
-
-            bool isReplaced = methodInfo.Metadata.HasAttribute("JSIL.Meta.JSReplacement");
-            bool methodIsProxied = (methodInfo.IsFromProxy && methodInfo.Member.HasBody) && 
-                !methodInfo.IsExternal && !isReplaced;
-
-            bool isExternal = methodInfo.IsExternal || (stubbed && !methodIsProxied);
-            if (isExternal) {
-                if (isReplaced)
-                    return;
-
-                var isProperty = methodInfo.DeclaringProperty != null;
-
-                if (isProperty && methodInfo.DeclaringProperty.IsExternal)
-                    return;
-
-                if (!isProperty || !methodInfo.Member.IsCompilerGenerated()) {
-
-                } else {
-                    isExternal = false;
-                }
-            }
 
             var makeSkeleton = stubbed && isExternal && Configuration.GenerateSkeletonsForStubbedAssemblies.GetValueOrDefault(false);
-
-            if (methodInfo.IsIgnored)
-                return;
-            if (!method.HasBody && !isExternal)
-                return;
 
             JSFunctionExpression function = GetFunctionBodyForMethod(
                 isExternal, methodInfo
