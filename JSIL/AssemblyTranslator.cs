@@ -1132,10 +1132,55 @@ namespace JSIL {
             if (!ShouldTranslateMethods(typedef))
                 return;
 
+            output.WriteRaw("var $thisType = $.publicInterface");
+            output.Semicolon(true);
+
+            var methodsToTranslate = typedef.Methods.OrderBy((md) => md.Name).ToArray();
+
             var typeCacher = new TypeExpressionCacher(typedef);
             if (Configuration.Optimizer.CacheTypeExpressions.GetValueOrDefault(true)) {
-                output.WriteRaw("var $T = new JSIL.TypeCache()");
-                output.Semicolon(true);
+                foreach (var method in methodsToTranslate) {
+                    var mi = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
+                    if (mi.IsIgnored || mi.IsExternal)
+                        continue;
+
+                    var functionBody = GetFunctionBodyForMethod(false, mi);
+                    if (functionBody == null)
+                        continue;
+                    typeCacher.CacheTypesForFunction(functionBody);
+                }
+
+                var cts = typeCacher.CachedTypes.Values.OrderBy((ct) => ct.Index).ToArray();
+                if (cts.Length > 0) {
+                    output.WriteRaw("var ");
+
+                    bool isFirst = true;
+                    foreach (var ct in cts) {
+                        if (!isFirst)
+                            output.WriteRaw(", ");
+
+                        output.WriteRaw("$T{0:X2}", ct.Index);
+                        isFirst = false;
+                    }
+
+                    output.Semicolon(true);
+                    output.NewLine();
+
+                    output.WriteRaw("$.TypeCacher");
+                    output.LPar();
+                    output.OpenFunction(null, null);
+
+                    foreach (var ct in cts) {
+                        output.WriteRaw("$T{0:X2} = ", ct.Index);
+                        output.Identifier(ct.Type, astEmitter.ReferenceContext, false);
+                        output.Semicolon(true);
+                    }
+
+                    output.CloseBrace(false);
+                    output.RPar();
+
+                    output.Semicolon(true);
+                }
             }
 
             context.CurrentType = typedef;
@@ -1143,7 +1188,7 @@ namespace JSIL {
             if (typedef.IsPrimitive)
                 TranslatePrimitiveDefinition(context, output, typedef, stubbed, dollar);
 
-            foreach (var method in typedef.Methods.OrderBy((md) => md.Name)) {
+            foreach (var method in methodsToTranslate) {
                 // We translate the static constructor explicitly later, and inject field initialization
                 if (method.Name == ".cctor")
                     continue;
@@ -1825,6 +1870,17 @@ namespace JSIL {
             }
         }
 
+        protected JSFunctionExpression GetFunctionBodyForMethod (bool isExternal, MethodInfo methodInfo) {
+            if (!isExternal) {
+                return FunctionCache.GetExpression(new QualifiedMemberIdentifier(
+                    methodInfo.DeclaringType.Identifier,
+                    methodInfo.Identifier
+                ));
+            }
+
+            return null;
+        }
+
         protected void TranslateMethod (
             DecompilerContext context, MethodReference methodRef, MethodDefinition method,
             JavascriptAstEmitter astEmitter, JavascriptFormatter output, bool stubbed, 
@@ -1866,41 +1922,14 @@ namespace JSIL {
             if (!method.HasBody && !isExternal)
                 return;
 
-            JSFunctionExpression function = null;
-            if (!isExternal) {
-                function = FunctionCache.GetExpression(new QualifiedMemberIdentifier(
-                    methodInfo.DeclaringType.Identifier,
-                    methodInfo.Identifier
-                ));
-            }
+            JSFunctionExpression function = GetFunctionBodyForMethod(
+                isExternal, methodInfo
+            );
 
             astEmitter.ReferenceContext.EnclosingType = method.DeclaringType;
             astEmitter.ReferenceContext.EnclosingMethod = null;
 
             output.NewLine();
-
-            if (
-                Configuration.Optimizer.CacheTypeExpressions.GetValueOrDefault(true) && 
-                (typeCacher != null) &&
-                (function != null)
-            ) {
-                var typesToDeclare = typeCacher.CacheTypesForFunction(function);
-
-                foreach (var type in typesToDeclare) {
-                    output.WriteRaw("$T.add");
-                    output.LPar();
-                    output.Value(type.Index);
-                    output.Comma();
-                    output.WriteRaw("function () { return ");
-                    output.Identifier(type.Type, astEmitter.ReferenceContext, false);
-                    output.WriteRaw("; }");
-                    output.RPar();
-                    output.Semicolon();
-                }
-
-                if (typesToDeclare.Length > 0)
-                    output.NewLine();
-            }
 
             if (methodIsProxied) {
                 output.Comment("Implementation from {0}", methodInfo.Member.DeclaringType.FullName);

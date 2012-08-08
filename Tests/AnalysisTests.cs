@@ -38,35 +38,35 @@ namespace JSIL.Tests {
             Console.WriteLine(generatedJs);
             Assert.IsFalse(Regex.IsMatch(
                 generatedJs,
-                @"a = (\$asm([0-9A-F])*).Program.A.MemberwiseClone\(\)"
+                @"a = \$thisType.A.MemberwiseClone\(\)"
             ));
             Assert.IsFalse(Regex.IsMatch(
                 generatedJs,
-                @"b = (\$asm([0-9A-F])*).Program.ReturnArgument\((\$asm([0-9A-F])*).Program.B\).MemberwiseClone\(\)"
+                @"b = \$thisType.ReturnArgument\($thisType.B\).MemberwiseClone\(\)"
             ));
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"c = (\$asm([0-9A-F])*).Program.B.MemberwiseClone\(\)"
+                @"c = \$thisType.B.MemberwiseClone\(\)"
             ));
             Assert.IsFalse(Regex.IsMatch(
                 generatedJs,
-                @"d = (\$asm([0-9A-F])*).Program.A.MemberwiseClone\(\)"
+                @"d = \$thisType.A.MemberwiseClone\(\)"
             ));
             Assert.IsFalse(Regex.IsMatch(
                 generatedJs,
-                @"e = (\$asm([0-9A-F])*).Program.A.MemberwiseClone\(\)"
+                @"e = \$thisType.A.MemberwiseClone\(\)"
             ));
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"(\$asm([0-9A-F])*).Program.Field = e.MemberwiseClone\(\)"
+                @"\$thisType.Field = e.MemberwiseClone\(\)"
             ));
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"(\$asm([0-9A-F])*).Program.StoreArgument\(d.MemberwiseClone\(\)\)"
+                @"\$thisType.StoreArgument\(d.MemberwiseClone\(\)\)"
             ));
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"f = new JSIL.Variable\((\$asm([0-9A-F])*).Program.A.MemberwiseClone\(\)\)"
+                @"f = new JSIL.Variable\(\$thisType.A.MemberwiseClone\(\)\)"
             ));
         }
 
@@ -82,11 +82,11 @@ namespace JSIL.Tests {
             Console.WriteLine(generatedJs);
             Assert.IsFalse(Regex.IsMatch(
                 generatedJs,
-                @"(\$asm([0-9A-F])*).Program.ReturnArgument\(a.MemberwiseClone\(\)\)"
+                @"\$thisType.ReturnArgument\(a.MemberwiseClone\(\)\)"
             ));
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"b = (\$asm([0-9A-F])*).Program.ReturnArgument\(a\).MemberwiseClone\(\);"
+                @"b = \$thisType.ReturnArgument\(a\).MemberwiseClone\(\);"
             ));
         }
 
@@ -102,11 +102,11 @@ namespace JSIL.Tests {
             Console.WriteLine(generatedJs);
             Assert.IsFalse(Regex.IsMatch(
                 generatedJs,
-                @"(\$asm([0-9A-F])*).Program.ReturnMutatedArgument\(a.MemberwiseClone\(\), 0\)"
+                @"\$thisType.ReturnMutatedArgument\(a.MemberwiseClone\(\), 0\)"
             ));
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"b = (\$asm([0-9A-F])*).Program.ReturnMutatedArgument\(a, 0\).MemberwiseClone\(\);"
+                @"b = \$thisType.ReturnMutatedArgument\(a, 0\).MemberwiseClone\(\);"
             ));
         }
 
@@ -122,11 +122,11 @@ namespace JSIL.Tests {
             Console.WriteLine(generatedJs);
             Assert.IsFalse(Regex.IsMatch(
                 generatedJs,
-                @"(\$asm([0-9A-F])*).Program.ReturnMutatedArgument\(a.MemberwiseClone\(\), 0\)"
+                @"\$thisType.ReturnMutatedArgument\(a.MemberwiseClone\(\), 0\)"
             ));
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"b = (\$asm([0-9A-F])*).Program.ReturnMutatedArgument\(a, 0\).MemberwiseClone\(\);"
+                @"b = \$thisType.ReturnMutatedArgument\(a, 0\).MemberwiseClone\(\);"
             ));
         }
 
@@ -254,8 +254,8 @@ namespace JSIL.Tests {
             Console.WriteLine(generatedJs);
             Assert.IsTrue(Regex.IsMatch(
                 generatedJs,
-                @"b = (\$asm([0-9A-F])*).Program.ReturnArgument\((\$asm([0-9A-F])*)." +
-                @"Program.ReturnIncrementedArgument\((\$asm([0-9A-F])*).Program.ReturnArgument\(a\)." +
+                @"b = \$thisType.ReturnArgument\(" +
+                @"\$thisType.ReturnIncrementedArgument\(\$thisType.ReturnArgument\(a\)." +
                 @"MemberwiseClone\(\)\)\).MemberwiseClone\(\)"
             ));
         }

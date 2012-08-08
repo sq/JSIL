@@ -2778,7 +2778,7 @@ JSIL.BuildTypeList = function (type, publicInterface) {
   }
 };
 
-$jsilcore.cctorKeys = ["_cctor", "_cctor2", "_cctor3", "_cctor4", "_cctor5"];
+$jsilcore.cctorKeys = ["__TypeCacher__", "_cctor", "_cctor2", "_cctor3", "_cctor4", "_cctor5"];
 
 JSIL.InitializeType = function (type) {
   var classObject = type, typeObject = type;
@@ -4401,6 +4401,17 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
     isExternal: true,
     isPlaceholder: isPlaceholder
   });
+};
+
+JSIL.InterfaceBuilder.prototype.TypeCacher = function (fn) {
+  if (typeof (fn) !== "function")
+    throw new Error("TypeCacher only accepts function arguments");
+
+  JSIL.SetValueProperty(
+    this.publicInterface, "__TypeCacher__", fn
+  );
+
+  this.typeObject.__RawMethods__.push([true, "__TypeCacher__"]);
 };
 
 JSIL.InterfaceBuilder.prototype.RawMethod = function (isStatic, methodName, fn) {

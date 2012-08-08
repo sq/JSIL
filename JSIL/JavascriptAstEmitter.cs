@@ -656,7 +656,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSCachedType cachedType) {
-            Output.WriteRaw("$T[{0}]", cachedType.Index);
+            Output.WriteRaw("$T{0:X2}", cachedType.Index);
         }
 
         public void VisitNode (JSTypeOfExpression toe) {

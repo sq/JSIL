@@ -684,7 +684,7 @@ namespace JSIL.Internal {
             }
 
             if (TypeUtil.TypesAreEqual(context.EnclosingType, type, true)) {
-                WriteRaw("$.publicInterface");
+                WriteRaw("$thisType");
                 return;
             }
 
