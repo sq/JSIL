@@ -8,6 +8,13 @@ using NUnit.Framework;
 namespace JSIL.Tests {
     [TestFixture]
     public class MetadataTests : GenericTestFixture {
+        // Type expression caching makes it hard to write these tests.
+        protected override Translator.Configuration MakeConfiguration () {
+            var configuration = base.MakeConfiguration();
+            configuration.Optimizer.CacheTypeExpressions = false;
+            return configuration;
+        }
+
         [Test]
         public void JSIgnorePreventsTranslationOfType () {
             GenericIgnoreTest(
@@ -209,7 +216,8 @@ namespace JSIL.Tests {
             );
 
             Assert.IsFalse(generatedJs.Contains("Program.Method"));
-            Assert.IsTrue(generatedJs.Contains("Program.RenamedMethod"));
+            Assert.IsFalse(generatedJs.Contains("$thisType.Method"));
+            Assert.IsTrue(generatedJs.Contains("$thisType.RenamedMethod"));
         }
 
         [Test]
@@ -221,7 +229,8 @@ namespace JSIL.Tests {
             );
 
             Assert.IsFalse(generatedJs.Contains("Program.Field"));
-            Assert.IsTrue(generatedJs.Contains("Program.RenamedField"));
+            Assert.IsFalse(generatedJs.Contains("$thisType.Field"));
+            Assert.IsTrue(generatedJs.Contains("$thisType.RenamedField"));
         }
 
         [Test]
@@ -233,7 +242,8 @@ namespace JSIL.Tests {
             );
 
             Assert.IsFalse(generatedJs.Contains("Program.Property"));
-            Assert.IsTrue(generatedJs.Contains("Program.RenamedProperty"));
+            Assert.IsFalse(generatedJs.Contains("$thisType.Property"));
+            Assert.IsTrue(generatedJs.Contains("$thisType.RenamedProperty"));
         }
 
         [Test]
@@ -291,7 +301,7 @@ namespace JSIL.Tests {
                 "Method", "external method 'void Method()' of type 'Program' has not"
             );
 
-            Assert.IsTrue(generatedJs.Contains(".Program.Method("));
+            Assert.IsTrue(generatedJs.Contains("$thisType.Method("));
         }
 
         [Test]
@@ -313,7 +323,7 @@ namespace JSIL.Tests {
             );
 
             Assert.IsFalse(generatedJs.Contains(".Field = "));
-            Assert.IsTrue(generatedJs.Contains(".Program.Field"));
+            Assert.IsTrue(generatedJs.Contains("$thisType.Field"));
         }
 
         [Test]
@@ -326,7 +336,7 @@ namespace JSIL.Tests {
 
             Assert.IsFalse(generatedJs.Contains("\"get_Property\""));
             Assert.IsFalse(generatedJs.Contains("\"Property\""));
-            Assert.IsTrue(generatedJs.Contains(".Program.Property"));
+            Assert.IsTrue(generatedJs.Contains("$thisType.Property"));
         }
 
         [Test]
@@ -337,7 +347,7 @@ namespace JSIL.Tests {
             );
 
             Assert.IsTrue(generatedJs.Contains("$.Property({Static:true , Public:true }, \"Property\""));
-            Assert.IsTrue(generatedJs.Contains(".Program.Property"));
+            Assert.IsTrue(generatedJs.Contains("$thisType.Property"));
         }
 
         [Test]
@@ -381,13 +391,10 @@ namespace JSIL.Tests {
                 "MyClass", "ReferenceError: UnqualifiedTypeName is not defined"
             );
 
+            // FIXME: I'm not sure if this is right?
             Assert.IsTrue(generatedJs.Contains("UnqualifiedTypeName"));
             Assert.IsTrue(generatedJs.Contains("UnqualifiedTypeName.GetString"));
-            Assert.IsTrue(generatedJs.Contains("UnqualifiedTypeName.Method({Static:true , Public:true }, \"get_StringProperty\""));
-            Assert.IsTrue(generatedJs.Contains("UnqualifiedTypeName.Method({Static:true , Public:true }, \"set_StringProperty\""));
-            Assert.IsTrue(generatedJs.Contains("UnqualifiedTypeName.StringField"));
-            Assert.IsTrue(generatedJs.Contains("return \"MyClass\""));
-            Assert.IsFalse(generatedJs.Contains("MyClass."));
+            Assert.IsFalse(generatedJs.Contains("MyClass"));
         }
 
         // This test won't actually run outside the DOM, but we can make sure nothing horrible happens.

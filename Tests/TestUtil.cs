@@ -353,10 +353,16 @@ namespace JSIL.Tests {
         }
 
         public string GenerateJavascript (
-            string[] args, out string generatedJavascript, out long elapsedTranslation
+            string[] args, out string generatedJavascript, out long elapsedTranslation,
+            Func<Configuration> makeConfiguration = null
         ) {
             var tempFilename = Path.GetTempFileName();
-            var configuration = MakeDefaultConfiguration();
+            Configuration configuration;
+
+            if (makeConfiguration != null)
+                configuration = makeConfiguration();
+            else
+                configuration = MakeDefaultConfiguration();
 
             if (StubbedAssemblies != null)
                 configuration.Assemblies.Stubbed.AddRange(StubbedAssemblies);
@@ -431,9 +437,10 @@ namespace JSIL.Tests {
         }
 
         public string RunJavascript (
-            string[] args, out string generatedJavascript, out long elapsedTranslation, out long elapsedJs
+            string[] args, out string generatedJavascript, out long elapsedTranslation, out long elapsedJs,
+            Func<Configuration> makeConfiguration = null
         ) {
-            var tempFilename = GenerateJavascript(args, out generatedJavascript, out elapsedTranslation);
+            var tempFilename = GenerateJavascript(args, out generatedJavascript, out elapsedTranslation, makeConfiguration);
 
             using (var evaluator = EvaluatorPool.Get()) {
                 var startedJs = DateTime.UtcNow.Ticks;
@@ -604,9 +611,13 @@ namespace JSIL.Tests {
             );
         }
 
+        protected virtual Configuration MakeConfiguration () {
+            return ComparisonTest.MakeDefaultConfiguration();
+        }
+
         protected TypeInfoProvider MakeDefaultProvider () {
             // Construct a type info provider with default proxies loaded (kind of a hack)
-            return (new AssemblyTranslator(ComparisonTest.MakeDefaultConfiguration())).GetTypeInfoProvider();
+            return (new AssemblyTranslator(MakeConfiguration())).GetTypeInfoProvider();
         }
 
         /// <summary>
@@ -698,7 +709,8 @@ namespace JSIL.Tests {
                 RunComparisonTest(
                     filename, stubbedAssemblies, typeInfo, 
                     errorCheckPredicate, failureList, 
-                    commonFile, shouldRunJs, asmCache
+                    commonFile, shouldRunJs, asmCache, 
+                    MakeConfiguration
                 );
             }
 
@@ -722,7 +734,8 @@ namespace JSIL.Tests {
 
         private void RunComparisonTest(
             string filename, string[] stubbedAssemblies = null, TypeInfoProvider typeInfo = null, Action<string, string> errorCheckPredicate = null,
-            List<string> failureList = null, string commonFile = null,  bool shouldRunJs = true, AssemblyCache asmCache = null
+            List<string> failureList = null, string commonFile = null,  bool shouldRunJs = true, AssemblyCache asmCache = null,
+            Func<Configuration> makeConfiguration = null
         ) {
             Console.WriteLine("// {0} ... ", Path.GetFileName(filename));
 
@@ -749,7 +762,7 @@ namespace JSIL.Tests {
                         try
                         {
                             var csOutput = test.RunCSharp(new string[0], out elapsed);
-                            test.GenerateJavascript(new string[0], out js, out elapsed);
+                            test.GenerateJavascript(new string[0], out js, out elapsed, makeConfiguration);
 
                             Console.WriteLine("generated");
 
@@ -784,7 +797,7 @@ namespace JSIL.Tests {
 
             using (var test = MakeTest(fileName)) {
                 try {
-                    output = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed);
+                    output = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed, MakeConfiguration);
                 } catch {
                     Console.Error.WriteLine("// Generated JS: \r\n{0}", generatedJs);
                     throw;
@@ -809,7 +822,7 @@ namespace JSIL.Tests {
                 var csOutput = test.RunCSharp(new string[0], out elapsed);
 
                 try {
-                    var jsOutput = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed);
+                    var jsOutput = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed, MakeConfiguration);
 
                     Assert.AreEqual(csharpOutput, csOutput.Trim(), "Did not get expected output from C# test");
                     Assert.AreEqual(javascriptOutput, jsOutput.Trim(), "Did not get expected output from JavaScript test");
@@ -831,7 +844,7 @@ namespace JSIL.Tests {
                 Assert.AreEqual(workingOutput, csOutput.Trim());
 
                 try {
-                    jsOutput = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed);
+                    jsOutput = test.RunJavascript(new string[0], out generatedJs, out temp, out elapsed, MakeConfiguration);
                     Assert.Fail("Expected javascript to throw an exception containing the string \"" + jsErrorSubstring + "\".");
                 } catch (JavaScriptException jse) {
                     if (!jse.ErrorText.Contains(jsErrorSubstring)) {

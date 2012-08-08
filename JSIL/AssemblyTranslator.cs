@@ -884,14 +884,9 @@ namespace JSIL {
             try {
                 declaredTypes.Add(typedef);
 
-                // type has a JS replacement, we can't correctly emit a stub or definition for it.
-                // We do want to process nested types and the type definition, though.
+                // type has a JS replacement, we can't correctly emit a stub or definition for it. 
+                // We do want to process nested types, though.
                 if (typeInfo.Replacement != null) {
-                    TranslateTypeDefinition(
-                        context, typedef, astEmitter, output, stubbed,
-                        (o) => o.WriteRaw(typeInfo.Replacement), makingSkeletons
-                    );
-
                     output.NewLine();
 
                     oldEnclosing = astEmitter.ReferenceContext.EnclosingType;
@@ -1138,7 +1133,9 @@ namespace JSIL {
             var methodsToTranslate = typedef.Methods.OrderBy((md) => md.Name).ToArray();
 
             var typeCacher = new TypeExpressionCacher(typedef);
-            if (Configuration.Optimizer.CacheTypeExpressions.GetValueOrDefault(true)) {
+            if (
+                Configuration.Optimizer.CacheTypeExpressions.GetValueOrDefault(true)
+            ) {
                 foreach (var method in methodsToTranslate) {
                     var mi = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);
                     if (mi.IsIgnored || mi.IsExternal)

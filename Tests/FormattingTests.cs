@@ -8,6 +8,13 @@ using NUnit.Framework;
 namespace JSIL.Tests {
     [TestFixture]
     public class FormattingTests : GenericTestFixture {
+        // Type expression caching makes it hard to write these tests.
+        protected override Translator.Configuration MakeConfiguration () {
+            var configuration = base.MakeConfiguration();
+            configuration.Optimizer.CacheTypeExpressions = false;
+            return configuration;
+        }
+
         [Test]
         public void ChainedElseIfs () {
             var generatedJs = GetJavascript(
@@ -191,11 +198,11 @@ namespace JSIL.Tests {
             try {
                 Assert.IsFalse(Regex.IsMatch(
                     generatedJs,
-                    @"!!(\$asm([0-9A-F])*).Program.P"
+                    @"!!\$thisType.P"
                 ));
                 Assert.IsTrue(Regex.IsMatch(
-                    generatedJs, 
-                    @"!(\$asm([0-9A-F])*).Program.P"
+                    generatedJs,
+                    @"!\$thisType.P"
                 ));
             } catch {
                 Console.WriteLine(generatedJs);
@@ -520,9 +527,9 @@ namespace JSIL.Tests {
             );
 
             try {
-                Assert.IsFalse(generatedJs.Contains("CallStatic($asm00.Program, \"A\", "));
-                Assert.IsTrue(generatedJs.Contains("$asm00.Program.B();"));
-                Assert.IsTrue(generatedJs.Contains("CallStatic($asm00.Program, \"B\", "));
+                Assert.IsFalse(generatedJs.Contains("CallStatic($thisType, \"A\", "));
+                Assert.IsTrue(generatedJs.Contains("$thisType.B();"));
+                Assert.IsTrue(generatedJs.Contains("CallStatic($thisType, \"B\", "));
             } catch {
                 Console.WriteLine(generatedJs);
 
