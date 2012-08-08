@@ -6313,6 +6313,8 @@ JSIL.StringToCharArray = function (text) {
 var $equalsSignature = new JSIL.MethodSignature("System.Boolean", ["System.Object"], [], $jsilcore);
 
 JSIL.ObjectEquals = function (lhs, rhs) {
+  if ((lhs === null) || (rhs === null))
+    return lhs === rhs;
   if (lhs === rhs)
     return true;
 

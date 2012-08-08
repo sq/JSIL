@@ -9,28 +9,57 @@ namespace SmokeTests {
     [TestFixture]
     public class SmokeTests {
         [Test]
-        [Ignore]
+        // [Ignore]
         public void MannuxRuns () {
-            using (var s = new Session("Mannux")) {
+            using (var s = new Session("Mannux", false)) {
                 s.LoadPage("Mannux/Mannux.html");
 
-                Console.Write("Waiting for game to start... ");
-                try {
-                    s.WaitFor("window.$jsilbrowserstate.hasMainRun", null, 45000);
-                    Console.WriteLine("started.");
-                } catch (Exception exc) {
-                    Console.WriteLine("failed.");
-                    throw;
-                }
+                s.PassOrFail(
+                    () => 
+                        s.WaitFor(
+                            "return window.$jsilbrowserstate.hasMainRun",
+                            timeoutMs: 45000
+                        ),
+                    "Waiting for game to start", "started."
+                );
 
+                s.PassOrFail(
+                    () => {
+                        // Turn right
+                        s.Evaluate("test.pressKeysFor([39], 2000);");
+
+                        // Fire the gun until the monster dies
+                        s.WaitFor(
+                            "test.pressKeysFor([162, 163], 250); " +
+                            "return test.logText.indexOf('HP: 0') >= 0",
+                            timeoutMs: 10000,
+                            tickRateMs: 200
+                        );
+                    },
+                    "Killing the monster"
+                );
+
+                Console.WriteLine("// Game log follows:");
                 Console.WriteLine(s.GetLogText());
 
                 var exceptions = s.GetExceptions();
-                Console.WriteLine("Game threw {0} exception(s):", exceptions.Length);
+                var unexpectedExceptions = exceptions.ToList();
 
-                foreach (var exc in exceptions) {
+                // Ignore errors about unimplemented WinForms methods.
+                unexpectedExceptions.RemoveAll((exc) => 
+                    exc.Text.Contains("The external method") && exc.Text.Contains("of type 'System.Windows.Forms")
+                );
+                // Ignore set_SynchronizeWithVerticalRetrace.
+                unexpectedExceptions.RemoveAll((exc) =>
+                    exc.Text.Contains("set_SynchronizeWithVerticalRetrace")
+                );
+
+                Console.WriteLine("// Game threw {0} exception(s), {1} of which were unexpected:", exceptions.Length, unexpectedExceptions.Count);
+
+                foreach (var exc in unexpectedExceptions)
                     Console.WriteLine(exc);
-                }
+
+                Assert.AreEqual(unexpectedExceptions.Count, 0);
             }
         }
     }

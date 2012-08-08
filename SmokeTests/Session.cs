@@ -37,7 +37,7 @@ namespace SmokeTests {
                 TempPath = Path.GetTempPath();
                 LogPath = Path.Combine(TempPath, "sauce_connect.log");
 
-                DriverCapabilities = DesiredCapabilities.Chrome();
+                DriverCapabilities = DesiredCapabilities.Firefox();
                 DriverCapabilities.SetCapability(
                     CapabilityType.Platform, new Platform(PlatformType.XP)
                 );
@@ -62,6 +62,12 @@ namespace SmokeTests {
                 DriverCapabilities.SetCapability(
                     "sauce-advisor", false
                 );
+                DriverCapabilities.SetCapability(
+                    "record-video", true
+                );
+                DriverCapabilities.SetCapability(
+                    "record-screenshots", true
+                );
 
                 /*
                 DriverCapabilities.SetCapability(
@@ -74,20 +80,15 @@ namespace SmokeTests {
                 else
                     Proxy = null;
 
-                Console.Write("Starting browser... ");
-
-                try {
-                    WebDriver = new RemoteWebDriver(
-                        new Uri("http://ondemand.saucelabs.com:80/wd/hub"),
-                        DriverCapabilities,
-                        TimeSpan.FromSeconds(CommandTimeout)
-                    );
-
-                    Console.WriteLine("started.");
-                } catch (Exception exc) {
-                    Console.WriteLine("failed.");
-                    throw;
-                }
+                WebDriver = PassOrFail(
+                    () => 
+                        new RemoteWebDriver(
+                            new Uri("http://ondemand.saucelabs.com:80/wd/hub"),
+                            DriverCapabilities,
+                            TimeSpan.FromSeconds(CommandTimeout)
+                        ),
+                    "Starting browser", "started."
+                );
 
                 // Sauce doesn't support this :|
                 /*
@@ -131,32 +132,47 @@ namespace SmokeTests {
             if (File.Exists(LogPath))
                 File.Delete(LogPath);
 
-            Console.Write("Starting proxy... ");
+            PassOrFail(
+                () => {
+                    proxy = Process.Start(psi);
+                    proxy.WaitForInputIdle(5000);
 
-            try {
-                proxy = Process.Start(psi);
-                proxy.WaitForInputIdle(5000);
+                    if (proxy.HasExited)
+                        throw new Exception("Process terminated prematurely with exit code " + Proxy.ExitCode);
+                },
+                "Starting proxy", "started."
+            );
 
-                if (proxy.HasExited)
-                    throw new Exception("Process terminated prematurely with exit code " + Proxy.ExitCode);
-
-                Console.WriteLine("started.");
-            } catch (Exception exc) {
-                Console.WriteLine("failed.");
-                throw;
-            }
-
-            Console.Write("Waiting for proxy connection... ");
-
-            try {
-                WaitForProxyLogText("INFO - Connected! You may start your tests.");
-                Console.WriteLine("connected.");
-            } catch (Exception exc) {
-                Console.WriteLine("failed.");
-                throw;
-            }
+            PassOrFail(
+                () => WaitForProxyLogText("INFO - Connected! You may start your tests."), 
+                "Waiting for proxy connection", "connected."
+            );
 
             return proxy;
+        }
+
+        public void PassOrFail (Action action, string caption, string passText = "succeeded.", string failText = "failed.") {
+            PassOrFail<object>(
+                () => {
+                    action();
+                    return null;
+                }, caption, passText, failText
+            );
+        }
+
+        public T PassOrFail<T> (Func<T> fn, string caption, string passText = "succeeded.", string failText = "failed.") {
+            T result;
+
+            Console.Write(caption + "... ");
+            try {
+                result = fn();
+                Console.WriteLine(passText);
+            } catch (Exception exc) {
+                Console.WriteLine(failText);
+                throw;
+            }
+
+            return result;
         }
 
         public void WaitForProxyLogText (string searchText, int timeoutMs = 60000) {
@@ -191,21 +207,20 @@ namespace SmokeTests {
                 path,
                 PageOptions
             );
-            Console.Write("Loading {0}... ", generatedUrl);
 
-            try {
-                WebDriver.Navigate().GoToUrl(
-                    generatedUrl
-                );
-                Console.WriteLine("ok.");
-            } catch (Exception exc) {
-                Console.WriteLine("failed.");
-                throw;
-            }
+            PassOrFail(
+                () => 
+                    WebDriver.Navigate().GoToUrl(
+                        generatedUrl
+                    )
+                ,
+                String.Format("Loading {0}... ", generatedUrl),
+                "loaded."
+            );
         }
 
         public object Evaluate (string expression) {
-            return WebDriver.ExecuteScript(String.Format("return {0};", expression));
+            return WebDriver.ExecuteScript(expression);
         }
 
         private static bool DefaultResultPredicate (object value) {
@@ -221,7 +236,7 @@ namespace SmokeTests {
             return false;
         }
 
-        public void WaitFor (string expression, Func<object, bool> resultPredicate = null, int timeoutMs = 5000) {
+        public void WaitFor (string expression, Func<object, bool> resultPredicate = null, int timeoutMs = 5000, int tickRateMs = 1000, string evaluateEachTick = null) {
             var started = DateTime.UtcNow.Ticks;
             var timeoutAt = started + TimeSpan.FromMilliseconds(timeoutMs).Ticks;
 
@@ -230,12 +245,15 @@ namespace SmokeTests {
                 resultPredicate = DefaultResultPredicate;
 
             while (DateTime.UtcNow.Ticks < timeoutAt) {
+                if (evaluateEachTick != null)
+                    Evaluate(evaluateEachTick);
+
                 currentValue = Evaluate(expression);
 
                 if (resultPredicate(currentValue))
                     return;
 
-                Thread.Sleep(500);
+                Thread.Sleep(tickRateMs);
             }
 
             throw new Exception("Timed out. Last value was: " + Convert.ToString(currentValue));

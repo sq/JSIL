@@ -22,3 +22,11 @@ JSIL.Host.throwException = function (exc) {
 
   test.exceptions.push([exceptionTimestamp, exceptionMessage]);
 };
+
+test.pressKeysFor = function (keys, duration) {
+  pressKeys(keys);
+
+  window.setTimeout(function () {
+    releaseKeys(keys);
+  });
+};

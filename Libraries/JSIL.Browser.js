@@ -223,6 +223,20 @@ var keyMappings = {
   18: [164, 165] // Left Alt, Right Alt
 };
 
+function pressKeys (keyCodes) {
+  for (var i = 0; i < keyCodes.length; i++) {
+    var code = keyCodes[i];
+    if (Array.prototype.indexOf.call($jsilbrowserstate.heldKeys, code) === -1)
+      $jsilbrowserstate.heldKeys.push(code);
+  }
+};
+
+function releaseKeys (keyCodes) {
+  $jsilbrowserstate.heldKeys = $jsilbrowserstate.heldKeys.filter(function (element, index, array) {
+    return keyCodes.indexOf(element) === -1;
+  });
+};
+
 function initBrowserHooks () {
   var canvas = document.getElementById("canvas");
   var originalWidth = canvas.width;
@@ -276,11 +290,7 @@ function initBrowserHooks () {
       var keyCode = evt.keyCode;
       var codes = keyMappings[keyCode] || [keyCode];        
       
-      for (var i = 0; i < codes.length; i++) {
-        var code = codes[i];
-        if (Array.prototype.indexOf.call($jsilbrowserstate.heldKeys, code) === -1)
-          $jsilbrowserstate.heldKeys.push(code);
-      }
+      pressKeys(codes);
     }, true
   );
 
@@ -293,9 +303,7 @@ function initBrowserHooks () {
       var keyCode = evt.keyCode;
       var codes = keyMappings[keyCode] || [keyCode];        
       
-      $jsilbrowserstate.heldKeys = $jsilbrowserstate.heldKeys.filter(function (element, index, array) {
-        return codes.indexOf(element) === -1;
-      });
+      releaseKeys(codes);
     }, true
   );
 
