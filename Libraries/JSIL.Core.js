@@ -2176,27 +2176,32 @@ JSIL.$MakeMemberCopier = function (typeObject, publicInterface) {
 JSIL.$MakeMemberwiseCloner = function (typeObject, publicInterface) {
   var prototype = publicInterface.prototype;
   var context = {
-    prototype: prototype,
-    create: Object.create.bind(Object, prototype)
+    prototype: prototype
   };
 
   var body = [];
-  body.push("  var source = this;");
-  body.push("  var result = context.create();");
+  body.push("  var result = this;");
 
   JSIL.$MakeCopierCore(typeObject, context, body);
-
-  body.push("  return result;");
 
   var subtypeRe = /[\+\/]/g;
   var nameRe = /[^A-Za-z_0-9]/g;
   var uri = typeObject.__FullName__.replace(subtypeRe, ".");
 
+  var constructor = JSIL.CreateNamedFunction(
+    typeObject.__FullName__ + ".CopyConstructor",
+    ["source"],
+    body.join("\r\n")
+  );
+  constructor.prototype = prototype;
+
   var memberwiseCloner = JSIL.CreateNamedFunction(
     typeObject.__FullName__ + ".MemberwiseClone",
     [],
-    body.join("\r\n"),
-    { context: context }
+    "return new clone(this);",
+    {
+      clone: constructor
+    }
   );
 
   return memberwiseCloner;
