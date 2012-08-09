@@ -1648,6 +1648,7 @@ namespace JSIL.Ast {
     }
 
     public class JSIsExpression : JSExpression {
+        public int? CachedTypeIndex;
         public readonly TypeReference Type;
 
         public JSIsExpression (JSExpression inner, TypeReference type)
@@ -1699,6 +1700,8 @@ namespace JSIL.Ast {
     }
 
     public class JSCastExpression : JSExpression {
+        public int? CachedTypeIndex;
+
         public readonly TypeReference NewType;
 
         protected JSCastExpression (JSExpression inner, TypeReference newType)

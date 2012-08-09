@@ -1015,6 +1015,9 @@ JSIL.AllRegisteredNames = [];
 JSIL.AllImplementedExternals = {};
 JSIL.ExternalsQueue = {};
 
+// FIXME: Used to prevent cycles in type cachers from causing problems. Not sure if this is right.
+$jsilcore.SuppressRecursiveConstructionErrors = 0;
+
 JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initializer) {
   var privateName = JSIL.ResolveName(privateNamespace, name, true);
   if (isPublic)
@@ -1043,9 +1046,14 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
     var result;
 
     if (state.constructing) {
-      var err = new Error("Recursive construction of type '" + name + "' detected.");
-      state.value = err;
-      throw err;
+      if (($jsilcore.SuppressRecursiveConstructionErrors > 0) && state.value) {
+        JSIL.Host.warning("Ignoring recursive construction of type '" + name + "'.");
+        return state.value;
+      } else {
+        var err = new Error("Recursive construction of type '" + name + "' detected.");
+        state.value = err;
+        throw err;
+      }
     }
 
     if (typeof (state.creator) === "function") {
@@ -2846,6 +2854,13 @@ JSIL.InitializeType = function (type) {
       var key = $jsilcore.cctorKeys[i];
       var cctor = classObject[key];
 
+      // Type cachers need to be able to form reference cycles, so we suppress warning messages
+      //  while one of them is running.
+      var suppress = (key === "__TypeCacher__");
+
+      if (suppress)
+        $jsilcore.SuppressRecursiveConstructionErrors += 1;
+
       if (typeof (cctor) === "function") {
         try {
           cctor.call(classObject);
@@ -2853,6 +2868,9 @@ JSIL.InitializeType = function (type) {
           JSIL.Host.error(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(type) + ": ");
         }
       }
+
+      if (suppress)
+        $jsilcore.SuppressRecursiveConstructionErrors -= 1;
     }
   }
 

@@ -89,6 +89,22 @@ namespace JSIL.Transforms {
             VisitChildren(ct);
         }
 
+        public void VisitNode (JSIsExpression @is) {
+            var ct = GetCachedType(@is.Type);
+            if (ct != null)
+                @is.CachedTypeIndex = ct.Index;
+
+            VisitChildren(@is);
+        }
+
+        public void VisitNode (JSCastExpression cast) {
+            var ct = GetCachedType(cast.NewType);
+            if (ct != null)
+                cast.CachedTypeIndex = ct.Index;
+
+            VisitChildren(cast);
+        }
+
         public JSCachedType[] CacheTypesForFunction (JSFunctionExpression function) {
             var currentKeys = new HashSet<GenericTypeIdentifier>(CachedTypes.Keys);
 

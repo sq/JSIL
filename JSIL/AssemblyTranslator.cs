@@ -1134,7 +1134,7 @@ namespace JSIL {
 
             var typeCacher = new TypeExpressionCacher(typedef);
             if (
-                Configuration.Optimizer.CacheTypeExpressions.GetValueOrDefault(true)
+                Configuration.Optimizer.CacheTypeExpressions.GetValueOrDefault(false)
             ) {
                 foreach (var method in methodsToTranslate) {
                     var mi = _TypeInfoProvider.GetMemberInformation<Internal.MethodInfo>(method);

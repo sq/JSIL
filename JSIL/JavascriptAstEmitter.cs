@@ -341,8 +341,15 @@ namespace JSIL {
             Visit(ma.Member);
         }
 
+        private void WritePossiblyCachedTypeIdentifier (TypeReference type, int? index) {
+            if (index.HasValue)
+                Output.WriteRaw("$T{0:X2}", index.Value);
+            else
+                Output.Identifier(type, ReferenceContext, false);
+        }
+
         public void VisitNode (JSIsExpression ie) {
-            Output.Identifier(ie.Type, ReferenceContext, false);
+            WritePossiblyCachedTypeIdentifier(ie.Type, ie.CachedTypeIndex);
             Output.Dot();
             Output.WriteRaw("$Is");
             Output.LPar();
@@ -353,7 +360,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSAsExpression ae) {
-            Output.Identifier(ae.NewType, ReferenceContext, false);
+            WritePossiblyCachedTypeIdentifier(ae.NewType, ae.CachedTypeIndex);
             Output.Dot();
             Output.WriteRaw("$As");
             Output.LPar();
@@ -364,7 +371,7 @@ namespace JSIL {
         }
 
         public void VisitNode (JSCastExpression ce) {
-            Output.Identifier(ce.NewType, ReferenceContext, false);
+            WritePossiblyCachedTypeIdentifier(ce.NewType, ce.CachedTypeIndex);
             Output.Dot();
             Output.WriteRaw("$Cast");
             Output.LPar();
