@@ -2191,7 +2191,10 @@ JSIL.$MakeMemberwiseCloner = function (typeObject, publicInterface) {
   var constructor = JSIL.CreateNamedFunction(
     typeObject.__FullName__ + ".CopyConstructor",
     ["source"],
-    body.join("\r\n")
+    body.join("\r\n"),
+    {
+      context: context
+    }
   );
   constructor.prototype = prototype;
 

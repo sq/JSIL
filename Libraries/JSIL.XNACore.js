@@ -4509,6 +4509,23 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       this.device.SamplerStates.set_Item(0, Microsoft.Xna.Framework.Graphics.SamplerState.LinearClamp);
   });
 
+  $.RawMethod(false, "$updateMatrices", function () {
+    var viewport = this.device.get_Viewport();
+    var xTranslation = 0, yTranslation = 0;      
+    var xScale = 1, yScale = 1;
+
+    if ((typeof (this.transformMatrix) === "object") && (this.transformMatrix !== null)) {
+      xTranslation += this.transformMatrix.xTranslation;
+      yTranslation += this.transformMatrix.yTranslation;
+      xScale *= this.transformMatrix.xScale;
+      yScale *= this.transformMatrix.yScale;
+    }
+
+    this.device.$UpdateViewport();
+    this.device.context.translate(xTranslation, yTranslation);
+    this.device.context.scale(xScale, yScale);
+  });
+
   $.Method({Static:false, Public:true }, "Begin", 
     (new JSIL.MethodSignature(null, [$xnaasms[5].TypeRef("System.Array") /* AnyType[] */ ], [])), 
     function SpriteBatch_Begin (sortMode, blendState, samplerState, depthStencilState, rasterizerState, effect, transformMatrix) {
@@ -4563,11 +4580,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         this.defer = true;
       }
 
-      this.device.$UpdateViewport();
-      if ((typeof (transformMatrix) === "object") && (transformMatrix !== null)) {
-        this.device.context.translate(transformMatrix.xTranslation, transformMatrix.yTranslation);
-        this.device.context.scale(transformMatrix.xScale, transformMatrix.yScale);
-      }
+      this.transformMatrix = transformMatrix;
+      this.$updateMatrices();
     }
   );
 
@@ -4579,6 +4593,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
 
         this.$applyBlendState();
         this.$applySamplerState();
+        this.$updateMatrices();
 
         if (this.deferSorter !== null) 
           this.deferredDraws.sort(this.deferSorter);
@@ -4599,6 +4614,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
 
       this.$applyBlendState();
       this.$applySamplerState();
+
+      this.device.$UpdateViewport();
 
       if (this.saveCount !== this.restoreCount)
         JSIL.Host.warning("Unbalanced canvas save/restore");
@@ -5592,6 +5609,18 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
         ], ["T"])), 
     function DrawUserPrimitives$b1 (T, primitiveType, vertexData, vertexOffset, primitiveCount, vertexDeclaration) {
       return this.InternalDrawUserPrimitives(T, primitiveType, vertexData, vertexOffset, primitiveCount);
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "GetRenderTargets", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.RenderTargetBinding")]), [], [])), 
+    function GetRenderTargets () {
+      var tRenderTargetBinding = getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.RenderTargetBinding").get();
+
+      if (this.renderTarget === null)
+        return [];
+      else
+        return [ new tRenderTargetBinding(this.renderTarget) ];
     }
   );
 
@@ -7501,4 +7530,20 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameServiceContainer", function
     }
   );
 
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.RenderTargetBinding", function ($) {
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.RenderTarget2D")], [])), 
+    function _ctor (renderTarget) {
+      this._renderTarget = renderTarget;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_RenderTarget", 
+    (new JSIL.MethodSignature(getXnaGraphics().TypeRef("Microsoft.Xna.Framework.Graphics.Texture"), [], [])), 
+    function get_RenderTarget () {
+      return this._renderTarget;
+    }
+  );
 });
