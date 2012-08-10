@@ -413,7 +413,9 @@ namespace JSIL {
             return result;
         }
 
-        protected JSExpression Translate_PropertyCall (JSExpression thisExpression, JSMethod method, JSExpression[] arguments, bool @virtual, bool @static) {
+        protected JSExpression Translate_PropertyCall (
+            JSExpression thisExpression, JSMethod method, JSExpression[] arguments, bool @virtual, bool @static
+        ) {
             var propertyInfo = method.Method.DeclaringProperty;
             if (propertyInfo == null)
                 return null;
@@ -449,7 +451,8 @@ namespace JSIL {
 
                 if ((propertyInfo.Member.GetMethod != null) && (method.Method.Member.Name == propertyInfo.Member.GetMethod.Name)) {
                     return new JSPropertyAccess(
-                        actualThis, new JSProperty(method.Reference, propertyInfo), false, tq, method
+                        actualThis, new JSProperty(method.Reference, propertyInfo), 
+                        false, tq, method, @virtual
                     );
                 } else {
                     if (arguments.Length == 0) {
@@ -462,7 +465,8 @@ namespace JSIL {
                     return new JSBinaryOperatorExpression(
                         JSOperator.Assignment,
                         new JSPropertyAccess(
-                            actualThis, new JSProperty(method.Reference, propertyInfo), true, tq, method
+                            actualThis, new JSProperty(method.Reference, propertyInfo), 
+                            true, tq, method, @virtual
                         ),
                         arguments[0], propertyInfo.ReturnType
                     );

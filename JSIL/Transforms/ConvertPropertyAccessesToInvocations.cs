@@ -38,7 +38,7 @@ namespace JSIL.Transforms {
                 TypeInfo, thisReferenceType, declaringType
             );
 
-            bool needsExplicitThis = ILBlockTranslator.NeedsExplicitThis(
+            bool needsExplicitThis = !pa.IsVirtualCall && ILBlockTranslator.NeedsExplicitThis(
                 declaringType, declaringTypeDef,
                 originalMethod.Method.DeclaringType,
                 isSelf, thisReferenceType,
@@ -68,10 +68,15 @@ namespace JSIL.Transforms {
 
         public void VisitNode (JSPropertyAccess pa) {
             var parentBoe = ParentNode as JSBinaryOperatorExpression;
+            var parentUoe = ParentNode as JSUnaryOperatorExpression;
+
+            bool isMutation = ((parentUoe != null) && 
+                (parentUoe.Operator is JSUnaryMutationOperator)) ||
+                ((parentBoe != null) && (parentBoe.Operator is JSAssignmentOperator));
 
             if (
                 !pa.IsWrite &&
-                (parentBoe == null) &&
+                !isMutation &&
                 CanConvertToInvocation(pa)
             ) {
                 // getter
