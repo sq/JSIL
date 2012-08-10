@@ -4197,6 +4197,43 @@ $jsilxna.makeColor = function (proto, r, g, b, a) {
 };
 
 $jsilxna.Color = function ($) {
+  (function BindColorExternals () {
+    var makeColor = $jsilxna.makeColor;
+    var colors = $jsilxna.colors || [];
+
+    var tColor = null;
+
+    var makeLazyColor = function (r, g, b, a) {
+      var state = null;
+      return function () {
+        if (state === null) {
+          if (tColor === null) {
+            var typeName1 = JSIL.ParseTypeName("Microsoft.Xna.Framework.Color,Microsoft.Xna.Framework");
+            var typeName2 = JSIL.ParseTypeName("Microsoft.Xna.Framework.Graphics.Color,Microsoft.Xna.Framework");
+
+            tColor = JSIL.GetTypeInternal(typeName1, $jsilxna, false) || JSIL.GetTypeInternal(typeName2, $jsilxna, false);
+          }
+
+          state = JSIL.CreateInstanceOfType(tColor, null);
+          state.a = a;
+          state.r = r;
+          state.g = g;
+          state.b = b;
+        }
+
+        return state;
+      };
+    };
+
+    for (var i = 0, l = colors.length; i < l; i++) {
+      var colorName = colors[i][0];
+
+      $.RawMethod(
+        true, "get_" + colorName, makeLazyColor(colors[i][1], colors[i][2], colors[i][3], colors[i][4])
+      );
+    }
+  }) ();
+
   $.RawMethod(false, "__CopyMembers__", function Color_CopyMembers (source, target) {
     target.a = source.a;
     target.r = source.r;
@@ -4229,9 +4266,10 @@ $jsilxna.Color = function ($) {
     for (var i = 0, l = colors.length; i < l; i++) {
       var colorName = colors[i][0];
       var color = makeColor(proto, colors[i][1], colors[i][2], colors[i][3], colors[i][4]);
+      var bound = bindColor(color);
 
       Object.defineProperty(publicInterface, "get_" + colorName, {
-        value: bindColor(color),
+        value: bound,
         enumerable: true,
         configurable: true,
         writable: false

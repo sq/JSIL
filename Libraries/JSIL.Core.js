@@ -149,6 +149,7 @@ JSIL.GetAssembly = function (assemblyName, requireExisting) {
     assemblyId = ++JSIL.$NextAssemblyId;
   }
 
+  JSIL.SetValueProperty(result, "get_Location", function () { return ""; });
   JSIL.SetValueProperty(result, "Location", "");
 
   JSIL.SetValueProperty(result, "__Declared__", false);
