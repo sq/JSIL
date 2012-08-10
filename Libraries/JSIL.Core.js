@@ -6074,7 +6074,10 @@ JSIL.Array.New = function Array_New (elementType, sizeOrInitializer) {
 };
 
 JSIL.Array.Clone = function (array) {
-  if (Object.getPrototypeOf(array) === JSIL.MultidimensionalArray.prototype) {
+  if (JSIL.IsTypedArray(array)) {
+    var ctor = Object.getPrototypeOf(array).constructor;
+    return new ctor(array);
+  } else if (Object.getPrototypeOf(array) === JSIL.MultidimensionalArray.prototype) {
     return new JSIL.MultidimensionalArray(array._type, array._dimensions, array._items);
   } else if (JSIL.IsArray(array)) {
     return Array.prototype.slice.call(array);

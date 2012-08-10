@@ -564,13 +564,11 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualFile", true, [], function ($) {
     return bytes;
   });
 
-  $.RawMethod(false, "writeAllBytes", function (buffer, count) {
-    var bytes = Array.prototype.slice.call(buffer, 0, count);
-
+  $.RawMethod(false, "writeAllBytes", function (bytes) {
     this.volume.setFileBytes(this.path, bytes);
 
     this.inode.metadata.lastWritten = Date.now();
-    this.inode.metadata.length = count;
+    this.inode.metadata.length = bytes.length;
   });
 
   $.RawMethod(false, "toString", function () {
@@ -631,17 +629,22 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
     System.IO.Stream.prototype._ctor.call(this);
 
     this._fileName = virtualFile.path;
-    this._buffer = virtualFile.readAllBytes();
+    this._buffer = JSIL.Array.Clone(virtualFile.readAllBytes());
 
     this._pos = 0;
     this._length = this._buffer.length;
 
     this._onClose = function () {
       if (this._modified) {
-        virtualFile.writeAllBytes(this._buffer, this._length);
+        var resultBuffer = JSIL.Array.New(System.Byte, this._length);
+        JSIL.Array.CopyTo(this._buffer, resultBuffer, 0);
+
+        virtualFile.writeAllBytes(resultBuffer);
 
         if (autoFlush)
           virtualFile.volume.flush();
+
+        this._buffer = null;
       }
     };
 
