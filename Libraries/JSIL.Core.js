@@ -2169,7 +2169,7 @@ JSIL.$MakeMemberwiseCloner = function (typeObject, publicInterface) {
     prototype: prototype
   };
 
-  var body = [];
+  var body = ["// Copy constructor"];
   body.push("  var result = this;");
 
   JSIL.$MakeCopierCore(typeObject, context, body);
@@ -2179,7 +2179,7 @@ JSIL.$MakeMemberwiseCloner = function (typeObject, publicInterface) {
   var uri = typeObject.__FullName__.replace(subtypeRe, ".");
 
   var constructor = JSIL.CreateNamedFunction(
-    typeObject.__FullName__ + ".CopyConstructor",
+    typeObject.__FullName__,
     ["source"],
     body.join("\r\n"),
     {
