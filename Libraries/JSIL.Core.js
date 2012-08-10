@@ -1970,7 +1970,7 @@ JSIL.EscapeJSIdentifier = function (identifier) {
 
 JSIL.CreateNamedFunction = function (name, argumentNames, body, closure) {
   var uriRe = /[\<\>\+\/\\\.]/g;
-  var uriPrefix = "//@ sourceURL=jsil://generatedFunction/" + name + "\r\n";
+  var uriPrefix = "//@ sourceURL=jsil://closure/" + name + "\r\n";
 
   var rawFunctionText = "(function " + JSIL.EscapeJSIdentifier(name) + "(" +
     argumentNames.join(", ") +
@@ -1978,39 +1978,28 @@ JSIL.CreateNamedFunction = function (name, argumentNames, body, closure) {
     body +
     "\r\n})";
 
-  // :|
-  argumentNames = null;
-  body = null;
-
-  var doEval = function (rawText) {
-    var e = eval;
-    var result = e(rawText);
-    return result;
-  };
-
-  var result;
+  var result, keys, closureArgumentList;
 
   if (closure) {
-    var keys = Object.keys(closure);
-    var closureArgumentNames = keys.join(",");
-    var closureArgumentList = new Array(keys.length);
+    keys = Object.keys(closure);    
+    closureArgumentList = new Array(keys.length);
 
     for (var i = 0, l = keys.length; i < l; i++)
       closureArgumentList[i] = closure[keys[i]];
-
-    var lineBreakRE = /\r(\n?)/g;
-
-    rawFunctionText = "(function CreateNamedClosure (" + closureArgumentNames + ") {\r\n" +
-      "  return " + rawFunctionText.replace(lineBreakRE, "\r\n    ") + ";\r\n" +
-      "})\r\n";
-
-    var constructor = doEval(uriPrefix + rawFunctionText);
-    result = constructor.apply(null, closureArgumentList);
   } else {
-    result = doEval(uriPrefix + rawFunctionText);
+    keys = [];
+    closureArgumentList = [];
   }
 
-  return result;;
+  var lineBreakRE = /\r(\n?)/g;
+
+  rawFunctionText = 
+    uriPrefix + "    return " + rawFunctionText.replace(lineBreakRE, "\r\n    ") + ";\r\n";
+
+  var constructor = Function.apply(Function, keys.concat([rawFunctionText]));
+  result = constructor.apply(null, closureArgumentList);
+
+  return result;
 };
 
 JSIL.MakeStructFieldInitializer = function (typeObject) {
@@ -2298,9 +2287,13 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
       };
 
       return JSIL.$MakeAnonymousMethod(target, stub);
+    } else {
+      // We need to manufacture an anonymous name for the method
+      // So that overload dispatch can invoke it using 'this.x' syntax instead
+      //  of using thisType['x']
+      // return key;
+      return JSIL.$MakeAnonymousMethod(target, target[key]);
     }
-
-    return key;
   };
 
   // For methods with generic arguments we figure out whether there are multiple options for the generic
@@ -2421,6 +2414,7 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
 
   makeDispatcher = function (id, g, offset) {
     var body = [];
+    var maxArgumentCount = 0;
 
     body.push("  var argc = arguments.length;");
 
@@ -2441,7 +2435,10 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
         line += "  } else if (argc === ";
       }
 
-      line += (parseInt(k) + offset) + ") {";
+      var argumentCount = parseInt(k) + offset;
+      maxArgumentCount = Math.max(maxArgumentCount, argumentCount);
+
+      line += (argumentCount) + ") {";
 
       body.push(line);
 
@@ -2455,7 +2452,18 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
         methodKey = makeMultipleMethodGroup(id, group, offset);
       }
 
-      body.push("    return thisType[\"" + methodKey + "\"].apply(this, arguments);");
+      var invocation = "    return this." + methodKey + "(";
+
+      for (var ai = 0; ai < argumentCount; ai++) {
+        if (ai !== 0)
+          invocation += ", ";
+
+        invocation += "arg" + ai.toString();
+      }
+
+      invocation += ");";
+
+      body.push(invocation);
 
       isFirst = false;
     }
@@ -2466,11 +2474,16 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
 
     var bodyText = body.join("\r\n");
 
+    var formalArgumentNames = [];
+
+    for (var ai = 0; ai < maxArgumentCount; ai++)
+      formalArgumentNames.push("arg" + ai.toString());
+
     var boundDispatcher = JSIL.CreateNamedFunction(
-      id, [],
+      id, formalArgumentNames,
       bodyText,
       {
-        thisType: target,
+//        thisType: target,
         name: methodName,
         offset: offset
       }

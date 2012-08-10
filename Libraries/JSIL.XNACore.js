@@ -3840,6 +3840,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Viewport", function ($
     this._height = value;
   });
 
+  $.Method({Static:false, Public:true }, "get_Bounds", 
+    (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle"), [], [])), 
+    function get_Bounds () {
+      return new Microsoft.Xna.Framework.Rectangle(this._x, this._y, this._width, this._height);
+    }
+  );
+
   $.Method({Static:false, Public:true }, "get_TitleSafeArea", 
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle"), [], [])), 
     function get_TitleSafeArea () {
@@ -6364,6 +6371,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
   });
 });
 
+$jsilxna.renderTargetTotalBytes = 0;
+
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.RenderTarget2D", function ($) {
   $.RawMethod(false, "$internalCtor", function (graphicsDevice, width, height, mipMap, format) {
     this._parent = graphicsDevice;
@@ -6383,6 +6392,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.RenderTarget2D", funct
 
     var targets = document.getElementById("rendertargets");
     if (targets) targets.appendChild(this.canvas);
+
+    $jsilxna.renderTargetTotalBytes += (this.width * this.height * 4);
   });
 
   $.Method({Static:false, Public:true }, ".ctor", 
@@ -6438,6 +6449,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.RenderTarget2D", funct
     Static: false,
     Public: true
   }, "Dispose", new JSIL.MethodSignature(null, [], []), function () {
+    if (!this.canvas)
+      return;
+
+    $jsilxna.renderTargetTotalBytes -= (this.width * this.height * 4);
+
     var targets = document.getElementById("rendertargets");
     if (targets) targets.removeChild(this.canvas);
 
