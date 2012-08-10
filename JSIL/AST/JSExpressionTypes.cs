@@ -759,11 +759,14 @@ namespace JSIL.Ast {
         public readonly bool IsWrite;
         public readonly bool TypeQualified;
 
-        public JSPropertyAccess (JSExpression thisReference, JSProperty property, bool isWrite, bool typeQualified)
+        public readonly JSMethod OriginalMethod;
+
+        public JSPropertyAccess (JSExpression thisReference, JSProperty property, bool isWrite, bool typeQualified, JSMethod originalMethod)
             : base(thisReference, property) {
 
             IsWrite = isWrite;
             TypeQualified = typeQualified;
+            OriginalMethod = originalMethod;
         }
 
         public JSExpression ThisReference {

@@ -136,4 +136,14 @@ namespace JSIL.Meta {
     )]
     public class JSImmutable : Attribute {
     }
+
+    /// <summary>
+    /// Specifies that it is invalid to access this property by invoking its getter/setter
+    ///  methods directly in JavaScript.
+    /// </summary>
+    [AttributeUsage(
+        AttributeTargets.Property
+    )]
+    public class JSAlwaysAccessAsProperty : Attribute {
+    }
 }

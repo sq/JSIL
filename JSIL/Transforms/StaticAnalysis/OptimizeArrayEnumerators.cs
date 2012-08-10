@@ -246,10 +246,42 @@ namespace JSIL.Transforms {
         public readonly JSProperty Property;
         public readonly JSExpression Replacement;
 
+        private bool ReplacedInvocation = false;
+
         public PropertyAccessReplacer (JSExpression thisReference, JSProperty property, JSExpression replacement) {
             ThisReference = thisReference;
             Property = property;
             Replacement = replacement;
+        }
+
+        public void VisitNode (JSInvocationExpression ie) {
+            var jsm = ie.JSMethod;
+            // Detect direct invocations of getter methods
+            if (
+                (jsm != null) && 
+                (jsm.Method.Property == Property.Property) && 
+                (ie.ThisReference.Equals(ThisReference)) &&
+                (ie.Arguments.Count == 0)
+            ) {
+                ParentNode.ReplaceChild(ie, Replacement);
+                VisitReplacement(Replacement);
+                ReplacedInvocation = true;
+            } else {
+                VisitChildren(ie);
+            }
+        }
+
+        public void VisitNode (JSResultReferenceExpression rre) {
+            ReplacedInvocation = false;
+
+            VisitChildren(rre);
+
+            // If a getter invocation that returned a struct was replaced, there's
+            //  now a result reference expression that needs to be removed
+            if (ReplacedInvocation && !(rre.Children.First() is JSInvocationExpressionBase)) {
+                var replacement = rre.Children.First();
+                ParentNode.ReplaceChild(rre, replacement);
+            }
         }
 
         public void VisitNode (JSPropertyAccess pa) {

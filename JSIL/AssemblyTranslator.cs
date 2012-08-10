@@ -1494,6 +1494,9 @@ namespace JSIL {
             new ExpandCastExpressions(
                 si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider
             ).Visit(function);
+
+            if (Configuration.Optimizer.PreferAccessorMethods.GetValueOrDefault(true))
+                new ConvertPropertyAccessesToInvocations().Visit(function);
         }
 
         protected static bool NeedsStaticConstructor (TypeReference type) {
