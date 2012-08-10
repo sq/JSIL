@@ -76,9 +76,14 @@ namespace JSIL.Transforms {
             var parentBoe = ParentNode as JSBinaryOperatorExpression;
             var parentUoe = ParentNode as JSUnaryOperatorExpression;
 
-            bool isMutation = ((parentUoe != null) && 
-                (parentUoe.Operator is JSUnaryMutationOperator)) ||
-                ((parentBoe != null) && (parentBoe.Operator is JSAssignmentOperator));
+            bool isMutation = (
+                    (parentUoe != null) && 
+                    (parentUoe.Operator is JSUnaryMutationOperator)
+                ) || (
+                    (parentBoe != null) && 
+                    (parentBoe.Operator is JSAssignmentOperator) && 
+                    (pa == parentBoe.Left)
+                );
 
             if (
                 !pa.IsWrite &&

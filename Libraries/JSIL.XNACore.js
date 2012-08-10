@@ -494,6 +494,14 @@ JSIL.MakeClass("HTML5Asset", "HTML5ImageAsset", true, [], function ($) {
     });
   });
 
+  $.RawMethod(false, "get_Width", function () {
+    return this.Width;
+  });
+
+  $.RawMethod(false, "get_Height", function () {
+    return this.Height;
+  });
+
   $.RawMethod(false, "get_Bounds", function () {
     if (!this._bounds)
       this._bounds = new Microsoft.Xna.Framework.Rectangle(0, 0, this.Width, this.Height);
@@ -7205,24 +7213,27 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Storage.StorageDevice", functio
 
   var callAsyncCallback = function (callback, state, data) {
     // FIXME: Terrible hack
+    var awh = {
+      WaitOne: function () {
+        return;
+      },
+      Close: function () {
+        return;
+      }
+    };
+
     var asyncResult = {
       IsCompleted: true,
       IAsyncResult_IsCompleted: true,
       get_IsCompleted: function () { return true; },
-      get_IAsyncResult_IsCompleted: function () { return true; },
+      IAsyncResult_get_IsCompleted: function () { return true; },
       AsyncState: state,
       IAsyncResult_AsyncState: state,
       get_AsyncState: function () { return state; },
-      get_IAsyncResult_AsyncState: function () { return state; },
+      IAsyncResult_get_AsyncState: function () { return state; },
       data: data,
-      IAsyncResult_AsyncWaitHandle: {
-        WaitOne: function () {
-          return;
-        },
-        Close: function () {
-          return;
-        }
-      }
+      IAsyncResult_AsyncWaitHandle: awh,
+      IAsyncResult_get_AsyncWaitHandle: function () { return awh; }
     };
 
     if (typeof (callback) === "function") {
