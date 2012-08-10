@@ -46,7 +46,13 @@ namespace JSIL.Transforms {
             );
                 
             JSInvocationExpressionBase invocation;
-            if (needsExplicitThis)
+            if (pa.Property.Property.IsStatic)
+                invocation = JSInvocationExpression.InvokeStatic(
+                    pa.OriginalMethod.Reference.DeclaringType, 
+                    pa.OriginalMethod, 
+                    arguments
+                );
+            else if (needsExplicitThis)
                 invocation = JSInvocationExpression.InvokeBaseMethod(
                     pa.OriginalMethod.Reference.DeclaringType,
                     pa.OriginalMethod, pa.ThisReference,

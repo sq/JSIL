@@ -243,7 +243,10 @@ namespace JSIL.Tests {
 
             Assert.IsFalse(generatedJs.Contains("Program.Property"));
             Assert.IsFalse(generatedJs.Contains("$thisType.Property"));
-            Assert.IsTrue(generatedJs.Contains("$thisType.RenamedProperty"));
+            Assert.IsTrue(
+                generatedJs.Contains("$thisType.RenamedProperty") ||
+                generatedJs.Contains("$thisType.get_RenamedProperty")
+            );
         }
 
         [Test]
