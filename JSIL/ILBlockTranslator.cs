@@ -2196,7 +2196,7 @@ namespace JSIL {
             return new JSField(field, fieldInfo);
         }
 
-        protected bool NeedsExplicitThis (
+        public static bool NeedsExplicitThis (
             TypeReference declaringType, TypeDefinition declaringTypeDef, TypeInfo declaringTypeInfo,
             bool isSelf, TypeReference thisReferenceType, JSIL.Internal.MethodInfo methodInfo
         ) {

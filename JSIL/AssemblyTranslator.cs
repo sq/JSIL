@@ -1496,7 +1496,7 @@ namespace JSIL {
             ).Visit(function);
 
             if (Configuration.Optimizer.PreferAccessorMethods.GetValueOrDefault(true))
-                new ConvertPropertyAccessesToInvocations().Visit(function);
+                new ConvertPropertyAccessesToInvocations(si.TypeSystem, _TypeInfoProvider).Visit(function);
         }
 
         protected static bool NeedsStaticConstructor (TypeReference type) {
