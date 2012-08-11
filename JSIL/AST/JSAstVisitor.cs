@@ -12,8 +12,9 @@ using MethodInfo = System.Reflection.MethodInfo;
 namespace JSIL.Ast {
     public abstract class JSAstVisitor {
         public readonly Stack<JSNode> Stack = new Stack<JSNode>();
-        public readonly Stack<string> NameStack = new Stack<string>(); 
-        
+        public readonly Stack<string> NameStack = new Stack<string>();
+        public readonly Stack<int> NodeIndexStack = new Stack<int>(); 
+
         protected int NodeIndex, NextNodeIndex;
         protected int StatementIndex, NextStatementIndex;
         protected JSNode PreviousSibling = null;
@@ -152,7 +153,7 @@ namespace JSIL.Ast {
             NameStack.Push(name);
 
             try {
-                NodeIndex = NextNodeIndex;
+                NodeIndexStack.Push(NodeIndex = NextNodeIndex);
                 NextNodeIndex += 1;
 
                 if (node is JSStatement) {
@@ -167,8 +168,10 @@ namespace JSIL.Ast {
                 else
                     VisitNode(node);
             } finally {
+                NodeIndexStack.Pop();
                 Stack.Pop();
                 NameStack.Pop();
+
                 NodeIndex = oldNodeIndex;
                 StatementIndex = oldStatementIndex;
             }

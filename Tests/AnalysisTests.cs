@@ -346,6 +346,32 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        public void ReuseEnumeratorLocal () {
+            var output = "1\r\n2\r\n3";
+
+            output += "\r\n" + output + "\r\n" + output;
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\ReuseEnumeratorLocal.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+            Assert.IsFalse(generatedJs.Contains(
+                @".GetEnumerator"
+            ), "GetEnumerator was called");
+            Assert.IsFalse(generatedJs.Contains(
+                @".MoveNext()"
+            ), "MoveNext was called");
+            Assert.IsFalse(generatedJs.Contains(
+                @".Current"
+            ), "Current was used");
+            Assert.IsFalse(generatedJs.Contains(
+                @"Dispose()"
+            ), "Dispose was called");
+        }
+
+        [Test]
         public void StructLoopInteraction () {
             var output = "0\r\n1\r\n2";
 

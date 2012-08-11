@@ -66,6 +66,7 @@
     <None Include="AnalysisTestCases\PointlessFinallyBlocks.cs" />
     <None Include="AnalysisTestCases\OptimizeArrayEnumerators.cs" />
     <None Include="AnalysisTestCases\StructLoopInteraction.cs" />
+    <None Include="AnalysisTestCases\ReuseEnumeratorLocal.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />

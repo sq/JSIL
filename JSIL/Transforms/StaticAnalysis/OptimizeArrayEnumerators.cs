@@ -13,6 +13,10 @@ namespace JSIL.Transforms {
 
         public bool EnableEnumeratorRemoval = true;
 
+        private List<JSBinaryOperatorExpression> SeenAssignments = new List<JSBinaryOperatorExpression>();
+        private HashSet<JSVariable> EnumeratorsToKill = new HashSet<JSVariable>();
+        private FunctionAnalysis1stPass FirstPass = null;
+
         private JSFunctionExpression Function;
         private int _NextLoopId = 0;
 
@@ -31,7 +35,40 @@ namespace JSIL.Transforms {
             }
 
             Function = fn;
+            FirstPass = FunctionSource.GetFirstPass(Function.Method.QualifiedIdentifier);
+
             VisitChildren(fn);
+
+            if (EnumeratorsToKill.Count > 0) {
+                // Rerun the static analyzer since we made major changes
+                FunctionSource.InvalidateFirstPass(Function.Method.QualifiedIdentifier);
+                FirstPass = FunctionSource.GetFirstPass(Function.Method.QualifiedIdentifier);
+
+                // Scan to see if any of the enumerators we eliminated uses of are now
+                //  unreferenced. If they are, eliminate them entirely.
+                foreach (var variable in EnumeratorsToKill) {
+                    var variableName = variable.Name;
+                    var accesses = (
+                        from a in FirstPass.Accesses
+                        where a.Source.Name == variableName
+                        select a
+                    );
+
+                    if (!accesses.Any()) {
+                        var eliminator = new VariableEliminator(
+                            variable, new JSNullExpression()
+                        );
+                        eliminator.Visit(fn);
+                    }
+                }
+            }
+        }
+
+        public void VisitNode (JSBinaryOperatorExpression boe) {
+            if (boe.Operator == JSOperator.Assignment)
+                SeenAssignments.Add(boe);
+
+            VisitChildren(boe);
         }
 
         public void VisitNode (JSWhileLoop wl) {
@@ -48,15 +85,17 @@ namespace JSIL.Transforms {
                 var enumeratorType = condInvocation.JSMethod.Method.DeclaringType;
 
                 while (EnableEnumeratorRemoval) {
-                    var firstPass = FunctionSource.GetFirstPass(Function.Method.QualifiedIdentifier);
-                    if (firstPass == null)
+                    var enumeratorAssignmentBeforeLoop = (
+                        from boe in SeenAssignments
+                        let boeLeftVar = (boe.Left as JSVariable)
+                        where (boeLeftVar != null) && (boeLeftVar.Name == enumeratorVariable.Name)
+                        select boe
+                    ).LastOrDefault();
+
+                    if (enumeratorAssignmentBeforeLoop == null)
                         break;
 
-                    var enumeratorAssignments = (from a in firstPass.Assignments where a.Target.Name == enumeratorVariable.Name select a).ToArray();
-                    if (enumeratorAssignments.Length != 1)
-                        break;
-
-                    var enumeratorValue = enumeratorAssignments[0].NewValue;
+                    var enumeratorValue = enumeratorAssignmentBeforeLoop.Right;
                     var assignmentInvocation = enumeratorValue as JSInvocationExpression;
                     if (assignmentInvocation == null) {
                         var rre = enumeratorValue as JSResultReferenceExpression;
@@ -83,9 +122,11 @@ namespace JSIL.Transforms {
                         );
                         ParentNode.ReplaceChild(wl, replacement);
 
-                        new VariableEliminator(enumeratorVariable, new JSNullExpression()).Visit(Function);
+                        EnumeratorsToKill.Add(enumeratorVariable);
 
                         VisitReplacement(replacement);
+
+                        return;
                     }
 
                     break;
