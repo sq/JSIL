@@ -57,6 +57,9 @@ JSIL.Host.logWriteLine = function (text) {
   }
 };
 JSIL.Host.translateFilename = function (filename) {
+  if (filename === null)
+    return null;
+
   var slashRe = /\\/g;
 
   var root = JSIL.Host.getRootDirectory().toLowerCase().replace(slashRe, "/");
@@ -81,9 +84,15 @@ JSIL.Host.translateFilename = function (filename) {
   return _filename;
 }
 JSIL.Host.doesFileExist = function (filename) {
+  if (filename === null)
+    return false;
+
   return allFiles.hasOwnProperty(JSIL.Host.translateFilename(filename));
 }
 JSIL.Host.getFile = function (filename) {
+  if (filename === null)
+    throw new System.Exception("Filename was null");
+
   var storageRoot = JSIL.Host.getStorageRoot();
   var errorMessage;
 
@@ -111,6 +120,9 @@ JSIL.Host.getImage = function (filename) {
   return allAssets[key].image;
 };
 JSIL.Host.doesAssetExist = function (filename, stripRoot) {
+  if (filename === null)
+    return false;
+
   if (stripRoot === true) {
     var backslashRe = /\\/g;
 
@@ -127,6 +139,9 @@ JSIL.Host.doesAssetExist = function (filename, stripRoot) {
   return true;
 };
 JSIL.Host.getAsset = function (filename, stripRoot) {
+  if (filename === null)
+    throw new System.Exception("Filename was null");
+  
   if (stripRoot === true) {
     var backslashRe = /\\/g;
 

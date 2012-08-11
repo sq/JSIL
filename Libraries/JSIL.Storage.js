@@ -115,6 +115,9 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualVolume", true, [], function ($) 
   });
 
   $.RawMethod(false, "normalizePath", function (path) {
+    if (path === null)
+      return null;
+
     var backslashRe = /\\/g;
 
     path = path.replace(backslashRe, "/");
@@ -397,10 +400,17 @@ JSIL.MakeClass($jsilcore.System.Object, "VirtualDirectory", true, [], function (
   });
 
   $.RawMethod(false, "resolvePath", function (path, throwOnFail) {
-    var firstSlash = path.indexOf("/"), itemName, childPath;
-
     if (typeof(throwOnFail) === "undefined")
       throwOnFail = true;
+
+    if (path === null) {
+      if (throwOnFail)
+        throw new Error("path was null");
+      else
+        return null;
+    }
+
+    var firstSlash = path.indexOf("/"), itemName, childPath;
 
     if (firstSlash >= 0) {
       itemName = path.substr(0, firstSlash);
