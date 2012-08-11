@@ -112,18 +112,22 @@ namespace JSIL.Transforms {
             }
         }
 
-        public static bool IsPropertySetterInvocation (JSBinaryOperatorExpression boe, out JSPropertyAccess pa) {
+        public static bool IsPropertySetterInvocation (JSNode parentNode, JSBinaryOperatorExpression boe, out JSPropertyAccess pa) {
+            var isValidParent =
+                (parentNode is JSExpressionStatement);
+
             pa = boe.Left as JSPropertyAccess;
 
             return (pa != null) &&
                 pa.IsWrite &&
                 (boe.Operator == JSOperator.Assignment) &&
+                isValidParent &&
                 CanConvertToInvocation(pa);
         }
 
         public void VisitNode (JSBinaryOperatorExpression boe) {
             JSPropertyAccess pa;
-            if (IsPropertySetterInvocation(boe, out pa)) {
+            if (IsPropertySetterInvocation(ParentNode, boe, out pa)) {
                 // setter
                 var invocation = ConstructInvocation(pa, boe.Right);
 

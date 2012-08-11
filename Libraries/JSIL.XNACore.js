@@ -485,6 +485,7 @@ JSIL.MakeClass("HTML5Asset", "HTML5ImageAsset", true, [], function ($) {
     this.image = image;
     this.Width = image.naturalWidth;
     this.Height = image.naturalHeight;
+    this.IsDisposed = false;
     this.id = String(++$jsilxna.nextImageId);
 
     Object.defineProperty(this, "Bounds", {
@@ -492,6 +493,10 @@ JSIL.MakeClass("HTML5Asset", "HTML5ImageAsset", true, [], function ($) {
       enumerable: true,
       get: this.get_Bounds
     });
+  });
+
+  $.RawMethod(false, "get_IsDisposed", function () {
+    return false;
   });
 
   $.RawMethod(false, "get_Width", function () {
