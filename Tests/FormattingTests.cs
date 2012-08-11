@@ -196,14 +196,11 @@ namespace JSIL.Tests {
             );
 
             try {
-                Assert.IsFalse(Regex.IsMatch(
-                    generatedJs,
-                    @"!!\$thisType.P"
-                ));
-                Assert.IsTrue(Regex.IsMatch(
-                    generatedJs,
-                    @"!\$thisType.P"
-                ));
+                Assert.IsFalse(generatedJs.Contains("!!$thisType"));
+                Assert.IsTrue(
+                    generatedJs.Contains("!$thisType.P") ||
+                    generatedJs.Contains("!$thisType.get_P()")
+                );
             } catch {
                 Console.WriteLine(generatedJs);
 
@@ -710,9 +707,18 @@ namespace JSIL.Tests {
             );
 
             try {
-                Assert.IsFalse(generatedJs.Contains("instance.A"));
-                Assert.IsTrue(generatedJs.Contains("instance.B"));
-                Assert.IsTrue(generatedJs.Contains("instance.C"));
+                Assert.IsFalse(
+                    generatedJs.Contains("instance.A") ||
+                    generatedJs.Contains("instance.get_A")
+                );
+                Assert.IsTrue(
+                    generatedJs.Contains("instance.B") ||
+                    generatedJs.Contains("instance.get_B")
+                );
+                Assert.IsTrue(
+                    generatedJs.Contains("instance.C") ||
+                    generatedJs.Contains("instance.get_C")
+                );
             } catch {
                 Console.WriteLine(generatedJs);
 

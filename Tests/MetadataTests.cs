@@ -350,7 +350,10 @@ namespace JSIL.Tests {
             );
 
             Assert.IsTrue(generatedJs.Contains("$.Property({Static:true , Public:true }, \"Property\""));
-            Assert.IsTrue(generatedJs.Contains("$thisType.Property"));
+            Assert.IsTrue(
+                generatedJs.Contains("$thisType.Property") ||
+                generatedJs.Contains("$thisType.get_Property")
+            );
         }
 
         [Test]

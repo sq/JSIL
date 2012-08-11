@@ -1047,16 +1047,13 @@ namespace JSIL {
                 Output.WriteRaw(uop.Operator.Token);
         }
 
-        public void VisitNode (JSBinaryOperatorExpression bop) {
-            bool parens = true;
-            bool needsTruncation = false, needsCast = false;
-
+        private bool NeedParensForBinaryOperator (JSBinaryOperatorExpression bop) {
             if (ParentNode is JSIfStatement)
-                parens = false;
+                return false;
             else if ((ParentNode is JSWhileLoop) && ((JSWhileLoop)ParentNode).Condition == bop)
-                parens = false;
+                return false;
             else if ((ParentNode is JSDoLoop) && ((JSDoLoop)ParentNode).Condition == bop)
-                parens = false;
+                return false;
             else if (ParentNode is JSForLoop) {
                 var fl = (JSForLoop)ParentNode;
                 if (
@@ -1064,39 +1061,46 @@ namespace JSIL {
                     (fl.Increment.SelfAndChildrenRecursive.Any((n) => bop.Equals(n))) ||
                     (fl.Initializer.SelfAndChildrenRecursive.Any((n) => bop.Equals(n)))
                 ) {
-                    parens = false;
+                    return false;
                 }
             } else if ((ParentNode is JSSwitchStatement) && ((JSSwitchStatement)ParentNode).Condition == bop)
-                parens = false;
+                return false;
             else if (
                 (ParentNode is JSBinaryOperatorExpression) &&
                 ((JSBinaryOperatorExpression)ParentNode).Operator == bop.Operator &&
                 bop.Operator is JSLogicalOperator
             ) {
-                parens = false;
+                return false;
             } else if (ParentNode is JSVariableDeclarationStatement)
-                parens = false;
+                return false;
             else if (ParentNode is JSExpressionStatement)
-                parens = false;
+                return false;
 
-            var leftType = bop.Left.GetActualType(TypeSystem);
-            var rightType = bop.Right.GetActualType(TypeSystem);
-            var resultType = bop.GetActualType(TypeSystem);
+            return true;
+        }
 
+        private bool NeedTruncationForBinaryOperator (JSBinaryOperatorExpression bop, TypeReference resultType) {
             // We need to perform manual truncation to maintain the semantics of C#'s division operator
             if ((bop.Operator == JSOperator.Divide)) {
-                needsTruncation =                     
+                var leftType = bop.Left.GetActualType(TypeSystem);
+                var rightType = bop.Right.GetActualType(TypeSystem);
+
+                return
                     (TypeUtil.IsIntegral(leftType) ||
                     TypeUtil.IsIntegral(rightType)) &&
                     TypeUtil.IsIntegral(resultType);
             }
 
-            // Arithmetic on enum types needs a cast at the end.
-            if (bop.Operator is JSArithmeticOperator) {
-                if (TypeUtil.IsEnum(TypeUtil.StripNullable(resultType))) {
-                    needsCast = true;
-                }
-            }
+            return false;
+        }
+
+        public void VisitNode (JSBinaryOperatorExpression bop) {
+            var resultType = bop.GetActualType(TypeSystem);
+
+            bool needsCast = (bop.Operator is JSArithmeticOperator) && 
+                TypeUtil.IsEnum(TypeUtil.StripNullable(resultType));
+            bool needsTruncation = NeedTruncationForBinaryOperator(bop, resultType);
+            bool parens = NeedParensForBinaryOperator(bop);
 
             if (needsTruncation) {
                 if (bop.Operator is JSAssignmentOperator)

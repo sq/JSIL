@@ -635,7 +635,7 @@ JSIL.ImplementExternals("System.IO.FileStream", function ($) {
     this._length = this._buffer.length;
 
     this._onClose = function () {
-      if (this._modified) {
+      if (this._modified && this._buffer) {
         var resultBuffer = JSIL.Array.New(System.Byte, this._length);
         JSIL.Array.CopyTo(this._buffer, resultBuffer, 0);
 

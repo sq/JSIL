@@ -17,7 +17,17 @@ namespace JSIL.Transforms {
         }
 
         public static bool CanConvertToInvocation (JSPropertyAccess pa) {
-            return (!pa.Property.Property.Metadata.HasAttribute("JSIL.Meta.JSAlwaysAccessAsProperty"));
+            var prop = pa.Property.Property;
+
+            if (prop.IsAutoProperty &&
+                !prop.IsVirtual &&
+                !prop.DeclaringType.IsInterface
+            ) {
+                return false;
+            } else {
+                return
+                    !prop.Metadata.HasAttribute("JSIL.Meta.JSAlwaysAccessAsProperty");
+            }
         }
 
         private JSExpression ConstructInvocation (
@@ -72,24 +82,26 @@ namespace JSIL.Transforms {
             return replacement;
         }
 
-        public void VisitNode (JSPropertyAccess pa) {
-            var parentBoe = ParentNode as JSBinaryOperatorExpression;
-            var parentUoe = ParentNode as JSUnaryOperatorExpression;
+        public static bool IsPropertyGetterInvocation (JSNode parentNode, JSPropertyAccess pa) {
+            var parentBoe = parentNode as JSBinaryOperatorExpression;
+            var parentUoe = parentNode as JSUnaryOperatorExpression;
 
             bool isMutation = (
-                    (parentUoe != null) && 
+                    (parentUoe != null) &&
                     (parentUoe.Operator is JSUnaryMutationOperator)
                 ) || (
-                    (parentBoe != null) && 
-                    (parentBoe.Operator is JSAssignmentOperator) && 
+                    (parentBoe != null) &&
+                    (parentBoe.Operator is JSAssignmentOperator) &&
                     (pa == parentBoe.Left)
                 );
 
-            if (
-                !pa.IsWrite &&
+            return !pa.IsWrite &&
                 !isMutation &&
-                CanConvertToInvocation(pa)
-            ) {
+                CanConvertToInvocation(pa);
+        }
+
+        public void VisitNode (JSPropertyAccess pa) {
+            if (IsPropertyGetterInvocation(ParentNode, pa)) {
                 // getter
                 var replacement = ConstructInvocation(pa);
 
@@ -100,15 +112,18 @@ namespace JSIL.Transforms {
             }
         }
 
-        public void VisitNode (JSBinaryOperatorExpression boe) {
-            var pa = boe.Left as JSPropertyAccess;
+        public static bool IsPropertySetterInvocation (JSBinaryOperatorExpression boe, out JSPropertyAccess pa) {
+            pa = boe.Left as JSPropertyAccess;
 
-            if (
-                (pa != null) &&
+            return (pa != null) &&
                 pa.IsWrite &&
                 (boe.Operator == JSOperator.Assignment) &&
-                CanConvertToInvocation(pa)
-            ) {
+                CanConvertToInvocation(pa);
+        }
+
+        public void VisitNode (JSBinaryOperatorExpression boe) {
+            JSPropertyAccess pa;
+            if (IsPropertySetterInvocation(boe, out pa)) {
                 // setter
                 var invocation = ConstructInvocation(pa, boe.Right);
 
