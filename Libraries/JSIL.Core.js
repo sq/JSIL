@@ -2484,19 +2484,10 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
       id, formalArgumentNames,
       bodyText,
       {
-//        thisType: target,
         name: methodName,
         offset: offset
       }
     );
-
-    /*
-    JSIL.SetValueProperty(boundDispatcher, "toString", 
-      function OverloadedMethod_ToString () {
-        return "<Overloaded Method " + id + " - " + overloadSignatures.length + " overload(s)>";
-      }
-    );
-    */
 
     return JSIL.$MakeAnonymousMethod(target, boundDispatcher);
   };
@@ -4085,12 +4076,6 @@ JSIL.$BindGenericMethod = function (outerThis, body, methodName, genericArgument
     return body.apply(thisReference, invokeArguments);
   };
 
-  JSIL.SetValueProperty(result, "toString", 
-    function BoundGenericMethod_ToString () {
-      return "<Bound Generic Method '" + methodName + "'>";
-    }
-  );
-
   return result;
 };
 
@@ -4306,7 +4291,7 @@ JSIL.InterfaceBuilder.MakeProperty = function (typeName, name, target, methodSou
   Object.defineProperty(target, typeQualifiedName, prop);
 };
 
-JSIL.InterfaceBuilder.prototype.Property = function (_descriptor, name) {
+JSIL.InterfaceBuilder.prototype.Property = function (_descriptor, name, propertyType) {
   if (this.typeObject.IsInterface) {
     this.typeObject.__Members__[name] = Property;
     return;
@@ -4315,16 +4300,16 @@ JSIL.InterfaceBuilder.prototype.Property = function (_descriptor, name) {
   var descriptor = this.ParseDescriptor(_descriptor, name);
 
   var props = this.typeObject.__Properties__;
-  props.push([descriptor.Static, name, descriptor.Virtual]);
+  props.push([descriptor.Static, name, descriptor.Virtual, propertyType]);
 
   this.PushMember("PropertyInfo", descriptor, null);
 };
 
-JSIL.InterfaceBuilder.prototype.GenericProperty = function (_descriptor, name) {
+JSIL.InterfaceBuilder.prototype.GenericProperty = function (_descriptor, name, propertyType) {
   var descriptor = this.ParseDescriptor(_descriptor, name);
 
   var props = this.typeObject.__Properties__;
-  props.push([descriptor.Static, name, descriptor.Virtual]);
+  props.push([descriptor.Static, name, descriptor.Virtual, propertyType]);
 
   this.PushMember("PropertyInfo", descriptor, null);
 };
@@ -4409,24 +4394,10 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
   if (impl.hasOwnProperty(prefix + mangledName)) {
     newValue = impl[prefix + mangledName][1];
 
-    /*
-    JSIL.SetValueProperty(newValue, "toString", 
-      function ExternalMethod_ToString () {
-        return "<External " + signature.toString(fullName) + ">";
-      }
-    );
-    */
-
     isPlaceholder = false;
   } else if (!descriptor.Target.hasOwnProperty(mangledName)) {
     var getName = (function () { return this[0].toString(this[1]); }).bind([signature, methodName]);
     newValue = JSIL.MakeExternalMemberStub(this.namespace, getName, memberValue);
-
-    JSIL.SetValueProperty(newValue, "toString", 
-      function MissingExternalMethod_ToString () {
-        return "<Missing External " + signature.toString(fullName) + ">";
-      }
-    );
 
     isPlaceholder = true;
   }
@@ -4441,6 +4412,19 @@ JSIL.InterfaceBuilder.prototype.ExternalMethod = function (_descriptor, methodNa
     isExternal: true,
     isPlaceholder: isPlaceholder
   });
+};
+
+JSIL.InterfaceBuilder.prototype.ExternalProperty = function (descriptor, propertyName, propertyType) {
+  this.ExternalMethod(
+    descriptor, "get_" + propertyName,
+    new JSIL.MethodSignature(propertyType, [], [])
+  );
+  this.ExternalMethod(
+    descriptor, "set_" + propertyName,
+    new JSIL.MethodSignature(null, [propertyType], [])
+  );
+
+  this.Property(descriptor, propertyName, propertyType);
 };
 
 JSIL.InterfaceBuilder.prototype.TypeCacher = function (fn) {
@@ -4481,14 +4465,6 @@ JSIL.InterfaceBuilder.prototype.Method = function (_descriptor, methodName, sign
 
   var fullName = this.namespace + "." + methodName;
 
-  /*
-  JSIL.SetValueProperty(fn, "toString", 
-    function Method_ToString () {
-      return "<" + signature.toString(fullName) + ">";
-    }
-  );
-  */
-
   JSIL.SetValueProperty(descriptor.Target, mangledName, fn);
 
   this.PushMember("MethodInfo", descriptor, { 
@@ -4523,14 +4499,6 @@ JSIL.InterfaceBuilder.prototype.InheritBaseMethod = function (name) {
     else
       JSIL.Host.warning("InheritBaseMethod() used but no method was found to inherit!");
   };
-
-  /*
-  JSIL.SetValueProperty(fn, "toString", 
-    function InheritedBaseMethod_ToString () {
-      return "<Inherited " + name + ">";
-    }
-  );
-  */
 
   JSIL.SetValueProperty(descriptor.Target, mangledName, fn);
 

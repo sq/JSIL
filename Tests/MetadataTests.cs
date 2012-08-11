@@ -331,15 +331,19 @@ namespace JSIL.Tests {
 
         [Test]
         public void ExternalProperty () {
-            var generatedJs = GenericTest(
+            var generatedJs = GenericIgnoreTest(
                 @"SpecialTestCases\ExternalProperty.cs",
                 "Property",
-                "undefined"
+                "method 'System.String get_Property()' of type 'Program' has not"
             );
 
             Assert.IsFalse(generatedJs.Contains("\"get_Property\""));
-            Assert.IsFalse(generatedJs.Contains("\"Property\""));
-            Assert.IsTrue(generatedJs.Contains("$thisType.Property"));
+            Assert.IsFalse(generatedJs.Contains(".Property("));
+            Assert.IsTrue(generatedJs.Contains(".ExternalProperty("));
+            Assert.IsTrue(
+                generatedJs.Contains("$thisType.Property") ||
+                generatedJs.Contains("$thisType.get_Property")
+            );
         }
 
         [Test]

@@ -8,6 +8,7 @@ using ICSharpCode.Decompiler.ILAst;
 using JSIL.Ast;
 using JSIL.Internal;
 using JSIL.Transforms;
+using JSIL.Translator;
 using Mono.Cecil;
 
 namespace JSIL {
@@ -22,7 +23,7 @@ namespace JSIL {
     public class JavascriptAstEmitter : JSAstVisitor {
         public readonly ITypeInfoSource TypeInfo;
         public readonly JavascriptFormatter Output;
-
+        public readonly Configuration Configuration;
         public readonly TypeSystem TypeSystem;
         public readonly JSILIdentifier JSIL;
 
@@ -33,7 +34,12 @@ namespace JSIL {
         protected readonly Stack<Func<string, bool>> GotoStack = new Stack<Func<string, bool>>();
         protected readonly Stack<BlockType> BlockStack = new Stack<BlockType>();
 
-        public JavascriptAstEmitter (JavascriptFormatter output, JSILIdentifier jsil, TypeSystem typeSystem, ITypeInfoSource typeInfo) {
+        public JavascriptAstEmitter (
+            JavascriptFormatter output, JSILIdentifier jsil, 
+            TypeSystem typeSystem, ITypeInfoSource typeInfo,
+            Configuration configuration
+        ) {
+            Configuration = configuration;
             Output = output;
             JSIL = jsil;
             TypeSystem = typeSystem;
@@ -302,13 +308,13 @@ namespace JSIL {
 
             var prop = pa.Property.Property;
 
-            // When possible, access the property's backing field instead of using the property itself.
-            // Property accesses are stupid slow in JavaScript :(
             if (
                 prop.IsAutoProperty && 
                 !prop.IsVirtual && 
                 !prop.DeclaringType.IsInterface
             ) {
+                // When possible, access the property's backing field instead of using the property itself.
+                // Property accesses are stupid slow in JavaScript :(
                 Output.WriteRaw(prop.BackingFieldName);
             } else {
                 if (pa.TypeQualified) {

@@ -662,7 +662,9 @@ namespace JSIL {
             var jsil = new JSILIdentifier(FunctionCache.MethodTypes, context.CurrentModule.TypeSystem, js);
 
             var astEmitter = new JavascriptAstEmitter(
-                output, jsil, context.CurrentModule.TypeSystem, this._TypeInfoProvider
+                output, jsil, 
+                context.CurrentModule.TypeSystem, this._TypeInfoProvider,
+                Configuration
             );
 
             foreach (var typedef in module.Types)
@@ -1203,7 +1205,7 @@ namespace JSIL {
 
             Action initializeOverloadsAndProperties = () => {
                 foreach (var property in typedef.Properties.OrderBy((p) => p.Name))
-                    TranslateProperty(context, output, property, dollar);
+                    TranslateProperty(context, astEmitter, output, property, dollar);
             };
 
             Func<TypeReference, bool> isInterfaceIgnored = (i) => {
@@ -1496,7 +1498,9 @@ namespace JSIL {
             ).Visit(function);
 
             if (Configuration.Optimizer.PreferAccessorMethods.GetValueOrDefault(true))
-                new ConvertPropertyAccessesToInvocations(si.TypeSystem, _TypeInfoProvider).Visit(function);
+                new ConvertPropertyAccessesToInvocations(
+                    si.TypeSystem, _TypeInfoProvider
+                ).Visit(function);
         }
 
         protected static bool NeedsStaticConstructor (TypeReference type) {
@@ -2042,11 +2046,12 @@ namespace JSIL {
         }
 
         protected void TranslateProperty (
-            DecompilerContext context, JavascriptFormatter output,
+            DecompilerContext context, 
+            JavascriptAstEmitter astEmitter, JavascriptFormatter output,
             PropertyDefinition property, Action<JavascriptFormatter> dollar
         ) {
             var propertyInfo = _TypeInfoProvider.GetMemberInformation<Internal.PropertyInfo>(property);
-            if ((propertyInfo == null) || propertyInfo.IsIgnored || propertyInfo.IsExternal)
+            if ((propertyInfo == null) || propertyInfo.IsIgnored)
                 return;
 
             var isStatic = (property.SetMethod ?? property.GetMethod).IsStatic;
@@ -2056,7 +2061,9 @@ namespace JSIL {
             dollar(output);
             output.Dot();
 
-            if (property.DeclaringType.HasGenericParameters && isStatic)
+            if (propertyInfo.IsExternal)
+                output.Identifier("ExternalProperty", null);
+            else if (property.DeclaringType.HasGenericParameters && isStatic)
                 output.Identifier("GenericProperty", null);
             else
                 output.Identifier("Property", null);
@@ -2068,6 +2075,9 @@ namespace JSIL {
             output.Comma();
 
             output.Value(Util.EscapeIdentifier(propertyInfo.Name, EscapingMode.String));
+
+            output.Comma();
+            output.TypeReference(property.PropertyType, astEmitter.ReferenceContext);
 
             output.RPar();
             output.Semicolon();
