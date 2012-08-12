@@ -626,6 +626,15 @@ namespace JSIL.Internal {
                     escInfo.ForcedNewName = name;
                     ExtraStaticConstructors.Add(escInfo);
                 }
+
+                if (proxy.MemberPolicy == JSProxyMemberPolicy.ReplaceAll) {
+                    var previousMembers = Members.ToArray();
+                    Members.Clear();
+                    foreach (var member in previousMembers) {
+                        if (member.Value.IsFromProxy)
+                            Members.TryAdd(member.Key, member.Value);
+                    }
+                }
             }
         }
 
@@ -761,7 +770,9 @@ namespace JSIL.Internal {
                     ((owningMember != null) && (owningMember.CustomAttributes.Any(ShouldNeverReplace)))
                 ) {
                     return true;
-                } else if (proxy.MemberPolicy == JSProxyMemberPolicy.ReplaceDeclared) {
+                } else if (
+                           proxy.MemberPolicy == JSProxyMemberPolicy.ReplaceDeclared ||
+                           proxy.MemberPolicy == JSProxyMemberPolicy.ReplaceAll) {
                     if (result.IsFromProxy)
                         Debug.WriteLine(String.Format("Warning: Proxy member '{0}' replacing proxy member '{1}'.", member, result));
 
