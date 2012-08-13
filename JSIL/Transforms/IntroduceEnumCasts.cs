@@ -69,19 +69,86 @@ namespace JSIL.Transforms {
             VisitChildren(ie);
         }
 
+        private JSBinaryOperatorExpression MakeUnaryMutation (
+            JSExpression expressionToMutate, JSBinaryOperator mutationOperator,
+            TypeReference type
+        ) {
+            var newValue = new JSBinaryOperatorExpression(
+                mutationOperator, expressionToMutate, JSLiteral.New(1),
+                TypeSystem.Int32
+            );
+            var assignment = new JSBinaryOperatorExpression(
+                JSOperator.Assignment,
+                expressionToMutate, JSCastExpression.New(
+                    newValue, type, TypeSystem, true
+                ), type
+            );
+
+            return assignment;
+        }
+
         public void VisitNode (JSUnaryOperatorExpression uoe) {
             var type = uoe.Expression.GetActualType(TypeSystem);
             var isEnum = IsEnumOrNullableEnum(type);
 
             if (isEnum) {
-                var cast = JSInvocationExpression.InvokeMethod(
+                var castToInt = JSInvocationExpression.InvokeMethod(
                     JS.valueOf(TypeSystem.Int32), uoe.Expression, null, true
                 );
 
                 if (LogicalOperators.Contains(uoe.Operator)) {
-                    uoe.ReplaceChild(uoe.Expression, cast);
+                    uoe.ReplaceChild(uoe.Expression, castToInt);
                 } else if (uoe.Operator == JSOperator.Negation) {
-                    uoe.ReplaceChild(uoe.Expression, cast);
+                    uoe.ReplaceChild(uoe.Expression, castToInt);
+                } else if (uoe.Operator is JSUnaryMutationOperator) {
+                    if (
+                        (uoe.Operator == JSOperator.PreIncrement) || 
+                        (uoe.Operator == JSOperator.PreDecrement)
+                    ) {
+                        var assignment = MakeUnaryMutation(
+                            uoe.Expression,
+                            (uoe.Operator == JSOperator.PreDecrement) 
+                                ? JSOperator.Subtract 
+                                : JSOperator.Add,
+                            type
+                        );
+
+                        ParentNode.ReplaceChild(uoe, assignment);
+                        VisitReplacement(assignment);
+                        return;
+
+                    } else if (
+                        (uoe.Operator == JSOperator.PostIncrement) || 
+                        (uoe.Operator == JSOperator.PostDecrement)
+                    ) {
+                        // FIXME: Terrible hack oh god (also not strict mode safe)
+                        var tempVariable = new JSRawOutputIdentifier(
+                            (output) => output.WriteRaw("$temp"), type
+                        );
+                        var makeTempCopy = new JSBinaryOperatorExpression(
+                            JSOperator.Assignment, tempVariable, uoe.Expression, type
+                        );
+                        var assignment = MakeUnaryMutation(
+                            uoe.Expression,
+                            (uoe.Operator == JSOperator.PostDecrement)
+                                ? JSOperator.Subtract
+                                : JSOperator.Add,
+                            type
+                        );
+
+                        var comma = new JSCommaExpression(
+                            makeTempCopy,
+                            assignment,
+                            tempVariable
+                        );
+
+                        ParentNode.ReplaceChild(uoe, comma);
+                        VisitReplacement(comma);
+                        return;
+
+                    } else {
+                        throw new NotImplementedException("Unary mutation of enum not supported: " + uoe.ToString());
+                    }
                 }
             }
 

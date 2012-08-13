@@ -67,6 +67,7 @@
     <None Include="AnalysisTestCases\OptimizeArrayEnumerators.cs" />
     <None Include="AnalysisTestCases\StructLoopInteraction.cs" />
     <None Include="AnalysisTestCases\ReuseEnumeratorLocal.cs" />
+    <None Include="AnalysisTestCases\PropertyTemporaries.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />
@@ -202,6 +203,7 @@
     <None Include="SpecialTestCases\AutoPropertyEfficiency.cs" />
     <None Include="SimpleTestCases\InterfacePropertyMatching.cs" />
     <None Include="SimpleTestCases\PropertyMultipleAssignment.cs" />
+    <None Include="SimpleTestCases\EnumPrePostIncrement.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

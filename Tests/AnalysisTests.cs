@@ -382,5 +382,29 @@ namespace JSIL.Tests {
 
             Console.WriteLine(generatedJs);
         }
+
+        [Test]
+        public void PropertyTemporaries () {
+            var output = 
+@"Shockwave.WarpTo(72, 80)
+Shockwave.TryMove(Right, 384)
+Shockwave.WarpTo(72, 80)
+Shockwave.TryMove(Up, 384)
+Shockwave.WarpTo(72, 80)
+Shockwave.TryMove(Left, 384)
+Shockwave.WarpTo(72, 80)
+Shockwave.TryMove(Down, 384)";
+
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\PropertyTemporaries.cs",
+                output, output
+            );
+
+            Assert.IsTrue(generatedJs.Contains("var x = "));
+            Assert.IsTrue(generatedJs.Contains("var y = "));
+            Assert.IsTrue(generatedJs.Contains("/ 8) | 0) * 8"));
+
+            Console.WriteLine(generatedJs);
+        }
     }
 }

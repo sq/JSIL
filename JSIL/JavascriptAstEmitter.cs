@@ -1530,5 +1530,13 @@ namespace JSIL {
             Visit(noie.Initializer);
             Output.RPar();
         }
+
+        public void VisitNode (JSCommaExpression comma) {
+            Output.LPar();
+
+            CommaSeparatedList(comma.SubExpressions, false);
+
+            Output.RPar();
+        }
     }
 }

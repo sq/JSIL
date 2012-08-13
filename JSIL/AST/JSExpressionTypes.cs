@@ -1990,4 +1990,28 @@ namespace JSIL.Ast {
             return Struct.GetActualType(typeSystem);
         }
     }
+
+    public class JSCommaExpression : JSExpression {
+        public JSCommaExpression (params JSExpression[] subExpressions) 
+            : base (subExpressions) {
+        }
+
+        public IEnumerable<JSExpression> SubExpressions {
+            get {
+                return Values;
+            }
+        }
+
+        public override bool Equals (object obj) {
+            return EqualsImpl(obj, true);
+        }
+
+        public override string ToString () {
+            return "(" + String.Join(",", Values) + ")";
+        }
+
+        public override TypeReference GetActualType (TypeSystem typeSystem) {
+            return Values.Last().GetActualType(typeSystem);
+        }
+    }
 }
