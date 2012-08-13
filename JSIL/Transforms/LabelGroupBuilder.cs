@@ -210,11 +210,10 @@ namespace JSIL.Transforms {
                 lgs.Visit(function);
             } while (lgs.FlattenedAGroup);
 
-            // If a label group's entry or exit labels are empty, remove them.
-            /*
-            var elr = new EmptyLabelRemover();
+            // Remove any labels within a label group that contain no statements (as long
+            //  as no goto targets that label directly). This will prune empty entry/exit labels.
+            var elr = new EmptyLabelRemover(UsedLabels);
             elr.Visit(function);
-             */
         }
     }
 
@@ -344,6 +343,28 @@ namespace JSIL.Transforms {
                 VisitChildren(lgs);
             } finally {
                 GroupStack.Pop();
+            }
+        }
+    }
+
+    public class EmptyLabelRemover : JSAstVisitor {
+        public readonly HashSet<string> UsedLabels;
+
+        public EmptyLabelRemover (HashSet<string> usedLabels) {
+            UsedLabels = usedLabels;
+        }
+
+        public void VisitNode (JSLabelGroupStatement lgs) {
+            foreach (var kvp in lgs.Labels.ToArray()) {
+                if (UsedLabels.Contains(kvp.Key))
+                    continue;
+
+                var labelledBlock = kvp.Value as JSBlockStatement;
+                if (labelledBlock == null)
+                    continue;
+
+                if (labelledBlock.Statements.Count < 1)
+                    lgs.Labels.Remove(kvp.Key);
             }
         }
     }
