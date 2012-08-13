@@ -186,13 +186,20 @@ namespace JSIL {
 
                 var nonNullChildren = kvp.Value.Children.Where(isNotNull);
 
-                var lastStatement = nonNullChildren.LastOrDefault();
+                var originalLastStatement = nonNullChildren.LastOrDefault();
+                var lastStatement = originalLastStatement;
                 JSBlockStatement lastBlockStatement;
 
                 while ((lastBlockStatement = lastStatement as JSBlockStatement) != null) {
-                    if (lastBlockStatement.IsControlFlow)
+                    if (
+                        (lastBlockStatement.IsControlFlow) &&
+                        !(
+                            (lastBlockStatement == originalLastStatement) &&
+                            (originalLastStatement is JSBlockStatement)
+                        )
+                    ) {
                         break;
-                    else {
+                    } else {
                         nonNullChildren = lastStatement.Children.Where(isNotNull);
                         lastStatement = nonNullChildren.LastOrDefault();
                     }
