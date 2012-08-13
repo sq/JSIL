@@ -267,6 +267,21 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        [TestCaseSource("GotoTestCasesSource")]
+        public void Goto (object[] parameters) {
+            RunSingleComparisonTestCase(parameters);
+        }
+
+        protected IEnumerable<TestCaseData> GotoTestCasesSource () {
+            return FilenameTestSource(
+                new[] { 
+                    @"TestCases\Goto.cs",
+                    @"SpecialTestCases\AsyncStateMachineSwitchGoto.cs"
+                }, MakeDefaultProvider(), new AssemblyCache()
+            );
+        }
+
+        [Test]
         [TestCaseSource("UncategorizedTestCasesSource")]
         public void UncategorizedTestCases (object[] parameters) {
             RunSingleComparisonTestCase(parameters);
@@ -285,7 +300,6 @@ namespace JSIL.Tests {
                     @"TestCases\ForEach.cs",
                     @"TestCases\CastToBoolean.cs",
                     @"TestCases\CastingFromNull.cs",
-                    @"TestCases\Goto.cs",
                     @"TestCases\YieldReturn.cs",
                     @"TestCases\FaultBlock.cs",
                     @"TestCases\StaticArrayInitializer.cs",
@@ -350,6 +364,7 @@ namespace JSIL.Tests {
                     @"TestCases\ComplexSwitch.cs",
                     @"TestCases\CharSwitch.cs",
                     @"TestCases\ContinueInsideSwitch.cs",
+                    @"SpecialTestCases\AsyncStateMachineSwitchGoto.cs"
                 }, null, defaultProvider
             );
         }

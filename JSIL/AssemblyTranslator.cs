@@ -1405,8 +1405,7 @@ namespace JSIL {
             };
 
             var la = new LabelAnalyzer();
-            la.Visit(function);
-            la.BuildLabelGroups();
+            la.BuildLabelGroups(function);
 
             temporaryEliminationPass();
 

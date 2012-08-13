@@ -22,6 +22,15 @@ namespace JSIL.Ast {
             }
         }
 
+        public IEnumerable<JSNode> SelfAndChildren {
+            get {
+                yield return this;
+
+                foreach (var ch in Children)
+                    yield return ch;
+            }
+        }
+
         public IEnumerable<JSNode> SelfAndChildrenRecursive {
             get {
                 yield return this;

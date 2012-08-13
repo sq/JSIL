@@ -205,6 +205,7 @@
     <None Include="SimpleTestCases\PropertyMultipleAssignment.cs" />
     <None Include="SimpleTestCases\EnumPrePostIncrement.cs" />
     <None Include="TestCases\StructBoxing.cs" />
+    <None Include="SpecialTestCases\AsyncStateMachineSwitchGoto.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

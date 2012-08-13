@@ -481,6 +481,11 @@ namespace JSIL {
             return LinkedList.AddBefore(before, key);
         }
 
+        public LinkedListNode<TKey> EnqueueAfter (LinkedListNode<TKey> after, TKey key, TValue value) {
+            Dictionary.Add(key, value);
+            return LinkedList.AddAfter(after, key);
+        }
+
         public LinkedListNode<TKey> Enqueue (TKey key, TValue value) {
             Dictionary.Add(key, value);
             return LinkedList.AddLast(key);
@@ -497,6 +502,18 @@ namespace JSIL {
             get {
                 var node = LinkedList.Last;
                 return new KeyValuePair<TKey, TValue>(node.Value, Dictionary[node.Value]);
+            }
+        }
+
+        public IEnumerable<LinkedListNode<TKey>> Keys {
+            get {
+                var current = LinkedList.First;
+
+                while (current != null) {
+                    yield return current;
+
+                    current = current.Next;
+                }
             }
         }
 
