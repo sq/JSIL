@@ -276,7 +276,8 @@ namespace JSIL.Tests {
             return FilenameTestSource(
                 new[] { 
                     @"TestCases\Goto.cs",
-                    @"SpecialTestCases\AsyncStateMachineSwitchGoto.cs"
+                    @"SpecialTestCases\AsyncStateMachineSwitchGoto.cs",
+                    @"SpecialTestCases\ElaborateSwitchControlFlow.cs"
                 }, MakeDefaultProvider(), new AssemblyCache()
             );
         }
@@ -364,7 +365,8 @@ namespace JSIL.Tests {
                     @"TestCases\ComplexSwitch.cs",
                     @"TestCases\CharSwitch.cs",
                     @"TestCases\ContinueInsideSwitch.cs",
-                    @"SpecialTestCases\AsyncStateMachineSwitchGoto.cs"
+                    @"SpecialTestCases\AsyncStateMachineSwitchGoto.cs",
+                    @"SpecialTestCases\ElaborateSwitchControlFlow.cs"
                 }, null, defaultProvider
             );
         }

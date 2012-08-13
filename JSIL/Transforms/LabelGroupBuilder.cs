@@ -47,14 +47,26 @@ namespace JSIL.Transforms {
 
                     var bs = EnclosingBlock.Block as JSBlockStatement;
                     if (bs != null) {
-                        bool populatingEntryBlock = true;
-                        foreach (var s in bs.Statements) {
+                        bool populatingEntryBlock = true, populatingExitBlock = false;
+
+                        // We want to walk through the block's statements and collect them.
+                        // Statements before the labelled statement go into the entry block.
+                        // Statements after the labelled statement go into the exit block.
+                        // FIXME: Is the following rule correct? Without it, FaultBlock breaks.
+                        // If we hit another labelled statement while filling the exit block, stop filling it.                        
+                        for (var i = 0; i < bs.Statements.Count; i++) {
+                            var s = bs.Statements[i];
+
                             if (s.Label == Label) {
                                 populatingEntryBlock = false;
+                                populatingExitBlock = true;
                             } else if (populatingEntryBlock) {
                                 entryBlock.Statements.Add(s);
-                            } else {
-                                exitBlock.Statements.Add(s);
+                            } else if (populatingExitBlock) {
+                                if (s.Label == null)
+                                    exitBlock.Statements.Add(s);
+                                else
+                                    populatingExitBlock = false;
                             }
                         }
 
@@ -159,17 +171,19 @@ namespace JSIL.Transforms {
         }
 
         public void BuildLabelGroups (JSFunctionExpression function) {
-            var lh = new LabelHoister();
-
             // If a label is applied to the first statement in a block, hoist it upward
             //  onto the parent block.
+            var lh = new LabelHoister();
             do {
                 lh.HoistedALabel = false;
                 lh.Visit(function);
             } while (lh.HoistedALabel);
 
+            // Walk the function to build our list of labels and gotos.
             Visit(function);
 
+            // When a goto crosses block boundaries, we need to move the target label
+            //  upwards so that the goto can reach it.
             foreach (var g in Gotos) {
                 var targetLabel = Labels[g.TargetLabel];
 
@@ -188,14 +202,19 @@ namespace JSIL.Transforms {
                 l.LabelGroup.Add(l.LabelledStatement);
             }
 
-            var lgs = new LabelGroupFlattener();
-
             // If a label group only contains one label (plus an entry label),
             //  and it has a parent label group, hoist the label up.
+            var lgs = new LabelGroupFlattener();
             do {
                 lgs.FlattenedAGroup = false;
                 lgs.Visit(function);
             } while (lgs.FlattenedAGroup);
+
+            // If a label group's entry or exit labels are empty, remove them.
+            /*
+            var elr = new EmptyLabelRemover();
+            elr.Visit(function);
+             */
         }
     }
 

@@ -464,7 +464,7 @@
     <None Include="SimpleTestCases\AssemblyGetType.cs" />
     <None Include="TestCases\SealedMethods.cs" />
     <None Include="TestCases\UnderivedMethods.cs" />
-    <None Include="FailingTestCases\ElaborateSwitchControlFlow.cs" />
+    <None Include="SpecialTestCases\ElaborateSwitchControlFlow.cs" />
     <None Include="TestCases\LinqSelect.cs" />
     <None Include="TestCases\LinqToArray.cs" />
     <None Include="SpecialTestCases\AlternateSwitchForm.cs" />
