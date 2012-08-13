@@ -204,6 +204,7 @@
     <None Include="SimpleTestCases\InterfacePropertyMatching.cs" />
     <None Include="SimpleTestCases\PropertyMultipleAssignment.cs" />
     <None Include="SimpleTestCases\EnumPrePostIncrement.cs" />
+    <None Include="TestCases\StructBoxing.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

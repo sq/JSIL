@@ -161,6 +161,7 @@ namespace JSIL.Tests {
                     @"TestCases\RefStructThisWithConstrainedInterface.cs",
                     @"TestCases\RefStructThisWithInterface.cs",
                     @"TestCases\MutatedStructGenericParameter.cs",
+                    @"TestCases\StructBoxing.cs",
                 }, MakeDefaultProvider(), new AssemblyCache()
             );
         }

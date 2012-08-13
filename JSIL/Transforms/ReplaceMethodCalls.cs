@@ -56,6 +56,31 @@ namespace JSIL.Transforms {
                             return;
                         }
 
+                        case "ReferenceEquals": {
+                            var lhs = ie.Arguments[0];
+                            var rhs = ie.Arguments[1];
+
+                            var lhsType = lhs.GetActualType(TypeSystem);
+                            var rhsType = rhs.GetActualType(TypeSystem);
+
+                            // We need to force a copy for structs since they would be boxed here
+                            if (TypeUtil.IsStruct(lhsType))
+                                lhs = new JSStructCopyExpression(lhs);
+                            if (TypeUtil.IsStruct(rhsType))
+                                rhs = new JSStructCopyExpression(rhs);
+
+                            var replacement = new JSBinaryOperatorExpression(
+                                JSBinaryOperator.Equal,
+                                lhs, rhs,
+                                TypeSystem.Boolean
+                            );
+
+                            ParentNode.ReplaceChild(ie, replacement);
+                            VisitReplacement(replacement);
+
+                            return;
+                        }
+
                         case "GetType": {
                             JSNode replacement;
 
