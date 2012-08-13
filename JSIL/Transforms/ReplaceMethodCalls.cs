@@ -63,17 +63,17 @@ namespace JSIL.Transforms {
                             var lhsType = lhs.GetActualType(TypeSystem);
                             var rhsType = rhs.GetActualType(TypeSystem);
 
-                            // We need to force a copy for structs since they would be boxed here
-                            if (TypeUtil.IsStruct(lhsType))
-                                lhs = new JSStructCopyExpression(lhs);
-                            if (TypeUtil.IsStruct(rhsType))
-                                rhs = new JSStructCopyExpression(rhs);
+                            JSNode replacement;
 
-                            var replacement = new JSBinaryOperatorExpression(
-                                JSBinaryOperator.Equal,
-                                lhs, rhs,
-                                TypeSystem.Boolean
-                            );
+                            // Structs can never compare equal with ReferenceEquals
+                            if (TypeUtil.IsStruct(lhsType) || TypeUtil.IsStruct(rhsType))
+                                replacement = JSLiteral.New(false);
+                            else
+                                replacement = new JSBinaryOperatorExpression(
+                                    JSBinaryOperator.Equal,
+                                    lhs, rhs,
+                                    TypeSystem.Boolean
+                                );
 
                             ParentNode.ReplaceChild(ie, replacement);
                             VisitReplacement(replacement);
