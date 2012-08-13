@@ -37,12 +37,27 @@ namespace JSIL.Transforms {
                     var entryBlock = new JSBlockStatement {
                         Label = String.Format("$entry{0}", index)
                     };
+                    var exitBlock = new JSBlockStatement {
+                        Label = String.Format("$exit{0}", index)
+                    };
 
-                    labelGroups[EnclosingBlock.Block] = LabelGroup = new JSLabelGroupStatement(index, entryBlock);
+                    labelGroups[EnclosingBlock.Block] = LabelGroup = new JSLabelGroupStatement(
+                        index, entryBlock, exitBlock
+                    );
 
                     var bs = EnclosingBlock.Block as JSBlockStatement;
                     if (bs != null) {
-                        entryBlock.Statements.AddRange(bs.Statements);
+                        bool populatingEntryBlock = true;
+                        foreach (var s in bs.Statements) {
+                            if (s.Label == Label) {
+                                populatingEntryBlock = false;
+                            } else if (populatingEntryBlock) {
+                                entryBlock.Statements.Add(s);
+                            } else {
+                                exitBlock.Statements.Add(s);
+                            }
+                        }
+
                         bs.Statements.Clear();
                         bs.Statements.Add(LabelGroup);
                     } else {
@@ -169,6 +184,7 @@ namespace JSIL.Transforms {
                     new JSGotoExpression(l.LabelledStatement.Label)
                 );
                 l.EnclosingBlock.Block.ReplaceChildRecursive(l.LabelledStatement, replacementGoto);
+
                 l.LabelGroup.Add(l.LabelledStatement);
             }
 
@@ -207,11 +223,13 @@ namespace JSIL.Transforms {
         }
 
         public void VisitNode (JSTryCatchBlock tcb) {
+            // Hoisting a label out of the try {} body is safe since it always runs.
             MaybeHoist(tcb, tcb.Body.SelfAndChildren.OfType<JSStatement>());
 
             VisitChildren(tcb);
         }
 
+        // Crossing these kinds of control flow boundaries would change behavior.
         public void VisitNode (JSSwitchCase sc) {
             VisitChildren(sc);
         }
@@ -242,29 +260,43 @@ namespace JSIL.Transforms {
             var checkStatement = labelledStatement;
             JSLabelGroupStatement labelledGroup = null;
 
+            // If a label contains a single-statement block, recurse down to find a label group.
             while (checkStatement != null) {
                 labelledGroup = checkStatement as JSLabelGroupStatement;
                 if (labelledGroup != null)
                     break;
 
-                var childStatements = checkStatement.Children.OfType<JSStatement>().ToArray();
-                if (childStatements.Length != 1)
+                var checkBlock = checkStatement as JSBlockStatement;
+                if (checkBlock == null)
                     break;
 
-                checkStatement = childStatements[0];
+                if (checkBlock.Statements.Count != 1)
+                    break;
+
+                checkStatement = checkBlock.Statements[0];
             }
 
             if (
                 (labelledGroup != null) &&
-                (labelledGroup.Labels.Count == 2)
+                (labelledGroup.Labels.Count == 3)
             ) {
-                var entryLabel = labelledGroup.Labels.First();
-                var hoistedLabel = labelledGroup.Labels.Last();
+                var labels = labelledGroup.Labels.ToArray();
 
+                // Hoist the contents of the entry label into the label that contains this label group.
+                var entryLabel = labels[0];
                 labelledStatement.ReplaceChildRecursive(labelledGroup, entryLabel.Value);
 
-                lgs.Labels.EnqueueAfter(
+                // Hoist the single label from this label group into the containing label group, 
+                //  after the label that contains this label group.
+                var hoistedLabel = labels[1];
+                var hoistedKeyNode = lgs.Labels.EnqueueAfter(
                     keyNode, hoistedLabel.Key, hoistedLabel.Value
+                );
+
+                var exitLabel = labels[2];
+                // Hoist the contents of the exit label into the label that contains this label group.
+                lgs.Labels.EnqueueAfter(
+                    hoistedKeyNode, hoistedLabel.Key + "_after", exitLabel.Value
                 );
 
                 return FlattenedAGroup = true;
