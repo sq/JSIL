@@ -3086,12 +3086,27 @@ JSIL.RunStaticConstructors = function (classObject, typeObject) {
 };
 
 JSIL.InitializeFields = function (classObject, typeObject) {
-  var fi = typeObject.__FieldInitializers__;
-  if (!fi)
-    return;
+  var typeObjects = [];
 
-  for (var i = 0, l = fi.length; i < l; i++)
-    fi[i](classObject, typeObject);
+  var to = typeObject;
+  while (to) {
+    typeObjects.push(to);
+
+    to = to.__BaseType__;
+  }
+
+  // Run the initializers in reverse order, so we start with the base class
+  //  and work our way up, just in case derived initializers overwrite stuff
+  //  that was put in place by base initializers.
+  for (var i = typeObjects.length - 1; i >= 0; i--) {
+    var to = typeObjects[i];
+    var fi = to.__FieldInitializers__;
+
+    if (fi) {
+      for (var j = 0, l = fi.length; j < l; j++)
+        fi[j](classObject, to);
+    }
+  }
 }
 
 JSIL.ShadowedTypeWarning = function (fullName) {
