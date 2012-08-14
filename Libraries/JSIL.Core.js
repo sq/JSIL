@@ -3034,7 +3034,7 @@ JSIL.RunStaticConstructors = function (classObject, typeObject) {
 
   var base = typeObject.__BaseType__;
 
-  if (base && !base.__RanCctors__)
+  if (base && base.__PublicInterface__ && !base.__RanCctors__)
     JSIL.RunStaticConstructors(base.__PublicInterface__, base);
 
   // Run any queued initializers for the type
@@ -3046,17 +3046,15 @@ JSIL.RunStaticConstructors = function (classObject, typeObject) {
   };
 
   // If the type is closed, invoke its static constructor(s)
-  if (typeObject.__IsClosed__) {
-    for (var i = 0; i < $jsilcore.cctorKeys.length; i++) {
-      var key = $jsilcore.cctorKeys[i];
-      var cctor = classObject[key];
+  for (var i = 0; i < $jsilcore.cctorKeys.length; i++) {
+    var key = $jsilcore.cctorKeys[i];
+    var cctor = classObject[key];
 
-      if (typeof (cctor) === "function") {
-        try {
-          cctor.call(classObject);
-        } catch (e) {
-          JSIL.Host.error(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(typeObject) + ": ");
-        }
+    if (typeof (cctor) === "function") {
+      try {
+        cctor.call(classObject);
+      } catch (e) {
+        JSIL.Host.error(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(typeObject) + ": ");
       }
     }
   }
