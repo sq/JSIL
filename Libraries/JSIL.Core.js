@@ -180,10 +180,6 @@ var $jsilcore = JSIL.DeclareAssembly("JSIL.Core");
 // WTF? Maybe they won't suck sometime in the distant future.
 $jsilcore.SealInitializedTypes = false;
 
-// If set to true, cctors will be run on the first actual use of a type's methods or static members,
-//  instead of when the type is first initialized by InitializeType.
-$jsilcore.UseMembranesToRunCctors = true;
-
 // Using these constants instead of 'null' turns some call sites from dimorphic to monomorphic in SpiderMonkey's
 //  type inference engine.
 
@@ -2826,32 +2822,30 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface, forceLazyMethod
     return function () { return value; };
   };
 
-  // If membranes are enabled, we need to ensure that all the mangled method names
-  //  have membranes applied. This can't be done before now due to generic types.
-  if ($jsilcore.UseMembranesToRunCctors) {
-    for (var i = 0, l = methods.length; i < l; i++) {
-      var method = methods[i];
-      var isStatic = method._descriptor.Static;
-      // FIXME: I'm not sure this is right for open generic methods.
-      // I think it might be looking up the old open form of the method signature
-      //  instead of the closed form.
-      var key = method._data.signature.GetKey(method._descriptor.EscapedName);
+  // We need to ensure that all the mangled method names have membranes applied.
+  // This can't be done before now due to generic types.
+  for (var i = 0, l = methods.length; i < l; i++) {
+    var method = methods[i];
+    var isStatic = method._descriptor.Static;
+    // FIXME: I'm not sure this is right for open generic methods.
+    // I think it might be looking up the old open form of the method signature
+    //  instead of the closed form.
+    var key = method._data.signature.GetKey(method._descriptor.EscapedName);
 
-      var useMembrane = isStatic && 
-        ($jsilcore.cctorKeys.indexOf(method._descriptor.Name) < 0) &&
-        ($jsilcore.cctorKeys.indexOf(method._descriptor.EscapedName) < 0);
+    var useMembrane = isStatic && 
+      ($jsilcore.cctorKeys.indexOf(method._descriptor.Name) < 0) &&
+      ($jsilcore.cctorKeys.indexOf(method._descriptor.EscapedName) < 0);
 
-      if (useMembrane) {
-        var originalFunction = publicInterface[key];
-        if (typeof (originalFunction) !== "function") {
-          // throw new Error("No function with key '" + key + "' found");
-          continue;
-        }
-
-        JSIL.DefinePreInitMethod(
-          publicInterface, key, makeReturner(originalFunction), maybeRunCctors
-        );
+    if (useMembrane) {
+      var originalFunction = publicInterface[key];
+      if (typeof (originalFunction) !== "function") {
+        // throw new Error("No function with key '" + key + "' found");
+        continue;
       }
+
+      JSIL.DefinePreInitMethod(
+        publicInterface, key, makeReturner(originalFunction), maybeRunCctors
+      );
     }
   }
 
@@ -3033,9 +3027,6 @@ JSIL.InitializeType = function (type) {
       );
     }
   }
-
-  if (!$jsilcore.UseMembranesToRunCctors)
-    JSIL.RunStaticConstructors(classObject, typeObject);
 
   // Any closed forms of the type, if it's an open type, should be initialized too.
   if (typeof (typeObject.__OfCache__) !== "undefined") {
@@ -4569,7 +4560,6 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
       };
 
       if (
-        $jsilcore.UseMembranesToRunCctors && 
         descriptor.Static
       ) {
         var maybeRunCctors = function MaybeRunStaticConstructors () {
