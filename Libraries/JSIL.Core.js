@@ -3238,6 +3238,19 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
       throwCastError(expression);
   };
 
+  var int64CastFunction = function Cast_Int64_Impl (expression) {
+    if (expression === false)
+      return System.Int64.Zero;
+    else if (expression === true)
+      return System.Int64.One;
+    else if (typeof (expression) === "number")
+      return System.Int64.FromNumber(expression);
+    else if (checkMethod(expression))
+      return expression;
+    else
+      throwCastError(expression);
+  };
+
   switch (specialType) {
     case "interface":
       break;
@@ -3294,6 +3307,15 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
       asFunction = throwCastError;
       castFunction = numericCastFunction;
 
+      break;
+
+    case "int64":
+      customCheckOnly = true;
+      asFunction = throwCastError;
+
+      castFunction = function Cast_Int64 (expression) {
+        return int64CastFunction(expression);
+      };
       break;
   }
 

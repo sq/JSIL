@@ -5686,6 +5686,10 @@ JSIL.Make64BitInt = function ($, ctor) {
           return s;
         });
 
+  $.RawMethod(true, "CheckType", function (value) {
+    return (typeof value.data === "object" && value.data.length == 3);
+  });
+
 };
 
 JSIL.MakeStruct("System.ValueType", "System.UInt64", true, [], function ($) {
@@ -6195,4 +6199,8 @@ JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) {
       else
         return r;
     });
+
+    JSIL.MakeCastMethods(
+      $.publicInterface, $.typeObject, "int64"
+    );
 });
