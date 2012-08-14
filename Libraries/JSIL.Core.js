@@ -1640,7 +1640,8 @@ $jsilcore.$Of$NoInitialize = function () {
   var ignoredNames = [
     "__Type__", "__TypeId__", "__ThisType__", "__TypeInitialized__", "__IsClosed__", "prototype", 
     "Of", "toString", "__FullName__", "__OfCache__", "Of$NoInitialize",
-    "GetType", "__ReflectionCache__", "__Members__", "__ThisTypeId__"
+    "GetType", "__ReflectionCache__", "__Members__", "__ThisTypeId__",
+    "__RanCctors__", "__RanFieldInitializers__", "__PreInitMembrane__"
   ];
 
   // FIXME: for ( in ) is deoptimized in V8. Maybe use Object.keys(), or type metadata?
@@ -3055,15 +3056,17 @@ JSIL.InitializeType = function (type) {
 };
 
 JSIL.RunStaticConstructors = function (classObject, typeObject) {
+  var base = typeObject.__BaseType__;
+
+  if (base && base.__PublicInterface__)
+    JSIL.RunStaticConstructors(base.__PublicInterface__, base);
+
+  JSIL.InitializeType(typeObject);
+
   if (typeObject.__RanCctors__)
     return;
 
   typeObject.__RanCctors__ = true;
-
-  var base = typeObject.__BaseType__;
-
-  if (base && base.__PublicInterface__ && !base.__RanCctors__)
-    JSIL.RunStaticConstructors(base.__PublicInterface__, base);
 
   // Run any queued initializers for the type
   var ti = typeObject.__Initializers__ || [];
@@ -3107,7 +3110,7 @@ JSIL.InitializeFields = function (classObject, typeObject) {
 
     if (fi) {
       for (var j = 0, l = fi.length; j < l; j++)
-        fi[j](classObject, to);
+        fi[j](classObject, to.__PublicInterface__, typeObject, to);
     }
   }
 }
@@ -4519,8 +4522,11 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
   var maybeRunCctors = this.maybeRunCctors;
 
   var context = this.context;
-  var fieldCreator = function InitField (classObject, typeObject) {
-    var actualTarget = descriptor.Static ? classObject : classObject.prototype;
+  var fieldCreator = function InitField (
+    fullyDerivedClassObject, classObject, 
+    fullyDerivedTypeObject, typeObject
+  ) {
+    var actualTarget = descriptor.Static ? classObject : fullyDerivedClassObject.prototype;
 
     if (typeof (defaultValueExpression) === "function") {
       data.defaultValueExpression = defaultValueExpression;
@@ -4563,7 +4569,7 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
         descriptor.Static
       ) {
         var maybeRunCctors = function MaybeRunStaticConstructors () {
-          JSIL.RunStaticConstructors(classObject, typeObject);    
+          JSIL.RunStaticConstructors(fullyDerivedClassObject, fullyDerivedTypeObject);
         };
 
         JSIL.DefinePreInitField(
