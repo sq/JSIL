@@ -287,8 +287,8 @@ JSIL.$DefinePreInitCore = function (initializer, cleanup) {
       return;
 
     runInitializer = true;
-    JSIL.Host.runLater(cleanup);
     initializer();
+    JSIL.Host.runLater(cleanup);
   };
 };
 
@@ -297,6 +297,11 @@ JSIL.DefinePreInitField = function (target, key, getInitialValue, initializer) {
   var fieldValue;
 
   var cleanup = function PreInitField_Cleanup () {
+    if (needToGetFieldValue) {
+      needToGetFieldValue = false;
+      fieldValue = getInitialValue();
+    }
+
     Object.defineProperty(target, key, {
       configurable: true,
       enumerable: true,
@@ -310,8 +315,10 @@ JSIL.DefinePreInitField = function (target, key, getInitialValue, initializer) {
   var getter = function PreInitField_Get () {
     maybeInit();
 
-    if (needToGetFieldValue)
+    if (needToGetFieldValue) {
+      needToGetFieldValue = false;
       fieldValue = getInitialValue();
+    }
 
     return fieldValue;
   }
@@ -333,6 +340,8 @@ JSIL.DefinePreInitField = function (target, key, getInitialValue, initializer) {
       set: setter
     }
   );
+
+  return cleanup;
 };
 
 JSIL.DefinePreInitProperty = function (target, key, descriptor, initializer) {
@@ -2881,7 +2890,11 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface, forceLazyMethod
         target, typeObject.__FullName__, renamedMethods, methodName, methodEscapedName, entries
       );
 
-      if ($jsilcore.UseMembranesToRunCctors) {
+      if (
+        $jsilcore.UseMembranesToRunCctors && 
+        isStatic && 
+        ($jsilcore.cctorKeys.indexOf(methodName) < 0)
+      ) {
         JSIL.DefinePreInitMethod(
           target, methodEscapedName, getter, maybeRunCctors
         );
@@ -3018,6 +3031,11 @@ JSIL.RunStaticConstructors = function (classObject, typeObject) {
     return;
 
   typeObject.__RanCctors__ = true;
+
+  var base = typeObject.__BaseType__;
+
+  if (base && !base.__RanCctors__)
+    JSIL.RunStaticConstructors(base.__PublicInterface__, base);
 
   // Run any queued initializers for the type
   var ti = typeObject.__Initializers__ || [];
@@ -4224,10 +4242,6 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
   if (typeof (this.externals) !== "object")
     this.externals = JSIL.AllImplementedExternals[this.namespace] = {};
 
-  this.maybeRunCctors = function MaybeRunStaticConstructors () {
-    JSIL.RunStaticConstructors(publicInterface, typeObject);    
-  };
-
   var selfRef = typeObject;
   var gaNames = typeObject.__GenericArguments__;
   if (gaNames && gaNames.length > 0) {
@@ -4465,21 +4479,21 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
 
   var context = this.context;
   var fieldCreator = function InitField (classObject, typeObject) {
+    var actualTarget = descriptor.Static ? classObject : classObject.prototype;
+
     if (typeof (defaultValueExpression) === "function") {
       data.defaultValueExpression = defaultValueExpression;
 
-      var target = descriptor.Target;
       JSIL.DefineLazyDefaultProperty(
-        target, descriptor.EscapedName,
+        actualTarget, descriptor.EscapedName,
         function InitFieldDefaultExpression () {
           return data.defaultValue = defaultValueExpression(this);
         }
       );
     } else if (typeof (defaultValueExpression) !== "undefined") {
-      descriptor.Target[descriptor.EscapedName] = data.defaultValue = defaultValueExpression;
+      actualTarget[descriptor.EscapedName] = data.defaultValue = defaultValueExpression;
     } else {
       var members = typeObject.__Members__;
-      var target = descriptor.Target;
 
       var initFieldDefault = function InitFieldDefault () {
         var actualFieldInfo = members[fieldIndex];
@@ -4504,14 +4518,21 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
         return data.defaultValue = JSIL.DefaultValue(fieldTypeResolved);
       };
 
-      if ($jsilcore.UseMembranesToRunCctors && descriptor.Static) {
+      if (
+        $jsilcore.UseMembranesToRunCctors && 
+        descriptor.Static
+      ) {
+        var maybeRunCctors = function MaybeRunStaticConstructors () {
+          JSIL.RunStaticConstructors(classObject, typeObject);    
+        };
+
         JSIL.DefinePreInitField(
-          target, descriptor.EscapedName,
+          actualTarget, descriptor.EscapedName,
           initFieldDefault, maybeRunCctors
         );
       } else {
         JSIL.DefineLazyDefaultProperty(
-          target, descriptor.EscapedName,
+          actualTarget, descriptor.EscapedName,
           initFieldDefault
         );
       }
