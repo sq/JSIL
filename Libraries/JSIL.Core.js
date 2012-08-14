@@ -1635,6 +1635,7 @@ $jsilcore.$Of$NoInitialize = function () {
   resultTypeObject.__IsClosed__ = isClosed;
 
   if (isClosed) {
+    resultTypeObject.__AssignableFromTypes__ = {};
     JSIL.RenameGenericMethods(result, resultTypeObject);
     JSIL.RebindRawMethods(result, resultTypeObject);
     JSIL.FixupFieldTypes(result, resultTypeObject);
@@ -2811,7 +2812,8 @@ JSIL.BuildTypeList = function (type, publicInterface) {
     var id = current.__TypeId__;
 
     typeList[id] = true;
-    current.__AssignableFromTypes__[myTypeId] = true;
+    if (typeof(current.__AssignableFromTypes__) !== "undefined")
+      current.__AssignableFromTypes__[myTypeId] = true;
 
     var interfaces = current.__Interfaces__;
     if (JSIL.IsArray(interfaces)) {
@@ -3693,7 +3695,6 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
     typeObject.__GenericArguments__ = genericArguments || [];
     typeObject.__IsReferenceType__ = true;
     typeObject.__AssignableTypes__ = null;
-    typeObject.__AssignableFromTypes__ = {};
     typeObject.IsInterface = true;
     typeObject.__Interfaces__ = interfaces || [];
 
@@ -3711,6 +3712,7 @@ JSIL.MakeInterface = function (fullName, isPublic, genericArguments, initializer
       typeObject.__OfCache__ = {};
     } else {
       typeObject.__IsClosed__ = true;
+      typeObject.__AssignableFromTypes__ = {};
     }
 
     typeObject._IsAssignableFrom = function (typeOfValue) {
@@ -6287,7 +6289,6 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
     typeObject.__IsDelegate__ = true;
     typeObject.__IsReferenceType__ = true;
     typeObject.__AssignableTypes__ = null;
-    typeObject.__AssignableFromTypes__ = {};
     typeObject.__IsEnum__ = false;
 
     typeObject.__GenericArguments__ = genericArguments || [];
@@ -6341,6 +6342,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
       typeObject.__OfCache__ = {};
     } else {
       typeObject.__IsClosed__ = true;
+      typeObject.__AssignableFromTypes__ = {};
     }
 
     JSIL.MakeCastMethods(staticClassObject, typeObject, "delegate");

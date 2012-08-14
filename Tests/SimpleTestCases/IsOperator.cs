@@ -5,6 +5,8 @@ public static class Program {
         CheckTypes(1);
         CheckTypes("b");
         CheckTypes(new MyClass());
+        CheckTypes(new MyClassT<int>());
+        CheckTypes(new MyClassT<object>());
     }
 
     public static void CheckTypes (object value) {
@@ -17,8 +19,17 @@ public static class Program {
         } else {
             Console.WriteLine("who knows");
         }
+
+        if (value is MyClassT<int>)
+            Console.WriteLine("class<int>");
+        if (value is MyClassT<object>)
+            Console.WriteLine("class<object>");
+
     }
 }
 
 public class MyClass {
+}
+
+public class MyClassT<T> {
 }
