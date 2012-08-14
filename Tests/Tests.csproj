@@ -206,6 +206,8 @@
     <None Include="SimpleTestCases\EnumPrePostIncrement.cs" />
     <None Include="TestCases\StructBoxing.cs" />
     <None Include="SpecialTestCases\AsyncStateMachineSwitchGoto.cs" />
+    <None Include="SpecialTestCases\CyclicTypeReferences.cs" />
+    <None Include="SpecialTestCases\CyclicTypeInheritance.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

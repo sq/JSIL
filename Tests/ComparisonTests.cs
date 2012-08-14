@@ -44,6 +44,7 @@ namespace JSIL.Tests {
                 test.Run("8");
             }
         }
+
         [Test]
         [TestCaseSource("DynamicsSource")]
         public void Dynamics (object[] parameters) {
@@ -436,6 +437,16 @@ namespace JSIL.Tests {
                     @"TestCases\IndirectInterleavedTemporaries.cs",
                     @"TestCases\DirectTemporaryAssignment.cs"
                 }, MakeDefaultProvider(), new AssemblyCache()
+            );
+        }
+
+        [Test]
+        public void TypeReferences () {
+            RunComparisonTests(
+                new[] { 
+                    @"SpecialTestCases\CyclicTypeReferences.cs",
+                    @"SpecialTestCases\CyclicTypeInheritance.cs"
+                }, null, MakeDefaultProvider()
             );
         }
 

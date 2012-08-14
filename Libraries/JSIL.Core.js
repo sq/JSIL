@@ -2867,13 +2867,6 @@ JSIL.InitializeType = function (type) {
       var key = $jsilcore.cctorKeys[i];
       var cctor = classObject[key];
 
-      // Type cachers need to be able to form reference cycles, so we suppress warning messages
-      //  while one of them is running.
-      var suppress = (key === "__TypeCacher__");
-
-      if (suppress)
-        $jsilcore.SuppressRecursiveConstructionErrors += 1;
-
       if (typeof (cctor) === "function") {
         try {
           cctor.call(classObject);
@@ -2881,9 +2874,6 @@ JSIL.InitializeType = function (type) {
           JSIL.Host.error(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(type) + ": ");
         }
       }
-
-      if (suppress)
-        $jsilcore.SuppressRecursiveConstructionErrors -= 1;
     }
   }
 
