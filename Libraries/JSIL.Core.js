@@ -292,8 +292,9 @@ JSIL.$DefinePreInitCore = function (initializer, cleanup) {
   };
 };
 
-JSIL.DefinePreInitField = function (target, key, initialValue, initializer) {
-  var fieldValue = initialValue;
+JSIL.DefinePreInitField = function (target, key, getInitialValue, initializer) {
+  var needToGetFieldValue = true;
+  var fieldValue;
 
   var cleanup = function PreInitField_Cleanup () {
     Object.defineProperty(target, key, {
@@ -309,16 +310,29 @@ JSIL.DefinePreInitField = function (target, key, initialValue, initializer) {
   var getter = function PreInitField_Get () {
     maybeInit();
 
+    if (needToGetFieldValue)
+      fieldValue = getInitialValue();
+
     return fieldValue;
   }
 
   var setter = function PreInitField_Set (value) {
     maybeInit();
 
+    needToGetFieldValue = false;
     fieldValue = value;
 
     return value;
   };
+
+  Object.defineProperty(
+    target, key, {
+      configurable: true,
+      enumerable: true,
+      get: getter,
+      set: setter
+    }
+  );
 };
 
 JSIL.DefinePreInitProperty = function (target, key, descriptor, initializer) {
@@ -4210,6 +4224,10 @@ JSIL.InterfaceBuilder = function (context, typeObject, publicInterface) {
   if (typeof (this.externals) !== "object")
     this.externals = JSIL.AllImplementedExternals[this.namespace] = {};
 
+  this.maybeRunCctors = function MaybeRunStaticConstructors () {
+    JSIL.RunStaticConstructors(publicInterface, typeObject);    
+  };
+
   var selfRef = typeObject;
   var gaNames = typeObject.__GenericArguments__;
   if (gaNames && gaNames.length > 0) {
@@ -4443,6 +4461,8 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
 
   var fieldIndex = this.PushMember("FieldInfo", descriptor, data);
 
+  var maybeRunCctors = this.maybeRunCctors;
+
   var context = this.context;
   var fieldCreator = function InitField (classObject, typeObject) {
     if (typeof (defaultValueExpression) === "function") {
@@ -4458,35 +4478,43 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
     } else if (typeof (defaultValueExpression) !== "undefined") {
       descriptor.Target[descriptor.EscapedName] = data.defaultValue = defaultValueExpression;
     } else {
-
       var members = typeObject.__Members__;
-
       var target = descriptor.Target;
-      JSIL.DefineLazyDefaultProperty(
-        target, descriptor.EscapedName,
-        function InitFieldDefault () {
-          var actualFieldInfo = members[fieldIndex];
-          var actualFieldType = actualFieldInfo[2].fieldType;
 
-          var fieldTypeResolved;
+      var initFieldDefault = function InitFieldDefault () {
+        var actualFieldInfo = members[fieldIndex];
+        var actualFieldType = actualFieldInfo[2].fieldType;
 
-          if (actualFieldType.getNoInitialize) {
-            // FIXME: We can't use ResolveTypeReference here because it would initialize the field type, which can form a cycle.
-            // This means that when we create a default value for a struct type, we may create an instance of an uninitalized type
-            //  or form a cycle anyway. :/
-            fieldTypeResolved = actualFieldType.getNoInitialize();
-          } else {
-            fieldTypeResolved = actualFieldType;
-          }
+        var fieldTypeResolved;
 
-          if (!fieldTypeResolved)
-            return;
-          else if (Object.getPrototypeOf(fieldTypeResolved) === JSIL.GenericParameter.prototype)
-            return;
-
-          return data.defaultValue = JSIL.DefaultValue(fieldTypeResolved);
+        if (actualFieldType.getNoInitialize) {
+          // FIXME: We can't use ResolveTypeReference here because it would initialize the field type, which can form a cycle.
+          // This means that when we create a default value for a struct type, we may create an instance of an uninitalized type
+          //  or form a cycle anyway. :/
+          fieldTypeResolved = actualFieldType.getNoInitialize();
+        } else {
+          fieldTypeResolved = actualFieldType;
         }
-      );
+
+        if (!fieldTypeResolved)
+          return;
+        else if (Object.getPrototypeOf(fieldTypeResolved) === JSIL.GenericParameter.prototype)
+          return;
+
+        return data.defaultValue = JSIL.DefaultValue(fieldTypeResolved);
+      };
+
+      if ($jsilcore.UseMembranesToRunCctors && descriptor.Static) {
+        JSIL.DefinePreInitField(
+          target, descriptor.EscapedName,
+          initFieldDefault, maybeRunCctors
+        );
+      } else {
+        JSIL.DefineLazyDefaultProperty(
+          target, descriptor.EscapedName,
+          initFieldDefault
+        );
+      }
     }  
   };
 
