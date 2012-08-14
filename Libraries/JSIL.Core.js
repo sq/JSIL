@@ -310,14 +310,20 @@ JSIL.PreInitMembrane = function (target, initializer) {
 
   this.cleanupList = [];
   this.aliasesByKey = {};
+  this.propertiesToRebind = [];
 
   this.maybeInit = Object.getPrototypeOf(this).maybeInit.bind(this);
   this.cleanup = Object.getPrototypeOf(this).cleanup.bind(this);
 };
 
-JSIL.PreInitMembrane.prototype.maybeInit = function () {
+JSIL.PreInitMembrane.prototype.checkForUseAfterCleanup = function () {
   if (this.hasRunCleanup)
     throw new Error("Membrane in use after cleanup");
+};
+
+JSIL.PreInitMembrane.prototype.maybeInit = function () {
+  if (this.hasRunCleanup)
+    JSIL.Host.logWriteLine("JIT using out of date property descriptor!");
 
   if (this.hasRunInitializer)
     return;
@@ -327,6 +333,32 @@ JSIL.PreInitMembrane.prototype.maybeInit = function () {
   JSIL.Host.runLater(this.cleanup);
 };
 
+JSIL.PreInitMembrane.prototype.rebindProperties = function () {
+  for (var i = 0, l = this.propertiesToRebind.length; i < l; i++) {
+    var propertyName = this.propertiesToRebind[i];
+    var descriptor = Object.getOwnPropertyDescriptor(this.target, propertyName);
+
+    if (!descriptor)
+      continue;
+
+    var doRebind = false;
+
+    if (descriptor.get && descriptor.get.__IsMembrane__) {
+      descriptor.get = this.target[descriptor.get.__OriginalKey__];
+      doRebind = true;
+    }
+
+    if (descriptor.set && descriptor.set.__IsMembrane__) {
+      descriptor.set = this.target[descriptor.set.__OriginalKey__];
+      doRebind = true;
+    }
+
+    if (doRebind) {
+      Object.defineProperty(this.target, propertyName, descriptor);
+    }
+  };
+};
+
 JSIL.PreInitMembrane.prototype.cleanup = function () {
   for (var i = 0, l = this.cleanupList.length; i < l; i++) {
     var cleanupFunction = this.cleanupList[i];
@@ -334,15 +366,20 @@ JSIL.PreInitMembrane.prototype.cleanup = function () {
     cleanupFunction();
   }
 
+  this.rebindProperties();
+
   this.hasRunCleanup = true;
   this.initializer = null;
   this.cleanupList = null;
-  // this.aliasesByKey = null;
+  this.aliasesByKey = null;
   this.target.__PreInitMembrane__ = null;
+  // this.propertiesToRebind = null;
   // this.target = null;
 };
 
 JSIL.PreInitMembrane.prototype.defineField = function (key, getInitialValue) {
+  this.checkForUseAfterCleanup();
+
   var needToGetFieldValue = true;
   var fieldValue;
   var target = this.target;
@@ -375,8 +412,6 @@ JSIL.PreInitMembrane.prototype.defineField = function (key, getInitialValue) {
   }
 
   var setter = function PreInitField_Set (value) {
-    maybeInit();
-
     needToGetFieldValue = false;
     fieldValue = value;
 
@@ -394,6 +429,8 @@ JSIL.PreInitMembrane.prototype.defineField = function (key, getInitialValue) {
 };
 
 JSIL.PreInitMembrane.prototype.defineMethod = function (key, fnGetter) {
+  this.checkForUseAfterCleanup();
+
   var actualFn = $jsilcore.FunctionNotInitialized;
   var target = this.target;
   var membrane;
@@ -431,11 +468,21 @@ JSIL.PreInitMembrane.prototype.defineMethod = function (key, fnGetter) {
   membrane.__Membrane__ = this;
   membrane.__IsMembrane__ = true;
   membrane.__OriginalKey__ = key;
+  membrane.__Unwrap__ = function () {
+    maybeInit();
+
+    if (actualFn === $jsilcore.FunctionNotInitialized)
+      actualFn = fnGetter();
+
+    return actualFn;
+  };
 
   JSIL.SetValueProperty(target, key, membrane);
 };
 
 JSIL.PreInitMembrane.prototype.defineMethodAlias = function (key, alias) {
+  this.checkForUseAfterCleanup();
+
   var aliases = this.aliasesByKey[key];
   if (!aliases)
     aliases = this.aliasesByKey[key] = [];
@@ -443,10 +490,13 @@ JSIL.PreInitMembrane.prototype.defineMethodAlias = function (key, alias) {
   aliases.push(alias);
 };
 
-JSIL.DefinePreInitField = function (target, key, getInitialValue, initializer) {
-  if (this.hasRunCleanup)
-    throw new Error("Membrane in use after cleanup");
+JSIL.PreInitMembrane.prototype.registerPropertyForRebind = function (key) {
+  this.checkForUseAfterCleanup();
 
+  this.propertiesToRebind.push(key);
+};
+
+JSIL.DefinePreInitField = function (target, key, getInitialValue, initializer) {
   var membrane = target.__PreInitMembrane__;
   if (!membrane)
     membrane = new JSIL.PreInitMembrane(target, initializer);
@@ -455,9 +505,6 @@ JSIL.DefinePreInitField = function (target, key, getInitialValue, initializer) {
 };
 
 JSIL.DefinePreInitMethod = function (target, key, fnGetter, initializer) {
-  if (this.hasRunCleanup)
-    throw new Error("Membrane in use after cleanup");
-
   var membrane = target.__PreInitMembrane__;
   if (!membrane)
     membrane = new JSIL.PreInitMembrane(target, initializer);
@@ -466,14 +513,19 @@ JSIL.DefinePreInitMethod = function (target, key, fnGetter, initializer) {
 };
 
 JSIL.DefinePreInitMethodAlias = function (target, alias, originalMethod) {
-  if (this.hasRunCleanup)
-    throw new Error("Membrane in use after cleanup");
-
   if (!originalMethod.__IsMembrane__)
     throw new Error("Method is not a membrane");
 
   var membrane = originalMethod.__Membrane__;
   membrane.defineMethodAlias(originalMethod.__OriginalKey__, alias);
+};
+
+JSIL.RebindPropertyAfterPreInit = function (target, propertyName) {
+  var membrane = target.__PreInitMembrane__;
+  if (!membrane)
+    membrane = new JSIL.PreInitMembrane(target, initializer);
+
+  membrane.registerPropertyForRebind(propertyName);
 };
 
 
@@ -853,23 +905,31 @@ JSIL.Host.assertionFailed = function (message) {
 
 JSIL.Host.warnedAboutRunLater = false;
 JSIL.Host.pendingRunLaterItems = [];
+JSIL.Host.runLaterPending = false;
 JSIL.Host.runLaterCallback = function () {
-  var items = JSIL.Host.pendingRunLaterItems;
+  JSIL.Host.runLaterPending = false;
 
-  while (items.length > 0) {
-    var item = items.shift();
+  var items = JSIL.Host.pendingRunLaterItems;
+  var count = items.length;
+
+  for (var i = 0; i < count; i++) {
+    var item = items[i];
     item();
   }
+
+  items.splice(0, count);
 };
 
 // This can fail to run the specified action if the host hasn't implemented it, so you should
 //  only use this to run performance improvements, not things you depend on
 JSIL.Host.runLater = function (action) {
   if (typeof (setTimeout) === "function") {
-    var needEnqueue = JSIL.Host.pendingRunLaterItems.length <= 0;
     JSIL.Host.pendingRunLaterItems.push(action);
-    if (needEnqueue)
+
+    if (!JSIL.Host.runLaterPending) {
+      JSIL.Host.runLaterPending = true;
       setTimeout(JSIL.Host.runLaterCallback, 0);
+    }
   }
 };
 
@@ -4568,6 +4628,11 @@ JSIL.InterfaceBuilder.MakeProperty = function (typeName, name, target, methodSou
 
   var typeQualifiedName = typeName + "$" + interfacePrefix + name;
   Object.defineProperty(target, typeQualifiedName, prop);
+
+  if ((getter && getter.__IsMembrane__) || (setter && setter.__IsMembrane__)) {
+    JSIL.RebindPropertyAfterPreInit(target, interfacePrefix + name);
+    JSIL.RebindPropertyAfterPreInit(target, typeQualifiedName);
+  }
 };
 
 JSIL.InterfaceBuilder.prototype.Property = function (_descriptor, name, propertyType) {
@@ -6580,6 +6645,9 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
       if (typeof (method) !== "function") {
         throw new Error("Non-function passed to Delegate.New");
       }
+
+      if (method.__IsMembrane__)
+        method = method.__Unwrap__();
 
       var resultDelegate = method.bind(object);
       var self = this;
