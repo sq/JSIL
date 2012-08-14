@@ -180,6 +180,10 @@ var $jsilcore = JSIL.DeclareAssembly("JSIL.Core");
 // WTF? Maybe they won't suck sometime in the distant future.
 $jsilcore.SealInitializedTypes = false;
 
+// If set to true, cctors will be run on the first actual use of a type's methods or static members,
+//  instead of when the type is first initialized by InitializeType.
+$jsilcore.UseMembranesToRunCctors = true;
+
 // Using these constants instead of 'null' turns some call sites from dimorphic to monomorphic in SpiderMonkey's
 //  type inference engine.
 
@@ -266,6 +270,111 @@ JSIL.SetLazyValueProperty = function (target, key, getValue) {
   };
 
   Object.defineProperty(target, key, descriptor);
+};
+
+
+JSIL.$DefinePreInitCore = function (initializer, cleanup) {
+  var runInitializer = false;
+
+  if (typeof (initializer) !== "function")
+    throw new Error("initializer is not a function");
+
+  if (typeof (cleanup) !== "function")
+    throw new Error("cleanup is not a function");
+
+  return function PreInit_MaybeInit () {
+    if (runInitializer)
+      return;
+
+    runInitializer = true;
+    JSIL.Host.runLater(cleanup);
+    initializer();
+  };
+};
+
+JSIL.DefinePreInitField = function (target, key, initialValue, initializer) {
+  var fieldValue = initialValue;
+
+  var cleanup = function PreInitField_Cleanup () {
+    Object.defineProperty(target, key, {
+      configurable: true,
+      enumerable: true,
+      writable: true,
+      value: fieldValue
+    });
+  };
+
+  var maybeInit = JSIL.$DefinePreInitCore(initializer, cleanup);
+
+  var getter = function PreInitField_Get () {
+    maybeInit();
+
+    return fieldValue;
+  }
+
+  var setter = function PreInitField_Set (value) {
+    maybeInit();
+
+    fieldValue = value;
+
+    return value;
+  };
+};
+
+JSIL.DefinePreInitProperty = function (target, key, descriptor, initializer) {
+  if ("value" in descriptor) {
+    JSIL.DefinePreInitField(target, key, descriptor.value, initializer);
+    return;
+  }
+
+  var membraneDescriptor = Object.create(descriptor);
+
+  var cleanup = function PreInitProperty_Cleanup () {
+    Object.defineProperty(target, key, descriptor);
+  };
+
+  var maybeInit = JSIL.$DefinePreInitCore(initializer, cleanup);
+
+  if (membraneDescriptor.get) {
+    membraneDescriptor.get = function PreInitProperty_Get () {
+      maybeInit();
+
+      return descriptor.get.call(this);
+    }
+  }
+
+  if (membraneDescriptor.set) {
+    membraneDescriptor.set = function PreInitProperty_Set (value) {
+      maybeInit();
+
+      return descriptor.set.call(this, value);
+    }
+  }
+
+  Object.defineProperty(target, key, membraneDescriptor);
+};
+
+JSIL.DefinePreInitMethod = function (target, key, fnGetter, initializer) {
+  var actualFn = $jsilcore.FunctionNotInitialized;
+
+  var cleanup = function PreInitMethod_Cleanup () {
+    if (actualFn === $jsilcore.FunctionNotInitialized)
+      actualFn = fnGetter();
+
+    JSIL.SetValueProperty(target, key, actualFn);
+  };
+
+  var maybeInit = JSIL.$DefinePreInitCore(initializer, cleanup);
+
+  var membrane = function PreInitMethod_Invoke () {
+    maybeInit();
+    if (actualFn === $jsilcore.FunctionNotInitialized)
+      actualFn = fnGetter();
+
+    return actualFn.apply(this, arguments);
+  };
+
+  JSIL.SetValueProperty(target, key, membrane);
 };
 
 
@@ -2674,6 +2783,10 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface, forceLazyMethod
   var printedTypeName = false;
   var resolveContext = publicInterface.prototype;
 
+  var maybeRunCctors = function MaybeRunStaticConstructors () {
+    JSIL.RunStaticConstructors(publicInterface, typeObject);    
+  };
+
   // Group up all the methods by name in preparation for building the method groups
   var methodsByName = {};
   for (var i = 0, l = methods.length; i < l; i++) {
@@ -2754,7 +2867,11 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface, forceLazyMethod
         target, typeObject.__FullName__, renamedMethods, methodName, methodEscapedName, entries
       );
 
-      if (lazyMethodGroups) {
+      if ($jsilcore.UseMembranesToRunCctors) {
+        JSIL.DefinePreInitMethod(
+          target, methodEscapedName, getter, maybeRunCctors
+        );
+      } else if (lazyMethodGroups) {
         JSIL.SetLazyValueProperty(
           target, methodEscapedName, getter
         );
@@ -2853,29 +2970,8 @@ JSIL.InitializeType = function (type) {
     }
   }
 
-  // Run any queued initializers for the type
-  var ti = typeObject.__Initializers__ || [];
-  while (ti.length > 0) {
-    var initializer = ti.unshift();
-    if (typeof (initializer) === "function")
-      initializer(type);
-  };
-
-  // If the type is closed, invoke its static constructor(s)
-  if (typeObject.__IsClosed__) {
-    for (var i = 0; i < $jsilcore.cctorKeys.length; i++) {
-      var key = $jsilcore.cctorKeys[i];
-      var cctor = classObject[key];
-
-      if (typeof (cctor) === "function") {
-        try {
-          cctor.call(classObject);
-        } catch (e) {
-          JSIL.Host.error(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(type) + ": ");
-        }
-      }
-    }
-  }
+  if (!$jsilcore.UseMembranesToRunCctors)
+    JSIL.RunStaticConstructors(classObject, typeObject);
 
   // Any closed forms of the type, if it's an open type, should be initialized too.
   if (typeof (typeObject.__OfCache__) !== "undefined") {
@@ -2900,6 +2996,37 @@ JSIL.InitializeType = function (type) {
 
     if (typeof(type.__PublicInterface__) === "object")
       Object.seal(type.__PublicInterface__);
+  }
+};
+
+JSIL.RunStaticConstructors = function (classObject, typeObject) {
+  if (typeObject.__RanCctors__)
+    return;
+
+  typeObject.__RanCctors__ = true;
+
+  // Run any queued initializers for the type
+  var ti = typeObject.__Initializers__ || [];
+  while (ti.length > 0) {
+    var initializer = ti.unshift();
+    if (typeof (initializer) === "function")
+      initializer(classObject);
+  };
+
+  // If the type is closed, invoke its static constructor(s)
+  if (typeObject.__IsClosed__) {
+    for (var i = 0; i < $jsilcore.cctorKeys.length; i++) {
+      var key = $jsilcore.cctorKeys[i];
+      var cctor = classObject[key];
+
+      if (typeof (cctor) === "function") {
+        try {
+          cctor.call(classObject);
+        } catch (e) {
+          JSIL.Host.error(e, "Unhandled exception in static constructor for type " + JSIL.GetTypeName(typeObject) + ": ");
+        }
+      }
+    }
   }
 };
 
@@ -3394,8 +3521,13 @@ JSIL.MakeTypeConstructor = function (typeObject) {
     ctorToCall: $jsilcore.FunctionNotInitialized
   };
 
+  var maybeRunCctors = function MaybeRunStaticConstructors () {
+    JSIL.RunStaticConstructors(typeObject.__PublicInterface__, typeObject);    
+  };
+
   var oneTime = function Type__ctor_Once () {
     JSIL.InitializeType(typeObject);
+    maybeRunCctors();
 
     typeObject.__StructFieldInitializer__ = state.sfi = JSIL.MakeStructFieldInitializer(typeObject);
 
