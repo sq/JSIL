@@ -295,6 +295,9 @@ JSIL.PreInitMembrane = function (target, initializer) {
 };
 
 JSIL.PreInitMembrane.prototype.maybeInit = function () {
+  if (this.target === null)
+    throw new Error("Membrane in use after cleanup");
+
   if (this.hasRunInitializer)
     return;
 
@@ -2786,6 +2789,47 @@ JSIL.$ApplyMemberHiding = function (typeObject, memberList, resolveContext) {
   }
 };
 
+JSIL.$CreateMethodMembranes = function (typeObject, publicInterface) {
+  var maybeRunCctors = function MaybeRunStaticConstructors () {
+    JSIL.RunStaticConstructors(publicInterface, typeObject);    
+  };
+
+  var makeReturner = function (value) {
+    return function () { return value; };
+  };
+
+  var methods = JSIL.GetMembersInternal(
+    typeObject, 0, "MethodInfo", true
+  );
+
+  // We need to ensure that all the mangled method names have membranes applied.
+  // This can't be done before now due to generic types.
+  for (var i = 0, l = methods.length; i < l; i++) {
+    var method = methods[i];
+    var isStatic = method._descriptor.Static;
+    // FIXME: I'm not sure this is right for open generic methods.
+    // I think it might be looking up the old open form of the method signature
+    //  instead of the closed form.
+    var key = method._data.signature.GetKey(method._descriptor.EscapedName);
+
+    var useMembrane = isStatic && 
+      ($jsilcore.cctorKeys.indexOf(method._descriptor.Name) < 0) &&
+      ($jsilcore.cctorKeys.indexOf(method._descriptor.EscapedName) < 0);
+
+    if (useMembrane) {
+      var originalFunction = publicInterface[key];
+      if (typeof (originalFunction) !== "function") {
+        // throw new Error("No function with key '" + key + "' found");
+        continue;
+      }
+
+      JSIL.DefinePreInitMethod(
+        publicInterface, key, makeReturner(originalFunction), maybeRunCctors
+      );
+    }
+  }
+};
+
 JSIL.$BuildMethodGroups = function (typeObject, publicInterface, forceLazyMethodGroups) {
   // This is called during type system initialization, so we can't rely on any of MemberInfo's
   //  properties or methods - we need to access the data members directly.
@@ -2814,41 +2858,6 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface, forceLazyMethod
 
   var printedTypeName = false;
   var resolveContext = publicInterface.prototype;
-
-  var maybeRunCctors = function MaybeRunStaticConstructors () {
-    JSIL.RunStaticConstructors(publicInterface, typeObject);    
-  };
-
-  var makeReturner = function (value) {
-    return function () { return value; };
-  };
-
-  // We need to ensure that all the mangled method names have membranes applied.
-  // This can't be done before now due to generic types.
-  for (var i = 0, l = methods.length; i < l; i++) {
-    var method = methods[i];
-    var isStatic = method._descriptor.Static;
-    // FIXME: I'm not sure this is right for open generic methods.
-    // I think it might be looking up the old open form of the method signature
-    //  instead of the closed form.
-    var key = method._data.signature.GetKey(method._descriptor.EscapedName);
-
-    var useMembrane = isStatic && 
-      ($jsilcore.cctorKeys.indexOf(method._descriptor.Name) < 0) &&
-      ($jsilcore.cctorKeys.indexOf(method._descriptor.EscapedName) < 0);
-
-    if (useMembrane) {
-      var originalFunction = publicInterface[key];
-      if (typeof (originalFunction) !== "function") {
-        // throw new Error("No function with key '" + key + "' found");
-        continue;
-      }
-
-      JSIL.DefinePreInitMethod(
-        publicInterface, key, makeReturner(originalFunction), maybeRunCctors
-      );
-    }
-  }
 
   // Group up all the methods by name in preparation for building the method groups
   var methodsByName = {};
@@ -3004,6 +3013,7 @@ JSIL.InitializeType = function (type) {
       forceLazyMethodGroups = true;
 
     if (typeObject.IsInterface !== true) {
+      JSIL.$CreateMethodMembranes(typeObject, classObject);
       JSIL.$BuildMethodGroups(typeObject, classObject, forceLazyMethodGroups);
     }
 
@@ -3602,7 +3612,6 @@ JSIL.MakeTypeConstructor = function (typeObject) {
   };
 
   var oneTime = function Type__ctor_Once () {
-    JSIL.InitializeType(typeObject);
     maybeRunCctors();
 
     typeObject.__StructFieldInitializer__ = state.sfi = JSIL.MakeStructFieldInitializer(typeObject);
@@ -4528,6 +4537,10 @@ JSIL.InterfaceBuilder.prototype.Field = function (_descriptor, fieldName, fieldT
   ) {
     var actualTarget = descriptor.Static ? classObject : fullyDerivedClassObject.prototype;
 
+    // If the field has already been initialized, don't overwrite it.
+    if (Object.getOwnPropertyDescriptor(actualTarget, descriptor.EscapedName))
+      return;
+
     if (typeof (defaultValueExpression) === "function") {
       data.defaultValueExpression = defaultValueExpression;
 
@@ -4849,7 +4862,7 @@ JSIL.MethodSignature.prototype.Construct = function (type /*, ...parameters */) 
     result = Object.create(proto);
   }
 
-  JSIL.InitializeType(typeObject);
+  JSIL.RunStaticConstructors(publicInterface, typeObject);
   
   JSIL.InitializeStructFields(result, typeObject);
 
@@ -5351,7 +5364,7 @@ JSIL.CreateInstanceOfType = function (type, constructorName, constructorArgument
   var instance = JSIL.CloneObject(publicInterface.prototype);
   var constructor = $jsilcore.FunctionNotInitialized;
 
-  JSIL.InitializeType(type);
+  JSIL.RunStaticConstructors(publicInterface, type);
   JSIL.InitializeStructFields(instance, type);
   if (typeof (constructorName) === "string") {
     constructor = publicInterface.prototype[constructorName];
