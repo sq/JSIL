@@ -2810,6 +2810,39 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface, forceLazyMethod
     JSIL.RunStaticConstructors(publicInterface, typeObject);    
   };
 
+  var makeReturner = function (value) {
+    return function () { return value; };
+  };
+
+  // If membranes are enabled, we need to ensure that all the mangled method names
+  //  have membranes applied. This can't be done before now due to generic types.
+  if ($jsilcore.UseMembranesToRunCctors) {
+    for (var i = 0, l = methods.length; i < l; i++) {
+      var method = methods[i];
+      var isStatic = method._descriptor.Static;
+      // FIXME: I'm not sure this is right for open generic methods.
+      // I think it might be looking up the old open form of the method signature
+      //  instead of the closed form.
+      var key = method._data.signature.GetKey(method._descriptor.EscapedName);
+
+      var useMembrane = isStatic && 
+        ($jsilcore.cctorKeys.indexOf(method._descriptor.Name) < 0) &&
+        ($jsilcore.cctorKeys.indexOf(method._descriptor.EscapedName) < 0);
+
+      if (useMembrane) {
+        var originalFunction = publicInterface[key];
+        if (typeof (originalFunction) !== "function") {
+          // throw new Error("No function with key '" + key + "' found");
+          continue;
+        }
+
+        JSIL.DefinePreInitMethod(
+          publicInterface, key, makeReturner(originalFunction), maybeRunCctors
+        );
+      }
+    }
+  }
+
   // Group up all the methods by name in preparation for building the method groups
   var methodsByName = {};
   for (var i = 0, l = methods.length; i < l; i++) {
@@ -2890,15 +2923,7 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface, forceLazyMethod
         target, typeObject.__FullName__, renamedMethods, methodName, methodEscapedName, entries
       );
 
-      if (
-        $jsilcore.UseMembranesToRunCctors && 
-        isStatic && 
-        ($jsilcore.cctorKeys.indexOf(methodName) < 0)
-      ) {
-        JSIL.DefinePreInitMethod(
-          target, methodEscapedName, getter, maybeRunCctors
-        );
-      } else if (lazyMethodGroups) {
+      if (lazyMethodGroups) {
         JSIL.SetLazyValueProperty(
           target, methodEscapedName, getter
         );
