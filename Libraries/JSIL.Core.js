@@ -1243,6 +1243,13 @@ JSIL.ResolveGenericTypeReference = function (obj, context) {
 
     return new JSIL.TypeRef(obj.context, obj.typeName, resolvedGa);
   } else if (!obj.__IsClosed__) {
+    if (obj.__IsArray__) {
+      var elementType = JSIL.ResolveGenericTypeReference(obj.__ElementType__, context);
+      if (elementType !== obj.__ElementType__)
+        obj = System.Array.Of(elementType);
+      return obj;
+    }
+  
     var ga = obj.__GenericArguments__ || [];
     if (ga.length < 1)
       return obj;
@@ -5939,6 +5946,7 @@ JSIL.MakeClass("System.Object", "System.Array", true, [], function ($) {
       compositeTypeObject.__IsReferenceType__ = true;
       compositeTypeObject.__IsArray__ = true;
       compositeTypeObject.__ElementType__ = elementTypeObject;
+      compositeTypeObject.__IsClosed__ = Object.getPrototypeOf(compositeTypeObject.__ElementType__) !== JSIL.GenericParameter.prototype;
 
       JSIL.SetValueProperty(compositePublicInterface, "CheckType", checkType);
       JSIL.SetValueProperty(compositeTypeObject, "toString", function ArrayType_ToString () {

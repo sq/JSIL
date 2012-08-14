@@ -7,6 +7,7 @@ public static class Program {
         CheckTypes(new MyClass());
         CheckTypes(new MyClassT<int>());
         CheckTypes(new MyClassT<object>());
+        CheckTypes(new B<object>());
     }
 
     public static void CheckTypes (object value) {
@@ -25,6 +26,10 @@ public static class Program {
         if (value is MyClassT<object>)
             Console.WriteLine("class<object>");
 
+        if (value is B<object>)
+            Console.WriteLine("class<object>");
+        if (value is I<object[]>)
+            Console.WriteLine("interface<object>");
     }
 }
 
@@ -32,4 +37,13 @@ public class MyClass {
 }
 
 public class MyClassT<T> {
+}
+
+public interface I<T> {
+}
+
+public class A<T> : I<T> {
+}
+
+public class B<T> : A<T[]> {
 }
