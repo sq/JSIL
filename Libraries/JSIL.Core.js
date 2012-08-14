@@ -1203,6 +1203,18 @@ JSIL.TypeObjectPrototype.toString = function () {
   return JSIL.GetTypeName(this);
 };
 
+JSIL.TypeObjectPrototype.get_Assembly = function() { return this.__Context__; }
+JSIL.TypeObjectPrototype.get_Namespace = function() { return JSIL.GetParentName(this.__FullNameWithoutArguments__ || this.__FullName__); }
+JSIL.TypeObjectPrototype.get_Name = function() { return JSIL.GetLocalName(this.__FullNameWithoutArguments__ || this.__FullName__); }
+JSIL.TypeObjectPrototype.get_FullName = function() { return this.__FullName__; }
+JSIL.TypeObjectPrototype.get_AssemblyQualifiedName = function() { return this.get_FullName() + ", " + this.get_Assembly().toString(); }
+JSIL.TypeObjectPrototype.get_IsEnum = function() { return this.__IsEnum__; }
+JSIL.TypeObjectPrototype.get_IsGenericType = function() { return this.__OpenType__ !== undefined || this.__IsClosed__ === false; }
+JSIL.TypeObjectPrototype.get_IsGenericTypeDefinition = function() { return this.__IsClosed__ === false; }
+JSIL.TypeObjectPrototype.get_IsValueType = function() { return this.__IsValueType__; }
+JSIL.TypeObjectPrototype.get_IsArray = function() { return this.__IsArray__; }
+
+
 JSIL.ResolveGenericTypeReference = function (obj, context) {
   if ((typeof (obj) !== "object") || (obj === null))
     return null;
@@ -1510,8 +1522,19 @@ $jsilcore.$Of$NoInitialize = function () {
 
     JSIL.MakeIndirectProperty(result, k, staticClassObject);
   }
+  
+  var fullNameUnqualified = typeObject.__FullName__ + "[" + Array.prototype.join.call(resolvedArguments, ", ") + "]";
+  var fullName = typeObject.__FullName__;
+  if (resolvedArguments.length > 0) {
+    fullName += "[";
+    for (var i = 0; i < resolvedArguments.length; ++i) {
+      fullName += "[";
+      fullName += resolvedArguments[i].AssemblyQualifiedName;
+      fullName += "]";
+    }
+    fullName += "]";
+  }
 
-  var fullName = typeObject.__FullName__ + "[" + Array.prototype.join.call(resolvedArguments, ", ") + "]";
   var typeId = typeObject.__TypeId__ + "[";
   for (var i = 0; i < resolvedArguments.length; i++) {
     if (i > 0)
@@ -1526,10 +1549,11 @@ $jsilcore.$Of$NoInitialize = function () {
   resultTypeObject.__GenericArgumentValues__ = resolvedArguments;
   resultTypeObject.__FullNameWithoutArguments__ = typeObject.__FullName__;
   resultTypeObject.__FullName__ = fullName;
+  resultTypeObject.__FullNameUnqualified__ = fullNameUnqualified;
 
   JSIL.SetValueProperty(resultTypeObject, "toString", 
     function GenericType_ToString () {
-      return this.__FullName__;
+      return this.__FullNameUnqualified__;
     }
   );
 
@@ -1544,7 +1568,7 @@ $jsilcore.$Of$NoInitialize = function () {
   if (typeof (result.prototype) !== "undefined") {
     JSIL.SetValueProperty(result.prototype, "__ThisType__", resultTypeObject);
     JSIL.SetValueProperty(result.prototype, "__ThisTypeId__", resultTypeObject.__TypeId__);
-    result.prototype.__FullName__ = fullName;
+    result.prototype.__FullName__ = fullNameUnqualified;
   }
 
   // This is important: It's possible for recursion to cause the initializer to run while we're defining properties.
@@ -1940,7 +1964,7 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
   var runtimeType = Object.create(JSIL.TypeObjectPrototype);
   runtimeType.__IsReferenceType__ = true;
   runtimeType.IsInterface = false;
-  runtimeType.IsEnum = false;
+  runtimeType.__IsEnum__ = false;
   runtimeType.__ThisType__ = runtimeType;
   runtimeType.__ThisTypeId__ = runtimeType.__TypeId__;
   runtimeType.__TypeInitialized__ = false;
@@ -2082,7 +2106,7 @@ JSIL.$MakeComparerCore = function (typeObject, context, body) {
       var field = fields[i];
       var fieldType = field.get_FieldType();
 
-      if (fieldType.__IsNumeric__ || fieldType.IsEnum) {
+      if (fieldType.__IsNumeric__ || fieldType.__IsEnum__) {
         body.push("  if (lhs['" + field.Name + "'] !== rhs['" + field.Name + "'])");
       } else if (fieldType.__IsStruct__) {
         body.push("  if (!lhs['" + field.Name + "'].Equals(rhs['" + field.Name + "']))");
@@ -3530,7 +3554,7 @@ JSIL.MakeType = function (baseType, fullName, isReferenceType, isPublic, generic
     typeObject.__GenericArguments__ = genericArguments || [];
     typeObject.__IsStruct__ = !isReferenceType && (baseTypeName === "System.ValueType");
     typeObject.IsInterface = false;
-    typeObject.IsValueType = !isReferenceType;
+    typeObject.__IsValueType__ = !isReferenceType;
 
     if (stack !== null)
       typeObject.__CallStack__ = stack;
@@ -3764,22 +3788,24 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
   var context = $private;
 
   var creator = function CreateEnum () {
-    var result = {
-      __Context__: context,
-      __CallStack__: callStack,
-      __FullName__: fullName, 
-      FullName: fullName,
-      Name: localName,
-      IsEnum: true,
-      IsValueType: true,
-      __IsReferenceType__: false,
-      __TypeId__: JSIL.AssignTypeId(context, fullName),
-      __IsFlagsEnum__: isFlagsEnum,
-      __ValueToName__: {},
-      __Interfaces__: null,
-      __Names__: []
-    };
+    var runtimeType;
+    runtimeType = $jsilcore.$GetRuntimeType(context, fullName);
 
+    var result = JSIL.CloneObject(runtimeType);
+
+    result.__Context__ = context;
+    result.__CallStack__ = callStack;
+    result.__FullName__ = fullName; 
+    result.__IsArray__ = false;
+    result.__IsEnum__ = true;
+    result.__IsValueType__ = true;
+    result.__IsReferenceType__ = false;
+    result.__TypeId__ = JSIL.AssignTypeId(context, fullName);
+    result.__IsFlagsEnum__ = isFlagsEnum;
+    result.__ValueToName__ = {};
+    result.__Interfaces__ = null;
+    result.__Names__ = [];
+    
     var enumTypeId = JSIL.AssignTypeId($jsilcore, "System.Enum");
 
     result.__AssignableTypes__ = {};
@@ -3791,9 +3817,9 @@ JSIL.MakeEnum = function (fullName, isPublic, members, isFlagsEnum) {
 
     result.__Type__ = result; // HACK
 
-    result.toString = function Enum_ToString () {
-      return localName;
-    };
+    JSIL.SetValueProperty(result, "toString", function Type_ToString () {
+      return this.__FullName__;
+    });
 
     result.Of$NoInitialize = function () {
       return result;
@@ -4006,13 +4032,13 @@ JSIL.GetTypeName = function (type) {
   if (typeof (type) === "string")
     return type;
 
-  var result = type.__FullName__;
+  var result = type.__FullNameUnqualified__ || type.__FullName__;
 
   if ((typeof (result) === "undefined") && (typeof (type.prototype) !== "undefined"))
-    result = type.prototype.__FullName__;
+    result = type.prototype.__FullNameUnqualified__ || type.prototype.__FullName__;
 
   if ((typeof (result) === "undefined") && (typeof (type.__Type__) === "object"))
-    return type.__Type__.__FullName__;
+    return type.__Type__.__FullNameUnqualified__ || type.__Type__.__FullName__;
 
   if (typeof (result) === "string")
     return result;
@@ -5369,14 +5395,23 @@ JSIL.ImplementExternals(
     $.Method({Static:false, Public:true }, "get_IsGenericType",
       new JSIL.MethodSignature("System.Boolean", []),
       function () {
-        return this.__OpenType__ !== undefined && this.__IsClosed__ === true;
+        return this.__OpenType__ !== undefined || this.__IsClosed__ === false;
       }
     );
 
+    $.Method({Static:false, Public:true }, "get_IsGenericTypeDefinition",
+      new JSIL.MethodSignature("System.Boolean", []),
+      function () {
+        return this.__IsClosed__ === false;
+      }
+    );
+    
     $.Method({Static:false, Public:true }, "GetGenericTypeDefinition",
       (new JSIL.MethodSignature($.Type, [], [])),
       function () {
-        return this.__OpenType__;
+        if (this.get_IsGenericType() === false)
+          throw new System.Exception("The current type is not a generic type.");
+        return this.__OpenType__ || this;
       }
     );
 
@@ -5401,6 +5436,21 @@ JSIL.ImplementExternals(
         return this.__IsArray__;
       }
     );
+    
+    $.Method({Public: true , Static: false}, "get_IsValueType",
+      new JSIL.MethodSignature("System.Boolean", []),
+      function() {
+        return this.__IsValueType__;
+      }
+    );
+
+    
+    $.Method({Public: true , Static: false}, "get_IsEnum",
+      new JSIL.MethodSignature("System.Boolean", []),
+      function () {
+        return this.__IsEnum__;
+      }
+    );
 
     $.Method({Static:false, Public:true }, "GetElementType",
       new JSIL.MethodSignature($.Type, []),
@@ -5412,7 +5462,7 @@ JSIL.ImplementExternals(
     $.Method({Public: true , Static: false}, "get_Name",
       new JSIL.MethodSignature("System.String", []),
       function () {
-        return JSIL.GetLocalName(this.__FullName__);
+        return JSIL.GetLocalName(this.__FullNameWithoutArguments__ || this.__FullName__);
       }
     );
 
@@ -5435,34 +5485,14 @@ JSIL.ImplementExternals(
       new JSIL.MethodSignature("System.String", []),
       function () {
         // FIXME: Probably wrong for nested types.
-        return JSIL.GetParentName(this.__FullName__);
+        return JSIL.GetParentName(this.__FullNameWithoutArguments__ || this.__FullName__);
       }
     );
-
+    
     $.Method({Public: true , Static: false}, "get_AssemblyQualifiedName",
       new JSIL.MethodSignature("System.String", []),
       function () {
-        var result;
-        if (this.__FullNameWithoutArguments__ !== undefined) {
-          result = this.__FullNameWithoutArguments__;
-        } else {
-          result = this.__FullName__;
-        }
-        
-        if (this.__GenericArgumentValues__ !== undefined && this.__GenericArgumentValues__.length > 0) {
-          result += "[";
-          for (var i = 0; i < this.__GenericArgumentValues__.length; ++i) {
-            result += "[";
-            result += this.__GenericArgumentValues__[i].AssemblyQualifiedName;
-            result += "]";
-          }
-          result += "]";
-        }
-
-        result += ", ";
-        result += this.Assembly.toString();
-        
-        return result;
+        return this.get_FullName() + ", " + this.get_Assembly().toString();
       }
     );
 
@@ -5944,7 +5974,7 @@ JSIL.DefaultValueInternal = function (typeObject, typePublicInterface) {
     return null;
   } else if (typeObject.__IsNumeric__) {
     return 0;
-  } else if (typeObject.IsEnum) {
+  } else if (typeObject.__IsEnum__) {
     return typeObject[typeObject.__ValueToName__[0]];
   } else {
     return new typePublicInterface();
@@ -6258,7 +6288,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
     typeObject.__IsReferenceType__ = true;
     typeObject.__AssignableTypes__ = null;
     typeObject.__AssignableFromTypes__ = {};
-    typeObject.IsEnum = false;
+    typeObject.__IsEnum__ = false;
 
     typeObject.__GenericArguments__ = genericArguments || [];
 
@@ -6266,7 +6296,7 @@ JSIL.MakeDelegate = function (fullName, isPublic, genericArguments) {
     staticClassObject.__Type__ = typeObject;
 
     var toStringImpl = function DelegateType_ToString () {
-      return this.__ThisType__.__FullName__;
+      return this.__ThisType__.toString();
     };    
 
     JSIL.SetValueProperty(staticClassObject, "CheckType", $jsilcore.CheckDelegateType.bind(typeObject));
@@ -6541,7 +6571,10 @@ JSIL.MakeClass("System.Reflection.MemberInfo", "System.Type", true, [], function
     $.Property({Public: true , Static: false, Virtual: true }, "AssemblyQualifiedName");
     $.Property({Public: true , Static: false, Virtual: true }, "BaseType");
     $.Property({Public: true , Static: false, Virtual: true }, "IsGenericType");
-    $.Property({Public: true , Static: false, Virtual: true }, "IsArray");
+    $.Property({Public: true , Static: false, Virtual: true }, "IsGenericTypeDefinition");
+    $.Property({Public: true , Static: false }, "IsArray");
+    $.Property({Public: true , Static: false }, "IsValueType");
+    $.Property({Public: true , Static: false }, "IsEnum");
 });
 
 JSIL.MakeClass("System.Type", "System.RuntimeType", false, [], function ($) {
