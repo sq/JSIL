@@ -98,26 +98,60 @@ namespace JSIL.Transforms {
                 TypeUtil.IsNumeric(currentType) &&
                 targetType != currentType
             ) {
-                if (currentType == TypeSystem.Int64) {
-                    newExpression = JSInvocationExpression
-                        .InvokeMethod(
-                            TypeSystem.Int64, 
-                            new JSFakeMethod("ToNumber", TypeSystem.Int32, new TypeReference[] { }, MethodTypeFactory), 
-                            ce.Expression);
+                if (currentType.MetadataType == MetadataType.Int64) {
+                    if (targetType.MetadataType == MetadataType.UInt64) {
+                        newExpression = JSInvocationExpression
+                            .InvokeMethod(
+                                TypeSystem.Int64,
+                                new JSFakeMethod("ToUInt64", TypeSystem.Int32, new TypeReference[] { }, MethodTypeFactory),
+                                ce.Expression);
+                    }
+                    else {
+                        newExpression = JSInvocationExpression
+                            .InvokeMethod(
+                                TypeSystem.Int64,
+                                new JSFakeMethod("ToNumber", TypeSystem.Int32, new TypeReference[] { }, MethodTypeFactory),
+                                ce.Expression);
+                    }
                 }
-                else if (targetType == TypeSystem.Int64) {
+                else if (currentType.MetadataType == MetadataType.UInt64) { 
+                    if (targetType.MetadataType == MetadataType.Int64) { 
+                        newExpression = JSInvocationExpression
+                            .InvokeMethod(
+                                TypeSystem.Int64,
+                                new JSFakeMethod("ToInt64", TypeSystem.Int32, new TypeReference[] { }, MethodTypeFactory),
+                                ce.Expression);
+                    }
+                    else {
+                        newExpression = JSInvocationExpression
+                            .InvokeMethod(
+                                TypeSystem.Int64,
+                                new JSFakeMethod("ToNumber", TypeSystem.Int32, new TypeReference[] { }, MethodTypeFactory),
+                                ce.Expression);
+                    }
+                }
+                else if (targetType.MetadataType == MetadataType.Int64) {
                     newExpression = JSInvocationExpression.InvokeStatic(
                         new JSType(TypeSystem.Int64),
                         new JSFakeMethod("FromNumber", TypeSystem.Int64, new[] { currentType }, MethodTypeFactory),
                         new[] { ce.Expression },
                         true);
                 }
+                else if (targetType.MetadataType == MetadataType.UInt64) {
+                    newExpression = JSInvocationExpression.InvokeStatic(
+                        new JSType(TypeSystem.UInt64),
+                        new JSFakeMethod("FromNumber", TypeSystem.UInt64, new[] { currentType }, MethodTypeFactory),
+                        new[] { ce.Expression },
+                        true);
+                }
                 else if (
                     TypeUtil.IsIntegral(currentType) ||
-                    !TypeUtil.IsIntegral(targetType)) {
+                    !TypeUtil.IsIntegral(targetType))
+                {
                     newExpression = ce.Expression;
                 }
-                else {
+                else
+                {
                     newExpression = new JSTruncateExpression(ce.Expression);
                 }
             } else {

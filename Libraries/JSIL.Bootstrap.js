@@ -5913,6 +5913,12 @@ JSIL.MakeStruct("System.ValueType", "System.UInt64", true, [], function ($) {
       return s;
     });
 
+  $.Method({ Static: false, Public: true }, "ToInt64",
+    new JSIL.MethodSignature(mscorlib.TypeRef("System.Int64"), []),
+    function () {
+      var d = this.data;
+      return new mscorlib.System.Int64(d[0], d[1], d[2]);
+    });
 
   $.Method({ Static: false, Public: true }, "Clone",
     new JSIL.MethodSignature($.Type, []),
@@ -6168,6 +6174,13 @@ JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) {
         return me.op_UnaryNegation(r);
       else
         return r;
+    });
+
+  $.Method({ Static: false, Public: true }, "ToUInt64",
+    new JSIL.MethodSignature(mscorlib.TypeRef("System.UInt64"), []),
+    function () {
+      var d = this.data;
+      return new mscorlib.System.UInt64(d[0], d[1], d[2]);
     });
 
   $.Method({ Static: false, Public: true }, "ToNumber",
