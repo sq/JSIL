@@ -194,13 +194,27 @@ $jsilcore.PropertyNotInitialized = {};
 JSIL.DefineLazyDefaultProperty = function (target, key, getDefault) {
   var state = $jsilcore.PropertyNotInitialized;
 
+  var descriptor = {
+    configurable: true,
+    enumerable: true
+  };
+
   var cleanup = function () {
-    Object.defineProperty(target, key, {
-      configurable: true,
-      enumerable: true,
-      writable: true,
-      value: target[key]
-    });
+    var currentDescriptor = Object.getOwnPropertyDescriptor(target, key);
+
+    // Someone could have replaced us with a new property. If so, don't trample
+    //  over them.
+    if (
+      currentDescriptor && 
+      (currentDescriptor.get === descriptor.get) &&
+      (currentDescriptor.set === descriptor.set)
+    ) 
+      Object.defineProperty(target, key, {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        value: target[key]
+      });
   };
 
   var initIfNeeded = function (self) {
@@ -233,12 +247,8 @@ JSIL.DefineLazyDefaultProperty = function (target, key, getDefault) {
     return value;
   };
 
-  var descriptor = {
-    configurable: true,
-    enumerable: true,
-    get: getter,
-    set: setter
-  };
+  descriptor.get = getter;
+  descriptor.set = setter;
 
   Object.defineProperty(target, key, descriptor);
 };
@@ -246,8 +256,21 @@ JSIL.DefineLazyDefaultProperty = function (target, key, getDefault) {
 JSIL.SetLazyValueProperty = function (target, key, getValue) {
   var state = $jsilcore.PropertyNotInitialized;
 
+  var descriptor = {
+    configurable: true,
+    enumerable: true,
+  };
+
   var cleanup = function () {
-    JSIL.SetValueProperty(target, key, state);
+    var currentDescriptor = Object.getOwnPropertyDescriptor(target, key);
+
+    // Someone could have replaced us with a new property. If so, don't trample
+    //  over them.
+    if (
+      currentDescriptor && 
+      (currentDescriptor.get === descriptor.get)
+    )
+      JSIL.SetValueProperty(target, key, state);
   };
 
   var getter = function LazyValueProperty_Get () {
@@ -259,11 +282,7 @@ JSIL.SetLazyValueProperty = function (target, key, getValue) {
     return state;
   };
 
-  var descriptor = {
-    configurable: true,
-    enumerable: true,
-    get: getter
-  };
+  descriptor.get = getter;
 
   Object.defineProperty(target, key, descriptor);
 };
@@ -286,16 +305,18 @@ JSIL.PreInitMembrane = function (target, initializer) {
   this.target.__PreInitMembrane__ = this;
 
   this.hasRunInitializer = false;
+  this.hasRunCleanup = false;
   this.initializer = initializer;
 
   this.cleanupList = [];
+  this.aliasesByKey = {};
 
   this.maybeInit = Object.getPrototypeOf(this).maybeInit.bind(this);
   this.cleanup = Object.getPrototypeOf(this).cleanup.bind(this);
 };
 
 JSIL.PreInitMembrane.prototype.maybeInit = function () {
-  if (this.target === null)
+  if (this.hasRunCleanup)
     throw new Error("Membrane in use after cleanup");
 
   if (this.hasRunInitializer)
@@ -313,10 +334,12 @@ JSIL.PreInitMembrane.prototype.cleanup = function () {
     cleanupFunction();
   }
 
+  this.hasRunCleanup = true;
   this.initializer = null;
   this.cleanupList = null;
+  // this.aliasesByKey = null;
   this.target.__PreInitMembrane__ = null;
-  this.target = null;
+  // this.target = null;
 };
 
 JSIL.PreInitMembrane.prototype.defineField = function (key, getInitialValue) {
@@ -373,17 +396,31 @@ JSIL.PreInitMembrane.prototype.defineField = function (key, getInitialValue) {
 JSIL.PreInitMembrane.prototype.defineMethod = function (key, fnGetter) {
   var actualFn = $jsilcore.FunctionNotInitialized;
   var target = this.target;
+  var membrane;
 
-  var cleanup = function PreInitMethod_Cleanup () {
+  this.cleanupList.push(function PreInitMethod_Cleanup () {
     if (actualFn === $jsilcore.FunctionNotInitialized)
       actualFn = fnGetter();
 
-    JSIL.SetValueProperty(target, key, actualFn);
-  };
+    if (target[key].__IsMembrane__)
+      JSIL.SetValueProperty(target, key, actualFn);
+
+    var aliases = this.aliasesByKey[key];
+    if (aliases) {
+      for (var i = 0, l = aliases.length; i < l; i++) {
+        var alias = aliases[i];
+
+        if (target[alias].__IsMembrane__)
+          JSIL.SetValueProperty(target, alias, actualFn);
+      }
+    }
+
+    // delete this.aliasesByKey[key];
+  }.bind(this));
 
   var maybeInit = this.maybeInit;
 
-  var membrane = function PreInitMethod_Invoke () {
+  membrane = function PreInitMethod_Invoke () {
     maybeInit();
     if (actualFn === $jsilcore.FunctionNotInitialized)
       actualFn = fnGetter();
@@ -391,11 +428,25 @@ JSIL.PreInitMembrane.prototype.defineMethod = function (key, fnGetter) {
     return actualFn.apply(this, arguments);
   };
 
+  membrane.__Membrane__ = this;
+  membrane.__IsMembrane__ = true;
+  membrane.__OriginalKey__ = key;
+
   JSIL.SetValueProperty(target, key, membrane);
 };
 
+JSIL.PreInitMembrane.prototype.defineMethodAlias = function (key, alias) {
+  var aliases = this.aliasesByKey[key];
+  if (!aliases)
+    aliases = this.aliasesByKey[key] = [];
+
+  aliases.push(alias);
+};
 
 JSIL.DefinePreInitField = function (target, key, getInitialValue, initializer) {
+  if (this.hasRunCleanup)
+    throw new Error("Membrane in use after cleanup");
+
   var membrane = target.__PreInitMembrane__;
   if (!membrane)
     membrane = new JSIL.PreInitMembrane(target, initializer);
@@ -404,11 +455,25 @@ JSIL.DefinePreInitField = function (target, key, getInitialValue, initializer) {
 };
 
 JSIL.DefinePreInitMethod = function (target, key, fnGetter, initializer) {
+  if (this.hasRunCleanup)
+    throw new Error("Membrane in use after cleanup");
+
   var membrane = target.__PreInitMembrane__;
   if (!membrane)
     membrane = new JSIL.PreInitMembrane(target, initializer);
 
   membrane.defineMethod(key, fnGetter);
+};
+
+JSIL.DefinePreInitMethodAlias = function (target, alias, originalMethod) {
+  if (this.hasRunCleanup)
+    throw new Error("Membrane in use after cleanup");
+
+  if (!originalMethod.__IsMembrane__)
+    throw new Error("Method is not a membrane");
+
+  var membrane = originalMethod.__Membrane__;
+  membrane.defineMethodAlias(originalMethod.__OriginalKey__, alias);
 };
 
 
@@ -2397,6 +2462,9 @@ JSIL.$MakeAnonymousMethod = function (target, body) {
     }
   );
 
+  if (body.__IsMembrane__)
+    JSIL.DefinePreInitMethodAlias(target, key, body);
+
   return key;
 };
 
@@ -2930,7 +2998,11 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface, forceLazyMethod
             console.log(fullName + "." + methodEscapedName + " -> " + key);
         }
 
-        return target[key];
+        var methodGroupTarget = target[key];
+        if (methodGroupTarget.__IsMembrane__)
+          JSIL.DefinePreInitMethodAlias(target, methodEscapedName, methodGroupTarget);
+        
+        return methodGroupTarget;
       };
     };
 
