@@ -1732,7 +1732,7 @@ JSIL.RenameGenericMethods = function (publicInterface, typeObject) {
 
     var resolvedSignature = JSIL.$ResolveGenericMethodSignature(typeObject, signature, resolveContext);
 
-    if ((resolvedSignature !== null) && (resolvedSignature.Hash != signature.Hash)) {
+    if ((resolvedSignature !== null) && (resolvedSignature.get_Hash() != signature.get_Hash())) {
       var newName = resolvedSignature.GetKey(descriptor.EscapedName);
 
       var methodReference = target[oldName];
@@ -2635,7 +2635,7 @@ JSIL.$ApplyMemberHiding = function (typeObject, memberList, resolveContext) {
     // Remove the temporary __index__ member because it is no longer needed.
     delete member.__index__;
 
-    var memberSignatureHash = memberSignature.Hash;
+    var memberSignatureHash = memberSignature.get_Hash();
 
     if ((currentSignatureHash === null) || (currentSignatureHash != memberSignatureHash)) {
       // New group
@@ -2669,6 +2669,26 @@ JSIL.$ApplyMemberHiding = function (typeObject, memberList, resolveContext) {
   }
 };
 
+JSIL.$GroupMethodsByName = function (methods) {
+  var methodsByName = {};
+
+  for (var i = 0, l = methods.length; i < l; i++) {
+    var method = methods[i];
+
+    var key = (method._descriptor.Static ? "static" : "instance") + "$" + method._descriptor.EscapedName;
+
+    var methodList = methodsByName[key];
+    if (!JSIL.IsArray(methodList))
+      methodList = methodsByName[key] = [];
+
+    // Don't add duplicate copies of the same method to the method list.
+    if (methodList.indexOf(method) < 0)
+      methodList.push(method);
+  }
+
+  return methodsByName;
+};
+
 JSIL.$BuildMethodGroups = function (typeObject, publicInterface, forceLazyMethodGroups) {
   // This is called during type system initialization, so we can't rely on any of MemberInfo's
   //  properties or methods - we need to access the data members directly.
@@ -2699,20 +2719,7 @@ JSIL.$BuildMethodGroups = function (typeObject, publicInterface, forceLazyMethod
   var resolveContext = publicInterface.prototype;
 
   // Group up all the methods by name in preparation for building the method groups
-  var methodsByName = {};
-  for (var i = 0, l = methods.length; i < l; i++) {
-    var method = methods[i];
-
-    var key = (method._descriptor.Static ? "static" : "instance") + "$" + method._descriptor.EscapedName;
-
-    var methodList = methodsByName[key];
-    if (!JSIL.IsArray(methodList))
-      methodList = methodsByName[key] = [];
-
-    // Don't add duplicate copies of the same method to the method list.
-    if (methodList.indexOf(method) < 0)
-      methodList.push(method);
-  }
+  var methodsByName = JSIL.$GroupMethodsByName(methods);
 
   for (var key in methodsByName) {
     var methodList = methodsByName[key];
@@ -4206,6 +4213,15 @@ JSIL.InterfaceBuilder.prototype.ParseDescriptor = function (descriptor, name, si
 
   result.Name = name;
   result.EscapedName = escapedName;
+
+  if (
+    signature &&
+    signature.genericArgumentNames && 
+    signature.genericArgumentNames.length
+  ) {
+    result.EscapedName += "$b" + signature.genericArgumentNames.length;
+  }
+
   result.SpecialName = (name == ".ctor") || (name == ".cctor") || (name == "_ctor") || (name == "_cctor");
 
   JSIL.SetValueProperty(
@@ -4581,7 +4597,7 @@ JSIL.MethodSignature.prototype.GetKey = function (name) {
     return this._lastKey;
 
   this._lastKeyName = name;
-  return this._lastKey = (name + this.Hash);
+  return this._lastKey = (name + this.get_Hash());
 };
 
 JSIL.MethodSignature.prototype.ResolveTypeReference = function (typeReference) {
@@ -4819,9 +4835,7 @@ JSIL.MethodSignature.prototype.get_Hash = function () {
   if (this._hash !== null)
     return this._hash;
 
-  var hash = this.get_GenericSuffix() + "$";
-
-  hash += JSIL.HashTypeArgumentArray(this.argumentTypes, this.context);
+  var hash = "$" + JSIL.HashTypeArgumentArray(this.argumentTypes, this.context);
 
   if (this.returnType !== null) {
     hash += "=" + JSIL.HashTypeArgumentArray([this.returnType], this.context);
@@ -4910,7 +4924,7 @@ JSIL.MethodSignatureCache.prototype.make = function (id, returnType, argumentTyp
 
   var cached = this._cache[id];
   if (cached) {
-    if (cached.Hash !== result.Hash)
+    if (cached.get_Hash() !== result.get_Hash())
       throw new Error("The signature ID '" + id + "' has multiple definitions! This indicates that you are mixing old & new JSIL output.");
   }
 

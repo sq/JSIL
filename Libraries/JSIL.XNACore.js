@@ -997,7 +997,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ArrayReader`1", functio
       }
 
       for (var i = 0; i < count; i++) {
-        existingInstance[i] = input.ReadObjectInternal(this.T)(this.elementReader, null);
+        existingInstance[i] = input.ReadObjectInternal$b1(this.T)(this.elementReader, null);
       }
 
       return existingInstance;
@@ -1034,7 +1034,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ListReader`1", function
       }
 
       while (count > 0) {
-        var item = input.ReadObjectInternal(this.T)(this.elementReader, null);
+        var item = input.ReadObjectInternal$b1(this.T)(this.elementReader, null);
         count--;
         existingInstance.Add(item);
       }
@@ -1067,7 +1067,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.Texture2DReader", funct
         var mipBytes = input.ReadBytes(mipSize);
 
         if (i === 0) 
-          result.SetData(System.Byte)(i, null, mipBytes, 0, mipSize);
+          result.SetData$b1(System.Byte)(i, null, mipBytes, 0, mipSize);
       }
 
       return result;
@@ -1090,18 +1090,18 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.SpriteFontReader", func
       var tRectangle = asmXna.Microsoft.Xna.Framework.Rectangle;
       var tVector3 = asmXna.Microsoft.Xna.Framework.Vector3;
 
-      var texture = input.ReadObject(tTexture2D)();
+      var texture = input.ReadObject$b1(tTexture2D)();
 
-      var glyphs = input.ReadObject(tList.Of(tRectangle))();
+      var glyphs = input.ReadObject$b1(tList.Of(tRectangle))();
 
-      var cropping = input.ReadObject(tList.Of(tRectangle))();
+      var cropping = input.ReadObject$b1(tList.Of(tRectangle))();
 
-      var charMap = input.ReadObject(tList.Of(System.Char))();
+      var charMap = input.ReadObject$b1(tList.Of(System.Char))();
 
       var lineSpacing = input.ReadInt32();
       var spacing = input.ReadSingle();
 
-      var kerning = input.ReadObject(tList.Of(tVector3))();
+      var kerning = input.ReadObject$b1(tList.Of(tVector3))();
 
       var defaultCharacter = null;
       if (input.ReadBoolean()) defaultCharacter = input.ReadChar();
@@ -1467,10 +1467,10 @@ JSIL.MakeClass("HTML5Asset", "RawXNBAsset", true, [], function ($) {
     var sharedResourceCount = contentReader.Read7BitEncodedInt();
     var sharedResources = new Array(sharedResourceCount);
 
-    var mainObject = contentReader.ReadObject(type)();
+    var mainObject = contentReader.ReadObject$b1(type)();
 
     for (var i = 0; i < sharedResourceCount; i++)
-    sharedResources[i] = content.ReadObject(System.Object)();
+    sharedResources[i] = content.ReadObject$b1(System.Object)();
 
     return mainObject;
   });
