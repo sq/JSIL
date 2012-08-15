@@ -2308,9 +2308,9 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
   var makeDispatcher, makeGenericArgumentGroup;
 
   var makeNoMatchFoundError = function (group) {
-    var text = group.length + " candidate(s) for method invocation:";
-    for (var i = 0; i < group.length; i++) {
-      text += "\n" + group[i].toString(methodFullName);
+    var text = group.count + " candidate(s) for method invocation:";
+    for (var i = 0; i < group.count; i++) {
+      text += "\n" + group.list[i].toString(methodFullName);
     }
 
     return new Error(text);
@@ -2376,15 +2376,9 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
       for (var i = 0; i < group.count; i++) {
         var groupEntry = group.list[i];
 
-        if (JSIL.IsArray(groupEntry)) {
-          // Generic method group with N generic argument(s).
-          var gaCount = groupEntry[0].argumentTypes.length;
+        // FIXME: Do we still need generic logic here?
 
-          result[i] = makeGenericArgumentGroup(id + "`" + gaCount, groupEntry, gaCount + offset);
-        } else {
-          // Normal method.
-          result[i] = groupEntry.Resolve(methodEscapedName);
-        }
+        result[i] = groupEntry.Resolve(methodEscapedName);
       }
 
       isResolved = true;
@@ -2490,9 +2484,9 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
         methodKey = makeGenericArgumentGroup(id + "`" + k, group, group.genericCount + offset);
       } else if (gProto === JSIL.MethodSetByArgumentCount.prototype) {
         if (group.count > 1) {
-          methodKey = makeMultipleMethodGroup(id, group, group.argumentCount + offset);
+          methodKey = makeMultipleMethodGroup(id, group, offset);
         } else {
-          methodKey = makeSingleMethodGroup(id, group, group.argumentCount + offset);
+          methodKey = makeSingleMethodGroup(id, group, offset);
         }
       }
 
