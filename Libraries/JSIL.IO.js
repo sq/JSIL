@@ -10,6 +10,10 @@ if (!JSIL.GetAssembly("mscorlib", true)) {
   JSIL.DeclareNamespace("System");
   JSIL.DeclareNamespace("System.IO");
 
+  JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.Environment", false, [], function ($) {
+    $.Property({Static:true , Public:true }, "CurrentManagedThreadId", $.Int32);
+  });
+
   JSIL.MakeClass($jsilcore.TypeRef("System.Object"), "System.MarshalByRefObject", true, [], function ($) {
     $.Field({Static:false, Public:false}, "__identity", $.Object);
 
@@ -78,6 +82,15 @@ if (!JSIL.GetAssembly("mscorlib", true)) {
 
 var $jsilio = JSIL.DeclareAssembly("JSIL.IO");
 
+JSIL.ImplementExternals("System.Environment", function ($) {
+  $.Method({Static:true , Public:true }, "get_CurrentManagedThreadId",
+    (new JSIL.MethodSignature($.Int32, [], [])),
+    function () {
+      return 1;
+    }
+  );
+});
+
 JSIL.ImplementExternals("System.IO.File", function ($) {
   $.Method({Static:true , Public:true }, "Exists", 
     new JSIL.MethodSignature($.Boolean, [$.String], []),
@@ -93,6 +106,13 @@ JSIL.ImplementExternals("System.IO.File", function ($) {
 
       return JSIL.Host.doesFileExist(filename) || 
         JSIL.Host.doesAssetExist(filename, true);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Open", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.FileStream"), [$.String, $jsilcore.TypeRef("System.IO.FileMode"), $jsilcore.TypeRef("System.IO.FileAccess")], [])), 
+    function OpenRead (path, mode, access) {
+      return new System.IO.FileStream(path, mode, access);
     }
   );
 
@@ -829,6 +849,16 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function Read () {
       return this.ReadChar().charCodeAt(0);
+    }
+  );
+  
+  $.Method({Static:false, Public:true }, "Read", 
+    (new JSIL.MethodSignature($.Int32, [
+          $jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32, 
+          $.Int32
+        ], [])), 
+    function Read (buffer, index, count) {
+      this.m_stream.Read(buffer, index, count);
     }
   );
 
