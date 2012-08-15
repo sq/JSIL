@@ -194,13 +194,27 @@ $jsilcore.PropertyNotInitialized = {};
 JSIL.DefineLazyDefaultProperty = function (target, key, getDefault) {
   var state = $jsilcore.PropertyNotInitialized;
 
+  var descriptor = {
+    configurable: true,
+    enumerable: true
+  };
+
   var cleanup = function () {
-    Object.defineProperty(target, key, {
-      configurable: true,
-      enumerable: true,
-      writable: true,
-      value: target[key]
-    });
+    var currentDescriptor = Object.getOwnPropertyDescriptor(target, key);
+
+    // Someone could have replaced us with a new property. If so, don't trample
+    // over them.
+    if (
+      currentDescriptor &&
+      (currentDescriptor.get === descriptor.get) &&
+      (currentDescriptor.set === descriptor.set)
+    )
+      Object.defineProperty(target, key, {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        value: target[key]
+      });
   };
 
   var initIfNeeded = function (self) {
@@ -233,12 +247,8 @@ JSIL.DefineLazyDefaultProperty = function (target, key, getDefault) {
     return value;
   };
 
-  var descriptor = {
-    configurable: true,
-    enumerable: true,
-    get: getter,
-    set: setter
-  };
+  descriptor.get = getter;
+  descriptor.set = setter;
 
   Object.defineProperty(target, key, descriptor);
 };
@@ -246,8 +256,21 @@ JSIL.DefineLazyDefaultProperty = function (target, key, getDefault) {
 JSIL.SetLazyValueProperty = function (target, key, getValue) {
   var state = $jsilcore.PropertyNotInitialized;
 
+  var descriptor = {
+    configurable: true,
+    enumerable: true,
+  };
+
   var cleanup = function () {
-    JSIL.SetValueProperty(target, key, state);
+    var currentDescriptor = Object.getOwnPropertyDescriptor(target, key);
+
+    // Someone could have replaced us with a new property. If so, don't trample
+    // over them.
+    if (
+      currentDescriptor &&
+      (currentDescriptor.get === descriptor.get)
+    )
+      JSIL.SetValueProperty(target, key, state);
   };
 
   var getter = function LazyValueProperty_Get () {
@@ -259,11 +282,7 @@ JSIL.SetLazyValueProperty = function (target, key, getValue) {
     return state;
   };
 
-  var descriptor = {
-    configurable: true,
-    enumerable: true,
-    get: getter
-  };
+  descriptor.get = getter;
 
   Object.defineProperty(target, key, descriptor);
 };
