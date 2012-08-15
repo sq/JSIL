@@ -1155,7 +1155,7 @@ JSIL.ImplementExternals("System.Console", function ($) {
   $.RawMethod(true, "WriteLine", function () {
     var text = "";
     if (arguments.length > 0)
-      text = System.String.Format.apply(null, arguments);
+      text = System.String.Format.apply(System.String, arguments);
 
     JSIL.Host.logWriteLine(text);
   });
@@ -1163,7 +1163,7 @@ JSIL.ImplementExternals("System.Console", function ($) {
   $.RawMethod(true, "Write", function () {
     var text = "";
     if (arguments.length > 0)
-      text = System.String.Format.apply(null, arguments);
+      text = System.String.Format.apply(System.String, arguments);
 
     JSIL.Host.logWrite(text);
   });

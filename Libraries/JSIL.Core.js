@@ -2256,6 +2256,52 @@ JSIL.$MakeAnonymousMethod = function (target, body) {
   return key;
 };
 
+
+JSIL.MethodSetByGenericArgumentCount = function () {
+  this.dict = {};
+  this.count = 0;
+};
+
+JSIL.MethodSetByGenericArgumentCount.prototype.get = function (argumentCount) {
+  var result = this.dict[argumentCount];
+  if (!result)
+    result = this.dict[argumentCount] = new JSIL.MethodSetByArgumentCount(this, argumentCount);
+
+  return result;
+};
+
+JSIL.MethodSetByArgumentCount = function (genericSet, genericCount) {
+  this.genericSet = genericSet;
+  this.genericCount = genericCount;
+
+  this.dict = {};
+  this.count = 0;
+};
+
+JSIL.MethodSetByArgumentCount.prototype.get = function (argumentCount) {
+  var result = this.dict[argumentCount];
+  if (!result) {
+    result = this.dict[argumentCount] = new JSIL.MethodSet(this, argumentCount);
+  }
+
+  return result;
+};
+
+JSIL.MethodSet = function (argumentSet, argumentCount) {
+  this.argumentSet = argumentSet;
+  this.argumentCount = argumentCount;
+
+  this.list = [];
+  this.count = 0;
+};
+
+JSIL.MethodSet.prototype.add = function (signature) {
+  this.list.push(signature);
+  this.count += 1;
+  this.argumentSet.count += 1;
+  this.argumentSet.genericSet.count += 1;
+};
+
 JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, methodEscapedName, overloadSignatures) {
   var methodFullName = typeName + "." + methodName;
 
@@ -2272,8 +2318,8 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
 
   // If the method group contains only a single method, we call this to fetch the method implementation
   //  and then use that as the method group.
-  var makeSingleMethodGroup = function (group) {
-    var singleMethod = group[0];
+  var makeSingleMethodGroup = function (id, group, offset) {
+    var singleMethod = group.list[0];
     var key = singleMethod.GetKey(methodEscapedName);
 
     if (typeof (renamedMethods[key]) === "string")
@@ -2300,19 +2346,11 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
   // For methods with generic arguments we figure out whether there are multiple options for the generic
   //  argument dispatcher, and bind the appropriate generic method dispatcher.
   makeGenericArgumentGroup = function (id, group, offset) {
-    var gaGroup;
-
-    // We don't need to do any argument count checks if there is only one possible method.
-    // BindGenericMethod will throw an error if it gets the wrong number of generic args.
-    if (group.length === 1) {
-      gaGroup = makeSingleMethodGroup(group);
-    } else {
-      gaGroup = makeDispatcher(id, group, offset);
-    }
+    var groupDispatcher = makeDispatcher(id, group, offset);
 
     var stub = function GetBoundGenericMethod () {
-      var gaImpl = this[gaGroup];
-      var boundMethod = JSIL.$BindGenericMethod(this, gaImpl, methodFullName, arguments);
+      var dispatcherImpl = this[groupDispatcher];
+      var boundMethod = JSIL.$BindGenericMethod(this, dispatcherImpl, methodFullName, arguments);
       return boundMethod;
     };
 
@@ -2335,8 +2373,8 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
         return resolvedGroup;
 
       var result = [];
-      for (var i = 0; i < group.length; i++) {
-        var groupEntry = group[i];
+      for (var i = 0; i < group.count; i++) {
+        var groupEntry = group.list[i];
 
         if (JSIL.IsArray(groupEntry)) {
           // Generic method group with N generic argument(s).
@@ -2422,10 +2460,10 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
     var isFirst = true;
     var methodKey = null;
 
-    for (var k in g) {
-      if (k == "ga")
-        continue;
-      else if (k == "gaCount")
+    var gProto = Object.getPrototypeOf(g);
+
+    for (var k in g.dict) {
+      if (!g.dict.hasOwnProperty(k))
         continue;
 
       var line = "";
@@ -2437,20 +2475,25 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
       }
 
       var argumentCount = parseInt(k) + offset;
+      if (isNaN(argumentCount))
+        throw new Error();
+
       maxArgumentCount = Math.max(maxArgumentCount, argumentCount);
 
       line += (argumentCount) + ") {";
 
       body.push(line);
 
-      var group = g[k];
+      var group = g.dict[k];
 
-      if (group.ga === true) {
-        methodKey = makeGenericArgumentGroup(id + "`" + k, group, group.gaCount + offset);
-      } else if (group.length === 1) {
-        methodKey = makeSingleMethodGroup(group);
-      } else {
-        methodKey = makeMultipleMethodGroup(id, group, offset);
+      if (gProto === JSIL.MethodSetByGenericArgumentCount.prototype) {
+        methodKey = makeGenericArgumentGroup(id + "`" + k, group, group.genericCount + offset);
+      } else if (gProto === JSIL.MethodSetByArgumentCount.prototype) {
+        if (group.count > 1) {
+          methodKey = makeMultipleMethodGroup(id, group, group.argumentCount + offset);
+        } else {
+          methodKey = makeSingleMethodGroup(id, group, group.argumentCount + offset);
+        }
       }
 
       var invocation = "    return this." + methodKey + "(";
@@ -2492,48 +2535,35 @@ JSIL.$MakeMethodGroup = function (target, typeName, renamedMethods, methodName, 
     return JSIL.$MakeAnonymousMethod(target, boundDispatcher);
   };
 
-  var groups = {};
-
-  if (overloadSignatures.length === 1) {
-    var signature = overloadSignatures[0];
-    var gaCount = signature.genericArgumentNames.length;
-    var result;
-
-    if (gaCount > 0) {
-      result = makeGenericArgumentGroup(methodFullName + "`" + gaCount, overloadSignatures, gaCount);
-    } else {
-      result = makeSingleMethodGroup(overloadSignatures);
-    }
-
-    return result;
-  }
+  var methodSet = new JSIL.MethodSetByGenericArgumentCount();
 
   for (var i = 0, l = overloadSignatures.length; i < l; i++) {
     var signature = overloadSignatures[i];
     var argumentCount = signature.argumentTypes.length;
     var gaCount = signature.genericArgumentNames.length;
 
-    if (gaCount > 0) {
-      var gaGroup = groups[gaCount];      
-      if (!JSIL.IsArray(gaGroup)) {
-        gaGroup = groups[gaCount] = []
-        gaGroup.ga = true;
-        gaGroup.gaCount = gaCount;
-      };
+    var genargcSet = methodSet.get(gaCount);
+    var argcSet = genargcSet.get(argumentCount);
 
-      var group = gaGroup[argumentCount];
-      if (!JSIL.IsArray(group))
-        group = gaGroup[argumentCount] = [];
-    } else {
-      var group = groups[argumentCount];
-      if (!JSIL.IsArray(group))
-        group = groups[argumentCount] = [];
-    }
-
-    group.push(signature);
+    argcSet.add(signature);
   }
 
-  return makeDispatcher(methodFullName, groups, 0);
+  var gaKeys = Object.keys(methodSet.dict);
+
+  // For method groups with no generic arguments, skip creating a generic argument dispatcher.
+  if ((gaKeys.length === 1) && (gaKeys[0] == 0)) {
+    // If there's only one method definition, don't generate a dispatcher at all.
+    // This ensures that if our implementation uses JS varargs, it works.
+    if (methodSet.count === 1) {
+      var theSet = methodSet.dict[0];
+      var theMethodList = theSet.dict[Object.keys(theSet.dict)[0]];
+      return makeSingleMethodGroup(methodFullName, theMethodList, 0);
+    } else {
+      return makeDispatcher(methodFullName, methodSet.dict[0], 0);
+    }
+  } else {
+    return makeDispatcher(methodFullName, methodSet, 0);
+  }
 };
 
 JSIL.$ApplyMemberHiding = function (typeObject, memberList, resolveContext) {

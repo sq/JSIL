@@ -131,6 +131,7 @@ namespace JSIL.Tests {
                     @"TestCases\RefStructThisWithInterface.cs",
                     @"TestCases\MethodGenericParameterAsTypeParameter.cs",
                     @"TestCases\MethodGenericParameterAsTypeParameter2.cs",
+                    @"TestCases\GenericMethodWithSameSignatureAsNonGenericMethod.cs",
                 }, MakeDefaultProvider(), new AssemblyCache()
             );
         }

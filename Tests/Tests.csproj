@@ -208,6 +208,7 @@
     <None Include="SpecialTestCases\AsyncStateMachineSwitchGoto.cs" />
     <None Include="SpecialTestCases\CyclicTypeReferences.cs" />
     <None Include="SpecialTestCases\CyclicTypeInheritance.cs" />
+    <None Include="TestCases\GenericMethodWithSameSignatureAsNonGenericMethod.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
