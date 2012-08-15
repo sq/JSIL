@@ -838,6 +838,16 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
       return this.ReadChar().charCodeAt(0);
     }
   );
+  
+  $.Method({Static:false, Public:true }, "Read", 
+    (new JSIL.MethodSignature($.Int32, [
+          $jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32, 
+          $.Int32
+        ], [])), 
+    function Read (buffer, index, count) {
+      this.m_stream.Read(buffer, index, count);
+    }
+  );
 
   $.Method({Static:false, Public:true }, "ReadChar", 
     (new JSIL.MethodSignature($.Char, [], [])), 
