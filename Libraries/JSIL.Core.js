@@ -389,6 +389,9 @@ JSIL.ResolvedName.prototype.set = function (value) {
   JSIL.SetValueProperty(this.parent, this.key, value);
   return value;
 };
+JSIL.ResolvedName.prototype.setLazy = function (getter) {
+  JSIL.SetLazyValueProperty(this.parent, this.key, getter);
+};
 JSIL.ResolvedName.prototype.define = function (declaration) {
   Object.defineProperty(this.parent, this.key, declaration);
 
@@ -1121,15 +1124,10 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
     return result;
   };
 
-  var decl = {
-    enumerable: true,
-    configurable: true,
-    get: getter
-  };
-  privateName.define(decl);
+  privateName.setLazy(getter);
 
   if (isPublic)
-    publicName.define(decl);
+    publicName.setLazy(getter);
 
   JSIL.DefineTypeName(name, getter, isPublic);
 };
