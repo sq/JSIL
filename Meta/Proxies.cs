@@ -6,7 +6,8 @@ using System.Text;
 namespace JSIL.Proxy {
     public enum JSProxyMemberPolicy {
         ReplaceDeclared,
-        ReplaceNone
+        ReplaceNone,
+        ReplaceAll
     }
 
     public enum JSProxyAttributePolicy {
@@ -15,8 +16,8 @@ namespace JSIL.Proxy {
     }
 
     public enum JSProxyInterfacePolicy {
-        ReplaceNone,
         ReplaceDeclared,
+        ReplaceNone,
         ReplaceAll
     }
 
