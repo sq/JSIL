@@ -29,7 +29,15 @@ namespace JSIL {
 
         protected readonly Dictionary<string, long> TranslatedAssemblySizes = new Dictionary<string, long>();
         protected readonly ConcurrentCache<string, Token> Tokens = new ConcurrentCache<string, Token>();
+        protected readonly ConcurrentCache<string, Token>.CreatorFunction MakeToken;
         protected bool AssignedIdentifiers = false;
+
+        public AssemblyManifest () {
+            MakeToken = (assemblyFullName) => {
+                AssignedIdentifiers = false;
+                return new Token(assemblyFullName);
+            };
+        }
 
         public void Dispose () {
             Tokens.Dispose();
@@ -61,10 +69,7 @@ namespace JSIL {
 
         public Token GetPrivateToken (string assemblyFullName) {
             Token result = Tokens.GetOrCreate(
-                assemblyFullName, () => {
-                    AssignedIdentifiers = false;
-                    return new Token(assemblyFullName);
-                }
+                assemblyFullName, MakeToken
             );
 
             return result;

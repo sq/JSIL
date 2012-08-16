@@ -35,8 +35,36 @@ namespace JSIL {
         protected readonly Stack<JSStatement> Blocks = new Stack<JSStatement>();
 
         static readonly ConcurrentCache<ILCode, System.Reflection.MethodInfo[]> NodeTranslatorCache = new ConcurrentCache<ILCode, System.Reflection.MethodInfo[]>();
+        static readonly ConcurrentCache<ILCode, System.Reflection.MethodInfo[]>.CreatorFunction GetNodeTranslatorsUncached; 
 
         protected readonly Func<TypeReference, TypeReference> TypeReferenceReplacer;
+
+        static ILBlockTranslator () {
+            GetNodeTranslatorsUncached = (code) => {
+                var methodName = String.Format("Translate_{0}", code);
+                var bindingFlags = System.Reflection.BindingFlags.Instance |
+                            System.Reflection.BindingFlags.InvokeMethod |
+                            System.Reflection.BindingFlags.NonPublic;
+
+                var t = typeof(ILBlockTranslator);
+
+                var methods = t.GetMember(
+                        methodName, MemberTypes.Method, bindingFlags
+                    ).OfType<System.Reflection.MethodInfo>().ToArray();
+
+                if (methods.Length == 0) {
+                    var alternateMethodName = methodName.Substring(0, methodName.LastIndexOf("_"));
+                    methods = t.GetMember(
+                            alternateMethodName, MemberTypes.Method, bindingFlags
+                        ).OfType<System.Reflection.MethodInfo>().ToArray();
+                }
+
+                if (methods.Length == 0)
+                    return null;
+
+                return methods;
+            };
+        }
 
         public ILBlockTranslator (
             AssemblyTranslator translator, DecompilerContext context, 
@@ -551,30 +579,7 @@ namespace JSIL {
 
         static System.Reflection.MethodInfo[] GetNodeTranslators (ILCode code) {
             return NodeTranslatorCache.GetOrCreate(
-                code, () => {
-                    var methodName = String.Format("Translate_{0}", code);
-                    var bindingFlags = System.Reflection.BindingFlags.Instance |
-                                System.Reflection.BindingFlags.InvokeMethod |
-                                System.Reflection.BindingFlags.NonPublic;
-
-                    var t = typeof(ILBlockTranslator);
-
-                    var methods = t.GetMember(
-                            methodName, MemberTypes.Method, bindingFlags
-                        ).OfType<System.Reflection.MethodInfo>().ToArray();
-
-                    if (methods.Length == 0) {
-                        var alternateMethodName = methodName.Substring(0, methodName.LastIndexOf("_"));
-                        methods = t.GetMember(
-                                alternateMethodName, MemberTypes.Method, bindingFlags
-                            ).OfType<System.Reflection.MethodInfo>().ToArray();
-                    }
-
-                    if (methods.Length == 0)
-                        return null;
-
-                    return methods;
-                }
+                code, GetNodeTranslatorsUncached
             );
         }
 

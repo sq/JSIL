@@ -38,7 +38,7 @@ namespace JSIL.Internal {
             if (name == null)
                 throw new ArgumentNullException("name");
 
-            return Cache.GetOrCreate(name.FullName, () => base.Resolve(name, parameters));
+            return Cache.GetOrCreate(name.FullName, (fullName) => base.Resolve(name, parameters));
         }
 
         protected void RegisterAssembly (AssemblyDefinition assembly) {
@@ -47,7 +47,7 @@ namespace JSIL.Internal {
 
             var name = assembly.Name.FullName;
 
-            Cache.TryCreate(name, () => assembly);
+            Cache.TryCreate(name, (fullName) => assembly);
         }
     }
 
@@ -140,6 +140,7 @@ namespace JSIL.Internal {
         }
 
         public readonly ConcurrentCache<Key, TypeDefinition> Cache;
+        protected readonly ConcurrentCache<Key, TypeDefinition>.CreatorFunction<TypeReference> DoResolve;
 
         public CachingMetadataResolver (IAssemblyResolver assemblyResolver) :
             base(assemblyResolver) {
@@ -147,14 +148,16 @@ namespace JSIL.Internal {
             Cache = new ConcurrentCache<Key, TypeDefinition>(
                 Environment.ProcessorCount, 4096, new KeyComparer()
             );
+
+            DoResolve = (key, type) =>
+                base.Resolve(type);
         }
 
         public override TypeDefinition Resolve (TypeReference type) {
             var key = new Key(type);
 
             return Cache.GetOrCreate(
-                key, () =>
-                    base.Resolve(type)
+                key, type, DoResolve
             );
         }
     }

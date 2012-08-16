@@ -1931,7 +1931,64 @@ namespace JSIL.Internal {
             }
         }
 
+        protected struct MakeReferenceArgs {
+            public TypeReference ReturnType;
+            public TypeReference[] ParameterTypes;
+            public TypeSystem TypeSystem;
+        }
+
         protected readonly ConcurrentCache<MethodSignature, TypeReference> Cache = new ConcurrentCache<MethodSignature, TypeReference>();
+        protected static readonly ConcurrentCache<MethodSignature, TypeReference>.CreatorFunction<MakeReferenceArgs> MakeReference;
+
+        static MethodTypeFactory () {
+            MakeReference = (signature, args) => {
+                TypeReference genericDelegateType;
+
+                var systemModule = args.TypeSystem.Boolean.Resolve().Module;
+                bool hasReturnType;
+
+                if (TypeUtil.TypesAreEqual(args.TypeSystem.Void, args.ReturnType)) {
+                    hasReturnType = false;
+                    var name = String.Format("System.Action`{0}", signature.ParameterCount);
+                    genericDelegateType = systemModule.GetType(
+                        signature.ParameterCount == 0 ? "System.Action" : name
+                    );
+                } else {
+                    hasReturnType = true;
+                    genericDelegateType = systemModule.GetType(String.Format(
+                        "System.Func`{0}", signature.ParameterCount + 1
+                    ));
+                }
+
+                if (genericDelegateType != null) {
+                    var git = new GenericInstanceType(genericDelegateType);
+                    foreach (var pt in args.ParameterTypes)
+                        git.GenericArguments.Add(pt);
+
+                    if (hasReturnType)
+                        git.GenericArguments.Add(args.ReturnType);
+
+                    return git;
+                } else {
+                    var baseType = systemModule.GetType("System.MulticastDelegate");
+
+                    var td = new TypeDefinition(
+                        "JSIL.Meta", "MethodSignature", TypeAttributes.Class | TypeAttributes.NotPublic, baseType
+                    );
+                    td.DeclaringType = baseType;
+
+                    var invoke = new MethodDefinition(
+                        "Invoke", MethodAttributes.Public, args.ReturnType
+                    );
+                    foreach (var pt in args.ParameterTypes)
+                        invoke.Parameters.Add(new ParameterDefinition(pt));
+
+                    td.Methods.Add(invoke);
+
+                    return td;
+                }
+            };
+        }
 
         public TypeReference Get (MethodReference method, TypeSystem typeSystem) {
             return Get(
@@ -1943,57 +2000,16 @@ namespace JSIL.Internal {
 
         public TypeReference Get (TypeReference returnType, IEnumerable<TypeReference> parameterTypes, TypeSystem typeSystem) {
             TypeReference result;
-            var ptypes = parameterTypes.ToArray();
-            var signature = new MethodSignature(returnType, ptypes);
+
+            var args = new MakeReferenceArgs {
+                ReturnType = returnType,
+                ParameterTypes = parameterTypes.ToArray(),
+                TypeSystem = typeSystem
+            };
+            var signature = new MethodSignature(returnType, args.ParameterTypes);
 
             return Cache.GetOrCreate(
-                signature, () => {
-                    TypeReference genericDelegateType;
-
-                    var systemModule = typeSystem.Boolean.Resolve().Module;
-                    bool hasReturnType;
-
-                    if (TypeUtil.TypesAreEqual(typeSystem.Void, returnType)) {
-                        hasReturnType = false;
-                        var name = String.Format("System.Action`{0}", signature.ParameterCount);
-                        genericDelegateType = systemModule.GetType(
-                            signature.ParameterCount == 0 ? "System.Action" : name
-                        );
-                    } else {
-                        hasReturnType = true;
-                        genericDelegateType = systemModule.GetType(String.Format(
-                            "System.Func`{0}", signature.ParameterCount + 1
-                        ));
-                    }
-
-                    if (genericDelegateType != null) {
-                        var git = new GenericInstanceType(genericDelegateType);
-                        foreach (var pt in ptypes)
-                            git.GenericArguments.Add(pt);
-
-                        if (hasReturnType)
-                            git.GenericArguments.Add(returnType);
-
-                        return git;
-                    } else {
-                        var baseType = systemModule.GetType("System.MulticastDelegate");
-
-                        var td = new TypeDefinition(
-                            "JSIL.Meta", "MethodSignature", TypeAttributes.Class | TypeAttributes.NotPublic, baseType
-                        );
-                        td.DeclaringType = baseType;
-
-                        var invoke = new MethodDefinition(
-                            "Invoke", MethodAttributes.Public, returnType
-                        );
-                        foreach (var pt in ptypes)
-                            invoke.Parameters.Add(new ParameterDefinition(pt));
-
-                        td.Methods.Add(invoke);
-
-                        return td;
-                    }
-                }
+                signature, args, MakeReference
             );
         }
 
