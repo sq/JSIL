@@ -6,8 +6,7 @@ using JSIL.Ast;
 using Mono.Cecil;
 
 namespace JSIL.Internal {
-
-    public class MemberIdentifier {
+    public struct MemberIdentifier {
         public class Comparer : IEqualityComparer<MemberIdentifier> {
             public readonly ITypeInfoSource TypeInfo;
 
@@ -16,8 +15,10 @@ namespace JSIL.Internal {
             }
 
             public bool Equals (MemberIdentifier x, MemberIdentifier y) {
+                /*
                 if (x == null)
                     return x == y;
+                 */
 
                 return x.Equals(y, TypeInfo);
             }
@@ -37,11 +38,10 @@ namespace JSIL.Internal {
         public readonly MemberType Type;
         public readonly string Name;
         public readonly TypeReference ReturnType;
-        public readonly int ParameterCount;
         public readonly TypeReference[] ParameterTypes;
         public readonly int GenericArgumentCount;
 
-        protected readonly int HashCode;
+        private readonly int HashCode;
 
         public static readonly TypeReference[] AnyParameterTypes = new TypeReference[] { };
 
@@ -70,7 +70,6 @@ namespace JSIL.Internal {
             Type = MemberType.Method;
             Name = newName ?? mr.Name;
             ReturnType = mr.ReturnType;
-            ParameterCount = mr.Parameters.Count;
             ParameterTypes = GetParameterTypes(mr.Parameters);
 
             if (mr is GenericInstanceMethod)
@@ -89,7 +88,6 @@ namespace JSIL.Internal {
             Type = MemberType.Property;
             Name = pr.Name;
             ReturnType = pr.PropertyType;
-            ParameterCount = 0;
             GenericArgumentCount = 0;
             ParameterTypes = null;
             ti.CacheProxyNames(pr);
@@ -97,11 +95,10 @@ namespace JSIL.Internal {
             var pd = pr.Resolve();
             if (pd != null) {
                 if (pd.GetMethod != null) {
-                    ParameterCount = pd.GetMethod.Parameters.Count;
                     ParameterTypes = GetParameterTypes(pd.GetMethod.Parameters);
                 } else if (pd.SetMethod != null) {
-                    ParameterCount = pd.SetMethod.Parameters.Count - 1;
-                    ParameterTypes = GetParameterTypes(pd.SetMethod.Parameters).Take(ParameterCount).ToArray();
+                    ParameterTypes = GetParameterTypes(pd.SetMethod.Parameters)
+                        .Take(pd.SetMethod.Parameters.Count - 1).ToArray();
                 }
             }
 
@@ -112,7 +109,6 @@ namespace JSIL.Internal {
             Type = MemberType.Field;
             Name = fr.Name;
             ReturnType = fr.FieldType;
-            ParameterCount = 0;
             GenericArgumentCount = 0;
             ParameterTypes = null;
             ti.CacheProxyNames(fr);
@@ -124,7 +120,6 @@ namespace JSIL.Internal {
             Type = MemberType.Event;
             Name = er.Name;
             ReturnType = er.EventType;
-            ParameterCount = 0;
             GenericArgumentCount = 0;
             ParameterTypes = null;
             ti.CacheProxyNames(er);
@@ -237,8 +232,10 @@ namespace JSIL.Internal {
         }
 
         public bool Equals (MemberIdentifier rhs, ITypeInfoSource typeInfo) {
+            /*
             if (this == rhs)
                 return true;
+             */
 
             if (Type != rhs.Type)
                 return false;
@@ -257,10 +254,10 @@ namespace JSIL.Internal {
                 if (ParameterTypes != rhs.ParameterTypes)
                     return false;
             } else {
-                if (ParameterCount != rhs.ParameterCount)
+                if (ParameterTypes.Length != rhs.ParameterTypes.Length)
                     return false;
 
-                for (int i = 0, c = ParameterCount; i < c; i++) {
+                for (int i = 0, c = ParameterTypes.Length; i < c; i++) {
                     if (!TypesAreEqual(typeInfo, ParameterTypes[i], rhs.ParameterTypes[i]))
                         return false;
                 }
@@ -297,7 +294,7 @@ namespace JSIL.Internal {
         }
     }
 
-    public class QualifiedMemberIdentifier {
+    public struct QualifiedMemberIdentifier {
         public class Comparer : IEqualityComparer<QualifiedMemberIdentifier> {
             public readonly ITypeInfoSource TypeInfo;
 
@@ -306,8 +303,10 @@ namespace JSIL.Internal {
             }
 
             public bool Equals (QualifiedMemberIdentifier x, QualifiedMemberIdentifier y) {
+                /*
                 if (x == null)
                     return x == y;
+                 */
 
                 return x.Equals(y, TypeInfo);
             }

@@ -643,9 +643,11 @@ namespace JSIL.Internal {
         private void DoDeferredMethodSignatureSetUpdate () {
             var selfAndBaseTypesRecursive = this.SelfAndBaseTypesRecursive.ToArray();
 
-            foreach (var nms in DeferredMethodSignatureSetUpdates) {
-                foreach (var t in selfAndBaseTypesRecursive) {
-                    var set = t.MethodSignatures.GetOrCreateFor(nms.Name);
+            foreach (var t in selfAndBaseTypesRecursive) {
+                var ms = t.MethodSignatures;
+
+                foreach (var nms in DeferredMethodSignatureSetUpdates) {
+                    var set = ms.GetOrCreateFor(nms.Name);
                     set.Add(nms);
                 }
             }
