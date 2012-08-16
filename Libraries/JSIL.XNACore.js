@@ -3200,8 +3200,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       var total = now - this._started;
     }
 
-    if ((now - this._lastSecond) > 1000)
+    if ((now - this._lastSecond) > 1000) {
       this._ReportFPS(now);
+
+      $jsilxna.imageChannelCache.maybeEvictItems();
+      $jsilxna.textCache.maybeEvictItems();
+    }
 
     if (this.forceElapsedTimeToZero) {
       this.forceElapsedTimeToZero = false;
