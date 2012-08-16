@@ -2083,6 +2083,8 @@ namespace JSIL {
         }
 
         public void Dispose () {
+            // _TypeInfoProvider.DumpSignatureCollectionStats();
+
             if (OwnsTypeInfoProvider)
                 _TypeInfoProvider.Dispose();
 

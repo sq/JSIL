@@ -29,6 +29,7 @@ namespace JSIL {
 
         protected static readonly ConcurrentCache<string, ModuleInfo>.CreatorFunction<ModuleDefinition> MakeModuleInfo;
         protected readonly ConcurrentCache<TypeIdentifier, TypeInfo>.CreatorFunction<MakeTypeInfoArgs> MakeTypeInfo;
+        protected readonly ConcurrentCache<string, string[]>.CreatorFunction<MemberReference> MakeProxiesByName;
 
         static TypeInfoProvider () {
             MakeModuleInfo = (key, module) => new ModuleInfo(module);
@@ -49,43 +50,8 @@ namespace JSIL {
 
                 return constructed;
             };
-        }
 
-        ConcurrentCache<Tuple<string, string>, bool> ITypeInfoSource.AssignabilityCache {
-            get {
-                return this.TypeAssignabilityCache;
-            }
-        }
-
-        public int Count {
-            get {
-                return TypeInformation.Count + ModuleInformation.Count;
-            }
-        }
-
-        public void ClearCaches () {
-            TypeAssignabilityCache.Clear();
-        }
-
-        public void Dispose () {
-            Assemblies.Clear();
-            ProxyAssemblyNames.Clear();
-            TypeInformation.Dispose();
-            ModuleInformation.Dispose();
-            TypeProxies.Clear();
-            DirectProxiesByTypeName.Clear();
-            ProxiesByName.Dispose();
-            TypeAssignabilityCache.Clear();
-        }
-
-        bool ITypeInfoSource.TryGetProxyNames (string typeFullName, out string[] result) {
-            return ProxiesByName.TryGet(typeFullName, out result);
-        }
-
-        void ITypeInfoSource.CacheProxyNames (MemberReference mr) {
-            var fullName = mr.DeclaringType.FullName;
-
-            ProxiesByName.TryCreate(fullName, (_) => {
+            MakeProxiesByName = (fullName, mr) => {
                 var icap = mr.DeclaringType as Mono.Cecil.ICustomAttributeProvider;
                 if (icap == null)
                     return null;
@@ -134,7 +100,65 @@ namespace JSIL {
                 }
 
                 return proxyTargets;
-            });
+            };
+        }
+
+        ConcurrentCache<Tuple<string, string>, bool> ITypeInfoSource.AssignabilityCache {
+            get {
+                return this.TypeAssignabilityCache;
+            }
+        }
+
+        public int Count {
+            get {
+                return TypeInformation.Count + ModuleInformation.Count;
+            }
+        }
+
+        public void DumpSignatureCollectionStats () {
+            int minSize = int.MaxValue, maxSize = int.MinValue;
+            int sum = 0, count = 0;
+
+            foreach (var kvp in TypeInformation) {
+                var signatures = kvp.Value.MethodSignatures;
+
+                minSize = Math.Min(minSize, signatures.Counts.Count);
+                maxSize = Math.Max(maxSize, signatures.Counts.Count);
+                sum += signatures.Counts.Count;
+                count += 1;
+            }
+
+            Console.WriteLine("// method signature collection stats:");
+            Console.WriteLine(
+                "// total: {0:D6} min: {1:D4} max: {2:D4} average: {3:D4}",
+                sum, minSize, maxSize,
+                (int)Math.Floor((double)sum / count)
+            );
+        }
+
+        public void ClearCaches () {
+            TypeAssignabilityCache.Clear();
+        }
+
+        public void Dispose () {
+            Assemblies.Clear();
+            ProxyAssemblyNames.Clear();
+            TypeInformation.Dispose();
+            ModuleInformation.Dispose();
+            TypeProxies.Clear();
+            DirectProxiesByTypeName.Clear();
+            ProxiesByName.Dispose();
+            TypeAssignabilityCache.Clear();
+        }
+
+        bool ITypeInfoSource.TryGetProxyNames (string typeFullName, out string[] result) {
+            return ProxiesByName.TryGet(typeFullName, out result);
+        }
+
+        void ITypeInfoSource.CacheProxyNames (MemberReference mr) {
+            var fullName = mr.DeclaringType.FullName;
+
+            ProxiesByName.TryCreate(fullName, mr, MakeProxiesByName);
         }
 
         protected IEnumerable<TypeDefinition> ProxyTypesFromAssembly (AssemblyDefinition assembly) {

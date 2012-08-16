@@ -449,21 +449,22 @@ namespace JSIL.Compiler {
                     localConfig.Assemblies.Proxies.Clear();
                     localConfig.Assemblies.Proxies.AddRange(newProxies);
 
-                    var translator = CreateTranslator(localConfig, manifest, assemblyCache);
-                    var outputs = buildGroup.Profile.Translate(translator, localConfig, filename, localConfig.UseLocalProxies.GetValueOrDefault(true));
-                    if (localConfig.OutputDirectory == null)
-                        throw new Exception("No output directory was specified!");
+                    using (var translator = CreateTranslator(localConfig, manifest, assemblyCache)) {
+                        var outputs = buildGroup.Profile.Translate(translator, localConfig, filename, localConfig.UseLocalProxies.GetValueOrDefault(true));
+                        if (localConfig.OutputDirectory == null)
+                            throw new Exception("No output directory was specified!");
 
-                    var outputDir = MapAssemblyPath(localConfig.OutputDirectory, assemblyPath, false);
+                        var outputDir = MapAssemblyPath(localConfig.OutputDirectory, assemblyPath, false);
 
-                    Console.Error.WriteLine("// Saving output to '{0}'.", ShortenPath(outputDir) + Path.DirectorySeparatorChar);
+                        Console.Error.WriteLine("// Saving output to '{0}'.", ShortenPath(outputDir) + Path.DirectorySeparatorChar);
 
-                    // Ensures that the log file contains the name of the profile that was actually used.
-                    localConfig.Profile = localProfile.GetType().Name;
+                        // Ensures that the log file contains the name of the profile that was actually used.
+                        localConfig.Profile = localProfile.GetType().Name;
 
-                    EmitLog(outputDir, localConfig, filename, outputs);
+                        EmitLog(outputDir, localConfig, filename, outputs);
 
-                    buildGroup.Profile.WriteOutputs(outputs, outputDir, Path.GetFileName(filename) + ".");
+                        buildGroup.Profile.WriteOutputs(outputs, outputDir, Path.GetFileName(filename) + ".");
+                    }
                 }
             }
         }

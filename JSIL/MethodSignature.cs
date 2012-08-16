@@ -230,7 +230,7 @@ namespace JSIL.Internal {
     }
 
     public class MethodSignatureCollection : IDisposable {
-        const int InitialCapacity = 16;
+        const int InitialCapacity = 32;
 
         internal readonly Dictionary<string, MethodSignatureSet> Sets;
         internal readonly Dictionary<NamedMethodSignature, MethodSignatureSet.Count> Counts;

@@ -47,7 +47,7 @@ namespace JSIL.Internal {
         }
     }
 
-    public class TypeIdentifier {
+    public struct TypeIdentifier {
         public readonly string Assembly;
         public readonly string Namespace;
         public readonly string DeclaringTypeName;
@@ -63,6 +63,8 @@ namespace JSIL.Internal {
                     Assembly = asm.FullName;
                 else
                     Assembly = null;
+            } else {
+                Assembly = null;
             }
 
             Namespace = type.Namespace;
@@ -76,9 +78,6 @@ namespace JSIL.Internal {
         }
 
         public bool Equals (TypeIdentifier rhs) {
-            if (this == rhs)
-                return true;
-
             if (!String.Equals(Name, rhs.Name))
                 return false;
 
@@ -97,9 +96,8 @@ namespace JSIL.Internal {
         }
 
         public override bool Equals (object obj) {
-            var rhs = obj as TypeIdentifier;
-            if (rhs != null)
-                return Equals(rhs);
+            if (obj is TypeIdentifier)
+                return Equals((TypeIdentifier)obj);
 
             return base.Equals(obj);
         }
