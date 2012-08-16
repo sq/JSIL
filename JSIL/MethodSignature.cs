@@ -185,14 +185,15 @@ namespace JSIL.Internal {
         public void Dispose () {
         }
 
-        public void Add (MethodSignature signature) {
-            var nms = new NamedMethodSignature(Name, signature);
+        public void Add (NamedMethodSignature signature) {
+            // if (signature.Name != Name)
+            //     throw new InvalidOperationException();
 
             Count c;
 
             lock (Counts) {
-                if (!Counts.TryGetValue(nms, out c))
-                    Counts.Add(nms, c = new Count());
+                if (!Counts.TryGetValue(signature, out c))
+                    Counts.Add(signature, c = new Count());
             }
 
             Interlocked.Increment(ref c.Value);
@@ -252,8 +253,10 @@ namespace JSIL.Internal {
 
         public int GetDefinitionCountOf (MethodInfo method) {
             MethodSignatureSet set;
-            if (TryGet(method.Name, out set))
-                return set.GetCountOf(method.NamedSignature);
+            var namedSignature = method.NamedSignature;
+
+            if (TryGet(namedSignature.Name, out set))
+                return set.GetCountOf(namedSignature);
 
             return 0;
         }
@@ -271,9 +274,9 @@ namespace JSIL.Internal {
             }
         }
 
-        public bool TryGet (string key, out MethodSignatureSet result) {
+        public bool TryGet (string methodName, out MethodSignatureSet result) {
             lock (Sets)
-                return Sets.TryGetValue(key, out result);
+                return Sets.TryGetValue(methodName, out result);
         }
 
         public void Dispose () {

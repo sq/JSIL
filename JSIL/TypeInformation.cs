@@ -397,6 +397,8 @@ namespace JSIL.Internal {
         protected bool _IsExternal = false;
         protected bool _MethodGroupsInitialized = false;
 
+        protected List<NamedMethodSignature> DeferredMethodSignatureSetUpdates = new List<NamedMethodSignature>();
+
         public TypeInfo (ITypeInfoSource source, ModuleInfo module, TypeDefinition type, TypeInfo declaringType, TypeInfo baseClass, TypeIdentifier identifier) {
             Identifier = identifier;
             DeclaringType = declaringType;
@@ -636,6 +638,22 @@ namespace JSIL.Internal {
                     }
                 }
             }
+
+            DoDeferredMethodSignatureSetUpdate();
+        }
+
+        private void DoDeferredMethodSignatureSetUpdate () {
+            var selfAndBaseTypesRecursive = this.SelfAndBaseTypesRecursive.ToArray();
+
+            foreach (var nms in DeferredMethodSignatureSetUpdates) {
+                foreach (var t in selfAndBaseTypesRecursive) {
+                    var set = t.MethodSignatures.GetOrCreateFor(nms.Name);
+                    set.Add(nms);
+                }
+            }
+
+            DeferredMethodSignatureSetUpdates.Clear();
+            DeferredMethodSignatureSetUpdates = null;
         }
 
         public bool IsFullyInitialized {
@@ -932,23 +950,6 @@ namespace JSIL.Internal {
             return false;
         }
 
-        protected void UpdateSignatureSet (string methodName, MethodSignature signature) {
-            foreach (var t in SelfAndBaseTypesRecursive) {
-                int existingCount;
-
-                var set = t.MethodSignatures.GetOrCreateFor(methodName);
-
-                set.Add(signature);
-            }
-
-            // FIXME: This breaks Dictionary.Values.GetEnumerator. Is it right?
-            /*
-            var dotPosition = methodName.LastIndexOf(".");
-            if (dotPosition > 0)
-                UpdateSignatureSet(methodName.Substring(dotPosition + 1), signature);
-             */
-        }
-
         protected MethodInfo AddMember (MethodDefinition method, PropertyInfo property, ProxyInfo sourceProxy = null) {
             IMemberInfo result;
             var identifier = new MemberIdentifier(this.Source, method);
@@ -964,7 +965,7 @@ namespace JSIL.Internal {
             if (!Members.TryAdd(identifier, result))
                 throw new InvalidOperationException();
 
-            UpdateSignatureSet(result.Name, ((MethodInfo)result).Signature);
+            DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
 
             return (MethodInfo)result;
         }
@@ -979,7 +980,7 @@ namespace JSIL.Internal {
             if (!Members.TryAdd(identifier, result))
                 throw new InvalidOperationException();
 
-            UpdateSignatureSet(result.Name, ((MethodInfo)result).Signature);
+            DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
 
             return (MethodInfo)result;
         }
@@ -997,7 +998,7 @@ namespace JSIL.Internal {
             if (method.Name == ".cctor")
                 StaticConstructor = method;
 
-            UpdateSignatureSet(result.Name, ((MethodInfo)result).Signature);
+            DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
 
             return (MethodInfo)result;
         }
@@ -1611,7 +1612,7 @@ namespace JSIL.Internal {
 
         protected void MakeSignature () {
             _Signature = new NamedMethodSignature(
-                Member.Name, new MethodSignature(
+                Name, new MethodSignature(
                     ReturnType, (from p in Parameters select p.ParameterType).ToArray(),
                     GenericParameterNames
                 )

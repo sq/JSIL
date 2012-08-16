@@ -635,12 +635,12 @@ namespace JSIL.Tests {
             );
 
             try {
-                Assert.IsFalse(generatedJs.Contains(".CallVirtual"));
-                Assert.IsFalse(generatedJs.Contains(".Call"));
+                Assert.IsFalse(generatedJs.Contains(".CallVirtual"), "CallVirtual was used");
+                Assert.IsFalse(generatedJs.Contains(".Call"), "Call was used");
 
-                Assert.IsTrue(generatedJs.Contains("this.Equals("));
-                Assert.IsTrue(generatedJs.Contains("a.Equals(b)"));
-                Assert.IsFalse(generatedJs.Contains(".Object_Equals("));
+                Assert.IsTrue(generatedJs.Contains("this.Equals("), "Equals was not invoked on this");
+                Assert.IsTrue(generatedJs.Contains("a.Equals(b)"), "Equals was not invoked on a and b");
+                Assert.IsFalse(generatedJs.Contains(".Object_Equals("), "Object_Equals was used");
             } catch {
                 Console.WriteLine(generatedJs);
 
