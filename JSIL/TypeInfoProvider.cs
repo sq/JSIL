@@ -36,8 +36,8 @@ namespace JSIL {
         }
 
         public TypeInfoProvider () {
-            TypeInformation = new ConcurrentCache<TypeIdentifier, TypeInfo>(Environment.ProcessorCount, 1024);
-            ModuleInformation = new ConcurrentCache<string, ModuleInfo>(Environment.ProcessorCount, 128);
+            TypeInformation = new ConcurrentCache<TypeIdentifier, TypeInfo>(Environment.ProcessorCount, 4096);
+            ModuleInformation = new ConcurrentCache<string, ModuleInfo>(Environment.ProcessorCount, 256);
 
             MakeTypeInfo = (identifier, args) => {
                 var constructed = ConstructTypeInformation(identifier, args.Definition, args.MoreTypes);
@@ -240,8 +240,6 @@ namespace JSIL {
                 }
             }
         }
-
-
 
         public ModuleInfo GetModuleInformation (ModuleDefinition module) {
             if (module == null)

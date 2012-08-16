@@ -14,6 +14,9 @@ using Mono.Cecil;
 
 namespace JSIL.Compiler {
     class Program {
+        static TypeInfoProvider CachedTypeInfoProvider = null;
+        static Configuration CachedTypeInfoProviderConfiguration = null;
+
         public static string ShortenPath (string path) {
             var cwd = new Uri(Environment.CurrentDirectory);
 
@@ -367,8 +370,20 @@ namespace JSIL.Compiler {
             };
         }
 
-        static AssemblyTranslator CreateTranslator (Configuration configuration, AssemblyManifest manifest, AssemblyCache assemblyCache) {
-            var translator = new AssemblyTranslator(configuration, null, manifest, assemblyCache);
+        static AssemblyTranslator CreateTranslator (
+            Configuration configuration, AssemblyManifest manifest, AssemblyCache assemblyCache
+        ) {
+            TypeInfoProvider typeInfoProvider = null;
+
+            if (
+                configuration.ReuseTypeInfoAcrossAssemblies.GetValueOrDefault(true) && 
+                (CachedTypeInfoProvider != null)
+            ) {
+                if (CachedTypeInfoProviderConfiguration.Assemblies.Equals(configuration.Assemblies))
+                    typeInfoProvider = CachedTypeInfoProvider;
+            }
+
+            var translator = new AssemblyTranslator(configuration, typeInfoProvider, manifest, assemblyCache);
 
             translator.Decompiling += MakeProgressHandler("Decompiling   ");
             translator.Optimizing += MakeProgressHandler ("Optimizing    ");
@@ -385,6 +400,14 @@ namespace JSIL.Compiler {
             translator.CouldNotDecompileMethod += (fn, ex) => {
                 Console.Error.WriteLine("// Could not decompile method {0}: {1}", fn, ex.Message);
             };
+
+            if (typeInfoProvider == null) {
+                if (CachedTypeInfoProvider != null)
+                    CachedTypeInfoProvider.Dispose();
+
+                CachedTypeInfoProvider = translator.GetTypeInfoProvider();
+                CachedTypeInfoProviderConfiguration = configuration;
+            }
 
             return translator;
         }
@@ -408,7 +431,7 @@ namespace JSIL.Compiler {
                     config = MergeConfigurations(LoadConfiguration("defaults.jsilconfig"), config);
 
                 foreach (var filename in buildGroup.FilesToBuild) {
-                    GC.Collect();
+                    // GC.Collect();
 
                     if (config.Assemblies.Ignored.Any(
                         (ignoreRegex) => Regex.IsMatch(filename, ignoreRegex, RegexOptions.IgnoreCase))

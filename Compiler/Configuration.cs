@@ -34,6 +34,7 @@ namespace JSIL.Compiler {
 
         public bool? AutoLoadConfigFiles;
         public bool? UseLocalProxies;
+        public bool? ReuseTypeInfoAcrossAssemblies;
         public string OutputDirectory;
         public string Profile;
         public Dictionary<string, object> ProfileSettings = new Dictionary<string, object>();
@@ -45,6 +46,8 @@ namespace JSIL.Compiler {
                 result.AutoLoadConfigFiles = AutoLoadConfigFiles;
             if (UseLocalProxies.HasValue)
                 result.UseLocalProxies = UseLocalProxies;
+            if (ReuseTypeInfoAcrossAssemblies.HasValue)
+                result.ReuseTypeInfoAcrossAssemblies = ReuseTypeInfoAcrossAssemblies;
             if (OutputDirectory != null)
                 result.OutputDirectory = OutputDirectory;
             if (Profile != null)

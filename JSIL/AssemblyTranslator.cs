@@ -354,47 +354,14 @@ namespace JSIL {
                 GetMethodsToAnalyze(assemblies[i], methodsToAnalyze);
             }
 
-            {
-                int i = 0, mc = methodsToAnalyze.Count;
-                Func<int, ParallelLoopState, DecompilerContext, DecompilerContext> analyzeAMethod = (_, loopState, ctx) => {
-                    MethodToAnalyze m;
-                    if (!methodsToAnalyze.TryTake(out m))
-                        throw new InvalidDataException("Method collection mutated during analysis. Try setting UseThreads=false (and report an issue!)");
-
-                    ctx.CurrentModule = m.MD.Module;
-                    ctx.CurrentType = m.MD.DeclaringType;
-                    ctx.CurrentMethod = m.MD;
-
-                    try {
-                        TranslateMethodExpression(ctx, m.MD, m.MD, m.MI);
-                    } catch (Exception exc) {
-                        throw new Exception("Error occurred while translating method '" + m.MD.FullName + "'.", exc);
-                    }
-
-                    var j = Interlocked.Increment(ref i);
-                    pr.OnProgressChanged(mc + j, mc * 2);
-
-                    return ctx;
-                };
-
-                if (Configuration.UseThreads.GetValueOrDefault(true)) {
-                    Parallel.For(
-                        0, methodsToAnalyze.Count, parallelOptions,
-                        () => MakeDecompilerContext(assemblies[0].MainModule),
-                        analyzeAMethod,
-                        (ctx) => { }
-                    );
-                } else {
-                    var ctx = MakeDecompilerContext(assemblies[0].MainModule);
-
-                    while (methodsToAnalyze.Count > 0)
-                        analyzeAMethod(0, default(ParallelLoopState), ctx);
-                }
-            }
+            AnalyzeFunctions(
+                parallelOptions, assemblies, 
+                methodsToAnalyze, pr
+            );
 
             pr.OnFinished();
 
-            OptimizeAll();
+            OptimizeAllFunctions();
 
             pr = new ProgressReporter();
             if (Writing != null)
@@ -496,7 +463,48 @@ namespace JSIL {
             }
         }
 
-        protected void OptimizeAll () {
+        private void AnalyzeFunctions (
+            ParallelOptions parallelOptions, AssemblyDefinition[] assemblies,
+            ConcurrentBag<MethodToAnalyze> methodsToAnalyze, ProgressReporter pr
+        ) {
+            int i = 0, mc = methodsToAnalyze.Count;
+            Func<int, ParallelLoopState, DecompilerContext, DecompilerContext> analyzeAMethod = (_, loopState, ctx) => {
+                MethodToAnalyze m;
+                if (!methodsToAnalyze.TryTake(out m))
+                    throw new InvalidDataException("Method collection mutated during analysis. Try setting UseThreads=false (and report an issue!)");
+
+                ctx.CurrentModule = m.MD.Module;
+                ctx.CurrentType = m.MD.DeclaringType;
+                ctx.CurrentMethod = m.MD;
+
+                try {
+                    TranslateMethodExpression(ctx, m.MD, m.MD, m.MI);
+                } catch (Exception exc) {
+                    throw new Exception("Error occurred while translating method '" + m.MD.FullName + "'.", exc);
+                }
+
+                var j = Interlocked.Increment(ref i);
+                pr.OnProgressChanged(mc + j, mc * 2);
+
+                return ctx;
+            };
+
+            if (Configuration.UseThreads.GetValueOrDefault(true)) {
+                Parallel.For(
+                    0, methodsToAnalyze.Count, parallelOptions,
+                    () => MakeDecompilerContext(assemblies[0].MainModule),
+                    analyzeAMethod,
+                    (ctx) => { }
+                );
+            } else {
+                var ctx = MakeDecompilerContext(assemblies[0].MainModule);
+
+                while (methodsToAnalyze.Count > 0)
+                    analyzeAMethod(0, default(ParallelLoopState), ctx);
+            }
+        }
+
+        protected void OptimizeAllFunctions () {
             var pr = new ProgressReporter();
             if (Optimizing != null)
                 Optimizing(pr);
@@ -517,6 +525,8 @@ namespace JSIL {
             pr.OnFinished();
         }
 
+        // Invoking this function populates the type information graph, and builds a list
+        //  of functions to analyze/optimize/translate (omitting ignored functions, etc).
         private void GetMethodsToAnalyze (AssemblyDefinition assembly, ConcurrentBag<MethodToAnalyze> allMethods) {
             bool isStubbed = IsStubbed(assembly);
 
