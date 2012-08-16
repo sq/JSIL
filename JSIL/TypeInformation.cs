@@ -1083,11 +1083,11 @@ namespace JSIL.Internal {
     }
 
     public class AttributeGroup {
-        public class Entry {
-            public readonly CustomAttributeArgument[] Arguments;
+        public struct Entry {
+            public readonly IList<CustomAttributeArgument> Arguments;
 
             public Entry (CustomAttribute ca) {
-                Arguments = ca.ConstructorArguments.ToArray();
+                Arguments = ca.ConstructorArguments;
             }
         }
 
@@ -1100,10 +1100,12 @@ namespace JSIL.Internal {
         protected Dictionary<string, AttributeGroup> Attributes = null;
 
         public MetadataCollection (ICustomAttributeProvider target) {
-            if (target.CustomAttributes.Count == 0)
+            var cas = target.CustomAttributes;
+
+            if (cas.Count == 0)
                 return;
 
-            foreach (var ca in target.CustomAttributes) {
+            foreach (var ca in cas) {
                 AttributeGroup existing;
                 if (TryGetValue(ca.AttributeType.FullName, out existing))
                     existing.Entries.Add(new AttributeGroup.Entry(ca));
@@ -1236,6 +1238,7 @@ namespace JSIL.Internal {
         protected readonly JSInvokePolicy _InvokePolicy;
         protected bool? _IsReturnIgnored;
         protected bool _WasReservedIdentifier;
+        protected string _ShortName;
 
         public MemberInfo (
             TypeInfo parent, MemberIdentifier identifier, 
@@ -1291,6 +1294,15 @@ namespace JSIL.Internal {
             }
 
             _WasReservedIdentifier = Util.ReservedIdentifiers.Contains(Name);
+        }
+
+        protected string ShortName {
+            get {
+                if (_ShortName == null)
+                    _ShortName = GetShortName(this.Member);
+
+                return _ShortName;
+            }
         }
 
         // Sometimes the type system prefixes the name of a member with some or all of the declaring type's name.
@@ -1442,7 +1454,6 @@ namespace JSIL.Internal {
         public MethodInfo Getter, Setter;
         public readonly bool IsAutoProperty;
         public readonly string BackingFieldName;
-        protected readonly string ShortName;
 
         public PropertyInfo (
             TypeInfo parent, MemberIdentifier identifier, 
@@ -1452,7 +1463,6 @@ namespace JSIL.Internal {
             parent, identifier, property, proxies, 
             TypeUtil.IsIgnoredType(property.PropertyType), false, sourceProxy
         ) {
-            ShortName = GetShortName(property);
             IsAutoProperty = (Member.GetMethod ?? Member.SetMethod).CustomAttributes.Any(
                 (ca) => ca.AttributeType.FullName == "System.Runtime.CompilerServices.CompilerGeneratedAttribute"
             );
@@ -1532,13 +1542,12 @@ namespace JSIL.Internal {
         public readonly bool IsVirtual;
         public readonly bool IsSealed;
 
-        protected MethodSignature _Signature = null;
+        protected NamedMethodSignature _Signature = null;
 
         protected MethodGroupInfo _MethodGroup = null;
         protected bool? _IsOverloadedRecursive;
         protected bool? _IsRedefinedRecursive;
         protected bool? _ParametersIgnored;
-        protected readonly string ShortName;
 
         public MethodInfo (
             TypeInfo parent, MemberIdentifier identifier, 
@@ -1551,7 +1560,6 @@ namespace JSIL.Internal {
             method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall || method.IsPInvokeImpl,
             sourceProxy
         ) {
-            ShortName = GetShortName(method);
             Parameters = method.Parameters.ToArray();
             GenericParameterNames = (from p in method.GenericParameters select p.Name).ToArray();
             IsGeneric = method.HasGenericParameters;
@@ -1573,7 +1581,6 @@ namespace JSIL.Internal {
             sourceProxy
         ) {
             Property = property;
-            ShortName = GetShortName(method);
             Parameters = method.Parameters.ToArray();
             GenericParameterNames = (from p in method.GenericParameters select p.Name).ToArray();
             IsGeneric = method.HasGenericParameters;
@@ -1594,7 +1601,6 @@ namespace JSIL.Internal {
             sourceProxy
         ) {
             Event = evt;
-            ShortName = GetShortName(method);
             Parameters = method.Parameters.ToArray();
             GenericParameterNames = (from p in method.GenericParameters select p.Name).ToArray();
             IsGeneric = method.HasGenericParameters;
@@ -1604,9 +1610,11 @@ namespace JSIL.Internal {
         }
 
         protected void MakeSignature () {
-            _Signature = new MethodSignature(
-                ReturnType, (from p in Parameters select p.ParameterType).ToArray(),
-                GenericParameterNames
+            _Signature = new NamedMethodSignature(
+                Member.Name, new MethodSignature(
+                    ReturnType, (from p in Parameters select p.ParameterType).ToArray(),
+                    GenericParameterNames
+                )
             );
         }
 
@@ -1614,12 +1622,21 @@ namespace JSIL.Internal {
             return GetName(false);
         }
 
-        public MethodSignature Signature {
+        public NamedMethodSignature NamedSignature {
             get {
                 if (_Signature == null)
                     MakeSignature();
 
                 return _Signature;
+            }
+        }
+
+        public MethodSignature Signature {
+            get {
+                if (_Signature == null)
+                    MakeSignature();
+
+                return _Signature.Signature;
             }
         }
 

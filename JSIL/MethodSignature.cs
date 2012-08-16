@@ -61,22 +61,22 @@ namespace JSIL.Internal {
             if (this == rhs)
                 return true;
 
-            if (!TypeUtil.TypesAreEqual(ReturnType, rhs.ReturnType, true))
-                return false;
-
             if (GenericParameterCount != rhs.GenericParameterCount)
                 return false;
 
             if (ParameterCount != rhs.ParameterCount)
                 return false;
 
-            for (int i = 0, c = ParameterCount; i < c; i++) {
-                if (!TypeUtil.TypesAreEqual(ParameterTypes[i], rhs.ParameterTypes[i], true))
+            for (int i = 0, c = GenericParameterNames.Length; i < c; i++) {
+                if (GenericParameterNames[i] != rhs.GenericParameterNames[i])
                     return false;
             }
 
-            for (int i = 0, c = GenericParameterNames.Length; i < c; i++) {
-                if (GenericParameterNames[i] != rhs.GenericParameterNames[i])
+            if (!TypeUtil.TypesAreEqual(ReturnType, rhs.ReturnType, true))
+                return false;
+
+            for (int i = 0, c = ParameterCount; i < c; i++) {
+                if (!TypeUtil.TypesAreEqual(ParameterTypes[i], rhs.ParameterTypes[i], true))
                     return false;
             }
 
@@ -96,17 +96,15 @@ namespace JSIL.Internal {
             if (_Hash.HasValue)
                 return _Hash.Value;
 
-            int hash = 0;
+            int hash = ParameterCount;
 
             if ((ReturnType != null) && !TypeUtil.IsOpenType(ReturnType))
-                hash = ReturnType.Name.GetHashCode();
+                hash ^= (ReturnType.Name.GetHashCode() << 8);
 
             if ((ParameterCount > 0) && !TypeUtil.IsOpenType(ParameterTypes[0]))
-                hash ^= (ParameterTypes[0].Name.GetHashCode() << 16);
+                hash ^= (ParameterTypes[0].Name.GetHashCode() << 20);
 
             hash ^= (GenericParameterCount) << 24;
-
-            hash ^= (ParameterCount) << 28;
 
             _Hash = hash;
             return hash;
@@ -128,7 +126,7 @@ namespace JSIL.Internal {
         }
     }
 
-    public struct NamedMethodSignature {
+    public class NamedMethodSignature {
         public readonly MethodSignature Signature;
         public readonly string Name;
 
@@ -164,12 +162,12 @@ namespace JSIL.Internal {
     }
 
     public class MethodSignatureSet : IDisposable {
-        internal class Count {
-            public int Value = 0;
+        public class Count {
+            public volatile int Value;
         }
 
-        private int _Count = 0;
-        private readonly ConcurrentCache<NamedMethodSignature, Count> Counts;
+        private volatile int _Count = 0;
+        private readonly Dictionary<NamedMethodSignature, Count> Counts;
         private readonly string Name;
 
         internal MethodSignatureSet (MethodSignatureCollection collection, string name) {
@@ -177,11 +175,10 @@ namespace JSIL.Internal {
             Name = name;
         }
 
-        public IEnumerable<MethodSignature> Signatures {
+        public MethodSignature[] Signatures {
             get {
-                foreach (var key in Counts.Keys)
-                    if (key.Name == this.Name)
-                        yield return key.Signature;
+                lock (Counts)
+                    return (from k in Counts.Keys where k.Name == this.Name select k.Signature).ToArray();
             }
         }
 
@@ -189,18 +186,24 @@ namespace JSIL.Internal {
         }
 
         public void Add (MethodSignature signature) {
-            var count = Counts.GetOrCreate(
-                new NamedMethodSignature(Name, signature), () => new Count()
-            );
+            var nms = new NamedMethodSignature(Name, signature);
 
+            Count c;
+
+            lock (Counts) {
+                if (!Counts.TryGetValue(nms, out c))
+                    Counts.Add(nms, c = new Count());
+            }
+
+            Interlocked.Increment(ref c.Value);
             Interlocked.Increment(ref _Count);
-            Interlocked.Increment(ref count.Value);
         }
 
-        public int GetCountOf (MethodSignature signature) {
+        public int GetCountOf (NamedMethodSignature signature) {
             Count result;
-            if (Counts.TryGet(new NamedMethodSignature(Name, signature), out result))
-                return result.Value;
+            lock (Counts)
+                if (Counts.TryGetValue(signature, out result))
+                    return result.Value;
 
             return 0;
         }
@@ -215,23 +218,27 @@ namespace JSIL.Internal {
             get {
                 int result = 0;
 
-                foreach (var key in Counts.Keys)
-                    if (key.Name == this.Name)
-                        result += 1;
+                lock (Counts)
+                    foreach (var key in Counts.Keys)
+                        if (key.Name == this.Name)
+                            result += 1;
 
                 return result;
             }
         }
     }
 
-    public class MethodSignatureCollection : ConcurrentCache<string, MethodSignatureSet>, IDisposable {
-        internal readonly ConcurrentCache<NamedMethodSignature, MethodSignatureSet.Count> Counts;
+    public class MethodSignatureCollection : IDisposable {
+        const int InitialCapacity = 16;
 
-        public MethodSignatureCollection ()
-            : base(1, 8, StringComparer.Ordinal) {
+        internal readonly Dictionary<string, MethodSignatureSet> Sets;
+        internal readonly Dictionary<NamedMethodSignature, MethodSignatureSet.Count> Counts;
 
-            Counts = new ConcurrentCache<NamedMethodSignature, MethodSignatureSet.Count>(
-                1, 8, new NamedMethodSignature.Comparer()
+        public MethodSignatureCollection () {
+            Sets = new Dictionary<string, MethodSignatureSet>(InitialCapacity, StringComparer.Ordinal);
+
+            Counts = new Dictionary<NamedMethodSignature, MethodSignatureSet.Count>(
+                InitialCapacity, new NamedMethodSignature.Comparer()
             );
         }
 
@@ -246,15 +253,30 @@ namespace JSIL.Internal {
         public int GetDefinitionCountOf (MethodInfo method) {
             MethodSignatureSet set;
             if (TryGet(method.Name, out set))
-                return set.GetCountOf(method.Signature);
+                return set.GetCountOf(method.NamedSignature);
 
             return 0;
         }
 
         public MethodSignatureSet GetOrCreateFor (string methodName) {
-            return GetOrCreate(
-                methodName, () => new MethodSignatureSet(this, methodName)
-            );
+            lock (Sets) {
+                MethodSignatureSet result;
+
+                if (!Sets.TryGetValue(methodName, out result)) {
+                    methodName = methodName;
+                    Sets[methodName] = result = new MethodSignatureSet(this, methodName);
+                }
+
+                return result;
+            }
+        }
+
+        public bool TryGet (string key, out MethodSignatureSet result) {
+            lock (Sets)
+                return Sets.TryGetValue(key, out result);
+        }
+
+        public void Dispose () {
         }
     }
 }
