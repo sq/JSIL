@@ -1152,8 +1152,10 @@ function beginLoading () {
   }
 
   var allAssetsToLoad = [];
-  for (var i = 0, l = assetsToLoad.length; i < l; i++)
-    pushAsset(assetsToLoad[i]);
+  if (typeof (window.assetsToLoad) !== "undefined") {
+    for (var i = 0, l = assetsToLoad.length; i < l; i++)
+      pushAsset(assetsToLoad[i]);
+  }
 
   if (typeof (contentManifest) === "object") {
     for (var k in contentManifest) {

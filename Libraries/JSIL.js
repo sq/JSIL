@@ -41,6 +41,9 @@ contentManifest["JSIL"] = [
 	
 	var libraryRoot = (config.libraryRoot = config.libraryRoot || "../Libraries/");
 	var manifestRoot = (config.manifestRoot = config.manifestRoot || "");
+	config.scriptRoot = config.scriptRoot || "";
+	config.fileRoot = config.fileRoot || "";
+	config.assetRoot = config.assetRoot || "";
 
 	function loadScript (uri) {
 		if (window.console && window.console.log)
