@@ -193,6 +193,9 @@ namespace JSIL.Compiler {
                 }
             }
 
+            if (baseConfig.ApplyDefaults.GetValueOrDefault(true))
+                baseConfig = MergeConfigurations(LoadConfiguration("defaults.jsilconfig"), baseConfig);
+
             {
                 if (autoloadProfiles[0])
                     profileAssemblies.AddRange(Directory.GetFiles(".", "JSIL.Profiles.*.dll"));
@@ -236,9 +239,17 @@ namespace JSIL.Compiler {
                      (from fn in filenames where Path.GetExtension(fn) == ".sln" select fn)
                     ) {
 
+                var solutionFullPath = Path.GetFullPath(solution);
+                var solutionDir = Path.GetDirectoryName(solutionFullPath);
+
+                if ((solutionDir == null) || (solutionFullPath == null)) {
+                    Console.Error.WriteLine("// Can't process solution '{0}' - path seems malformed", solution);
+                    continue;
+                }
+
                 var solutionConfigPath = Path.Combine(
-                    Path.GetDirectoryName(solution),
-                    String.Format("{0}.jsilconfig", Path.GetFileName(solution))
+                    solutionDir,
+                    String.Format("{0}.jsilconfig", Path.GetFileName(solutionFullPath))
                 );
                 var solutionConfig = File.Exists(solutionConfigPath)
                     ? new Configuration[] { LoadConfiguration(solutionConfigPath) }
@@ -248,7 +259,7 @@ namespace JSIL.Compiler {
                 var buildStarted = DateTime.UtcNow.Ticks;
                 
                 var buildResult = SolutionBuilder.Build(
-                    solution,
+                    solutionFullPath,
                     config.SolutionBuilder.Configuration,
                     config.SolutionBuilder.Platform,
                     config.SolutionBuilder.Target ?? "Build",
@@ -277,7 +288,7 @@ namespace JSIL.Compiler {
 
                 {
                     var logPath = Path.Combine(
-                        config.OutputDirectory,
+                        config.OutputDirectory ?? solutionDir,
                         String.Format("{0}.buildlog", Path.GetFileName(solution))
                     );
 
@@ -427,8 +438,6 @@ namespace JSIL.Compiler {
 
             foreach (var buildGroup in buildGroups) {
                 var config = buildGroup.BaseConfiguration;
-                if (config.ApplyDefaults.GetValueOrDefault(true))
-                    config = MergeConfigurations(LoadConfiguration("defaults.jsilconfig"), config);
 
                 foreach (var filename in buildGroup.FilesToBuild) {
                     // GC.Collect();
