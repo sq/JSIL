@@ -892,8 +892,14 @@ public static class Common {
                 Common.EnsureDirectoryExists(
                     Path.GetDirectoryName(outputPath));
 
-                File.Copy(sourcePath, outputPath, true);
-                logOutput("File", outputPath, null);
+                try {
+                    File.Copy(sourcePath, outputPath, true);
+                    logOutput("File", outputPath, null);
+                } catch (Exception exc) {
+                    Console.Error.WriteLine("// Could not copy '{0}'! Error: {1}", item.EvaluatedInclude, exc.Message);
+                    Console.Error.WriteLine("Press enter to continue. (You might want to run SysInternals Handle to see who has that file locked!)");
+                    Console.ReadLine();
+                }
             };
 
             Action<ProjectItem, string, string> copyRawXnb =
@@ -911,8 +917,14 @@ public static class Common {
                 Common.EnsureDirectoryExists(
                     Path.GetDirectoryName(outputPath));
 
-                File.Copy(xnbPath, outputPath, true);
-                logOutput(type, outputPath, null);
+                try {
+                    File.Copy(xnbPath, outputPath, true);
+                    logOutput(type, outputPath, null);
+                } catch (Exception exc) {
+                    Console.Error.WriteLine("// Could not copy '{0}'! Error: {1}", item.EvaluatedInclude, exc.Message);
+                    Console.Error.WriteLine("Press enter to continue. (You might want to run SysInternals Handle to see who has that file locked!)");
+                    Console.ReadLine();
+                }
             };
 
             foreach (var item in project.Items) {
