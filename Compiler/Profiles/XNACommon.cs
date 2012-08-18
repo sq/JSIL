@@ -741,8 +741,10 @@ public static class Common {
         var contentOutputDirectory =
             configuration.ProfileSettings.GetValueOrDefault("ContentOutputDirectory", null) as string;
 
-        if (contentOutputDirectory == null)
+        if (contentOutputDirectory == null) {
+            Console.Error.WriteLine("// ContentOutputDirectory is not set. Skipping XNA content processing.");
             return;
+        }
 
         contentOutputDirectory = contentOutputDirectory
             .Replace("%configpath%", configuration.Path)
