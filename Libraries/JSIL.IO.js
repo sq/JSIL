@@ -137,6 +137,20 @@ JSIL.ImplementExternals("System.IO.File", function ($) {
     }
   );
 
+  $.Method({Static:true , Public:true }, "CreateText", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.StreamWriter"), [$.String], [])), 
+    function AppendText (path) {
+      return new System.IO.StreamWriter(path, true);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "CreateText", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.StreamWriter"), [$.String], [])), 
+    function CreateText (path) {
+      return new System.IO.StreamWriter(path, false);
+    }
+  );
+
   $.Method({Static:true , Public:true }, "Delete", 
     (new JSIL.MethodSignature(null, [$.String], [])), 
     function Delete (path) {

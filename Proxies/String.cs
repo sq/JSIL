@@ -79,6 +79,10 @@ namespace JSIL.Proxies {
         [JSReplacement("JSIL.SplitString($this, $dividers)")]
         public abstract string[] Split (AnyType[] dividers);
 
+        [JSIsPure]
+        [JSReplacement("JSIL.JoinStrings($separator, $value)")]
+        public abstract string Join (string separator, params string[] value);
+
         [JSChangeName("length")]
         [JSAlwaysAccessAsProperty]
         [JSNeverReplace]
@@ -294,6 +298,11 @@ namespace JSIL.Proxies {
         [JSReplacement("System.String.Remove($this, $startIndex, $count)")]
         [JSIsPure]
         public string Remove (int startIndex, int count) {
+            throw new InvalidOperationException();
+        }
+
+        [JSReplacement("System.String.CopyTo($this, $sourceIndex, $destination, $destinationIndex, $count)")]
+        public void CopyTo (int sourceIndex, char[] destination, int destinationIndex, int count) {
             throw new InvalidOperationException();
         }
     }

@@ -362,7 +362,7 @@ $jsilxna.getImageTopLeftPixel = function (image) {
     return cached;
 
   var canvas = document.createElement("canvas");
-  var context = $jsilxna.get2DContext(image, false);
+  var context = $jsilxna.get2DContext(canvas, false);
 
   canvas.width = 1;
   canvas.height = 1;
@@ -3272,8 +3272,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       ctx.fillStyle = "black";
       ctx.fillRect(0, 0, 99999, 99999);
 
-      canvas.style.display = "none";
-
       var fsb = document.getElementById("fullscreenButton");
       if (fsb)
         fsb.style.display = "none";
@@ -4462,12 +4460,24 @@ $jsilxna.Color = function ($) {
   $.Method({
     Static: true,
     Public: true
-  }, "op_Multiply", new JSIL.MethodSignature($.Type, [$.Type, $.Single], []), function (color, multiplier) {
+  }, "op_Multiply", new JSIL.MethodSignature($jsilxna.colorRef(), [$jsilxna.colorRef(), $.Single], []), function (color, multiplier) {
     var result = Object.create(Object.getPrototypeOf(color));
     result.a = $jsilxna.ClampByte(color.a * multiplier);
     result.r = $jsilxna.ClampByte(color.r * multiplier);
     result.g = $jsilxna.ClampByte(color.g * multiplier);
     result.b = $jsilxna.ClampByte(color.b * multiplier);
+    return result;
+  });
+
+  $.Method({
+    Static: true,
+    Public: true
+  }, "Lerp", new JSIL.MethodSignature($jsilxna.colorRef(), [$jsilxna.colorRef(), $jsilxna.colorRef(), $.Single], []), function (a, b, amount) {
+    var result = Object.create(Object.getPrototypeOf(a));
+    result.a = $jsilxna.ClampByte(a.a + (b.a - a.a) * amount);
+    result.r = $jsilxna.ClampByte(a.r + (b.r - a.r) * amount);
+    result.g = $jsilxna.ClampByte(a.g + (b.g - a.g) * amount);
+    result.b = $jsilxna.ClampByte(a.b + (b.b - a.b) * amount);
     return result;
   });
 
