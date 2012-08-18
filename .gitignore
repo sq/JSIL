@@ -50,9 +50,12 @@ Tests/*Cases/*.js
 /jsil.org/demos/demos.zip
 /Examples/obj
 /Upstream/dxtc.cpp
-/Upstream/LAME
-/Upstream/FFMPEG
-/Upstream/OggEnc
+/Upstream/LAME/*.exe
+/Upstream/LAME/*.dll
+/Upstream/FFMPEG/*.dll
+/Upstream/FFMPEG/*.exe
+/Upstream/FFMPEG/licenses
+/Upstream/OggEnc/*.exe
 /Upstream/XapParse/obj
 /Upstream/XapParse/bin
 Skeletons/*.js
