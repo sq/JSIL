@@ -1,8 +1,8 @@
 {
-  "OutputDirectory": "%configpath%",
+  "OutputDirectory": "%ConfigDirectory%",
   "ProfileSettings": {
     "OverwriteExistingContent": true,
-    "ContentOutputDirectory": "%configpath%/Content",
+    "ContentOutputDirectory": "%ConfigDirectory%/Content",
     "UsePNGQuant": true,
     "FileSettings": {
       "Backgrounds\\Layer0_0.png": "ForceJPEG",
