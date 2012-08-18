@@ -68,6 +68,8 @@ public static class Common {
     public const int IMAGE_BITMAP = 0;
     public const int LR_LOADFROMFILE = 0x0010;
 
+    static bool WarnedAboutLAME = false, WarnedAboutOggENC = false, WarnedAboutFFMPEG = false;
+
     public static string MakeXNAColors () {
         var result = new StringBuilder();
         var colorType = typeof(Color);
@@ -178,7 +180,11 @@ public static class Common {
         var outputPath = Path.GetTempFileName();
         var ffmpegPath = Path.GetFullPath(@"..\Upstream\FFMPEG\ffmpeg.exe");
         if (!File.Exists(ffmpegPath)) {
-            Console.Error.WriteLine(@"// Warning: ffmpeg.exe was not found at ..\Upstream\FFMPEG\ffmpeg.exe. Can't decode '{0}'.", Path.GetFileName(sourcePath));
+            if (!WarnedAboutFFMPEG) {
+                WarnedAboutFFMPEG = true;
+                Console.Error.WriteLine(@"// Warning: ffmpeg.exe was not found at ..\Upstream\FFMPEG\ffmpeg.exe. Can't decode '{0}'.", Path.GetFileName(sourcePath));
+            }
+
             return null;
         }
 
@@ -205,7 +211,11 @@ public static class Common {
     public static bool CompressMP3 (string sourcePath, string outputPath, Dictionary<string, object> settings) {
         var lamePath = Path.GetFullPath(@"..\Upstream\LAME\lame.exe");
         if (!File.Exists(lamePath)) {
-            Console.Error.WriteLine(@"// Warning: lame.exe was not found at ..\Upstream\LAME\lame.exe. Can't encode MP3.");
+            if (!WarnedAboutLAME) {
+                WarnedAboutLAME = true;
+                Console.Error.WriteLine(@"// Warning: lame.exe was not found at ..\Upstream\LAME\lame.exe. Can't encode MP3.");
+            }
+
             return false;
         }
 
@@ -229,9 +239,13 @@ public static class Common {
     }
 
     public static bool CompressOGG (string sourcePath, string outputPath, Dictionary<string, object> settings) {
-        var lamePath = Path.GetFullPath(@"..\Upstream\OggEnc\oggenc2.exe");
-        if (!File.Exists(lamePath)) {
-            Console.Error.WriteLine(@"// Warning: oggenc2.exe was not found at ..\Upstream\OggEnc\oggenc2.exe. Can't encode OGG.");
+        var oggencPath = Path.GetFullPath(@"..\Upstream\OggEnc\oggenc2.exe");
+        if (!File.Exists(oggencPath)) {
+            if (!WarnedAboutOggENC) {
+                WarnedAboutOggENC = true;
+                Console.Error.WriteLine(@"// Warning: oggenc2.exe was not found at ..\Upstream\OggEnc\oggenc2.exe. Can't encode OGG.");
+            }
+
             return false;
         }
 
@@ -243,7 +257,7 @@ public static class Common {
             File.Delete(outputPath);
 
         RunProcess(
-            lamePath, arguments, null, out stderr, out stdout
+            oggencPath, arguments, null, out stderr, out stdout
         );
 
         if (!String.IsNullOrWhiteSpace(stderr))
@@ -1057,6 +1071,10 @@ public static class Common {
             fileName, contentProjectDirectory, itemOutputDirectory,
             profileSettings, existingJournal
         ).ToArray();
+
+        Console.Error.WriteLine("// No audio files generated for '{0}'. Skipping.", fileName);
+        if (results.Length == 0)
+            yield break;
 
         var formats = new List<string>();
         var properties = new Dictionary<string, object> {
