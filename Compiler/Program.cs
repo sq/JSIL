@@ -287,8 +287,13 @@ namespace JSIL.Compiler {
                 var processEnded = DateTime.UtcNow.Ticks;
 
                 {
+                    var logDirectory = MapAssemblyPath(
+                        MapConfigPath(config.OutputDirectory, config.Path),
+                        solutionDir, false
+                    );
+
                     var logPath = Path.Combine(
-                        config.OutputDirectory ?? solutionDir,
+                        logDirectory,
                         String.Format("{0}.buildlog", Path.GetFileName(solution))
                     );
 
