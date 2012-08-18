@@ -1072,9 +1072,10 @@ public static class Common {
             profileSettings, existingJournal
         ).ToArray();
 
-        Console.Error.WriteLine("// No audio files generated for '{0}'. Skipping.", fileName);
-        if (results.Length == 0)
+        if (results.Length == 0) {
+            Console.Error.WriteLine("// No audio files generated for '{0}'. Skipping.", fileName);
             yield break;
+        }
 
         var formats = new List<string>();
         var properties = new Dictionary<string, object> {
