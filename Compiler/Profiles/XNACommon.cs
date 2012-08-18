@@ -751,7 +751,26 @@ public static class Common {
         return new HashSet<string>();
     }
 
-    public static void ProcessContentProjects (Configuration configuration, SolutionBuilder.SolutionBuildResult buildResult, HashSet<string> contentProjectsProcessed) {
+    private static string ExpandPathVariables (
+        Configuration configuration, SolutionBuilder.SolutionBuildResult buildResult, string path
+    ) {
+        var result = path
+                    .Replace("%outputpath%", configuration.OutputDirectory)
+                    .Replace("%configpath%", configuration.Path)
+                    .Replace("%solutionpath%", Path.GetDirectoryName(buildResult.SolutionPath))
+                    .Replace('/', Path.DirectorySeparatorChar);
+
+        if (result.ToLower().Contains("%assemblypath%"))
+            throw new Exception("%assemblypath% is not valid in ContentOutputDirectory! Try %solutionpath%.");
+
+        return result;
+    }
+
+    public static void ProcessContentProjects (
+        Configuration configuration, 
+        SolutionBuilder.SolutionBuildResult buildResult, 
+        HashSet<string> contentProjectsProcessed
+    ) {
         var contentOutputDirectory =
             configuration.ProfileSettings.GetValueOrDefault("ContentOutputDirectory", null) as string;
 
@@ -760,9 +779,8 @@ public static class Common {
             return;
         }
 
-        contentOutputDirectory = contentOutputDirectory
-            .Replace("%configpath%", configuration.Path)
-            .Replace("%outputpath%", configuration.OutputDirectory);
+        contentOutputDirectory = ExpandPathVariables(configuration, buildResult, contentOutputDirectory);
+        EnsureDirectoryExists(contentOutputDirectory);
 
         var projectCollection = new ProjectCollection();
         var contentProjects = buildResult.ProjectsBuilt.Where(
@@ -848,12 +866,19 @@ public static class Common {
             }
 
             var contentProjectDirectory = Path.GetDirectoryName(contentProjectPath);
-            var localOutputDirectory = contentOutputDirectory
-                .Replace("%contentprojectpath%", contentProjectDirectory)
-                .Replace("/", "\\");
+            var localOutputDirectory =
+                ExpandPathVariables(configuration, buildResult, contentOutputDirectory)
+                    .Replace("%contentprojectpath%", contentProjectDirectory)
+                    .Replace('/', Path.DirectorySeparatorChar);
 
-            var contentManifestPath = Path.Combine(configuration.OutputDirectory, Path.GetFileName(contentProjectPath) + ".manifest.js");
-            var contentManifest = new ContentManifestWriter(contentManifestPath, Path.GetFileName(contentProjectPath));
+            EnsureDirectoryExists(localOutputDirectory);
+
+            var contentManifestPath = Path.Combine(
+                localOutputDirectory, Path.GetFileName(contentProjectPath) + ".manifest.js"
+            );
+            var contentManifest = new ContentManifestWriter(
+                contentManifestPath, Path.GetFileName(contentProjectPath)
+            );
 
             Action<string, string, Dictionary<string, object>> logOutput =
             (type, filename, properties) => {

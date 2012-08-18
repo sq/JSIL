@@ -296,15 +296,19 @@ namespace JSIL {
                                 useSymbols, path
                             );
 
-                            if (AssemblyLoaded != null)
-                                AssemblyLoaded(refAssembly.MainModule.FullyQualifiedName);
-
                             if (refAssembly != null) {
+                                if (AssemblyLoaded != null)
+                                    AssemblyLoaded(refAssembly.MainModule.FullyQualifiedName);
+
                                 lock (result)
                                     result.Add(refAssembly);
 
                                 lock (modulesToVisit)
                                     modulesToVisit.AddRange(refAssembly.Modules);
+                            } else {
+                                Warning(String.Format(
+                                    "Failed to load assembly '{0}'", anr.FullName
+                                ));
                             }
                         }
                     );

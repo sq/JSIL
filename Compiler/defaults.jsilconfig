@@ -17,5 +17,9 @@
       "System.Data.SqlXml,",
       "JSIL.Meta,"
     ]
+  },
+  "ProfileSettings": {
+    "OverwriteExistingContent": true,
+    "ContentOutputDirectory": "%solutionpath%/Content"
   }
 }

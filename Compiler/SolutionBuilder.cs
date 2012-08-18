@@ -35,8 +35,14 @@ namespace JSIL.Compiler {
             public readonly BuiltProject[] ProjectsBuilt;
             public readonly string[] TargetFilesUsed;
             public readonly BuiltItem[] AllItemsBuilt;
+            public readonly string SolutionPath;
 
-            public SolutionBuildResult (string[] outputFiles, BuiltProject[] projectsBuilt, string[] targetFiles, BuiltItem[] allItemsBuilt) {
+            public SolutionBuildResult (
+                string solutionPath,
+                string[] outputFiles, BuiltProject[] projectsBuilt, 
+                string[] targetFiles, BuiltItem[] allItemsBuilt
+            ) {
+                SolutionPath = solutionPath;
                 OutputFiles = outputFiles;
                 ProjectsBuilt = projectsBuilt;
                 TargetFilesUsed = targetFiles;
@@ -237,6 +243,7 @@ namespace JSIL.Compiler {
             }
 
             return new SolutionBuildResult(
+                Path.GetFullPath(solutionFile),
                 resultFiles.ToArray(),
                 eventRecorder.ProjectsById.Values.ToArray(),
                 eventRecorder.TargetFiles.ToArray(),
