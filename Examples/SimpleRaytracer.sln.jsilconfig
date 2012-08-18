@@ -1,4 +1,4 @@
 {
   "FrameworkVersion": 4.0,
-  "OutputDirectory": "%configpath%/../jsil.org/demos/Raytracer"
+  "OutputDirectory": "%configdirectory%/../jsil.org/demos/Raytracer"
 }

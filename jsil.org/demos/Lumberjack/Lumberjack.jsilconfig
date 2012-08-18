@@ -1,6 +1,6 @@
 {
   "UseThreads": true,
-  "OutputDirectory": "%configpath%",
+  "OutputDirectory": "%configdirectory%",
   "Assemblies": {
     "Proxies": [
       "C:\\Users\\Kevin\\Documents\\Projects\\lumberjack\\Lumberjack\\Lumberjack\\bin\\x86\\Debug\\Proxies.dll"
@@ -13,7 +13,7 @@
   },
   "ProfileSettings": {
     "OverwriteExistingContent": true,
-    "ContentOutputDirectory": "%configpath%/Content",
+    "ContentOutputDirectory": "%configdirectory%/Content",
     "UsePNGQuant": true,
     "FileSettings": {
       "Textures\\Panels\\intro*.png": "ForceJPEG",

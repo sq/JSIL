@@ -208,7 +208,7 @@ public static class Common {
             return null;
     }
 
-    public static bool CompressMP3 (string sourcePath, string outputPath, Dictionary<string, object> settings) {
+    public static bool CompressMP3 (string sourcePath, string outputPath, ProfileSettings settings) {
         var lamePath = Path.GetFullPath(@"..\Upstream\LAME\lame.exe");
         if (!File.Exists(lamePath)) {
             if (!WarnedAboutLAME) {
@@ -238,7 +238,7 @@ public static class Common {
         return File.Exists(outputPath);
     }
 
-    public static bool CompressOGG (string sourcePath, string outputPath, Dictionary<string, object> settings) {
+    public static bool CompressOGG (string sourcePath, string outputPath, ProfileSettings settings) {
         var oggencPath = Path.GetFullPath(@"..\Upstream\OggEnc\oggenc2.exe");
         if (!File.Exists(oggencPath)) {
             if (!WarnedAboutOggENC) {
@@ -268,7 +268,9 @@ public static class Common {
         return File.Exists(outputPath);
     }
 
-    public static IEnumerable<CompressResult> CompressAudio (string fileName, string sourceFolder, string outputFolder, Dictionary<string, object> settings, Dictionary<string, CompressResult> existingJournal) {
+    public static IEnumerable<CompressResult> CompressAudio (
+        string fileName, string sourceFolder, string outputFolder, ProfileSettings settings, Dictionary<string, CompressResult> existingJournal
+    ) {
         const int CompressVersion = 4;
 
         EnsureDirectoryExists(outputFolder);
@@ -479,8 +481,8 @@ public static class Common {
     }
 
     public static void CompressImage (
-        string imageName, string sourceFolder, 
-        string outputFolder, Dictionary<string, object> settings, 
+        string imageName, string sourceFolder,
+        string outputFolder, ProfileSettings settings, 
         Dictionary<string, ProjectMetadata> itemMetadata,
         CompressResult? oldResult, Action<CompressResult?> writeResult,
         int? colorChannel = null
@@ -492,8 +494,8 @@ public static class Common {
         var sourcePath = Path.Combine(sourceFolder, imageName);
         FileInfo sourceInfo, resultInfo;
 
-        bool forceJpeg = GetFileSettings(settings, imageName).Contains("forcejpeg");
-        bool generateChannels = GetFileSettings(settings, imageName).Contains("generatechannels");
+        bool forceJpeg = settings.Files[imageName].Contains("forcejpeg");
+        bool generateChannels = settings.Files[imageName].Contains("generatechannels");
 
         if (!NeedsRebuild(oldResult, CompressVersion, sourcePath, out sourceInfo, out resultInfo)) {
             writeResult(oldResult);
@@ -602,7 +604,7 @@ public static class Common {
         if (
             usePNGQuant && 
             (Path.GetExtension(outputPath).ToLower() == ".png") &&
-            !GetFileSettings(settings, imageName).Contains("nopngquant")
+            !settings.Files[imageName].Contains("nopngquant")
         ) {
             byte[] result;
             string stderr;
@@ -695,82 +697,14 @@ public static class Common {
         };
     }
 
-    public static void InitConfiguration (JSIL.Compiler.Configuration result) {
-        result.ProfileSettings.SetDefault("ContentOutputDirectory", null);
-        result.ProfileSettings.SetDefault("JPEGQuality", 90);
-        result.ProfileSettings.SetDefault("MP3Quality", "-V 3");
-        result.ProfileSettings.SetDefault("OGGQuality", "-q 6");
-
-        result.ProfileSettings.SetDefault("UsePNGQuant", false);
-        result.ProfileSettings.SetDefault("PNGQuantColorCount", 256);
-        result.ProfileSettings.SetDefault("PNGQuantOptions", "");
-
-        result.ProfileSettings.SetDefault("FileSettings", new Dictionary<string, object>());
-        result.ProfileSettings.SetDefault("FileSettingsRegexes", null);
-
-        result.ProfileSettings.SetDefault("ForceCopyXNBImporters", new string[0]);
-        result.ProfileSettings.SetDefault("ForceCopyXNBProcessors", new string[0]);
-    }
-
-    public static HashSet<string> GetFileSettings (Dictionary<string, object> profileSettings, string fileName) {
-        var fileSettings = profileSettings["FileSettings"] as Dictionary<string, object>;
-        object settings;
-
-        if (fileSettings.TryGetValue(fileName, out settings))
-            return new HashSet<string>(settings.ToString().ToLower().Split(' '));
-        else if (fileSettings.TryGetValue(fileName.Replace("\\", "/"), out settings))
-            return new HashSet<string>(settings.ToString().ToLower().Split(' '));
-
-        var fileSettingsRegexes = profileSettings["FileSettingsRegexes"] as Dictionary<string, Regex>;
-        if (fileSettingsRegexes == null) {
-            profileSettings["FileSettingsRegexes"] = fileSettingsRegexes = new Dictionary<string, Regex>();
-
-            var globChars = new char[] { '?', '*' };
-
-            foreach (var key in fileSettings.Keys) {
-                if (key.IndexOfAny(globChars) < 0)
-                    continue;
-
-                var regex = new Regex(
-                    Regex.Escape(key)
-                        .Replace("/", "\\\\")
-                        .Replace("\\*", "(.*)")
-                        .Replace("\\?", "(.)"),
-                    RegexOptions.Compiled | RegexOptions.IgnoreCase
-                );
-
-                fileSettingsRegexes[key] = regex;
-            }
-        }
-
-        foreach (var kvp in fileSettingsRegexes) {
-            if (kvp.Value.IsMatch(fileName))
-                return new HashSet<string>(fileSettings[kvp.Key].ToString().ToLower().Split(' '));
-        }
-
-        return new HashSet<string>();
-    }
-
-    private static string ExpandPathVariables (
-        Configuration configuration, SolutionBuilder.SolutionBuildResult buildResult, string path
-    ) {
-        var result = path
-                    .Replace("%outputpath%", configuration.OutputDirectory)
-                    .Replace("%configpath%", configuration.Path)
-                    .Replace("%solutionpath%", Path.GetDirectoryName(buildResult.SolutionPath))
-                    .Replace('/', Path.DirectorySeparatorChar);
-
-        if (result.ToLower().Contains("%assemblypath%"))
-            throw new Exception("%assemblypath% is not valid in ContentOutputDirectory! Try %solutionpath%.");
-
-        return result;
-    }
-
     public static void ProcessContentProjects (
+        VariableSet variables,
         Configuration configuration, 
         SolutionBuilder.SolutionBuildResult buildResult, 
         HashSet<string> contentProjectsProcessed
     ) {
+        var settings = new ProfileSettings(variables, configuration);
+
         var contentOutputDirectory =
             configuration.ProfileSettings.GetValueOrDefault("ContentOutputDirectory", null) as string;
 
@@ -779,8 +713,7 @@ public static class Common {
             return;
         }
 
-        contentOutputDirectory = ExpandPathVariables(configuration, buildResult, contentOutputDirectory);
-        EnsureDirectoryExists(contentOutputDirectory);
+        contentOutputDirectory = variables.ExpandPath(contentOutputDirectory, false);
 
         var projectCollection = new ProjectCollection();
         var contentProjects = buildResult.ProjectsBuilt.Where(
@@ -866,10 +799,11 @@ public static class Common {
             }
 
             var contentProjectDirectory = Path.GetDirectoryName(contentProjectPath);
+            var myvars = variables.Clone();
+            myvars.Add("ContentProjectDirectory", contentProjectDirectory);
+
             var localOutputDirectory =
-                ExpandPathVariables(configuration, buildResult, contentOutputDirectory)
-                    .Replace("%contentprojectpath%", contentProjectDirectory)
-                    .Replace('/', Path.DirectorySeparatorChar);
+                myvars.ExpandPath(contentOutputDirectory, false);
 
             EnsureDirectoryExists(localOutputDirectory);
 
@@ -1013,7 +947,7 @@ public static class Common {
                         throw new FileNotFoundException("Asset " + xnbPath + " not found.");
                 }
 
-                if (GetFileSettings(configuration.ProfileSettings, item.EvaluatedInclude).Contains("usexnb")) {
+                if (settings.Files[item.EvaluatedInclude].Contains("usexnb")) {
                     copyRawXnb(item, xnbPath, "XNB");
                 } else if (
                     forceCopyProcessors.Contains(processorName) || 
@@ -1025,7 +959,7 @@ public static class Common {
                         case "XactProcessor":
                             Common.ConvertXactProject(
                                 item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
-                                configuration.ProfileSettings, existingJournal,
+                                settings, existingJournal,
                                 journal, logOutput
                             );
                             continue;
@@ -1039,7 +973,7 @@ public static class Common {
                         case "SongProcessor":
                             journal.AddRange(CompressAudioGroup(
                                 item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
-                                configuration.ProfileSettings, existingJournal, logOutput
+                                settings, existingJournal, logOutput
                             ));
                             continue;
 
@@ -1051,7 +985,7 @@ public static class Common {
 
                             Common.CompressImage(
                                 item.EvaluatedInclude, contentProjectDirectory, itemOutputDirectory,
-                                configuration.ProfileSettings, metadata, existingJournalEntry,
+                                settings, metadata, existingJournalEntry,
                                 (result) => {
                                     if (result.HasValue) {
                                         journal.Add(result.Value);
@@ -1094,14 +1028,14 @@ public static class Common {
 
     private static IEnumerable<CompressResult> CompressAudioGroup(
         string fileName, string contentProjectDirectory, string itemOutputDirectory,
-        Dictionary<string, object> profileSettings, Dictionary<string, CompressResult> existingJournal, 
+        ProfileSettings settings, Dictionary<string, CompressResult> existingJournal, 
         Action<string, string, Dictionary<string, object>> logOutput
     ) {
-        var fileSettings = GetFileSettings(profileSettings, fileName);
+        var fileSettings = settings.Files[fileName];
 
         var results = Common.CompressAudio(
             fileName, contentProjectDirectory, itemOutputDirectory,
-            profileSettings, existingJournal
+            settings, existingJournal
         ).ToArray();
 
         if (results.Length == 0) {
@@ -1198,8 +1132,8 @@ public static class Common {
     }
 
     private static void ConvertXactProject (
-        string projectFile, string sourceFolder, 
-        string outputFolder, Dictionary<string, object> profileSettings, 
+        string projectFile, string sourceFolder,
+        string outputFolder, ProfileSettings settings, 
         Dictionary<string, CompressResult> existingJournal, List<CompressResult> journal, 
         Action<string, string, Dictionary<string, object>> logOutput
     ) {
@@ -1232,7 +1166,7 @@ public static class Common {
 
                 journal.AddRange(CompressAudioGroup(
                     Path.Combine(projectSubdir, wave.m_fileName), sourceFolder, 
-                    waveOutputFolder, profileSettings, existingJournal, logOutput
+                    waveOutputFolder, settings, existingJournal, logOutput
                 ));
             }
         }
@@ -1322,6 +1256,100 @@ public static class Common {
             GC.WaitForPendingFinalizers();
 
             Thread.Sleep(retryDelayMs);
+        }
+    }
+
+    public class ProfileSettings {
+        public readonly VariableSet Variables;
+        public readonly Configuration Configuration;
+        public readonly FileSettings Files;
+
+        private readonly Dictionary<string, object> Dict;
+
+        public ProfileSettings (VariableSet variables, Configuration configuration) {
+            Variables = variables;
+            Configuration = configuration;
+            Dict = Configuration.ProfileSettings;
+            Files = new FileSettings(this);
+
+            Dict.SetDefault("ContentOutputDirectory", null);
+            Dict.SetDefault("JPEGQuality", 90);
+            Dict.SetDefault("MP3Quality", "-V 3");
+            Dict.SetDefault("OGGQuality", "-q 6");
+
+            Dict.SetDefault("UsePNGQuant", false);
+            Dict.SetDefault("PNGQuantColorCount", 256);
+            Dict.SetDefault("PNGQuantOptions", "");
+
+            Dict.SetDefault("FileSettings", new Dictionary<string, object>());
+
+            Dict.SetDefault("ForceCopyXNBImporters", new string[0]);
+            Dict.SetDefault("ForceCopyXNBProcessors", new string[0]);
+        }
+
+        public object this[string key] {
+            get {
+                return Dict.GetValueOrDefault(key, null);
+            }
+        }
+    }
+
+    public class FileSettings {
+        private readonly ProfileSettings Profile;
+        private readonly Dictionary<string, object> SettingsDict = new Dictionary<string, object>();
+        private readonly Dictionary<string, Regex> Regexes = new Dictionary<string, Regex>();
+
+        public FileSettings (ProfileSettings profile) {
+            Profile = profile;
+
+            SettingsDict = profile["FileSettings"] as Dictionary<string, object>;
+            if (SettingsDict == null)
+                SettingsDict = new Dictionary<string, object>();
+
+            var globChars = new char[] { '?', '*' };
+
+            foreach (var key in SettingsDict.Keys) {
+                if (key.IndexOfAny(globChars) < 0)
+                    continue;
+
+                var regex = new Regex(
+                    Regex.Escape(key)
+                        .Replace("/", "\\\\")
+                        .Replace("\\*", "(.*)")
+                        .Replace("\\?", "(.)"),
+                    RegexOptions.Compiled | RegexOptions.IgnoreCase
+                );
+
+                Regexes[key] = regex;
+            }
+        }
+
+        public HashSet<string> this[string filename] {
+            get {
+                string result = null;
+                object settings;
+
+                if (SettingsDict.TryGetValue(filename, out settings)) {
+                    result = settings.ToString();
+                } else if (SettingsDict.TryGetValue(filename.Replace("\\", "/"), out settings)) {
+                    result = settings.ToString();
+                } else {
+                    foreach (var kvp in Regexes) {
+                        if (kvp.Value.IsMatch(filename)) {
+                            result = SettingsDict[kvp.Key].ToString();
+                            break;
+                        }
+                    }
+                }
+
+                if (result != null) {
+                    return new HashSet<string>(
+                        Profile.Variables.Expand(result).ToLower().Split(' ')
+                    );
+                } else {
+                    return new HashSet<string>();
+                }
+            }
         }
     }
 }

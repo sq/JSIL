@@ -8,6 +8,7 @@ namespace JSIL.Compiler {
     public class BuildGroup {
         public IProfile Profile;
         public Configuration BaseConfiguration;
+        public VariableSet BaseVariables;
         public string[] FilesToBuild; 
     }
 }

@@ -1,5 +1,5 @@
 {
-  "OutputDirectory": "%configpath%",
+  "OutputDirectory": "%configdirectory%",
   "GenerateSkeletonsForStubbedAssemblies": true,
   "Assemblies": {
     "Proxies": [

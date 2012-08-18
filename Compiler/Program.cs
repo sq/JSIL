@@ -35,17 +35,9 @@ namespace JSIL.Compiler {
                 var json = File.ReadAllText(filename);
                 var result = jss.Deserialize<Configuration>(json);
 
+                var variables = result.ApplyTo(new VariableSet());
+
                 result.Path = Path.GetDirectoryName(Path.GetFullPath(filename));
-
-                if (result.OutputDirectory != null)
-                    result.OutputDirectory = MapConfigPath(result.OutputDirectory, result.Path);
-
-                var newProxies = (from p in result.Assemblies.Proxies
-                                 let newP = MapConfigPath(p, result.Path)
-                                 select newP).ToArray();
-
-                result.Assemblies.Proxies.Clear();
-                result.Assemblies.Proxies.AddRange(newProxies);
 
                 Console.Error.WriteLine("// Applied settings from '{0}'.", ShortenPath(filename));
 
@@ -56,21 +48,13 @@ namespace JSIL.Compiler {
             }
         }
 
-        static string MapConfigPath (string reference, string configPath) {
-            return reference
-                .Replace("%configpath%", configPath)
-                .Replace('/', Path.DirectorySeparatorChar);
-        }
-
-        static string MapAssemblyPath (string reference, string assemblyPath, bool ensureExists, bool reportErrors = false) {
-            var result = reference
-                .Replace("%assemblypath%", assemblyPath)
-                .Replace('/', Path.DirectorySeparatorChar);
+        static string MapPath (string path, VariableSet variables, bool ensureExists, bool reportErrors = false) {
+            var result = variables.ExpandPath(path, false);
 
             if (ensureExists) {
-                if (!File.Exists(result)) {
+                if (!Directory.Exists(result) && !File.Exists(result)) {
                     if (reportErrors)
-                        Console.Error.WriteLine("// Could not find proxy assembly '{0}'!", reference);
+                        Console.Error.WriteLine("// Could not find file '{0}'!", path);
 
                     return null;
                 }
@@ -88,7 +72,10 @@ namespace JSIL.Compiler {
             return result;
         }
 
-        static void ParseCommandLine (IEnumerable<string> arguments, List<BuildGroup> buildGroups, Dictionary<string, IProfile> profiles) {
+        static void ParseCommandLine (
+            IEnumerable<string> arguments, List<BuildGroup> buildGroups, 
+            Dictionary<string, IProfile> profiles
+        ) {
             var baseConfig = new Configuration();
             IProfile defaultProfile = new Profiles.Default();
             var profileAssemblies = new List<string>();
@@ -99,8 +86,7 @@ namespace JSIL.Compiler {
             {
                 var os = new Mono.Options.OptionSet {
                     {"o=|out=", 
-                        "Specifies the output directory for generated javascript and manifests. " +
-                        "You can use '%configpath%' in jsilconfig files to refer to the directory containing the configuration file, and '%assemblypath%' to refer to the directory containing the assembly being translated.",
+                        "Specifies the output directory for generated javascript and manifests.",
                         (path) => baseConfig.OutputDirectory = Path.GetFullPath(path) },
                     {"nac|noautoconfig", 
                         "Suppresses automatic loading of same-named .jsilconfig files located next to solutions and/or assemblies.",
@@ -279,24 +265,25 @@ namespace JSIL.Compiler {
                     break;
                 }
 
+                var localVariables = config.ApplyTo(new VariableSet());
+                localVariables["SolutionDirectory"] = () => solutionDir;
+
                 var processStarted = DateTime.UtcNow.Ticks;
                 profile.ProcessBuildResult(
+                    localVariables,
                     profile.GetConfiguration(config),
                     buildResult
                 );
                 var processEnded = DateTime.UtcNow.Ticks;
 
                 {
-                    var logDirectory = MapAssemblyPath(
-                        MapConfigPath(config.OutputDirectory, config.Path),
-                        solutionDir, false
-                    );
+                    var logPath = localVariables.ExpandPath(String.Format(
+                        "%outputdirectory%/{0}.buildlog", Path.GetFileName(solution)
+                    ), false);
 
-                    var logPath = Path.Combine(
-                        logDirectory,
-                        String.Format("{0}.buildlog", Path.GetFileName(solution))
-                    );
-
+                    if (!Directory.Exists(Path.GetDirectoryName(logPath)))
+                        Directory.CreateDirectory(Path.GetDirectoryName(logPath));
+                    
                     using (var logWriter = new StreamWriter(logPath, false, Encoding.UTF8)) {
                         logWriter.WriteLine(
                             "Build of solution '{0}' processed {1} task(s) and produced {2} result file(s):",
@@ -316,8 +303,9 @@ namespace JSIL.Compiler {
                 if (buildResult.OutputFiles.Length > 0) {
                     buildGroups.Add(new BuildGroup {
                         BaseConfiguration = config,
+                        BaseVariables = localVariables,
                         FilesToBuild = buildResult.OutputFiles,
-                        Profile = profile
+                        Profile = profile,
                     });
                 }
             }
@@ -349,8 +337,11 @@ namespace JSIL.Compiler {
                              .ToArray();
 
             if (mainGroup.Length > 0) {
+                var variables = baseConfig.ApplyTo(new VariableSet());
+
                 buildGroups.Add(new BuildGroup {
                     BaseConfiguration = baseConfig,
+                    BaseVariables = variables,
                     FilesToBuild = mainGroup,
                     Profile = defaultProfile
                 });
@@ -443,6 +434,7 @@ namespace JSIL.Compiler {
 
             foreach (var buildGroup in buildGroups) {
                 var config = buildGroup.BaseConfiguration;
+                var variables = buildGroup.BaseVariables;
 
                 foreach (var filename in buildGroup.FilesToBuild) {
                     if (config.Assemblies.Ignored.Any(
@@ -473,11 +465,13 @@ namespace JSIL.Compiler {
                     }
 
                     localConfig = localProfile.GetConfiguration(localConfig);
+                    var localVariables = localConfig.ApplyTo(variables);
 
                     var assemblyPath = Path.GetDirectoryName(Path.GetFullPath(filename));
+                    localVariables["AssemblyDirectory"] = () => assemblyPath;
 
                     var newProxies = (from p in localConfig.Assemblies.Proxies
-                                      let newP = MapAssemblyPath(p, assemblyPath, true, true)
+                                      let newP = MapPath(p, localVariables, true, true)
                                       where newP != null
                                       select newP).ToArray();
 
@@ -485,11 +479,11 @@ namespace JSIL.Compiler {
                     localConfig.Assemblies.Proxies.AddRange(newProxies);
 
                     using (var translator = CreateTranslator(localConfig, manifest, assemblyCache)) {
-                        var outputs = buildGroup.Profile.Translate(translator, localConfig, filename, localConfig.UseLocalProxies.GetValueOrDefault(true));
+                        var outputs = buildGroup.Profile.Translate(localVariables, translator, localConfig, filename, localConfig.UseLocalProxies.GetValueOrDefault(true));
                         if (localConfig.OutputDirectory == null)
                             throw new Exception("No output directory was specified!");
 
-                        var outputDir = MapAssemblyPath(localConfig.OutputDirectory, assemblyPath, false);
+                        var outputDir = MapPath(localConfig.OutputDirectory, localVariables, false);
 
                         Console.Error.WriteLine("// Saving output to '{0}'.", ShortenPath(outputDir) + Path.DirectorySeparatorChar);
 
@@ -498,7 +492,7 @@ namespace JSIL.Compiler {
 
                         EmitLog(outputDir, localConfig, filename, outputs);
 
-                        buildGroup.Profile.WriteOutputs(outputs, outputDir, Path.GetFileName(filename) + ".");
+                        buildGroup.Profile.WriteOutputs(localVariables, outputs, outputDir, Path.GetFileName(filename) + ".");
                     }
                 }
             }

@@ -38,6 +38,7 @@ namespace JSIL.Compiler {
         public string OutputDirectory;
         public string Profile;
         public Dictionary<string, object> ProfileSettings = new Dictionary<string, object>();
+        public Dictionary<string, string> CustomVariables = new Dictionary<string, string>();
 
         public void MergeInto (Configuration result) {
             base.MergeInto(result);
@@ -58,12 +59,36 @@ namespace JSIL.Compiler {
             foreach (var kvp in ProfileSettings)
                 result.ProfileSettings[kvp.Key] = kvp.Value;
 
+            foreach (var kvp in CustomVariables)
+                result.CustomVariables[kvp.Key] = kvp.Value;
+
             SolutionBuilder.MergeInto(result.SolutionBuilder);
         }
 
         public Configuration Clone () {
             var result = new Configuration();
             MergeInto(result);
+            return result;
+        }
+
+        private Func<string> BindCustomVariable (string key) {
+            return () => this.CustomVariables[key];
+        }
+
+        public VariableSet ApplyTo (VariableSet variables) {
+            var result = variables.Clone();
+
+            foreach (var kvp in CustomVariables)
+                result[kvp.Key] = BindCustomVariable(kvp.Key);
+
+            result["ConfigDirectory"] = () => Path;
+            result["OutputDirectory"] = () => OutputDirectory;
+            result["Profile"] = () => Profile;
+
+            result["Configuration"] = () => SolutionBuilder.Configuration;
+            result["Platform"] = () => SolutionBuilder.Platform;
+            result["Target"] = () => SolutionBuilder.Target;
+
             return result;
         }
     }

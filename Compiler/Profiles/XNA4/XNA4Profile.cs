@@ -27,12 +27,12 @@ namespace JSIL.Compiler.Profiles {
             result.FrameworkVersion = 4.0;
             result.Assemblies.Proxies.Add("JSIL.Proxies.XNA4.dll");
 
-            Common.InitConfiguration(result);
-
             return result;
         }
 
-        public override TranslationResult Translate (AssemblyTranslator translator, Configuration configuration, string assemblyPath, bool scanForProxies) {
+        public override TranslationResult Translate (
+            VariableSet variables, AssemblyTranslator translator, Configuration configuration, string assemblyPath, bool scanForProxies
+        ) {
             var result = translator.Translate(assemblyPath, scanForProxies);
 
             ResourceConverter.ConvertEmbeddedResources(configuration, assemblyPath, result);
@@ -46,10 +46,12 @@ namespace JSIL.Compiler.Profiles {
             return result;
         }
 
-        public override SolutionBuilder.SolutionBuildResult ProcessBuildResult (Configuration configuration, SolutionBuilder.SolutionBuildResult buildResult) {
-            Common.ProcessContentProjects(configuration, buildResult, ContentProjectsProcessed);
+        public override SolutionBuilder.SolutionBuildResult ProcessBuildResult (
+            VariableSet variables, Configuration configuration, SolutionBuilder.SolutionBuildResult buildResult
+        ) {
+            Common.ProcessContentProjects(variables, configuration, buildResult, ContentProjectsProcessed);
 
-            return base.ProcessBuildResult(configuration, buildResult);
+            return base.ProcessBuildResult(variables, configuration, buildResult);
         }
     }
 }

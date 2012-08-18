@@ -1,6 +1,6 @@
 {
   "UseThreads": true,
-  "OutputDirectory": "%configpath%",
+  "OutputDirectory": "%configdirectory%",
   "Assemblies": {
     "Proxies": [
     ],
@@ -12,7 +12,7 @@
   },
   "ProfileSettings": {
     "OverwriteExistingContent": true,
-    "ContentOutputDirectory": "%configpath%/Content",
+    "ContentOutputDirectory": "%configdirectory%/Content",
     "UsePNGQuant": true,
     "FileSettings": {
     }
