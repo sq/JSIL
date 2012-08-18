@@ -396,7 +396,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentLoadException", 
     Static: false,
     Public: true
   }, ".ctor", new JSIL.MethodSignature(null, [$.String], []), function (message) {
-    this._Message = String(message);
+    this._message = String(message);
   });
 });
 
