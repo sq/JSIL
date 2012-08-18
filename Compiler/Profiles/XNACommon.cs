@@ -554,7 +554,7 @@ public static class Common {
         } else if (justCopy) {
             outputPath += Path.GetExtension(sourcePath);
 
-            File.Copy(sourcePath, outputPath, true);
+            CopyFile(sourcePath, outputPath, true);
         } else {
             bool hasAlphaChannel;
             System.Drawing.Color? existingColorKey;
@@ -893,12 +893,10 @@ public static class Common {
                     Path.GetDirectoryName(outputPath));
 
                 try {
-                    File.Copy(sourcePath, outputPath, true);
+                    CopyFile(sourcePath, outputPath, true);
                     logOutput("File", outputPath, null);
                 } catch (Exception exc) {
                     Console.Error.WriteLine("// Could not copy '{0}'! Error: {1}", item.EvaluatedInclude, exc.Message);
-                    Console.Error.WriteLine("Press enter to continue. (You might want to run SysInternals Handle to see who has that file locked!)");
-                    Console.ReadLine();
                 }
             };
 
@@ -918,12 +916,10 @@ public static class Common {
                     Path.GetDirectoryName(outputPath));
 
                 try {
-                    File.Copy(xnbPath, outputPath, true);
+                    CopyFile(xnbPath, outputPath, true);
                     logOutput(type, outputPath, null);
                 } catch (Exception exc) {
                     Console.Error.WriteLine("// Could not copy '{0}'! Error: {1}", item.EvaluatedInclude, exc.Message);
-                    Console.Error.WriteLine("Press enter to continue. (You might want to run SysInternals Handle to see who has that file locked!)");
-                    Console.ReadLine();
                 }
             };
 
@@ -1007,7 +1003,6 @@ public static class Common {
                                 configuration.ProfileSettings, existingJournal,
                                 journal, logOutput
                             );
-
                             continue;
 
                         case "FontTextureProcessor":
@@ -1268,5 +1263,40 @@ public static class Common {
         }
 
         Console.Error.WriteLine("// Done processing {0}.", projectFile);
+    }
+
+    public static void CopyFile (string sourcePath, string destinationPath, bool overwrite) {
+        const int maxRetries = 5;
+        const int retryDelayMs = 500;
+
+        bool wroteFailureMessage = false;
+
+        for (int retries = 0; retries < maxRetries; retries++) {
+            try {
+                File.Copy(sourcePath, destinationPath, overwrite);
+                if (wroteFailureMessage)
+                    Console.Error.WriteLine();
+
+                break;
+            } catch (IOException ioe) {
+                if (!wroteFailureMessage) {
+                    Console.Error.Write("// Copy failed for '{0}' -> '{1}'! Retrying ", sourcePath, destinationPath);
+                    wroteFailureMessage = true;
+                }
+
+                if (retries < (maxRetries - 1)) {
+                    Console.Error.Write(".");
+                } else {
+                    if (wroteFailureMessage)
+                        Console.Error.WriteLine();
+                    throw;
+                }
+            }
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+
+            Thread.Sleep(retryDelayMs);
+        }
     }
 }

@@ -445,8 +445,6 @@ namespace JSIL.Compiler {
                 var config = buildGroup.BaseConfiguration;
 
                 foreach (var filename in buildGroup.FilesToBuild) {
-                    // GC.Collect();
-
                     if (config.Assemblies.Ignored.Any(
                         (ignoreRegex) => Regex.IsMatch(filename, ignoreRegex, RegexOptions.IgnoreCase))
                     ) {
