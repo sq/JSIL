@@ -7,6 +7,10 @@ var JSIL = {
   __FullName__ : "JSIL"  
 };
 
+if (typeof (jsilConfig) === "undefined") {
+  var jsilConfig = {};
+}
+
 if (typeof (Object.create) !== "function") {
   throw new Error("JSIL requires support for ES5 Object.create");
 }

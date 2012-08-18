@@ -10,7 +10,12 @@
         winForms: true,
         manifests: [
           "SimpleRaytracer.exe",
-        ]
+        ],
+
+        scriptRoot: "",
+        libraryRoot: "../Libraries/",
+        fileRoot: "",
+        contentRoot: "Content/"      
       };
     </script>
     <script src="../Libraries/JSIL.js" type="text/javascript"></script>  
@@ -24,12 +29,7 @@
     
     <div id="log" style="font-family: Consolas, Courier New, monospace"></div>
     
-    <script type="text/javascript">
-      var scriptRoot = "";
-      var libraryRoot = "../Libraries/";
-      var fileRoot = "";
-      var contentRoot = "Content/";
-      
+    <script type="text/javascript">      
       var assetsToLoad = [
       ];
             

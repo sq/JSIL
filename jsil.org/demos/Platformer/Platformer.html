@@ -22,6 +22,11 @@
         
         showProgressBar: true,
         showStats: true
+
+        scriptRoot: "",
+        libraryRoot: "../Libraries/",
+        fileRoot: "Content/",
+        contentRoot: "Content/"      
       };
     </script>
     <script src="../Libraries/JSIL.js" type="text/javascript"></script>    
@@ -40,11 +45,6 @@
     <div id="log"><center><i>Arrow keys to move. Space to jump.</i></center><br></div>
     
     <script type="text/javascript">
-      var scriptRoot = "";
-      var libraryRoot = "../Libraries/";
-      var fileRoot = "Content/";
-      var contentRoot = "Content/";
-      
       var assetsToLoad = [
         ["File", "Levels/0.txt"],
         ["File", "Levels/1.txt"],
