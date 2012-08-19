@@ -700,7 +700,7 @@ public static class Common {
     public static void ProcessContentProjects (
         VariableSet variables,
         Configuration configuration, 
-        SolutionBuilder.SolutionBuildResult buildResult, 
+        JSIL.SolutionBuilder.BuildResult buildResult, 
         HashSet<string> contentProjectsProcessed
     ) {
         var settings = new ProfileSettings(variables, configuration);

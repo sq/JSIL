@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
+using System.Xml.Serialization;
 using JSIL.Compiler.Extensibility;
 using JSIL.Internal;
 using JSIL.Translator;
@@ -244,13 +245,18 @@ namespace JSIL.Compiler {
                 var config = MergeConfigurations(baseConfig, solutionConfig);
                 var buildStarted = DateTime.UtcNow.Ticks;
                 
-                var buildResult = SolutionBuilder.Build(
+                var buildResult = SolutionBuilder.SolutionBuilder.Build(
                     solutionFullPath,
                     config.SolutionBuilder.Configuration,
                     config.SolutionBuilder.Platform,
                     config.SolutionBuilder.Target ?? "Build",
                     config.SolutionBuilder.LogVerbosity
                 );
+
+                var jss = new JavaScriptSerializer();
+                jss.MaxJsonLength = (1024 * 1024) * 64;
+                var buildResultJson = jss.Serialize(buildResult);
+                buildResult = jss.Deserialize<SolutionBuilder.BuildResult>(buildResultJson);
 
                 var buildEnded = DateTime.UtcNow.Ticks;
 
@@ -420,6 +426,8 @@ namespace JSIL.Compiler {
         }
 
         static void Main (string[] arguments) {
+            SolutionBuilder.SolutionBuilder.HandleCommandLine();
+
             var buildGroups = new List<BuildGroup>();
             var profiles = new Dictionary<string, IProfile>();
             var manifest = new AssemblyManifest();

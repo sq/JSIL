@@ -10,7 +10,7 @@ namespace JSIL.Compiler.Profiles {
     public class XNA3 : BaseProfile {
         public HashSet<string> ContentProjectsProcessed = new HashSet<string>();
 
-        public override bool IsAppropriateForSolution (SolutionBuilder.SolutionBuildResult buildResult) {
+        public override bool IsAppropriateForSolution (SolutionBuilder.BuildResult buildResult) {
             return buildResult.TargetFilesUsed.Any(
                 (targetFile) => targetFile.Contains(@"XNA Game Studio\v3.0") || targetFile.Contains(@"XNA Game Studio\v3.1")
             );
@@ -41,8 +41,8 @@ namespace JSIL.Compiler.Profiles {
             return result;
         }
 
-        public override SolutionBuilder.SolutionBuildResult ProcessBuildResult (
-            VariableSet variables, Configuration configuration, SolutionBuilder.SolutionBuildResult buildResult
+        public override SolutionBuilder.BuildResult ProcessBuildResult (
+            VariableSet variables, Configuration configuration, SolutionBuilder.BuildResult buildResult
         ) {
             Common.ProcessContentProjects(variables, configuration, buildResult, ContentProjectsProcessed);
 

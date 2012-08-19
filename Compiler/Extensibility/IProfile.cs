@@ -5,10 +5,10 @@ using System.Text;
 
 namespace JSIL.Compiler.Extensibility {
     public interface IProfile {
-        bool IsAppropriateForSolution (SolutionBuilder.SolutionBuildResult buildResult);
+        bool IsAppropriateForSolution (SolutionBuilder.BuildResult buildResult);
 
-        SolutionBuilder.SolutionBuildResult ProcessBuildResult (
-            VariableSet variables, Configuration configuration, SolutionBuilder.SolutionBuildResult buildResult
+        SolutionBuilder.BuildResult ProcessBuildResult (
+            VariableSet variables, Configuration configuration, SolutionBuilder.BuildResult buildResult
         );
         Configuration GetConfiguration (
             Configuration defaultConfiguration

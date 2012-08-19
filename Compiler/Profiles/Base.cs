@@ -7,7 +7,7 @@ using JSIL.Compiler.Extensibility;
 
 namespace JSIL.Compiler.Profiles {
     public abstract class BaseProfile : IProfile {
-        public abstract bool IsAppropriateForSolution (SolutionBuilder.SolutionBuildResult buildResult);
+        public abstract bool IsAppropriateForSolution (SolutionBuilder.BuildResult buildResult);
 
         public virtual Configuration GetConfiguration (Configuration defaultConfiguration) {
             return defaultConfiguration;
@@ -30,7 +30,9 @@ namespace JSIL.Compiler.Profiles {
             result.WriteToDirectory(path, manifestPrefix);
         }
 
-        public virtual SolutionBuilder.SolutionBuildResult ProcessBuildResult (VariableSet variables, Configuration configuration, SolutionBuilder.SolutionBuildResult buildResult) {
+        public virtual SolutionBuilder.BuildResult ProcessBuildResult (
+            VariableSet variables, Configuration configuration, SolutionBuilder.BuildResult buildResult
+        ) {
             return buildResult;
         }
     }

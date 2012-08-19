@@ -2,54 +2,19 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Pipes;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
+using System.Web.Script.Serialization;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Logging;
 
-namespace JSIL.Compiler {
+namespace JSIL.SolutionBuilder {
     public static class SolutionBuilder {
-        public class BuiltItem {
-            public readonly string TargetName;
-            public readonly string OutputPath;
-            public readonly Dictionary<string, string> Metadata = new Dictionary<string, string>();
-
-            internal BuiltItem (string targetName, ITaskItem item) {
-                TargetName = targetName;
-                OutputPath = item.ItemSpec;
-
-                foreach (var name in item.MetadataNames)
-                    Metadata.Add((string)name, item.GetMetadata((string)name));
-            }
-
-            public override string ToString() {
-                return String.Format("{0}: {1} ({2} metadata)", TargetName, OutputPath, Metadata.Count);
-            }
-        }
-
-        public class SolutionBuildResult {
-            public readonly string[] OutputFiles;
-            public readonly BuiltProject[] ProjectsBuilt;
-            public readonly string[] TargetFilesUsed;
-            public readonly BuiltItem[] AllItemsBuilt;
-            public readonly string SolutionPath;
-
-            public SolutionBuildResult (
-                string solutionPath,
-                string[] outputFiles, BuiltProject[] projectsBuilt, 
-                string[] targetFiles, BuiltItem[] allItemsBuilt
-            ) {
-                SolutionPath = solutionPath;
-                OutputFiles = outputFiles;
-                ProjectsBuilt = projectsBuilt;
-                TargetFilesUsed = targetFiles;
-                AllItemsBuilt = allItemsBuilt;
-            }
-        }
-
         private static object GetField (object target, string fieldName, BindingFlags fieldFlags) {
             return target.GetType().GetField(fieldName, fieldFlags).GetValue(target);        
         }
@@ -130,17 +95,146 @@ namespace JSIL.Compiler {
             return (ProjectInstance[])result;
         }
 
-        public static SolutionBuildResult Build (
+        public static void HandleCommandLine (int connectTimeoutMs = 2500) {
+            var commandLineArgs = Environment.GetCommandLineArgs();
+            if ((commandLineArgs.Length == 3) && (commandLineArgs[1] == "--buildSolution")) {
+                try {
+                    var jss = new JavaScriptSerializer();
+                    jss.MaxJsonLength = 1024 * 1024 * 64;
+
+                    var pipeId = commandLineArgs[2];
+
+                    using (var pipe = new NamedPipeClientStream(pipeId)) {
+                        pipe.Connect(connectTimeoutMs);
+
+                        using (var sr = new StreamReader(pipe))
+                        using (var sw = new StreamWriter(pipe)) {
+                            var argsJson = sr.ReadLine();
+                            var argsDict = jss.Deserialize<Dictionary<string, object>>(argsJson);
+
+                            var buildResult = Build(
+                                (string)argsDict["solutionFile"],
+                                (string)argsDict["buildConfiguration"],
+                                (string)argsDict["buildPlatform"],
+                                (string)argsDict["buildTarget"],
+                                (string)argsDict["logVerbosity"],
+                                true
+                            );
+
+                            var resultJson = jss.Serialize(buildResult);
+
+                            sw.WriteLine(resultJson);
+                            sw.Flush();
+                            pipe.Flush();
+                            pipe.WaitForPipeDrain();
+                        }
+                    }
+                } catch (Exception exc) {
+                    Console.Error.WriteLine(exc.ToString());
+                    Environment.Exit(1);
+                }
+
+                Environment.Exit(0);
+            }
+        }
+
+        private static BuildResult OutOfProcessBuild (Dictionary<string, object> arguments, int startupTimeoutMs = 5000) {
+            var jss = new JavaScriptSerializer();
+            jss.MaxJsonLength = 1024 * 1024 * 64;
+
+            var argsJson = jss.Serialize(arguments);
+            var pipeId = String.Format("JSIL.Build{0:X4}", (new Random()).Next());
+
+            Console.Error.WriteLine("// Starting out-of-process solution build with ID '{0}'...", pipeId);
+
+            using (var pipe = new NamedPipeServerStream(
+                pipeId, PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous
+            )) {
+                var psi = new ProcessStartInfo {
+                    FileName = JSIL.Internal.Util.GetPathOfAssembly(Assembly.GetExecutingAssembly()),
+                    Arguments = String.Format("--buildSolution {0}", pipeId),
+                    WorkingDirectory = Environment.CurrentDirectory,
+                    CreateNoWindow = false,
+                    UseShellExecute = false,
+                    ErrorDialog = false                    
+                };
+                var childProcess = Process.Start(psi);
+
+                var connectedEvent = new ManualResetEventSlim(false);
+                var exitedEvent = new ManualResetEventSlim(false);
+
+                try {
+                    var connectAR = pipe.BeginWaitForConnection((_) => connectedEvent.Set(), null);
+
+                    try {
+                        childProcess.Exited += (s, e) => exitedEvent.Set();
+                        if (childProcess.HasExited)
+                            exitedEvent.Set();
+                    } catch {
+                    }
+
+                    WaitHandle.WaitAny(
+                        new[] { connectedEvent.WaitHandle, exitedEvent.WaitHandle }, startupTimeoutMs
+                    );
+
+                    if (connectedEvent.IsSet) {
+                        pipe.EndWaitForConnection(connectAR);
+                    } else if (exitedEvent.IsSet) {
+                        Console.Error.WriteLine("// Out-of-process solution build terminated unexpectedly with code {0}!", childProcess.ExitCode);
+                        Environment.Exit(1);
+                    } else {
+                        Console.Error.WriteLine("// Out-of-process solution build timed out!");
+                        Environment.Exit(2);
+                    }
+
+                    using (var sr = new StreamReader(pipe))
+                    using (var sw = new StreamWriter(pipe)) {
+                        sw.WriteLine(argsJson);
+                        sw.Flush();
+                        pipe.Flush();
+                        pipe.WaitForPipeDrain();
+
+                        var resultJson = sr.ReadLine();
+                        var buildResult = jss.Deserialize<BuildResult>(resultJson);
+
+                        Console.Error.WriteLine("// Out-of-process solution build completed successfully.");
+
+                        return buildResult;
+                    }
+                } finally {
+                    try {
+                        if (!childProcess.HasExited)
+                            childProcess.Kill();
+                    } catch {
+                    }
+
+                    childProcess.Dispose();
+                }
+            }
+        }
+
+        public static BuildResult Build (
             string solutionFile, string buildConfiguration = null, 
             string buildPlatform = null, string buildTarget = "Build", 
-            string logVerbosity = null
+            string logVerbosity = null, bool inProcess = false
         ) {
+            if (!inProcess) {
+                var argsDict = new Dictionary<string, object> {
+                    {"solutionFile", solutionFile},
+                    {"buildConfiguration", buildConfiguration},
+                    {"buildPlatform", buildPlatform},
+                    {"buildTarget", buildTarget},
+                    {"logVerbosity", logVerbosity}
+                };
+                return OutOfProcessBuild(argsDict);
+            }
+
             string configString = String.Format("{0}|{1}", buildConfiguration ?? "<default>", buildPlatform ?? "<default>");
 
             if ((buildConfiguration ?? buildPlatform) != null)
-                Console.Error.WriteLine("// Running target '{2}' of '{0}' ({1}) ...", Program.ShortenPath(solutionFile), configString, buildTarget);
+                Console.Error.WriteLine("// Running target '{2}' of '{0}' ({1}) ...", JSIL.Compiler.Program.ShortenPath(solutionFile), configString, buildTarget);
             else
-                Console.Error.WriteLine("// Running target '{1}' of '{0}' ...", Program.ShortenPath(solutionFile), buildTarget);
+                Console.Error.WriteLine("// Running target '{1}' of '{0}' ...", JSIL.Compiler.Program.ShortenPath(solutionFile), buildTarget);
 
             var pc = new ProjectCollection();
             var parms = new BuildParameters(pc);
@@ -195,7 +289,7 @@ namespace JSIL.Compiler {
                     hostServices, BuildRequestDataFlags.None
                 );
 
-                BuildResult result = null;
+                Microsoft.Build.Execution.BuildResult result = null;
                 try {
                     result = manager.Build(parms, request);
                 } catch (Exception exc) {
@@ -242,7 +336,7 @@ namespace JSIL.Compiler {
                 }
             }
 
-            return new SolutionBuildResult(
+            return new BuildResult(
                 Path.GetFullPath(solutionFile),
                 resultFiles.ToArray(),
                 eventRecorder.ProjectsById.Values.ToArray(),
@@ -260,7 +354,7 @@ namespace JSIL.Compiler {
             var pResultsDictionary = tResultsCache.GetProperty("ResultsDictionary", BindingFlags.NonPublic | BindingFlags.Instance);
             var oResultsDictionary = pResultsDictionary.GetValue(resultsCache, null);
 
-            var resultsDictionary = (Dictionary<int, BuildResult>) oResultsDictionary;
+            var resultsDictionary = (Dictionary<int, Microsoft.Build.Execution.BuildResult>) oResultsDictionary;
 
             var result = new List<BuiltItem>();
 
@@ -321,6 +415,52 @@ namespace JSIL.Compiler {
         public LoggerVerbosity Verbosity {
             get;
             set;
+        }
+    }
+
+    public class BuiltItem {
+        public readonly string TargetName;
+        public readonly string OutputPath;
+        public readonly Dictionary<string, string> Metadata = new Dictionary<string, string>();
+
+        // XMLSerializer sucks.
+        public BuiltItem () {
+        }
+
+        internal BuiltItem (string targetName, ITaskItem item) {
+            TargetName = targetName;
+            OutputPath = item.ItemSpec;
+
+            foreach (var name in item.MetadataNames)
+                Metadata.Add((string)name, item.GetMetadata((string)name));
+        }
+
+        public override string ToString () {
+            return String.Format("{0}: {1} ({2} metadata)", TargetName, OutputPath, Metadata.Count);
+        }
+    }
+
+    public class BuildResult {
+        public readonly string[] OutputFiles;
+        public readonly BuiltProject[] ProjectsBuilt;
+        public readonly string[] TargetFilesUsed;
+        public readonly BuiltItem[] AllItemsBuilt;
+        public readonly string SolutionPath;
+
+        // XMLSerializer sucks.
+        public BuildResult () {
+        }
+
+        internal BuildResult (
+            string solutionPath,
+            string[] outputFiles, BuiltProject[] projectsBuilt,
+            string[] targetFiles, BuiltItem[] allItemsBuilt
+        ) {
+            SolutionPath = solutionPath;
+            OutputFiles = outputFiles;
+            ProjectsBuilt = projectsBuilt;
+            TargetFilesUsed = targetFiles;
+            AllItemsBuilt = allItemsBuilt;
         }
     }
 }
