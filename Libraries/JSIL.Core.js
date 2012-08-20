@@ -578,8 +578,14 @@ JSIL.AssignTypeId = function (assembly, typeName) {
 };
 
 JSIL.Name = function (name, context) {
-  this.humanReadable = String(context) + "." + String(name);
-  this.key = JSIL.EscapeName(String(context)) + "$" + JSIL.EscapeName(String(name));
+  if (typeof (context) !== "string") {
+    if (context.__FullName__)
+      context = context.__FullName__;
+    else
+      context = String(context);
+  }
+  this.humanReadable = context + "." + String(name);
+  this.key = JSIL.EscapeName(context) + "$" + JSIL.EscapeName(String(name));
 };
 JSIL.Name.prototype.get = function (target) {
   return target[this.key];
@@ -1107,6 +1113,22 @@ JSIL.Initialize = function () {
   var arn = JSIL.AllRegisteredNames;
   for (var i = 0, l = arn.length; i < l; i++)
     arn[i].sealed = true;
+
+  var forceInitList = [
+    "System.Object",
+    "System.Reflection.MemberInfo",
+    "System.Reflection.MethodBase",
+    "System.Reflection.FieldInfo",
+    "System.Type"
+  ];
+
+  /*
+  for (var i = 0; i < forceInitList.length; i++) {
+    var typeName = forceInitList[i];
+    var type = JSIL.GetTypeByName(typeName);
+    JSIL.InitializeType(type);
+  };
+  */
 };
 
 JSIL.GenericParameter = function (name, context) {
@@ -1294,6 +1316,8 @@ JSIL.ExternalsQueue = {};
 // FIXME: Used to prevent cycles in type cachers from causing problems. Not sure if this is right.
 $jsilcore.SuppressRecursiveConstructionErrors = 0;
 
+$jsilcore.TypeGetterDepth = 0;
+
 JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initializer) {
   var privateName = JSIL.ResolveName(privateNamespace, name, true);
   if (isPublic)
@@ -1321,76 +1345,84 @@ JSIL.RegisterName = function (name, privateNamespace, isPublic, creator, initial
   var getter = function (unseal) {
     var result;
 
-    if (state.constructing) {
-      if (($jsilcore.SuppressRecursiveConstructionErrors > 0) && state.value) {
-        JSIL.Host.warning("Ignoring recursive construction of type '" + name + "'.");
-        return state.value;
-      } else {
-        var err = new Error("Recursive construction of type '" + name + "' detected.");
-        state.value = err;
-        throw err;
-      }
-    }
+    $jsilcore.TypeGetterDepth += 1;
+    try {
+      if ($jsilcore.TypeGetterDepth > 2)
+        JSIL.Host.logWriteLine("DEPTH " + $jsilcore.TypeGetterDepth + " - " + name);
 
-    if (typeof (state.creator) === "function") {
-      state.constructing = true;
-      var cf = state.creator;
-
-      try {
-        result = cf();
-
-        if ((result === null) || ((typeof (result) !== "object") && (typeof (result) !== "function"))) {
-          var err = new Error("Invalid result from type creator for type '" + name + "'");
+      if (state.constructing) {
+        if (($jsilcore.SuppressRecursiveConstructionErrors > 0) && state.value) {
+          JSIL.Host.warning("Ignoring recursive construction of type '" + name + "'.");
+          return state.value;
+        } else {
+          var err = new Error("Recursive construction of type '" + name + "' detected.");
           state.value = err;
           throw err;
         }
-
-        state.value = result;
-      } catch (exc) {
-        JSIL.Host.error(exc);
-      } finally {
-        state.creator = null;
-        state.constructing = false;
       }
-    } else {
-      result = state.value;
 
-      if ((result === null) || ((typeof (result) !== "object") && (typeof (result) !== "function"))) {
-        var err = new Error("Type initialization failed for type '" + name + "'");
-        state.value = err;
-        throw err;
+      if (typeof (state.creator) === "function") {
+        state.constructing = true;
+        var cf = state.creator;
+
+        try {
+          result = cf();
+
+          if ((result === null) || ((typeof (result) !== "object") && (typeof (result) !== "function"))) {
+            var err = new Error("Invalid result from type creator for type '" + name + "'");
+            state.value = err;
+            throw err;
+          }
+
+          state.value = result;
+        } catch (exc) {
+          JSIL.Host.error(exc);
+        } finally {
+          state.creator = null;
+          state.constructing = false;
+        }
+      } else {
+        result = state.value;
+
+        if ((result === null) || ((typeof (result) !== "object") && (typeof (result) !== "function"))) {
+          var err = new Error("Type initialization failed for type '" + name + "'");
+          state.value = err;
+          throw err;
+        }
       }
-    }
 
-    if (typeof (state.initializer) === "function") {
-      var ifn = state.initializer;
-      state.constructing = true;
+      if (typeof (state.initializer) === "function") {
+        var ifn = state.initializer;
+        state.constructing = true;
 
-      try {
-        ifn(result);
-      } catch (exc) {
-        JSIL.Host.error(exc);
-      } finally {
-        state.initializer = null;
-        state.constructing = false;
+        try {
+          ifn(result);
+        } catch (exc) {
+          JSIL.Host.error(exc);
+        } finally {
+          state.initializer = null;
+          state.constructing = false;
+        }
       }
-    }
 
-    if (typeof (unseal) !== "boolean") {
-      unseal = true;
-    }
+      if (typeof (unseal) !== "boolean") {
+        unseal = true;
+      }
 
-    if (state.sealed && unseal) {
-      state.sealed = false;
+      if (state.sealed && unseal) {
+        state.sealed = false;
 
-      JSIL.InitializeType(result);
+        JSIL.InitializeType(result);
 
-      JSIL.Host.runLater(function PrivateNameCleanupCallback () {
-        privateName.set(result);
+        JSIL.Host.runLater(function PrivateNameCleanupCallback () {
+          privateName.set(result);
 
-        if (isPublic)
-          publicName.set(result);
-      });
+          if (isPublic)
+            publicName.set(result);
+        });
+      }
+    } finally {
+      $jsilcore.TypeGetterDepth -= 1;
     }
 
     return result;
@@ -1801,7 +1833,17 @@ $jsilcore.$Of$NoInitialize = function () {
     JSIL.MakeIndirectProperty(result, k, staticClassObject);
   }
   
-  var fullNameUnqualified = typeObject.__FullName__ + "[" + Array.prototype.join.call(resolvedArguments, ", ") + "]";
+  var fullNameUnqualified = typeObject.__FullName__;
+  if (resolvedArguments.length > 0) {
+    fullNameUnqualified += "[";
+    for (var i = 0; i < resolvedArguments.length; ++i) {
+      fullNameUnqualified += "[";
+      fullNameUnqualified += resolvedArguments[i].__FullNameUnqualified__;
+      fullNameUnqualified += "]";
+    }
+    fullNameUnqualified += "]";
+  }
+
   var fullName = typeObject.__FullName__;
   if (resolvedArguments.length > 0) {
     fullName += "[";
@@ -3487,84 +3529,64 @@ JSIL.MakeStaticClass = function (fullName, isPublic, genericArguments, initializ
   var assembly = $private;
   var localName = JSIL.GetLocalName(fullName);
 
-  var runtimeType = $jsilcore.$GetRuntimeType(assembly, fullName);
-  var typeObject = JSIL.CloneObject(runtimeType);
-  typeObject.__FullName__ = fullName;
-
+  var callStack = null;
   if (typeof (printStackTrace) === "function")
-    typeObject.__CallStack__ = printStackTrace();
-
-  typeObject.__Context__ = assembly;
-  typeObject.__InheritanceDepth__ = 1;
-  typeObject.__BaseType__ = null;
-  typeObject.__ShortName__ = localName;
-  typeObject.__IsStatic__ = true;
-  typeObject.__Properties__ = [];
-  typeObject.__Initializers__ = [];
-  typeObject.__Interfaces__ = [];
-  typeObject.__Members__ = [];
-  typeObject.__RenamedMethods__ = {};
-  typeObject.__RawMethods__ = [];
-  typeObject.__TypeInitialized__ = false;
-  typeObject.__GenericArguments__ = genericArguments || [];
-
-  typeObject.IsInterface = false;
-
-  var staticClassObject = JSIL.CloneObject(JSIL.StaticClassPrototype);
-  staticClassObject.__Type__ = typeObject;
-
-  var typeId = JSIL.AssignTypeId(assembly, fullName);
-  JSIL.SetTypeId(typeObject, staticClassObject, typeId);
-
-  typeObject.__PublicInterface__ = staticClassObject;
-
-  if (typeObject.__GenericArguments__.length > 0) {
-    staticClassObject.Of$NoInitialize = $jsilcore.$Of$NoInitialize.bind(staticClassObject);
-    staticClassObject.Of = $jsilcore.$MakeOf(staticClassObject);
-    typeObject.__IsClosed__ = false;
-    typeObject.__OfCache__ = {};
-  } else {
-    typeObject.__IsClosed__ = true;
-  }
-
-  for (var i = 0, l = typeObject.__GenericArguments__.length; i < l; i++) {
-    var ga = typeObject.__GenericArguments__[i];
-    var name = new JSIL.Name(ga, fullName);
-
-    JSIL.SetValueProperty(staticClassObject, ga, name);
-  }
+    callStack = printStackTrace();
 
   var creator = function CreateStaticClassObject () {
+    var runtimeType = $jsilcore.$GetRuntimeType(assembly, fullName);
+    var typeObject = JSIL.CloneObject(runtimeType);
+    typeObject.__FullName__ = fullName;
+
+    typeObject.__CallStack__ = callStack;
+    typeObject.__Context__ = assembly;
+    typeObject.__InheritanceDepth__ = 1;
+    typeObject.__BaseType__ = null;
+    typeObject.__ShortName__ = localName;
+    typeObject.__IsStatic__ = true;
+    typeObject.__Properties__ = [];
+    typeObject.__Initializers__ = [];
+    typeObject.__Interfaces__ = [];
+    typeObject.__Members__ = [];
+    typeObject.__RenamedMethods__ = {};
+    typeObject.__RawMethods__ = [];
+    typeObject.__TypeInitialized__ = false;
+    typeObject.__GenericArguments__ = genericArguments || [];
+
+    typeObject.IsInterface = false;
+
+    var staticClassObject = JSIL.CloneObject(JSIL.StaticClassPrototype);
+    staticClassObject.__Type__ = typeObject;
+
+    var typeId = JSIL.AssignTypeId(assembly, fullName);
+    JSIL.SetTypeId(typeObject, staticClassObject, typeId);
+
+    typeObject.__PublicInterface__ = staticClassObject;
+
+    if (typeObject.__GenericArguments__.length > 0) {
+      staticClassObject.Of$NoInitialize = $jsilcore.$Of$NoInitialize.bind(staticClassObject);
+      staticClassObject.Of = $jsilcore.$MakeOf(staticClassObject);
+      typeObject.__IsClosed__ = false;
+      typeObject.__OfCache__ = {};
+    } else {
+      typeObject.__IsClosed__ = true;
+    }
+
+    for (var i = 0, l = typeObject.__GenericArguments__.length; i < l; i++) {
+      var ga = typeObject.__GenericArguments__[i];
+      var name = new JSIL.Name(ga, fullName);
+
+      JSIL.SetValueProperty(staticClassObject, ga, name);
+    }
+
     JSIL.ApplyExternals(staticClassObject, typeObject, fullName);
 
     return staticClassObject;
   };
 
-  if (creator) {
-    var decl = {
-      value: fullName + ".__creator__",
-      configurable: true,
-      enumerable: true
-    };
-
-    Object.defineProperty(creator, "__name__", decl);
-    Object.defineProperty(creator, "debugName", decl);
-    Object.defineProperty(creator, "displayName", decl);
-  }
-
   var wrappedInitializer = null;
 
   if (initializer) {
-    var decl = {
-      value: fullName + ".__initializer__",
-      configurable: true,
-      enumerable: true
-    };
-
-    Object.defineProperty(initializer, "__name__", decl);
-    Object.defineProperty(initializer, "debugName", decl);
-    Object.defineProperty(initializer, "displayName", decl);
-
     wrappedInitializer = function (to) {
       var interfaceBuilder = new JSIL.InterfaceBuilder(assembly, to.__Type__, to);
       initializer(interfaceBuilder);

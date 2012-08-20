@@ -63,7 +63,7 @@ namespace JSIL {
         protected bool OwnsTypeInfoProvider;
 
         protected readonly static HashSet<string> TypeDeclarationsToSuppress = new HashSet<string> {
-            "System.Object", "System.Type", "System.RuntimeType",
+            "System.Object", "System.ValueType", "System.Type", "System.RuntimeType",
             "System.Reflection.MemberInfo", "System.Reflection.MethodBase", 
             "System.Reflection.MethodInfo", "System.Reflection.FieldInfo",
             "System.Reflection.ConstructorInfo", "System.Reflection.PropertyInfo",
@@ -1002,15 +1002,17 @@ namespace JSIL {
 
                         output.Identifier("$jsilcore");
                         output.Dot();
-                        output.Identifier("System");
-                        output.Dot();
-                        output.Identifier("Object");
+                        output.Identifier("TypeRef");
+                        output.LPar();
+                        output.Value("System.Object");
+                        output.RPar();
                     } else if (typedef.FullName == "System.ValueType") {
                         output.Identifier("$jsilcore");
                         output.Dot();
-                        output.Identifier("System");
-                        output.Dot();
-                        output.Identifier("ValueType");
+                        output.Identifier("TypeRef");
+                        output.LPar();
+                        output.Value("System.ValueType");
+                        output.RPar();
                     } else {
                         output.TypeReference(baseClass, astEmitter.ReferenceContext);
                     }
