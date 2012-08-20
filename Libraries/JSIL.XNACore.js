@@ -5107,6 +5107,79 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
     }
   );
 
+  var blitSinglePixel = function (context, originalImage, width, height, colorR, colorG, colorB, colorA) {
+    colorR /= 255;
+    colorG /= 255;
+    colorB /= 255;
+    colorA /= 255;
+
+    var topLeftPixelText = $jsilxna.getImageTopLeftPixel(originalImage);
+    var topLeftPixel = topLeftPixelText.split(",");
+
+    var unpremultiplyFactor = 1 / colorA;
+
+    var imageColor = "rgba(" + 
+      $jsilxna.ClampByte(parseFloat(topLeftPixel[0] * colorR * unpremultiplyFactor)) + ", " + 
+      $jsilxna.ClampByte(parseFloat(topLeftPixel[1] * colorG * unpremultiplyFactor)) + ", " + 
+      $jsilxna.ClampByte(parseFloat(topLeftPixel[2] * colorB * unpremultiplyFactor)) + ", " + 
+      topLeftPixel[3] + 
+    ")";
+
+    context.globalAlpha = colorA;
+    context.fillStyle = imageColor;
+    context.fillRect(
+      0, 0, width, height
+    );
+  };
+
+  var blitChannels = function (
+    context, channels, 
+    sourceX, sourceY, sourceW, sourceH, 
+    width, height, 
+    colorR, colorG, colorB, colorA
+  ) {
+    var alpha = colorA / 255;
+
+    sourceX += channels.xOffset;
+    sourceY += channels.yOffset;
+
+    var compositeOperation = context.globalCompositeOperation;
+    if (compositeOperation !== "lighter") {
+      context.globalCompositeOperation = "source-over";
+      context.globalAlpha = alpha;
+      context.drawImage(
+        channels.a, sourceX, sourceY, sourceW, sourceH, 
+        0, 0, width, height
+      );
+    }
+
+    context.globalCompositeOperation = "lighter";
+
+    if (colorR > 0) {
+      context.globalAlpha = colorR / 255;
+      context.drawImage(
+        channels.r, sourceX, sourceY, sourceW, sourceH, 
+        0, 0, width, height
+      );
+    }
+
+    if (colorG > 0) {
+      context.globalAlpha = colorG / 255;
+      context.drawImage(
+        channels.g, sourceX, sourceY, sourceW, sourceH, 
+        0, 0, width, height
+      );
+    }
+
+    if (colorB > 0) {
+      context.globalAlpha = colorB / 255;
+      context.drawImage(
+        channels.b, sourceX, sourceY, sourceW, sourceH, 
+        0, 0, width, height
+      );
+    }
+  };
+
   $.RawMethod(false, "InternalDraw", 
     function SpriteBatch_InternalDraw (
       texture, positionX, positionY, width, height, 
@@ -5131,8 +5204,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       var originalImage = image;
       var context = this.device.context;
 
-      var originalPositionX = positionX, originalPositionY = positionY;
-
       if (sourceX < 0) {
         sourceW += sourceX;
         sourceX = 0;
@@ -5153,7 +5224,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       var channels = null;
 
       var colorA = color.a;
-
       if (colorA < 1)
         return;
 
@@ -5169,14 +5239,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       this.$save();
 
       context.translate(positionX, positionY);
-
-      if ((rotation !== 0) && (Math.abs(rotation) >= 0.0001)) {
-        context.rotate(rotation);
-      }
-
-      if ((scaleX !== 1.0) || (scaleY !== 1.0)) {
-        context.scale(scaleX, scaleY);
-      }
+      context.rotate(rotation);
+      context.scale(scaleX, scaleY);
 
       // Negative width/height cause an exception in Firefox
       if (width < 0) {
@@ -5191,14 +5255,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       context.translate(-originX, -originY);
 
       if (effects) {
-        effects = effects.value;
+        var e = effects.value;
         
-        if (effects & this.flipHorizontally) {
+        if (e & this.flipHorizontally) {
           context.translate(width, 0);
           context.scale(-1, 1);
         }
 
-        if (effects & this.flipVertically) {
+        if (e & this.flipVertically) {
           context.translate(0, height);
           context.scale(1, -1);
         }
@@ -5224,86 +5288,27 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         }
 
         if (isSinglePixel) {
-          colorR /= 255;
-          colorG /= 255;
-          colorB /= 255;
-          colorA /= 255;
-
-          var topLeftPixelText = $jsilxna.getImageTopLeftPixel(originalImage);
-          var topLeftPixel = topLeftPixelText.split(",");
-
-          var unpremultiplyFactor = 1 / colorA;
-
-          var imageColor = "rgba(" + 
-            $jsilxna.ClampByte(parseFloat(topLeftPixel[0] * colorR * unpremultiplyFactor)) + ", " + 
-            $jsilxna.ClampByte(parseFloat(topLeftPixel[1] * colorG * unpremultiplyFactor)) + ", " + 
-            $jsilxna.ClampByte(parseFloat(topLeftPixel[2] * colorB * unpremultiplyFactor)) + ", " + 
-            topLeftPixel[3] + 
-          ")";
-
-          context.globalAlpha = colorA;
-          context.fillStyle = imageColor;
-          context.fillRect(
-            0, 0, width, height
+          blitSinglePixel(context, originalImage, width, height, colorR, colorG, colorB, colorA);
+        } else if (channels !== null) {
+          blitChannels(
+            context, channels, 
+            sourceX, sourceY, sourceW, sourceH, 
+            width, height, 
+            colorR, colorG, colorB, colorA
+          );
+        } else if (this.isWebGL) {
+          context.drawImage(
+            image, sourceX, sourceY, sourceW, sourceH, 
+            0, 0, width, height, 
+            colorR / 255, colorG / 255, colorB / 255, colorA / 255
           );
         } else {
-          if (channels !== null) {
-            var alpha = colorA / 255;
+          if (colorA < 255)
+            context.globalAlpha = colorA / 255;
 
-            sourceX += channels.xOffset;
-            sourceY += channels.yOffset;
-
-            var compositeOperation = context.globalCompositeOperation;
-            if (compositeOperation !== "lighter") {
-              context.globalCompositeOperation = "source-over";
-              context.globalAlpha = alpha;
-              this.$canvasDrawImage(
-                channels.a, sourceX, sourceY, sourceW, sourceH, 
-                0, 0, width, height
-              );
-            }
-
-            context.globalCompositeOperation = "lighter";
-
-            if (colorR > 0) {
-              context.globalAlpha = colorR / 255;
-              this.$canvasDrawImage(
-                channels.r, sourceX, sourceY, sourceW, sourceH, 
-                0, 0, width, height
-              );
-            }
-
-            if (colorG > 0) {
-              context.globalAlpha = colorG / 255;
-              this.$canvasDrawImage(
-                channels.g, sourceX, sourceY, sourceW, sourceH, 
-                0, 0, width, height
-              );
-            }
-
-            if (colorB > 0) {
-              context.globalAlpha = colorB / 255;
-              this.$canvasDrawImage(
-                channels.b, sourceX, sourceY, sourceW, sourceH, 
-                0, 0, width, height
-              );
-            }
-          } else {
-            if (this.isWebGL) {
-              context.drawImage(
-                image, sourceX, sourceY, sourceW, sourceH, 
-                0, 0, width, height, 
-                colorR / 255, colorG / 255, colorB / 255, colorA / 255
-              );
-            } else {
-              if (colorA < 255)
-                context.globalAlpha = colorA / 255;
-
-              this.$canvasDrawImage(
-                image, sourceX, sourceY, sourceW, sourceH, 0, 0, width, height
-              );
-            }
-          }
+          this.$canvasDrawImage(
+            image, sourceX, sourceY, sourceW, sourceH, 0, 0, width, height
+          );
         }
       }
 
