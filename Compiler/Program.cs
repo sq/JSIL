@@ -41,6 +41,7 @@ namespace JSIL.Compiler {
                 var variables = result.ApplyTo(new VariableSet());
 
                 result.Path = Path.GetDirectoryName(Path.GetFullPath(filename));
+                result.ContributingPaths = new[] { Path.GetFullPath(filename) };
 
                 Console.Error.WriteLine("// Applied settings from '{0}'.", ShortenPath(filename));
 
@@ -529,8 +530,13 @@ namespace JSIL.Compiler {
             var logText = new StringBuilder();
             var asmName = Assembly.GetExecutingAssembly().GetName();
             logText.AppendLine(String.Format("// JSILc v{0}.{1}.{2}", asmName.Version.Major, asmName.Version.Minor, asmName.Version.Revision));
-            logText.AppendLine(String.Format("// The following settings were used when translating '{0}':", inputFile));
+            logText.AppendLine(String.Format("// The following configuration was used when translating '{0}':", inputFile));
             logText.AppendLine((new JavaScriptSerializer()).Serialize(configuration));
+            logText.AppendLine("// The configuration was generated from the following configuration files:");
+
+            foreach (var cf in configuration.ContributingPaths)
+                logText.AppendLine(cf);
+
             logText.AppendLine("// The following outputs were produced:");
 
             foreach (var fe in outputs.OrderedFiles)

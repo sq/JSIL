@@ -28,6 +28,7 @@ namespace JSIL.Compiler {
             }
         }
 
+        public string[] ContributingPaths = new string[0];
         public string Path;
 
         public readonly SolutionBuildConfiguration SolutionBuilder = new SolutionBuildConfiguration();
@@ -63,6 +64,8 @@ namespace JSIL.Compiler {
                 result.CustomVariables[kvp.Key] = kvp.Value;
 
             SolutionBuilder.MergeInto(result.SolutionBuilder);
+
+            result.ContributingPaths = result.ContributingPaths.Concat(ContributingPaths).ToArray();
         }
 
         public Configuration Clone () {
