@@ -36,7 +36,7 @@ namespace JSIL.Compiler.Profiles {
             var result = defaultConfiguration.Clone();
 
             result.FrameworkVersion = 3.5;
-            result.Assemblies.Proxies.Add("JSIL.Proxies.XNA3.dll");
+            result.Assemblies.Proxies.Add("%jsildirectory%/JSIL.Proxies.XNA3.dll");
 
             return result;
         }

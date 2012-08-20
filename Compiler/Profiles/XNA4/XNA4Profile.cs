@@ -25,7 +25,7 @@ namespace JSIL.Compiler.Profiles {
             var result = defaultConfiguration.Clone();
 
             result.FrameworkVersion = 4.0;
-            result.Assemblies.Proxies.Add("JSIL.Proxies.XNA4.dll");
+            result.Assemblies.Proxies.Add("%jsildirectory%/JSIL.Proxies.XNA4.dll");
 
             return result;
         }

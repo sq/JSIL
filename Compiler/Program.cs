@@ -24,7 +24,9 @@ namespace JSIL.Compiler {
             Uri pathUri;
             if (Uri.TryCreate(path, UriKind.Absolute, out pathUri)) {
                 var relativeUri = cwd.MakeRelativeUri(pathUri);
-                return Uri.UnescapeDataString(relativeUri.ToString()).Replace('/', Path.DirectorySeparatorChar);
+                var shortened = Uri.UnescapeDataString(relativeUri.ToString()).Replace('/', Path.DirectorySeparatorChar);
+                if (shortened.Length < path.Length)
+                    return shortened;
             }
 
             return path;
@@ -180,12 +182,22 @@ namespace JSIL.Compiler {
                 }
             }
 
-            if (baseConfig.ApplyDefaults.GetValueOrDefault(true))
-                baseConfig = MergeConfigurations(LoadConfiguration("defaults.jsilconfig"), baseConfig);
+            if (baseConfig.ApplyDefaults.GetValueOrDefault(true)) {
+                baseConfig = MergeConfigurations(
+                    LoadConfiguration(Path.Combine(
+                        GetJSILDirectory(), 
+                        "defaults.jsilconfig"
+                    )), 
+                    baseConfig
+                );
+            }
 
             {
                 if (autoloadProfiles[0])
-                    profileAssemblies.AddRange(Directory.GetFiles(".", "JSIL.Profiles.*.dll"));
+                    profileAssemblies.AddRange(Directory.GetFiles(
+                        GetJSILDirectory(), 
+                        "JSIL.Profiles.*.dll"
+                    ));
 
                 foreach (var filename in profileAssemblies) {
                     var fullPath = Path.GetFullPath(filename);
@@ -352,6 +364,10 @@ namespace JSIL.Compiler {
                     Profile = defaultProfile
                 });
             }
+        }
+
+        internal static string GetJSILDirectory () {
+            return Path.GetDirectoryName(JSIL.Internal.Util.GetPathOfAssembly(Assembly.GetExecutingAssembly()));
         }
 
         static Action<ProgressReporter> MakeProgressHandler (string description) {

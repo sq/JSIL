@@ -13,11 +13,14 @@ namespace JSIL.Compiler {
         );
 
         public VariableSet () {
+            Values["jsildirectory"] = Program.GetJSILDirectory;
         }
 
         private VariableSet (VariableSet other) {
             foreach (var kvp in other.Values)
                 Values.Add(kvp.Key, kvp.Value);
+
+            Values["jsildirectory"] = Program.GetJSILDirectory;
         }
 
         public IEnumerable<string> DefinedVariables {
