@@ -46,11 +46,17 @@ namespace JSIL.Ast {
                 }
             }
 
-            protected static ConcurrentCache<Type, VisitorCache> VisitorCaches = new ConcurrentCache<Type, VisitorCache>(); 
+            protected static ConcurrentCache<Type, VisitorCache> VisitorCaches = new ConcurrentCache<Type, VisitorCache>();
+            protected static ConcurrentCache<Type, VisitorCache>.CreatorFunction CreateCacheEntry;
 
             protected readonly Dictionary<Type, NodeVisitor> Methods = new Dictionary<Type, NodeVisitor>();
             protected readonly ConcurrentCache<Type, NodeVisitor> Cache = new ConcurrentCache<Type, NodeVisitor>();
+            protected ConcurrentCache<Type, NodeVisitor>.CreatorFunction FindNodeVisitor;
             public readonly Type VisitorType;
+
+            static VisitorCache () {
+                CreateCacheEntry = (key) => new VisitorCache(key);
+            }
 
             protected VisitorCache (Type visitorType) {
                 VisitorType = visitorType;
@@ -67,14 +73,26 @@ namespace JSIL.Ast {
 
                     Methods.Add(nodeType, MakeVisitorAdapter(m, visitorType, nodeType));
                 }
+
+                FindNodeVisitor = (key) => {
+                    Type currentType = key;
+
+                    while (currentType != null) {
+                        NodeVisitor result;
+                        if (Methods.TryGetValue(currentType, out result))
+                            return result;
+
+                        currentType = currentType.BaseType;
+                    }
+
+                    return null;
+                };
             }
 
             public static VisitorCache Get (JSAstVisitor visitor) {
                 var visitorType = visitor.GetType();
 
-                return VisitorCaches.GetOrCreate(
-                    visitorType, () => new VisitorCache(visitorType)
-                );
+                return VisitorCaches.GetOrCreate(visitorType, CreateCacheEntry);
             }
 
             protected static NodeVisitor MakeVisitorAdapter (MethodInfo method, Type visitorType, Type nodeType) {
@@ -101,20 +119,9 @@ namespace JSIL.Ast {
                     return null;
 
                 var nodeType = node.GetType();
-                var currentType = nodeType;
 
                 return Cache.GetOrCreate(
-                    nodeType, () => {
-                        while (currentType != null) {
-                            NodeVisitor result;
-                            if (Methods.TryGetValue(currentType, out result))
-                                return result;
-
-                            currentType = currentType.BaseType;
-                        }
-
-                        return null;
-                    }
+                    nodeType, FindNodeVisitor
                 );
             }
         }

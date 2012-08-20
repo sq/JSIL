@@ -63,7 +63,7 @@ JSIL.Host.translateFilename = function (filename) {
   var slashRe = /\\/g;
 
   var root = JSIL.Host.getRootDirectory().toLowerCase().replace(slashRe, "/");
-  var _fileRoot = fileRoot.toLowerCase().replace(slashRe, "/");
+  var _fileRoot = jsilConfig.fileRoot.toLowerCase().replace(slashRe, "/");
   var _filename = filename.replace(slashRe, "/").toLowerCase();
   
   while (_filename[0] === "/")
@@ -127,7 +127,7 @@ JSIL.Host.doesAssetExist = function (filename, stripRoot) {
     var backslashRe = /\\/g;
 
     filename = filename.replace(backslashRe, "/").toLowerCase();
-    var croot = contentRoot.replace(backslashRe, "/").toLowerCase();
+    var croot = jsilConfig.contentRoot.replace(backslashRe, "/").toLowerCase();
 
     filename = filename.replace(croot, "").toLowerCase();
   }
@@ -146,7 +146,7 @@ JSIL.Host.getAsset = function (filename, stripRoot) {
     var backslashRe = /\\/g;
 
     filename = filename.replace(backslashRe, "/").toLowerCase();
-    var croot = contentRoot.replace(backslashRe, "/").toLowerCase();
+    var croot = jsilConfig.contentRoot.replace(backslashRe, "/").toLowerCase();
 
     filename = filename.replace(croot, "").toLowerCase();
   }
@@ -584,11 +584,11 @@ var finishStepDuration = 5;
 
 var assetLoaders = {
   "Library": function loadLibrary (filename, data, onError, onDoneLoading, state) {
-    loadTextAsync(libraryRoot + filename, function (result, error) {
+    loadTextAsync(jsilConfig.libraryRoot + filename, function (result, error) {
       var finisher = function () {
         state.pendingScriptLoads += 1;
 
-        JSIL.loadGlobalScript(libraryRoot + filename, function () {
+        JSIL.loadGlobalScript(jsilConfig.libraryRoot + filename, function () {
           state.pendingScriptLoads -= 1;
         });
       };
@@ -600,11 +600,11 @@ var assetLoaders = {
     });
   },
   "Script": function loadScript (filename, data, onError, onDoneLoading, state) {
-    loadTextAsync(scriptRoot + filename, function (result, error) {
+    loadTextAsync(jsilConfig.scriptRoot + filename, function (result, error) {
       var finisher = function () {
         state.pendingScriptLoads += 1;
 
-        JSIL.loadGlobalScript(scriptRoot + filename, function () {
+        JSIL.loadGlobalScript(jsilConfig.scriptRoot + filename, function () {
           state.pendingScriptLoads -= 1;
         });
       };
@@ -623,10 +623,10 @@ var assetLoaders = {
     };
     e.addEventListener("error", onError, true);
     e.addEventListener("load", onDoneLoading.bind(null, finisher), true);
-    e.src = contentRoot + filename;
+    e.src = jsilConfig.contentRoot + filename;
   },
   "File": function loadFile (filename, data, onError, onDoneLoading) {
-    loadBinaryFileAsync(fileRoot + filename, function (result, error) {
+    loadBinaryFileAsync(jsilConfig.fileRoot + filename, function (result, error) {
       if (result !== null) {
         $jsilbrowserstate.allFileNames.push(filename);
         allFiles[filename.toLowerCase()] = result;
@@ -637,7 +637,7 @@ var assetLoaders = {
     });
   },
   "SoundBank": function loadSoundBank (filename, data, onError, onDoneLoading) {
-    loadTextAsync(contentRoot + filename, function (result, error) {
+    loadTextAsync(jsilConfig.contentRoot + filename, function (result, error) {
       if (result !== null) {
         var finisher = function () {
           $jsilbrowserstate.allAssetNames.push(filename);
@@ -650,7 +650,7 @@ var assetLoaders = {
     });
   },
   "Resources": function loadResources (filename, data, onError, onDoneLoading) {
-    loadTextAsync(scriptRoot + filename, function (result, error) {
+    loadTextAsync(jsilConfig.scriptRoot + filename, function (result, error) {
       if (result !== null) {
         var finisher = function () {
           $jsilbrowserstate.allAssetNames.push(filename);
@@ -669,7 +669,7 @@ var loadWebkitSound = function (filename, data, onError, onDoneLoading) {
   var uri = null;
 
   // Safari doesn't implement canPlayType, so we just have to hard-code MP3. Lame.
-  uri = contentRoot + filename + ".mp3";
+  uri = jsilConfig.contentRoot + filename + ".mp3";
 
   loadBinaryFileAsync(uri, function decodeWebkitSound (result, error) {
     if (result !== null) {
@@ -796,7 +796,7 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
     if (mimetype !== null)
       source.setAttribute("type", mimetype);
 
-    source.setAttribute("src", contentRoot + filename + extension);
+    source.setAttribute("src", jsilConfig.contentRoot + filename + extension);
 
     e.appendChild(source);
   }
@@ -832,7 +832,7 @@ if (typeof (webkitAudioContext) === "function") {
 
 var $makeXNBAssetLoader = function (key, typeName) {
   assetLoaders[key] = function (filename, data, onError, onDoneLoading) {
-    loadBinaryFileAsync(contentRoot + filename, function (result, error) {
+    loadBinaryFileAsync(jsilConfig.contentRoot + filename, function (result, error) {
       if (result !== null) {
         var finisher = function () {
           $jsilbrowserstate.allAssetNames.push(filename);
@@ -906,10 +906,10 @@ function finishLoading () {
     if (typeof ($jsilreadonlystorage) !== "undefined") {
       var prefixedFileRoot;
 
-      if (fileRoot[0] !== "/")
-        prefixedFileRoot = "/" + fileRoot;
+      if (jsilConfig.fileRoot[0] !== "/")
+        prefixedFileRoot = "/" + jsilConfig.fileRoot;
       else
-        prefixedFileRoot = fileRoot;
+        prefixedFileRoot = jsilConfig.fileRoot;
 
       $jsilbrowserstate.readOnlyStorage = new ReadOnlyStorageVolume("files", prefixedFileRoot, initFileStorage);
     }
@@ -922,7 +922,7 @@ function finishLoading () {
           var root = volumes[0];
 
           if ($jsilbrowserstate.readOnlyStorage)
-            root.createJunction(fileRoot, $jsilbrowserstate.readOnlyStorage.rootDirectory, false);
+            root.createJunction(jsilConfig.fileRoot, $jsilbrowserstate.readOnlyStorage.rootDirectory, false);
 
           return root;
 
@@ -1152,8 +1152,10 @@ function beginLoading () {
   }
 
   var allAssetsToLoad = [];
-  for (var i = 0, l = assetsToLoad.length; i < l; i++)
-    pushAsset(assetsToLoad[i]);
+  if (typeof (window.assetsToLoad) !== "undefined") {
+    for (var i = 0, l = assetsToLoad.length; i < l; i++)
+      pushAsset(assetsToLoad[i]);
+  }
 
   if (typeof (contentManifest) === "object") {
     for (var k in contentManifest) {

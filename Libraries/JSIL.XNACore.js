@@ -362,7 +362,7 @@ $jsilxna.getImageTopLeftPixel = function (image) {
     return cached;
 
   var canvas = document.createElement("canvas");
-  var context = $jsilxna.get2DContext(image, false);
+  var context = $jsilxna.get2DContext(canvas, false);
 
   canvas.width = 1;
   canvas.height = 1;
@@ -396,7 +396,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentLoadException", 
     Static: false,
     Public: true
   }, ".ctor", new JSIL.MethodSignature(null, [$.String], []), function (message) {
-    this._Message = String(message);
+    this._message = String(message);
   });
 });
 
@@ -997,7 +997,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ArrayReader`1", functio
       }
 
       for (var i = 0; i < count; i++) {
-        existingInstance[i] = input.ReadObjectInternal(this.T)(this.elementReader, null);
+        existingInstance[i] = input.ReadObjectInternal$b1(this.T)(this.elementReader, null);
       }
 
       return existingInstance;
@@ -1034,7 +1034,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ListReader`1", function
       }
 
       while (count > 0) {
-        var item = input.ReadObjectInternal(this.T)(this.elementReader, null);
+        var item = input.ReadObjectInternal$b1(this.T)(this.elementReader, null);
         count--;
         existingInstance.Add(item);
       }
@@ -1067,7 +1067,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.Texture2DReader", funct
         var mipBytes = input.ReadBytes(mipSize);
 
         if (i === 0) 
-          result.SetData(System.Byte)(i, null, mipBytes, 0, mipSize);
+          result.SetData$b1(System.Byte)(i, null, mipBytes, 0, mipSize);
       }
 
       return result;
@@ -1090,18 +1090,18 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.SpriteFontReader", func
       var tRectangle = asmXna.Microsoft.Xna.Framework.Rectangle;
       var tVector3 = asmXna.Microsoft.Xna.Framework.Vector3;
 
-      var texture = input.ReadObject(tTexture2D)();
+      var texture = input.ReadObject$b1(tTexture2D)();
 
-      var glyphs = input.ReadObject(tList.Of(tRectangle))();
+      var glyphs = input.ReadObject$b1(tList.Of(tRectangle))();
 
-      var cropping = input.ReadObject(tList.Of(tRectangle))();
+      var cropping = input.ReadObject$b1(tList.Of(tRectangle))();
 
-      var charMap = input.ReadObject(tList.Of(System.Char))();
+      var charMap = input.ReadObject$b1(tList.Of(System.Char))();
 
       var lineSpacing = input.ReadInt32();
       var spacing = input.ReadSingle();
 
-      var kerning = input.ReadObject(tList.Of(tVector3))();
+      var kerning = input.ReadObject$b1(tList.Of(tVector3))();
 
       var defaultCharacter = null;
       if (input.ReadBoolean()) defaultCharacter = input.ReadChar();
@@ -1467,10 +1467,10 @@ JSIL.MakeClass("HTML5Asset", "RawXNBAsset", true, [], function ($) {
     var sharedResourceCount = contentReader.Read7BitEncodedInt();
     var sharedResources = new Array(sharedResourceCount);
 
-    var mainObject = contentReader.ReadObject(type)();
+    var mainObject = contentReader.ReadObject$b1(type)();
 
     for (var i = 0; i < sharedResourceCount; i++)
-    sharedResources[i] = content.ReadObject(System.Object)();
+    sharedResources[i] = content.ReadObject$b1(System.Object)();
 
     return mainObject;
   });
@@ -3200,8 +3200,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       var total = now - this._started;
     }
 
-    if ((now - this._lastSecond) > 1000)
+    if ((now - this._lastSecond) > 1000) {
       this._ReportFPS(now);
+
+      $jsilxna.imageChannelCache.maybeEvictItems();
+      $jsilxna.textCache.maybeEvictItems();
+    }
 
     if (this.forceElapsedTimeToZero) {
       this.forceElapsedTimeToZero = false;
@@ -3267,8 +3271,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
       ctx.globalCompositeOperation = "source-over";
       ctx.fillStyle = "black";
       ctx.fillRect(0, 0, 99999, 99999);
-
-      canvas.style.display = "none";
 
       var fsb = document.getElementById("fullscreenButton");
       if (fsb)
@@ -4458,12 +4460,24 @@ $jsilxna.Color = function ($) {
   $.Method({
     Static: true,
     Public: true
-  }, "op_Multiply", new JSIL.MethodSignature($.Type, [$.Type, $.Single], []), function (color, multiplier) {
+  }, "op_Multiply", new JSIL.MethodSignature($jsilxna.colorRef(), [$jsilxna.colorRef(), $.Single], []), function (color, multiplier) {
     var result = Object.create(Object.getPrototypeOf(color));
     result.a = $jsilxna.ClampByte(color.a * multiplier);
     result.r = $jsilxna.ClampByte(color.r * multiplier);
     result.g = $jsilxna.ClampByte(color.g * multiplier);
     result.b = $jsilxna.ClampByte(color.b * multiplier);
+    return result;
+  });
+
+  $.Method({
+    Static: true,
+    Public: true
+  }, "Lerp", new JSIL.MethodSignature($jsilxna.colorRef(), [$jsilxna.colorRef(), $jsilxna.colorRef(), $.Single], []), function (a, b, amount) {
+    var result = Object.create(Object.getPrototypeOf(a));
+    result.a = $jsilxna.ClampByte(a.a + (b.a - a.a) * amount);
+    result.r = $jsilxna.ClampByte(a.r + (b.r - a.r) * amount);
+    result.g = $jsilxna.ClampByte(a.g + (b.g - a.g) * amount);
+    result.b = $jsilxna.ClampByte(a.b + (b.b - a.b) * amount);
     return result;
   });
 
@@ -5093,6 +5107,79 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
     }
   );
 
+  var blitSinglePixel = function (context, originalImage, width, height, colorR, colorG, colorB, colorA) {
+    colorR /= 255;
+    colorG /= 255;
+    colorB /= 255;
+    colorA /= 255;
+
+    var topLeftPixelText = $jsilxna.getImageTopLeftPixel(originalImage);
+    var topLeftPixel = topLeftPixelText.split(",");
+
+    var unpremultiplyFactor = 1 / colorA;
+
+    var imageColor = "rgba(" + 
+      $jsilxna.ClampByte(parseFloat(topLeftPixel[0] * colorR * unpremultiplyFactor)) + ", " + 
+      $jsilxna.ClampByte(parseFloat(topLeftPixel[1] * colorG * unpremultiplyFactor)) + ", " + 
+      $jsilxna.ClampByte(parseFloat(topLeftPixel[2] * colorB * unpremultiplyFactor)) + ", " + 
+      topLeftPixel[3] + 
+    ")";
+
+    context.globalAlpha = colorA;
+    context.fillStyle = imageColor;
+    context.fillRect(
+      0, 0, width, height
+    );
+  };
+
+  var blitChannels = function (
+    context, channels, 
+    sourceX, sourceY, sourceW, sourceH, 
+    width, height, 
+    colorR, colorG, colorB, colorA
+  ) {
+    var alpha = colorA / 255;
+
+    sourceX += channels.xOffset;
+    sourceY += channels.yOffset;
+
+    var compositeOperation = context.globalCompositeOperation;
+    if (compositeOperation !== "lighter") {
+      context.globalCompositeOperation = "source-over";
+      context.globalAlpha = alpha;
+      context.drawImage(
+        channels.a, sourceX, sourceY, sourceW, sourceH, 
+        0, 0, width, height
+      );
+    }
+
+    context.globalCompositeOperation = "lighter";
+
+    if (colorR > 0) {
+      context.globalAlpha = colorR / 255;
+      context.drawImage(
+        channels.r, sourceX, sourceY, sourceW, sourceH, 
+        0, 0, width, height
+      );
+    }
+
+    if (colorG > 0) {
+      context.globalAlpha = colorG / 255;
+      context.drawImage(
+        channels.g, sourceX, sourceY, sourceW, sourceH, 
+        0, 0, width, height
+      );
+    }
+
+    if (colorB > 0) {
+      context.globalAlpha = colorB / 255;
+      context.drawImage(
+        channels.b, sourceX, sourceY, sourceW, sourceH, 
+        0, 0, width, height
+      );
+    }
+  };
+
   $.RawMethod(false, "InternalDraw", 
     function SpriteBatch_InternalDraw (
       texture, positionX, positionY, width, height, 
@@ -5113,15 +5200,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         return;
       }
 
-      var needRestore = false;
       var image = texture.image;
       var originalImage = image;
       var context = this.device.context;
-
-      var originalPositionX = positionX, originalPositionY = positionY;
-
-      positionX -= originX;
-      positionY -= originY;
 
       if (sourceX < 0) {
         sourceW += sourceX;
@@ -5143,13 +5224,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
       var channels = null;
 
       var colorA = color.a;
-
-      if (colorA < 1) {
-        if (needRestore) 
-          this.$restore();
-
+      if (colorA < 1)
         return;
-      }
 
       var colorR = color.r, colorG = color.g, colorB = color.b;
 
@@ -5160,67 +5236,37 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         }
       }
 
+      this.$save();
+
+      context.translate(positionX, positionY);
+      context.rotate(rotation);
+      context.scale(scaleX, scaleY);
+
       // Negative width/height cause an exception in Firefox
       if (width < 0) {
-        if (!needRestore) 
-          this.$save();
-        needRestore = true;
-
         context.scale(-1, 1);
-        positionX = -positionX;
         width = -width;
       }
       if (height < 0) {
-        if (!needRestore) 
-          this.$save();
-        needRestore = true;
-
         context.scale(1, -1);
-        positionY = -positionY;
         height = -height;
       }
 
-      if ((rotation !== 0) && (Math.abs(rotation) >= 0.0001)) {
-        if (!needRestore) 
-          this.$save();
-        needRestore = true;
-
-        context.translate(positionX + originX, positionY + originY);
-        context.rotate(rotation);
-        context.translate(-positionX - originX, -positionY - originY);
-      }
+      context.translate(-originX, -originY);
 
       if (effects) {
-        effects = effects.value;
+        var e = effects.value;
         
-        if (effects & this.flipHorizontally) {
-          if (!needRestore) 
-            this.$save();
-          needRestore = true;
-
+        if (e & this.flipHorizontally) {
+          context.translate(width, 0);
           context.scale(-1, 1);
-          positionX -= originalPositionX * 2;
         }
 
-        if (effects & this.flipVertically) {
-          if (!needRestore) 
-            this.$save();
-          needRestore = true;
-
+        if (e & this.flipVertically) {
+          context.translate(0, height);
           context.scale(1, -1);
-          positionY -= originalPositionY * 2;
         }
-      }
-
-      if ((scaleX !== 1.0) || (scaleY !== 1.0)) {
-        if (!needRestore) 
-          this.$save();
-        needRestore = true;
-
-        context.translate(positionX + originX, positionY + originY);
-        context.scale(scaleX, scaleY);
-        context.translate(-positionX - originX, -positionY - originY);
-      }
+      }      
 
       // 0x0 blits cause an exception in IE
       if (
@@ -5228,126 +5274,45 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteBatch", function
         (sourceW > 0) && (sourceH > 0)
       ) {
         if ($drawDebugRects) {
-          if (!needRestore)
-            this.$save();
-          needRestore = true;
-
           context.fillStyle = "rgba(255, 0, 0, 0.33)";
           context.fillRect(
-            positionX, positionY, width, height
+            0, 0, width, height
           );
         }
 
         if ($drawDebugBoxes) {
-          if (!needRestore) 
-            this.$save();
-          needRestore = true;
-
           context.strokeStyle = "rgba(255, 255, 0, 0.66)";
           context.strokeRect(
-            positionX, positionY, width, height
+            0, 0, width, height
           );
         }
 
         if (isSinglePixel) {
-          if (!needRestore) 
-            this.$save();
-          needRestore = true;
-
-          colorR /= 255;
-          colorG /= 255;
-          colorB /= 255;
-          colorA /= 255;
-
-          var topLeftPixelText = $jsilxna.getImageTopLeftPixel(originalImage);
-          var topLeftPixel = topLeftPixelText.split(",");
-
-          var unpremultiplyFactor = 1 / colorA;
-
-          var imageColor = "rgba(" + 
-            $jsilxna.ClampByte(parseFloat(topLeftPixel[0] * colorR * unpremultiplyFactor)) + ", " + 
-            $jsilxna.ClampByte(parseFloat(topLeftPixel[1] * colorG * unpremultiplyFactor)) + ", " + 
-            $jsilxna.ClampByte(parseFloat(topLeftPixel[2] * colorB * unpremultiplyFactor)) + ", " + 
-            topLeftPixel[3] + 
-          ")";
-
-          context.globalAlpha = colorA;
-          context.fillStyle = imageColor;
-          context.fillRect(
-            positionX, positionY, width, height
+          blitSinglePixel(context, originalImage, width, height, colorR, colorG, colorB, colorA);
+        } else if (channels !== null) {
+          blitChannels(
+            context, channels, 
+            sourceX, sourceY, sourceW, sourceH, 
+            width, height, 
+            colorR, colorG, colorB, colorA
+          );
+        } else if (this.isWebGL) {
+          context.drawImage(
+            image, sourceX, sourceY, sourceW, sourceH, 
+            0, 0, width, height, 
+            colorR / 255, colorG / 255, colorB / 255, colorA / 255
           );
         } else {
-          if (channels !== null) {
-            if (!needRestore)
-              this.$save();
-            needRestore = true;
+          if (colorA < 255)
+            context.globalAlpha = colorA / 255;
 
-            var alpha = colorA / 255;
-
-            sourceX += channels.xOffset;
-            sourceY += channels.yOffset;
-
-            var compositeOperation = context.globalCompositeOperation;
-            if (compositeOperation !== "lighter") {
-              context.globalCompositeOperation = "source-over";
-              context.globalAlpha = alpha;
-              this.$canvasDrawImage(
-                channels.a, sourceX, sourceY, sourceW, sourceH, 
-                positionX, positionY, width, height
-              );
-            }
-
-            context.globalCompositeOperation = "lighter";
-
-            if (colorR > 0) {
-              context.globalAlpha = colorR / 255;
-              this.$canvasDrawImage(
-                channels.r, sourceX, sourceY, sourceW, sourceH, 
-                positionX, positionY, width, height
-              );
-            }
-
-            if (colorG > 0) {
-              context.globalAlpha = colorG / 255;
-              this.$canvasDrawImage(
-                channels.g, sourceX, sourceY, sourceW, sourceH, 
-                positionX, positionY, width, height
-              );
-            }
-
-            if (colorB > 0) {
-              context.globalAlpha = colorB / 255;
-              this.$canvasDrawImage(
-                channels.b, sourceX, sourceY, sourceW, sourceH, 
-                positionX, positionY, width, height
-              );
-            }
-          } else {
-            if (this.isWebGL) {
-              context.drawImage(
-                image, sourceX, sourceY, sourceW, sourceH, 
-                positionX, positionY, width, height, 
-                colorR / 255, colorG / 255, colorB / 255, colorA / 255
-              );
-            } else {
-              if (colorA < 255) {
-                if (!needRestore)
-                  this.$save();
-                needRestore = true;
-
-                context.globalAlpha = colorA / 255;
-              }
-
-              this.$canvasDrawImage(
-                image, sourceX, sourceY, sourceW, sourceH, positionX, positionY, width, height
-              );
-            }
-          }
+          this.$canvasDrawImage(
+            image, sourceX, sourceY, sourceW, sourceH, 0, 0, width, height
+          );
         }
       }
 
-      if (needRestore) 
-        this.$restore();
+      this.$restore();
     }
   );
 
@@ -5964,6 +5929,13 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.SpriteFont", function 
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function get_LineSpacing () {
       return this.lineSpacing;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "set_LineSpacing", 
+    (new JSIL.MethodSignature(null, [$.Int32], [])), 
+    function set_LineSpacing (value) {
+      this.lineSpacing = value;
     }
   );
 

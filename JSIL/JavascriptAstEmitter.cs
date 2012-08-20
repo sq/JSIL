@@ -1336,7 +1336,7 @@ namespace JSIL {
         protected bool CanUseFastOverloadDispatch (MethodInfo method) {
             MethodSignatureSet mss;
 
-            if (method.DeclaringType.MethodSignatures.TryGet(method.Name, out mss)) {
+            if (method.DeclaringType.MethodSignatures.TryGet(method.NamedSignature.Name, out mss)) {
                 int overloadCount = 0;
 
                 var gaCount = method.GenericParameterNames.Length;

@@ -1,5 +1,5 @@
 ﻿{
-  "OutputDirectory": "%assemblypath%",
+  "OutputDirectory": "%configdirectory%",
   "Assemblies": {
     "Stubbed": [
       "mscorlib,",
@@ -17,5 +17,9 @@
       "System.Data.SqlXml,",
       "JSIL.Meta,"
     ]
+  },
+  "ProfileSettings": {
+    "OverwriteExistingContent": true,
+    "ContentOutputDirectory": "%outputdirectory%/Content"
   }
 }

@@ -10,6 +10,14 @@ using Mono.Cecil;
 
 namespace JSIL {
     public class TypeInfoProvider : ITypeInfoSource, IDisposable {
+        protected class MakeTypeInfoArgs {
+            public readonly Dictionary<TypeIdentifier, TypeDefinition> MoreTypes = new Dictionary<TypeIdentifier, TypeDefinition>();
+            public readonly Dictionary<TypeIdentifier, TypeInfo> SecondPass = new Dictionary<TypeIdentifier, TypeInfo>();
+            public readonly OrderedDictionary<TypeIdentifier, TypeDefinition> TypesToInitialize = new OrderedDictionary<TypeIdentifier, TypeDefinition>();
+
+            public TypeDefinition Definition;
+        }
+
         protected readonly HashSet<AssemblyDefinition> Assemblies = new HashSet<AssemblyDefinition>();
         protected readonly HashSet<string> ProxyAssemblyNames = new HashSet<string>();
         protected readonly ConcurrentCache<TypeIdentifier, TypeInfo> TypeInformation;
@@ -19,46 +27,31 @@ namespace JSIL {
         protected readonly ConcurrentCache<string, string[]> ProxiesByName = new ConcurrentCache<string, string[]>();
         protected readonly ConcurrentCache<Tuple<string, string>, bool> TypeAssignabilityCache = new ConcurrentCache<Tuple<string, string>, bool>();
 
+        protected static readonly ConcurrentCache<string, ModuleInfo>.CreatorFunction<ModuleDefinition> MakeModuleInfo;
+        protected readonly ConcurrentCache<TypeIdentifier, TypeInfo>.CreatorFunction<MakeTypeInfoArgs> MakeTypeInfo;
+        protected readonly ConcurrentCache<string, string[]>.CreatorFunction<MemberReference> MakeProxiesByName;
+
+        static TypeInfoProvider () {
+            MakeModuleInfo = (key, module) => new ModuleInfo(module);
+        }
+
         public TypeInfoProvider () {
-            TypeInformation = new ConcurrentCache<TypeIdentifier, TypeInfo>(Environment.ProcessorCount, 1024);
-            ModuleInformation = new ConcurrentCache<string, ModuleInfo>(Environment.ProcessorCount, 128);
-        }
+            TypeInformation = new ConcurrentCache<TypeIdentifier, TypeInfo>(Environment.ProcessorCount, 4096);
+            ModuleInformation = new ConcurrentCache<string, ModuleInfo>(Environment.ProcessorCount, 256);
 
-        ConcurrentCache<Tuple<string, string>, bool> ITypeInfoSource.AssignabilityCache {
-            get {
-                return this.TypeAssignabilityCache;
-            }
-        }
+            MakeTypeInfo = (identifier, args) => {
+                var constructed = ConstructTypeInformation(identifier, args.Definition, args.MoreTypes);
+                args.SecondPass.Add(identifier, constructed);
 
-        public int Count {
-            get {
-                return TypeInformation.Count + ModuleInformation.Count;
-            }
-        }
+                foreach (var typedef in args.MoreTypes.Values)
+                    EnqueueType(args.TypesToInitialize, typedef);
 
-        public void ClearCaches () {
-            TypeAssignabilityCache.Clear();
-        }
+                args.MoreTypes.Clear();
 
-        public void Dispose () {
-            Assemblies.Clear();
-            ProxyAssemblyNames.Clear();
-            TypeInformation.Dispose();
-            ModuleInformation.Dispose();
-            TypeProxies.Clear();
-            DirectProxiesByTypeName.Clear();
-            ProxiesByName.Dispose();
-            TypeAssignabilityCache.Clear();
-        }
+                return constructed;
+            };
 
-        bool ITypeInfoSource.TryGetProxyNames (string typeFullName, out string[] result) {
-            return ProxiesByName.TryGet(typeFullName, out result);
-        }
-
-        void ITypeInfoSource.CacheProxyNames (MemberReference mr) {
-            var fullName = mr.DeclaringType.FullName;
-
-            ProxiesByName.TryCreate(fullName, () => {
+            MakeProxiesByName = (fullName, mr) => {
                 var icap = mr.DeclaringType as Mono.Cecil.ICustomAttributeProvider;
                 if (icap == null)
                     return null;
@@ -107,7 +100,65 @@ namespace JSIL {
                 }
 
                 return proxyTargets;
-            });
+            };
+        }
+
+        ConcurrentCache<Tuple<string, string>, bool> ITypeInfoSource.AssignabilityCache {
+            get {
+                return this.TypeAssignabilityCache;
+            }
+        }
+
+        public int Count {
+            get {
+                return TypeInformation.Count + ModuleInformation.Count;
+            }
+        }
+
+        public void DumpSignatureCollectionStats () {
+            int minSize = int.MaxValue, maxSize = int.MinValue;
+            int sum = 0, count = 0;
+
+            foreach (var kvp in TypeInformation) {
+                var signatures = kvp.Value.MethodSignatures;
+
+                minSize = Math.Min(minSize, signatures.Counts.Count);
+                maxSize = Math.Max(maxSize, signatures.Counts.Count);
+                sum += signatures.Counts.Count;
+                count += 1;
+            }
+
+            Console.WriteLine("// method signature collection stats:");
+            Console.WriteLine(
+                "// total: {0:D6} min: {1:D4} max: {2:D4} average: {3:D4}",
+                sum, minSize, maxSize,
+                (int)Math.Floor((double)sum / count)
+            );
+        }
+
+        public void ClearCaches () {
+            TypeAssignabilityCache.Clear();
+        }
+
+        public void Dispose () {
+            Assemblies.Clear();
+            ProxyAssemblyNames.Clear();
+            TypeInformation.Dispose();
+            ModuleInformation.Dispose();
+            TypeProxies.Clear();
+            DirectProxiesByTypeName.Clear();
+            ProxiesByName.Dispose();
+            TypeAssignabilityCache.Clear();
+        }
+
+        bool ITypeInfoSource.TryGetProxyNames (string typeFullName, out string[] result) {
+            return ProxiesByName.TryGet(typeFullName, out result);
+        }
+
+        void ITypeInfoSource.CacheProxyNames (MemberReference mr) {
+            var fullName = mr.DeclaringType.FullName;
+
+            ProxiesByName.TryCreate(fullName, mr, MakeProxiesByName);
         }
 
         protected IEnumerable<TypeDefinition> ProxyTypesFromAssembly (AssemblyDefinition assembly) {
@@ -196,8 +247,7 @@ namespace JSIL {
 
             var fullName = module.FullyQualifiedName;
             return ModuleInformation.GetOrCreate(
-                fullName, 
-                () => new ModuleInfo(module)
+                fullName, module, MakeModuleInfo
             );
         }
 
@@ -244,11 +294,9 @@ namespace JSIL {
 
             var fullName = type.FullName;
 
-            var moreTypes = new Dictionary<TypeIdentifier, TypeDefinition>();
-            var typesToInitialize = new OrderedDictionary<TypeIdentifier, TypeDefinition>();
-            var secondPass = new Dictionary<TypeIdentifier, TypeInfo>();
+            var args = new MakeTypeInfoArgs();
 
-            EnqueueType(typesToInitialize, type);
+            EnqueueType(args.TypesToInitialize, type);
 
             // We must construct type information in two passes, so that method group construction
             //  behaves correctly and ignores all the right methods.
@@ -258,25 +306,17 @@ namespace JSIL {
             // After we have type information for all the types in the graph, we then walk over all
             //  the types again, and construct their method groups, since we have the necessary
             //  information to determine which methods are ignored.
-            while (typesToInitialize.Count > 0) {
-                var kvp = typesToInitialize.First;
-                typesToInitialize.Remove(kvp.Key);
+            while (args.TypesToInitialize.Count > 0) {
+                var kvp = args.TypesToInitialize.First;
+                args.TypesToInitialize.Remove(kvp.Key);
 
+                args.Definition = kvp.Value;
                 TypeInformation.TryCreate(
-                    kvp.Key, () => {
-                        var constructed = ConstructTypeInformation(kvp.Key, kvp.Value, moreTypes);
-                        secondPass.Add(kvp.Key, constructed);
-
-                        foreach (var more in moreTypes)
-                            EnqueueType(typesToInitialize, more.Value);
-                        moreTypes.Clear();
-
-                        return constructed;
-                    }
+                    kvp.Key, args, MakeTypeInfo
                 );
             }
 
-            foreach (var ti in secondPass.Values) {
+            foreach (var ti in args.SecondPass.Values) {
                 ti.Initialize();
                 ti.ConstructMethodGroups();
             }

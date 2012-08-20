@@ -829,6 +829,16 @@ JSIL.ImplementExternals(
         return str + makePadding(ch, extraChars);
       }
     );
+
+    $.Method({Static: true , Public: true }, "CopyTo",
+      new JSIL.MethodSignature(null, ["System.String"], [], $jsilcore),
+      function (str, sourceIndex, destination, destinationIndex, count) {
+        if (count > 0) {
+          for (var i = 0; i < count; i++)
+            destination[destinationIndex + i] = str[sourceIndex + i];
+        }
+      }
+    );
   }
 );
 
@@ -1155,7 +1165,7 @@ JSIL.ImplementExternals("System.Console", function ($) {
   $.RawMethod(true, "WriteLine", function () {
     var text = "";
     if (arguments.length > 0)
-      text = System.String.Format.apply(null, arguments);
+      text = System.String.Format.apply(System.String, arguments);
 
     JSIL.Host.logWriteLine(text);
   });
@@ -1163,7 +1173,7 @@ JSIL.ImplementExternals("System.Console", function ($) {
   $.RawMethod(true, "Write", function () {
     var text = "";
     if (arguments.length > 0)
-      text = System.String.Format.apply(null, arguments);
+      text = System.String.Format.apply(System.String, arguments);
 
     JSIL.Host.logWrite(text);
   });
@@ -1195,6 +1205,10 @@ JSIL.SplitString = function (str, separators) {
     throw new Error("Split cannot handle more than one separator");
 
   return str.split(separators[0]);
+};
+
+JSIL.JoinStrings = function (separator, strings) {
+  return strings.join(separator);
 };
 
 JSIL.ConcatString = function (/* ...values */) {

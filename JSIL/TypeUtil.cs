@@ -475,7 +475,7 @@ namespace JSIL {
 
             var cacheKey = new Tuple<string, string>(target.FullName, source.FullName);
             return typeInfo.AssignabilityCache.GetOrCreate(
-                cacheKey, () => {
+                cacheKey, (key) => {
                     bool result = false;
 
                     var dSource = GetTypeDefinition(source);

@@ -10,13 +10,15 @@ namespace JSIL.Compiler.Profiles {
     public class XNA3 : BaseProfile {
         public HashSet<string> ContentProjectsProcessed = new HashSet<string>();
 
-        public override bool IsAppropriateForSolution (SolutionBuilder.SolutionBuildResult buildResult) {
+        public override bool IsAppropriateForSolution (SolutionBuilder.BuildResult buildResult) {
             return buildResult.TargetFilesUsed.Any(
                 (targetFile) => targetFile.Contains(@"XNA Game Studio\v3.0") || targetFile.Contains(@"XNA Game Studio\v3.1")
             );
         }
 
-        public override TranslationResult Translate (AssemblyTranslator translator, Configuration configuration, string assemblyPath, bool scanForProxies) {
+        public override TranslationResult Translate (
+            VariableSet variables, AssemblyTranslator translator, Configuration configuration, string assemblyPath, bool scanForProxies
+        ) {
             var result = translator.Translate(assemblyPath, scanForProxies);
 
             ResourceConverter.ConvertEmbeddedResources(configuration, assemblyPath, result);
@@ -34,17 +36,17 @@ namespace JSIL.Compiler.Profiles {
             var result = defaultConfiguration.Clone();
 
             result.FrameworkVersion = 3.5;
-            result.Assemblies.Proxies.Add("JSIL.Proxies.XNA3.dll");
-
-            Common.InitConfiguration(result);
+            result.Assemblies.Proxies.Add("%jsildirectory%/JSIL.Proxies.XNA3.dll");
 
             return result;
         }
 
-        public override SolutionBuilder.SolutionBuildResult ProcessBuildResult (Configuration configuration, SolutionBuilder.SolutionBuildResult buildResult) {
-            Common.ProcessContentProjects(configuration, buildResult, ContentProjectsProcessed);
+        public override SolutionBuilder.BuildResult ProcessBuildResult (
+            VariableSet variables, Configuration configuration, SolutionBuilder.BuildResult buildResult
+        ) {
+            Common.ProcessContentProjects(variables, configuration, buildResult, ContentProjectsProcessed);
 
-            return base.ProcessBuildResult(configuration, buildResult);
+            return base.ProcessBuildResult(variables, configuration, buildResult);
         }
     }
 }

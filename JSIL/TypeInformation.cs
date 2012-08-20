@@ -47,7 +47,7 @@ namespace JSIL.Internal {
         }
     }
 
-    public class TypeIdentifier {
+    public struct TypeIdentifier {
         public readonly string Assembly;
         public readonly string Namespace;
         public readonly string DeclaringTypeName;
@@ -63,6 +63,8 @@ namespace JSIL.Internal {
                     Assembly = asm.FullName;
                 else
                     Assembly = null;
+            } else {
+                Assembly = null;
             }
 
             Namespace = type.Namespace;
@@ -76,9 +78,6 @@ namespace JSIL.Internal {
         }
 
         public bool Equals (TypeIdentifier rhs) {
-            if (this == rhs)
-                return true;
-
             if (!String.Equals(Name, rhs.Name))
                 return false;
 
@@ -97,9 +96,8 @@ namespace JSIL.Internal {
         }
 
         public override bool Equals (object obj) {
-            var rhs = obj as TypeIdentifier;
-            if (rhs != null)
-                return Equals(rhs);
+            if (obj is TypeIdentifier)
+                return Equals((TypeIdentifier)obj);
 
             return base.Equals(obj);
         }
@@ -397,6 +395,8 @@ namespace JSIL.Internal {
         protected bool _IsExternal = false;
         protected bool _MethodGroupsInitialized = false;
 
+        protected List<NamedMethodSignature> DeferredMethodSignatureSetUpdates = new List<NamedMethodSignature>();
+
         public TypeInfo (ITypeInfoSource source, ModuleInfo module, TypeDefinition type, TypeInfo declaringType, TypeInfo baseClass, TypeIdentifier identifier) {
             Identifier = identifier;
             DeclaringType = declaringType;
@@ -626,7 +626,34 @@ namespace JSIL.Internal {
                     escInfo.ForcedNewName = name;
                     ExtraStaticConstructors.Add(escInfo);
                 }
+
+                if (proxy.MemberPolicy == JSProxyMemberPolicy.ReplaceAll) {
+                    var previousMembers = Members.ToArray();
+                    Members.Clear();
+                    foreach (var member in previousMembers) {
+                        if (member.Value.IsFromProxy)
+                            Members.TryAdd(member.Key, member.Value);
+                    }
+                }
             }
+
+            DoDeferredMethodSignatureSetUpdate();
+        }
+
+        private void DoDeferredMethodSignatureSetUpdate () {
+            var selfAndBaseTypesRecursive = this.SelfAndBaseTypesRecursive.ToArray();
+
+            foreach (var t in selfAndBaseTypesRecursive) {
+                var ms = t.MethodSignatures;
+
+                foreach (var nms in DeferredMethodSignatureSetUpdates) {
+                    var set = ms.GetOrCreateFor(nms.Name);
+                    set.Add(nms);
+                }
+            }
+
+            DeferredMethodSignatureSetUpdates.Clear();
+            DeferredMethodSignatureSetUpdates = null;
         }
 
         public bool IsFullyInitialized {
@@ -761,7 +788,9 @@ namespace JSIL.Internal {
                     ((owningMember != null) && (owningMember.CustomAttributes.Any(ShouldNeverReplace)))
                 ) {
                     return true;
-                } else if (proxy.MemberPolicy == JSProxyMemberPolicy.ReplaceDeclared) {
+                } else if (
+                           proxy.MemberPolicy == JSProxyMemberPolicy.ReplaceDeclared ||
+                           proxy.MemberPolicy == JSProxyMemberPolicy.ReplaceAll) {
                     if (result.IsFromProxy)
                         Debug.WriteLine(String.Format("Warning: Proxy member '{0}' replacing proxy member '{1}'.", member, result));
 
@@ -921,23 +950,6 @@ namespace JSIL.Internal {
             return false;
         }
 
-        protected void UpdateSignatureSet (string methodName, MethodSignature signature) {
-            foreach (var t in SelfAndBaseTypesRecursive) {
-                int existingCount;
-
-                var set = t.MethodSignatures.GetOrCreateFor(methodName);
-
-                set.Add(signature);
-            }
-
-            // FIXME: This breaks Dictionary.Values.GetEnumerator. Is it right?
-            /*
-            var dotPosition = methodName.LastIndexOf(".");
-            if (dotPosition > 0)
-                UpdateSignatureSet(methodName.Substring(dotPosition + 1), signature);
-             */
-        }
-
         protected MethodInfo AddMember (MethodDefinition method, PropertyInfo property, ProxyInfo sourceProxy = null) {
             IMemberInfo result;
             var identifier = new MemberIdentifier(this.Source, method);
@@ -953,7 +965,7 @@ namespace JSIL.Internal {
             if (!Members.TryAdd(identifier, result))
                 throw new InvalidOperationException();
 
-            UpdateSignatureSet(result.Name, ((MethodInfo)result).Signature);
+            DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
 
             return (MethodInfo)result;
         }
@@ -968,7 +980,7 @@ namespace JSIL.Internal {
             if (!Members.TryAdd(identifier, result))
                 throw new InvalidOperationException();
 
-            UpdateSignatureSet(result.Name, ((MethodInfo)result).Signature);
+            DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
 
             return (MethodInfo)result;
         }
@@ -986,7 +998,7 @@ namespace JSIL.Internal {
             if (method.Name == ".cctor")
                 StaticConstructor = method;
 
-            UpdateSignatureSet(result.Name, ((MethodInfo)result).Signature);
+            DeferredMethodSignatureSetUpdates.Add(((MethodInfo)result).NamedSignature);
 
             return (MethodInfo)result;
         }
@@ -1072,11 +1084,11 @@ namespace JSIL.Internal {
     }
 
     public class AttributeGroup {
-        public class Entry {
-            public readonly CustomAttributeArgument[] Arguments;
+        public struct Entry {
+            public readonly IList<CustomAttributeArgument> Arguments;
 
             public Entry (CustomAttribute ca) {
-                Arguments = ca.ConstructorArguments.ToArray();
+                Arguments = ca.ConstructorArguments;
             }
         }
 
@@ -1089,10 +1101,12 @@ namespace JSIL.Internal {
         protected Dictionary<string, AttributeGroup> Attributes = null;
 
         public MetadataCollection (ICustomAttributeProvider target) {
-            if (target.CustomAttributes.Count == 0)
+            var cas = target.CustomAttributes;
+
+            if (cas.Count == 0)
                 return;
 
-            foreach (var ca in target.CustomAttributes) {
+            foreach (var ca in cas) {
                 AttributeGroup existing;
                 if (TryGetValue(ca.AttributeType.FullName, out existing))
                     existing.Entries.Add(new AttributeGroup.Entry(ca));
@@ -1225,6 +1239,7 @@ namespace JSIL.Internal {
         protected readonly JSInvokePolicy _InvokePolicy;
         protected bool? _IsReturnIgnored;
         protected bool _WasReservedIdentifier;
+        protected string _ShortName;
 
         public MemberInfo (
             TypeInfo parent, MemberIdentifier identifier, 
@@ -1280,6 +1295,15 @@ namespace JSIL.Internal {
             }
 
             _WasReservedIdentifier = Util.ReservedIdentifiers.Contains(Name);
+        }
+
+        protected string ShortName {
+            get {
+                if (_ShortName == null)
+                    _ShortName = GetShortName(this.Member);
+
+                return _ShortName;
+            }
         }
 
         // Sometimes the type system prefixes the name of a member with some or all of the declaring type's name.
@@ -1431,7 +1455,6 @@ namespace JSIL.Internal {
         public MethodInfo Getter, Setter;
         public readonly bool IsAutoProperty;
         public readonly string BackingFieldName;
-        protected readonly string ShortName;
 
         public PropertyInfo (
             TypeInfo parent, MemberIdentifier identifier, 
@@ -1441,7 +1464,6 @@ namespace JSIL.Internal {
             parent, identifier, property, proxies, 
             TypeUtil.IsIgnoredType(property.PropertyType), false, sourceProxy
         ) {
-            ShortName = GetShortName(property);
             IsAutoProperty = (Member.GetMethod ?? Member.SetMethod).CustomAttributes.Any(
                 (ca) => ca.AttributeType.FullName == "System.Runtime.CompilerServices.CompilerGeneratedAttribute"
             );
@@ -1521,13 +1543,12 @@ namespace JSIL.Internal {
         public readonly bool IsVirtual;
         public readonly bool IsSealed;
 
-        protected MethodSignature _Signature = null;
+        protected NamedMethodSignature _Signature = null;
 
         protected MethodGroupInfo _MethodGroup = null;
         protected bool? _IsOverloadedRecursive;
         protected bool? _IsRedefinedRecursive;
         protected bool? _ParametersIgnored;
-        protected readonly string ShortName;
 
         public MethodInfo (
             TypeInfo parent, MemberIdentifier identifier, 
@@ -1540,7 +1561,6 @@ namespace JSIL.Internal {
             method.IsNative || method.IsUnmanaged || method.IsUnmanagedExport || method.IsInternalCall || method.IsPInvokeImpl,
             sourceProxy
         ) {
-            ShortName = GetShortName(method);
             Parameters = method.Parameters.ToArray();
             GenericParameterNames = (from p in method.GenericParameters select p.Name).ToArray();
             IsGeneric = method.HasGenericParameters;
@@ -1562,7 +1582,6 @@ namespace JSIL.Internal {
             sourceProxy
         ) {
             Property = property;
-            ShortName = GetShortName(method);
             Parameters = method.Parameters.ToArray();
             GenericParameterNames = (from p in method.GenericParameters select p.Name).ToArray();
             IsGeneric = method.HasGenericParameters;
@@ -1583,7 +1602,6 @@ namespace JSIL.Internal {
             sourceProxy
         ) {
             Event = evt;
-            ShortName = GetShortName(method);
             Parameters = method.Parameters.ToArray();
             GenericParameterNames = (from p in method.GenericParameters select p.Name).ToArray();
             IsGeneric = method.HasGenericParameters;
@@ -1593,9 +1611,11 @@ namespace JSIL.Internal {
         }
 
         protected void MakeSignature () {
-            _Signature = new MethodSignature(
-                ReturnType, (from p in Parameters select p.ParameterType).ToArray(),
-                GenericParameterNames
+            _Signature = new NamedMethodSignature(
+                Name, new MethodSignature(
+                    ReturnType, (from p in Parameters select p.ParameterType).ToArray(),
+                    GenericParameterNames
+                )
             );
         }
 
@@ -1603,12 +1623,21 @@ namespace JSIL.Internal {
             return GetName(false);
         }
 
-        public MethodSignature Signature {
+        public NamedMethodSignature NamedSignature {
             get {
                 if (_Signature == null)
                     MakeSignature();
 
                 return _Signature;
+            }
+        }
+
+        public MethodSignature Signature {
+            get {
+                if (_Signature == null)
+                    MakeSignature();
+
+                return _Signature.Signature;
             }
         }
 
@@ -1902,7 +1931,64 @@ namespace JSIL.Internal {
             }
         }
 
+        protected struct MakeReferenceArgs {
+            public TypeReference ReturnType;
+            public TypeReference[] ParameterTypes;
+            public TypeSystem TypeSystem;
+        }
+
         protected readonly ConcurrentCache<MethodSignature, TypeReference> Cache = new ConcurrentCache<MethodSignature, TypeReference>();
+        protected static readonly ConcurrentCache<MethodSignature, TypeReference>.CreatorFunction<MakeReferenceArgs> MakeReference;
+
+        static MethodTypeFactory () {
+            MakeReference = (signature, args) => {
+                TypeReference genericDelegateType;
+
+                var systemModule = args.TypeSystem.Boolean.Resolve().Module;
+                bool hasReturnType;
+
+                if (TypeUtil.TypesAreEqual(args.TypeSystem.Void, args.ReturnType)) {
+                    hasReturnType = false;
+                    var name = String.Format("System.Action`{0}", signature.ParameterCount);
+                    genericDelegateType = systemModule.GetType(
+                        signature.ParameterCount == 0 ? "System.Action" : name
+                    );
+                } else {
+                    hasReturnType = true;
+                    genericDelegateType = systemModule.GetType(String.Format(
+                        "System.Func`{0}", signature.ParameterCount + 1
+                    ));
+                }
+
+                if (genericDelegateType != null) {
+                    var git = new GenericInstanceType(genericDelegateType);
+                    foreach (var pt in args.ParameterTypes)
+                        git.GenericArguments.Add(pt);
+
+                    if (hasReturnType)
+                        git.GenericArguments.Add(args.ReturnType);
+
+                    return git;
+                } else {
+                    var baseType = systemModule.GetType("System.MulticastDelegate");
+
+                    var td = new TypeDefinition(
+                        "JSIL.Meta", "MethodSignature", TypeAttributes.Class | TypeAttributes.NotPublic, baseType
+                    );
+                    td.DeclaringType = baseType;
+
+                    var invoke = new MethodDefinition(
+                        "Invoke", MethodAttributes.Public, args.ReturnType
+                    );
+                    foreach (var pt in args.ParameterTypes)
+                        invoke.Parameters.Add(new ParameterDefinition(pt));
+
+                    td.Methods.Add(invoke);
+
+                    return td;
+                }
+            };
+        }
 
         public TypeReference Get (MethodReference method, TypeSystem typeSystem) {
             return Get(
@@ -1914,57 +2000,16 @@ namespace JSIL.Internal {
 
         public TypeReference Get (TypeReference returnType, IEnumerable<TypeReference> parameterTypes, TypeSystem typeSystem) {
             TypeReference result;
-            var ptypes = parameterTypes.ToArray();
-            var signature = new MethodSignature(returnType, ptypes);
+
+            var args = new MakeReferenceArgs {
+                ReturnType = returnType,
+                ParameterTypes = parameterTypes.ToArray(),
+                TypeSystem = typeSystem
+            };
+            var signature = new MethodSignature(returnType, args.ParameterTypes);
 
             return Cache.GetOrCreate(
-                signature, () => {
-                    TypeReference genericDelegateType;
-
-                    var systemModule = typeSystem.Boolean.Resolve().Module;
-                    bool hasReturnType;
-
-                    if (TypeUtil.TypesAreEqual(typeSystem.Void, returnType)) {
-                        hasReturnType = false;
-                        var name = String.Format("System.Action`{0}", signature.ParameterCount);
-                        genericDelegateType = systemModule.GetType(
-                            signature.ParameterCount == 0 ? "System.Action" : name
-                        );
-                    } else {
-                        hasReturnType = true;
-                        genericDelegateType = systemModule.GetType(String.Format(
-                            "System.Func`{0}", signature.ParameterCount + 1
-                        ));
-                    }
-
-                    if (genericDelegateType != null) {
-                        var git = new GenericInstanceType(genericDelegateType);
-                        foreach (var pt in ptypes)
-                            git.GenericArguments.Add(pt);
-
-                        if (hasReturnType)
-                            git.GenericArguments.Add(returnType);
-
-                        return git;
-                    } else {
-                        var baseType = systemModule.GetType("System.MulticastDelegate");
-
-                        var td = new TypeDefinition(
-                            "JSIL.Meta", "MethodSignature", TypeAttributes.Class | TypeAttributes.NotPublic, baseType
-                        );
-                        td.DeclaringType = baseType;
-
-                        var invoke = new MethodDefinition(
-                            "Invoke", MethodAttributes.Public, returnType
-                        );
-                        foreach (var pt in ptypes)
-                            invoke.Parameters.Add(new ParameterDefinition(pt));
-
-                        td.Methods.Add(invoke);
-
-                        return td;
-                    }
-                }
+                signature, args, MakeReference
             );
         }
 

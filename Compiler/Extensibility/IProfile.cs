@@ -5,11 +5,20 @@ using System.Text;
 
 namespace JSIL.Compiler.Extensibility {
     public interface IProfile {
-        bool IsAppropriateForSolution (SolutionBuilder.SolutionBuildResult buildResult);
+        bool IsAppropriateForSolution (SolutionBuilder.BuildResult buildResult);
 
-        SolutionBuilder.SolutionBuildResult ProcessBuildResult (Configuration configuration, SolutionBuilder.SolutionBuildResult buildResult);
-        Configuration GetConfiguration (Configuration defaultConfiguration);
-        TranslationResult Translate (AssemblyTranslator translator, Configuration configuration, string assemblyPath, bool scanForProxies);
-        void WriteOutputs (TranslationResult result, string path, string manifestPrefix);
+        SolutionBuilder.BuildResult ProcessBuildResult (
+            VariableSet variables, Configuration configuration, SolutionBuilder.BuildResult buildResult
+        );
+        Configuration GetConfiguration (
+            Configuration defaultConfiguration
+        );
+        TranslationResult Translate (
+            VariableSet variables, AssemblyTranslator translator, 
+            Configuration configuration, string assemblyPath, bool scanForProxies
+        );
+        void WriteOutputs (
+            VariableSet variables, TranslationResult result, string path, string manifestPrefix
+        );
     }
 }

@@ -247,7 +247,8 @@ namespace JSIL.Ast {
                 return String.Format("{0}<{1}>.{2}", parentTypeName, genericArgsText, Reference.Name);
             } else
              */
-                return Method.GetName(true);
+
+            return Method.GetName(false);
         }
     }
 

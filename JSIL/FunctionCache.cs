@@ -39,9 +39,25 @@ namespace JSIL {
             }
         }
 
+        protected struct PopulatedCacheEntryArgs {
+            public MethodInfo Info;
+            public MethodReference Method;
+            public ILBlockTranslator Translator;
+            public IEnumerable<JSVariable> Parameters;
+            public JSBlockStatement Body;
+        }
+
+        protected struct NullCacheEntryArgs {
+            public MethodInfo Info;
+            public MethodReference Method;
+        }
+
         public readonly MethodTypeFactory MethodTypes;
         public readonly ConcurrentHashQueue<QualifiedMemberIdentifier> OptimizationQueue;
         protected readonly ConcurrentCache<QualifiedMemberIdentifier, Entry> Cache;
+        protected readonly ConcurrentCache<QualifiedMemberIdentifier, Entry>.CreatorFunction<JSMethod> MakeCacheEntry;
+        protected readonly ConcurrentCache<QualifiedMemberIdentifier, Entry>.CreatorFunction<PopulatedCacheEntryArgs> MakePopulatedCacheEntry;
+        protected readonly ConcurrentCache<QualifiedMemberIdentifier, Entry>.CreatorFunction<NullCacheEntryArgs> MakeNullCacheEntry; 
 
         public FunctionCache (ITypeInfoSource typeInfo) {
             var comparer = new QualifiedMemberIdentifier.Comparer(typeInfo);
@@ -52,6 +68,49 @@ namespace JSIL {
                 Math.Max(1, Environment.ProcessorCount / 4), 4096, comparer
             );
             MethodTypes = new MethodTypeFactory();
+
+            MakeCacheEntry = (id, method) => {
+                OptimizationQueue.TryEnqueue(id);
+
+                return new Entry {
+                    Info = method.Method,
+                    Reference = method.Reference,
+                    Identifier = id,
+                    ParameterNames = new HashSet<string>(from p in method.Method.Parameters select p.Name),
+                    SecondPass = new FunctionAnalysis2ndPass(this, method.Method)
+                };
+            };
+
+            MakePopulatedCacheEntry = (id, args) => {
+                var result = new JSFunctionExpression(
+                    new JSMethod(args.Method, args.Info, MethodTypes),
+                    args.Translator.Variables,
+                    args.Parameters,
+                    args.Body,
+                    MethodTypes
+                );
+
+                OptimizationQueue.TryEnqueue(id);
+
+                return new Entry {
+                    Identifier = id,
+                    Info = args.Info,
+                    Reference = args.Method,
+                    Expression = result,
+                    Variables = args.Translator.Variables,
+                    ParameterNames = args.Translator.ParameterNames,
+                    SpecialIdentifiers = args.Translator.SpecialIdentifiers
+                };
+            };
+
+            MakeNullCacheEntry = (id, args) => {
+                return new Entry {
+                    Identifier = id,
+                    Info = args.Info,
+                    Reference = args.Method,
+                    Expression = null
+                };
+            };
         }
 
         public bool TryGetExpression (QualifiedMemberIdentifier method, out JSFunctionExpression function) {
@@ -108,17 +167,7 @@ namespace JSIL {
             var id = method.QualifiedIdentifier;
 
             Entry entry = Cache.GetOrCreate(
-                id, () => {
-                    OptimizationQueue.TryEnqueue(id);
-
-                    return new Entry {
-                        Info = method.Method,
-                        Reference = method.Reference, 
-                        Identifier = id,
-                        ParameterNames = new HashSet<string>(from p in method.Method.Parameters select p.Name),
-                        SecondPass = new FunctionAnalysis2ndPass(this, method.Method)
-                    };
-                }
+                id, method, MakeCacheEntry
             );
 
             if (entry.SecondPass == null) {
@@ -163,41 +212,27 @@ namespace JSIL {
             QualifiedMemberIdentifier identifier, ILBlockTranslator translator, 
             IEnumerable<JSVariable> parameters, JSBlockStatement body
         ) {
-            return Cache.GetOrCreate(identifier, () => {
-                var result = new JSFunctionExpression(
-                    new JSMethod(method, info, MethodTypes),
-                    translator.Variables,
-                    parameters,
-                    body,
-                    MethodTypes
-                );
+            var args = new PopulatedCacheEntryArgs {
+                Info = info,
+                Method = method,
+                Translator = translator,
+                Parameters = parameters,
+                Body = body,
+            };
 
-                OptimizationQueue.TryEnqueue(identifier);
-
-                return new Entry {
-                    Identifier = identifier,
-                    Info = info,
-                    Reference = method,
-                    Expression = result,
-                    Variables = translator.Variables,
-                    ParameterNames = translator.ParameterNames,
-                    SpecialIdentifiers = translator.SpecialIdentifiers
-                };
-            }).Expression;
+            return Cache.GetOrCreate(identifier, args, MakePopulatedCacheEntry).Expression;
         }
 
         internal void CreateNull (
             MethodInfo info, MethodReference method, 
             QualifiedMemberIdentifier identifier
         ) {
-            Cache.TryCreate(identifier, () => {
-                return new Entry {
-                    Identifier = identifier,
-                    Info = info,
-                    Reference = method,
-                    Expression = null
-                };
-            });
+            var args = new NullCacheEntryArgs {
+                Info = info,
+                Method = method
+            };
+
+            Cache.TryCreate(identifier, args, MakeNullCacheEntry);
         }
 
         public void Dispose () {

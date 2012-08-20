@@ -193,6 +193,8 @@ namespace JSIL.Tests {
         public readonly TimeSpan CompilationElapsed;
         public readonly EvaluatorPool EvaluatorPool;
 
+        protected bool? MainAcceptsArguments;
+
         static ComparisonTest () {
             var testAssembly = typeof(ComparisonTest).Assembly;
             var assemblyPath = Path.GetDirectoryName(Util.GetPathOfAssembly(testAssembly));
@@ -308,6 +310,8 @@ namespace JSIL.Tests {
             if (testMethod == null)
                 throw new Exception("Test missing 'Main' method of 'Program' main class");
 
+            MainAcceptsArguments = testMethod.GetParameters().Length > 0;
+
             return testMethod;
         }
 
@@ -323,14 +327,13 @@ namespace JSIL.Tests {
                     var testMethod = GetTestMethod();
                     long startedCs = DateTime.UtcNow.Ticks;
 
-                    var argCount = testMethod.GetParameters().Length;
-
-                    if (argCount == 1) {
+                    if (MainAcceptsArguments.Value) {
                         testMethod.Invoke(null, new object[] { args });
-                    } else if (argCount == 0) {
-                        testMethod.Invoke(null, new object[] { });
                     } else {
-                        throw new Exception("Test's Main method must take either 0 or 1 argument(s)");
+                        if ((args != null) && (args.Length > 0))
+                            throw new ArgumentException("Test case does not accept arguments");
+
+                        testMethod.Invoke(null, new object[] { });
                     }
 
                     long endedCs = DateTime.UtcNow.Ticks;
@@ -403,10 +406,18 @@ namespace JSIL.Tests {
             var declaringType = JSIL.Internal.Util.EscapeIdentifier(testMethod.DeclaringType.FullName, Internal.EscapingMode.TypeIdentifier);
 
             string argsJson;
-            var jsonSerializer = new DataContractJsonSerializer(typeof(string[]));
-            using (var ms2 = new MemoryStream()) {
-                jsonSerializer.WriteObject(ms2, args);
-                argsJson = Encoding.UTF8.GetString(ms2.GetBuffer(), 0, (int)ms2.Length);
+
+            if (MainAcceptsArguments.Value) {
+                var jsonSerializer = new DataContractJsonSerializer(typeof(string[]));
+                using (var ms2 = new MemoryStream()) {
+                    jsonSerializer.WriteObject(ms2, args);
+                    argsJson = Encoding.UTF8.GetString(ms2.GetBuffer(), 0, (int)ms2.Length);
+                }
+            } else {
+                if ((args != null) && (args.Length > 0))
+                    throw new ArgumentException("Test case does not accept arguments");
+
+                argsJson = "";
             }
 
             var prefixJs =

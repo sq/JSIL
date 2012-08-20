@@ -104,6 +104,24 @@ namespace JSIL {
 
         internal void AddExistingFile (string type, string filename, long fileSize, int? position = null) {
             lock (Files) {
+                if (Files.ContainsKey(filename)) {
+                    var existingFile = Files[filename];
+                    if (
+                        (existingFile.Size != fileSize) ||
+                        (existingFile.Type != type) ||
+                        (existingFile.Contents.Count > 0)
+                    ) {
+                        throw new InvalidOperationException(String.Format(
+                            "A '{0}' named '{1}' already exists in the asset manifest, and has different metadata than the file being added.",
+                            type, filename
+                        ));
+                    } else {
+                        Console.Error.WriteLine("// Warning: Adding '{0}' '{1}' to manifest multiple times!", type, filename);
+                    }
+
+                    return;
+                }
+
                 if (position.HasValue)
                     FileOrder.Insert(position.Value, filename);
                 else

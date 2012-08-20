@@ -8,7 +8,7 @@ using JSIL.Utilities;
 
 namespace JSIL.Compiler.Profiles {
     public class Default : BaseProfile {
-        public override bool IsAppropriateForSolution (SolutionBuilder.SolutionBuildResult buildResult) {
+        public override bool IsAppropriateForSolution (SolutionBuilder.BuildResult buildResult) {
             // Normally we'd return true so that this profile is always selected, but this is our fallback profile.
             return false;
         }

@@ -7,13 +7,13 @@ using JSIL.Compiler.Extensibility;
 
 namespace JSIL.Compiler.Profiles {
     public abstract class BaseProfile : IProfile {
-        public abstract bool IsAppropriateForSolution (SolutionBuilder.SolutionBuildResult buildResult);
+        public abstract bool IsAppropriateForSolution (SolutionBuilder.BuildResult buildResult);
 
         public virtual Configuration GetConfiguration (Configuration defaultConfiguration) {
             return defaultConfiguration;
         }
 
-        public virtual TranslationResult Translate (AssemblyTranslator translator, Configuration configuration, string assemblyPath, bool scanForProxies) {
+        public virtual TranslationResult Translate (VariableSet variables, AssemblyTranslator translator, Configuration configuration, string assemblyPath, bool scanForProxies) {
             var result = translator.Translate(assemblyPath, scanForProxies);
 
             AssemblyTranslator.GenerateManifest(translator.Manifest, assemblyPath, result);
@@ -21,7 +21,7 @@ namespace JSIL.Compiler.Profiles {
             return result;
         }
 
-        public virtual void WriteOutputs (TranslationResult result, string path, string manifestPrefix) {
+        public virtual void WriteOutputs (VariableSet variables, TranslationResult result, string path, string manifestPrefix) {
             Console.WriteLine(manifestPrefix + "manifest.js");
 
             foreach (var fe in result.OrderedFiles)
@@ -30,7 +30,9 @@ namespace JSIL.Compiler.Profiles {
             result.WriteToDirectory(path, manifestPrefix);
         }
 
-        public virtual SolutionBuilder.SolutionBuildResult ProcessBuildResult (Configuration configuration, SolutionBuilder.SolutionBuildResult buildResult) {
+        public virtual SolutionBuilder.BuildResult ProcessBuildResult (
+            VariableSet variables, Configuration configuration, SolutionBuilder.BuildResult buildResult
+        ) {
             return buildResult;
         }
     }
