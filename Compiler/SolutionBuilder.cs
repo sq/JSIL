@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -354,7 +355,11 @@ namespace JSIL.SolutionBuilder {
             var pResultsDictionary = tResultsCache.GetProperty("ResultsDictionary", BindingFlags.NonPublic | BindingFlags.Instance);
             var oResultsDictionary = pResultsDictionary.GetValue(resultsCache, null);
 
-            var resultsDictionary = (Dictionary<int, Microsoft.Build.Execution.BuildResult>) oResultsDictionary;
+            IDictionary<int, Microsoft.Build.Execution.BuildResult> resultsDictionary = oResultsDictionary as Dictionary<int, Microsoft.Build.Execution.BuildResult>;
+            if (resultsDictionary == null)
+                resultsDictionary = oResultsDictionary as ConcurrentDictionary<int, Microsoft.Build.Execution.BuildResult>;
+            if (resultsDictionary == null)
+                throw new Exception("Unsupported version of MSBuild");
 
             var result = new List<BuiltItem>();
 

@@ -176,9 +176,9 @@ public static class Common {
         return true;
     }
 
-    public static string FFMPEGDecode (string sourcePath) {
+    public static string FFMPEGDecode (string sourcePath, ProfileSettings settings) {
         var outputPath = Path.GetTempFileName();
-        var ffmpegPath = Path.GetFullPath(@"..\Upstream\FFMPEG\ffmpeg.exe");
+        var ffmpegPath = Path.GetFullPath(settings.Variables.ExpandPath(@"%jsildirectory%\..\Upstream\FFMPEG\ffmpeg.exe", false));
         if (!File.Exists(ffmpegPath)) {
             if (!WarnedAboutFFMPEG) {
                 WarnedAboutFFMPEG = true;
@@ -209,7 +209,7 @@ public static class Common {
     }
 
     public static bool CompressMP3 (string sourcePath, string outputPath, ProfileSettings settings) {
-        var lamePath = Path.GetFullPath(@"..\Upstream\LAME\lame.exe");
+        var lamePath = Path.GetFullPath(settings.Variables.ExpandPath(@"%jsildirectory%\..\Upstream\LAME\lame.exe", false));
         if (!File.Exists(lamePath)) {
             if (!WarnedAboutLAME) {
                 WarnedAboutLAME = true;
@@ -239,7 +239,7 @@ public static class Common {
     }
 
     public static bool CompressOGG (string sourcePath, string outputPath, ProfileSettings settings) {
-        var oggencPath = Path.GetFullPath(@"..\Upstream\OggEnc\oggenc2.exe");
+        var oggencPath = Path.GetFullPath(settings.Variables.ExpandPath(@"%jsildirectory%\..\Upstream\OggEnc\oggenc2.exe", false));
         if (!File.Exists(oggencPath)) {
             if (!WarnedAboutOggENC) {
                 WarnedAboutOggENC = true;
@@ -291,7 +291,7 @@ public static class Common {
                 case ".wma":
                 case ".mp3":
                 case ".aac":
-                    sourceWave = FFMPEGDecode(sourcePath);
+                    sourceWave = FFMPEGDecode(sourcePath, settings);
                     if (sourceWave == null)
                         yield break;
 
