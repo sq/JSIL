@@ -454,7 +454,6 @@ namespace JSIL.Compiler {
 
             if (buildGroups.Count < 1) {
                 Console.Error.WriteLine("// No assemblies specified to translate. Exiting.");
-                return;
             }
 
             foreach (var buildGroup in buildGroups) {
@@ -520,6 +519,11 @@ namespace JSIL.Compiler {
                         buildGroup.Profile.WriteOutputs(localVariables, outputs, outputDir, Path.GetFileName(filename) + ".");
                     }
                 }
+            }
+            
+            if (Environment.UserInteractive && Debugger.IsAttached) {
+                Console.Error.WriteLine("// Press the any key to continue.");
+                Console.ReadKey();
             }
         }
 
