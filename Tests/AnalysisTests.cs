@@ -417,5 +417,16 @@ Shockwave.TryMove(Down, 384)";
 
             Console.WriteLine(generatedJs);
         }
+
+        [Test]
+        public void AddToStructProperty () {
+            var output = "0\r\n1\r\n2";
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\AddToStructProperty.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
     }
 }

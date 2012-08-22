@@ -69,6 +69,7 @@
     <None Include="AnalysisTestCases\ReuseEnumeratorLocal.cs" />
     <None Include="AnalysisTestCases\PropertyTemporaries.cs" />
     <None Include="AnalysisTestCases\TemporaryArraySize.cs" />
+    <None Include="AnalysisTestCases\AddToStructProperty.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />
