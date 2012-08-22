@@ -59,18 +59,14 @@ public static class Common {
     }
 
     public static void PrintByteArray (byte[] bytes) {
-        Console.WriteLine("{0} byte(s):", bytes.Length);
-
         var sb = new StringBuilder();
         for (var i = 0; i < bytes.Length; i++)
             sb.AppendFormat("{0:X2}", bytes[i]);
 
-        Console.WriteLine(sb.ToString());
+        Console.WriteLine("{0:D3}b [{1}]", bytes.Length, sb.ToString());
     }
 
     public static void PrintString (string str) {
-        Console.WriteLine("{0} character(s):", str.Length);
-
         var sb = new StringBuilder();
         for (var i = 0; i < str.Length; i++) {
             var ch = str[i];
@@ -82,6 +78,6 @@ public static class Common {
             }
         }
 
-        Console.WriteLine(sb.ToString());
+        Console.WriteLine("{0:D3}ch [{1}]", str.Length, sb.ToString());
     }
 }

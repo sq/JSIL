@@ -115,6 +115,8 @@
     <None Include="SimpleTestCases\DelegateFieldInitializer.cs" />
     <None Include="TestCases\NullableObjectCast.cs" />
     <None Include="EncodingTestCases\Common.cs" />
+    <None Include="EncodingTestCases\ToBase64String.cs" />
+    <None Include="EncodingTestCases\FromBase64String.cs" />
     <Compile Include="EvaluatorPool.cs" />
     <None Include="SimpleTestCases\NestedInterfaces.cs" />
     <None Include="SimpleTestCases\OverloadedConstructorDelegation.cs" />

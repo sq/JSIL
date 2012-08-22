@@ -1152,11 +1152,23 @@ JSIL.ImplementExternals(
   }
 );
 
-JSIL.MakeClass(Error, "System.Exception", true, [], function ($) {
+JSIL.ImplementExternals(
+  "System.FormatException", function ($) {  
+    $.Method({Static:false, Public:true }, ".ctor", 
+      new JSIL.MethodSignature(null, [$.String], []),
+      function (message) {
+        System.Exception.prototype._ctor.call(this, message);
+      }
+    );
+  }
+);
+
+JSIL.MakeClass("System.Object", "System.Exception", true, [], function ($) {
   $.Property({Public: true , Static: false, Virtual: true }, "Message");
   $.Property({Public: true , Static: false}, "InnerException");
 });
 
+JSIL.MakeClass("System.Exception", "System.FormatException", true);
 JSIL.MakeClass("System.Exception", "System.InvalidCastException", true);
 JSIL.MakeClass("System.Exception", "System.InvalidOperationException", true);
 JSIL.MakeClass("System.Exception", "System.IO.FileNotFoundException", true);
@@ -2364,6 +2376,99 @@ JSIL.ImplementExternals("System.Environment", function ($) {
 
 });
 
+$jsilcore.fromCharCode = function fixedFromCharCode (codePt) {  
+  // https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/String/fromCharCode
+  if (codePt > 0xFFFF) {  
+    codePt -= 0x10000;  
+    return String.fromCharCode(0xD800 + (codePt >> 10), 0xDC00 + (codePt & 0x3FF));  
+  } else {  
+    return String.fromCharCode(codePt); 
+  }  
+};
+
+$jsilcore.charCodeAt = function fixedCharCodeAt (str, idx) {  
+  // https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/String/charCodeAt
+
+  idx = idx || 0;  
+  var code = str.charCodeAt(idx);  
+  var hi, low;  
+
+  if (0xD800 <= code && code <= 0xDBFF) { 
+    // High surrogate (could change last hex to 0xDB7F to treat high private surrogates as single characters)  
+    hi = code;
+    low = str.charCodeAt(idx+1);  
+    if (isNaN(low))
+      throw new Error("High surrogate not followed by low surrogate");
+
+    return ((hi - 0xD800) * 0x400) + (low - 0xDC00) + 0x10000;  
+  }
+
+  if (0xDC00 <= code && code <= 0xDFFF) { 
+    // Low surrogate  
+    // We return false to allow loops to skip this iteration since should have already handled high surrogate above in the previous iteration  
+    return false;  
+  }  
+
+  return code;  
+};
+
+$jsilcore.makeByteReader = function (bytes, index, count) {
+  var position = index || 0;
+  var endpoint;
+
+  if (count)
+    endpoint = (position + count);
+  else
+    endpoint = (bytes.length - position);
+
+  var result = {
+    read: function () {
+      if (position >= endpoint)
+        return false;
+
+      var nextByte = bytes[position];
+      position += 1;
+      return nextByte;
+    }
+  };
+
+  Object.defineProperty(result, "eof", {
+    get: function () {
+      return (position >= endpoint);
+    },
+    configurable: true,
+    enumerable: true
+  });
+
+  return result;
+};
+
+$jsilcore.makeCharacterReader = function (str) {
+  var position = 0, length = str.length;
+  var cca = $jsilcore.charCodeAt;
+
+  var result = {
+    read: function () {
+      if (position >= length)
+        return false;
+
+      var nextChar = cca(str, position);
+      position += 1;
+      return nextChar;
+    }
+  };
+
+  Object.defineProperty(result, "eof", {
+    get: function () {
+      return (position >= length);
+    },
+    configurable: true,
+    enumerable: true
+  });
+
+  return result;
+};
+
 JSIL.ImplementExternals("System.Text.Encoding", function ($) {
   $.Method({Static:true , Public:true }, ".cctor2", 
     (new JSIL.MethodSignature(null, [], [])),
@@ -2426,98 +2531,13 @@ JSIL.ImplementExternals("System.Text.Encoding", function ($) {
     }
   });
 
-  $.RawMethod(false, "$fromCharCode", function fixedFromCharCode (codePt) {  
-    // https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/String/fromCharCode
-    if (codePt > 0xFFFF) {  
-      codePt -= 0x10000;  
-      return String.fromCharCode(0xD800 + (codePt >> 10), 0xDC00 + (codePt & 0x3FF));  
-    } else {  
-      return String.fromCharCode(codePt); 
-    }  
-  });
+  $.RawMethod(false, "$fromCharCode", $jsilcore.fromCharCode);
 
-  $.RawMethod(false, "$charCodeAt", function fixedCharCodeAt (str, idx) {  
-    // https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/String/charCodeAt
+  $.RawMethod(false, "$charCodeAt", $jsilcore.charCodeAt);
 
-    idx = idx || 0;  
-    var code = str.charCodeAt(idx);  
-    var hi, low;  
+  $.RawMethod(false, "$makeCharacterReader", $jsilcore.makeCharacterReader);
 
-    if (0xD800 <= code && code <= 0xDBFF) { 
-      // High surrogate (could change last hex to 0xDB7F to treat high private surrogates as single characters)  
-      hi = code;
-      low = str.charCodeAt(idx+1);  
-      if (isNaN(low))
-        throw new Error("High surrogate not followed by low surrogate");
-
-      return ((hi - 0xD800) * 0x400) + (low - 0xDC00) + 0x10000;  
-    }
-
-    if (0xDC00 <= code && code <= 0xDFFF) { 
-      // Low surrogate  
-      // We return false to allow loops to skip this iteration since should have already handled high surrogate above in the previous iteration  
-      return false;  
-    }  
-
-    return code;  
-  });
-
-  $.RawMethod(false, "$makeCharacterReader", function (str) {
-    var position = 0, length = str.length;
-    var cca = this.$charCodeAt;
-
-    var result = {
-      read: function () {
-        if (position >= length)
-          return false;
-
-        var nextChar = cca(str, position);
-        position += 1;
-        return nextChar;
-      }
-    };
-
-    Object.defineProperty(result, "eof", {
-      get: function () {
-        return (position >= length);
-      },
-      configurable: true,
-      enumerable: true
-    });
-
-    return result;
-  });
-
-  $.RawMethod(false, "$makeByteReader", function (bytes, index, count) {
-    var position = index || 0;
-    var endpoint;
-
-    if (count)
-      endpoint = (position + count);
-    else
-      endpoint = (bytes.length - position);
-
-    var result = {
-      read: function () {
-        if (position >= endpoint)
-          return false;
-
-        var nextByte = bytes[position];
-        position += 1;
-        return nextByte;
-      }
-    };
-
-    Object.defineProperty(result, "eof", {
-      get: function () {
-        return (position >= endpoint);
-      },
-      configurable: true,
-      enumerable: true
-    });
-
-    return result;
-  });
+  $.RawMethod(false, "$makeByteReader", $jsilcore.makeByteReader);
 
   $.RawMethod(false, "$encode", function Encoding_Encode_PureVirtual (string, outputBytes, outputIndex) {
     throw new Error("Not implemented");
@@ -5306,7 +5326,6 @@ JSIL.ImplementExternals("System.Resources.ResourceSet", function ($) {
 
 });
 
-
 JSIL.ImplementExternals("System.Convert", function ($) {
   $.Method({Static:true , Public:true }, "ChangeType", 
     (new JSIL.MethodSignature($.Object, [$.Object, $jsilcore.TypeRef("System.Type")], [])), 
@@ -5489,4 +5508,173 @@ JSIL.ImplementExternals("System.Convert", function ($) {
     string: returnSame
   });
 
+  var base64Table = [
+    'A', 'B', 'C', 'D',
+    'E', 'F', 'G', 'H',
+    'I', 'J', 'K', 'L',
+    'M', 'N', 'O', 'P',
+    'Q', 'R', 'S', 'T',
+    'U', 'V', 'W', 'X',
+    'Y', 'Z',
+    'a', 'b', 'c', 'd',
+    'e', 'f', 'g', 'h',
+    'i', 'j', 'k', 'l',
+    'm', 'n', 'o', 'p',
+    'q', 'r', 's', 't',
+    'u', 'v', 'w', 'x',
+    'y', 'z',
+    '0', '1', '2', '3',
+    '4', '5', '6', '7',
+    '8', '9', 
+    '+', '/'
+  ];
+
+  var base64CodeTable = new Array(base64Table.length);
+  for (var i = 0; i < base64Table.length; i++)
+    base64CodeTable[i] = base64Table[i].charCodeAt(0);
+
+  var toBase64StringImpl = function ToBase64String (inArray, offset, length, options) {
+    if (options)
+      throw new Error("Base64FormattingOptions not implemented");
+
+    var reader = $jsilcore.makeByteReader(inArray, offset, length);
+    var result = "";
+    var ch1 = 0, ch2 = 0, ch3 = 0, bits = 0, equalsCount = 0, sum = 0;
+    var mask1 = (1 << 24) - 1, mask2 = (1 << 18) - 1, mask3 = (1 << 12) - 1, mask4 = (1 << 6) - 1;
+    var shift1 = 18, shift2 = 12, shift3 = 6, shift4 = 0;
+
+    while (true) {
+      ch1 = reader.read();
+      ch2 = reader.read();
+      ch3 = reader.read();
+
+      if (ch1 === false)
+        break;
+      if (ch2 === false) {
+        ch2 = 0;
+        equalsCount += 1;
+      }
+      if (ch3 === false) {
+        ch3 = 0;
+        equalsCount += 1;
+      }
+
+      // Seems backwards, but is right!
+      sum = (ch1 << 16) | (ch2 << 8) | (ch3 << 0);
+
+      bits = (sum & mask1) >> shift1;
+      result += base64Table[bits];
+      bits = (sum & mask2) >> shift2;
+      result += base64Table[bits];
+
+      if (equalsCount < 2) {
+        bits = (sum & mask3) >> shift3;
+        result += base64Table[bits];
+      }
+
+      if (equalsCount === 2) {
+        result += "==";
+      } else if (equalsCount === 1) {
+        result += "=";
+      } else {
+        bits = (sum & mask4) >> shift4;
+        result += base64Table[bits];
+      }
+    }
+
+    return result;
+  };
+
+  $.Method({Static:true , Public:true }, "ToBase64String", 
+    (new JSIL.MethodSignature($.String, [$jsilcore.TypeRef("System.Array", [$.Byte])], [])), 
+    function ToBase64String (inArray) {
+      return toBase64StringImpl(inArray, 0, inArray.length, 0);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToBase64String", 
+    (new JSIL.MethodSignature($.String, [$jsilcore.TypeRef("System.Array", [$.Byte]), $jsilcore.TypeRef("System.Base64FormattingOptions")], [])), 
+    function ToBase64String (inArray, options) {
+      return toBase64StringImpl(inArray, 0, inArray.length, options);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToBase64String", 
+    (new JSIL.MethodSignature($.String, [
+          $jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32, 
+          $.Int32
+        ], [])), 
+    function ToBase64String (inArray, offset, length) {
+      return toBase64StringImpl(inArray, offset, length, 0);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToBase64String", 
+    (new JSIL.MethodSignature($.String, [
+          $jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32, 
+          $.Int32, $jsilcore.TypeRef("System.Base64FormattingOptions")
+        ], [])), 
+    toBase64StringImpl
+  );
+
+  $.Method({Static:true , Public:true }, "FromBase64String", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [$.String], [])), 
+    function FromBase64String (s) {
+      var lengthErrorMessage = "Invalid length for a Base-64 char array.";
+      var contentErrorMessage = "The input is not a valid Base-64 string as it contains a non-base 64 character, more than two padding characters, or a non-white space character among the padding characters.";
+
+      var result = [];
+      var reader = $jsilcore.makeCharacterReader(s);
+      var sum = 0;
+      var ch0 = 0, ch1 = 0, ch2 = 0, ch3 = 0;
+      var index0 = -1, index1 = -1, index2 = -1, index3 = -1;
+      var equals = "=".charCodeAt(0);
+
+      while (true) {
+        ch0 = reader.read();
+        ch1 = reader.read();
+        ch2 = reader.read();
+        ch3 = reader.read();
+
+        if (ch0 === false)
+          break;
+        if ((ch1 === false) || (ch2 === false) || (ch3 === false))
+          throw new System.FormatException(lengthErrorMessage);
+
+        index0 = base64CodeTable.indexOf(ch0);
+        index1 = base64CodeTable.indexOf(ch1);
+        index2 = base64CodeTable.indexOf(ch2);
+        index3 = base64CodeTable.indexOf(ch3);
+
+        if (
+          (index0 < 0) || (index0 > 63) ||
+          (index1 < 0) || (index1 > 63)
+        )
+          throw new System.FormatException(contentErrorMessage);
+
+        sum = (index0 << 18) | (index1 << 12);
+
+        if (index2 >= 0)
+          sum |= (index2 << 6);
+        else if (ch2 !== equals)
+          throw new System.FormatException(contentErrorMessage);
+
+        if (index3 >= 0)
+          sum |= (index3 << 0);
+        else if (ch3 !== equals)
+          throw new System.FormatException(contentErrorMessage);
+
+        result.push((sum >> 16) & 0xFF);
+        if (index2 >= 0)
+          result.push((sum >> 8) & 0xFF);
+        if (index3 >= 0)
+          result.push(sum & 0xFF);
+      }
+
+      return JSIL.Array.New($jsilcore.System.Byte, result);
+    }
+  );
+});
+
+JSIL.MakeStaticClass("System.Convert", true, [], function ($) {
 });
