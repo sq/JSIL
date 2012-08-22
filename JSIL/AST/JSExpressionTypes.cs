@@ -884,7 +884,10 @@ namespace JSIL.Ast {
         public readonly TypeReference ElementType;
         public readonly ArrayType ArrayType;
 
-        public readonly JSExpression SizeOrArrayInitializer;
+        public JSExpression SizeOrArrayInitializer {
+            get;
+            private set;
+        }
         public readonly JSExpression[] Dimensions;
 
         public JSNewArrayExpression (TypeReference elementType, JSExpression sizeOrArrayInitializer) {
@@ -911,6 +914,19 @@ namespace JSIL.Ast {
 
                 if (SizeOrArrayInitializer != null)
                     yield return SizeOrArrayInitializer;
+            }
+        }
+
+        public override void ReplaceChild (JSNode oldChild, JSNode newChild) {
+            if (Dimensions != null) {
+                for (var i = 0; i < Dimensions.Length; i++) {
+                    if (Dimensions[i] == oldChild)
+                        Dimensions[i] = (JSExpression)newChild;
+                }
+            }
+
+            if (SizeOrArrayInitializer == oldChild) {
+                SizeOrArrayInitializer = (JSExpression)newChild;
             }
         }
 

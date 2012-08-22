@@ -406,5 +406,16 @@ Shockwave.TryMove(Down, 384)";
 
             Console.WriteLine(generatedJs);
         }
+
+        [Test]
+        public void TemporaryArraySize () {
+            var output = "tempArray.Length=64";
+            var generatedJs = GenericTest(
+                @"AnalysisTestCases\TemporaryArraySize.cs",
+                output, output
+            );
+
+            Console.WriteLine(generatedJs);
+        }
     }
 }

@@ -68,6 +68,7 @@
     <None Include="AnalysisTestCases\StructLoopInteraction.cs" />
     <None Include="AnalysisTestCases\ReuseEnumeratorLocal.cs" />
     <None Include="AnalysisTestCases\PropertyTemporaries.cs" />
+    <None Include="AnalysisTestCases\TemporaryArraySize.cs" />
     <Compile Include="ComparisonTests.cs" />
     <None Include="SimpleTestCases\BaseAutoProperties.cs" />
     <None Include="FailingTestCases\BaseFields.cs" />
@@ -209,7 +210,7 @@
     <None Include="SpecialTestCases\CyclicTypeReferences.cs" />
     <None Include="SpecialTestCases\CyclicTypeInheritance.cs" />
     <None Include="SimpleTestCases\Type.cs" />
-    <None Include="TestCases\GenericMethodWithSameSignatureAsNonGenericMethod.cs" />    
+    <None Include="TestCases\GenericMethodWithSameSignatureAsNonGenericMethod.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />
