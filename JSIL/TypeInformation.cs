@@ -1199,10 +1199,16 @@ namespace JSIL.Internal {
         }
 
         public IEnumerator<KeyValuePair<string, AttributeGroup>> GetEnumerator () {
+            if (Attributes == null)
+                return Enumerable.Empty<KeyValuePair<string, AttributeGroup>>().GetEnumerator();
+
             return Attributes.GetEnumerator();
         }
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator () {
+            if (Attributes == null)
+                return Enumerable.Empty<KeyValuePair<string, AttributeGroup>>().GetEnumerator();
+
             return Attributes.GetEnumerator();
         }
     }

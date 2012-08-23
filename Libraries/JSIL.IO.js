@@ -699,7 +699,7 @@ JSIL.ImplementExternals("System.IO.BinaryWriter", function ($) {
   $.Method({Static:false, Public:true }, "Write", 
     (new JSIL.MethodSignature(null, [$.UInt16], [])), 
     function Write (value) {
-      throw new Error('Not implemented');
+      this.$writeBytes($jsilcore.BytesFromUInt16(value));
     }
   );
 
@@ -713,7 +713,7 @@ JSIL.ImplementExternals("System.IO.BinaryWriter", function ($) {
   $.Method({Static:false, Public:true }, "Write", 
     (new JSIL.MethodSignature(null, [$.UInt32], [])), 
     function Write (value) {
-      throw new Error('Not implemented');
+      this.$writeBytes($jsilcore.BytesFromUInt32(value));
     }
   );
 
@@ -727,7 +727,7 @@ JSIL.ImplementExternals("System.IO.BinaryWriter", function ($) {
   $.Method({Static:false, Public:true }, "Write", 
     (new JSIL.MethodSignature(null, [$.UInt64], [])), 
     function Write (value) {
-      throw new Error('Not implemented');
+      this.$writeBytes($jsilcore.BytesFromUInt64(value));
     }
   );
 

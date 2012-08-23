@@ -5712,6 +5712,37 @@ $jsilcore.BytesFromInt64 = function GetBytes (value) {
   ];
 };
 
+// FIXME: Are these unsigned versions right?
+
+$jsilcore.BytesFromUInt16 = function GetBytes (value) {
+  return [
+    (value >>> 0) & 0xFF,
+    (value >>> 8) & 0xFF
+  ];
+};
+
+$jsilcore.BytesFromUInt32 = function GetBytes (value) {
+  return [
+    (value >>> 0) & 0xFF,
+    (value >>> 8) & 0xFF,
+    (value >>> 16) & 0xFF,
+    (value >>> 24) & 0xFF
+  ];
+};
+
+$jsilcore.BytesFromUInt64 = function GetBytes (value) {
+  return [
+    (value >>> 0) & 0xFF,
+    (value >>> 8) & 0xFF,
+    (value >>> 16) & 0xFF,
+    (value >>> 24) & 0xFF,
+    (value >>> 32) & 0xFF,
+    (value >>> 40) & 0xFF,
+    (value >>> 48) & 0xFF,
+    (value >>> 56) & 0xFF
+  ];
+};
+
 JSIL.ImplementExternals("System.BitConverter", function ($) {
 
 
@@ -5735,7 +5766,6 @@ JSIL.ImplementExternals("System.BitConverter", function ($) {
     $jsilcore.BytesFromInt64
   );
 
-  /*
   $.Method({Static:true , Public:true }, "GetBytes", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [$.UInt16], [])), 
     $jsilcore.BytesFromUInt16
@@ -5751,6 +5781,7 @@ JSIL.ImplementExternals("System.BitConverter", function ($) {
     $jsilcore.BytesFromUInt64
   );  
 
+  /*
   $.Method({Static:true , Public:true }, "GetBytes", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [$.Single], [])), 
     $jsilcore.BytesFromSingle

@@ -366,24 +366,52 @@ namespace JSIL {
             JSExpression[] arguments, bool @virtual, bool @static, bool explicitThis
         ) {
             var methodInfo = method.Method;
-            var metadata = methodInfo.Metadata;
 
-            if (metadata != null) {
-                var parms = metadata.GetAttributeParameters("JSIL.Meta.JSReplacement");
-                if (parms != null) {
-                    var argsDict = new Dictionary<string, JSExpression>();
-                    argsDict["this"] = thisExpression;
-                    argsDict["typeof(this)"] = Translate_TypeOf(thisExpression.GetActualType(TypeSystem));
+            bool retry = false;
+            do {
+                retry = false;
+                var metadata = methodInfo.Metadata;
+                if (metadata != null) {
+                    var parms = metadata.GetAttributeParameters("JSIL.Meta.JSReplacement");
+                    if (parms != null) {
+                        var argsDict = new Dictionary<string, JSExpression>();
+                        argsDict["this"] = thisExpression;
+                        argsDict["typeof(this)"] = Translate_TypeOf(thisExpression.GetActualType(TypeSystem));
 
-                    foreach (var kvp in methodInfo.Parameters.Zip(arguments, (p, v) => new { p.Name, Value = v })) {
-                        argsDict.Add(kvp.Name, kvp.Value);
+                        foreach (var kvp in methodInfo.Parameters.Zip(arguments, (p, v) => new { p.Name, Value = v })) {
+                            argsDict.Add(kvp.Name, kvp.Value);
+                        }
+
+                        return new JSVerbatimLiteral(
+                            method, (string)parms[0].Value, argsDict, method.Method.ReturnType
+                        );
                     }
 
-                    return new JSVerbatimLiteral(
-                        method, (string)parms[0].Value, argsDict, method.Method.ReturnType
-                    );
+                    // Proxy method bodies can call other methods declared on the proxy
+                    //  that are actually stand-ins for methods declared on the proxied type.
+                    if (
+                        metadata.HasAttribute("JSIL.Proxy.JSNeverReplace") &&
+                        !TypeUtil.TypesAreEqual(method.Reference.DeclaringType, methodInfo.DeclaringType.Definition) &&
+                        !methodInfo.DeclaringType.IsProxy
+                    ) {
+                        var proxyTypeInfo = TypeInfo.GetExisting(method.Reference.DeclaringType);
+                        if ((proxyTypeInfo != null) && proxyTypeInfo.IsProxy) {
+                            var originalMethod =
+                                (from m in methodInfo.DeclaringType.Definition.Methods
+                                 let mi = TypeInfo.GetMethod(m)
+                                 where (mi != null) &&
+                                    mi.NamedSignature.Equals(methodInfo.NamedSignature)
+                                 select m).FirstOrDefault();
+
+                            if (originalMethod != null) {
+                                methodInfo = TypeInfo.GetMethod(originalMethod);
+                                method = new JSMethod(originalMethod, methodInfo, method.MethodTypes, method.GenericArguments);
+                                retry = true;
+                            }
+                        }
+                    }
                 }
-            }
+            } while (retry);
 
             if (methodInfo.IsIgnored)
                 return new JSIgnoredMemberReference(true, methodInfo, new[] { thisExpression }.Concat(arguments).ToArray());
