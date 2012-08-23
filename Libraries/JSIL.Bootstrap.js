@@ -5679,18 +5679,19 @@ JSIL.ImplementExternals("System.Convert", function ($) {
 JSIL.MakeStaticClass("System.Convert", true, [], function ($) {
 });
 
-$jsilcore.BytesFromBoolean = function GetBytes (value) {
+
+$jsilcore.BytesFromBoolean = function (value) {
   return [value ? 1 : 0];
 };
 
-$jsilcore.BytesFromInt16 = function GetBytes (value) {
+$jsilcore.BytesFromInt16 = function (value) {
   return [
     (value >> 0) & 0xFF,
     (value >> 8) & 0xFF
   ];
 };
 
-$jsilcore.BytesFromInt32 = function GetBytes (value) {
+$jsilcore.BytesFromInt32 = function (value) {
   return [
     (value >> 0) & 0xFF,
     (value >> 8) & 0xFF,
@@ -5699,7 +5700,7 @@ $jsilcore.BytesFromInt32 = function GetBytes (value) {
   ];
 };
 
-$jsilcore.BytesFromInt64 = function GetBytes (value) {
+$jsilcore.BytesFromInt64 = function (value) {
   return [
     (value >> 0) & 0xFF,
     (value >> 8) & 0xFF,
@@ -5714,14 +5715,14 @@ $jsilcore.BytesFromInt64 = function GetBytes (value) {
 
 // FIXME: Are these unsigned versions right?
 
-$jsilcore.BytesFromUInt16 = function GetBytes (value) {
+$jsilcore.BytesFromUInt16 = function (value) {
   return [
     (value >>> 0) & 0xFF,
     (value >>> 8) & 0xFF
   ];
 };
 
-$jsilcore.BytesFromUInt32 = function GetBytes (value) {
+$jsilcore.BytesFromUInt32 = function (value) {
   return [
     (value >>> 0) & 0xFF,
     (value >>> 8) & 0xFF,
@@ -5730,7 +5731,7 @@ $jsilcore.BytesFromUInt32 = function GetBytes (value) {
   ];
 };
 
-$jsilcore.BytesFromUInt64 = function GetBytes (value) {
+$jsilcore.BytesFromUInt64 = function (value) {
   return [
     (value >>> 0) & 0xFF,
     (value >>> 8) & 0xFF,
@@ -5741,6 +5742,60 @@ $jsilcore.BytesFromUInt64 = function GetBytes (value) {
     (value >>> 48) & 0xFF,
     (value >>> 56) & 0xFF
   ];
+};
+
+
+$jsilcore.BytesToBoolean = function (bytes, offset) {
+  return bytes[offset] !== 0;
+};
+
+$jsilcore.BytesToInt16 = function (bytes, offset) {
+  var value = $jsilcore.BytesToUInt16(bytes, offset);
+  if (value > 32767)
+    return value - 65536;
+  else
+    return value;
+};
+
+$jsilcore.BytesToInt32 = function (bytes, offset) {
+  var value = $jsilcore.BytesToUInt32(bytes, offset);
+  if (value > 2147483647)
+    return value - 4294967296;
+  else
+    return value;
+};
+
+$jsilcore.BytesToInt64 = function (bytes, offset) {
+  // FIXME: Does this work right for negative numbers or does 53-bit rounding kill it?
+  // FIXME: Generate warnings for values out of 53-bit range.
+  var value = $jsilcore.BytesToUInt64(bytes, offset);
+  if (value > System.Int64.MaxValue)
+    return value - 18446744073709551616;
+  else
+    return value;
+};
+
+$jsilcore.BytesToUInt16 = function (bytes, offset) {
+  return bytes[offset] + (bytes[offset + 1] * 256);
+};
+
+$jsilcore.BytesToUInt32 = function (bytes, offset) {
+  return bytes[offset] + 
+    (bytes[offset + 1] * 256) + 
+    (bytes[offset + 2] * 65536) + 
+    (bytes[offset + 3] * 16777216);
+};
+
+$jsilcore.BytesToUInt64 = function (bytes, offset) {
+  // FIXME: Generate warnings for values out of 53-bit range.
+  return bytes[offset] + 
+    (bytes[offset + 1] << 8) + 
+    (bytes[offset + 2] << 16) + 
+    (bytes[offset + 3] << 24) + 
+    (bytes[offset + 4] << 32) + 
+    (bytes[offset + 5] << 40) + 
+    (bytes[offset + 6] << 48) + 
+    (bytes[offset + 7] << 56);
 };
 
 JSIL.ImplementExternals("System.BitConverter", function ($) {
@@ -5806,13 +5861,6 @@ JSIL.ImplementExternals("System.BitConverter", function ($) {
     }
   );
 
-  $.Method({Static:true , Public:true }, "ToBoolean", 
-    (new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32], [])), 
-    function ToBoolean (value, startIndex) {
-      throw new Error('Not implemented');
-    }
-  );
-
   $.Method({Static:true , Public:true }, "ToChar", 
     (new JSIL.MethodSignature($.Char, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32], [])), 
     function ToChar (value, startIndex) {
@@ -5826,27 +5874,29 @@ JSIL.ImplementExternals("System.BitConverter", function ($) {
       throw new Error('Not implemented');
     }
   );
+  */
+
+  $.Method({Static:true , Public:true }, "ToBoolean", 
+    (new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32], [])), 
+    $jsilcore.BytesToBoolean
+  );
 
   $.Method({Static:true , Public:true }, "ToInt16", 
     (new JSIL.MethodSignature($.Int16, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32], [])), 
-    function ToInt16 (value, startIndex) {
-      throw new Error('Not implemented');
-    }
+    $jsilcore.BytesToInt16
   );
 
   $.Method({Static:true , Public:true }, "ToInt32", 
     (new JSIL.MethodSignature($.Int32, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32], [])), 
-    function ToInt32 (value, startIndex) {
-      throw new Error('Not implemented');
-    }
+    $jsilcore.BytesToInt32
   );
 
   $.Method({Static:true , Public:true }, "ToInt64", 
     (new JSIL.MethodSignature($.Int64, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32], [])), 
-    function ToInt64 (value, startIndex) {
-      throw new Error('Not implemented');
-    }
+    $jsilcore.BytesToInt64
   );
+
+  /*
 
   $.Method({Static:true , Public:true }, "ToSingle", 
     (new JSIL.MethodSignature($.Single, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32], [])), 
@@ -5879,28 +5929,22 @@ JSIL.ImplementExternals("System.BitConverter", function ($) {
     }
   );
 
+  */
+
   $.Method({Static:true , Public:true }, "ToUInt16", 
     (new JSIL.MethodSignature($.UInt16, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32], [])), 
-    function ToUInt16 (value, startIndex) {
-      throw new Error('Not implemented');
-    }
+    $jsilcore.BytesToUInt16
   );
 
   $.Method({Static:true , Public:true }, "ToUInt32", 
     (new JSIL.MethodSignature($.UInt32, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32], [])), 
-    function ToUInt32 (value, startIndex) {
-      throw new Error('Not implemented');
-    }
+    $jsilcore.BytesToUInt32
   );
 
   $.Method({Static:true , Public:true }, "ToUInt64", 
     (new JSIL.MethodSignature($.UInt64, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32], [])), 
-    function ToUInt64 (value, startIndex) {
-      throw new Error('Not implemented');
-    }
+    $jsilcore.BytesToUInt64
   );
-
-  */
 
 });
 

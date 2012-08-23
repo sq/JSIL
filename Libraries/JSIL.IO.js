@@ -822,7 +822,7 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
   $.Method({Static:false, Public:true }, "ReadBoolean", 
     (new JSIL.MethodSignature($.Boolean, [], [])), 
     function ReadBoolean () {
-      return this.m_stream.ReadByte() != 0;
+      return $jsilcore.BytesToBoolean(this.$readBytesTemp(1), 0);
     }
   );
 
@@ -832,6 +832,15 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
       return this.m_stream.ReadByte();
     }
   );
+
+  $.RawMethod(false, "$readBytesTemp", function (count) {
+    if (!this.m_tempBuffer)
+      this.m_tempBuffer = new Array();
+
+    var bytesRead = this.m_stream.Read(this.m_tempBuffer, 0, count);
+    this.m_tempBuffer.length = bytesRead;
+    return this.m_tempBuffer;
+  });
 
   $.Method({Static:false, Public:true }, "ReadBytes", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [$.Int32], [])), 
@@ -924,35 +933,21 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
   $.Method({Static:false, Public:true }, "ReadInt16", 
     (new JSIL.MethodSignature($.Int16, [], [])), 
     function ReadInt16 () {
-      var value = this.ReadUInt16();
-      if (value > 32767)
-        return value - 65536;
-      else
-        return value;
+      return $jsilcore.BytesToInt16(this.$readBytesTemp(2), 0);
     }
   );
 
   $.Method({Static:false, Public:true }, "ReadInt32", 
     (new JSIL.MethodSignature($.Int32, [], [])), 
     function ReadInt32 () {
-      var value = this.ReadUInt32();
-      if (value > 2147483647)
-        return value - 4294967296;
-      else
-        return value;
+      return $jsilcore.BytesToInt32(this.$readBytesTemp(4), 0);
     }
   );
 
   $.Method({Static:false, Public:true }, "ReadInt64", 
     (new JSIL.MethodSignature($.Int64, [], [])), 
     function ReadInt64 () {
-      // FIXME: Does this work right for negative numbers or does 53-bit rounding kill it?
-      // FIXME: Generate warnings for values out of 53-bit range.
-      var value = this.ReadUInt64();
-      if (value > System.Int64.MaxValue)
-        return value - 18446744073709551616;
-      else
-        return value;
+      return $jsilcore.BytesToInt64(this.$readBytesTemp(8), 0);
     }
   );
 
@@ -990,35 +985,21 @@ JSIL.ImplementExternals("System.IO.BinaryReader", function ($) {
   $.Method({Static:false, Public:true }, "ReadUInt16", 
     (new JSIL.MethodSignature($.UInt16, [], [])), 
     function ReadUInt16 () {
-      var low = this.m_stream.ReadByte();
-      return low + (this.m_stream.ReadByte() * 256);
+      return $jsilcore.BytesToUInt16(this.$readBytesTemp(2), 0);
     }
   );
 
   $.Method({Static:false, Public:true }, "ReadUInt32", 
     (new JSIL.MethodSignature($.UInt32, [], [])), 
     function ReadUInt32 () {
-      var low1 = this.m_stream.ReadByte();
-      var low2 = this.m_stream.ReadByte();
-      var low3 = this.m_stream.ReadByte();
-      var low4 = this.m_stream.ReadByte();
-      return low1 + (low2 * 256) + (low3 * 65536) + (low4 * 16777216);
+      return $jsilcore.BytesToUInt32(this.$readBytesTemp(4), 0);
     }
   );
 
   $.Method({Static:false, Public:true }, "ReadUInt64", 
     (new JSIL.MethodSignature($.UInt64, [], [])), 
     function ReadUInt64 () {
-      // FIXME: Generate warnings for values out of 53-bit range.
-      var low1 = this.m_stream.ReadByte();
-      var low2 = this.m_stream.ReadByte();
-      var low3 = this.m_stream.ReadByte();
-      var low4 = this.m_stream.ReadByte();
-      var low5 = this.m_stream.ReadByte();
-      var low6 = this.m_stream.ReadByte();
-      var low7 = this.m_stream.ReadByte();
-      var low8 = this.m_stream.ReadByte();
-      return low1 | (low2 << 8) | (low3 << 16) | (low4 << 24) | (low5 << 32) | (low6 << 40) | (low7 << 48) | (low8 << 56);
+      return $jsilcore.BytesToUInt64(this.$readBytesTemp(8), 0);
     }
   );
 
