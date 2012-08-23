@@ -5678,3 +5678,200 @@ JSIL.ImplementExternals("System.Convert", function ($) {
 
 JSIL.MakeStaticClass("System.Convert", true, [], function ($) {
 });
+
+$jsilcore.BytesFromBoolean = function GetBytes (value) {
+  return [value ? 1 : 0];
+};
+
+$jsilcore.BytesFromInt16 = function GetBytes (value) {
+  return [
+    (value >> 0) & 0xFF,
+    (value >> 8) & 0xFF
+  ];
+};
+
+$jsilcore.BytesFromInt32 = function GetBytes (value) {
+  return [
+    (value >> 0) & 0xFF,
+    (value >> 8) & 0xFF,
+    (value >> 16) & 0xFF,
+    (value >> 24) & 0xFF
+  ];
+};
+
+$jsilcore.BytesFromInt64 = function GetBytes (value) {
+  return [
+    (value >> 0) & 0xFF,
+    (value >> 8) & 0xFF,
+    (value >> 16) & 0xFF,
+    (value >> 24) & 0xFF,
+    (value >> 32) & 0xFF,
+    (value >> 40) & 0xFF,
+    (value >> 48) & 0xFF,
+    (value >> 56) & 0xFF
+  ];
+};
+
+JSIL.ImplementExternals("System.BitConverter", function ($) {
+
+
+  $.Method({Static:true , Public:true }, "GetBytes", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [$.Boolean], [])), 
+    $jsilcore.BytesFromBoolean
+  );
+
+  $.Method({Static:true , Public:true }, "GetBytes", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [$.Int16], [])), 
+    $jsilcore.BytesFromInt16
+  );
+
+  $.Method({Static:true , Public:true }, "GetBytes", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [$.Int32], [])), 
+    $jsilcore.BytesFromInt32
+  );
+
+  $.Method({Static:true , Public:true }, "GetBytes", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [$.Int64], [])), 
+    $jsilcore.BytesFromInt64
+  );
+
+  /*
+  $.Method({Static:true , Public:true }, "GetBytes", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [$.UInt16], [])), 
+    $jsilcore.BytesFromUInt16
+  );
+
+  $.Method({Static:true , Public:true }, "GetBytes", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [$.UInt32], [])), 
+    $jsilcore.BytesFromUInt32
+  );
+
+  $.Method({Static:true , Public:true }, "GetBytes", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [$.UInt64], [])), 
+    $jsilcore.BytesFromUInt64
+  );  
+
+  $.Method({Static:true , Public:true }, "GetBytes", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [$.Single], [])), 
+    $jsilcore.BytesFromSingle
+  );
+
+  $.Method({Static:true , Public:true }, "GetBytes", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Array", [$.Byte]), [$.Double], [])), 
+    $jsilcore.BytesFromDouble
+  );
+
+  $.Method({Static:true , Public:false}, "GetHexValue", 
+    (new JSIL.MethodSignature($.Char, [$.Int32], [])), 
+    function GetHexValue (i) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "Int64BitsToDouble", 
+    (new JSIL.MethodSignature($.Double, [$.Int64], [])), 
+    function Int64BitsToDouble (value) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToBoolean", 
+    (new JSIL.MethodSignature($.Boolean, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32], [])), 
+    function ToBoolean (value, startIndex) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToChar", 
+    (new JSIL.MethodSignature($.Char, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32], [])), 
+    function ToChar (value, startIndex) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToDouble", 
+    (new JSIL.MethodSignature($.Double, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32], [])), 
+    function ToDouble (value, startIndex) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToInt16", 
+    (new JSIL.MethodSignature($.Int16, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32], [])), 
+    function ToInt16 (value, startIndex) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToInt32", 
+    (new JSIL.MethodSignature($.Int32, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32], [])), 
+    function ToInt32 (value, startIndex) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToInt64", 
+    (new JSIL.MethodSignature($.Int64, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32], [])), 
+    function ToInt64 (value, startIndex) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToSingle", 
+    (new JSIL.MethodSignature($.Single, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32], [])), 
+    function ToSingle (value, startIndex) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToString", 
+    (new JSIL.MethodSignature($.String, [
+          $jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32, 
+          $.Int32
+        ], [])), 
+    function ToString (value, startIndex, length) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToString", 
+    (new JSIL.MethodSignature($.String, [$jsilcore.TypeRef("System.Array", [$.Byte])], [])), 
+    function ToString (value) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToString", 
+    (new JSIL.MethodSignature($.String, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32], [])), 
+    function ToString (value, startIndex) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToUInt16", 
+    (new JSIL.MethodSignature($.UInt16, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32], [])), 
+    function ToUInt16 (value, startIndex) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToUInt32", 
+    (new JSIL.MethodSignature($.UInt32, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32], [])), 
+    function ToUInt32 (value, startIndex) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "ToUInt64", 
+    (new JSIL.MethodSignature($.UInt64, [$jsilcore.TypeRef("System.Array", [$.Byte]), $.Int32], [])), 
+    function ToUInt64 (value, startIndex) {
+      throw new Error('Not implemented');
+    }
+  );
+
+  */
+
+});
+
+JSIL.MakeStaticClass("System.BitConverter", true, [], function ($) {
+});

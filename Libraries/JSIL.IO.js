@@ -618,7 +618,7 @@ JSIL.ImplementExternals("System.IO.BinaryWriter", function ($) {
   $.Method({Static:false, Public:true }, "Write", 
     (new JSIL.MethodSignature(null, [$.Boolean], [])), 
     function Write (value) {
-      this.$writeBytes([value ? 1 : 0]);
+      this.$writeBytes($jsilcore.BytesFromBoolean(value));
     }
   );
 
@@ -692,10 +692,7 @@ JSIL.ImplementExternals("System.IO.BinaryWriter", function ($) {
   $.Method({Static:false, Public:true }, "Write", 
     (new JSIL.MethodSignature(null, [$.Int16], [])), 
     function Write (value) {
-      var buffer = new Array(2);
-      buffer[0] = (value >> 0) & 0xFF;
-      buffer[1] = (value >> 8) & 0xFF;
-      this.$writeBytes(buffer);
+      this.$writeBytes($jsilcore.BytesFromInt16(value));
     }
   );
 
@@ -709,12 +706,7 @@ JSIL.ImplementExternals("System.IO.BinaryWriter", function ($) {
   $.Method({Static:false, Public:true }, "Write", 
     (new JSIL.MethodSignature(null, [$.Int32], [])), 
     function Write (value) {
-      var buffer = new Array(4);
-      buffer[0] = (value >> 0) & 0xFF;
-      buffer[1] = (value >> 8) & 0xFF;
-      buffer[2] = (value >> 16) & 0xFF;
-      buffer[3] = (value >> 24) & 0xFF;
-      this.$writeBytes(buffer);
+      this.$writeBytes($jsilcore.BytesFromInt32(value));
     }
   );
 
@@ -728,16 +720,7 @@ JSIL.ImplementExternals("System.IO.BinaryWriter", function ($) {
   $.Method({Static:false, Public:true }, "Write", 
     (new JSIL.MethodSignature(null, [$.Int64], [])), 
     function Write (value) {
-      var buffer = new Array(8);
-      buffer[0] = (value >> 0) & 0xFF;
-      buffer[1] = (value >> 8) & 0xFF;
-      buffer[2] = (value >> 16) & 0xFF;
-      buffer[3] = (value >> 24) & 0xFF;
-      buffer[4] = (value >> 32) & 0xFF;
-      buffer[5] = (value >> 40) & 0xFF;
-      buffer[6] = (value >> 48) & 0xFF;
-      buffer[7] = (value >> 56) & 0xFF;
-      this.$writeBytes(buffer);
+      this.$writeBytes($jsilcore.BytesFromInt64(value));
     }
   );
 
