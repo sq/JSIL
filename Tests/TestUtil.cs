@@ -302,17 +302,23 @@ namespace JSIL.Tests {
         }
 
         protected MethodInfo GetTestMethod () {
-            var program = Assembly.GetType("Program");
-            if (program == null)
-                throw new Exception("Test missing 'Program' main class");
+            var entryPoint = Assembly.EntryPoint;
+            
+            if (entryPoint == null) {
+                var program = Assembly.GetType("Program");
+                if (program == null)
+                    throw new Exception("Test missing 'Program' main class");
 
-            var testMethod = program.GetMethod("Main");
-            if (testMethod == null)
-                throw new Exception("Test missing 'Main' method of 'Program' main class");
+                var testMethod = program.GetMethod("Main");
+                if (testMethod == null)
+                    throw new Exception("Test missing 'Main' method of 'Program' main class");
 
-            MainAcceptsArguments = testMethod.GetParameters().Length > 0;
+                entryPoint = testMethod;
+            }
 
-            return testMethod;
+            MainAcceptsArguments = entryPoint.GetParameters().Length > 0;
+
+            return entryPoint;
         }
 
         public string RunCSharp (string[] args, out long elapsed) {
