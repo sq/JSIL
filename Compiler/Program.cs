@@ -319,11 +319,17 @@ namespace JSIL.Compiler {
                     }
                 }
 
-                if (buildResult.OutputFiles.Length > 0) {
+                var outputFiles = buildResult.OutputFiles.Concat(
+                    (from eo in config.SolutionBuilder.ExtraOutputs
+                     let expanded = localVariables.ExpandPath(eo, true)
+                     select expanded)
+                ).ToArray();
+
+                if (outputFiles.Length > 0) {
                     buildGroups.Add(new BuildGroup {
                         BaseConfiguration = config,
                         BaseVariables = localVariables,
-                        FilesToBuild = buildResult.OutputFiles,
+                        FilesToBuild = outputFiles,
                         Profile = profile,
                     });
                 }

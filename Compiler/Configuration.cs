@@ -13,6 +13,8 @@ namespace JSIL.Compiler {
             public string Target;
             public string LogVerbosity;
 
+            public readonly List<string> ExtraOutputs = new List<string>();
+
             public void MergeInto (SolutionBuildConfiguration result) {
                 if (Configuration != null)
                     result.Configuration = Configuration;
@@ -25,6 +27,8 @@ namespace JSIL.Compiler {
 
                 if (LogVerbosity != null)
                     result.LogVerbosity = LogVerbosity;
+
+                result.ExtraOutputs.AddRange(ExtraOutputs);
             }
         }
 
