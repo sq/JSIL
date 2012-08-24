@@ -215,6 +215,7 @@
     <None Include="SimpleTestCases\Type.cs" />
     <None Include="TestCases\GenericMethodWithSameSignatureAsNonGenericMethod.cs" />
     <None Include="SpecialTestCases\ReplaceMethodBodyAndCallOtherMethod.cs" />
+    <None Include="SimpleTestCases\ParameterNamedThis.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

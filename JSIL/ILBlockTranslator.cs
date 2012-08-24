@@ -89,8 +89,10 @@ namespace JSIL {
                 if ((parameter.Name == "this") && (parameter.OriginalParameter.Index == -1))
                     continue;
 
-                ParameterNames.Add(parameter.Name);
-                Variables.Add(parameter.Name, new JSParameter(parameter.Name, parameter.Type, methodReference));
+                var jsp = new JSParameter(parameter.Name, parameter.Type, methodReference);
+
+                ParameterNames.Add(jsp.Name);
+                Variables.Add(jsp.Name, jsp);
             }
 
             foreach (var variable in allVariables) {
@@ -1345,14 +1347,27 @@ namespace JSIL {
             }
         }
 
-        protected JSExpression Translate_Ldloc (ILExpression node, ILVariable variable) {
-            JSExpression result;
-            JSVariable renamed;
+        protected JSVariable MapVariable (ILVariable variable) {
+            JSVariable renamed, theVariable;
 
-            if (RenamedVariables.TryGetValue(variable, out renamed))
-                result = new JSIndirectVariable(Variables, renamed.Identifier, ThisMethodReference);
-            else
-                result = new JSIndirectVariable(Variables, variable.Name, ThisMethodReference);
+            var escapedName = JSParameter.MaybeEscapeName(variable.Name, true);
+            bool isThis = (variable.OriginalParameter != null) && (variable.OriginalParameter.Index < 0);
+
+            if (RenamedVariables.TryGetValue(variable, out renamed)) {
+                return new JSIndirectVariable(Variables, renamed.Identifier, ThisMethodReference);
+            } else if (
+                !isThis &&
+                Variables.TryGetValue(escapedName, out theVariable)
+            ) {
+                // Handle cases where the variable's identifier must be escaped (like @this)
+                return new JSIndirectVariable(Variables, theVariable.Name, ThisMethodReference);
+            } else {
+                return new JSIndirectVariable(Variables, variable.Name, ThisMethodReference);
+            }
+        }
+
+        protected JSExpression Translate_Ldloc (ILExpression node, ILVariable variable) {
+            JSExpression result = MapVariable(variable);
 
             var expectedType = node.ExpectedType ?? node.InferredType ?? variable.Type;
             if (!TypeUtil.TypesAreAssignable(TypeInfo, expectedType, variable.Type))
@@ -1380,12 +1395,7 @@ namespace JSIL {
             if (!TypeUtil.TypesAreAssignable(TypeInfo, expectedType, value.GetActualType(TypeSystem)))
                 value = Translate_Conv(value, expectedType);
 
-            JSVariable jsv;
-
-            if (RenamedVariables.TryGetValue(variable, out jsv))
-                jsv = new JSIndirectVariable(Variables, jsv.Identifier, ThisMethodReference);
-            else
-                jsv = new JSIndirectVariable(Variables, variable.Name, ThisMethodReference);
+            JSVariable jsv = MapVariable(variable);
 
             if (jsv.IsReference) {
                 JSExpression materializedValue;

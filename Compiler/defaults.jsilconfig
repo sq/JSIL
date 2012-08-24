@@ -4,7 +4,8 @@
     "Stubbed": [
       "mscorlib,",
       "System.*",
-      "Microsoft.*"
+      "Microsoft.*",
+      "FSharp.Core"
     ],
     "Ignored": [
       "Microsoft.VisualC,",

@@ -52,6 +52,22 @@
         ["Script", "EscapeGoat.XmlSerializers, Version=1.0.4.2, Culture=neutral, PublicKeyToken=null.js", { "sizeBytes": 14721 }],
       ];
 
+      // Updated automatically by the editor to suppress a force-start
+      var previousLocationHash = "";
+
+      function checkLevelUrl (game) {
+        var hashText = window.location.hash;
+        if (hashText === previousLocationHash)
+          return;
+
+        previousLocationHash = hashText;
+
+        if (hashText.indexOf("#level=") === 0) {
+          var base64 = hashText.substr(7);
+          game.StartInCustomLevel(base64);
+        }
+      };
+
       function runMain () {
         try {
           document.getElementById("welcomeMessage").setAttribute("style", "display: none");
@@ -69,6 +85,12 @@
         // We can't invoke Main() since it disposes the Game immediately, breaking everything.
         var asm = JSIL.GetAssembly("EscapeGoat", true);
         var game = new asm.MagicalTimeBean.Bastille.BastilleGame();
+
+        var levelUrlChecker = checkLevelUrl.bind(window, game);
+        levelUrlChecker();
+
+        window.setInterval(levelUrlChecker, 100);
+
         game.Run();
       };
     </script>
