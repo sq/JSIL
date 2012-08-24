@@ -364,12 +364,21 @@ JSIL.EscapeName = function (name) {
   var caretRe = /\`/g;
   var ltRe = /\</g;
   var gtRe = /\>/g;
+  var commaRe = /\,/g;
+  var equalsRe = /\=/g;
 
   name = name.replace(JSIL.AngleGroupRegex, function (match, group1) {
     return "$l" + group1.replace(JSIL.UnderscoreRegex, "_") + "$g";
   });
 
-  return name.replace(caretRe, "$$b").replace(JSIL.UnderscoreRegex, "_").replace(ltRe, "$$l").replace(gtRe, "$$g");
+  return (
+    name.replace(caretRe, "$$b")
+      .replace(JSIL.UnderscoreRegex, "_")
+      .replace(ltRe, "$$l")
+      .replace(gtRe, "$$g")
+      .replace(commaRe, "$$cm")
+      .replace(equalsRe, "$$eq")
+  );
 };
 
 JSIL.GetParentName = function (name) {

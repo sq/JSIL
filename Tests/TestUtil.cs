@@ -409,7 +409,9 @@ namespace JSIL.Tests {
             elapsedTranslation = DateTime.UtcNow.Ticks - translationStarted;
 
             var testMethod = GetTestMethod();
-            var declaringType = JSIL.Internal.Util.EscapeIdentifier(testMethod.DeclaringType.FullName, Internal.EscapingMode.TypeIdentifier);
+            var declaringType = JSIL.Internal.Util.EscapeIdentifier(
+                testMethod.DeclaringType.FullName, Internal.EscapingMode.TypeIdentifier
+            );
 
             string argsJson;
 
@@ -434,9 +436,12 @@ namespace JSIL.Tests {
                 @"if (typeof (elapsed) !== 'function') {{ if (typeof (Date) === 'object') elapsed = Date.now; else elapsed = function () {{ return 0; }} }}" +
                 @"timeout({0});" +
                 @"JSIL.Initialize(); var started = elapsed(); " +
-                @"{1}.Main({2}); " +
+                @"JSIL.GetAssembly({1}).{2}.{3}({4}); " +
                 @"var ended = elapsed(); print('// elapsed: ' + (ended - started));",
-                JavascriptExecutionTimeout, declaringType, argsJson
+                JavascriptExecutionTimeout, 
+                Util.EscapeString(testMethod.Module.Assembly.FullName),
+                declaringType, Util.EscapeIdentifier(testMethod.Name), 
+                argsJson
             );
 
             generatedJavascript = translatedJs;

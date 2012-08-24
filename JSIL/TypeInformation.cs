@@ -476,6 +476,7 @@ namespace JSIL.Internal {
             Interfaces = interfaces.ToArray();
 
             _IsIgnored = module.IsIgnored ||
+                IsIgnoredName(type.Namespace, false) || 
                 IsIgnoredName(type.Name, false) ||
                 Metadata.HasAttribute("JSIL.Meta.JSIgnore") ||
                 Metadata.HasAttribute("System.Runtime.CompilerServices.UnsafeValueTypeAttribute") ||
@@ -902,20 +903,14 @@ namespace JSIL.Internal {
         }
 
         public static bool IsIgnoredName (string shortName, bool isField) {
+            bool defaultResult = false;
+
             foreach (Match m2 in IgnoredKeywordRegex.Matches(shortName)) {
                 if (m2.Success) {
                     switch (m2.Value) {
                         case "__BackingField":
                         case "__DisplayClass":
                             return false;
-
-                        case "<PrivateImplementationDetails>":
-                        case "Runtime.CompilerServices.CallSite":
-                        case "<Module>":
-                        case "__SiteContainer":
-                        case "__DynamicSite":
-                            return true;
-
 
                         case "CS$<":
                             if (!isField)
@@ -927,6 +922,10 @@ namespace JSIL.Internal {
                             if (isField)
                                 return true;
 
+                            break;
+
+                        default:
+                            defaultResult = true;
                             break;
                     }
                 }
@@ -947,7 +946,7 @@ namespace JSIL.Internal {
                 }
             }
 
-            return false;
+            return defaultResult;
         }
 
         protected MethodInfo AddMember (MethodDefinition method, PropertyInfo property, ProxyInfo sourceProxy = null) {

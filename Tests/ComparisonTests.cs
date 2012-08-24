@@ -46,6 +46,16 @@ namespace JSIL.Tests {
         }
 
         [Test]
+        [Ignore]
+        public void FSharpExecutable () {
+            // FIXME: Doesn't work yet.
+            var js = GetJavascript(
+                @"BinaryTestCases\ConsoleApplication8.exe"
+            );
+            Console.WriteLine(js);
+        }
+
+        [Test]
         [TestCaseSource("DynamicsSource")]
         public void Dynamics (object[] parameters) {
             RunSingleComparisonTestCase(parameters);
