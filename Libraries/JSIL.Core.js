@@ -1930,13 +1930,15 @@ JSIL.FixupInterfaces = function (publicInterface, typeObject) {
     var members = iface.__Members__;
     var proto = publicInterface.prototype;
 
+    var escapedLocalName = JSIL.EscapeName(ifaceLocalName);
+
     __members__:
     for (var key in members) {
       if (!members.hasOwnProperty(key))
         continue __members__;
 
       var memberType = members[key];
-      var qualifiedName = JSIL.EscapeName(ifaceLocalName + "." + key);
+      var qualifiedName = escapedLocalName + "_" + key;
 
       var hasShort = proto.hasOwnProperty(key);
       var hasQualified = proto.hasOwnProperty(qualifiedName);
