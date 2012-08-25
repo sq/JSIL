@@ -2926,15 +2926,16 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   $.Method({Static:false, Public:false}, "get_IsMouseVisible", 
     (new JSIL.MethodSignature($.Boolean, [], [])), 
     function get_IsMouseVisible () {
-      // FIXME
-      return true;
+      var oc = this.graphicsDeviceService.GraphicsDevice.originalCanvas;
+      return (oc.style.cursor !== "none");
     }
   );
 
   $.Method({Static:false, Public:true }, "set_IsMouseVisible", 
     (new JSIL.MethodSignature(null, [$.Boolean], [])), 
     function set_IsMouseVisible (value) {
-      // FIXME
+      var oc = this.graphicsDeviceService.GraphicsDevice.originalCanvas;
+      oc.style.cursor = value ? "default" : "none";
     }
   );
 
@@ -3793,6 +3794,17 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GraphicsDeviceManager", functio
     Public: true
   }, "set_PreferredBackBufferHeight", new JSIL.MethodSignature(null, [$.Int32], []), function (value) {
     this._height = value;
+  });
+
+  $.Method({
+    Static: false,
+    Public: true
+  }, "ApplyChanges", new JSIL.MethodSignature(null, [], []), function () {
+    var oc = this.device.originalCanvas;
+
+    this.device.originalWidth = oc.width = this._width;
+    this.device.originalHeight = oc.height = this._height;
+
   });
 });
 

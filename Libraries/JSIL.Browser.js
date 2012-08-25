@@ -190,43 +190,6 @@ JSIL.Host.throwException = function (e) {
 };
 
 var $logFps = false;
-var statsElement = document.getElementById("stats");
-
-if (statsElement !== null) {
-  statsElement.innerHTML = '<span title="Frames Per Second"><span id="drawsPerSecond">0</span> f/s</span><br>' +
-    '<span title="Updates Per Second"><span id="updatesPerSecond">0</span> u/s</span><br>' +
-    '<span title="Texture Cache Size" id="cacheSpan"><span id="cacheSize">0.0</span >mb <span id="usingWebGL" style="display: none">(WebGL)</span></span><br>' +
-    '<input type="checkbox" checked="checked" id="balanceFramerate" name="balanceFramerate"> <label for="balanceFramerate">Balance FPS</label>';
-
-  JSIL.Host.reportFps = function (drawsPerSecond, updatesPerSecond, cacheSize, isWebGL) {
-    var e = document.getElementById("drawsPerSecond");
-    e.innerHTML = drawsPerSecond.toString();
-    
-    e = document.getElementById("updatesPerSecond");
-    e.innerHTML = updatesPerSecond.toString();
-
-    var cacheSizeMb = (cacheSize / (1024 * 1024)).toFixed(1);
-    
-    if (isWebGL) {
-      e = document.getElementById("usingWebGL");
-      e.title = "Using WebGL for rendering";
-      e.style.display = "inline-block";
-    }
-
-    e = document.getElementById("cacheSize");
-    e.innerHTML = cacheSizeMb;
-
-    if ($logFps) {
-      console.log(drawsPerSecond + " draws/s, " + updatesPerSecond + " updates/s");
-    }
-  };
-} else {
-  JSIL.Host.reportFps = function () {
-    if ($logFps) {
-      console.log(drawsPerSecond + " draws/s, " + updatesPerSecond + " updates/s");
-    }  
-  };
-}
 
 var allFiles = {};
 var allAssets = {};
@@ -617,6 +580,9 @@ var assetLoaders = {
   },
   "Image": function loadImage (filename, data, onError, onDoneLoading) {
     var e = document.createElement("img");
+    // CORS is so dumb
+    e.crossOrigin = "anonymous";
+
     var finisher = function () {
       $jsilbrowserstate.allAssetNames.push(filename);
       allAssets[getAssetName(filename)] = new HTML5ImageAsset(getAssetName(filename, true), e);
@@ -906,10 +872,10 @@ function finishLoading () {
     if (typeof ($jsilreadonlystorage) !== "undefined") {
       var prefixedFileRoot;
 
-      if (jsilConfig.fileRoot[0] !== "/")
-        prefixedFileRoot = "/" + jsilConfig.fileRoot;
+      if (jsilConfig.fileVirtualRoot[0] !== "/")
+        prefixedFileRoot = "/" + jsilConfig.fileVirtualRoot;
       else
-        prefixedFileRoot = jsilConfig.fileRoot;
+        prefixedFileRoot = jsilConfig.fileVirtualRoot;
 
       $jsilbrowserstate.readOnlyStorage = new ReadOnlyStorageVolume("files", prefixedFileRoot, initFileStorage);
     }
@@ -922,7 +888,7 @@ function finishLoading () {
           var root = volumes[0];
 
           if ($jsilbrowserstate.readOnlyStorage)
-            root.createJunction(jsilConfig.fileRoot, $jsilbrowserstate.readOnlyStorage.rootDirectory, false);
+            root.createJunction(jsilConfig.fileVirtualRoot, $jsilbrowserstate.readOnlyStorage.rootDirectory, false);
 
           return root;
 
@@ -1208,10 +1174,111 @@ var canGoFullscreen = false;
 var integralFullscreenScaling = false;
 var overrideFullscreenBaseSize = null;
 
+function generateHTML () {
+  var body = document.getElementsByTagName("body")[0];
+
+  if (jsilConfig.showFullscreenButton) {
+    if (document.getElementById("fullscreenButton") === null) {
+      var button = document.createElement("button");
+      button.id = "fullscreenButton";
+      button.appendChild(document.createTextNode("Full Screen"));
+      body.appendChild(button);
+    }
+  }
+
+  if (jsilConfig.showStats) {
+    if (document.getElementById("stats") === null) {
+      var statsDiv = document.createElement("div");
+      statsDiv.id = "stats";
+      body.appendChild(statsDiv);
+    }
+  }
+
+  if (jsilConfig.showProgressBar) {
+    var progressDiv = document.getElementById("loadingProgress");
+    if (progressDiv === null) {
+      progressDiv = document.createElement("div");
+      progressDiv.id = "loadingProgress";
+      body.appendChild(progressDiv);
+    }
+    
+    progressDiv.innerHTML = (
+      '  <div id="progressBar"></div>' +
+      '  <span id="progressText"></span>'
+    );        
+  }  
+};
+
+function setupStats () {
+  var statsElement = document.getElementById("stats");
+
+  if (statsElement !== null) {
+    if (jsilConfig.graphicalStats) {
+      statsElement.innerHTML = '<label for="fpsIndicator">Performance: </label><div id="fpsIndicator"></div>';
+    } else {
+      statsElement.innerHTML = '<span title="Frames Per Second"><span id="drawsPerSecond">0</span> f/s</span><br>' +
+        '<span title="Updates Per Second"><span id="updatesPerSecond">0</span> u/s</span><br>' +
+        '<span title="Texture Cache Size" id="cacheSpan"><span id="cacheSize">0.0</span >mb <span id="usingWebGL" style="display: none">(WebGL)</span></span><br>' +
+        '<input type="checkbox" checked="checked" id="balanceFramerate" name="balanceFramerate"> <label for="balanceFramerate">Balance FPS</label>';
+    }
+
+    JSIL.Host.reportFps = function (drawsPerSecond, updatesPerSecond, cacheSize, isWebGL) {
+      if (jsilConfig.graphicalStats) {
+        var e = document.getElementById("fpsIndicator");
+        var color, legend;
+
+        if (drawsPerSecond >= 50) {
+          color = "green";
+          legend = "Great";
+        } else if (drawsPerSecond >= 30) {
+          color = "yellow";
+          legend = "Acceptable";
+        } else {
+          color = "red";
+          legend = "Poor";
+        }
+
+        e.style.backgroundColor = color;
+        e.title = "Performance: " + legend;
+      } else {
+        var e = document.getElementById("drawsPerSecond");
+        e.innerHTML = drawsPerSecond.toString();
+        
+        e = document.getElementById("updatesPerSecond");
+        e.innerHTML = updatesPerSecond.toString();
+
+        var cacheSizeMb = (cacheSize / (1024 * 1024)).toFixed(1);
+        
+        if (isWebGL) {
+          e = document.getElementById("usingWebGL");
+          e.title = "Using WebGL for rendering";
+          e.style.display = "inline-block";
+        }
+
+        e = document.getElementById("cacheSize");
+        e.innerHTML = cacheSizeMb;
+      }
+
+      if ($logFps) {
+        console.log(drawsPerSecond + " draws/s, " + updatesPerSecond + " updates/s");
+      }
+    };
+  } else {
+    JSIL.Host.reportFps = function () {
+      if ($logFps) {
+        console.log(drawsPerSecond + " draws/s, " + updatesPerSecond + " updates/s");
+      }  
+    };
+  }
+};
+
 function onLoad () {
   registerErrorHandler();
 
   initBrowserHooks();  
+
+  generateHTML();
+  setupStats();
 
   var log = document.getElementById("log");
   var loadButton = document.getElementById("loadButton");

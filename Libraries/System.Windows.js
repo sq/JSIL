@@ -287,9 +287,16 @@ JSIL.ImplementExternals("System.Windows.Forms.Screen", function ($) {
   var getBoundsImpl = function () {
     var canvas = JSIL.Host.getCanvas();
 
-    return new System.Drawing.Rectangle(
-      0, 0, canvas.width, canvas.height
-    );
+    if (jsilConfig.getScreenDimensions) {
+      var sd = jsilConfig.getScreenDimensions();
+      return new System.Drawing.Rectangle(
+        0, 0, sd[0], sd[1]
+      );
+    } else {
+      return new System.Drawing.Rectangle(
+        0, 0, canvas.width, canvas.height
+      );
+    }
   };
 
   $.Method({Static:false, Public:true }, "get_Bounds", 
