@@ -6288,6 +6288,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.Texture2D", function (
     function get_Bounds () {
       if (!this._bounds)
         this._bounds = new Microsoft.Xna.Framework.Rectangle(0, 0, this.width, this.height);
+      else
+        this._bounds._ctor(0, 0, this.width, this.height);
 
       return this._bounds;
     }
@@ -7357,7 +7359,11 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameWindow", function ($) {
   $.Method({Static:false, Public:true }, "get_ClientBounds", 
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Rectangle"), [], [])), 
     function get_ClientBounds () {
-      // FIXME
+      var canvas = JSIL.Host.getCanvas();
+      this._clientBounds._ctor(
+        0, 0, canvas.width, canvas.height
+      );
+      
       return this._clientBounds;
     }
   );

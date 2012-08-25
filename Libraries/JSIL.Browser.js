@@ -297,13 +297,6 @@ function initBrowserHooks () {
     var currentWidth = canvas.clientWidth;
     var currentHeight = canvas.clientHeight;
 
-    // clientWidth/clientHeight do not report the effects of css transforms
-    if (canvas.getClientRects) {
-      var rects = canvas.getClientRects();
-      currentWidth = rects[0].width;
-      currentHeight = rects[0].height;
-    }
-
     var x = evt.clientX - canvas.offsetLeft;
     var y = evt.clientY - canvas.offsetTop;
 
@@ -339,13 +332,9 @@ function initBrowserHooks () {
     }, true
   );
 
-  canvas.addEventListener(
+  document.addEventListener(
     "mousemove", function (evt) {
       mapMouseCoords(evt);
-      
-      evt.preventDefault();
-      evt.stopPropagation();
-      return false;
     }, true
   );
 
