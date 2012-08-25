@@ -217,8 +217,8 @@ function releaseKeys (keyCodes) {
 
 function initBrowserHooks () {
   var canvas = document.getElementById("canvas");
-  var originalWidth = canvas.width;
-  var originalHeight = canvas.height;
+  $jsilbrowserstate.nativeWidth = canvas.width;
+  $jsilbrowserstate.nativeHeight = canvas.height;
 
   canvas.draggable = false;
   canvas.unselectable = true;
@@ -294,24 +294,24 @@ function initBrowserHooks () {
   );
 
   var mapMouseCoords = function (evt) {
-      var currentWidth = canvas.clientWidth;
-      var currentHeight = canvas.clientHeight;
+    var currentWidth = canvas.clientWidth;
+    var currentHeight = canvas.clientHeight;
 
-      // clientWidth/clientHeight do not report the effects of css transforms
-      if (canvas.getClientRects) {
-        var rects = canvas.getClientRects();
-        currentWidth = rects[0].width;
-        currentHeight = rects[0].height;
-      }
+    // clientWidth/clientHeight do not report the effects of css transforms
+    if (canvas.getClientRects) {
+      var rects = canvas.getClientRects();
+      currentWidth = rects[0].width;
+      currentHeight = rects[0].height;
+    }
 
-      var x = evt.clientX - canvas.offsetLeft;
-      var y = evt.clientY - canvas.offsetTop;
+    var x = evt.clientX - canvas.offsetLeft;
+    var y = evt.clientY - canvas.offsetTop;
 
-      x = x * originalWidth / currentWidth;
-      y = y * originalHeight / currentHeight;
+    x = x * $jsilbrowserstate.nativeWidth / currentWidth;
+    y = y * $jsilbrowserstate.nativeHeight / currentHeight;
 
-      $jsilbrowserstate.mousePosition[0] = x;
-      $jsilbrowserstate.mousePosition[1] = y;
+    $jsilbrowserstate.mousePosition[0] = x;
+    $jsilbrowserstate.mousePosition[1] = y;
   };
 
   canvas.addEventListener(
@@ -1201,7 +1201,7 @@ function generateHTML () {
       progressDiv.id = "loadingProgress";
       body.appendChild(progressDiv);
     }
-    
+
     progressDiv.innerHTML = (
       '  <div id="progressBar"></div>' +
       '  <span id="progressText"></span>'

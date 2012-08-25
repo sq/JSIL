@@ -3802,9 +3802,8 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GraphicsDeviceManager", functio
   }, "ApplyChanges", new JSIL.MethodSignature(null, [], []), function () {
     var oc = this.device.originalCanvas;
 
-    this.device.originalWidth = oc.width = this._width;
-    this.device.originalHeight = oc.height = this._height;
-
+    $jsilbrowserstate.nativeWidth = this.device.originalWidth = oc.width = this._width;
+    $jsilbrowserstate.nativeHeight = this.device.originalHeight = oc.height = this._height;
   });
 });
 
