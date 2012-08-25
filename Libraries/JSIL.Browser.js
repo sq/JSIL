@@ -35,25 +35,41 @@ JSIL.Host.createCanvas = function (desiredWidth, desiredHeight) {
   return e;
 };
 JSIL.Host.logWrite = function (text) {
+  var log = document.getElementById("log");
+  if (log === null) {
+    if (window.console && window.console.log)
+      window.console.log(text);
+    
+    return;
+  }
+
   if (currentLogLine === null) {
     currentLogLine = document.createTextNode(text);
-    document.getElementById("log").appendChild(currentLogLine);
+    log.appendChild(currentLogLine);
   } else {
     currentLogLine.textContent += text;
   }
 };
 JSIL.Host.logWriteLine = function (text) {
+  var log = document.getElementById("log");
+  if (log === null) {
+    if (window.console && window.console.log)
+      window.console.log(text);
+    
+    return;
+  }
+
   var lines = text.split("\n");
   for (var i = 0, l = lines.length; i < l; i++) {
     var line = lines[i];
     if (currentLogLine === null) {
       var logLine = document.createTextNode(line);
-      document.getElementById("log").appendChild(logLine);
+      log.appendChild(logLine);
     } else {
       currentLogLine.textContent += line;
       currentLogLine = null;
     }
-    document.getElementById("log").appendChild(document.createElement("br"));
+    log.appendChild(document.createElement("br"));
   }
 };
 JSIL.Host.translateFilename = function (filename) {
