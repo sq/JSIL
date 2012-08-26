@@ -415,7 +415,13 @@ function loadTextAsync (uri, onComplete) {
   }
 
   var state = [false];
-  req.open('GET', uri, true);
+  try {
+    req.open('GET', uri, true);
+  } catch (exc) {
+    state[0] = true;
+    onComplete(null, exc);
+    return;
+  }
 
   if (typeof (req.overrideMimeType) !== "undefined") {
     req.overrideMimeType('text/plain; charset=x-user-defined');
@@ -488,7 +494,13 @@ function loadBinaryFileAsync (uri, onComplete) {
           
   var postProcessResult = postProcessResultNormal;
   
-  req.open('GET', uri, true);
+  try {
+    req.open('GET', uri, true);
+  } catch (exc) {
+    state[0] = true;
+    onComplete(null, exc);
+    return;
+  }
 
   if (typeof (ArrayBuffer) === "function") {
     req.responseType = 'arraybuffer';
@@ -561,10 +573,15 @@ var assetLoaders = {
         });
       };
 
+      // This is wrong, but failures from browsers without CORS are pretty cryptic.
+      onDoneLoading(finisher);
+
+      /*
       if (result !== null)
         onDoneLoading(finisher);
       else
         onError(error);
+      */
     });
   },
   "Script": function loadScript (filename, data, onError, onDoneLoading, state) {
@@ -577,10 +594,15 @@ var assetLoaders = {
         });
       };
 
+      // This is wrong, but failures from browsers without CORS are pretty cryptic.
+      onDoneLoading(finisher);
+
+      /*
       if (result !== null)
         onDoneLoading(finisher);
       else
         onError(error);
+      */
     });
   },
   "Image": function loadImage (filename, data, onError, onDoneLoading) {
