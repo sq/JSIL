@@ -493,7 +493,7 @@ function loadBinaryFileAsync (uri, onComplete) {
   }
           
   var postProcessResult = postProcessResultNormal;
-  
+
   try {
     req.open('GET', uri, true);
   } catch (exc) {
@@ -694,8 +694,12 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
   var startedLoadingWhen = Date.now();
 
   var e = document.createElement("audio");
-  e.setAttribute("autobuffer", true);
-  e.setAttribute("preload", "auto");
+  if (data.stream) {
+    e.setAttribute("preload", "metadata");
+  } else {
+    e.setAttribute("autobuffer", true);
+    e.setAttribute("preload", "auto");
+  }
   
   var state = { 
     loaded: false
@@ -794,12 +798,12 @@ var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
     e.appendChild(source);
   }
   
-  // Events on <audio> elements are inconsistent at best across browsers, so we poll instead. :/    
-
   if (typeof (e.load) === "function")
     e.load();
 
-  if (data.stream) {
+  // Load events for <audio> are so broken and inconsistent that they might as well not exist.
+  // Just treat the sound as if it's loaded.
+  if (true) {
     state.loaded = true;
     onDoneLoading(finisher);
   } else {

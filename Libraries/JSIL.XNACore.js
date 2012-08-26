@@ -568,11 +568,13 @@ JSIL.MakeClass("SoundAssetBase", "HTML5SoundAsset", true, [], function ($) {
 
     result.play = function () {
       result.isPlaying = true;
-      node.play();
+      if (node && node.play)
+        node.play();
     };
     result.pause = function () {
       result.isPlaying = false;
-      node.pause();
+      if (node && node.pause)
+        node.pause();
     };
 
     Object.defineProperty(result, "volume", {
