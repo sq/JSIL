@@ -14,6 +14,7 @@ using JSIL.Compiler;
 using JSIL.Utilities;
 using Microsoft.Build.Evaluation;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using EncoderParameter = System.Drawing.Imaging.EncoderParameter;
 using PixelFormat = System.Drawing.Imaging.PixelFormat;
@@ -838,49 +839,12 @@ public static class Common {
             };
 
             Action<ProjectItem> copyRawFile =
-            (item) => {
-                var sourcePath = Path.Combine(
-                    contentProjectDirectory,
-                    item.EvaluatedInclude
-                );
-                var outputPath = FixupOutputDirectory(
-                    localOutputDirectory,
-                    item.EvaluatedInclude
-                );
-
-                Common.EnsureDirectoryExists(
-                    Path.GetDirectoryName(outputPath));
-
-                try {
-                    CopyFile(sourcePath, outputPath, true);
-                    logOutput("File", outputPath, null);
-                } catch (Exception exc) {
-                    Console.Error.WriteLine("// Could not copy '{0}'! Error: {1}", item.EvaluatedInclude, exc.Message);
-                }
-            };
+            (item) =>
+                CopyRawFile(localOutputDirectory, logOutput, item, contentProjectDirectory);
 
             Action<ProjectItem, string, string> copyRawXnb =
-            (item, xnbPath, type) => {
-                if (xnbPath == null)
-                    throw new FileNotFoundException("Asset " + item.EvaluatedInclude + " was not built.");
-
-                var outputPath = FixupOutputDirectory(
-                    localOutputDirectory,
-                    item.EvaluatedInclude.Replace(
-                        Path.GetExtension(item.EvaluatedInclude),
-                        ".xnb")
-                    );
-
-                Common.EnsureDirectoryExists(
-                    Path.GetDirectoryName(outputPath));
-
-                try {
-                    CopyFile(xnbPath, outputPath, true);
-                    logOutput(type, outputPath, null);
-                } catch (Exception exc) {
-                    Console.Error.WriteLine("// Could not copy '{0}'! Error: {1}", item.EvaluatedInclude, exc.Message);
-                }
-            };
+            (item, xnbPath, type) =>
+                CopyXNB(logOutput, type, localOutputDirectory, xnbPath, item);
 
             foreach (var item in project.Items) {
                 switch (item.ItemType) {
@@ -1024,6 +988,101 @@ public static class Common {
 
         if (contentProjects.Length > 0)
             Console.Error.WriteLine("// Done processing content.");
+    }
+
+    private static void CopyRawFile (
+        string localOutputDirectory, Action<string, string, Dictionary<string, object>> logOutput, ProjectItem item,                                    
+        string contentProjectDirectory
+    ) {
+        var sourcePath = Path.Combine(
+            contentProjectDirectory,
+            item.EvaluatedInclude
+            );
+        var outputPath = FixupOutputDirectory(
+            localOutputDirectory,
+            item.EvaluatedInclude
+            );
+
+        Common.EnsureDirectoryExists(
+            Path.GetDirectoryName(outputPath));
+
+        try {
+            CopyFile(sourcePath, outputPath, true);
+            logOutput("File", outputPath, null);
+        } catch (Exception exc) {
+            Console.Error.WriteLine("// Could not copy '{0}'! Error: {1}", item.EvaluatedInclude, exc.Message);
+        }
+    }
+
+    private static void DecompressXNB (string sourcePath, string destinationPath) {
+        Console.Error.Write("// Decompressing {0}... ", Path.GetFileName(sourcePath));
+
+        var assetBytes = File.ReadAllBytes(sourcePath);
+
+        // Decompress the contents of the asset.
+        var decompressedSize = BitConverter.ToInt32(assetBytes, 10);
+        var tDecompressStream = typeof(ContentReader).Assembly.GetType("Microsoft.Xna.Framework.Content.DecompressStream", true);
+
+        var baseStream = new MemoryStream(assetBytes, 14, assetBytes.Length - 14, false);
+        var decompressor = (Stream)Activator.CreateInstance(
+            tDecompressStream, (Stream)baseStream, (int)baseStream.Length, (int)decompressedSize
+        );
+
+        var resultBytesStream = new MemoryStream();
+        var resultBytesWriter = new BinaryWriter(resultBytesStream);
+        resultBytesWriter.Write(assetBytes, 0, 5);
+        resultBytesWriter.Write((byte)(assetBytes[5] & ~0x80));
+        resultBytesWriter.Write(decompressedSize + 10);
+        var buf = new byte[decompressedSize];
+
+        int bytesToDecompress = buf.Length, bytesDecompressed = 0, decompressOffset = 0;
+
+        while ((bytesDecompressed = decompressor.Read(buf, decompressOffset, bytesToDecompress)) > 0) {
+            decompressOffset += bytesDecompressed;
+            bytesToDecompress -= bytesDecompressed;
+        }
+
+        resultBytesWriter.Write(buf, 0, buf.Length);
+        resultBytesWriter.Flush();
+        using (var stream = File.Open(destinationPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None)) {
+            stream.SetLength(resultBytesStream.Length);
+            stream.Seek(0, SeekOrigin.Begin);
+            stream.Write(resultBytesStream.GetBuffer(), 0, (int)resultBytesStream.Length);
+        }
+
+        Console.Error.WriteLine("done.");
+    }
+
+    private static void CopyXNB (Action<string, string, Dictionary<string, object>> logOutput, string type, string localOutputDirectory, string xnbPath, ProjectItem item) {
+        if (xnbPath == null)
+            throw new FileNotFoundException("Asset " + item.EvaluatedInclude + " was not built.");
+
+        bool isCompressed = false;
+        using (var stream = File.OpenRead(xnbPath)) {
+            var bytes = new byte[6];
+            stream.Read(bytes, 0, bytes.Length);
+            isCompressed = (bytes[5] & 0x80) == 0x80;
+        }
+
+        var outputPath = FixupOutputDirectory(
+            localOutputDirectory,
+            item.EvaluatedInclude.Replace(
+                Path.GetExtension(item.EvaluatedInclude),
+                ".xnb")
+            );
+
+        Common.EnsureDirectoryExists(
+            Path.GetDirectoryName(outputPath));
+
+        try {
+            if (isCompressed)
+                DecompressXNB(xnbPath, outputPath);
+            else
+                CopyFile(xnbPath, outputPath, true);
+            logOutput(type, outputPath, null);
+        } catch (Exception exc) {
+            Console.Error.WriteLine("// Could not copy '{0}'! Error: {1}", item.EvaluatedInclude, exc.Message);
+        }
     }
 
     private static IEnumerable<CompressResult> CompressAudioGroup(
