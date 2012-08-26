@@ -56,6 +56,12 @@ function doXHR (uri, asBinary, onComplete) {
     onComplete(null, error);
   };
 
+  try {
+    req.open('GET', uri, true);
+  } catch (exc) {
+    failed(exc);
+  }
+
   if (asBinary) {
     if (typeof (ArrayBuffer) === "function") {
       req.responseType = 'arraybuffer';
@@ -102,7 +108,6 @@ function doXHR (uri, asBinary, onComplete) {
   };
 
   try {
-    req.open('GET', uri, true);
     req.send();
   } catch (exc) {
     failed(exc);

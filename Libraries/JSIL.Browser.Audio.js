@@ -65,7 +65,7 @@ Object.defineProperty(JSIL.Audio.InstancePrototype, "isPlaying", {
 
 
 JSIL.Audio.HTML5Instance = function (audioInfo, node, loopCount) {
-  this.isPlaying = false;
+  this._isPlaying = false;
   this.loopCount = loopCount;
   this.node = node;
 
@@ -213,7 +213,7 @@ function loadStreamingSound (audioInfo, filename, data, onError, onDoneLoading) 
     return handleError("No supported formats for '" + filename + "'.");
 
   var createInstance = function createStreamingSoundInstance (loopCount) {
-    var e = document.createElement("audio");
+    var e = audioInfo.makeAudioInstance();
     e.setAttribute("preload", "metadata");
     e.src = uri;
 
@@ -261,10 +261,9 @@ function loadBufferedHTML5Sound (audioInfo, filename, data, onError, onDoneLoadi
         return handleError("Failed to buffer sound into blob");
 
       var objectUrl = window.URL.createObjectURL(blob);
-      JSIL.Host.logWriteLine(objectUrl);
 
       var createInstance = function createStreamingSoundInstance (loopCount) {
-        var e = document.createElement("audio");
+        var e = audioInfo.makeAudioInstance();
         e.setAttribute("preload", "auto");
         e.setAttribute("autobuffer", "true");
         e.src = objectUrl;
@@ -297,7 +296,7 @@ function loadHTML5Sound (audioInfo, filename, data, onError, onDoneLoading) {
     return handleError("No supported formats for '" + filename + "'.");
 
   var createInstance = function createStreamingSoundInstance (loopCount) {
-    var e = document.createElement("audio");
+    var e = audioInfo.makeAudioInstance();
     e.setAttribute("preload", "auto");
     e.setAttribute("autobuffer", "true");
     e.src = uri;
@@ -340,7 +339,7 @@ function initSoundLoader () {
     blobBuilder: blobBuilder,
     hasBlobCtor: false,
     audioContext: null,
-    testAudioInstance: new Audio(),
+    testAudioInstance: null,
     disableSound: window.location.search.indexOf("noSound") >= 0
   };
 
@@ -348,6 +347,19 @@ function initSoundLoader () {
     var blob = new Blob();
     audioInfo.hasBlobCtor = Boolean(blob);
   } catch (exc) {
+  }
+
+  try {
+    audioInfo.testAudioInstance = document.createElement("audio");
+    if (typeof (audioInfo.testAudioInstance.play) === "function") {
+      audioInfo.makeAudioInstance = function () {
+        return document.createElement("audio");
+      };
+    } else {
+      audioInfo.disableSound = true;
+    }
+  } catch (exc) {
+    audioInfo.disableSound = true;
   }
 
   audioInfo.getMimeType = function (extension, mimeType) {
@@ -367,7 +379,15 @@ function initSoundLoader () {
   }
 
   audioInfo.canPlayType = function (mimeType) {
-    var canPlay = this.testAudioInstance.canPlayType(mimeType);
+    var canPlay = "";
+
+    if (this.testAudioInstance.canPlayType) {
+      canPlay = this.testAudioInstance.canPlayType(mimeType);
+    } else {
+      // Goddamn Safari :|
+      canPlay = (mimeType == "audio/mpeg") ? "maybe" : "";
+    }
+
     return (canPlay !== "");
   };
 
@@ -400,4 +420,8 @@ function initSoundLoader () {
     audioInfo.audioContext = new audioContextCtor();  
 
   assetLoaders["Sound"] = loadSoundGeneric.bind(null, audioInfo);
+
+  if (audioInfo.disableSound) {
+    JSIL.Host.logWriteLine("WARNING: Your browser has insufficient support for playing audio. Sound is disabled.");
+  }
 };
