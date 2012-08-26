@@ -42,6 +42,8 @@ contentManifest["JSIL"] = [
   loadScript(libraryRoot + "JSIL.Core.js");
   loadScript(libraryRoot + "JSIL.Bootstrap.js");  
   loadScript(libraryRoot + "JSIL.Browser.js");
+  loadScript(libraryRoot + "JSIL.Browser.Audio.js");
+  loadScript(libraryRoot + "JSIL.Browser.Loaders.js");
 
   if (config.testFixture || (document.location.search.indexOf("testFixture") >= 0)) {
     loadScript(libraryRoot + "JSIL.TestFixture.js");

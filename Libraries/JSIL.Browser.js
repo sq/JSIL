@@ -242,16 +242,21 @@ function initBrowserHooks () {
   // Be a good browser citizen!
   // Disabling commonly used hotkeys makes people rage.
   var shouldIgnoreEvent = function (evt) {
+    if ($jsilbrowserstate.blockKeyboardInput)
+      return true;
+
     if ((document.activeElement !== null)) {
       switch (document.activeElement.tagName.toLowerCase()) {
-        case "canvas":
-        case "body":
-        case "document":
-        case "button":
-        case "span":
-          break;
-        default:
+        case "form":
+        case "select":
+        case "input":
+        case "datalist":
+        case "option":
+        case "textarea":
           return true;
+        
+        default:
+          return false;
       }
     }
 
@@ -392,464 +397,12 @@ function getAssetName (filename, preserveCase) {
     return result.toLowerCase();
 };
 
-JSIL.loadGlobalScript = function (uri, onComplete) {
-  var anchor = document.createElement("a");
-  anchor.href = uri;
-  var absoluteUri = anchor.href;
-
-  var body = document.getElementsByTagName("body")[0];
-
-  var scriptTag = document.createElement("script");
-  scriptTag.addEventListener("load", onComplete, true);
-  scriptTag.type = "text/javascript";
-  scriptTag.src = absoluteUri;
-  body.appendChild(scriptTag);
-};
-
-function loadTextAsync (uri, onComplete) {
-  var req;
-  if ((location.protocol === "file:") && (typeof (ActiveXObject) !== "undefined")) {
-    req = new ActiveXObject("MSXML2.XMLHTTP");
-  } else {
-    req = new XMLHttpRequest();
-  }
-
-  var state = [false];
-  try {
-    req.open('GET', uri, true);
-  } catch (exc) {
-    state[0] = true;
-    onComplete(null, exc);
-    return;
-  }
-
-  if (typeof (req.overrideMimeType) !== "undefined") {
-    req.overrideMimeType('text/plain; charset=x-user-defined');
-  }
-
-  req.onreadystatechange = function (evt) {
-    if (req.readyState != 4)
-      return;
-
-    if (state[0])
-      return;
-  
-    state[0] = true;
-
-    if (req.status <= 299) {
-      onComplete(req.responseText, null);
-    } else {
-      onComplete(null, { statusText: req.statusText, status: req.status });
-      return;
-    }
-  };
-  
-  try {
-    req.send(null);
-  } catch (exc) {
-    state[0] = true;
-    onComplete(null, exc);
-  }
-};
-
-function postProcessResultNormal (bytes) {
-  return bytes;
-};
-
-var warnedAboutOpera = false;
-
-function postProcessResultOpera (bytes) {
-  // Opera sniffs content types on request bodies and if they're text, converts them to 16-bit unicode :|
-
-  if (
-    (bytes[1] === 0) &&
-    (bytes[3] === 0) &&
-    (bytes[5] === 0) &&
-    (bytes[7] === 0)
-  ) {
-    if (!warnedAboutOpera) {
-      JSIL.Host.logWriteLine("Your version of Opera has a bug that corrupts downloaded file data. Please update to a new version or try a better browser.");
-      warnedAboutOpera = true;
-    }
-
-    var resultBytes = new Array(bytes.length / 2);
-    for (var i = 0, j = 0, l = bytes.length; i < l; i += 2, j += 1) {
-      resultBytes[j] = bytes[i];
-    }
-
-    return resultBytes;
-  } else {
-    return bytes;
-  }
-};
-
-function loadBinaryFileAsync (uri, onComplete) {
-  var req;
-  var state = [false];
-  if ((location.protocol === "file:") && (typeof (ActiveXObject) !== "undefined")) {
-    req = new ActiveXObject("MSXML2.XMLHTTP");
-  } else {
-    req = new XMLHttpRequest();
-  }
-          
-  var postProcessResult = postProcessResultNormal;
-
-  try {
-    req.open('GET', uri, true);
-  } catch (exc) {
-    state[0] = true;
-    onComplete(null, exc);
-    return;
-  }
-
-  if (typeof (ArrayBuffer) === "function") {
-    req.responseType = 'arraybuffer';
-  }
-
-  if (typeof (req.overrideMimeType) !== "undefined") {
-    req.overrideMimeType('application/octet-stream; charset=x-user-defined');
-  }
-  
-  if (window.navigator.userAgent.indexOf("Opera/") >= 0) {
-    postProcessResult = postProcessResultOpera;
-  }
-
-  req.onreadystatechange = function (evt) {
-    if (req.readyState != 4)
-      return;
-
-    if (state[0])
-      return;
-  
-    state[0] = true;
-    if (req.status <= 299) {
-      var bytes;
-      if (
-        (typeof (ArrayBuffer) === "function") &&
-        (typeof (req.response) === "object")
-      ) {
-        var buffer = req.response;
-        bytes = new Uint8Array(buffer);
-      } else if (
-        (typeof (req.responseBody) !== "undefined") && 
-        (typeof (VBArray) !== "undefined")
-      ) {
-        bytes = new VBArray(req.responseBody).toArray();
-      } else {
-        var text = req.responseText;
-        bytes = JSIL.StringToByteArray(text);
-      }
-
-      onComplete(postProcessResult(bytes), null);
-    } else {
-      onComplete(null, { statusText: req.statusText, status: req.status });
-      return;
-    }
-  };
-  
-  try {
-    req.send(null);
-  } catch (exc) {
-    state[0] = true;
-    onComplete(null, exc);
-  }
-}
-
 var loadedFontCount = 0;
 var loadingPollInterval = 1;
 var maxAssetsLoading = 4;
 var soundLoadTimeout = 30000;
 var fontLoadTimeout = 10000;
 var finishStepDuration = 5;
-
-var assetLoaders = {
-  "Library": function loadLibrary (filename, data, onError, onDoneLoading, state) {
-    loadTextAsync(jsilConfig.libraryRoot + filename, function (result, error) {
-      var finisher = function () {
-        state.pendingScriptLoads += 1;
-
-        JSIL.loadGlobalScript(jsilConfig.libraryRoot + filename, function () {
-          state.pendingScriptLoads -= 1;
-        });
-      };
-
-      // This is wrong, but failures from browsers without CORS are pretty cryptic.
-      onDoneLoading(finisher);
-
-      /*
-      if (result !== null)
-        onDoneLoading(finisher);
-      else
-        onError(error);
-      */
-    });
-  },
-  "Script": function loadScript (filename, data, onError, onDoneLoading, state) {
-    loadTextAsync(jsilConfig.scriptRoot + filename, function (result, error) {
-      var finisher = function () {
-        state.pendingScriptLoads += 1;
-
-        JSIL.loadGlobalScript(jsilConfig.scriptRoot + filename, function () {
-          state.pendingScriptLoads -= 1;
-        });
-      };
-
-      // This is wrong, but failures from browsers without CORS are pretty cryptic.
-      onDoneLoading(finisher);
-
-      /*
-      if (result !== null)
-        onDoneLoading(finisher);
-      else
-        onError(error);
-      */
-    });
-  },
-  "Image": function loadImage (filename, data, onError, onDoneLoading) {
-    var e = document.createElement("img");
-    // CORS is so dumb
-    e.crossOrigin = "anonymous";
-
-    var finisher = function () {
-      $jsilbrowserstate.allAssetNames.push(filename);
-      allAssets[getAssetName(filename)] = new HTML5ImageAsset(getAssetName(filename, true), e);
-    };
-    e.addEventListener("error", onError, true);
-    e.addEventListener("load", onDoneLoading.bind(null, finisher), true);
-    e.src = jsilConfig.contentRoot + filename;
-  },
-  "File": function loadFile (filename, data, onError, onDoneLoading) {
-    loadBinaryFileAsync(jsilConfig.fileRoot + filename, function (result, error) {
-      if (result !== null) {
-        $jsilbrowserstate.allFileNames.push(filename);
-        allFiles[filename.toLowerCase()] = result;
-        onDoneLoading(null); 
-      } else {
-        onError(error);
-      }
-    });
-  },
-  "SoundBank": function loadSoundBank (filename, data, onError, onDoneLoading) {
-    loadTextAsync(jsilConfig.contentRoot + filename, function (result, error) {
-      if (result !== null) {
-        var finisher = function () {
-          $jsilbrowserstate.allAssetNames.push(filename);
-          allAssets[getAssetName(filename)] = JSON.parse(result);
-        };
-        onDoneLoading(finisher);
-      } else {
-        onError(error);
-      }
-    });
-  },
-  "Resources": function loadResources (filename, data, onError, onDoneLoading) {
-    loadTextAsync(jsilConfig.scriptRoot + filename, function (result, error) {
-      if (result !== null) {
-        var finisher = function () {
-          $jsilbrowserstate.allAssetNames.push(filename);
-          allAssets[getAssetName(filename)] = JSON.parse(result);
-        };
-        onDoneLoading(finisher);
-      } else {
-        onError(error);
-      }
-    });
-  }
-};
-
-var loadWebkitSound = function (filename, data, onError, onDoneLoading) {
-  var audioContext = this;
-  var uri = null;
-
-  // Safari doesn't implement canPlayType, so we just have to hard-code MP3. Lame.
-  uri = jsilConfig.contentRoot + filename + ".mp3";
-
-  loadBinaryFileAsync(uri, function decodeWebkitSound (result, error) {
-    if (result !== null) {
-      // THIS IS SO STUPID
-      // var buffer = audioContext.createBuffer(result.buffer, false);
-
-      var decodeCompleteCallback = function (buffer) {
-        var finisher = function () {
-          $jsilbrowserstate.allAssetNames.push(filename);
-          allAssets[getAssetName(filename)] = new WebkitSoundAsset(getAssetName(filename, true), audioContext, buffer, data);
-        };
-        
-        onDoneLoading(finisher);
-      };
-
-      var decodeFailedCallback = function () {
-        onError("Unknown audio decoding error");
-      };
-
-      // Decode should really happen in the finisher stage, but that stage isn't parallel.
-      audioContext.decodeAudioData(result.buffer, decodeCompleteCallback, decodeFailedCallback);
-    } else {
-      onError(error);
-    }
-  });
-};
-
-var loadHTML5Sound = function (filename, data, onError, onDoneLoading) {
-  var startedLoadingWhen = Date.now();
-
-  var e = document.createElement("audio");
-  if (data.stream) {
-    e.setAttribute("preload", "metadata");
-  } else {
-    e.setAttribute("autobuffer", true);
-    e.setAttribute("preload", "auto");
-  }
-  
-  var state = { 
-    loaded: false
-  };
-
-  var finisher = function () {
-    $jsilbrowserstate.allAssetNames.push(filename);
-    allAssets[getAssetName(filename)] = new HTML5SoundAsset(getAssetName(filename, true), e);
-  };
-
-  var nullFinisher = function () {
-    $jsilbrowserstate.allAssetNames.push(filename);
-    allAssets[getAssetName(filename)] = new NullSoundAsset(getAssetName(filename, true));
-  };
-  
-  var loadingCallback = function (evt) {
-    if (state.loaded)
-      return;
-    
-    var networkState = e.networkState || 0;
-    var readyState = e.readyState || 0;
-
-    if (
-      (networkState === HTMLMediaElement.NETWORK_IDLE) ||
-      (networkState === HTMLMediaElement.NETWORK_LOADED /* This is in the spec, but no browser defines it? */) ||
-      (readyState === HTMLMediaElement.HAVE_ENOUGH_DATA /* Chrome 12+ breaks networkState, so we have to rely on readyState */) ||
-      (readyState === HTMLMediaElement.HAVE_FUTURE_DATA) ||
-      (readyState === HTMLMediaElement.HAVE_CURRENT_DATA)
-    ) {
-      clearInterval(state.interval);
-      state.loaded = true;
-      onDoneLoading(finisher);
-    } else if (networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
-      clearInterval(state.interval);
-      state.loaded = true;
-
-      var errorText = "Unknown error";
-
-      try {
-        errorText = "Error #" + e.error.code;
-      } catch (ex) {
-
-        if (e.error)
-          errorText = String(e.error);
-      }
-
-      JSIL.Host.logWriteLine("Load failed for sound '" + filename + "': " + errorText);
-      onDoneLoading(nullFinisher);
-    }
-
-    var now = Date.now();
-
-    // Detect and work around bug in old versions of Chrome and all versions of Safari where sounds never finish loading
-    if ((now - startedLoadingWhen) >= soundLoadTimeout) {
-      JSIL.Host.logWriteLine("A sound file is taking forever to load. If you're using Safari, use a different browser.");
-
-      clearInterval(state.interval);
-      state.loaded = true;
-      onDoneLoading(nullFinisher);
-    }
-  };
-
-  if (!JSIL.IsArray(data.formats)) {
-    onError("Sound in manifest without any formats");
-    return;
-  }
-  
-  for (var i = 0; i < data.formats.length; i++) {
-    var format = data.formats[i];
-    var extension, mimetype = null;
-    if (typeof (format) === "string")
-      extension = format;
-    else {
-      extension = format.extension;
-      mimetype = format.mimetype;
-    }
-
-    if (mimetype === null) {
-      switch (extension) {
-        case ".mp3":
-          mimetype = "audio/mpeg"
-          break;
-        case ".ogg":
-          mimetype = "audio/ogg; codecs=vorbis"
-          break;
-      }
-    }
-    
-    var source = document.createElement("source");
-
-    if (mimetype !== null)
-      source.setAttribute("type", mimetype);
-
-    source.setAttribute("src", jsilConfig.contentRoot + filename + extension);
-
-    e.appendChild(source);
-  }
-  
-  if (typeof (e.load) === "function")
-    e.load();
-
-  // Load events for <audio> are so broken and inconsistent that they might as well not exist.
-  // Just treat the sound as if it's loaded.
-  if (true) {
-    state.loaded = true;
-    onDoneLoading(finisher);
-  } else {
-    state.interval = setInterval(loadingCallback, loadingPollInterval);
-  }
-};
-
-// Chrome and Safari's <audio> implementations are utter garbage.
-if (typeof (webkitAudioContext) === "function") {
-  var $audioContext = new webkitAudioContext();
-  var $loadWebkitSound = loadWebkitSound.bind($audioContext);
-
-  assetLoaders["Sound"] = function (filename, data, onError, onDoneLoading) {
-    if (data.stream) {
-      return loadHTML5Sound(filename, data, onError, onDoneLoading);
-    } else {
-      return $loadWebkitSound(filename, data, onError, onDoneLoading);
-    }
-  };
-} else {
-  assetLoaders["Sound"] = loadHTML5Sound;
-}
-
-var $makeXNBAssetLoader = function (key, typeName) {
-  assetLoaders[key] = function (filename, data, onError, onDoneLoading) {
-    loadBinaryFileAsync(jsilConfig.contentRoot + filename, function (result, error) {
-      if (result !== null) {
-        var finisher = function () {
-          $jsilbrowserstate.allAssetNames.push(filename);
-          var key = getAssetName(filename, false);
-          var assetName = getAssetName(filename, true);
-          var parsedTypeName = JSIL.ParseTypeName(typeName);    
-          var type = JSIL.GetTypeInternal(parsedTypeName, JSIL.GlobalNamespace, true);
-          allAssets[key] = JSIL.CreateInstanceOfType(type, [assetName, result]);
-        };
-        onDoneLoading(finisher); 
-      } else {
-        onError(error);
-      }
-    });
-  };
-};
-
-$makeXNBAssetLoader("XNB", "RawXNBAsset");
-$makeXNBAssetLoader("SpriteFont", "SpriteFontAsset");
-$makeXNBAssetLoader("Texture2D", "Texture2DAsset");
 
 function updateProgressBar (prefix, suffix, bytesLoaded, bytesTotal) {
   var loadingProgress = document.getElementById("loadingProgress");
@@ -986,6 +539,7 @@ function pollAssetQueue () {
       if (typeof (finish) === "function")
         state.finishQueue.push([type, i, finish, name]);
 
+      delete state.assetsLoadingNames[name];
       state.assetsLoading -= 1;
       state.assetsLoaded += 1;
 
@@ -995,17 +549,18 @@ function pollAssetQueue () {
 
   var makeErrorCallback = function (assetPath, assetSpec) {
     return function (e) {
+      delete state.assetsLoadingNames[getAssetName(assetPath)];
       state.assetsLoading -= 1;
       state.assetsLoaded += 1;
 
       allAssets[getAssetName(assetPath)] = null;
 
       var errorText;
-      try {
+
+      if (e && e.statusText)
         errorText = e.statusText;
-      } catch (exc) {
+      else
         errorText = String(e);
-      }
 
       JSIL.Host.logWriteLine("The asset '" + assetSpec + "' could not be loaded:" + errorText);
     };    
@@ -1031,6 +586,7 @@ function pollAssetQueue () {
         errorCallback("No asset loader registered for type '" + assetType + "'.");
       } else {
         state.assetsLoading += 1;
+        state.assetsLoadingNames[assetPath] = assetLoader;
         assetLoader(assetPath, assetData, errorCallback, stepCallback, state);
       }
     } finally {
@@ -1102,7 +658,8 @@ function loadAssets (assets, onDoneLoading) {
     loadIndex: 0,
     finishIndex: 0,
     pendingScriptLoads: 0,
-    jsilInitialized: false
+    jsilInitialized: false,
+    assetsLoadingNames: {}
   };
 
   for (var i = 0, l = assets.length; i < l; i++) {
@@ -1121,6 +678,8 @@ function loadAssets (assets, onDoneLoading) {
 };
 
 function beginLoading () {
+  initAssetLoaders();
+
   $jsilbrowserstate.isLoading = true;
 
   var progressBar = document.getElementById("progressBar");

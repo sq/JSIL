@@ -548,66 +548,12 @@ JSIL.MakeClass("HTML5Asset", "SoundAssetBase", true, [], function ($) {
 
 });
 
-JSIL.MakeClass("SoundAssetBase", "HTML5SoundAsset", true, [], function ($) {
-  $.RawMethod(false, ".ctor", function (assetName, sound) {
+JSIL.MakeClass("SoundAssetBase", "CallbackSoundAsset", true, [], function ($) {
+  $.RawMethod(false, ".ctor", function (assetName, createInstance) {
     HTML5Asset.prototype._ctor.call(this, assetName);
-    this.sound = sound;
-    this.freeInstances = [
-      this.$createInstance(0)
-    ];
-  });
 
-  $.RawMethod(false, "$createInstance", function (loopCount) {
-    var node = this.sound.cloneNode(true);
-
-    var result = {
-      source: node,
-      isPlaying: false,
-      loopCount: loopCount
-    };
-
-    result.play = function () {
-      result.isPlaying = true;
-      if (node && node.play)
-        node.play();
-    };
-    result.pause = function () {
-      result.isPlaying = false;
-      if (node && node.pause)
-        node.pause();
-    };
-
-    Object.defineProperty(result, "volume", {
-      get: function () {
-        return node.volume;
-      },
-      set: function (value) {
-        node.volume = value;
-      }
-    });
-
-    Object.defineProperty(result, "loop", {
-      get: function () {
-        return instance.loopCount > 0;
-      },
-      set: function (value) {
-        instance.loopCount = value ? 99999 : 0;
-      }
-    });
-
-    node.addEventListener("ended", function () {
-      result.isPlaying = false;
-
-      if (result.loopCount > 0) {
-        result.loopCount--;
-        result.play();
-      } else {
-        if (this.freeInstances.length < 16)
-          this.freeInstances.push(result);
-      }
-    }.bind(this), true);
-
-    return result;
+    this.$createInstance = createInstance;
+    this.freeInstances = [];
   });
 
   $.RawMethod(false, "$newInstance", function () {
@@ -617,130 +563,6 @@ JSIL.MakeClass("SoundAssetBase", "HTML5SoundAsset", true, [], function ($) {
       return this.$createInstance(0);
     }
   });
-});
-
-JSIL.MakeClass("SoundAssetBase", "WebkitSoundAsset", true, [], function ($) {
-  $.RawMethod(false, ".ctor", function (assetName, audioContext, buffer) {
-    HTML5Asset.prototype._ctor.call(this, assetName);
-    this.audioContext = audioContext;
-    this.buffer = buffer;
-  });
-
-  $.RawMethod(false, "$createInstance", function (loopCount) {
-    var instance = this.audioContext.createBufferSource();
-    var gainNode = this.audioContext.createGainNode();
-
-    instance.buffer = this.buffer;
-    instance.loop = loopCount > 0;
-    instance.connect(gainNode);
-    gainNode.connect(this.audioContext.destination);
-
-    var context = this.audioContext;
-
-    var result = {
-      source: instance,
-      started: null,
-      duration: this.buffer.duration
-    };
-
-    result.play = function () {
-      if (result.started !== null)
-        return;
-
-      result.started = context.currentTime;
-      instance.noteOn(0);
-    };
-    result.pause = function () {
-      if (result.started === null)
-        return;
-
-      result.started = null;
-      instance.noteOff(0);
-    };
-
-    Object.defineProperty(result, "volume", {
-      get: function () {
-        return gainNode.gain.value;
-      },
-      set: function (value) {
-        gainNode.gain.value = value;
-      }
-    });
-
-    Object.defineProperty(result, "loop", {
-      get: function () {
-        return instance.loop;
-      },
-      set: function (value) {
-        instance.loop = value;
-      }
-    });
-
-    Object.defineProperty(result, "isPlaying", {
-      configurable: true,
-      enumerable: true,
-      get: function () {
-        if (result.started === null)
-          return false;
-
-        var elapsed = context.currentTime - result.started;
-        return (elapsed <= result.duration);
-      }
-    });
-
-    return result;
-  });
-
-  $.RawMethod(false, "$newInstance", function () {
-    return this.$createInstance(0);
-  });
-
-});
-
-JSIL.MakeClass("SoundAssetBase", "NullSoundAsset", true, [], function ($) {
-  $.RawMethod(false, ".ctor", function (assetName) {
-    HTML5Asset.prototype._ctor.call(this, assetName);
-  });
-
-  $.RawMethod(false, "$createInstance", function (loopCount) {
-    var result = {};
-
-    result.play = function () {
-    };
-    result.pause = function () {
-    };
-
-    Object.defineProperty(result, "volume", {
-      get: function () {
-        return 1;
-      },
-      set: function (value) {
-      }
-    });
-
-    Object.defineProperty(result, "loop", {
-      get: function () {
-        return false;
-      },
-      set: function (value) {
-      }
-    });
-
-    Object.defineProperty(result, "isPlaying", {
-      configurable: true,
-      enumerable: true,
-      get: function () {
-        return false;
-      }
-    });
-
-    return result;
-  });
-
-  $.RawMethod(false, "$newInstance", function () {
-    return this.$createInstance(0);
-  });
-
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Content.ContentTypeReader", function ($) {
@@ -1770,7 +1592,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Media.MediaPlayer", function ($
     var oldInstance = Microsoft.Xna.Framework.Media.MediaPlayer.currentSong;
     var newInstance = null;
 
-    if (song !== null) {
+    if (song) {
       newInstance = song.$createInstance(
         Microsoft.Xna.Framework.Media.MediaPlayer.repeat ? 9999 : 0
       );
