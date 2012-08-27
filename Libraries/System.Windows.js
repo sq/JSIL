@@ -195,6 +195,13 @@ JSIL.ImplementExternals("System.Windows.Forms.Control", function ($) {
     }
   );
 
+  $.Method({Static: true, Public: true }, "FromHandle",
+    (new JSIL.MethodSignature($.Type, [$jsilcore.TypeRef("System.IntPtr")], [])),
+    function FromHandle (handle) {
+      // FIXME
+      return null;
+    }
+  );
 });
 
 JSIL.ImplementExternals("System.Windows.Forms.Control/ControlCollection", function ($) {

@@ -3623,6 +3623,20 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GraphicsDeviceManager", functio
   $.Method({
     Static: false,
     Public: true
+  }, "get_IsFullScreen", new JSIL.MethodSignature($.Boolean, [], []), function (value) {
+    return true;
+  });
+
+  $.Method({
+    Static: false,
+    Public: true
+  }, "set_IsFullScreen", new JSIL.MethodSignature(null, [$.Boolean], []), function (value) {
+    // FIXME
+  });
+
+  $.Method({
+    Static: false,
+    Public: true
   }, "ApplyChanges", new JSIL.MethodSignature(null, [], []), function () {
     var oc = this.device.originalCanvas;
 
@@ -7205,6 +7219,14 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.GameWindow", function ($) {
     function get_Title () {
       // FIXME
       return document.title;
+    }
+  );
+
+  $.Method({Static:false, Public:false}, "get_Handle", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.IntPtr"), [], [])), 
+    function get_Handle () {
+      // FIXME
+      return null;
     }
   );
 
