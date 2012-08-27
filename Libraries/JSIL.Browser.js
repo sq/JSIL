@@ -402,7 +402,7 @@ var loadingPollInterval = 1;
 var maxAssetsLoading = 4;
 var soundLoadTimeout = 30000;
 var fontLoadTimeout = 10000;
-var finishStepDuration = 5;
+var finishStepDuration = 25;
 
 function updateProgressBar (prefix, suffix, bytesLoaded, bytesTotal) {
   if (jsilConfig.updateProgressBar)

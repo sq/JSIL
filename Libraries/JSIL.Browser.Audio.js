@@ -214,7 +214,8 @@ function loadStreamingSound (audioInfo, filename, data, onError, onDoneLoading) 
 
   var createInstance = function createStreamingSoundInstance (loopCount) {
     var e = audioInfo.makeAudioInstance();
-    e.setAttribute("preload", "metadata");
+    e.setAttribute("preload", "auto");
+    e.setAttribute("autobuffer", "true");
     e.src = uri;
 
     if (e.load)
