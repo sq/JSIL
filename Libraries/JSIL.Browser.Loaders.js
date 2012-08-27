@@ -15,15 +15,28 @@ JSIL.loadGlobalScript = function (uri, onComplete) {
 var warnedAboutCORS = false;
 
 function doXHR (uri, asBinary, onComplete) {
-  var req;
+  var req = null, isXDR = false;
+
+  var needCORS = jsilConfig.CORS;
+  var urlPrefix = window.location.protocol + "//" + window.location.host + "/";
+
+  var temp = document.createElement("a");
+  temp.href = uri;
+  var absoluteUrl = temp.href;
+  temp = null;
+
+  var sameHost = (absoluteUrl.indexOf(urlPrefix) >= 0);
+
+  needCORS = needCORS && !sameHost;
 
   if ((location.protocol === "file:") && (typeof (ActiveXObject) !== "undefined")) {
     req = new ActiveXObject("MSXML2.XMLHTTP");
   } else {
     req = new XMLHttpRequest();
 
-    if (jsilConfig.CORS && !("withCredentials" in req)) {
-      if (false && (typeof (XDomainRequest) !== "undefined")) {
+    if (needCORS && !("withCredentials" in req)) {
+      if ((!asBinary) && (typeof (XDomainRequest) !== "undefined")) {
+        isXDR = true;
         req = new XDomainRequest();
       } else {
         if (!warnedAboutCORS) {
@@ -56,8 +69,60 @@ function doXHR (uri, asBinary, onComplete) {
     onComplete(null, error);
   };
 
+  if (isXDR) {
+    // http://social.msdn.microsoft.com/Forums/en-US/iewebdevelopment/thread/30ef3add-767c-4436-b8a9-f1ca19b4812e
+    req.onprogress = function () {};
+
+    req.onload = function () {
+      succeeded(req.responseText);
+    };
+
+    req.onerror = function () {
+      failed("Unknown error");
+    };
+
+    req.ontimeout = function () {
+      failed("Timed out");
+    };
+  } else {
+    req.onreadystatechange = function (evt) {
+      if (req.readyState != 4)
+        return;
+
+      if (isDone)
+        return;
+
+      if (asBinary) {
+        var bytes;
+        if (
+          (typeof (ArrayBuffer) === "function") &&
+          (typeof (req.response) === "object")
+        ) {
+          var buffer = req.response;
+          bytes = new Uint8Array(buffer);
+        } else if (
+          (typeof (req.responseBody) !== "undefined") && 
+          (typeof (VBArray) !== "undefined")
+        ) {
+          bytes = new VBArray(req.responseBody).toArray();
+        } else {
+          var text = req.responseText;
+          bytes = JSIL.StringToByteArray(text);
+        }
+
+        succeeded(bytes, req.status, req.statusText);
+      } else {
+        succeeded(req.responseText, req.status, req.statusText);
+      }
+    };
+  }
+
   try {
-    req.open('GET', uri, true);
+    if (isXDR) {
+      req.open('GET', uri);
+    } else {
+      req.open('GET', uri, true);
+    }
   } catch (exc) {
     failed(exc);
   }
@@ -76,39 +141,12 @@ function doXHR (uri, asBinary, onComplete) {
     }
   }
 
-  req.onreadystatechange = function (evt) {
-    if (req.readyState != 4)
-      return;
-
-    if (isDone)
-      return;
-
-    if (asBinary) {
-      var bytes;
-      if (
-        (typeof (ArrayBuffer) === "function") &&
-        (typeof (req.response) === "object")
-      ) {
-        var buffer = req.response;
-        bytes = new Uint8Array(buffer);
-      } else if (
-        (typeof (req.responseBody) !== "undefined") && 
-        (typeof (VBArray) !== "undefined")
-      ) {
-        bytes = new VBArray(req.responseBody).toArray();
-      } else {
-        var text = req.responseText;
-        bytes = JSIL.StringToByteArray(text);
-      }
-
-      succeeded(bytes, req.status, req.statusText);
-    } else {
-      succeeded(req.responseText, req.status, req.statusText);
-    }
-  };
-
   try {
-    req.send();
+    if (isXDR) {
+      req.send(null);
+    } else {
+      req.send();
+    }
   } catch (exc) {
     failed(exc);
   }

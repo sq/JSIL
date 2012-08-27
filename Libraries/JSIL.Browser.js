@@ -405,6 +405,9 @@ var fontLoadTimeout = 10000;
 var finishStepDuration = 5;
 
 function updateProgressBar (prefix, suffix, bytesLoaded, bytesTotal) {
+  if (jsilConfig.updateProgressBar)
+    return jsilConfig.updateProgressBar(prefix, suffix, bytesLoaded, bytesTotal);
+
   var loadingProgress = document.getElementById("loadingProgress");
   var progressBar = document.getElementById("progressBar");
   var progressText = document.getElementById("progressText");
