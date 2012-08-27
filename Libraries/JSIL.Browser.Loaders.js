@@ -7,6 +7,9 @@ JSIL.loadGlobalScript = function (uri, onComplete) {
 
   var scriptTag = document.createElement("script");
   scriptTag.addEventListener("load", onComplete, true);
+  scriptTag.addEventListener("error", function (e) {
+    onComplete(null, e);
+  }, true);
   scriptTag.type = "text/javascript";
   scriptTag.src = absoluteUri;
   body.appendChild(scriptTag);
@@ -214,7 +217,10 @@ var assetLoaders = {
       var finisher = function () {
         state.pendingScriptLoads += 1;
 
-        JSIL.loadGlobalScript(jsilConfig.libraryRoot + filename, function () {
+        JSIL.loadGlobalScript(jsilConfig.libraryRoot + filename, function (result, error) {
+          if (error)
+            JSIL.Host.logWriteLine("Failed to load script '" + filename + "'!");
+          
           state.pendingScriptLoads -= 1;
         });
       };
@@ -230,7 +236,10 @@ var assetLoaders = {
       var finisher = function () {
         state.pendingScriptLoads += 1;
 
-        JSIL.loadGlobalScript(jsilConfig.scriptRoot + filename, function () {
+        JSIL.loadGlobalScript(jsilConfig.scriptRoot + filename, function (result, error) {
+          if (error)
+            JSIL.Host.logWriteLine("Failed to load script '" + filename + "'!");
+
           state.pendingScriptLoads -= 1;
         });
       };
