@@ -76,11 +76,12 @@ namespace JSIL.Compiler {
             return result;
         }
 
-        static void ParseCommandLine (
+        static Configuration ParseCommandLine (
             IEnumerable<string> arguments, List<BuildGroup> buildGroups, 
             Dictionary<string, IProfile> profiles
         ) {
             var baseConfig = new Configuration();
+            var commandLineConfig = new Configuration();
             IProfile defaultProfile = new Profiles.Default();
             var profileAssemblies = new List<string>();
             bool[] autoloadProfiles = new bool[] { true };
@@ -91,56 +92,56 @@ namespace JSIL.Compiler {
                 var os = new Mono.Options.OptionSet {
                     {"o=|out=", 
                         "Specifies the output directory for generated javascript and manifests.",
-                        (path) => baseConfig.OutputDirectory = Path.GetFullPath(path) },
+                        (path) => commandLineConfig.OutputDirectory = Path.GetFullPath(path) },
                     {"nac|noautoconfig", 
                         "Suppresses automatic loading of same-named .jsilconfig files located next to solutions and/or assemblies.",
-                        (b) => baseConfig.AutoLoadConfigFiles = b == null },
+                        (b) => commandLineConfig.AutoLoadConfigFiles = b == null },
                     {"nt|nothreads",
                         "Suppresses use of multiple threads to speed up the translation process.",
-                        (b) => baseConfig.UseThreads = b == null },
+                        (b) => commandLineConfig.UseThreads = b == null },
                     {"sbc|suppressbugcheck",
                         "Suppresses JSIL bug checks that detect bugs in .NET runtimes and standard libraries.",
-                        (b) => baseConfig.RunBugChecks = b == null },
+                        (b) => commandLineConfig.RunBugChecks = b == null },
 
                     "Solution Builder options",
                     {"configuration=", 
                         "When building one or more solution files, specifies the build configuration to use (like 'Debug').",
-                        (v) => baseConfig.SolutionBuilder.Configuration = v },
+                        (v) => commandLineConfig.SolutionBuilder.Configuration = v },
                     {"platform=", 
                         "When building one or more solution files, specifies the build platform to use (like 'x86').",
-                        (v) => baseConfig.SolutionBuilder.Platform = v },
+                        (v) => commandLineConfig.SolutionBuilder.Platform = v },
                     {"target=", 
                         "When building one or more solution files, specifies the build target to use (like 'Build'). The default is 'Build'.",
-                        (v) => baseConfig.SolutionBuilder.Target = v },
+                        (v) => commandLineConfig.SolutionBuilder.Target = v },
                     {"logVerbosity=", 
                         "When building one or more solution files, specifies the level of log verbosity. Valid options are 'Quiet', 'Minimal', 'Normal', 'Detailed', and 'Diagnostic'.",
-                        (v) => baseConfig.SolutionBuilder.LogVerbosity = v },
+                        (v) => commandLineConfig.SolutionBuilder.LogVerbosity = v },
 
                     "Assembly options",
                     {"p=|proxy=", 
                         "Loads a type proxy assembly to provide type information for the translator.",
-                        (name) => baseConfig.Assemblies.Proxies.Add(Path.GetFullPath(name)) },
+                        (name) => commandLineConfig.Assemblies.Proxies.Add(Path.GetFullPath(name)) },
                     {"i=|ignore=", 
                         "Specifies a regular expression pattern for assembly names that should be ignored during the translation process.",
-                        (regex) => baseConfig.Assemblies.Ignored.Add(regex) },
+                        (regex) => commandLineConfig.Assemblies.Ignored.Add(regex) },
                     {"s=|stub=", 
                         "Specifies a regular expression pattern for assembly names that should be stubbed during the translation process. " +
                         "Stubbing forces all methods to be externals.",
-                        (regex) => baseConfig.Assemblies.Stubbed.Add(regex) },
+                        (regex) => commandLineConfig.Assemblies.Stubbed.Add(regex) },
                     {"nd|nodeps", 
                         "Suppresses the automatic loading and translation of assembly dependencies.",
-                        (b) => baseConfig.IncludeDependencies = b == null},
+                        (b) => commandLineConfig.IncludeDependencies = b == null},
                     {"nodefaults", 
                         "Suppresses the default list of stubbed assemblies.",
-                        (b) => baseConfig.ApplyDefaults = b == null},
+                        (b) => commandLineConfig.ApplyDefaults = b == null},
                     {"nolocal", 
                         "Disables using local proxy types from translated assemblies.",
-                        (b) => baseConfig.UseLocalProxies = b == null},
+                        (b) => commandLineConfig.UseLocalProxies = b == null},
                     {"fv=|frameworkVersion=", 
                         "Specifies the version of the .NET framework proxies to use. " +
                         "This ensures that correct type information is provided (as 3.5 and 4.0 use different standard libraries). " +
                         "Accepted values are '3.5' and '4.0'. Default: '4.0'",
-                        (fv) => baseConfig.FrameworkVersion = double.Parse(fv)},
+                        (fv) => commandLineConfig.FrameworkVersion = double.Parse(fv)},
 
                     "Profile options",
                     {"nap|noautoloadprofiles",
@@ -156,16 +157,16 @@ namespace JSIL.Compiler {
                     "Optimizer options",
                     {"os", 
                         "Suppresses struct copy elimination.",
-                        (b) => baseConfig.Optimizer.EliminateStructCopies = b == null},
+                        (b) => commandLineConfig.Optimizer.EliminateStructCopies = b == null},
                     {"ot", 
                         "Suppresses temporary local variable elimination.",
-                        (b) => baseConfig.Optimizer.EliminateTemporaries = b == null},
+                        (b) => commandLineConfig.Optimizer.EliminateTemporaries = b == null},
                     {"oo", 
                         "Suppresses simplification of operator expressions and special method calls.",
-                        (b) => baseConfig.Optimizer.SimplifyOperators = b == null},
+                        (b) => commandLineConfig.Optimizer.SimplifyOperators = b == null},
                     {"ol", 
                         "Suppresses simplification of loop blocks.",
-                        (b) => baseConfig.Optimizer.SimplifyLoops = b == null},
+                        (b) => commandLineConfig.Optimizer.SimplifyLoops = b == null},
                 };
 
                 filenames = os.Parse(arguments);
@@ -179,11 +180,11 @@ namespace JSIL.Compiler {
 
                     os.WriteOptionDescriptions(Console.Out);
 
-                    return;
+                    return null;
                 }
             }
 
-            if (baseConfig.ApplyDefaults.GetValueOrDefault(true)) {
+            if (commandLineConfig.ApplyDefaults.GetValueOrDefault(true)) {
                 baseConfig = MergeConfigurations(
                     LoadConfiguration(Path.Combine(
                         GetJSILDirectory(), 
@@ -228,8 +229,8 @@ namespace JSIL.Compiler {
                 }
             }
 
-            baseConfig = MergeConfigurations(
-                baseConfig,
+            commandLineConfig = MergeConfigurations(
+                commandLineConfig,
                 (from fn in filenames
                  where Path.GetExtension(fn) == ".jsilconfig"
                  select LoadConfiguration(fn)).ToArray()
@@ -253,9 +254,10 @@ namespace JSIL.Compiler {
                 );
                 var solutionConfig = File.Exists(solutionConfigPath)
                     ? new Configuration[] { LoadConfiguration(solutionConfigPath) }
-                    : new Configuration[] { };
+                    : new Configuration[] {  };
 
-                var config = MergeConfigurations(baseConfig, solutionConfig);
+                var mergedSolutionConfig = MergeConfigurations(baseConfig, solutionConfig);
+                var config = MergeConfigurations(mergedSolutionConfig, commandLineConfig);
                 var buildStarted = DateTime.UtcNow.Ticks;
                 
                 var buildResult = SolutionBuilder.SolutionBuilder.Build(
@@ -327,7 +329,7 @@ namespace JSIL.Compiler {
 
                 if (outputFiles.Length > 0) {
                     buildGroups.Add(new BuildGroup {
-                        BaseConfiguration = config,
+                        BaseConfiguration = mergedSolutionConfig,
                         BaseVariables = localVariables,
                         FilesToBuild = outputFiles,
                         Profile = profile,
@@ -362,7 +364,7 @@ namespace JSIL.Compiler {
                              .ToArray();
 
             if (mainGroup.Length > 0) {
-                var variables = baseConfig.ApplyTo(new VariableSet());
+                var variables = commandLineConfig.ApplyTo(new VariableSet());
 
                 buildGroups.Add(new BuildGroup {
                     BaseConfiguration = baseConfig,
@@ -371,6 +373,8 @@ namespace JSIL.Compiler {
                     Profile = defaultProfile
                 });
             }
+
+            return commandLineConfig;
         }
 
         internal static string GetJSILDirectory () {
@@ -456,9 +460,9 @@ namespace JSIL.Compiler {
             var manifest = new AssemblyManifest();
             var assemblyCache = new AssemblyCache();
 
-            ParseCommandLine(arguments, buildGroups, profiles);
+            var commandLineConfiguration = ParseCommandLine(arguments, buildGroups, profiles);
 
-            if (buildGroups.Count < 1) {
+            if ((buildGroups.Count < 1) || (commandLineConfiguration == null)) {
                 Console.Error.WriteLine("// No assemblies specified to translate. Exiting.");
             }
 
@@ -479,8 +483,8 @@ namespace JSIL.Compiler {
                         String.Format("{0}.jsilconfig", Path.GetFileName(filename))
                     );
                     var fileConfig = File.Exists(fileConfigPath)
-                        ? new Configuration[] { LoadConfiguration(fileConfigPath) }
-                        : new Configuration[] { };
+                        ? new Configuration[] { LoadConfiguration(fileConfigPath), commandLineConfiguration }
+                        : new Configuration[] { commandLineConfiguration };
 
                     var localConfig = MergeConfigurations(config, fileConfig);
 
