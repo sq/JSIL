@@ -504,8 +504,9 @@ function finishLoading () {
 
         updateProgressBar("Loading " + item[3], null, state.assetsFinished, state.assetCount);
 
-        if (typeof (cb) === "function")
+        if (typeof (cb) === "function") {
           cb(state);
+        }
       } finally {
         state.finishIndex += 1;
         state.assetsFinished += 1;
@@ -662,7 +663,8 @@ function loadAssets (assets, onDoneLoading) {
     finishIndex: 0,
     pendingScriptLoads: 0,
     jsilInitialized: false,
-    assetsLoadingNames: {}
+    assetsLoadingNames: {},
+    failedFinishes: 0
   };
 
   for (var i = 0, l = assets.length; i < l; i++) {

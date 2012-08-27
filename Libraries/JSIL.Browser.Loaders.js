@@ -206,6 +206,8 @@ function loadBinaryFileAsync (uri, onComplete) {
   });
 }
 
+var warnedAboutCORSImage = false;
+
 var assetLoaders = {
   "Library": function loadLibrary (filename, data, onError, onDoneLoading, state) {
     loadTextAsync(jsilConfig.libraryRoot + filename, function (result, error) {
@@ -241,8 +243,16 @@ var assetLoaders = {
   },
   "Image": function loadImage (filename, data, onError, onDoneLoading) {
     var e = document.createElement("img");
-    // CORS is so dumb
-    e.crossOrigin = "anonymous";
+    if (jsilConfig.CORS) {
+      if ("crossOrigin" in e) {
+        e.crossOrigin = "";
+      } else {
+        if (!warnedAboutCORSImage) {
+          JSIL.Host.logWriteLine("WARNING: This game requires support for CORS, and your browser does not support it for images.");
+          warnedAboutCORSImage = true;
+        }
+      }
+    }
 
     var finisher = function () {
       $jsilbrowserstate.allAssetNames.push(filename);
