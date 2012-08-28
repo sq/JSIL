@@ -282,8 +282,9 @@ function initBrowserHooks () {
 
   window.addEventListener(
     "keydown", function (evt) {
-      if (shouldIgnoreEvent(evt))
+      if (shouldIgnoreEvent(evt)) {
         return;
+      }
 
       evt.preventDefault();
       var keyCode = evt.keyCode;
@@ -295,8 +296,9 @@ function initBrowserHooks () {
 
   window.addEventListener(
     "keyup", function (evt) {
-      if (shouldIgnoreEvent(evt))
+      if (shouldIgnoreEvent(evt)) {
         return;
+      }
 
       evt.preventDefault();
       var keyCode = evt.keyCode;
