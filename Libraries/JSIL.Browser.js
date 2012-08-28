@@ -296,11 +296,9 @@ function initBrowserHooks () {
 
   window.addEventListener(
     "keyup", function (evt) {
-      if (shouldIgnoreEvent(evt)) {
-        return;
-      }
+      if (!shouldIgnoreEvent(evt))
+        evt.preventDefault();
 
-      evt.preventDefault();
       var keyCode = evt.keyCode;
       var codes = keyMappings[keyCode] || [keyCode];        
       
