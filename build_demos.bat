@@ -1,5 +1,4 @@
 del /s/q jsil.org\demos\*.js
-bin\JSILc "C:\Users\Kevin\Documents\Projects\EscapeGoat\bastille\BastilleHTML5.sln" --platform:x86 --configuration:ReleaseWeb
 bin\JSILc "C:\Users\Kevin\Documents\Projects\Soulcaster\Soulcaster1HTML5.sln" "C:\Users\Kevin\Documents\Projects\Soulcaster\Soulcaster1\Soulcaster1\bin\x86\DebugPC\TarchonData.XmlSerializers.dll" "jsil.org\demos\Soulcaster\Soulcaster.jsilconfig" --platform:x86 --configuration:DebugPC
 bin\JSILc "C:\Users\Kevin\Documents\Projects\Soulcaster\Soulcaster2HTML5.sln" "C:\Users\Kevin\Documents\Projects\Soulcaster\Soulcaster2\Soulcaster2\bin\x86\DebugPC\TarchonData.XmlSerializers.dll" "jsil.org\demos\Soulcaster2\Soulcaster2.jsilconfig" --platform:x86 --configuration:DebugPC
 bin\JSILc "C:\Game Design\Game Type\CodeNew\GameType\GameType.sln" "jsil.org\demos\GameType\GameType.jsilconfig" --platform:x86 --configuration:Debug

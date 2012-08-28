@@ -18,6 +18,20 @@ namespace JSIL.Transforms {
         private readonly HashSet<JSOperator> LogicalOperators;
         private readonly HashSet<JSOperator> BitwiseOperators;
 
+        public readonly Dictionary<JSAssignmentOperator, JSBinaryOperator> ReverseCompoundAssignments = new Dictionary<JSAssignmentOperator, JSBinaryOperator> {
+            { JSOperator.AddAssignment, JSOperator.Add },
+            { JSOperator.SubtractAssignment, JSOperator.Subtract },
+            { JSOperator.MultiplyAssignment, JSOperator.Multiply },
+            { JSOperator.DivideAssignment, JSOperator.Divide },
+            { JSOperator.RemainderAssignment, JSOperator.Remainder },
+            { JSOperator.ShiftLeftAssignment, JSOperator.ShiftLeft },
+            { JSOperator.ShiftRightAssignment, JSOperator.ShiftRight },
+            { JSOperator.ShiftRightUnsignedAssignment, JSOperator.ShiftRightUnsigned },
+            { JSOperator.BitwiseAndAssignment, JSOperator.BitwiseAnd },
+            { JSOperator.BitwiseOrAssignment, JSOperator.BitwiseOr },
+            { JSOperator.BitwiseXorAssignment, JSOperator.BitwiseXor },
+        };
+
         public IntroduceEnumCasts (TypeSystem typeSystem, JSSpecialIdentifiers js, TypeInfoProvider typeInfo, MethodTypeFactory methodTypes) {
             TypeSystem = typeSystem;
             TypeInfo = typeInfo;
@@ -165,6 +179,9 @@ namespace JSIL.Transforms {
 
             var eitherIsEnum = leftIsEnum || rightIsEnum;
 
+            var assignmentOperator = boe.Operator as JSAssignmentOperator;
+            JSBinaryOperator replacementOperator;
+
             if (LogicalOperators.Contains(boe.Operator)) {
                 if (eitherIsEnum) {
                     if (leftIsEnum) {
@@ -193,6 +210,24 @@ namespace JSIL.Transforms {
                     ParentNode.ReplaceChild(boe, cast);
                     VisitReplacement(cast);
                 }
+            } else if (
+                (assignmentOperator != null) &&
+                ReverseCompoundAssignments.TryGetValue(assignmentOperator, out replacementOperator) &&
+                leftIsEnum
+            ) {
+                var replacement = new JSBinaryOperatorExpression(
+                    JSOperator.Assignment, boe.Left, 
+                    JSCastExpression.New(
+                        new JSBinaryOperatorExpression(
+                            replacementOperator, boe.Left, boe.Right, TypeSystem.Int32
+                        ), leftType, TypeSystem, true
+                    ),
+                    leftType
+                );
+
+                ParentNode.ReplaceChild(boe, replacement);
+                VisitReplacement(replacement);
+                return;
             }
 
             VisitChildren(boe);
