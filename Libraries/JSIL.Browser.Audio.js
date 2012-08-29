@@ -143,7 +143,7 @@ JSIL.Audio.WebKitInstance.prototype.$get_isPlaying = function () {
     return false;
 
   var elapsed = this.context.currentTime - this.started;
-  return (elapsed <= this.buffer.duration);
+  return (elapsed <= this.bufferSource.buffer.duration);
 }
 
 
