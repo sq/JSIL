@@ -789,14 +789,15 @@ function beginLoading () {
       if (stats)
         stats.style.display = "";
 
-      if (jsilConfig.onLoadFailed && loadFailures && (loadFailures.length > 0))
+      if (jsilConfig.onLoadFailed && loadFailures && (loadFailures.length > 0)) {
         jsilConfig.onLoadFailed(loadFailures);
-
-      $jsilbrowserstate.mainRunAtTime = Date.now();
-      $jsilbrowserstate.isMainRunning = true;
-      runMain();
-      $jsilbrowserstate.isMainRunning = false;
-      $jsilbrowserstate.hasMainRun = true;
+      } else {
+        $jsilbrowserstate.mainRunAtTime = Date.now();
+        $jsilbrowserstate.isMainRunning = true;
+        runMain();
+        $jsilbrowserstate.isMainRunning = false;
+        $jsilbrowserstate.hasMainRun = true;
+      }
 
       // Main doesn't block since we're using the browser's event loop          
     } finally {
