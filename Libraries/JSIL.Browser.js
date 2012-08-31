@@ -205,6 +205,20 @@ JSIL.Host.throwException = function (e) {
     JSIL.Host.logWriteLine(stack);
 };
 
+var $visibleKeys = [ "hidden", "mozHidden", "msHidden", "webkitHidden" ];
+
+JSIL.Host.isPageVisible = function () {
+  for (var i = 0, l = $visibleKeys.length; i < l; i++) {
+    var key = $visibleKeys[i];
+    var value = document[key];
+
+    if (typeof (value) !== "undefined")
+      return !value;
+  }
+
+  return true;
+};
+
 var $logFps = false;
 
 var allFiles = {};
