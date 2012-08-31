@@ -854,6 +854,10 @@ function setupStats () {
         e.innerHTML = cacheSizeMb;
       }
 
+      if (jsilConfig.reportFps) {
+        jsilConfig.reportFps(drawsPerSecond, updatesPerSecond, cacheSize, isWebGL);
+      }
+
       if ($logFps) {
         console.log(drawsPerSecond + " draws/s, " + updatesPerSecond + " updates/s");
       }

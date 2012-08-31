@@ -2711,7 +2711,12 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Game", function ($) {
   $.Method({Static:false, Public:true }, "get_IsActive", 
     (new JSIL.MethodSignature($.Boolean, [], [])), 
     function get_IsActive () {
-      return true && !Microsoft.Xna.Framework.Game._QuitForced && !this._isDead;
+      var isPageVisible = document.hidden || document.mozHidden || document.msHidden || document.webkitHidden || "visible";
+
+      if ((typeof (isPageVisible) === "undefined") || (typeof (isPageVisible) !== "string"))
+        isPageVisible = "visible";
+
+      return (isPageVisible === "visible") && !Microsoft.Xna.Framework.Game._QuitForced && !this._isDead;
     }
   );
 
