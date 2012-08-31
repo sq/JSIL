@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using JSIL.Ast;
@@ -48,6 +49,37 @@ namespace JSIL.Transforms {
                 TypeInfo, thisReferenceType, declaringType
             );
 
+            // ILSpy converts compound assignments from:
+            //  x.set_Value(x.get_Value + n)
+            // to
+            //  x.get_Value += n;
+            // so we have to detect this and reconstruct the correct method
+            //  references.
+            var actualMethod = originalMethod;
+            var correctName = String.Format(
+                "{0}_{1}", pa.IsWrite ? "set" : "get",
+                pa.Property.Property.ShortName
+            );
+
+            if (!actualMethod.Reference.Name.Contains(correctName)) {
+                var dt = originalMethod.Method.DeclaringType;
+
+                var actualMethodInfo = dt.Members.Values
+                    .OfType<MethodInfo>().FirstOrDefault(
+                        (m) => (
+                            m.Name.Contains(correctName) &&
+                            m.DeclaringType == originalMethod.Method.DeclaringType
+                        )
+                    );
+
+                if (actualMethodInfo != null) {
+                    actualMethod = new JSMethod(
+                        actualMethodInfo.Member, actualMethodInfo,
+                        originalMethod.MethodTypes, originalMethod.GenericArguments
+                    );
+                }
+            }
+
             bool needsExplicitThis = !pa.IsVirtualCall && ILBlockTranslator.NeedsExplicitThis(
                 declaringType, declaringTypeDef,
                 originalMethod.Method.DeclaringType,
@@ -58,19 +90,19 @@ namespace JSIL.Transforms {
             JSInvocationExpressionBase invocation;
             if (pa.Property.Property.IsStatic)
                 invocation = JSInvocationExpression.InvokeStatic(
-                    pa.OriginalMethod.Reference.DeclaringType, 
-                    pa.OriginalMethod, 
+                    actualMethod.Reference.DeclaringType,
+                    actualMethod, 
                     arguments
                 );
             else if (needsExplicitThis)
                 invocation = JSInvocationExpression.InvokeBaseMethod(
-                    pa.OriginalMethod.Reference.DeclaringType,
-                    pa.OriginalMethod, pa.ThisReference,
+                    actualMethod.Reference.DeclaringType,
+                    actualMethod, pa.ThisReference,
                     arguments
                 );
             else
                 invocation = JSInvocationExpression.InvokeMethod(
-                    pa.OriginalMethod, pa.ThisReference, arguments
+                    actualMethod, pa.ThisReference, arguments
                 );
 
             JSExpression replacement;
@@ -113,7 +145,8 @@ namespace JSIL.Transforms {
 
         public bool IsPropertySetterInvocation (JSBinaryOperatorExpression boe, out JSPropertyAccess pa) {
             var isValidParent =
-                (ParentNode is JSExpressionStatement);
+                (ParentNode is JSExpressionStatement) ||
+                (ParentNode is JSCommaExpression);
 
             pa = boe.Left as JSPropertyAccess;
 

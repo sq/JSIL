@@ -1302,7 +1302,7 @@ namespace JSIL.Internal {
             _WasReservedIdentifier = Util.ReservedIdentifiers.Contains(Name);
         }
 
-        protected string ShortName {
+        public string ShortName {
             get {
                 if (_ShortName == null)
                     _ShortName = GetShortName(this.Member);

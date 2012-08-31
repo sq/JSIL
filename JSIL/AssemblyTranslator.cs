@@ -1510,10 +1510,15 @@ namespace JSIL {
                 si.TypeSystem, si.JS, si.JSIL, _TypeInfoProvider
             ).Visit(function);
 
-            if (Configuration.Optimizer.PreferAccessorMethods.GetValueOrDefault(true))
+            if (Configuration.Optimizer.PreferAccessorMethods.GetValueOrDefault(true)) {
+                new OptimizePropertyMutationAssignments(
+                    si.TypeSystem, _TypeInfoProvider
+                ).Visit(function);
+
                 new ConvertPropertyAccessesToInvocations(
                     si.TypeSystem, _TypeInfoProvider
                 ).Visit(function);
+            }
         }
 
         protected static bool NeedsStaticConstructor (TypeReference type) {

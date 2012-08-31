@@ -91,6 +91,7 @@
     <Compile Include="Transforms\CacheTypeExpressions.cs" />
     <Compile Include="Transforms\CollapseNulls.cs" />
     <Compile Include="Transforms\ConvertPropertyAccessesToInvocations.cs" />
+    <Compile Include="Transforms\OptimizePropertyMutationAssignments.cs" />
     <Compile Include="Transforms\HandleBooleanAsInteger.cs" />
     <Compile Include="Transforms\StaticAnalysis\BarrierGenerator.cs" />
     <Compile Include="Transforms\StaticAnalysis\ControlFlowSimplifier.cs" />

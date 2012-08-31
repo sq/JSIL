@@ -18,7 +18,7 @@ namespace JSIL.Transforms {
         private readonly HashSet<JSOperator> LogicalOperators;
         private readonly HashSet<JSOperator> BitwiseOperators;
 
-        public readonly Dictionary<JSAssignmentOperator, JSBinaryOperator> ReverseCompoundAssignments = new Dictionary<JSAssignmentOperator, JSBinaryOperator> {
+        public static readonly Dictionary<JSAssignmentOperator, JSBinaryOperator> ReverseCompoundAssignments = new Dictionary<JSAssignmentOperator, JSBinaryOperator> {
             { JSOperator.AddAssignment, JSOperator.Add },
             { JSOperator.SubtractAssignment, JSOperator.Subtract },
             { JSOperator.MultiplyAssignment, JSOperator.Multiply },

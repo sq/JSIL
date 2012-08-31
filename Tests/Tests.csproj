@@ -217,6 +217,7 @@
     <None Include="SpecialTestCases\ReplaceMethodBodyAndCallOtherMethod.cs" />
     <None Include="SimpleTestCases\ParameterNamedThis.cs" />
     <None Include="SimpleTestCases\EnumInPlaceAdd.cs" />
+    <None Include="SpecialTestCases\PropertyIncrementEfficiency.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

@@ -825,7 +825,7 @@ function setupStats () {
         if (drawsPerSecond >= 50) {
           color = "green";
           legend = "Great";
-        } else if (drawsPerSecond >= 30) {
+        } else if (drawsPerSecond >= 25) {
           color = "yellow";
           legend = "Acceptable";
         } else {
@@ -921,7 +921,10 @@ function onLoad () {
         var isFullscreen = document.fullscreen || 
           document.fullScreen ||
           document.mozFullScreen || 
-          document.webkitIsFullScreen;
+          document.webkitIsFullScreen ||
+          false;
+
+        $jsilbrowserstate.isFullscreen = isFullscreen;
 
         if (isFullscreen) {
           var ow = originalWidth, oh = originalHeight;
