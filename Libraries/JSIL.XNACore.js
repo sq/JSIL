@@ -5429,9 +5429,10 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Graphics.GraphicsDevice", funct
   $.RawMethod(false, "$Clear", function GraphicsDevice_$Clear (colorCss) {
     this.context.save();
     this.context.setTransform(1, 0, 0, 1, 0, 0);
-    this.context.globalCompositeOperation = "copy";
+    this.context.globalCompositeOperation = "source-over";
     this.context.globalAlpha = 1.0;
     this.context.fillStyle = colorCss || "rgba(0, 0, 0, 1)";
+    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
     this.context.restore();
   });
