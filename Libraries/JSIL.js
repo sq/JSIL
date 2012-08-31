@@ -15,7 +15,12 @@ contentManifest["JSIL"] = [
     ["Library", "JSIL.XML.js"]
 ];
 
+var $jsilloaderstate = {
+  loadFailures: []
+};
+
 (function loadJSIL (config) { 
+  var scriptIndex = 0;
   var libraryRoot = (config.libraryRoot = config.libraryRoot || "../Libraries/");
   var manifestRoot = (config.manifestRoot = config.manifestRoot || "");
   config.scriptRoot = config.scriptRoot || "";
@@ -24,12 +29,37 @@ contentManifest["JSIL"] = [
   config.contentRoot = config.contentRoot || "Content/";
   config.fileVirtualRoot = config.fileVirtualRoot || config.fileRoot || "";
 
+  var scriptURIs = {};
+
+  window.$scriptLoadFailed = function (i) {
+    var uri = scriptURIs[i];
+
+    if (window.JSIL && window.JSIL.Host && window.JSIL.Host.logWriteLine)
+      JSIL.Host.logWriteLine("JSIL.js failed to load script '" + uri + "'");
+    else if (window.console && window.console.log)
+      console.error("JSIL.js failed to load script '" + uri + "'");
+
+    $jsilloaderstate.loadFailures.push([uri]);
+
+    if (jsilConfig.onLoadFailure) {
+      try {
+        jsilConfig.onLoadFailure(uri);
+      } catch (exc) {
+      }
+    }
+  }
+
   function loadScript (uri) {
     if (window.console && window.console.log)
       window.console.log("Loading '" + uri + "'...");
 
+    scriptIndex += 1;
+    scriptURIs[scriptIndex] = uri;
+
     document.write(
-      "<script type=\"text/javascript\" src=\"" + uri + "\"></script>"
+      "<script type=\"text/javascript\" src=\"" + uri + "\" onerror=\"$scriptLoadFailed(" +
+      scriptIndex +
+      ")\"></script>"
     );
   };
 

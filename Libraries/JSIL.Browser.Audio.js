@@ -179,7 +179,7 @@ function loadWebkitSound (audioInfo, filename, data, onError, onDoneLoading) {
     return handleError("No supported formats for '" + filename + "'.");
 
   loadBinaryFileAsync(uri, function decodeWebkitSound (result, error) {
-    if (result !== null) {
+    if ((result !== null) && (!error)) {
       var decodeCompleteCallback = function (buffer) {        
         var finisher = finishLoadingSound.bind(
           null, filename, function createWebKitSoundInstance (loopCount) {
@@ -243,7 +243,7 @@ function loadBufferedHTML5Sound (audioInfo, filename, data, onError, onDoneLoadi
     return handleError("No supported formats for '" + filename + "'.");
 
   loadBinaryFileAsync(uri, function finishBufferingSound (result, error) {
-    if (result !== null) {
+    if ((result !== null) && (!error)) {
       var blob = null;
 
       try {

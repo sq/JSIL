@@ -56,13 +56,25 @@ function doXHR (uri, asBinary, onComplete) {
       return;
 
     isDone = true;
-    onComplete(
-      {
-        response: response,
-        status: status,
-        statusText: statusText
-      }, null
-    );
+
+    if (status >= 400) {
+      onComplete(
+        {
+          response: response,
+          status: status,
+          statusText: statusText
+        }, 
+        statusText || status
+      );
+    } else {
+      onComplete(
+        {
+          response: response,
+          status: status,
+          statusText: statusText
+        }, null
+      );
+    }
   };
   var failed = function (error) {
     if (isDone)
@@ -211,21 +223,37 @@ function loadBinaryFileAsync (uri, onComplete) {
 
 var warnedAboutCORSImage = false;
 
+var finishLoadingScript = function (state, path) {
+  state.pendingScriptLoads += 1;
+
+  JSIL.loadGlobalScript(path, function (result, error) {
+    state.pendingScriptLoads -= 1;
+
+    if (error) {
+      var errorText = "Failed to load script '" + path + "'!";
+      
+      state.assetLoadFailures.push(
+        [path, errorText]
+      );
+
+      if (jsilConfig.onLoadFailure) {
+        try {
+          jsilConfig.onLoadFailure(path, errorText);
+        } catch (exc2) {
+        }
+      }
+    }          
+  });
+};
+
 var assetLoaders = {
   "Library": function loadLibrary (filename, data, onError, onDoneLoading, state) {
     loadTextAsync(jsilConfig.libraryRoot + filename, function (result, error) {
       var finisher = function () {
-        state.pendingScriptLoads += 1;
-
-        JSIL.loadGlobalScript(jsilConfig.libraryRoot + filename, function (result, error) {
-          if (error)
-            JSIL.Host.logWriteLine("Failed to load script '" + filename + "'!");
-          
-          state.pendingScriptLoads -= 1;
-        });
+        finishLoadingScript(state, jsilConfig.libraryRoot + filename);
       };
 
-      if (result !== null)
+      if ((result !== null) && (!error))
         onDoneLoading(finisher);
       else
         onError(error);
@@ -234,17 +262,10 @@ var assetLoaders = {
   "Script": function loadScript (filename, data, onError, onDoneLoading, state) {
     loadTextAsync(jsilConfig.scriptRoot + filename, function (result, error) {
       var finisher = function () {
-        state.pendingScriptLoads += 1;
-
-        JSIL.loadGlobalScript(jsilConfig.scriptRoot + filename, function (result, error) {
-          if (error)
-            JSIL.Host.logWriteLine("Failed to load script '" + filename + "'!");
-
-          state.pendingScriptLoads -= 1;
-        });
+        finishLoadingScript(state, jsilConfig.scriptRoot + filename);
       };
 
-      if (result !== null)
+      if ((result !== null) && (!error))
         onDoneLoading(finisher);
       else
         onError(error);
@@ -273,7 +294,7 @@ var assetLoaders = {
   },
   "File": function loadFile (filename, data, onError, onDoneLoading) {
     loadBinaryFileAsync(jsilConfig.fileRoot + filename, function (result, error) {
-      if (result !== null) {
+      if ((result !== null) && (!error)) {
         $jsilbrowserstate.allFileNames.push(filename);
         allFiles[filename.toLowerCase()] = result;
         onDoneLoading(null); 
@@ -284,7 +305,7 @@ var assetLoaders = {
   },
   "SoundBank": function loadSoundBank (filename, data, onError, onDoneLoading) {
     loadTextAsync(jsilConfig.contentRoot + filename, function (result, error) {
-      if (result !== null) {
+      if ((result !== null) && (!error)) {
         var finisher = function () {
           $jsilbrowserstate.allAssetNames.push(filename);
           allAssets[getAssetName(filename)] = JSON.parse(result);
@@ -297,7 +318,7 @@ var assetLoaders = {
   },
   "Resources": function loadResources (filename, data, onError, onDoneLoading) {
     loadTextAsync(jsilConfig.scriptRoot + filename, function (result, error) {
-      if (result !== null) {
+      if ((result !== null) && (!error)) {
         var finisher = function () {
           $jsilbrowserstate.allAssetNames.push(filename);
           allAssets[getAssetName(filename)] = JSON.parse(result);
@@ -313,7 +334,7 @@ var assetLoaders = {
 function $makeXNBAssetLoader (key, typeName) {
   assetLoaders[key] = function (filename, data, onError, onDoneLoading) {
     loadBinaryFileAsync(jsilConfig.contentRoot + filename, function (result, error) {
-      if (result !== null) {
+      if ((result !== null) && (!error)) {
         var finisher = function () {
           $jsilbrowserstate.allAssetNames.push(filename);
           var key = getAssetName(filename, false);

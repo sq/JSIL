@@ -521,6 +521,17 @@ function finishLoading () {
         if (typeof (cb) === "function") {
           cb(state);
         }
+      } catch (exc) {
+        state.assetLoadFailures.push(
+          [item[3], exc]
+        );
+
+        if (jsilConfig.onLoadFailure) {
+          try {
+            jsilConfig.onLoadFailure(item[3], exc);
+          } catch (exc2) {
+          }
+        }
       } finally {
         state.finishIndex += 1;
         state.assetsFinished += 1;
@@ -530,9 +541,13 @@ function finishLoading () {
 
       updateProgressBar("Starting game", null, 1, 1);
 
+      var allFailures = $jsilloaderstate.loadFailures.concat(state.assetLoadFailures);
+
       window.clearInterval(state.interval);
       state.interval = null;
-      window.setTimeout(state.onDoneLoading, 10);
+      window.setTimeout(
+        state.onDoneLoading.bind(window, allFailures), 10
+      );
       return;
     }
   }
@@ -579,6 +594,17 @@ function pollAssetQueue () {
         errorText = e.statusText;
       else
         errorText = String(e);
+
+      state.assetLoadFailures.push(
+        [assetPath, errorText]
+      );
+
+      if (jsilConfig.onLoadFailure) {
+        try {
+          jsilConfig.onLoadFailure(item[3], errorText);
+        } catch (exc2) {
+        }
+      }
 
       JSIL.Host.logWriteLine("The asset '" + assetSpec + "' could not be loaded:" + errorText);
     };    
@@ -678,6 +704,7 @@ function loadAssets (assets, onDoneLoading) {
     pendingScriptLoads: 0,
     jsilInitialized: false,
     assetsLoadingNames: {},
+    assetLoadFailures: [],
     failedFinishes: 0
   };
 
@@ -743,11 +770,15 @@ function beginLoading () {
   }
   
   JSIL.Host.logWrite("Loading data ... ");
-  loadAssets(allAssetsToLoad, function () {
+  loadAssets(allAssetsToLoad, function (loadFailures) {
     $jsilbrowserstate.isLoading = false;
     $jsilbrowserstate.isLoaded = true;
 
-    JSIL.Host.logWriteLine("done.");
+    if (loadFailures && (loadFailures.length > 0)) {
+      JSIL.Host.logWriteLine("failed.");
+    } else {
+      JSIL.Host.logWriteLine("done.");
+    }
     try {     
       if (quitButton)
         quitButton.style.display = "";
@@ -757,6 +788,9 @@ function beginLoading () {
 
       if (stats)
         stats.style.display = "";
+
+      if (jsilConfig.onLoadFailed && loadFailures && (loadFailures.length > 0))
+        jsilConfig.onLoadFailed(loadFailures);
 
       $jsilbrowserstate.mainRunAtTime = Date.now();
       $jsilbrowserstate.isMainRunning = true;
