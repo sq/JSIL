@@ -135,9 +135,9 @@ namespace JSIL.Transforms {
                         (uoe.Operator == JSOperator.PostIncrement) || 
                         (uoe.Operator == JSOperator.PostDecrement)
                     ) {
-                        // FIXME: Terrible hack oh god (also not strict mode safe)
-                        var tempVariable = new JSRawOutputIdentifier(
-                            (output) => output.WriteRaw("$temp"), type
+                        // FIXME: Terrible hack
+                        var tempVariable = TemporaryVariable.ForFunction(
+                            Stack.Last() as JSFunctionExpression, type
                         );
                         var makeTempCopy = new JSBinaryOperatorExpression(
                             JSOperator.Assignment, tempVariable, uoe.Expression, type

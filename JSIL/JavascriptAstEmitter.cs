@@ -792,6 +792,18 @@ namespace JSIL {
                 (o) => o.WriteParameterList(function.Parameters)
             );
 
+            if (function.TemporaryVariableCount > 0) {
+                Output.WriteRaw("var ");
+                for (var i = 0; i < function.TemporaryVariableCount; i++) {
+                    Output.WriteRaw("$temp{0:X2}", i);
+
+                    if (i < (function.TemporaryVariableCount - 1))
+                        Output.WriteRaw(", ");
+                    else
+                        Output.Semicolon();
+                }
+            }
+
             Visit(function.Body);
 
             Output.CloseBrace(false);

@@ -638,4 +638,15 @@ namespace JSIL.Internal {
             return obj.GetHashCode();
         }
     }
+
+    public class TemporaryVariable {
+        public static JSRawOutputIdentifier ForFunction (
+            JSFunctionExpression function, TypeReference type
+        ) {
+            var id = String.Format("$temp{0:X2}", function.TemporaryVariableCount++);
+            return new JSRawOutputIdentifier(
+                (jsf) => jsf.WriteRaw(id), type
+            );
+        }
+    }
 }

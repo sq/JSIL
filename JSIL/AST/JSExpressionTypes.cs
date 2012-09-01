@@ -22,6 +22,8 @@ namespace JSIL.Ast {
         public readonly IEnumerable<JSVariable> Parameters;
         public readonly JSBlockStatement Body;
 
+        public int TemporaryVariableCount = 0;
+
         public string DisplayName = null;
 
         public JSFunctionExpression (

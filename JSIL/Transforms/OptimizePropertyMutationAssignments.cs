@@ -33,10 +33,10 @@ namespace JSIL.Transforms {
                 ((assignmentOperator = boe.Operator as JSAssignmentOperator) != null) &&
                 IntroduceEnumCasts.ReverseCompoundAssignments.TryGetValue(assignmentOperator, out newOperator)
             ) {
-                // FIXME: Terrible hack oh god (also not strict mode safe)
+                // FIXME: Terrible hack
                 var type = pa.GetActualType(TypeSystem);
-                var tempVariable = new JSRawOutputIdentifier(
-                    (output) => output.WriteRaw("$temp"), type
+                var tempVariable = TemporaryVariable.ForFunction(
+                    Stack.Last() as JSFunctionExpression, type
                 );
                 var replacement = new JSCommaExpression(
                     new JSBinaryOperatorExpression(
