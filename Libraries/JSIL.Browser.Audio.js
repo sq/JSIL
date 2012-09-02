@@ -195,7 +195,11 @@ function loadWebkitSound (audioInfo, filename, data, onError, onDoneLoading) {
       };
 
       // Decode should really happen in the finisher stage, but that stage isn't parallel.
-      audioInfo.audioContext.decodeAudioData(result.buffer, decodeCompleteCallback, decodeFailedCallback);
+      try {
+        audioInfo.audioContext.decodeAudioData(result.buffer, decodeCompleteCallback, decodeFailedCallback);
+      } catch (exc) {
+        handleError(exc);
+      }
     } else {
       handleError(error);
     }
@@ -417,8 +421,15 @@ function initSoundLoader () {
     return null;
   };
 
-  if (audioInfo.hasAudioContext)
+  if (audioInfo.hasAudioContext) {
     audioInfo.audioContext = new audioContextCtor();  
+    // Firefox exposes the AudioContext ctor without actually implementing the API
+    audioInfo.hasAudioContext =
+      audioInfo.audioContext.decodeAudioData && 
+      audioInfo.audioContext.createBufferSource &&
+      audioInfo.audioContext.createGainNode &&
+      audioInfo.audioContext.destination;
+  }
 
   assetLoaders["Sound"] = loadSoundGeneric.bind(null, audioInfo);
 
