@@ -267,7 +267,7 @@ function loadBufferedHTML5Sound (audioInfo, filename, data, onError, onDoneLoadi
 
       var objectUrl = window.URL.createObjectURL(blob);
 
-      var createInstance = function createStreamingSoundInstance (loopCount) {
+      var createInstance = function createBufferedSoundInstance (loopCount) {
         var e = audioInfo.makeAudioInstance();
         e.setAttribute("preload", "auto");
         e.setAttribute("autobuffer", "true");

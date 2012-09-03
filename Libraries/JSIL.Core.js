@@ -3269,11 +3269,13 @@ JSIL.$ActuallyMakeCastMethods = function (publicInterface, typeObject, specialTy
   if (!publicInterface)
     throw new Error("Null public interface");
 
+  JSIL.InitializeType(publicInterface);
+
   var castFunction, asFunction, isFunction;
   var customCheckOnly = false;
   var checkMethod = publicInterface.CheckType || null;
   var typeId = typeObject.__TypeId__;
-  var assignableFromTypes = typeObject.__AssignableFromTypes__;
+  var assignableFromTypes = typeObject.__AssignableFromTypes__ || {};
 
   typeObject.__CastSpecialType__ = specialType;
   var typeName = JSIL.GetTypeName(typeObject);
