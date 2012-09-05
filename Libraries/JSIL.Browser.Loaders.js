@@ -439,8 +439,6 @@ function initBlobBuilder () {
 function getObjectURLForBytes (bytes, mimeType) {
   if (!blobBuilderInfo.hasObjectURL)
     throw new Error("Object URLs not available");
-  else if (!blobBuilderInfo.hasBlobBuilder)
-    throw new Error("Blobs not available");
   else if (!("Uint8Array" in window))
     throw new Error("Typed arrays not available");
 
@@ -455,6 +453,8 @@ function getObjectURLForBytes (bytes, mimeType) {
     var bb = new blobBuilderInfo.blobBuilder();
     bb.append(bytes.buffer);
     blob = bb.getBlob(mimeType);
+  } else {
+    throw new Error("Blobs not available");
   }
 
   if (!blob)
