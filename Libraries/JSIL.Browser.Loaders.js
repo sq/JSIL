@@ -45,6 +45,9 @@ function doXHR (uri, asBinary, onComplete) {
         if (!warnedAboutCORS) {
           JSIL.Host.logWriteLine("WARNING: This game requires support for CORS, and your browser does not appear to have it. Loading may fail.");
           warnedAboutCORS = true;
+
+          onComplete(null, "CORS unavailable");
+          return;
         }
       }
     }
@@ -280,6 +283,9 @@ var assetLoaders = {
         if (!warnedAboutCORSImage) {
           JSIL.Host.logWriteLine("WARNING: This game requires support for CORS, and your browser does not support it for images.");
           warnedAboutCORSImage = true;
+
+          onError("CORS unavailable");
+          return;
         }
       }
     }
