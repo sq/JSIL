@@ -248,24 +248,11 @@ function loadBufferedHTML5Sound (audioInfo, filename, data, onError, onDoneLoadi
 
   loadBinaryFileAsync(uri, function finishBufferingSound (result, error) {
     if ((result !== null) && (!error)) {
-      var blob = null;
-
       try {
-        if (audioInfo.hasBlobCtor) {
-          blob = new Blob([result.buffer], { type: mimeType[0] });
-        } else if (audioInfo.hasBlobBuilder) {
-          var bb = new audioInfo.blobBuilder();
-          bb.append(result.buffer.buffer);
-          blob = bb.getBlob(mimeType[0]);
-        }
+        var objectUrl = getObjectURLForBytes(result, mimeType[0]);
       } catch (exc) {
         return handleError(exc);
       }
-
-      if (!blob)
-        return handleError("Failed to buffer sound into blob");
-
-      var objectUrl = window.URL.createObjectURL(blob);
 
       var createInstance = function createBufferedSoundInstance (loopCount) {
         var e = audioInfo.makeAudioInstance();
@@ -335,24 +322,13 @@ function loadSoundGeneric (audioInfo, filename, data, onError, onDoneLoading) {
 
 function initSoundLoader () {
   var audioContextCtor = window.webkitAudioContext || window.mozAudioContext || window.AudioContext;
-  var blobBuilder = window.WebKitBlobBuilder || window.mozBlobBuilder || window.MSBlobBuilder || window.BlobBuilder;
 
-  var audioInfo = {
-    hasAudioContext: typeof (audioContextCtor) === "function",
-    hasObjectURL: (typeof (window.URL) !== "undefined") && (typeof (window.URL.createObjectURL) === "function"),
-    hasBlobBuilder: Boolean(blobBuilder),
-    blobBuilder: blobBuilder,
-    hasBlobCtor: false,
-    audioContext: null,
-    testAudioInstance: null,
-    disableSound: window.location.search.indexOf("noSound") >= 0
-  };
+  var audioInfo = Object.create(blobBuilderInfo);
 
-  try {
-    var blob = new Blob();
-    audioInfo.hasBlobCtor = Boolean(blob);
-  } catch (exc) {
-  }
+  audioInfo.hasAudioContext = typeof (audioContextCtor) === "function";
+  audioInfo.audioContext = null;
+  audioInfo.testAudioInstance = null;
+  audioInfo.disableSound = window.location.search.indexOf("noSound") >= 0;
 
   try {
     audioInfo.testAudioInstance = document.createElement("audio");

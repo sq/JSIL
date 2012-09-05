@@ -15,7 +15,12 @@ JSIL.loadGlobalScript = function (uri, onComplete) {
   body.appendChild(scriptTag);
 };
 
+var warnedAboutOpera = false;
 var warnedAboutCORS = false;
+var warnedAboutCORSImage = false;
+var hasCORSXhr = false, hasCORSImage = false;
+var blobBuilderInfo = {
+};
 
 function doXHR (uri, asBinary, onComplete) {
   var req = null, isXDR = false;
@@ -45,10 +50,10 @@ function doXHR (uri, asBinary, onComplete) {
         if (!warnedAboutCORS) {
           JSIL.Host.logWriteLine("WARNING: This game requires support for CORS, and your browser does not appear to have it. Loading may fail.");
           warnedAboutCORS = true;
-
-          onComplete(null, "CORS unavailable");
-          return;
         }
+
+        onComplete(null, "CORS unavailable");
+        return;
       }
     }
   }
@@ -183,8 +188,6 @@ function postProcessResultNormal (bytes) {
   return bytes;
 };
 
-var warnedAboutOpera = false;
-
 function postProcessResultOpera (bytes) {
   // Opera sniffs content types on request bodies and if they're text, converts them to 16-bit unicode :|
 
@@ -223,8 +226,6 @@ function loadBinaryFileAsync (uri, onComplete) {
       onComplete(null, error);
   });
 }
-
-var warnedAboutCORSImage = false;
 
 var finishLoadingScript = function (state, path) {
   state.pendingScriptLoads += 1;
@@ -277,16 +278,23 @@ var assetLoaders = {
   "Image": function loadImage (filename, data, onError, onDoneLoading) {
     var e = document.createElement("img");
     if (jsilConfig.CORS) {
-      if ("crossOrigin" in e) {
+      if (hasCORSImage) {
         e.crossOrigin = "";
+      } else if (hasCORSXhr) {
+        if (!warnedAboutCORSImage) {
+          JSIL.Host.logWriteLine("WARNING: This game requires support for CORS, and your browser does not support it for images. Using workaround...");
+          warnedAboutCORSImage = true;
+        }
+
+        return loadImageCORSHack(filename, data, onError, onDoneLoading);
       } else {
         if (!warnedAboutCORSImage) {
-          JSIL.Host.logWriteLine("WARNING: This game requires support for CORS, and your browser does not support it for images.");
+          JSIL.Host.logWriteLine("WARNING: This game requires support for CORS, and your browser does not support it.");
           warnedAboutCORSImage = true;
-
-          onError("CORS unavailable");
-          return;
         }
+
+        onError("CORS unavailable");
+        return;
       }
     }
 
@@ -357,7 +365,107 @@ function $makeXNBAssetLoader (key, typeName) {
   };
 };
 
+function loadImageCORSHack (filename, data, onError, onDoneLoading) {
+  var sourceURL = jsilConfig.contentRoot + filename;
+
+  // FIXME: Pass mime type through from original XHR somehow?
+  var mimeType = "application/octet-stream";
+  var sourceURLLower = sourceURL.toLowerCase();
+  if (sourceURLLower.indexOf(".png") >= 0) {
+    mimeType = "image/png";
+  } else if (
+    (sourceURLLower.indexOf(".jpg") >= 0) ||
+    (sourceURLLower.indexOf(".jpeg") >= 0)
+  ) {
+    mimeType = "image/jpeg";
+  }
+
+  loadBinaryFileAsync(sourceURL, function (result, error) {
+    if ((result !== null) && (!error)) {
+      var objectURL = null;
+      try {
+        objectURL = getObjectURLForBytes(result, mimeType);
+      } catch (exc) {
+        onError(exc);
+        return;
+      }
+
+      var e = document.createElement("img");
+      var finisher = function () {
+        $jsilbrowserstate.allAssetNames.push(filename);
+        allAssets[getAssetName(filename)] = new HTML5ImageAsset(getAssetName(filename, true), e);
+      };
+      e.addEventListener("error", onError, true);
+      e.addEventListener("load", onDoneLoading.bind(null, finisher), true);
+      e.src = objectURL;
+    } else {
+      onError(error);
+    }
+  });
+};
+
+function initCORSHack () {
+  hasCORSXhr = false;
+  hasCORSImage = false;
+
+  try {
+    var xhr = new XMLHttpRequest();
+    hasCORSXhr = xhr && ("withCredentials" in xhr);
+  } catch (exc) {
+  }
+
+  try {
+    var img = document.createElement("img");
+    hasCORSImage = img && ("crossOrigin" in img);
+  } catch (exc) {
+  }
+}
+
+function initBlobBuilder () {
+  var blobBuilder = window.WebKitBlobBuilder || window.mozBlobBuilder || window.MSBlobBuilder || window.BlobBuilder;
+
+  blobBuilderInfo.hasObjectURL = (typeof (window.URL) !== "undefined") && (typeof (window.URL.createObjectURL) === "function");
+  blobBuilderInfo.hasBlobBuilder = Boolean(blobBuilder);
+  blobBuilderInfo.blobBuilder = blobBuilder;
+  blobBuilderInfo.hasBlobCtor = false;
+
+  try {
+    var blob = new Blob();
+    blobBuilderInfo.hasBlobCtor = Boolean(blob);
+  } catch (exc) {
+  }
+}
+
+function getObjectURLForBytes (bytes, mimeType) {
+  if (!blobBuilderInfo.hasObjectURL)
+    throw new Error("Object URLs not available");
+  else if (!blobBuilderInfo.hasBlobBuilder)
+    throw new Error("Blobs not available");
+  else if (!("Uint8Array" in window))
+    throw new Error("Typed arrays not available");
+
+  var blob = null;
+
+  if (Object.getPrototypeOf(bytes) !== Uint8Array.prototype)
+    throw new Error("bytes must be a Uint8Array");
+
+  if (blobBuilderInfo.hasBlobCtor) {
+    blob = new Blob([bytes], { type: mimeType });
+  } else if (blobBuilderInfo.hasBlobBuilder) {
+    var bb = new blobBuilderInfo.blobBuilder();
+    bb.append(bytes.buffer);
+    blob = bb.getBlob(mimeType);
+  }
+
+  if (!blob)
+    throw new Error("Failed to create blob");
+
+  return window.URL.createObjectURL(blob);
+}
+
 function initAssetLoaders () {
+  initBlobBuilder();
+  initCORSHack();
   initSoundLoader();
 
   $makeXNBAssetLoader("XNB", "RawXNBAsset");
