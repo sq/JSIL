@@ -395,9 +395,10 @@ namespace JSIL {
         protected JSExpression Translate_ConstructorReplacement (
             MethodReference constructor, Internal.MethodInfo constructorInfo, JSNewExpression newExpression
         ) {
+            var instanceType = newExpression.GetActualType(TypeSystem);
             var jsr = HandleJSReplacement(
-                constructor, constructorInfo, null, newExpression.Arguments.ToArray(),
-                newExpression.GetActualType(TypeSystem)
+                constructor, constructorInfo, new JSNullLiteral(instanceType), newExpression.Arguments.ToArray(),
+                instanceType
             );
             if (jsr != null)
                 return jsr;
