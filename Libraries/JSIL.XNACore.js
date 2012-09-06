@@ -3683,7 +3683,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadButtons", function
 
   var makeButtonGetter = function (buttonName) {
     return function getButtonState () {
-      var key = buttons[buttonName];
+      var key = buttons[buttonName].valueOf();
       return this._state[key] || released;
     };
   }
