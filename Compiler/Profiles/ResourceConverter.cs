@@ -10,6 +10,11 @@ using JSIL.Compiler;
 
 namespace JSIL.Utilities {
     public static class ResourceConverter {
+        public static void ConvertResources (Configuration configuration, string assemblyPath, TranslationResult result) {
+            ConvertEmbeddedResources(configuration, assemblyPath, result);
+            ConvertSatelliteResources(configuration, assemblyPath, result);
+        }
+
         public static void ConvertEmbeddedResources (Configuration configuration, string assemblyPath, TranslationResult result) {
             var asm = Assembly.ReflectionOnlyLoadFrom(assemblyPath);
 
@@ -17,6 +22,8 @@ namespace JSIL.Utilities {
             var encoding = new UTF8Encoding(false);
 
             foreach (var resourceName in resourceFiles) {
+                Console.WriteLine(resourceName);
+
                 if (!resourceName.EndsWith(".resources"))
                     continue;
 
@@ -31,11 +38,20 @@ namespace JSIL.Utilities {
             }
         }
 
-        public static string ConvertEmbeddedResourceFile (Configuration configuration, string assemblyName, Assembly assembly, string resourceName) {
+        public static void ConvertSatelliteResources (Configuration configuration, string assemblyPath, TranslationResult result) {
+            var satelliteResourceAssemblies = Directory.GetFiles(
+                Path.GetDirectoryName(assemblyPath), "*.resources.dll", SearchOption.AllDirectories
+            );
+
+            foreach (var satelliteResourceAssembly in satelliteResourceAssemblies) {
+                ConvertEmbeddedResources(configuration, satelliteResourceAssembly, result);
+            }
+        }
+
+        public static string ConvertResources (Stream resourceStream) {
             var output = new StringBuilder();
 
-            using (var stream = assembly.GetManifestResourceStream(resourceName))
-            using (var reader = new ResourceReader(stream)) {
+            using (var reader = new ResourceReader(resourceStream)) {
                 output.AppendLine("{");
 
                 bool first = true;
@@ -48,7 +64,7 @@ namespace JSIL.Utilities {
                         first = false;
 
                     var key = Convert.ToString(e.Key);
-                    output.AppendFormat("    {0}: ", JSIL.Internal.Util.EscapeString(key));
+                    output.AppendFormat("    {0}: ", JSIL.Internal.Util.EscapeString(key, forJson: true));
 
                     var value = e.Value;
 
@@ -57,7 +73,7 @@ namespace JSIL.Utilities {
                     } else {
                         switch (value.GetType().FullName) {
                             case "System.String":
-                                output.Append(JSIL.Internal.Util.EscapeString((string)value));
+                                output.Append(JSIL.Internal.Util.EscapeString((string)value, forJson:true));
                                 break;
                             case "System.Single":
                             case "System.Double":
@@ -70,7 +86,7 @@ namespace JSIL.Utilities {
                                 output.Append(Convert.ToString(value));
                                 break;
                             default:
-                                output.Append(JSIL.Internal.Util.EscapeString(Convert.ToString(value)));
+                                output.Append(JSIL.Internal.Util.EscapeString(Convert.ToString(value), forJson: true));
                                 break;
                         }
                     }
@@ -81,6 +97,11 @@ namespace JSIL.Utilities {
             }
 
             return output.ToString();
+        }
+
+        public static string ConvertEmbeddedResourceFile (Configuration configuration, string assemblyName, Assembly assembly, string resourceName) {
+            using (var stream = assembly.GetManifestResourceStream(resourceName))
+                return ConvertResources(stream);
         }
     }
 }

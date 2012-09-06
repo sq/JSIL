@@ -217,9 +217,11 @@ namespace JSIL.SolutionBuilder {
         public static BuildResult Build (
             string solutionFile, string buildConfiguration = null, 
             string buildPlatform = null, string buildTarget = "Build", 
-            string logVerbosity = null, bool inProcess = false
+            string logVerbosity = null, bool? inProcess = null
         ) {
-            if (!inProcess) {
+            bool defaultInProcess = Debugger.IsAttached;
+
+            if (!inProcess.GetValueOrDefault(defaultInProcess)) {
                 var argsDict = new Dictionary<string, object> {
                     {"solutionFile", solutionFile},
                     {"buildConfiguration", buildConfiguration},

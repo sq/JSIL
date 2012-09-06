@@ -28,7 +28,7 @@ namespace JSIL.Utilities {
             Output.WriteLine("// {0}\r\n", JSIL.AssemblyTranslator.GetHeaderText());
             Output.WriteLine();
             Output.WriteLine("if (typeof (contentManifest) !== \"object\") { contentManifest = {}; };");
-            Output.WriteLine("contentManifest[{0}] = [", JSIL.Internal.Util.EscapeString(Name));
+            Output.WriteLine("contentManifest[{0}] = [", JSIL.Internal.Util.EscapeString(Name, forJson: true));
         }
 
         private void WriteFooter () {
@@ -40,8 +40,8 @@ namespace JSIL.Utilities {
 
             Output.WriteLine(
                 "    [{0}, {1}, {2}],",
-                JSIL.Internal.Util.EscapeString(type),
-                JSIL.Internal.Util.EscapeString(path),
+                JSIL.Internal.Util.EscapeString(type, forJson: true),
+                JSIL.Internal.Util.EscapeString(path, forJson: true),
                 Serializer.Serialize(properties)
             );
         }

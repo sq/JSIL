@@ -118,7 +118,7 @@ namespace JSIL.Ast {
         }
 
         public override string ToString () {
-            return Util.EscapeCharacter(Value);
+            return Util.EscapeCharacter(Value, true);
         }
     }
 
