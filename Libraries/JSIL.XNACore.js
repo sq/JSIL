@@ -3398,7 +3398,7 @@ $jsilxna.deadZone = function (value, max, deadZoneSize) {
 $jsilxna.deadZoneToPressed = function (value, max, deadZoneSize) {
   var pressed = $xnaasms[0].Microsoft.Xna.Framework.Input.ButtonState.Pressed;
   var released = $xnaasms[0].Microsoft.Xna.Framework.Input.ButtonState.Released;
-  
+
   var scaled = $jsilxna.deadZone(value, max, deadZoneSize);
   if (Math.abs(scaled) > 0)
     return pressed;
@@ -3469,26 +3469,30 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePad", function ($) {
     if (state) {
       connected = true;
 
-      buttonStates = buttonsFromGamepadState(state);
+      var blockInput = $jsilbrowserstate && $jsilbrowserstate.blockGamepadInput;
 
-      // FIXME: This is IndependentAxes mode. Maybe handle Circular too?
-      var leftStickDeadZone = 7849 / 32767;
-      var rightStickDeadZone = 8689 / 32767;
+      if (!blockInput) {
+        buttonStates = buttonsFromGamepadState(state);
 
-      leftThumbstick.X  = $jsilxna.deadZone(state.leftStickX, 1, leftStickDeadZone);
-      rightThumbstick.X = $jsilxna.deadZone(state.rightStickX, 1, rightStickDeadZone);
+        // FIXME: This is IndependentAxes mode. Maybe handle Circular too?
+        var leftStickDeadZone = 7849 / 32767;
+        var rightStickDeadZone = 8689 / 32767;
 
-      // gamepad.js returns inverted Y compared to XInput... weird.
-      leftThumbstick.Y  = -$jsilxna.deadZone(state.leftStickY, 1, leftStickDeadZone);
-      rightThumbstick.Y = -$jsilxna.deadZone(state.rightStickY, 1, rightStickDeadZone);
+        leftThumbstick.X  = $jsilxna.deadZone(state.leftStickX, 1, leftStickDeadZone);
+        rightThumbstick.X = $jsilxna.deadZone(state.rightStickX, 1, rightStickDeadZone);
 
-      leftTrigger  = state.leftShoulder1;
-      rightTrigger = state.rightShoulder1;
+        // gamepad.js returns inverted Y compared to XInput... weird.
+        leftThumbstick.Y  = -$jsilxna.deadZone(state.leftStickY, 1, leftStickDeadZone);
+        rightThumbstick.Y = -$jsilxna.deadZone(state.rightStickY, 1, rightStickDeadZone);
 
-      dpadUp    = state.dpadUp    ? pressed : released;
-      dpadDown  = state.dpadDown  ? pressed : released;
-      dpadLeft  = state.dpadLeft  ? pressed : released;
-      dpadRight = state.dpadRight ? pressed : released;          
+        leftTrigger  = state.leftShoulder1;
+        rightTrigger = state.rightShoulder1;
+
+        dpadUp    = state.dpadUp    ? pressed : released;
+        dpadDown  = state.dpadDown  ? pressed : released;
+        dpadLeft  = state.dpadLeft  ? pressed : released;
+        dpadRight = state.dpadRight ? pressed : released;
+      }
     }
 
     var buttons = new Microsoft.Xna.Framework.Input.GamePadButtons(

@@ -15,7 +15,9 @@ var $jsilbrowserstate = window.$jsilbrowserstate = {
   isLoaded: false,
   isMainRunning: false,
   hasMainRun: false,
-  mainRunAtTime: 0
+  mainRunAtTime: 0,
+  blockKeyboardInput: false,
+  blockGamepadInput: false
 };
     
 JSIL.Host.getCanvas = function (desiredWidth, desiredHeight) {
