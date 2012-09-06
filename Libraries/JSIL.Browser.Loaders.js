@@ -434,6 +434,12 @@ function initBlobBuilder () {
     blobBuilderInfo.hasBlobCtor = Boolean(blob);
   } catch (exc) {
   }
+
+  if (navigator.userAgent.indexOf("Firefox/14.") >= 0) {
+    JSIL.Host.logWriteLine("Your browser has a serious bug that affects Escape Goat. Please update to a newer version.");
+    blobBuilderInfo.hasBlobBuilder = false;
+    blobBuilderInfo.hasBlobCtor = false;
+  }
 }
 
 function getObjectURLForBytes (bytes, mimeType) {
@@ -447,18 +453,26 @@ function getObjectURLForBytes (bytes, mimeType) {
   if (Object.getPrototypeOf(bytes) !== Uint8Array.prototype)
     throw new Error("bytes must be a Uint8Array");
 
-  if (blobBuilderInfo.hasBlobCtor) {
-    blob = new Blob([bytes], { type: mimeType });
-  } else if (blobBuilderInfo.hasBlobBuilder) {
-    var bb = new blobBuilderInfo.blobBuilder();
-    bb.append(bytes.buffer);
-    blob = bb.getBlob(mimeType);
-  } else {
-    throw new Error("Blobs not available");
+  try {
+    if (blobBuilderInfo.hasBlobCtor) {
+      blob = new Blob([bytes], { type: mimeType });
+    }
+  } catch (exc) {
+  }
+
+  if (!blob) {
+    try {
+      if (blobBuilderInfo.hasBlobBuilder) {
+        var bb = new blobBuilderInfo.blobBuilder();
+        bb.append(bytes.buffer);
+        blob = bb.getBlob(mimeType);
+      }
+    } catch (exc) {
+    }
   }
 
   if (!blob)
-    throw new Error("Failed to create blob");
+    throw new Error("Blob API broken or not available");
 
   return window.URL.createObjectURL(blob);
 }
