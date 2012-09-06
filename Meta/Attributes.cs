@@ -80,6 +80,17 @@ namespace JSIL.Meta {
     }
 
     /// <summary>
+    /// Specifies that uses of this constructor should be replaced with invocations of a static method.
+    /// </summary>
+    [AttributeUsage(
+        AttributeTargets.Constructor
+    )]
+    public class JSChangeToStaticMethod : Attribute {
+        public JSChangeToStaticMethod (string staticMethodName) {
+        }
+    }
+
+    /// <summary>
     /// Specifies that, if overloaded, the correct overload of this method to invoke should be decided at runtime instead of compile time.
     /// </summary>
     [AttributeUsage(

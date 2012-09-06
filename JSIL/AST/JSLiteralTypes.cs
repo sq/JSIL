@@ -251,12 +251,12 @@ namespace JSIL.Ast {
     }
 
     public class JSVerbatimLiteral : JSLiteral {
-        public readonly JSMethod OriginalMethod;
+        public readonly MethodReference OriginalMethod;
         public readonly TypeReference Type;
         public readonly string Expression;
         public readonly IDictionary<string, JSExpression> Variables;
 
-        public JSVerbatimLiteral (JSMethod originalMethod, string expression, IDictionary<string, JSExpression> variables, TypeReference type = null)
+        public JSVerbatimLiteral (MethodReference originalMethod, string expression, IDictionary<string, JSExpression> variables, TypeReference type = null)
             : base(GetValues(variables)) {
 
             OriginalMethod = originalMethod;
@@ -299,7 +299,7 @@ namespace JSIL.Ast {
                 variablesText = String.Join(", ", (from kvp in Variables select String.Format("{0}={1}", kvp.Key, kvp.Value)).ToArray());
 
             return String.Format(
-                "Verbatim {0} ({1})", OriginalMethod,
+                "Verbatim {0} ({1})", OriginalMethod.Name,
                 variablesText
             );
         }

@@ -448,5 +448,14 @@ namespace JSIL.Tests {
                 Assert.IsTrue(jse.ToString().Contains("TypeError: obj is undefined"), jse.ToString());
             }
         }
+
+        [Test]
+        public void JSReplacementReplacesConstructors () {
+            var generatedJs = GenericTest(
+                @"SpecialTestCases\ReplaceConstructor.cs",
+                "1",
+                "myclass1"
+            );
+        }
     }
 }

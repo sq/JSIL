@@ -219,6 +219,7 @@
     <None Include="SimpleTestCases\EnumInPlaceAdd.cs" />
     <None Include="SpecialTestCases\PropertyIncrementEfficiency.cs" />
     <None Include="SimpleTestCases\EnumerableStringMethod.cs" />
+    <None Include="SpecialTestCases\ReplaceConstructor.cs" />
     <Compile Include="XMLTests.cs" />
     <Compile Include="DependencyTests.cs" />
     <None Include="TestCases\GenericParameterNameShadowing.cs" />

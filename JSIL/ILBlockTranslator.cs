@@ -363,6 +363,48 @@ namespace JSIL {
             return result;
         }
 
+        protected JSVerbatimLiteral HandleJSReplacement (
+            MethodReference method, Internal.MethodInfo methodInfo, 
+            JSExpression thisExpression, JSExpression[] arguments,
+            TypeReference resultType
+        ) {
+            var metadata = methodInfo.Metadata;
+            if (metadata != null) {
+                var parms = metadata.GetAttributeParameters("JSIL.Meta.JSReplacement");
+                if (parms != null) {
+                    var argsDict = new Dictionary<string, JSExpression>();
+
+                    if (thisExpression != null) {
+                        argsDict["this"] = thisExpression;
+                        argsDict["typeof(this)"] = Translate_TypeOf(thisExpression.GetActualType(TypeSystem));
+                    }
+
+                    foreach (var kvp in methodInfo.Parameters.Zip(arguments, (p, v) => new { p.Name, Value = v })) {
+                        argsDict.Add(kvp.Name, kvp.Value);
+                    }
+
+                    return new JSVerbatimLiteral(
+                        method, (string)parms[0].Value, argsDict, resultType
+                    );
+                }
+            }
+
+            return null;
+        }
+
+        protected JSExpression Translate_ConstructorReplacement (
+            MethodReference constructor, Internal.MethodInfo constructorInfo, JSNewExpression newExpression
+        ) {
+            var jsr = HandleJSReplacement(
+                constructor, constructorInfo, null, newExpression.Arguments.ToArray(),
+                newExpression.GetActualType(TypeSystem)
+            );
+            if (jsr != null)
+                return jsr;
+
+            return newExpression;
+        }
+
         protected JSExpression Translate_MethodReplacement (
             JSMethod method, JSExpression thisExpression, 
             JSExpression[] arguments, bool @virtual, bool @static, bool explicitThis
@@ -374,20 +416,12 @@ namespace JSIL {
                 retry = false;
                 var metadata = methodInfo.Metadata;
                 if (metadata != null) {
-                    var parms = metadata.GetAttributeParameters("JSIL.Meta.JSReplacement");
-                    if (parms != null) {
-                        var argsDict = new Dictionary<string, JSExpression>();
-                        argsDict["this"] = thisExpression;
-                        argsDict["typeof(this)"] = Translate_TypeOf(thisExpression.GetActualType(TypeSystem));
-
-                        foreach (var kvp in methodInfo.Parameters.Zip(arguments, (p, v) => new { p.Name, Value = v })) {
-                            argsDict.Add(kvp.Name, kvp.Value);
-                        }
-
-                        return new JSVerbatimLiteral(
-                            method, (string)parms[0].Value, argsDict, method.Method.ReturnType
-                        );
-                    }
+                    var jsr = HandleJSReplacement(
+                        method.Reference, methodInfo, thisExpression, arguments,
+                        method.Reference.ReturnType
+                    );
+                    if (jsr != null)
+                        return jsr;
 
                     // Proxy method bodies can call other methods declared on the proxy
                     //  that are actually stand-ins for methods declared on the proxied type.
@@ -429,7 +463,7 @@ namespace JSIL {
                         throw new InvalidOperationException("JSIL.Verbatim.Expression must recieve a string literal as an argument");
 
                     return new JSVerbatimLiteral(
-                        method, expression.Value, null, null
+                        method.Reference, expression.Value, null, null
                     );
                 }
                 case "System.Object JSIL.JSGlobal::get_Item(System.String)": {
@@ -487,8 +521,10 @@ namespace JSIL {
 
             var parms = method.Method.Metadata.GetAttributeParameters("JSIL.Meta.JSReplacement") ??
                 propertyInfo.Metadata.GetAttributeParameters("JSIL.Meta.JSReplacement");
+
             if (parms != null) {
                 var argsDict = new Dictionary<string, JSExpression>();
+
                 argsDict["this"] = thisExpression;
                 argsDict["typeof(this)"] = Translate_TypeOf(thisExpression.GetActualType(TypeSystem));
 
@@ -496,7 +532,9 @@ namespace JSIL {
                     argsDict.Add(kvp.Name, kvp.Value);
                 }
 
-                return new JSVerbatimLiteral(method, (string)parms[0].Value, argsDict, propertyInfo.ReturnType);
+                return new JSVerbatimLiteral(
+                    method.Reference, (string)parms[0].Value, argsDict, propertyInfo.ReturnType
+                );
             }
 
             var thisType = TypeUtil.GetTypeDefinition(thisExpression.GetActualType(TypeSystem));
@@ -2081,9 +2119,11 @@ namespace JSIL {
             if ((methodInfo == null) || methodInfo.IsIgnored)
                 return new JSIgnoredMemberReference(true, methodInfo, arguments);
 
-            return new JSNewExpression(
+            var result = new JSNewExpression(
                 constructor.DeclaringType, constructor, methodInfo, arguments
             );
+
+            return Translate_ConstructorReplacement(constructor, methodInfo, result);
         }
 
         protected JSExpression Translate_DefaultValue (ILExpression node, TypeReference type) {
