@@ -4307,25 +4307,69 @@ $jsilxna.makeColor = function (proto, r, g, b, a) {
   return result;
 };
 
+$jsilxna.makeColorInstance = ( function () {
+  var tColor = null;
+  var ctor = null;
+
+  return function makeColorInstance () {
+    if (tColor === null) {
+      var typeName1 = JSIL.ParseTypeName("Microsoft.Xna.Framework.Color,Microsoft.Xna.Framework");
+      var typeName2 = JSIL.ParseTypeName("Microsoft.Xna.Framework.Graphics.Color,Microsoft.Xna.Framework");
+
+      tColor = JSIL.GetTypeInternal(typeName1, $jsilxna, false) || JSIL.GetTypeInternal(typeName2, $jsilxna, false);
+      var prototype = tColor.__PublicInterface__.prototype;
+
+      ctor = function Color () {
+      };
+      ctor.prototype = prototype;      
+    }
+
+    return new ctor();
+  }
+})();
+
+$jsilxna.ColorFromPremultipliedInts = function (result, r, g, b, a) {
+  if (!result)
+    result = $jsilxna.makeColorInstance();
+
+  result.r = $jsilxna.ClampByte(r);
+  result.g = $jsilxna.ClampByte(g);
+  result.b = $jsilxna.ClampByte(b);
+
+  if (arguments.length === 5)
+    result.a = $jsilxna.ClampByte(a);
+  else
+    result.a = 255;
+
+  return result;
+};
+
+$jsilxna.ColorFromPremultipliedFloats = function (result, r, g, b, a) {
+  if (!result)
+    result = $jsilxna.makeColorInstance();
+
+  result.r = $jsilxna.ClampByte(r * 255);
+  result.g = $jsilxna.ClampByte(g * 255);
+  result.b = $jsilxna.ClampByte(b * 255);
+
+  if (arguments.length === 5)
+    result.a = $jsilxna.ClampByte(a * 255);
+  else
+    result.a = 255;
+
+  return result;
+};
+
 $jsilxna.Color = function ($) {
   (function BindColorExternals () {
     var makeColor = $jsilxna.makeColor;
     var colors = $jsilxna.colors || [];
 
-    var tColor = null;
-
     var makeLazyColor = function (r, g, b, a) {
       var state = null;
       return function () {
         if (state === null) {
-          if (tColor === null) {
-            var typeName1 = JSIL.ParseTypeName("Microsoft.Xna.Framework.Color,Microsoft.Xna.Framework");
-            var typeName2 = JSIL.ParseTypeName("Microsoft.Xna.Framework.Graphics.Color,Microsoft.Xna.Framework");
-
-            tColor = JSIL.GetTypeInternal(typeName1, $jsilxna, false) || JSIL.GetTypeInternal(typeName2, $jsilxna, false);
-          }
-
-          state = JSIL.CreateInstanceOfType(tColor, null);
+          state = $jsilxna.makeColorInstance();
           state.a = a;
           state.r = r;
           state.g = g;
@@ -4396,18 +4440,18 @@ $jsilxna.Color = function ($) {
   });
 
   var ctorRgba = function (_, r, g, b, a) {
-      _.a = a;
-      _.r = r;
-      _.g = g;
-      _.b = b;
-    };
+    _.a = a;
+    _.r = r;
+    _.g = g;
+    _.b = b;
+  };
 
   var ctorRgbaFloat = function (_, r, g, b, a) {
-      _.a = $jsilxna.ClampByte(a * 255);
-      _.r = $jsilxna.ClampByte(r * 255);
-      _.g = $jsilxna.ClampByte(g * 255);
-      _.b = $jsilxna.ClampByte(b * 255);
-    };
+    _.a = $jsilxna.ClampByte(a * 255);
+    _.r = $jsilxna.ClampByte(r * 255);
+    _.g = $jsilxna.ClampByte(g * 255);
+    _.b = $jsilxna.ClampByte(b * 255);
+  };
 
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [
