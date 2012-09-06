@@ -3378,6 +3378,31 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.MouseState", function ($)
   );
 });
 
+$jsilxna.deadZone = function (value, max, deadZoneSize) {
+  if (value < -deadZoneSize)
+    value += deadZoneSize;
+  else if (value <= deadZoneSize)
+    return 0;
+  else
+    value -= deadZoneSize;
+
+  var scaled = value / (max - deadZoneSize);
+  if (scaled < -1)
+    scaled = -1;
+  else if (scaled > 1)
+    scaled = 1;
+
+  return scaled;
+};
+
+$jsilxna.deadZoneToPressed = function (value, max, deadZoneSize) {
+  var scaled = $jsilxna.deadZone(value, max, deadZoneSize);
+  if (Math.abs(scaled) > 0)
+    return pressed;
+  else
+    return released;
+};
+
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePad", function ($) {
   var buttons = $xnaasms[0].Microsoft.Xna.Framework.Input.Buttons;
   var pressed = $xnaasms[0].Microsoft.Xna.Framework.Input.ButtonState.Pressed;
@@ -3443,12 +3468,16 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePad", function ($) {
 
       buttonStates = buttonsFromGamepadState(state);
 
-      leftThumbstick.X  = state.leftStickX;
-      rightThumbstick.X = state.rightStickX;
+      // FIXME: This is IndependentAxes mode. Maybe handle Circular too?
+      var leftStickDeadZone = 7849 / 32767;
+      var rightStickDeadZone = 8689 / 32767;
+
+      leftThumbstick.X  = $jsilxna.deadZone(state.leftStickX, 1, leftStickDeadZone);
+      rightThumbstick.X = $jsilxna.deadZone(state.rightStickX, 1, rightStickDeadZone);
 
       // gamepad.js returns inverted Y compared to XInput... weird.
-      leftThumbstick.Y  = -state.leftStickY;
-      rightThumbstick.Y = -state.rightStickY;
+      leftThumbstick.Y  = -$jsilxna.deadZone(state.leftStickY, 1, leftStickDeadZone);
+      rightThumbstick.Y = -$jsilxna.deadZone(state.rightStickY, 1, rightStickDeadZone);
 
       leftTrigger  = state.leftShoulder1;
       rightTrigger = state.rightShoulder1;
@@ -3599,31 +3628,6 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadState", function (
     }
   );
 
-  var deadZone = function (value, max, deadZoneSize) {
-    if (value < -deadZoneSize)
-      value += deadZoneSize;
-    else if (value <= deadZoneSize)
-      return 0;
-    else
-      value -= deadZoneSize;
-
-    var scaled = value / (max - deadZoneSize);
-    if (scaled < -1)
-      scaled = -1;
-    else if (scaled > 1)
-      scaled = 1;
-
-    return scaled;
-  };
-
-  var deadZoneToPressed = function (value, max, deadZoneSize) {
-    var scaled = deadZone(value, max, deadZoneSize);
-    if (Math.abs(scaled) > 0)
-      return pressed;
-    else
-      return released;
-  };
-
   var getButtonState = function (self, button) {
     var s = self._buttons._state;
     var key = button.valueOf();
@@ -3646,9 +3650,9 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadState", function (
 
       // Triggers
       case 8388608:
-        return deadZoneToPressed(self._triggers._left, 1, triggerDeadZone);
+        return $jsilxna.deadZoneToPressed(self._triggers._left, 1, triggerDeadZone);
       case 4194304:
-        return deadZoneToPressed(self._triggers._right, 1, triggerDeadZone);
+        return $jsilxna.deadZoneToPressed(self._triggers._right, 1, triggerDeadZone);
     }
 
     return released;
