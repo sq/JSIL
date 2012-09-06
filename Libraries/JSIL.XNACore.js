@@ -3379,16 +3379,108 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.MouseState", function ($)
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePad", function ($) {
+  var buttons = $xnaasms[0].Microsoft.Xna.Framework.Input.Buttons;
   var pressed = $xnaasms[0].Microsoft.Xna.Framework.Input.ButtonState.Pressed;
   var released = $xnaasms[0].Microsoft.Xna.Framework.Input.ButtonState.Released;
 
-  var getStateImpl = function (playerIndex) {
-    var buttons = new Microsoft.Xna.Framework.Input.GamePadButtons();
-    var thumbs = new Microsoft.Xna.Framework.Input.GamePadThumbSticks();
-    var triggers = new Microsoft.Xna.Framework.Input.GamePadTriggers();
-    var dpad = new Microsoft.Xna.Framework.Input.GamePadDPad(released, released, released, released);
+  var buttonsFromGamepadState = function (state) {
+    var buttonStates = 0;
 
-    return new Microsoft.Xna.Framework.Input.GamePadState(thumbs, triggers, buttons, dpad);
+    if (state.faceButton0)
+      buttonStates |= buttons.A;
+    if (state.faceButton1)
+      buttonStates |= buttons.B;
+    if (state.faceButton2)
+      buttonStates |= buttons.X;
+    if (state.faceButton3)
+      buttonStates |= buttons.Y;
+
+    if (state.leftShoulder0)
+      buttonStates |= buttons.LeftShoulder;
+    if (state.rightShoulder0)
+      buttonStates |= buttons.RightShoulder;
+
+    if (state.select)
+      buttonStates |= buttons.Back;
+    if (state.start)
+      buttonStates |= buttons.Start;
+
+    if (state.leftStickButton)
+      buttonStates |= buttons.LeftStick;
+    if (state.rightStickButton)
+      buttonStates |= buttons.RightStick;
+
+    var result = buttons.$Cast(buttonStates);
+    return result;
+  };
+
+  var getRawStateForPlayerIndex = function (playerIndex) {
+    if (window && window.Gamepad && window.Gamepad.supported) {
+      var states = window.Gamepad.getStates();
+      if (states) {
+        var state = states[playerIndex.valueOf()];
+        if (state) {
+          return state;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  var getStateImpl = function (playerIndex) {
+    var connected = false;
+    var buttonStates = 0;
+    var leftThumbstick = new Microsoft.Xna.Framework.Vector2(0, 0);
+    var rightThumbstick = new Microsoft.Xna.Framework.Vector2(0, 0);
+    var leftTrigger = 0, rightTrigger = 0;
+    var dpadUp = released, dpadDown = released, dpadLeft = released, dpadRight = released;
+
+    var state = getRawStateForPlayerIndex(playerIndex);
+
+    if (state) {
+      connected = true;
+
+      buttonStates = buttonsFromGamepadState(state);
+
+      leftThumbstick.X  = state.leftStickX;
+      rightThumbstick.X = state.rightStickX;
+
+      // gamepad.js returns inverted Y compared to XInput... weird.
+      leftThumbstick.Y  = -state.leftStickY;
+      rightThumbstick.Y = -state.rightStickY;
+
+      leftTrigger  = state.leftShoulder1;
+      rightTrigger = state.rightShoulder1;
+
+      dpadUp    = state.dpadUp    ? pressed : released;
+      dpadDown  = state.dpadDown  ? pressed : released;
+      dpadLeft  = state.dpadLeft  ? pressed : released;
+      dpadRight = state.dpadRight ? pressed : released;          
+    }
+
+    var buttons = new Microsoft.Xna.Framework.Input.GamePadButtons(
+      buttonStates
+    );
+
+    var thumbs = new Microsoft.Xna.Framework.Input.GamePadThumbSticks(
+      leftThumbstick, rightThumbstick
+    );
+
+    var triggers = new Microsoft.Xna.Framework.Input.GamePadTriggers(
+      leftTrigger, rightTrigger
+    );
+
+    var dpad = new Microsoft.Xna.Framework.Input.GamePadDPad(
+      dpadUp, dpadDown, dpadLeft, dpadRight
+    );
+
+    var result = JSIL.CreateInstanceOfType(
+      Microsoft.Xna.Framework.Input.GamePadState.__Type__,
+      "$internalCtor",
+      [connected, thumbs, triggers, buttons, dpad]
+    );
+    return result;
   };
 
   $.Method({Static:true , Public:true }, "GetState", 
@@ -3401,33 +3493,65 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePad", function ($) {
     getStateImpl
   );
 
+  $.Method({Static:true , Public:true }, "SetVibration", 
+    (new JSIL.MethodSignature($.Boolean, [
+          $xnaasms[0].TypeRef("Microsoft.Xna.Framework.PlayerIndex"), $.Single, 
+          $.Single
+        ], [])), 
+    function SetVibration (playerIndex, leftMotor, rightMotor) {
+      // FIXME
+    }
+  );
+
   $.Method({Static:true , Public:true }, "GetCapabilities", 
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.GamePadCapabilities"), [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.PlayerIndex")], [])), 
     function GetCapabilities (playerIndex) {
-      return new Microsoft.Xna.Framework.Input.GamePadCapabilities(null, null);
+      var state = getRawStateForPlayerIndex(playerIndex);
+
+      var result = JSIL.CreateInstanceOfType(
+        Microsoft.Xna.Framework.Input.GamePadCapabilities.__Type__,
+        "$internalCtor",
+        [Boolean(state)]
+      );
+      return result;
     }
   );
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadCapabilities", function ($) {
   
+  $.RawMethod(false, "$internalCtor", function (connected) {
+    this._connected = connected;
+  });
+
   $.Method({Static:false, Public:false}, ".ctor", 
     (new JSIL.MethodSignature(null, [$jsilcore.TypeRef("JSIL.Reference", [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.XINPUT_CAPABILITIES")]), $xnaasms[0].TypeRef("Microsoft.Xna.Framework.ErrorCodes")], [])), 
     function _ctor (/* ref */ caps, result) {
-      // FIXME
+      this._connected = false;
     }
   );
 
   $.Method({Static:false, Public:true }, "get_IsConnected", 
     (new JSIL.MethodSignature($.Boolean, [], [])), 
     function get_IsConnected () {
-      return false;
+      return this._connected;
     }
   );
 
 });
 
 JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadState", function ($) {
+  var buttons = $xnaasms[0].Microsoft.Xna.Framework.Input.Buttons;
+  var pressed = $xnaasms[0].Microsoft.Xna.Framework.Input.ButtonState.Pressed;
+  var released = $xnaasms[0].Microsoft.Xna.Framework.Input.ButtonState.Released;
+
+  $.RawMethod(false, "$internalCtor", function GamePadState_internalCtor (connected, thumbSticks, triggers, buttons, dPad) {
+    this._connected = connected;
+    this._thumbs = thumbSticks;
+    this._buttons = buttons;
+    this._triggers = triggers;
+    this._dpad = dPad;
+  });
 
   $.Method({Static:false, Public:true }, ".ctor", 
     (new JSIL.MethodSignature(null, [
@@ -3435,10 +3559,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadState", function (
           $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.GamePadButtons"), $xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.GamePadDPad")
         ], [])), 
     function _ctor (thumbSticks, triggers, buttons, dPad) {
-      this._thumbs = thumbSticks;
-      this._buttons = buttons;
-      this._triggers = triggers;
-      this._dpad = dPad;
+      this.$internalCtor(false, thumbSticks, triggers, buttons, dPad);
     }
   );
 
@@ -3460,7 +3581,7 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadState", function (
     (new JSIL.MethodSignature($.Boolean, [], [])), 
     function get_IsConnected () {
       // FIXME
-      return false;
+      return this._connected;
     }
   );
 
@@ -3478,19 +3599,72 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadState", function (
     }
   );
 
+  var deadZone = function (value, max, deadZoneSize) {
+    if (value < -deadZoneSize)
+      value += deadZoneSize;
+    else if (value <= deadZoneSize)
+      return 0;
+    else
+      value -= deadZoneSize;
+
+    var scaled = value / (max - deadZoneSize);
+    if (scaled < -1)
+      scaled = -1;
+    else if (scaled > 1)
+      scaled = 1;
+
+    return scaled;
+  };
+
+  var deadZoneToPressed = function (value, max, deadZoneSize) {
+    var scaled = deadZone(value, max, deadZoneSize);
+    if (Math.abs(scaled) > 0)
+      return pressed;
+    else
+      return released;
+  };
+
+  var getButtonState = function (self, button) {
+    var s = self._buttons._state;
+    var key = button.valueOf();
+
+    if (s && s[key])
+      return s[key].valueOf();
+
+    var triggerDeadZone = 30 / 255;
+
+    switch (key) {
+      // DPad
+      case 1:
+        return self._dpad._up;
+      case 2:
+        return self._dpad._down;
+      case 4:
+        return self._dpad._left;
+      case 8:
+        return self._dpad._right;
+
+      // Triggers
+      case 8388608:
+        return deadZoneToPressed(self._triggers._left, 1, triggerDeadZone);
+      case 4194304:
+        return deadZoneToPressed(self._triggers._right, 1, triggerDeadZone);
+    }
+
+    return released;
+  };
+
   $.Method({Static:false, Public:true }, "IsButtonDown", 
     (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.Buttons")], [])), 
     function IsButtonDown (button) {
-      // FIXME
-      return false;
+      return (getButtonState(this, button).valueOf() !== 0);
     }
   );
 
   $.Method({Static:false, Public:true }, "IsButtonUp", 
     (new JSIL.MethodSignature($.Boolean, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.Buttons")], [])), 
     function IsButtonUp (button) {
-      // FIXME
-      return false;
+      return (getButtonState(this, button).valueOf() === 0);
     }
   );
 
@@ -3503,17 +3677,54 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadButtons", function
     "Start", "X", "Y"
   ];
 
+  var buttons = $xnaasms[0].Microsoft.Xna.Framework.Input.Buttons;
   var pressed = $xnaasms[0].Microsoft.Xna.Framework.Input.ButtonState.Pressed;
   var released = $xnaasms[0].Microsoft.Xna.Framework.Input.ButtonState.Released;
 
+  var makeButtonGetter = function (buttonName) {
+    return function getButtonState () {
+      var key = buttons[buttonName];
+      return this._state[key] || released;
+    };
+  }
+
   for (var i = 0; i < buttonNames.length; i++) {
-    $.Method({Static:false, Public:true }, "get_" + buttonNames[i], 
+    var buttonName = buttonNames[i];
+
+    $.Method({Static:false, Public:true }, "get_" + buttonName, 
       (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.ButtonState"), [], [])), 
-      function () {
-        return released;
-      }
+      makeButtonGetter(buttonName)
     );
   }
+
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.Buttons")], [])), 
+    function _ctor (buttonState) {
+      this._state = {};
+
+      buttonState = buttonState.valueOf();
+
+      for (var i = 0; i < buttonNames.length; i++) {
+        var buttonName = buttonNames[i];
+        var buttonMask = buttons[buttonName].valueOf();
+
+        this._state[buttonMask] = (buttonState & buttonMask) ? pressed : released;
+      }
+    }
+  );
+
+  $.RawMethod(false, "__CopyMembers__", 
+    function GamePadButtons_CopyMembers (source, target) {
+      target._state = {};
+
+      for (var k in source._state) {
+        if (!source._state.hasOwnProperty(k))
+          continue;
+
+        target._state[k] = source._state[k];
+      }
+    }
+  );
 
 });
 
@@ -3581,6 +3792,31 @@ JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadDPad", function ($
     (new JSIL.MethodSignature($xnaasms[0].TypeRef("Microsoft.Xna.Framework.Input.ButtonState"), [], [])), 
     function get_Up () {
       return this._up;
+    }
+  );
+
+});
+
+JSIL.ImplementExternals("Microsoft.Xna.Framework.Input.GamePadTriggers", function ($) {
+  $.Method({Static:false, Public:true }, ".ctor", 
+    (new JSIL.MethodSignature(null, [$.Single, $.Single], [])), 
+    function _ctor (leftTrigger, rightTrigger) {
+      this._left = leftTrigger;
+      this._right = rightTrigger;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Left", 
+    (new JSIL.MethodSignature($.Single, [], [])), 
+    function get_Left () {
+      return this._left;
+    }
+  );
+
+  $.Method({Static:false, Public:true }, "get_Right", 
+    (new JSIL.MethodSignature($.Single, [], [])), 
+    function get_Right () {
+      return this._right;
     }
   );
 

@@ -69,6 +69,9 @@ var $jsilloaderstate = {
   if (config.webgl2d)
     loadScript(libraryRoot + "webgl-2d.js");
 
+  if (config.gamepad)
+    loadScript(libraryRoot + "gamepad.js");
+
   loadScript(libraryRoot + "JSIL.Core.js");
   loadScript(libraryRoot + "JSIL.Bootstrap.js");  
   loadScript(libraryRoot + "JSIL.Browser.js");
