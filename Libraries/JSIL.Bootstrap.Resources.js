@@ -26,7 +26,7 @@ JSIL.ImplementExternals("System.Resources.ResourceManager", function ($) {
   $.Method({Static:false, Public:true }, "GetObject", 
     (new JSIL.MethodSignature($.Object, [$.String], [])), 
     function GetObject (name) {
-      var set = this.GetResourceSet(System.Globalization.CultureInfo.CurrentUICulture, false, true)
+      var set = this.GetResourceSet($jsilcore.getCurrentUICultureImpl(), false, true)
       return set.GetObject(name);
     }
   );
@@ -76,7 +76,7 @@ JSIL.ImplementExternals("System.Resources.ResourceManager", function ($) {
   $.Method({Static:false, Public:true }, "GetStream", 
     (new JSIL.MethodSignature($jsilcore.TypeRef("System.IO.UnmanagedMemoryStream"), [$.String], [])), 
     function GetStream (name) {
-      var set = this.GetResourceSet(System.Globalization.CultureInfo.CurrentUICulture, false, true)
+      var set = this.GetResourceSet($jsilcore.getCurrentUICultureImpl(), false, true)
       return set.GetStream(name);
     }
   );
@@ -92,7 +92,7 @@ JSIL.ImplementExternals("System.Resources.ResourceManager", function ($) {
   $.Method({Static:false, Public:true }, "GetString", 
     (new JSIL.MethodSignature($.String, [$.String], [])), 
     function GetString (name) {
-      var set = this.GetResourceSet(System.Globalization.CultureInfo.CurrentUICulture, false, true)
+      var set = this.GetResourceSet($jsilcore.getCurrentUICultureImpl(), false, true)
       return set.GetString(name);
     }
   );
@@ -241,4 +241,31 @@ JSIL.ImplementExternals("System.Globalization.CultureInfo", function ($) {
     }
   );
 
+});
+
+$jsilcore.getCurrentUICultureImpl = function () {
+  var language = "en-US";
+  if (window && window.navigator) {
+    language = window.navigator.language || window.navigator.userLanguage || window.navigator.systemLanguage || "en-US";
+  }
+  
+  return $jsilcore.System.Globalization.CultureInfo.GetCultureInfo(language);
+};
+
+JSIL.ImplementExternals("System.Threading.Thread", function ($) {
+  $.Method({Static:false, Public:true }, "get_CurrentUICulture", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Globalization.CultureInfo"), [], [])), 
+    function get_CurrentUICulture () {
+      return $jsilcore.getCurrentUICultureImpl();
+    }
+  );
+});
+
+JSIL.ImplementExternals("System.Globalization.CultureInfo", function ($) {
+  $.Method({Static:true , Public:true }, "get_CurrentUICulture", 
+    (new JSIL.MethodSignature($jsilcore.TypeRef("System.Globalization.CultureInfo"), [], [])), 
+    function get_CurrentUICulture () {
+      return $jsilcore.getCurrentUICultureImpl();
+    }
+  );
 });

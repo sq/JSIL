@@ -280,7 +280,7 @@ var assetLoaders = {
     if (jsilConfig.CORS) {
       if (hasCORSImage) {
         e.crossOrigin = "";
-      } else if (hasCORSXhr) {
+      } else if (hasCORSXhr && (blobBuilderInfo.hasBlobBuilder || blobBuilderInfo.hasBlobCtor)) {
         if (!warnedAboutCORSImage) {
           JSIL.Host.logWriteLine("WARNING: This game requires support for CORS, and your browser does not support it for images. Using workaround...");
           warnedAboutCORSImage = true;
