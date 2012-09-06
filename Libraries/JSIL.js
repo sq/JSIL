@@ -73,7 +73,8 @@ var $jsilloaderstate = {
     loadScript(libraryRoot + "gamepad.js");
 
   loadScript(libraryRoot + "JSIL.Core.js");
-  loadScript(libraryRoot + "JSIL.Bootstrap.js");  
+  loadScript(libraryRoot + "JSIL.Bootstrap.js");
+  loadScript(libraryRoot + "JSIL.Bootstrap.Resources.js");
   loadScript(libraryRoot + "JSIL.Browser.js");
   loadScript(libraryRoot + "JSIL.Browser.Audio.js");
   loadScript(libraryRoot + "JSIL.Browser.Loaders.js");
