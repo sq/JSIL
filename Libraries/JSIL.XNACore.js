@@ -3396,6 +3396,9 @@ $jsilxna.deadZone = function (value, max, deadZoneSize) {
 };
 
 $jsilxna.deadZoneToPressed = function (value, max, deadZoneSize) {
+  var pressed = $xnaasms[0].Microsoft.Xna.Framework.Input.ButtonState.Pressed;
+  var released = $xnaasms[0].Microsoft.Xna.Framework.Input.ButtonState.Released;
+  
   var scaled = $jsilxna.deadZone(value, max, deadZoneSize);
   if (Math.abs(scaled) > 0)
     return pressed;
