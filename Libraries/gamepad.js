@@ -75,8 +75,10 @@
     if (isFirefox) {
         // todo; current moz nightly does not define this, so we'll always
         // return true for .supported on that Firefox.
-        navigator.mozGamepads = [];
         var mozConnectHandler = function(e) {
+            if (!navigator.mozGamepads)
+              navigator.mozGamepads = [];
+            
             navigator.mozGamepads[e.gamepad.index] = e.gamepad;
         }
         var mozDisconnectHandler = function(e) {
