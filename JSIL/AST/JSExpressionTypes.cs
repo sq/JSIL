@@ -1715,7 +1715,7 @@ namespace JSIL.Ast {
 
     public class JSAsExpression : JSCastExpression {
         protected JSAsExpression (JSExpression inner, TypeReference newType)
-            : base(inner, newType) {
+            : base(inner, newType, false) {
         }
 
         public static JSExpression New (JSExpression inner, TypeReference newType, TypeSystem typeSystem) {
@@ -1729,18 +1729,22 @@ namespace JSIL.Ast {
     public class JSCastExpression : JSExpression {
         public int? CachedTypeIndex;
 
+        public readonly bool IsCoercion;
         public readonly TypeReference NewType;
 
-        protected JSCastExpression (JSExpression inner, TypeReference newType)
+        protected JSCastExpression (JSExpression inner, TypeReference newType, bool isCoercion = false)
             : base(inner) {
 
             NewType = newType;
+            IsCoercion = isCoercion;
         }
 
-        public static JSExpression New (JSExpression inner, TypeReference newType, TypeSystem typeSystem, bool force = false) {
+        public static JSExpression New (
+            JSExpression inner, TypeReference newType, TypeSystem typeSystem, bool force = false, bool isCoercion = false
+        ) {
             return NewInternal(
                 inner, newType, typeSystem, force,
-                () => new JSCastExpression(inner, newType)
+                () => new JSCastExpression(inner, newType, isCoercion)
             );
         }
 

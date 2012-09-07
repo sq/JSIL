@@ -738,7 +738,7 @@ namespace JSIL {
             ) {
                 // ILSpy bug
 
-                return JSCastExpression.New(result, expression.ExpectedType, TypeSystem);
+                return JSCastExpression.New(result, expression.ExpectedType, TypeSystem, isCoercion: true);
             } else {
                 return result;
             }
