@@ -431,3 +431,42 @@ JSIL.ImplementExternals("System.Windows.Forms.MenuItem", function ($) {
     }
   );
 });
+
+
+JSIL.ImplementExternals("System.Windows.Forms.SystemInformation", function ($) {
+  $.Method({Static:true , Public:true }, "get_Border3DSize", 
+    (new JSIL.MethodSignature($wfasms[10].TypeRef("System.Drawing.Size"), [], [])), 
+    function get_Border3DSize () {
+      return new $wfasms[10].System.Drawing.Size(0, 0);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "get_BorderSize", 
+    (new JSIL.MethodSignature($wfasms[10].TypeRef("System.Drawing.Size"), [], [])), 
+    function get_BorderSize () {
+      return new $wfasms[10].System.Drawing.Size(0, 0);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "get_CaptionHeight", 
+    (new JSIL.MethodSignature($.Int32, [], [])), 
+    function get_CaptionHeight () {
+      return new $wfasms[10].System.Drawing.Size(0, 0);
+    }
+  );
+  
+  $.Method({Static:true , Public:true }, "get_FixedFrameBorderSize", 
+    (new JSIL.MethodSignature($wfasms[10].TypeRef("System.Drawing.Size"), [], [])), 
+    function get_FixedFrameBorderSize () {
+      return new $wfasms[10].System.Drawing.Size(0, 0);
+    }
+  );
+
+  $.Method({Static:true , Public:true }, "get_FrameBorderSize", 
+    (new JSIL.MethodSignature($wfasms[10].TypeRef("System.Drawing.Size"), [], [])), 
+    function get_FrameBorderSize () {
+      return new $wfasms[10].System.Drawing.Size(0, 0);
+    }
+  );
+
+});
