@@ -20,12 +20,18 @@ public class Program
     {
         var a = new A();
         a.Value = 1L;
-        Console.WriteLine(a.Value);
+        Print(a.Value);
         a.Setter(2L);
-        Console.WriteLine(a.Value);
+        Print(a.Value);
 
         L l = a;
         l.Value = 3L;
-        Console.WriteLine(l.Getter());
+        Print(l.Getter());
+    }
+
+    private static void Print<T>(T t)
+    {
+        Console.WriteLine(t);
+        Console.WriteLine(t.GetType());
     }
 }

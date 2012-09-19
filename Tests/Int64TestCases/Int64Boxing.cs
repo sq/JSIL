@@ -17,6 +17,7 @@ public class Program
         object bbox = BoxedFoo();
         Console.WriteLine(((Foo)bbox).X);
 
+        Console.WriteLine(((long)box).GetType());
     }
 
     public static object BoxedFoo()

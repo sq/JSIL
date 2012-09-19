@@ -8,8 +8,14 @@ public class Program
         var y = 1450L;
         var z = -15033L;
 
-        Console.WriteLine(x * y);
-        Console.WriteLine(x * z);
-        Console.WriteLine(y * z);
+        Print(x * y);
+        Print(x * z);
+        Print(y * z);
+    }
+
+    private static void Print<T>(T t)
+    {
+        Console.WriteLine(t);
+        Console.WriteLine(t.GetType());
     }
 }

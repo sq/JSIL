@@ -10,11 +10,17 @@ public class Program
         var w = long.Parse("0");
         var z = 10000053450L;
 
-        Console.WriteLine(x + y);
-        Console.WriteLine(x + z);
-        Console.WriteLine(z + y);
-        Console.WriteLine(z + w);
-        Console.WriteLine(z + n);
-        Console.WriteLine(y + n);
+        Print(x + y);
+        Print(x + z);
+        Print(z + y);
+        Print(z + w);
+        Print(z + n);
+        Print(y + n);
+    }
+
+    private static void Print<T>(T t)
+    {
+        Console.WriteLine(t);
+        Console.WriteLine(t.GetType());
     }
 }

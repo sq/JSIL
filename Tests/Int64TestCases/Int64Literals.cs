@@ -8,11 +8,17 @@ public class Program
         var y = 10000053450L;
         var z = -10000053450L;
 
-        Console.WriteLine(0L);
-        Console.WriteLine(1000000000000L);
-        Console.WriteLine(x);
-        Console.WriteLine(y);
-        Console.WriteLine(z);
-        Console.WriteLine(y.GetType().ToString());
+        Print(0L);
+        Print(1000000000000L);
+        Print(x);
+        Print(y);
+        Print(z);
+        Print(y.GetType().ToString());
+    }
+
+    private static void Print<T>(T t)
+    {
+        Console.WriteLine(t);
+        Console.WriteLine(t.GetType());
     }
 }

@@ -6293,7 +6293,7 @@ JSIL.MakeStruct("System.ValueType", "System.Int64", true, [], function ($) {
         return me.op_UnaryNegation(me.op_Division(me.op_UnaryNegation(n), d));
       else
       // fix return type error
-        return uint64.op_Division(n, d);
+        return uint64.op_Division(n, d).ToInt64();
     });
 
   $.Method({ Static: true, Public: true }, "op_Modulus",

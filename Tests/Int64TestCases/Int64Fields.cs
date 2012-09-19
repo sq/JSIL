@@ -10,9 +10,15 @@ public class Program
     public static void Main()
     {
         // fields
-        Console.WriteLine(TEST_CONST);
-        Console.WriteLine(new Program().TEST_READONLY_FIELD);
-        Console.WriteLine(TEST_STATIC_FIELD);
-        Console.WriteLine(new Program().TEST_NORMAL_FIELD);
+        Print(TEST_CONST);
+        Print(new Program().TEST_READONLY_FIELD);
+        Print(TEST_STATIC_FIELD);
+        Print(new Program().TEST_NORMAL_FIELD);
+    }
+
+    private static void Print<T>(T t)
+    {
+        Console.WriteLine(t);
+        Console.WriteLine(t.GetType());
     }
 }

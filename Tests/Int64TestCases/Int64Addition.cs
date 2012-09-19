@@ -16,5 +16,6 @@ public class Program
         Console.WriteLine(1 + x);
         Console.WriteLine(1 + -x);
 
+        Console.WriteLine((x + y).GetType());
     }
 }
